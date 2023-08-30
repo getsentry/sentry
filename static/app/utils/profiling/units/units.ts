@@ -45,6 +45,11 @@ const durationMappings: Record<ProfilingFormatterUnit, number> = {
   watts: 1,
 };
 
+export function fromNanoJoulesToWatts(nanojoules: number, seconds: number) {
+  const joules = nanojoules * durationMappings.nanojoules;
+  return joules / seconds;
+}
+
 export function makeFormatTo(
   from: ProfilingFormatterUnit | string,
   to: ProfilingFormatterUnit | string
@@ -126,6 +131,7 @@ export function makeFormatter(
       value *= durationMappings[from];
       const jouleUnits = ['J', 'kJ', 'MJ', 'GJ'];
       const i = Math.floor(Math.log(value) / Math.log(1000));
+
       if (i < 0) {
         return value.toFixed(precision) + jouleUnits[0];
       }

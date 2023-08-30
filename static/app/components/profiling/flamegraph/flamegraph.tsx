@@ -59,7 +59,11 @@ import {SpanChart, SpanChartNode} from 'sentry/utils/profiling/spanChart';
 import {SpanTree} from 'sentry/utils/profiling/spanTree';
 import {Rect} from 'sentry/utils/profiling/speedscope';
 import {UIFrames} from 'sentry/utils/profiling/uiFrames';
-import {formatTo, ProfilingFormatterUnit} from 'sentry/utils/profiling/units/units';
+import {
+  formatTo,
+  fromNanoJoulesToWatts,
+  ProfilingFormatterUnit,
+} from 'sentry/utils/profiling/units/units';
 import {useDevicePixelRatio} from 'sentry/utils/useDevicePixelRatio';
 import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -332,8 +336,14 @@ function Flamegraph(): ReactElement {
       if (key === 'cpu_energy_usage') {
         measures.push({
           ...profileGroup.measurements[key]!,
-          // some versions of cocoa send byte so we need to correct it
-          unit: 'nanojoule',
+          values: profileGroup.measurements[key]!.values.map(v => {
+            return {
+              elapsed_since_start_ns: v.elapsed_since_start_ns,
+              value: fromNanoJoulesToWatts(v.value, 0.1),
+            };
+          }),
+          // some versions of cocoa send byte so we need to correct it to watt
+          unit: 'watt',
           name: 'CPU energy usage',
         });
       }
