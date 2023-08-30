@@ -60,8 +60,6 @@ export type MetricsResponse = {
 
 export type MetricsProperty = keyof MetricsResponse;
 
-export type SmallResponse = Pick<MetricsResponse, 'sps()'>;
-
 export enum SpanIndexedField {
   SPAN_SELF_TIME = 'span.self_time',
   SPAN_GROUP = 'span.group', // Span group computed from the normalized description. Matches the group in the metrics data set
