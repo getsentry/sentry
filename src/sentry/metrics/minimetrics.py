@@ -1,10 +1,10 @@
+import threading
 import time
 import zlib
 from threading import Lock, Thread
 from typing import Any, Callable, Dict, Generic, List, Literal, Optional, Set, Tuple, TypeVar, Union
 
 from sentry.metrics.base import MetricsBackend
-from sentry.utils import json
 
 Tags = Dict[str, str]
 T = TypeVar("T")
@@ -170,10 +170,19 @@ class Aggregator:
 
             if metrics:
                 self._emit(metrics)
+
             time.sleep(2.0)
 
     def _emit(self, metrics: Any) -> Any:
-        return json.dumps(metrics, indent=2)
+        # In order to avoid an infinite recursion for metrics, we want to use a thread local variable that will signal
+        # the downstream calls to only propagate the metric to DataDog, otherwise if propagated to minimetrics, it will
+        # cause unbounded recursion.
+        thread_local = threading.local()
+        thread_local.in_minimetrics = True
+        # We want to emit a metric on how many metrics we would technically emit if we were to use minimetrics.
+        metrics.incr("minimetrics.emit", amount=len(metrics))
+        # We clear the thread local variables, in order to make metrics extraction continue as normal.
+        thread_local.__dict__.clear()
 
     def add(
         self,
@@ -202,14 +211,18 @@ class Aggregator:
                 self.buckets[bucket_key] = metric
             metric.add(value)
 
-    def stop(self):
-        self._running = False
-        self._flusher.join()
-
 
 class Client:
     def __init__(self) -> None:
         self.aggregator = Aggregator()
+
+    @staticmethod
+    def _is_in_minimetrics():
+        try:
+            thread_local = threading.local()
+            return thread_local.in_minimetrics
+        except AttributeError:
+            return False
 
     def incr(
         self,
@@ -219,7 +232,8 @@ class Client:
         tags: Optional[Tags] = None,
         timestamp: Optional[float] = None,
     ) -> None:
-        self.aggregator.add("c", key, value, unit, tags, timestamp)
+        if not self._is_in_minimetrics():
+            self.aggregator.add("c", key, value, unit, tags, timestamp)
 
     def timing(
         self,
@@ -229,7 +243,8 @@ class Client:
         tags: Optional[Tags] = None,
         timestamp: Optional[float] = None,
     ) -> None:
-        self.aggregator.add("d", key, value, unit, tags, timestamp)
+        if not self._is_in_minimetrics():
+            self.aggregator.add("d", key, value, unit, tags, timestamp)
 
     def set(
         self,
@@ -238,7 +253,8 @@ class Client:
         tags: Optional[Tags] = None,
         timestamp: Optional[float] = None,
     ) -> None:
-        self.aggregator.add("s", key, value, None, tags, timestamp)
+        if not self._is_in_minimetrics():
+            self.aggregator.add("s", key, value, None, tags, timestamp)
 
     def gauge(
         self,
@@ -248,14 +264,15 @@ class Client:
         tags: Optional[Tags] = None,
         timestamp: Optional[float] = None,
     ) -> None:
-        self.aggregator.add("g", key, value, unit, tags, timestamp)
+        if not self._is_in_minimetrics():
+            self.aggregator.add("g", key, value, unit, tags, timestamp)
 
 
 # TODO:
 #   * Check how to use units
 #   * Check usage of instance
 #
-class MiniSentryMetricsBackend(MetricsBackend):
+class MiniMetricsMetricsBackend(MetricsBackend):
     def __init__(self):
         super().__init__()
         self._client = Client()
@@ -289,7 +306,3 @@ class MiniSentryMetricsBackend(MetricsBackend):
         sample_rate: float = 1,
     ) -> None:
         self._client.gauge(key=key, value=value, tags=tags)
-
-    def __del__(self):
-        # We want to make sure to stop the aggregator once the backend is destructed.
-        self._client.aggregator.stop()
