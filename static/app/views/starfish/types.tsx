@@ -40,6 +40,7 @@ export type SpanMetricsFieldTypes = {
 };
 
 export type SpanNumberFields = 'span.self_time' | 'span.duration';
+
 export type SpanStringFields =
   | 'span.op'
   | 'span.description'
@@ -48,6 +49,7 @@ export type SpanStringFields =
   | 'span.domain'
   | 'span.group'
   | 'project.id';
+
 export type SpanFunctions =
   | 'sps'
   | 'spm'
