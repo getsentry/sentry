@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, Iterable, Mapping, MutableMapping, Optional, Sequence
 
-from sentry.models.commitauthor import CommitAuthor
+from sentry.db.models.base import Model
 from sentry.models.organization import Organization
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notifications.strategies.member_write_role_recipient_strategy import (
@@ -20,7 +20,6 @@ class MissingMembersNudgeNotification(BaseNotification):
 
     RoleBasedRecipientStrategyClass = MemberWriteRoleRecipientStrategy
     notification_setting_type = NotificationSettingTypes.MISSING_MEMBERS
-    reference = CommitAuthor
 
     def __init__(
         self,
@@ -30,6 +29,10 @@ class MissingMembersNudgeNotification(BaseNotification):
         super().__init__(organization)
         self.commit_authors = commit_authors
         self.role_based_recipient_strategy = self.RoleBasedRecipientStrategyClass(organization)
+
+    @property
+    def reference(self) -> Model | None:
+        return None
 
     # TODO
     def get_subject(self, context: Mapping[str, Any] | None = None) -> str:
