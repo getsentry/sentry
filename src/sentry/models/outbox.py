@@ -132,6 +132,7 @@ class WebhookProviderIdentifier(IntEnum):
     GITHUB_ENTERPRISE = 8
     BITBUCKET_SERVER = 9
     LEGACY_PLUGIN = 10
+    GETSENTRY = 11
 
 
 def _ensure_not_null(k: str, v: Any) -> Any:
