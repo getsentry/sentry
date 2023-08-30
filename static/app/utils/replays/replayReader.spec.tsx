@@ -91,6 +91,14 @@ describe('ReplayReader', () => {
       startTimestamp: new Date('2023-12-25T00:03:00'),
       endTimestamp: new Date('2023-12-25T00:03:30'),
     });
+    const navCrumb = TestStubs.Replay.BreadcrumbFrameEvent({
+      timestamp: new Date('2023-12-25T00:03:00'),
+      data: {
+        payload: TestStubs.Replay.NavFrame({
+          timestamp: new Date('2023-12-25T00:03:00'),
+        }),
+      },
+    });
     const consoleEvent = TestStubs.Replay.ConsoleEvent({timestamp});
     const customEvent = TestStubs.Replay.BreadcrumbFrameEvent({
       timestamp: new Date('2023-12-25T00:02:30'),
@@ -114,6 +122,7 @@ describe('ReplayReader', () => {
       firstDiv,
       firstMemory,
       navigationEvent,
+      navCrumb,
       optionsEvent,
       secondDiv,
       secondMemory,
@@ -170,6 +179,7 @@ describe('ReplayReader', () => {
         expected: [
           expect.objectContaining({category: 'replay.init'}),
           expect.objectContaining({category: 'ui.slowClickDetected'}),
+          expect.objectContaining({category: 'navigation'}),
           expect.objectContaining({op: 'navigation.navigate'}),
           expect.objectContaining({category: 'ui.click'}),
           expect.objectContaining({category: 'ui.click'}),
