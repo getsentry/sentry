@@ -48,7 +48,7 @@ from sentry.snuba.metrics import (
     SnubaResultConverter,
     get_date_range,
     get_intervals,
-    parse_query,
+    parse_conditions,
     resolve_tags,
     translate_meta_results,
 )
@@ -249,7 +249,7 @@ def get_entity_of_metric_mocked(_, metric_name, use_case_id):
         ),
     ],
 )
-def test_parse_query(query_string, expected):
+def test_parse_conditions(query_string, expected):
     org_id = ORG_ID
     use_case_id = UseCaseID.SESSIONS
     for s in ("myapp@2.0.0", "/bar/:orgId/"):
@@ -258,7 +258,7 @@ def test_parse_query(query_string, expected):
     parsed = resolve_tags(
         use_case_id,
         org_id,
-        parse_query(query_string, []),
+        parse_conditions(query_string, [], {}),
         [],
     )
     assert parsed == expected()
@@ -1509,7 +1509,7 @@ class QueryDefinitionTestCase(TestCase):
             }
         )
         query = QueryDefinition([self.project], query_params)
-        assert query.parsed_query == [
+        assert query.where == [
             Condition(
                 Column(name="release"),
                 Op.IN,

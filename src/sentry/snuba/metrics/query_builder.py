@@ -4,7 +4,7 @@ __all__ = (
     "SnubaResultConverter",
     "get_date_range",
     "parse_field",
-    "parse_query",
+    "parse_conditions",
     "resolve_tags",
     "translate_meta_results",
     "QUERY_PROJECT_LIMIT",
@@ -406,47 +406,32 @@ def is_tag_key_allowed(tag_key: str, allowed_tag_keys: Optional[Dict[str, str]])
     return allowed_tag_keys.get(f"tags[{tag_key}]") is not None
 
 
-def parse_query(query_string: str, projects: Sequence[Project]) -> Sequence[Condition]:
-    """Parse given filter query into a list of snuba conditions"""
+def parse_conditions(
+    query_string: str, projects: Sequence[Project], query_params: Mapping[str, Any]
+) -> Sequence[Condition]:
+    """Parse given filter query and query params into a list of snuba conditions"""
     # HACK: Parse a sessions query, validate / transform afterwards.
     # We will want to write our own grammar + interpreter for this later.
     try:
         query_builder = ReleaseHealthQueryBuilder(
             Dataset.Sessions,
             params={
+                **query_params,
                 "project_id": [project.id for project in projects],
                 "organization_id": org_id_from_projects(projects) if projects else None,
             },
             config=QueryBuilderConfig(use_aggregate_conditions=True),
         )
         where, _ = query_builder.resolve_conditions(query_string)
-    except InvalidSearchQuery as e:
-        raise InvalidParams(f"Failed to parse query: {e}")
-
-    return where
-
-
-def parse_query_params(query_params, projects: Sequence[Project]) -> Sequence[Condition]:
-    try:
-        query_builder = ReleaseHealthQueryBuilder(
-            Dataset.Sessions,
-            params={
-                **query_params,
-                "organization_id": org_id_from_projects(projects) if projects else None,
-            },
-            config=QueryBuilderConfig(use_aggregate_conditions=True),
-        )
-
         param_conditions = list(
             filter(
                 lambda condition: condition.lhs.name != "project_id", query_builder.resolve_params()
             )
         )
-
     except InvalidSearchQuery as e:
-        raise InvalidParams(f"Failed to parse params: {e}")
+        raise InvalidParams(f"Failed to parse conditions: {e}")
 
-    return param_conditions
+    return where + param_conditions
 
 
 class ReleaseHealthQueryBuilder(UnresolvedQuery):
@@ -492,8 +477,6 @@ class QueryDefinition:
         paginator_kwargs = paginator_kwargs or {}
 
         self.query = query_params.get("query", "")
-        self.parsed_query = parse_query(self.query, projects) if self.query else []
-        self.param_conditions = parse_query_params(query_params, projects) if query_params else []
         self.groupby = [
             MetricGroupByField(groupby_col) for groupby_col in query_params.getlist("groupBy", [])
         ]
@@ -509,6 +492,7 @@ class QueryDefinition:
         self.limit: Optional[Limit] = self._parse_limit(paginator_kwargs)
         self.offset: Optional[Offset] = self._parse_offset(paginator_kwargs)
         self.having: Optional[ConditionGroup] = query_params.getlist("having")
+        self.where = parse_conditions(self.query, projects, query_params)
 
         start, end, rollup = get_date_range(query_params)
         self.rollup = rollup
@@ -526,7 +510,7 @@ class QueryDefinition:
             select=self.fields,
             start=self.start,
             end=self.end,
-            where=self.parsed_query + self.param_conditions,
+            where=self.where,
             having=self.having,
             groupby=self.groupby,
             orderby=self.orderby,
