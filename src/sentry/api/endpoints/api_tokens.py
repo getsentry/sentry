@@ -7,6 +7,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import SessionNoAuthTokenAuthentication
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.fields import MultipleChoiceField
@@ -22,6 +23,11 @@ class ApiTokenSerializer(serializers.Serializer):
 
 @control_silo_endpoint
 class ApiTokensEndpoint(Endpoint):
+    publish_status = {
+        "DELETE": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     authentication_classes = (SessionNoAuthTokenAuthentication,)
     permission_classes = (IsAuthenticated,)
 

@@ -10,8 +10,7 @@ from django.db import models
 
 from sentry.backup.dependencies import PrimaryKeyMap, dependencies
 from sentry.backup.findings import ComparatorFinding, ComparatorFindingKind, InstanceID
-from sentry.backup.helpers import Side, get_exportable_final_derivations_of
-from sentry.db.models import BaseModel
+from sentry.backup.helpers import Side, get_exportable_sentry_models
 from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.utils.json import JSONData
@@ -365,7 +364,7 @@ class IgnoredComparator(JSONScrubbingComparator):
 def auto_assign_datetime_equality_comparators(comps: ComparatorMap) -> None:
     """Automatically assigns the DateAddedComparator to any `DateTimeField` that is not already claimed by the `DateUpdatedComparator`."""
 
-    exportable = get_exportable_final_derivations_of(BaseModel)
+    exportable = get_exportable_sentry_models()
     for e in exportable:
         name = "sentry." + e.__name__.lower()
         fields = e._meta.get_fields()
@@ -391,7 +390,7 @@ def auto_assign_datetime_equality_comparators(comps: ComparatorMap) -> None:
 def auto_assign_email_obfuscating_comparators(comps: ComparatorMap) -> None:
     """Automatically assigns the EmailObfuscatingComparator to any field that is an `EmailField` or has a foreign key into the `sentry.User` table."""
 
-    exportable = get_exportable_final_derivations_of(BaseModel)
+    exportable = get_exportable_sentry_models()
     for e in exportable:
         name = "sentry." + e.__name__.lower()
         fields = e._meta.get_fields()
