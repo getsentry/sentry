@@ -437,9 +437,9 @@ class CustomerDomainTest(APITestCase):
 
         region_config = [
             {
-                "name": "na",
+                "name": "us",
                 "snowflake_id": 1,
-                "address": "http://na.testserver",
+                "address": "http://us.testserver",
                 "category": RegionCategory.MULTI_TENANT.name,
             },
             {
@@ -450,7 +450,7 @@ class CustomerDomainTest(APITestCase):
             },
         ]
         with override_region_config(region_config):
-            assert request_with_subdomain("na") == "na"
+            assert request_with_subdomain("us") == "us"
             assert request_with_subdomain("eu") == "eu"
             assert request_with_subdomain("sentry") is None
 

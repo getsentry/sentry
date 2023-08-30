@@ -17,7 +17,7 @@ logger = logging.getLogger("sentry.auth")
 AUTH_CHECK_INTERVAL = 3600
 
 
-@instrumented_task(name="sentry.tasks.check_auth", queue="auth", silo_mode=SiloMode.CONTROL)
+@instrumented_task(name="sentry.tasks.check_auth", queue="auth.control", silo_mode=SiloMode.CONTROL)
 def check_auth(**kwargs):
     """
     Iterates over all accounts which have not been verified in the required
@@ -43,7 +43,7 @@ def check_auth(**kwargs):
 
 
 @instrumented_task(
-    name="sentry.tasks.check_auth_identity", queue="auth", silo_mode=SiloMode.CONTROL
+    name="sentry.tasks.check_auth_identity", queue="auth.control", silo_mode=SiloMode.CONTROL
 )
 def check_auth_identity(auth_identity_id, **kwargs):
     try:

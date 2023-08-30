@@ -15,6 +15,8 @@ from django.conf import settings
 
 from sentry import quotas
 from sentry.models import Project
+from sentry.spans.grouping.api import load_span_grouping_config
+from sentry.spans.grouping.strategy.base import Span
 from sentry.utils import json, metrics
 from sentry.utils.arroyo import RunTaskWithMultiprocessing
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
@@ -47,11 +49,12 @@ def _build_snuba_span(relay_span: Mapping[str, Any]) -> MutableMapping[str, Any]
         or DEFAULT_SPAN_RETENTION_DAYS
     )
 
+    span_data: Mapping[str, Any] = relay_span.get("data", {})
+
     snuba_span: MutableMapping[str, Any] = {}
     snuba_span["description"] = relay_span.get("description")
     snuba_span["event_id"] = relay_span["event_id"]
     snuba_span["exclusive_time_ms"] = int(relay_span.get("exclusive_time", 0))
-    snuba_span["group_raw"] = "0"
     snuba_span["is_segment"] = relay_span.get("is_segment", False)
     snuba_span["organization_id"] = organization.id
     snuba_span["parent_span_id"] = relay_span.get("parent_span_id", "0")
@@ -73,10 +76,10 @@ def _build_snuba_span(relay_span: Mapping[str, Any]) -> MutableMapping[str, Any]
 
     sentry_tags: MutableMapping[str, Any] = {}
 
-    if tags := relay_span.get("data"):
+    if span_data:
         for relay_tag, snuba_tag in TAG_MAPPING.items():
-            if relay_tag in tags:
-                sentry_tags[snuba_tag] = tags.get(relay_tag)
+            if relay_tag in span_data:
+                sentry_tags[snuba_tag] = span_data.get(relay_tag)
 
     if "op" not in sentry_tags:
         sentry_tags["op"] = relay_span.get("op", "")
@@ -85,6 +88,32 @@ def _build_snuba_span(relay_span: Mapping[str, Any]) -> MutableMapping[str, Any]
         sentry_tags["status"] = relay_span.get("status", "")
 
     snuba_span["sentry_tags"] = sentry_tags
+
+    grouping_config = load_span_grouping_config()
+
+    if snuba_span["is_segment"]:
+        group = grouping_config.strategy.get_transaction_span_group(
+            {"transaction": span_data.get("transaction", "")},
+        )
+    else:
+        # Build a span with only necessary values filled.
+        span = Span(
+            op=snuba_span.get("op", ""),
+            description=snuba_span.get("description", ""),
+            fingerprint=None,
+            trace_id="",
+            parent_span_id="",
+            span_id="",
+            start_timestamp=0,
+            timestamp=0,
+            tags=None,
+            data=None,
+            same_process_as_parent=True,
+        )
+        group = grouping_config.strategy.get_span_group(span)
+
+    snuba_span["group_raw"] = group or "0"
+    snuba_span["span_grouping_config"] = {"id": grouping_config.id}
 
     return snuba_span
 
@@ -154,6 +183,7 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             producer=self.__producer,
             topic=self.__output_topic,
             next_step=CommitOffsets(commit),
+            max_buffer_size=100000,
         )
         return RunTaskWithMultiprocessing(
             num_processes=self.__num_processes,

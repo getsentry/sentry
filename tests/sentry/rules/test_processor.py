@@ -7,6 +7,7 @@ from django.db import DEFAULT_DB_ALIAS, connections
 from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 
+from sentry.constants import ObjectStatus
 from sentry.models import GroupRuleStatus, GroupStatus, Rule
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.rulefirehistory import RuleFireHistory
@@ -119,6 +120,23 @@ class RuleProcessorTest(TestCase):
         )
         results = list(rp.apply())
         assert len(results) == 0
+
+    def test_disabled_rule(self):
+        self.rule.status = ObjectStatus.DISABLED
+        self.rule.save()
+        rp = RuleProcessor(
+            self.group_event,
+            is_new=True,
+            is_regression=True,
+            is_new_group_environment=True,
+            has_reappeared=True,
+        )
+        results = list(rp.apply())
+        assert len(results) == 0
+        assert (
+            RuleFireHistory.objects.filter(rule=self.rule, group=self.group_event.group).count()
+            == 0
+        )
 
     def test_muted_slack_rule(self):
         """Test that we don't sent a notification for a muted Slack rule"""

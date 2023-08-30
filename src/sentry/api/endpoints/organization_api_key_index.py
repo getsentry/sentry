@@ -3,6 +3,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.organization import (
     ControlSiloOrganizationEndpoint,
@@ -16,6 +17,10 @@ DEFAULT_SCOPES = ["project:read", "event:read", "team:read", "org:read", "member
 
 @control_silo_endpoint
 class OrganizationApiKeyIndexEndpoint(ControlSiloOrganizationEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (OrganizationAdminPermission,)
 
     def get(self, request: Request, organization_context, organization) -> Response:
