@@ -32,7 +32,7 @@ class ReleaseThresholdType:
         )
 
 
-class ValueType:
+class TriggerType:
     PERCENT_OVER = 0
     PERCENT_UNDER = 1
     ABSOLUTE_OVER = 2
@@ -53,8 +53,8 @@ class ReleaseThreshold(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
     threshold_type = BoundedPositiveIntegerField(choices=ReleaseThresholdType.as_choices())
-    threshold_trigger_type = BoundedPositiveIntegerField(choices=ValueType.as_choices())
-    threshold_value = models.IntegerField()
+    trigger_type = BoundedPositiveIntegerField(choices=TriggerType.as_choices())
+    value = models.IntegerField()
     window_in_seconds = models.IntegerField()
 
     project = FlexibleForeignKey("sentry.Project", db_index=True)
