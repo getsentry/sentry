@@ -125,7 +125,7 @@ def detect_function_trends(project_ids: List[int], start: datetime, **kwargs) ->
     # This is the total number of functions examined in this iteration
     metrics.incr(
         "statistical_detectors.total.functions",
-        amount=len(regressed_functions),
+        amount=len(function_counts),
         sample_rate=1.0,
     )
 
