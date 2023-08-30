@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import base64
-from typing import Any, List, Mapping
+from typing import Any, List, Mapping, Optional
 
 from django.contrib.auth.models import AnonymousUser
 from django.db import router, transaction
@@ -222,10 +222,16 @@ class DatabaseBackedAuthService(AuthService):
         )
 
     def get_auth_providers(self, organization_id: int) -> List[RpcAuthProvider]:
-        return [
-            serialize_auth_provider(auth_provider)
-            for auth_provider in AuthProvider.objects.filter(organization_id=organization_id)
-        ]
+        # DEPRECATED. TODO: Delete after usages are removed from getsentry.
+        auth_provider = self.get_auth_provider(organization_id)
+        return [auth_provider] if auth_provider else []
+
+    def get_auth_provider(self, organization_id: int) -> Optional[RpcAuthProvider]:
+        try:
+            auth_provider = AuthProvider.objects.get(organization_id=organization_id)
+        except AuthProvider.DoesNotExist:
+            return None
+        return serialize_auth_provider(auth_provider)
 
     def change_scim(
         self, *, user_id: int, provider_id: int, enabled: bool, allow_unlinked: bool

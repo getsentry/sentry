@@ -88,13 +88,13 @@ class SCIMQueryParamSerializer(serializers.Serializer):
 
 
 class OrganizationSCIMPermission(OrganizationPermission):
-    def has_object_permission(self, request: Request, view, organization: Organization):
+    def has_object_permission(self, request: Request, view, organization: Organization) -> bool:
         result = super().has_object_permission(request, view, organization)
         # The scim endpoints should only be used in conjunction with a SAML2 integration
         if not result:
             return result
-        providers = auth_service.get_auth_providers(organization_id=organization.id)
-        return any(p.flags.scim_enabled for p in providers)
+        provider = auth_service.get_auth_provider(organization_id=organization.id)
+        return provider is not None and provider.flags.scim_enabled
 
 
 class OrganizationSCIMMemberPermission(OrganizationSCIMPermission):

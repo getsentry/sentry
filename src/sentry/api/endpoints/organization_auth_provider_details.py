@@ -29,13 +29,12 @@ class OrganizationAuthProviderDetailsEndpoint(OrganizationEndpoint):
         :pparam string organization_slug: the organization short name
         :auth: required
         """
-        auth_providers = auth_service.get_auth_providers(organization_id=organization.id)
-        if not auth_providers:
+        auth_provider = auth_service.get_auth_provider(organization_id=organization.id)
+        if not auth_provider:
             # This is a valid state where org does not have an auth provider
             # configured, make sure we respond with a 20x
             return Response(status=status.HTTP_204_NO_CONTENT)
 
-        auth_provider = auth_providers[0]
         return Response(
             serialize(
                 auth_provider,

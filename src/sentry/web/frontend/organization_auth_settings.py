@@ -214,13 +214,13 @@ class OrganizationAuthSettingsView(ControlSiloOrganizationView):
         return self.respond("sentry/organization-auth-provider-settings.html", context)
 
     def handle(self, request: Request, organization: RpcOrganization) -> HttpResponseBase:  # type: ignore[override]
-        providers = auth_service.get_auth_providers(organization_id=organization.id)
-        if providers:
+        provider = auth_service.get_auth_provider(organization_id=organization.id)
+        if provider:
             # if the org has SSO set up already, allow them to modify the existing provider
             # regardless if the feature flag is set up. This allows orgs who might no longer
             # have the SSO feature to be able to turn it off
             return self.handle_existing_provider(
-                request=request, organization=organization, auth_provider=providers[0]
+                request=request, organization=organization, auth_provider=provider
             )
 
         if request.method == "POST":
