@@ -27,7 +27,7 @@ from sentry.utils.event_frames import get_sdk_name
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.locking.manager import LockManager
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
-from sentry.utils.safe import safe_execute
+from sentry.utils.safe import get_path, safe_execute
 from sentry.utils.sdk import bind_organization_context, set_current_event_project
 from sentry.utils.services import build_instance_from_options
 
@@ -851,8 +851,8 @@ def process_replay_link(job: PostProcessJob) -> None:
         # It comes as a tag on js errors.
         # TODO: normalize this upstream in relay and javascript SDK. and eventually remove the tag
         # logic.
-        context_replay_id = event.data.get("contexts", {}).get("replay", {}).get("replay_id")
 
+        context_replay_id = get_path(event.data, "contexts", "replay", "replay_id")
         return context_replay_id or event.get_tag("replayId")
 
     if job["is_reprocessed"]:
