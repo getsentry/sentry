@@ -172,18 +172,6 @@ describe('Frame - Line', function () {
           components={[]}
           event={event}
           isExpanded
-          debugFrames={[
-            {
-              filename,
-              query: {
-                eventId: 'event-id',
-                exceptionIdx: 0,
-                frameIdx: 0,
-                orgSlug: 'org-slug',
-                projectSlug: 'project-slug',
-              },
-            },
-          ]}
         />,
         {organization: org}
       );
