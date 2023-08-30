@@ -45,6 +45,7 @@ interface FlamegraphChartProps {
   chartCanvas: FlamegraphCanvas | null;
   chartCanvasRef: HTMLCanvasElement | null;
   chartView: CanvasView<FlamegraphChartType> | null;
+  noMeasurementMessage: string | undefined;
   setChartCanvasRef: (ref: HTMLCanvasElement | null) => void;
 }
 
@@ -56,6 +57,7 @@ export function FlamegraphChart({
   chartCanvasRef,
   setChartCanvasRef,
   canvasBounds,
+  noMeasurementMessage,
 }: FlamegraphChartProps) {
   const profiles = useProfiles();
   const scheduler = useCanvasScheduler(canvasPoolManager);
@@ -286,7 +288,7 @@ export function FlamegraphChart({
         <CollapsibleTimelineLoadingIndicator />
       ) : profiles.type === 'resolved' && !chart?.series.length ? (
         <CollapsibleTimelineMessage>
-          {t('Profile has no measurements')}
+          {noMeasurementMessage || t('Profile has no measurements')}
         </CollapsibleTimelineMessage>
       ) : null}
     </Fragment>

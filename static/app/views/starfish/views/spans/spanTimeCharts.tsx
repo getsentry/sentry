@@ -24,7 +24,7 @@ import {
 import {ModuleFilters} from 'sentry/views/starfish/views/spans/useModuleFilters';
 import {NULL_SPAN_CATEGORY} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
 
-const {SPAN_SELF_TIME, SPAN_OP, SPAN_MODULE, SPAN_DESCRIPTION} = SpanMetricsFields;
+const {SPAN_SELF_TIME, SPAN_MODULE, SPAN_DESCRIPTION} = SpanMetricsFields;
 
 const CHART_HEIGHT = 140;
 
@@ -267,10 +267,6 @@ const buildDiscoverQueryConditions = (
 
   if (moduleName !== ModuleName.ALL) {
     result.push(`${SPAN_MODULE}:${moduleName}`);
-  }
-
-  if (moduleName === ModuleName.DB) {
-    result.push(`!${SPAN_OP}:db.redis`);
   }
 
   if (spanCategory) {

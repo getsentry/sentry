@@ -67,11 +67,13 @@ function DomMutationRow({
         </Row>
         {/* @ts-expect-error */}
         <Selector>{frame.message ?? ''}</Selector>
-        <CodeContainer>
-          <CodeSnippet language="html" hideCopyButton>
-            {beautify.html(html, {indent_size: 2})}
-          </CodeSnippet>
-        </CodeContainer>
+        {html ? (
+          <CodeContainer>
+            <CodeSnippet language="html" hideCopyButton>
+              {beautify.html(html, {indent_size: 2})}
+            </CodeSnippet>
+          </CodeContainer>
+        ) : null}
       </List>
     </MutationListItem>
   );

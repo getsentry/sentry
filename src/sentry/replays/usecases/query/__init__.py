@@ -200,6 +200,8 @@ def query_using_optimized_search(
 
     # These replay_ids are ordered by the OrderBy expression in the query above.
     replay_ids = [row["replay_id"] for row in subquery_response.get("data", [])]
+    if not replay_ids:
+        return []
 
     # The final aggregation step.  Here we pass the replay_ids as the only filter.  In this step
     # we select everything and use as much memory as we need to complete the operation.
@@ -218,17 +220,7 @@ def query_using_optimized_search(
         referrer="replays.query.browse_query",
     )["data"]
 
-    replay_id_to_index = {}
-    for i, replay_id in enumerate(replay_ids):
-        if replay_id not in replay_id_to_index:
-            replay_id_to_index[replay_id] = i
-
-    ordered_results = [None] * len(replay_id_to_index)
-    for result in results:
-        index = replay_id_to_index[result["replay_id"]]
-        ordered_results[index] = result
-
-    return ordered_results
+    return _make_ordered(replay_ids, results)
 
 
 def make_simple_scalar_query(
@@ -366,3 +358,22 @@ def _make_tenant_id(organization: Organization | None) -> dict[str, int]:
         return {}
     else:
         return {"organization_id": organization.id}
+
+
+def _make_ordered(replay_ids: list[str], results: Any) -> list[Any]:
+    if not replay_ids:
+        return []
+    elif not results:
+        return []
+
+    replay_id_to_index = {}
+    for i, replay_id in enumerate(replay_ids):
+        if replay_id not in replay_id_to_index:
+            replay_id_to_index[replay_id] = i
+
+    ordered_results = [None] * len(replay_id_to_index)
+    for result in results:
+        index = replay_id_to_index[result["replay_id"]]
+        ordered_results[index] = result
+
+    return list(filter(None, ordered_results))

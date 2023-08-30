@@ -39,7 +39,7 @@ class ProjectRuleEnableEndpoint(ProjectEndpoint):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        duplicate_rule = find_duplicate_rule(rule.data, project)
+        duplicate_rule = find_duplicate_rule(rule.data, project, rule_id)
         if duplicate_rule:
             return Response(
                 {
