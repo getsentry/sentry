@@ -262,7 +262,7 @@ class ProjectOwnershipEndpoint(ProjectEndpoint):
                 actor=request.user,
                 organization=project.organization,
                 target_object=project.id,
-                event=audit_log.get_event_id("PROJECT_EDIT"),
+                event=audit_log.get_event_id("PROJECT_OWNERSHIPRULE_EDIT"),
                 data={**change_data, **project.get_audit_log_data()},
             )
             ownership_rule_created.send_robust(project=project, sender=self.__class__)

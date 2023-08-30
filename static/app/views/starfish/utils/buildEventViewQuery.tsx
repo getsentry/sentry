@@ -59,10 +59,6 @@ export function buildEventViewQuery({
     result.push(`${SPAN_MODULE}:${moduleName}`);
   }
 
-  if (moduleName === ModuleName.DB) {
-    result.push(`!${SPAN_OP}:db.redis`);
-  }
-
   if (defined(spanCategory)) {
     if (spanCategory === NULL_SPAN_CATEGORY) {
       result.push(`!has:span.category`);

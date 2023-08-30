@@ -40,13 +40,13 @@ FEATURES = [
         """
         Manage incidents and outages by sending Sentry notifications to Opsgenie.
         """,
-        IntegrationFeatures.INCIDENT_MANAGEMENT,
+        IntegrationFeatures.ENTERPRISE_INCIDENT_MANAGEMENT,
     ),
     FeatureDescription(
         """
         Configure rule based Opsgenie alerts that automatically trigger and notify specific teams.
         """,
-        IntegrationFeatures.ALERT_RULE,
+        IntegrationFeatures.ENTERPRISE_ALERT_RULE,
     ),
 ]
 
