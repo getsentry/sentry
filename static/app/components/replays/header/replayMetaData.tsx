@@ -5,6 +5,7 @@ import ContextIcon from 'sentry/components/replays/contextIcon';
 import ErrorCounts from 'sentry/components/replays/header/errorCounts';
 import HeaderPlaceholder from 'sentry/components/replays/header/headerPlaceholder';
 import TimeSince from 'sentry/components/timeSince';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconCalendar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -20,20 +21,24 @@ function ReplayMetaData({replayErrors, replayRecord}: Props) {
     <KeyMetrics>
       <KeyMetricLabel>{t('OS')}</KeyMetricLabel>
       <KeyMetricData>
-        <ContextIcon
-          name={replayRecord?.os.name ?? ''}
-          version={replayRecord?.os.version ?? undefined}
-          showVersion
-        />
+        <Tooltip title={`${replayRecord?.os.name} ${replayRecord?.os.version}`}>
+          <ContextIcon
+            name={replayRecord?.os.name ?? ''}
+            version={replayRecord?.os.version ?? undefined}
+            showVersion
+          />
+        </Tooltip>
       </KeyMetricData>
 
       <KeyMetricLabel>{t('Browser')}</KeyMetricLabel>
       <KeyMetricData>
-        <ContextIcon
-          name={replayRecord?.browser.name ?? ''}
-          version={replayRecord?.browser.version ?? undefined}
-          showVersion
-        />
+        <Tooltip title={`${replayRecord?.browser.name} ${replayRecord?.browser.version}`}>
+          <ContextIcon
+            name={replayRecord?.browser.name ?? ''}
+            version={replayRecord?.browser.version ?? undefined}
+            showVersion
+          />
+        </Tooltip>
       </KeyMetricData>
 
       <KeyMetricLabel>{t('Start Time')}</KeyMetricLabel>
