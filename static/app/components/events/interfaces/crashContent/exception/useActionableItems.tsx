@@ -9,20 +9,7 @@ import type {Organization, SharedViewOrganization} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {ApiQueryKey, useApiQuery} from 'sentry/utils/queryClient';
 
-export enum SourceMapProcessingIssueType {
-  UNKNOWN_ERROR = 'unknown_error',
-  MISSING_RELEASE = 'no_release_on_event',
-  MISSING_SOURCEMAPS = 'no_sourcemaps_on_release',
-  URL_NOT_VALID = 'url_not_valid',
-  NO_URL_MATCH = 'no_url_match',
-  PARTIAL_MATCH = 'partial_match',
-  DIST_MISMATCH = 'dist_mismatch',
-  SOURCEMAP_NOT_FOUND = 'sourcemap_not_found',
-  DEBUG_ID_NO_SOURCEMAPS = 'debug_id_no_sourcemaps',
-}
-
 export type ActionableItemTypes =
-  | SourceMapProcessingIssueType
   | JavascriptProcessingErrors
   | HttpProcessingErrors
   | GenericSchemaErrors
@@ -43,38 +30,6 @@ interface BaseActionableItem {
   message: string;
   type: ActionableItemTypes;
 }
-
-interface UnknownErrorDebugError extends BaseActionableItem {
-  type: SourceMapProcessingIssueType.UNKNOWN_ERROR;
-}
-interface MissingReleaseDebugError extends BaseActionableItem {
-  type: SourceMapProcessingIssueType.MISSING_RELEASE;
-}
-interface MissingSourcemapsDebugError extends BaseActionableItem {
-  type: SourceMapProcessingIssueType.MISSING_SOURCEMAPS;
-}
-interface UrlNotValidDebugError extends BaseActionableItem {
-  data: {absPath: string};
-  type: SourceMapProcessingIssueType.URL_NOT_VALID;
-}
-interface PartialMatchDebugError extends BaseActionableItem {
-  data: {absPath: string; partialMatchPath: string; urlPrefix: string};
-  type: SourceMapProcessingIssueType.PARTIAL_MATCH;
-}
-interface DistMismatchDebugError extends BaseActionableItem {
-  type: SourceMapProcessingIssueType.DIST_MISMATCH;
-}
-interface SourcemapNotFoundDebugError extends BaseActionableItem {
-  type: SourceMapProcessingIssueType.SOURCEMAP_NOT_FOUND;
-}
-interface NoURLMatchDebugError extends BaseActionableItem {
-  data: {absPath: string};
-  type: SourceMapProcessingIssueType.NO_URL_MATCH;
-}
-interface DebugIdNotSetUpError extends BaseActionableItem {
-  type: SourceMapProcessingIssueType.DEBUG_ID_NO_SOURCEMAPS;
-}
-
 interface ProguardMissingLineNoError extends BaseActionableItem {
   type: ProguardProcessingErrors.PROGUARD_MISSING_LINENO;
 }
@@ -130,15 +85,6 @@ interface InvalidAttributeError extends BaseActionableItem {
 }
 
 export type ActionableItems =
-  | UnknownErrorDebugError
-  | MissingReleaseDebugError
-  | MissingSourcemapsDebugError
-  | UrlNotValidDebugError
-  | PartialMatchDebugError
-  | DistMismatchDebugError
-  | SourcemapNotFoundDebugError
-  | NoURLMatchDebugError
-  | DebugIdNotSetUpError
   | ProguardMissingLineNoError
   | ProguardMissingMappingError
   | NativeMissingOptionalBundledDSYMError

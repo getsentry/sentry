@@ -39,7 +39,7 @@ interface ExternalIssueParams extends CommonGroupAnalyticsData {
 }
 
 export type IssueEventParameters = {
-  'actionable_items.docs_link_clicked': ActionableItemDebugParam;
+  'actionable_items.expand_clicked': ActionableItemDebugParam;
   'device.classification.high.end.android.device': {
     processor_count: number;
     processor_frequency: number;
@@ -293,7 +293,7 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
     'Performance Issue Details: Hidden Spans Expanded',
   'source_map_debug.docs_link_clicked': 'Source Map Debug: Docs Clicked',
   'source_map_debug.expand_clicked': 'Source Map Debug: Expand Clicked',
-  'actionable_items.docs_link_clicked': 'Actionable Items: Docs Link Clicked',
+  'actionable_items.expand_clicked': 'Actionable Item: Expand Clicked',
   'issue_details.copy_event_link_clicked': 'Issue Details: Copy Event Link Clicked',
   'issue_details.event_details_clicked': 'Issue Details: Full Event Details Clicked',
   'issue_details.event_dropdown_option_selected':

@@ -5,9 +5,7 @@ import moment from 'moment';
 
 import Alert from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
-import SourceMapsWizard from 'sentry/components/events/interfaces/crashContent/exception/sourcemapsWizard';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
-import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {
@@ -17,9 +15,9 @@ import {
   NativeProcessingErrors,
   ProguardProcessingErrors,
 } from 'sentry/constants/eventErrors';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Event, Organization} from 'sentry/types';
+import {Event} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForEvent} from 'sentry/utils/events';
@@ -31,13 +29,8 @@ import {
   ActionableItemsResponse,
   ActionableItemTypes,
   ActionableItemWarning,
-  SourceMapProcessingIssueType,
   useActionableItems,
 } from './useActionableItems';
-import {sourceMapSdkDocsMap} from './utils';
-
-const shortPathPlatforms = ['javascript', 'node', 'react-native'];
-const sentryInit = <code>Sentry.init</code>;
 
 interface ErrorMessage {
   desc: React.ReactNode;
@@ -63,179 +56,10 @@ const keyMapping = {
   image_path: 'File Path',
 };
 
-function getErrorMessage(
-  error: ActionableItems,
-  event: Event,
-  organization: Organization,
-  sdkName?: string
-): Array<ErrorMessage> {
-  const docPlatform = (sdkName && sourceMapSdkDocsMap[sdkName]) ?? 'javascript';
-  const useShortPath = shortPathPlatforms.includes(docPlatform);
-
-  const analyticsParams = {
-    organization,
-    project_id: event.projectID,
-    group_id: event.groupID,
-    ...getAnalyticsDataForEvent(event),
-  };
-
-  const baseSourceMapDocsLink = useShortPath
-    ? `https://docs.sentry.io/platforms/${docPlatform}/sourcemaps/`
-    : `https://docs.sentry.io/platforms/javascript/guides/${docPlatform}/sourcemaps/`;
-
-  function getTroubleshootingLink(section?: string) {
-    // react-native has a different troubleshooting page
-    if (docPlatform === 'react-native') {
-      return 'https://docs.sentry.io/platforms/react-native/troubleshooting/#source-maps';
-    }
-    return (
-      `${baseSourceMapDocsLink}troubleshooting_js/legacy-uploading-methods/` +
-      (section ? `#${section}` : '')
-    );
-  }
-
-  const defaultDocsLink = `${baseSourceMapDocsLink}#uploading-source-maps`;
-  const docsLink = (type: ActionableItemTypes, link: string) => {
-    return (
-      <ExternalLink
-        onClick={() => {
-          trackAnalytics('actionable_items.docs_link_clicked', {
-            ...analyticsParams,
-            type,
-          });
-        }}
-        openInNewTab
-        href={link}
-      />
-    );
-  };
-
-  `${baseSourceMapDocsLink}#uploading-source-maps`;
-  const sourcemapTitle = t('Fix Source Maps');
+function getErrorMessage(error: ActionableItems): Array<ErrorMessage> {
   const errorData = error.data ?? {};
 
   switch (error.type) {
-    case SourceMapProcessingIssueType.MISSING_RELEASE:
-      return [
-        {
-          title: t('Event missing Release tag'),
-          desc: tct(
-            'Integrate Sentry into your release pipeline using a tool like the Sentry Webpack plugin or Sentry CLI. Read our docs for [link:more information].',
-            {
-              link: docsLink(error.type, defaultDocsLink),
-            }
-          ),
-          expandTitle: sourcemapTitle,
-          data: errorData,
-        },
-      ];
-    case SourceMapProcessingIssueType.PARTIAL_MATCH:
-      return [
-        {
-          title: t('Partial Absolute Path Match'),
-          desc: tct(
-            'The stack frame has an absolute path which is a partial match. You need to update the value for the URL prefix argument or `includes` in your config options to include the URL prefix. Read our docs for [link:more information].',
-            {
-              link: docsLink(
-                error.type,
-                getTroubleshootingLink('verify-artifact-names-match-stack-trace-frames')
-              ),
-            }
-          ),
-          expandTitle: sourcemapTitle,
-          data: errorData,
-        },
-      ];
-    case SourceMapProcessingIssueType.MISSING_SOURCEMAPS:
-      return [
-        {
-          title: t('Source Maps not uploaded'),
-          desc: tct(
-            "It looks like you're creating, but not uploading your source maps. Read our docs for [link:troubleshooting help].",
-            {link: docsLink(error.type, defaultDocsLink)}
-          ),
-          expandTitle: sourcemapTitle,
-          data: errorData,
-        },
-      ];
-    case SourceMapProcessingIssueType.URL_NOT_VALID:
-      return [
-        {
-          title: t('Invalid Absolute Path URL'),
-          desc: tct(
-            'The [literalAbsPath] of the stack frame is not a valid URL. Read our docs for [link:troubleshooting help].',
-            {
-              literalAbsPath: <code>abs_path</code>,
-              link: docsLink(
-                error.type,
-                getTroubleshootingLink('verify-artifact-names-match-stack-trace-frames')
-              ),
-            }
-          ),
-          expandTitle: sourcemapTitle,
-          data: errorData,
-        },
-      ];
-    case SourceMapProcessingIssueType.NO_URL_MATCH:
-      return [
-        {
-          title: t('Absolute Path Mismatch'),
-          desc: tct(
-            "The given [literalAbsPath] of the stack frame doesn't match any uploaded source maps. Read our docs for [link: troubleshooting help].",
-            {
-              literalAbsPath: <code>abs_path</code>,
-              link: docsLink(
-                error.type,
-                getTroubleshootingLink('verify-artifact-names-match-stack-trace-frames')
-              ),
-            }
-          ),
-          expandTitle: sourcemapTitle,
-          data: errorData,
-        },
-      ];
-    case SourceMapProcessingIssueType.DIST_MISMATCH:
-      return [
-        {
-          title: t('Dist Mismatch'),
-          desc: tct(
-            'The [literalDist] value configured in your [init] must be the same as the one used during source map upload. Read our docs for [link: troubleshooting help].',
-            {
-              init: sentryInit,
-              literalDist: <code>dist</code>,
-              link: docsLink(
-                error.type,
-                getTroubleshootingLink(
-                  'verify-artifact-distribution-value-matches-value-configured-in-your-sdk'
-                )
-              ),
-            }
-          ),
-          expandTitle: sourcemapTitle,
-          data: errorData,
-        },
-      ];
-    case SourceMapProcessingIssueType.SOURCEMAP_NOT_FOUND:
-      return [
-        {
-          title: t("Source Map File doesn't exist"),
-          desc: tct(
-            "Sentry couldn't fetch the source map file for this event. Read our docs for [link: troubleshooting help].",
-            {link: docsLink(error.type, getTroubleshootingLink())}
-          ),
-          expandTitle: sourcemapTitle,
-          data: errorData,
-        },
-      ];
-    // Need to return something but this does not need to follow the pattern since it uses a different alert
-    case SourceMapProcessingIssueType.DEBUG_ID_NO_SOURCEMAPS:
-      return [
-        {
-          title: 'Debug Id but no Sourcemaps',
-          desc: 'Try using the Source Maps Wizard',
-          expandTitle: sourcemapTitle,
-        },
-      ];
     // Event Errors
     case ProguardProcessingErrors.PROGUARD_MISSING_LINENO:
       return [
@@ -490,17 +314,14 @@ interface ErrorMessageType extends ErrorMessage {
 }
 
 function groupedErrors(
-  event: Event,
-  organization: Organization,
-  data?: ActionableItemsResponse,
-  sdkName?: string
+  data?: ActionableItemsResponse
 ): Record<ActionableItemTypes, ErrorMessageType[]> | {} {
   if (!data) {
     return {};
   }
   const errors = data.errors
     .map(error =>
-      getErrorMessage(error, event, organization, sdkName).map(message => ({
+      getErrorMessage(error).map(message => ({
         ...message,
         type: error.type,
       }))
@@ -521,7 +342,6 @@ interface ActionableItemsProps {
 }
 
 export function ActionableItem({event, projectSlug}: ActionableItemsProps) {
-  const sdkName = event.sdk?.name;
   const organization = useOrganization();
   const {data, isLoading} = useActionableItems({
     eventId: event.id,
@@ -529,7 +349,7 @@ export function ActionableItem({event, projectSlug}: ActionableItemsProps) {
     projectSlug,
   });
 
-  const errorMessages = groupedErrors(event, organization, data, sdkName);
+  const errorMessages = groupedErrors(data);
 
   useRouteAnalyticsParams({
     show_actionable_items_cta: data ? data.errors.length > 0 : false,
@@ -553,13 +373,6 @@ export function ActionableItem({event, projectSlug}: ActionableItemsProps) {
       type,
     });
   };
-
-  if (
-    errorMessages[SourceMapProcessingIssueType.DEBUG_ID_NO_SOURCEMAPS] &&
-    errorMessages[SourceMapProcessingIssueType.DEBUG_ID_NO_SOURCEMAPS].length > 0
-  ) {
-    return <SourceMapsWizard analyticsParams={analyticsParams} />;
-  }
 
   const hasErrorAlert = Object.keys(errorMessages).some(error =>
     ActionableItemWarning.includes(
