@@ -211,6 +211,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         )
         # update the team's notification settings
         ExternalActor.objects.create(
+            actor_id=self.team.actor_id,
             team_id=self.team.id,
             organization=self.organization,
             integration_id=self.integration.id,
@@ -282,6 +283,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
 
         # update the team's notification settings
         ExternalActor.objects.create(
+            actor_id=self.team.actor_id,
             team_id=self.team.id,
             organization=self.organization,
             integration_id=self.integration.id,
@@ -378,6 +380,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         )
         # update the team's notification settings
         ExternalActor.objects.create(
+            actor_id=self.team.actor_id,
             team_id=self.team.id,
             organization=self.organization,
             integration_id=self.integration.id,
@@ -470,6 +473,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         )
         # update the team's notification settings
         ExternalActor.objects.create(
+            actor_id=self.team.actor_id,
             team_id=self.team.id,
             organization=self.organization,
             integration_id=self.integration.id,
@@ -546,6 +550,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         )
         # update the team's notification settings
         ExternalActor.objects.create(
+            actor_id=self.team.actor_id,
             team_id=self.team.id,
             organization=self.organization,
             integration_id=self.integration.id,
@@ -608,6 +613,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
 
         # create the team's notification settings
         ExternalActor.objects.create(
+            actor_id=self.team.actor_id,
             team_id=self.team.id,
             organization=self.organization,
             integration_id=self.integration.id,
