@@ -1327,8 +1327,6 @@ CRISPY_TEMPLATE_PACK = "bootstrap3"
 # Sentry and internal client configuration
 
 SENTRY_FEATURES = {
-    # Prevents entirely numeric resource slugs
-    "app:enterprise-prevent-numeric-slugs": False,
     # Enables user registration.
     "auth:register": True,
     # Enables actionable items alerts and endpoint
@@ -1367,12 +1365,6 @@ SENTRY_FEATURES = {
     "organizations:create": True,
     # Enable usage of customer domains on the frontend
     "organizations:customer-domains": False,
-    # Allow disabling github integrations when broken is detected
-    "organizations:github-disable-on-broken": False,
-    # Allow disabling integrations when broken is detected
-    "organizations:slack-fatal-disable-on-broken": False,
-    # Allow disabling sentryapps when broken is detected
-    "organizations:disable-sentryapps-on-broken": False,
     # Enable the 'discover' interface.
     "organizations:discover": False,
     # Enables events endpoint rate limit
@@ -1423,6 +1415,12 @@ SENTRY_FEATURES = {
     "organizations:profiling-cpu-chart": False,
     # Enable profiling Memory chart
     "organizations:profiling-memory-chart": False,
+    # Enable profiling battery usage chart
+    "organizations:profiling-battery-usage-chart": False,
+    # Enable disabling github integrations when broken is detected
+    "organizations:github-disable-on-broken": False,
+    # Enable disabling gitlab integrations when broken is detected
+    "organizations:gitlab-disable-on-broken": False,
     # Enable multi project selection
     "organizations:global-views": False,
     # Enable experimental new version of Merged Issues where sub-hashes are shown
@@ -1717,8 +1715,6 @@ SENTRY_FEATURES = {
     "organizations:sdk-crash-detection": False,
     # Enable functionality for recap server polling.
     "organizations:recap-server": False,
-    # Enable additional logging for alerts
-    "organizations:detailed-alert-logging": False,
     # Enable the new notification settings system
     "organizations:notification-settings-v2": False,
     # Adds additional filters and a new section to issue alert rules.
@@ -1739,6 +1735,10 @@ SENTRY_FEATURES = {
     "projects:discard-groups": False,
     # Extract spans from transactions in Relay, and forward them via Kafka.
     "projects:extract-standalone-spans": False,
+    # Enable considering group severity when creating and evaluating alert rules
+    "projects:first-event-severity-alerting": False,
+    # Enable calculating a severity score for events which create a new group
+    "projects:first-event-severity-calculation": False,
     # Enable functionality for attaching  minidumps to events and displaying
     # then in the group UI.
     "projects:minidump": True,
@@ -2068,6 +2068,8 @@ SENTRY_METRICS_INDEXER_CACHE_TTL = 3600 * 2
 SENTRY_METRICS_INDEXER_TRANSACTIONS_SAMPLE_RATE = 0.1
 
 SENTRY_METRICS_INDEXER_SPANNER_OPTIONS: dict[str, Any] = {}
+
+SENTRY_METRICS_INDEXER_REINDEXED_INTS: dict[int, str] = {}
 
 # Rate limits during string indexing for our metrics product.
 # Which cluster to use. Example: {"cluster": "default"}

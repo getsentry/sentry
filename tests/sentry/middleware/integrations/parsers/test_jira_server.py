@@ -21,7 +21,7 @@ from sentry.types.region import Region, RegionCategory
 class JiraServerRequestParserTest(TestCase):
     get_response = MagicMock(return_value=HttpResponse(content=b"no-error", status=200))
     factory = RequestFactory()
-    region = Region("na", 1, "https://na.testserver", RegionCategory.MULTI_TENANT)
+    region = Region("us", 1, "https://us.testserver", RegionCategory.MULTI_TENANT)
     region_config = (region,)
 
     def setUp(self):
@@ -57,7 +57,7 @@ class JiraServerRequestParserTest(TestCase):
         parser = JiraServerRequestParser(request=request, response_handler=self.get_response)
 
         organization_mapping_service.update(
-            organization_id=self.organization.id, update={"region_name": "na"}
+            organization_id=self.organization.id, update={"region_name": "us"}
         )
         with mock.patch(
             "sentry.middleware.integrations.parsers.jira_server.get_integration_from_token"

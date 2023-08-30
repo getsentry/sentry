@@ -269,6 +269,13 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+register(
+    "api.prevent-numeric-slugs",
+    default=False,
+    type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Beacon
 register("beacon.anonymous", type=Bool, flags=FLAG_REQUIRED)
 
@@ -700,6 +707,13 @@ register(
 # Option to enable dart deobfuscation on ingest
 register(
     "processing.view-hierarchies-dart-deobfuscation", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
+)
+
+# Enable calling the severity modeling API on group creation
+register(
+    "processing.calculate-severity-on-group-creation",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 

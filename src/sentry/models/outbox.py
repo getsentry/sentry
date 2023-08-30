@@ -57,6 +57,7 @@ class OutboxScope(IntEnum):
     APP_SCOPE = 6
     TEAM_SCOPE = 7
     PROVISION_SCOPE = 8
+    SUBSCRIPTION_SCOPE = 9
 
     def __str__(self):
         return self.name
@@ -103,6 +104,7 @@ class OutboxCategory(IntEnum):
     DISABLE_AUTH_PROVIDER = 20
     RESET_IDP_FLAGS = 21
     MARK_INVALID_SSO = 22
+    SUBSCRIPTION_UPDATE = 23
 
     @classmethod
     def as_choices(cls):
@@ -130,6 +132,7 @@ class WebhookProviderIdentifier(IntEnum):
     GITHUB_ENTERPRISE = 8
     BITBUCKET_SERVER = 9
     LEGACY_PLUGIN = 10
+    GETSENTRY = 11
 
 
 def _ensure_not_null(k: str, v: Any) -> Any:
