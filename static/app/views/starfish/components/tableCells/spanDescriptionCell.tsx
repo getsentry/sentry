@@ -54,11 +54,11 @@ export function SpanDescriptionCell({
     endpointMethod,
   };
 
-  const sort: string | undefined = queryString[QueryParameterNames.SORT];
+  const sort: string | undefined = queryString[QueryParameterNames.SPANS_SORT];
 
   // the spans page uses time_spent_percentage(local), so to persist the sort upon navigation we need to replace
   if (sort?.includes(`${StarfishFunctions.TIME_SPENT_PERCENTAGE}()`)) {
-    queryString[QueryParameterNames.SORT] = sort.replace(
+    queryString[QueryParameterNames.SPANS_SORT] = sort.replace(
       `${StarfishFunctions.TIME_SPENT_PERCENTAGE}()`,
       `${StarfishFunctions.TIME_SPENT_PERCENTAGE}(local)`
     );
