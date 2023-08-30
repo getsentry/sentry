@@ -1721,6 +1721,8 @@ SENTRY_FEATURES = {
     "organizations:detailed-alert-logging": False,
     # Enable the new notification settings system
     "organizations:notification-settings-v2": False,
+    # Enable new release UI
+    "organizations:release-ui-v2": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
