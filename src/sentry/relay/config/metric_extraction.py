@@ -98,6 +98,11 @@ def _get_alert_metric_specs(
     if not ("organizations:on-demand-metrics-extraction" in enabled_features or prefilling):
         return []
 
+    metrics.incr(
+        "on_demand_metrics.get_alerts",
+        tags={"prefilling": prefilling},
+    )
+
     datasets = [Dataset.PerformanceMetrics.value]
     if prefilling:
         datasets.append(Dataset.Transactions.value)
@@ -116,7 +121,7 @@ def _get_alert_metric_specs(
     for alert in alert_rules:
         alert_snuba_query = alert.snuba_query
         metrics.incr(
-            "on_demand_metrics.fetch_alert",
+            "on_demand_metrics.before_alert_spec_generation",
             tags={"prefilling": prefilling, "dataset": alert_snuba_query.dataset},
         )
         if result := _convert_snuba_query_to_metric(project, alert.snuba_query, prefilling):
@@ -153,6 +158,11 @@ def _get_widget_metric_specs(
         and "organizations:on-demand-metrics-extraction-experimental" in enabled_features
     ):
         return []
+
+    metrics.incr(
+        "on_demand_metrics.get_widgets",
+        tags={"prefilling": prefilling},
+    )
 
     # fetch all queries of all on demand metrics widgets of this organization
     widget_queries = DashboardWidgetQuery.objects.filter(
@@ -222,7 +232,7 @@ def _convert_widget_query_to_metric(
 
     for aggregate in widget_query.aggregates:
         metrics.incr(
-            "on_demand_metrics.fetch_widget",
+            "on_demand_metrics.before_widget_spec_generation",
             tags={"prefilling": prefilling},
         )
         if result := _convert_aggregate_and_query_to_metric(
