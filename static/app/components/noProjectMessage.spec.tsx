@@ -134,9 +134,7 @@ describe('NoProjectMessage', function () {
   });
 
   it('shows projects to superusers if membership is not required', function () {
-    ProjectsStore.loadInitialData([
-      TestStubs.Project({hasAccess: true, isMember: false}),
-    ]);
+    ProjectsStore.loadInitialData([TestStubs.Project({isMember: false})]);
 
     ConfigStore.set('user', {...ConfigStore.get('user'), isSuperuser: true});
 
