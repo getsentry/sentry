@@ -817,6 +817,10 @@ class AuthHelper(Pipeline):
                 auth_identity = None
 
             # Handle migration of identity keys
+            # Context - when google oauth was initially created, the auth_identity key was simply
+            # the provider email. This can cause issues if the customer changes their domain name,
+            # and now their email is different and they're locked out of their account.
+            # This logic updates their id to the provider id instead.
             if not auth_identity and isinstance(user_id, MigratingIdentityId):
                 try:
                     auth_identity = AuthIdentity.objects.select_related("user").get(
