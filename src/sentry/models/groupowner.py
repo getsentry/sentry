@@ -55,7 +55,6 @@ class GroupOwner(Model):
     Tracks the "owners" or "suggested assignees" of a group.
     """
 
-    __include_in_export__ = False
     __relocation_scope__ = RelocationScope.Excluded
 
     group = FlexibleForeignKey("sentry.Group", db_constraint=False)

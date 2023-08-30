@@ -125,7 +125,6 @@ class ProcessingIssueManager(BaseManager):
 
 @region_silo_only_model
 class ProcessingIssue(Model):
-    __include_in_export__ = False
     __relocation_scope__ = RelocationScope.Excluded
 
     project = FlexibleForeignKey("sentry.Project", db_index=True)
@@ -154,7 +153,6 @@ class ProcessingIssue(Model):
 
 @region_silo_only_model
 class EventProcessingIssue(Model):
-    __include_in_export__ = False
     __relocation_scope__ = RelocationScope.Excluded
 
     raw_event = FlexibleForeignKey("sentry.RawEvent")

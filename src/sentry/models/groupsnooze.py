@@ -37,7 +37,6 @@ class GroupSnooze(Model):
     NOTE: `window` and `user_window` are specified in minutes
     """
 
-    __include_in_export__ = False
     __relocation_scope__ = RelocationScope.Excluded
 
     group = FlexibleForeignKey("sentry.Group", unique=True)

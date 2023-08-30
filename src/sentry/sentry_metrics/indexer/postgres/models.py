@@ -18,7 +18,6 @@ from typing import Mapping, Type
 
 @region_silo_only_model
 class MetricsKeyIndexer(Model):
-    __include_in_export__ = False
     __relocation_scope__ = RelocationScope.Excluded
 
     string = models.CharField(max_length=200)
@@ -61,7 +60,6 @@ class BaseIndexer(Model):
 
 @region_silo_only_model
 class StringIndexer(BaseIndexer):
-    __include_in_export__ = False
     __relocation_scope__ = RelocationScope.Excluded
 
     class Meta:
@@ -74,7 +72,6 @@ class StringIndexer(BaseIndexer):
 
 @region_silo_only_model
 class PerfStringIndexer(BaseIndexer):
-    __include_in_export__ = False
     __relocation_scope__ = RelocationScope.Excluded
     use_case_id = models.CharField(max_length=120)
 

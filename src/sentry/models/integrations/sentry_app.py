@@ -108,7 +108,6 @@ class SentryAppManager(ParanoidManager):
 
 @control_silo_only_model
 class SentryApp(ParanoidModel, HasApiScopes):
-    __include_in_export__ = True
     __relocation_scope__ = RelocationScope.Global
 
     application = models.OneToOneField(

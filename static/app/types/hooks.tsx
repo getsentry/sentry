@@ -88,8 +88,9 @@ type DisabledMemberTooltipProps = {children: React.ReactNode};
 
 type DashboardHeadersProps = {organization: Organization};
 
-type ReplayOnboardingAlertProps = {children: React.ReactNode};
 type ReplayFeedbackButton = {children: React.ReactNode};
+type ReplayListPageHeaderProps = {children?: React.ReactNode};
+type ReplayOnboardingAlertProps = {children: React.ReactNode};
 type ReplayOnboardingCTAProps = {children: React.ReactNode; organization: Organization};
 type ProductUnavailableCTAProps = {organization: Organization};
 
@@ -171,6 +172,7 @@ export type ComponentHooks = {
   'component:profiling-billing-banner': () => React.ComponentType<ProfilingBetaAlertBannerProps>;
   'component:profiling-upgrade-plan-button': () => React.ComponentType<ProfilingUpgradePlanButtonProps>;
   'component:replay-feedback-button': () => React.ComponentType<ReplayFeedbackButton>;
+  'component:replay-list-page-header': () => React.ComponentType<ReplayListPageHeaderProps> | null;
   'component:replay-onboarding-alert': () => React.ComponentType<ReplayOnboardingAlertProps>;
   'component:replay-onboarding-cta': () => React.ComponentType<ReplayOnboardingCTAProps>;
   'component:sentry-logo': () => React.ComponentType<SentryLogoProps>;

@@ -11,12 +11,13 @@ from rest_framework.response import Response
 
 from sentry import analytics, audit_log, roles
 from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.organization import ControlSiloOrganizationEndpoint, OrgAuthTokenPermission
 from sentry.api.serializers import serialize
 from sentry.api.utils import generate_region_url
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
-from sentry.models.orgauthtoken import OrgAuthToken
+from sentry.models.orgauthtoken import MAX_NAME_LENGTH, OrgAuthToken
 from sentry.models.user import User
 from sentry.security.utils import capture_security_activity
 from sentry.services.hybrid_cloud.organization.model import (
@@ -28,6 +29,10 @@ from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 
 @control_silo_endpoint
 class OrgAuthTokensEndpoint(ControlSiloOrganizationEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     owner = ApiOwner.ENTERPRISE
     permission_classes = (OrgAuthTokenPermission,)
 
@@ -65,6 +70,11 @@ class OrgAuthTokensEndpoint(ControlSiloOrganizationEndpoint):
         # Main validation cases with specific error messages
         if not name:
             return Response({"detail": ["The name cannot be blank."]}, status=400)
+
+        if len(name) > MAX_NAME_LENGTH:
+            return Response(
+                {"detail": ["The name cannot be longer than 255 characters."]}, status=400
+            )
 
         token = OrgAuthToken.objects.create(
             name=name,

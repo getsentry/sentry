@@ -2,6 +2,7 @@ from django.views.decorators.csrf import csrf_exempt
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.constants import ObjectStatus
 from sentry.integrations.utils import AtlassianConnectValidationError, get_integration_from_jwt
@@ -12,6 +13,9 @@ from sentry.services.hybrid_cloud.integration import integration_service
 
 @control_silo_endpoint
 class BitbucketUninstalledEndpoint(Endpoint):
+    publish_status = {
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     authentication_classes = ()
     permission_classes = ()
 

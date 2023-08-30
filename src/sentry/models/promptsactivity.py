@@ -17,7 +17,6 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 class PromptsActivity(Model):
     """Records user interaction with various feature prompts in product"""
 
-    __include_in_export__ = False
     __relocation_scope__ = RelocationScope.Excluded
 
     organization_id = BoundedBigIntegerField(db_index=True)

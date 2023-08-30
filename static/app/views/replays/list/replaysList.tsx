@@ -11,13 +11,11 @@ import EventView from 'sentry/utils/discover/eventView';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {DEFAULT_SORT} from 'sentry/utils/replays/fetchReplayList';
 import useReplayList from 'sentry/utils/replays/hooks/useReplayList';
-import {useHaveSelectedProjectsSentAnyReplayEvents} from 'sentry/utils/replays/hooks/useReplayOnboarding';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjectSdkNeedsUpdate from 'sentry/utils/useProjectSdkNeedsUpdate';
-import ReplayOnboardingPanel from 'sentry/views/replays/list/replayOnboardingPanel';
 import ReplayTable from 'sentry/views/replays/replayTable';
 import {ReplayColumn} from 'sentry/views/replays/replayTable/types';
 import type {ReplayListLocationQuery} from 'sentry/views/replays/types';
@@ -45,17 +43,12 @@ function ReplaysList() {
     );
   }, [location]);
 
-  const hasSessionReplay = organization.features.includes('session-replay');
-  const {hasSentOneReplay, fetching} = useHaveSelectedProjectsSentAnyReplayEvents();
-
-  return hasSessionReplay && !fetching && hasSentOneReplay ? (
+  return (
     <ReplaysListTable
       eventView={eventView}
       location={location}
       organization={organization}
     />
-  ) : (
-    <ReplayOnboardingPanel />
   );
 }
 
@@ -111,6 +104,7 @@ function ReplaysListTable({
         replays={replays}
         sort={eventView.sorts[0]}
         visibleColumns={visibleCols}
+        showDropdownFilters
         emptyMessage={
           allSelectedProjectsNeedUpdates && hasReplayClick ? (
             <Fragment>

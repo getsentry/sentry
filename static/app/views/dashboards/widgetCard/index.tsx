@@ -1,4 +1,4 @@
-import React, {Component, Fragment} from 'react';
+import {Component, Fragment} from 'react';
 import LazyLoad from 'react-lazyload';
 import {WithRouterProps} from 'react-router';
 import {useSortable} from '@dnd-kit/sortable';
@@ -288,7 +288,7 @@ class WidgetCard extends Component<Props, State> {
         customComponent={<ErrorCard>{t('Error loading widget data')}</ErrorCard>}
       >
         {conditionalWrapWithDashboardsMEPProvider(
-          <React.Fragment>
+          <Fragment>
             <VisuallyCompleteWithData
               id="DashboardList-FirstWidgetCard"
               hasData={
@@ -420,7 +420,7 @@ class WidgetCard extends Component<Props, State> {
                   }}
                 </MEPConsumer>
               )}
-          </React.Fragment>
+          </Fragment>
         )}
       </ErrorBoundary>
     );

@@ -31,7 +31,6 @@ def generate_token():
 
 @control_silo_only_model
 class ApiToken(Model, HasApiScopes):
-    __include_in_export__ = True
     __relocation_scope__ = RelocationScope.Global
 
     # users can generate tokens without being application-bound

@@ -11,6 +11,7 @@ from sentry.db.models import (
     Model,
     control_silo_only_model,
     region_silo_only_model,
+    sane_repr,
 )
 from sentry.silo import SiloMode
 
@@ -29,7 +30,6 @@ class TombstoneBase(Model):
         abstract = True
         unique_together = ("table_name", "object_identifier")
 
-    __include_in_export__ = False
     __relocation_scope__ = RelocationScope.Excluded
 
     table_name = models.CharField(max_length=48, null=False)
@@ -59,9 +59,13 @@ class RegionTombstone(TombstoneBase):
         app_label = "sentry"
         db_table = "sentry_regiontombstone"
 
+    __repr__ = sane_repr("id", "table_name", "object_identifier")
+
 
 @control_silo_only_model
 class ControlTombstone(TombstoneBase):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_controltombstone"
+
+    __repr__ = sane_repr("id", "table_name", "object_identifier")

@@ -99,7 +99,6 @@ class OrganizationOption(Model):
     value: { updated: datetime }
     """
 
-    __include_in_export__ = True
     __relocation_scope__ = RelocationScope.Organization
 
     organization = FlexibleForeignKey("sentry.Organization")

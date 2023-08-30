@@ -8,7 +8,6 @@ from .notificationsettingbase import NotificationSettingBase
 
 @control_silo_only_model
 class NotificationSettingProvider(NotificationSettingBase):
-    __include_in_export__ = False
     __relocation_scope__ = RelocationScope.Excluded
 
     provider = models.CharField(max_length=32, null=False)

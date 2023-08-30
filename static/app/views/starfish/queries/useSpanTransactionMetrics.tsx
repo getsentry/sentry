@@ -5,10 +5,10 @@ import {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
-import {SpanMetricsFields} from 'sentry/views/starfish/types';
+import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {useWrappedDiscoverQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 
-const {SPAN_SELF_TIME, SPAN_GROUP} = SpanMetricsFields;
+const {SPAN_SELF_TIME, SPAN_GROUP} = SpanMetricsField;
 
 export type SpanTransactionMetrics = {
   'avg(span.self_time)': number;
@@ -24,7 +24,8 @@ export type SpanTransactionMetrics = {
 export const useSpanTransactionMetrics = (
   group: string,
   options: {sorts?: Sort[]; transactions?: string[]},
-  _referrer = 'api.starfish.span-transaction-metrics'
+  referrer = 'api.starfish.span-transaction-metrics',
+  cursor?: string
 ) => {
   const location = useLocation();
 
@@ -37,7 +38,8 @@ export const useSpanTransactionMetrics = (
     initialData: [],
     enabled: Boolean(group),
     limit: 25,
-    referrer: _referrer,
+    referrer,
+    cursor,
   });
 };
 

@@ -5,12 +5,14 @@ from collections import defaultdict
 from typing import TYPE_CHECKING, Literal, Optional, Sequence, Tuple, Union, overload
 
 from django.conf import settings
+from django.core.serializers.base import DeserializedObject
 from django.db import IntegrityError, connections, models, router, transaction
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from sentry.app import env
-from sentry.backup.scopes import RelocationScope
+from sentry.backup.dependencies import PrimaryKeyMap
+from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.constants import ObjectStatus
 from sentry.db.models import (
     BaseManager,
@@ -157,7 +159,6 @@ class Team(Model, SnowflakeIdMixin):
     A team represents a group of individuals which maintain ownership of projects.
     """
 
-    __include_in_export__ = True
     __relocation_scope__ = RelocationScope.Organization
 
     organization = FlexibleForeignKey("sentry.Organization")
@@ -314,20 +315,15 @@ class Team(Model, SnowflakeIdMixin):
         ).delete()
 
         if new_team != self:
-            # Delete the old team
-            cursor = connections[router.db_for_write(Team)].cursor()
-            # we use a cursor here to avoid automatic cascading of relations
-            # in Django
-            try:
-                with outbox_context(transaction.atomic(router.db_for_write(Team)), flush=False):
-                    cursor.execute("DELETE FROM sentry_team WHERE id = %s", [self.id])
-                    self.outbox_for_update().save()
-                    cursor.execute("DELETE FROM sentry_actor WHERE team_id = %s", [new_team.id])
-            finally:
-                cursor.close()
+            with outbox_context(
+                transaction.atomic(router.db_for_write(Team)), flush=False
+            ), connections[router.db_for_write(Team)].cursor() as cursor:
+                # we use a cursor here to avoid automatic cascading of relations
+                # in Django
+                cursor.execute("DELETE FROM sentry_team WHERE id = %s", [self.id])
+                self.outbox_for_update().save()
+                cursor.execute("DELETE FROM sentry_actor WHERE team_id = %s", [new_team.id])
 
-            # Change whatever new_team's actor is to the one from the old team.
-            with transaction.atomic(router.db_for_write(Team)):
                 Actor.objects.filter(id=self.actor_id).update(team_id=new_team.id)
                 new_team.actor_id = self.actor_id
                 new_team.save()
@@ -373,3 +369,28 @@ class Team(Model, SnowflakeIdMixin):
         ).values_list("id", flat=True)
 
         return owner_ids
+
+    # TODO(hybrid-cloud): actor refactor. Remove this method when done.
+    def write_relocation_import(
+        self, pk_map: PrimaryKeyMap, obj: DeserializedObject, scope: ImportScope
+    ) -> Optional[Tuple[int, int]]:
+        written = super().write_relocation_import(pk_map, obj, scope)
+        if written is not None:
+            (_, new_pk) = written
+
+            # `Actor` and `Team` have a direct circular dependency between them for the time being
+            # due to an ongoing refactor (that is, `Actor` foreign keys directly into `Team`, and
+            # `Team` foreign keys directly into `Actor`). If we use `INSERT` database calls naively,
+            # they will always fail, because one half of the cycle will always be missing.
+            #
+            # Because `Actor` ends up first in the dependency sorting (see:
+            # fixtures/backup/model_dependencies/sorted.json), a viable solution here is to always
+            # null out the `team_id` field of the `Actor` when we import it, and then make sure to
+            # circle back and update the relevant `Actor` after we create the `Team` models, which
+            # is exactly what this method override does.
+            if self.actor_id is not None:
+                actor = Actor.objects.get(pk=self.actor_id)
+                actor.team_id = new_pk
+                actor.save()
+
+        return written

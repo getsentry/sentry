@@ -400,12 +400,10 @@ def test_good_hash_obfuscating_comparator_scrubbed():
     ]
 
 
-DEPENDENCIES = dependencies()
-
-
 def test_good_foreign_key_comparator():
+    deps = dependencies()
     cmp = ForeignKeyComparator(
-        {k: v.model for k, v in DEPENDENCIES["sentry.UserEmail"].foreign_keys.items()}
+        {k: v.model for k, v in deps["sentry.UserEmail"].foreign_keys.items()}
     )
     id = InstanceID("sentry.useremail", 0)
     left_pk_map = PrimaryKeyMap()
@@ -442,8 +440,9 @@ def test_good_foreign_key_comparator():
 
 
 def test_good_foreign_key_comparator_scrubbed():
+    deps = dependencies()
     cmp = ForeignKeyComparator(
-        {k: v.model for k, v in DEPENDENCIES["sentry.UserEmail"].foreign_keys.items()}
+        {k: v.model for k, v in deps["sentry.UserEmail"].foreign_keys.items()}
     )
     left: JSONData = {
         "model": "test",
@@ -467,8 +466,9 @@ def test_good_foreign_key_comparator_scrubbed():
 
 
 def test_bad_foreign_key_comparator_set_primary_key_maps_not_called():
+    deps = dependencies()
     cmp = ForeignKeyComparator(
-        {k: v.model for k, v in DEPENDENCIES["sentry.UserEmail"].foreign_keys.items()}
+        {k: v.model for k, v in deps["sentry.UserEmail"].foreign_keys.items()}
     )
     id = InstanceID("sentry.useremail", 0)
     left_pk_map = PrimaryKeyMap()
@@ -505,8 +505,9 @@ def test_bad_foreign_key_comparator_set_primary_key_maps_not_called():
 
 
 def test_bad_foreign_key_comparator_unequal_mapping():
+    deps = dependencies()
     cmp = ForeignKeyComparator(
-        {k: v.model for k, v in DEPENDENCIES["sentry.UserEmail"].foreign_keys.items()}
+        {k: v.model for k, v in deps["sentry.UserEmail"].foreign_keys.items()}
     )
     id = InstanceID("sentry.useremail", 0)
     left_pk_map = PrimaryKeyMap()
@@ -552,8 +553,9 @@ def test_bad_foreign_key_comparator_unequal_mapping():
 
 
 def test_bad_foreign_key_comparator_missing_mapping():
+    deps = dependencies()
     cmp = ForeignKeyComparator(
-        {k: v.model for k, v in DEPENDENCIES["sentry.UserEmail"].foreign_keys.items()}
+        {k: v.model for k, v in deps["sentry.UserEmail"].foreign_keys.items()}
     )
     id = InstanceID("sentry.useremail", 0)
     left_pk_map = PrimaryKeyMap()

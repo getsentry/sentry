@@ -15,7 +15,6 @@ from sentry.db.models import (
 class AssistantActivity(Model):
     """Records user interactions with the assistant guides."""
 
-    __include_in_export__ = False
     __relocation_scope__ = RelocationScope.Excluded
 
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL, null=False)

@@ -10,7 +10,6 @@ from sentry.db.models.fields.foreignkey import FlexibleForeignKey
 
 @region_silo_only_model
 class PlatformExternalIssue(Model):
-    __include_in_export__ = False
     __relocation_scope__ = RelocationScope.Excluded
 
     group = FlexibleForeignKey("sentry.Group", db_constraint=False, db_index=False)
