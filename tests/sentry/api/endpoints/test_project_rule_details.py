@@ -454,6 +454,98 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             == f"This rule is an exact duplicate of '{rule.label}' in this project and may not be created."
         )
 
+    def test_duplicate_rule_environment(self):
+        """Test that if one rule doesn't have an environment set (i.e. 'All Environments') and we compare it to a rule
+        that does have one set, we consider this when determining if it's a duplicate"""
+        conditions = [
+            {
+                "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
+            }
+        ]
+        actions = [
+            {
+                "targetType": "IssueOwners",
+                "fallthroughType": "ActiveMembers",
+                "id": "sentry.mail.actions.NotifyEmailAction",
+                "targetIdentifier": "",
+            }
+        ]
+        self.create_project_rule(
+            project=self.project, action_match=actions, condition_match=conditions
+        )
+        env_rule = self.create_project_rule(
+            project=self.project, action_match=actions, condition_match=conditions
+        )
+        payload = {
+            "name": "hello world",
+            "actionMatch": "all",
+            "actions": actions,
+            "conditions": conditions,
+        }
+        resp = self.get_error_response(
+            self.organization.slug,
+            self.project.slug,
+            env_rule.id,
+            status_code=status.HTTP_400_BAD_REQUEST,
+            **payload,
+        )
+        assert (
+            resp.data["name"][0]
+            == f"This rule is an exact duplicate of '{env_rule.label}' in this project and may not be created."
+        )
+
+        # update env_rule to have an environment set - these should now be considered to be different
+        payload["environment"] = self.environment.name
+        resp = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            env_rule.id,
+            status_code=status.HTTP_200_OK,
+            **payload,
+        )
+
+    def test_duplicate_rule_actions(self):
+        """Test that if one rule doesn't have an action set (i.e. 'Do Nothing') and we compare it to a rule
+        that does have one set, we consider this when determining if it's a duplicate"""
+
+        # XXX(CEO): After we migrate old data so that no rules have no actions, this test won't be needed
+        conditions = [
+            {
+                "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
+            }
+        ]
+        actions = [
+            {
+                "targetType": "IssueOwners",
+                "fallthroughType": "ActiveMembers",
+                "id": "sentry.mail.actions.NotifyEmailAction",
+                "targetIdentifier": "",
+            }
+        ]
+        Rule.objects.create(
+            project=self.project,
+            data={"conditions": conditions, "action_match": "all"},
+        )
+        action_rule = Rule.objects.create(
+            project=self.project,
+            data={"conditions": conditions, "action_match": "all"},
+        )
+
+        payload = {
+            "name": "hello world",
+            "actionMatch": "all",
+            "actions": actions,
+            "conditions": conditions,
+        }
+
+        self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            action_rule.id,
+            status_code=status.HTTP_200_OK,
+            **payload,
+        )
+
     def test_edit_rule(self):
         """Test that you can edit an alert rule w/o it comparing it to itself as a dupe"""
         conditions = [
