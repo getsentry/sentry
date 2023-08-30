@@ -89,16 +89,16 @@ def mark_failed(
         pass
 
     if use_issue_platform:
-        create_issue_platform_issue(monitor_env, reason, occurrence_context)
+        create_issue_platform_occurrence(monitor_env, reason, occurrence_context)
     else:
-        create_legacy_issue(monitor_env, reason)
+        create_legacy_event(monitor_env, reason)
 
     monitor_environment_failed.send(monitor_environment=monitor_env, sender=type(monitor_env))
 
     return True
 
 
-def create_legacy_issue(monitor_env: MonitorEnvironment, reason: str):
+def create_legacy_event(monitor_env: MonitorEnvironment, reason: str):
     from sentry.coreapi import insert_data_to_database_legacy
     from sentry.event_manager import EventManager
     from sentry.models import Project
@@ -125,7 +125,7 @@ def create_legacy_issue(monitor_env: MonitorEnvironment, reason: str):
     insert_data_to_database_legacy(data)
 
 
-def create_issue_platform_issue(
+def create_issue_platform_occurrence(
     monitor_env: MonitorEnvironment,
     reason: str,
     occurrence_context=None,
