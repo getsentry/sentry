@@ -58,8 +58,17 @@ export function SpanDescriptionCell({
 const NULL_DESCRIPTION = <span>&lt;null&gt;</span>;
 
 const WiderHovercard = styled(
-  ({children, className, ...props}: React.ComponentProps<typeof Hovercard>) => (
-    <Hovercard className={(className ?? '') + ' wider'} {...props}>
+  ({
+    children,
+    className,
+    containerClassName,
+    ...props
+  }: React.ComponentProps<typeof Hovercard>) => (
+    <Hovercard
+      className={(className ?? '') + ' wider'}
+      containerClassName={(containerClassName ?? '') + ' inline-flex'}
+      {...props}
+    >
       {children}
     </Hovercard>
   )
@@ -71,5 +80,7 @@ const WiderHovercard = styled(
 `;
 
 const DescriptionWrapper = styled('div')`
-  display: inline-flex;
+  .inline-flex {
+    display: inline-flex;
+  }
 `;
