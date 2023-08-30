@@ -829,12 +829,7 @@ function Flamegraph(): ReactElement {
       mat: mat3,
       sourceTransformConfigView: CanvasView<any>
     ) => {
-      if (
-        sourceTransformConfigView === flamegraphView ||
-        sourceTransformConfigView === uiFramesView ||
-        sourceTransformConfigView === cpuChartView ||
-        sourceTransformConfigView === memoryChartView
-      ) {
+      if (sourceTransformConfigView === flamegraphView) {
         flamegraphView.transformConfigView(mat);
         if (spansView) {
           const beforeY = spansView.configView.y;
@@ -860,6 +855,37 @@ function Flamegraph(): ReactElement {
         const beforeY = flamegraphView.configView.y;
         flamegraphView.transformConfigView(mat);
         flamegraphView.setConfigView(flamegraphView.configView.withY(beforeY));
+        if (uiFramesView) {
+          uiFramesView.transformConfigView(mat);
+        }
+        if (batteryChartView) {
+          batteryChartView.transformConfigView(mat);
+        }
+        if (cpuChartView) {
+          cpuChartView.transformConfigView(mat);
+        }
+        if (memoryChartView) {
+          memoryChartView.transformConfigView(mat);
+        }
+      }
+
+      if (
+        sourceTransformConfigView === uiFramesView ||
+        sourceTransformConfigView === cpuChartView ||
+        sourceTransformConfigView === memoryChartView ||
+        sourceTransformConfigView === batteryChartView
+      ) {
+        if (flamegraphView) {
+          const beforeY = flamegraphView.configView.y;
+          flamegraphView.transformConfigView(mat);
+          flamegraphView.setConfigView(flamegraphView.configView.withY(beforeY));
+        }
+
+        if (spansView) {
+          const beforeY = spansView.configView.y;
+          spansView.transformConfigView(mat);
+          spansView.setConfigView(spansView.configView.withY(beforeY));
+        }
         if (uiFramesView) {
           uiFramesView.transformConfigView(mat);
         }
