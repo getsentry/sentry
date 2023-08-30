@@ -13,7 +13,7 @@ import {useHoverOverlay, UseHoverOverlayProps} from 'sentry/utils/useHoverOverla
 import {useLocation} from 'sentry/utils/useLocation';
 import {OverflowEllipsisTextContainer} from 'sentry/views/starfish/components/textAlign';
 import {useFullSpanFromTrace} from 'sentry/views/starfish/queries/useFullSpanFromTrace';
-import {ModuleName, StarfishFunctions} from 'sentry/views/starfish/types';
+import {ModuleName, SpanFunction} from 'sentry/views/starfish/types';
 import {extractRoute} from 'sentry/views/starfish/utils/extractRoute';
 import {useRoutingContext} from 'sentry/views/starfish/utils/routingContext';
 import {SQLishFormatter} from 'sentry/views/starfish/utils/sqlish/SQLishFormatter';
@@ -54,13 +54,13 @@ export function SpanDescriptionCell({
     endpointMethod,
   };
 
-  const sort: string | undefined = queryString[QueryParameterNames.SORT];
+  const sort: string | undefined = queryString[QueryParameterNames.SPANS_SORT];
 
   // the spans page uses time_spent_percentage(local), so to persist the sort upon navigation we need to replace
-  if (sort?.includes(`${StarfishFunctions.TIME_SPENT_PERCENTAGE}()`)) {
-    queryString[QueryParameterNames.SORT] = sort.replace(
-      `${StarfishFunctions.TIME_SPENT_PERCENTAGE}()`,
-      `${StarfishFunctions.TIME_SPENT_PERCENTAGE}(local)`
+  if (sort?.includes(`${SpanFunction.TIME_SPENT_PERCENTAGE}()`)) {
+    queryString[QueryParameterNames.SPANS_SORT] = sort.replace(
+      `${SpanFunction.TIME_SPENT_PERCENTAGE}()`,
+      `${SpanFunction.TIME_SPENT_PERCENTAGE}(local)`
     );
   }
 

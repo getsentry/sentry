@@ -75,9 +75,13 @@ class AuthService(RpcService):
     @rpc_method
     @abc.abstractmethod
     def get_auth_providers(self, *, organization_id: int) -> List[RpcAuthProvider]:
+        """DEPRECATED. TODO: Delete after usages are removed from getsentry."""
+
+    @rpc_method
+    @abc.abstractmethod
+    def get_auth_provider(self, *, organization_id: int) -> Optional[RpcAuthProvider]:
         """
-        This method returns a list of auth providers for an org
-        :return:
+        This method returns the auth provider for an org, if one exists
         """
         pass
 

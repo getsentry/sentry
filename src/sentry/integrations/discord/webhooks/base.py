@@ -5,6 +5,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.integrations.discord.requests.base import DiscordRequest, DiscordRequestError
 from sentry.integrations.discord.webhooks.command import DiscordCommandHandler
@@ -16,6 +17,9 @@ from .types import DiscordResponseTypes
 
 @region_silo_endpoint
 class DiscordInteractionsEndpoint(Endpoint):
+    publish_status = {
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     """
     All Discord -> Sentry communication will come through our interactions
     endpoint. We need to figure out what Discord is sending us and direct the
