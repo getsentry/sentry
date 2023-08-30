@@ -11,9 +11,7 @@ from sentry import audit_log, features, options
 from sentry.auth import manager
 from sentry.auth.exceptions import ProviderNotRegistered
 from sentry.models import Organization, OrganizationMember, User, UserEmail
-from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.services.hybrid_cloud.lost_password_hash import lost_password_hash_service
-from sentry.services.hybrid_cloud.organization.model import RpcOrganization
 from sentry.services.hybrid_cloud.organization.service import organization_service
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
@@ -54,17 +52,13 @@ def email_missing_links(org_id: int, actor_id: int, provider_key: str, **kwargs)
 
 
 @instrumented_task(
-    name="sentry.tasks.email_unlink_notifications", queue="auth.control", silo_mode=SiloMode.CONTROL
+    name="sentry.tasks.email_unlink_notifications", queue="auth", silo_mode=SiloMode.REGION
 )
 def email_unlink_notifications(org_id: int, actor_id: int, provider_key: str):
-    org = organization_service.get(id=org_id)
-    if not org:
-        logger.warning("Could not send SSO unlink emails: organization could not be found")
-        return
-
     try:
+        org = Organization.objects.get(id=org_id)
         provider = manager.get(provider_key)
-    except ProviderNotRegistered as e:
+    except (Organization.DoesNotExist, ProviderNotRegistered) as e:
         logger.warning("Could not send SSO unlink emails: %s", e)
         return
 
@@ -76,25 +70,22 @@ def email_unlink_notifications(org_id: int, actor_id: int, provider_key: str):
     # Email all organization users, even if they never linked their accounts.
     # This provides a better experience in the case where SSO is enabled and
     # disabled in the timespan of users checking their email.
-    member_list = OrganizationMemberMapping.objects.filter(
-        organization_id=org_id,
-        user_id__isnull=False,
-    ).select_related("user")
-    for member in member_list:
-        _send_sso_unlink_email(member, user, org, provider)
+    members = OrganizationMember.objects.filter(organization=org, user_id__isnull=False)
+    for member in members:
+        member.send_sso_unlink_email(user, provider)
 
 
 def _send_sso_unlink_email(
-    member: OrganizationMemberMapping,
+    member: OrganizationMember,
     disabling_user: RpcUser,
-    organization: RpcOrganization,
+    organization: Organization,
     provider,
 ):
     # Nothing to send if this member isn't associated to a user
     if not member.user_id:
         return
 
-    user = member.user
+    user = user_service.get_user(user_id=member.user_id)
     if not user:
         return
 

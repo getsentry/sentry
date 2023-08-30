@@ -4,7 +4,7 @@ from sentry.models import AuthProvider, OrganizationMember
 from sentry.silo import SiloMode
 from sentry.tasks.auth import email_missing_links, email_unlink_notifications
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 
 @region_silo_test
@@ -37,15 +37,16 @@ class EmailMissingLinksTest(TestCase):
         assert mail.outbox[0].to == [self.user2.email]
 
 
-@control_silo_test(stable=True)
+@region_silo_test(stable=True)
 class EmailUnlinkNotificationsTest(TestCase):
     def setUp(self):
         super().setUp()
         self.user = self.create_user(email="bar@example.com")
         self.organization = self.create_organization(name="Test")
-        self.provider = AuthProvider.objects.create(
-            organization_id=self.organization.id, provider="dummy"
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.provider = AuthProvider.objects.create(
+                organization_id=self.organization.id, provider="dummy"
+            )
         om = self.create_member(
             user_id=self.user.id,
             organization=self.organization,
@@ -71,8 +72,9 @@ class EmailUnlinkNotificationsTest(TestCase):
         assert "you'll first have to set a password" not in message.body
 
     def test_email_unlink_notifications_without_password(self):
-        self.user.password = ""
-        self.user.save()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.user.password = ""
+            self.user.save()
 
         with self.tasks():
             email_unlink_notifications(self.organization.id, self.user.id, self.provider.provider)
