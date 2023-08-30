@@ -86,12 +86,14 @@ function GroupEventDetailsContent({
 
   const eventEntryProps = {group, event, project};
 
-  if (group.issueType === IssueType.PERFORMANCE_P95_TRANSACTION_DURATION_REGRESSION) {
+  if (group.issueType === ('performance_duration_regression' as IssueType)) {
     return (
       // TODO: Swap this feature flag with the statistical detector flag
       <Feature features={['performance-trends-issues']}>
-        <RegressionMessage event={event} />
-        <EventBreakpointChart event={event} />
+        <Fragment>
+          <RegressionMessage event={event} />
+          <EventBreakpointChart event={event} />
+        </Fragment>
       </Feature>
     );
   }

@@ -24,21 +24,16 @@ function EventBreakpointChart({event}: EventBreakpointChartProps) {
   const organization = useOrganization();
   const location = useLocation();
 
-  console.log(event);
   const eventView = EventView.fromLocation(location);
-  eventView.query = `event.type:transaction transaction:${event.title}`;
-  eventView.fields = [
-    {field: 'p95(transaction.duration)'},
-    {field: 'transaction'},
-    {field: 'project'},
-  ];
+  eventView.query = `event.type:transaction transaction:"${event?.occurrence?.evidenceData?.transaction}"`;
+  eventView.fields = [{field: 'transaction'}, {field: 'project'}];
 
   // Set the start and end time to 7 days before and after the breakpoint
   // TODO: This should be removed when the endpoint begins returning the start and end
   // explicitly
   if (event?.occurrence) {
     eventView.statsPeriod = undefined;
-    const detectionTime = new Date(event?.occurrence?.evidenceData?.breakpoint);
+    const detectionTime = new Date(event?.occurrence?.evidenceData?.breakpoint * 1000);
     const start = new Date(detectionTime).setDate(detectionTime.getDate() - 7);
     const end = new Date(detectionTime).setDate(detectionTime.getDate() + 7);
 
@@ -48,6 +43,8 @@ function EventBreakpointChart({event}: EventBreakpointChartProps) {
     eventView.statsPeriod = '14d';
   }
 
+  // The evidence data keys are returned to us in camelCase, but we need to
+  // convert them to snake_case to match the NormalizedTrendsTransaction type
   const normalizedOccurrenceEvent = Object.keys(
     event?.occurrence?.evidenceData ?? []
   ).reduce((acc, key) => {
@@ -63,13 +60,14 @@ function EventBreakpointChart({event}: EventBreakpointChartProps) {
         location={location}
         trendChangeType={TrendChangeType.REGRESSION}
         trendFunctionField={TrendFunctionField.P95}
-        limit={5}
-        cursor="0:0:1"
-        noPagination
+        limit={1}
+        queryExtras={{
+          withTimeseries: 'true',
+          interval: '1h',
+        }}
         withBreakpoint
       >
         {({trendsData, isLoading}) => {
-          console.log(trendsData);
           return (
             <TrendsChart
               organization={organization}
@@ -84,7 +82,6 @@ function EventBreakpointChart({event}: EventBreakpointChartProps) {
               transaction={normalizedOccurrenceEvent}
               trendChangeType={TrendChangeType.REGRESSION}
               trendFunctionField={TrendFunctionField.P95}
-              disableXAxis
               disableLegend
             />
           );
