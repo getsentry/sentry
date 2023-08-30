@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 import * as qs from 'query-string';
@@ -9,12 +10,13 @@ import GridEditable, {
   GridColumnHeader,
 } from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
-import Pagination from 'sentry/components/pagination';
+import Pagination, {CursorHandler} from 'sentry/components/pagination';
 import Truncate from 'sentry/components/truncate';
 import {t} from 'sentry/locale';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {Sort} from 'sentry/utils/discover/fields';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
@@ -34,6 +36,7 @@ import {
 } from 'sentry/views/starfish/types';
 import {extractRoute} from 'sentry/views/starfish/utils/extractRoute';
 import {useRoutingContext} from 'sentry/views/starfish/utils/routingContext';
+import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/types';
 import type {ValidSort} from 'sentry/views/starfish/views/spans/useModuleSort';
 
@@ -63,15 +66,22 @@ export function SpanTransactionsTable({span, endpoint, endpointMethod, sort}: Pr
   const organization = useOrganization();
   const router = useRouter();
 
+  const cursor = decodeScalar(location.query?.[QueryParameterNames.ENDPOINTS_CURSOR]);
+
   const {
     data: spanTransactionMetrics = [],
     meta,
     isLoading,
     pageLinks,
-  } = useSpanTransactionMetrics(span[SpanMetricsFields.SPAN_GROUP], {
-    transactions: endpoint ? [endpoint] : undefined,
-    sorts: [sort],
-  });
+  } = useSpanTransactionMetrics(
+    span[SpanMetricsFields.SPAN_GROUP],
+    {
+      transactions: endpoint ? [endpoint] : undefined,
+      sorts: [sort],
+    },
+    undefined,
+    cursor
+  );
 
   const spanTransactionsWithMetrics = spanTransactionMetrics.map(row => {
     return {
@@ -127,6 +137,13 @@ export function SpanTransactionsTable({span, endpoint, endpointMethod, sort}: Pr
     return rendered;
   };
 
+  const handleCursor: CursorHandler = (newCursor, pathname, query) => {
+    browserHistory.push({
+      pathname,
+      query: {...query, [QueryParameterNames.ENDPOINTS_CURSOR]: newCursor},
+    });
+  };
+
   return (
     <Fragment>
       <VisuallyCompleteWithData
@@ -156,7 +173,7 @@ export function SpanTransactionsTable({span, endpoint, endpointMethod, sort}: Pr
             {t('View More Endpoints')}
           </Button>
         )}
-        <StyledPagination pageLinks={pageLinks} />
+        <StyledPagination pageLinks={pageLinks} onCursor={handleCursor} />
       </Footer>
     </Fragment>
   );

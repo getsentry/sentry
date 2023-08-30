@@ -24,7 +24,8 @@ export type SpanTransactionMetrics = {
 export const useSpanTransactionMetrics = (
   group: string,
   options: {sorts?: Sort[]; transactions?: string[]},
-  _referrer = 'api.starfish.span-transaction-metrics'
+  referrer = 'api.starfish.span-transaction-metrics',
+  cursor?: string
 ) => {
   const location = useLocation();
 
@@ -37,7 +38,8 @@ export const useSpanTransactionMetrics = (
     initialData: [],
     enabled: Boolean(group),
     limit: 25,
-    referrer: _referrer,
+    referrer,
+    cursor,
   });
 };
 

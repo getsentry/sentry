@@ -54,7 +54,7 @@ export const renderHeadCell = ({column, location, sort}: Options) => {
           ...location,
           query: {
             ...location?.query,
-            [QueryParameterNames.SORT]: newSort,
+            [QueryParameterNames.SPANS_SORT]: newSort,
           },
         };
       }}

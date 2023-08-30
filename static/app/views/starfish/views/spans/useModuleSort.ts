@@ -5,7 +5,7 @@ import {SpanMetricsFields, StarfishFunctions} from 'sentry/views/starfish/types'
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 
 type Query = {
-  [QueryParameterNames.SORT]: string;
+  [QueryParameterNames.SPANS_SORT]: string;
 };
 
 const SORTABLE_FIELDS = [
@@ -28,7 +28,7 @@ export function useModuleSort(fallback: Sort = DEFAULT_SORT) {
   const location = useLocation<Query>();
 
   return (
-    fromSorts(location.query[QueryParameterNames.SORT]).filter(isAValidSort)[0] ??
+    fromSorts(location.query[QueryParameterNames.SPANS_SORT]).filter(isAValidSort)[0] ??
     fallback
   );
 }
