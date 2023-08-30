@@ -23,17 +23,11 @@ import SampleTable from 'sentry/views/starfish/views/spanSummaryPage/sampleList/
 
 type Props = {
   groupId: string;
-  projectId: number;
   transactionMethod: string;
   transactionName: string;
 };
 
-export function SampleList({
-  groupId,
-  projectId,
-  transactionName,
-  transactionMethod,
-}: Props) {
+export function SampleList({groupId, transactionName, transactionMethod}: Props) {
   const router = useRouter();
   const [highlightedSpanId, setHighlightedSpanId] = useState<string | undefined>(
     undefined
@@ -56,8 +50,8 @@ export function SampleList({
   const {projects} = useProjects();
 
   const project = useMemo(
-    () => projects.find(p => p.id === String(projectId)),
-    [projects, projectId]
+    () => projects.find(p => p.id === String(query.project)),
+    [projects, query.project]
   );
 
   const onOpenDetailPanel = useCallback(() => {
@@ -72,7 +66,7 @@ export function SampleList({
       : transactionName;
 
   const link = `/performance/summary/?${qs.stringify({
-    project: projectId,
+    project: query.project,
     transaction: transactionName,
   })}`;
 
