@@ -330,7 +330,12 @@ function Flamegraph(): ReactElement {
 
     for (const key in profileGroup.measurements) {
       if (key === 'cpu_energy_usage') {
-        measures.push({...profileGroup.measurements[key]!, name: 'CPU energy usage'});
+        measures.push({
+          ...profileGroup.measurements[key]!,
+          // some versions of cocoa send byte so we need to correct it
+          unit: 'nanojoule',
+          name: 'CPU energy usage',
+        });
       }
     }
 
