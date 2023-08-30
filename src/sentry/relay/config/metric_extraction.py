@@ -115,6 +115,10 @@ def _get_alert_metric_specs(
     specs = []
     for alert in alert_rules:
         alert_snuba_query = alert.snuba_query
+        metrics.incr(
+            "on_demand_metrics.fetch_alert",
+            tags={"prefilling": prefilling, "dataset": alert_snuba_query.dataset},
+        )
         if result := _convert_snuba_query_to_metric(project, alert.snuba_query, prefilling):
             _log_on_demand_metric_spec(
                 project_id=project.id,
@@ -217,6 +221,10 @@ def _convert_widget_query_to_metric(
         return metrics_specs
 
     for aggregate in widget_query.aggregates:
+        metrics.incr(
+            "on_demand_metrics.fetch_widget",
+            tags={"prefilling": prefilling},
+        )
         if result := _convert_aggregate_and_query_to_metric(
             project,
             # there is an internal check to make sure we extract metrics oly for performance dataset
