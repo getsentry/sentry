@@ -58,7 +58,7 @@ class ActionHandler(metaclass=abc.ABCMeta):
     ):
         pass
 
-    def record_sent_analytics(
+    def record_alert_sent_analytics(
         self, external_id: int | str | None = None, notification_uuid: str | None = None
     ):
         analytics.record(
@@ -177,7 +177,7 @@ class EmailActionHandler(ActionHandler):
                 notification_uuid,
             )
             self.build_message(email_context, trigger_status, user_id).send_async(to=[email])
-            self.record_sent_analytics(user_id, notification_uuid)
+            self.record_alert_sent_analytics(user_id, notification_uuid)
 
     def build_message(self, context, status, user_id) -> MessageBuilder:
         display = self.status_display[status]
@@ -214,7 +214,7 @@ class SlackActionHandler(DefaultActionHandler):
             self.action, self.incident, metric_value, new_status, notification_uuid
         )
         if success:
-            self.record_sent_analytics(self.action.target_identifier, notification_uuid)
+            self.record_alert_sent_analytics(self.action.target_identifier, notification_uuid)
 
 
 @AlertRuleTriggerAction.register_type(
@@ -238,7 +238,7 @@ class MsTeamsActionHandler(DefaultActionHandler):
             self.action, self.incident, metric_value, new_status, notification_uuid
         )
         if success:
-            self.record_sent_analytics(self.action.target_identifier, notification_uuid)
+            self.record_alert_sent_analytics(self.action.target_identifier, notification_uuid)
 
 
 @AlertRuleTriggerAction.register_type(
@@ -262,7 +262,7 @@ class PagerDutyActionHandler(DefaultActionHandler):
             self.action, self.incident, metric_value, new_status, notification_uuid
         )
         if success:
-            self.record_sent_analytics(self.action.target_identifier, notification_uuid)
+            self.record_alert_sent_analytics(self.action.target_identifier, notification_uuid)
 
 
 @AlertRuleTriggerAction.register_type(
@@ -286,7 +286,7 @@ class OpsgenieActionHandler(DefaultActionHandler):
             self.action, self.incident, metric_value, new_status, notification_uuid
         )
         if success:
-            self.record_sent_analytics(self.action.target_identifier, notification_uuid)
+            self.record_alert_sent_analytics(self.action.target_identifier, notification_uuid)
 
 
 @AlertRuleTriggerAction.register_type(
@@ -309,7 +309,7 @@ class SentryAppActionHandler(DefaultActionHandler):
             self.action, self.incident, new_status, metric_value, notification_uuid
         )
         if success:
-            self.record_sent_analytics(self.action.sentry_app_id, notification_uuid)
+            self.record_alert_sent_analytics(self.action.sentry_app_id, notification_uuid)
 
 
 def format_duration(minutes):
