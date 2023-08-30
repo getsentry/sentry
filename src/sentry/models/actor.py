@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict, namedtuple
-from typing import TYPE_CHECKING, Sequence, Union, overload
+from typing import TYPE_CHECKING, Optional, Sequence, Union, overload
 
 import sentry_sdk
 from django.conf import settings
@@ -143,8 +143,12 @@ class Actor(Model):
         return self.get_actor_tuple().get_actor_identifier()
 
     # TODO(hybrid-cloud): actor refactor. Remove this method when done.
-    def _normalize_before_relocation_import(self, pk_map: PrimaryKeyMap, scope: ImportScope) -> int:
+    def _normalize_before_relocation_import(
+        self, pk_map: PrimaryKeyMap, scope: ImportScope
+    ) -> Optional[int]:
         old_pk = super()._normalize_before_relocation_import(pk_map, scope)
+        if old_pk is None:
+            return None
 
         # `Actor` and `Team` have a direct circular dependency between them for the time being due
         # to an ongoing refactor (that is, `Actor` foreign keys directly into `Team`, and `Team`

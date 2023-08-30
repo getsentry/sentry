@@ -9,7 +9,7 @@ from django.core import management, serializers
 from django.db import IntegrityError, connection, transaction
 
 from sentry.backup.dependencies import PrimaryKeyMap, normalize_model_name
-from sentry.backup.helpers import EXCLUDED_APPS
+from sentry.backup.helpers import EXCLUDED_APPS, Filter
 from sentry.backup.scopes import ImportScope
 from sentry.silo import unguarded_write
 
@@ -36,13 +36,96 @@ class OldImportConfig(NamedTuple):
     use_natural_foreign_keys: bool = False
 
 
-def _import(src, scope: ImportScope, old_config: OldImportConfig, printer=click.echo):
+def _import(
+    src,
+    scope: ImportScope,
+    old_config: OldImportConfig,
+    *,
+    filter_by: Filter | None = None,
+    printer=click.echo,
+):
     """
     Imports core data for a Sentry installation.
 
     It is generally preferable to avoid calling this function directly, as there are certain combinations of input parameters that should not be used together. Instead, use one of the other wrapper functions in this file, named `import_in_XXX_scope()`.
     """
 
+    # Import here to prevent circular module resolutions.
+    from sentry.models.email import Email
+    from sentry.models.organization import Organization
+    from sentry.models.user import User
+
+    start = src.tell()
+    filters = []
+    if filter_by is not None:
+        filters.append(filter_by)
+
+        # `sentry.Email` models don't have any explicit dependencies on `User`, so we need to find
+        # and record them manually.
+        user_to_email = dict()
+
+        if filter_by.model == Organization:
+            # To properly filter organizations, we need to grab their users first. There is no
+            # elegant way to do this: we'll just have to read the import JSON until we get to the
+            # bit that contains the `sentry.Organization` entries, filter them by their slugs, then
+            # look through the subsequent `sentry.OrganizationMember` entries to pick out members of
+            # matched orgs, and finally add those pks to a `User.pk` instance of `Filter`.
+            filtered_org_pks = set()
+            seen_first_org_member_model = False
+            user_filter = Filter(model=User, field="pk")
+            filters.append(user_filter)
+
+            # No need to use `OldImportConfig` here, since this codepath can only be hit by new
+            # import calls.
+            for obj in serializers.deserialize("json", src, stream=True):
+                o = obj.object
+                model_name = normalize_model_name(o)
+                if model_name == "sentry.User":
+                    username = getattr(o, "username", None)
+                    email = getattr(o, "email", None)
+                    if username is not None and email is not None:
+                        user_to_email[username] = email
+                elif model_name == "sentry.Organization":
+                    pk = getattr(o, "pk", None)
+                    slug = getattr(o, "slug", None)
+                    if pk is not None and slug in filter_by.values:
+                        filtered_org_pks.add(pk)
+                elif model_name == "sentry.OrganizationMember":
+                    seen_first_org_member_model = True
+                    user = getattr(o, "user_id", None)
+                    org = getattr(o, "organization_id", None)
+                    if user is not None and org in filtered_org_pks:
+                        user_filter.values.add(user)
+                elif seen_first_org_member_model:
+                    # Exports should be grouped by model, so we've already seen every user, org and
+                    # org member we're going to see. We can ignore the rest of the models.
+                    break
+        elif filter_by.model == User:
+            seen_first_user_model = False
+            for obj in serializers.deserialize("json", src, stream=True):
+                o = obj.object
+                model_name = normalize_model_name(o)
+                if model_name == "sentry.User":
+                    seen_first_user_model = False
+                    username = getattr(o, "username", None)
+                    email = getattr(o, "email", None)
+                    if username is not None and email is not None:
+                        user_to_email[username] = email
+                elif seen_first_user_model:
+                    break
+        else:
+            raise TypeError("Filter arguments must only apply to `Organization` or `User` models")
+
+        user_filter = next(f for f in filters if f.model == User)
+        email_filter = Filter(
+            model=Email,
+            field="email",
+            values={v for k, v in user_to_email.items() if k in user_filter.values},
+        )
+
+        filters.append(email_filter)
+
+    src.seek(start)
     try:
         # Import / export only works in monolith mode with a consolidated db.
         # TODO(getsentry/team-ospo#185): the `unguarded_write` is temporary until we get an RPC
@@ -61,11 +144,15 @@ def _import(src, scope: ImportScope, old_config: OldImportConfig, printer=click.
                         obj.save()
                     elif o.get_relocation_scope() in allowed_relocation_scopes:
                         o = obj.object
-                        written = o.write_relocation_import(pk_map, obj, scope)
-                        if written is not None:
-                            old_pk, new_pk = written
-                            model_name = normalize_model_name(o)
-                            pk_map.insert(model_name, old_pk, new_pk)
+                        model_name = normalize_model_name(o)
+                        for f in filters:
+                            if f.model == type(o) and getattr(o, f.field, None) not in f.values:
+                                break
+                        else:
+                            written = o.write_relocation_import(pk_map, obj, scope)
+                            if written is not None:
+                                old_pk, new_pk = written
+                                pk_map.insert(model_name, old_pk, new_pk)
 
     # For all database integrity errors, let's warn users to follow our
     # recommended backup/restore workflow before reraising exception. Most of
@@ -90,25 +177,54 @@ def _import(src, scope: ImportScope, old_config: OldImportConfig, printer=click.
         cursor.execute(sequence_reset_sql.getvalue())
 
 
-def import_in_user_scope(src, printer=click.echo):
+def import_in_user_scope(src, *, user_filter: set[str] | None = None, printer=click.echo):
     """
     Perform an import in the `User` scope, meaning that only models with `RelocationScope.User` will be imported from the provided `src` file.
+
+    The `user_filter` argument allows imports to be filtered by username. If the argument is set to `None`, there is no filtering, meaning all encountered users are imported.
     """
-    return _import(src, ImportScope.User, OldImportConfig(), printer)
+
+    # Import here to prevent circular module resolutions.
+    from sentry.models.user import User
+
+    return _import(
+        src,
+        ImportScope.User,
+        OldImportConfig(),
+        filter_by=Filter(User, "username", user_filter) if user_filter is not None else None,
+        printer=printer,
+    )
 
 
-def import_in_organization_scope(src, printer=click.echo):
+def import_in_organization_scope(src, *, org_filter: set[str] | None = None, printer=click.echo):
     """
-    Perform an import in the `Organization` scope, meaning that only models with `RelocationScope.User` or `RelocationScope.Organization` will be imported from the provided `src` file.
+    Perform an import in the `Organization` scope, meaning that only models with
+    `RelocationScope.User` or `RelocationScope.Organization` will be imported from the provided
+    `src` file.
+
+    The `org_filter` argument allows imports to be filtered by organization slug. If the argument
+    is set to `None`, there is no filtering, meaning all encountered organizations and users are
+    imported.
     """
-    return _import(src, ImportScope.Organization, OldImportConfig(), printer)
+
+    # Import here to prevent circular module resolutions.
+    from sentry.models.organization import Organization
+
+    return _import(
+        src,
+        ImportScope.Organization,
+        OldImportConfig(),
+        filter_by=Filter(Organization, "slug", org_filter) if org_filter is not None else None,
+        printer=printer,
+    )
 
 
-def import_in_global_scope(src, printer=click.echo):
+def import_in_global_scope(src, *, printer=click.echo):
     """
     Perform an import in the `Global` scope, meaning that all models will be imported from the
     provided source file. Because a `Global` import is really only useful when restoring to a fresh
     Sentry instance, some behaviors in this scope are different from the others. In particular,
     superuser privileges are not sanitized.
     """
-    return _import(src, ImportScope.Global, OldImportConfig(), printer)
+
+    return _import(src, ImportScope.Global, OldImportConfig(), printer=printer)

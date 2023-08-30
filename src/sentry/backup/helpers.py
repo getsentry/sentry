@@ -4,6 +4,8 @@ from enum import Enum
 from functools import lru_cache
 from typing import Type
 
+from django.db import models
+
 from sentry.backup.scopes import RelocationScope
 
 # Django apps we take care to never import or export from.
@@ -44,3 +46,18 @@ def get_exportable_sentry_models() -> set[Type]:
 class Side(Enum):
     left = 1
     right = 2
+
+
+class Filter:
+    """Specifies a field-based filter when performing an import or export operation. This is an
+    allowlist based filtration: models of the given type whose specified field matches ANY of the
+    supplied values will be allowed through."""
+
+    model: Type[models.base.Model]
+    field: str
+    values: set[str]
+
+    def __init__(self, model: Type[models.base.Model], field: str, values: set[str] | None = None):
+        self.model = model
+        self.field = field
+        self.values = values if values is not None else set()

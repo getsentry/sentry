@@ -108,7 +108,9 @@ class BaseModel(models.Model):
 
         return self.__relocation_scope__
 
-    def _normalize_before_relocation_import(self, pk_map: PrimaryKeyMap, _: ImportScope) -> int:
+    def _normalize_before_relocation_import(
+        self, pk_map: PrimaryKeyMap, _: ImportScope
+    ) -> Optional[int]:
         """
         A helper function that normalizes a deserialized model. Note that this modifies the model in place, so it should generally be done inside of the companion `write_relocation_import` method, to avoid data skew or corrupted local state.
 
@@ -126,8 +128,9 @@ class BaseModel(models.Model):
             fk = getattr(self, field_id, None)
             if fk is not None:
                 new_fk = pk_map.get(normalize_model_name(model_relation.model), fk)
-                # TODO(getsentry/team-ospo#167): Will allow missing items when we
-                # implement org-based filtering.
+                if new_fk is None:
+                    return
+
                 setattr(self, field_id, new_fk)
 
         old_pk = self.pk
@@ -143,6 +146,9 @@ class BaseModel(models.Model):
         """
 
         old_pk = self._normalize_before_relocation_import(pk_map, scope)
+        if old_pk is None:
+            return
+
         obj.save(force_insert=True)
         return (old_pk, self.pk)
 
