@@ -198,7 +198,7 @@ function useHoverOverlay(
     window.clearTimeout(delayHideTimeoutRef.current);
 
     if (!isHoverable && !displayTimeout) {
-      // setVisible(false);
+      setVisible(false);
       return;
     }
 
