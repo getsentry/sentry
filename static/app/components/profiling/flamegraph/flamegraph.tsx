@@ -157,6 +157,7 @@ function findLongestMatchingFrame(
 const LOADING_OR_FALLBACK_FLAMEGRAPH = FlamegraphModel.Empty();
 const LOADING_OR_FALLBACK_SPAN_TREE = SpanTree.Empty;
 const LOADING_OR_FALLBACK_UIFRAMES = UIFrames.Empty;
+const LOADING_OR_FALLBACK_BATTERY_CHART = FlamegraphChartModel.Empty;
 const LOADING_OR_FALLBACK_CPU_CHART = FlamegraphChartModel.Empty;
 const LOADING_OR_FALLBACK_MEMORY_CHART = FlamegraphChartModel.Empty;
 
@@ -215,7 +216,7 @@ function Flamegraph(): ReactElement {
   const hasBatteryChart = useMemo(() => {
     const platform = profileGroup.metadata.platform;
     return (
-      (platform === 'cocoa' || platform === 'android' || platform === 'node') &&
+      platform === 'cocoa' &&
       organization.features.includes('profiling-battery-usage-chart')
     );
   }, [profileGroup.metadata.platform, organization.features]);
@@ -322,7 +323,7 @@ function Flamegraph(): ReactElement {
 
   const batteryChart = useMemo(() => {
     if (!hasCPUChart) {
-      return LOADING_OR_FALLBACK_CPU_CHART;
+      return LOADING_OR_FALLBACK_BATTERY_CHART;
     }
 
     const measures: ProfileSeriesMeasurement[] = [];
