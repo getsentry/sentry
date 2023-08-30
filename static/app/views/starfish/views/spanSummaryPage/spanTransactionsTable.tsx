@@ -29,7 +29,7 @@ import {
   useSpanTransactionMetrics,
 } from 'sentry/views/starfish/queries/useSpanTransactionMetrics';
 import {
-  SpanIndexedFields,
+  SpanIndexedField,
   SpanIndexedFieldTypes,
   SpanMetricsField,
   SpanMetricsFieldTypes,
@@ -182,7 +182,7 @@ export function SpanTransactionsTable({span, endpoint, endpointMethod, sort}: Pr
 const getColumnOrder = (
   span: Pick<
     SpanIndexedFieldTypes,
-    SpanIndexedFields.SPAN_GROUP | SpanIndexedFields.SPAN_OP
+    SpanIndexedField.SPAN_GROUP | SpanIndexedField.SPAN_OP
   >
 ): TableColumnHeader[] => [
   {
@@ -192,7 +192,7 @@ const getColumnOrder = (
   },
   {
     key: 'spm()',
-    name: getThroughputTitle(span[SpanIndexedFields.SPAN_OP]),
+    name: getThroughputTitle(span[SpanIndexedField.SPAN_OP]),
     width: COL_WIDTH_UNDEFINED,
   },
   {

@@ -39,7 +39,7 @@ export type SpanMetricsFieldTypes = {
   [SpanMetricsField.SPAN_DURATION]: number;
 };
 
-export enum SpanIndexedFields {
+export enum SpanIndexedField {
   SPAN_SELF_TIME = 'span.self_time',
   SPAN_GROUP = 'span.group', // Span group computed from the normalized description. Matches the group in the metrics data set
   SPAN_GROUP_RAW = 'span.group_raw', // Span group computed from non-normalized description. Matches the group in the event payload
@@ -57,23 +57,23 @@ export enum SpanIndexedFields {
 }
 
 export type SpanIndexedFieldTypes = {
-  [SpanIndexedFields.SPAN_SELF_TIME]: number;
-  [SpanIndexedFields.SPAN_GROUP]: string;
-  [SpanIndexedFields.SPAN_GROUP_RAW]: string;
-  [SpanIndexedFields.SPAN_MODULE]: string;
-  [SpanIndexedFields.SPAN_DESCRIPTION]: string;
-  [SpanIndexedFields.SPAN_OP]: string;
-  [SpanIndexedFields.ID]: string;
-  [SpanIndexedFields.SPAN_ACTION]: string;
-  [SpanIndexedFields.TRANSACTION_ID]: string;
-  [SpanIndexedFields.TRANSACTION_METHOD]: string;
-  [SpanIndexedFields.TRANSACTION_OP]: string;
-  [SpanIndexedFields.SPAN_DOMAIN]: string;
-  [SpanIndexedFields.TIMESTAMP]: string;
-  [SpanIndexedFields.PROJECT]: string;
+  [SpanIndexedField.SPAN_SELF_TIME]: number;
+  [SpanIndexedField.SPAN_GROUP]: string;
+  [SpanIndexedField.SPAN_GROUP_RAW]: string;
+  [SpanIndexedField.SPAN_MODULE]: string;
+  [SpanIndexedField.SPAN_DESCRIPTION]: string;
+  [SpanIndexedField.SPAN_OP]: string;
+  [SpanIndexedField.ID]: string;
+  [SpanIndexedField.SPAN_ACTION]: string;
+  [SpanIndexedField.TRANSACTION_ID]: string;
+  [SpanIndexedField.TRANSACTION_METHOD]: string;
+  [SpanIndexedField.TRANSACTION_OP]: string;
+  [SpanIndexedField.SPAN_DOMAIN]: string;
+  [SpanIndexedField.TIMESTAMP]: string;
+  [SpanIndexedField.PROJECT]: string;
 };
 
-export type Op = SpanIndexedFieldTypes[SpanIndexedFields.SPAN_OP];
+export type Op = SpanIndexedFieldTypes[SpanIndexedField.SPAN_OP];
 
 export enum StarfishFunctions {
   SPS = 'sps',
@@ -84,8 +84,8 @@ export enum StarfishFunctions {
 }
 
 export const StarfishDatasetFields = {
-  [DiscoverDatasets.SPANS_METRICS]: SpanIndexedFields,
-  [DiscoverDatasets.SPANS_INDEXED]: SpanIndexedFields,
+  [DiscoverDatasets.SPANS_METRICS]: SpanIndexedField,
+  [DiscoverDatasets.SPANS_INDEXED]: SpanIndexedField,
 };
 
 export const STARFISH_AGGREGATION_FIELDS: Record<
