@@ -511,11 +511,7 @@ def _update_frames_from_cached_values(
     Returns if the merged has correctly happened.
     """
     frames_changed = False
-    # XXX: Test the fallback value
-    with metrics.timer(
-        f"{DATADOG_KEY}.cache.get.timer",
-    ):
-        changed_frames_values = cache.get(cache_key, {})
+    changed_frames_values = cache.get(cache_key, {})
 
     # This helps tracking changes in the hit/miss ratio of the cache
     metrics.incr(
