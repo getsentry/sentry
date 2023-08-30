@@ -4,7 +4,6 @@ import uniqBy from 'lodash/uniqBy';
 
 import Alert from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
-import SourceMapsWizard from 'sentry/components/events/interfaces/crashContent/exception/sourcemapsWizard';
 import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
@@ -278,14 +277,6 @@ export function SourceMapDebug({debugFrames, event}: SourcemapDebugProps) {
       type,
     });
   };
-
-  if (
-    errorMessages.filter(
-      error => error.type === SourceMapProcessingIssueType.DEBUG_ID_NO_SOURCEMAPS
-    ).length > 0
-  ) {
-    return <SourceMapsWizard analyticsParams={analyticsParams} />;
-  }
 
   return (
     <Alert
