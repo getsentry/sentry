@@ -7,15 +7,15 @@ import {t, tct} from 'sentry/locale';
 
 // Configuration Start
 
-const profilingConfiguration = `  # Set profiles_sample_rate to 1.0 to profile 100%
-  # of sampled transactions.
-  # We recommend adjusting this value in production.
-  profiles_sample_rate=1.0,`;
+const profilingConfiguration = `    # Set profiles_sample_rate to 1.0 to profile 100%
+    # of sampled transactions.
+    # We recommend adjusting this value in production.
+    profiles_sample_rate=1.0,`;
 
-const performanceConfiguration = `  # Set traces_sample_rate to 1.0 to capture 100%
-  # of transactions for performance monitoring.
-  # We recommend adjusting this value in production.
-  traces_sample_rate=1.0,`;
+const performanceConfiguration = `    # Set traces_sample_rate to 1.0 to capture 100%
+    # of transactions for performance monitoring.
+    # We recommend adjusting this value in production.
+    traces_sample_rate=1.0,`;
 
 const introduction = (
   <p>
@@ -116,7 +116,7 @@ export function GettingStartedWithFastApi({
 }: ModuleProps) {
   const otherConfigs: string[] = [];
 
-  let sentryInitContent: string[] = [`  dsn="${dsn}",`];
+  let sentryInitContent: string[] = [`    dsn="${dsn}",`];
 
   if (activeProductSelection.includes(ProductSolution.PERFORMANCE_MONITORING)) {
     otherConfigs.push(performanceConfiguration);

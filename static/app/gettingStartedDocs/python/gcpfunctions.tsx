@@ -12,15 +12,15 @@ import {space} from 'sentry/styles/space';
 
 // Configuration Start
 
-const profilingConfiguration = `  # Set profiles_sample_rate to 1.0 to profile 100%
-  # of sampled transactions.
-  # We recommend adjusting this value in production.
-  profiles_sample_rate=1.0,`;
+const profilingConfiguration = `    # Set profiles_sample_rate to 1.0 to profile 100%
+    # of sampled transactions.
+    # We recommend adjusting this value in production.
+    profiles_sample_rate=1.0,`;
 
-const performanceConfiguration = `  # Set traces_sample_rate to 1.0 to capture 100%
-  # of transactions for performance monitoring.
-  # We recommend adjusting this value in production.
-  traces_sample_rate=1.0,`;
+const performanceConfiguration = `    # Set traces_sample_rate to 1.0 to capture 100%
+    # of transactions for performance monitoring.
+    # We recommend adjusting this value in production.
+    traces_sample_rate=1.0,`;
 
 export const steps = ({
   dsn,
@@ -58,7 +58,7 @@ ${sentryInitContent}
 )
 
 def http_function_entrypoint(request):
-  ...
+    ...
         `,
       },
     ],
@@ -99,10 +99,10 @@ def http_function_entrypoint(request):
         language: 'python',
         code: `
 sentry_sdk.init(
-  dsn="${dsn}",
-  integrations=[
-      GcpIntegration(timeout_warning=True),
-  ],
+    dsn="${dsn}",
+    integrations=[
+        GcpIntegration(timeout_warning=True),
+    ],
 )
         `,
       },
@@ -122,8 +122,8 @@ export function GettingStartedWithGCPFunctions({
   const otherConfigs: string[] = [];
 
   let sentryInitContent: string[] = [
-    `  dsn="${dsn}",`,
-    `  integrations=[GcpIntegration()],`,
+    `    dsn="${dsn}",`,
+    `    integrations=[GcpIntegration()],`,
   ];
 
   if (activeProductSelection.includes(ProductSolution.PERFORMANCE_MONITORING)) {

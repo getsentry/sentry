@@ -7,15 +7,15 @@ import {t, tct} from 'sentry/locale';
 
 // Configuration Start
 
-const profilingConfiguration = `  # Set profiles_sample_rate to 1.0 to profile 100%
-  # of sampled transactions.
-  # We recommend adjusting this value in production.
-  profiles_sample_rate=1.0,`;
+const profilingConfiguration = `    # Set profiles_sample_rate to 1.0 to profile 100%
+    # of sampled transactions.
+    # We recommend adjusting this value in production.
+    profiles_sample_rate=1.0,`;
 
-const performanceConfiguration = `  # Set traces_sample_rate to 1.0 to capture 100%
-  # of transactions for performance monitoring.
-  # We recommend adjusting this value in production.
-  traces_sample_rate=1.0,`;
+const performanceConfiguration = `    # Set traces_sample_rate to 1.0 to capture 100%
+    # of transactions for performance monitoring.
+    # We recommend adjusting this value in production.
+    traces_sample_rate=1.0,`;
 
 const introduction = (
   <p>
@@ -63,14 +63,14 @@ ${sentryInitContent}
 )
 
 def sentry_debug(request):
-division_by_zero = 1 / 0
+    division_by_zero = 1 / 0
 
 with Configurator() as config:
-config.add_route('sentry-debug', '/')
-config.add_view(sentry_debug, route_name='sentry-debug')
-app = config.make_wsgi_app()
-server = make_server('0.0.0.0', 6543, app)
-server.serve_forever()
+    config.add_route('sentry-debug', '/')
+    config.add_view(sentry_debug, route_name='sentry-debug')
+    app = config.make_wsgi_app()
+    server = make_server('0.0.0.0', 6543, app)
+    server.serve_forever()
       `,
       },
     ],
@@ -86,8 +86,8 @@ export function GettingStartedWithPyramid({
   const otherConfigs: string[] = [];
 
   let sentryInitContent: string[] = [
-    `  dsn="${dsn}",`,
-    `  integrations=[PyramidIntegration()],`,
+    `    dsn="${dsn}",`,
+    `    integrations=[PyramidIntegration()],`,
   ];
 
   if (activeProductSelection.includes(ProductSolution.PERFORMANCE_MONITORING)) {

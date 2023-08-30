@@ -7,15 +7,15 @@ import {t, tct} from 'sentry/locale';
 
 // Configuration Start
 
-const profilingConfiguration = `  # Set profiles_sample_rate to 1.0 to profile 100%
-  # of sampled transactions.
-  # We recommend adjusting this value in production.
-  profiles_sample_rate=1.0,`;
+const profilingConfiguration = `    # Set profiles_sample_rate to 1.0 to profile 100%
+    # of sampled transactions.
+    # We recommend adjusting this value in production.
+    profiles_sample_rate=1.0,`;
 
-const performanceConfiguration = `  # Set traces_sample_rate to 1.0 to capture 100%
-  # of transactions for performance monitoring.
-  # We recommend adjusting this value in production.
-  traces_sample_rate=1.0,`;
+const performanceConfiguration = `    # Set traces_sample_rate to 1.0 to capture 100%
+    # of transactions for performance monitoring.
+    # We recommend adjusting this value in production.
+    traces_sample_rate=1.0,`;
 
 const introduction = (
   <p>
@@ -73,12 +73,12 @@ from trytond.exceptions import UserError
 
 @application.error_handler
 def _(app, request, e):
-  if isinstance(e, TrytonException):
-    return
-  else:
-    event_id = sentry_sdk.last_event_id()
-    data = UserError('Custom message', f'{event_id}{e}')
-    return app.make_response(request, data)
+    if isinstance(e, TrytonException):
+        return
+    else:
+        event_id = sentry_sdk.last_event_id()
+        data = UserError('Custom message', f'{event_id}{e}')
+        return app.make_response(request, data)
         `,
       },
     ],
@@ -94,10 +94,10 @@ export function GettingStartedWithTryton({
   const otherConfigs: string[] = [];
 
   let sentryInitContent: string[] = [
-    `  dsn="${dsn}",`,
-    `  integrations=[`,
-    `    sentry_sdk.integrations.trytond.TrytondWSGIIntegration(),`,
-    `  ],`,
+    `    dsn="${dsn}",`,
+    `    integrations=[`,
+    `        sentry_sdk.integrations.trytond.TrytondWSGIIntegration(),`,
+    `    ],`,
   ];
 
   if (activeProductSelection.includes(ProductSolution.PERFORMANCE_MONITORING)) {
