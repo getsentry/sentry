@@ -175,6 +175,16 @@ export enum StackTags {
   STACK_STACK_LEVEL = 'stack.stack_level',
 }
 
+export enum ErrorTags {
+  ERROR_HANDLED = 'error.handled',
+  ERROR_MECHANISM = 'error.mechanism',
+  ERROR_TYPE = 'error.type',
+  ERROR_UNHANDLED = 'error.unhandled',
+  ERROR_VALUE = 'error.value',
+  ERROR_RECEIVED = 'error.received',
+  ERROR_MAIN_THREAD = 'error.main_thread',
+}
+
 export enum SpanOpBreakdown {
   SPANS_BROWSER = 'spans.browser',
   SPANS_DB = 'spans.db',

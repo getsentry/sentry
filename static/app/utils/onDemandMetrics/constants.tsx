@@ -1,4 +1,4 @@
-import {FieldKey, SpanOpBreakdown, StackTags} from 'sentry/utils/fields';
+import {ErrorTags, FieldKey, SpanOpBreakdown, StackTags} from 'sentry/utils/fields';
 
 export const STANDARD_SEARCH_FIELD_KEYS = new Set([
   FieldKey.RELEASE,
@@ -52,4 +52,5 @@ export const ON_DEMAND_METRICS_UNSUPPORTED_TAGS = new Set([
   FieldKey.USER_USERNAME,
   ...Object.values(SpanOpBreakdown),
   ...Object.values(StackTags),
+  ...Object.values(ErrorTags),
 ]) as Set<FieldKey>;
