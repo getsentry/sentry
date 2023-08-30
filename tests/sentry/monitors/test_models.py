@@ -211,6 +211,8 @@ class MonitorEnvironmentTestCase(TestCase):
         # recovery has hit threshold, monitor should be in an ok state
         monitor_environment = MonitorEnvironment.objects.get(id=monitor_environment.id)
         assert monitor_environment.status == MonitorStatus.OK
+        # check that monitor environment has updated timestamp used for fingerprinting
+        assert monitor_environment.last_state_change == monitor_environment.last_checkin
 
     @override_settings(MAX_ENVIRONMENTS_PER_MONITOR=2)
     def test_monitor_environment_limits(self):
