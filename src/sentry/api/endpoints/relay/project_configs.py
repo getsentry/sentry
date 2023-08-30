@@ -73,7 +73,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
             )
         elif version == "1":
             response["configs"] = self._post_by_project(
-                request=request, full_config_requested=full_config_requested, version=int(version)
+                request=request, full_config_requested=full_config_requested, version=1
             )
         else:
             return Response("Unsupported version, we only support versions 1 to 4.", 400)
