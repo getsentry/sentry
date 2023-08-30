@@ -15,7 +15,8 @@ from django.utils.translation import gettext_lazy as _
 
 from bitfield import TypedClassBitField
 from sentry.auth.authenticators import available_authenticators
-from sentry.backup.scopes import RelocationScope
+from sentry.backup.dependencies import PrimaryKeyMap
+from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import (
     BaseManager,
     BaseModel,
@@ -368,6 +369,16 @@ class User(BaseModel, AbstractBaseUser):
 
     def clear_lost_passwords(self):
         LostPasswordHash.objects.filter(user=self).delete()
+
+    def _normalize_before_relocation_import(self, pk_map: PrimaryKeyMap, scope: ImportScope) -> int:
+        old_pk = super()._normalize_before_relocation_import(pk_map, scope)
+        if scope != ImportScope.Global:
+            self.is_staff = False
+            self.is_superuser = False
+
+        # TODO(getsentry/team-ospo#181): Handle usernames that already exist.
+
+        return old_pk
 
 
 # HACK(dcramer): last_login needs nullable for Django 1.8

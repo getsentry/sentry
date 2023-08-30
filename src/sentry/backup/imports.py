@@ -10,6 +10,15 @@ from django.db import IntegrityError, connection, transaction
 
 from sentry.backup.dependencies import PrimaryKeyMap, normalize_model_name
 from sentry.backup.helpers import EXCLUDED_APPS
+from sentry.backup.scopes import ImportScope
+from sentry.silo import unguarded_write
+
+__all__ = (
+    "OldImportConfig",
+    "import_in_user_scope",
+    "import_in_organization_scope",
+    "import_in_global_scope",
+)
 
 
 class OldImportConfig(NamedTuple):
@@ -27,12 +36,19 @@ class OldImportConfig(NamedTuple):
     use_natural_foreign_keys: bool = False
 
 
-def imports(src, old_config: OldImportConfig, printer=click.echo):
-    """Imports core data for the Sentry installation."""
+def _import(src, scope: ImportScope, old_config: OldImportConfig, printer=click.echo):
+    """
+    Imports core data for a Sentry installation.
+
+    It is generally preferable to avoid calling this function directly, as there are certain combinations of input parameters that should not be used together. Instead, use one of the other wrapper functions in this file, named `import_in_XXX_scope()`.
+    """
 
     try:
         # Import / export only works in monolith mode with a consolidated db.
-        with transaction.atomic("default"):
+        # TODO(getsentry/team-ospo#185): the `unguarded_write` is temporary until we get and RPC
+        # service up for writing to control silo models.
+        with unguarded_write(using="default"), transaction.atomic("default"):
+            allowed_relocation_scopes = scope.value
             pk_map = PrimaryKeyMap()
             for obj in serializers.deserialize(
                 "json", src, stream=True, use_natural_keys=old_config.use_natural_foreign_keys
@@ -43,9 +59,9 @@ def imports(src, old_config: OldImportConfig, printer=click.echo):
                     # to roll out the new API to self-hosted.
                     if old_config.use_update_instead_of_create:
                         obj.save()
-                    else:
+                    elif o.get_relocation_scope() in allowed_relocation_scopes:
                         o = obj.object
-                        written = o.write_relocation_import(pk_map, obj)
+                        written = o.write_relocation_import(pk_map, obj, scope)
                         if written is not None:
                             old_pk, new_pk = written
                             model_name = normalize_model_name(o)
@@ -72,3 +88,27 @@ def imports(src, old_config: OldImportConfig, printer=click.echo):
 
     with connection.cursor() as cursor:
         cursor.execute(sequence_reset_sql.getvalue())
+
+
+def import_in_user_scope(src, printer=click.echo):
+    """
+    Perform an import in the `User` scope, meaning that only models with `RelocationScope.User` will be imported from the provided `src` file.
+    """
+    return _import(src, ImportScope.User, OldImportConfig(), printer)
+
+
+def import_in_organization_scope(src, printer=click.echo):
+    """
+    Perform an import in the `Organization` scope, meaning that only models with `RelocationScope.User` or `RelocationScope.Organization` will be imported from the provided `src` file.
+    """
+    return _import(src, ImportScope.Organization, OldImportConfig(), printer)
+
+
+def import_in_global_scope(src, printer=click.echo):
+    """
+    Perform an import in the `Global` scope, meaning that all models will be imported from the
+    provided source file. Because a `Global` import is really only useful when restoring to a fresh
+    Sentry instance, some behaviors in this scope are different from the others. In particular,
+    superuser privileges are not sanitized.
+    """
+    return _import(src, ImportScope.Global, OldImportConfig(), printer)

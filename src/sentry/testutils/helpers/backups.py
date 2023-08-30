@@ -16,7 +16,8 @@ from sentry.backup.comparators import ComparatorMap
 from sentry.backup.dependencies import sorted_dependencies
 from sentry.backup.exports import OldExportConfig, exports
 from sentry.backup.findings import ComparatorFindings
-from sentry.backup.imports import OldImportConfig, imports
+from sentry.backup.imports import OldImportConfig, _import
+from sentry.backup.scopes import ImportScope
 from sentry.backup.validate import validate
 from sentry.db.models.fields.bounded import BoundedBigAutoField
 from sentry.incidents.models import (
@@ -153,7 +154,7 @@ def import_export_then_validate(method_name: str, *, reset_pks: bool = True) -> 
                 clear_database_but_keep_sequences()
 
             with open(tmp_expect) as tmp_file:
-                imports(tmp_file, OldImportConfig(), NOOP_PRINTER)
+                _import(tmp_file, ImportScope.Global, OldImportConfig(), NOOP_PRINTER)
 
         # Validate that the "expected" and "actual" JSON matches.
         actual = export_to_file(tmp_actual)
@@ -197,7 +198,7 @@ def import_export_from_fixture_then_validate(
 
     # TODO(Hybrid-Cloud): Review whether this is the correct route to apply in this case.
     with unguarded_write(using="default"), open(fixture_file_path) as fixture_file:
-        imports(fixture_file, OldImportConfig(), NOOP_PRINTER)
+        _import(fixture_file, ImportScope.Global, OldImportConfig(), NOOP_PRINTER)
 
     res = validate(expect, export_to_file(tmp_path.joinpath("tmp_test_file.json")), map)
     if res.findings:

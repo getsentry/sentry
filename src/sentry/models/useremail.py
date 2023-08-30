@@ -12,7 +12,7 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from sentry.backup.dependencies import PrimaryKeyMap
-from sentry.backup.scopes import RelocationScope
+from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import (
     BaseManager,
     FlexibleForeignKey,
@@ -88,9 +88,9 @@ class UserEmail(Model):
     # with `sentry.user` simultaneously? Will need to make more robust user handling logic, and to
     # test what happens when a UserEmail already exists.
     def write_relocation_import(
-        self, pk_map: PrimaryKeyMap, _: DeserializedObject
+        self, pk_map: PrimaryKeyMap, obj: DeserializedObject, scope: ImportScope
     ) -> Optional[Tuple[int, int]]:
-        old_pk = super()._normalize_before_relocation_import(pk_map)
+        old_pk = super()._normalize_before_relocation_import(pk_map, scope)
         (useremail, _) = self.__class__.objects.get_or_create(
             user=self.user, email=self.email, defaults=model_to_dict(self)
         )
