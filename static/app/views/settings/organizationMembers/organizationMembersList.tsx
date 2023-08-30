@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {RouteComponentProps} from 'react-router';
+import {browserHistory, RouteComponentProps} from 'react-router';
 import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -340,7 +340,16 @@ class OrganizationMembersList extends DeprecatedAsyncView<Props, State> {
         <InviteBanner
           missingMembers={githubMissingMembers}
           onSendInvite={this.handleInviteMissingMember}
-          onModalClose={this.fetchMembersList}
+          onModalClose={() => {
+            const {location} = this.props;
+            const newQuery = location.query;
+            delete newQuery.inviteMissingMembers;
+            browserHistory.replace({
+              pathname: location.pathname,
+              query: newQuery,
+            });
+            this.fetchMembersList();
+          }}
           allowedRoles={currentMember ? currentMember.roles : ORG_ROLES}
         />
         <ClassNames>

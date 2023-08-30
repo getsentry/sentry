@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {openInviteMissingMembersModal} from 'sentry/actionCreators/modal';
 import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
 import {Button} from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
 import Card from 'sentry/components/card';
 import Carousel from 'sentry/components/carousel';
 import {openConfirmModal} from 'sentry/components/confirm';
@@ -72,9 +73,9 @@ export function InviteBanner({
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
-    const showModal = params.get('showModal');
+    const inviteMissingMembers = params.get('inviteMissingMembers');
 
-    if (!hideBanner && showModal) {
+    if (!hideBanner && inviteMissingMembers) {
       openInviteMissingMembersModal({
         allowedRoles,
         missingMembers,
@@ -173,7 +174,7 @@ export function InviteBanner({
             />
           </Subtitle>
         </CardTitleContent>
-        <ButtonContainer>
+        <ButtonBar gap={1}>
           <Button
             priority="primary"
             size="xs"
@@ -197,7 +198,7 @@ export function InviteBanner({
               'aria-label': t('Actions'),
             }}
           />
-        </ButtonContainer>
+        </ButtonBar>
       </CardTitleContainer>
       <Carousel>{cards}</Carousel>
     </StyledCard>
@@ -285,12 +286,7 @@ export const Subtitle = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   font-weight: 400;
   color: ${p => p.theme.gray300};
-`;
-
-const ButtonContainer = styled('div')`
-  display: grid;
-  grid-auto-flow: column;
-  grid-column-gap: ${space(1)};
+  gap: ${space(0.5)};
 `;
 
 const MemberCard = styled(Card)`
