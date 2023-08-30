@@ -23,6 +23,7 @@ const TIMELINE_LABEL_HEIGHT = 20;
 const EMPTY_TIMELINE_HEIGHT = 80;
 
 interface FlamegraphLayoutProps {
+  batteryChart: React.ReactElement | null;
   cpuChart: React.ReactElement | null;
   flamegraph: React.ReactElement;
   flamegraphDrawer: React.ReactElement;
@@ -152,6 +153,20 @@ export function FlamegraphLayout(props: FlamegraphLayoutProps) {
     });
   }, [dispatch]);
 
+  const onOpenBatteryChart = useCallback(() => {
+    dispatch({
+      type: 'toggle timeline',
+      payload: {timeline: 'battery_chart', value: true},
+    });
+  }, [dispatch]);
+
+  const onCloseBatteryChart = useCallback(() => {
+    dispatch({
+      type: 'toggle timeline',
+      payload: {timeline: 'battery_chart', value: false},
+    });
+  }, [dispatch]);
+
   const spansTreeDepth = props.spansTreeDepth ?? 0;
   const spansTimelineHeight =
     Math.min(
@@ -196,6 +211,24 @@ export function FlamegraphLayout(props: FlamegraphLayoutProps) {
               {props.uiFrames}
             </CollapsibleTimeline>
           </UIFramesContainer>
+        ) : null}
+        {props.batteryChart ? (
+          <BatteryChartContainer
+            containerHeight={
+              timelines.battery_chart
+                ? flamegraphTheme.SIZES.BATTERY_CHART_HEIGHT
+                : TIMELINE_LABEL_HEIGHT
+            }
+          >
+            <CollapsibleTimeline
+              title={t('Battery')}
+              open={timelines.battery_chart}
+              onOpen={onOpenBatteryChart}
+              onClose={onCloseBatteryChart}
+            >
+              {props.batteryChart}
+            </CollapsibleTimeline>
+          </BatteryChartContainer>
         ) : null}
         {props.memoryChart ? (
           <MemoryChartContainer
@@ -298,10 +331,10 @@ const FlamegraphGrid = styled('div')<{
   width: 100%;
   grid-template-rows: ${({layout}) =>
     layout === 'table bottom'
-      ? 'auto auto auto auto auto 1fr'
+      ? 'auto auto auto auto auto auto 1fr'
       : layout === 'table right'
-      ? 'min-content min-content min-content min-content min-content 1fr'
-      : 'min-content min-content min-content min-content min-content 1fr'};
+      ? 'min-content min-content min-content min-content min-content min-content 1fr'
+      : 'min-content min-content min-content min-content min-content min-content 1fr'};
   grid-template-columns: ${({layout}) =>
     layout === 'table bottom'
       ? '100%'
@@ -315,8 +348,9 @@ const FlamegraphGrid = styled('div')<{
     layout === 'table bottom'
       ? `
         'minimap'
-        'ui-frames'
         'spans'
+        'ui-frames'
+        'battery-chart'
         'memory-chart'
         'cpu-chart'
         'flamegraph'
@@ -324,18 +358,20 @@ const FlamegraphGrid = styled('div')<{
         `
       : layout === 'table right'
       ? `
-        'minimap      frame-stack'
-        'ui-frames    frame-stack'
-        'spans        frame-stack'
-        'memory-chart frame-stack'
-        'cpu-chart    frame-stack'
-        'flamegraph   frame-stack'
+        'minimap        frame-stack'
+        'spans          frame-stack'
+        'ui-frames      frame-stack'
+        'battery-chart  frame-stack'
+        'memory-chart   frame-stack'
+        'cpu-chart      frame-stack'
+        'flamegraph     frame-stack'
       `
       : layout === 'table left'
       ? `
         'frame-stack minimap'
-        'frame-stack ui-frames'
         'frame-stack spans'
+        'frame-stack ui-frames'
+        'frame-stack battery-chart'
         'frame-stack memory-chart'
         'frame-stack cpu-chart'
         'frame-stack flamegraph'
@@ -383,6 +419,14 @@ const MemoryChartContainer = styled('div')<{
   position: relative;
   height: ${p => p.containerHeight}px;
   grid-area: memory-chart;
+`;
+
+const BatteryChartContainer = styled('div')<{
+  containerHeight: FlamegraphTheme['SIZES']['BATTERY_CHART_HEIGHT'];
+}>`
+  position: relative;
+  height: ${p => p.containerHeight}px;
+  grid-area: battery-chart;
 `;
 
 const UIFramesContainer = styled('div')<{

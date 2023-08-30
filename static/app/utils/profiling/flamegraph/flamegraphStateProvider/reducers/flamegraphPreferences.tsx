@@ -18,6 +18,7 @@ export interface FlamegraphPreferences {
   layout: 'table right' | 'table bottom' | 'table left';
   sorting: FlamegraphSorting;
   timelines: {
+    battery_chart: boolean;
     cpu_chart: boolean;
     memory_chart: boolean;
     minimap: boolean;
