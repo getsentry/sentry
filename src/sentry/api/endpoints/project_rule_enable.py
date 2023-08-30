@@ -4,6 +4,7 @@ from rest_framework.response import Response
 
 from sentry import audit_log
 from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectAlertRulePermission, ProjectEndpoint
 from sentry.api.endpoints.project_rules import find_duplicate_rule
@@ -14,6 +15,9 @@ from sentry.models import Rule
 
 @region_silo_endpoint
 class ProjectRuleEnableEndpoint(ProjectEndpoint):
+    publish_status = {
+        "PUT": ApiPublishStatus.UNKNOWN,
+    }
     owner = ApiOwner.ISSUES
     permission_classes = (ProjectAlertRulePermission,)
 
@@ -39,7 +43,7 @@ class ProjectRuleEnableEndpoint(ProjectEndpoint):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        duplicate_rule = find_duplicate_rule(rule.data, project)
+        duplicate_rule = find_duplicate_rule(rule.data, project, rule_id)
         if duplicate_rule:
             return Response(
                 {

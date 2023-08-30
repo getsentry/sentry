@@ -19,7 +19,7 @@ from sentry.utils.signing import sign
 class SlackRequestParserTest(TestCase):
     get_response = MagicMock()
     factory = RequestFactory()
-    region = Region("na", 1, "https://na.testserver", RegionCategory.MULTI_TENANT)
+    region = Region("us", 1, "https://us.testserver", RegionCategory.MULTI_TENANT)
 
     @pytest.fixture(autouse=True)
     def patch_get_region(self):
