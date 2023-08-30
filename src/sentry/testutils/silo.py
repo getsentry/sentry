@@ -306,6 +306,9 @@ def get_protected_operations() -> List[re.Pattern]:
     # Protect inserts/updates that require outbox messages.
     _protected_operations.extend(
         [
+            protected_table("sentry_user", "insert"),
+            protected_table("sentry_user", "update"),
+            protected_table("sentry_user", "delete"),
             protected_table("sentry_organizationmember", "insert"),
             protected_table("sentry_organizationmember", "update"),
             protected_table("sentry_organizationmember", "delete"),

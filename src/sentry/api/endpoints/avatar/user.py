@@ -43,4 +43,6 @@ class UserAvatarEndpoint(AvatarMixin, UserEndpoint):
             user_id=request.user.id,
             attrs=dict(avatar_url=avatar_url, avatar_type=user_avatar.avatar_type),
         )
-        return Response(serialized_user)
+        if serialized_user:
+            return Response(serialized_user)
+        return Response(status=status.HTTP_404_NOT_FOUND)
