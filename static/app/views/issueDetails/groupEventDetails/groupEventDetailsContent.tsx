@@ -89,7 +89,7 @@ function GroupEventDetailsContent({
   if (group.issueType === IssueType.PERFORMANCE_DURATION_REGRESSION) {
     return (
       <Feature
-        features={['performance-duration-regression']}
+        features={['performance-duration-regression-visible']}
         organization={organization}
         renderDisabled
       >
