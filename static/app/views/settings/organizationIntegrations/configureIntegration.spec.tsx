@@ -1,4 +1,9 @@
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+} from 'sentry-test/reactTestingLibrary';
 
 import ConfigureIntegration from 'sentry/views/settings/organizationIntegrations/configureIntegration';
 
@@ -41,10 +46,12 @@ describe('OpsgenieMigrationButton', function () {
         },
       ],
     });
-    MockApiClient.addMockResponse({
+
+    const onConfirmCall = MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/integrations/${integrationId}/migrate-opsgenie/`,
-      body: {},
+      method: 'PUT',
     });
+
     render(
       <ConfigureIntegration
         {...TestStubs.routeComponentProps()}
@@ -53,8 +60,15 @@ describe('OpsgenieMigrationButton', function () {
         location={TestStubs.location({query: {}})}
       />
     );
+    renderGlobalModal();
     expect(screen.getByRole('button', {name: 'Migrate Plugin'})).toBeEnabled();
 
     await userEvent.click(screen.getByRole('button', {name: 'Migrate Plugin'}));
+
+    expect(screen.queryByRole('button', {name: 'Confirm'})).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
+
+    expect(onConfirmCall).toHaveBeenCalled();
   });
 });

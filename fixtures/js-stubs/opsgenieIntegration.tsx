@@ -13,10 +13,10 @@ export function OpsgenieIntegration(
     provider: {
       key: 'opsgenie',
       slug: 'opsgenie',
-      name: 'Opsgenie (Integration)',
+      name: 'Opsgenie',
       canAdd: true,
       canDisable: false,
-      features: ['alert-rule', 'incident-management'],
+      features: ['enterprise-alert-rule', 'enterprise-incident-management'],
       aspects: {},
     },
     configOrganization: [],
