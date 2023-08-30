@@ -1367,10 +1367,6 @@ SENTRY_FEATURES = {
     "organizations:customer-domains": False,
     # Allow disabling github integrations when broken is detected
     "organizations:github-disable-on-broken": False,
-    # Allow disabling integrations when broken is detected
-    "organizations:slack-fatal-disable-on-broken": False,
-    # Allow disabling sentryapps when broken is detected
-    "organizations:disable-sentryapps-on-broken": False,
     # Enable the 'discover' interface.
     "organizations:discover": False,
     # Enables events endpoint rate limit
@@ -1717,8 +1713,6 @@ SENTRY_FEATURES = {
     "organizations:sdk-crash-detection": False,
     # Enable functionality for recap server polling.
     "organizations:recap-server": False,
-    # Enable additional logging for alerts
-    "organizations:detailed-alert-logging": False,
     # Enable the new notification settings system
     "organizations:notification-settings-v2": False,
     # Adds additional filters and a new section to issue alert rules.

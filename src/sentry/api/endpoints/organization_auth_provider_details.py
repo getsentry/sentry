@@ -3,6 +3,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationAuthProviderPermission, OrganizationEndpoint
 from sentry.api.serializers import serialize
@@ -13,6 +14,9 @@ from sentry.services.hybrid_cloud.auth.service import auth_service
 
 @region_silo_endpoint
 class OrganizationAuthProviderDetailsEndpoint(OrganizationEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     owner = ApiOwner.ENTERPRISE
     permission_classes = (OrganizationAuthProviderPermission,)
 
@@ -25,13 +29,12 @@ class OrganizationAuthProviderDetailsEndpoint(OrganizationEndpoint):
         :pparam string organization_slug: the organization short name
         :auth: required
         """
-        auth_providers = auth_service.get_auth_providers(organization_id=organization.id)
-        if not auth_providers:
+        auth_provider = auth_service.get_auth_provider(organization_id=organization.id)
+        if not auth_provider:
             # This is a valid state where org does not have an auth provider
             # configured, make sure we respond with a 20x
             return Response(status=status.HTTP_204_NO_CONTENT)
 
-        auth_provider = auth_providers[0]
         return Response(
             serialize(
                 auth_provider,
