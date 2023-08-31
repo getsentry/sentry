@@ -5,8 +5,10 @@ import {Button} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {MINIMAP_HEIGHT} from 'sentry/components/events/interfaces/spans/constants';
+import {noFilter} from 'sentry/components/events/interfaces/spans/filter';
 import {ActualMinimap} from 'sentry/components/events/interfaces/spans/header';
 import WaterfallModel from 'sentry/components/events/interfaces/spans/waterfallModel';
+import OpsBreakdown from 'sentry/components/events/opsBreakdown';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import TextOverflow from 'sentry/components/textOverflow';
 import {IconEllipsis, IconJson, IconLink} from 'sentry/icons';
@@ -168,7 +170,7 @@ function EventDisplay({
           </MinimapPositioningContainer>
         </MinimapContainer>
 
-        <FakeSpanOpBreakdown>span op breakdown</FakeSpanOpBreakdown>
+        <OpsBreakdown event={eventData} operationNameFilters={noFilter} hideHeader />
       </ComparisonContentWrapper>
     </div>
   );
@@ -201,14 +203,7 @@ const MinimapContainer = styled('div')`
   height: ${MINIMAP_HEIGHT}px;
   max-height: ${MINIMAP_HEIGHT}px;
   position: relative;
-`;
-
-const FakeSpanOpBreakdown = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 120px;
-  background: antiquewhite;
+  border-bottom: 1px solid ${p => p.theme.border};
 `;
 
 const ComparisonContentWrapper = styled('div')`
