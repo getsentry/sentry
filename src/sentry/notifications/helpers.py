@@ -4,7 +4,11 @@ from collections import defaultdict
 from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping
 
 from django.contrib.auth.models import AnonymousUser
+from django.db.models import Q, QuerySet
 
+from sentry.api.endpoints.notification_defaults import TYPE_DEFAULTS, get_type_defaults
+from sentry.models.notificationsettingoption import NotificationSettingOption
+from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.notifications.defaults import NOTIFICATION_SETTING_DEFAULTS
 from sentry.notifications.types import (
     NOTIFICATION_SCOPE_TYPE,
@@ -21,6 +25,7 @@ from sentry.notifications.types import (
 from sentry.services.hybrid_cloud import extract_id_from
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.notifications import RpcNotificationSetting
+from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.types.integrations import (
     EXTERNAL_PROVIDERS,
     ExternalProviders,
@@ -610,3 +615,90 @@ def get_providers_for_recipient(
     user_providers = [get_provider_enum_from_string(idp_type) for idp_type in idp_types]
     user_providers.append(ExternalProviders.EMAIL)  # always add in email as an option
     return user_providers
+
+
+def get_all_setting_providers(recipient: RpcActor | Team | User, project: Project | None = None, organization: Organization | None = None,):
+    project_settings = Q(
+        scope_type=NotificationScopeType.PROJECT.value, scope_identifier=project.id
+    ) if project else Q()
+
+    org_settings = Q(
+        scope_type=NotificationScopeType.ORGANIZATION.value,
+        scope_identifier=project.organization.id,
+    ) if organization else Q()
+
+    team_or_user_settings = Q()
+    if recipient.actor_type == ActorType.USER or isinstance(recipient, (RpcUser, User)):
+        team_or_user_settings = Q(
+            scope_type=NotificationScopeType.USER.value, scope_identifier=recipient.id
+        )
+    elif recipient.actor_type == ActorType.TEAM or isinstance(recipient, Team):
+        team_or_user_settings = Q(
+            scope_type=NotificationScopeType.TEAM.value, scope_identifier=recipient.id
+        )
+
+    NotificationSettingProvider.objects.filter(
+        project_settings | org_settings | team_or_user_settings
+    )
+
+def get_all_setting_options(recipient: RpcActor | Team | User, project: Project | None = None, organization: Organization | None = None,):
+    project_settings = Q(
+        scope_type=NotificationScopeType.PROJECT.value, scope_identifier=project.id
+    ) if project else Q()
+
+    org_settings = Q(
+        scope_type=NotificationScopeType.ORGANIZATION.value,
+        scope_identifier=project.organization.id,
+    ) if organization else Q()
+
+    team_or_user_settings = Q()
+    if recipient.actor_type == ActorType.USER or isinstance(recipient, (RpcUser, User)):
+        team_or_user_settings = Q(
+            scope_type=NotificationScopeType.USER.value, scope_identifier=recipient.id
+        )
+    elif recipient.actor_type == ActorType.TEAM or isinstance(recipient, Team):
+        team_or_user_settings = Q(
+            scope_type=NotificationScopeType.TEAM.value, scope_identifier=recipient.id
+        )
+
+    NotificationSettingOption.objects.filter(
+        project_settings | org_settings | team_or_user_settings
+    )
+
+
+def get_settings_for_recipient(
+    recipient: RpcActor | Team | User, project: Project | None = None, organization: Organization | None = None,
+) -> MutableMapping[NotificationScopeType, NotificationSettingOptionValues]:
+    all_settings = get_all_setting_options(recipient, project)
+
+    notification_settings = {}
+    # Project settings take precedence over all other notification settings
+    for setting in all_settings:
+        if setting.scope_type == NotificationScopeType.PROJECT.value:
+            notification_settings[setting.type] = setting.value
+
+    # Organization settings apply when project settings are not set
+    for setting in all_settings:
+        if setting.scope_type == NotificationScopeType.ORGANIZATION.value:
+            if setting.type not in notification_settings:
+                notification_settings[setting.type] = setting.value
+
+    # Team/User settings are the most specific.
+    if recipient.actor_type == ActorType.USER or isinstance(recipient, (RpcUser, User)):
+        scope_type = NotificationScopeType.USER.value
+    elif recipient.actor_type == ActorType.TEAM or isinstance(recipient, Team):
+        scope_type = NotificationScopeType.TEAM.value
+    else:
+        raise Exception("recipient must be either user or team")
+
+    for setting in all_settings:
+        if setting.scope_type == scope_type:
+            if setting.type not in notification_settings:
+                notification_settings[setting.type] = setting.value
+
+    # Fill in any missing settings with the default
+    for type in NOTIFICATION_SETTING_TYPES:
+        if type not in notification_settings:
+            notification_settings[type] = TYPE_DEFAULTS[type]
+
+    return notification_settings
