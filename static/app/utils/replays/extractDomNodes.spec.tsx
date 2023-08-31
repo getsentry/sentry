@@ -1,7 +1,3 @@
-/**
- * @jest-environment jsdom
- */
-
 import * as rrdom from 'rrdom';
 
 import type {Extraction} from 'sentry/utils/replays/extractDomNodes';

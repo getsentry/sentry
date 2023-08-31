@@ -29,8 +29,6 @@ import {
   BreadcrumbCategories,
   isDeadClick,
   isDeadRageClick,
-  isLCPFrame,
-  isPaintFrame,
 } from 'sentry/utils/replays/types';
 import type {ReplayError, ReplayRecord} from 'sentry/views/replays/types';
 
@@ -247,32 +245,25 @@ export default class ReplayReader {
 
   getChapterFrames = memoize(() =>
     [
-      ...this.getPerfFrames(),
-      ...this._sortedBreadcrumbFrames.filter(frame =>
-        ['replay.init', 'replay.mutations'].includes(frame.category)
-      ),
-      ...this._errors,
-    ].sort(sortFrames)
-  );
-
-  getPerfFrames = memoize(() =>
-    [
       ...removeDuplicateClicks(
         this._sortedBreadcrumbFrames.filter(
           frame =>
-            ['navigation', 'ui.click'].includes(frame.category) ||
+            ['navigation', 'replay.init', 'replay.mutations', 'ui.click'].includes(
+              frame.category
+            ) ||
             (frame.category === 'ui.slowClickDetected' &&
               (isDeadClick(frame as SlowClickFrame) ||
                 isDeadRageClick(frame as SlowClickFrame)))
         )
       ),
-      ...this._sortedSpanFrames.filter(frame => frame.op.startsWith('navigation.')),
+      ...this._sortedSpanFrames.filter(frame =>
+        ['navigation.navigate', 'navigation.reload', 'navigation.back_forward'].includes(
+          frame.op
+        )
+      ),
+      ...this._errors,
     ].sort(sortFrames)
   );
-
-  getLPCFrames = memoize(() => this._sortedSpanFrames.filter(isLCPFrame));
-
-  getPaintFrames = memoize(() => this._sortedSpanFrames.filter(isPaintFrame));
 
   getSDKOptions = () => this._optionFrame;
 
