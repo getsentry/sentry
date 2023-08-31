@@ -52,15 +52,12 @@ describe('InviteMissingMembersModal', function () {
     });
   });
 
-  it('renders with empty table when no missing members', function () {
+  it('does not render if no missing members', function () {
     render(<InviteMissingMembersModal {...modalProps} />);
 
     expect(
-      screen.getByRole('heading', {name: 'Invite Your Dev Team'})
-    ).toBeInTheDocument();
-
-    // 1 checkbox column + 4 content columns
-    expect(screen.queryAllByTestId('table-header')).toHaveLength(5);
+      screen.queryByRole('heading', {name: 'Invite Your Dev Team'})
+    ).not.toBeInTheDocument();
   });
 
   it('does not render without org:write', function () {
