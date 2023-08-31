@@ -783,6 +783,7 @@ CELERY_QUEUES_CONTROL = [
         exchange=control_exchange,
     ),
     Queue("options.control", routing_key="options.control", exchange=control_exchange),
+    Queue("outbox.control", routing_key="outbox.control", exchange=control_exchange),
 ]
 
 CELERY_ISSUE_STATES_QUEUE = Queue(
@@ -898,39 +899,40 @@ CELERYBEAT_SCHEDULE_CONTROL = {
         "task": "sentry.tasks.check_auth",
         # Run every 1 minute
         "schedule": crontab(minute="*/1"),
-        "options": {"expires": 60, "queue": "auth"},
+        "options": {"expires": 60, "queue": "auth.control"},
     },
-    "sync-options": {
-        "task": "sentry.tasks.options.sync_options",
+    "sync-options-control": {
+        "task": "sentry.tasks.options.sync_options_control",
         "schedule": timedelta(seconds=10),
-        "options": {"expires": 10, "queue": "options"},
+        "options": {"expires": 10, "queue": "options.control"},
     },
-    "deliver-from-outbox": {
-        "task": "sentry.tasks.enqueue_outbox_jobs",
+    "deliver-from-outbox-control": {
+        "task": "sentry.tasks.enqueue_outbox_jobs_control",
         # Run every 1 minute
         "schedule": crontab(minute="*/1"),
-        "options": {"expires": 30},
+        "options": {"expires": 30, "queue": "outbox.control"},
     },
-    "schedule-deletions": {
-        "task": "sentry.tasks.deletion.run_scheduled_deletions",
+    "schedule-deletions-control": {
+        "task": "sentry.tasks.deletion.run_scheduled_deletions_control",
         # Run every 15 minutes
         "schedule": crontab(minute="*/15"),
-        "options": {"expires": 60 * 25},
+        "options": {"expires": 60 * 25, "queue": "cleanup.control"},
     },
-    "reattempt-deletions": {
-        "task": "sentry.tasks.deletion.reattempt_deletions",
+    "reattempt-deletions-control": {
+        "task": "sentry.tasks.deletion.reattempt_deletions_control",
         "schedule": crontab(hour=10, minute=0),  # 03:00 PDT, 07:00 EDT, 10:00 UTC
-        "options": {"expires": 60 * 25},
+        "options": {"expires": 60 * 25, "queue": "cleanup.control"},
     },
-    "schedule-hybrid-cloud-foreign-key-jobs": {
-        "task": "sentry.tasks.deletion.hybrid_cloud.schedule_hybrid_cloud_foreign_key_jobs",
+    "schedule-hybrid-cloud-foreign-key-jobs-control": {
+        "task": "sentry.tasks.deletion.hybrid_cloud.schedule_hybrid_cloud_foreign_key_jobs_control",
         # Run every 15 minutes
         "schedule": crontab(minute="*/15"),
+        "options": {"queue": "cleanup.control"},
     },
     "schedule-vsts-integration-subscription-check": {
         "task": "sentry.tasks.integrations.kickoff_vsts_subscription_check",
         "schedule": crontab_with_minute_jitter(hour="*/6"),
-        "options": {"expires": 60 * 25},
+        "options": {"expires": 60 * 25, "queue": "integrations.control"},
     },
     "hybrid-cloud-repair-mappings": {
         "task": "sentry.tasks.organization_mapping.repair_mappings",
@@ -1191,6 +1193,7 @@ PROCESSING_QUEUES = [
 TIMEDELTA_ALLOW_LIST = {
     "flush-buffers",
     "sync-options",
+    "sync-options-control",
     "schedule-digests",
 }
 
@@ -1324,8 +1327,6 @@ CRISPY_TEMPLATE_PACK = "bootstrap3"
 # Sentry and internal client configuration
 
 SENTRY_FEATURES = {
-    # Prevents entirely numeric resource slugs
-    "app:enterprise-prevent-numeric-slugs": False,
     # Enables user registration.
     "auth:register": True,
     # Enables actionable items alerts and endpoint
@@ -1364,12 +1365,6 @@ SENTRY_FEATURES = {
     "organizations:create": True,
     # Enable usage of customer domains on the frontend
     "organizations:customer-domains": False,
-    # Allow disabling github integrations when broken is detected
-    "organizations:github-disable-on-broken": False,
-    # Allow disabling integrations when broken is detected
-    "organizations:slack-fatal-disable-on-broken": False,
-    # Allow disabling sentryapps when broken is detected
-    "organizations:disable-sentryapps-on-broken": False,
     # Enable the 'discover' interface.
     "organizations:discover": False,
     # Enables events endpoint rate limit
@@ -1420,6 +1415,12 @@ SENTRY_FEATURES = {
     "organizations:profiling-cpu-chart": False,
     # Enable profiling Memory chart
     "organizations:profiling-memory-chart": False,
+    # Enable profiling battery usage chart
+    "organizations:profiling-battery-usage-chart": False,
+    # Enable disabling github integrations when broken is detected
+    "organizations:github-disable-on-broken": False,
+    # Enable disabling gitlab integrations when broken is detected
+    "organizations:gitlab-disable-on-broken": False,
     # Enable multi project selection
     "organizations:global-views": False,
     # Enable experimental new version of Merged Issues where sub-hashes are shown
@@ -1474,6 +1475,11 @@ SENTRY_FEATURES = {
     # Enable interface functionality to synchronize groups between sentry and
     # issues on external services.
     "organizations:integrations-issue-sync": True,
+    # Enable integration functionality to work with enterprise alert rules
+    "organizations:integrations-enterprise-alert-rule": True,
+    # Enable integration functionality to work with enterprise alert rules (specifically incident
+    # management integrations)
+    "organizations:integrations-enterprise-incident-management": True,
     # Enable interface functionality to receive event hooks.
     "organizations:integrations-event-hooks": True,
     # Enable integration functionality to work with alert rules
@@ -1714,10 +1720,10 @@ SENTRY_FEATURES = {
     "organizations:sdk-crash-detection": False,
     # Enable functionality for recap server polling.
     "organizations:recap-server": False,
-    # Enable additional logging for alerts
-    "organizations:detailed-alert-logging": False,
     # Enable the new notification settings system
     "organizations:notification-settings-v2": False,
+    # Enable new release UI
+    "organizations:release-ui-v2": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
@@ -1736,6 +1742,10 @@ SENTRY_FEATURES = {
     "projects:discard-groups": False,
     # Extract spans from transactions in Relay, and forward them via Kafka.
     "projects:extract-standalone-spans": False,
+    # Enable considering group severity when creating and evaluating alert rules
+    "projects:first-event-severity-alerting": False,
+    # Enable calculating a severity score for events which create a new group
+    "projects:first-event-severity-calculation": False,
     # Enable functionality for attaching  minidumps to events and displaying
     # then in the group UI.
     "projects:minidump": True,
@@ -1753,6 +1763,8 @@ SENTRY_FEATURES = {
     "projects:auto-associate-commits-to-release": False,
     # Starfish: extract metrics from the spans
     "projects:span-metrics-extraction": False,
+    # Metrics: Enable ingestion, storage, and rendering of custom metrics
+    "organizations:custom-metrics": False,
     # Don't add feature defaults down here! Please add them in their associated
     # group sorted alphabetically.
 }
@@ -2065,6 +2077,8 @@ SENTRY_METRICS_INDEXER_CACHE_TTL = 3600 * 2
 SENTRY_METRICS_INDEXER_TRANSACTIONS_SAMPLE_RATE = 0.1
 
 SENTRY_METRICS_INDEXER_SPANNER_OPTIONS: dict[str, Any] = {}
+
+SENTRY_METRICS_INDEXER_REINDEXED_INTS: dict[int, str] = {}
 
 # Rate limits during string indexing for our metrics product.
 # Which cluster to use. Example: {"cluster": "default"}

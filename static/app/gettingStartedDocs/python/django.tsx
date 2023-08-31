@@ -7,19 +7,19 @@ import {t, tct} from 'sentry/locale';
 
 // Configuration Start
 
-const profilingConfiguration = `  # Set profiles_sample_rate to 1.0 to profile 100%
-  # of sampled transactions.
-  # We recommend adjusting this value in production.
-  profiles_sample_rate=1.0,`;
+const profilingConfiguration = `    # Set profiles_sample_rate to 1.0 to profile 100%
+    # of sampled transactions.
+    # We recommend adjusting this value in production.
+    profiles_sample_rate=1.0,`;
 
-const performanceConfiguration = `  # Set traces_sample_rate to 1.0 to capture 100%
-  # of transactions for performance monitoring.
-  # We recommend adjusting this value in production.
-  traces_sample_rate=1.0,`;
+const performanceConfiguration = `    # Set traces_sample_rate to 1.0 to capture 100%
+    # of transactions for performance monitoring.
+    # We recommend adjusting this value in production.
+    traces_sample_rate=1.0,`;
 
-const piiConfiguration = `  # If you wish to associate users to errors (assuming you are using
-  # django.contrib.auth) you may enable sending PII data.
-  send_default_pii=True,`;
+const piiConfiguration = `    # If you wish to associate users to errors (assuming you are using
+    # django.contrib.auth) you may enable sending PII data.
+    send_default_pii=True,`;
 
 export const steps = ({
   sentryInitContent,
@@ -80,12 +80,12 @@ ${sentryInitContent}
 from django.urls import path
 
 def trigger_error(request):
-  division_by_zero = 1 / 0
+    division_by_zero = 1 / 0
 
-  urlpatterns = [
-    path('sentry-debug/', trigger_error),
-    # ...
-  ]
+    urlpatterns = [
+        path('sentry-debug/', trigger_error),
+        # ...
+    ]
         `,
       },
     ],
@@ -104,8 +104,8 @@ export function GettingStartedWithDjango({
   const otherConfigs: string[] = [];
 
   let sentryInitContent: string[] = [
-    `  dsn="${dsn}",`,
-    `  integrations=[DjangoIntegration()],`,
+    `    dsn="${dsn}",`,
+    `    integrations=[DjangoIntegration()],`,
     piiConfiguration,
   ];
 
@@ -117,9 +117,7 @@ export function GettingStartedWithDjango({
     otherConfigs.push(profilingConfiguration);
   }
 
-  if (otherConfigs.length > 0) {
-    sentryInitContent = sentryInitContent.concat(otherConfigs);
-  }
+  sentryInitContent = sentryInitContent.concat(otherConfigs);
 
   return (
     <Layout

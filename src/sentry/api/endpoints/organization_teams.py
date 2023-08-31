@@ -9,6 +9,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import (
     DEFAULT_SLUG_ERROR_MESSAGE,
     DEFAULT_SLUG_PATTERN,
@@ -67,6 +68,10 @@ class TeamPostSerializer(serializers.Serializer, PreventNumericSlugMixin):
 @extend_schema(tags=["Teams"])
 @region_silo_endpoint
 class OrganizationTeamsEndpoint(OrganizationEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.PUBLIC,
+        "POST": ApiPublishStatus.PUBLIC,
+    }
     public = {"GET", "POST"}
     permission_classes = (OrganizationTeamsPermission,)
 
@@ -115,15 +120,15 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
                     has_external_teams = "true" in value
                     if has_external_teams:
                         queryset = queryset.filter(
-                            actor_id__in=ExternalActor.objects.filter(
+                            id__in=ExternalActor.objects.filter(
                                 organization=organization
-                            ).values_list("actor_id")
+                            ).values_list("team_id")
                         )
                     else:
                         queryset = queryset.exclude(
-                            actor_id__in=ExternalActor.objects.filter(
+                            id__in=ExternalActor.objects.filter(
                                 organization=organization
-                            ).values_list("actor_id")
+                            ).values_list("team_id")
                         )
 
                 elif key == "query":

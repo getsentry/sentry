@@ -1,20 +1,30 @@
-import {ParseResult, parseSearch, Token} from 'sentry/components/searchSyntax/parser';
+import React from 'react';
+import styled from '@emotion/styled';
+
+import {
+  ParseResult,
+  parseSearch,
+  Token,
+  TokenResult,
+} from 'sentry/components/searchSyntax/parser';
+import {Tooltip} from 'sentry/components/tooltip';
+import {IconWarning} from 'sentry/icons';
 import {Organization} from 'sentry/types';
 import {FieldKey, getFieldDefinition} from 'sentry/utils/fields';
 import {
-  ON_DEMAND_METRICS_SUPPORTED_TAGS,
+  ON_DEMAND_METRICS_UNSUPPORTED_TAGS,
   STANDARD_SEARCH_FIELD_KEYS,
 } from 'sentry/utils/onDemandMetrics/constants';
 
-function isStandardSearchFilterKey(key: FieldKey): boolean {
-  return STANDARD_SEARCH_FIELD_KEYS.has(key);
+function isStandardSearchFilterKey(key: string): boolean {
+  return STANDARD_SEARCH_FIELD_KEYS.has(key as FieldKey);
 }
 
-function isOnDemandSupportedFilterKey(key: FieldKey): boolean {
-  return ON_DEMAND_METRICS_SUPPORTED_TAGS.has(key);
+function isOnDemandSupportedFilterKey(key: string): boolean {
+  return !ON_DEMAND_METRICS_UNSUPPORTED_TAGS.has(key as FieldKey);
 }
 
-function isCustomTag(key: FieldKey): boolean {
+function isCustomTag(key: string): boolean {
   return !getFieldDefinition(key);
 }
 
@@ -32,40 +42,56 @@ export function createOnDemandFilterWarning(warning: React.ReactNode) {
 }
 
 export function isOnDemandQueryString(query: string): boolean {
-  const tokens = parseSearch(query);
-  if (!tokens) {
-    return false;
-  }
-
-  const searchFilterKeys = getSearchFilterKeys(tokens);
+  const searchFilterKeys = getSearchFilterKeys(query);
   const isStandardSearch = searchFilterKeys.every(isStandardSearchFilterKey);
-  const isOnDemandSupportedSearch = searchFilterKeys.some(key =>
-    ON_DEMAND_METRICS_SUPPORTED_TAGS.has(key)
-  );
+  const isOnDemandSupportedSearch = searchFilterKeys.some(isOnDemandSupportedFilterKey);
   const hasCustomTags = searchFilterKeys.some(isCustomTag);
+
   return !isStandardSearch && (isOnDemandSupportedSearch || hasCustomTags);
 }
 
-type SearchFilterKey = FieldKey | null;
+export function isOnDemandSearchKey(searchKey: string): boolean {
+  return (
+    !isStandardSearchFilterKey(searchKey) &&
+    (isOnDemandSupportedFilterKey(searchKey) || isCustomTag(searchKey))
+  );
+}
 
-function getSearchFilterKeys(tokens: ParseResult): FieldKey[] {
+type SearchFilter = {key: string; operator: string; value: string};
+
+function getSearchFilterKeys(query: string): string[] {
   try {
-    return getTokenKeys(tokens).filter(Boolean) as FieldKey[];
+    return getSearchFilters(query).map(({key}) => key);
   } catch (e) {
     return [];
   }
 }
 
-function getTokenKeys(tokens: ParseResult): SearchFilterKey[] {
-  return tokens.flatMap(getTokenKey);
+export function getSearchFilters(query: string): SearchFilter[] {
+  try {
+    const tokens = parseSearch(query);
+    if (!tokens) {
+      return [];
+    }
+
+    return getSearchFiltersFromTokens(tokens);
+  } catch (e) {
+    return [];
+  }
 }
 
-function getTokenKey(token): SearchFilterKey[] | SearchFilterKey {
+function getSearchFiltersFromTokens(tokens: ParseResult): SearchFilter[] {
+  return tokens.flatMap(getTokenKeyValuePair).filter(Boolean) as SearchFilter[];
+}
+
+function getTokenKeyValuePair(
+  token: TokenResult<Token>
+): SearchFilter[] | SearchFilter | null {
   if (token.type === Token.LOGIC_GROUP) {
-    return getTokenKeys(token.inner);
+    return getSearchFiltersFromTokens(token.inner);
   }
   if (token.type === Token.FILTER) {
-    return token.key.value;
+    return {key: token.key.text, operator: token.operator, value: token.value.text};
   }
 
   return null;
@@ -94,3 +120,17 @@ export function hasOnDemandMetricWidgetFeature(organization: Organization) {
     organization.features.includes('on-demand-metrics-extraction-experimental')
   );
 }
+
+export function OnDemandWarningIcon({msg}: {msg: React.ReactNode}) {
+  return (
+    <Tooltip title={msg}>
+      <HoverableIconWarning color="gray300" />
+    </Tooltip>
+  );
+}
+
+const HoverableIconWarning = styled(IconWarning)`
+  &:hover {
+    cursor: pointer;
+  }
+`;

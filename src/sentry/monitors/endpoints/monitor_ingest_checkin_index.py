@@ -10,6 +10,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import ratelimits
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.serializers import serialize
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
@@ -43,6 +44,9 @@ CHECKIN_QUOTA_WINDOW = 60
 @region_silo_endpoint
 @extend_schema(tags=["Crons"])
 class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
+    publish_status = {
+        "POST": ApiPublishStatus.PUBLIC,
+    }
     public = {"POST"}
 
     rate_limits = RateLimitConfig(
@@ -190,9 +194,7 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
             if duration is not None:
                 date_added -= timedelta(milliseconds=duration)
 
-            expected_time = None
-            if monitor_environment.last_checkin:
-                expected_time = monitor.get_next_expected_checkin(monitor_environment.last_checkin)
+            expected_time = monitor_environment.next_checkin
 
             status = getattr(CheckInStatus, result["status"].upper())
             monitor_config = monitor.get_validated_config()
