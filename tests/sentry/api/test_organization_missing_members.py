@@ -41,7 +41,12 @@ class OrganizationMissingMembersTestCase(APITestCase):
         self.nonmember_commit_author2.external_id = "d"
         self.nonmember_commit_author2.save()
 
-        self.repo = self.create_repo(project=self.project, provider="integrations:github")
+        self.integration = self.create_integration(
+            organization=self.organization, provider="github", name="Github", external_id="github:1"
+        )
+        self.repo = self.create_repo(
+            project=self.project, provider="integrations:github", integration_id=self.integration.id
+        )
         self.create_commit(repo=self.repo, author=self.member_commit_author)
         self.create_commit(repo=self.repo, author=self.nonmember_commit_author1)
         self.create_commit(repo=self.repo, author=self.nonmember_commit_author1)
@@ -53,10 +58,6 @@ class OrganizationMissingMembersTestCase(APITestCase):
         not_shared_domain_author.external_id = "not"
         not_shared_domain_author.save()
         self.create_commit(repo=self.repo, author=not_shared_domain_author)
-
-        self.integration = self.create_integration(
-            organization=self.organization, provider="github", name="Github", external_id="github:1"
-        )
 
         self.login_as(self.user)
 
@@ -212,3 +213,26 @@ class OrganizationMissingMembersTestCase(APITestCase):
 
         response = self.get_success_response(self.organization.slug)
         assert len(response.data) == 0
+
+    def test_filters_disabled_github_integration(self):
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="github",
+            name="Github",
+            external_id="github:2",
+            status=ObjectStatus.DISABLED,
+        )
+        repo = self.create_repo(
+            project=self.project, provider="integrations:github", integration_id=integration.id
+        )
+        self.create_commit(repo=repo, author=self.member_commit_author)
+        self.create_commit(repo=repo, author=self.nonmember_commit_author1)
+        self.create_commit(repo=repo, author=self.nonmember_commit_author1)
+        self.create_commit(repo=repo, author=self.nonmember_commit_author2)
+
+        response = self.get_success_response(self.organization.slug)
+        assert response.data[0]["integration"] == "github"
+        assert response.data[0]["users"] == [
+            {"email": "c@example.com", "externalId": "c", "commitCount": 2},
+            {"email": "d@example.com", "externalId": "d", "commitCount": 1},
+        ]

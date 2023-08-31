@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import timedelta
 from email.headerregistry import Address
+from typing import Sequence
 
 from django.db.models import Count, Q, QuerySet
 from django.utils import timezone
@@ -40,7 +41,7 @@ class OrganizationMissingMembersEndpoint(OrganizationEndpoint):
     permission_classes = (MissingMembersPermission,)
 
     def _get_missing_members(
-        self, organization: Organization, provider: str
+        self, organization: Organization, provider: str, integration_ids: Sequence[int]
     ) -> QuerySet[CommitAuthor]:
         member_emails = set(
             organization.member_set.exclude(email=None).values_list("email", flat=True)
@@ -57,7 +58,9 @@ class OrganizationMissingMembersEndpoint(OrganizationEndpoint):
         )
 
         org_repos = Repository.objects.filter(
-            provider="integrations:" + provider, organization_id=organization.id
+            provider="integrations:" + provider,
+            organization_id=organization.id,
+            integration_id__in=integration_ids,
         ).values_list("id", flat=True)
 
         return (
@@ -111,7 +114,13 @@ class OrganizationMissingMembersEndpoint(OrganizationEndpoint):
             if integration_provider != "github":
                 continue
 
-            queryset = self._get_missing_members(organization, integration_provider)
+            integration_ids = [
+                i.id for i in integrations_with_commits if i.provider == integration_provider
+            ]
+
+            queryset = self._get_missing_members(
+                organization, integration_provider, integration_ids
+            )
 
             if shared_domain:
                 queryset = queryset.filter(email__endswith=shared_domain)
