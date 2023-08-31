@@ -50,7 +50,7 @@ function TeamMembersRow({
       <div>
         <RemoveButton
           hasWriteAccess={hasWriteAccess}
-          hasOrgRoleFromTeam={team.orgRole !== null}
+          hasOrgRoleFromTeam={!!team.orgRole}
           isOrgOwner={isOrgOwner}
           isSelf={isSelf}
           onClick={() => removeMember(member)}
