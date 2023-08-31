@@ -18,7 +18,14 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconArrow, IconChevron, IconEllipsis, IconUser} from 'sentry/icons';
+import {
+  IconArrow,
+  IconChevron,
+  IconEllipsis,
+  IconFlag,
+  IconMute,
+  IconUser,
+} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Actor, Project} from 'sentry/types';
@@ -109,6 +116,22 @@ function RuleListRow({
 
   function renderAlertRuleStatus(): React.ReactNode {
     if (isIssueAlert(rule)) {
+      if (rule.status === 'disabled') {
+        return (
+          <IssueAlertStatusWrapper>
+            <IconFlag size="sm" color="red300" />
+            {t('Disabled')}
+          </IssueAlertStatusWrapper>
+        );
+      }
+      if (rule.snooze) {
+        return (
+          <IssueAlertStatusWrapper>
+            <IconMute size="sm" color="subText" />
+            {t('Muted')}
+          </IssueAlertStatusWrapper>
+        );
+      }
       return null;
     }
 
@@ -402,6 +425,12 @@ function RuleListRow({
 const FlexCenter = styled('div')`
   display: flex;
   align-items: center;
+`;
+
+const IssueAlertStatusWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
 `;
 
 const AlertNameWrapper = styled('div')<{isIssueAlert?: boolean}>`
