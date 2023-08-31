@@ -388,7 +388,6 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
         "PUT": ApiPublishStatus.PUBLIC,
     }
-    public = {"GET", "PUT", "DELETE"}
     permission_classes = [RelaxedProjectPermission]
 
     def _get_unresolved_count(self, project):

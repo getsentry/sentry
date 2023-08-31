@@ -70,7 +70,6 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
     }
-    public = {"GET", "POST"}
     permission_classes = (OrganizationMonitorPermission,)
 
     @extend_schema(

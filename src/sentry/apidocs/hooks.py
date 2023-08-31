@@ -74,9 +74,46 @@ def __get_explicit_endpoints() -> List[Tuple[str, str, str, Any]]:
     ]
 
 
+# def codemod_deprecate_public(endpoints):
+#     classes = set()
+#     for (path, path_regex, method, callback) in endpoints:
+#         view_class = callback.view_class
+#         if view_class.public is not None:
+#             classes.add(view_class)
+
+#     # Not doing a full loop to just generate a few examples
+#     for endpoint_class in classes:
+#         # Read file and find the location you want to remove a line from
+#         class_name = endpoint_class.__name__
+#         file_path = inspect.getfile(endpoint_class)
+#         file_to_read = open(file_path)
+#         current_line = file_to_read.readline()
+#         previous_lines = [current_line]
+#         while f"class {class_name}(" not in current_line:
+#             current_line = file_to_read.readline()
+#             previous_lines.append(current_line)
+
+#         # found the class definition line
+#         while "public = " not in current_line:
+#             current_line = file_to_read.readline()
+#             previous_lines.append(current_line)
+
+#         # remove the line with public in it
+#         previous_lines.pop()
+#         next_lines = file_to_read.readlines()
+#         file_to_read.close()
+
+#         # Write new content to file
+#         file_to_write = open(file_path, "w")
+#         file_to_write.writelines(previous_lines)
+#         file_to_write.writelines(next_lines)
+
+#         file_to_write.truncate()
+#         file_to_write.close()
+
+
 def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, rename
     filtered = []
-
     for (path, path_regex, method, callback) in endpoints:
 
         # Fail if endpoint is unowned
@@ -103,10 +140,12 @@ def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, 
         if any(path.startswith(p) for p in EXCLUSION_PATH_PREFIXES):
             pass
 
-        # TODO: Replace public with publish_status
-        elif callback.view_class.public:
+        elif callback.view_class.publish_status:
             # endpoints that are documented via tooling
-            if method in callback.view_class.public:
+            if (
+                method in callback.view_class.publish_status
+                and callback.view_class.publish_status[method] is ApiPublishStatus.PUBLIC
+            ):
                 # only pass declared public methods of the endpoint
                 # to the rest of the OpenAPI build pipeline
                 filtered.append((path, path_regex, method, callback))
