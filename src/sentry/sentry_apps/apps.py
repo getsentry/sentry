@@ -37,6 +37,7 @@ from sentry.sentry_apps.installations import (
     SentryAppInstallationTokenCreator,
 )
 from sentry.services.hybrid_cloud.hook import hook_service
+from sentry.services.hybrid_cloud.user.model import RpcUser
 
 Schema = Mapping[str, Any]
 
@@ -274,7 +275,7 @@ class SentryAppCreator:
                 not self.verify_install
             ), "Internal apps should not require installation verification"
 
-    def run(self, *, user: User, request: HttpRequest | None = None) -> SentryApp:
+    def run(self, *, user: User | RpcUser, request: HttpRequest | None = None) -> SentryApp:
         with transaction.atomic(router.db_for_write(User)), in_test_hide_transaction_boundary():
             slug = self._generate_and_validate_slug()
             proxy = self._create_proxy_user(slug=slug)
@@ -315,7 +316,7 @@ class SentryAppCreator:
         )
 
     def _create_sentry_app(
-        self, user: User, slug: str, proxy: User, api_app: ApiApplication
+        self, user: User | RpcUser, slug: str, proxy: User, api_app: ApiApplication
     ) -> SentryApp:
 
         kwargs = {
@@ -334,7 +335,7 @@ class SentryAppCreator:
             "verify_install": self.verify_install,
             "overview": self.overview,
             "popularity": self.popularity or SentryApp._meta.get_field("popularity").default,
-            "creator_user": user,
+            "creator_user_id": user.id,
             "creator_label": user.email
             or user.username,  # email is not required for some users (sentry apps)
         }
