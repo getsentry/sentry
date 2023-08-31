@@ -431,6 +431,7 @@ const IssueAlertStatusWrapper = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(1)};
+  line-height: 2;
 `;
 
 const AlertNameWrapper = styled('div')<{isIssueAlert?: boolean}>`
