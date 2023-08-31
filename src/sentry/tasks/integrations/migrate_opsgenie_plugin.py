@@ -7,10 +7,7 @@ from sentry.models.integrations.organization_integration import OrganizationInte
 from sentry.services.hybrid_cloud.integration.service import integration_service
 from sentry.tasks.base import instrumented_task, retry
 
-ALERT_LEGACY_INTEGRATIONS = {
-    "id": "sentry.rules.actions.notify_event.NotifyEventAction",
-    "name": "Send a notification (for all legacy integrations)",
-}
+ALERT_LEGACY_INTEGRATIONS = {"id": "sentry.rules.actions.notify_event.NotifyEventAction"}
 logger = logging.getLogger(__name__)
 
 
@@ -52,7 +49,7 @@ def migrate_opsgenie_plugin(integration_id: int, organization_id: int) -> None:
             seen_keys[api_key] = len(team_table)
             team = {
                 "team": f"{project.name} [MIGRATED]",
-                "id": f"{str(organization_id)}-{project.name}",
+                "id": f"{str(organization_integration.id)}-{project.name}",
                 "integration_key": api_key,
             }
             team_table.append(team)
@@ -68,7 +65,6 @@ def migrate_opsgenie_plugin(integration_id: int, organization_id: int) -> None:
         extra={
             "integration_id": integration_id,
             "organization_id": organization_id,
-            "project_id": project.id,
             "plugin": plugin.slug,
         },
     )
@@ -82,13 +78,12 @@ def migrate_opsgenie_plugin(integration_id: int, organization_id: int) -> None:
             for rule in Rule.objects.filter(project_id=project.id)
             if ALERT_LEGACY_INTEGRATIONS in rule.data["actions"]
         ]
-
         with transaction.atomic(router.db_for_write(Rule)):
             for rule in rules_to_migrate:
                 actions = rule.data["actions"]
                 new_action = {
                     "id": "sentry.integrations.opsgenie.notify_action.OpsgenieNotifyTeamAction",
-                    "account": organization_integration.id,
+                    "account": integration.id,
                     "team": team["id"],
                 }
                 if new_action not in actions:
