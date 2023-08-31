@@ -1700,15 +1700,7 @@ function buildRoutes() {
           component={make(() => import('sentry/views/starfish/views/spanSummaryPage'))}
         />
       </Route>
-      <Route path="database/">
-        <IndexRoute
-          component={make(() => import('sentry/views/starfish/modules/DBModule'))}
-        />
-        <Route
-          path="span/:groupId/"
-          component={make(() => import('sentry/views/starfish/views/spanSummaryPage'))}
-        />
-      </Route>
+      <Redirect from="database/" to="/performance/database" />
       <Route path="initialization/">
         <IndexRoute
           component={make(
