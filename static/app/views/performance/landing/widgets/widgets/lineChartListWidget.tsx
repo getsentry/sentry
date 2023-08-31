@@ -1,12 +1,13 @@
 import {Fragment, useMemo, useState} from 'react';
+import styled from '@emotion/styled';
 import pick from 'lodash/pick';
-import * as qs from 'query-string';
 
 import {LinkButton} from 'sentry/components/button';
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import {getInterval} from 'sentry/components/charts/utils';
 import Count from 'sentry/components/count';
 import Link from 'sentry/components/links/link';
+import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';
 import Truncate from 'sentry/components/truncate';
 import {t, tct} from 'sentry/locale';
@@ -27,10 +28,10 @@ import {
   getPerformanceDuration,
   UNPARAMETERIZED_TRANSACTION,
 } from 'sentry/views/performance/utils';
+import {SpanDescriptionCell} from 'sentry/views/starfish/components/tableCells/spanDescriptionCell';
 import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
-import {SpanMetricsField} from 'sentry/views/starfish/types';
+import {ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
-import {extractRoute} from 'sentry/views/starfish/utils/extractRoute';
 
 import {excludeTransaction} from '../../utils';
 import Accordion from '../components/accordion';
@@ -157,7 +158,6 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           eventView.additionalConditions.removeFilter('time_spent_percentage()');
           mutableSearch.addFilterValue('has', 'span.description');
           mutableSearch.addFilterValue('span.module', 'db');
-          mutableSearch.addFilterValue('!span.op', 'db.redis');
           mutableSearch.addFilterValue('transaction.op', 'http.server');
           eventView.query = mutableSearch.formatString();
         } else if (isSlowestType || isFramesType) {
@@ -442,18 +442,20 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
             case PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES:
               const description: string = listItem[SpanMetricsField.SPAN_DESCRIPTION];
               const group: string = listItem[SpanMetricsField.SPAN_GROUP];
+              const projectID: number = listItem['project.id'];
               const timeSpentPercentage: number = listItem[fieldString];
               const totalTime: number =
                 listItem[`sum(${SpanMetricsField.SPAN_SELF_TIME})`];
               return (
                 <Fragment>
-                  <GrowLink
-                    to={`/performance/database/${
-                      extractRoute(location) ?? 'spans'
-                    }/span/${group}?${qs.stringify({...location.query})}`}
-                  >
-                    <Truncate value={description} maxLength={40} />
-                  </GrowLink>
+                  <StyledTextOverflow>
+                    <SpanDescriptionCell
+                      projectId={projectID}
+                      group={group}
+                      description={description}
+                      moduleName={ModuleName.DB}
+                    />
+                  </StyledTextOverflow>
                   <RightAlignedCell>
                     <TimeSpentCell percentage={timeSpentPercentage} total={totalTime} />
                   </RightAlignedCell>
@@ -602,3 +604,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
 }
 
 const EventsRequest = withApi(_EventsRequest);
+
+const StyledTextOverflow = styled(TextOverflow)`
+  flex: 1;
+`;
