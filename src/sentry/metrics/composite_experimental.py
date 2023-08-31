@@ -12,6 +12,7 @@ class CompositeExperimentalMetricsBackend(MetricsBackend):
         self._initialize_backends(
             kwargs.pop("primary_backend", None), kwargs.pop("backend_args", {})
         )
+        self._allow_list = set(kwargs.pop("allow_list", set()))
 
     def _initialize_backends(self, primary_backend: Optional[str], backend_args: Dict[str, Any]):
         # If we don't have a primary metrics backend we default to the dummy, which won't do anything.
@@ -23,6 +24,9 @@ class CompositeExperimentalMetricsBackend(MetricsBackend):
 
         self._minimetrics: MetricsBackend = MiniMetricsMetricsBackend()
 
+    def _is_allowed(self, key: str):
+        return key in self._allow_list
+
     def incr(
         self,
         key: str,
@@ -31,8 +35,10 @@ class CompositeExperimentalMetricsBackend(MetricsBackend):
         amount: Union[float, int] = 1,
         sample_rate: float = 1,
     ) -> None:
+        key = self._get_key(key)
         self._primary_backend.incr(key, instance, tags, amount, sample_rate)
-        self._minimetrics.incr(key, instance, tags, amount, sample_rate)
+        if self._is_allowed(key):
+            self._minimetrics.incr(key, instance, tags, amount, sample_rate)
 
     def timing(
         self,
@@ -42,8 +48,10 @@ class CompositeExperimentalMetricsBackend(MetricsBackend):
         tags: Optional[Tags] = None,
         sample_rate: float = 1,
     ) -> None:
+        key = self._get_key(key)
         self._primary_backend.timing(key, value, instance, tags, sample_rate)
-        self._minimetrics.timing(key, value, instance, tags, sample_rate)
+        if self._is_allowed(key):
+            self._minimetrics.timing(key, value, instance, tags, sample_rate)
 
     def gauge(
         self,
@@ -53,5 +61,7 @@ class CompositeExperimentalMetricsBackend(MetricsBackend):
         tags: Optional[Tags] = None,
         sample_rate: float = 1,
     ) -> None:
+        key = self._get_key(key)
         self._primary_backend.gauge(key, value, instance, tags, sample_rate)
-        self._minimetrics.gauge(key, value, instance, tags, sample_rate)
+        if self._is_allowed(key):
+            self._minimetrics.gauge(key, value, instance, tags, sample_rate)
