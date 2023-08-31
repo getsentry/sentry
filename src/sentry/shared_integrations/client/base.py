@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from contextlib import nullcontext
-from random import randint, random
+from random import random
 from typing import Any, Callable, Literal, Mapping, Sequence, Type, Union, overload
 
 import sentry_sdk
@@ -9,7 +9,7 @@ from django.core.cache import cache
 from requests import PreparedRequest, Request, Response
 from requests.exceptions import ConnectionError, HTTPError, Timeout
 
-from sentry import features
+from sentry import audit_log, features
 from sentry.constants import ObjectStatus
 from sentry.exceptions import RestrictedIPAddress
 from sentry.http import build_session
@@ -19,6 +19,7 @@ from sentry.models import Organization, OrganizationIntegration
 from sentry.models.integrations.utils import is_response_error, is_response_success
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.utils import json, metrics
+from sentry.utils.audit import create_system_audit_entry
 from sentry.utils.hashlib import md5_text
 
 from ..exceptions import ApiConnectionResetError, ApiHostError, ApiTimeoutError
@@ -381,88 +382,29 @@ class BaseApiClient(TrackResponseMixin):
         redis_key = self._get_redis_key()
         if not len(redis_key):
             return
-        try:
-            buffer = IntegrationRequestBuffer(redis_key)
-            if self.is_response_fatal(response):
-                buffer.record_fatal()
-            else:
-                if is_response_success(response):
-                    buffer.record_success()
-                    return
-                if is_response_error(response):
-                    buffer.record_error()
-                if randint(0, 99) == 0:
-                    (
-                        rpc_integration,
-                        rpc_org_integration,
-                    ) = integration_service.get_organization_contexts(
-                        integration_id=self.integration_id
-                    )
-                    if rpc_integration.provider in ("github", "gitlab", "slack"):
-                        extra = {
-                            "integration_id": self.integration_id,
-                            "buffer_record": buffer._get_all_from_buffer(),
-                        }
-                        if len(rpc_org_integration) == 0 and rpc_integration is None:
-                            extra["provider"] = "unknown"
-                            extra["organization_id"] = "unknown"
-                        elif len(rpc_org_integration) == 0:
-                            extra["provider"] = rpc_integration.provider
-                            extra["organization_id"] = "unknown"
-                        else:
-                            extra["provider"] = rpc_integration.provider
-                            extra["organization_id"] = rpc_org_integration[0].organization_id
-                        self.logger.info(
-                            "integration.error.record",
-                            extra=extra,
-                        )
-            if buffer.is_integration_broken():
-                self.disable_integration(buffer)
-
-        except Exception:
-            metrics.incr("integration.slack.disable_on_broken.redis")
-            return
+        buffer = IntegrationRequestBuffer(redis_key)
+        if self.is_response_fatal(response):
+            buffer.record_fatal()
+        else:
+            if is_response_success(response):
+                buffer.record_success()
+                return
+            if is_response_error(response):
+                buffer.record_error()
+        if buffer.is_integration_broken():
+            self.disable_integration(buffer)
 
     def record_error(self, error: Exception):
         redis_key = self._get_redis_key()
         if not len(redis_key):
             return
-        try:
-            buffer = IntegrationRequestBuffer(redis_key)
-            if self.is_error_fatal(error):
-                buffer.record_fatal()
-            else:
-                buffer.record_error()
-            if randint(0, 99) == 0:
-                (
-                    rpc_integration,
-                    rpc_org_integration,
-                ) = integration_service.get_organization_contexts(
-                    integration_id=self.integration_id
-                )
-                if rpc_integration.provider in ("github", "gitlab"):
-                    extra = {
-                        "integration_id": self.integration_id,
-                        "buffer_record": buffer._get_all_from_buffer(),
-                    }
-                    if len(rpc_org_integration) == 0 and rpc_integration is None:
-                        extra["provider"] = "unknown"
-                        extra["organization_id"] = "unknown"
-                    elif len(rpc_org_integration) == 0:
-                        extra["provider"] = rpc_integration.provider
-                        extra["organization_id"] = "unknown"
-                    else:
-                        extra["provider"] = rpc_integration.provider
-                        extra["organization_id"] = rpc_org_integration[0].organization_id
-                    self.logger.info(
-                        "integration.error.record",
-                        extra=extra,
-                    )
-            if buffer.is_integration_broken():
-                self.disable_integration(buffer)
-        except Exception:
-            metrics.incr("integration.slack.disable_on_broken.redis")
-            return
+        buffer = IntegrationRequestBuffer(redis_key)
+        if self.is_error_fatal(error):
+            buffer.record_fatal()
+        else:
+            buffer.record_error()
+        if buffer.is_integration_broken():
+            self.disable_integration(buffer)
 
     def disable_integration(self, buffer) -> None:
         rpc_integration, rpc_org_integration = integration_service.get_organization_contexts(
@@ -499,14 +441,15 @@ class BaseApiClient(TrackResponseMixin):
         )
 
         if (
-            (
-                features.has("organizations:slack-fatal-disable-on-broken", org)
-                and rpc_integration.provider == "slack"
+            (rpc_integration.provider == "slack" and buffer.is_integration_fatal_broken())
+            or (
+                features.has("organizations:github-disable-on-broken", org)
+                and rpc_integration.provider == "github"
             )
-            and buffer.is_integration_fatal_broken()
-        ) or (
-            features.has("organizations:github-disable-on-broken", org)
-            and rpc_integration.provider == "github"
+            or (
+                features.has("organizations:gitlab-disable-on-broken", org)
+                and rpc_integration.provider == "gitlab"
+            )
         ):
 
             integration_service.update_integration(
@@ -514,4 +457,10 @@ class BaseApiClient(TrackResponseMixin):
             )
             notify_disable(org, rpc_integration.provider, self._get_redis_key())
             buffer.clear()
+            create_system_audit_entry(
+                organization=org,
+                target_object=org.id,
+                event=audit_log.get_event_id("INTEGRATION_DISABLED"),
+                data={"provider": rpc_integration.provider},
+            )
         return

@@ -63,7 +63,7 @@ class SlackLinkTeamTest(AcceptanceTestCase):
         self.browser.snapshot(name="slack post linked team")
 
         assert ExternalActor.objects.filter(
-            actor_id=self.team.actor_id,
+            team_id=self.team.id,
             organization=self.org,
             integration_id=self.integration.id,
             provider=ExternalProviders.SLACK.value,

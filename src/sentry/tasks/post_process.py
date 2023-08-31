@@ -27,7 +27,7 @@ from sentry.utils.event_frames import get_sdk_name
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.locking.manager import LockManager
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
-from sentry.utils.safe import safe_execute
+from sentry.utils.safe import get_path, safe_execute
 from sentry.utils.sdk import bind_organization_context, set_current_event_project
 from sentry.utils.services import build_instance_from_options
 
@@ -684,6 +684,8 @@ def update_event_groups(event: Event, group_states: Optional[GroupStates] = None
         # deprecated event.group and event.group_id usage, kept here for backwards compatibility
         event.group, _ = get_group_with_redirect(event.group_id)
         event.group_id = event.group.id
+        # We buffer updates to last_seen, assume its at least >= the event datetime
+        event.group.last_seen = max(event.datetime, event.group.last_seen)
 
     # Re-bind Group since we're reading the Event object
     # from cache, which may contain a stale group and project
@@ -691,6 +693,8 @@ def update_event_groups(event: Event, group_states: Optional[GroupStates] = None
     rebound_groups = []
     for group_state in group_states:
         rebound_group = get_group_with_redirect(group_state["id"])[0]
+        # We buffer updates to last_seen, assume its at least >= the event datetime
+        rebound_group.last_seen = max(event.datetime, rebound_group.last_seen)
 
         # We fetch buffered updates to group aggregates here and populate them on the Group. This
         # helps us avoid problems with processing group ignores and alert rules that rely on these
@@ -837,6 +841,37 @@ def process_snoozes(job: PostProcessJob) -> None:
 
         job["has_reappeared"] = False
         return
+
+
+def process_replay_link(job: PostProcessJob) -> None:
+    def _get_replay_id(event):
+        # replay ids can either come as a context, or a tag.
+        # right now they come as a context on non-js events,
+        # and javascript transaction (through DSC context)
+        # It comes as a tag on js errors.
+        # TODO: normalize this upstream in relay and javascript SDK. and eventually remove the tag
+        # logic.
+
+        context_replay_id = get_path(event.data, "contexts", "replay", "replay_id")
+        return context_replay_id or event.get_tag("replayId")
+
+    if job["is_reprocessed"]:
+        return
+
+    if not features.has(
+        "organizations:session-replay-event-linking", job["event"].project.organization
+    ):
+        metrics.incr("post_process.process_replay_link.feature_not_enabled")
+        return
+
+    metrics.incr("post_process.process_replay_link.id_sampled")
+
+    group_event = job["event"]
+    replay_id = _get_replay_id(group_event)
+    if not replay_id:
+        return
+
+    metrics.incr("post_process.process_replay_link.id_exists")
 
 
 def process_rules(job: PostProcessJob) -> None:
@@ -1150,6 +1185,7 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
         update_existing_attachments,
         fire_error_processed,
         sdk_crash_monitoring,
+        process_replay_link,
     ],
 }
 
