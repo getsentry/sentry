@@ -2,7 +2,6 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
-import TeamStore from 'sentry/stores/teamStore';
 import EventView from 'sentry/utils/discover/eventView';
 import {ALL_VIEWS, DEFAULT_EVENT_VIEW} from 'sentry/views/discover/data';
 import EventDetails from 'sentry/views/discover/eventDetails';
@@ -14,8 +13,6 @@ describe('Discover > EventDetails', function () {
   );
 
   beforeEach(function () {
-    const team = TestStubs.Team({slug: 'team-slug', isMember: true});
-    TeamStore.loadInitialData([{...team, access: ['team:read']}]);
     act(() => ProjectsStore.loadInitialData([TestStubs.Project()]));
 
     MockApiClient.addMockResponse({
