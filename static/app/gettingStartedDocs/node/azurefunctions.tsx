@@ -25,7 +25,7 @@ export const steps = ({
 }: StepProps): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
-    description: <p>{tct('Add Sentry Node SDK as a dependency:', {code: <code />})}</p>,
+    description: t('Add the Sentry Node SDK as a dependency:'),
     configurations: [
       {
         language: 'bash',

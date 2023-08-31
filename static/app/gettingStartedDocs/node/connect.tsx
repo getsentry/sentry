@@ -1,7 +1,7 @@
 import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
 import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {
   getDefaultInitParams,
   getDefaultNodeImports,
@@ -25,7 +25,7 @@ export const steps = ({
 }: StepProps): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
-    description: <p>{tct('Add Sentry Node SDK as a dependency:', {code: <code />})}</p>,
+    description: t('Add the Sentry Node SDK as a dependency:'),
     configurations: [
       {
         language: 'bash',
