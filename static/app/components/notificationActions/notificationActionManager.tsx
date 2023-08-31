@@ -186,15 +186,18 @@ function NotificationActionManager({
       ) {
         return;
       }
-
+      let label = t(
+        'Send a %s notification',
+        serviceType !== NotificationActionService.SENTRY_NOTIFICATION
+          ? capitalize(serviceType)
+          : 'Sentry'
+      );
+      if (serviceType === NotificationActionService.OPSGENIE) {
+        label = t('Send an Opsgenie notification');
+      }
       menuItems.push({
         key: serviceType,
-        label: t(
-          'Send a %s notification',
-          serviceType !== NotificationActionService.SENTRY_NOTIFICATION
-            ? capitalize(serviceType)
-            : 'Sentry'
-        ),
+        label,
         onAction: () => {
           // Add notification action
           const updatedActions = [...notificationActions, validActions[0].action];
