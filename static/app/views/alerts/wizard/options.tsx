@@ -11,7 +11,7 @@ import {
   SpanOpBreakdown,
   WebVital,
 } from 'sentry/utils/fields';
-import {ON_DEMAND_METRICS_SUPPORTED_TAGS} from 'sentry/utils/onDemandMetrics/constants';
+import {ON_DEMAND_METRICS_UNSUPPORTED_TAGS} from 'sentry/utils/onDemandMetrics/constants';
 import {
   Dataset,
   EventTypes,
@@ -260,7 +260,8 @@ export function datasetSupportedTags(
 
 function transactionSupportedTags(org: Organization) {
   if (org.features.includes('on-demand-metrics-extraction')) {
-    return [...ON_DEMAND_METRICS_SUPPORTED_TAGS];
+    // on-demand metrics support all tags
+    return undefined;
   }
   return TRANSACTION_SUPPORTED_TAGS;
 }
@@ -295,15 +296,35 @@ export function datasetOmittedTags(
       FieldKey.TRANSACTION_OP,
       FieldKey.TRANSACTION_STATUS,
     ],
-    [Dataset.TRANSACTIONS]: org.features.includes('alert-allow-indexed')
-      ? INDEXED_PERFORMANCE_ALERTS_OMITTED_TAGS
-      : undefined,
+    [Dataset.TRANSACTIONS]: transactionOmittedTags(org),
     [Dataset.METRICS]: undefined,
-    [Dataset.GENERIC_METRICS]: org.features.includes('alert-allow-indexed')
-      ? INDEXED_PERFORMANCE_ALERTS_OMITTED_TAGS
-      : undefined,
+    [Dataset.GENERIC_METRICS]: transactionOmittedTags(org),
     [Dataset.SESSIONS]: undefined,
   }[dataset];
+}
+
+function transactionOmittedTags(org: Organization) {
+  if (org.features.includes('on-demand-metrics-extraction')) {
+    return [...ON_DEMAND_METRICS_UNSUPPORTED_TAGS];
+  }
+  return org.features.includes('alert-allow-indexed')
+    ? INDEXED_PERFORMANCE_ALERTS_OMITTED_TAGS
+    : undefined;
+}
+
+export function getSupportedAndOmittedTags(dataset: Dataset, organization: Organization) {
+  const omitTags = datasetOmittedTags(dataset, organization);
+  const supportedTags = datasetSupportedTags(dataset, organization);
+
+  const result = {omitTags, supportedTags};
+
+  // remove undefined values, since passing explicit undefined to the SeachBar overrides its defaults
+  return Object.keys({omitTags, supportedTags}).reduce((acc, key) => {
+    if (result[key] !== undefined) {
+      acc[key] = result[key];
+    }
+    return acc;
+  }, {});
 }
 
 export function getMEPAlertsDataset(
