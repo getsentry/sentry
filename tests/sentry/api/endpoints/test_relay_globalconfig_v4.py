@@ -3,7 +3,6 @@ from unittest.mock import patch
 import pytest
 from django.urls import reverse
 
-from sentry.relay.config import get_project_config
 from sentry.relay.globalconfig import get_global_config
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json
@@ -87,23 +86,3 @@ def test_return_global_config_on_right_version(
         assert "global" not in result
     else:
         assert result.get("global") == {"global_mock_config": True}
-
-
-@django_db_all
-def test_projectconfig_no_duplicates(default_project):
-    """Verifies a project config doesn't get any duplicated data existing in
-    global config.
-
-    Note the key may exist in both configs, so that the project config overrides
-    the global config.
-    """
-
-    global_config = get_global_config()
-    project_config = get_project_config(
-        project=default_project,
-        version=4,
-    ).to_dict()["config"]
-
-    # Measurements are common to all orgs, so they must only exist in global configs
-    assert "measurements" in global_config
-    assert "measurements" not in project_config

@@ -131,18 +131,19 @@ const _WidgetContainer = (props: Props) => {
     ...chartDefinition,
     chartSetting,
     chartDefinition,
-    InteractiveTitle: showNewWidgetDesign
-      ? containerProps => (
-          <WidgetInteractiveTitle
-            {...containerProps}
-            eventView={widgetEventView}
-            allowedCharts={allowedCharts}
-            chartSetting={chartSetting}
-            setChartSetting={setChartSetting}
-            rowChartSettings={rowChartSettings}
-          />
-        )
-      : null,
+    InteractiveTitle:
+      showNewWidgetDesign && allowedCharts.length > 2
+        ? containerProps => (
+            <WidgetInteractiveTitle
+              {...containerProps}
+              eventView={widgetEventView}
+              allowedCharts={allowedCharts}
+              chartSetting={chartSetting}
+              setChartSetting={setChartSetting}
+              rowChartSettings={rowChartSettings}
+            />
+          )
+        : null,
     ContainerActions: !showNewWidgetDesign
       ? containerProps => (
           <WidgetContainerActions

@@ -164,7 +164,6 @@ def test_task_writes_config_into_cache(
     build_project_config(
         public_key=default_projectkey.public_key,
         update_reason="test",
-        version=3,
     )
 
     assert cache_set_many_mock.call_count == 1
