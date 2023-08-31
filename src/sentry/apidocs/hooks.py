@@ -76,7 +76,6 @@ def __get_explicit_endpoints() -> List[Tuple[str, str, str, Any]]:
 
 def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, rename
     filtered = []
-
     for (path, path_regex, method, callback) in endpoints:
 
         # Fail if endpoint is unowned
@@ -103,10 +102,12 @@ def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, 
         if any(path.startswith(p) for p in EXCLUSION_PATH_PREFIXES):
             pass
 
-        # TODO: Replace public with publish_status
-        elif callback.view_class.public:
+        elif callback.view_class.publish_status:
             # endpoints that are documented via tooling
-            if method in callback.view_class.public:
+            if (
+                method in callback.view_class.publish_status
+                and callback.view_class.publish_status[method] is ApiPublishStatus.PUBLIC
+            ):
                 # only pass declared public methods of the endpoint
                 # to the rest of the OpenAPI build pipeline
                 filtered.append((path, path_regex, method, callback))
