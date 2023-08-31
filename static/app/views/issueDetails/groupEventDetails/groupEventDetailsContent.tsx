@@ -99,7 +99,7 @@ function GroupEventDetailsContent({
           <RegressionMessage event={event} />
           <EventBreakpointChart event={event} />
           <EventSpanOpBreakdown event={event} />
-          <EventComparison event={event} project={project} />
+          <EventComparison event={event} group={group} project={project} />
         </Fragment>
       </Feature>
     );

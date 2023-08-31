@@ -3,7 +3,6 @@ from typing import Any, List, Mapping, MutableMapping, Optional
 from typing_extensions import TypedDict
 
 from sentry.api.serializers import Serializer, register
-from sentry.models.actor import Actor, actor_type_to_string
 from sentry.models.integrations.external_actor import ExternalActor
 from sentry.models.user import User
 from sentry.types.integrations import get_provider_string
@@ -27,27 +26,15 @@ class ExternalActorSerializer(Serializer):
     def get_attrs(
         self, item_list: List[ExternalActor], user: User, **kwargs: Any
     ) -> MutableMapping[ExternalActor, MutableMapping[str, Any]]:
-        # Get all of the actor ids we need to lookup
-        external_actors_by_actor_id = {
-            external_actor.actor_id: external_actor for external_actor in item_list
-        }
-
-        # Fetch all the actors and build the resolved_actors payloads per external_actor
-        # These attributes are indexed by the actor type so that we can select
-        # the right value in serialize()
-        resolved_actors: MutableMapping[int, Any] = {}
-        actor_ids = list(external_actors_by_actor_id.keys())
-        for actor in Actor.objects.filter(id__in=actor_ids):
-            type_str = actor_type_to_string(actor.type)
-            if type_str == "user":
-                resolved_actors[actor.id] = {type_str: actor.user_id}
-            if type_str == "team":
-                resolved_actors[actor.id] = {type_str: actor.team_id}
-
         # create a mapping of external actor to a set of attributes.
         # Those attributes are either {"user": user.id} or {"team": team.id}.
         return {
-            external_actor: resolved_actors[external_actor.actor_id] for external_actor in item_list
+            external_actor: (
+                {"team": external_actor.team_id}
+                if external_actor.team_id is not None
+                else {"user": external_actor.user_id}
+            )
+            for external_actor in item_list
         }
 
     def serialize(
