@@ -66,6 +66,7 @@ def _get_default_value_by_provider(
         for provider in NOTIFICATION_SETTING_DEFAULTS.keys()
     }
 
+
 def get_provider_defaults():
     # create the data structure outside the endpoint
     provider_defaults = []
@@ -87,6 +88,7 @@ def get_type_defaults():
         default = NOTIFICATION_SETTING_OPTION_VALUES[value]
         type_defaults[notification_type] = default
     return type_defaults
+
 
 def _get_setting_mapping_from_mapping(
     notification_settings_by_recipient: Mapping[
@@ -641,11 +643,27 @@ def get_providers_for_recipient(
     return user_providers
 
 
+def recipient_is_user(recipient: RpcActor | Team | User) -> bool:
+    from sentry.interfaces.user import User
+
+    if isinstance(recipient, RpcActor) and recipient.actor_type == ActorType.USER:
+        return True
+    return isinstance(recipient, (RpcUser, User))
+
+
+def recipient_is_team(recipient: RpcActor | Team | User) -> bool:
+    from sentry.models.team import Team
+
+    if isinstance(recipient, RpcActor) and recipient.actor_type == ActorType.TEAM:
+        return True
+    return isinstance(recipient, Team)
+
+
 def get_all_setting_providers(
     recipient: RpcActor | Team | User,
     project: Project | None = None,
     organization: Organization | None = None,
-):
+) -> Iterable[NotificationSettingProvider]:
     project_settings = (
         Q(scope_type=NotificationScopeType.PROJECT.value, scope_identifier=project.id)
         if project
@@ -662,16 +680,16 @@ def get_all_setting_providers(
     )
 
     team_or_user_settings = Q()
-    if recipient.actor_type == ActorType.USER or isinstance(recipient, (RpcUser, User)):
+    if recipient_is_user(recipient):
         team_or_user_settings = Q(
             scope_type=NotificationScopeType.USER.value, scope_identifier=recipient.id
         )
-    elif recipient.actor_type == ActorType.TEAM or isinstance(recipient, Team):
+    elif recipient_is_team(recipient):
         team_or_user_settings = Q(
             scope_type=NotificationScopeType.TEAM.value, scope_identifier=recipient.id
         )
 
-    NotificationSettingProvider.objects.filter(
+    return NotificationSettingProvider.objects.filter(
         project_settings | org_settings | team_or_user_settings
     )
 
@@ -697,11 +715,11 @@ def get_all_setting_options(
     )
 
     team_or_user_settings = Q()
-    if recipient.actor_type == ActorType.USER or isinstance(recipient, (RpcUser, User)):
+    if recipient_is_user(recipient):
         team_or_user_settings = Q(
             scope_type=NotificationScopeType.USER.value, scope_identifier=recipient.id
         )
-    elif recipient.actor_type == ActorType.TEAM or isinstance(recipient, Team):
+    elif recipient_is_team(recipient):
         team_or_user_settings = Q(
             scope_type=NotificationScopeType.TEAM.value, scope_identifier=recipient.id
         )
@@ -731,9 +749,9 @@ def get_settings_for_recipient(
                 notification_settings[setting.type] = setting.value
 
     # Team/User settings are the most specific.
-    if recipient.actor_type == ActorType.USER or isinstance(recipient, (RpcUser, User)):
+    if recipient_is_user(recipient):
         scope_type = NotificationScopeType.USER.value
-    elif recipient.actor_type == ActorType.TEAM or isinstance(recipient, Team):
+    elif recipient_is_team(recipient):
         scope_type = NotificationScopeType.TEAM.value
     else:
         raise Exception("recipient must be either user or team")
@@ -744,9 +762,10 @@ def get_settings_for_recipient(
                 notification_settings[setting.type] = setting.value
 
     # Fill in any missing settings with the default
+    defaults = get_type_defaults()
     for type in NOTIFICATION_SETTING_TYPES:
         if type not in notification_settings:
-            notification_settings[type] = TYPE_DEFAULTS[type]
+            notification_settings[type] = defaults[type]
 
     return notification_settings
 
@@ -755,6 +774,7 @@ def has_any_provider_settings(
     recipient: RpcActor | Team | User, provider: ExternalProviders
 ) -> bool:
     settings = get_all_setting_providers(recipient)
+
     for setting in settings:
         if not setting.provider == provider.value:
             continue
