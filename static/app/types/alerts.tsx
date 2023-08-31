@@ -75,14 +75,6 @@ export interface UnsavedIssueAlertRule {
   owner?: string | null;
 }
 
-/**
- * Coming from ObjectStatus enum in the backend
- */
-export const enum IssueAlertStatus {
-  ACTIVE = 0,
-  DISABLED = 1,
-}
-
 // Issue-based alert rule
 export interface IssueAlertRule extends UnsavedIssueAlertRule {
   createdBy: {email: string; id: number; name: string} | null;
@@ -90,7 +82,7 @@ export interface IssueAlertRule extends UnsavedIssueAlertRule {
   id: string;
   projects: string[];
   snooze: boolean;
-  status: IssueAlertStatus;
+  status: 'active' | 'disabled';
   errors?: {detail: string}[];
   lastTriggered?: string;
   snoozeCreatedBy?: string;

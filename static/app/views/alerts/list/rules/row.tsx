@@ -29,7 +29,6 @@ import {
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Actor, Project} from 'sentry/types';
-import {IssueAlertStatus} from 'sentry/types/alerts';
 import type {ColorOrAlias} from 'sentry/utils/theme';
 import {getThresholdUnits} from 'sentry/views/alerts/rules/metric/constants';
 import {
@@ -117,7 +116,7 @@ function RuleListRow({
 
   function renderAlertRuleStatus(): React.ReactNode {
     if (isIssueAlert(rule)) {
-      if (rule.status === IssueAlertStatus.DISABLED) {
+      if (rule.status === 'disabled') {
         return (
           <IssueAlertStatusWrapper>
             <IconFlag size="sm" color="red300" />

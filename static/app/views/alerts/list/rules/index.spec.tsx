@@ -7,7 +7,6 @@ import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
 import {Organization} from 'sentry/types';
-import {IssueAlertStatus} from 'sentry/types/alerts';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import AlertRulesList from 'sentry/views/alerts/list/rules';
 import {IncidentStatus} from 'sentry/views/alerts/types';
@@ -319,7 +318,7 @@ describe('AlertRulesList', () => {
         TestStubs.ProjectAlertRule({
           name: 'First Issue Alert',
           projects: ['earth'],
-          status: IssueAlertStatus.DISABLED,
+          status: 'disabled',
         }),
       ],
     });
@@ -337,7 +336,7 @@ describe('AlertRulesList', () => {
           name: 'First Issue Alert',
           projects: ['earth'],
           // both disabled and muted
-          status: IssueAlertStatus.DISABLED,
+          status: 'disabled',
           snooze: true,
         }),
       ],

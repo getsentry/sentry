@@ -23,7 +23,7 @@ export function ProjectAlertRule(params: Partial<IssueAlertRule> = {}): IssueAle
     projects: [],
     snooze: false,
     frequency: 1,
-    status: 0,
+    status: 'active',
     ...params,
   };
 }
