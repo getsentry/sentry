@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import pytest
 
@@ -58,14 +58,14 @@ def test_moving_average_cross_over_detector_state_to_redis_dict(state, expected)
         pytest.param(
             {
                 MovingAverageCrossOverDetectorState.FIELD_TIMESTAMP: str(
-                    int(datetime(2023, 8, 31, 11, 28, 52).timestamp())
+                    int(datetime(2023, 8, 31, 11, 28, 52, tzinfo=timezone.utc).timestamp())
                 ),
                 MovingAverageCrossOverDetectorState.FIELD_COUNT: "10",
                 MovingAverageCrossOverDetectorState.FIELD_MOVING_AVG_SHORT: "10",
                 MovingAverageCrossOverDetectorState.FIELD_MOVING_AVG_LONG: "10",
             },
             MovingAverageCrossOverDetectorState(
-                timestamp=datetime(2023, 8, 31, 11, 28, 52),
+                timestamp=datetime(2023, 8, 31, 11, 28, 52, tzinfo=timezone.utc),
                 count=10,
                 moving_avg_short=10,
                 moving_avg_long=10,
