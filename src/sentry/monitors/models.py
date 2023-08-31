@@ -574,6 +574,7 @@ class MonitorEnvironment(Model):
             )[:recovery_threshold]
             # check for successive OK previous check-ins
             if not all(checkin.status == CheckInStatus.OK for checkin in previous_checkins):
+                # TODO create issue platform occurrence
                 return
 
         next_checkin = self.monitor.get_next_expected_checkin(ts)

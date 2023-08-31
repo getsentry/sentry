@@ -9,6 +9,7 @@ from django.utils import timezone
 
 from sentry import features
 from sentry.constants import ObjectStatus
+from sentry.grouping.utils import hash_from_values
 from sentry.issues.grouptype import (
     MonitorCheckInFailure,
     MonitorCheckInMissed,
@@ -32,21 +33,86 @@ def mark_failed(
     reason=MonitorFailure.UNKNOWN,
     occurrence_context=None,
 ):
-    from sentry.signals import monitor_environment_failed
-
     failure_issue_threshold = monitor_env.monitor.config.get("failure_issue_threshold", 0)
     if failure_issue_threshold:
-        previous_checkins = MonitorCheckIn.objects.filter(monitor_environment=monitor_env).order_by(
-            "-date_added"
-        )[:failure_issue_threshold]
-        # check for successive failed previous check-ins
-        if not all(
-            [
-                checkin.status not in [CheckInStatus.IN_PROGRESS, CheckInStatus.OK]
-                for checkin in previous_checkins
-            ]
-        ):
+        from sentry.signals import monitor_environment_failed
+
+        # update monitor environment values on every check-in
+        if last_checkin is None:
+            next_checkin_base = timezone.now()
+            last_checkin = monitor_env.last_checkin or timezone.now()
+        else:
+            next_checkin_base = last_checkin
+
+        next_checkin = monitor_env.monitor.get_next_expected_checkin(next_checkin_base)
+        next_checkin_latest = monitor_env.monitor.get_next_expected_checkin_latest(
+            next_checkin_base
+        )
+
+        affected = MonitorEnvironment.objects.filter(
+            Q(last_checkin__lte=last_checkin) | Q(last_checkin__isnull=True), id=monitor_env.id
+        ).update(
+            next_checkin=next_checkin,
+            next_checkin_latest=next_checkin_latest,
+            last_checkin=last_checkin,
+        )
+        if not affected:
             return False
+
+        # check to see if we need to update the status
+        previous_checkins = []
+        if monitor_env.status == MonitorStatus.OK:
+            previous_checkins = MonitorCheckIn.objects.filter(
+                monitor_environment=monitor_env
+            ).order_by("-date_added")[:failure_issue_threshold]
+            # check for successive failed previous check-ins
+            if not all(
+                [
+                    checkin.status not in [CheckInStatus.IN_PROGRESS, CheckInStatus.OK]
+                    for checkin in previous_checkins
+                ]
+            ):
+                return False
+        else:
+            # just get most recent check-in
+            previous_checkins = (
+                MonitorCheckIn.objects.filter(monitor_environment=monitor_env)
+                .order_by("-date_added")
+                .first()
+            )
+
+        # Change monitor state + update fingerprint timestamp
+        monitor_env.status = MonitorStatus.ERROR
+        monitor_env.last_state_change = previous_checkins[-1:].date_added
+        monitor_env.save()
+
+        # Do not create event if monitor is disabled
+        if monitor_env.monitor.status == ObjectStatus.DISABLED:
+            return True
+
+        fingerprint = hash_from_values(
+            [
+                "monitor",
+                str(monitor_env.monitor.guid),
+                monitor_env.environment.name,
+                str(monitor_env.last_state_change),
+            ]
+        )
+        for previous_checkins in enumerate(previous_checkins):
+            create_issue_platform_occurrence(monitor_env, reason, occurrence_context, fingerprint)
+
+        monitor_environment_failed.send(monitor_environment=monitor_env, sender=type(monitor_env))
+    else:
+        return mark_failed_no_threshold(monitor_env, last_checkin, reason, occurrence_context)
+
+
+def mark_failed_no_threshold(
+    monitor_env: MonitorEnvironment,
+    last_checkin=None,
+    reason=MonitorFailure.UNKNOWN,
+    occurrence_context=None,
+):
+    from sentry.signals import monitor_environment_failed
 
     if last_checkin is None:
         next_checkin_base = timezone.now()
@@ -129,8 +195,8 @@ def create_issue_platform_occurrence(
     monitor_env: MonitorEnvironment,
     reason: str,
     occurrence_context=None,
+    fingerprint=None,
 ):
-    from sentry.grouping.utils import hash_from_values
     from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
     from sentry.issues.producer import produce_occurrence_to_kafka
 
@@ -153,7 +219,11 @@ def create_issue_platform_occurrence(
         project_id=monitor_env.monitor.project_id,
         event_id=uuid.uuid4().hex,
         fingerprint=[
-            hash_from_values(["monitor", str(monitor_env.monitor.guid), occurrence_data["reason"]])
+            fingerprint
+            if fingerprint
+            else hash_from_values(
+                ["monitor", str(monitor_env.monitor.guid), occurrence_data["reason"]]
+            )
         ],
         type=occurrence_data["group_type"],
         issue_title=f"Monitor failure: {monitor_env.monitor.name}",
