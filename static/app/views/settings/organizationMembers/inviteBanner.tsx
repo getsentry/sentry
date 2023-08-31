@@ -59,6 +59,15 @@ export function InviteBanner({
     });
   }, [api, organization, promptsFeature]);
 
+  const openInviteModal = useCallback(() => {
+    openInviteMissingMembersModal({
+      allowedRoles,
+      missingMembers,
+      organization,
+      onClose: onModalClose,
+    });
+  }, [allowedRoles, missingMembers, organization, onModalClose]);
+
   useEffect(() => {
     if (hideBanner) {
       return;
@@ -76,14 +85,9 @@ export function InviteBanner({
     const inviteMissingMembers = params.get('inviteMissingMembers');
 
     if (!hideBanner && inviteMissingMembers) {
-      openInviteMissingMembersModal({
-        allowedRoles,
-        missingMembers,
-        organization,
-        onClose: onModalClose,
-      });
+      openInviteModal();
     }
-  }, [allowedRoles, missingMembers, organization, onModalClose, location, hideBanner]);
+  }, [openInviteModal, location, hideBanner]);
 
   if (hideBanner || !showBanner) {
     return null;
@@ -151,9 +155,7 @@ export function InviteBanner({
     <SeeMoreCard
       key="see-more"
       missingMembers={missingMembers}
-      allowedRoles={allowedRoles}
-      onModalClose={onModalClose}
-      organization={organization}
+      openInviteModal={openInviteModal}
     />
   );
 
@@ -175,18 +177,7 @@ export function InviteBanner({
           </Subtitle>
         </CardTitleContent>
         <ButtonBar gap={1}>
-          <Button
-            priority="primary"
-            size="xs"
-            onClick={() =>
-              openInviteMissingMembersModal({
-                allowedRoles,
-                missingMembers,
-                onClose: onModalClose,
-                organization,
-              })
-            }
-          >
+          <Button priority="primary" size="xs" onClick={openInviteModal}>
             {t('View All')}
           </Button>
           <DropdownMenu
@@ -208,18 +199,11 @@ export function InviteBanner({
 export default withOrganization(InviteBanner);
 
 type SeeMoreCardProps = {
-  allowedRoles: OrgRole[];
   missingMembers: {integration: string; users: MissingMember[]};
-  onModalClose: () => void;
-  organization: Organization;
+  openInviteModal: () => void;
 };
 
-function SeeMoreCard({
-  missingMembers,
-  allowedRoles,
-  onModalClose,
-  organization,
-}: SeeMoreCardProps) {
+function SeeMoreCard({missingMembers, openInviteModal}: SeeMoreCardProps) {
   const {users} = missingMembers;
 
   return (
@@ -238,18 +222,7 @@ function SeeMoreCard({
           })}
         </Subtitle>
       </MemberCardContent>
-      <Button
-        size="sm"
-        priority="primary"
-        onClick={() =>
-          openInviteMissingMembersModal({
-            allowedRoles,
-            missingMembers,
-            organization,
-            onClose: onModalClose,
-          })
-        }
-      >
+      <Button size="sm" priority="primary" onClick={openInviteModal}>
         {t('View All')}
       </Button>
     </MemberCard>
