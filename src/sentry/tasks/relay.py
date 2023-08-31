@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
     time_limit=10,  # Extra 5 seconds to remove the debounce key.
     expires=30,  # Relay stops waiting for this anyway.
 )
-def build_project_config(public_key=None, **kwargs):
+def build_project_config(version: int, public_key=None, **kwargs):
     """Build a project config and put it in the Redis cache.
 
     This task is used to compute missing project configs, it is aggressively
@@ -36,6 +36,7 @@ def build_project_config(public_key=None, **kwargs):
     Do not invoke this task directly, instead use :func:`schedule_build_project_config`.
     """
     sentry_sdk.set_tag("public_key", public_key)
+    sentry_sdk.set_tag("version", version)
 
     try:
         from sentry.models import ProjectKey
@@ -48,7 +49,7 @@ def build_project_config(public_key=None, **kwargs):
             # avoid creating more tasks for it.
             projectconfig_cache.backend.set_many({public_key: {"disabled": True}})
         else:
-            config = compute_projectkey_config(key)
+            config = compute_projectkey_config(key, version=version)
             projectconfig_cache.backend.set_many({public_key: config})
 
     finally:
@@ -60,7 +61,7 @@ def build_project_config(public_key=None, **kwargs):
         )
 
 
-def schedule_build_project_config(public_key):
+def schedule_build_project_config(public_key, version: int):
     """Schedule the `build_project_config` with debouncing applied.
 
     See documentation of `build_project_config` for documentation of parameters.
@@ -80,7 +81,7 @@ def schedule_build_project_config(public_key):
         "relay.projectconfig_cache.scheduled",
         tags={"task": "build"},
     )
-    build_project_config.delay(public_key=public_key, tmp_scheduled=tmp_scheduled)
+    build_project_config.delay(version=version, public_key=public_key, tmp_scheduled=tmp_scheduled)
 
     # Checking if the project is debounced and debouncing it are two separate
     # actions that aren't atomic. If the process marks a project as debounced
@@ -103,7 +104,7 @@ def validate_args(organization_id=None, project_id=None, public_key=None):
         raise TypeError("Must provide exactly one of organzation_id, project_id or public_key")
 
 
-def compute_configs(organization_id=None, project_id=None, public_key=None):
+def compute_configs(organization_id=None, project_id=None, public_key=None, *, version: int):
     """Computes all configs for the org, project or single public key.
 
     You must only provide one single argument, not all.
@@ -132,7 +133,7 @@ def compute_configs(organization_id=None, project_id=None, public_key=None):
                     # recalculate it.  If the config was not there at all, we leave it and avoid the
                     # cost of re-computation.
                     if projectconfig_cache.backend.get(key.public_key) is not None:
-                        configs[key.public_key] = compute_projectkey_config(key)
+                        configs[key.public_key] = compute_projectkey_config(key, version=version)
                         action = "recompute"
                     else:
                         action = "not-cached"
@@ -148,7 +149,7 @@ def compute_configs(organization_id=None, project_id=None, public_key=None):
                 # recalculate it.  If the config was not there at all, we leave it and avoid the
                 # cost of re-computation.
                 if projectconfig_cache.backend.get(key.public_key) is not None:
-                    configs[key.public_key] = compute_projectkey_config(key)
+                    configs[key.public_key] = compute_projectkey_config(key, version=version)
                     action = "recompute"
                 else:
                     action = "not-cached"
@@ -170,7 +171,7 @@ def compute_configs(organization_id=None, project_id=None, public_key=None):
             # bug was fixed in https://github.com/getsentry/sentry/pull/35671
             configs[public_key] = {"disabled": True}
         else:
-            configs[public_key] = compute_projectkey_config(key)
+            configs[public_key] = compute_projectkey_config(key, version=version)
 
     else:
         raise TypeError("One of the arguments must not be None")
@@ -178,7 +179,7 @@ def compute_configs(organization_id=None, project_id=None, public_key=None):
     return configs
 
 
-def compute_projectkey_config(key):
+def compute_projectkey_config(key, *, version: int):
     """Computes a single config for the given :class:`ProjectKey`.
 
     :returns: A dict with the project config.
@@ -189,7 +190,9 @@ def compute_projectkey_config(key):
     if key.status != ProjectKeyStatus.ACTIVE:
         return {"disabled": True}
     else:
-        return get_project_config(key.project, project_keys=[key], full_config=True).to_dict()
+        return get_project_config(
+            key.project, project_keys=[key], full_config=True, version=version
+        ).to_dict()
 
 
 @instrumented_task(
@@ -239,7 +242,12 @@ def invalidate_project_config(
     sentry_sdk.set_context("kwargs", kwargs)
 
     updated_configs = compute_configs(
-        organization_id=organization_id, project_id=project_id, public_key=public_key
+        organization_id=organization_id,
+        project_id=project_id,
+        public_key=public_key,
+        # TODO(iker): schedule invalidations with up-to-date versions once we've
+        # moved to v4.
+        version=3,
     )
     projectconfig_cache.backend.set_many(updated_configs)
 
