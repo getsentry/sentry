@@ -4,10 +4,7 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
-from sentry.notifications.helpers import get_provider_defaults, get_type_defaults
-
-PROVIDER_DEFAULTS = get_provider_defaults()
-TYPE_DEFAULTS = get_type_defaults()
+from sentry.notifications.helpers import PROVIDER_DEFAULTS, TYPE_DEFAULTS
 
 
 @control_silo_endpoint

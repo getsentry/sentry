@@ -787,3 +787,7 @@ def has_any_provider_settings(
             return True
 
     return False
+
+
+PROVIDER_DEFAULTS = get_provider_defaults()
+TYPE_DEFAULTS = get_type_defaults()
