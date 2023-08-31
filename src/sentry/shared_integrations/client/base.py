@@ -553,7 +553,7 @@ class BaseApiClient(TrackResponseMixin):
             "plugin.disabled",
             extra=extra,
         )
-
-        plugin.disable()
-        notify_disable(project.organization, self.plugin_name, self._get_redis_key())
-        buffer.clear()
+        if features.has("organizations:plugin-disable-on-broken", project.organization):
+            plugin.disable()
+            notify_disable(project.organization, self.plugin_name, self._get_redis_key())
+            buffer.clear()
