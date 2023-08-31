@@ -12,7 +12,7 @@ from sentry.snuba.subscriptions import (
     update_snuba_query,
     update_snuba_subscription,
 )
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 
 pytestmark = pytest.mark.sentry_metrics
 

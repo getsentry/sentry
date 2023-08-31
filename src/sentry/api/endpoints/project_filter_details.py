@@ -6,6 +6,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -23,6 +24,9 @@ from sentry.ingest.inbound_filters import FilterStatKeys
 @extend_schema(tags=["Projects"])
 @region_silo_endpoint
 class ProjectFilterDetailsEndpoint(ProjectEndpoint):
+    publish_status = {
+        "PUT": ApiPublishStatus.PUBLIC,
+    }
     public = {"PUT"}
 
     @extend_schema(
@@ -52,8 +56,11 @@ class ProjectFilterDetailsEndpoint(ProjectEndpoint):
     def put(self, request: Request, project, filter_id) -> Response:
         """
         Update various inbound data filters for a project.
-        """
 
+        Note that the hydration filter and custom inbound
+        filters must be updated using the [Update a
+        Project](https://docs.sentry.io/api/projects/update-a-project/) endpoint.
+        """
         for flt in inbound_filters.get_all_filter_specs():
             if flt.id == filter_id:
                 current_filter = flt

@@ -20,7 +20,7 @@ from sentry.signals import (
     sso_enabled,
     user_feedback_received,
 )
-from sentry.testutils import SnubaTestCase, TestCase
+from sentry.testutils.cases import SnubaTestCase, TestCase
 
 
 class FeatureAdoptionTest(TestCase, SnubaTestCase):
@@ -568,8 +568,8 @@ class FeatureAdoptionTest(TestCase, SnubaTestCase):
 
     def test_sso(self):
         sso_enabled.send(
-            organization=self.organization,
-            user=self.user,
+            organization_id=self.organization.id,
+            user_id=self.user.id,
             provider="google",
             sender=type(self.organization),
         )

@@ -243,6 +243,14 @@ type ClientOptions = {
    * The base URL path to prepend to API request URIs.
    */
   baseUrl?: string;
+  /**
+   * Credentials policy to apply to each request
+   */
+  credentials?: RequestCredentials;
+  /**
+   * Base set of headers to apply to each request
+   */
+  headers?: HeadersInit;
 };
 
 type HandleRequestErrorOptions = {
@@ -259,10 +267,19 @@ type HandleRequestErrorOptions = {
 export class Client {
   baseUrl: string;
   activeRequests: Record<string, Request>;
+  headers: HeadersInit;
+  credentials?: RequestCredentials;
+
+  static JSON_HEADERS = {
+    Accept: 'application/json; charset=utf-8',
+    'Content-Type': 'application/json',
+  };
 
   constructor(options: ClientOptions = {}) {
     this.baseUrl = options.baseUrl ?? '/api/0';
+    this.headers = options.headers ?? Client.JSON_HEADERS;
     this.activeRequests = {};
+    this.credentials = options.credentials ?? 'include';
   }
 
   wrapCallback<T extends any[]>(
@@ -432,11 +449,7 @@ export class Client {
     // GET requests may not have a body
     const body = method !== 'GET' ? data : undefined;
 
-    const headers = new Headers({
-      Accept: 'application/json; charset=utf-8',
-      'Content-Type': 'application/json',
-      ...options.headers,
-    });
+    const headers = new Headers(this.headers);
 
     // Do not set the X-CSRFToken header when making a request outside of the
     // current domain. Because we use subdomains we loosely compare origins
@@ -451,111 +464,119 @@ export class Client {
       method,
       body,
       headers,
-      credentials: 'include',
+      credentials: this.credentials,
       signal: aborter?.signal,
     });
 
     // XXX(epurkhiser): We migrated off of jquery, so for now we have a
     // compatibility layer which mimics that of the jquery response objects.
     fetchRequest
-      .then(async response => {
-        // The Response's body can only be resolved/used at most once.
-        // So we clone the response so we can resolve the body content as text content.
-        // Response objects need to be cloned before its body can be used.
-        let responseJSON: any;
-        let responseText: any;
+      .then(
+        async response => {
+          // The Response's body can only be resolved/used at most once.
+          // So we clone the response so we can resolve the body content as text content.
+          // Response objects need to be cloned before its body can be used.
+          let responseJSON: any;
+          let responseText: any;
 
-        const {status, statusText} = response;
-        let {ok} = response;
-        let errorReason = 'Request not OK'; // the default error reason
-        let twoHundredErrorReason;
+          const {status, statusText} = response;
+          let {ok} = response;
+          let errorReason = 'Request not OK'; // the default error reason
+          let twoHundredErrorReason;
 
-        // Try to get text out of the response no matter the status
-        try {
-          responseText = await response.text();
-        } catch (error) {
-          twoHundredErrorReason = 'Failed awaiting response.text()';
-          ok = false;
-          if (error.name === 'AbortError') {
-            errorReason = 'Request was aborted';
-          } else {
-            errorReason = error.toString();
-          }
-        }
-
-        const responseContentType = response.headers.get('content-type');
-        const isResponseJSON = responseContentType?.includes('json');
-
-        const isStatus3XX = status >= 300 && status < 400;
-        if (status !== 204 && !isStatus3XX) {
+          // Try to get text out of the response no matter the status
           try {
-            responseJSON = JSON.parse(responseText);
+            responseText = await response.text();
           } catch (error) {
-            twoHundredErrorReason = 'Failed trying to parse responseText';
+            twoHundredErrorReason = 'Failed awaiting response.text()';
+            ok = false;
             if (error.name === 'AbortError') {
-              ok = false;
               errorReason = 'Request was aborted';
-            } else if (isResponseJSON && error instanceof SyntaxError) {
-              // If the MIME type is `application/json` but decoding failed,
-              // this should be an error.
-              ok = false;
-              errorReason = 'JSON parse error';
+            } else {
+              errorReason = error.toString();
             }
           }
-        }
 
-        const responseMeta: ResponseMeta = {
-          status,
-          statusText,
-          responseJSON,
-          responseText,
-          getResponseHeader: (header: string) => response.headers.get(header),
-        };
+          const responseContentType = response.headers.get('content-type');
+          const isResponseJSON = responseContentType?.includes('json');
 
-        // Respect the response content-type header
-        const responseData = isResponseJSON ? responseJSON : responseText;
-
-        if (ok) {
-          successHandler(responseMeta, statusText, responseData);
-        } else {
-          // There's no reason we should be here with a 200 response, but we get
-          // tons of events from this codepath with a 200 status nonetheless.
-          // Until we know why, let's do what is essentially some very fancy print debugging.
-          if (status === 200 && responseText) {
-            const parameterizedPath = sanitizePath(path);
-            const message = '200 treated as error';
-
-            const scope = new Sentry.Scope();
-            scope.setTags({endpoint: `${method} ${parameterizedPath}`, errorReason});
-            scope.setExtras({
-              twoHundredErrorReason,
-              responseJSON,
-              responseText,
-              responseContentType,
-              errorReason,
-            });
-            // Make sure all of these errors group, so we don't produce a bunch of noise
-            scope.setFingerprint([message]);
-
-            Sentry.captureException(
-              new Error(`${message}: ${method} ${parameterizedPath}`),
-              scope
-            );
+          const isStatus3XX = status >= 300 && status < 400;
+          if (status !== 204 && !isStatus3XX) {
+            try {
+              responseJSON = JSON.parse(responseText);
+            } catch (error) {
+              twoHundredErrorReason = 'Failed trying to parse responseText';
+              if (error.name === 'AbortError') {
+                ok = false;
+                errorReason = 'Request was aborted';
+              } else if (isResponseJSON && error instanceof SyntaxError) {
+                // If the MIME type is `application/json` but decoding failed,
+                // this should be an error.
+                ok = false;
+                errorReason = 'JSON parse error';
+              }
+            }
           }
 
-          const shouldSkipErrorHandler =
-            globalErrorHandlers.map(handler => handler(responseMeta)).filter(Boolean)
-              .length > 0;
+          const responseMeta: ResponseMeta = {
+            status,
+            statusText,
+            responseJSON,
+            responseText,
+            getResponseHeader: (header: string) => response.headers.get(header),
+          };
 
-          if (!shouldSkipErrorHandler) {
-            errorHandler(responseMeta, statusText, errorReason);
+          // Respect the response content-type header
+          const responseData = isResponseJSON ? responseJSON : responseText;
+
+          if (ok) {
+            successHandler(responseMeta, statusText, responseData);
+          } else {
+            // There's no reason we should be here with a 200 response, but we get
+            // tons of events from this codepath with a 200 status nonetheless.
+            // Until we know why, let's do what is essentially some very fancy print debugging.
+            if (status === 200 && responseText) {
+              const parameterizedPath = sanitizePath(path);
+              const message = '200 treated as error';
+
+              const scope = new Sentry.Scope();
+              scope.setTags({endpoint: `${method} ${parameterizedPath}`, errorReason});
+              scope.setExtras({
+                twoHundredErrorReason,
+                responseJSON,
+                responseText,
+                responseContentType,
+                errorReason,
+              });
+              // Make sure all of these errors group, so we don't produce a bunch of noise
+              scope.setFingerprint([message]);
+
+              Sentry.captureException(
+                new Error(`${message}: ${method} ${parameterizedPath}`),
+                scope
+              );
+            }
+
+            const shouldSkipErrorHandler =
+              globalErrorHandlers.map(handler => handler(responseMeta)).filter(Boolean)
+                .length > 0;
+
+            if (!shouldSkipErrorHandler) {
+              errorHandler(responseMeta, statusText, errorReason);
+            }
           }
-        }
 
-        completeHandler(responseMeta, statusText);
-      })
-      .catch(() => {
-        // Ignore all failed requests
+          completeHandler(responseMeta, statusText);
+        },
+        () => {
+          // Ignore failed fetch calls or errors in the fetch request itself (e.g. cancelled requests)
+          // Not related to errors in responses
+        }
+      )
+      .catch(error => {
+        // eslint-disable-next-line no-console
+        console.error(error);
+        Sentry.captureException(error);
       });
 
     const request = new Request(fetchRequest, aborter);

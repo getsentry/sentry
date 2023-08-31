@@ -1,9 +1,11 @@
 from unittest.mock import Mock, patch
 from urllib.parse import parse_qs, quote, urlencode, urlparse
 
+import pytest
 import responses
 from django.core.cache import cache
 from django.test import override_settings
+from isodate import parse_datetime
 
 from fixtures.gitlab import GET_COMMIT_RESPONSE, GitLabTestCase
 from sentry.integrations.gitlab import GitlabIntegrationProvider
@@ -16,10 +18,11 @@ from sentry.models import (
     OrganizationIntegration,
     Repository,
 )
+from sentry.shared_integrations.exceptions import ApiUnauthorized
 from sentry.silo.base import SiloMode
 from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
-from sentry.testutils import IntegrationTestCase
-from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits
+from sentry.testutils.cases import IntegrationTestCase
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.utils import json
 
 
@@ -213,7 +216,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
         external_id = 4
         integration = Integration.objects.get(provider=self.provider.key)
         instance = integration.metadata["instance"]
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.REGION):
             repo = Repository.objects.create(
                 organization_id=self.organization.id,
                 name="Get Sentry / Example Repo",
@@ -244,7 +247,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
         external_id = 4
         integration = Integration.objects.get(provider=self.provider.key)
         instance = integration.metadata["instance"]
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.REGION):
             repo = Repository.objects.create(
                 organization_id=self.organization.id,
                 name="Get Sentry / Example Repo",
@@ -273,7 +276,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
         external_id = 4
         integration = Integration.objects.get(provider=self.provider.key)
         instance = integration.metadata["instance"]
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.REGION):
             repo = Repository.objects.create(
                 organization_id=self.organization.id,
                 name="Get Sentry / Example Repo",
@@ -301,13 +304,9 @@ class GitlabIntegrationTest(IntegrationTestCase):
             json={},
         )
 
-        try:
+        with pytest.raises(ApiUnauthorized) as excinfo:
             installation.get_stacktrace_link(repo, "README.md", ref, version)
-        except Exception as e:
-            assert e.code == 401
-        else:
-            # check that the call throws.
-            assert False
+        assert excinfo.value.code == 401
 
     @responses.activate
     def test_get_stacktrace_link_use_default_if_version_404(self):
@@ -315,7 +314,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
         external_id = 4
         integration = Integration.objects.get(provider=self.provider.key)
         instance = integration.metadata["instance"]
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.REGION):
             repo = Repository.objects.create(
                 organization_id=self.organization.id,
                 name="Get Sentry / Example Repo",
@@ -350,7 +349,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
         external_id = 4
         integration = Integration.objects.get(provider=self.provider.key)
         instance = integration.metadata["instance"]
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.REGION):
             repo = Repository.objects.create(
                 organization_id=self.organization.id,
                 name="Get Sentry / Example Repo",
@@ -427,7 +426,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
 
         commit_context_expected = {
             "commitId": "d42409d56517157c48bf3bd97d3f75974dde19fb",
-            "committedDate": "2015-12-18T08:12:22.000Z",
+            "committedDate": parse_datetime("2015-12-18T08:12:22.000Z"),
             "commitMessage": "Add installation instructions",
             "commitAuthorName": "Nisanthan Nanthakumar",
             "commitAuthorEmail": "nisanthan.nanthakumar@sentry.io",

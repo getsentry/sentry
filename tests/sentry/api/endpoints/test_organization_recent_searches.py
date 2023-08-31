@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 from datetime import datetime, timedelta
 from functools import cached_property
+from typing import Any
 
 from django.utils import timezone
 from freezegun import freeze_time
@@ -7,7 +10,7 @@ from freezegun import freeze_time
 from sentry.api.serializers import serialize
 from sentry.models.recentsearch import RecentSearch
 from sentry.models.search_common import SearchType
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 
 
@@ -91,7 +94,7 @@ class RecentSearchesListTest(APITestCase):
 
     def test_param_validation(self):
         self.login_as(user=self.user)
-        error_cases = [
+        error_cases: list[tuple[dict[str, Any], str]] = [
             ({"type": 5}, "Invalid input for `type`"),
             ({"type": "hi"}, "Invalid input for `type`"),
             ({"limit": "hi"}, "Invalid input for `limit`"),

@@ -1,16 +1,13 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import uuid4
 
-from django.utils import timezone
-
 from sentry.models import Commit, CommitAuthor, OrganizationOption, Repository
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 from sentry_plugins.github.testutils import PUSH_EVENT_EXAMPLE
-from social_auth.models import UserSocialAuth
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class PushEventWebhookTest(APITestCase):
     def test_simple(self):
         project = self.project  # force creation
@@ -70,7 +67,7 @@ class PushEventWebhookTest(APITestCase):
     def test_user_email(self):
         project = self.project  # force creation
         user = self.create_user(email="alberto@sentry.io")
-        UserSocialAuth.objects.create(provider="github", user=user, uid=6752317)
+        self.create_usersocialauth(provider="github", user=user, uid="6752317")
         self.create_member(organization=project.organization, user=user, role="member")
 
         url = f"/plugins/github/organizations/{project.organization.id}/webhook/"

@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import Feature from 'sentry/components/acl/feature';
 import {CommitRow} from 'sentry/components/commitRow';
 import {EventContexts} from 'sentry/components/events/contexts';
 import {EventDevice} from 'sentry/components/events/device';
@@ -11,10 +12,14 @@ import {EventEntry} from 'sentry/components/events/eventEntry';
 import {EventErrors} from 'sentry/components/events/eventErrors';
 import {EventEvidence} from 'sentry/components/events/eventEvidence';
 import {EventExtraData} from 'sentry/components/events/eventExtraData';
+import EventReplay from 'sentry/components/events/eventReplay';
 import {EventSdk} from 'sentry/components/events/eventSdk';
+import EventBreakpointChart from 'sentry/components/events/eventStatisticalDetector/breakpointChart';
+import RegressionMessage from 'sentry/components/events/eventStatisticalDetector/regressionMessage';
 import {EventTagsAndScreenshot} from 'sentry/components/events/eventTagsAndScreenshot';
 import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
 import {EventGroupingInfo} from 'sentry/components/events/groupingInfo';
+import {CronTimelineSection} from 'sentry/components/events/interfaces/crons/cronTimelineSection';
 import {AnrRootCause} from 'sentry/components/events/interfaces/performance/anrRootCause';
 import {SpanEvidenceSection} from 'sentry/components/events/interfaces/performance/spanEvidence';
 import {EventPackageData} from 'sentry/components/events/packageData';
@@ -22,7 +27,7 @@ import {EventRRWebIntegration} from 'sentry/components/events/rrwebIntegration';
 import {EventUserFeedback} from 'sentry/components/events/userFeedback';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Event, Group, IssueCategory, Project} from 'sentry/types';
+import {Event, Group, IssueCategory, IssueType, Project} from 'sentry/types';
 import {EntryType, EventTransaction} from 'sentry/types/event';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -81,6 +86,21 @@ function GroupEventDetailsContent({
 
   const eventEntryProps = {group, event, project};
 
+  if (group.issueType === IssueType.PERFORMANCE_DURATION_REGRESSION) {
+    return (
+      <Feature
+        features={['performance-duration-regression-visible']}
+        organization={organization}
+        renderDisabled
+      >
+        <Fragment>
+          <RegressionMessage event={event} />
+          <EventBreakpointChart event={event} />
+        </Fragment>
+      </Feature>
+    );
+  }
+
   return (
     <Fragment>
       <EventErrors event={event} project={project} isShare={false} />
@@ -94,10 +114,13 @@ function GroupEventDetailsContent({
         <EventDataSection title="User Feedback" type="user-feedback">
           <EventUserFeedback
             report={event.userReport}
-            orgId={organization.slug}
+            orgSlug={organization.slug}
             issueId={group.id}
           />
         </EventDataSection>
+      )}
+      {group.issueCategory === IssueCategory.CRON && (
+        <CronTimelineSection event={event} organization={organization} />
       )}
       <EventTagsAndScreenshot
         event={event}
@@ -120,6 +143,7 @@ function GroupEventDetailsContent({
           projectSlug={project.slug}
         />
       )}
+      <EventReplay event={event} group={group} projectSlug={project.slug} />
       <GroupEventEntry entryType={EntryType.HPKP} {...eventEntryProps} />
       <GroupEventEntry entryType={EntryType.CSP} {...eventEntryProps} />
       <GroupEventEntry entryType={EntryType.EXPECTCT} {...eventEntryProps} />

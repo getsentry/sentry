@@ -19,7 +19,7 @@ import Form, {FormProps} from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import FormModel from 'sentry/components/forms/model';
 import {FieldObject} from 'sentry/components/forms/types';
-import {PanelItem} from 'sentry/components/panels';
+import PanelItem from 'sentry/components/panels/panelItem';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import U2fsign from 'sentry/components/u2f/u2fsign';
 import {t} from 'sentry/locale';

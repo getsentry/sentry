@@ -21,6 +21,7 @@ from sentry.incidents.utils.types import SubscriptionUpdate
 from sentry.models import Project
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.silo import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription
 from sentry.snuba.query_subscriptions.consumer import register_subscriber
@@ -36,7 +37,11 @@ INCIDENT_SNAPSHOT_BATCH_SIZE = 50
 SUBSCRIPTION_METRICS_LOGGER = "subscription_metrics_logger"
 
 
-@instrumented_task(name="sentry.incidents.tasks.send_subscriber_notifications", queue="incidents")
+@instrumented_task(
+    name="sentry.incidents.tasks.send_subscriber_notifications",
+    queue="incidents",
+    silo_mode=SiloMode.REGION,
+)
 def send_subscriber_notifications(activity_id: int) -> None:
     from sentry.incidents.logic import get_incident_subscribers, unsubscribe_from_incident
 
@@ -45,6 +50,9 @@ def send_subscriber_notifications(activity_id: int) -> None:
             "incident", "incident__organization"
         ).get(id=activity_id)
     except IncidentActivity.DoesNotExist:
+        return
+
+    if activity.user_id is None:
         return
 
     activity_user = user_service.get_user(user_id=activity.user_id)
@@ -169,6 +177,7 @@ def handle_snuba_query_update(
     queue="incidents",
     default_retry_delay=60,
     max_retries=5,
+    silo_mode=SiloMode.REGION,
 )
 def handle_trigger_action(
     action_id: int,
@@ -199,6 +208,13 @@ def handle_trigger_action(
         metrics.incr("incidents.alert_rules.action.skipping_missing_project")
         return
 
+    incident_activity = (
+        IncidentActivity.objects.filter(incident=incident, value=new_status).order_by("-id").first()
+    )
+    notification_uuid = str(incident_activity.notification_uuid) if incident_activity else None
+    if notification_uuid is None:
+        metrics.incr("incidents.alert_rules.action.incident_activity_missing")
+
     metrics.incr(
         "incidents.alert_rules.action.{}.{}".format(
             AlertRuleTriggerAction.Type(action.type).name.lower(), method
@@ -206,7 +222,12 @@ def handle_trigger_action(
     )
 
     getattr(action, method)(
-        action, incident, project, metric_value=metric_value, new_status=IncidentStatus(new_status)
+        action,
+        incident,
+        project,
+        metric_value=metric_value,
+        new_status=IncidentStatus(new_status),
+        notification_uuid=notification_uuid,
     )
 
 
@@ -215,6 +236,7 @@ def handle_trigger_action(
     queue="incidents",
     default_retry_delay=60,
     max_retries=2,
+    silo_mode=SiloMode.REGION,
 )
 def auto_resolve_snapshot_incidents(alert_rule_id: int, **kwargs: Any) -> None:
     from sentry.incidents.logic import update_incident_status

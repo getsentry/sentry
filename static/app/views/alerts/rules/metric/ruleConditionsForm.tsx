@@ -7,18 +7,25 @@ import pick from 'lodash/pick';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
+import Alert from 'sentry/components/alert';
 import SearchBar from 'sentry/components/events/searchBar';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import FormField from 'sentry/components/forms/formField';
 import IdBadge from 'sentry/components/idBadge';
 import ListItem from 'sentry/components/list/listItem';
-import {Panel, PanelBody} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
 import {SearchInvalidTag} from 'sentry/components/smartSearchBar/searchInvalidTag';
+import {IconInfo} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Environment, Organization, Project, SelectValue} from 'sentry/types';
 import {getDisplayName} from 'sentry/utils/environment';
+import {
+  createOnDemandFilterWarning,
+  hasOnDemandMetricAlertFeature,
+} from 'sentry/utils/onDemandMetrics';
 import withApi from 'sentry/utils/withApi';
 import withProjects from 'sentry/utils/withProjects';
 import WizardField from 'sentry/views/alerts/rules/metric/wizardField';
@@ -27,11 +34,7 @@ import {
   DATA_SOURCE_LABELS,
   DATA_SOURCE_TO_SET_AND_EVENT_TYPES,
 } from 'sentry/views/alerts/utils';
-import {
-  AlertType,
-  datasetOmittedTags,
-  datasetSupportedTags,
-} from 'sentry/views/alerts/wizard/options';
+import {AlertType, getSupportedAndOmittedTags} from 'sentry/views/alerts/wizard/options';
 
 import {getProjectOptions} from '../utils';
 
@@ -69,6 +72,7 @@ type Props = {
   allowChangeEventTypes?: boolean;
   comparisonDelta?: number;
   disableProjectSelector?: boolean;
+  isExtrapolatedChartData?: boolean;
   loadingProjects?: boolean;
 };
 
@@ -363,8 +367,14 @@ class RuleConditionsForm extends PureComponent<Props, State> {
   }
 
   render() {
-    const {organization, disabled, onFilterSearch, allowChangeEventTypes, dataset} =
-      this.props;
+    const {
+      organization,
+      disabled,
+      onFilterSearch,
+      allowChangeEventTypes,
+      dataset,
+      isExtrapolatedChartData,
+    } = this.props;
     const {environments} = this.state;
 
     const environmentOptions: SelectValue<string | null>[] = [
@@ -376,9 +386,26 @@ class RuleConditionsForm extends PureComponent<Props, State> {
         []),
     ];
 
+    const getOnDemandFilterWarning = createOnDemandFilterWarning(
+      tct(
+        'We don’t routinely collect metrics from this property. However, we’ll do so [strong:once this alert has been saved.]',
+        {
+          strong: <strong />,
+        }
+      )
+    );
+
     return (
       <Fragment>
         <ChartPanel>
+          {isExtrapolatedChartData && (
+            <OnDemandMetricInfoAlert>
+              <OnDemandMetricInfoIcon size="sm" />
+              {t(
+                'The chart data is an estimate based on the stored transactions that match the filters specified.'
+              )}
+            </OnDemandMetricInfoAlert>
+          )}
           <StyledPanelBody>{this.props.thresholdChart}</StyledPanelBody>
         </ChartPanel>
         {this.renderInterval()}
@@ -441,12 +468,14 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                         />
                       );
                     }}
+                    getFilterWarning={
+                      hasOnDemandMetricAlertFeature(organization)
+                        ? getOnDemandFilterWarning
+                        : undefined
+                    }
                     searchSource="alert_builder"
                     defaultQuery={initialData?.query ?? ''}
-                    omitTags={datasetOmittedTags(dataset, organization)}
-                    {...(datasetSupportedTags(dataset, organization)
-                      ? {supportedTags: datasetSupportedTags(dataset, organization)}
-                      : {})}
+                    {...getSupportedAndOmittedTags(dataset, organization)}
                     includeSessionTagsValues={dataset === Dataset.SESSIONS}
                     disabled={disabled}
                     useFormWrapper={false}
@@ -456,7 +485,8 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                     query={initialData.query}
                     // We only need strict validation for Transaction queries, everything else is fine
                     highlightUnsupportedTags={
-                      organization.features.includes('alert-allow-indexed')
+                      organization.features.includes('alert-allow-indexed') ||
+                      hasOnDemandMetricAlertFeature(organization)
                         ? false
                         : [Dataset.GENERIC_METRICS, Dataset.TRANSACTIONS].includes(
                             dataset
@@ -528,8 +558,25 @@ const StyledSearchBar = styled(SearchBar)`
   `}
 `;
 
+const OnDemandMetricInfoAlert = styled(Alert)`
+  border-radius: ${space(0.5)} ${space(0.5)} 0 0;
+  border: none;
+  border-bottom: 1px solid ${p => p.theme.blue400};
+  margin-bottom: 0;
+
+  & > span {
+    display: flex;
+    align-items: center;
+  }
+`;
+
+const OnDemandMetricInfoIcon = styled(IconInfo)`
+  color: ${p => p.theme.blue400};
+  margin-right: ${space(1.5)};
+`;
+
 const StyledListItem = styled(ListItem)`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${space(0.5)};
   font-size: ${p => p.theme.fontSizeExtraLarge};
   line-height: 1.3;
 `;

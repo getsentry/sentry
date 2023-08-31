@@ -4,7 +4,9 @@ import styled from '@emotion/styled';
 
 import ListLink from 'sentry/components/links/listLink';
 import NavTabs from 'sentry/components/navTabs';
-import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
 import {InternetProtocol} from 'sentry/types';
 import recreateRoute from 'sentry/utils/recreateRoute';

@@ -10,7 +10,9 @@ import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
 import DropdownButton from 'sentry/components/dropdownButton';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import Pagination from 'sentry/components/pagination';
-import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelHeader from 'sentry/components/panels/panelHeader';
 import RepositoryRow from 'sentry/components/repositoryRow';
 import {IconCommit} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -58,12 +60,12 @@ class IntegrationRepos extends DeprecatedAsyncComponent<Props, State> {
   }
 
   getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
-    const orgId = this.props.organization.slug;
+    const {organization, integration} = this.props;
     return [
       [
         'itemList',
-        `/organizations/${orgId}/repos/`,
-        {query: {status: 'active', integration_id: this.props.integration.id}},
+        `/organizations/${organization.slug}/repos/`,
+        {query: {status: 'active', integration_id: integration.id}},
       ],
     ];
   }
@@ -90,9 +92,9 @@ class IntegrationRepos extends DeprecatedAsyncComponent<Props, State> {
   );
 
   searchRepositoriesRequest = (searchQuery?: string) => {
-    const orgId = this.props.organization.slug;
+    const {organization, integration} = this.props;
     const query = {search: searchQuery};
-    const endpoint = `/organizations/${orgId}/integrations/${this.props.integration.id}/repos/`;
+    const endpoint = `/organizations/${organization.slug}/integrations/${integration.id}/repos/`;
     return this.api.request(endpoint, {
       method: 'GET',
       query,
@@ -111,9 +113,8 @@ class IntegrationRepos extends DeprecatedAsyncComponent<Props, State> {
   };
 
   addRepo(selection: {label: JSX.Element; searchKey: string; value: string}) {
-    const {integration} = this.props;
+    const {integration, organization} = this.props;
     const {itemList} = this.state;
-    const orgId = this.props.organization.slug;
 
     this.setState({adding: true});
 
@@ -126,9 +127,14 @@ class IntegrationRepos extends DeprecatedAsyncComponent<Props, State> {
 
     let promise: Promise<Repository>;
     if (migratableRepo) {
-      promise = migrateRepository(this.api, orgId, migratableRepo.id, integration);
+      promise = migrateRepository(
+        this.api,
+        organization.slug,
+        migratableRepo.id,
+        integration
+      );
     } else {
-      promise = addRepository(this.api, orgId, selection.value, integration);
+      promise = addRepository(this.api, organization.slug, selection.value, integration);
     }
     promise.then(
       (repo: Repository) => {
@@ -200,7 +206,6 @@ class IntegrationRepos extends DeprecatedAsyncComponent<Props, State> {
 
   renderBody() {
     const {itemListPageLinks, integrationReposErrorStatus, itemList} = this.state;
-    const orgId = this.props.organization.slug;
     return (
       <Fragment>
         {integrationReposErrorStatus === 400 && (
@@ -236,7 +241,7 @@ class IntegrationRepos extends DeprecatedAsyncComponent<Props, State> {
                 api={this.api}
                 key={repo.id}
                 repository={repo}
-                orgId={orgId}
+                orgSlug={this.props.organization.slug}
                 onRepositoryChange={this.onRepositoryChange}
               />
             ))}

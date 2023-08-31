@@ -12,6 +12,7 @@ import {space} from 'sentry/styles/space';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {CronDetailsTimeline} from 'sentry/views/monitors/components/cronDetailsTimeline';
 import DetailsSidebar from 'sentry/views/monitors/components/detailsSidebar';
 
 import MonitorCheckIns from './components/monitorCheckIns';
@@ -90,23 +91,24 @@ function MonitorDetails({params, location}: Props) {
               <EnvironmentPageFilter />
             </StyledPageFilterBar>
             {!hasLastCheckIn(monitor) ? (
-              <MonitorOnboarding orgId={organization.slug} monitor={monitor} />
+              <MonitorOnboarding monitor={monitor} />
             ) : (
               <Fragment>
+                <CronDetailsTimeline organization={organization} monitor={monitor} />
                 <MonitorStats
-                  orgId={organization.slug}
+                  orgSlug={organization.slug}
                   monitor={monitor}
                   monitorEnvs={monitor.environments}
                 />
 
                 <MonitorIssues
-                  orgId={organization.slug}
+                  orgSlug={organization.slug}
                   monitor={monitor}
                   monitorEnvs={monitor.environments}
                 />
 
                 <MonitorCheckIns
-                  orgId={organization.slug}
+                  orgSlug={organization.slug}
                   monitor={monitor}
                   monitorEnvs={monitor.environments}
                 />

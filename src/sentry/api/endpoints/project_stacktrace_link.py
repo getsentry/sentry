@@ -6,6 +6,8 @@ from rest_framework.response import Response
 from sentry_sdk import Scope, configure_scope
 
 from sentry import analytics
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
@@ -29,9 +31,7 @@ def get_link(
     integration = integration_service.get_integration(
         organization_integration_id=config.organization_integration_id
     )
-    install = integration_service.get_installation(
-        integration=integration, organization_id=config.project.organization_id
-    )
+    install = integration.get_installation(organization_id=config.project.organization_id)
 
     formatted_path = filepath.replace(config.stack_root, config.source_root, 1)
 
@@ -187,6 +187,9 @@ def get_code_mapping_configs(project: Project) -> List[RepositoryProjectPathConf
 
 @region_silo_endpoint
 class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     """
     Returns valid links for source code providers so that
     users can go from the file in the stack trace to the
@@ -200,6 +203,8 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
     `module`   (optional): The module field value of the relevant stack frame
     `package`  (optional): The package field value of the relevant stack frame
     """
+
+    owner = ApiOwner.ISSUES
 
     def get(self, request: Request, project: Project) -> Response:
         ctx = generate_context(request.GET)

@@ -2,11 +2,11 @@ from fixtures.page_objects.organization_integration_settings import (
     OrganizationSentryAppDetailViewPage,
 )
 from sentry.models import SentryAppInstallation
-from sentry.testutils import AcceptanceTestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.cases import AcceptanceTestCase
+from sentry.testutils.silo import no_silo_test
 
 
-@region_silo_test
+@no_silo_test(stable=True)
 class OrganizationSentryAppDetailedView(AcceptanceTestCase):
     def setUp(self):
         super().setUp()

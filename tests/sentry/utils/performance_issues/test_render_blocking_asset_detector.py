@@ -6,7 +6,7 @@ import pytest
 
 from sentry.issues.grouptype import PerformanceRenderBlockingAssetSpanGroupType
 from sentry.models.options.project_option import ProjectOption
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.performance_issues.event_generators import (
     PROJECT_ID,
     create_span,
@@ -61,7 +61,7 @@ def find_problems(settings, event: dict[str, Any]) -> list[PerformanceProblem]:
     return list(detector.stored_problems.values())
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 @pytest.mark.django_db
 class RenderBlockingAssetDetectorTest(TestCase):
     def setUp(self):
@@ -143,7 +143,7 @@ class RenderBlockingAssetDetectorTest(TestCase):
         event = _valid_render_blocking_asset_event("https://example.com/a.js")
         for span in event["spans"]:
             if span["op"] == "resource.script":
-                span["data"]["http.response_content_length"] = 900000
+                span["data"]["http.response_content_length"] = 400000
         assert self.find_problems(event) == []
 
     def test_does_not_detect_if_missing_size(self):
@@ -193,6 +193,7 @@ class RenderBlockingAssetDetectorTest(TestCase):
         assert self.find_problems(event) == []
 
 
+@pytest.mark.django_db
 @pytest.mark.parametrize(
     "expected,first_url,second_url",
     [

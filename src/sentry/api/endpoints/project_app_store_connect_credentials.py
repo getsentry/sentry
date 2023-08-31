@@ -1,3 +1,5 @@
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 
 """Sentry API to manage the App Store Connect credentials for a project.
@@ -81,6 +83,9 @@ class AppStoreConnectCredentialsSerializer(serializers.Serializer):
 
 @region_silo_endpoint
 class AppStoreConnectAppsEndpoint(ProjectEndpoint):
+    publish_status = {
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     """Retrieves available applications with provided credentials.
 
     ``POST projects/{org_slug}/{proj_slug}/appstoreconnect/apps/``
@@ -125,6 +130,7 @@ class AppStoreConnectAppsEndpoint(ProjectEndpoint):
     ```
     """
 
+    owner = ApiOwner.OWNERS_NATIVE
     permission_classes = [StrictProjectPermission]
 
     def post(self, request: Request, project: Project) -> Response:
@@ -196,6 +202,9 @@ class AppStoreCreateCredentialsSerializer(serializers.Serializer):
 
 @region_silo_endpoint
 class AppStoreConnectCreateCredentialsEndpoint(ProjectEndpoint):
+    publish_status = {
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     """Returns all the App Store Connect symbol source settings ready to be saved.
 
     ``POST projects/{org_slug}/{proj_slug}/appstoreconnect/``
@@ -207,6 +216,7 @@ class AppStoreConnectCreateCredentialsEndpoint(ProjectEndpoint):
     they receive the saved configuration.
     """
 
+    owner = ApiOwner.OWNERS_NATIVE
     permission_classes = [StrictProjectPermission]
 
     def post(self, request: Request, project: Project) -> Response:
@@ -270,6 +280,9 @@ class AppStoreUpdateCredentialsSerializer(serializers.Serializer):
 
 @region_silo_endpoint
 class AppStoreConnectUpdateCredentialsEndpoint(ProjectEndpoint):
+    publish_status = {
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     """Updates a subset of the existing credentials.
 
     ``POST projects/{org_slug}/{proj_slug}/appstoreconnect/{id}/``
@@ -281,6 +294,7 @@ class AppStoreConnectUpdateCredentialsEndpoint(ProjectEndpoint):
     a sub-set. Useful for API key refreshes.
     """
 
+    owner = ApiOwner.OWNERS_NATIVE
     permission_classes = [StrictProjectPermission]
 
     def post(self, request: Request, project: Project, credentials_id: str) -> Response:
@@ -332,6 +346,9 @@ class AppStoreConnectUpdateCredentialsEndpoint(ProjectEndpoint):
 
 @region_silo_endpoint
 class AppStoreConnectRefreshEndpoint(ProjectEndpoint):
+    publish_status = {
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     """Triggers an immediate check for new App Store Connect builds.
 
     ``POST projects/{org_slug}/{proj_slug}/appstoreconnect/{id}/refresh/``
@@ -345,6 +362,7 @@ class AppStoreConnectRefreshEndpoint(ProjectEndpoint):
     headers, see the sentry.middleware.ratelimit module.
     """
 
+    owner = ApiOwner.OWNERS_NATIVE
     permission_classes = [StrictProjectPermission]
 
     enforce_rate_limit = True
@@ -382,6 +400,9 @@ class AppStoreConnectRefreshEndpoint(ProjectEndpoint):
 
 @region_silo_endpoint
 class AppStoreConnectStatusEndpoint(ProjectEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     """Returns a summary of the project's App Store Connect configuration
     and builds.
 
@@ -417,6 +438,7 @@ class AppStoreConnectStatusEndpoint(ProjectEndpoint):
       of whether there were any or no builds in App Store Connect at the time.
     """
 
+    owner = ApiOwner.OWNERS_NATIVE
     permission_classes = [ProjectPermission]
 
     def get(self, request: Request, project: Project) -> Response:

@@ -16,8 +16,9 @@ from sentry.api.endpoints.chunk import (
     MAX_REQUEST_SIZE,
 )
 from sentry.models import MAX_FILE_SIZE, ApiToken, FileBlob, Organization
-from sentry.testutils import APITestCase
-from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
+from sentry.silo import SiloMode
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 
 @region_silo_test(stable=True)
@@ -28,7 +29,7 @@ class ChunkUploadTest(APITestCase):
 
     def setUp(self):
         self.organization = self.create_organization(owner=self.user)
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             self.token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
         self.url = reverse("sentry-api-0-chunk-upload", args=[self.organization.slug])
 
@@ -94,6 +95,14 @@ class ChunkUploadTest(APITestCase):
         )
         assert response.data["url"] == self.url.lstrip(API_PREFIX)
 
+        response = self.client.get(
+            self.url,
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+            HTTP_USER_AGENT="sentry-cli/2.20.5",
+            format="json",
+        )
+        assert response.data["url"] == self.url.lstrip(API_PREFIX)
+
         # < 1.70.1
         response = self.client.get(
             self.url,
@@ -130,7 +139,7 @@ class ChunkUploadTest(APITestCase):
         assert response.data["maxFileSize"] == MAX_FILE_SIZE
 
     def test_wrong_api_token(self):
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             token = ApiToken.objects.create(user=self.user, scope_list=["org:org"])
         response = self.client.get(self.url, HTTP_AUTHORIZATION=f"Bearer {token.token}")
         assert response.status_code == 403, response.content
@@ -230,7 +239,7 @@ class ChunkUploadTest(APITestCase):
     def test_checksum_missmatch(self):
         files = []
         content = b"x" * (settings.SENTRY_CHUNK_UPLOAD_BLOB_SIZE + 1)
-        files.append(SimpleUploadedFile(b"wrong checksum", content))
+        files.append(SimpleUploadedFile("wrong checksum", content))
 
         response = self.client.post(
             self.url,

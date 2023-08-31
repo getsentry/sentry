@@ -65,8 +65,8 @@ function Line({
   isHoverPreviewed = false,
   ...props
 }: Props) {
-  /* Prioritize the frame platform but fall back to the platform
-   of the stack trace / exception */
+  // Prioritize the frame platform but fall back to the platform
+  // of the stack trace / exception
   const platform = getPlatform(frame.platform, props.platform ?? 'other') as PlatformType;
   const leadsToApp = !frame.inApp && ((nextFrame && nextFrame.inApp) || !nextFrame);
 

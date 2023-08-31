@@ -4,7 +4,7 @@ import {LocationDescriptor} from 'history';
 
 import EmptyMessage from 'sentry/components/emptyMessage';
 import {KeyValueTable} from 'sentry/components/keyValueTable';
-import {Panel as BasePanel} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
 import Placeholder from 'sentry/components/placeholder';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import ReplayTagsTableRow from 'sentry/components/replays/replayTagsTableRow';
@@ -60,7 +60,7 @@ function TagPanel() {
   const tags = Object.entries(replayRecord.tags);
 
   return (
-    <Panel>
+    <StyledPanel>
       <FluidPanel>
         {tags.length ? (
           <KeyValueTable noMargin>
@@ -77,11 +77,11 @@ function TagPanel() {
           <EmptyMessage>{t('No tags for this replay were found.')}</EmptyMessage>
         )}
       </FluidPanel>
-    </Panel>
+    </StyledPanel>
   );
 }
 
-const Panel = styled(BasePanel)`
+const StyledPanel = styled(Panel)`
   width: 100%;
   height: 100%;
   overflow: hidden;

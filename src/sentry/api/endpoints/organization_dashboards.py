@@ -1,11 +1,13 @@
 import re
 
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, router, transaction
 from django.db.models import Case, IntegerField, When
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.paginator import ChainPaginator
@@ -29,6 +31,11 @@ class OrganizationDashboardsPermission(OrganizationPermission):
 
 @region_silo_endpoint
 class OrganizationDashboardsEndpoint(OrganizationEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
+    owner = ApiOwner.DISCOVER_N_DASHBOARDS
     permission_classes = (OrganizationDashboardsPermission,)
 
     def get(self, request: Request, organization) -> Response:
@@ -154,7 +161,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             return Response(serializer.errors, status=400)
 
         try:
-            with transaction.atomic():
+            with transaction.atomic(router.db_for_write(Dashboard)):
                 dashboard = serializer.save()
             return Response(serialize(dashboard, request.user), status=201)
         except IntegrityError:

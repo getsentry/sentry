@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 import operator
-from typing import Any, Sequence
+from typing import Any, Container
 from uuid import uuid4
 
 from django.db.models import F, Field, Model
@@ -7,6 +9,7 @@ from django.db.models.expressions import BaseExpression, CombinedExpression, Val
 from django.utils.crypto import get_random_string
 from django.utils.text import slugify
 
+from sentry import options
 from sentry.db.exceptions import CannotResolveExpression
 
 COMBINED_EXPRESSION_CALLBACKS = {
@@ -21,7 +24,7 @@ COMBINED_EXPRESSION_CALLBACKS = {
 
 
 def resolve_combined_expression(instance: Model, node: BaseExpression) -> BaseExpression:
-    def _resolve(instance: Model, node: BaseExpression) -> BaseExpression:
+    def _resolve(instance: Model, node: BaseExpression | F) -> BaseExpression:
         if isinstance(node, Value):
             return node.value
         if isinstance(node, F):
@@ -50,7 +53,7 @@ def resolve_combined_expression(instance: Model, node: BaseExpression) -> BaseEx
 def slugify_instance(
     inst: Model,
     label: str,
-    reserved: Sequence[str] = (),
+    reserved: Container[str] = (),
     max_length: int = 30,
     field_name: str = "slug",
     *args: Any,
@@ -75,9 +78,14 @@ def slugify_instance(
 
     setattr(inst, field_name, base_value)
 
-    # We don't need to further mutate if we're unique at this point
+    # Don't further mutate if the value is unique
     if not base_qs.filter(**{f"{field_name}__iexact": base_value}).exists():
-        return
+        if options.get("api.prevent-numeric-slugs"):
+            # if feature flag is on, we only return if the slug is not entirely numeric
+            if not base_value.isdigit():
+                return
+        else:
+            return
 
     # We want to sanely generate the shortest unique slug possible, so
     # we try different length endings until we get one that works, or bail.

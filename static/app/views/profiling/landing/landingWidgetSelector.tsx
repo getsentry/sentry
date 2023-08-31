@@ -1,4 +1,5 @@
 import {useCallback, useMemo} from 'react';
+import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
 import {CompactSelect, SelectOption} from 'sentry/components/compactSelect';
@@ -55,7 +56,7 @@ export function LandingWidgetSelector({
   }, []);
 
   const header = (
-    <CompactSelect
+    <StyledCompactSelect
       value={selectedWidget}
       options={WIDGET_OPTIONS}
       onChange={onWidgetChange}
@@ -103,7 +104,7 @@ export function LandingWidgetSelector({
 
 const WIDGET_OPTIONS: SelectOption<WidgetOption>[] = [
   {
-    label: t('Suspect Functions'),
+    label: t('Slowest Functions'),
     value: 'slowest functions' as const,
   },
   {
@@ -115,3 +116,10 @@ const WIDGET_OPTIONS: SelectOption<WidgetOption>[] = [
     value: 'improved functions' as const,
   },
 ];
+
+const StyledCompactSelect = styled(CompactSelect)`
+  > button {
+    border: None;
+    padding: 0;
+  }
+`;

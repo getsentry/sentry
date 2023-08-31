@@ -25,6 +25,7 @@ import {IssuesConfig} from './issues';
 import {ReleasesConfig} from './releases';
 
 export type WidgetBuilderSearchBarProps = {
+  getFilterWarning: SearchBarProps['getFilterWarning'];
   onClose: SearchBarProps['onClose'];
   onSearch: SearchBarProps['onSearch'];
   organization: Organization;
@@ -180,19 +181,6 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     widgetQuery: WidgetQuery,
     tags?: TagCollection
   ) => Record<string, SelectValue<FieldValue>>;
-  /**
-   * Generate the request promises for fetching
-   * world map data.
-   */
-  getWorldMapRequest?: (
-    api: Client,
-    query: WidgetQuery,
-    organization: Organization,
-    pageFilters: PageFilters,
-    limit?: number,
-    cursor?: string,
-    referrer?: string
-  ) => ReturnType<Client['requestPromise']>;
   /**
    * Apply dataset specific overrides to the logic that handles
    * column updates for tables in the Widget Builder.

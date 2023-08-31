@@ -16,9 +16,10 @@ from sentry.models import (
     Team,
 )
 from sentry.notifications.types import NotificationScopeType
-from sentry.testutils import TestCase
+from sentry.silo import SiloMode
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import add_identity, get_response_text, install_slack, link_team
-from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 
@@ -125,7 +126,7 @@ class SlackIntegrationLinkTeamTest(SlackIntegrationLinkTeamTestBase):
             in get_response_text(data)
         )
 
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             team_settings = NotificationSetting.objects.filter(
                 scope_type=NotificationScopeType.TEAM.value, team_id=self.team.id
             )
@@ -153,6 +154,7 @@ class SlackIntegrationLinkTeamTest(SlackIntegrationLinkTeamTestBase):
             in get_response_text(data)
         )
 
+    @responses.activate
     def test_error_page(self):
         """Test that we successfully render an error page when bad form data is sent."""
         response = self.get_success_response(data={"team": ["some", "garbage"]})
@@ -163,7 +165,7 @@ class SlackIntegrationLinkTeamTest(SlackIntegrationLinkTeamTestBase):
         # Create another organization and team for this user that is linked through `self.integration`.
         organization2 = self.create_organization(owner=self.user)
         team2 = self.create_team(organization=organization2, members=[self.user])
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             OrganizationIntegration.objects.create(
                 organization_id=organization2.id, integration=self.integration
             )
@@ -213,7 +215,7 @@ class SlackIntegrationUnlinkTeamTest(SlackIntegrationLinkTeamTestBase):
             in get_response_text(data)
         )
 
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             team_settings = NotificationSetting.objects.filter(
                 scope_type=NotificationScopeType.TEAM.value, team_id=self.team.id
             )
@@ -256,7 +258,7 @@ class SlackIntegrationUnlinkTeamTest(SlackIntegrationLinkTeamTestBase):
             in get_response_text(data)
         )
 
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             team_settings = NotificationSetting.objects.filter(
                 scope_type=NotificationScopeType.TEAM.value, team_id=self.team.id
             )
@@ -267,7 +269,7 @@ class SlackIntegrationUnlinkTeamTest(SlackIntegrationLinkTeamTestBase):
         # Create another organization and team for this user that is linked through `self.integration`.
         organization2 = self.create_organization(owner=self.user)
         team2 = self.create_team(organization=organization2, members=[self.user])
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             OrganizationIntegration.objects.create(
                 organization_id=organization2.id, integration=self.integration
             )

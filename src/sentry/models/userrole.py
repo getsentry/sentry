@@ -3,6 +3,8 @@ from typing import FrozenSet
 from django.conf import settings
 from django.db import models
 
+from sentry.backup.mixins import SanitizeUserImportsMixin
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import ArrayField, DefaultFieldsModel, control_silo_only_model, sane_repr
 from sentry.db.models.fields.foreignkey import FlexibleForeignKey
 from sentry.signals import post_upgrade
@@ -10,12 +12,12 @@ from sentry.silo import SiloMode
 
 
 @control_silo_only_model
-class UserRole(DefaultFieldsModel):
+class UserRole(SanitizeUserImportsMixin, DefaultFieldsModel):
     """
     Roles are applied to administrative users and apply a set of `UserPermission`.
     """
 
-    __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.User
 
     name = models.CharField(max_length=32, unique=True)
     permissions = ArrayField()
@@ -40,8 +42,8 @@ class UserRole(DefaultFieldsModel):
 
 
 @control_silo_only_model
-class UserRoleUser(DefaultFieldsModel):
-    __include_in_export__ = True
+class UserRoleUser(SanitizeUserImportsMixin, DefaultFieldsModel):
+    __relocation_scope__ = RelocationScope.User
 
     user = FlexibleForeignKey("sentry.User")
     role = FlexibleForeignKey("sentry.UserRole")

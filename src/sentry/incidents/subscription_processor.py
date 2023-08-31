@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Sequence, Tuple, TypeVar, cast
 
 from django.conf import settings
-from django.db import transaction
+from django.db import router, transaction
 from snuba_sdk import Column, Condition, Limit, Op
 
 from sentry import features
@@ -484,7 +484,7 @@ class SubscriptionProcessor:
             AlertRuleThresholdType(self.alert_rule.threshold_type)
         ]
         fired_incident_triggers = []
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(AlertRule)):
             for trigger in self.triggers:
                 if alert_operator(
                     aggregation_value, trigger.alert_threshold
@@ -701,7 +701,8 @@ class SubscriptionProcessor:
                     method=method,
                     new_status=new_status,
                     metric_value=metric_value,
-                ).delay
+                ).delay,
+                router.db_for_write(AlertRule),
             )
 
     def handle_incident_severity_update(self) -> None:
@@ -776,7 +777,7 @@ def build_trigger_stat_keys(
 
 
 def build_alert_rule_trigger_stat_key(
-    alert_rule_id: int, project_id: int, trigger_id: str, stat_key: str
+    alert_rule_id: int, project_id: int, trigger_id: int, stat_key: str
 ) -> str:
     key_base = ALERT_RULE_BASE_KEY % (alert_rule_id, project_id)
     return ALERT_RULE_BASE_TRIGGER_STAT_KEY % (key_base, trigger_id, stat_key)
@@ -829,8 +830,8 @@ def update_alert_rule_stats(
     alert_rule: AlertRule,
     subscription: QuerySubscription,
     last_update: datetime,
-    alert_counts: Dict[str, int],
-    resolve_counts: Dict[str, int],
+    alert_counts: Dict[int, int],
+    resolve_counts: Dict[int, int],
 ) -> None:
     """
     Updates stats about the alert rule, subscription and triggers if they've changed.

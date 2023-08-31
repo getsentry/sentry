@@ -7,7 +7,7 @@ from abc import abstractmethod
 from typing import Optional, cast
 
 from sentry.services.hybrid_cloud.project_key import ProjectKeyRole, RpcProjectKey
-from sentry.services.hybrid_cloud.region import UnimplementedRegionResolution
+from sentry.services.hybrid_cloud.region import ByOrganizationId, ByRegionName
 from sentry.services.hybrid_cloud.rpc import RpcService, regional_rpc_method
 from sentry.silo import SiloMode
 
@@ -22,9 +22,18 @@ class ProjectKeyService(RpcService):
 
         return DatabaseBackedProjectKeyService()
 
-    @regional_rpc_method(resolve=UnimplementedRegionResolution())
+    @regional_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
-    def get_project_key(self, *, project_id: str, role: ProjectKeyRole) -> Optional[RpcProjectKey]:
+    def get_project_key(
+        self, *, organization_id: int, project_id: str, role: ProjectKeyRole
+    ) -> Optional[RpcProjectKey]:
+        pass
+
+    @regional_rpc_method(resolve=ByRegionName())
+    @abstractmethod
+    def get_project_key_by_region(
+        self, *, region_name: str, project_id: str, role: ProjectKeyRole
+    ) -> Optional[RpcProjectKey]:
         pass
 
 

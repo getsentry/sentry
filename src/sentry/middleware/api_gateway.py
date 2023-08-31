@@ -23,3 +23,5 @@ class ApiGatewayMiddleware:
         proxy_response = proxy_request_if_needed(request, view_func, view_kwargs)
         if proxy_response is not None:
             return proxy_response
+        else:
+            return None

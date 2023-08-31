@@ -1,6 +1,6 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
-import pytz
+from django.db import router
 
 from sentry import analytics
 from sentry.coreapi import APIUnauthorized
@@ -23,6 +23,7 @@ class GrantExchanger(Mediator):
     code = Param(str)
     client_id = Param(str)
     user = Param(User)
+    using = router.db_for_write(User)
 
     def call(self):
         self._validate()
@@ -57,7 +58,7 @@ class GrantExchanger(Mediator):
         return self.grant.application.owner == self.user
 
     def _grant_is_active(self):
-        return self.grant.expires_at > datetime.now(pytz.UTC)
+        return self.grant.expires_at > datetime.now(timezone.utc)
 
     def _delete_grant(self):
         self.grant.delete()

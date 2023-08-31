@@ -9,6 +9,7 @@ from django.db.models import Q, QuerySet
 from django.utils import timezone
 
 from sentry import analytics
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     ArrayField,
     BaseManager,
@@ -22,6 +23,7 @@ from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.types.integrations import ExternalProviders
 
 if TYPE_CHECKING:
+    from sentry.identity.base import Provider
     from sentry.models import User
     from sentry.services.hybrid_cloud.identity import RpcIdentityProvider
 
@@ -47,7 +49,7 @@ class IdentityProvider(Model):
     acme-org.onelogin.com.
     """
 
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     type = models.CharField(max_length=64)
     config = JSONField()
@@ -189,7 +191,7 @@ class Identity(Model):
     A verified link between a user and a third party identity.
     """
 
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     idp = FlexibleForeignKey("sentry.IdentityProvider")
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL)
@@ -207,7 +209,7 @@ class Identity(Model):
         db_table = "sentry_identity"
         unique_together = (("idp", "external_id"), ("idp", "user"))
 
-    def get_provider(self):
+    def get_provider(self) -> Provider:
         from sentry.identity import get
 
         return get(self.idp.type)

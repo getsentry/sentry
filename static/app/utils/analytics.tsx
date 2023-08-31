@@ -60,6 +60,10 @@ import {
   SettingsEventParameters,
 } from './analytics/settingsAnalyticsEvents';
 import {
+  SignupAnalyticsParameters,
+  SignupEventMap,
+} from './analytics/signupAnalyticsEvents';
+import {
   stackTraceEventMap,
   StackTraceEventParameters,
 } from './analytics/stackTraceAnalyticsEvents';
@@ -90,6 +94,7 @@ interface EventParameters
     EcosystemEventParameters,
     IntegrationEventParameters,
     ProjectCreationEventParameters,
+    SignupAnalyticsParameters,
     Record<string, Record<string, any>> {}
 
 const allEventMap: Record<string, string | null> = {
@@ -114,6 +119,7 @@ const allEventMap: Record<string, string | null> = {
   ...integrationEventMap,
   ...projectCreationEventMap,
   ...starfishEventMap,
+  ...SignupEventMap,
 };
 
 /**

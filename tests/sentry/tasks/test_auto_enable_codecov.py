@@ -6,7 +6,7 @@ from sentry import audit_log
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.organization import Organization
 from sentry.tasks.auto_enable_codecov import enable_for_org
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import apply_feature_flag_on_cls
 from sentry.testutils.helpers.features import with_feature
 

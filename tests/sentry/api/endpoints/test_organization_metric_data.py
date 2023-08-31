@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 from datetime import timedelta
 from functools import partial
-from typing import Optional
+from typing import Any, Optional
 from unittest import mock
 from unittest.mock import patch
 
@@ -24,7 +26,9 @@ from tests.sentry.api.endpoints.test_organization_metrics import MOCKED_DERIVED_
 
 
 def indexer_record(use_case_id: UseCaseID, org_id: int, string: str) -> int:
-    return indexer.record(use_case_id, org_id, string)
+    ret = indexer.record(use_case_id, org_id, string)
+    assert ret is not None
+    return ret
 
 
 perf_indexer_record = partial(indexer_record, UseCaseID.TRANSACTIONS)
@@ -498,7 +502,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         )
 
         def count_sessions(project_id: Optional[int]) -> int:
-            kwargs = dict(
+            kwargs: dict[str, Any] = dict(
                 field="sum(sentry.sessions.session)",
                 statsPeriod="1h",
                 interval="1h",
@@ -1799,10 +1803,11 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         assert group["series"] == {"session.all_user": [0, 0, 0, 0, 0, 3]}
 
     def test_abnormal_user_sessions(self):
-        for tags, values in (
+        cases: tuple[tuple[dict[str, str], list[int]], ...] = (
             ({"session.status": "abnormal"}, [1, 2, 4]),
             ({}, [1, 2, 4, 7, 9]),
-        ):
+        )
+        for tags, values in cases:
             for value in values:
                 self.store_release_health_metric(
                     name=SessionMRI.USER.value,
@@ -2014,11 +2019,12 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         assert group["series"]["session.errored_user"] == [0]
 
     def test_healthy_user_sessions(self):
-        for tags, values in (
+        cases: tuple[tuple[dict[str, str], list[int]], ...] = (
             ({}, [1, 2, 4, 5, 7]),  # 3 and 6 did not recorded at init
             ({"session.status": "ok"}, [3]),  # 3 was not in init, but still counts
             ({"session.status": "errored"}, [1, 2, 6]),  # 6 was not in init, but still counts
-        ):
+        )
+        for tags, values in cases:
             for value in values:
                 self.store_release_health_metric(
                     name=SessionMRI.USER.value,

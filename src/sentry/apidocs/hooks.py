@@ -1,11 +1,14 @@
 from typing import Any, Dict, List, Literal, Mapping, Set, Tuple, TypedDict
 
+from sentry.api.api_owners import ApiOwner
+from sentry.apidocs.api_ownership_allowlist_dont_modify import API_OWNERSHIP_ALLOWLIST_DONT_MODIFY
 from sentry.apidocs.build import OPENAPI_TAGS
 from sentry.apidocs.utils import SentryApiBuildError
 
-HTTP_METHODS_SET = Set[
-    Literal["GET", "POST", "PUT", "OPTIONS", "HEAD", "DELETE", "TRACE", "CONNECT", "PATCH"]
+HTTP_METHOD_NAME = Literal[
+    "GET", "POST", "PUT", "OPTIONS", "HEAD", "DELETE", "TRACE", "CONNECT", "PATCH"
 ]
+HTTP_METHODS_SET = Set[HTTP_METHOD_NAME]
 
 
 class EndpointRegistryType(TypedDict):
@@ -68,9 +71,15 @@ def __get_explicit_endpoints() -> List[Tuple[str, str, str, Any]]:
 
 
 def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, rename
-
     filtered = []
     for (path, path_regex, method, callback) in endpoints:
+
+        if callback.view_class.owner == ApiOwner.UNOWNED:
+            if path not in API_OWNERSHIP_ALLOWLIST_DONT_MODIFY:
+                raise SentryApiBuildError(
+                    f"Endpoint {callback.view_class} is missing the attribute owner: ApiOwner. \n"
+                    + "If you can't find your team in ApiOwners feel free to add the associated github group. ",
+                )
 
         if any(path.startswith(p) for p in EXCLUSION_PATH_PREFIXES):
             pass
@@ -101,6 +110,12 @@ def custom_postprocessing_hook(result: Any, generator: Any, **kwargs: Any) -> An
                 raise SentryApiBuildError(
                     "Please add a description to your endpoint method via a docstring"
                 )
+            # ensure path parameters have a description
+            for param in method_info.get("parameters", []):
+                if param["in"] == "path" and param.get("description") is None:
+                    raise SentryApiBuildError(
+                        f"Please add a description to your path parameter '{param['name']}'"
+                    )
 
     return result
 

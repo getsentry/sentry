@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 
 from django.db.models import QuerySet
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import BaseManager, FlexibleForeignKey, Model, control_silo_only_model
 from sentry.models import ApiToken
 
@@ -24,10 +25,9 @@ class SentryAppInstallationTokenManager(BaseManager):
         return sentry_app_installation_tokens[0].api_token.token
 
     def _get_token(self, token: ApiToken | AuthenticatedToken) -> SentryAppInstallationToken | None:
-        id: int
         if isinstance(token, ApiToken):
             id = token.id
-        elif token.kind == "api_token":
+        elif token.kind == "api_token" and token.entity_id is not None:
             id = token.entity_id
         else:
             return None
@@ -61,7 +61,7 @@ class SentryAppInstallationTokenManager(BaseManager):
 
 @control_silo_only_model
 class SentryAppInstallationToken(Model):
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     api_token = FlexibleForeignKey("sentry.ApiToken")
     sentry_app_installation = FlexibleForeignKey("sentry.SentryAppInstallation")

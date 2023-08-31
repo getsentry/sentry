@@ -50,8 +50,7 @@ class JSONField(models.TextField):
     surpresses this behavior.
     """
 
-    # https://github.com/typeddjango/django-stubs/pull/1538
-    default_error_messages = {"invalid": _("'%s' is not a valid JSON string.")}  # type: ignore[dict-item]
+    default_error_messages = {"invalid": _("'%s' is not a valid JSON string.")}
     description = "JSON object"
     no_creator_hook = False
 

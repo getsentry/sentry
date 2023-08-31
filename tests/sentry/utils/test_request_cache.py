@@ -6,7 +6,7 @@ from django.http import HttpRequest
 from django.utils import timezone
 
 from sentry import app
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.utils.request_cache import clear_cache, request_cache
 
 
@@ -28,7 +28,7 @@ class RequestCacheTest(TestCase):
 
     def tearDown(self):
         # remove the request, trigger the signal to clear the cache, restore receivers
-        app.env.request = None
+        app.env.clear()
         request_finished.send(sender=WSGIHandler)
         request_finished.receivers = self.original_receivers
         super().tearDown()
@@ -74,6 +74,6 @@ class RequestCacheTest(TestCase):
     def test_request_over(self, mock_now):
         app.env.request = HttpRequest()
         assert cached_fn("cat") == "cat"
-        app.env.request = None
+        app.env.clear()
         assert cached_fn("cat") == "cat"
         assert mock_now.call_count == 2

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from datetime import timezone
 from typing import Any, Iterable, Mapping, MutableMapping
 from urllib.parse import urlencode
 
@@ -115,17 +116,16 @@ class AlertRuleNotification(ProjectNotification):
     def get_recipient_context(
         self, recipient: RpcActor, extra_context: Mapping[str, Any]
     ) -> MutableMapping[str, Any]:
-        timezone = pytz.timezone("UTC")
-
+        tz = timezone.utc
         if recipient.actor_type == ActorType.USER:
             user_tz = UserOption.objects.get_value(user=recipient, key="timezone", default="UTC")
             try:
-                timezone = pytz.timezone(user_tz)
+                tz = pytz.timezone(user_tz)
             except pytz.UnknownTimeZoneError:
                 pass
         return {
             **super().get_recipient_context(recipient, extra_context),
-            "timezone": timezone,
+            "timezone": tz,
         }
 
     def get_context(self) -> MutableMapping[str, Any]:
@@ -179,11 +179,9 @@ class AlertRuleNotification(ProjectNotification):
         show_replay_link = features.has(
             "organizations:session-replay-issue-emails", self.organization
         )
-        replay_id = get_replay_id(self.event)
-        if has_session_replay and show_replay_link and replay_id:
+        if has_session_replay and show_replay_link and get_replay_id(self.event):
             context.update(
                 {
-                    "replay_id": replay_id,
                     "issue_replays_url": get_issue_replay_link(self.group, sentry_query_params),
                 }
             )

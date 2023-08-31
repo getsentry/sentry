@@ -7,7 +7,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.incident import DetailedIncidentSerializer
 from sentry.incidents.logic import subscribe_to_incident
 from sentry.snuba.dataset import Dataset
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 
 
 class IncidentSerializerTest(TestCase):

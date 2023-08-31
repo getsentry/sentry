@@ -3,7 +3,7 @@ from django.urls import reverse
 from django.utils.http import urlencode
 from responses.matchers import query_string_matcher
 
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 

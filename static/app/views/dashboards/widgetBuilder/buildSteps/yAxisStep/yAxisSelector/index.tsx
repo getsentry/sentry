@@ -81,8 +81,7 @@ export function YAxisSelector({
   const canDelete = aggregates.length > 1;
 
   const hideAddYAxisButtons =
-    ([DisplayType.WORLD_MAP, DisplayType.BIG_NUMBER].includes(displayType) &&
-      aggregates.length === 1) ||
+    (DisplayType.BIG_NUMBER === displayType && aggregates.length === 1) ||
     ([DisplayType.LINE, DisplayType.AREA, DisplayType.BAR].includes(displayType) &&
       aggregates.length === 3);
 

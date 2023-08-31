@@ -1,9 +1,10 @@
-from django.db import transaction
+from django.db import router, transaction
 from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectSettingPermission
 from sentry.api.serializers import serialize
@@ -41,6 +42,11 @@ class ProjectTransactionThresholdSerializer(serializers.Serializer):
 
 @region_silo_endpoint
 class ProjectTransactionThresholdEndpoint(ProjectEndpoint):
+    publish_status = {
+        "DELETE": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (ProjectSettingPermission,)
 
     def has_feature(self, project, request):
@@ -82,7 +88,7 @@ class ProjectTransactionThresholdEndpoint(ProjectEndpoint):
 
         data = serializer.validated_data
 
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(ProjectTransactionThreshold)):
             try:
                 project_threshold = ProjectTransactionThreshold.objects.get(
                     project=project,

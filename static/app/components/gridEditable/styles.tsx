@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
-import {Panel, PanelBody} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
 import {space} from 'sentry/styles/space';
 
 export const GRID_HEAD_ROW_HEIGHT = 45;

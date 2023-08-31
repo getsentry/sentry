@@ -16,7 +16,8 @@ import {Button} from 'sentry/components/button';
 import {RadioLineItem} from 'sentry/components/forms/controls/radioGroup';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
-import {Panel, PanelBody} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
 import Radio from 'sentry/components/radio';
 import categoryList from 'sentry/data/platformCategories';
 import platforms from 'sentry/data/platforms';
@@ -32,7 +33,18 @@ export enum SupportedLanguages {
   NODE = 'node',
   DOTNET = 'dotnet',
   JAVA = 'java',
+  GO = 'go',
 }
+
+export const topGoFrameworks = [
+  'go-echo',
+  'go-fasthttp',
+  'go-gin',
+  'go-http',
+  'go-iris',
+  'go-martini',
+  'go-negroni',
+];
 
 export const topJavascriptFrameworks = [
   'javascript-react',
@@ -110,6 +122,11 @@ export const languageDetails = {
     ),
     topFrameworksImage: onboardingFrameworkSelectionJava,
   },
+  [SupportedLanguages.GO]: {
+    description: t(
+      'Our Go framework SDKs include all the features of our Go SDK with instructions specific to that framework'
+    ),
+  },
 };
 
 type Props = ModalRenderProps & {
@@ -153,6 +170,9 @@ export function FrameworkSuggestionModal({
     if (selectedPlatform.key === SupportedLanguages.JAVA) {
       return topJavaFrameworks.includes(framework.id);
     }
+    if (selectedPlatform.key === SupportedLanguages.GO) {
+      return topGoFrameworks.includes(framework.id);
+    }
     return topJavascriptFrameworks.includes(framework.id);
   });
 
@@ -169,6 +189,9 @@ export function FrameworkSuggestionModal({
     }
     if (selectedPlatform.key === SupportedLanguages.JAVA) {
       return topJavaFrameworks.indexOf(framework.id);
+    }
+    if (selectedPlatform.key === SupportedLanguages.GO) {
+      return topGoFrameworks.indexOf(framework.id);
     }
     return topJavascriptFrameworks.indexOf(framework.id);
   });
@@ -232,13 +255,15 @@ export function FrameworkSuggestionModal({
         <CloseButton onClick={closeModal} />
       </Header>
       <Body>
-        <TopFrameworksImage
-          src={languageDetails[selectedPlatform.key].topFrameworksImage}
-        />
+        {languageDetails[selectedPlatform.key].topFrameworksImage && (
+          <TopFrameworksImage
+            src={languageDetails[selectedPlatform.key].topFrameworksImage}
+          />
+        )}
         <Heading>{t('Do you use a framework?')}</Heading>
         <Description>{languageDetails[selectedPlatform.key].description}</Description>
-        <Panel>
-          <PanelBody>
+        <StyledPanel>
+          <StyledPanelBody>
             <Frameworks>
               {[...topFrameworksOrdered, ...otherFrameworksSortedAlphabetically].map(
                 (framework, index) => {
@@ -273,8 +298,8 @@ export function FrameworkSuggestionModal({
                 }
               )}
             </Frameworks>
-          </PanelBody>
-        </Panel>
+          </StyledPanelBody>
+        </StyledPanel>
       </Body>
       <Footer>
         <Actions>
@@ -321,8 +346,19 @@ const Description = styled(TextBlock)`
 `;
 
 const Frameworks = styled(List)`
-  max-height: 240px;
   overflow-y: auto;
+`;
+
+const StyledPanel = styled(Panel)`
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+`;
+
+const StyledPanelBody = styled(PanelBody)`
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 `;
 
 const Framework = styled(ListItem)`
@@ -361,7 +397,20 @@ const Actions = styled('div')`
   width: 100%;
 `;
 
+// Style the modals document and section elements as flex containers
+// to allow the list of frameworks to dynamically grow and shrink with the dialog / screen height
 export const modalCss = css`
+  [role='document'] {
+    display: flex;
+    flex-direction: column;
+    max-height: 80vh;
+    min-height: 500px;
+  }
+  section {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
   max-width: 400px;
   width: 100%;
 `;

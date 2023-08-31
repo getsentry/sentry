@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
-import {Panel} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 
 type Props = {

@@ -187,9 +187,7 @@ def get_installation(
     if not organization_integration:
         return None, None
 
-    installation = integration_service.get_installation(
-        integration=integration, organization_id=organization.id
-    )
+    installation = integration.get_installation(organization_id=organization.id)
 
     return installation, organization_integration
 
@@ -221,6 +219,8 @@ def set_project_codemappings(
             defaults={
                 "repository": repository,
                 "organization_integration_id": organization_integration.id,
+                "integration_id": organization_integration.integration_id,
+                "organization_id": organization_integration.organization_id,
                 "source_root": code_mapping.source_path,
                 "default_branch": code_mapping.repo.branch,
                 "automatically_generated": True,

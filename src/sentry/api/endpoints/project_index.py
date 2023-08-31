@@ -4,6 +4,7 @@ from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.bases.project import ProjectPermission
 from sentry.api.paginator import DateTimePaginator
@@ -18,6 +19,9 @@ from sentry.search.utils import tokenize_query
 
 @region_silo_endpoint
 class ProjectIndexEndpoint(Endpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (ProjectPermission,)
 
     def get(self, request: Request) -> Response:
@@ -54,6 +58,10 @@ class ProjectIndexEndpoint(Endpoint):
                     raise AuthenticationFailed("Token not found")
             else:
                 queryset = queryset.filter(teams__organizationmember__user_id=request.user.id)
+
+            org_id_filter = request.GET.get("organizationId", None)
+            if org_id_filter:
+                queryset = queryset.filter(organization_id=org_id_filter)
 
         query = request.GET.get("query")
         if query:

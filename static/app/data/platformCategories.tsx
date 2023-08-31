@@ -112,11 +112,18 @@ export const backend = [
   'python-starlette',
   'python-sanic',
   'python-celery',
+  'python-aiohttp',
+  'python-chalice',
+  'python-falcon',
+  'python-quart',
+  'python-tryton',
+  'python-wsgi',
   'python-bottle',
   'python-pylons',
   'python-pyramid',
   'python-tornado',
   'python-rq',
+  'python-pymongo',
   'ruby',
   'ruby-rails',
   'ruby-rack',
@@ -128,6 +135,7 @@ export const serverless = [
   'python-awslambda',
   'python-azurefunctions',
   'python-gcpfunctions',
+  'python-serverless',
   'node-awslambda',
   'node-azurefunctions',
   'node-gcpfunctions',
@@ -230,6 +238,10 @@ export const profiling: PlatformKey[] = [
   'javascript-nextjs',
   'javascript-remix',
   'javascript-sveltekit',
+  'javascript',
+  'javascript-react',
+  // react-native
+  'react-native',
   // python
   'python',
   'python-django',
@@ -295,6 +307,7 @@ export const releaseHealth: PlatformKey[] = [
   'python-pyramid',
   'python-tornado',
   'python-rq',
+  'python-pymongo',
   'rust',
   // serverless
   // desktop
@@ -306,9 +319,13 @@ export const releaseHealth: PlatformKey[] = [
 ];
 
 export const replayPlatforms: readonly PlatformKey[] = [
+  'capacitor',
+  'electron',
   'javascript-angular',
   // 'javascript-angularjs', // Unsupported, angularjs requires the v6.x core SDK
   'javascript-backbone',
+  'javascript-capacitor',
+  'javascript-electron',
   'javascript-ember',
   'javascript-gatsby',
   'javascript-nextjs',
@@ -327,9 +344,13 @@ export const replayPlatforms: readonly PlatformKey[] = [
  * See: https://github.com/getsentry/sentry-docs/tree/master/src/wizard/javascript/replay-onboarding
  */
 export const replayOnboardingPlatforms: readonly PlatformKey[] = [
+  'capacitor',
+  'electron',
   'javascript-angular',
   // 'javascript-angularjs', // Unsupported, angularjs requires the v6.x core SDK
   // 'javascript-backbone', // No docs yet
+  'javascript-capacitor',
+  'javascript-electron',
   'javascript-ember',
   'javascript-gatsby',
   'javascript-nextjs',

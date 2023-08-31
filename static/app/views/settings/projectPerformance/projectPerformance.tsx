@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import Access from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
 import {Button} from 'sentry/components/button';
@@ -12,7 +13,10 @@ import JsonForm from 'sentry/components/forms/jsonForm';
 import {Field, JsonFormObject} from 'sentry/components/forms/types';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {Panel, PanelFooter, PanelHeader, PanelItem} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelFooter from 'sentry/components/panels/panelFooter';
+import PanelHeader from 'sentry/components/panels/panelHeader';
+import PanelItem from 'sentry/components/panels/panelItem';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -36,7 +40,8 @@ export const retentionPrioritiesLabels = {
 };
 
 export const allowedDurationValues: number[] = [
-  50, 100, 200, 300, 400, 500, 1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000,
+  50, 60, 70, 80, 90, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1500, 2000, 2500,
+  3000, 3500, 4000, 4500, 5000, 5500, 6000, 6500, 7000, 7500, 8000, 8500, 9000, 9500,
   10000,
 ]; // In milliseconds
 
@@ -45,8 +50,9 @@ export const allowedPercentageValues: number[] = [
 ];
 
 export const allowedSizeValues: number[] = [
-  50000, 100000, 300000, 400000, 500000, 512000, 600000, 700000, 800000, 900000, 1000000,
-  2000000, 3000000, 4000000, 5000000, 6000000, 7000000, 8000000, 9000000, 10000000,
+  50000, 100000, 200000, 300000, 400000, 500000, 512000, 600000, 700000, 800000, 900000,
+  1000000, 2000000, 3000000, 4000000, 5000000, 6000000, 7000000, 8000000, 9000000,
+  10000000,
 ]; // 50kb to 10MB in bytes
 
 export const projectDetectorSettingsId = 'detector-threshold-settings';
@@ -62,11 +68,15 @@ enum DetectorConfigAdmin {
   RENDER_BLOCK_ASSET_ENABLED = 'large_render_blocking_asset_detection_enabled',
   UNCOMPRESSED_ASSET_ENABLED = 'uncompressed_assets_detection_enabled',
   LARGE_HTTP_PAYLOAD_ENABLED = 'large_http_payload_detection_enabled',
+  N_PLUS_ONE_API_CALLS_ENABLED = 'n_plus_one_api_calls_detection_enabled',
+  CONSECUTIVE_HTTP_ENABLED = 'consecutive_http_spans_detection_enabled',
+  HTTP_OVERHEAD_ENABLED = 'http_overhead_detection_enabled',
 }
 
 export enum DetectorConfigCustomer {
   SLOW_DB_DURATION = 'slow_db_query_duration_threshold',
   N_PLUS_DB_DURATION = 'n_plus_one_db_duration_threshold',
+  N_PLUS_API_CALLS_DURATION = 'n_plus_one_api_calls_total_duration_threshold',
   RENDER_BLOCKING_ASSET_RATIO = 'render_blocking_fcp_ratio',
   LARGE_HTT_PAYLOAD_SIZE = 'large_http_payload_size_threshold',
   DB_ON_MAIN_THREAD_DURATION = 'db_on_main_thread_duration_threshold',
@@ -74,6 +84,8 @@ export enum DetectorConfigCustomer {
   UNCOMPRESSED_ASSET_DURATION = 'uncompressed_asset_duration_threshold',
   UNCOMPRESSED_ASSET_SIZE = 'uncompressed_asset_size_threshold',
   CONSECUTIVE_DB_MIN_TIME_SAVED = 'consecutive_db_min_time_saved_threshold',
+  CONSECUTIVE_HTTP_MIN_TIME_SAVED = 'consecutive_http_spans_min_time_saved_threshold',
+  HTTP_OVERHEAD_REQUEST_DELAY = 'http_request_delay_threshold',
 }
 
 type RouteParams = {orgId: string; projectId: string};
@@ -310,6 +322,19 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
           }),
       },
       {
+        name: DetectorConfigAdmin.N_PLUS_ONE_API_CALLS_ENABLED,
+        type: 'boolean',
+        label: t('N+1 API Calls Detection Enabled'),
+        defaultValue: true,
+        onChange: value =>
+          this.setState({
+            performance_issue_settings: {
+              ...this.state.performance_issue_settings,
+              n_plus_one_api_calls_detection_enabled: value,
+            },
+          }),
+      },
+      {
         name: DetectorConfigAdmin.RENDER_BLOCK_ASSET_ENABLED,
         type: 'boolean',
         label: t('Large Render Blocking Asset Detection Enabled'),
@@ -387,6 +412,32 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
             },
           }),
       },
+      {
+        name: DetectorConfigAdmin.CONSECUTIVE_HTTP_ENABLED,
+        type: 'boolean',
+        label: t('Consecutive HTTP Detection Enabled'),
+        defaultValue: true,
+        onChange: value =>
+          this.setState({
+            performance_issue_settings: {
+              ...this.state.performance_issue_settings,
+              consecutive_http_spans_detection_enabled: value,
+            },
+          }),
+      },
+      {
+        name: DetectorConfigAdmin.HTTP_OVERHEAD_ENABLED,
+        type: 'boolean',
+        label: t('HTTP/1.1 Overhead Enabled'),
+        defaultValue: true,
+        onChange: value =>
+          this.setState({
+            performance_issue_settings: {
+              ...this.state.performance_issue_settings,
+              [DetectorConfigAdmin.HTTP_OVERHEAD_ENABLED]: value,
+            },
+          }),
+      },
     ];
   }
 
@@ -427,16 +478,19 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
           {
             name: DetectorConfigCustomer.N_PLUS_DB_DURATION,
             type: 'range',
-            label: t('Duration'),
+            label: t('Minimum Total Duration'),
             defaultValue: 100, // ms
             help: t(
-              'Setting the value to 200ms, means that an eligible event will be stored as a N+1 DB Query Issue only if the total duration of the involved spans exceeds 200ms'
+              'Setting the value to 100ms, means that an eligible event will be stored as a N+1 DB Query Issue only if the total duration of the involved spans exceeds 100ms'
             ),
             allowedValues: allowedDurationValues,
             disabled: !(
               hasAccess && performanceSettings[DetectorConfigAdmin.N_PLUS_DB_ENABLED]
             ),
+            tickValues: [0, allowedDurationValues.length - 1],
+            showTickLabels: true,
             formatLabel: formatDuration,
+            flexibleControlStateSize: true,
             disabledReason,
           },
         ],
@@ -447,16 +501,42 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
           {
             name: DetectorConfigCustomer.SLOW_DB_DURATION,
             type: 'range',
-            label: t('Duration'),
+            label: t('Minimum Duration'),
             defaultValue: 1000, // ms
             help: t(
-              'Setting the value to 2s, means that an eligible event will be stored as a Slow DB Query Issue only if the duration of the involved span exceeds 2s.'
+              'Setting the value to 1s, means that an eligible event will be stored as a Slow DB Query Issue only if the duration of the involved db span exceeds 1s.'
             ),
-            allowedValues: allowedDurationValues.slice(1),
+            tickValues: [0, allowedDurationValues.slice(5).length - 1],
+            showTickLabels: true,
+            allowedValues: allowedDurationValues.slice(5),
             disabled: !(
               hasAccess && performanceSettings[DetectorConfigAdmin.SLOW_DB_ENABLED]
             ),
             formatLabel: formatDuration,
+            disabledReason,
+          },
+        ],
+      },
+      {
+        title: t('N+1 API Calls'),
+        fields: [
+          {
+            name: DetectorConfigCustomer.N_PLUS_API_CALLS_DURATION,
+            type: 'range',
+            label: t('Minimum Total Duration'),
+            defaultValue: 300, // ms
+            help: t(
+              'Setting the value to 300ms, means that an eligible event will be stored as a N+1 API Calls Issue only if the total duration of the involved spans exceeds 300ms'
+            ),
+            allowedValues: allowedDurationValues.slice(5),
+            disabled: !(
+              hasAccess &&
+              performanceSettings[DetectorConfigAdmin.N_PLUS_ONE_API_CALLS_ENABLED]
+            ),
+            tickValues: [0, allowedDurationValues.slice(5).length - 1],
+            showTickLabels: true,
+            formatLabel: formatDuration,
+            flexibleControlStateSize: true,
             disabledReason,
           },
         ],
@@ -467,12 +547,14 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
           {
             name: DetectorConfigCustomer.RENDER_BLOCKING_ASSET_RATIO,
             type: 'range',
-            label: t('FCP Ratio'),
+            label: t('Minimum FCP Ratio'),
             defaultValue: 0.33,
             help: t(
-              'Setting the value to 50%, means that an eligible event will be stored as a Large Render Blocking Asset Issue only if the duration of the involved span is at least 50% of First Contentful Paint (FCP).'
+              'Setting the value to 33%, means that an eligible event will be stored as a Large Render Blocking Asset Issue only if the duration of the involved span is at least 33% of First Contentful Paint (FCP).'
             ),
             allowedValues: allowedPercentageValues,
+            tickValues: [0, allowedPercentageValues.length - 1],
+            showTickLabels: true,
             disabled: !(
               hasAccess &&
               performanceSettings[DetectorConfigAdmin.RENDER_BLOCK_ASSET_ENABLED]
@@ -488,11 +570,13 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
           {
             name: DetectorConfigCustomer.LARGE_HTT_PAYLOAD_SIZE,
             type: 'range',
-            label: t('Size'),
+            label: t('Minimum Size'),
             defaultValue: 1000000, // 1MB in bytes
             help: t(
-              'Setting the value to 200KB, means that an eligible event will be stored as a Large HTTP Payload Issue only if the involved HTTP span has a payload size that exceeds 200KB.'
+              'Setting the value to 1MB, means that an eligible event will be stored as a Large HTTP Payload Issue only if the involved HTTP span has a payload size that exceeds 1MB.'
             ),
+            tickValues: [0, allowedSizeValues.slice(1).length - 1],
+            showTickLabels: true,
             allowedValues: allowedSizeValues.slice(1),
             disabled: !(
               hasAccess &&
@@ -509,11 +593,13 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
           {
             name: DetectorConfigCustomer.DB_ON_MAIN_THREAD_DURATION,
             type: 'range',
-            label: t('Duration'),
+            label: t('Frame Rate Drop'),
             defaultValue: 16, // ms
             help: t(
-              'Setting the value to 20fps, means that an eligible event will be stored as a DB on Main Thread Issue only if database spans on the main thread cause frame rate to drop below 20fps.'
+              'Setting the value to 60fps, means that an eligible event will be stored as a DB on Main Thread Issue only if database spans on the main thread cause frame rate to drop below 60fps.'
             ),
+            tickValues: [0, 3],
+            showTickLabels: true,
             allowedValues: [10, 16, 33, 50], // representation of 100 to 20 fps in milliseconds
             disabled: !(
               hasAccess && performanceSettings[DetectorConfigAdmin.DB_MAIN_THREAD_ENABLED]
@@ -529,11 +615,13 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
           {
             name: DetectorConfigCustomer.FILE_IO_MAIN_THREAD_DURATION,
             type: 'range',
-            label: t('Duration'),
+            label: t('Frame Rate Drop'),
             defaultValue: 16, // ms
             help: t(
-              'Setting the value to 20fps, means that an eligible event will be stored as a DB on Main Thread Issue only if File I/O spans on the main thread cause frame rate to drop below 20fps.'
+              'Setting the value to 60fps, means that an eligible event will be stored as a File I/O on Main Thread Issue only if File I/O spans on the main thread cause frame rate to drop below 60fps.'
             ),
+            tickValues: [0, 3],
+            showTickLabels: true,
             allowedValues: [10, 16, 33, 50], // representation of 100, 60, 30, 20 fps in milliseconds
             disabled: !(
               hasAccess && performanceSettings[DetectorConfigAdmin.FILE_IO_ENABLED]
@@ -552,9 +640,11 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
             label: t('Minimum Time Saved'),
             defaultValue: 100, // ms
             help: t(
-              'Setting the value to 500ms, means that an eligible event will be stored as a Consecutive DB Queries Issue only if the time saved by parallelizing the queries exceeds 500ms.'
+              'Setting the value to 100ms, means that an eligible event will be stored as a Consecutive DB Queries Issue only if the time saved by parallelizing the queries exceeds 100ms.'
             ),
-            allowedValues: allowedDurationValues.slice(0, 11),
+            tickValues: [0, allowedDurationValues.slice(0, 23).length - 1],
+            showTickLabels: true,
+            allowedValues: allowedDurationValues.slice(0, 23),
             disabled: !(
               hasAccess && performanceSettings[DetectorConfigAdmin.CONSECUTIVE_DB_ENABLED]
             ),
@@ -569,11 +659,13 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
           {
             name: DetectorConfigCustomer.UNCOMPRESSED_ASSET_SIZE,
             type: 'range',
-            label: t('Size'),
+            label: t('Minimum Size'),
             defaultValue: 512000, // in kilobytes
             help: t(
-              'Setting the value to 1MB, means that an eligible event will be stored as an Uncompressed Asset Issue only if the size of the uncompressed asset being transferred exceeds 1MB.'
+              'Setting the value to 512KB, means that an eligible event will be stored as an Uncompressed Asset Issue only if the size of the uncompressed asset being transferred exceeds 512KB.'
             ),
+            tickValues: [0, allowedSizeValues.slice(1).length - 1],
+            showTickLabels: true,
             allowedValues: allowedSizeValues.slice(1),
             disabled: !(
               hasAccess &&
@@ -585,15 +677,62 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
           {
             name: DetectorConfigCustomer.UNCOMPRESSED_ASSET_DURATION,
             type: 'range',
-            label: t('Duration'),
+            label: t('Minimum Duration'),
             defaultValue: 500, // in ms
             help: t(
-              'Setting the value to 200ms, means that an eligible event will be stored as an Uncompressed Asset Issue only if the duration of the span responsible for transferring the uncompressed asset exceeds 200ms.'
+              'Setting the value to 500ms, means that an eligible event will be stored as an Uncompressed Asset Issue only if the duration of the span responsible for transferring the uncompressed asset exceeds 500ms.'
             ),
-            allowedValues: allowedDurationValues.slice(1),
+            tickValues: [0, allowedDurationValues.slice(5).length - 1],
+            showTickLabels: true,
+            allowedValues: allowedDurationValues.slice(5),
             disabled: !(
               hasAccess &&
               performanceSettings[DetectorConfigAdmin.UNCOMPRESSED_ASSET_ENABLED]
+            ),
+            formatLabel: formatDuration,
+            disabledReason,
+          },
+        ],
+      },
+      {
+        title: t('Consecutive HTTP'),
+        fields: [
+          {
+            name: DetectorConfigCustomer.CONSECUTIVE_HTTP_MIN_TIME_SAVED,
+            type: 'range',
+            label: t('Minimum Time Saved'),
+            defaultValue: 2000, // in ms
+            help: t(
+              'Setting the value to 2s, means that an eligible event will be stored as a Consecutive HTTP Issue only if the time saved by parallelizing the http spans exceeds 2s.'
+            ),
+            tickValues: [0, allowedDurationValues.slice(14).length - 1],
+            showTickLabels: true,
+            allowedValues: allowedDurationValues.slice(14),
+            disabled: !(
+              hasAccess &&
+              performanceSettings[DetectorConfigAdmin.CONSECUTIVE_HTTP_ENABLED]
+            ),
+            formatLabel: formatDuration,
+            disabledReason,
+          },
+        ],
+      },
+      {
+        title: t('HTTP Overhead'),
+        fields: [
+          {
+            name: DetectorConfigCustomer.HTTP_OVERHEAD_REQUEST_DELAY,
+            type: 'range',
+            label: t('Request Delay'),
+            defaultValue: 500, // in ms
+            help: t(
+              'Setting the value to 500ms, means that the HTTP request delay (wait time) will have to exceed 500ms for an HTTP Overhead issue to be created.'
+            ),
+            tickValues: [0, allowedDurationValues.slice(6, 17).length - 1],
+            showTickLabels: true,
+            allowedValues: allowedDurationValues.slice(6, 17),
+            disabled: !(
+              hasAccess && performanceSettings[DetectorConfigAdmin.HTTP_OVERHEAD_ENABLED]
             ),
             formatLabel: formatDuration,
             disabledReason,
@@ -778,6 +917,15 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
                 allowUndo
                 initialData={this.state.performance_issue_settings}
                 apiMethod="PUT"
+                onSubmitError={error => {
+                  if (error.status === 403) {
+                    addErrorMessage(
+                      t(
+                        'This action requires active super user access. Please re-authenticate to make changes.'
+                      )
+                    );
+                  }
+                }}
                 apiEndpoint={performanceIssuesEndpoint}
               >
                 <JsonForm
@@ -882,7 +1030,7 @@ const StyledJsonForm = styled(JsonForm)`
 `;
 
 const StyledPanelFooter = styled(PanelFooter)`
-  background: ${p => p.theme.white};
+  background: ${p => p.theme.background};
   border: 1px solid ${p => p.theme.border};
   border-radius: 0 0 calc(${p => p.theme.panelBorderRadius} - 1px)
     calc(${p => p.theme.panelBorderRadius} - 1px);

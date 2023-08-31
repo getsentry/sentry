@@ -11,9 +11,7 @@ import ReplayPreview from './replayPreview';
 
 jest.mock('sentry/utils/replays/hooks/useReplayReader');
 
-const mockUseReplayReader = useReplayReader as jest.MockedFunction<
-  typeof useReplayReader
->;
+const mockUseReplayReader = jest.mocked(useReplayReader);
 
 const mockOrgSlug = 'sentry-emerging-tech';
 const mockReplaySlug = 'replays:761104e184c64d439ee1014b72b4d83b';
@@ -24,8 +22,7 @@ const mockEvent = {
   dateCreated: '2022-09-22T16:59:41.596000Z',
 };
 
-const mockButtonHref =
-  '/organizations/sentry-emerging-tech/replays/761104e184c64d439ee1014b72b4d83b/?referrer=%2Forganizations%2F%3AorgId%2Fissues%2F%3AgroupId%2Freplays%2F&t=62&t_main=console';
+const mockButtonHref = `/organizations/${mockOrgSlug}/replays/761104e184c64d439ee1014b72b4d83b/?referrer=%2Forganizations%2F%3AorgId%2Fissues%2F%3AgroupId%2Freplays%2F&t=62&t_main=console`;
 
 // Mock screenfull library
 jest.mock('screenfull', () => ({
@@ -46,7 +43,7 @@ const mockReplay = ReplayReader.factory({
     },
   }),
   errors: [],
-  attachments: TestStubs.ReplaySegmentInit({
+  attachments: TestStubs.Replay.RRWebInitFrameEvents({
     timestamp: new Date('Sep 22, 2022 4:58:39 PM UTC'),
   }),
 });

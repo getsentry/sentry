@@ -3,7 +3,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {StepTitle} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 
-import GettingStartedWithRemix, {nextSteps, steps} from './remix';
+import {GettingStartedWithRemix, nextSteps, steps} from './remix';
 
 describe('GettingStartedWithRemix', function () {
   it('all products are selected', function () {
@@ -20,7 +20,7 @@ describe('GettingStartedWithRemix', function () {
     // Steps
     for (const step of steps()) {
       expect(
-        screen.getByRole('heading', {name: StepTitle[step.type]})
+        screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
       ).toBeInTheDocument();
     }
 

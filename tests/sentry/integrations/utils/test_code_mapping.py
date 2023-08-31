@@ -15,7 +15,7 @@ from sentry.integrations.utils.code_mapping import (
     should_include,
     stacktrace_buckets,
 )
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.utils import json
 
 with open(
@@ -73,7 +73,6 @@ class TestRepoFiles(TestCase):
 
 def test_get_extension():
     assert get_extension("") == ""
-    assert get_extension(None) == ""
     assert get_extension("f.py") == "py"
     assert get_extension("f.xx") == "xx"
     assert get_extension("./app/utils/handleXhrErrorResponse.tsx") == "tsx"

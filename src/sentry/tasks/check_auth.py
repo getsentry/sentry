@@ -1,12 +1,13 @@
 import logging
 from datetime import timedelta
 
+from django.db import router
 from django.utils import timezone
 
 from sentry.auth.exceptions import IdentityNotValid
-from sentry.db.postgres.roles import in_test_psql_role_override
-from sentry.models import AuthIdentity
+from sentry.models import AuthIdentity, OrganizationMemberMapping
 from sentry.services.hybrid_cloud.organization import RpcOrganizationMember, organization_service
+from sentry.silo import unguarded_write
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
@@ -16,7 +17,7 @@ logger = logging.getLogger("sentry.auth")
 AUTH_CHECK_INTERVAL = 3600
 
 
-@instrumented_task(name="sentry.tasks.check_auth", queue="auth", silo_mode=SiloMode.CONTROL)
+@instrumented_task(name="sentry.tasks.check_auth", queue="auth.control", silo_mode=SiloMode.CONTROL)
 def check_auth(**kwargs):
     """
     Iterates over all accounts which have not been verified in the required
@@ -42,7 +43,7 @@ def check_auth(**kwargs):
 
 
 @instrumented_task(
-    name="sentry.tasks.check_auth_identity", queue="auth", silo_mode=SiloMode.CONTROL
+    name="sentry.tasks.check_auth_identity", queue="auth.control", silo_mode=SiloMode.CONTROL
 )
 def check_auth_identity(auth_identity_id, **kwargs):
     try:
@@ -95,7 +96,7 @@ def check_auth_identity(auth_identity_id, **kwargs):
         is_valid = True
 
     if getattr(om.flags, "sso:linked") != is_linked:
-        with in_test_psql_role_override("postgres"):
+        with unguarded_write(using=router.db_for_write(OrganizationMemberMapping)):
             # flags are not replicated, so it's ok not to create outboxes here.
             setattr(om.flags, "sso:linked", is_linked)
             setattr(om.flags, "sso:invalid", not is_valid)

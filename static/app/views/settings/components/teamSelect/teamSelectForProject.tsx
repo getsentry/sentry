@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
@@ -7,7 +7,10 @@ import EmptyMessage from 'sentry/components/emptyMessage';
 import {TeamBadge} from 'sentry/components/idBadge/teamBadge';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelHeader from 'sentry/components/panels/panelHeader';
+import PanelItem from 'sentry/components/panels/panelItem';
 import {IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -62,7 +65,7 @@ function TeamSelect({
       : null;
 
     return (
-      <React.Fragment>
+      <Fragment>
         {selectedTeams.map(team => (
           <TeamRow
             key={team.slug}
@@ -73,7 +76,7 @@ function TeamSelect({
             onRemoveTeam={slug => onRemoveTeam(slug)}
           />
         ))}
-      </React.Fragment>
+      </Fragment>
     );
   };
 

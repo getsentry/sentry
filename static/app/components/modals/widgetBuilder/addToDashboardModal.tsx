@@ -217,12 +217,7 @@ function AddToDashboardModal({
         <MetricsCardinalityProvider organization={organization} location={location}>
           <MetricsDataSwitcher
             organization={organization}
-            eventView={eventViewFromWidget(
-              widget.title,
-              widget.queries[0],
-              selection,
-              widget.displayType
-            )}
+            eventView={eventViewFromWidget(widget.title, widget.queries[0], selection)}
             location={location}
             hideLoadingIndicator
           >

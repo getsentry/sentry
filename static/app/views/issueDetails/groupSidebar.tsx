@@ -22,7 +22,14 @@ import {backend, frontend} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import {AvatarUser, CurrentRelease, Group, Organization, Project} from 'sentry/types';
+import {
+  AvatarUser,
+  CurrentRelease,
+  Group,
+  Organization,
+  OrganizationSummary,
+  Project,
+} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
@@ -41,9 +48,12 @@ type Props = {
   event?: Event;
 };
 
-function useFetchAllEnvsGroupData(group: Group) {
+function useFetchAllEnvsGroupData(organization: OrganizationSummary, group: Group) {
   return useApiQuery<Group>(
-    [`/issues/${group.id}/`, {query: getGroupDetailsQueryData()}],
+    [
+      `/organizations/${organization.slug}/issues/${group.id}/`,
+      {query: getGroupDetailsQueryData()},
+    ],
     {
       staleTime: 30000,
       cacheTime: 30000,
@@ -51,11 +61,14 @@ function useFetchAllEnvsGroupData(group: Group) {
   );
 }
 
-function useFetchCurrentRelease(group: Group) {
-  return useApiQuery<CurrentRelease>([`/issues/${group.id}/current-release/`], {
-    staleTime: 30000,
-    cacheTime: 30000,
-  });
+function useFetchCurrentRelease(organization: OrganizationSummary, group: Group) {
+  return useApiQuery<CurrentRelease>(
+    [`/organizations/${organization.slug}/issues/${group.id}/current-release/`],
+    {
+      staleTime: 30000,
+      cacheTime: 30000,
+    }
+  );
 }
 
 export default function GroupSidebar({
@@ -65,8 +78,8 @@ export default function GroupSidebar({
   organization,
   environments,
 }: Props) {
-  const {data: allEnvironmentsGroupData} = useFetchAllEnvsGroupData(group);
-  const {data: currentRelease} = useFetchCurrentRelease(group);
+  const {data: allEnvironmentsGroupData} = useFetchAllEnvsGroupData(organization, group);
+  const {data: currentRelease} = useFetchCurrentRelease(organization, group);
   const location = useLocation();
 
   const trackAssign: OnAssignCallback = (type, _assignee, suggestedAssignee) => {
@@ -122,14 +135,14 @@ export default function GroupSidebar({
 
     return (
       <SidebarSection.Wrap>
-        <StyledSidebarSectionTitle>
+        <SidebarSection.Title>
           {t('Participants (%s)', participants.length)}
           <QuestionTooltip
-            size="sm"
+            size="xs"
             position="top"
             title={t('People who have resolved, ignored, or added a comment')}
           />
-        </StyledSidebarSectionTitle>
+        </SidebarSection.Title>
         <SidebarSection.Content>
           <StyledAvatarList users={participants} avatarSize={28} maxVisibleAvatars={13} />
         </SidebarSection.Content>
@@ -148,14 +161,14 @@ export default function GroupSidebar({
 
     return (
       <SidebarSection.Wrap>
-        <StyledSidebarSectionTitle>
+        <SidebarSection.Title>
           {t('Viewers (%s)', displayUsers.length)}{' '}
           <QuestionTooltip
-            size="sm"
+            size="xs"
             position="top"
             title={t('People who have viewed this issue')}
           />
-        </StyledSidebarSectionTitle>
+        </SidebarSection.Title>
         <SidebarSection.Content>
           <StyledAvatarList
             users={displayUsers}
@@ -228,8 +241,4 @@ const ExternalIssues = styled('div')`
 const StyledAvatarList = styled(AvatarList)`
   justify-content: flex-end;
   padding-left: ${space(0.75)};
-`;
-
-const StyledSidebarSectionTitle = styled(SidebarSection.Title)`
-  gap: ${space(1)};
 `;

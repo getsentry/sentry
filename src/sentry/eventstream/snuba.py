@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -14,7 +14,6 @@ from typing import (
 )
 from uuid import uuid4
 
-import pytz
 import sentry_kafka_schemas
 import urllib3
 
@@ -120,6 +119,15 @@ class SnubaProtocolEventStream(EventStream):
         group_states: Optional[GroupStates] = None,
         **kwargs: Any,
     ) -> None:
+        if event.get_tag("sample_event") == "true":
+            logger.info(
+                "insert: attempting to insert event in SnubaProtocolEventStream",
+                extra={
+                    "event.id": event.event_id,
+                    "project_id": event.project_id,
+                    "sample_event": True,
+                },
+            )
         if isinstance(event, GroupEvent) and not event.occurrence:
             logger.error(
                 "`GroupEvent` passed to `EventStream.insert`. `GroupEvent` may only be passed when "
@@ -207,6 +215,7 @@ class SnubaProtocolEventStream(EventStream):
                 },
             ),
             headers=headers,
+            asynchronous=kwargs.get("asynchronous", True),
             skip_semantic_partitioning=skip_semantic_partitioning,
             event_type=event_type,
         )
@@ -221,7 +230,7 @@ class SnubaProtocolEventStream(EventStream):
             "transaction_id": uuid4().hex,
             "project_id": project_id,
             "group_ids": list(group_ids),
-            "datetime": datetime.now(tz=pytz.utc),
+            "datetime": datetime.now(tz=timezone.utc),
         }
 
         self._send(project_id, "start_delete_groups", extra_data=(state,), asynchronous=False)
@@ -230,7 +239,7 @@ class SnubaProtocolEventStream(EventStream):
 
     def end_delete_groups(self, state: Mapping[str, Any]) -> None:
         state_copy: MutableMapping[str, Any] = {**state}
-        state_copy["datetime"] = json.datetime_to_str(datetime.now(tz=pytz.utc))
+        state_copy["datetime"] = json.datetime_to_str(datetime.now(tz=timezone.utc))
         self._send(
             state_copy["project_id"],
             "end_delete_groups",
@@ -249,7 +258,7 @@ class SnubaProtocolEventStream(EventStream):
             "project_id": project_id,
             "previous_group_ids": list(previous_group_ids),
             "new_group_id": new_group_id,
-            "datetime": json.datetime_to_str(datetime.now(tz=pytz.utc)),
+            "datetime": json.datetime_to_str(datetime.now(tz=timezone.utc)),
         }
 
         self._send(project_id, "start_merge", extra_data=(state,), asynchronous=False)
@@ -258,7 +267,7 @@ class SnubaProtocolEventStream(EventStream):
 
     def end_merge(self, state: Mapping[str, Any]) -> None:
         state_copy: MutableMapping[str, Any] = {**state}
-        state_copy["datetime"] = datetime.now(tz=pytz.utc)
+        state_copy["datetime"] = datetime.now(tz=timezone.utc)
         self._send(
             state_copy["project_id"], "end_merge", extra_data=(state_copy,), asynchronous=False
         )
@@ -275,7 +284,7 @@ class SnubaProtocolEventStream(EventStream):
             "previous_group_id": previous_group_id,
             "new_group_id": new_group_id,
             "hashes": list(hashes),
-            "datetime": json.datetime_to_str(datetime.now(tz=pytz.utc)),
+            "datetime": json.datetime_to_str(datetime.now(tz=timezone.utc)),
         }
 
         self._send(project_id, "start_unmerge", extra_data=(state,), asynchronous=False)
@@ -284,7 +293,7 @@ class SnubaProtocolEventStream(EventStream):
 
     def end_unmerge(self, state: Mapping[str, Any]) -> None:
         state_copy: MutableMapping[str, Any] = {**state}
-        state_copy["datetime"] = json.datetime_to_str(datetime.now(tz=pytz.utc))
+        state_copy["datetime"] = json.datetime_to_str(datetime.now(tz=timezone.utc))
         self._send(
             state_copy["project_id"], "end_unmerge", extra_data=(state_copy,), asynchronous=False
         )
@@ -297,7 +306,7 @@ class SnubaProtocolEventStream(EventStream):
             "transaction_id": uuid4().hex,
             "project_id": project_id,
             "tag": tag,
-            "datetime": json.datetime_to_str(datetime.now(tz=pytz.utc)),
+            "datetime": json.datetime_to_str(datetime.now(tz=timezone.utc)),
         }
 
         self._send(project_id, "start_delete_tag", extra_data=(state,), asynchronous=False)
@@ -306,7 +315,7 @@ class SnubaProtocolEventStream(EventStream):
 
     def end_delete_tag(self, state: Mapping[str, Any]) -> None:
         state_copy: MutableMapping[str, Any] = {**state}
-        state_copy["datetime"] = json.datetime_to_str(datetime.now(tz=pytz.utc))
+        state_copy["datetime"] = json.datetime_to_str(datetime.now(tz=timezone.utc))
         self._send(
             state_copy["project_id"], "end_delete_tag", extra_data=(state_copy,), asynchronous=False
         )

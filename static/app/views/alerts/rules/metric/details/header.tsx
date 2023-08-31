@@ -53,7 +53,6 @@ function DetailsHeader({
     },
   };
 
-  const hasSnoozeFeature = organization.features.includes('mute-metric-alerts');
   const isSnoozed = rule?.snooze ?? false;
 
   return (
@@ -79,7 +78,7 @@ function DetailsHeader({
       </Layout.HeaderContent>
       <Layout.HeaderActions>
         <ButtonBar gap={1}>
-          {hasSnoozeFeature && rule && project && (
+          {rule && project && (
             <Access access={['alerts:write']}>
               {({hasAccess}) => (
                 <SnoozeAlert

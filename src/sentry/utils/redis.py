@@ -27,6 +27,13 @@ from sentry.utils.warnings import DeprecatedSettingWarning
 
 logger = logging.getLogger(__name__)
 
+
+_REDIS_DEFAULT_CLIENT_ARGS = {
+    # 3 seconds default socket and socket connection timeout avoids blocking on socket till the
+    # operating sysstem level timeout kicks in
+    "socket_timeout": 3.0
+}
+
 _pool_cache = {}
 _pool_lock = Lock()
 
@@ -61,6 +68,10 @@ class _RBCluster:
         hosts = config["hosts"]
         hosts = {k: v for k, v in enumerate(hosts)} if isinstance(hosts, list) else hosts
         config["hosts"] = hosts
+
+        pool_options = config.pop("client_args", {})
+        pool_options = {**_REDIS_DEFAULT_CLIENT_ARGS, **pool_options}
+        config["pool_options"] = pool_options
 
         return _make_rb_cluster(**config)
 
@@ -109,6 +120,7 @@ class _RedisCluster:
         readonly_mode = config.get("readonly_mode", False)
 
         client_args = config.get("client_args") or {}
+        client_args = {**_REDIS_DEFAULT_CLIENT_ARGS, **client_args}
 
         # Redis cluster does not wait to attempt to connect. We'd prefer to not
         # make TCP connections on boot. Wrap the client in a lazy proxy object.

@@ -1,11 +1,17 @@
 from django.db.models import Q
 
 from sentry.models import Activity, GroupResolution, Release
+from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.types.activity import ActivityType
 
 
-@instrumented_task(name="sentry.tasks.clear_expired_resolutions", time_limit=15, soft_time_limit=10)
+@instrumented_task(
+    name="sentry.tasks.clear_expired_resolutions",
+    time_limit=15,
+    soft_time_limit=10,
+    silo_mode=SiloMode.REGION,
+)
 def clear_expired_resolutions(release_id):
     """
     This should be fired when ``release_id`` is created, and will indicate to

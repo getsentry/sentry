@@ -35,7 +35,7 @@ logger = logging.getLogger(__name__)
 
 @receiver(process_control_outbox, sender=OutboxCategory.USER_UPDATE)
 def process_user_updates(object_identifier: int, region_name: str, **kwds: Any):
-    if (user := maybe_process_tombstone(User, object_identifier)) is None:
+    if (user := maybe_process_tombstone(User, object_identifier, region_name=region_name)) is None:
         return
     organization_service.update_region_user(
         user=RpcRegionUser(
@@ -48,33 +48,43 @@ def process_user_updates(object_identifier: int, region_name: str, **kwds: Any):
 
 
 @receiver(process_control_outbox, sender=OutboxCategory.INTEGRATION_UPDATE)
-def process_integration_updates(object_identifier: int, **kwds: Any):
-    if (integration := maybe_process_tombstone(Integration, object_identifier)) is None:
+def process_integration_updates(object_identifier: int, region_name: str, **kwds: Any):
+    if (
+        integration := maybe_process_tombstone(
+            Integration, object_identifier, region_name=region_name
+        )
+    ) is None:
         return
     integration  # Currently we do not sync any other integration changes, but if we did, you can use this variable.
 
 
 @receiver(process_control_outbox, sender=OutboxCategory.API_APPLICATION_UPDATE)
-def process_api_application_updates(object_identifier: int, **kwds: Any):
-    if (api_application := maybe_process_tombstone(ApiApplication, object_identifier)) is None:
+def process_api_application_updates(object_identifier: int, region_name: str, **kwds: Any):
+    if (
+        api_application := maybe_process_tombstone(
+            ApiApplication, object_identifier, region_name=region_name
+        )
+    ) is None:
         return
     api_application  # Currently we do not sync any other api application changes, but if we did, you can use this variable.
 
 
 @receiver(process_control_outbox, sender=OutboxCategory.SENTRY_APP_INSTALLATION_UPDATE)
-def process_sentry_app_installation_updates(object_identifier: int, **kwds: Any):
+def process_sentry_app_installation_updates(object_identifier: int, region_name: str, **kwds: Any):
     if (
-        sentry_app_installation := maybe_process_tombstone(SentryAppInstallation, object_identifier)
+        sentry_app_installation := maybe_process_tombstone(
+            SentryAppInstallation, object_identifier, region_name=region_name
+        )
     ) is None:
         return
     sentry_app_installation  # Currently we do not sync any other api application changes, but if we did, you can use this variable.
 
 
 @receiver(process_control_outbox, sender=OutboxCategory.ORGANIZATION_INTEGRATION_UPDATE)
-def process_organization_integration_update(object_identifier: int, **kwds: Any):
+def process_organization_integration_update(object_identifier: int, region_name: str, **kwds: Any):
     if (
         organization_integration := maybe_process_tombstone(
-            OrganizationIntegration, object_identifier
+            OrganizationIntegration, object_identifier, region_name=region_name
         )
     ) is None:
         return
@@ -120,3 +130,24 @@ def process_send_signal(
             args=payload["args"],
             signal=RpcOrganizationSignal(payload["signal"]),
         )
+
+
+@receiver(process_control_outbox, sender=OutboxCategory.RESET_IDP_FLAGS)
+def process_reset_idp_flags(shard_identifier: int, **kwds: Any):
+    organization_service.reset_idp_flags(organization_id=shard_identifier)
+
+
+@receiver(process_control_outbox, sender=OutboxCategory.MARK_INVALID_SSO)
+def process_mark_invalid_sso(object_identifier: int, shard_identifier: int, **kwds: Any):
+    # since we've identified an identity which is no longer valid
+    # lets preemptively mark it as such
+    other_member = organization_service.check_membership_by_id(
+        user_id=object_identifier,
+        organization_id=shard_identifier,
+    )
+    if other_member is None:
+        return
+
+    other_member.flags.sso__invalid = True
+    other_member.flags.sso__linked = False
+    organization_service.update_membership_flags(organization_member=other_member)

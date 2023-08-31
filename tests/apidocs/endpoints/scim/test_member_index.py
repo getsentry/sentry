@@ -2,7 +2,7 @@ from django.test.client import RequestFactory
 from django.urls import reverse
 
 from fixtures.apidocs_test_case import APIDocsTestCase
-from sentry.testutils import SCIMTestCase
+from sentry.testutils.cases import SCIMTestCase
 
 
 class SCIMMemberIndexDocs(APIDocsTestCase, SCIMTestCase):

@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
-import {PanelHeader} from 'sentry/components/panels';
+import PanelHeader from 'sentry/components/panels/panelHeader';
 import ToolbarHeader from 'sentry/components/toolbarHeader';
 import {t} from 'sentry/locale';
 import GroupingStore from 'sentry/stores/groupingStore';
@@ -49,7 +49,7 @@ class SimilarToolbar extends Component<Props, State> {
           message={t('Are you sure you want to merge these issues?')}
           onConfirm={onMerge}
         >
-          <Button size="sm" title={t('Merging %s issues', mergeCount)}>
+          <Button size="xs" title={t('Merging %s issues', mergeCount)}>
             {t('Merge %s', `(${mergeCount || 0})`)}
           </Button>
         </Confirm>

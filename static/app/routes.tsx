@@ -1,4 +1,4 @@
-import React, {Fragment} from 'react';
+import {Fragment} from 'react';
 import {
   IndexRedirect,
   IndexRoute as BaseIndexRoute,
@@ -291,14 +291,19 @@ function buildRoutes() {
         <IndexRoute
           component={make(
             () =>
-              import('sentry/views/settings/account/notifications/notificationSettings')
+              import(
+                'sentry/views/settings/account/notifications/notificationSettingsController'
+              )
           )}
         />
         <Route
           path=":fineTuneType/"
           name={t('Fine Tune Alerts')}
           component={make(
-            () => import('sentry/views/settings/account/accountNotificationFineTuning')
+            () =>
+              import(
+                'sentry/views/settings/account/accountNotificationFineTuningController'
+              )
           )}
         />
       </Route>
@@ -416,6 +421,7 @@ function buildRoutes() {
         name={t('General')}
         component={make(() => import('sentry/views/settings/projectGeneralSettings'))}
       />
+      <Redirect from="install/" to="/projects/:projectId/getting-started/" />
       <Route
         path="teams/"
         name={t('Teams')}
@@ -588,6 +594,11 @@ function buildRoutes() {
           )}
         />
       </Route>
+      <Route
+        path="loader-script/"
+        name={t('Loader Script')}
+        component={make(() => import('sentry/views/settings/project/loaderScript'))}
+      />
       <Route
         path="user-feedback/"
         name={t('User Feedback')}
@@ -1563,6 +1574,19 @@ function buildRoutes() {
         path="trends/"
         component={make(() => import('sentry/views/performance/trends'))}
       />
+      <Route path="database/">
+        <IndexRoute
+          component={make(
+            () => import('sentry/views/performance/database/databaseLandingPage')
+          )}
+        />
+        <Route
+          path="spans/span/:groupId/"
+          component={make(
+            () => import('sentry/views/performance/database/databaseSpanSummaryPage')
+          )}
+        />
+      </Route>
       <Route path="summary/">
         <IndexRoute
           component={make(
@@ -1685,17 +1709,23 @@ function buildRoutes() {
           component={make(() => import('sentry/views/starfish/views/spanSummaryPage'))}
         />
       </Route>
-      <Route
-        path="definitions/"
-        component={make(() => import('sentry/views/starfish/views/definitionsView'))}
-      />
-      <Route path="api/">
+      <Route path="initialization/">
         <IndexRoute
-          component={make(() => import('sentry/views/starfish/modules/HTTPModule'))}
+          component={make(
+            () => import('sentry/views/starfish/modules/mobile/initialization')
+          )}
         />
-        <Route
-          path="span/:groupId/"
-          component={make(() => import('sentry/views/starfish/views/spanSummaryPage'))}
+      </Route>
+      <Route path="pageload/">
+        <IndexRoute
+          component={make(() => import('sentry/views/starfish/modules/mobile/pageload'))}
+        />
+      </Route>
+      <Route path="responsiveness/">
+        <IndexRoute
+          component={make(
+            () => import('sentry/views/starfish/modules/mobile/responsiveness')
+          )}
         />
       </Route>
       <Route path="spans/">
@@ -1819,10 +1849,6 @@ function buildRoutes() {
         <Route
           path={TabPaths[Tab.MERGED]}
           component={hoc(make(() => import('sentry/views/issueDetails/groupMerged')))}
-        />
-        <Route
-          path={TabPaths[Tab.GROUPING]}
-          component={hoc(make(() => import('sentry/views/issueDetails/grouping')))}
         />
       </Fragment>
     );
@@ -2009,8 +2035,13 @@ function buildRoutes() {
         path="profile/:projectId/:eventId/"
         component={make(() => import('sentry/views/profiling/profilesProvider'))}
       >
+        {/* @TODO Remove flamechart route name */}
         <Route
           path="flamechart/"
+          component={make(() => import('sentry/views/profiling/profileFlamechart'))}
+        />
+        <Route
+          path="flamegraph/"
           component={make(() => import('sentry/views/profiling/profileFlamechart'))}
         />
       </Route>

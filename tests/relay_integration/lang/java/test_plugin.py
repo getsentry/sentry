@@ -7,8 +7,9 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 
 from sentry.models import File, ProjectDebugFile
-from sentry.testutils import RelayStoreHelper, TransactionTestCase
+from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.relay import RelayStoreHelper
 from sentry.utils import json
 
 PROGUARD_UUID = "6dc7fdb0-d2fb-4c8e-9d6b-bb1aa98929b1"
@@ -411,7 +412,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
         )
 
         assert response.status_code == 201, response.content
-        assert len(response.data) == 1
+        assert len(response.json()) == 1
 
     def test_basic_resolving(self):
         self.upload_proguard_mapping(PROGUARD_UUID, PROGUARD_SOURCE)
@@ -586,7 +587,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
             format="multipart",
         )
         assert response.status_code == 201, response.content
-        assert len(response.data) == 1
+        assert len(response.json()) == 1
 
         event_data = {
             "user": {"ip_address": "31.172.207.97"},

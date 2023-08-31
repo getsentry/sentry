@@ -5,13 +5,11 @@ import {ModalRenderProps, openModal} from 'sentry/actionCreators/modal';
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import HookOrDefault from 'sentry/components/hookOrDefault';
-import {
-  Panel,
-  PanelAlert,
-  PanelBody,
-  PanelHeader,
-  PanelItem,
-} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelAlert from 'sentry/components/panels/panelAlert';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelHeader from 'sentry/components/panels/panelHeader';
+import PanelItem from 'sentry/components/panels/panelItem';
 import {t, tct} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';

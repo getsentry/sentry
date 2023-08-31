@@ -1,51 +1,53 @@
-import sortedIndexBy from 'lodash/sortedIndexBy';
+import type {ReplayFrame} from 'sentry/utils/replays/types';
 
-import type {Crumb} from 'sentry/types/breadcrumbs';
-import type {ReplaySpan} from 'sentry/views/replays/types';
-
-export function getPrevReplayEvent<T extends ReplaySpan | Crumb>({
-  itemLookup,
-  items,
-  targetTimestampMs,
-}: {
-  items: T[];
-  targetTimestampMs: number;
-  itemLookup?: number[][];
-}) {
-  if (!itemLookup || !itemLookup.length) {
-    return undefined;
-  }
-
-  const index = sortedIndexBy(itemLookup, [targetTimestampMs], o => o[0]);
-  if (index !== undefined && index > 0) {
-    const ts = itemLookup[Math.min(index, itemLookup.length - 1)][0];
-    return items[
-      itemLookup[ts === targetTimestampMs ? index : Math.max(0, index - 1)][1]
-    ];
-  }
-
-  return undefined;
-}
-
-export function getNextReplayEvent<T extends ReplaySpan | Crumb>({
-  items,
-  targetTimestampMs,
+export function getPrevReplayFrame({
+  frames,
+  targetOffsetMs,
   allowExact = false,
 }: {
-  items: T[];
-  targetTimestampMs: number;
+  frames: ReplayFrame[];
+  targetOffsetMs: number;
   allowExact?: boolean;
 }) {
-  return items.reduce<T | undefined>((found, item) => {
-    const itemTimestampMS = +new Date(item.timestamp || '');
-
+  return frames.reduce<ReplayFrame | undefined>((found, item) => {
     if (
-      itemTimestampMS < targetTimestampMs ||
-      (!allowExact && itemTimestampMS === targetTimestampMs)
+      item.offsetMs > targetOffsetMs ||
+      (!allowExact && item.offsetMs === targetOffsetMs)
     ) {
       return found;
     }
-    if (!found || itemTimestampMS < +new Date(found.timestamp || '')) {
+    if (
+      (allowExact && item.offsetMs === targetOffsetMs) ||
+      !found ||
+      item.offsetMs > found.offsetMs
+    ) {
+      return item;
+    }
+    return found;
+  }, undefined);
+}
+
+export function getNextReplayFrame({
+  frames,
+  targetOffsetMs,
+  allowExact = false,
+}: {
+  frames: ReplayFrame[];
+  targetOffsetMs: number;
+  allowExact?: boolean;
+}) {
+  return frames.reduce<ReplayFrame | undefined>((found, item) => {
+    if (
+      item.offsetMs < targetOffsetMs ||
+      (!allowExact && item.offsetMs === targetOffsetMs)
+    ) {
+      return found;
+    }
+    if (
+      (allowExact && item.offsetMs === targetOffsetMs) ||
+      !found ||
+      item.offsetMs < found.offsetMs
+    ) {
       return item;
     }
     return found;

@@ -2,7 +2,6 @@ from rest_framework import serializers
 
 from sentry import features
 from sentry.api.fields.actor import ActorField
-from sentry.api.serializers.rest_framework.list import ListField
 from sentry.constants import MIGRATED_CONDITIONS, SENTRY_APP_ACTIONS, TICKET_ACTIONS
 from sentry.models import Environment
 from sentry.rules import rules
@@ -71,8 +70,8 @@ class RuleNodeField(serializers.Field):
 
 
 class RuleSetSerializer(serializers.Serializer):
-    conditions = ListField(child=RuleNodeField(type="condition/event"), required=False)
-    filters = ListField(child=RuleNodeField(type="filter/event"), required=False)
+    conditions = serializers.ListField(child=RuleNodeField(type="condition/event"), required=False)
+    filters = serializers.ListField(child=RuleNodeField(type="filter/event"), required=False)
     actionMatch = serializers.ChoiceField(
         choices=(("all", "all"), ("any", "any"), ("none", "none"))
     )
@@ -124,7 +123,7 @@ class RulePreviewSerializer(RuleSetSerializer):
 
 
 class RuleActionSerializer(serializers.Serializer):
-    actions = ListField(child=RuleNodeField(type="action/event"), required=False)
+    actions = serializers.ListField(child=RuleNodeField(type="action/event"), required=False)
 
     def validate(self, attrs):
         return validate_actions(attrs)
@@ -133,7 +132,7 @@ class RuleActionSerializer(serializers.Serializer):
 class RuleSerializer(RuleSetSerializer):
     name = serializers.CharField(max_length=64)
     environment = serializers.CharField(max_length=64, required=False, allow_null=True)
-    actions = ListField(child=RuleNodeField(type="action/event"), required=False)
+    actions = serializers.ListField(child=RuleNodeField(type="action/event"), required=False)
     owner = ActorField(required=False, allow_null=True)
 
     def validate_environment(self, environment):
@@ -148,6 +147,13 @@ class RuleSerializer(RuleSetSerializer):
             raise serializers.ValidationError("This environment has not been created.")
 
         return environment
+
+    def validate_conditions(self, conditions):
+        for condition in conditions:
+            if condition.get("name"):
+                del condition["name"]
+
+        return conditions
 
     def validate(self, attrs):
         return super().validate(validate_actions(attrs))
@@ -182,6 +188,8 @@ def validate_actions(attrs):
     # project_rule(_details) endpoints by setting it on attrs
     actions = attrs.get("actions", tuple())
     for action in actions:
+        if action.get("name"):
+            del action["name"]
         # XXX(colleen): For ticket rules we need to ensure the user has
         # at least done minimal configuration
         if action["id"] in TICKET_ACTIONS:

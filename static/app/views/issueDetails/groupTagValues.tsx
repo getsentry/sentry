@@ -15,7 +15,7 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
 import Pagination from 'sentry/components/pagination';
-import {PanelTable} from 'sentry/components/panels';
+import PanelTable from 'sentry/components/panels/panelTable';
 import TimeSince from 'sentry/components/timeSince';
 import {IconArrow, IconEllipsis, IconMail, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';

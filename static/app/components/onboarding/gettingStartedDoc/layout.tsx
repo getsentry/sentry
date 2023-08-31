@@ -6,13 +6,12 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {Step, StepProps} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import {
-  ProductSelection,
-  ProductSolution,
-} from 'sentry/components/onboarding/productSelection';
+import {ProductSelection} from 'sentry/components/onboarding/productSelection';
+import {PlatformKey} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 
 const ProductSelectionAvailabilityHook = HookOrDefault({
@@ -27,30 +26,45 @@ type NextStep = {
 
 export type LayoutProps = {
   steps: StepProps[];
+  /**
+   * An introduction displayed before the steps
+   */
+  introduction?: React.ReactNode;
   newOrg?: boolean;
   nextSteps?: NextStep[];
+  platformKey?: PlatformKey;
 };
 
-export function Layout({steps, nextSteps = [], newOrg}: LayoutProps) {
+export function Layout({
+  steps,
+  platformKey,
+  nextSteps = [],
+  newOrg,
+  introduction,
+}: LayoutProps) {
   const organization = useOrganization();
   const {isSelfHosted} = useLegacyStore(ConfigStore);
 
   return (
     <Wrapper>
+      {introduction && (
+        <Fragment>
+          <Introduction>{introduction}</Introduction>
+          <Divider />
+        </Fragment>
+      )}
       {!isSelfHosted && newOrg && (
-        <ProductSelection
-          defaultSelectedProducts={[
-            ProductSolution.PERFORMANCE_MONITORING,
-            ProductSolution.SESSION_REPLAY,
-          ]}
-        />
+        <ProductSelection platform={platformKey} withBottomMargin />
       )}
       {!isSelfHosted && !newOrg && (
-        <ProductSelectionAvailabilityHook organization={organization} />
+        <ProductSelectionAvailabilityHook
+          organization={organization}
+          platform={platformKey}
+        />
       )}
       <Steps>
         {steps.map(step => (
-          <Step key={step.type} {...step} />
+          <Step key={step.title ?? step.type} {...step} />
         ))}
       </Steps>
       {nextSteps.length > 0 && (
@@ -85,11 +99,22 @@ const Steps = styled('div')`
   gap: 1.5rem;
 `;
 
+const Introduction = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(1)};
+`;
+
 const Wrapper = styled('div')`
   h4 {
     margin-bottom: 0.5em;
   }
-  p {
-    margin-bottom: 1em;
+  && {
+    p {
+      margin-bottom: 0;
+    }
+    h5 {
+      margin-bottom: 0;
+    }
   }
 `;

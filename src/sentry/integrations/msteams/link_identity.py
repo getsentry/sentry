@@ -1,6 +1,7 @@
 from django.core.signing import BadSignature, SignatureExpired
 from django.http import HttpResponse
 from django.urls import reverse
+from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
 from rest_framework.request import Request
 
@@ -33,7 +34,7 @@ def build_linking_url(integration, organization, teams_user_id, team_id, tenant_
 
 class MsTeamsLinkIdentityView(BaseView):
     @transaction_start("MsTeamsLinkIdentityView")
-    @never_cache
+    @method_decorator(never_cache)
     def handle(self, request: Request, signed_params) -> HttpResponse:
         try:
             params = unsign(signed_params)

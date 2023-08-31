@@ -14,7 +14,7 @@ def backfill_actors(apps, schema_editor):
     def get_actor_id_for_user(user):
         if user.actor_id:
             return user.actor_id
-        with transaction.atomic():
+        with transaction.atomic("default"):
             actors_for_user = Actor.objects.filter(type=1, user_id=user.id).all()
             if len(actors_for_user) > 0:
                 actor = actors_for_user[0]

@@ -11,9 +11,10 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {
+  GroupStatus,
   GroupStatusResolution,
-  ResolutionStatus,
-  ResolutionStatusDetails,
+  GroupSubstatus,
+  IgnoredStatusDetails,
   SelectValue,
 } from 'sentry/types';
 import {getDuration} from 'sentry/utils/formatters';
@@ -52,22 +53,23 @@ export function getIgnoreActions({
   'shouldConfirm' | 'confirmMessage' | 'confirmLabel' | 'onUpdate'
 >) {
   const onIgnore = (
-    statusDetails: ResolutionStatusDetails | undefined = {},
+    statusDetails: IgnoredStatusDetails | undefined = {},
     {bypassConfirm} = {bypassConfirm: false}
   ) => {
     openConfirmModal({
       bypass: bypassConfirm || !shouldConfirm,
       onConfirm: () =>
         onUpdate({
-          status: ResolutionStatus.IGNORED,
+          status: GroupStatus.IGNORED,
           statusDetails,
+          substatus: GroupSubstatus.ARCHIVED_UNTIL_CONDITION_MET,
         }),
       message: confirmMessage?.() ?? null,
       confirmText: confirmLabel,
     });
   };
 
-  const onCustomIgnore = (statusDetails: ResolutionStatusDetails) => {
+  const onCustomIgnore = (statusDetails: IgnoredStatusDetails) => {
     onIgnore(statusDetails, {bypassConfirm: true});
   };
 
@@ -228,7 +230,11 @@ function IgnoreActions({
           priority="primary"
           size="xs"
           onClick={() =>
-            onUpdate({status: ResolutionStatus.UNRESOLVED, statusDetails: {}})
+            onUpdate({
+              status: GroupStatus.UNRESOLVED,
+              statusDetails: {},
+              substatus: GroupSubstatus.ONGOING,
+            })
           }
           aria-label={t('Unignore')}
         />

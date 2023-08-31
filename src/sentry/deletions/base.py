@@ -1,11 +1,36 @@
+from __future__ import annotations
+
 import logging
 import re
 
 from sentry.constants import ObjectStatus
+from sentry.services.hybrid_cloud.user.model import RpcUser
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.utils import metrics
 from sentry.utils.query import bulk_delete_objects
 
 _leaf_re = re.compile(r"^(UserReport|Event|Group)(.+)")
+
+
+def _delete_children(manager, relations, transaction_id=None, actor_id=None):
+    # Ideally this runs through the deletion manager
+    for relation in relations:
+        task = manager.get(
+            transaction_id=transaction_id,
+            actor_id=actor_id,
+            task=relation.task,
+            **relation.params,
+        )
+
+        # If we want smaller tasks then this also has to return when has_more is true.
+        # This could significant increase the number of tasks we spawn. Get better estimates
+        # by collecting metrics.
+        has_more = True
+        while has_more:
+            has_more = task.chunk()
+            if has_more:
+                metrics.incr("deletions.should_spawn", tags={"task": type(task).__name__})
+    return False
 
 
 class BaseRelation:
@@ -126,24 +151,7 @@ class BaseDeletionTask:
             self.delete_instance(instance)
 
     def delete_children(self, relations):
-        # Ideally this runs through the deletion manager
-        for relation in relations:
-            task = self.manager.get(
-                transaction_id=self.transaction_id,
-                actor_id=self.actor_id,
-                task=relation.task,
-                **relation.params,
-            )
-
-            # If we want smaller tasks then this also has to return when has_more is true.
-            # This could significant increase the number of tasks we spawn. Get better estimates
-            # by collecting metrics.
-            has_more = True
-            while has_more:
-                has_more = task.chunk()
-                if has_more:
-                    metrics.incr("deletions.should_spawn", tags={"task": type(task).__name__})
-        return False
+        return _delete_children(self.manager, relations, self.transaction_id, self.actor_id)
 
     def mark_deletion_in_progress(self, instance_list):
         pass
@@ -233,14 +241,9 @@ class ModelDeletionTask(BaseDeletionTask):
                     },
                 )
 
-    def get_actor(self):
-        from sentry.models import User
-
+    def get_actor(self) -> RpcUser | None:
         if self.actor_id:
-            try:
-                return User.objects.get_from_cache(id=self.actor_id)
-            except User.DoesNotExist:
-                pass
+            return user_service.get_user(user_id=self.actor_id)
         return None
 
     def mark_deletion_in_progress(self, instance_list):

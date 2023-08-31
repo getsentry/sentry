@@ -25,6 +25,7 @@ from sentry.services.hybrid_cloud.region import (
     ByOrganizationIdAttribute,
     ByOrganizationSlug,
     ByRegionName,
+    RequireSingleOrganization,
     UnimplementedRegionResolution,
 )
 from sentry.services.hybrid_cloud.rpc import RpcService, regional_rpc_method
@@ -60,7 +61,7 @@ class OrganizationService(RpcService):
         """
         pass
 
-    @regional_rpc_method(resolve=ByOrganizationId("id"))
+    @regional_rpc_method(resolve=ByOrganizationId("id"), return_none_if_mapping_not_found=True)
     @abstractmethod
     def get_organization_by_id(
         self, *, id: int, user_id: Optional[int] = None, slug: Optional[str] = None
@@ -72,7 +73,7 @@ class OrganizationService(RpcService):
         """
         pass
 
-    @regional_rpc_method(resolve=ByOrganizationSlug())
+    @regional_rpc_method(resolve=ByOrganizationSlug(), return_none_if_mapping_not_found=True)
     @abstractmethod
     def get_org_by_slug(
         self,
@@ -124,7 +125,7 @@ class OrganizationService(RpcService):
     ) -> Optional[RpcUserInviteContext]:
         pass
 
-    @regional_rpc_method(resolve=ByOrganizationSlug())
+    @regional_rpc_method(resolve=ByOrganizationSlug(), return_none_if_mapping_not_found=True)
     @abstractmethod
     def get_invite_by_slug(
         self,
@@ -160,7 +161,7 @@ class OrganizationService(RpcService):
         """
         pass
 
-    @regional_rpc_method(resolve=ByOrganizationSlug())
+    @regional_rpc_method(resolve=ByOrganizationSlug(), return_none_if_mapping_not_found=True)
     @abstractmethod
     def check_organization_by_slug(self, *, slug: str, only_visible: bool) -> Optional[int]:
         """
@@ -188,6 +189,11 @@ class OrganizationService(RpcService):
         ):
             return None
         return org_context
+
+    @regional_rpc_method(resolve=RequireSingleOrganization())
+    @abstractmethod
+    def get_default_organization(self) -> RpcOrganization:
+        pass
 
     @regional_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
@@ -225,13 +231,13 @@ class OrganizationService(RpcService):
     def merge_users(self, *, organization_id: int, from_user_id: int, to_user_id: int) -> None:
         pass
 
-    @regional_rpc_method(resolve=ByOrganizationIdAttribute("organization_member"))
+    @regional_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
     def get_all_org_roles(
         self,
         *,
-        organization_member: Optional[RpcOrganizationMember] = None,
-        member_id: Optional[int] = None,
+        organization_id: int,
+        member_id: int,
     ) -> List[str]:
         pass
 

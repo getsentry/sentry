@@ -47,7 +47,7 @@ function InnerProjectSettingsLayout({
 
 function ProjectSettingsLayout({organization, params, ...props}: Props) {
   return (
-    <ProjectContext orgId={organization.slug} projectId={params.projectId}>
+    <ProjectContext projectSlug={params.projectId}>
       {({project}) => (
         <InnerProjectSettingsLayout {...{params, project, organization, ...props}} />
       )}

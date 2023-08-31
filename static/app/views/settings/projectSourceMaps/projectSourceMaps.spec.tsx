@@ -5,6 +5,7 @@ import {
   screen,
   userEvent,
   waitFor,
+  within,
 } from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
@@ -62,7 +63,7 @@ function renderDebugIdBundlesMockRequests({
 describe('ProjectSourceMaps', function () {
   describe('Release Bundles', function () {
     it('renders default state', async function () {
-      const {organization, project, router, routerContext, routerProps} = initializeOrg({
+      const {organization, project, routerContext, routerProps} = initializeOrg({
         router: {
           location: {
             query: {},
@@ -93,10 +94,18 @@ describe('ProjectSourceMaps', function () {
       // Tab 1
       expect(tabs[0]).toHaveTextContent('Artifact Bundles');
       expect(tabs[0]).not.toHaveClass('active');
+      expect(within(tabs[0]).getByRole('link')).toHaveAttribute(
+        'href',
+        '/settings/org-slug/projects/project-slug/source-maps/artifact-bundles/?'
+      );
 
       // Tab 2
       expect(tabs[1]).toHaveTextContent('Release Bundles');
       expect(tabs[1]).toHaveClass('active');
+      expect(within(tabs[0]).getByRole('link')).toHaveAttribute(
+        'href',
+        '/settings/org-slug/projects/project-slug/source-maps/artifact-bundles/?'
+      );
 
       // Search bar
       expect(screen.getByPlaceholderText('Filter by Name')).toBeInTheDocument();
@@ -119,7 +128,13 @@ describe('ProjectSourceMaps', function () {
       // Active tab contains correct link
       expect(screen.getByRole('link', {name: /Release Bundles/})).toHaveAttribute(
         'href',
-        '/settings/org-slug/projects/project-slug/source-maps/release-bundles/'
+        '/settings/org-slug/projects/project-slug/source-maps/release-bundles/?'
+      );
+
+      // Artifact Bundles Tab
+      expect(screen.getByRole('link', {name: /Artifact Bundles/})).toHaveAttribute(
+        'href',
+        '/settings/org-slug/projects/project-slug/source-maps/artifact-bundles/?'
       );
 
       // Name
@@ -149,14 +164,6 @@ describe('ProjectSourceMaps', function () {
       ).toBeInTheDocument();
       // Close modal
       await userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
-
-      // Switch tab
-      await userEvent.click(screen.getByRole('link', {name: 'Artifact Bundles'}));
-      expect(router.push).toHaveBeenCalledWith({
-        pathname:
-          '/settings/org-slug/projects/project-slug/source-maps/artifact-bundles/',
-        query: undefined,
-      });
     });
 
     it('renders empty state', async function () {
@@ -341,13 +348,6 @@ describe('ProjectSourceMaps', function () {
             }),
           })
         );
-      });
-
-      // Switch tab
-      await userEvent.click(screen.getByRole('link', {name: /Release Bundles/}));
-      expect(router.push).toHaveBeenCalledWith({
-        pathname: '/settings/org-slug/projects/project-slug/source-maps/release-bundles/',
-        query: undefined,
       });
     });
 

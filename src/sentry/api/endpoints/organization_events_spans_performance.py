@@ -15,14 +15,14 @@ from snuba_sdk.function import Function, Identifier, Lambda
 from snuba_sdk.orderby import Direction, OrderBy
 
 from sentry import eventstore
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
-from sentry.api.serializers.rest_framework import ListField
 from sentry.discover.arithmetic import is_equation, strip_equation
 from sentry.models import Organization
 from sentry.search.events.builder import QueryBuilder, TimeseriesQueryBuilder
-from sentry.search.events.types import ParamsType
+from sentry.search.events.types import ParamsType, QueryBuilderConfig
 from sentry.snuba import discover
 from sentry.snuba.dataset import Dataset
 from sentry.utils.cursors import Cursor, CursorResult
@@ -113,10 +113,15 @@ class OrganizationEventsSpansEndpointBase(OrganizationEventsV2EndpointBase):
 
 
 class SpansPerformanceSerializer(serializers.Serializer):
-    field = ListField(child=serializers.CharField(), required=False, allow_null=True)
+    field = serializers.ListField(child=serializers.CharField(), required=False, allow_null=True)
     query = serializers.CharField(required=False, allow_null=True)
-    spanOp = ListField(child=serializers.CharField(), required=False, allow_null=True, max_length=4)
-    spanGroup = ListField(
+    spanOp = serializers.ListField(
+        child=serializers.CharField(), required=False, allow_null=True, max_length=5
+    )
+    excludeSpanOp = serializers.ListField(
+        child=serializers.CharField(), required=False, allow_null=True, max_length=5
+    )
+    spanGroup = serializers.ListField(
         child=serializers.CharField(), required=False, allow_null=True, max_length=4
     )
     min_exclusive_time = serializers.FloatField(required=False)
@@ -142,6 +147,10 @@ class SpansPerformanceSerializer(serializers.Serializer):
 
 @region_silo_endpoint
 class OrganizationEventsSpansPerformanceEndpoint(OrganizationEventsSpansEndpointBase):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, organization: Organization) -> Response:
 
         try:
@@ -157,6 +166,7 @@ class OrganizationEventsSpansPerformanceEndpoint(OrganizationEventsSpansEndpoint
         fields = serialized.get("field", [])
         query = serialized.get("query")
         span_ops = serialized.get("spanOp")
+        exclude_span_ops = serialized.get("excludeSpanOp")
         span_groups = serialized.get("spanGroup")
         min_exclusive_time = serialized.get("min_exclusive_time")
         max_exclusive_time = serialized.get("max_exclusive_time")
@@ -169,6 +179,7 @@ class OrganizationEventsSpansPerformanceEndpoint(OrganizationEventsSpansEndpoint
                 fields,
                 query,
                 span_ops,
+                exclude_span_ops,
                 span_groups,
                 direction,
                 orderby_column,
@@ -215,6 +226,10 @@ class SpanSerializer(serializers.Serializer):
 
 @region_silo_endpoint
 class OrganizationEventsSpansExamplesEndpoint(OrganizationEventsSpansEndpointBase):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, organization: Organization) -> Response:
 
         try:
@@ -296,6 +311,10 @@ class SpanExamplesPaginator:
 
 @region_silo_endpoint
 class OrganizationEventsSpansStatsEndpoint(OrganizationEventsSpansEndpointBase):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, organization: Organization) -> Response:
 
         serializer = SpanSerializer(data=request.GET)
@@ -322,7 +341,9 @@ class OrganizationEventsSpansStatsEndpoint(OrganizationEventsSpansEndpointBase):
                     rollup,
                     query=query,
                     selected_columns=query_columns,
-                    functions_acl=["array_join", "percentileArray", "sumArray"],
+                    config=QueryBuilderConfig(
+                        functions_acl=["array_join", "percentileArray", "sumArray"],
+                    ),
                 )
 
                 span_op_column = builder.resolve_function("array_join(spans_op)")
@@ -467,6 +488,7 @@ def query_suspect_span_groups(
     fields: List[str],
     query: Optional[str],
     span_ops: Optional[List[str]],
+    exclude_span_ops: Optional[List[str]],
     span_groups: Optional[List[str]],
     direction: str,
     orderby: str,
@@ -501,11 +523,13 @@ def query_suspect_span_groups(
         equations=equations,
         query=query,
         orderby=[direction + column for column in suspect_span_columns.suspect_op_group_sort],
-        auto_aggregations=True,
-        use_aggregate_conditions=True,
         limit=limit,
         offset=offset,
-        functions_acl=["array_join", "sumArray", "percentileArray", "maxArray"],
+        config=QueryBuilderConfig(
+            auto_aggregations=True,
+            use_aggregate_conditions=True,
+            functions_acl=["array_join", "sumArray", "percentileArray", "maxArray"],
+        ),
     )
 
     extra_conditions = []
@@ -516,6 +540,15 @@ def query_suspect_span_groups(
                 builder.resolve_function("array_join(spans_op)"),
                 Op.IN,
                 Function("tuple", span_ops),
+            )
+        )
+
+    if exclude_span_ops:
+        extra_conditions.append(
+            Condition(
+                builder.resolve_function("array_join(spans_op)"),
+                Op.NOT_IN,
+                Function("tuple", exclude_span_ops),
             )
         )
 

@@ -11,7 +11,7 @@ from sentry.search.events.builder import (
     ProfileTopFunctionsTimeseriesQueryBuilder,
 )
 from sentry.search.events.fields import get_json_meta_type
-from sentry.search.events.types import ParamsType, SnubaParams
+from sentry.search.events.types import ParamsType, QueryBuilderConfig, SnubaParams
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.discover import transform_tips, zerofill
 from sentry.utils.snuba import SnubaTSResult
@@ -37,6 +37,7 @@ def query(
     has_metrics: bool = False,
     functions_acl: Optional[List[str]] = None,
     use_metrics_layer: bool = False,
+    on_demand_metrics_enabled: bool = False,
 ) -> Any:
     if not selected_columns:
         raise InvalidSearchQuery("No columns selected")
@@ -48,13 +49,15 @@ def query(
         snuba_params=snuba_params,
         selected_columns=selected_columns,
         orderby=orderby,
-        auto_fields=False,
-        auto_aggregations=auto_aggregations,
-        use_aggregate_conditions=use_aggregate_conditions,
-        transform_alias_to_input_format=transform_alias_to_input_format,
-        functions_acl=functions_acl,
         limit=limit,
         offset=offset,
+        config=QueryBuilderConfig(
+            auto_fields=False,
+            auto_aggregations=auto_aggregations,
+            use_aggregate_conditions=use_aggregate_conditions,
+            transform_alias_to_input_format=transform_alias_to_input_format,
+            functions_acl=functions_acl,
+        ),
     )
     result = builder.process_results(builder.run_query(referrer))
     result["meta"]["tips"] = transform_tips(builder.tips)
@@ -73,6 +76,7 @@ def timeseries_query(
     allow_metric_aggregates: bool = False,
     has_metrics: bool = False,
     use_metrics_layer: bool = False,
+    on_demand_metrics_enabled: bool = False,
 ) -> Any:
     builder = ProfileFunctionsTimeseriesQueryBuilder(
         dataset=Dataset.Functions,
@@ -80,7 +84,9 @@ def timeseries_query(
         query=query,
         interval=rollup,
         selected_columns=selected_columns,
-        functions_acl=functions_acl,
+        config=QueryBuilderConfig(
+            functions_acl=functions_acl,
+        ),
     )
     results = builder.run_query(referrer)
 
@@ -141,14 +147,40 @@ def top_events_timeseries(
         selected_columns=selected_columns,
         timeseries_columns=timeseries_columns,
         equations=equations,
-        functions_acl=functions_acl,
-        skip_tag_resolution=True,
+        config=QueryBuilderConfig(
+            functions_acl=functions_acl,
+            skip_tag_resolution=True,
+        ),
     )
 
     if len(top_events["data"]) == limit and include_other:
         assert False, "Other is not supported"  # TODO: support other
-    else:
-        result = top_functions_builder.run_query(referrer)
+
+    result = top_functions_builder.run_query(referrer)
+    return format_top_events_timeseries_results(
+        result,
+        top_functions_builder,
+        params,
+        rollup,
+        top_events=top_events,
+        allow_empty=allow_empty,
+        zerofill_results=zerofill_results,
+        result_key_order=result_key_order,
+    )
+
+
+def format_top_events_timeseries_results(
+    result,
+    query_builder,
+    params,
+    rollup,
+    top_events=None,
+    allow_empty=True,
+    zerofill_results=True,
+    result_key_order=None,
+):
+    if top_events is None:
+        assert top_events, "Need to provide top events"  # TODO: support this use case
 
     if not allow_empty and not len(result.get("data", [])):
         return SnubaTSResult(
@@ -166,10 +198,10 @@ def top_events_timeseries(
         op="discover.discover", description="top_events.transform_results"
     ) as span:
         span.set_data("result_count", len(result.get("data", [])))
-        result = top_functions_builder.process_results(result)
+        result = query_builder.process_results(result)
 
         if result_key_order is None:
-            result_key_order = top_functions_builder.translated_groupby
+            result_key_order = query_builder.translated_groupby
 
         results: Dict[str, Any] = {}
 

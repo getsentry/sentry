@@ -28,7 +28,7 @@ class OrganizationMonitorCheckInIndexEndpoint(MonitorEndpoint):
     public = {"GET"}
 
     @extend_schema(
-        operation_id="Retrieve check-ins for a monitor",
+        operation_id="Retrieve Check-Ins for a Monitor",
         parameters=[
             GlobalParams.ORG_SLUG,
             MonitorParams.MONITOR_SLUG,

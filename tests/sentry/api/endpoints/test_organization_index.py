@@ -1,11 +1,16 @@
+from __future__ import annotations
+
 import re
+from typing import Any
 from unittest.mock import patch
 
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.models import Authenticator, Organization, OrganizationMember, OrganizationStatus
-from sentry.testutils import APITestCase, TwoFactorAPITestCase
+from sentry.silo import SiloMode
+from sentry.testutils.cases import APITestCase, TwoFactorAPITestCase
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 
 class OrganizationIndexTest(APITestCase):
@@ -99,7 +104,7 @@ class OrganizationsListTest(OrganizationIndexTest):
         assert len(response.data) == 0
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationsCreateTest(OrganizationIndexTest, HybridCloudTestMixin):
     method = "post"
 
@@ -134,14 +139,23 @@ class OrganizationsCreateTest(OrganizationIndexTest, HybridCloudTestMixin):
             self.get_error_response(name="name", slug="canada-", status_code=400)
             self.get_error_response(name="name", slug="-canada", status_code=400)
             self.get_error_response(name="name", slug="----", status_code=400)
+            with override_options({"api.prevent-numeric-slugs": True}):
+                self.get_error_response(name="name", slug="1234", status_code=400)
 
     def test_without_slug(self):
-        data = {"name": "hello world"}
-        response = self.get_success_response(**data)
+        response = self.get_success_response(name="hello world")
 
         organization_id = response.data["id"]
         org = Organization.objects.get(id=organization_id)
         assert org.slug == "hello-world"
+
+    @override_options({"api.prevent-numeric-slugs": True})
+    def test_generated_slug_not_entirely_numeric(self):
+        response = self.get_success_response(name="1234")
+
+        organization_id = response.data["id"]
+        org = Organization.objects.get(id=organization_id)
+        assert org.slug.startswith("1234" + "-")
 
     @patch(
         "sentry.api.endpoints.organization_member.requests.join.ratelimiter.is_limited",
@@ -180,8 +194,13 @@ class OrganizationsCreateTest(OrganizationIndexTest, HybridCloudTestMixin):
         assert org.slug == "canada"
         assert org_slug_pattern.match(org.slug)
 
+        response = self.get_success_response(name="1234")
+        org = Organization.objects.get(id=response.data["id"])
+        assert org.slug == "1234"
+        assert org_slug_pattern.match(org.slug)
+
     def test_required_terms_with_terms_url(self):
-        data = {"name": "hello world"}
+        data: dict[str, Any] = {"name": "hello world"}
         with self.settings(PRIVACY_URL=None, TERMS_URL="https://example.com/terms"):
             self.get_success_response(**data)
 
@@ -207,7 +226,7 @@ class OrganizationsCreateTest(OrganizationIndexTest, HybridCloudTestMixin):
         assert org.name == data["name"]
 
         # TODO(HC) Re-enable this check once organization mapping stabilizes
-        # with exempt_from_silo_limits():
+        # with assume_test_silo_mode(SiloMode.CONTROL):
         #     assert OrganizationMapping.objects.filter(
         #         organization_id=organization_id,
         #         slug=data["slug"],
@@ -230,7 +249,7 @@ class OrganizationsCreateTest(OrganizationIndexTest, HybridCloudTestMixin):
         self.assert_org_member_mapping(org_member=org_member)
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationIndex2faTest(TwoFactorAPITestCase):
     endpoint = "sentry-organization-home"
 
@@ -248,7 +267,8 @@ class OrganizationIndex2faTest(TwoFactorAPITestCase):
         self.login_as(self.no_2fa_user)
         self.assert_redirected_to_2fa()
 
-        TotpInterface().enroll(self.no_2fa_user)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            TotpInterface().enroll(self.no_2fa_user)
         self.get_success_response(self.org_2fa.slug)
 
     def test_new_member_must_enable_2fa(self):
@@ -258,15 +278,18 @@ class OrganizationIndex2faTest(TwoFactorAPITestCase):
 
         self.assert_redirected_to_2fa()
 
-        TotpInterface().enroll(new_user)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            TotpInterface().enroll(new_user)
         self.get_success_response(self.org_2fa.slug)
 
     def test_member_disable_all_2fa_blocked(self):
-        TotpInterface().enroll(self.no_2fa_user)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            TotpInterface().enroll(self.no_2fa_user)
         self.login_as(self.no_2fa_user)
         self.get_success_response(self.org_2fa.slug)
 
-        Authenticator.objects.get(user=self.no_2fa_user).delete()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            Authenticator.objects.get(user=self.no_2fa_user).delete()
         self.assert_redirected_to_2fa()
 
     def test_superuser_can_access_org_home(self):

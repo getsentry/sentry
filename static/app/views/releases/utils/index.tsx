@@ -10,7 +10,7 @@ import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilte
 import {PAGE_URL_PARAM, URL_PARAM} from 'sentry/constants/pageFilters';
 import {desktop, mobile, PlatformKey} from 'sentry/data/platformCategories';
 import {t, tct} from 'sentry/locale';
-import {Release, ReleaseStatus} from 'sentry/types';
+import {Release, ReleaseStatus, SemverVerison, VersionInfo} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
@@ -244,4 +244,10 @@ export const isMobileRelease = (releaseProjectPlatform: PlatformKey) =>
 export function searchReleaseVersion(version: string): string {
   // Wrap with quotes and escape any quotes inside
   return `release:"${version.replace(/"/g, '\\"')}"`;
+}
+
+export function isVersionInfoSemver(
+  versionInfo: VersionInfo['version']
+): versionInfo is SemverVerison {
+  return versionInfo.hasOwnProperty('components');
 }

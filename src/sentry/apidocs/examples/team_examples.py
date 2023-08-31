@@ -2,6 +2,37 @@ from drf_spectacular.utils import OpenApiExample
 
 
 class TeamExamples:
+    ADD_TO_TEAM = [
+        OpenApiExample(
+            "Join, request access to or add a member to a team",
+            value={
+                "id": "4502349234123",
+                "slug": "ancient-gabelers",
+                "name": "Ancient Gabelers",
+                "dateCreated": "2023-05-31T19:47:53.621181Z",
+                "isMember": True,
+                "teamRole": "contributor",
+                "flags": {"idp:provisioned": False},
+                "access": [
+                    "alerts:read",
+                    "event:write",
+                    "project:read",
+                    "team:read",
+                    "member:read",
+                    "project:releases",
+                    "event:read",
+                    "org:read",
+                ],
+                "hasAccess": True,
+                "isPending": False,
+                "memberCount": 3,
+                "avatar": {"avatarType": "letter_avatar", "avatarUuid": None},
+            },
+            status_codes=["201"],
+            response_only=True,
+        )
+    ]
+
     CREATE_TEAM = [
         OpenApiExample(
             "Create a new team",
@@ -34,11 +65,41 @@ class TeamExamples:
                 "isPending": False,
                 "memberCount": 1,
                 "avatar": {"avatarType": "letter_avatar", "avatarUuid": None},
-                "orgRole": None,
             },
             status_codes=["201"],
             response_only=True,
-        ),
+        )
+    ]
+
+    DELETE_FROM_TEAM = [
+        OpenApiExample(
+            "Remove a member from a team",
+            value={
+                "id": "4502349234123",
+                "slug": "ancient-gabelers",
+                "name": "Ancient Gabelers",
+                "dateCreated": "2023-05-31T19:47:53.621181Z",
+                "isMember": False,
+                "teamRole": None,
+                "flags": {"idp:provisioned": False},
+                "access": [
+                    "alerts:read",
+                    "event:write",
+                    "project:read",
+                    "team:read",
+                    "member:read",
+                    "project:releases",
+                    "event:read",
+                    "org:read",
+                ],
+                "hasAccess": True,
+                "isPending": False,
+                "memberCount": 3,
+                "avatar": {"avatarType": "letter_avatar", "avatarUuid": None},
+            },
+            status_codes=["200"],
+            response_only=True,
+        )
     ]
 
     LIST_ORG_TEAMS = [
@@ -67,7 +128,6 @@ class TeamExamples:
                     "isPending": False,
                     "memberCount": 2,
                     "avatar": {"avatarType": "letter_avatar", "avatarUuid": None},
-                    "orgRole": None,
                 },
                 {
                     "id": "100253",
@@ -91,7 +151,6 @@ class TeamExamples:
                     "isPending": False,
                     "memberCount": 5,
                     "avatar": {"avatarType": "letter_avatar", "avatarUuid": None},
-                    "orgRole": None,
                     "projects": [
                         {
                             "id": "6403534",

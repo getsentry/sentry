@@ -3,6 +3,7 @@ import debounce from 'lodash/debounce';
 import * as qs from 'query-string';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {Client} from 'sentry/api';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import FieldFromConfig from 'sentry/components/forms/fieldFromConfig';
 import Form, {FormProps} from 'sentry/components/forms/form';
@@ -39,6 +40,10 @@ type State = {
    */
   integrationDetails: IntegrationIssueConfig | null;
 } & DeprecatedAsyncComponent['state'];
+
+// This exists because /extensions/type/search API is not prefixed with
+// /api/0/, but the default API client on the abstract issue form is...
+const API_CLIENT = new Client({baseUrl: '', headers: {}});
 
 const DEBOUNCE_MS = 200;
 /**
@@ -171,6 +176,7 @@ export default class AbstractExternalIssueForm<
     const currentOption = this.getDefaultOptions(field).find(
       option => option.value === this.model.getValue(field.name)
     );
+
     if (!currentOption) {
       return result;
     }
@@ -239,9 +245,10 @@ export default class AbstractExternalIssueForm<
       const separator = url.includes('?') ? '&' : '?';
       // We can't use the API client here since the URL is not scoped under the
       // API endpoints (which the client prefixes)
+
       try {
-        const response = await fetch(url + separator + query);
-        cb(null, response.ok ? await response.json() : []);
+        const response = await API_CLIENT.requestPromise(url + separator + query);
+        cb(null, response);
       } catch (err) {
         cb(err);
       }

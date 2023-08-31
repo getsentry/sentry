@@ -274,6 +274,24 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
       ],
     },
     {
+      guide: 'explain_new_default_event_issue_detail',
+      requiredTargets: ['issue_details_default_event'],
+      dateThreshold: new Date('2023-08-22'),
+      steps: [
+        {
+          title: t('New Default Event'),
+          target: 'issue_details_default_event',
+          description: tct(
+            'Rather than the latest event, we now default to a recent event with the most context (replays, traces, and profiles). You can easily switch between events or [link:configure your default event] in settings.',
+            {
+              link: <Link to="/settings/account/details/#defaultIssueEvent" />,
+            }
+          ),
+          dismissText: t('Got It'),
+        },
+      ],
+    },
+    {
       guide: 'explain_archive_tab_issue_stream',
       requiredTargets: ['issue_stream_archive_tab'],
       dateThreshold: new Date('2023-07-05'),
@@ -389,7 +407,7 @@ function getDemoModeGuides(): GuidesContent {
           title: t('Compare releases'),
           target: 'release_projects',
           description: t(
-            `Click here and select the "react-native" project to see how the release is trending compaed to previous releases.`
+            `Click here and select the "react-native" project to see how the release is trending compared to previous releases.`
           ),
         },
       ],
@@ -464,6 +482,19 @@ function getDemoModeGuides(): GuidesContent {
           description: t(
             `Expand the spans to see span details from start date, end date to the operation. Below you can view breadcrumbs for a play-by-play of what your users
             did before encountering the performance issue.`
+          ),
+        },
+      ],
+    },
+    {
+      guide: 'explain_empty_on_demand_alert',
+      requiredTargets: ['empty_on_demand_chart'],
+      steps: [
+        {
+          title: t('Why is the chart empty?'),
+          target: 'empty_on_demand_chart',
+          description: t(
+            `This alert uses specific filters that we don't routinely collect metrics from. This means we don't have any historical data to show right now, but we'll capture all metrics that match the filters from this point on.`
           ),
         },
       ],

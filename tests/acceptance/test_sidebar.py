@@ -1,8 +1,10 @@
 import pytest
 
-from sentry.testutils import AcceptanceTestCase
+from sentry.testutils.cases import AcceptanceTestCase
+from sentry.testutils.silo import no_silo_test
 
 
+@no_silo_test(stable=True)
 class SidebarTest(AcceptanceTestCase):
     def setUp(self):
         super().setUp()

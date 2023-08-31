@@ -157,7 +157,7 @@ const mockGroupApis = (
   trace?: QuickTraceEvent
 ) => {
   MockApiClient.addMockResponse({
-    url: `/issues/${group.id}/`,
+    url: `/organizations/${organization.slug}/issues/${group.id}/`,
     body: group,
   });
 
@@ -177,7 +177,7 @@ const mockGroupApis = (
   });
 
   MockApiClient.addMockResponse({
-    url: `/issues/${group.id}/tags/`,
+    url: `/organizations/${organization.slug}/issues/${group.id}/tags/`,
     body: [],
   });
 
@@ -192,16 +192,16 @@ const mockGroupApis = (
   });
 
   MockApiClient.addMockResponse({
-    url: `/groups/${group.id}/integrations/`,
+    url: `/organizations/${organization.slug}/issues/${group.id}/integrations/`,
     body: [],
   });
 
   MockApiClient.addMockResponse({
-    url: `/groups/${group.id}/external-issues/`,
+    url: `/organizations/${organization.slug}/issues/${group.id}/external-issues/`,
   });
 
   MockApiClient.addMockResponse({
-    url: `/issues/${group.id}/current-release/`,
+    url: `/organizations/${organization.slug}/issues/${group.id}/current-release/`,
     body: {currentRelease: null},
   });
 
@@ -258,6 +258,10 @@ const mockGroupApis = (
     url: '/organizations/org-slug/users/',
     body: [],
   });
+  MockApiClient.addMockResponse({
+    url: '/organizations/org-slug/projects/',
+    body: [project],
+  });
 
   MockApiClient.addMockResponse({
     url: `/customers/org-slug/policies/`,
@@ -265,7 +269,7 @@ const mockGroupApis = (
   });
 
   MockApiClient.addMockResponse({
-    url: `/issues/${group.id}/first-last-release/`,
+    url: `/organizations/${organization.slug}/issues/${group.id}/first-last-release/`,
     method: 'GET',
   });
 };

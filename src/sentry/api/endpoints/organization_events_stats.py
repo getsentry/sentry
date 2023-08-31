@@ -7,6 +7,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEventsV2EndpointBase
 from sentry.constants import MAX_TOP_EVENTS
@@ -54,11 +55,18 @@ METRICS_ENHANCED_REFERRERS: Set[str] = {
     Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_FROZEN_FRAMES_AREA.value,
     Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_MOST_SLOW_FRAMES.value,
     Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_MOST_FROZEN_FRAMES.value,
+    Referrer.API_STARFISH_SPAN_CATEGORY_BREAKDOWN_CHART.value,
+    Referrer.API_STARFISH_ENDPOINT_OVERVIEW.value,
+    Referrer.API_STARFISH_HTTP_ERROR_COUNT.value,
+    Referrer.API_STARFISH_SPAN_SUMMARY_PAGE_CHART.value,
+    Referrer.API_STARFISH_SIDEBAR_SPAN_METRICS_CHART.value,
+    Referrer.API_STARFISH_SPAN_TIME_CHARTS.value,
 }
 
 
 ALLOWED_EVENTS_STATS_REFERRERS: Set[str] = {
     Referrer.API_ALERTS_ALERT_RULE_CHART.value,
+    Referrer.API_ALERTS_CHARTCUTERIE.value,
     Referrer.API_DASHBOARDS_WIDGET_AREA_CHART.value,
     Referrer.API_DASHBOARDS_WIDGET_BAR_CHART.value,
     Referrer.API_DASHBOARDS_WIDGET_LINE_CHART.value,
@@ -83,6 +91,10 @@ ALLOWED_EVENTS_STATS_REFERRERS: Set[str] = {
 
 @region_silo_endpoint
 class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def get_features(self, organization: Organization, request: Request) -> Mapping[str, bool]:
         feature_names = [
             "organizations:performance-chart-interpolation",
@@ -91,6 +103,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
             "organizations:mep-rollout-flag",
             "organizations:use-metrics-layer",
             "organizations:starfish-view",
+            "organizations:on-demand-metrics-extraction",
         ]
         batch_features = features.batch_has(
             feature_names,
@@ -176,6 +189,8 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
             allow_metric_aggregates = request.GET.get("preventMetricAggregates") != "1"
             sentry_sdk.set_tag("performance.metrics_enhanced", metrics_enhanced)
 
+        use_on_demand_metrics = request.GET.get("useOnDemandMetrics") == "true"
+
         def get_event_stats(
             query_columns: Sequence[str],
             query: str,
@@ -211,6 +226,8 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                 allow_metric_aggregates=allow_metric_aggregates,
                 has_metrics=use_metrics,
                 use_metrics_layer=batch_features.get("organizations:use-metrics-layer", False),
+                on_demand_metrics_enabled=use_on_demand_metrics
+                and batch_features.get("organizations:on-demand-metrics-extraction", False),
             )
 
         try:

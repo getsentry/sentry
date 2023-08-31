@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from rest_framework.request import Request
 
 from sentry.api.base import Endpoint
@@ -6,10 +8,11 @@ from sentry.api.permissions import SentryPermission
 from sentry.auth.superuser import is_active_superuser
 from sentry.auth.system import is_system_auth
 from sentry.models import Organization, OrganizationStatus, User
+from sentry.services.hybrid_cloud.user import RpcUser
 
 
 class UserPermission(SentryPermission):
-    def has_object_permission(self, request: Request, view, user=None):
+    def has_object_permission(self, request: Request, view, user: User | RpcUser | None = None):
         if user is None:
             user = request.user
         if request.user.id == user.id:

@@ -118,6 +118,7 @@ export enum FieldKey {
   USER_ID = 'user.id',
   USER_IP = 'user.ip',
   USER_USERNAME = 'user.username',
+  USER_SEGMENT = 'user.segment',
   APP_IN_FOREGROUND = 'app.in_foreground',
 }
 
@@ -159,6 +160,29 @@ export enum MobileVital {
   STALL_PERCENTAGE = 'measurements.stall_percentage',
   TIME_TO_FULL_DISPLAY = 'measurements.time_to_full_display',
   TIME_TO_INITIAL_DISPLAY = 'measurements.time_to_initial_display',
+}
+
+export enum StackTags {
+  STACK_ABS_PATH = 'stack.abs_path',
+  STACK_COLNO = 'stack.colno',
+  STACK_FILENAME = 'stack.filename',
+  STACK_FUNCTION = 'stack.function',
+  STACK_IN_APP = 'stack.in_app',
+  STACK_LINENO = 'stack.lineno',
+  STACK_MODULE = 'stack.module',
+  STACK_PACKAGE = 'stack.package',
+  STACK_RESOURCE = 'stack.resource',
+  STACK_STACK_LEVEL = 'stack.stack_level',
+}
+
+export enum ErrorTags {
+  ERROR_HANDLED = 'error.handled',
+  ERROR_MECHANISM = 'error.mechanism',
+  ERROR_TYPE = 'error.type',
+  ERROR_UNHANDLED = 'error.unhandled',
+  ERROR_VALUE = 'error.value',
+  ERROR_RECEIVED = 'error.received',
+  ERROR_MAIN_THREAD = 'error.main_thread',
 }
 
 export enum SpanOpBreakdown {
@@ -983,6 +1007,11 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
+  [FieldKey.USER_SEGMENT]: {
+    desc: t('Segment of the user'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
   [FieldKey.APP_IN_FOREGROUND]: {
     desc: t('Indicates if the app is in the foreground or background'),
     kind: FieldKind.FIELD,
@@ -1173,6 +1202,8 @@ export enum ReplayFieldKey {
   ACTIVITY = 'activity',
   BROWSER_NAME = 'browser.name',
   BROWSER_VERSION = 'browser.version',
+  COUNT_DEAD_CLICKS = 'count_dead_clicks',
+  COUNT_RAGE_CLICKS = 'count_rage_clicks',
   COUNT_ERRORS = 'count_errors',
   COUNT_SEGMENTS = 'count_segments',
   COUNT_URLS = 'count_urls',
@@ -1208,6 +1239,8 @@ export const REPLAY_FIELDS = [
   ReplayFieldKey.ACTIVITY,
   ReplayFieldKey.BROWSER_NAME,
   ReplayFieldKey.BROWSER_VERSION,
+  ReplayFieldKey.COUNT_DEAD_CLICKS,
+  ReplayFieldKey.COUNT_RAGE_CLICKS,
   ReplayFieldKey.COUNT_ERRORS,
   ReplayFieldKey.COUNT_SEGMENTS,
   ReplayFieldKey.COUNT_URLS,
@@ -1249,6 +1282,16 @@ const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
     desc: t('Version number of the browser'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+  },
+  [ReplayFieldKey.COUNT_DEAD_CLICKS]: {
+    desc: t('Number of dead clicks in the replay'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.INTEGER,
+  },
+  [ReplayFieldKey.COUNT_RAGE_CLICKS]: {
+    desc: t('Number of rage clicks in the replay'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.INTEGER,
   },
   [ReplayFieldKey.COUNT_ERRORS]: {
     desc: t('Number of errors in the replay'),

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import time
 from datetime import datetime
 from enum import IntEnum
@@ -25,15 +27,15 @@ class Outcome(IntEnum):
         return self.name.lower()
 
     @classmethod
-    def parse(cls, name: str) -> "Outcome":
+    def parse(cls, name: str) -> Outcome:
         return Outcome[name.upper()]
 
     def is_billing(self) -> bool:
         return self in (Outcome.ACCEPTED, Outcome.RATE_LIMITED)
 
 
-outcomes_publisher = None
-billing_publisher = None
+outcomes_publisher: KafkaPublisher | None = None
+billing_publisher: KafkaPublisher | None = None
 
 
 def track_outcome(

@@ -13,7 +13,8 @@ import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {Panel, PanelBody} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
 import SearchBar from 'sentry/components/searchBar';
 import SentryAppIcon from 'sentry/components/sentryAppIcon';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -33,6 +34,7 @@ import {createFuzzySearch, Fuse} from 'sentry/utils/fuzzySearch';
 import {
   getAlertText,
   getCategoriesForIntegration,
+  getIntegrationStatus,
   getSentryAppInstallStatus,
   isDocIntegration,
   isPlugin,
@@ -43,6 +45,7 @@ import withOrganization from 'sentry/utils/withOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import PermissionAlert from 'sentry/views/settings/organization/permissionAlert';
 import CreateIntegrationButton from 'sentry/views/settings/organizationIntegrations/createIntegrationButton';
+import ReinstallAlert from 'sentry/views/settings/organizationIntegrations/reinstallAlert';
 
 import {POPULARITY_WEIGHT} from './constants';
 import IntegrationRow from './integrationRow';
@@ -235,6 +238,21 @@ export class IntegrationListDirectory extends DeprecatedAsyncComponent<
     return integrations?.find(i => i.provider.key === integration.key) ? 2 : 0;
   }
 
+  getInstallStatuses(integrations: Integration[]) {
+    const statusList = integrations?.map(getIntegrationStatus);
+    // if we have conflicting statuses, we have a priority order
+    if (statusList.includes('active')) {
+      return 'Installed';
+    }
+    if (statusList.includes('disabled')) {
+      return 'Disabled';
+    }
+    if (statusList.includes('pending_deletion')) {
+      return 'Pending Deletion';
+    }
+    return 'Not Installed';
+  }
+
   getPopularityWeight = (integration: AppOrProviderOrPlugin) => {
     if (isSentryApp(integration) || isDocIntegration(integration)) {
       return integration?.popularity ?? 1;
@@ -394,7 +412,7 @@ export class IntegrationListDirectory extends DeprecatedAsyncComponent<
         type="firstParty"
         slug={provider.slug}
         displayName={provider.name}
-        status={integrations.length ? 'Installed' : 'Not Installed'}
+        status={this.getInstallStatuses(integrations)}
         publishStatus="published"
         configurations={integrations.length}
         categories={getCategoriesForIntegration(provider)}
@@ -488,15 +506,13 @@ export class IntegrationListDirectory extends DeprecatedAsyncComponent<
 
   renderBody() {
     const {organization} = this.props;
-    const {displayedList, list, searchInput, selectedCategory} = this.state;
-
+    const {displayedList, list, searchInput, selectedCategory, integrations} = this.state;
     const title = t('Integrations');
     const categoryList = uniq(flatten(list.map(getCategoriesForIntegration))).sort();
 
     return (
       <Fragment>
         <SentryDocumentTitle title={title} orgSlug={organization.slug} />
-
         {!this.props.hideHeader && (
           <SettingsPageHeader
             title={title}
@@ -527,8 +543,8 @@ export class IntegrationListDirectory extends DeprecatedAsyncComponent<
             action={<CreateIntegrationButton analyticsView="integrations_directory" />}
           />
         )}
-
         <PermissionAlert access={['org:integrations']} />
+        <ReinstallAlert integrations={integrations} />
         <Panel>
           <PanelBody data-test-id="integration-panel">
             {displayedList.length ? (

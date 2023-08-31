@@ -14,7 +14,7 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import Pagination from 'sentry/components/pagination';
-import {Panel} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
@@ -77,7 +77,7 @@ class OrganizationUserFeedback extends DeprecatedAsyncView<Props, State> {
             <CompactIssue key={item.id} id={issue.id} data={issue} eventId={item.eventID}>
               <StyledEventUserFeedback
                 report={item}
-                orgId={organization.slug}
+                orgSlug={organization.slug}
                 issueId={issue.id}
               />
             </CompactIssue>

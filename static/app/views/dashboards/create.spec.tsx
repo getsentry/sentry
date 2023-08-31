@@ -39,7 +39,6 @@ describe('Dashboards > Create', function () {
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/',
-        // @ts-expect-error
         body: [TestStubs.Dashboard([], {id: 'default-overview', title: 'Default'})],
       });
       MockApiClient.addMockResponse({
@@ -71,7 +70,6 @@ describe('Dashboards > Create', function () {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/',
         method: 'POST',
-        // @ts-expect-error
         body: TestStubs.Dashboard([], {id: '1', title: 'Custom Errors'}),
       });
 

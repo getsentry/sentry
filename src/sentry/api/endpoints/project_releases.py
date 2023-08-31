@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, router, transaction
 from django.db.models import Q
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.paginator import OffsetPaginator
@@ -23,6 +24,10 @@ from sentry.utils.sdk import bind_organization_context, configure_scope
 
 @region_silo_endpoint
 class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (ProjectReleasePermission,)
     rate_limits = RateLimitConfig(
         group="CLI", limit_overrides={"GET": SENTRY_RATELIMITER_GROUP_DEFAULTS["default"]}
@@ -125,7 +130,7 @@ class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
                     owner_id = owner.id
 
                 try:
-                    with transaction.atomic():
+                    with transaction.atomic(router.db_for_write(Release)):
                         release, created = (
                             Release.objects.create(
                                 organization_id=project.organization_id,

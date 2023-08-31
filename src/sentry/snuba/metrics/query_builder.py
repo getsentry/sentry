@@ -36,7 +36,7 @@ from sentry.api.utils import InvalidParams, get_date_range_from_params
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import Project
 from sentry.search.events.builder import UnresolvedQuery
-from sentry.search.events.types import WhereType
+from sentry.search.events.types import QueryBuilderConfig, WhereType
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import (
     STRING_NOT_FOUND,
@@ -89,17 +89,17 @@ from sentry.utils.snuba import parse_snuba_datetime
 QUERY_PROJECT_LIMIT = 10
 
 
-def parse_field(field: str, allow_mri: bool = False) -> MetricField:
+def parse_field(field: str, allow_mri: bool = False, allow_private: bool = False) -> MetricField:
 
     if allow_mri:
         mri_matches = MRI_SCHEMA_REGEX.match(field) or MRI_EXPRESSION_REGEX.match(field)
         if mri_matches:
-            return parse_mri_field(field)
+            return parse_mri_field(field, allow_private)
 
     return parse_public_field(field)
 
 
-def parse_mri_field(field: str) -> MetricField:
+def parse_mri_field(field: str, allow_private: bool = False) -> MetricField:
     matches = MRI_EXPRESSION_REGEX.match(field)
 
     try:
@@ -108,7 +108,8 @@ def parse_mri_field(field: str) -> MetricField:
     except (IndexError, TypeError):
         operation = None
         mri = field
-    return MetricField(operation, mri, alias=mri)
+
+    return MetricField(operation, mri, alias=mri, allow_private=allow_private)
 
 
 def parse_public_field(field: str) -> MetricField:
@@ -149,7 +150,7 @@ def transform_null_transaction_to_unparameterized(use_case_id, org_id, alias=Non
 # These are only allowed because the parser in metrics_sessions_v2
 # generates them. Long term we should not allow any functions, but rather
 # a limited expression language with only AND, OR, IN and NOT IN
-FUNCTION_ALLOWLIST = ("and", "or", "equals", "in", "tuple", "has", "match")
+FUNCTION_ALLOWLIST = ("and", "or", "equals", "in", "tuple", "has", "match", "team_key_transaction")
 
 
 def resolve_tags(
@@ -416,8 +417,9 @@ def parse_query(query_string: str, projects: Sequence[Project]) -> Sequence[Cond
                 "project_id": [project.id for project in projects],
                 "organization_id": org_id_from_projects(projects) if projects else None,
             },
+            config=QueryBuilderConfig(use_aggregate_conditions=True),
         )
-        where, _ = query_builder.resolve_conditions(query_string, use_aggregate_conditions=True)
+        where, _ = query_builder.resolve_conditions(query_string)
     except InvalidSearchQuery as e:
         raise InvalidParams(f"Failed to parse query: {e}")
 
@@ -439,10 +441,9 @@ class ReleaseHealthQueryBuilder(UnresolvedQuery):
     def resolve_conditions(
         self,
         query: Optional[str],
-        use_aggregate_conditions: bool,
     ) -> Tuple[List[WhereType], List[WhereType]]:
         if not self._contains_wildcard_in_query(query):
-            return super().resolve_conditions(query, use_aggregate_conditions)
+            return super().resolve_conditions(query)
 
         raise InvalidSearchQuery("Release Health Queries don't support wildcards")
 
@@ -473,7 +474,12 @@ class QueryDefinition:
             MetricGroupByField(groupby_col) for groupby_col in query_params.getlist("groupBy", [])
         ]
         self.fields = [
-            parse_field(key, allow_mri=allow_mri) for key in query_params.getlist("field", [])
+            parse_field(
+                key,
+                allow_mri=allow_mri,
+                allow_private=bool(query_params.get("allowPrivate", False)),
+            )
+            for key in query_params.getlist("field", [])
         ]
         self.orderby = self._parse_orderby(query_params, allow_mri)
         self.limit: Optional[Limit] = self._parse_limit(paginator_kwargs)
@@ -526,13 +532,13 @@ class QueryDefinition:
     @staticmethod
     def _parse_limit(paginator_kwargs) -> Optional[Limit]:
         if "limit" not in paginator_kwargs:
-            return
+            return None
         return Limit(paginator_kwargs["limit"])
 
     @staticmethod
     def _parse_offset(paginator_kwargs) -> Optional[Offset]:
         if "offset" not in paginator_kwargs:
-            return
+            return None
         return Offset(paginator_kwargs["offset"])
 
 

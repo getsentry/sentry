@@ -31,7 +31,7 @@ This document is structured by resource with each resource having actions that c
   - offset (optional, number)
     Default: 0
   - query (optional, string) - Search query with space-separated field/value pairs. ie: `?query=count_errors:>2 AND duration:<1h`.
-  - queryReferrer(optional, string) - Specify the page which this query is being made from. Used for cross project query on issue replays page. pass `queryReferrer=issueReplays` for this query.
+  - queryReferrer(optional, string) - Specify the page which this query is being made from. Used for cross project query on issue replays page. Pass `queryReferrer=issueReplays` for this query.
     Some fields in the API response have their own dedicated parameters, or are otherwide not supported in the `query` param. They are:
 
     | Response Field      | Parameter       |
@@ -84,7 +84,7 @@ Retrieve a collection of replays.
 | count_urls        | number                        | The number of urls visited in the replay.              |
 | device.brand      | optional[string]              | -                                                      |
 | device.family     | optional[string]              | -                                                      |
-| device.model_id   | optional[string]              | Same search field as Events                            |
+| device.model      | optional[string]              | Same search field as Events                            |
 | device.name       | optional[string]              | -                                                      |
 | dist              | optional[string]              | -                                                      |
 | duration          | number                        | Difference of `finishedAt` and `startedAt` in seconds. |
@@ -129,7 +129,7 @@ Retrieve a collection of replays.
         "device": {
           "brand": "Apple",
           "family": "iPhone",
-          "model_id": "11",
+          "model": "11",
           "name": "iPhone 11"
         },
         "dist": null,
@@ -144,7 +144,7 @@ Retrieve a collection of replays.
           "version": "16.2"
         },
         "platform": "Sentry",
-        "project_dd": "639195",
+        "project_id": "639195",
         "releases": ["version@1.4"],
         "sdk": {
           "name": "Thundercat",
@@ -160,7 +160,7 @@ Retrieve a collection of replays.
           "display_name": "John Doe",
           "email": "john.doe@example.com",
           "id": "30246326",
-          "ip_address": "213.164.1.114",
+          "ip": "213.164.1.114",
           "username": "John Doe"
         }
       }
@@ -195,7 +195,7 @@ Retrieve a single replay instance.
       "device": {
         "brand": "Apple",
         "family": "iPhone",
-        "model_id": "11",
+        "model": "11",
         "name": "iPhone 11"
       },
       "dist": null,
@@ -237,6 +237,59 @@ Retrieve a single replay instance.
 Deletes a replay instance.
 
 - Response 204
+
+## Replay Selectors [/organizations/<organization_slug>/replay-selectors/]
+
+- Parameters
+
+  - project (optional, string)
+  - sort (optional, string)
+    Default: -count_dead_clicks
+    Members:
+    - count_dead_clicks
+    - -count_dead_clicks
+    - count_rage_clicks
+    - -count_rage_clicks
+  - statsPeriod (optional, string) - A positive integer suffixed with a unit type.
+    Default: 7d
+    Members:
+    - s
+    - m
+    - h
+    - d
+    - w
+  - start (optional, string) - ISO 8601 format (`YYYY-MM-DDTHH:mm:ss.sssZ`)
+  - end (optional, string) - ISO 8601 format. Required if `start` is set.
+  - limit (optional, number)
+    Default: 10
+  - offset (optional, number)
+    Default: 0
+
+### Browse Replay Selectors [GET]
+
+Retrieve a collection of selectors.
+
+**Attributes**
+
+| Column            | Type   | Description                                        |
+| ----------------- | ------ | -------------------------------------------------- |
+| dom_element       | string | -                                                  |
+| count_dead_clicks | number | The number of dead clicks for a given DOM element. |
+| count_rage_clicks | number | The number of rage clicks for a given DOM element. |
+
+- Response 200
+
+  ```json
+  {
+    "data": [
+      {
+        "dom_element": "div#myid.class1.class2",
+        "count_dead_clicks": 2,
+        "count_rage_clicks": 1
+      }
+    ]
+  }
+  ```
 
 ## Replay Recording Segments [/projects/<organization_slug>/<project_slug>/replays/<replay_id>/recording-segments/]
 

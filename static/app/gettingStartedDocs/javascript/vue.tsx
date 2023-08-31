@@ -1,8 +1,19 @@
 import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
+import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
+import {PlatformKey} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
+import type {Organization} from 'sentry/types';
+
+type StepProps = {
+  newOrg: boolean;
+  organization: Organization;
+  platformKey: PlatformKey;
+  projectId: string;
+  sentryInitContent: string;
+};
 
 // Configuration Start
 const replayIntegration = `
@@ -30,36 +41,35 @@ tracesSampleRate: 1.0, // Capture 100% of the transactions, reduce in production
 
 export const steps = ({
   sentryInitContent,
-}: {
-  sentryInitContent?: string;
-} = {}): LayoutProps['steps'] => [
+  ...props
+}: Partial<StepProps> = {}): LayoutProps['steps'] => [
   {
-    language: 'bash',
     type: StepType.INSTALL,
     description: t(
       'Sentry captures data by using an SDK within your application’s runtime.'
     ),
     configurations: [
       {
+        language: 'bash',
         code: `
-        # Using yarn
-        yarn add @sentry/vue
+# Using yarn
+yarn add @sentry/vue
 
-        # Using npm
-        npm install --save @sentry/vue
+# Using npm
+npm install --save @sentry/vue
         `,
       },
     ],
   },
   {
-    language: 'javascript',
     type: StepType.CONFIGURE,
     description: t(
       "Initialize Sentry as early as possible in your application's lifecycle."
     ),
     configurations: [
       {
-        description: <h5>V2</h5>,
+        description: <h5>Vue 3</h5>,
+        language: 'javascript',
         code: `
         import { createApp } from "vue";
         import { createRouter } from "vue-router";
@@ -82,7 +92,8 @@ export const steps = ({
         `,
       },
       {
-        description: <h5>V3</h5>,
+        description: <h5>Vue 2</h5>,
+        language: 'javascript',
         code: `
         import Vue from "vue";
         import Router from "vue-router";
@@ -109,17 +120,18 @@ export const steps = ({
       },
     ],
   },
-  getUploadSourceMapsStep(
-    'https://docs.sentry.io/platforms/javascript/guides/vue/sourcemaps/'
-  ),
+  getUploadSourceMapsStep({
+    guideLink: 'https://docs.sentry.io/platforms/javascript/guides/vue/sourcemaps/',
+    ...props,
+  }),
   {
-    language: 'javascript',
     type: StepType.VERIFY,
     description: t(
       "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
     ),
     configurations: [
       {
+        language: 'javascript',
         code: 'myUndefinedFunction();',
       },
     ],
@@ -158,17 +170,14 @@ export const nextSteps = [
 ];
 // Configuration End
 
-type Props = {
-  activeProductSelection: ProductSolution[];
-  dsn: string;
-  newOrg?: boolean;
-};
-
-export default function GettingStartedWithVue({
+export function GettingStartedWithVue({
   dsn,
-  activeProductSelection,
+  activeProductSelection = [],
+  organization,
   newOrg,
-}: Props) {
+  platformKey,
+  projectId,
+}: ModuleProps) {
   const integrations: string[] = [];
   const otherConfigs: string[] = [];
 
@@ -204,9 +213,16 @@ export default function GettingStartedWithVue({
     <Layout
       steps={steps({
         sentryInitContent: sentryInitContent.join('\n'),
+        organization,
+        newOrg,
+        platformKey,
+        projectId,
       })}
       nextSteps={nextStepDocs}
       newOrg={newOrg}
+      platformKey={platformKey}
     />
   );
 }
+
+export default GettingStartedWithVue;

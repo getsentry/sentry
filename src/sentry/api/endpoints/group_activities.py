@@ -1,6 +1,7 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases import GroupEndpoint
 from sentry.api.serializers import serialize
@@ -9,6 +10,10 @@ from sentry.models import Activity
 
 @region_silo_endpoint
 class GroupActivitiesEndpoint(GroupEndpoint, EnvironmentMixin):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, group) -> Response:
         """
         Retrieve all the Activities for a Group

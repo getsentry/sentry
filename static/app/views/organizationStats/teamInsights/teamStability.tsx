@@ -32,7 +32,6 @@ import {groupByTrend} from './utils';
 interface TeamStabilityProps extends DateTimeObject {
   organization: Organization;
   projects: Project[];
-  period?: string | null;
 }
 
 function TeamStability({

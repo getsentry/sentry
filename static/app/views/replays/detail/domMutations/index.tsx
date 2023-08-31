@@ -10,10 +10,12 @@ import {useQuery} from '@tanstack/react-query';
 import Placeholder from 'sentry/components/placeholder';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {t} from 'sentry/locale';
+import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
 import DomFilters from 'sentry/views/replays/detail/domMutations/domFilters';
 import DomMutationRow from 'sentry/views/replays/detail/domMutations/domMutationRow';
 import useDomFilters from 'sentry/views/replays/detail/domMutations/useDomFilters';
+import FilterLoadingIndicator from 'sentry/views/replays/detail/filterLoadingIndicator';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import NoRowRenderer from 'sentry/views/replays/detail/noRowRenderer';
 import TabItemContainer from 'sentry/views/replays/detail/tabItemContainer';
@@ -40,8 +42,9 @@ function useExtractedDomNodes({replay}: {replay: null | ReplayReader}) {
 }
 
 function DomMutations({replay, startTimestampMs}: Props) {
-  const {data: actions, isLoading} = useExtractedDomNodes({replay});
+  const {data: actions, isFetching} = useExtractedDomNodes({replay});
   const {currentTime, currentHoverTime} = useReplayContext();
+  const {onMouseEnter, onMouseLeave, onClickTimestamp} = useCrumbHandlers();
 
   const filterProps = useDomFilters({actions: actions || []});
   const {items, setSearchTerm} = filterProps;
@@ -68,9 +71,12 @@ function DomMutations({replay, startTimestampMs}: Props) {
         rowIndex={index}
       >
         <DomMutationRow
-          currentTime={currentTime}
           currentHoverTime={currentHoverTime}
+          currentTime={currentTime}
+          onMouseEnter={onMouseEnter}
+          onMouseLeave={onMouseLeave}
           mutation={mutation}
+          onClickTimestamp={onClickTimestamp}
           startTimestampMs={startTimestampMs}
           style={style}
         />
@@ -80,9 +86,11 @@ function DomMutations({replay, startTimestampMs}: Props) {
 
   return (
     <FluidHeight>
-      <DomFilters actions={actions} {...filterProps} />
-      <TabItemContainer>
-        {isLoading || !actions ? (
+      <FilterLoadingIndicator isLoading={isFetching}>
+        <DomFilters actions={actions} {...filterProps} />
+      </FilterLoadingIndicator>
+      <TabItemContainer data-test-id="replay-details-dom-events-tab">
+        {isFetching || !actions ? (
           <Placeholder height="100%" />
         ) : (
           <AutoSizer onResize={updateList}>

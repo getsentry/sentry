@@ -15,10 +15,10 @@ import {
 import {
   getDurationDisplay,
   getHumanDuration,
-  toPercent,
 } from 'sentry/components/performance/waterfall/utils';
 import {t} from 'sentry/locale';
 import {EventTransaction} from 'sentry/types/event';
+import toPercent from 'sentry/utils/number/toPercent';
 
 import {SpanGroupBar} from './spanGroupBar';
 import {EnhancedSpan, ProcessedSpanType, TreeDepthType} from './types';

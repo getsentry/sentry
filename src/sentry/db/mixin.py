@@ -4,7 +4,7 @@ import logging
 from typing import Any, FrozenSet
 from uuid import uuid4
 
-from django.db import transaction
+from django.db import router, transaction
 
 from sentry.db.models.manager import M
 from sentry.models import OrganizationOption
@@ -46,7 +46,7 @@ class PendingDeletionMixin:
         if extra_fields_to_save:
             fields = list(fields) + extra_fields_to_save
 
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(type(self))):
             self.save(update_fields=fields)
             OrganizationOption.objects.update_or_create(
                 organization_id=self.organization_id,

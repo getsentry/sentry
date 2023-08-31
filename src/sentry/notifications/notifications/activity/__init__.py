@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 from sentry.notifications.notifications.activity.assigned import AssignedActivityNotification
+from sentry.notifications.notifications.activity.base import ActivityNotification
 from sentry.notifications.notifications.activity.escalating import EscalatingActivityNotification
 from sentry.notifications.notifications.activity.new_processing_issues import (
     NewProcessingIssuesActivityNotification,
@@ -13,7 +16,7 @@ from sentry.notifications.notifications.activity.resolved_in_release import (
 from sentry.notifications.notifications.activity.unassigned import UnassignedActivityNotification
 from sentry.types.activity import ActivityType
 
-EMAIL_CLASSES_BY_TYPE = {
+EMAIL_CLASSES_BY_TYPE: dict[int, type[ActivityNotification]] = {
     ActivityType.ASSIGNED.value: AssignedActivityNotification,
     ActivityType.DEPLOY.value: ReleaseActivityNotification,
     ActivityType.NEW_PROCESSING_ISSUES.value: NewProcessingIssuesActivityNotification,

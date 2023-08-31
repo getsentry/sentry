@@ -23,7 +23,7 @@ import {MetricRule} from 'sentry/views/alerts/rules/metric/types';
 import {ProjectBadge, ProjectBadgeContainer} from './styles';
 import {barAxisLabel, convertDayValueObjectToSeries, sortSeriesByDay} from './utils';
 
-type AlertsTriggered = Record<string, number>;
+export type AlertsTriggered = Record<string, number>;
 
 type AlertsTriggeredRule = MetricRule & {
   totalThisWeek: number;

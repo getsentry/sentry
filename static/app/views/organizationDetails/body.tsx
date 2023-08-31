@@ -9,7 +9,6 @@ import {t, tct} from 'sentry/locale';
 import AlertStore from 'sentry/stores/alertStore';
 import {Organization} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
-import {useRouteContext} from 'sentry/utils/useRouteContext';
 import withOrganization from 'sentry/utils/withOrganization';
 
 type OrganizationProps = {
@@ -106,7 +105,6 @@ function DeletionPending({organization}: OrganizationProps) {
 
 function OrganizationDetailsBody({children, organization}: BodyProps) {
   const status = organization?.status?.id;
-  const routeContext = useRouteContext();
 
   if (organization && status === 'pending_deletion') {
     return <DeletionPending organization={organization} />;
@@ -116,34 +114,10 @@ function OrganizationDetailsBody({children, organization}: BodyProps) {
     return <DeletionInProgress organization={organization} />;
   }
 
-  const heartbeatFooter = !!organization?.features.includes(
-    'onboarding-heartbeat-footer'
-  );
-  const slug = organization?.slug;
-
-  const gettingStartedRoutes = [
-    `/getting-started/${routeContext.params.projectId}/${routeContext.params.platform}/`,
-    `/${slug}/${routeContext.params.projectId}/getting-started/${routeContext.params.platform}/`,
-  ];
-
-  const onboardingRoutes = [
-    `/onboarding/welcome/`,
-    `/onboarding/setup-docs/`,
-    `/onboarding/select-platform/`,
-    `/onboarding/${slug}/welcome/`,
-    `/onboarding/${slug}/setup-docs/`,
-    `/onboarding/${slug}/select-platform/`,
-  ];
-
-  const showFooter = !heartbeatFooter
-    ? true
-    : !gettingStartedRoutes.includes(routeContext.location.pathname) &&
-      !onboardingRoutes.includes(routeContext.location.pathname);
-
   return (
     <Fragment>
       <ErrorBoundary>{children}</ErrorBoundary>
-      {showFooter && <Footer />}
+      <Footer />
     </Fragment>
   );
 }

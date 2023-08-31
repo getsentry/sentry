@@ -1,11 +1,10 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 
-import pytz
 from django.db.models import F
-from django.utils import timezone
+from django.utils import timezone as django_timezone
 
 from sentry import analytics
 from sentry.models import (
@@ -47,16 +46,18 @@ logger = logging.getLogger("sentry")
 # Used to determine if we should or not record an analytic data
 # for a first event of a project with a minified stack trace
 START_DATE_TRACKING_FIRST_EVENT_WITH_MINIFIED_STACK_TRACE_PER_PROJ = datetime(
-    2022, 12, 14, tzinfo=pytz.UTC
+    2022, 12, 14, tzinfo=timezone.utc
 )
 
 
 @project_created.connect(weak=False)
-def record_new_project(project, user, **kwargs):
-    if user.is_authenticated:
+def record_new_project(project, user=None, user_id=None, **kwargs):
+    if user_id is not None:
+        default_user_id = user_id
+    elif user.is_authenticated:
         user_id = default_user_id = user.id
     else:
-        user = user_id = None
+        user_id = None
         try:
             default_user_id = (
                 Organization.objects.get(id=project.organization_id).get_default_owner().id
@@ -81,7 +82,7 @@ def record_new_project(project, user, **kwargs):
     success = OrganizationOnboardingTask.objects.record(
         organization_id=project.organization_id,
         task=OnboardingTask.FIRST_PROJECT,
-        user_id=user.id if user else None,
+        user_id=user_id,
         status=OnboardingTaskStatus.COMPLETE,
         project_id=project.id,
     )
@@ -89,7 +90,7 @@ def record_new_project(project, user, **kwargs):
         OrganizationOnboardingTask.objects.record(
             organization_id=project.organization_id,
             task=OnboardingTask.SECOND_PLATFORM,
-            user_id=user.id if user else None,
+            user_id=user_id,
             status=OnboardingTaskStatus.PENDING,
             project_id=project.id,
         )
@@ -236,7 +237,7 @@ def record_first_replay(project, **kwargs):
         organization_id=project.organization_id,
         task=OnboardingTask.SESSION_REPLAY,
         status=OnboardingTaskStatus.COMPLETE,
-        date_completed=timezone.now(),
+        date_completed=django_timezone.now(),
     )
 
     if success:
@@ -304,7 +305,7 @@ def record_member_joined(organization_id: int, organization_member_id: int, **kw
         status=OnboardingTaskStatus.PENDING,
         values={
             "status": OnboardingTaskStatus.COMPLETE,
-            "date_completed": timezone.now(),
+            "date_completed": django_timezone.now(),
             "data": {"invited_member_id": organization_member_id},
         },
     )
@@ -489,7 +490,7 @@ def record_alert_rule_created(user, project, rule, rule_type, **kwargs):
             "status": OnboardingTaskStatus.COMPLETE,
             "user_id": user.id if user else None,
             "project_id": project.id,
-            "date_completed": timezone.now(),
+            "date_completed": django_timezone.now(),
         },
     )
 
@@ -507,7 +508,7 @@ def record_issue_tracker_used(plugin, project, user, **kwargs):
             "status": OnboardingTaskStatus.COMPLETE,
             "user_id": user.id,
             "project_id": project.id,
-            "date_completed": timezone.now(),
+            "date_completed": django_timezone.now(),
             "data": {"plugin": plugin.slug},
         },
     )
@@ -561,7 +562,7 @@ def record_integration_added(
         if task.status != OnboardingTaskStatus.COMPLETE:
             task.status = OnboardingTaskStatus.COMPLETE
             task.user_id = user_id
-            task.date_completed = timezone.now()
+            task.date_completed = django_timezone.now()
         task.save()
     else:
         task = OrganizationOnboardingTask.objects.create(

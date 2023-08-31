@@ -1,4 +1,4 @@
-__all__ = ["attachment_cache", "CachedAttachment"]
+__all__ = ["attachment_cache", "CachedAttachment", "MissingAttachmentChunks"]
 
 from django.conf import settings
 

@@ -6,16 +6,17 @@ from typing import Callable, Optional, Tuple
 import pytest
 from django.contrib.auth.models import AnonymousUser, User
 from django.core.cache import cache
-from django.http import HttpRequest, HttpResponse
+from django.http import HttpRequest
 from django.test import override_settings
 
 from sentry.app import env
 from sentry.middleware.auth import AuthenticationMiddleware
-from sentry.models import AuthIdentity, AuthProvider
+from sentry.middleware.placeholder import placeholder_get_response
+from sentry.models import AuthIdentity, AuthProvider, Organization
 from sentry.silo import SiloMode
 from sentry.testutils.factories import Factories
+from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils.auth import login
-from sentry.utils.pytest.fixtures import django_db_all
 from sentry.web.client_config import get_client_config
 
 RequestFactory = Callable[[], Optional[Tuple[HttpRequest, User]]]
@@ -29,14 +30,14 @@ def request_factory(f):
             request, user = result
             if not user.is_anonymous:
                 login(request, user)
-                AuthenticationMiddleware(lambda _: HttpResponse("fake")).process_request(request)
+                AuthenticationMiddleware(placeholder_get_response).process_request(request)
             else:
                 request.user = user
                 request.auth = None
             env.request = request
             cache.clear()
         else:
-            env.request = None
+            env.clear()
         return result
 
     return wrapper
@@ -82,7 +83,7 @@ def make_user_request_from_non_existant_org(org=None):
 
 def make_user_request_from_org_with_auth_identities(org=None):
     request, user = make_user_request_from_org(org)
-    org = user.get_orgs()[0]
+    org = Organization.objects.get_for_user_ids({user.id})[0]
     provider = AuthProvider.objects.create(
         organization_id=org.id, provider="google", config={"domain": "olddomain.com"}
     )
@@ -97,9 +98,9 @@ def none_request() -> None:
 
 @pytest.fixture(autouse=True)
 def clear_env_request():
-    env.request = None
+    env.clear()
     yield
-    env.request = None
+    env.clear()
 
 
 @pytest.mark.parametrize(

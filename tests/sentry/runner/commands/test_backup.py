@@ -2,10 +2,11 @@ import pytest
 from click.testing import CliRunner
 from django.db import IntegrityError
 
-from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.runner.commands.backup import export, import_
+from sentry.silo import unguarded_write
+from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json
-from sentry.utils.pytest.fixtures import django_db_all
+from tests.sentry.backup import run_backup_tests_only_on_single_db
 
 
 @pytest.fixture
@@ -16,13 +17,15 @@ def backup_json_filename(tmp_path):
     return backup_json
 
 
+@run_backup_tests_only_on_single_db
 @django_db_all
 def test_import(backup_json_filename):
-    with in_test_psql_role_override("postgres"):
+    with unguarded_write(using="default"):
         rv = CliRunner().invoke(import_, backup_json_filename)
     assert rv.exit_code == 0, rv.output
 
 
+@run_backup_tests_only_on_single_db
 @django_db_all
 def test_import_duplicate_key(backup_json_filename):
     # Adding an element with the same key as the last item in the backed up file
@@ -35,7 +38,7 @@ def test_import_duplicate_key(backup_json_filename):
     with open(backup_json_filename, "w") as backup_file:
         backup_file.write(json.dumps(contents))
 
-    with in_test_psql_role_override("postgres"):
+    with unguarded_write(using="default"):
         rv = CliRunner().invoke(import_, backup_json_filename)
     assert (
         rv.output

@@ -1,4 +1,4 @@
-import React, {Component, Fragment} from 'react';
+import {Component, Fragment} from 'react';
 import LazyLoad from 'react-lazyload';
 import {WithRouterProps} from 'react-router';
 import {useSortable} from '@dnd-kit/sortable';
@@ -12,7 +12,8 @@ import ErrorPanel from 'sentry/components/charts/errorPanel';
 import {HeaderTitle} from 'sentry/components/charts/styles';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {Panel, PanelAlert} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelAlert from 'sentry/components/panels/panelAlert';
 import Placeholder from 'sentry/components/placeholder';
 import {parseSearch} from 'sentry/components/searchSyntax/parser';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -287,7 +288,7 @@ class WidgetCard extends Component<Props, State> {
         customComponent={<ErrorCard>{t('Error loading widget data')}</ErrorCard>}
       >
         {conditionalWrapWithDashboardsMEPProvider(
-          <React.Fragment>
+          <Fragment>
             <VisuallyCompleteWithData
               id="DashboardList-FirstWidgetCard"
               hasData={
@@ -339,6 +340,7 @@ class WidgetCard extends Component<Props, State> {
                   {this.renderContextMenu()}
                 </WidgetHeader>
                 {hasSessionDuration && SESSION_DURATION_ALERT}
+
                 {isWidgetInvalid ? (
                   <Fragment>
                     {renderErrorMessage?.('Widget query condition is invalid.')}
@@ -418,7 +420,7 @@ class WidgetCard extends Component<Props, State> {
                   }}
                 </MEPConsumer>
               )}
-          </React.Fragment>
+          </Fragment>
         )}
       </ErrorBoundary>
     );

@@ -14,7 +14,7 @@ import {Button} from 'sentry/components/button';
 import {SelectOption, SelectSection} from 'sentry/components/compactSelect';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {getImageRange, parseAddress} from 'sentry/components/events/interfaces/utils';
-import {PanelTable} from 'sentry/components/panels';
+import PanelTable from 'sentry/components/panels/panelTable';
 import {t} from 'sentry/locale';
 import DebugMetaStore from 'sentry/stores/debugMetaStore';
 import {space} from 'sentry/styles/space';
@@ -100,7 +100,7 @@ class DebugMetaWithRouter extends PureComponent<Props, State> {
     this.openImageDetailsModal();
   }
 
-  componentDidUpdate(_prevProps: Props, prevState: State) {
+  componentDidUpdate(prevProps: Props, prevState: State) {
     if (
       this.state.isOpen ||
       (prevState.filteredImages.length === 0 && this.state.filteredImages.length > 0)
@@ -109,6 +109,11 @@ class DebugMetaWithRouter extends PureComponent<Props, State> {
     }
 
     this.openImageDetailsModal();
+
+    if (this.props.event?.id !== prevProps.event?.id) {
+      this.getRelevantImages();
+      this.updateGrid();
+    }
   }
 
   componentWillUnmount() {

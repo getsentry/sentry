@@ -7,11 +7,9 @@ import isEqual from 'lodash/isEqual';
 import {Client} from 'sentry/api';
 import {AreaChart, AreaChartProps} from 'sentry/components/charts/areaChart';
 import {BarChart, BarChartProps} from 'sentry/components/charts/barChart';
-import EventsGeoRequest from 'sentry/components/charts/eventsGeoRequest';
 import EventsRequest from 'sentry/components/charts/eventsRequest';
 import {LineChart} from 'sentry/components/charts/lineChart';
-import {getInterval, processTableResults} from 'sentry/components/charts/utils';
-import {WorldMapChart} from 'sentry/components/charts/worldMapChart';
+import {getInterval} from 'sentry/components/charts/utils';
 import LoadingContainer from 'sentry/components/loading/loadingContainer';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconWarning} from 'sentry/icons';
@@ -141,53 +139,6 @@ class MiniGraph extends Component<Props> {
       display,
     } = this.getRefreshProps(this.props);
 
-    if (display === DisplayModes.WORLDMAP) {
-      return (
-        <EventsGeoRequest
-          api={api}
-          organization={organization}
-          yAxis={yAxis}
-          query={query}
-          orderby={orderby}
-          projects={project as number[]}
-          period={period}
-          start={start}
-          end={end}
-          environments={environment as string[]}
-          referrer={referrer}
-        >
-          {({errored, loading, tableData}) => {
-            if (errored) {
-              return (
-                <StyledGraphContainer>
-                  <IconWarning color="gray300" size="md" />
-                </StyledGraphContainer>
-              );
-            }
-            if (loading) {
-              return (
-                <StyledGraphContainer>
-                  <LoadingIndicator mini />
-                </StyledGraphContainer>
-              );
-            }
-            const {data, title} = processTableResults(tableData);
-            const chartOptions = {
-              height: 100,
-              series: [
-                {
-                  seriesName: title,
-                  data,
-                },
-              ],
-              fromDiscoverQueryList: true,
-            };
-
-            return <WorldMapChart {...chartOptions} />;
-          }}
-        </EventsGeoRequest>
-      );
-    }
     return (
       <EventsRequest
         organization={organization}

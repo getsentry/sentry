@@ -23,6 +23,7 @@ function ReplayMetaData({replayErrors, replayRecord}: Props) {
         <ContextIcon
           name={replayRecord?.os.name ?? ''}
           version={replayRecord?.os.version ?? undefined}
+          showVersion
         />
       </KeyMetricData>
 
@@ -31,6 +32,7 @@ function ReplayMetaData({replayErrors, replayRecord}: Props) {
         <ContextIcon
           name={replayRecord?.browser.name ?? ''}
           version={replayRecord?.browser.version ?? undefined}
+          showVersion
         />
       </KeyMetricData>
 

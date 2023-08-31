@@ -22,9 +22,10 @@ from sentry.models import (
     SentryAppInstallationForProvider,
     SentryAppInstallationToken,
 )
-from sentry.testutils import APITestCase
+from sentry.silo import SiloMode
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import override_options
-from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
 
@@ -49,10 +50,8 @@ class SignatureVercelTest(APITestCase):
             assert response.status_code == 401
 
 
-@control_silo_test(stable=True)
 class VercelReleasesTest(APITestCase):
     webhook_url = "/extensions/vercel/webhook/"
-    header = "VERCEL"
 
     @staticmethod
     def get_signature(message: str) -> str:
@@ -68,7 +67,7 @@ class VercelReleasesTest(APITestCase):
             path=self.webhook_url,
             data=message,
             content_type="application/json",
-            **{f"HTTP_X_{self.header}_SIGNATURE": signature},
+            HTTP_X_VERCEL_SIGNATURE=signature,
         )
 
     def setUp(self):
@@ -211,7 +210,7 @@ class VercelReleasesTest(APITestCase):
             absolute_uri("/api/0/organizations/%s/releases/" % self.organization.slug),
             json={},
         )
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.MONOLITH):
             self.project.delete()
 
         with override_options({"vercel.client-secret": SECRET}):
@@ -313,7 +312,6 @@ class VercelReleasesTest(APITestCase):
 @control_silo_test(stable=True)
 class VercelReleasesNewTest(VercelReleasesTest):
     webhook_url = "/extensions/vercel/delete/"
-    header = "VERCEL"
 
     @responses.activate
     def test_release_already_created(self):

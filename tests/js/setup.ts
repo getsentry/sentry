@@ -4,7 +4,7 @@ import path from 'path';
 import {TextDecoder, TextEncoder} from 'util';
 
 import {ReactElement} from 'react';
-import type {InjectedRouter} from 'react-router';
+import type {InjectedRouter, RouteComponentProps} from 'react-router';
 import {configure as configureRtl} from '@testing-library/react'; // eslint-disable-line no-restricted-imports
 import type {Location} from 'history';
 import MockDate from 'mockdate';
@@ -189,6 +189,20 @@ const routerFixtures = {
     ...params,
   }),
 
+  routeComponentProps: <RouteParams = {orgId: string; projectId: string}>(
+    params: Partial<RouteComponentProps<RouteParams, {}>> = {}
+  ): RouteComponentProps<RouteParams, {}> => {
+    const router = TestStubs.router(params);
+    return {
+      location: router.location,
+      params: router.params as RouteParams & {},
+      routes: router.routes,
+      route: router.routes[0],
+      routeParams: router.params,
+      router,
+    };
+  },
+
   routerContext: ([context, childContextTypes] = []) => ({
     context: {
       location: TestStubs.location(),
@@ -283,3 +297,15 @@ Object.defineProperty(window, 'getComputedStyle', {
   configurable: true,
   writable: true,
 });
+
+window.IntersectionObserver = class IntersectionObserver {
+  root = null;
+  rootMargin = '';
+  thresholds = [];
+  takeRecords = jest.fn();
+
+  constructor() {}
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+};

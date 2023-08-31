@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import timezone
 from typing import Any, Mapping, Sequence
 from urllib.parse import urlparse
 
 from django import forms
 from django.http import HttpResponse
 from django.utils.translation import gettext_lazy as _
+from isodate import parse_datetime
 from rest_framework.request import Request
 
 from sentry.identity.gitlab import get_oauth_data, get_user_info
@@ -22,6 +23,7 @@ from sentry.integrations import (
 from sentry.integrations.mixins import RepositoryMixin
 from sentry.integrations.mixins.commit_context import CommitContextMixin
 from sentry.models import Repository
+from sentry.models.identity import Identity
 from sentry.pipeline import NestedPipelineView, PipelineView
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.utils.hashlib import sha1_text
@@ -104,7 +106,10 @@ class GitlabIntegration(
 
     def get_client(self):
         if self.default_identity is None:
-            self.default_identity = self.get_default_identity()
+            try:
+                self.default_identity = self.get_default_identity()
+            except Identity.DoesNotExist:
+                raise IntegrationError("Identity not found.")
 
         return GitLabProxyApiClient(self)
 
@@ -162,13 +167,10 @@ class GitlabIntegration(
         except ApiError as e:
             raise e
 
-        date_format_expected = "%Y-%m-%dT%H:%M:%S.%f%z"
         try:
             commit = max(
-                blame_range,
-                key=lambda blame: datetime.strptime(
-                    blame.get("commit", {}).get("committed_date"), date_format_expected
-                ),
+                (blame for blame in blame_range if blame.get("commit", {}).get("committed_date")),
+                key=lambda blame: parse_datetime(blame.get("commit", {}).get("committed_date")),
             )
         except (ValueError, IndexError):
             return None
@@ -177,11 +179,11 @@ class GitlabIntegration(
         if not commitInfo:
             return None
         else:
-            committed_date = "{}Z".format(
-                datetime.strptime(commitInfo.get("committed_date"), date_format_expected)
-                .astimezone(timezone.utc)
-                .strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3]
+            # TODO(nisanthan): Use dateutil.parser.isoparse once on python 3.11
+            committed_date = parse_datetime(commitInfo.get("committed_date")).astimezone(
+                timezone.utc
             )
+
             return {
                 "commitId": commitInfo.get("id"),
                 "committedDate": committed_date,

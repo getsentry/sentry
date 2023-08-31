@@ -5,10 +5,11 @@ from unittest.mock import patch
 from urllib.parse import parse_qs
 
 import responses
+from django.conf import settings
 from django.core import mail
 from django.core.mail.message import EmailMultiAlternatives
 from django.utils import timezone
-from sentry_relay import parse_release
+from sentry_relay.processing import parse_release
 
 from sentry.event_manager import EventManager
 from sentry.models import (
@@ -22,11 +23,12 @@ from sentry.models import (
     Rule,
     UserOption,
 )
+from sentry.silo import SiloMode
 from sentry.tasks.post_process import post_process_group
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.eventprocessing import write_event_to_cache
-from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.utils import json
 
 
@@ -105,6 +107,9 @@ class ActivityNotificationTest(APITestCase):
             status=200,
             content_type="application/json",
         )
+        responses.add_passthru(
+            settings.SENTRY_SNUBA + "/tests/entities/generic_metrics_counters/insert",
+        )
         self.name = self.user.get_display_name()
         self.short_id = self.group.qualified_short_id
 
@@ -117,7 +122,7 @@ class ActivityNotificationTest(APITestCase):
 
         # leave a comment
         url = f"/api/0/issues/{self.group.id}/comments/"
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.REGION):
             with self.tasks():
                 response = self.client.post(url, format="json", data={"text": "blah blah"})
             assert response.status_code == 201, response.content
@@ -151,7 +156,7 @@ class ActivityNotificationTest(APITestCase):
         the expected values when an issue is unassigned.
         """
         url = f"/api/0/issues/{self.group.id}/"
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.REGION):
             GroupAssignee.objects.create(
                 group=self.group,
                 project=self.project,
@@ -187,7 +192,7 @@ class ActivityNotificationTest(APITestCase):
         the expected values when an issue is resolved.
         """
         url = f"/api/0/issues/{self.group.id}/"
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.MONOLITH):
             with self.tasks():
                 response = self.client.put(url, format="json", data={"status": "resolved"})
             assert response.status_code == 200, response.content
@@ -236,7 +241,7 @@ class ActivityNotificationTest(APITestCase):
 
         release = self.create_release()
         version_parsed = self.version_parsed = parse_release(release.version)["description"]
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.REGION):
             url = (
                 f"/api/0/organizations/{self.organization.slug}/releases/{release.version}/deploys/"
             )
@@ -295,7 +300,7 @@ class ActivityNotificationTest(APITestCase):
         """
         # resolve and unresolve the issue
         ts = time() - 300
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.REGION):
             manager = EventManager(make_event(event_id="a" * 32, checksum="a" * 32, timestamp=ts))
             with self.tasks():
                 event = manager.save(self.project.id)
@@ -354,7 +359,7 @@ class ActivityNotificationTest(APITestCase):
         the expected values when an issue is resolved by a release.
         """
         release = self.create_release()
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.MONOLITH):
             url = f"/api/0/issues/{self.group.id}/"
             with self.tasks():
                 response = self.client.put(
@@ -366,9 +371,10 @@ class ActivityNotificationTest(APITestCase):
 
         msg = mail.outbox[0]
         assert isinstance(msg, EmailMultiAlternatives)
+        parsed_version = parse_release(release.version)["description"]
         # check the txt version
         assert (
-            f"Resolved Issue\n\n{self.user.username} marked {self.short_id} as resolved in {release.version}"
+            f"Resolved Issue\n\n{self.user.username} marked {self.short_id} as resolved in {parsed_version}"
             in msg.body
         )
         # check the html version
@@ -378,7 +384,7 @@ class ActivityNotificationTest(APITestCase):
         )
 
         attachment, text = get_attachment()
-        assert text == f"Issue marked as resolved in {release.version} by {self.name}"
+        assert text == f"Issue marked as resolved in {parsed_version} by {self.name}"
         assert attachment["title"] == self.group.title
         assert (
             attachment["footer"]
@@ -420,7 +426,7 @@ class ActivityNotificationTest(APITestCase):
             "targetType": "Member",
             "targetIdentifier": str(self.user.id),
         }
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.MONOLITH):
             Rule.objects.create(
                 project=self.project,
                 label="a rule",

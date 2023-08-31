@@ -2,9 +2,9 @@ import pytest
 import responses
 
 from sentry.coreapi import APIError
-from sentry.mediators.external_requests import SelectRequester
+from sentry.mediators.external_requests.select_requester import SelectRequester
 from sentry.services.hybrid_cloud.app import app_service
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
 
 

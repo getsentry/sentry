@@ -6,7 +6,7 @@ import dataclasses
 import datetime
 import threading
 from enum import IntEnum
-from typing import Any, ContextManager, Generator, Iterable, List, Mapping, Type, TypeVar
+from typing import Any, Generator, Iterable, List, Mapping, Type, TypeVar
 
 import sentry_sdk
 from django import db
@@ -16,7 +16,10 @@ from django.db.transaction import Atomic
 from django.dispatch import Signal
 from django.http import HttpRequest
 from django.utils import timezone
+from sentry_sdk.tracing import Span
+from typing_extensions import Self
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedBigIntegerField,
     BoundedPositiveIntegerField,
@@ -26,13 +29,13 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
-from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.db.postgres.transactions import (
     django_test_transaction_water_mark,
+    enforce_constraints,
     in_test_assert_no_transaction,
 )
 from sentry.services.hybrid_cloud import REGION_NAME_LENGTH
-from sentry.silo import SiloMode
+from sentry.silo import SiloMode, unguarded_write
 from sentry.utils import metrics
 
 THE_PAST = datetime.datetime(2016, 8, 1, 0, 0, 0, 0, tzinfo=timezone.utc)
@@ -53,6 +56,8 @@ class OutboxScope(IntEnum):
     INTEGRATION_SCOPE = 5
     APP_SCOPE = 6
     TEAM_SCOPE = 7
+    PROVISION_SCOPE = 8
+    SUBSCRIPTION_SCOPE = 9
 
     def __str__(self):
         return self.name
@@ -60,6 +65,19 @@ class OutboxScope(IntEnum):
     @classmethod
     def as_choices(cls):
         return [(i.value, i.value) for i in cls]
+
+    @staticmethod
+    def get_tag_name(scope: OutboxScope):
+        if scope == OutboxScope.ORGANIZATION_SCOPE:
+            return "organization_id"
+        if scope == OutboxScope.USER_SCOPE:
+            return "user_id"
+        if scope == OutboxScope.TEAM_SCOPE:
+            return "team_id"
+        if scope == OutboxScope.APP_SCOPE:
+            return "app_id"
+
+        return "shard_identifier"
 
 
 class OutboxCategory(IntEnum):
@@ -80,6 +98,13 @@ class OutboxCategory(IntEnum):
     SEND_SIGNAL = 14
     ORGANIZATION_MAPPING_CUSTOMER_ID_UPDATE = 15
     ORGAUTHTOKEN_UPDATE = 16
+    PROVISION_ORGANIZATION = 17
+    POST_ORGANIZATION_PROVISION = 18
+    SEND_MODEL_SIGNAL = 19
+    DISABLE_AUTH_PROVIDER = 20
+    RESET_IDP_FLAGS = 21
+    MARK_INVALID_SSO = 22
+    SUBSCRIPTION_UPDATE = 23
 
     @classmethod
     def as_choices(cls):
@@ -103,6 +128,11 @@ class WebhookProviderIdentifier(IntEnum):
     MSTEAMS = 4
     BITBUCKET = 5
     VSTS = 6
+    JIRA_SERVER = 7
+    GITHUB_ENTERPRISE = 8
+    BITBUCKET_SERVER = 9
+    LEGACY_PLUGIN = 10
+    GETSENTRY = 11
 
 
 def _ensure_not_null(k: str, v: Any) -> Any:
@@ -114,6 +144,15 @@ def _ensure_not_null(k: str, v: Any) -> Any:
 class OutboxBase(Model):
     sharding_columns: Iterable[str]
     coalesced_columns: Iterable[str]
+
+    @classmethod
+    def from_outbox_name(cls, name: str) -> Type[Self]:
+        from django.apps import apps
+
+        app_name, model_name = name.split(".")
+        outbox_model = apps.get_model(app_name, model_name)
+        assert issubclass(outbox_model, cls)
+        return outbox_model
 
     @classmethod
     def next_object_identifier(cls):
@@ -136,7 +175,7 @@ class OutboxBase(Model):
         )
 
     @classmethod
-    def prepare_next_from_shard(cls, row: Mapping[str, Any]) -> OutboxBase | None:
+    def prepare_next_from_shard(cls, row: Mapping[str, Any]) -> Self | None:
         using = router.db_for_write(cls)
         with transaction.atomic(using=using, savepoint=False):
             next_outbox: OutboxBase | None
@@ -174,7 +213,7 @@ class OutboxBase(Model):
     class Meta:
         abstract = True
 
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     # Different shard_scope, shard_identifier pairings of messages are always deliverable in parallel
     shard_scope = BoundedPositiveIntegerField(choices=OutboxScope.as_choices(), null=False)
@@ -185,7 +224,7 @@ class OutboxBase(Model):
     object_identifier = BoundedBigIntegerField(null=False)
 
     # payload is used for webhook payloads.
-    payload = JSONField(null=True)
+    payload: models.Field[dict[str, Any], dict[str, Any]] = JSONField(null=True)
 
     # The point at which this object was scheduled, used as a diff from scheduled_for to determine the intended delay.
     scheduled_from = models.DateTimeField(null=False, default=timezone.now)
@@ -193,16 +232,16 @@ class OutboxBase(Model):
     # the largest back off effectively applies to the entire 'shard' key.
     scheduled_for = models.DateTimeField(null=False, default=THE_PAST)
 
+    # Initial creation date for the outbox which should not be modified. Used for lag time calculation.
+    date_added = models.DateTimeField(null=False, default=timezone.now, editable=False)
+
     def last_delay(self) -> datetime.timedelta:
-        return min(
-            max(self.scheduled_for - self.scheduled_from, datetime.timedelta(seconds=1)),
-            datetime.timedelta(hours=1),
-        )
+        return max(self.scheduled_for - self.scheduled_from, datetime.timedelta(seconds=1))
 
     def next_schedule(self, now: datetime.datetime) -> datetime.datetime:
-        return now + (self.last_delay() * 2)
+        return now + min((self.last_delay() * 2), datetime.timedelta(hours=1))
 
-    def save(self, **kwds: Any):
+    def save(self, **kwds: Any) -> None:  # type: ignore[override]
         if _outbox_context.flushing_enabled:
             transaction.on_commit(lambda: self.drain_shard(), using=router.db_for_write(type(self)))
 
@@ -246,6 +285,7 @@ class OutboxBase(Model):
             )
 
             tags = {"category": OutboxCategory(self.category).name}
+
             metrics.incr("outbox.processed", deleted_count, tags=tags)
             metrics.timing(
                 "outbox.processing_lag",
@@ -253,17 +293,25 @@ class OutboxBase(Model):
                 tags=tags,
             )
 
+    def _set_span_data_for_coalesced_message(self, span: Span, message: OutboxBase):
+        tag_for_outbox = OutboxScope.get_tag_name(message.shard_scope)
+        span.set_tag(tag_for_outbox, message.shard_identifier)
+        span.set_data("payload", message.payload)
+        span.set_data("outbox_id", message.id)
+        span.set_tag("outbox_category", OutboxCategory(message.category).name)
+        span.set_tag("outbox_scope", OutboxScope(message.shard_scope).name)
+
     def process(self) -> bool:
         with self.process_coalesced() as coalesced:
             if coalesced is not None:
                 with metrics.timer(
                     "outbox.send_signal.duration",
                     tags={"category": OutboxCategory(coalesced.category).name},
-                ):
+                ), sentry_sdk.start_span(op="outbox.process") as span:
+                    self._set_span_data_for_coalesced_message(span=span, message=coalesced)
                     try:
                         coalesced.send_signal()
                     except Exception as e:
-                        sentry_sdk.capture_exception(e)
                         raise OutboxFlushError(f"Could not flush shard {repr(coalesced)}") from e
 
                 return True
@@ -305,8 +353,7 @@ class OutboxBase(Model):
 
 
 # Outboxes bound from region silo -> control silo
-@region_silo_only_model
-class RegionOutbox(OutboxBase):
+class RegionOutboxBase(OutboxBase):
     def send_signal(self):
         process_region_outbox.send(
             sender=OutboxCategory(self.category),
@@ -319,6 +366,14 @@ class RegionOutbox(OutboxBase):
     sharding_columns = ("shard_scope", "shard_identifier")
     coalesced_columns = ("shard_scope", "shard_identifier", "category", "object_identifier")
 
+    class Meta:
+        abstract = True
+
+    __repr__ = sane_repr("payload", *coalesced_columns)
+
+
+@region_silo_only_model
+class RegionOutbox(RegionOutboxBase):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_regionoutbox"
@@ -337,20 +392,9 @@ class RegionOutbox(OutboxBase):
             ("shard_scope", "shard_identifier", "id"),
         )
 
-    @classmethod
-    def for_shard(cls: Type[_T], shard_scope: OutboxScope, shard_identifier: int) -> _T:
-        """
-        Logically, this is just an alias for the constructor of cls, but explicitly named to call out the intended
-        semantic of creating and instance to invoke `drain_shard` on.
-        """
-        return cls(shard_scope=shard_scope, shard_identifier=shard_identifier)
-
-    __repr__ = sane_repr(*coalesced_columns)
-
 
 # Outboxes bound from control silo -> region silo
-@control_silo_only_model
-class ControlOutbox(OutboxBase):
+class ControlOutboxBase(OutboxBase):
     sharding_columns = ("region_name", "shard_scope", "shard_identifier")
     coalesced_columns = (
         "region_name",
@@ -373,6 +417,54 @@ class ControlOutbox(OutboxBase):
         )
 
     class Meta:
+        abstract = True
+
+    __repr__ = sane_repr("payload", *coalesced_columns)
+
+    @classmethod
+    def get_webhook_payload_from_request(cls, request: HttpRequest) -> OutboxWebhookPayload:
+        assert request.method is not None
+        return OutboxWebhookPayload(
+            method=request.method,
+            path=request.get_full_path(),
+            uri=request.build_absolute_uri(),
+            headers={k: v for k, v in request.headers.items()},
+            body=request.body.decode(encoding="utf-8"),
+        )
+
+    @classmethod
+    def get_webhook_payload_from_outbox(cls, payload: Mapping[str, Any]) -> OutboxWebhookPayload:
+        return OutboxWebhookPayload(
+            method=payload["method"],
+            path=payload["path"],
+            uri=payload["uri"],
+            headers=payload["headers"],
+            body=payload["body"],
+        )
+
+    @classmethod
+    def for_webhook_update(
+        cls,
+        *,
+        webhook_identifier: WebhookProviderIdentifier,
+        region_names: List[str],
+        request: HttpRequest,
+    ) -> Iterable[Self]:
+        for region_name in region_names:
+            result = cls()
+            result.shard_scope = OutboxScope.WEBHOOK_SCOPE
+            result.shard_identifier = webhook_identifier.value
+            result.object_identifier = cls.next_object_identifier()
+            result.category = OutboxCategory.WEBHOOK_PROXY
+            result.region_name = region_name
+            payload = result.get_webhook_payload_from_request(request)
+            result.payload = dataclasses.asdict(payload)
+            yield result
+
+
+@control_silo_only_model
+class ControlOutbox(ControlOutboxBase):
+    class Meta:
         app_label = "sentry"
         db_table = "sentry_controloutbox"
         index_together = (
@@ -390,58 +482,6 @@ class ControlOutbox(OutboxBase):
                 "scheduled_for",
             ),
             ("region_name", "shard_scope", "shard_identifier", "id"),
-        )
-
-    __repr__ = sane_repr(*coalesced_columns)
-
-    def get_webhook_payload_from_request(self, request: HttpRequest) -> OutboxWebhookPayload:
-        return OutboxWebhookPayload(
-            method=request.method,
-            path=request.get_full_path(),
-            uri=request.get_raw_uri(),
-            headers={k: v for k, v in request.headers.items()},
-            body=request.body.decode(encoding="utf-8"),
-        )
-
-    @classmethod
-    def get_webhook_payload_from_outbox(cls, payload: Mapping[str, Any]) -> OutboxWebhookPayload:
-        return OutboxWebhookPayload(
-            method=payload.get("method"),
-            path=payload.get("path"),
-            uri=payload.get("uri"),
-            headers=payload.get("headers"),
-            body=payload.get("body"),
-        )
-
-    @classmethod
-    def for_webhook_update(
-        cls,
-        *,
-        webhook_identifier: WebhookProviderIdentifier,
-        region_names: List[str],
-        request: HttpRequest,
-    ) -> Iterable[ControlOutbox]:
-        for region_name in region_names:
-            result = cls()
-            result.shard_scope = OutboxScope.WEBHOOK_SCOPE
-            result.shard_identifier = webhook_identifier.value
-            result.object_identifier = cls.next_object_identifier()
-            result.category = OutboxCategory.WEBHOOK_PROXY
-            result.region_name = region_name
-            payload: OutboxWebhookPayload = result.get_webhook_payload_from_request(request)
-            result.payload = dataclasses.asdict(payload)
-            yield result
-
-    @classmethod
-    def for_shard(
-        cls: Type[_T], shard_scope: OutboxScope, shard_identifier: int, region_name: str
-    ) -> _T:
-        """
-        Logically, this is just an alias for the constructor of cls, but explicitly named to call out the intended
-        semantic of creating and instance to invoke `drain_shard` on.
-        """
-        return cls(
-            shard_scope=shard_scope, shard_identifier=shard_identifier, region_name=region_name
         )
 
 
@@ -463,8 +503,9 @@ _outbox_context = OutboxContext()
 
 
 @contextlib.contextmanager
-def outbox_context(inner: Atomic | None = None, flush: bool | None = None) -> ContextManager[None]:
-
+def outbox_context(
+    inner: Atomic | None = None, flush: bool | None = None
+) -> Generator[Atomic | None, None, None]:
     # If we don't specify our flush, use the outer specified override
     if flush is None:
         flush = _outbox_context.flushing_enabled
@@ -477,16 +518,17 @@ def outbox_context(inner: Atomic | None = None, flush: bool | None = None) -> Co
     original = _outbox_context.flushing_enabled
 
     if inner:
-        with in_test_psql_role_override("postgres", using=inner.using), inner:
+        assert inner.using is not None
+        with unguarded_write(using=inner.using), enforce_constraints(inner):
             _outbox_context.flushing_enabled = flush
             try:
-                yield
+                yield inner
             finally:
                 _outbox_context.flushing_enabled = original
     else:
         _outbox_context.flushing_enabled = flush
         try:
-            yield
+            yield None
         finally:
             _outbox_context.flushing_enabled = original
 

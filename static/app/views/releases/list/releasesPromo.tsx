@@ -14,7 +14,7 @@ import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
 import {Item} from 'sentry/components/dropdownAutoComplete/types';
 import Link from 'sentry/components/links/link';
 import {TourImage, TourStep, TourText} from 'sentry/components/modals/featureTourModal';
-import {Panel} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
 import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconAdd} from 'sentry/icons';

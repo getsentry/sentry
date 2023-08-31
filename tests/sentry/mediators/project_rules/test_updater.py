@@ -1,7 +1,7 @@
-from sentry.mediators.project_rules import Updater
+from sentry.mediators.project_rules.updater import Updater
 from sentry.models.actor import get_actor_for_user, get_actor_id_for_user
 from sentry.models.user import User
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 
 
 class TestUpdater(TestCase):
@@ -20,7 +20,6 @@ class TestUpdater(TestCase):
         assert self.rule.label == "Cool New Rule"
 
     def test_update_owner(self):
-
         self.updater.owner = get_actor_id_for_user(self.user)
         self.updater.call()
         self.user = User.objects.get(id=self.user.id)
@@ -64,7 +63,6 @@ class TestUpdater(TestCase):
         assert self.rule.data["actions"] == [
             {
                 "id": "sentry.rules.actions.notify_event.NotifyEventAction",
-                "name": "Send a notification (for all legacy integrations)",
             }
         ]
 

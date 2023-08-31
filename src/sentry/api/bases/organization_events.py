@@ -10,6 +10,7 @@ from rest_framework.request import Request
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 
 from sentry import features, quotas
+from sentry.api.api_owners import ApiOwner
 from sentry.api.base import CURSOR_LINK_HEADER
 from sentry.api.bases import NoProjects
 from sentry.api.bases.organization import OrganizationEndpoint
@@ -59,6 +60,8 @@ def resolve_axis_column(column: str, index: int = 0) -> str:
 
 
 class OrganizationEventsEndpointBase(OrganizationEndpoint):
+    owner = ApiOwner.PERFORMANCE
+
     def has_feature(self, organization: Organization, request: Request) -> bool:
         return (
             features.has("organizations:discover-basic", organization, actor=request.user)
@@ -94,6 +97,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         dataset_label = request.GET.get("dataset", "discover")
         if dataset_label not in DATASET_OPTIONS:
             raise ParseError(detail=f"dataset must be one of: {', '.join(DATASET_OPTIONS.keys())}")
+        sentry_sdk.set_tag("query.dataset", dataset_label)
         return DATASET_OPTIONS[dataset_label]
 
     def get_snuba_dataclass(
@@ -258,6 +262,8 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
 
 
 class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
+    owner = ApiOwner.PERFORMANCE
+
     def build_cursor_link(self, request: Request, name: str, cursor: Optional[Cursor]) -> str:
         # The base API function only uses the last query parameter, but this endpoint
         # needs all the parameters, particularly for the "field" query param.
@@ -292,6 +298,13 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             elif value in DURATION_UNITS:
                 units[key] = value
                 meta[key] = "duration"
+            elif value == "rate":
+                if key in ["eps()", "sps()", "tps()"]:
+                    units[key] = "1/second"
+                elif key in ["epm()", "spm()", "tpm()"]:
+                    units[key] = "1/minute"
+                else:
+                    units[key] = None
             elif value == "duration":
                 units[key] = "millisecond"
             else:
@@ -461,6 +474,8 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                     "eps()": "eps(%d)" % rollup,
                     "tpm()": "tpm(%d)" % rollup,
                     "tps()": "tps(%d)" % rollup,
+                    "sps()": "sps(%d)" % rollup,
+                    "spm()": "spm(%d)" % rollup,
                 }
 
                 query_columns = [column_map.get(column, column) for column in columns]

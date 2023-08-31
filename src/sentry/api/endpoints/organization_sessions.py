@@ -8,6 +8,8 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features, release_health
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
@@ -20,6 +22,11 @@ from sentry.utils.cursors import Cursor, CursorResult
 # NOTE: this currently extends `OrganizationEventsEndpointBase` for `handle_query_errors` only, which should ideally be decoupled from the base class.
 @region_silo_endpoint
 class OrganizationSessionsEndpoint(OrganizationEventsEndpointBase):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+    owner = ApiOwner.TELEMETRY_EXPERIENCE
+
     def get(self, request: Request, organization) -> Response:
         query_params = MultiValueDict(request.GET)
 
@@ -48,7 +55,7 @@ class OrganizationSessionsEndpoint(OrganizationEventsEndpointBase):
                         request, organization, offset=request_offset, limit=request_limit
                     )
 
-                return release_health.run_sessions_query(
+                return release_health.backend.run_sessions_query(
                     organization.id, query, span_op="sessions.endpoint"
                 )
 
@@ -73,11 +80,11 @@ class OrganizationSessionsEndpoint(OrganizationEventsEndpointBase):
 
         # HACK to prevent front-end crash when release health is sessions-based:
         query_params = MultiValueDict(request.GET)
-        if not release_health.is_metrics_based() and request.GET.get("interval") == "10s":
+        if not release_health.backend.is_metrics_based() and request.GET.get("interval") == "10s":
             query_params["interval"] = "1m"
 
         start, _ = get_date_range_from_params(query_params)
-        query_config = release_health.sessions_query_config(organization, start)
+        query_config = release_health.backend.sessions_query_config(organization, start)
 
         return QueryDefinition(
             query_params,

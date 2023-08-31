@@ -1,7 +1,10 @@
+from __future__ import annotations
+
 import logging
 import pickle
 from base64 import b64encode
 from collections.abc import MutableMapping
+from typing import Any
 from uuid import uuid4
 
 from django.db.models.signals import post_delete
@@ -105,10 +108,10 @@ class NodeData(MutableMapping):
             return self._node_data
 
         elif self.id:
-            self.bind_data(nodestore.get(self.id) or {})
+            self.bind_data(nodestore.backend.get(self.id) or {})
             return self._node_data
 
-        rv = {}
+        rv: dict[str, Any] = {}
         if self.wrapper is not None:
             rv = self.wrapper(rv)
         return rv
@@ -153,7 +156,7 @@ class NodeData(MutableMapping):
         subkeys = subkeys or {}
         subkeys[None] = to_write
 
-        nodestore.set_subkeys(self.id, subkeys)
+        nodestore.backend.set_subkeys(self.id, subkeys)
 
 
 class NodeField(GzippedDictField):
@@ -179,7 +182,7 @@ class NodeField(GzippedDictField):
         if not value.id:
             return
 
-        nodestore.delete(value.id)
+        nodestore.backend.delete(value.id)
 
     def to_python(self, value):
         node_id = None

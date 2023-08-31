@@ -1,12 +1,11 @@
 import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import capitalize from 'lodash/capitalize';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
+import ErrorLevel from 'sentry/components/events/errorLevel';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconMute, IconStar} from 'sentry/icons';
 import {tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -57,15 +56,7 @@ function EventOrGroupHeader({
     const {level, status, isBookmarked, hasSeen} = data as Group;
     return (
       <Fragment>
-        {!hideLevel && level && (
-          <Tooltip
-            skipWrapper
-            disabled={level === 'unknown'}
-            title={tct('Error level: [level]', {level: capitalize(level)})}
-          >
-            <GroupLevel level={level} />
-          </Tooltip>
-        )}
+        {!hideLevel && level && <GroupLevel level={level} />}
         {!hideIcons &&
           status === 'ignored' &&
           !organization.features.includes('escalating-issues') && (
@@ -221,14 +212,12 @@ const IconWrapper = styled('span')`
   margin-right: 5px;
 `;
 
-const GroupLevel = styled('div')<{level: Level}>`
+const GroupLevel = styled(ErrorLevel)<{level: Level}>`
   position: absolute;
   left: -1px;
   width: 9px;
   height: 15px;
   border-radius: 0 3px 3px 0;
-
-  background-color: ${p => p.theme.level[p.level] ?? p.theme.level.default};
 `;
 
 const TitleWithLink = styled(GlobalSelectionLink)`

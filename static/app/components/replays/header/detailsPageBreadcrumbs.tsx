@@ -1,13 +1,14 @@
 import {Fragment} from 'react';
 
 import Breadcrumbs from 'sentry/components/breadcrumbs';
-import BaseBadge from 'sentry/components/idBadge/baseBadge';
+import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import HeaderPlaceholder from 'sentry/components/replays/header/headerPlaceholder';
 import {t} from 'sentry/locale';
 import EventView from 'sentry/utils/discover/eventView';
 import {getShortEventId} from 'sentry/utils/events';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
 type Props = {
@@ -33,7 +34,7 @@ function DetailsPageBreadcrumbs({orgSlug, replayRecord}: Props) {
       crumbs={[
         {
           to: {
-            pathname: `/organizations/${orgSlug}/replays/`,
+            pathname: normalizeUrl(`/organizations/${orgSlug}/replays/`),
             query: eventView.generateQueryStringObject(),
           },
           label: t('Session Replay'),
@@ -41,9 +42,14 @@ function DetailsPageBreadcrumbs({orgSlug, replayRecord}: Props) {
         {
           label: (
             <Fragment>
-              {<BaseBadge displayName={labelTitle} project={project} avatarSize={16} />}
+              {project ? (
+                <ProjectBadge disableLink project={project} avatarSize={16} />
+              ) : null}
             </Fragment>
           ),
+        },
+        {
+          label: labelTitle,
         },
       ]}
     />

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import random
 from datetime import datetime, timedelta
 from typing import Dict, List, Set, Tuple
 
@@ -17,6 +18,7 @@ from sentry.models.artifactbundle import (
     ArtifactBundleIndex,
     ArtifactBundleIndexingState,
     DebugIdArtifactBundle,
+    FlatFileIndexState,
     ProjectArtifactBundle,
     ReleaseArtifactBundle,
 )
@@ -100,6 +102,7 @@ def index_artifact_bundles_for_release(
             # debounce this in case there is a persistent error?
 
 
+@sentry_sdk.tracing.trace
 def _index_urls_in_bundle(
     organization_id: int,
     artifact_bundle: ArtifactBundle,
@@ -169,13 +172,36 @@ def _index_urls_in_bundle(
 # ===== Renewal of Artifact Bundles =====
 
 
+@sentry_sdk.tracing.trace
+def maybe_renew_artifact_bundles_from_processing(project_id: int, used_download_ids: List[str]):
+    if random.random() >= options.get("symbolicator.sourcemaps-bundle-index-refresh-sample-rate"):
+        return
+
+    artifact_bundle_ids = []
+    for download_id in used_download_ids:
+        # the `download_id` is in a `artifact_bundle/$ID` format
+        split = download_id.split("/")
+        if len(split) < 2:
+            continue
+        ty, ty_id, *_rest = split
+        if ty != "artifact_bundle":
+            continue
+        artifact_bundle_ids.append(ty_id)
+
+    # FIXME: This function is being called for every processed event, so ideally
+    # we would heavily debounce this and avoid doing such a query directly.
+
+    used_artifact_bundles = {
+        id: date_added
+        for id, date_added in ArtifactBundle.objects.filter(
+            projectartifactbundle__project_id=project_id, id__in=artifact_bundle_ids
+        ).values_list("id", "date_added")
+    }
+
+    maybe_renew_artifact_bundles(used_artifact_bundles)
+
+
 def maybe_renew_artifact_bundles(used_artifact_bundles: Dict[int, datetime]):
-    if options.get("sourcemaps.artifact-bundles.enable-renewal") == 1.0:
-        with metrics.timer("artifact_bundle_renewal"):
-            renew_artifact_bundles(used_artifact_bundles)
-
-
-def renew_artifact_bundles(used_artifact_bundles: Dict[int, datetime]):
     # We take a snapshot in time that MUST be consistent across all updates.
     now = timezone.now()
     # We compute the threshold used to determine whether we want to renew the specific bundle.
@@ -185,40 +211,51 @@ def renew_artifact_bundles(used_artifact_bundles: Dict[int, datetime]):
         # We perform the condition check also before running the query, in order to reduce the amount of queries to the database.
         if date_added > threshold_date:
             continue
-        metrics.incr("artifact_bundle_renewal.need_renewal")
-        # We want to use a transaction, in order to keep the `date_added` consistent across multiple tables.
-        with atomic_transaction(
-            using=(
-                router.db_for_write(ArtifactBundle),
-                router.db_for_write(ProjectArtifactBundle),
-                router.db_for_write(ReleaseArtifactBundle),
-                router.db_for_write(DebugIdArtifactBundle),
-                router.db_for_write(ArtifactBundleIndex),
-            )
-        ):
-            # We check again for the date_added condition in order to achieve consistency, this is done because
-            # the `can_be_renewed` call is using a time which differs from the one of the actual update in the db.
-            updated_rows_count = ArtifactBundle.objects.filter(
-                id=artifact_bundle_id, date_added__lte=threshold_date
-            ).update(date_added=now)
-            # We want to make cascading queries only if there were actual changes in the db.
-            if updated_rows_count > 0:
-                ProjectArtifactBundle.objects.filter(
-                    artifact_bundle_id=artifact_bundle_id, date_added__lte=threshold_date
-                ).update(date_added=now)
-                ReleaseArtifactBundle.objects.filter(
-                    artifact_bundle_id=artifact_bundle_id, date_added__lte=threshold_date
-                ).update(date_added=now)
-                DebugIdArtifactBundle.objects.filter(
-                    artifact_bundle_id=artifact_bundle_id, date_added__lte=threshold_date
-                ).update(date_added=now)
-                ArtifactBundleIndex.objects.filter(
-                    artifact_bundle_id=artifact_bundle_id, date_added__lte=threshold_date
-                ).update(date_added=now)
 
-        # If the transaction succeeded, and we did actually modify some rows, we want to track the metric.
+        with metrics.timer("artifact_bundle_renewal"):
+            renew_artifact_bundle(artifact_bundle_id, threshold_date, now)
+
+
+@sentry_sdk.tracing.trace
+def renew_artifact_bundle(artifact_bundle_id: int, threshold_date: datetime, now: datetime):
+    metrics.incr("artifact_bundle_renewal.need_renewal")
+    # We want to use a transaction, in order to keep the `date_added` consistent across multiple tables.
+    with atomic_transaction(
+        using=(
+            router.db_for_write(ArtifactBundle),
+            router.db_for_write(ProjectArtifactBundle),
+            router.db_for_write(ReleaseArtifactBundle),
+            router.db_for_write(DebugIdArtifactBundle),
+            router.db_for_write(ArtifactBundleIndex),
+            router.db_for_write(FlatFileIndexState),
+        )
+    ):
+        # We check again for the date_added condition in order to achieve consistency, this is done because
+        # the `can_be_renewed` call is using a time which differs from the one of the actual update in the db.
+        updated_rows_count = ArtifactBundle.objects.filter(
+            id=artifact_bundle_id, date_added__lte=threshold_date
+        ).update(date_added=now)
+        # We want to make cascading queries only if there were actual changes in the db.
         if updated_rows_count > 0:
-            metrics.incr("artifact_bundle_renewal.were_renewed")
+            ProjectArtifactBundle.objects.filter(
+                artifact_bundle_id=artifact_bundle_id, date_added__lte=threshold_date
+            ).update(date_added=now)
+            ReleaseArtifactBundle.objects.filter(
+                artifact_bundle_id=artifact_bundle_id, date_added__lte=threshold_date
+            ).update(date_added=now)
+            DebugIdArtifactBundle.objects.filter(
+                artifact_bundle_id=artifact_bundle_id, date_added__lte=threshold_date
+            ).update(date_added=now)
+            ArtifactBundleIndex.objects.filter(
+                artifact_bundle_id=artifact_bundle_id, date_added__lte=threshold_date
+            ).update(date_added=now)
+            FlatFileIndexState.objects.filter(
+                artifact_bundle_id=artifact_bundle_id, date_added__lte=threshold_date
+            ).update(date_added=now)
+
+    # If the transaction succeeded, and we did actually modify some rows, we want to track the metric.
+    if updated_rows_count > 0:
+        metrics.incr("artifact_bundle_renewal.were_renewed")
 
 
 # ===== Querying of Artifact Bundles =====
@@ -377,7 +414,8 @@ def get_artifact_bundles_containing_url(
             artifactbundleindex__url__icontains=url,
         )
         .values_list("id", "date_added")
-        .order_by("-date_last_modified", "-id")[:1]
+        .order_by("-date_last_modified", "-id")
+        .distinct("date_last_modified", "id")[:MAX_BUNDLES_QUERY]
     )
 
 

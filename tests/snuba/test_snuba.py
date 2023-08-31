@@ -8,7 +8,7 @@ import pytest
 from django.utils import timezone
 from snuba_sdk.column import InvalidColumnError
 
-from sentry.testutils import SnubaTestCase, TestCase
+from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils import snuba
 

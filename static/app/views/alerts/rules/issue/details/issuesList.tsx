@@ -8,7 +8,7 @@ import DateTime from 'sentry/components/dateTime';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import Link from 'sentry/components/links/link';
 import Pagination from 'sentry/components/pagination';
-import {PanelTable} from 'sentry/components/panels';
+import PanelTable from 'sentry/components/panels/panelTable';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Group, Organization, Project} from 'sentry/types';

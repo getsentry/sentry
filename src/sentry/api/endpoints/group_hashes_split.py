@@ -2,7 +2,7 @@ import datetime
 from typing import Any, Dict, List, Optional, Sequence
 
 import sentry_sdk
-from django.db import transaction
+from django.db import router, transaction
 from rest_framework.request import Request
 from rest_framework.response import Response
 from snuba_sdk import Request as SnubaRequest
@@ -11,6 +11,7 @@ from snuba_sdk.orderby import Direction, OrderBy
 from snuba_sdk.query import Column, Entity, Function, Query
 
 from sentry import eventstore, features
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import GroupEndpoint
 from sentry.api.serializers import EventSerializer, serialize
@@ -21,6 +22,12 @@ from sentry.utils import snuba
 
 @region_silo_endpoint
 class GroupHashesSplitEndpoint(GroupEndpoint):
+    publish_status = {
+        "DELETE": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.UNKNOWN,
+        "PUT": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, group) -> Response:
         """
         Return information on whether the group can be split up, has been split
@@ -204,7 +211,7 @@ def _unsplit_group(group: Group, hash: str, hierarchical_hashes: Optional[Sequen
         if grouphash.group_id == group.id:
             grouphash_to_delete = grouphash
 
-    with transaction.atomic():
+    with transaction.atomic(router.db_for_write(GroupHash)):
         if grouphash_to_unsplit is not None:
             grouphash_to_unsplit.state = GroupHash.State.UNLOCKED
             grouphash_to_unsplit.save()

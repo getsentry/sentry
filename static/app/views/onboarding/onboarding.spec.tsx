@@ -86,6 +86,11 @@ describe('Onboarding', function () {
     });
 
     MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/sdks/`,
+      body: {},
+    });
+
+    MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${nextJsProject.slug}/docs/javascript-nextjs-with-error-monitoring/`,
       body: null,
     });
@@ -98,6 +103,12 @@ describe('Onboarding', function () {
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${nextJsProject.slug}/issues/`,
       body: [],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/projects/org-slug/${nextJsProject.slug}/keys/`,
+      method: 'GET',
+      body: [TestStubs.ProjectKeys()[0]],
     });
 
     jest
@@ -159,12 +170,14 @@ describe('Onboarding', function () {
     };
 
     const {routerProps, routerContext, organization} = initializeOrg({
-      organization: {
-        features: ['onboarding-project-deletion-on-back-click'],
-      },
       router: {
         params: routeParams,
       },
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/sdks/`,
+      body: {},
     });
 
     MockApiClient.addMockResponse({
@@ -252,12 +265,14 @@ describe('Onboarding', function () {
     };
 
     const {routerProps, routerContext, organization} = initializeOrg({
-      organization: {
-        features: ['onboarding-project-deletion-on-back-click'],
-      },
       router: {
         params: routeParams,
       },
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/sdks/`,
+      body: {},
     });
 
     MockApiClient.addMockResponse({

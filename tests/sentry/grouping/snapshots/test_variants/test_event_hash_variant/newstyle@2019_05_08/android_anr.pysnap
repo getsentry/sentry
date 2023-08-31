@@ -767,7 +767,7 @@ app:
               "getChildAt"
         type*
           "ApplicationNotResponding"
-        value* (stripped common values)
+        value* (stripped event-specific values)
           "Application Not Responding for at least <int> ms."
       threads (ignored because this variant does not have a contributing stacktrace, but the system variant does)
         stacktrace

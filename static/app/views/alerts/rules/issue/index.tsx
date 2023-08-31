@@ -33,7 +33,8 @@ import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import LoadingMask from 'sentry/components/loadingMask';
 import {CursorHandler} from 'sentry/components/pagination';
-import {Panel, PanelBody} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
 import TeamSelector from 'sentry/components/teamSelector';
 import {Tooltip} from 'sentry/components/tooltip';
 import {ALL_ENVIRONMENTS_KEY} from 'sentry/constants';
@@ -102,9 +103,10 @@ const ACTION_MATCH_OPTIONS_MIGRATED = [
 ];
 
 const defaultRule: UnsavedIssueAlertRule = {
-  actionMatch: 'all',
+  actionMatch: 'any',
   filterMatch: 'all',
   actions: [],
+  // note we update the default conditions in onLoadAllEndpointsSuccess
   conditions: [],
   filters: [],
   name: '',
@@ -329,10 +331,24 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
 
   onLoadAllEndpointsSuccess() {
     const {rule} = this.state;
+    const {
+      params: {ruleId},
+    } = this.props;
     if (rule) {
       ((rule as IssueAlertRule)?.errors || []).map(({detail}) =>
         addErrorMessage(detail, {append: true})
       );
+    }
+    if (!ruleId) {
+      // now that we've loaded all the possible conditions, we can populate the
+      // value of conditions for a new alert
+      const id = 'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition';
+      this.handleChange('conditions', [
+        {
+          id,
+          label: CHANGE_ALERT_PLACEHOLDERS_LABELS[id],
+        },
+      ]);
     }
   }
 
@@ -586,6 +602,14 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
           if (actionName === 'SlackNotifyServiceAction') {
             transaction.setTag(actionName, true);
           }
+          // to avoid storing inconsistent data in the db, don't pass the name fields
+          delete action.name;
+        }
+        for (const condition of rule.conditions) {
+          delete condition.name;
+        }
+        for (const filter of rule.filters) {
+          delete filter.name;
         }
         transaction.setData('actions', rule.actions);
       }
@@ -1148,7 +1172,7 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
     // the form with a loading mask on top of it, but force a re-render by using
     // a different key when we have fetched the rule so that form inputs are filled in
     return (
-      <Main fullWidth>
+      <Main>
         <PermissionAlert access={['alerts:write']} project={project} />
 
         <StyledForm
@@ -1172,8 +1196,11 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
                 priority="danger"
                 confirmText={t('Delete Rule')}
                 onConfirm={this.handleDeleteRule}
-                header={t('Delete Rule')}
-                message={t('Are you sure you want to delete this rule?')}
+                header={<h5>{t('Delete Alert Rule?')}</h5>}
+                message={t(
+                  'Are you sure you want to delete "%s"? You won\'t be able to view the history of this alert once it\'s deleted.',
+                  rule.name
+                )}
               >
                 <Button priority="danger">{t('Delete Rule')}</Button>
               </Confirm>

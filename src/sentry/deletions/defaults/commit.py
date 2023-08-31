@@ -3,7 +3,8 @@ from ..base import ModelDeletionTask, ModelRelation
 
 class CommitDeletionTask(ModelDeletionTask):
     def get_child_relations(self, instance):
-        from sentry.models import CommitFileChange, ReleaseCommit, ReleaseHeadCommit
+        from sentry.models import ReleaseCommit, ReleaseHeadCommit
+        from sentry.models.commitfilechange import CommitFileChange
 
         return [
             ModelRelation(CommitFileChange, {"commit_id": instance.id}),

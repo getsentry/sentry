@@ -3,11 +3,13 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import integrations
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.integrations import IntegrationFeatures
-from sentry.models import Integration, Repository
+from sentry.models import Repository
+from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
 
 
 def find_roots(stack_path, source_path):
@@ -62,15 +64,15 @@ class PathMappingSerializer(CamelSnakeSerializer):
                 "Source code URL points to a different file than the stack trace"
             )
 
-        def integration_match(integration: Integration):
+        def integration_match(integration: RpcIntegration):
             return source_url.startswith("https://{}".format(integration.metadata["domain_name"]))
 
         def repo_match(repo: Repository):
             return repo.url is not None and source_url.startswith(repo.url)
 
         # now find the matching integration
-        integrations = Integration.objects.filter(
-            organizationintegration__organization_id=self.org_id, provider__in=self.providers
+        integrations = integration_service.get_integrations(
+            organization_id=self.org_id, providers=self.providers
         )
 
         matching_integrations = list(filter(integration_match, integrations))
@@ -93,6 +95,9 @@ class PathMappingSerializer(CamelSnakeSerializer):
 
 
 class ProjectRepoPathParsingEndpointLoosePermission(ProjectPermission):
+    publish_status = {
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     """
     Similar to the code_mappings endpoint, loosen permissions to all users
     """

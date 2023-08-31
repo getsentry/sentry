@@ -1,7 +1,9 @@
 import {useEffect, useMemo, useState} from 'react';
 import first from 'lodash/first';
 
+import isValidDate from 'sentry/utils/date/isValidDate';
 import fetchReplayClicks from 'sentry/utils/replays/fetchReplayClicks';
+import type {highlightNode} from 'sentry/utils/replays/highlightNode';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -52,11 +54,7 @@ type Result =
   | undefined
   | {
       offsetMs: number;
-      highlight?: {
-        nodeId: number;
-        annotation?: string;
-        spotlight?: boolean;
-      };
+      highlight?: Parameters<typeof highlightNode>[1];
     };
 
 const ZERO_OFFSET = {offsetMs: 0};
@@ -77,7 +75,13 @@ function fromEventTimestamp({eventTimestamp, replayStartTimestampMs}): Result {
   }
 
   if (replayStartTimestampMs !== undefined) {
-    const eventTimestampMs = new Date(eventTimestamp).getTime();
+    let date = new Date(eventTimestamp);
+    if (!isValidDate(date)) {
+      const asInt = parseInt(eventTimestamp, 10);
+      // Allow input to be `?event_t=$num_of_seconds` or `?event_t=$num_of_miliseconds`
+      date = asInt < 9999999999 ? new Date(asInt * 1000) : new Date(asInt);
+    }
+    const eventTimestampMs = date.getTime();
     if (eventTimestampMs >= replayStartTimestampMs) {
       return {offsetMs: eventTimestampMs - replayStartTimestampMs};
     }

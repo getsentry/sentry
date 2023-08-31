@@ -2,13 +2,13 @@ from django.utils import timezone
 
 from sentry.incidents.models import AlertRuleThresholdType, IncidentTrigger, TriggerStatus
 from sentry.models import Rule
-from sentry.testutils import AcceptanceTestCase, SnubaTestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.cases import AcceptanceTestCase, SnubaTestCase
+from sentry.testutils.silo import no_silo_test
 
 FEATURE_NAME = ["organizations:incidents"]
 
 
-@region_silo_test
+@no_silo_test(stable=True)
 class OrganizationAlertRulesListTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()

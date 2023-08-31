@@ -13,6 +13,7 @@ from rest_framework.response import Response
 from typing_extensions import TypedDict
 
 from sentry import audit_log
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.endpoints.organization_teams import CONFLICTING_SLUG_ERROR, TeamPostSerializer
 from sentry.api.endpoints.team_details import TeamDetailsEndpoint, TeamSerializer
@@ -61,7 +62,7 @@ delete_logger = logging.getLogger("sentry.deletions.api")
 
 class SCIMTeamPatchOperationSerializer(serializers.Serializer):
     op = serializers.CharField(required=True)
-    value = serializers.ListField(serializers.DictField(), allow_empty=True)
+    value = serializers.JSONField(required=False)
     path = serializers.CharField(required=False)
     # TODO: define exact schema for value
     # TODO: actually use these in the patch request for validation
@@ -97,6 +98,10 @@ class SCIMListResponseDict(TypedDict):
 @extend_schema(tags=["SCIM"])
 @region_silo_endpoint
 class OrganizationSCIMTeamIndex(SCIMEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.PUBLIC,
+        "POST": ApiPublishStatus.PUBLIC,
+    }
     permission_classes = (OrganizationSCIMTeamPermission,)
     public = {"GET", "POST"}
 
@@ -153,9 +158,9 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint):
         request=inline_serializer(
             name="SCIMTeamRequestBody",
             fields={
-                "schemas": serializers.ListField(serializers.CharField()),
+                "schemas": serializers.ListField(child=serializers.CharField()),
                 "displayName": serializers.CharField(),
-                "members": serializers.ListField(serializers.IntegerField()),
+                "members": serializers.ListField(child=serializers.IntegerField()),
             },
         ),
         responses={
@@ -228,6 +233,12 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint):
 @extend_schema(tags=["SCIM"])
 @region_silo_endpoint
 class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
+    publish_status = {
+        "DELETE": ApiPublishStatus.PUBLIC,
+        "GET": ApiPublishStatus.PUBLIC,
+        "PUT": ApiPublishStatus.UNKNOWN,
+        "PATCH": ApiPublishStatus.PUBLIC,
+    }
     permission_classes = (OrganizationSCIMTeamPermission,)
     public = {"GET", "PATCH", "DELETE"}
 
@@ -283,7 +294,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
                 # if a member already belongs to a team, do nothing
                 continue
 
-            with transaction.atomic():
+            with transaction.atomic(router.db_for_write(OrganizationMemberTeam)):
                 omt = OrganizationMemberTeam.objects.create(team=team, organizationmember=member)
                 self.create_audit_entry(
                     request=request,
@@ -296,7 +307,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
 
     def _remove_members_operation(self, request: Request, member_id, team):
         member = OrganizationMember.objects.get(organization=team.organization, id=member_id)
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(OrganizationMemberTeam)):
             try:
                 omt = OrganizationMemberTeam.objects.get(team=team, organizationmember=member)
             except OrganizationMemberTeam.DoesNotExist:
@@ -318,15 +329,17 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
             data={"name": new_name, "slug": slugify(new_name)},
             partial=True,
         )
-        if serializer.is_valid():
-            team = serializer.save()
-            self.create_audit_entry(
-                request=request,
-                organization=team.organization,
-                target_object=team.id,
-                event=audit_log.get_event_id("TEAM_EDIT"),
-                data=team.get_audit_log_data(),
-            )
+        if not serializer.is_valid():
+            raise serializers.ValidationError(serializer.errors)
+
+        team = serializer.save()
+        self.create_audit_entry(
+            request=request,
+            organization=team.organization,
+            target_object=team.id,
+            event=audit_log.get_event_id("TEAM_EDIT"),
+            data=team.get_audit_log_data(),
+        )
 
     @extend_schema(
         operation_id="Update a Team's Attributes",
@@ -410,7 +423,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
         if len(operations) > 100:
             return Response(SCIM_400_TOO_MANY_PATCH_OPS_ERROR, status=400)
         try:
-            with transaction.atomic():
+            with transaction.atomic(router.db_for_write(OrganizationMemberTeam)):
                 team.idp_provisioned = True
                 team.save()
 
@@ -428,7 +441,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
                         if path == "members":
                             # delete all the current team members
                             # and replace with the ones in the operation list
-                            with transaction.atomic():
+                            with transaction.atomic(router.db_for_write(OrganizationMember)):
                                 queryset = OrganizationMemberTeam.objects.filter(team_id=team.id)
                                 queryset.delete()
                                 self._add_members_operation(request, operation, team)

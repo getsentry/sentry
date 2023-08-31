@@ -1,40 +1,14 @@
-import pytest
-from django.db import ProgrammingError, transaction
-
-from sentry.models import (
-    Authenticator,
-    OrganizationMember,
-    OrganizationMemberTeam,
-    SavedSearch,
-    User,
-    UserEmail,
-)
+from sentry.models import Authenticator, OrganizationMember, SavedSearch, User, UserEmail
+from sentry.silo import SiloMode
 from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
 @control_silo_test
-class UserTest(TestCase, HybridCloudTestMixin):
-    def test_get_orgs(self):
-        user = self.create_user()
-        org = self.create_organization(owner=user)
-        team = self.create_team(organization=org)
-        member = OrganizationMember.objects.get(user_id=user.id, organization=org)
-        OrganizationMemberTeam.objects.create(organizationmember=member, team=team)
-
-        organizations = user.get_orgs()
-        assert {_.id for _ in organizations} == {org.id}
-
-    def test_cannot_delete_with_queryset(self):
-        user = self.create_user()
-        assert User.objects.count() == 1
-        with pytest.raises(ProgrammingError), transaction.atomic():
-            User.objects.filter(id=user.id).delete()
-        assert User.objects.count() == 1
-
+class UserTest(TestCase):
     def test_hybrid_cloud_deletion(self):
         user = self.create_user()
         user_id = user.id
@@ -53,24 +27,13 @@ class UserTest(TestCase, HybridCloudTestMixin):
         # Ensure they are all now gone.
         assert not SavedSearch.objects.filter(owner_id=user_id).exists()
 
-    def test_get_projects(self):
-        user = self.create_user()
-        org = self.create_organization(owner=user)
-        team = self.create_team(organization=org)
-        member = OrganizationMember.objects.get(user_id=user.id, organization=org)
-        OrganizationMemberTeam.objects.create(organizationmember=member, team=team)
-        project = self.create_project(teams=[team], name="name")
 
-        projects = user.get_projects()
-        assert {_.id for _ in projects} == {project.id}
-
+@control_silo_test(stable=True)
+class UserDetailsTest(TestCase):
     def test_get_full_name(self):
         user = self.create_user(name="foo bar")
         assert user.name == user.get_full_name() == "foo bar"
 
-
-@control_silo_test
-class UserDetailsTest(TestCase):
     def test_salutation(self):
         user = self.create_user(email="a@example.com", username="a@example.com")
         assert user.get_salutation_name() == "A"
@@ -82,7 +45,7 @@ class UserDetailsTest(TestCase):
         assert user.get_salutation_name() == "Hello"
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class UserMergeToTest(TestCase, HybridCloudTestMixin):
     def test_simple(self):
         from_user = self.create_user("foo@example.com")
@@ -99,9 +62,10 @@ class UserMergeToTest(TestCase, HybridCloudTestMixin):
 
         from_user.merge_to(to_user)
 
-        assert not OrganizationMember.objects.filter(user_id=from_user.id).exists()
-        for member in OrganizationMember.objects.filter(user_id=to_user.id):
-            self.assert_org_member_mapping(org_member=member)
+        with assume_test_silo_mode(SiloMode.REGION):
+            assert not OrganizationMember.objects.filter(user_id=from_user.id).exists()
+            for member in OrganizationMember.objects.filter(user_id=to_user.id):
+                self.assert_org_member_mapping(org_member=member)
 
         assert UserEmail.objects.filter(
             user=to_user, email=to_user.email, is_verified=True
@@ -131,12 +95,10 @@ class UserMergeToTest(TestCase, HybridCloudTestMixin):
         with outbox_runner():
             from_user.merge_to(to_user)
 
-        for member in OrganizationMember.objects.filter(user_id__in=[from_user.id, to_user.id]):
-            self.assert_org_member_mapping(org_member=member)
-
-        assert OrganizationMember.objects.filter(user_id=from_user.id).exists()
-
-        member = OrganizationMember.objects.get(user_id=to_user.id)
+        with assume_test_silo_mode(SiloMode.REGION):
+            for member in OrganizationMember.objects.filter(user_id__in=[from_user.id, to_user.id]):
+                self.assert_org_member_mapping(org_member=member)
+            member = OrganizationMember.objects.get(user_id=to_user.id)
 
         assert member.role == "owner"
         assert list(member.teams.all().order_by("pk")) == [team_1, team_2, team_3]

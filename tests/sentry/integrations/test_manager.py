@@ -1,6 +1,6 @@
 from sentry import integrations
 from sentry.integrations.vsts_extension import VstsExtensionIntegrationProvider
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 
 
 class TestIntegrations(TestCase):

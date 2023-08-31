@@ -3,131 +3,101 @@ import type {Location} from 'history';
 
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
+import hydrateSpans from 'sentry/utils/replays/hydrateSpans';
 import {useLocation} from 'sentry/utils/useLocation';
-import type {NetworkSpan} from 'sentry/views/replays/types';
 
 import useNetworkFilters, {FilterFields, NetworkSelectOption} from './useNetworkFilters';
 
 jest.mock('react-router');
 jest.mock('sentry/utils/useLocation');
 
-const mockUseLocation = useLocation as jest.MockedFunction<typeof useLocation>;
-const mockBrowserHistoryPush = browserHistory.push as jest.MockedFunction<
-  typeof browserHistory.push
->;
+const mockUseLocation = jest.mocked(useLocation);
 
-const SPAN_0_NAVIGATE = {
-  id: '0',
-  timestamp: 1663131080555.4,
-  op: 'navigation.navigate',
-  description: 'http://localhost:3000/',
-  startTimestamp: 1663131080.5554,
-  endTimestamp: 1663131080.6947,
-  data: {
-    size: 1334,
-  },
-};
-
-const SPAN_1_LINK = {
-  id: '1',
-  timestamp: 1663131080576.7,
-  op: 'resource.link',
-  description: 'http://localhost:3000/static/css/main.1856e8e3.chunk.css',
-  startTimestamp: 1663131080.5767,
-  endTimestamp: 1663131080.5951,
-  data: {
-    size: 300,
-  },
-};
-
-const SPAN_2_SCRIPT = {
-  id: '2',
-  timestamp: 1663131080577.0998,
-  op: 'resource.script',
-  description: 'http://localhost:3000/static/js/2.3b866bed.chunk.js',
-  startTimestamp: 1663131080.5770998,
-  endTimestamp: 1663131080.5979,
-  data: {
-    size: 300,
-  },
-};
-
-const SPAN_3_FETCH = {
-  id: '3',
-  timestamp: 1663131080641,
-  op: 'resource.fetch',
-  description: 'https://pokeapi.co/api/v2/pokemon',
-  startTimestamp: 1663131080.641,
-  endTimestamp: 1663131080.65,
-  data: {
-    method: 'GET',
-    statusCode: 200,
-  },
-};
-
-const SPAN_4_IMG = {
-  id: '4',
-  timestamp: 1663131080642.2,
-  op: 'resource.img',
-  description: 'http://localhost:3000/static/media/logo.ddd5084d.png',
-  startTimestamp: 1663131080.6422,
-  endTimestamp: 1663131080.6441,
-  data: {
-    size: 300,
-  },
-};
-
-const SPAN_5_CSS = {
-  id: '5',
-  timestamp: 1663131080644.7997,
-  op: 'resource.css',
-  description:
-    'http://localhost:3000/static/media/glyphicons-halflings-regular.448c34a5.woff2',
-  startTimestamp: 1663131080.6447997,
-  endTimestamp: 1663131080.6548998,
-  data: {
-    size: 300,
-  },
-};
-
-const SPAN_6_PUSH = {
-  id: '6',
-  timestamp: 1663131082346,
-  op: 'navigation.push',
-  description: '/mypokemon',
-  startTimestamp: 1663131082.346,
-  endTimestamp: 1663131082.346,
-  data: {},
-};
-
-const SPAN_7_FETCH_GET = {
-  id: '7',
-  timestamp: 1663131092471,
-  op: 'resource.fetch',
-  description: 'https://pokeapi.co/api/v2/pokemon/pikachu',
-  startTimestamp: 1663131092.471,
-  endTimestamp: 1663131092.48,
-  data: {
-    method: 'GET',
-    statusCode: 200,
-  },
-};
-
-const SPAN_8_FETCH_POST = {
-  id: '8',
-  timestamp: 1663131120198,
-  op: 'resource.fetch',
-  description: 'https://pokeapi.co/api/v2/pokemon/mewtu',
-  startTimestamp: 1663131120.198,
-  endTimestamp: 1663131122.693,
-  data: {
-    method: 'POST',
-    statusCode: 404,
-  },
-};
+const [
+  SPAN_0_NAVIGATE,
+  SPAN_1_LINK,
+  SPAN_2_SCRIPT,
+  SPAN_3_FETCH,
+  SPAN_4_IMG,
+  SPAN_5_CSS,
+  SPAN_6_PUSH,
+  SPAN_7_FETCH_GET,
+  SPAN_8_FETCH_POST,
+] = hydrateSpans(TestStubs.ReplayRecord(), [
+  TestStubs.Replay.NavigationFrame({
+    op: 'navigation.navigate',
+    description: 'http://localhost:3000/',
+    startTimestamp: new Date(1663131080.5554),
+    endTimestamp: new Date(1663131080.6947),
+    data: {
+      size: 1334,
+    },
+  }),
+  TestStubs.Replay.ResourceFrame({
+    op: 'resource.link',
+    description: 'http://localhost:3000/static/css/main.1856e8e3.chunk.css',
+    startTimestamp: new Date(1663131080.5767),
+    endTimestamp: new Date(1663131080.5951),
+  }),
+  TestStubs.Replay.ResourceFrame({
+    op: 'resource.script',
+    description: 'http://localhost:3000/static/js/2.3b866bed.chunk.js',
+    startTimestamp: new Date(1663131080.5770998),
+    endTimestamp: new Date(1663131080.5979),
+  }),
+  TestStubs.Replay.RequestFrame({
+    op: 'resource.fetch',
+    description: 'https://pokeapi.co/api/v2/pokemon',
+    startTimestamp: new Date(1663131080.641),
+    endTimestamp: new Date(1663131080.65),
+    data: {
+      method: 'GET',
+      statusCode: 200,
+    },
+  }),
+  TestStubs.Replay.ResourceFrame({
+    op: 'resource.img',
+    description: 'http://localhost:3000/static/media/logo.ddd5084d.png',
+    startTimestamp: new Date(1663131080.6422),
+    endTimestamp: new Date(1663131080.6441),
+  }),
+  TestStubs.Replay.ResourceFrame({
+    op: 'resource.css',
+    description:
+      'http://localhost:3000/static/media/glyphicons-halflings-regular.448c34a5.woff2',
+    startTimestamp: new Date(1663131080.6447997),
+    endTimestamp: new Date(1663131080.6548998),
+  }),
+  TestStubs.Replay.NavigationPushFrame({
+    op: 'navigation.push',
+    description: '/mypokemon',
+    startTimestamp: new Date(1663131082.346),
+    endTimestamp: new Date(1663131082.346),
+  }),
+  TestStubs.Replay.RequestFrame({
+    op: 'resource.fetch',
+    description: 'https://pokeapi.co/api/v2/pokemon/pikachu',
+    startTimestamp: new Date(1663131092.471),
+    endTimestamp: new Date(1663131092.48),
+    data: {
+      method: 'GET',
+      statusCode: 200,
+    },
+  }),
+  TestStubs.Replay.RequestFrame({
+    op: 'resource.fetch',
+    description: 'https://pokeapi.co/api/v2/pokemon/mewtu',
+    startTimestamp: new Date(1663131120.198),
+    endTimestamp: new Date(1663131122.693),
+    data: {
+      method: 'POST',
+      statusCode: 404,
+    },
+  }),
+]);
 
 describe('useNetworkFilters', () => {
-  const networkSpans: NetworkSpan[] = [
+  const networkFrames = [
     SPAN_0_NAVIGATE,
     SPAN_1_LINK,
     SPAN_2_SCRIPT,
@@ -140,20 +110,20 @@ describe('useNetworkFilters', () => {
   ];
 
   beforeEach(() => {
-    mockBrowserHistoryPush.mockReset();
+    jest.mocked(browserHistory.push).mockReset();
   });
 
   it('should update the url when setters are called', () => {
-    const TYPE_OPTION = {
+    const TYPE_OPTION: NetworkSelectOption = {
       value: 'resource.fetch',
       label: 'resource.fetch',
-      qs: 'f_n_type',
-    } as NetworkSelectOption;
-    const STATUS_OPTION = {
+      qs: 'f_n_type' as const,
+    };
+    const STATUS_OPTION: NetworkSelectOption = {
       value: '200',
       label: '200',
-      qs: 'f_n_status',
-    } as NetworkSelectOption;
+      qs: 'f_n_status' as const,
+    };
     const SEARCH_FILTER = 'pikachu';
 
     mockUseLocation
@@ -171,7 +141,7 @@ describe('useNetworkFilters', () => {
       } as Location<FilterFields>);
 
     const {result, rerender} = reactHooks.renderHook(useNetworkFilters, {
-      initialProps: {networkSpans},
+      initialProps: {networkFrames},
     });
 
     result.current.setFilters([TYPE_OPTION]);
@@ -210,16 +180,16 @@ describe('useNetworkFilters', () => {
   });
 
   it('should clear details params when setters are called', () => {
-    const TYPE_OPTION = {
+    const TYPE_OPTION: NetworkSelectOption = {
       value: 'resource.fetch',
       label: 'resource.fetch',
       qs: 'f_n_type',
-    } as NetworkSelectOption;
-    const STATUS_OPTION = {
+    };
+    const STATUS_OPTION: NetworkSelectOption = {
       value: '200',
       label: '200',
       qs: 'f_n_status',
-    } as NetworkSelectOption;
+    };
     const SEARCH_FILTER = 'pikachu';
 
     mockUseLocation
@@ -249,7 +219,7 @@ describe('useNetworkFilters', () => {
       } as Location<FilterFields>);
 
     const {result, rerender} = reactHooks.renderHook(useNetworkFilters, {
-      initialProps: {networkSpans},
+      initialProps: {networkFrames},
     });
 
     result.current.setFilters([TYPE_OPTION]);
@@ -294,7 +264,7 @@ describe('useNetworkFilters', () => {
     } as Location<FilterFields>);
 
     const {result} = reactHooks.renderHook(useNetworkFilters, {
-      initialProps: {networkSpans},
+      initialProps: {networkFrames},
     });
     expect(result.current.items).toHaveLength(9);
   });
@@ -308,7 +278,7 @@ describe('useNetworkFilters', () => {
     } as Location<FilterFields>);
 
     const {result} = reactHooks.renderHook(useNetworkFilters, {
-      initialProps: {networkSpans},
+      initialProps: {networkFrames},
     });
     expect(result.current.items).toStrictEqual([SPAN_8_FETCH_POST]);
   });
@@ -322,7 +292,7 @@ describe('useNetworkFilters', () => {
     } as Location<FilterFields>);
 
     const {result} = reactHooks.renderHook(useNetworkFilters, {
-      initialProps: {networkSpans},
+      initialProps: {networkFrames},
     });
     expect(result.current.items).toHaveLength(8);
   });
@@ -336,7 +306,7 @@ describe('useNetworkFilters', () => {
     } as Location<FilterFields>);
 
     const {result} = reactHooks.renderHook(useNetworkFilters, {
-      initialProps: {networkSpans},
+      initialProps: {networkFrames},
     });
     expect(result.current.items).toHaveLength(2);
   });
@@ -350,7 +320,7 @@ describe('useNetworkFilters', () => {
     } as Location<FilterFields>);
 
     const {result} = reactHooks.renderHook(useNetworkFilters, {
-      initialProps: {networkSpans},
+      initialProps: {networkFrames},
     });
     expect(result.current.items).toHaveLength(3);
   });
@@ -364,7 +334,7 @@ describe('useNetworkFilters', () => {
     } as Location<FilterFields>);
 
     const {result} = reactHooks.renderHook(useNetworkFilters, {
-      initialProps: {networkSpans},
+      initialProps: {networkFrames},
     });
     expect(result.current.items).toHaveLength(1);
   });
@@ -380,7 +350,7 @@ describe('useNetworkFilters', () => {
     } as Location<FilterFields>);
 
     const {result} = reactHooks.renderHook(useNetworkFilters, {
-      initialProps: {networkSpans},
+      initialProps: {networkFrames},
     });
     expect(result.current.items).toHaveLength(1);
   });
@@ -388,10 +358,10 @@ describe('useNetworkFilters', () => {
 
 describe('getMethodTypes', () => {
   it('should default to having GET in the list of method types', () => {
-    const networkSpans = [];
+    const networkFrames = [];
 
     const {result} = reactHooks.renderHook(useNetworkFilters, {
-      initialProps: {networkSpans},
+      initialProps: {networkFrames},
     });
 
     expect(result.current.getMethodTypes()).toStrictEqual([
@@ -400,10 +370,10 @@ describe('getMethodTypes', () => {
   });
 
   it('should return a sorted list of method types', () => {
-    const networkSpans = [SPAN_8_FETCH_POST, SPAN_7_FETCH_GET];
+    const networkFrames = [SPAN_8_FETCH_POST, SPAN_7_FETCH_GET];
 
     const {result} = reactHooks.renderHook(useNetworkFilters, {
-      initialProps: {networkSpans},
+      initialProps: {networkFrames},
     });
 
     expect(result.current.getMethodTypes()).toStrictEqual([
@@ -413,10 +383,10 @@ describe('getMethodTypes', () => {
   });
 
   it('should deduplicate BreadcrumbType', () => {
-    const networkSpans = [SPAN_2_SCRIPT, SPAN_3_FETCH, SPAN_7_FETCH_GET];
+    const networkFrames = [SPAN_2_SCRIPT, SPAN_3_FETCH, SPAN_7_FETCH_GET];
 
     const {result} = reactHooks.renderHook(useNetworkFilters, {
-      initialProps: {networkSpans},
+      initialProps: {networkFrames},
     });
 
     expect(result.current.getMethodTypes()).toStrictEqual([
@@ -427,10 +397,10 @@ describe('getMethodTypes', () => {
 
 describe('getResourceTypes', () => {
   it('should default to having fetch in the list of span types', () => {
-    const networkSpans = [];
+    const networkFrames = [];
 
     const {result} = reactHooks.renderHook(useNetworkFilters, {
-      initialProps: {networkSpans},
+      initialProps: {networkFrames},
     });
 
     expect(result.current.getResourceTypes()).toStrictEqual([
@@ -439,10 +409,10 @@ describe('getResourceTypes', () => {
   });
 
   it('should return a sorted list of BreadcrumbType', () => {
-    const networkSpans = [SPAN_0_NAVIGATE, SPAN_1_LINK, SPAN_2_SCRIPT];
+    const networkFrames = [SPAN_0_NAVIGATE, SPAN_1_LINK, SPAN_2_SCRIPT];
 
     const {result} = reactHooks.renderHook(useNetworkFilters, {
-      initialProps: {networkSpans},
+      initialProps: {networkFrames},
     });
 
     expect(result.current.getResourceTypes()).toStrictEqual([
@@ -454,7 +424,7 @@ describe('getResourceTypes', () => {
   });
 
   it('should deduplicate BreadcrumbType', () => {
-    const networkSpans = [
+    const networkFrames = [
       SPAN_0_NAVIGATE,
       SPAN_1_LINK,
       SPAN_2_SCRIPT,
@@ -463,7 +433,7 @@ describe('getResourceTypes', () => {
     ];
 
     const {result} = reactHooks.renderHook(useNetworkFilters, {
-      initialProps: {networkSpans},
+      initialProps: {networkFrames},
     });
 
     expect(result.current.getResourceTypes()).toStrictEqual([
@@ -477,10 +447,15 @@ describe('getResourceTypes', () => {
 
 describe('getStatusTypes', () => {
   it('should return a sorted list of BreadcrumbType', () => {
-    const networkSpans = [SPAN_0_NAVIGATE, SPAN_1_LINK, SPAN_2_SCRIPT, SPAN_8_FETCH_POST];
+    const networkFrames = [
+      SPAN_0_NAVIGATE,
+      SPAN_1_LINK,
+      SPAN_2_SCRIPT,
+      SPAN_8_FETCH_POST,
+    ];
 
     const {result} = reactHooks.renderHook(useNetworkFilters, {
-      initialProps: {networkSpans},
+      initialProps: {networkFrames},
     });
 
     expect(result.current.getStatusTypes()).toStrictEqual([
@@ -495,7 +470,7 @@ describe('getStatusTypes', () => {
   });
 
   it('should deduplicate BreadcrumbType', () => {
-    const networkSpans = [
+    const networkFrames = [
       SPAN_0_NAVIGATE,
       SPAN_1_LINK,
       SPAN_2_SCRIPT,
@@ -505,7 +480,7 @@ describe('getStatusTypes', () => {
     ];
 
     const {result} = reactHooks.renderHook(useNetworkFilters, {
-      initialProps: {networkSpans},
+      initialProps: {networkFrames},
     });
 
     expect(result.current.getStatusTypes()).toStrictEqual([

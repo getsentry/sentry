@@ -1,19 +1,23 @@
 from collections import defaultdict
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 from typing import Any, Dict, Mapping, Optional, Set, Tuple
 
-import pytz
 import sentry_sdk
 from django.db.models import Q
 
 from sentry.dynamic_sampling import get_redis_client_for_ds
 from sentry.incidents.models import AlertRule
 from sentry.models import DashboardWidgetQuery, Organization, Project
+from sentry.silo import SiloMode
+from sentry.snuba import metrics_performance
 from sentry.snuba.discover import query as discover_query
 from sentry.snuba.metrics_enhanced_performance import query as performance_query
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json
+
+# The time range over which the check script queries the data for determining the compatibility state.
+QUERY_TIME_RANGE_IN_DAYS = 1
 
 # List of minimum SDK versions that support Performance at Scale.
 # The list is defined here:
@@ -155,6 +159,9 @@ EXCLUDED_CONDITIONS = [
     # Match multiple tags that contain this.
     "stack.",
     "error.",
+    # Match generic values.
+    "issue",
+    "exception",
 ]
 
 
@@ -204,9 +211,14 @@ class CheckAM2Compatibility:
 
     @classmethod
     def format_results(
-        cls, organization, unsupported_widgets, unsupported_alerts, outdated_sdks_per_project
+        cls,
+        organization,
+        projects_compatibility,
+        unsupported_widgets,
+        unsupported_alerts,
+        outdated_sdks_per_project,
     ):
-        results: Dict[str, Any] = {}
+        results: Dict[str, Any] = {"projects_compatibility": projects_compatibility}
 
         widgets = []
         for dashboard_id, unsupported_widgets in unsupported_widgets.items():
@@ -318,8 +330,8 @@ class CheckAM2Compatibility:
         params = {
             "organization_id": organization_id,
             "project_objects": project_objects,
-            "start": datetime.now(tz=pytz.UTC) - timedelta(days=1),
-            "end": datetime.now(tz=pytz.UTC),
+            "start": datetime.now(tz=timezone.utc) - timedelta(days=QUERY_TIME_RANGE_IN_DAYS),
+            "end": datetime.now(tz=timezone.utc),
         }
 
         try:
@@ -343,8 +355,8 @@ class CheckAM2Compatibility:
         params = {
             "organization_id": organization_id,
             "project_objects": project_objects,
-            "start": datetime.now(tz=pytz.UTC) - timedelta(days=1),
-            "end": datetime.now(tz=pytz.UTC),
+            "start": datetime.now(tz=timezone.utc) - timedelta(days=QUERY_TIME_RANGE_IN_DAYS),
+            "end": datetime.now(tz=timezone.utc),
         }
 
         try:
@@ -367,6 +379,7 @@ class CheckAM2Compatibility:
         for condition in EXCLUDED_CONDITIONS:
             # We want to build an AND condition with multiple negated elements.
             qs &= ~Q(conditions__icontains=condition)
+            qs &= ~Q(fields__icontains=condition)
 
         return qs
 
@@ -396,10 +409,54 @@ class CheckAM2Compatibility:
         )
 
     @classmethod
+    def get_organization_metrics_compatibility(cls, organization, project_objects):
+        params = {
+            "organization_id": organization.id,
+            "project_objects": project_objects,
+            "start": datetime.now(tz=timezone.utc) - timedelta(days=QUERY_TIME_RANGE_IN_DAYS),
+            "end": datetime.now(tz=timezone.utc),
+        }
+
+        projects = {project.id: project for project in project_objects}
+
+        count_has_txn = "count_has_transaction_name()"
+        count_null = "count_null_transactions()"
+        compatible_results = metrics_performance.query(
+            selected_columns=[
+                "project.id",
+                count_null,
+                count_has_txn,
+            ],
+            params=params,
+            query=f"{count_null}:0 AND {count_has_txn}:>0",
+            referrer="api.organization-events",
+            functions_acl=["count_null_transactions", "count_has_transaction_name"],
+            use_aggregate_conditions=True,
+        )
+
+        compatible_project_ids = {row["project.id"] for row in compatible_results["data"]}
+        incompatible_project_ids = set(projects.keys()) - compatible_project_ids
+
+        return {
+            "compatible_projects": [
+                {"id": project_id, "slug": projects[project_id].slug}
+                for project_id in compatible_project_ids
+            ],
+            "incompatible_projects": [
+                {"id": project_id, "slug": projects[project_id].slug}
+                for project_id in incompatible_project_ids
+            ],
+        }
+
+    @classmethod
     def run_compatibility_check(cls, org_id):
         organization = Organization.objects.get(id=org_id)
 
         all_projects = list(Project.objects.using_replica().filter(organization=organization))
+
+        projects_compatibility = cls.get_organization_metrics_compatibility(
+            organization, all_projects
+        )
 
         unsupported_widgets = defaultdict(list)
         for (
@@ -455,7 +512,11 @@ class CheckAM2Compatibility:
             outdated_sdks_per_project = {}
 
         return cls.format_results(
-            organization, unsupported_widgets, unsupported_alerts, outdated_sdks_per_project
+            organization,
+            projects_compatibility,
+            unsupported_widgets,
+            unsupported_alerts,
+            outdated_sdks_per_project,
         )
 
 
@@ -515,6 +576,7 @@ def get_check_results(org_id):
     max_retries=1,  # We don't want the system to retry such computations.
     soft_time_limit=TASK_SOFT_LIMIT_IN_SECONDS,  # 30 minutes
     time_limit=TASK_SOFT_LIMIT_IN_SECONDS + 5,  # 30 minutes + 5 seconds
+    silo_mode=SiloMode.REGION,
 )
 def run_compatibility_check_async(org_id):
     try:

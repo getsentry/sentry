@@ -10,13 +10,16 @@ from sentry.models import (
     SentryAppInstallationForProvider,
     ServiceHook,
 )
-from sentry.sentry_apps import SentryAppInstallationCreator
+from sentry.sentry_apps.installations import SentryAppInstallationCreator
+from sentry.silo.base import SiloMode
 from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.outbox import outbox_runner
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
-class TestSentryAppIntallationDeletionTask(TestCase):
+@control_silo_test(stable=True)
+class TestSentryAppInstallationDeletionTask(TestCase):
     def setUp(self):
         self.user = self.create_user()
         self.org = self.create_organization()
@@ -34,11 +37,13 @@ class TestSentryAppIntallationDeletionTask(TestCase):
         )
 
     def test_deletes_grant(self):
+        assert self.install.api_grant is not None
         grant = self.install.api_grant
         deletions.exec_sync(self.install)
         assert not ApiGrant.objects.filter(pk=grant.id).exists()
 
     def test_deletes_without_grant(self):
+        assert self.install.api_grant is not None
         self.install.api_grant.delete()
         self.install.update(api_grant=None)
         deletions.exec_sync(self.install)
@@ -70,12 +75,15 @@ class TestSentryAppIntallationDeletionTask(TestCase):
 
         with outbox_runner():
             deletions.exec_sync(self.install)
-        assert ServiceHook.objects.filter(pk=hook.id).exists()
 
-        with self.tasks():
+        with assume_test_silo_mode(SiloMode.REGION):
+            assert ServiceHook.objects.filter(pk=hook.id).exists()
+
+        with self.tasks(), assume_test_silo_mode(SiloMode.MONOLITH):
             schedule_hybrid_cloud_foreign_key_jobs()
 
-        assert not ServiceHook.objects.filter(pk=hook.id).exists()
+        with assume_test_silo_mode(SiloMode.REGION):
+            assert not ServiceHook.objects.filter(pk=hook.id).exists()
 
     def test_soft_deletes_installation(self):
         deletions.exec_sync(self.install)

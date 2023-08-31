@@ -1,16 +1,16 @@
-from functools import cached_property
-from io import BytesIO
-from os.path import join
-from zipfile import ZipFile
+from __future__ import annotations
 
-from django.core.files.uploadedfile import SimpleUploadedFile
-from django.urls import reverse
+from os.path import join
+from tempfile import TemporaryFile
+from typing import Any
+
+import pytest
 
 from sentry.lang.javascript.processing import _handles_frame as is_valid_javascript_frame
 from sentry.models import Project
 from sentry.profiles.task import _deobfuscate, _normalize, _process_symbolicator_results_for_sample
-from sentry.testutils import TestCase
-from sentry.testutils.factories import get_fixture_path
+from sentry.testutils.factories import Factories, get_fixture_path
+from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json
 
 PROFILES_FIXTURES_PATH = get_fixture_path("profiles")
@@ -58,364 +58,403 @@ PROGUARD_BUG_UUID = "071207ac-b491-4a74-957c-2c94fd9594f2"
 PROGUARD_BUG_SOURCE = b"x"
 
 
-class ProfilesProcessTaskTest(TestCase):
-    def setUp(self):
-        super().setUp()
-        self.owner = self.create_user()
-        self.organization = self.create_organization(
-            owner=self.owner, flags=0  # disable default allow_joinleave access
+def load_profile(name):
+    path = join(PROFILES_FIXTURES_PATH, name)
+    with open(path) as f:
+        return json.loads(f.read())
+
+
+def load_proguard(project, proguard_uuid, proguard_source):
+    with TemporaryFile() as tf:
+        tf.write(proguard_source)
+        tf.seek(0)
+        file = Factories.create_file(
+            name=proguard_uuid,
+            type="project.dif",
+            headers={"Content-Type": "proguard"},
         )
-        self.team = self.create_team(organization=self.organization)
-        self.upload_dsym_files_url = reverse(
-            "sentry-api-0-dsym-files",
-            kwargs={
-                "organization_slug": self.project.organization.slug,
-                "project_slug": self.project.slug,
-            },
-        )
+        file.putfile(tf)
 
-        self.login_as(user=self.owner)
+    return Factories.create_dif_file(
+        project,
+        file=file,
+        debug_id=proguard_uuid,
+        object_name="proguard-mapping",
+        data={"features": ["mapping"]},
+    )
 
-    @cached_property
-    def ios_profile(self):
-        path = join(PROFILES_FIXTURES_PATH, "valid_ios_profile.json")
-        with open(path) as f:
-            return json.loads(f.read())
 
-    @cached_property
-    def android_profile(self):
-        path = join(PROFILES_FIXTURES_PATH, "valid_android_profile.json")
-        with open(path) as f:
-            return json.loads(f.read())
+@pytest.fixture
+def owner():
+    return Factories.create_user()
 
-    def test_normalize_ios_profile(self):
-        profile = self.ios_profile
-        _normalize(profile=profile, organization=self.organization)
-        for k in ["device_os_build_number", "device_classification"]:
-            assert k in profile
 
-    def test_normalize_android_profile(self):
-        profile = self.android_profile
-        _normalize(profile=profile, organization=self.organization)
-        for k in ["android_api_level", "device_classification"]:
-            assert k in profile
+@pytest.fixture
+def organization(owner):
+    return Factories.create_organization(owner=owner)
 
-        assert isinstance(profile["android_api_level"], int)
 
-    def test_basic_deobfuscation(self):
-        out = BytesIO()
-        with ZipFile(out, "w") as f:
-            f.writestr(f"proguard/{PROGUARD_UUID}.txt", PROGUARD_SOURCE)
+@pytest.fixture
+def team(organization, owner):
+    team = Factories.create_team(organization=organization)
+    Factories.create_team_membership(team=team, user=owner)
+    return team
 
-        response = self.client.post(
-            self.upload_dsym_files_url,
-            {
-                "file": SimpleUploadedFile(
-                    "symbols.zip", out.getvalue(), content_type="application/zip"
-                )
-            },
-            format="multipart",
-        )
-        assert response.status_code == 201, response.content
-        assert len(response.data) == 1
 
-        profile = dict(self.android_profile)
-        profile.update(
-            {
-                "build_id": PROGUARD_UUID,
-                "project_id": self.project.id,
-                "profile": {
-                    "methods": [
-                        {
-                            "name": "a",
-                            "abs_path": None,
-                            "class_name": "org.a.b.g$a",
-                            "source_file": None,
-                            "source_line": 67,
-                        },
-                        {
-                            "name": "a",
-                            "abs_path": None,
-                            "class_name": "org.a.b.g$a",
-                            "source_file": None,
-                            "source_line": 69,
-                        },
-                    ],
-                },
-            }
-        )
-        project = Project.objects.get_from_cache(id=profile["project_id"])
-        _deobfuscate(profile, project)
-        frames = profile["profile"]["methods"]
+@pytest.fixture
+def project(organization, team):
+    return Factories.create_project(organization=organization, teams=[team])
 
-        assert frames[0]["name"] == "getClassContext"
-        assert frames[0]["class_name"] == "org.slf4j.helpers.Util$ClassContextSecurityManager"
-        assert frames[1]["name"] == "getExtraClassContext"
-        assert frames[1]["class_name"] == "org.slf4j.helpers.Util$ClassContextSecurityManager"
 
-    def test_inline_deobfuscation(self):
-        out = BytesIO()
-        with ZipFile(out, "w") as f:
-            f.writestr(f"proguard/{PROGUARD_INLINE_UUID}.txt", PROGUARD_INLINE_SOURCE)
+@pytest.fixture
+def ios_profile():
+    return load_profile("valid_ios_profile.json")
 
-        response = self.client.post(
-            self.upload_dsym_files_url,
-            {
-                "file": SimpleUploadedFile(
-                    "symbols.zip", out.getvalue(), content_type="application/zip"
-                )
-            },
-            format="multipart",
-        )
-        assert response.status_code == 201, response.content
-        assert len(response.data) == 1
 
-        profile = dict(self.android_profile)
-        profile.update(
-            {
-                "build_id": PROGUARD_INLINE_UUID,
-                "project_id": self.project.id,
-                "profile": {
-                    "methods": [
-                        {
-                            "name": "onClick",
-                            "abs_path": None,
-                            "class_name": "e.a.c.a",
-                            "source_file": None,
-                            "source_line": 2,
-                        },
-                        {
-                            "name": "t",
-                            "abs_path": None,
-                            "class_name": "io.sentry.sample.MainActivity",
-                            "source_file": "MainActivity.java",
-                            "source_line": 1,
-                        },
-                    ],
-                },
-            }
-        )
+@pytest.fixture
+def android_profile():
+    return load_profile("valid_android_profile.json")
 
-        project = Project.objects.get_from_cache(id=profile["project_id"])
-        _deobfuscate(profile, project)
-        frames = profile["profile"]["methods"]
 
-        assert sum(len(f.get("inline_frames", [{}])) for f in frames) == 4
+@pytest.fixture
+def proguard_file_basic(project):
+    return load_proguard(project, PROGUARD_UUID, PROGUARD_SOURCE)
 
-        assert frames[0]["name"] == "onClick"
-        assert frames[0]["class_name"] == "io.sentry.sample.-$$Lambda$r3Avcbztes2hicEObh02jjhQqd4"
 
-        assert frames[1]["inline_frames"][0]["source_file"] == "MainActivity.java"
-        assert frames[1]["inline_frames"][0]["class_name"] == "io.sentry.sample.MainActivity"
-        assert frames[1]["inline_frames"][0]["name"] == "bar"
-        assert frames[1]["inline_frames"][0]["source_line"] == 54
-        assert frames[1]["inline_frames"][1]["name"] == "foo"
-        assert frames[1]["inline_frames"][1]["source_line"] == 44
-        assert frames[1]["inline_frames"][2]["name"] == "onClickHandler"
-        assert frames[1]["inline_frames"][2]["source_line"] == 40
-        assert frames[1]["inline_frames"][2]["source_file"] == "MainActivity.java"
-        assert frames[1]["inline_frames"][2]["class_name"] == "io.sentry.sample.MainActivity"
+@pytest.fixture
+def proguard_file_inline(project):
+    return load_proguard(project, PROGUARD_INLINE_UUID, PROGUARD_INLINE_SOURCE)
 
-    def test_error_on_resolving(self):
-        out = BytesIO()
-        with ZipFile(out, "w") as f:
-            f.writestr(f"proguard/{PROGUARD_BUG_UUID}.txt", PROGUARD_BUG_SOURCE)
 
-        response = self.client.post(
-            self.upload_dsym_files_url,
-            {
-                "file": SimpleUploadedFile(
-                    "symbols.zip", out.getvalue(), content_type="application/zip"
-                )
-            },
-            format="multipart",
-        )
-        assert response.status_code == 201, response.content
-        assert len(response.data) == 1
+@pytest.fixture
+def proguard_file_bug(project):
+    return load_proguard(project, PROGUARD_BUG_UUID, PROGUARD_BUG_SOURCE)
 
-        profile = dict(self.android_profile)
-        profile.update(
-            {
-                "build_id": PROGUARD_BUG_UUID,
-                "project_id": self.project.id,
-                "profile": {
-                    "methods": [
-                        {
-                            "name": "a",
-                            "abs_path": None,
-                            "class_name": "org.a.b.g$a",
-                            "source_file": None,
-                            "source_line": 67,
-                        },
-                        {
-                            "name": "a",
-                            "abs_path": None,
-                            "class_name": "org.a.b.g$a",
-                            "source_file": None,
-                            "source_line": 69,
-                        },
-                    ],
-                },
-            }
-        )
 
-        project = Project.objects.get_from_cache(id=profile["project_id"])
-        obfuscated_frames = profile["profile"]["methods"].copy()
-        _deobfuscate(profile, project)
+@django_db_all
+def test_normalize_ios_profile(organization, ios_profile):
+    _normalize(profile=ios_profile, organization=organization)
+    for k in ["device_os_build_number", "device_classification"]:
+        assert k in ios_profile
 
-        assert profile["profile"]["methods"] == obfuscated_frames
 
-    def test_process_symbolicator_results_for_sample(self):
-        profile = {
-            "version": 1,
-            "platform": "rust",
+@django_db_all
+def test_normalize_android_profile(organization, android_profile):
+    _normalize(profile=android_profile, organization=organization)
+    for k in ["android_api_level", "device_classification"]:
+        assert k in android_profile
+
+    assert isinstance(android_profile["android_api_level"], int)
+
+
+@django_db_all
+def test_basic_deobfuscation(project, proguard_file_basic, android_profile):
+    android_profile.update(
+        {
+            "build_id": PROGUARD_UUID,
+            "project_id": project.id,
             "profile": {
-                "frames": [
+                "methods": [
                     {
-                        "instruction_addr": "0x55bd050e168d",
-                        "lang": "rust",
-                        "sym_addr": "0x55bd050e1590",
+                        "abs_path": None,
+                        "class_name": "org.a.b.g$a",
+                        "name": "a",
+                        "signature": "()V",
+                        "source_file": None,
+                        "source_line": 67,
                     },
                     {
-                        "instruction_addr": "0x89bf050e178a",
-                        "lang": "rust",
-                        "sym_addr": "0x95bc050e2530",
+                        "abs_path": None,
+                        "class_name": "org.a.b.g$a",
+                        "name": "a",
+                        "signature": "()V",
+                        "source_file": None,
+                        "source_line": 69,
                     },
-                    {
-                        "instruction_addr": "0x88ad050d167e",
-                        "lang": "rust",
-                        "sym_addr": "0x29cd050a1642",
-                    },
-                ],
-                "samples": [
-                    {"stack_id": 0},
-                    # a second sample with the same stack id, the stack should
-                    # not be processed a second time
-                    {"stack_id": 0},
-                ],
-                "stacks": [
-                    [0, 1, 2],
                 ],
             },
         }
+    )
+    _deobfuscate(android_profile, project)
+    frames = android_profile["profile"]["methods"]
 
-        # returned from symbolicator
-        stacktraces = [
-            {
-                "frames": [
-                    {
-                        "instruction_addr": "0x72ba053e168c",
-                        "lang": "rust",
-                        "function": "C_inline_1",
-                        "original_index": 0,
-                    },
-                    {
-                        "instruction_addr": "0x55bd050e168d",
-                        "lang": "rust",
-                        "function": "C",
-                        "sym_addr": "0x55bd050e1590",
-                        "original_index": 0,
-                    },
-                    {
-                        "instruction_addr": "0x89bf050e178a",
-                        "lang": "rust",
-                        "function": "B",
-                        "sym_addr": "0x95bc050e2530",
-                        "original_index": 1,
-                    },
-                    {
-                        "instruction_addr": "0x68fd050d127b",
-                        "lang": "rust",
-                        "function": "A_inline_1",
-                        "original_index": 2,
-                    },
-                    {
-                        "instruction_addr": "0x29ce061d168a",
-                        "lang": "rust",
-                        "function": "A_inline_2",
-                        "original_index": 2,
-                    },
-                    {
-                        "instruction_addr": "0x88ad050d167e",
-                        "lang": "rust",
-                        "function": "A",
-                        "sym_addr": "0x29cd050a1642",
-                        "original_index": 2,
-                    },
-                ],
-            },
-        ]
+    assert frames[0]["name"] == "getClassContext"
+    assert frames[0]["class_name"] == "org.slf4j.helpers.Util$ClassContextSecurityManager"
+    assert frames[1]["name"] == "getExtraClassContext"
+    assert frames[1]["class_name"] == "org.slf4j.helpers.Util$ClassContextSecurityManager"
 
-        _process_symbolicator_results_for_sample(
-            profile, stacktraces, list(range(len(profile["profile"]["frames"])))
-        )
 
-        assert profile["profile"]["stacks"] == [[0, 1, 2, 3, 4, 5]]
-
-    def test_process_symbolicator_results_for_sample_js(self):
-        profile = {
-            "version": 1,
-            "platform": "javascript",
+@django_db_all
+def test_inline_deobfuscation(project, proguard_file_inline, android_profile):
+    android_profile.update(
+        {
+            "build_id": PROGUARD_INLINE_UUID,
+            "project_id": project.id,
             "profile": {
-                "frames": [
+                "methods": [
                     {
-                        "function": "functionA",
-                        "abs_path": "/root/functionA.js",
+                        "abs_path": None,
+                        "class_name": "e.a.c.a",
+                        "name": "onClick",
+                        "signature": "()V",
+                        "source_file": None,
+                        "source_line": 2,
                     },
                     {
-                        "function": "functionB",
-                        "abs_path": "/root/functionB.js",
+                        "abs_path": None,
+                        "class_name": "io.sentry.sample.MainActivity",
+                        "name": "t",
+                        "signature": "()V",
+                        "source_file": "MainActivity.java",
+                        "source_line": 1,
                     },
-                    {
-                        "function": "functionC",
-                        "abs_path": "/root/functionC.js",
-                    },
-                    # frame not valid for symbolication
-                    {
-                        "function": "functionD",
-                    },
-                ],
-                "samples": [
-                    {"stack_id": 0},
-                    # a second sample with the same stack id, the stack should
-                    # not be processed a second time
-                    {"stack_id": 0},
-                ],
-                "stacks": [
-                    [0, 1, 2, 3],
                 ],
             },
         }
+    )
 
-        # returned from symbolicator
-        stacktraces = [
-            {
-                "frames": [
+    project = Project.objects.get_from_cache(id=android_profile["project_id"])
+    _deobfuscate(android_profile, project)
+    frames = android_profile["profile"]["methods"]
+
+    assert sum(len(f.get("inline_frames", [])) for f in frames) == 3
+
+    assert frames[0]["name"] == "onClick"
+    assert frames[0]["class_name"] == "io.sentry.sample.-$$Lambda$r3Avcbztes2hicEObh02jjhQqd4"
+
+    assert frames[1]["inline_frames"][0]["name"] == "onClickHandler"
+    assert frames[1]["inline_frames"][0]["source_line"] == 40
+    assert frames[1]["inline_frames"][0]["source_file"] == "MainActivity.java"
+    assert frames[1]["inline_frames"][0]["class_name"] == "io.sentry.sample.MainActivity"
+    assert frames[1]["inline_frames"][0]["signature"] == "()"
+    assert frames[1]["inline_frames"][1]["name"] == "foo"
+    assert frames[1]["inline_frames"][1]["source_line"] == 44
+    assert frames[1]["inline_frames"][2]["source_file"] == "MainActivity.java"
+    assert frames[1]["inline_frames"][2]["class_name"] == "io.sentry.sample.MainActivity"
+    assert frames[1]["inline_frames"][2]["name"] == "bar"
+    assert frames[1]["inline_frames"][2]["source_line"] == 54
+
+
+@django_db_all
+def test_error_on_resolving(project, proguard_file_bug, android_profile):
+    android_profile.update(
+        {
+            "build_id": PROGUARD_BUG_UUID,
+            "project_id": project.id,
+            "profile": {
+                "methods": [
                     {
-                        "function": "functionA",
-                        "abs_path": "/root/functionA.js",
-                        "original_index": 0,
+                        "name": "a",
+                        "abs_path": None,
+                        "class_name": "org.a.b.g$a",
+                        "source_file": None,
+                        "source_line": 67,
                     },
                     {
-                        "function": "functionB",
-                        "abs_path": "/root/functionB.js",
-                        "original_index": 1,
-                    },
-                    {
-                        "function": "functionC",
-                        "abs_path": "/root/functionC.js",
-                        "original_index": 2,
+                        "name": "a",
+                        "abs_path": None,
+                        "class_name": "org.a.b.g$a",
+                        "source_file": None,
+                        "source_line": 69,
                     },
                 ],
             },
-        ]
+        }
+    )
 
-        frames_sent = [
-            idx
-            for idx, frame in enumerate(profile["profile"]["frames"])
-            if is_valid_javascript_frame(frame, profile)
-        ]
+    project = Project.objects.get_from_cache(id=android_profile["project_id"])
+    obfuscated_frames = android_profile["profile"]["methods"].copy()
+    _deobfuscate(android_profile, project)
 
-        _process_symbolicator_results_for_sample(profile, stacktraces, frames_sent)
+    assert android_profile["profile"]["methods"] == obfuscated_frames
 
-        assert profile["profile"]["stacks"] == [[0, 1, 2, 3]]
+
+def test_process_symbolicator_results_for_sample():
+    profile: dict[str, Any] = {
+        "version": 1,
+        "platform": "rust",
+        "profile": {
+            "frames": [
+                {
+                    "instruction_addr": "0x55bd050e168d",
+                    "lang": "rust",
+                    "sym_addr": "0x55bd050e1590",
+                },
+                {
+                    "instruction_addr": "0x89bf050e178a",
+                    "lang": "rust",
+                    "sym_addr": "0x95bc050e2530",
+                },
+                {
+                    "instruction_addr": "0x88ad050d167e",
+                    "lang": "rust",
+                    "sym_addr": "0x29cd050a1642",
+                },
+            ],
+            "samples": [
+                {"stack_id": 0},
+                # a second sample with the same stack id, the stack should
+                # not be processed a second time
+                {"stack_id": 0},
+            ],
+            "stacks": [
+                [0, 1, 2],
+            ],
+        },
+    }
+
+    # returned from symbolicator
+    stacktraces = [
+        {
+            "frames": [
+                {
+                    "instruction_addr": "0x72ba053e168c",
+                    "lang": "rust",
+                    "function": "C_inline_1",
+                    "original_index": 0,
+                },
+                {
+                    "instruction_addr": "0x55bd050e168d",
+                    "lang": "rust",
+                    "function": "C",
+                    "sym_addr": "0x55bd050e1590",
+                    "original_index": 0,
+                },
+                {
+                    "instruction_addr": "0x89bf050e178a",
+                    "lang": "rust",
+                    "function": "B",
+                    "sym_addr": "0x95bc050e2530",
+                    "original_index": 1,
+                },
+                {
+                    "instruction_addr": "0x68fd050d127b",
+                    "lang": "rust",
+                    "function": "A_inline_1",
+                    "original_index": 2,
+                },
+                {
+                    "instruction_addr": "0x29ce061d168a",
+                    "lang": "rust",
+                    "function": "A_inline_2",
+                    "original_index": 2,
+                },
+                {
+                    "instruction_addr": "0x88ad050d167e",
+                    "lang": "rust",
+                    "function": "A",
+                    "sym_addr": "0x29cd050a1642",
+                    "original_index": 2,
+                },
+            ],
+        },
+    ]
+
+    _process_symbolicator_results_for_sample(
+        profile, stacktraces, set(range(len(profile["profile"]["frames"])))
+    )
+
+    assert profile["profile"]["stacks"] == [[0, 1, 2, 3, 4, 5]]
+
+
+def test_process_symbolicator_results_for_sample_js():
+    profile: dict[str, Any] = {
+        "version": 1,
+        "platform": "javascript",
+        "profile": {
+            "frames": [
+                {
+                    "function": "functionA",
+                    "abs_path": "/root/functionA.js",
+                },
+                {
+                    "function": "functionB",
+                    "abs_path": "/root/functionB.js",
+                },
+                {
+                    "function": "functionC",
+                    "abs_path": "/root/functionC.js",
+                },
+                # frame not valid for symbolication
+                {
+                    "function": "functionD",
+                },
+            ],
+            "samples": [
+                {"stack_id": 0},
+                # a second sample with the same stack id, the stack should
+                # not be processed a second time
+                {"stack_id": 0},
+            ],
+            "stacks": [
+                [0, 1, 2, 3],
+            ],
+        },
+    }
+
+    # returned from symbolicator
+    stacktraces = [
+        {
+            "frames": [
+                {
+                    "function": "functionA",
+                    "abs_path": "/root/functionA.js",
+                    "original_index": 0,
+                },
+                {
+                    "function": "functionB",
+                    "abs_path": "/root/functionB.js",
+                    "original_index": 1,
+                },
+                {
+                    "function": "functionC",
+                    "abs_path": "/root/functionC.js",
+                    "original_index": 2,
+                },
+            ],
+        },
+    ]
+
+    frames_sent = [
+        idx
+        for idx, frame in enumerate(profile["profile"]["frames"])
+        if is_valid_javascript_frame(frame, profile)
+    ]
+
+    _process_symbolicator_results_for_sample(profile, stacktraces, set(frames_sent))
+
+    assert profile["profile"]["stacks"] == [[0, 1, 2, 3]]
+
+
+@django_db_all
+def test_decode_signature(project, android_profile):
+    android_profile.update(
+        {
+            "project_id": project.id,
+            "profile": {
+                "methods": [
+                    {
+                        "abs_path": None,
+                        "class_name": "org.a.b.g$a",
+                        "name": "a",
+                        "signature": "()V",
+                        "source_file": None,
+                        "source_line": 67,
+                    },
+                    {
+                        "abs_path": None,
+                        "class_name": "org.a.b.g$a",
+                        "name": "a",
+                        "signature": "()Z",
+                        "source_file": None,
+                        "source_line": 69,
+                    },
+                ],
+            },
+        }
+    )
+    _deobfuscate(android_profile, project)
+    frames = android_profile["profile"]["methods"]
+
+    assert frames[0]["signature"] == "()"
+    assert frames[1]["signature"] == "(): boolean"

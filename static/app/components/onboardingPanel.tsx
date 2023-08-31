@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Panel} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
 import {space} from 'sentry/styles/space';
 
 interface Props extends React.ComponentProps<typeof Panel> {

@@ -12,6 +12,7 @@ from sentry.notifications.types import (
     NOTIFICATION_SETTING_TYPES,
     SUBSCRIPTION_REASON_MAP,
     VALID_VALUES_FOR_KEY,
+    VALID_VALUES_FOR_KEY_V2,
     GroupSubscriptionReason,
     NotificationScopeType,
     NotificationSettingOptionValues,
@@ -23,7 +24,6 @@ from sentry.services.hybrid_cloud.notifications import RpcNotificationSetting
 from sentry.types.integrations import (
     EXTERNAL_PROVIDERS,
     ExternalProviders,
-    get_provider_enum,
     get_provider_enum_from_string,
     get_provider_name,
 )
@@ -244,6 +244,11 @@ def transform_to_notification_settings_by_scope(
 def validate(type: NotificationSettingTypes, value: NotificationSettingOptionValues) -> bool:
     """:returns boolean. True if the "value" is valid for the "type"."""
     return value in VALID_VALUES_FOR_KEY.get(type, {})
+
+
+def validate_v2(type: NotificationSettingTypes, value: NotificationSettingOptionValues) -> bool:
+    """:returns boolean. True if the "value" is valid for the "type"."""
+    return value in VALID_VALUES_FOR_KEY_V2.get(type, {})
 
 
 def get_scope_type(type: NotificationSettingTypes) -> NotificationScopeType:
@@ -593,18 +598,11 @@ def get_values_by_provider(
 
 
 def get_providers_for_recipient(
-    raw_recipient: RpcActor | User | Team,
+    recipient: User,
 ) -> Iterable[ExternalProviders]:
-    from sentry.models import ExternalActor, Identity
+    from sentry.models import Identity
 
-    recipient = RpcActor.from_object(raw_recipient)
     possible_providers = NOTIFICATION_SETTING_DEFAULTS.keys()
-    if recipient.actor_type == ActorType.TEAM:
-        team_providers = ExternalActor.objects.filter(
-            actor_id=recipient.actor_id, provider__in=possible_providers
-        ).values_list("provider", flat=True)
-        return [get_provider_enum(provider) for provider in team_providers]
-
     provider_names = [get_provider_name(provider) for provider in possible_providers]
     idp_types = Identity.objects.filter(
         user__id=recipient.id, idp__type__in=provider_names

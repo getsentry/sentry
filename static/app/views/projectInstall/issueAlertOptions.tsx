@@ -46,8 +46,6 @@ const METRIC_CONDITION_MAP = {
   [MetricValues.USERS]: UNIQUE_USER_FREQUENCY_CONDITION,
 } as const;
 
-const DEFAULT_PLACEHOLDER_VALUE = '10';
-
 type StateUpdater = (updatedData: RequestDataFragment) => void;
 type Props = DeprecatedAsyncComponent['props'] & {
   onChange: StateUpdater;
@@ -125,7 +123,7 @@ class IssueAlertOptions extends DeprecatedAsyncComponent<Props, State> {
       alertSetting: this.props.alertSetting ?? RuleAction.ALERT_ON_EVERY_ISSUE.toString(),
       metric: this.props.metric ?? MetricValues.ERRORS,
       interval: this.props.interval ?? '',
-      threshold: this.props.threshold ?? '',
+      threshold: this.props.threshold ?? '10',
     };
   }
 
@@ -161,7 +159,7 @@ class IssueAlertOptions extends DeprecatedAsyncComponent<Props, State> {
           type="number"
           min="0"
           name=""
-          placeholder={DEFAULT_PLACEHOLDER_VALUE}
+          placeholder="10"
           value={this.state.threshold}
           onChange={threshold =>
             this.setStateAndUpdateParents({threshold: threshold.target.value})

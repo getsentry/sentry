@@ -20,4 +20,5 @@ def serialize_identity(identity: "Identity") -> RpcIdentity:
         idp_id=identity.idp_id,
         user_id=identity.user_id,
         external_id=identity.external_id,
+        data=identity.data,
     )

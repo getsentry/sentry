@@ -13,11 +13,12 @@ from sentry.models import (
     OrganizationMemberTeam,
     UserEmail,
 )
-from sentry.testutils import APITestCase, TestCase
+from sentry.silo import SiloMode
+from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.helpers import Feature, with_feature
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 
 @region_silo_test(stable=True)
@@ -74,12 +75,14 @@ class OrganizationMemberSerializerTest(TestCase):
 
         request = self.make_request(user=user)
 
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             UserEmail.objects.filter(user=user, email=user.email).update(is_verified=False)
 
             invite_state = get_invite_state(member.id, org.slug, user.id)
             assert invite_state, "Expected invite state, logic bug?"
-            invite_helper = ApiInviteHelper(request=request, invite_context=invite_state, token=None)  # type: ignore
+            invite_helper = ApiInviteHelper(
+                request=request, invite_context=invite_state, token=None
+            )
             invite_helper.accept_invite(user)
 
         serializer = OrganizationMemberSerializer(context=context, data=data)
@@ -323,7 +326,7 @@ class OrganizationMemberListTest(OrganizationMemberListTestBase, HybridCloudTest
         )
 
         # Two authenticators to ensure the user list is distinct
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             Authenticator.objects.create(user_id=member_2fa.user_id, type=1)
             Authenticator.objects.create(user_id=member_2fa.user_id, type=2)
 

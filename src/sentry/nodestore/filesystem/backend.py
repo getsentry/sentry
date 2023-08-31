@@ -1,8 +1,8 @@
 import datetime
 import os
+from datetime import timezone
 
 from django.conf import settings
-from django.utils import timezone
 
 from sentry.nodestore.base import NodeStorage
 

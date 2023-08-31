@@ -1,8 +1,11 @@
+from __future__ import annotations
+
 import logging
 import time
 import warnings
 from collections import namedtuple
 from io import BytesIO
+from typing import Any
 from urllib.parse import urlparse
 
 from django.conf import settings
@@ -206,7 +209,7 @@ def fetch_file(
             except Exception as exc:
                 logger.debug("Unable to fetch %r", url, exc_info=True)
                 if isinstance(exc, RestrictedIPAddress):
-                    error = {"type": EventError.RESTRICTED_IP}
+                    error: dict[str, Any] = {"type": EventError.RESTRICTED_IP}
                 elif isinstance(exc, SuspiciousOperation):
                     error = {"type": EventError.SECURITY_VIOLATION}
                 elif isinstance(exc, (Timeout, ReadTimeout)):

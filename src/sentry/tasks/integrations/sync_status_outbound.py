@@ -3,6 +3,7 @@ from typing import Optional
 from sentry import analytics, features
 from sentry.models import ExternalIssue, Group, GroupStatus, Integration
 from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task, retry, track_group_async_operation
 
 
@@ -11,6 +12,7 @@ from sentry.tasks.base import instrumented_task, retry, track_group_async_operat
     queue="integrations",
     default_retry_delay=60 * 5,
     max_retries=5,
+    silo_mode=SiloMode.REGION,
 )
 @retry(exclude=(Integration.DoesNotExist,))
 @track_group_async_operation
@@ -33,9 +35,7 @@ def sync_status_outbound(group_id: int, external_issue_id: int) -> Optional[bool
         return None
 
     integration = integration_service.get_integration(integration_id=external_issue.integration_id)
-    installation = integration_service.get_installation(
-        integration=integration, organization_id=external_issue.organization_id
-    )
+    installation = integration.get_installation(organization_id=external_issue.organization_id)
     if installation.should_sync("outbound_status"):
         installation.sync_status_outbound(
             external_issue, group.status == GroupStatus.RESOLVED, group.project_id

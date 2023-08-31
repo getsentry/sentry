@@ -1,11 +1,11 @@
 from django.urls import reverse
 
 from sentry.models import Commit, ReleaseCommit, Repository
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectReleaseSetupCompletionTest(APITestCase):
     def test_simple(self):
         project = self.create_project()

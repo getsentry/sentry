@@ -2,12 +2,13 @@ from __future__ import annotations
 
 import logging
 import re
-from datetime import datetime
+from datetime import timezone
 from typing import Any, Collection, Dict, Mapping, Sequence
 
 from django.http import HttpResponse
 from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
+from isodate import parse_datetime
 from rest_framework.request import Request
 
 from sentry import features, options
@@ -30,6 +31,9 @@ from sentry.services.hybrid_cloud.repository import RpcRepository, repository_se
 from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.tasks.integrations import migrate_repo
+from sentry.tasks.integrations.github.pr_comment import RATE_LIMITED_MESSAGE
+from sentry.tasks.integrations.link_all_repos import link_all_repos
+from sentry.utils import metrics
 from sentry.web.helpers import render_to_response
 
 from .client import GitHubAppsClient, GitHubClientMixin
@@ -111,6 +115,13 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
         if not self.org_integration:
             raise IntegrationError("Organization Integration does not exist")
         return GitHubAppsClient(integration=self.model, org_integration_id=self.org_integration.id)
+
+    def is_rate_limited_error(self, exc: Exception) -> bool:
+        if exc.json and RATE_LIMITED_MESSAGE in exc.json.get("message", ""):
+            metrics.incr("github.link_all_repos.rate_limited_error")
+            return True
+
+        return False
 
     def get_trees_for_org(self, cache_seconds: int = 3600 * 24) -> Dict[str, RepoTree]:
         trees: Dict[str, RepoTree] = {}
@@ -204,7 +215,7 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
             message = exc.json.get("message", "unknown error") if exc.json else "unknown error"
         return f"Error Communicating with GitHub (HTTP {exc.code}): {message}"
 
-    def has_repo_access(self, repo: Repository) -> bool:
+    def has_repo_access(self, repo: RpcRepository) -> bool:
         client = self.get_client()
         try:
             # make sure installation has access to this specific repo
@@ -238,10 +249,9 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
                     blame
                     for blame in blame_range
                     if blame.get("startingLine", 0) <= lineno <= blame.get("endingLine", 0)
+                    and blame.get("commit", {}).get("committedDate")
                 ),
-                key=lambda blame: datetime.strptime(
-                    blame.get("commit", {}).get("committedDate"), "%Y-%m-%dT%H:%M:%SZ"
-                ),
+                key=lambda blame: parse_datetime(blame.get("commit", {}).get("committedDate")),
                 default={},
             )
             if not commit:
@@ -253,9 +263,13 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
         if not commitInfo:
             return None
         else:
+            committed_date = parse_datetime(commitInfo.get("committedDate")).astimezone(
+                timezone.utc
+            )
+
             return {
                 "commitId": commitInfo.get("oid"),
-                "committedDate": commitInfo.get("committedDate"),
+                "committedDate": committed_date,
                 "commitMessage": commitInfo.get("message"),
                 "commitAuthorName": commitInfo.get("author", {}).get("name"),
                 "commitAuthorEmail": commitInfo.get("author", {}).get("email"),
@@ -304,6 +318,14 @@ class GitHubIntegrationProvider(IntegrationProvider):
                     "organization_id": organization.id,
                 }
             )
+
+        link_all_repos.apply_async(
+            kwargs={
+                "integration_key": self.key,
+                "integration_id": integration.id,
+                "organization_id": organization.id,
+            }
+        )
 
     def get_pipeline_views(self) -> Sequence[PipelineView]:
         return [GitHubInstallationRedirect()]

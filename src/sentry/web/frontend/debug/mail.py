@@ -53,8 +53,11 @@ from sentry.notifications.utils import (
     get_issue_replay_link,
     get_rules,
 )
-from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.helpers.notifications import SAMPLE_TO_OCCURRENCE_MAP, TEST_ISSUE_OCCURRENCE
+from sentry.testutils.helpers.datetime import before_now  # NOQA:S007
+from sentry.testutils.helpers.notifications import (  # NOQA:S007
+    SAMPLE_TO_OCCURRENCE_MAP,
+    TEST_ISSUE_OCCURRENCE,
+)
 from sentry.types.group import GroupSubStatus
 from sentry.utils import json, loremipsum
 from sentry.utils.dates import to_datetime, to_timestamp
@@ -162,7 +165,7 @@ def make_group_generator(random, project):
             status=random.choice((GroupStatus.UNRESOLVED, GroupStatus.RESOLVED)),
             data={"type": "default", "metadata": {"title": message}},
         )
-        group.has_replays = lambda: random.choice((True, False))
+        group.has_replays = lambda: random.choice((True, False))  # type: ignore[method-assign]
         if random.random() < 0.8:
             group.data = make_group_metadata(random, group)
 
@@ -467,7 +470,7 @@ def digest(request):
     rules = {
         i: Rule(id=i, project=project, label=f"Rule #{i}") for i in range(1, random.randint(2, 4))
     }
-    state = {
+    state: dict[str, Any] = {
         "project": project,
         "groups": {},
         "rules": rules,

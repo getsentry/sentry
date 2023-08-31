@@ -1,11 +1,12 @@
 import {CompactSelect} from 'sentry/components/compactSelect';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
-import type {Extraction} from 'sentry/utils/replays/extractDomNodes';
 import useDomFilters from 'sentry/views/replays/detail/domMutations/useDomFilters';
 import FiltersGrid from 'sentry/views/replays/detail/filtersGrid';
 
-type Props = {actions: undefined | Extraction[]} & ReturnType<typeof useDomFilters>;
+type Props = {
+  actions: undefined | unknown[];
+} & ReturnType<typeof useDomFilters>;
 
 function DomFilters({
   actions,

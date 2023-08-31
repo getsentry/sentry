@@ -3,6 +3,7 @@ from django.conf import settings
 from django.views.generic import View
 
 from sentry import options
+from sentry.middleware.placeholder import placeholder_get_response
 from sentry.web.helpers import render_to_response
 
 
@@ -34,7 +35,7 @@ class JiraSentryUIBaseView(View):
                 origin = "/".join(settings.STATIC_FRONTEND_APP_URL.split("/")[0:3])
                 csp_style_src.append(origin)
 
-            middleware = CSPMiddleware()
+            middleware = CSPMiddleware(placeholder_get_response)
             middleware.process_request(self.request)  # adds nonce
 
             response = render_to_response(self.html_file, context, self.request)

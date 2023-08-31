@@ -1,14 +1,20 @@
+from __future__ import annotations
+
 import logging
 from hashlib import md5
+from typing import TYPE_CHECKING
 
 from django.utils.translation import gettext_lazy as _
 
-from sentry import ratelimits as ratelimiter
+from sentry.ratelimits import backend as ratelimiter
 from sentry.utils.decorators import classproperty
 from sentry.utils.otp import TOTP
 from sentry.utils.sms import phone_number_as_e164, send_sms, sms_available
 
 from .base import ActivationMessageResult, AuthenticatorInterface, OtpMixin
+
+if TYPE_CHECKING:
+    from django.utils.functional import _StrPromise
 
 logger = logging.getLogger("sentry.auth")
 
@@ -83,7 +89,7 @@ class SmsInterface(OtpMixin, AuthenticatorInterface):
         ctx = {"code": self.make_otp().generate_otp()}
 
         if for_enrollment:
-            text = _(
+            text: _StrPromise | str = _(
                 "%(code)s is your Sentry two-factor enrollment code. "
                 "You are about to set up text message based two-factor "
                 "authentication."

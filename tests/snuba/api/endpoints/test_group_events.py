@@ -4,8 +4,7 @@ from django.utils import timezone
 from freezegun import freeze_time
 
 from sentry.issues.grouptype import ProfileFileIOGroupType
-from sentry.testutils import APITestCase, SnubaTestCase
-from sentry.testutils.cases import PerformanceIssueTestCase
+from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
@@ -506,6 +505,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
             "prod",
             before_now(hours=1).replace(tzinfo=timezone.utc),
         )
+        assert group_info is not None
         event_2, _, _ = self.store_search_issue(
             self.project.id,
             self.user.id,

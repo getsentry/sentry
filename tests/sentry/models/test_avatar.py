@@ -2,7 +2,7 @@ from sentry import options as options_store
 from sentry.models import File, UserAvatar
 from sentry.models.avatars.organization_avatar import OrganizationAvatar
 from sentry.models.files.control_file import ControlFile
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test, region_silo_test
 
 
@@ -43,9 +43,10 @@ class AvatarMigrationTestCase(TestCase):
         ):
             with self.tasks():
                 assert isinstance(avatar.get_file(), File)
-                avatar = UserAvatar.objects.get(id=avatar.id)
-                assert avatar.control_file_id is not None
-                assert isinstance(avatar.get_file(), ControlFile)
+            avatar = UserAvatar.objects.get(id=avatar.id)
+            assert avatar.control_file_id is not None
+            assert avatar.file_id is None
+            assert isinstance(avatar.get_file(), ControlFile)
 
 
 @region_silo_test(stable=True)

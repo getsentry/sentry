@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Union
 
 import sentry_sdk
 from django.conf import settings
-from django.db import transaction
+from django.db import router, transaction
 from django.db.models import Q
 from drf_spectacular.utils import extend_schema, extend_schema_field, inline_serializer
 from rest_framework import serializers
@@ -15,6 +15,7 @@ from rest_framework.response import Response
 from typing_extensions import TypedDict
 
 from sentry import audit_log, roles
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organizationmember import OrganizationMemberEndpoint
 from sentry.api.endpoints.organization_member.index import OrganizationMemberSerializer
@@ -118,10 +119,10 @@ def _scim_member_serializer_with_expansion(organization):
     care about this and rely on the behavior of setting "active" to false
     to delete a member.
     """
-    auth_providers = auth_service.get_auth_providers(organization_id=organization.id)
+    auth_provider = auth_service.get_auth_provider(organization_id=organization.id)
     expand = ["active"]
 
-    if any(ap.provider == ACTIVE_DIRECTORY_PROVIDER_NAME for ap in auth_providers):
+    if auth_provider and auth_provider.provider == ACTIVE_DIRECTORY_PROVIDER_NAME:
         expand = []
     return OrganizationMemberSCIMSerializer(expand=expand)
 
@@ -141,6 +142,12 @@ def resolve_maybe_bool_value(value):
 
 @region_silo_endpoint
 class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
+    publish_status = {
+        "DELETE": ApiPublishStatus.PUBLIC,
+        "GET": ApiPublishStatus.PUBLIC,
+        "PUT": ApiPublishStatus.UNKNOWN,
+        "PATCH": ApiPublishStatus.PUBLIC,
+    }
     permission_classes = (OrganizationSCIMMemberPermission,)
     public = {"GET", "DELETE", "PATCH"}
 
@@ -167,7 +174,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
         audit_data = member.get_audit_log_data()
         if member.is_only_owner():
             raise PermissionDenied(detail=ERR_ONLY_OWNER)
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(OrganizationMember)):
             member.delete()
             self.create_audit_entry(
                 request=request,
@@ -367,6 +374,10 @@ class SCIMListResponseDict(TypedDict):
 
 @region_silo_endpoint
 class OrganizationSCIMMemberIndex(SCIMEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.PUBLIC,
+        "POST": ApiPublishStatus.PUBLIC,
+    }
     permission_classes = (OrganizationSCIMMemberPermission,)
     public = {"GET", "POST"}
 
@@ -399,7 +410,7 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
         ).order_by("email", "id")
         if query_params["filter"]:
             filtered_users = user_service.get_many_by_email(
-                emails=query_params["filter"],
+                emails=[query_params["filter"]],
                 organization_id=organization.id,
                 is_verified=False,
             )
@@ -505,7 +516,7 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
                 raise SCIMApiError(detail=json.dumps(serializer.errors))
 
             result = serializer.validated_data
-            with transaction.atomic():
+            with transaction.atomic(router.db_for_write(OrganizationMember)):
                 member_query = OrganizationMember.objects.filter(
                     organization=organization, email=result["email"], role=result["role"]
                 )

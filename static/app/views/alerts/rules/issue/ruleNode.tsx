@@ -412,6 +412,28 @@ function RuleNode({
     }
 
     if (
+      data.id === 'sentry.integrations.discord.notify_action.DiscordNotifyServiceAction'
+    ) {
+      return (
+        <MarginlessAlert
+          type="info"
+          showIcon
+          trailingItems={
+            <Button
+              href="https://docs.sentry.io/product/accounts/early-adopter-features/discord/#issue-alerts"
+              external
+              size="xs"
+            >
+              {t('Learn More')}
+            </Button>
+          }
+        >
+          {t('Note that you must enter a Discord channel ID, not a channel name.')}
+        </MarginlessAlert>
+      );
+    }
+
+    if (
       data.id === NOTIFY_EMAIL_ACTION &&
       data.targetType === MailActionTargetType.ISSUE_OWNERS &&
       !organization.features.includes('issue-alert-fallback-targeting')
@@ -582,7 +604,7 @@ function RuleNode({
                       {...deps}
                       sentryAppInstallationUuid={sentryAppInstallationUuid}
                       config={node.formFields as SchemaFormConfig}
-                      appName={node.prompt}
+                      appName={node.prompt ?? node.label}
                       onSubmitSuccess={updateParentFromSentryAppRule}
                       resetValues={data}
                     />

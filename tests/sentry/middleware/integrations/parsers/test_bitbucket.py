@@ -5,12 +5,12 @@ from django.http import HttpResponse
 from django.test import RequestFactory, override_settings
 from django.urls import reverse
 
-from sentry.middleware.integrations.integration_control import IntegrationControlMiddleware
 from sentry.middleware.integrations.parsers.bitbucket import BitbucketRequestParser
-from sentry.models.outbox import ControlOutbox, WebhookProviderIdentifier
+from sentry.models.outbox import WebhookProviderIdentifier
 from sentry.services.hybrid_cloud.organization_mapping.service import organization_mapping_service
 from sentry.silo.base import SiloMode
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
+from sentry.testutils.outbox import assert_webhook_outboxes
 from sentry.testutils.region import override_regions
 from sentry.testutils.silo import control_silo_test
 from sentry.types.region import Region, RegionCategory
@@ -19,9 +19,8 @@ from sentry.types.region import Region, RegionCategory
 @control_silo_test()
 class BitbucketRequestParserTest(TestCase):
     get_response = MagicMock(return_value=HttpResponse(content=b"no-error", status=200))
-    middleware = IntegrationControlMiddleware(get_response)
     factory = RequestFactory()
-    region = Region("na", 1, "https://na.testserver", RegionCategory.MULTI_TENANT)
+    region = Region("us", 1, "https://us.testserver", RegionCategory.MULTI_TENANT)
     region_config = (region,)
 
     def setUp(self):
@@ -77,11 +76,12 @@ class BitbucketRequestParserTest(TestCase):
 
         # Valid region
         organization_mapping_service.update(
-            organization_id=self.organization.id, update={"region_name": "na"}
+            organization_id=self.organization.id, update={"region_name": "us"}
         )
         with override_regions(self.region_config):
             parser.get_response()
-            outboxes = ControlOutbox.objects.filter(
-                shard_identifier=WebhookProviderIdentifier.BITBUCKET
+            assert_webhook_outboxes(
+                factory_request=request,
+                webhook_identifier=WebhookProviderIdentifier.BITBUCKET,
+                region_names=[self.region.name],
             )
-            assert len(outboxes) == 1

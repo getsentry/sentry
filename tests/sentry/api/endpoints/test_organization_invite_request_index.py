@@ -10,8 +10,7 @@ from sentry.models import (
     OrganizationMemberTeam,
     OrganizationOption,
 )
-from sentry.testutils import APITestCase
-from sentry.testutils.cases import SlackActivityNotificationTest
+from sentry.testutils.cases import APITestCase, SlackActivityNotificationTest
 from sentry.testutils.helpers.slack import get_attachment_no_text
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
@@ -19,7 +18,7 @@ from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationInviteRequestListTest(APITestCase):
     endpoint = "sentry-api-0-organization-invite-request-index"
 

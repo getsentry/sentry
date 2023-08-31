@@ -6,7 +6,7 @@ from django.utils import timezone
 from sentry.buffer.base import Buffer
 from sentry.models import Group, Organization, Project, Release, ReleaseProject, Team
 from sentry.receivers import create_default_projects
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 
 
 class BufferTest(TestCase):

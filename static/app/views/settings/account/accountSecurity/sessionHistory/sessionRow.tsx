@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {PanelItem} from 'sentry/components/panels';
+import PanelItem from 'sentry/components/panels/panelItem';
 import TimeSince from 'sentry/components/timeSince';
 import {space} from 'sentry/styles/space';
 import {InternetProtocol} from 'sentry/types';

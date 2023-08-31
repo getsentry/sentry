@@ -13,13 +13,16 @@ import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 
 import {getForm, getOptionDefault, getOptionField} from '../options';
 
-type Props = DeprecatedAsyncView['props'] & {
+export type InstallWizardProps = DeprecatedAsyncView['props'] & {
   onConfigured: () => void;
 };
 
 type State = DeprecatedAsyncView['state'];
 
-export default class InstallWizard extends DeprecatedAsyncView<Props, State> {
+export default class InstallWizard extends DeprecatedAsyncView<
+  InstallWizardProps,
+  State
+> {
   getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     return [['data', '/internal/options/?query=is:required']];
   }

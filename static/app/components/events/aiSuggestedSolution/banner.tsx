@@ -6,7 +6,8 @@ import bannerStars from 'sentry-images/spot/ai-suggestion-banner-stars.svg';
 
 import {Button} from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {Panel, PanelBody} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

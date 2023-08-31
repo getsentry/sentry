@@ -194,7 +194,7 @@ def get_supported_functions(lambda_client):
 
 def get_dsn_for_project(organization_id, project_id):
     enabled_dsn = project_key_service.get_project_key(
-        project_id=project_id, role=ProjectKeyRole.store
+        organization_id=organization_id, project_id=project_id, role=ProjectKeyRole.store
     )
     if not enabled_dsn:
         raise IntegrationError("Project does not have DSN enabled")

@@ -143,13 +143,17 @@ export class MutableSearch {
 
   addFilterValues(key: string, values: string[], shouldEscape = true) {
     for (const value of values) {
-      // Filter values that we insert through the UI can contain special characters
-      // that need to escaped. User entered filters should not be escaped.
-      const escaped = shouldEscape ? escapeFilterValue(value) : value;
-      const token: Token = {type: TokenType.FILTER, key, value: escaped};
-      this.tokens.push(token);
+      this.addFilterValue(key, value, shouldEscape);
     }
     return this;
+  }
+
+  addFilterValue(key: string, value: string, shouldEscape = true) {
+    // Filter values that we insert through the UI can contain special characters
+    // that need to escaped. User entered filters should not be escaped.
+    const escaped = shouldEscape ? escapeFilterValue(value) : value;
+    const token: Token = {type: TokenType.FILTER, key, value: escaped};
+    this.tokens.push(token);
   }
 
   setFilterValues(key: string, values: string[], shouldEscape = true) {
@@ -284,6 +288,7 @@ export class MutableSearch {
         values.filter(item => item !== value)
       );
     }
+    return this;
   }
 
   addFreeText(value: string) {

@@ -6,7 +6,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 

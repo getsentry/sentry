@@ -80,6 +80,16 @@ For example `24h`, to mean query data starting from 24 hours ago to now.""",
     )
 
     @staticmethod
+    def member_id(description: str) -> OpenApiParameter:
+        return OpenApiParameter(
+            name="member_id",
+            location="path",
+            required=True,
+            type=str,
+            description=description,
+        )
+
+    @staticmethod
     def name(description: str, required: bool = False) -> OpenApiParameter:
         return OpenApiParameter(
             name="name",
@@ -222,6 +232,57 @@ class EventParams:
     )
 
 
+class OrganizationParams:
+    MEMBER_ID = OpenApiParameter(
+        name="member_id",
+        location="path",
+        required=True,
+        type=str,
+        description="The member ID.",
+    )
+
+    ORG_ROLE = OpenApiParameter(
+        name="orgRole",
+        location="query",
+        required=False,
+        type=str,
+        description="""
+The organization role of the member. The options are:
+- `billing`: Can manage payment and compliance details.
+- `member`: Can view and act on events, as well as view most other data within the organization.
+- `manager`: Has full management access to all teams and projects. Can also manage the organization's membership.
+- `owner`: Has unrestricted access to the organization, its data, and its settings. Can add, modify, and
+delete projects and members, as well as make billing and plan changes.
+""",
+    )
+
+    TEAM_ROLES = OpenApiParameter(
+        name="teamRoles",
+        location="query",
+        required=False,
+        type=build_typed_list(OpenApiTypes.OBJECT),
+        description="""
+Configures the team role of the member. The two roles are:
+- `contributor`: Can view and act on issues. Depending on organization settings, they can also add team members.
+- `admin`: Has full management access to their team's membership and projects.
+```json
+{
+    "teamRoles": [
+        {
+            "teamSlug": "ancient-gabelers",
+            "role": "admin"
+        },
+        {
+            "teamSlug": "powerful-abolitionist",
+            "role": "contributor"
+        }
+    ]
+}
+```
+""",
+    )
+
+
 class ProjectParams:
     FILTER_ID = OpenApiParameter(
         name="filter_id",
@@ -234,7 +295,7 @@ class ProjectParams:
 and IPv6 (``::1``) addresses.
 - `filtered-transaction`: Filter out transactions for healthcheck and ping endpoints.
 - `web-crawlers`: Filter out known web crawlers. Some crawlers may execute pages in incompatible
-ways which then cause errors that are unlikely to be seen by a normal user.
+ways which cause errors that are unlikely to be seen by a normal user.
 - `legacy-browser`: Filter out known errors from legacy browsers. Older browsers often give less
 accurate information, and while they may report valid issues, the context to understand them is
 incorrect or missing.
@@ -314,6 +375,38 @@ Configures multiple options for the Javascript Loader Script.
         description="Enables starring the project within the projects tab.",
     )
 
+    OPTIONS = OpenApiParameter(
+        name="options",
+        location="query",
+        required=False,
+        type=inline_serializer(
+            name="ProjectOptionsSerializer",
+            fields={
+                "filters:react-hydration-errors": serializers.BooleanField(required=False),
+                "filters:blacklisted_ips": serializers.CharField(required=False),
+                "filters:releases": serializers.CharField(required=False),
+                "filters:error_messages": serializers.CharField(required=False),
+            },
+        ),
+        description="""
+Configure various project filters:
+- `Hydration Errors`: Filter out react hydration errors that are often unactionable
+- `IP Addresses`: Filter events from these IP addresses separated with newlines.
+- `Releases`: Filter events from these releases separated with newlines. Allows [glob pattern matching](https://docs.sentry.io/product/data-management-settings/filtering/#glob-matching).
+- `Error Message`: Filter events by error messages separated with newlines. Allows [glob pattern matching](https://docs.sentry.io/product/data-management-settings/filtering/#glob-matching).
+```json
+{
+    options: {
+        filters:react-hydration-errors: true,
+        filters:blacklisted_ips: "127.0.0.1\\n192.168. 0.1"
+        filters:releases: "[!3]\\n4"
+        filters:error_messages: "TypeError*\\n*ConnectionError*"
+    }
+}
+```
+""",
+    )
+
     RATE_LIMIT = OpenApiParameter(
         name="rateLimit",
         location="query",
@@ -388,4 +481,14 @@ class TeamParams:
         description="""
 Specify `"0"` to return team details that do not include projects.
 """,
+    )
+
+
+class ReplayParams:
+    REPLAY_ID = OpenApiParameter(
+        name="replay_id",
+        location="path",
+        required=True,
+        type=OpenApiTypes.UUID,
+        description="""The id of the replay you'd like to retrieve.""",
     )

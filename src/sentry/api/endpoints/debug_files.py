@@ -1,18 +1,21 @@
 import logging
 import posixpath
 import re
+import uuid
 from typing import Sequence
 
 import jsonschema
-from django.db import router
+from django.db import IntegrityError, router
 from django.db.models import Q
 from django.http import Http404, HttpResponse, StreamingHttpResponse
+from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 from symbolic.debuginfo import normalize_debug_id
 from symbolic.exceptions import SymbolicError
 
 from sentry import ratelimits, roles
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -22,15 +25,16 @@ from sentry.auth.superuser import is_active_superuser
 from sentry.auth.system import is_system_auth
 from sentry.constants import DEBUG_FILES_ROLE_DEFAULT, KNOWN_DIF_FORMATS
 from sentry.debug_files.debug_files import maybe_renew_debug_files
+from sentry.debug_files.upload import find_missing_chunks
 from sentry.models import (
     File,
-    FileBlobOwner,
     OrganizationMember,
     ProjectDebugFile,
     Release,
     ReleaseFile,
     create_files_from_dif_zip,
 )
+from sentry.models.debugfile import ProguardArtifactRelease
 from sentry.models.release import get_artifact_counts
 from sentry.tasks.assemble import (
     AssembleTask,
@@ -84,7 +88,93 @@ def has_download_permission(request, project):
 
 
 @region_silo_endpoint
+class ProguardArtifactReleasesEndpoint(ProjectEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
+    permission_classes = (ProjectReleasePermission,)
+
+    def post(self, request: Request, project) -> Response:
+        release_name = request.data.get("release_name")
+        proguard_uuid = request.data.get("proguard_uuid")
+
+        missing_fields = []
+        if not release_name:
+            missing_fields.append("release_name")
+        if not proguard_uuid:
+            missing_fields.append("proguard_uuid")
+
+        if missing_fields:
+            error_message = f"Missing required fields: {', '.join(missing_fields)}"
+            return Response(data={"error": error_message}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            uuid.UUID(proguard_uuid)
+        except ValueError:
+            return Response(
+                data={"error": "Invalid proguard_uuid"}, status=status.HTTP_400_BAD_REQUEST
+            )
+
+        proguard_uuid = str(proguard_uuid)
+
+        difs = ProjectDebugFile.objects.find_by_debug_ids(project, [proguard_uuid])
+        if not difs:
+            return Response(
+                data={"error": "No matching proguard mapping file with this uuid found"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            ProguardArtifactRelease.objects.create(
+                organization_id=project.organization_id,
+                project_id=project.id,
+                release_name=release_name,
+                project_debug_file=difs[proguard_uuid],
+                proguard_uuid=proguard_uuid,
+            )
+            return Response(status=status.HTTP_201_CREATED)
+        except IntegrityError:
+            return Response(
+                data={
+                    "error": "Proguard artifact release with this name in this project already exists."
+                },
+                status=status.HTTP_409_CONFLICT,
+            )
+
+    def get(self, request: Request, project) -> Response:
+        """
+        List a Project's Proguard Associated Releases
+        ````````````````````````````````````````
+
+        Retrieve a list of associated releases for a given Proguard File.
+
+        :pparam string organization_slug: the slug of the organization the
+                                          file belongs to.
+        :pparam string project_slug: the slug of the project to list the
+                                     DIFs of.
+        :qparam string proguard_uuid: the uuid of the Proguard file.
+        :auth: required
+        """
+
+        proguard_uuid = request.GET.get("proguard_uuid")
+        releases = None
+        if proguard_uuid:
+            releases = ProguardArtifactRelease.objects.filter(
+                organization_id=project.organization_id,
+                project_id=project.id,
+                proguard_uuid=proguard_uuid,
+            ).values_list("release_name", flat=True)
+        return Response({"releases": releases})
+
+
+@region_silo_endpoint
 class DebugFilesEndpoint(ProjectEndpoint):
+    publish_status = {
+        "DELETE": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (ProjectReleasePermission,)
 
     def download(self, debug_file_id, project):
@@ -192,7 +282,7 @@ class DebugFilesEndpoint(ProjectEndpoint):
 
         def on_results(difs: Sequence[ProjectDebugFile]):
             # NOTE: we are only refreshing files if there is direct query for specific files
-            if not query and not file_formats:
+            if debug_id and not query and not file_formats:
                 maybe_renew_debug_files(q, difs)
 
             return serialize(difs, request.user)
@@ -260,6 +350,9 @@ class DebugFilesEndpoint(ProjectEndpoint):
 
 @region_silo_endpoint
 class UnknownDebugFilesEndpoint(ProjectEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (ProjectReleasePermission,)
 
     def get(self, request: Request, project) -> Response:
@@ -270,6 +363,9 @@ class UnknownDebugFilesEndpoint(ProjectEndpoint):
 
 @region_silo_endpoint
 class AssociateDSymFilesEndpoint(ProjectEndpoint):
+    publish_status = {
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (ProjectReleasePermission,)
 
     # Legacy endpoint, kept for backwards compatibility
@@ -277,18 +373,11 @@ class AssociateDSymFilesEndpoint(ProjectEndpoint):
         return Response({"associatedDsymFiles": []})
 
 
-def find_missing_chunks(organization, chunks):
-    """Returns a list of chunks which are missing for an org."""
-    owned = set(
-        FileBlobOwner.objects.filter(
-            blob__checksum__in=chunks, organization_id=organization.id
-        ).values_list("blob__checksum", flat=True)
-    )
-    return list(set(chunks) - owned)
-
-
 @region_silo_endpoint
 class DifAssembleEndpoint(ProjectEndpoint):
+    publish_status = {
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (ProjectReleasePermission,)
 
     def post(self, request: Request, project) -> Response:
@@ -376,7 +465,7 @@ class DifAssembleEndpoint(ProjectEndpoint):
                 continue
 
             # Check if all requested chunks have been uploaded.
-            missing_chunks = find_missing_chunks(project.organization, chunks)
+            missing_chunks = find_missing_chunks(project.organization.id, chunks)
             if missing_chunks:
                 file_response[checksum] = {
                     "state": ChunkFileState.NOT_FOUND,
@@ -407,6 +496,10 @@ class DifAssembleEndpoint(ProjectEndpoint):
 
 @region_silo_endpoint
 class SourceMapsEndpoint(ProjectEndpoint):
+    publish_status = {
+        "DELETE": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (ProjectReleasePermission,)
 
     def get(self, request: Request, project) -> Response:

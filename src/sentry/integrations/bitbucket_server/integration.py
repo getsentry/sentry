@@ -25,6 +25,7 @@ from sentry.models import Identity, Integration
 from sentry.pipeline import PipelineView
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.services.hybrid_cloud.repository import repository_service
+from sentry.services.hybrid_cloud.repository.model import RpcRepository
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.tasks.integrations import migrate_repo
 from sentry.web.helpers import render_to_response
@@ -277,7 +278,7 @@ class BitbucketServerIntegration(IntegrationInstallation, RepositoryMixin):
             for repo in resp.get("values", [])
         ]
 
-    def has_repo_access(self, repo):
+    def has_repo_access(self, repo: RpcRepository) -> bool:
         """
         We can assume user always has repo access, since the Bitbucket API is limiting the results based on the REPO_ADMIN permission
         """

@@ -8,6 +8,7 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.integrations.mixins import IssueSyncMixin
 from sentry.integrations.utils import sync_group_assignee_inbound
@@ -32,6 +33,9 @@ class VstsWebhookMixin:
 
 @region_silo_endpoint
 class WorkItemWebhook(Endpoint, VstsWebhookMixin):
+    publish_status = {
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     authentication_classes = ()
     permission_classes = ()
 
@@ -131,9 +135,7 @@ def handle_status_change(
     )
 
     for org_integration in org_integrations:
-        installation = integration_service.get_installation(
-            integration=integration, organization_id=org_integration.organization_id
-        )
+        installation = integration.get_installation(organization_id=org_integration.organization_id)
         if isinstance(installation, IssueSyncMixin):
             installation.sync_status_inbound(
                 external_issue_key,

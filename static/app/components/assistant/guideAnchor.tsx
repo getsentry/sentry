@@ -18,7 +18,6 @@ import {t, tct} from 'sentry/locale';
 import GuideStore, {GuideStoreState} from 'sentry/stores/guideStore';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
-import theme from 'sentry/utils/theme';
 
 type Props = {
   target: string;
@@ -272,6 +271,12 @@ const GuideContainer = styled('div')`
   background-color: ${p => p.theme.purple300};
   border-color: ${p => p.theme.purple300};
   color: ${p => p.theme.white};
+
+  a {
+    :hover {
+      color: ${p => p.theme.white};
+    }
+  }
 `;
 
 const GuideContent = styled('div')`
@@ -323,5 +328,5 @@ const StepCount = styled('div')`
 `;
 
 const StyledHovercard = styled(Hovercard)`
-  background-color: ${theme.purple300};
+  background-color: ${p => p.theme.purple300};
 `;

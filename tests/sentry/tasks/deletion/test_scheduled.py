@@ -13,20 +13,25 @@ from sentry.models import (
     BaseScheduledDeletion,
     Repository,
     Team,
-    get_regional_scheduled_deletion,
 )
+from sentry.models.scheduledeletion import RegionScheduledDeletion, ScheduledDeletion
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.signals import pending_delete
-from sentry.silo import SiloMode
-from sentry.tasks.deletion.scheduled import reattempt_deletions, run_scheduled_deletions
-from sentry.testutils import TestCase
+from sentry.tasks.deletion.scheduled import (
+    reattempt_deletions,
+    reattempt_deletions_control,
+    run_scheduled_deletions,
+    run_scheduled_deletions_control,
+)
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test, region_silo_test
 
 
 class RegionalRunScheduleDeletionTest(abc.ABC):
     @property
+    @abstractmethod
     def ScheduledDeletion(self) -> Type[BaseScheduledDeletion]:
-        return get_regional_scheduled_deletion(SiloMode.get_current_mode())
+        raise NotImplementedError("Subclasses should implement")
 
     @abstractmethod
     def create_simple_deletion(self) -> QuerySet:
@@ -35,6 +40,14 @@ class RegionalRunScheduleDeletionTest(abc.ABC):
     @abstractmethod
     def create_does_not_proceed_deletion(self) -> QuerySet:
         raise NotImplementedError("Subclasses should implement!")
+
+    @abstractmethod
+    def run_scheduled_deletions(self) -> None:
+        raise NotImplementedError("Subclasses should implement")
+
+    @abstractmethod
+    def reattempt_deletions(self) -> None:
+        raise NotImplementedError("Subclasses should implement")
 
     def test_schedule_and_cancel(self):
         qs = self.create_simple_deletion()
@@ -65,7 +78,7 @@ class RegionalRunScheduleDeletionTest(abc.ABC):
         schedule = self.ScheduledDeletion.schedule(instance=inst, days=0)
 
         with self.tasks():
-            run_scheduled_deletions()
+            self.run_scheduled_deletions()
 
         assert not qs.exists()
         assert not self.ScheduledDeletion.objects.filter(id=schedule.id).exists()
@@ -77,7 +90,7 @@ class RegionalRunScheduleDeletionTest(abc.ABC):
         schedule = self.ScheduledDeletion.schedule(instance=inst, days=0)
 
         with self.tasks():
-            run_scheduled_deletions()
+            self.run_scheduled_deletions()
 
         assert qs.exists()
         assert not self.ScheduledDeletion.objects.filter(id=schedule.id, in_progress=True).exists()
@@ -89,7 +102,7 @@ class RegionalRunScheduleDeletionTest(abc.ABC):
         schedule.update(in_progress=True)
 
         with self.tasks():
-            run_scheduled_deletions()
+            self.run_scheduled_deletions()
 
         assert qs.exists()
         assert self.ScheduledDeletion.objects.filter(id=schedule.id, in_progress=True).exists()
@@ -100,7 +113,7 @@ class RegionalRunScheduleDeletionTest(abc.ABC):
         schedule = self.ScheduledDeletion.schedule(instance=inst, days=1)
 
         with self.tasks():
-            run_scheduled_deletions()
+            self.run_scheduled_deletions()
 
         assert qs.exists()
         assert self.ScheduledDeletion.objects.filter(id=schedule.id, in_progress=False).exists()
@@ -114,7 +127,7 @@ class RegionalRunScheduleDeletionTest(abc.ABC):
         self.ScheduledDeletion.schedule(instance=inst, actor=self.user, days=0)
 
         with self.tasks():
-            run_scheduled_deletions()
+            self.run_scheduled_deletions()
 
         assert signal_handler.call_count == 1
         args = signal_handler.call_args_list[0][1]
@@ -123,9 +136,6 @@ class RegionalRunScheduleDeletionTest(abc.ABC):
         pending_delete.disconnect(signal_handler)
 
     def test_no_pending_delete_trigger_on_skipped_delete(self):
-        # org = self.create_organization(name="test")
-        # project = self.create_project(organization=org)
-        # repo = self.create_repo(project=project, name="example/example")
         qs = self.create_does_not_proceed_deletion()
         inst = qs.first()
 
@@ -135,7 +145,7 @@ class RegionalRunScheduleDeletionTest(abc.ABC):
         self.ScheduledDeletion.schedule(instance=inst, actor=self.user, days=0)
 
         with self.tasks():
-            run_scheduled_deletions()
+            self.run_scheduled_deletions()
 
         pending_delete.disconnect(signal_handler)
         assert signal_handler.call_count == 0
@@ -148,7 +158,7 @@ class RegionalRunScheduleDeletionTest(abc.ABC):
         inst.delete()
 
         with self.tasks():
-            run_scheduled_deletions()
+            self.run_scheduled_deletions()
 
         assert not self.ScheduledDeletion.objects.filter(id=schedule.id).exists()
 
@@ -158,7 +168,7 @@ class RegionalRunScheduleDeletionTest(abc.ABC):
         schedule = self.ScheduledDeletion.schedule(instance=inst, days=-3)
         schedule.update(in_progress=True)
         with self.tasks():
-            reattempt_deletions()
+            self.reattempt_deletions()
 
         schedule.refresh_from_db()
         assert not schedule.in_progress
@@ -169,7 +179,7 @@ class RegionalRunScheduleDeletionTest(abc.ABC):
         schedule = self.ScheduledDeletion.schedule(instance=inst, days=0)
         schedule.update(in_progress=True)
         with self.tasks():
-            reattempt_deletions()
+            self.reattempt_deletions()
 
         schedule.refresh_from_db()
         assert schedule.in_progress is True
@@ -177,6 +187,16 @@ class RegionalRunScheduleDeletionTest(abc.ABC):
 
 @region_silo_test(stable=True)
 class RunRegionScheduledDeletionTest(TestCase, RegionalRunScheduleDeletionTest):
+    @property
+    def ScheduledDeletion(self) -> Type[BaseScheduledDeletion]:
+        return RegionScheduledDeletion
+
+    def run_scheduled_deletions(self) -> None:
+        return run_scheduled_deletions()
+
+    def reattempt_deletions(self) -> None:
+        return reattempt_deletions()
+
     def create_simple_deletion(self) -> QuerySet:
         org = self.create_organization(name="test")
         team = self.create_team(organization=org, name="delete")
@@ -193,7 +213,17 @@ class RunRegionScheduledDeletionTest(TestCase, RegionalRunScheduleDeletionTest):
 
 
 @control_silo_test(stable=True)
-class RunScheduledDeletionTest(TestCase, RegionalRunScheduleDeletionTest):
+class RunControlScheduledDeletionTest(TestCase, RegionalRunScheduleDeletionTest):
+    @property
+    def ScheduledDeletion(self) -> Type[BaseScheduledDeletion]:
+        return ScheduledDeletion
+
+    def run_scheduled_deletions(self) -> None:
+        return run_scheduled_deletions_control()
+
+    def reattempt_deletions(self) -> None:
+        return reattempt_deletions_control()
+
     def create_simple_deletion(self) -> QuerySet:
         app = ApiApplication.objects.create(owner_id=self.user.id, allowed_origins="example.com")
         app.status = ApiApplicationStatus.pending_deletion

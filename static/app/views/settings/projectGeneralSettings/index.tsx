@@ -18,7 +18,9 @@ import {FieldValue} from 'sentry/components/forms/model';
 import Hook from 'sentry/components/hook';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {removePageFiltersStorage} from 'sentry/components/organizations/pageFilters/persistence';
-import {Panel, PanelAlert, PanelHeader} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelAlert from 'sentry/components/panels/panelAlert';
+import PanelHeader from 'sentry/components/panels/panelHeader';
 import {fields} from 'sentry/data/forms/projectGeneralSettings';
 import {t, tct} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -269,13 +271,14 @@ class ProjectGeneralSettings extends DeprecatedAsyncView<Props, State> {
 
     const team = project.teams.length ? project.teams?.[0] : undefined;
 
-    /*
-    HACK: The <Form /> component applies its props to its children meaning the hooked component
-          would need to conform to the form settings applied in a separate repository. This is
-          not feasible to maintain and may introduce compatability errors if something changes
-          in either repository. For that reason, the Form component is split in two, since the
-          fields do not depend on one another, allowing for the Hook to manage it's own state.
-    */
+    // XXX: HACK
+    //
+    // The <Form /> component applies its props to its children meaning the
+    // hooked component would need to conform to the form settings applied in a
+    // separate repository. This is not feasible to maintain and may introduce
+    // compatability errors if something changes in either repository. For that
+    // reason, the Form component is split in two, since the fields do not
+    // depend on one another, allowing for the Hook to manage it's own state.
     const formProps: FormProps = {
       saveOnBlur: true,
       allowUndo: true,
@@ -297,8 +300,6 @@ class ProjectGeneralSettings extends DeprecatedAsyncView<Props, State> {
       },
     };
 
-    const hasRecapServerFeature = project.features.includes('recap-server');
-
     return (
       <div>
         <SettingsPageHeader title={t('Project Settings')} />
@@ -308,19 +309,7 @@ class ProjectGeneralSettings extends DeprecatedAsyncView<Props, State> {
           <JsonForm
             {...jsonFormProps}
             title={t('Project Details')}
-            // TODO(recap): Move this to a separate page or debug files one, not general settings
-            fields={[
-              fields.name,
-              fields.platform,
-              {
-                ...fields.recapServerUrl,
-                visible: hasRecapServerFeature,
-              },
-              {
-                ...fields.recapServerToken,
-                visible: hasRecapServerFeature,
-              },
-            ]}
+            fields={[fields.name, fields.platform]}
           />
 
           <JsonForm

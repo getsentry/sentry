@@ -1,8 +1,11 @@
+from django.db import router
+
 from sentry.coreapi import APIUnauthorized
 from sentry.mediators.external_issues.creator import Creator
 from sentry.mediators.external_requests.issue_link_requester import IssueLinkRequester
 from sentry.mediators.mediator import Mediator
 from sentry.mediators.param import Param
+from sentry.models import PlatformExternalIssue
 from sentry.models.group import Group
 from sentry.services.hybrid_cloud.app import RpcSentryAppInstallation
 from sentry.services.hybrid_cloud.user import RpcUser
@@ -16,6 +19,7 @@ class IssueLinkCreator(Mediator):
     fields = Param(object)
     uri = Param(str)
     user = Param(RpcUser)
+    using = router.db_for_write(PlatformExternalIssue)
 
     def call(self):
         self._verify_action()

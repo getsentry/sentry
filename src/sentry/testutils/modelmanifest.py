@@ -9,8 +9,9 @@ from typing import Any, Dict, Generator, Iterable, MutableMapping, Set, Tuple, T
 
 import django.apps
 from django.apps import apps
+from django.db.models import Model
 
-from sentry.db.models import BaseManager, Model
+from sentry.db.models import BaseManager
 from sentry.db.models.manager.base import ModelManagerTriggerAction, ModelManagerTriggerCondition
 from sentry.silo.base import SiloMode
 from sentry.utils import json

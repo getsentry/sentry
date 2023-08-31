@@ -1,9 +1,8 @@
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from unittest.mock import MagicMock, patch
 
 import pytest
-import pytz
 from freezegun import freeze_time
 from sentry_relay.processing import validate_project_config
 
@@ -17,11 +16,11 @@ from sentry.dynamic_sampling.rules.utils import (
     RESERVED_IDS,
     RuleType,
 )
-from sentry.models import ProjectTeam
+from sentry.models.projectteam import ProjectTeam
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import Feature
+from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json
-from sentry.utils.pytest.fixtures import django_db_all
 
 
 @pytest.fixture
@@ -53,7 +52,7 @@ def _apply_old_date_to_project_and_org(project):
     Applies an old date to project and its corresponding org. An old date is determined as a date which is more than
     NEW_MODEL_THRESHOLD_IN_MINUTES minutes in the past.
     """
-    old_date = datetime.now(tz=pytz.UTC) - timedelta(minutes=NEW_MODEL_THRESHOLD_IN_MINUTES + 1)
+    old_date = datetime.now(tz=timezone.utc) - timedelta(minutes=NEW_MODEL_THRESHOLD_IN_MINUTES + 1)
 
     # We have to create the project and organization in the past, since we boost new orgs and projects to 100%
     # automatically.

@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, Mapping, Sequence
 from django.db import models
 
 from sentry import projectoptions
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, region_silo_only_model, sane_repr
 from sentry.db.models.fields import PickledObjectField
 from sentry.db.models.manager import OptionManager, ValidateFunction, Value
@@ -65,7 +66,7 @@ OPTION_KEYS = frozenset(
 )
 
 
-class ProjectOptionManager(OptionManager["Project"]):
+class ProjectOptionManager(OptionManager["ProjectOption"]):
     def get_value_bulk(self, instances: Sequence[Project], key: str) -> Mapping[Project, Any]:
         instance_map = {i.id: i for i in instances}
         queryset = self.filter(project__in=instances, key=key)
@@ -101,7 +102,7 @@ class ProjectOptionManager(OptionManager["Project"]):
 
         return created or inst > 0
 
-    def get_all_values(self, project: Project) -> Mapping[str, Value]:
+    def get_all_values(self, project: Project | int) -> Mapping[str, Value]:
         if isinstance(project, models.Model):
             project_id = project.id
         else:
@@ -144,7 +145,7 @@ class ProjectOption(Model):
     their key. e.g. key='myplugin:optname'
     """
 
-    __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Organization
 
     project = FlexibleForeignKey("sentry.Project")
     key = models.CharField(max_length=64)

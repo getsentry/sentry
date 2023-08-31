@@ -4,13 +4,13 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 import abc
-from typing import List, Optional, cast
+from typing import Any, List, Mapping, Optional, cast
 
 from sentry.services.hybrid_cloud.auth import (
-    AuthenticatedToken,
     AuthenticationContext,
     AuthenticationRequest,
     MiddlewareAuthenticationResponse,
+    RpcApiKey,
     RpcAuthenticatorType,
     RpcAuthProvider,
     RpcAuthState,
@@ -75,16 +75,39 @@ class AuthService(RpcService):
 
     @rpc_method
     @abc.abstractmethod
-    def get_auth_providers(self, *, organization_id: int) -> List[RpcAuthProvider]:
+    def get_auth_provider(self, *, organization_id: int) -> Optional[RpcAuthProvider]:
         """
-        This method returns a list of auth providers for an org
-        :return:
+        This method returns the auth provider for an org, if one exists
         """
         pass
 
     @rpc_method
     @abc.abstractmethod
-    def token_has_org_access(self, *, token: AuthenticatedToken, organization_id: int) -> bool:
+    def disable_provider(self, *, provider_id: int) -> None:
+        pass
+
+    @rpc_method
+    @abc.abstractmethod
+    def change_scim(
+        self, *, user_id: int, provider_id: int, enabled: bool, allow_unlinked: bool
+    ) -> None:
+        pass
+
+    @rpc_method
+    @abc.abstractmethod
+    def update_provider_config(
+        self, organization_id: int, auth_provider_id: int, config: Mapping[str, Any]
+    ) -> None:
+        pass
+
+    @rpc_method
+    @abc.abstractmethod
+    def get_organization_api_keys(self, *, organization_id: int) -> List[RpcApiKey]:
+        pass
+
+    @rpc_method
+    @abc.abstractmethod
+    def get_organization_key(self, *, key: str) -> Optional[RpcApiKey]:
         pass
 
 

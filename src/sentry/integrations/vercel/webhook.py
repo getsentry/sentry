@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import hashlib
 import hmac
 import logging
@@ -11,6 +13,7 @@ from rest_framework.response import Response
 from sentry_sdk import configure_scope
 
 from sentry import VERSION, audit_log, http, options
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.models import (
     Integration,
@@ -125,6 +128,10 @@ def get_payload_and_token(
 
 @control_silo_endpoint
 class VercelWebhookEndpoint(Endpoint):
+    publish_status = {
+        "DELETE": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     authentication_classes = ()
     permission_classes = ()
     provider = "vercel"
@@ -154,7 +161,7 @@ class VercelWebhookEndpoint(Endpoint):
         except Exception:
             return self.parse_old_external_id(request)
 
-    def post(self, request: Request) -> Response:
+    def post(self, request: Request) -> Response | None:
         if not request.META.get("HTTP_X_VERCEL_SIGNATURE"):
             logger.error("vercel.webhook.missing-signature")
             return self.respond(status=401)
@@ -197,6 +204,8 @@ class VercelWebhookEndpoint(Endpoint):
 
                 if event_type == "deployment":
                     return self._deployment_created(external_id, request)
+
+        return None
 
     def delete(self, request: Request):
         with configure_scope() as scope:

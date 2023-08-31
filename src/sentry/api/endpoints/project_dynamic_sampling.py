@@ -10,11 +10,15 @@ from snuba_sdk.conditions import Condition, Op
 from snuba_sdk.request import Request as SnubaRequest
 
 from sentry import features
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
+from sentry.dynamic_sampling.rules.base import get_guarded_blended_sample_rate
 from sentry.models import Project
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.constants import TRACE_PARENT_SPAN_CONTEXT
+from sentry.search.events.types import QueryBuilderConfig
 from sentry.snuba import discover
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
@@ -35,13 +39,44 @@ class QueryTimeRange:
     end_time: datetime
 
 
+class DynamicSamplingReadPermission(ProjectPermission):
+    scope_map = {"GET": ["project:read"]}
+
+
 class DynamicSamplingPermission(ProjectPermission):
     scope_map = {"GET": ["project:write"]}
 
 
 @region_silo_endpoint
-class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
+class ProjectDynamicSamplingRateEndpoint(ProjectEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+    owner = ApiOwner.TELEMETRY_EXPERIENCE
+    permission_classes = (DynamicSamplingReadPermission,)
 
+    def get(self, request: Request, project: Project) -> Response:
+        try:
+            sample_rate = get_guarded_blended_sample_rate(project.organization, project)
+            return Response(
+                {
+                    "sampleRate": sample_rate,
+                },
+                status=status.HTTP_200_OK,
+            )
+        except Exception:
+            return Response(
+                {"detail": "Unable to fetch project sample rate"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+
+@region_silo_endpoint
+class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+    owner = ApiOwner.TELEMETRY_EXPERIENCE
     permission_classes = (DynamicSamplingPermission,)
 
     @staticmethod
@@ -91,12 +126,14 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
             ],
             equations=[],
             orderby=None,
-            auto_fields=True,
-            auto_aggregations=True,
-            use_aggregate_conditions=True,
             limit=20,
             offset=0,
-            equation_config={"auto_add": False},
+            config=QueryBuilderConfig(
+                equation_config={"auto_add": False},
+                auto_fields=True,
+                auto_aggregations=True,
+                use_aggregate_conditions=True,
+            ),
         )
         snuba_query = builder.get_snql_query().query
         extra_select = [
@@ -244,13 +281,15 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
             ],
             equations=[],
             orderby=None,
-            auto_fields=True,
-            auto_aggregations=True,
-            use_aggregate_conditions=True,
-            functions_acl=["random_number", "modulo"],
             limit=sample_size,
             offset=0,
-            equation_config={"auto_add": False},
+            config=QueryBuilderConfig(
+                auto_fields=True,
+                auto_aggregations=True,
+                use_aggregate_conditions=True,
+                functions_acl=["random_number", "modulo"],
+                equation_config={"auto_add": False},
+            ),
         )
         builder.add_conditions([Condition(lhs=Column("modulo_num"), op=Op.EQ, rhs=0)])
         snuba_query = builder.get_snql_query().query

@@ -2,7 +2,9 @@ import {Fragment} from 'react';
 
 import TextField from 'sentry/components/forms/fields/textField';
 import InternalStatChart from 'sentry/components/internalStatChart';
-import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
 import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 

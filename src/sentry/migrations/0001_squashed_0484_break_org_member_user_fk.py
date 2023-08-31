@@ -6069,15 +6069,6 @@ class Migration(CheckedMigration):
         migrations.SeparateDatabaseAndState(
             state_operations=[
                 migrations.AlterField(
-                    model_name="activity",
-                    name="user",
-                    field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        null=True,
-                        on_delete=django.db.models.deletion.SET_NULL,
-                        to=settings.AUTH_USER_MODEL,
-                    ),
-                ),
-                migrations.AlterField(
                     model_name="auditlogentry",
                     name="actor",
                     field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
@@ -6096,15 +6087,6 @@ class Migration(CheckedMigration):
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="audit_targets",
-                        to=settings.AUTH_USER_MODEL,
-                    ),
-                ),
-                migrations.AlterField(
-                    model_name="organizationonboardingtask",
-                    name="user",
-                    field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        null=True,
-                        on_delete=django.db.models.deletion.SET_NULL,
                         to=settings.AUTH_USER_MODEL,
                     ),
                 ),
@@ -6870,18 +6852,7 @@ class Migration(CheckedMigration):
                     hints={"tables": ["sentry_externalactor"]},
                 ),
             ],
-            state_operations=[
-                migrations.AlterField(
-                    model_name="externalactor",
-                    name="integration",
-                    field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        default=1,
-                        on_delete=django.db.models.deletion.CASCADE,
-                        to="sentry.Integration",
-                    ),
-                    preserve_default=False,
-                ),
-            ],
+            state_operations=[],
         ),
         migrations.SeparateDatabaseAndState(
             database_operations=[

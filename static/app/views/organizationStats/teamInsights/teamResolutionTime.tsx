@@ -2,72 +2,55 @@ import styled from '@emotion/styled';
 
 import {BarChart} from 'sentry/components/charts/barChart';
 import {DateTimeObject} from 'sentry/components/charts/utils';
-import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
+import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {getDuration} from 'sentry/utils/formatters';
+import {useApiQuery} from 'sentry/utils/queryClient';
 
 import {barAxisLabel, sortSeriesByDay} from './utils';
 
 type TimeToResolution = Record<string, {avg: number; count: number}>;
 
-type Props = DeprecatedAsyncComponent['props'] & {
+interface TeamResolutionTimeProps extends DateTimeObject {
   organization: Organization;
   teamSlug: string;
   environment?: string;
-} & DateTimeObject;
+}
 
-type State = DeprecatedAsyncComponent['state'] & {
-  resolutionTime: TimeToResolution | null;
-};
+function TeamResolutionTime({
+  organization,
+  teamSlug,
+  environment,
+  start,
+  end,
+  period,
+  utc,
+}: TeamResolutionTimeProps) {
+  const datetime = {start, end, period, utc};
 
-class TeamResolutionTime extends DeprecatedAsyncComponent<Props, State> {
-  shouldRenderBadRequests = true;
-
-  getDefaultState(): State {
-    return {
-      ...super.getDefaultState(),
-      resolutionTime: null,
-    };
-  }
-
-  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
-    const {organization, start, end, period, utc, teamSlug, environment} = this.props;
-    const datetime = {start, end, period, utc};
-
-    return [
-      [
-        'resolutionTime',
-        `/teams/${organization.slug}/${teamSlug}/time-to-resolution/`,
-        {
-          query: {
-            ...normalizeDateTimeParams(datetime),
-            environment,
-          },
+  const {
+    data: resolutionTime,
+    isLoading,
+    isError,
+    refetch,
+  } = useApiQuery<TimeToResolution>(
+    [
+      `/teams/${organization.slug}/${teamSlug}/time-to-resolution/`,
+      {
+        query: {
+          ...normalizeDateTimeParams(datetime),
+          environment,
         },
-      ],
-    ];
-  }
+      },
+    ],
+    {staleTime: 5000}
+  );
 
-  componentDidUpdate(prevProps: Props) {
-    const {start, end, period, utc, teamSlug, environment} = this.props;
-
-    if (
-      prevProps.start !== start ||
-      prevProps.end !== end ||
-      prevProps.period !== period ||
-      prevProps.utc !== utc ||
-      prevProps.teamSlug !== teamSlug ||
-      prevProps.environment !== environment
-    ) {
-      this.remountComponent();
-    }
-  }
-
-  renderLoading() {
+  if (isLoading) {
     return (
       <ChartWrapper>
         <LoadingIndicator />
@@ -75,51 +58,53 @@ class TeamResolutionTime extends DeprecatedAsyncComponent<Props, State> {
     );
   }
 
-  renderBody() {
-    const {resolutionTime} = this.state;
-    const data = Object.entries(resolutionTime ?? {}).map(([bucket, {avg}]) => ({
-      value: avg,
-      name: new Date(bucket).getTime(),
-    }));
-    const seriesData = sortSeriesByDay(data);
-
-    return (
-      <ChartWrapper>
-        <BarChart
-          style={{height: 190}}
-          isGroupedByDate
-          useShortDate
-          period="7d"
-          tooltip={{
-            valueFormatter: (value: number) => getDuration(value, 1),
-          }}
-          yAxis={{
-            // Each yAxis marker will increase by 1 day
-            minInterval: 86400,
-            axisLabel: {
-              formatter: (value: number) => {
-                if (value === 0) {
-                  return '';
-                }
-
-                return getDuration(value, 0, true, true);
-              },
-            },
-          }}
-          legend={{right: 0, top: 0}}
-          xAxis={barAxisLabel()}
-          series={[
-            {
-              seriesName: t('Time to Resolution'),
-              data: seriesData,
-              silent: true,
-              barCategoryGap: '5%',
-            },
-          ]}
-        />
-      </ChartWrapper>
-    );
+  if (isError) {
+    return <LoadingError onRetry={refetch} />;
   }
+
+  const data = Object.entries(resolutionTime ?? {}).map(([bucket, {avg}]) => ({
+    value: avg,
+    name: new Date(bucket).getTime(),
+  }));
+
+  const seriesData = sortSeriesByDay(data);
+
+  return (
+    <ChartWrapper>
+      <BarChart
+        style={{height: 190}}
+        isGroupedByDate
+        useShortDate
+        period="7d"
+        tooltip={{
+          valueFormatter: (value: number) => getDuration(value, 1),
+        }}
+        yAxis={{
+          // Each yAxis marker will increase by 1 day
+          minInterval: 86400,
+          axisLabel: {
+            formatter: (value: number) => {
+              if (value === 0) {
+                return '';
+              }
+
+              return getDuration(value, 0, true, true);
+            },
+          },
+        }}
+        legend={{right: 0, top: 0}}
+        xAxis={barAxisLabel()}
+        series={[
+          {
+            seriesName: t('Time to Resolution'),
+            data: seriesData,
+            silent: true,
+            barCategoryGap: '5%',
+          },
+        ]}
+      />
+    </ChartWrapper>
+  );
 }
 
 export default TeamResolutionTime;

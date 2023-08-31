@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import logging
+import os
 import signal
 import sys
 from multiprocessing import cpu_count
@@ -245,12 +247,14 @@ def run_worker(**options):
 
     from sentry.celery import app
 
+    # NOTE: without_mingle breaks everything,
+    # we can't get rid of this. Intentionally kept
+    # here as a warning. Jobs will not process.
+    without_mingle = os.getenv("SENTRY_WORKER_FORCE_WITHOUT_MINGLE", "false").lower() == "true"
+
     with managed_bgtasks(role="worker"):
         worker = app.Worker(
-            # NOTE: without_mingle breaks everything,
-            # we can't get rid of this. Intentionally kept
-            # here as a warning. Jobs will not process.
-            # without_mingle=True,
+            without_mingle=without_mingle,
             without_gossip=True,
             without_heartbeat=True,
             pool_cls="processes",
@@ -537,7 +541,7 @@ def ingest_consumer(consumer_type, **options):
 
     from arroyo import configure_metrics
 
-    from sentry.ingest.consumer_v2.factory import get_ingest_consumer
+    from sentry.ingest.consumer.factory import get_ingest_consumer
     from sentry.utils import metrics
     from sentry.utils.arroyo import MetricsWrapper
 
@@ -681,6 +685,7 @@ def profiles_consumer(**options):
 @click.option(
     "--max-poll-interval-ms",
     type=int,
+    default=45000,
 )
 @click.option(
     "--synchronize-commit-log-topic",
@@ -693,6 +698,11 @@ def profiles_consumer(**options):
 @click.option(
     "--healthcheck-file-path",
     help="A file to touch roughly every second to indicate that the consumer is still alive. See https://getsentry.github.io/arroyo/strategies/healthcheck.html for more information.",
+)
+@click.option(
+    "--log-level",
+    type=click.Choice(["debug", "info", "warning", "error", "critical"], case_sensitive=False),
+    help="log level to pass to the arroyo consumer",
 )
 @strict_offset_reset_option()
 @configuration
@@ -718,6 +728,10 @@ def basic_consumer(consumer_name, consumer_args, topic, **options):
     from sentry.consumers import get_stream_processor
     from sentry.metrics.middleware import add_global_tags
     from sentry.utils.arroyo import initialize_arroyo_main
+
+    log_level = options.pop("log_level", None)
+    if log_level is not None:
+        logging.getLogger("arroyo").setLevel(log_level.upper())
 
     add_global_tags(kafka_topic=topic, consumer_group=options["group_id"])
     initialize_arroyo_main()

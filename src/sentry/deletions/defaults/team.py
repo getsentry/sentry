@@ -3,7 +3,7 @@ from ..base import ModelDeletionTask, ModelRelation
 
 class TeamDeletionTask(ModelDeletionTask):
     def get_child_relations(self, instance):
-        from sentry.models import ProjectTeam
+        from sentry.models.projectteam import ProjectTeam
 
         return [
             ModelRelation(ProjectTeam, {"team_id": instance.id}),

@@ -1,13 +1,20 @@
 from typing import List
 
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, router, transaction
 from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log
-from sentry.api.base import EnvironmentMixin, region_silo_endpoint
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import (
+    DEFAULT_SLUG_ERROR_MESSAGE,
+    DEFAULT_SLUG_PATTERN,
+    EnvironmentMixin,
+    PreventNumericSlugMixin,
+    region_silo_endpoint,
+)
 from sentry.api.bases.team import TeamEndpoint, TeamPermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import ProjectSummarySerializer, serialize
@@ -25,9 +32,15 @@ from sentry.utils.snowflake import MaxSnowflakeRetryError
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', '14d', and '30d'"
 
 
-class ProjectPostSerializer(serializers.Serializer):
+class ProjectPostSerializer(serializers.Serializer, PreventNumericSlugMixin):
     name = serializers.CharField(max_length=50, required=True)
-    slug = serializers.RegexField(r"^[a-z0-9_\-]+$", max_length=50, required=False, allow_null=True)
+    slug = serializers.RegexField(
+        DEFAULT_SLUG_PATTERN,
+        max_length=50,
+        required=False,
+        allow_null=True,
+        error_messages={"invalid": DEFAULT_SLUG_ERROR_MESSAGE},
+    )
     platform = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     default_rules = serializers.BooleanField(required=False, initial=True)
 
@@ -57,6 +70,10 @@ class TeamProjectPermission(TeamPermission):
 @extend_schema(tags=["Teams"])
 @region_silo_endpoint
 class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
+    publish_status = {
+        "GET": ApiPublishStatus.PUBLIC,
+        "POST": ApiPublishStatus.PUBLIC,
+    }
     public = {"GET", "POST"}
     permission_classes = (TeamProjectPermission,)
 
@@ -147,9 +164,9 @@ class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         result = serializer.validated_data
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(Project)):
             try:
-                with transaction.atomic():
+                with transaction.atomic(router.db_for_write(Project)):
                     project = Project.objects.create(
                         name=result["name"],
                         slug=result.get("slug"),

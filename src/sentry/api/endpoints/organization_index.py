@@ -1,5 +1,5 @@
 from django.conf import settings
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, router, transaction
 from django.db.models import Count, Q, Sum
 from rest_framework import serializers, status
 from rest_framework.request import Request
@@ -8,6 +8,7 @@ from rest_framework.response import Response
 from sentry import analytics, audit_log, features, options
 from sentry import ratelimits as ratelimiter
 from sentry import roles
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.paginator import DateTimePaginator, OffsetPaginator
@@ -31,7 +32,7 @@ from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.signals import org_setup_complete, terms_accepted
 
 
-class OrganizationSerializer(BaseOrganizationSerializer):
+class OrganizationPostSerializer(BaseOrganizationSerializer):
     defaultTeam = serializers.BooleanField(required=False)
     agreeTerms = serializers.BooleanField(required=True)
     idempotencyKey = serializers.CharField(max_length=IDEMPOTENCY_KEY_LENGTH, required=False)
@@ -51,6 +52,10 @@ class OrganizationSerializer(BaseOrganizationSerializer):
 
 @region_silo_endpoint
 class OrganizationIndexEndpoint(Endpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (OrganizationPermission,)
 
     def get(self, request: Request) -> Response:
@@ -209,14 +214,14 @@ class OrganizationIndexEndpoint(Endpoint):
                 status=429,
             )
 
-        serializer = OrganizationSerializer(data=request.data)
+        serializer = OrganizationPostSerializer(data=request.data)
 
         if serializer.is_valid():
             result = serializer.validated_data
 
             try:
 
-                with transaction.atomic():
+                with transaction.atomic(router.db_for_write(Organization)):
                     org = create_organization_with_outbox_message(
                         create_options={"name": result["name"], "slug": result.get("slug")}
                     )
@@ -234,7 +239,7 @@ class OrganizationIndexEndpoint(Endpoint):
                         )
 
                 org_setup_complete.send_robust(
-                    instance=org, user=request.user, sender=self.__class__
+                    instance=org, user=request.user, sender=self.__class__, referrer="in-app"
                 )
 
                 self.create_audit_entry(
@@ -262,7 +267,7 @@ class OrganizationIndexEndpoint(Endpoint):
             if result.get("agreeTerms"):
                 terms_accepted.send_robust(
                     user=request.user,
-                    organization=org,
+                    organization_id=org.id,
                     ip_address=request.META["REMOTE_ADDR"],
                     sender=type(self),
                 )

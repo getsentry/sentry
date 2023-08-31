@@ -1,11 +1,14 @@
+from __future__ import annotations
+
 from functools import cached_property
+from typing import Any
 
 import responses
 from django.contrib.auth.models import AnonymousUser
 from django.test import RequestFactory
 from django.urls import reverse
 
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.utils import json
 from sentry_plugins.jira.plugin import JiraPlugin
 
@@ -180,7 +183,7 @@ create_meta_response = {
     ],
 }
 
-issue_response = {
+issue_response: dict[str, Any] = {
     "key": "SEN-19",
     "id": "10708",
     "fields": {"summary": "TypeError: 'set' object has no attribute '__getitem__'"},

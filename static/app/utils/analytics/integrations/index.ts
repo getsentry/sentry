@@ -24,7 +24,7 @@ type SingleIntegrationEventParams = {
   already_installed?: boolean;
   // include the status since people might do weird things testing unpublished integrations
   integration_status?: SentryAppStatus;
-  integration_tab?: 'configurations' | 'overview';
+  integration_tab?: 'configurations' | 'overview' | 'features';
   plan?: string;
 } & IntegrationView;
 

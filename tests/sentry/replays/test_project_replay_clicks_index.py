@@ -4,13 +4,13 @@ from uuid import uuid4
 from django.urls import reverse
 
 from sentry.replays.testutils import mock_replay, mock_replay_click
-from sentry.testutils import APITestCase, ReplaysSnubaTestCase
+from sentry.testutils.cases import APITestCase, ReplaysSnubaTestCase
 from sentry.testutils.silo import region_silo_test
 
 REPLAYS_FEATURES = {"organizations:session-replay": True}
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
     endpoint = "sentry-api-0-project-replay-clicks-index"
 

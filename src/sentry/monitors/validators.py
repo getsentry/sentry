@@ -1,16 +1,21 @@
+import pytz
 from croniter import croniter
 from django.core.exceptions import ValidationError
-from django.utils.timezone import pytz
-from django.utils.translation import gettext_lazy as _
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
+from sentry.api.base import (
+    DEFAULT_SLUG_ERROR_MESSAGE,
+    DEFAULT_SLUG_PATTERN,
+    PreventNumericSlugMixin,
+)
 from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.api.serializers.rest_framework.project import ProjectField
 from sentry.constants import ObjectStatus
 from sentry.db.models import BoundedPositiveIntegerField
+from sentry.monitors.constants import MAX_TIMEOUT
 from sentry.monitors.models import (
     MAX_SLUG_LENGTH,
     CheckInStatus,
@@ -98,12 +103,29 @@ class ConfigValidator(serializers.Serializer):
         default=None,
         help_text="How long (in minutes) is the checkin allowed to run for in CheckInStatus.IN_PROGRESS before it is considered failed.",
         min_value=1,
+        max_value=MAX_TIMEOUT,
     )
 
     timezone = serializers.ChoiceField(
         choices=pytz.all_timezones,
         required=False,
         help_text="tz database style timezone string",
+    )
+
+    failure_issue_threshold = EmptyIntegerField(
+        required=False,
+        allow_null=True,
+        default=None,
+        help_text="How many consecutive missed or failed check-ins in a row before creating a new issue.",
+        min_value=1,
+    )
+
+    recovery_threshold = EmptyIntegerField(
+        required=False,
+        allow_null=True,
+        default=None,
+        help_text="How many successful check-ins in a row before resolving an issue.",
+        min_value=1,
     )
 
     def bind(self, *args, **kwargs):
@@ -176,15 +198,15 @@ class ConfigValidator(serializers.Serializer):
         return attrs
 
 
-class MonitorValidator(CamelSnakeSerializer):
+class MonitorValidator(CamelSnakeSerializer, PreventNumericSlugMixin):
     project = ProjectField(scope="project:read")
     name = serializers.CharField(max_length=128)
     slug = serializers.RegexField(
-        r"^[a-zA-Z0-9_-]+$",
+        DEFAULT_SLUG_PATTERN,
         max_length=MAX_SLUG_LENGTH,
         required=False,
         error_messages={
-            "invalid": _("Invalid monitor slug. Must match the pattern [a-zA-Z0-9_-]+")
+            "invalid": DEFAULT_SLUG_ERROR_MESSAGE,
         },
     )
     status = serializers.ChoiceField(
@@ -210,7 +232,7 @@ class MonitorValidator(CamelSnakeSerializer):
             slug=value, organization_id=self.context["organization"].id
         ).exists():
             raise ValidationError(f'The slug "{value}" is already in use.')
-
+        value = super().validate_slug(value)
         return value
 
     def update(self, instance, validated_data):
@@ -226,7 +248,7 @@ class MonitorValidator(CamelSnakeSerializer):
 
 
 class TraceContextValidator(serializers.Serializer):
-    trace_id = serializers.CharField(max_length=32)
+    trace_id = serializers.UUIDField(format="hex")
 
 
 class ContextsValidator(serializers.Serializer):

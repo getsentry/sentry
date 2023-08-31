@@ -2,12 +2,12 @@ from __future__ import annotations
 
 from typing import Mapping, Optional
 
-from django.conf import settings
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.invite_helper import (
     ApiInviteHelper,
@@ -42,7 +42,7 @@ def get_invite_state(
         )
         for mapping in org_mappings:
             try:
-                if get_region_by_name(mapping.region_name).name == settings.SENTRY_MONOLITH_REGION:
+                if get_region_by_name(mapping.region_name).is_historic_monolith_region():
                     member_mapping = member_mappings.get(mapping.organization_id)
                     break
             except RegionResolutionError:
@@ -67,6 +67,10 @@ def get_invite_state(
 
 @control_silo_endpoint
 class AcceptOrganizationInvite(Endpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     # Disable authentication and permission requirements.
     permission_classes = []
 

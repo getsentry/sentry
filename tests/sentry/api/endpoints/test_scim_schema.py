@@ -1,4 +1,4 @@
-from sentry.testutils import SCIMTestCase
+from sentry.testutils.cases import SCIMTestCase
 from sentry.testutils.silo import region_silo_test
 
 

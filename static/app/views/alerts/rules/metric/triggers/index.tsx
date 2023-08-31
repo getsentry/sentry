@@ -1,6 +1,7 @@
 import {Component, Fragment} from 'react';
 
-import {Panel, PanelBody} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
 import {Organization, Project} from 'sentry/types';
 import {removeAtArrayIndex} from 'sentry/utils/removeAtArrayIndex';
 import {replaceAtArrayIndex} from 'sentry/utils/replaceAtArrayIndex';

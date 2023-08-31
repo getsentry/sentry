@@ -1,8 +1,8 @@
-from sentry.testutils import AcceptanceTestCase
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.cases import AcceptanceTestCase
+from sentry.testutils.silo import no_silo_test
 
 
-@control_silo_test(stable=True)
+@no_silo_test(stable=True)
 class OAuthAuthorizeTest(AcceptanceTestCase):
     def setUp(self):
         super().setUp()

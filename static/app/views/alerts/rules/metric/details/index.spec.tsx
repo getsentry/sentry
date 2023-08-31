@@ -124,9 +124,7 @@ describe('MetricAlertDetails', () => {
   });
 
   it('renders mute button for metric alert', async () => {
-    const {routerContext, organization, router} = initializeOrg({
-      organization: {features: ['mute-metric-alerts']},
-    });
+    const {routerContext, organization, routerProps} = initializeOrg();
     const incident = TestStubs.Incident();
     const rule = TestStubs.MetricRule({
       projects: [project.slug],
@@ -153,12 +151,8 @@ describe('MetricAlertDetails', () => {
 
     render(
       <MetricAlertDetails
+        {...routerProps}
         organization={organization}
-        route={{}}
-        router={router}
-        routes={router.routes}
-        routeParams={router.params}
-        location={router.location}
         params={{ruleId: rule.id}}
       />,
       {context: routerContext, organization}

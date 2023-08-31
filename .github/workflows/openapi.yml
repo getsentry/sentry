@@ -36,7 +36,6 @@ jobs:
       - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
         if: steps.changes.outputs.api_docs == 'true'
-        id: setup
 
       - name: Checkout getsentry/sentry-api-schema
         if: steps.changes.outputs.api_docs == 'true'

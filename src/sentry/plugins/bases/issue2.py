@@ -6,6 +6,7 @@ from django.utils.html import format_html
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.serializers.models.plugin import PluginSerializer
 
@@ -15,17 +16,22 @@ from sentry.models import Activity, GroupMeta
 from sentry.plugins.base.configuration import react_plugin_config
 from sentry.plugins.base.v1 import Plugin
 from sentry.plugins.endpoints import PluginGroupEndpoint
+from sentry.services.hybrid_cloud.usersocialauth.model import RpcUserSocialAuth
+from sentry.services.hybrid_cloud.usersocialauth.service import usersocialauth_service
 from sentry.signals import issue_tracker_used
 from sentry.types.activity import ActivityType
 from sentry.utils.auth import get_auth_providers
 from sentry.utils.http import absolute_uri
 from sentry.utils.safe import safe_execute
-from social_auth.models import UserSocialAuth
 
 
 # TODO(dcramer): remove this in favor of GroupEndpoint
 @region_silo_endpoint
 class IssueGroupActionEndpoint(PluginGroupEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     view_method_name = None
     plugin = None
 
@@ -88,19 +94,19 @@ class IssueTrackingPlugin2(Plugin):
             )
         return _urls
 
-    def get_auth_for_user(self, user, **kwargs):
+    def get_auth_for_user(self, user, **kwargs) -> RpcUserSocialAuth:
         """
-        Return a ``UserSocialAuth`` object for the given user based on this plugins ``auth_provider``.
+        Return a ``RpcUserSocialAuth`` object for the given user based on this plugins ``auth_provider``.
         """
         assert self.auth_provider, "There is no auth provider configured for this plugin."
 
         if not user.is_authenticated:
             return None
 
-        try:
-            return UserSocialAuth.objects.filter(user=user, provider=self.auth_provider)[0]
-        except IndexError:
-            return None
+        auth = usersocialauth_service.get_one_or_none(
+            filter={"user_id": user.id, "provider": self.auth_provider}
+        )
+        return auth
 
     def needs_auth(self, request: Request, project, **kwargs):
         """
@@ -113,9 +119,10 @@ class IssueTrackingPlugin2(Plugin):
         if not request.user.is_authenticated:
             return True
 
-        return not UserSocialAuth.objects.filter(
-            user=request.user, provider=self.auth_provider
-        ).exists()
+        auth = usersocialauth_service.get_one_or_none(
+            filter={"user_id": request.user.id, "provider": self.auth_provider}
+        )
+        return not bool(auth)
 
     def get_new_issue_fields(self, request: Request, group, event, **kwargs):
         """

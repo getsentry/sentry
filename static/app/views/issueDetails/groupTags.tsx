@@ -6,13 +6,13 @@ import {Alert} from 'sentry/components/alert';
 import Count from 'sentry/components/count';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import {DeviceName} from 'sentry/components/deviceName';
-import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
-import {Panel, PanelBody} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
 import Version from 'sentry/components/version';
 import {tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -120,9 +120,6 @@ class GroupTags extends DeprecatedAsyncComponent<Props, State> {
     return (
       <Layout.Body>
         <Layout.Main fullWidth>
-          <FilterSection>
-            <EnvironmentPageFilter />
-          </FilterSection>
           <Alert type="info">
             {tct(
               'Tags are automatically indexed for searching and breakdown charts. Learn how to [link: add custom tags to issues]',
@@ -144,12 +141,6 @@ const Container = styled('div')`
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: ${space(2)};
-  margin-bottom: ${space(2)};
-`;
-
-const FilterSection = styled('div')`
-  width: max-content;
-  max-width: 100%;
   margin-bottom: ${space(2)};
 `;
 

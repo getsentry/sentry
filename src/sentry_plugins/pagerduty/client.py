@@ -5,7 +5,7 @@ from sentry_plugins.client import ApiClient
 INTEGRATION_API_URL = "https://events.pagerduty.com/generic/2010-04-15/create_event.json"
 
 
-class PagerDutyClient(ApiClient):
+class PagerDutyPluginClient(ApiClient):
     client = "sentry"
     plugin_name = "pagerduty"
     allow_redirects = False

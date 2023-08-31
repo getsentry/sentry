@@ -7,7 +7,9 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/button';
 import EmptyMessage from 'sentry/components/emptyMessage';
-import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelHeader from 'sentry/components/panels/panelHeader';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {ApiApplication} from 'sentry/types';
@@ -77,12 +79,7 @@ class ApiApplications extends DeprecatedAsyncView<Props, State> {
           <PanelBody>
             {!isEmpty ? (
               this.state.appList.map(app => (
-                <Row
-                  api={this.api}
-                  key={app.id}
-                  app={app}
-                  onRemove={this.handleRemoveApplication}
-                />
+                <Row key={app.id} app={app} onRemove={this.handleRemoveApplication} />
               ))
             ) : (
               <EmptyMessage>

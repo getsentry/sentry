@@ -20,7 +20,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {DurationComparisonCell} from 'sentry/views/starfish/components/samplesTable/common';
 import useErrorSamples from 'sentry/views/starfish/components/samplesTable/useErrorSamples';
 import useSlowMedianFastSamplesQuery from 'sentry/views/starfish/components/samplesTable/useSlowMedianFastSamplesQuery';
-import DurationCell from 'sentry/views/starfish/components/tableCells/durationCell';
+import {DurationCell} from 'sentry/views/starfish/components/tableCells/durationCell';
 import {
   OverflowEllipsisTextContainer,
   TextAlignLeft,
@@ -34,7 +34,7 @@ type Keys =
   | 'profile_id'
   | 'timestamp'
   | 'transaction.duration'
-  | 'p95_comparison'
+  | 'avg_comparison'
   | 'span_ops_breakdown.relative'
   | 'http.status_code'
   | 'transaction.status';
@@ -102,8 +102,8 @@ export function TransactionSamplesTable({queryConditions, sampleFilter}: Props) 
             width: 100,
           } as TableColumnHeader,
           {
-            key: 'p95_comparison',
-            name: 'Compared to P95',
+            key: 'avg_comparison',
+            name: 'Compared to Average',
             width: 100,
           } as TableColumnHeader,
         ]
@@ -132,7 +132,7 @@ export function TransactionSamplesTable({queryConditions, sampleFilter}: Props) 
     useErrorSamples(eventView);
 
   function renderHeadCell(column: GridColumnHeader): React.ReactNode {
-    if (column.key === 'p95_comparison' || column.key === 'transaction.duration') {
+    if (column.key === 'avg_comparison' || column.key === 'transaction.duration') {
       return (
         <TextAlignRight>
           <OverflowEllipsisTextContainer>{column.name}</OverflowEllipsisTextContainer>
@@ -187,11 +187,13 @@ export function TransactionSamplesTable({queryConditions, sampleFilter}: Props) 
       return <DateTime date={row[column.key]} year timeZone seconds />;
     }
 
-    if (column.key === 'p95_comparison') {
+    if (column.key === 'avg_comparison') {
       return (
         <DurationComparisonCell
           duration={row['transaction.duration']}
-          p95={(aggregatesData?.['p95(transaction.duration)'] as number) ?? 0}
+          compareToDuration={
+            (aggregatesData?.['avg(transaction.duration)'] as number) ?? 0
+          }
         />
       );
     }

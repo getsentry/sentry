@@ -36,7 +36,7 @@ from sentry.models import (
 )
 from sentry.search.events.filter import parse_semver
 from sentry.signals import receivers_raise_on_send
-from sentry.testutils import SetRefsTestCase, TestCase, TransactionTestCase
+from sentry.testutils.cases import SetRefsTestCase, TestCase, TransactionTestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import Feature
 from sentry.testutils.silo import region_silo_test

@@ -2,9 +2,10 @@ from __future__ import annotations
 
 from django.conf import settings
 from django.core.cache import cache
-from django.db import IntegrityError, models, transaction
+from django.db import IntegrityError, models, router, transaction
 from django.utils import timezone
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BaseManager,
     BoundedPositiveIntegerField,
@@ -63,7 +64,7 @@ class OrganizationOnboardingTaskManager(BaseManager):
         cache_key = f"organizationonboardingtask:{organization_id}:{task}"
         if cache.get(cache_key) is None:
             try:
-                with transaction.atomic():
+                with transaction.atomic(router.db_for_write(OrganizationOnboardingTask)):
                     self.create(organization_id=organization_id, task=task, **kwargs)
                     return True
             except IntegrityError:
@@ -81,7 +82,7 @@ class AbstractOnboardingTask(Model):
     which allows for the creation of tasks that are unique to users instead of organizations.
     """
 
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     STATUS_CHOICES = (
         (OnboardingTaskStatus.COMPLETE, "complete"),

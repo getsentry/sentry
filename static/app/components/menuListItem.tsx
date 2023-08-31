@@ -41,14 +41,14 @@ export type MenuListItemProps = {
    * there are appropriate aria-labels.
    */
   label?: React.ReactNode;
-  /*
+  /**
    * Items to be added to the left of the label
    */
   leadingItems?: EdgeItems;
-  /*
-   * Whether leading items should be centered with respect to the entire
-   * height of the item. If false (default), they will be centered with
-   * respect to the first line of the label element.
+  /**
+   * Whether leading items should be centered with respect to the entire height
+   * of the item. If false (default), they will be centered with respect to the
+   * first line of the label element.
    */
   leadingItemsSpanFullHeight?: boolean;
   /**
@@ -69,14 +69,14 @@ export type MenuListItemProps = {
    * Additional props to be passed into <Tooltip />.
    */
   tooltipOptions?: Omit<TooltipProps, 'children' | 'title' | 'className'>;
-  /*
+  /**
    * Items to be added to the right of the label.
    */
   trailingItems?: EdgeItems;
-  /*
+  /**
    * Whether trailing items should be centered wrt/ the entire height of the
-   * item. If false (default), they will be centered wrt/ the first line of
-   * the label element.
+   * item. If false (default), they will be centered wrt/ the first line of the
+   * label element.
    */
   trailingItemsSpanFullHeight?: boolean;
 };
