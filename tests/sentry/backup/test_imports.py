@@ -43,8 +43,16 @@ from sentry.utils import json
 from tests.sentry.backup import run_backup_tests_only_on_single_db
 
 
+class ImportTestCase(BackupTestCase):
+    def export_to_tmp_file_and_clear_database(self, tmp_dir) -> Path:
+        tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
+        export_to_file(tmp_path, ExportScope.Global)
+        clear_database()
+        return tmp_path
+
+
 @run_backup_tests_only_on_single_db
-class SanitizationTests(BackupTestCase):
+class SanitizationTests(ImportTestCase):
     """
     Ensure that potentially damaging data is properly scrubbed at import time.
     """
@@ -187,6 +195,29 @@ class SanitizationTests(BackupTestCase):
         assert UserRole.objects.count() == 1
         assert UserRoleUser.objects.count() == 1
 
+    def test_generate_suffix_for_already_taken_organization(self):
+        owner = self.create_user(email="testing@example.com")
+        self.create_organization(name="some-org", owner=owner)
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
+
+            # Note that we have created an organization with the same name as one we are about to
+            # import.
+            self.create_organization(owner=self.user, name="some-org")
+            with open(tmp_path) as tmp_file:
+                import_in_organization_scope(tmp_file, printer=NOOP_PRINTER)
+
+        assert Organization.objects.count() == 2
+        assert Organization.objects.filter(slug__icontains="some-org").count() == 2
+        assert Organization.objects.filter(slug__iexact="some-org").count() == 1
+        assert Organization.objects.filter(slug__icontains="some-org-").count() == 1
+
+        assert OrganizationMapping.objects.count() == 2
+        assert OrganizationMapping.objects.filter(slug__icontains="some-org").count() == 2
+        assert OrganizationMapping.objects.filter(slug__iexact="some-org").count() == 1
+        assert OrganizationMapping.objects.filter(slug__icontains="some-org-").count() == 1
+
     def test_generate_suffix_for_already_taken_username(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
             self.create_user("testing@example.com")
@@ -315,14 +346,6 @@ class SanitizationTests(BackupTestCase):
             with open(tmp_path) as tmp_file:
                 with pytest.raises(ValidationError):
                     import_in_user_scope(tmp_file, printer=NOOP_PRINTER)
-
-
-class ImportTestCase(BackupTestCase):
-    def export_to_tmp_file_and_clear_database(self, tmp_dir) -> Path:
-        tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
-        export_to_file(tmp_path, ExportScope.Global)
-        clear_database()
-        return tmp_path
 
 
 @run_backup_tests_only_on_single_db
