@@ -214,6 +214,27 @@ class OrganizationMissingMembersTestCase(APITestCase):
         response = self.get_success_response(self.organization.slug)
         assert len(response.data) == 0
 
+    def test_nongithub_integration(self):
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.integration.delete()
+
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="bitbucket",
+            name="Bitbucket",
+            external_id="bitbucket:1",
+        )
+        repo = self.create_repo(
+            project=self.project, provider="integrations:github", integration_id=integration.id
+        )
+        self.create_commit(repo=repo, author=self.member_commit_author)
+        self.create_commit(repo=repo, author=self.nonmember_commit_author1)
+        self.create_commit(repo=repo, author=self.nonmember_commit_author1)
+        self.create_commit(repo=repo, author=self.nonmember_commit_author2)
+
+        response = self.get_success_response(self.organization.slug)
+        assert len(response.data) == 0
+
     def test_filters_disabled_github_integration(self):
         integration = self.create_integration(
             organization=self.organization,

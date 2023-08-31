@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+from collections import defaultdict
 from datetime import timedelta
 from email.headerregistry import Address
+from functools import reduce
 from typing import Sequence
 
 from django.db.models import Count, Q, QuerySet
@@ -100,23 +102,26 @@ class OrganizationMissingMembersEndpoint(OrganizationEndpoint):
             organization_id=organization.id, status=ObjectStatus.ACTIVE
         )
 
-        integrations_with_commits = [
-            i for i in integrations if i.has_feature(feature=IntegrationFeatures.COMMITS)
-        ]
-        integration_providers = {i.provider for i in integrations_with_commits}
+        def provider_reducer(dict, integration):
+            if not integration.has_feature(feature=IntegrationFeatures.COMMITS):
+                return dict
+            if dict.get(integration.provider):
+                dict[integration.provider].append(integration.id)
+            else:
+                dict[integration.provider] = [integration.id]
+
+            return dict
+
+        integration_provider_to_ids = reduce(provider_reducer, integrations, defaultdict(list))
 
         shared_domain = self._get_shared_email_domain(organization)
 
         missing_org_members = []
 
-        for integration_provider in integration_providers:
+        for integration_provider, integration_ids in integration_provider_to_ids.items():
             # TODO(cathy): allow other integration providers
             if integration_provider != "github":
                 continue
-
-            integration_ids = [
-                i.id for i in integrations_with_commits if i.provider == integration_provider
-            ]
 
             queryset = self._get_missing_members(
                 organization, integration_provider, integration_ids
