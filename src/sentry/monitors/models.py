@@ -573,8 +573,22 @@ class MonitorEnvironment(Model):
                 "-date_added"
             )[:recovery_threshold]
             # check for successive OK previous check-ins
-            if not all(checkin.status == CheckInStatus.OK for checkin in previous_checkins):
-                # TODO create issue platform occurrence
+            if not all(
+                previous_checkin.status == CheckInStatus.OK
+                for previous_checkin in previous_checkins
+            ):
+                # send occurrence for active issue
+                # from sentry.monitors.logic.mark_failed import create_issue_platform_occurrence, get_occurrence_context_from_checkin, get_reason_from_checkin
+                # monitor_env = checkin.monitor_environment
+                # fingerprint = [
+                #     "monitor",
+                #     str(monitor_env.monitor.guid),
+                #     monitor_env.environment.name,
+                #     str(monitor_env.last_state_change),
+                # ]
+                # reason = get_reason_from_checkin(checkin)
+                # occurrence_context = get_occurrence_context_from_checkin(checkin)
+                # create_issue_platform_occurrence(monitor_env, reason, occurrence_context, fingerprint)
                 return
 
         next_checkin = self.monitor.get_next_expected_checkin(ts)

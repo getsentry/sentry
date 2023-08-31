@@ -191,6 +191,7 @@ class MonitorEnvironmentTestCase(TestCase):
         # failure has not hit threshold, monitor should be in an OK status
         monitor_environment = MonitorEnvironment.objects.get(id=monitor_environment.id)
         assert monitor_environment.status != MonitorStatus.OK
+        # check that timestamp has not updated
         assert monitor_environment.last_state_change is None
 
         # create another failed check-in to break the chain
