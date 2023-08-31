@@ -12,7 +12,6 @@ import {
 
 import * as modals from 'sentry/actionCreators/modal';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import TeamStore from 'sentry/stores/teamStore';
 import CreateDashboard from 'sentry/views/dashboards/create';
 import * as types from 'sentry/views/dashboards/types';
 import ViewEditDashboard from 'sentry/views/dashboards/view';
@@ -28,8 +27,6 @@ describe('Dashboards > Detail', function () {
     let initialData;
 
     beforeEach(function () {
-      const team = TestStubs.Team({slug: 'team-slug', isMember: true});
-      TeamStore.loadInitialData([{...team, access: ['team:read']}]);
       act(() => ProjectsStore.loadInitialData(projects));
       initialData = initializeOrg({organization});
 
