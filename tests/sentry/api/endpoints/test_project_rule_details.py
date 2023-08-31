@@ -117,7 +117,7 @@ class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
         )
         assert response.data["id"] == str(self.rule.id)
         assert response.data["environment"] == self.environment.name
-        assert response.data["status"] == ObjectStatus.ACTIVE
+        assert response.data["status"] == "active"
 
     def test_with_filters(self):
         conditions: list[dict[str, Any]] = [
