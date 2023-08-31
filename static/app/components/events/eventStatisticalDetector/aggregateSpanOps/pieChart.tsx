@@ -98,7 +98,7 @@ class PieChart extends Component<Props> {
     return (
       <BaseChart
         ref={this.chart}
-        colors={[...theme.charts.getColorPalette(5).reverse()]}
+        colors={[...theme.charts.getColorPalette(5)].reverse()}
         // when legend highlights it does NOT pass dataIndex :(
         onHighlight={({name}) => {
           if (
