@@ -20,6 +20,7 @@ export function generateEnvMapping(name: string, counts: StatusCounts) {
 
 function generateJobRun(envName: string, jobStatus: CheckInStatus) {
   const sortedStatuses = [
+    CheckInStatus.IN_PROGRESS,
     CheckInStatus.OK,
     CheckInStatus.MISSED,
     CheckInStatus.TIMEOUT,

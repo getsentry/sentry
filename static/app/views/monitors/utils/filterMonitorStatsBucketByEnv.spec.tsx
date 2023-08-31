@@ -14,7 +14,7 @@ describe('filterMonitorStatsBucketByEnvs', function () {
     expect(filteredBucket).toEqual([
       1,
       {
-        prod: {ok: 0, missed: 0, timeout: 1, error: 0},
+        prod: {in_progress: 0, ok: 0, missed: 0, timeout: 1, error: 0},
       },
     ]);
   });
