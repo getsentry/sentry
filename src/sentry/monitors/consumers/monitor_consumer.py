@@ -457,11 +457,8 @@ def _process_message(ts: datetime, wrapper: CheckinMessage | ClockPulseMessage) 
                     if duration is not None:
                         date_added -= timedelta(milliseconds=duration)
 
-                    expected_time = None
-                    if monitor_environment.last_checkin:
-                        expected_time = monitor.get_next_expected_checkin(
-                            monitor_environment.last_checkin
-                        )
+                    # When was this check-in expected to have happened?
+                    expected_time = monitor_environment.next_checkin
 
                     monitor_config = monitor.get_validated_config()
                     timeout_at = get_timeout_at(monitor_config, status, date_added)

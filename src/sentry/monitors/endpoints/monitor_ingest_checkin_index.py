@@ -194,9 +194,7 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
             if duration is not None:
                 date_added -= timedelta(milliseconds=duration)
 
-            expected_time = None
-            if monitor_environment.last_checkin:
-                expected_time = monitor.get_next_expected_checkin(monitor_environment.last_checkin)
+            expected_time = monitor_environment.next_checkin
 
             status = getattr(CheckInStatus, result["status"].upper())
             monitor_config = monitor.get_validated_config()
