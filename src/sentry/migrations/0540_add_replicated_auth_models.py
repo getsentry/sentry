@@ -69,7 +69,7 @@ class Migration(CheckedMigration):
                     ),
                 ),
                 (
-                    "user",
+                    "user_id",
                     sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
                         "sentry.User", db_index=True, on_delete="CASCADE"
                     ),

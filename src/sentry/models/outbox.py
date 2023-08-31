@@ -6,7 +6,7 @@ import dataclasses
 import datetime
 import threading
 from enum import IntEnum
-from typing import Any, Generator, Iterable, List, Mapping, Type, TypeVar
+from typing import Any, Generator, Iterable, List, Mapping, Set, Type, TypeVar
 
 import sentry_sdk
 from django import db
@@ -48,6 +48,8 @@ class OutboxFlushError(Exception):
 
 
 class OutboxScope(IntEnum):
+    categories: Mapping[OutboxScope, Set[OutboxCategory]]
+
     ORGANIZATION_SCOPE = 0
     USER_SCOPE = 1
     WEBHOOK_SCOPE = 2
@@ -61,6 +63,20 @@ class OutboxScope(IntEnum):
 
     def __str__(self):
         return self.name
+
+    @classmethod
+    def register_categories(cls, mapping: Mapping[OutboxScope, Set[OutboxCategory]]):
+        cls.categories = mapping
+        missing_scopes = {v for v in cls} - set(mapping.keys())
+        assert (
+            not missing_scopes
+        ), f"OutboxScope.register_categories missing entry for {missing_scopes}"
+        missing_categories = {v for v in OutboxCategory} - {
+            v for categories in mapping.values() for v in categories
+        }
+        assert (
+            not missing_categories
+        ), f"OutboxScope.register_categories missing entry for {missing_categories}"
 
     @classmethod
     def as_choices(cls):
@@ -85,7 +101,7 @@ class OutboxCategory(IntEnum):
     WEBHOOK_PROXY = 1
     ORGANIZATION_UPDATE = 2
     ORGANIZATION_MEMBER_UPDATE = 3
-    VERIFY_ORGANIZATION_MAPPING = 4
+    UNUSED_TWO = 4
     AUDIT_LOG_EVENT = 5
     USER_IP_EVENT = 6
     INTEGRATION_UPDATE = 7
@@ -94,13 +110,13 @@ class OutboxCategory(IntEnum):
     SENTRY_APP_INSTALLATION_UPDATE = 10
     TEAM_UPDATE = 11
     ORGANIZATION_INTEGRATION_UPDATE = 12
-    ORGANIZATION_MEMBER_CREATE = 13  # Unused
+    UNUSUED_THREE = 13
     SEND_SIGNAL = 14
     ORGANIZATION_MAPPING_CUSTOMER_ID_UPDATE = 15
     ORGAUTHTOKEN_UPDATE = 16
     PROVISION_ORGANIZATION = 17
     POST_ORGANIZATION_PROVISION = 18
-    SEND_MODEL_SIGNAL = 19
+    UNUSED_ONE = 19
     DISABLE_AUTH_PROVIDER = 20
     RESET_IDP_FLAGS = 21
     MARK_INVALID_SSO = 22
@@ -109,6 +125,45 @@ class OutboxCategory(IntEnum):
     @classmethod
     def as_choices(cls):
         return [(i.value, i.value) for i in cls]
+
+
+OutboxScope.register_categories(
+    {
+        OutboxScope.USER_SCOPE: {
+            OutboxCategory.USER_UPDATE,
+            OutboxCategory.UNUSED_ONE,
+            OutboxCategory.UNUSED_TWO,
+            OutboxCategory.UNUSUED_THREE,
+        },
+        OutboxScope.ORGANIZATION_SCOPE: {
+            OutboxCategory.ORGANIZATION_MEMBER_UPDATE,
+            OutboxCategory.MARK_INVALID_SSO,
+            OutboxCategory.RESET_IDP_FLAGS,
+            OutboxCategory.ORGANIZATION_UPDATE,
+            OutboxCategory.PROJECT_UPDATE,
+            OutboxCategory.ORGANIZATION_INTEGRATION_UPDATE,
+            OutboxCategory.SEND_SIGNAL,
+            OutboxCategory.ORGAUTHTOKEN_UPDATE,
+            OutboxCategory.POST_ORGANIZATION_PROVISION,
+            OutboxCategory.DISABLE_AUTH_PROVIDER,
+            OutboxCategory.ORGANIZATION_MAPPING_CUSTOMER_ID_UPDATE,
+        },
+        OutboxScope.WEBHOOK_SCOPE: {OutboxCategory.WEBHOOK_PROXY},
+        OutboxScope.AUDIT_LOG_SCOPE: {OutboxCategory.AUDIT_LOG_EVENT},
+        OutboxScope.USER_IP_SCOPE: {OutboxCategory.USER_IP_EVENT},
+        OutboxScope.INTEGRATION_SCOPE: {OutboxCategory.INTEGRATION_UPDATE},
+        OutboxScope.APP_SCOPE: {
+            OutboxCategory.API_APPLICATION_UPDATE,
+            OutboxCategory.SENTRY_APP_INSTALLATION_UPDATE,
+        },
+        OutboxScope.TEAM_SCOPE: {OutboxCategory.TEAM_UPDATE},
+        OutboxScope.PROVISION_SCOPE: {
+            OutboxCategory.PROVISION_ORGANIZATION,
+            OutboxCategory.POST_ORGANIZATION_PROVISION,
+        },
+        OutboxScope.SUBSCRIPTION_SCOPE: {OutboxCategory.SUBSCRIPTION_UPDATE},
+    }
+)
 
 
 @dataclasses.dataclass
@@ -242,6 +297,14 @@ class OutboxBase(Model):
         return now + min((self.last_delay() * 2), datetime.timedelta(hours=1))
 
     def save(self, **kwds: Any) -> None:  # type: ignore[override]
+        if (
+            OutboxCategory(self.category)
+            not in OutboxScope.categories[OutboxScope(self.shard_scope)]
+        ):
+            raise InvalidOutboxError(
+                f"Outbox.category {self.category} not configured for scope {self.shard_scope}"
+            )
+
         if _outbox_context.flushing_enabled:
             transaction.on_commit(lambda: self.drain_shard(), using=router.db_for_write(type(self)))
 
@@ -535,3 +598,7 @@ def outbox_context(
 
 process_region_outbox = Signal()  # ["payload", "object_identifier"]
 process_control_outbox = Signal()  # ["payload", "region_name", "object_identifier"]
+
+
+class InvalidOutboxError(Exception):
+    pass

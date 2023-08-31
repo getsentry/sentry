@@ -2502,6 +2502,36 @@
       "Region"
     ]
   },
+  "sentry.RegionReplicatedAuthIdentity": {
+    "foreign_keys": {
+      "auth_provider": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.AuthProvider"
+      },
+      "user": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.User"
+      }
+    },
+    "model": "sentry.RegionReplicatedAuthIdentity",
+    "relocation_scope": "User",
+    "silos": [
+      "Region"
+    ]
+  },
+  "sentry.RegionReplicatedAuthProvider": {
+    "foreign_keys": {
+      "organization": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.Organization"
+      }
+    },
+    "model": "sentry.RegionReplicatedAuthProvider",
+    "relocation_scope": "Organization",
+    "silos": [
+      "Region"
+    ]
+  },
   "sentry.RegionScheduledDeletion": {
     "foreign_keys": {},
     "model": "sentry.RegionScheduledDeletion",

@@ -1,5 +1,3 @@
-from datetime import timedelta
-
 from django.db import models
 from django.utils import timezone
 
@@ -11,10 +9,10 @@ from sentry.db.models.fields.jsonfield import JSONField
 
 @region_silo_only_model
 class RegionReplicatedAuthIdentity(Model):
-    __relocation_scope__ = RelocationScope.Organization
+    __relocation_scope__ = RelocationScope.User
 
     # NOTE: not a fk to sentry user
-    user = HybridCloudForeignKey("sentry.User", on_delete="cascade")
+    user_id = HybridCloudForeignKey("sentry.User", on_delete="cascade")
     auth_provider = HybridCloudForeignKey("sentry.AuthProvider", on_delete="cascade")
     ident = models.CharField(max_length=128)
     data = JSONField()
@@ -26,7 +24,7 @@ class RegionReplicatedAuthIdentity(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_regionreplicatedauthidentity"
-        unique_together = (("auth_provider", "ident"), ("auth_provider", "user"))
+        unique_together = (("auth_provider", "ident"), ("auth_provider", "user_id"))
 
     __repr__ = sane_repr("user_id", "auth_provider_id")
 
@@ -35,23 +33,3 @@ class RegionReplicatedAuthIdentity(Model):
 
     def get_audit_log_data(self):
         return {"user_id": self.user_id, "data": self.data}
-
-    # TODO(dcramer): we'd like to abstract this so there's a central Role object
-    # and it doesnt require two composite db objects to talk to each other
-    def is_valid(self, member):
-        if getattr(member.flags, "sso:invalid"):
-            return False
-        if not getattr(member.flags, "sso:linked"):
-            return False
-
-        if not self.last_verified:
-            return False
-        if self.last_verified < timezone.now() - timedelta(hours=24):
-            return False
-        return True
-
-    def get_display_name(self):
-        return self.user.get_display_name()
-
-    def get_label(self):
-        return self.user.get_label()
