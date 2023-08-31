@@ -6,7 +6,7 @@ from django.db.models import F
 from freezegun import freeze_time
 
 from sentry.models import Project
-from sentry.statistical_detectors.detector import TrendPayload
+from sentry.statistical_detectors.detector import DetectorPayload
 from sentry.tasks.statistical_detectors import (
     detect_function_trends,
     detect_transaction_trends,
@@ -251,14 +251,12 @@ class FunctionsQueryTest(ProfilesSnubaTestCase):
         )
 
         results = query_functions([self.project], self.now)
-        assert results == {
-            self.project.id: [
-                TrendPayload(
-                    project_id=self.project.id,
-                    group=self.function_fingerprint({"package": "foo", "function": "bar"}),
-                    count=100,
-                    value=pytest.approx(100),  # type: ignore[arg-type]
-                    timestamp=self.hour_ago,
-                )
-            ],
-        }
+        assert results == [
+            DetectorPayload(
+                project_id=self.project.id,
+                group=self.function_fingerprint({"package": "foo", "function": "bar"}),
+                count=100,
+                value=pytest.approx(100),  # type: ignore[arg-type]
+                timestamp=self.hour_ago,
+            )
+        ]

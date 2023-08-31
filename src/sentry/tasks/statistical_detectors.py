@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 import logging
-from collections import defaultdict
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Set
+from typing import Any, Dict, Generator, List, Set
 
 import sentry_sdk
 from django.utils import timezone
@@ -14,11 +13,16 @@ from sentry.models.project import Project
 from sentry.snuba import functions
 from sentry.snuba.referrer import Referrer
 from sentry.statistical_detectors import redis
-from sentry.statistical_detectors.detector import TrendPayload
-from sentry.statistical_detectors.processing import process_trend_payloads
+from sentry.statistical_detectors.algorithm import (
+    MovingAverageCrossOverDetector,
+    MovingAverageCrossOverDetectorConfig,
+    MovingAverageCrossOverDetectorState,
+)
+from sentry.statistical_detectors.detector import DetectorPayload, TrendType
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.iterators import chunked
+from sentry.utils.math import ExponentialMovingAverage
 from sentry.utils.query import RangeQuerySetWrapper
 
 logger = logging.getLogger("sentry.tasks.statistical_detectors")
@@ -96,59 +100,92 @@ def detect_function_trends(project_ids: List[int], start: datetime, **kwargs) ->
     if not options.get("statistical_detectors.enable"):
         return
 
-    projects_per_query = options.get("statistical_detectors.query.batch_size")
-    assert projects_per_query > 0
+    functions_count = 0
+    regressed_count = 0
+    improved_count = 0
 
-    client = redis.get_redis_client()
+    detector_config = MovingAverageCrossOverDetectorConfig(
+        min_data_points=6,
+        short_moving_avg_factory=lambda: ExponentialMovingAverage(2 / 21),
+        long_moving_avg_factory=lambda: ExponentialMovingAverage(2 / 41),
+    )
 
-    function_counts = 0
-    regressed_functions: List[TrendPayload] = []
-    improved_functions: List[TrendPayload] = []
+    detector_store = redis.RedisDetectorStore()
 
-    for projects in chunked(Project.objects.filter(id__in=project_ids), projects_per_query):
-        try:
-            functions_by_project = query_functions(projects, start)
-        except Exception as e:
-            sentry_sdk.capture_exception(e)
-            continue
+    for payloads in chunked(all_function_payloads(project_ids, start), 1000):
+        functions_count += len(payloads)
 
-        for project in projects:
-            functions = functions_by_project.get(project.id)
-            if not functions:
-                continue
+        raw_states = detector_store.bulk_read_states(payloads)
 
-            function_counts += len(functions)
-            regressed, improved = process_trend_payloads(functions, client=client)
-            regressed_functions.extend(regressed)
-            improved_functions.extend(improved)
+        states = []
+
+        for raw_state, payload in zip(raw_states, payloads):
+            try:
+                state = MovingAverageCrossOverDetectorState.from_redis_dict(raw_state)
+            except Exception as e:
+                state = MovingAverageCrossOverDetectorState.empty()
+
+                if raw_state:
+                    # empty raw state implies that there was no
+                    # previous state so no need to capture an exception
+                    sentry_sdk.capture_exception(e)
+
+            detector = MovingAverageCrossOverDetector(state, detector_config)
+            trend_type = detector.update(payload)
+
+            states.append(None if trend_type is None else detector.state.to_redis_dict())
+
+            if trend_type == TrendType.Regressed:
+                regressed_count += 1
+            elif trend_type == TrendType.Improved:
+                improved_count += 1
+
+        detector_store.bulk_write_states(payloads, states)
 
     # This is the total number of functions examined in this iteration
     metrics.incr(
         "statistical_detectors.total.functions",
-        amount=function_counts,
+        amount=functions_count,
         sample_rate=1.0,
     )
 
     # This is the number of regressed functions found in this iteration
     metrics.incr(
         "statistical_detectors.regressed.functions",
-        amount=len(regressed_functions),
+        amount=regressed_count,
         sample_rate=1.0,
     )
 
     # This is the number of improved functions found in this iteration
     metrics.incr(
         "statistical_detectors.improved.functions",
-        amount=len(improved_functions),
+        amount=improved_count,
         sample_rate=1.0,
     )
+
+
+def all_function_payloads(
+    project_ids: List[int],
+    start: datetime,
+) -> Generator[DetectorPayload, None, None]:
+    projects_per_query = options.get("statistical_detectors.query.batch_size")
+    assert projects_per_query > 0
+
+    for projects in chunked(Project.objects.filter(id__in=project_ids), projects_per_query):
+        try:
+            function_payloads = query_functions(projects, start)
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+            continue
+
+        yield from function_payloads
 
 
 def query_transactions(project_id: int) -> None:
     pass
 
 
-def query_functions(projects: List[Project], start: datetime) -> Dict[int, List[TrendPayload]]:
+def query_functions(projects: List[Project], start: datetime) -> List[DetectorPayload]:
     params = _get_function_query_params(projects, start)
 
     # TODOs: handle any errors
@@ -170,18 +207,16 @@ def query_functions(projects: List[Project], start: datetime) -> Dict[int, List[
         transform_alias_to_input_format=True,
     )
 
-    function_results = defaultdict(list)
-    for row in query_results["data"]:
-        payload = TrendPayload(
+    return [
+        DetectorPayload(
             project_id=row["project.id"],
             group=row["fingerprint"],
             count=row["count()"],
             value=row["p95()"],
             timestamp=datetime.fromisoformat(row["timestamp"]),
         )
-        function_results[row["project.id"]].append(payload)
-
-    return function_results
+        for row in query_results["data"]
+    ]
 
 
 def _get_function_query_params(projects: List[Project], start: datetime) -> Dict[str, Any]:

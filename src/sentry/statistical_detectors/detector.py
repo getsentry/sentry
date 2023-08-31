@@ -1,11 +1,10 @@
 from __future__ import annotations
 
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-from typing import Any, Mapping, MutableMapping, Optional
-
-MIN_DATA_POINTS = 6
+from typing import Any, Generic, List, Mapping, Optional, TypeVar
 
 
 class TrendType(Enum):
@@ -14,70 +13,47 @@ class TrendType(Enum):
     Unchanged = "unchanged"
 
 
-@dataclass
-class TrendState:
-    timestamp: Optional[datetime]
-    count: int
-    short_ma: float
-    long_ma: float
-
-    VERSION: int = 1
-
-    FIELD_VERSION = "V"
-    FIELD_TIMESTAMP = "T"
-    FIELD_COUNT = "N"
-    FIELD_SHORT_TERM = "S"
-    FIELD_LONG_TERM = "L"
-
-    def as_dict(self) -> Mapping[str | bytes, float | int]:
-        d: MutableMapping[str | bytes, float | int] = {
-            TrendState.FIELD_VERSION: self.VERSION,
-            TrendState.FIELD_COUNT: self.count,
-            TrendState.FIELD_SHORT_TERM: self.short_ma,
-            TrendState.FIELD_LONG_TERM: self.long_ma,
-        }
-        if self.timestamp is not None:
-            d[TrendState.FIELD_TIMESTAMP] = int(self.timestamp.timestamp())
-        return d
-
-    @classmethod
-    def from_dict(cls, d: Any) -> TrendState:
-        try:
-            version = int(d.get(TrendState.FIELD_VERSION, 0))
-        except ValueError:
-            version = 0
-
-        if version != cls.VERSION:
-            return TrendState(None, 0, 0, 0)
-
-        try:
-            count = int(d.get(TrendState.FIELD_COUNT, 0))
-        except ValueError:
-            count = 0
-
-        try:
-            short_ma = float(d.get(TrendState.FIELD_SHORT_TERM, 0))
-        except ValueError:
-            short_ma = 0
-
-        try:
-            long_ma = float(d.get(TrendState.FIELD_LONG_TERM, 0))
-        except ValueError:
-            long_ma = 0
-
-        try:
-            ts = int(d.get(TrendState.FIELD_TIMESTAMP))
-            timestamp = datetime.fromtimestamp(ts)
-        except (TypeError, ValueError):
-            timestamp = None
-
-        return TrendState(timestamp, count, short_ma, long_ma)
-
-
-@dataclass
-class TrendPayload:
+@dataclass(frozen=True)
+class DetectorPayload:
     project_id: int
     group: str | int
     count: float
     value: float
     timestamp: datetime
+
+
+@dataclass(frozen=True)
+class DetectorState(ABC):
+    @classmethod
+    @abstractmethod
+    def from_redis_dict(cls, data: Any) -> DetectorState:
+        ...
+
+    @abstractmethod
+    def to_redis_dict(self) -> Mapping[str | bytes, bytes | float | int | str]:
+        ...
+
+
+@dataclass(frozen=True)
+class DetectorConfig(ABC):
+    ...
+
+
+C = TypeVar("C")
+T = TypeVar("T")
+
+
+class DetectorStore(ABC, Generic[T]):
+    @abstractmethod
+    def bulk_read_states(self, payloads: List[DetectorPayload]) -> List[T]:
+        ...
+
+    @abstractmethod
+    def bulk_write_states(self, payloads: List[DetectorPayload], states: List[T]):
+        ...
+
+
+class DetectorAlgorithm(ABC, Generic[T]):
+    @abstractmethod
+    def update(self, payload: DetectorPayload) -> Optional[TrendType]:
+        ...
