@@ -689,7 +689,7 @@ def get_all_setting_providers(
     org_settings = (
         Q(
             scope_type=NotificationScopeEnum.ORGANIZATION.value,
-            scope_identifier=project.organization.id,
+            scope_identifier=organization.id,
             user_id=user_id,
             team_id=team_id,
         )
@@ -740,7 +740,7 @@ def get_all_setting_options(
     org_settings = (
         Q(
             scope_type=NotificationScopeEnum.ORGANIZATION.value,
-            scope_identifier=project.organization.id,
+            scope_identifier=organization.id,
             user_id=user_id,
             team_id=team_id,
         )
@@ -762,7 +762,7 @@ def get_all_setting_options(
             team_id=team_id,
         )
 
-    NotificationSettingOption.objects.filter(
+    return NotificationSettingOption.objects.filter(
         project_settings | org_settings | team_or_user_settings
     )
 
