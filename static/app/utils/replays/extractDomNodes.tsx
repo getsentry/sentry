@@ -13,7 +13,6 @@ export type Extraction = {
 };
 
 type Args = {
-  finishedAt: Date | undefined;
   frames: (BreadcrumbFrame | SpanFrame)[] | undefined;
   rrwebEvents: RecordingFrame[] | undefined;
 };
@@ -29,6 +28,7 @@ export default function extractDomNodes({
 
     const callback = event => {
       if (event.type === 2 || event.type === 3) {
+        // Get first frame with a timestamp less than the last seen event timestamp
         const firstFrameAfterEvent = frames.findIndex(
           f => f.timestampMs >= lastEventTimestamp
         );
@@ -38,10 +38,13 @@ export default function extractDomNodes({
         for (let i = firstFrameAfterEvent; i < frames.length; i++) {
           const frame = frames[i];
 
+          // Sometimes frames have nodeId -1 so we ignore these
           if (frame.data && 'nodeId' in frame.data && frame.data.nodeId === -1) {
             continue;
           }
 
+          // If we found the frame.data.nodeId inside the player at this timestamp, push it to the DOM events list
+          // Otherwise, push with null HTML for now
           const found = extractNode(frame, player);
           if (found) {
             extractions.set(frame, found);
@@ -56,6 +59,8 @@ export default function extractDomNodes({
         }
       }
 
+      // Check if we've finished looking at all events
+      // If so, return the resolved promise
       const meta = player.getMetaData();
       const percent = player.getCurrentTime() / meta.totalTime;
       if (percent >= 1) {

@@ -1,7 +1,18 @@
+import {
+  addedNodeMutation,
+  attributeMutation,
+  incrementalSnapshotEvent,
+  IncrementalSource,
+} from '@sentry-internal/rrweb';
+
 import type {fullSnapshotEvent, serializedNodeWithId} from 'sentry/utils/replays/types';
 import {EventType, NodeType} from 'sentry/utils/replays/types';
 
 interface FullSnapshotEvent extends fullSnapshotEvent {
+  timestamp: number;
+}
+
+interface IncrementalSnapshotEvent extends incrementalSnapshotEvent {
   timestamp: number;
 }
 
@@ -64,6 +75,28 @@ export function RRWebFullSnapshotFrameEvent({
           }),
         ],
       },
+    },
+  };
+}
+
+export function RRWebIncrementalSnapshotEvent({
+  timestamp,
+  adds = [],
+  attributes = [],
+}: {
+  timestamp: Date;
+  adds?: addedNodeMutation[];
+  attributes?: attributeMutation[];
+}): IncrementalSnapshotEvent {
+  return {
+    type: EventType.IncrementalSnapshot,
+    timestamp: timestamp.getTime(),
+    data: {
+      source: IncrementalSource.Mutation,
+      texts: [],
+      adds,
+      removes: [],
+      attributes,
     },
   };
 }
