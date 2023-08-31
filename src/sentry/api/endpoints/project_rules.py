@@ -56,6 +56,14 @@ def find_duplicate_rule(rule_data, project, rule_id=None):
                 if not existing_rule.data.get(matcher) and not rule_data.get(matcher):
                     # neither rule has the matcher
                     continue
+
+                elif matcher == "environment":
+                    if existing_rule.environment_id and rule_data.get(matcher):
+                        keys += 1
+                        if existing_rule.environment_id == rule_data.get(matcher):
+                            matches += 1
+                    else:
+                        keys += 1
                 else:
                     # one rule has the matcher and the other one doesn't
                     keys += 1
