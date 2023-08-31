@@ -1828,10 +1828,19 @@ def _create_group(project: Project, event: Event, **kwargs: Any) -> Group:
         else None
     )
 
+    # get severity score for use in alerting
+    group_data = kwargs.pop("data", {})
+    if features.has("projects:first-event-severity-calculation", event.project):
+        severity = _get_severity_score(event)
+        if severity:
+            group_data.setdefault("metadata", {})
+            group_data["metadata"]["severity"] = severity
+
     return Group.objects.create(
         project=project,
         short_id=short_id,
         first_release_id=first_release_id,
+        data=group_data,
         **kwargs,
     )
 
