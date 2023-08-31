@@ -91,7 +91,7 @@ def mark_failed_threshold(
 
     # Change monitor state + update fingerprint timestamp
     monitor_env.status = MonitorStatus.ERROR
-    monitor_env.last_state_change = previous_checkins[len(previous_checkins) - 1].date_added
+    monitor_env.last_state_change = last_checkin
     monitor_env.save()
 
     # Do not create event if monitor is disabled
