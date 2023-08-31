@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Any, Dict
 from unittest.mock import Mock
 
 import msgpack
@@ -74,7 +75,7 @@ def test_ingest_span(request):
 
 
 def test_null_tags_and_data():
-    relay_span = {
+    relay_span: Dict[str, Any] = {
         "data": None,
         "description": "f1323e9063f91b5745a7d33e580f9f92.jpg (56 KB)",
         "event_id": "3f0bba60b0a7471abe18732abe6506c2",
@@ -97,7 +98,10 @@ def test_null_tags_and_data():
 
     assert "tags" in snuba_span and len(snuba_span["tags"]) == 0
 
-    relay_span["tags"] = {"none_tag": None, "false_value": False}
+    relay_span["tags"] = {
+        "none_tag": None,
+        "false_value": False,
+    }
     snuba_span = _build_snuba_span(relay_span)
 
     assert all([v is not None for v in snuba_span["tags"].values()])
