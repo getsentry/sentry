@@ -95,12 +95,12 @@ class BaseApiClient(TrackResponseMixin):
         """
         Returns the redis key for the integration or empty str if cannot make key
         """
+        if self.integration_type == "plugin" and hasattr(self, "project_id"):
+            return f"sentry-plugin-error:{self.plugin_name}-{self.project_id}"
         if not hasattr(self, "integration_id"):
             return ""
         if not self.integration_id:
             return ""
-        if self.integration_type == "plugin" and hasattr(self, "project_id"):
-            return f"sentry-plugin-error:{self.plugin_name}-{self.project_id}"
         return f"sentry-integration-error:{self.integration_id}"
 
     def is_response_fatal(self, resp: Response) -> bool:
