@@ -367,9 +367,11 @@ def _make_ordered(replay_ids: list[str], results: Any) -> list[Any]:
         return []
 
     replay_id_to_index = {}
-    for i, replay_id in enumerate(replay_ids):
+    i = 0
+    for replay_id in replay_ids:
         if replay_id not in replay_id_to_index:
             replay_id_to_index[replay_id] = i
+            i += 1
 
     ordered_results = [None] * len(replay_id_to_index)
     for result in results:

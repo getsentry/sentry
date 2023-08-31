@@ -14,6 +14,8 @@ import {EventEvidence} from 'sentry/components/events/eventEvidence';
 import {EventExtraData} from 'sentry/components/events/eventExtraData';
 import EventReplay from 'sentry/components/events/eventReplay';
 import {EventSdk} from 'sentry/components/events/eventSdk';
+import EventBreakpointChart from 'sentry/components/events/eventStatisticalDetector/breakpointChart';
+import EventComparison from 'sentry/components/events/eventStatisticalDetector/eventComparison';
 import RegressionMessage from 'sentry/components/events/eventStatisticalDetector/regressionMessage';
 import {EventTagsAndScreenshot} from 'sentry/components/events/eventTagsAndScreenshot';
 import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
@@ -85,11 +87,18 @@ function GroupEventDetailsContent({
 
   const eventEntryProps = {group, event, project};
 
-  if (group.issueType === IssueType.PERFORMANCE_P95_TRANSACTION_DURATION_REGRESSION) {
+  if (group.issueType === IssueType.PERFORMANCE_DURATION_REGRESSION) {
     return (
-      // TODO: Swap this feature flag with the statistical detector flag
-      <Feature features={['performance-trends-issues']}>
-        <RegressionMessage event={event} />
+      <Feature
+        features={['performance-duration-regression-visible']}
+        organization={organization}
+        renderDisabled
+      >
+        <Fragment>
+          <RegressionMessage event={event} />
+          <EventBreakpointChart event={event} />
+          <EventComparison event={event} project={project} />
+        </Fragment>
       </Feature>
     );
   }
