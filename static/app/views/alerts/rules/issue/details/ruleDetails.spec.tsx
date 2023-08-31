@@ -186,7 +186,7 @@ describe('AlertRuleDetails', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('rule disabled banner because of missing actions', async () => {
+  it('rule disabled banner because of missing actions and hides some actions', async () => {
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/rules/${rule.id}/`,
       body: TestStubs.ProjectAlertRule({
@@ -202,6 +202,8 @@ describe('AlertRuleDetails', () => {
       )
     ).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Edit to enable'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Duplicate'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Mute for me'})).toBeDisabled();
   });
 
   it('rule disabled banner generic', async () => {
