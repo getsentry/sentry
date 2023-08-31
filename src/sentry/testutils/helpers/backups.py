@@ -97,7 +97,7 @@ class ValidationError(Exception):
         self.info = info
 
 
-def export_to_file(path: Path, scope: ExportScope) -> JSONData:
+def export_to_file(path: Path, scope: ExportScope, filter_by: set[str] | None = None) -> JSONData:
     """Helper function that exports the current state of the database to the specified file."""
 
     json_file_path = str(path)
@@ -107,9 +107,9 @@ def export_to_file(path: Path, scope: ExportScope) -> JSONData:
         if scope == ExportScope.Global:
             export_in_global_scope(tmp_file, printer=NOOP_PRINTER)
         elif scope == ExportScope.Organization:
-            export_in_organization_scope(tmp_file, printer=NOOP_PRINTER)
+            export_in_organization_scope(tmp_file, org_filter=filter_by, printer=NOOP_PRINTER)
         elif scope == ExportScope.User:
-            export_in_user_scope(tmp_file, printer=NOOP_PRINTER)
+            export_in_user_scope(tmp_file, user_filter=filter_by, printer=NOOP_PRINTER)
         else:
             raise AssertionError(f"Unknown `ExportScope`: `{scope.name}`")
 

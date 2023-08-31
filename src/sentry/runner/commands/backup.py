@@ -50,6 +50,6 @@ def export(dest, silent, indent, exclude):
             excluded_models=set(exclude),
             use_natural_foreign_keys=True,
         ),
-        indent,
-        (lambda *args, **kwargs: None) if silent else click.echo,
+        indent=indent,
+        printer=(lambda *args, **kwargs: None) if silent else click.echo,
     )
