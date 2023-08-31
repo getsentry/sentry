@@ -15,7 +15,7 @@ from sentry.exceptions import RestrictedIPAddress
 from sentry.http import build_session
 from sentry.integrations.notify_disable import notify_disable
 from sentry.integrations.request_buffer import IntegrationRequestBuffer
-from sentry.models import Organization, OrganizationIntegration
+from sentry.models import Organization, OrganizationIntegration, Project
 from sentry.models.integrations.utils import is_response_error, is_response_success
 from sentry.plugins.base import plugins
 from sentry.services.hybrid_cloud.integration import integration_service
@@ -61,11 +61,7 @@ class BaseApiClient(TrackResponseMixin):
     ) -> None:
         self.verify_ssl = verify_ssl
         self.logging_context = logging_context
-        self.integration_id = (
-            self.project_id
-            if self.integration_type == "plugin" and hasattr(self, "project_id")
-            else integration_id
-        )
+        self.integration_id = integration_id
 
     def __enter__(self) -> BaseApiClient:
         return self
@@ -103,8 +99,8 @@ class BaseApiClient(TrackResponseMixin):
             return ""
         if not self.integration_id:
             return ""
-        if self.integration_type == "plugin":
-            return f"sentry-plugin-error:{self.plugin_name}-{self.integration_id}"
+        if self.integration_type == "plugin" and hasattr(self, "project_id"):
+            return f"sentry-plugin-error:{self.plugin_name}-{self.project_id}"
         return f"sentry-integration-error:{self.integration_id}"
 
     def is_response_fatal(self, resp: Response) -> bool:
@@ -425,7 +421,9 @@ class BaseApiClient(TrackResponseMixin):
                             extra=extra,
                         )
             if buffer.is_integration_broken():
-                self.disable_integration(buffer)
+                self.disable_plugin(buffer) if self.integration_type == "plugin" and plugins.exists(
+                    self.plugin_name
+                ) else self.disable_integration(buffer)
 
         except Exception:
             metrics.incr("integration.slack.disable_on_broken.redis")
@@ -467,7 +465,9 @@ class BaseApiClient(TrackResponseMixin):
                         extra=extra,
                     )
             if buffer.is_integration_broken():
-                self.disable_integration(buffer)
+                self.disable_plugin(buffer) if self.integration_type == "plugin" and plugins.exists(
+                    self.plugin_name
+                ) else self.disable_integration(buffer)
         except Exception:
             metrics.incr("integration.slack.disable_on_broken.redis")
             return
@@ -481,10 +481,6 @@ class BaseApiClient(TrackResponseMixin):
             == ObjectStatus.DISABLED
         ):
             return
-        if self.integration_type == "plugin" and plugins.exists(self.plugin_name):
-            plugin = plugins.get(self.plugin_name)
-            if not plugin.is_enabled():
-                return
 
         oi = OrganizationIntegration.objects.filter(integration_id=self.integration_id)[0]
         org = Organization.objects.get(id=oi.organization_id)
@@ -526,8 +522,6 @@ class BaseApiClient(TrackResponseMixin):
             integration_service.update_integration(
                 integration_id=rpc_integration.id, status=ObjectStatus.DISABLED
             )
-            if self.integration_type == "plugin":
-                plugin.disable()
             notify_disable(org, rpc_integration.provider, self._get_redis_key())
             buffer.clear()
             create_system_audit_entry(
@@ -537,3 +531,29 @@ class BaseApiClient(TrackResponseMixin):
                 data={"provider": rpc_integration.provider},
             )
         return
+
+    def disable_plugin(self, buffer) -> None:
+        plugin = plugins.get(self.plugin_name)
+        if not plugin.is_enabled():
+            return
+
+        project = Project.objects.get(id=self.project_id)
+
+        extra = {
+            "project_id": self.project_id,
+            "buffer_record": buffer._get_all_from_buffer(),
+            "provider": self.plugin_name,
+        }
+        if project:
+            extra["organization_id"] = project.organization.id
+        else:
+            extra["organization_id"] = "unknown"
+
+        self.logger.info(
+            "plugin.disabled",
+            extra=extra,
+        )
+
+        plugin.disable()
+        notify_disable(project.organization, self.plugin_name, self._get_redis_key())
+        buffer.clear()
