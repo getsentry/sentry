@@ -4,7 +4,7 @@ from collections import defaultdict
 from datetime import timedelta
 from email.headerregistry import Address
 from functools import reduce
-from typing import Sequence
+from typing import Dict, Sequence
 
 from django.db.models import Count, Q, QuerySet
 from django.utils import timezone
@@ -112,7 +112,9 @@ class OrganizationMissingMembersEndpoint(OrganizationEndpoint):
 
             return dict
 
-        integration_provider_to_ids = reduce(provider_reducer, integrations, defaultdict(list))
+        integration_provider_to_ids: Dict[str, Sequence[int]] = reduce(
+            provider_reducer, integrations, defaultdict(list)
+        )
 
         shared_domain = self._get_shared_email_domain(organization)
 
