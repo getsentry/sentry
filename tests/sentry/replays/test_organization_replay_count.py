@@ -206,7 +206,7 @@ class OrganizationReplayCountEndpointTest(
         }
         with self.feature(self.features):
             response = self.client.get(self.url, query, format="json")
-            assert response.status_code == 200
+            assert response.status_code == 400
 
     def test_one_replay_multiple_issues(self):
         event_id_a = "a" * 32

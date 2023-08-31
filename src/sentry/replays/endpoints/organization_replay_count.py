@@ -26,7 +26,7 @@ FILTER_HAS_A_REPLAY = "AND !replayId:''"
 
 
 class ReplayDataSourceValidator(serializers.Serializer):
-    source = serializers.ChoiceField(
+    data_source = serializers.ChoiceField(
         choices=((Dataset.Discover), (Dataset.IssuePlatform)), default=Dataset.Discover
     )
 
@@ -61,7 +61,9 @@ class OrganizationReplayCountEndpoint(OrganizationEventsV2EndpointBase):
         result = ReplayDataSourceValidator(data=request.GET)
         if not result.is_valid():
             raise ParseError(result.errors)
-        data_source = Dataset.IssuePlatform if result.validated_data else Dataset.Discover
+        data_source = Dataset.Discover
+        if result.validated_data["data_source"] == Dataset.IssuePlatform:
+            data_source = Dataset.IssuePlatform
         try:
             replay_counts = get_replay_counts(
                 snuba_params, request.GET.get("query"), request.GET.get("returnIds"), data_source
