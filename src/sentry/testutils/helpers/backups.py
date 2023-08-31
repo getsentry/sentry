@@ -20,8 +20,8 @@ from sentry.backup.exports import (
     export_in_user_scope,
 )
 from sentry.backup.findings import ComparatorFindings
-from sentry.backup.imports import OldImportConfig, _import
-from sentry.backup.scopes import ExportScope, ImportScope
+from sentry.backup.imports import import_in_global_scope
+from sentry.backup.scopes import ExportScope
 from sentry.backup.validate import validate
 from sentry.db.models.fields.bounded import BoundedBigAutoField
 from sentry.incidents.models import (
@@ -97,7 +97,7 @@ class ValidationError(Exception):
         self.info = info
 
 
-def export_to_file(path: Path, scope: ExportScope) -> JSONData:
+def export_to_file(path: Path, scope: ExportScope, filter_by: set[str] | None = None) -> JSONData:
     """Helper function that exports the current state of the database to the specified file."""
 
     json_file_path = str(path)
@@ -107,9 +107,9 @@ def export_to_file(path: Path, scope: ExportScope) -> JSONData:
         if scope == ExportScope.Global:
             export_in_global_scope(tmp_file, printer=NOOP_PRINTER)
         elif scope == ExportScope.Organization:
-            export_in_organization_scope(tmp_file, printer=NOOP_PRINTER)
+            export_in_organization_scope(tmp_file, org_filter=filter_by, printer=NOOP_PRINTER)
         elif scope == ExportScope.User:
-            export_in_user_scope(tmp_file, printer=NOOP_PRINTER)
+            export_in_user_scope(tmp_file, user_filter=filter_by, printer=NOOP_PRINTER)
         else:
             raise AssertionError(f"Unknown `ExportScope`: `{scope.name}`")
 
@@ -167,7 +167,7 @@ def import_export_then_validate(method_name: str, *, reset_pks: bool = True) -> 
         # Write the contents of the "expected" JSON file into the now clean database.
         # TODO(Hybrid-Cloud): Review whether this is the correct route to apply in this case.
         with unguarded_write(using="default"), open(tmp_expect) as tmp_file:
-            _import(tmp_file, ImportScope.Global, OldImportConfig(), printer=NOOP_PRINTER)
+            import_in_global_scope(tmp_file, printer=NOOP_PRINTER)
 
         # Validate that the "expected" and "actual" JSON matches.
         actual = export_to_file(tmp_actual, ExportScope.Global)
@@ -211,7 +211,7 @@ def import_export_from_fixture_then_validate(
 
     # TODO(Hybrid-Cloud): Review whether this is the correct route to apply in this case.
     with unguarded_write(using="default"), open(fixture_file_path) as fixture_file:
-        _import(fixture_file, ImportScope.Global, OldImportConfig(), printer=NOOP_PRINTER)
+        import_in_global_scope(fixture_file, printer=NOOP_PRINTER)
 
     res = validate(
         expect, export_to_file(tmp_path.joinpath("tmp_test_file.json"), ExportScope.Global), map
@@ -228,11 +228,15 @@ class BackupTestCase(TransactionTestCase):
         self,
         username: str,
         *,
+        email: str | None = None,
         is_admin: bool = False,
         is_staff: bool = False,
         is_superuser: bool = False,
     ) -> User:
-        user = self.create_user(username, is_staff=is_staff, is_superuser=is_superuser)
+        email = username if email is None else email
+        user = self.create_user(
+            email, username=username, is_staff=is_staff, is_superuser=is_superuser
+        )
         UserOption.objects.create(user=user, key="timezone", value="Europe/Vienna")
         UserIP.objects.create(
             user=user,
@@ -248,10 +252,15 @@ class BackupTestCase(TransactionTestCase):
 
         return user
 
-    def create_exhaustive_organization(self, slug: str, owner: User, invitee: User) -> Organization:
-        org = self.create_organization(name=f"test_org_for_{slug}", owner=owner)
-        membership = self.create_member(organization=org, user=invitee, role="member")
+    def create_exhaustive_organization(
+        self, slug: str, owner: User, invitee: User, other: list[User] | None = None
+    ) -> Organization:
+        org = self.create_organization(name=slug, owner=owner)
         owner_id: BoundedBigAutoField = owner.id
+        invited = self.create_member(organization=org, user=invitee, role="member")
+        if other:
+            for o in other:
+                self.create_member(organization=org, user=o, role="member")
 
         OrganizationOption.objects.create(
             organization=org, key="sentry:account-rate-limit", value=0
@@ -294,7 +303,7 @@ class BackupTestCase(TransactionTestCase):
         # Team
         team = self.create_team(name=f"test_team_in_{slug}", organization=org)
         self.create_team_membership(user=owner, team=team)
-        OrganizationAccessRequest.objects.create(member=membership, team=team)
+        OrganizationAccessRequest.objects.create(member=invited, team=team)
 
         # Rule*
         rule = self.create_project_rule(project=project)

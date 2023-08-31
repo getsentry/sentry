@@ -1,38 +1,35 @@
 import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
 import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import {PlatformKey} from 'sentry/data/platformCategories';
 import {t, tct} from 'sentry/locale';
-import type {Organization} from 'sentry/types';
+import {
+  getDefaultInitParams,
+  getDefaultNodeImports,
+  getInstallSnippet,
+  getProductInitParams,
+  getProductIntegrations,
+  getProductSelectionMap,
+  joinWithIndentation,
+} from 'sentry/utils/gettingStartedDocs/node';
 
-type StepProps = {
-  newOrg: boolean;
-  organization: Organization;
-  platformKey: PlatformKey;
-  projectId: string;
-  sentryInitContent: string;
-};
-
-const performanceOtherConfig = `
-// Performance Monitoring
-tracesSampleRate: 1.0, // Capture 100% of the transactions, reduce in production!`;
+interface StepProps {
+  importContent: string;
+  initContent: string;
+  installSnippet: string;
+}
 
 export const steps = ({
-  sentryInitContent,
-}: Partial<StepProps> = {}): LayoutProps['steps'] => [
+  installSnippet,
+  importContent,
+  initContent,
+}: StepProps): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
     description: t('Add the Sentry Node SDK as a dependency:'),
     configurations: [
       {
         language: 'bash',
-        code: `
-# Using yarn
-yarn add @sentry/node
-
-# Using npm
-npm install --save @sentry/node
-        `,
+        code: installSnippet,
       },
     ],
   },
@@ -50,14 +47,12 @@ npm install --save @sentry/node
       {
         language: 'javascript',
         code: `
-        const Sentry = require("@sentry/node");
-        // or use ESM import statements
-        // import * as Sentry from '@sentry/node';
+${importContent}
 
-        Sentry.init({
-          ${sentryInitContent}
-        });
-        `,
+Sentry.init({
+${initContent}
+});
+`,
       },
     ],
   },
@@ -70,33 +65,55 @@ npm install --save @sentry/node
       {
         language: 'javascript',
         code: `
-        const transaction = Sentry.startTransaction({
-          op: "test",
-          name: "My First Test Transaction",
-        });
+const transaction = Sentry.startTransaction({
+  op: "test",
+  name: "My First Test Transaction",
+});
 
-        setTimeout(() => {
-          try {
-            foo();
-          } catch (e) {
-            Sentry.captureException(e);
-          } finally {
-            transaction.finish();
-          }
-        }, 99);
+setTimeout(() => {
+  try {
+    foo();
+  } catch (e) {
+    Sentry.captureException(e);
+  } finally {
+    transaction.finish();
+  }
+}, 99);
         `,
       },
     ],
   },
 ];
 
-export function GettingStartedWithNode({dsn, newOrg, platformKey}: ModuleProps) {
-  const sentryInitContent: string[] = [`dsn: "${dsn}",`, performanceOtherConfig];
+export function GettingStartedWithNode({
+  dsn,
+  newOrg,
+  platformKey,
+  activeProductSelection = [],
+}: ModuleProps) {
+  const productSelection = getProductSelectionMap(activeProductSelection);
+
+  const installSnippet = getInstallSnippet({productSelection});
+  const imports = getDefaultNodeImports({productSelection});
+  const integrations = getProductIntegrations({productSelection});
+
+  const integrationParam =
+    integrations.length > 0
+      ? `integrations: [\n${joinWithIndentation(integrations)}\n],`
+      : null;
+
+  const initContent = joinWithIndentation([
+    ...getDefaultInitParams({dsn}),
+    ...(integrationParam ? [integrationParam] : []),
+    ...getProductInitParams({productSelection}),
+  ]);
 
   return (
     <Layout
       steps={steps({
-        sentryInitContent: sentryInitContent.join('\n'),
+        installSnippet,
+        importContent: imports.join('\n'),
+        initContent,
       })}
       newOrg={newOrg}
       platformKey={platformKey}
