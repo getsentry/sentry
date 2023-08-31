@@ -35,7 +35,7 @@ class CompositeExperimentalMetricsBackend(MetricsBackend):
             # We want to control the sample rate of minimetrics independently of the primary backend's sample rate.
             return options.get("delightful_metrics.minimetrics_sample_rate")
         except UnknownOption:
-            return 0.5
+            return 0.0
 
     def incr(
         self,
