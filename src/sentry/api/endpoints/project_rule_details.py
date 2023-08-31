@@ -5,6 +5,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.rule import RuleEndpoint
 from sentry.api.endpoints.project_rules import find_duplicate_rule
@@ -34,6 +35,12 @@ from sentry.web.decorators import transaction_start
 
 @region_silo_endpoint
 class ProjectRuleDetailsEndpoint(RuleEndpoint):
+    publish_status = {
+        "DELETE": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.UNKNOWN,
+        "PUT": ApiPublishStatus.UNKNOWN,
+    }
+
     @transaction_start("ProjectRuleDetailsEndpoint")
     def get(self, request: Request, project, rule) -> Response:
         """
@@ -162,6 +169,10 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
                         "Could not resolve owner",
                         status=status.HTTP_400_BAD_REQUEST,
                     )
+
+            if rule.status == ObjectStatus.DISABLED:
+                rule.status = ObjectStatus.ACTIVE
+                rule.save()
 
             if data.get("pending_save"):
                 client = RedisRuleStatus()

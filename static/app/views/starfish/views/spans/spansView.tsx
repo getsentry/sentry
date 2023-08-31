@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
-import {ModuleName, SpanMetricsFields} from 'sentry/views/starfish/types';
+import {ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
 import {ActionSelector} from 'sentry/views/starfish/views/spans/selectors/actionSelector';
 import {DomainSelector} from 'sentry/views/starfish/views/spans/selectors/domainSelector';
 import {SpanOperationSelector} from 'sentry/views/starfish/views/spans/selectors/spanOperationSelector';
@@ -12,7 +12,7 @@ import {useModuleSort} from 'sentry/views/starfish/views/spans/useModuleSort';
 
 import SpansTable from './spansTable';
 
-const {SPAN_ACTION, SPAN_DOMAIN, SPAN_OP} = SpanMetricsFields;
+const {SPAN_ACTION, SPAN_DOMAIN, SPAN_OP} = SpanMetricsField;
 
 const LIMIT: number = 25;
 
