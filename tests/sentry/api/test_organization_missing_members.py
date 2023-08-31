@@ -2,9 +2,11 @@ from datetime import timedelta
 
 from django.utils import timezone
 
+from sentry.constants import ObjectStatus
 from sentry.models.organizationmember import OrganizationMember
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 
 @region_silo_test(stable=True)
@@ -52,6 +54,10 @@ class OrganizationMissingMembersTestCase(APITestCase):
         not_shared_domain_author.save()
         self.create_commit(repo=self.repo, author=not_shared_domain_author)
 
+        self.integration = self.create_integration(
+            organization=self.organization, provider="github", name="Github", external_id="github:1"
+        )
+
         self.login_as(self.user)
 
     def test_shared_domain_filter(self):
@@ -74,6 +80,9 @@ class OrganizationMissingMembersTestCase(APITestCase):
     def test_filters_github_only(self):
         repo = self.create_repo(project=self.project, provider="integrations:bitbucket")
         self.create_commit(repo=repo, author=self.nonmember_commit_author1)
+        self.create_integration(
+            organization=self.organization, provider="bitbucket", external_id="bitbucket:1"
+        )
 
         response = self.get_success_response(self.organization.slug)
         assert response.data[0]["integration"] == "github"
@@ -115,6 +124,9 @@ class OrganizationMissingMembersTestCase(APITestCase):
     def test_no_authors(self):
         org = self.create_organization(owner=self.create_user())
         self.create_member(user=self.user, organization=org, role="manager")
+        self.create_integration(
+            organization=org, provider="github", name="Github", external_id="github:2"
+        )
 
         response = self.get_success_response(org.slug)
         assert response.data[0]["integration"] == "github"
@@ -185,3 +197,18 @@ class OrganizationMissingMembersTestCase(APITestCase):
             {"email": "c@example.com", "externalId": "c", "commitCount": 2},
             {"email": "c2@example.com", "externalId": "c@example.com", "commitCount": 1},
         ]
+
+    def test_no_github_integration(self):
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.integration.delete()
+
+        response = self.get_success_response(self.organization.slug)
+        assert len(response.data) == 0
+
+    def test_disabled_integration(self):
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.integration.status = ObjectStatus.DISABLED
+            self.integration.save()
+
+        response = self.get_success_response(self.organization.slug)
+        assert len(response.data) == 0
