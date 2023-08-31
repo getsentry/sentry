@@ -53,8 +53,9 @@ function SpanSummaryPage({params, location}: Props) {
     : {};
 
   const sort =
-    fromSorts(location.query[QueryParameterNames.SPANS_SORT]).filter(isAValidSort)[0] ??
-    DEFAULT_SORT; // We only allow one sort on this table in this view
+    fromSorts(location.query[QueryParameterNames.ENDPOINTS_SORT]).filter(
+      isAValidSort
+    )[0] ?? DEFAULT_SORT; // We only allow one sort on this table in this view
 
   if (endpointMethod && queryFilter) {
     queryFilter['transaction.method'] = endpointMethod;
