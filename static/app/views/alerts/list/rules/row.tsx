@@ -114,6 +114,15 @@ function RuleListRow({
     );
   }
 
+  function renderSnoozeStatus(): React.ReactNode {
+    return (
+      <IssueAlertStatusWrapper>
+        <IconMute size="sm" color="subText" />
+        {t('Muted')}
+      </IssueAlertStatusWrapper>
+    );
+  }
+
   function renderAlertRuleStatus(): React.ReactNode {
     if (isIssueAlert(rule)) {
       if (rule.status === 'disabled') {
@@ -125,14 +134,13 @@ function RuleListRow({
         );
       }
       if (rule.snooze) {
-        return (
-          <IssueAlertStatusWrapper>
-            <IconMute size="sm" color="subText" />
-            {t('Muted')}
-          </IssueAlertStatusWrapper>
-        );
+        return renderSnoozeStatus();
       }
       return null;
+    }
+
+    if (rule.snooze) {
+      return renderSnoozeStatus();
     }
 
     const criticalTrigger = rule.triggers.find(
