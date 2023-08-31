@@ -504,6 +504,66 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             **payload,
         )
 
+    def test_duplicate_rule_both_have_environments(self):
+        """Test that we do not allow editing a rule to be the exact same as another rule in the same project
+        when they both have the same environment set, and then that we do allow it when they have different
+        environments set (slightly different than if one if set and the other is not).
+        """
+        conditions = [
+            {
+                "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
+            }
+        ]
+        actions = [
+            {
+                "targetType": "IssueOwners",
+                "fallthroughType": "ActiveMembers",
+                "id": "sentry.mail.actions.NotifyEmailAction",
+                "targetIdentifier": "",
+            }
+        ]
+        rule = self.create_project_rule(
+            project=self.project,
+            action_match=actions,
+            condition_match=conditions,
+            name="rule_with_env",
+            environment_id=self.environment.id,
+        )
+        rule2 = self.create_project_rule(
+            project=self.project,
+            action_match=actions,
+            condition_match=conditions,
+            name="rule_wo_env",
+        )
+        payload = {
+            "name": "hello world",
+            "actionMatch": "all",
+            "actions": actions,
+            "conditions": conditions,
+            "environment": self.environment.name,
+        }
+        resp = self.get_error_response(
+            self.organization.slug,
+            self.project.slug,
+            rule2.id,
+            status_code=status.HTTP_400_BAD_REQUEST,
+            **payload,
+        )
+        assert (
+            resp.data["name"][0]
+            == f"This rule is an exact duplicate of '{rule.label}' in this project and may not be created."
+        )
+        dev_env = self.create_environment(self.project, name="dev", organization=self.organization)
+        payload["environment"] = dev_env.name
+
+        self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            rule2.id,
+            status_code=status.HTTP_200_OK,
+            **payload,
+        )
+
     def test_duplicate_rule_actions(self):
         """Test that if one rule doesn't have an action set (i.e. 'Do Nothing') and we compare it to a rule
         that does have one set, we consider this when determining if it's a duplicate"""

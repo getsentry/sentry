@@ -430,6 +430,7 @@ class Factories:
         name="",
         action_match="all",
         filter_match="all",
+        **kwargs,
     ):
         action_data = action_data or [
             {
@@ -461,6 +462,7 @@ class Factories:
                 "action_match": action_match,
                 "filter_match": filter_match,
             },
+            **kwargs,
         )
 
     @staticmethod
