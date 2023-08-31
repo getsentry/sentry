@@ -262,8 +262,8 @@ export function FrameworkSuggestionModal({
         )}
         <Heading>{t('Do you use a framework?')}</Heading>
         <Description>{languageDetails[selectedPlatform.key].description}</Description>
-        <Panel>
-          <PanelBody>
+        <StyledPanel>
+          <StyledPanelBody>
             <Frameworks>
               {[...topFrameworksOrdered, ...otherFrameworksSortedAlphabetically].map(
                 (framework, index) => {
@@ -298,8 +298,8 @@ export function FrameworkSuggestionModal({
                 }
               )}
             </Frameworks>
-          </PanelBody>
-        </Panel>
+          </StyledPanelBody>
+        </StyledPanel>
       </Body>
       <Footer>
         <Actions>
@@ -346,8 +346,19 @@ const Description = styled(TextBlock)`
 `;
 
 const Frameworks = styled(List)`
-  max-height: 240px;
   overflow-y: auto;
+`;
+
+const StyledPanel = styled(Panel)`
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+`;
+
+const StyledPanelBody = styled(PanelBody)`
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 `;
 
 const Framework = styled(ListItem)`
@@ -386,7 +397,20 @@ const Actions = styled('div')`
   width: 100%;
 `;
 
+// Style the modals document and section elements as flex containers
+// to allow the list of frameworks to dynamically grow and shrink with the dialog / screen height
 export const modalCss = css`
+  [role='document'] {
+    display: flex;
+    flex-direction: column;
+    max-height: 80vh;
+    min-height: 500px;
+  }
+  section {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
   max-width: 400px;
   width: 100%;
 `;

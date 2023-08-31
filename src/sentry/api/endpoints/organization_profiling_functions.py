@@ -11,12 +11,14 @@ from rest_framework.response import Response
 from urllib3 import Retry
 
 from sentry import features
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.exceptions import InvalidSearchQuery
 from sentry.net.http import connection_from_url
 from sentry.search.events.builder import ProfileTopFunctionsTimeseriesQueryBuilder
+from sentry.search.events.types import QueryBuilderConfig
 from sentry.snuba import functions
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
@@ -74,6 +76,10 @@ class FunctionTrendsSerializer(serializers.Serializer):
 
 @region_silo_endpoint
 class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBase):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def has_feature(self, organization, request):
         return features.has(
             "organizations:profiling-global-suspect-functions", organization, actor=request.user
@@ -133,7 +139,9 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
                     # the `yAxis` qs. So we explicitly ignore the
                     # columns, and hard code in the columns we want.
                     timeseries_columns=[data["function"], "worst()"],
-                    skip_tag_resolution=True,
+                    config=QueryBuilderConfig(
+                        skip_tag_resolution=True,
+                    ),
                 )
                 for chunk in chunks
             ]

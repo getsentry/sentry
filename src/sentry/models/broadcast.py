@@ -13,7 +13,6 @@ def default_expiration():
 
 @control_silo_only_model
 class Broadcast(Model):
-    __include_in_export__ = False
     __relocation_scope__ = RelocationScope.Excluded
 
     upstream_id = models.CharField(max_length=32, null=True, blank=True)
@@ -34,7 +33,6 @@ class Broadcast(Model):
 
 @control_silo_only_model
 class BroadcastSeen(Model):
-    __include_in_export__ = False
     __relocation_scope__ = RelocationScope.Excluded
 
     broadcast = FlexibleForeignKey("sentry.Broadcast")

@@ -318,6 +318,15 @@ class PerformanceHTTPOverheadGroupType(PerformanceGroupTypeDefaults, GroupType):
     category = GroupCategory.PERFORMANCE.value
 
 
+@dataclass(frozen=True)
+class PerformanceDurationRegressionGroupType(PerformanceGroupTypeDefaults, GroupType):
+    type_id = 1017
+    slug = "performance_duration_regression"
+    description = "Duration Regression"
+    noise_config = NoiseConfig(ignore_limit=0)
+    category = GroupCategory.PERFORMANCE.value
+
+
 # 2000 was ProfileBlockingFunctionMainThreadType
 @dataclass(frozen=True)
 class ProfileFileIOGroupType(GroupType):
@@ -377,6 +386,16 @@ class ProfileFrameDropExperimentalType(GroupType):
     slug = "profile_frame_drop_experimental"
     description = "Frame Drop"
     category = GroupCategory.PERFORMANCE.value
+
+
+@dataclass(frozen=True)
+class ProfileFrameDropType(GroupType):
+    type_id = 2009
+    slug = "profile_frame_drop"
+    description = "A Frame Drop Occurred"
+    category = GroupCategory.PERFORMANCE.value
+    noise_config = NoiseConfig(ignore_limit=25)
+    released = True
 
 
 @dataclass(frozen=True)

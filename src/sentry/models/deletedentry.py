@@ -6,7 +6,6 @@ from sentry.db.models import BoundedBigIntegerField, Model
 
 
 class DeletedEntry(Model):
-    __include_in_export__ = False
     __relocation_scope__ = RelocationScope.Excluded
 
     actor_label = models.CharField(max_length=64, null=True)

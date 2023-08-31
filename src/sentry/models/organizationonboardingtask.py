@@ -82,7 +82,6 @@ class AbstractOnboardingTask(Model):
     which allows for the creation of tasks that are unique to users instead of organizations.
     """
 
-    __include_in_export__ = False
     __relocation_scope__ = RelocationScope.Excluded
 
     STATUS_CHOICES = (

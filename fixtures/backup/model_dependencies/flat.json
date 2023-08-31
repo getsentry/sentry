@@ -616,6 +616,10 @@
     "sentry.Project",
     "sentry.Release"
   ],
+  "sentry.ReleaseThreshold": [
+    "sentry.Environment",
+    "sentry.Project"
+  ],
   "sentry.Repository": [
     "sentry.Integration",
     "sentry.Organization"

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import heapq
 import logging
+import uuid
 from datetime import timedelta
 from functools import partial, reduce
 from typing import Tuple
@@ -32,7 +33,6 @@ from sentry.models import (
     OrganizationMember,
     OrganizationStatus,
 )
-from sentry.notifications.utils import generate_notification_uuid
 from sentry.services.hybrid_cloud.user_option import user_option_service
 from sentry.silo import SiloMode
 from sentry.snuba.dataset import Dataset
@@ -277,6 +277,9 @@ def project_event_counts_for_organization(ctx):
 
     for dat in data:
         project_id = dat["project_id"]
+        # Project no longer in organization, but events still exist
+        if project_id not in ctx.projects:
+            continue
         project_ctx = ctx.projects[project_id]
         total = dat["total"]
         timestamp = int(to_timestamp(parse_snuba_datetime(dat["time"])))
@@ -640,8 +643,7 @@ def deliver_reports(ctx, dry_run=False, target_user=None, email_override=None):
         send_email(ctx, target_user, dry_run=dry_run, email_override=email_override)
     else:
         # We save the subscription status of the user in a field in UserOptions.
-        # Here we do a raw query and LEFT JOIN on a subset of UserOption table where sentry_useroption.key = 'reports:disabled-organizations'
-        user_set = list(
+        user_list = list(
             OrganizationMember.objects.filter(
                 user_is_active=True,
                 organization_id=ctx.organization.id,
@@ -649,14 +651,15 @@ def deliver_reports(ctx, dry_run=False, target_user=None, email_override=None):
             .filter(flags=F("flags").bitand(~OrganizationMember.flags["member-limit:restricted"]))
             .values_list("user_id", flat=True)
         )
+        user_list = list(filter(lambda v: v is not None, user_list))
         options_by_user_id = {
             option.user_id: option.value
             for option in user_option_service.get_many(
-                filter=dict(user_ids=user_set, keys=["reports:disabled-organizations"])
+                filter=dict(user_ids=user_list, keys=["reports:disabled-organizations"])
             )
         }
 
-        for user_id in user_set:
+        for user_id in user_list:
             option = list(options_by_user_id.get(user_id, []))
             user_subscribed_to_organization_reports = ctx.organization.id not in option
             if user_subscribed_to_organization_reports:
@@ -740,7 +743,7 @@ def render_template_context(ctx, user_id):
         "organizations:session-replay", ctx.organization
     ) and features.has("organizations:session-replay-weekly-email", ctx.organization)
 
-    notification_uuid = generate_notification_uuid()
+    notification_uuid = str(uuid.uuid4())
 
     # Render the first section of the email where we had the table showing the
     # number of accepted/dropped errors/transactions for each project.

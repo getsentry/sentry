@@ -7,8 +7,7 @@ from uuid import uuid4
 from django.utils import timezone
 from sentry_relay.auth import generate_key_pair
 
-from sentry.backup.helpers import get_exportable_final_derivations_of
-from sentry.db.models import BaseModel
+from sentry.backup.helpers import get_exportable_sentry_models
 from sentry.incidents.models import (
     AlertRule,
     AlertRuleActivity,
@@ -51,7 +50,6 @@ from sentry.models.options.project_option import ProjectOption
 from sentry.models.options.user_option import UserOption
 from sentry.models.organization import Organization
 from sentry.models.organizationaccessrequest import OrganizationAccessRequest
-from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.orgauthtoken import OrgAuthToken
@@ -98,14 +96,14 @@ def mark(*marking: Type | Literal["__all__"]):
     """A function that runs at module load time (which is why this logic can't be folded into the
     `targets` decorator) and marks all models that appear in at least one test. This is then used by
     test_coverage.py to ensure that all final derivations of django's "Model" that set
-    `__include_in_export__ = True` are exercised by at least one test here.
+    `__relocation_scope__ != RelocationScope.Excluded` are exercised by at least one test here.
 
     Use the sentinel string "__all__" to indicate that all models are expected."""
 
     all: Literal["__all__"] = "__all__"
     for model in marking:
         if model == all:
-            all_models = get_exportable_final_derivations_of(BaseModel)
+            all_models = get_exportable_sentry_models()
             UNIT_TESTED_MODELS.update({c.__name__ for c in all_models})
             return list(all_models)
 
@@ -115,11 +113,13 @@ def mark(*marking: Type | Literal["__all__"]):
 
 @run_backup_tests_only_on_single_db
 class ModelBackupTests(TransactionTestCase):
-    """Test the JSON-ification of models marked `__include_in_export__ = True`. Each test here
-    creates a fresh database, performs some writes to it, then exports that data into a temporary
-    file (called the "expected" JSON). It then imports the "expected" JSON and re-exports it into
-    the "actual" JSON file, and diffs the two to ensure that they match per the specified
-    comparators."""
+    """
+    Test the JSON-ification of models marked `__relocation_scope__ != RelocationScope.Excluded`.
+    Each test here creates a fresh database, performs some writes to it, then exports that data into
+    a temporary file (called the "expected" JSON). It then imports the "expected" JSON and
+    re-exports it into the "actual" JSON file, and diffs the two to ensure that they match per the
+    specified comparators.
+    """
 
     def import_export_then_validate(self) -> JSONData:
         return import_export_then_validate(self._testMethodName, reset_pks=False)
@@ -371,7 +371,7 @@ class ModelBackupTests(TransactionTestCase):
         )
         return self.import_export_then_validate()
 
-    @targets(mark(Organization, OrganizationMapping))
+    @targets(mark(Organization))
     def test_organization(self):
         user = self.create_user()
         self.create_organization(owner=user)

@@ -9,6 +9,7 @@ from django.db.models.expressions import BaseExpression, CombinedExpression, Val
 from django.utils.crypto import get_random_string
 from django.utils.text import slugify
 
+from sentry import options
 from sentry.db.exceptions import CannotResolveExpression
 
 COMBINED_EXPRESSION_CALLBACKS = {
@@ -77,9 +78,14 @@ def slugify_instance(
 
     setattr(inst, field_name, base_value)
 
-    # We don't need to further mutate if we're unique at this point
+    # Don't further mutate if the value is unique
     if not base_qs.filter(**{f"{field_name}__iexact": base_value}).exists():
-        return
+        if options.get("api.prevent-numeric-slugs"):
+            # if feature flag is on, we only return if the slug is not entirely numeric
+            if not base_value.isdigit():
+                return
+        else:
+            return
 
     # We want to sanely generate the shortest unique slug possible, so
     # we try different length endings until we get one that works, or bail.

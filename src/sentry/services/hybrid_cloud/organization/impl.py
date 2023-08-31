@@ -7,6 +7,7 @@ from django.dispatch import Signal
 
 from sentry import roles
 from sentry.api.serializers import serialize
+from sentry.db.postgres.transactions import enforce_constraints
 from sentry.models import (
     Activity,
     ControlOutbox,
@@ -449,7 +450,9 @@ class DatabaseBackedOrganizationService(OrganizationService):
 
         for team in from_member.teams.all():
             try:
-                with transaction.atomic(router.db_for_write(OrganizationMemberTeam)):
+                with enforce_constraints(
+                    transaction.atomic(router.db_for_write(OrganizationMemberTeam))
+                ):
                     OrganizationMemberTeam.objects.create(organizationmember=to_member, team=team)
             except IntegrityError:
                 pass
@@ -468,7 +471,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
                 user_id=from_user_id, project__organization_id=organization_id
             ):
                 try:
-                    with transaction.atomic(router.db_for_write(model)):
+                    with enforce_constraints(transaction.atomic(router.db_for_write(model))):
                         obj.update(user_id=to_user_id)
                 except IntegrityError:
                     pass

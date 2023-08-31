@@ -63,7 +63,38 @@ export const platformProductAvailability = {
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.SESSION_REPLAY,
   ],
+  node: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'node-azurefunctions': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+  ],
+  'node-connect': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  python: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'python-aiohttp': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'python-awslambda': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'python-bottle': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'python-celery': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'python-chalice': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-django': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'python-falcon': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'python-fastapi': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'python-flask': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'python-gcpfunctions': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+  ],
+  'python-pyramid': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'python-quart': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'python-rq': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'python-sanic': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'python-serverless': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+  ],
+  'python-tornado': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'python-starlette': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'python-tryton': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'python-wsgi': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
 } as Record<PlatformKey, ProductSolution[]>;
 
 export type DisabledProduct = {
@@ -243,18 +274,25 @@ export function ProductSelection({
     return null;
   }
 
+  // TODO(aknaus): clean up
+  // The package manager info is only shown for javascript platforms
+  // until we improve multi snippet suppport
+  const showPackageManagerInfo = platform?.indexOf('javascript') === 0;
+
   return (
     <Fragment>
-      <TextBlock>
-        {lazyLoader
-          ? tct('In this quick guide you’ll use our [loaderScript] to set up:', {
-              loaderScript: <strong>Loader Script</strong>,
-            })
-          : tct('In this quick guide you’ll use [npm] or [yarn] to set up:', {
-              npm: <strong>npm</strong>,
-              yarn: <strong>yarn</strong>,
-            })}
-      </TextBlock>
+      {showPackageManagerInfo && (
+        <TextBlock>
+          {lazyLoader
+            ? tct('In this quick guide you’ll use our [loaderScript] to set up:', {
+                loaderScript: <strong>Loader Script</strong>,
+              })
+            : tct('In this quick guide you’ll use [npm] or [yarn] to set up:', {
+                npm: <strong>npm</strong>,
+                yarn: <strong>yarn</strong>,
+              })}
+        </TextBlock>
+      )}
       <Products>
         <Product
           label={t('Error Monitoring')}
@@ -316,7 +354,7 @@ export function ProductSelection({
           />
         )}
       </Products>
-      {lazyLoader && (
+      {showPackageManagerInfo && lazyLoader && (
         <AlternativeInstallationAlert type="info" showIcon>
           {tct('Prefer to set up Sentry using [npm:npm] or [yarn:yarn]? [goHere].', {
             npm: <strong />,

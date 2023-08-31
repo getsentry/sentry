@@ -9,8 +9,9 @@ from sentry.models import (
     Repository,
     RepositoryProjectPathConfig,
 )
+from sentry.models.scheduledeletion import ScheduledDeletion
 from sentry.silo.base import SiloMode
-from sentry.tasks.deletion.scheduled import run_scheduled_deletions
+from sentry.tasks.deletion.scheduled import run_scheduled_deletions_control
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
@@ -30,10 +31,10 @@ class DeleteOrganizationIntegrationTest(TransactionTestCase, HybridCloudTestMixi
             )
 
         organization_integration.update(status=ObjectStatus.PENDING_DELETION)
-        self.ScheduledDeletion.schedule(instance=organization_integration, days=0)
+        ScheduledDeletion.schedule(instance=organization_integration, days=0)
 
         with self.tasks(), outbox_runner():
-            run_scheduled_deletions()
+            run_scheduled_deletions_control()
 
         assert not OrganizationIntegration.objects.filter(id=organization_integration.id).exists()
 
@@ -46,10 +47,10 @@ class DeleteOrganizationIntegrationTest(TransactionTestCase, HybridCloudTestMixi
         integration = Integration.objects.create(provider="example", name="Example")
         organization_integration = integration.add_organization(org, self.user)
 
-        self.ScheduledDeletion.schedule(instance=organization_integration, days=0)
+        ScheduledDeletion.schedule(instance=organization_integration, days=0)
 
         with self.tasks():
-            run_scheduled_deletions()
+            run_scheduled_deletions_control()
 
         assert OrganizationIntegration.objects.filter(id=organization_integration.id).exists()
 
@@ -71,10 +72,10 @@ class DeleteOrganizationIntegrationTest(TransactionTestCase, HybridCloudTestMixi
                 organization_id=org.id, integration_id=integration.id, key="ABC-123"
             )
         organization_integration.update(status=ObjectStatus.PENDING_DELETION)
-        self.ScheduledDeletion.schedule(instance=organization_integration, days=0)
+        ScheduledDeletion.schedule(instance=organization_integration, days=0)
 
         with self.tasks():
-            run_scheduled_deletions()
+            run_scheduled_deletions_control()
 
         assert Integration.objects.filter(id=integration.id).exists()
         assert not OrganizationIntegration.objects.filter(id=organization_integration.id).exists()
@@ -102,10 +103,10 @@ class DeleteOrganizationIntegrationTest(TransactionTestCase, HybridCloudTestMixi
         code_owner = self.create_codeowners(project=project, code_mapping=code_mapping)
 
         organization_integration.update(status=ObjectStatus.PENDING_DELETION)
-        self.ScheduledDeletion.schedule(instance=organization_integration, days=0)
+        ScheduledDeletion.schedule(instance=organization_integration, days=0)
 
         with self.tasks():
-            run_scheduled_deletions()
+            run_scheduled_deletions_control()
 
         assert not OrganizationIntegration.objects.filter(id=organization_integration.id).exists()
         with assume_test_silo_mode(SiloMode.REGION):

@@ -8,7 +8,7 @@ from django.conf import settings
 from django.db.models import F
 from django.http import HttpRequest, HttpResponse
 
-from sentry import features, roles
+from sentry import roles
 from sentry.api.endpoints.setup_wizard import SETUP_WIZARD_CACHE_KEY, SETUP_WIZARD_CACHE_TIMEOUT
 from sentry.api.serializers import serialize
 from sentry.api.utils import generate_region_url
@@ -96,9 +96,7 @@ class SetupWizardView(BaseView):
         token = None
         serialized_token = None
 
-        can_use_org_tokens = len(orgs) == 1 and features.has(
-            "organizations:org-auth-tokens", orgs[0], actor=request.user
-        )
+        can_use_org_tokens = len(orgs) == 1
 
         if can_use_org_tokens:
             org = orgs[0]

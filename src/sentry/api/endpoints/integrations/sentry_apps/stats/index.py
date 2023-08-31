@@ -2,6 +2,7 @@ from django.db.models import Count
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases import SentryAppsBaseEndpoint
 from sentry.api.permissions import SuperuserPermission
@@ -11,6 +12,9 @@ from sentry.models import SentryApp, SentryAppAvatar
 
 @control_silo_endpoint
 class SentryAppsStatsEndpoint(SentryAppsBaseEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (SuperuserPermission,)
 
     def get(self, request: Request) -> Response:

@@ -61,7 +61,6 @@ class SentryAppInstallationTokenManager(BaseManager):
 
 @control_silo_only_model
 class SentryAppInstallationToken(Model):
-    __include_in_export__ = False
     __relocation_scope__ = RelocationScope.Excluded
 
     api_token = FlexibleForeignKey("sentry.ApiToken")

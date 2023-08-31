@@ -14,7 +14,7 @@ from sentry.models.outbox import (
     WebhookProviderIdentifier,
 )
 from sentry.silo import SiloMode
-from sentry.tasks.deliver_from_outbox import enqueue_outbox_jobs
+from sentry.tasks.deliver_from_outbox import enqueue_outbox_jobs, enqueue_outbox_jobs_control
 from sentry.testutils.silo import assume_test_silo_mode
 
 
@@ -40,6 +40,8 @@ def outbox_runner(wrapped: Any | None = None) -> Any:
 
     with TaskRunner(), assume_test_silo_mode(SiloMode.MONOLITH):
         while enqueue_outbox_jobs():
+            pass
+        while enqueue_outbox_jobs_control():
             pass
 
 

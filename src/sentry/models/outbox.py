@@ -31,6 +31,7 @@ from sentry.db.models import (
 )
 from sentry.db.postgres.transactions import (
     django_test_transaction_water_mark,
+    enforce_constraints,
     in_test_assert_no_transaction,
 )
 from sentry.services.hybrid_cloud import REGION_NAME_LENGTH
@@ -56,6 +57,7 @@ class OutboxScope(IntEnum):
     APP_SCOPE = 6
     TEAM_SCOPE = 7
     PROVISION_SCOPE = 8
+    SUBSCRIPTION_SCOPE = 9
 
     def __str__(self):
         return self.name
@@ -102,6 +104,7 @@ class OutboxCategory(IntEnum):
     DISABLE_AUTH_PROVIDER = 20
     RESET_IDP_FLAGS = 21
     MARK_INVALID_SSO = 22
+    SUBSCRIPTION_UPDATE = 23
 
     @classmethod
     def as_choices(cls):
@@ -129,6 +132,7 @@ class WebhookProviderIdentifier(IntEnum):
     GITHUB_ENTERPRISE = 8
     BITBUCKET_SERVER = 9
     LEGACY_PLUGIN = 10
+    GETSENTRY = 11
 
 
 def _ensure_not_null(k: str, v: Any) -> Any:
@@ -209,7 +213,6 @@ class OutboxBase(Model):
     class Meta:
         abstract = True
 
-    __include_in_export__ = False
     __relocation_scope__ = RelocationScope.Excluded
 
     # Different shard_scope, shard_identifier pairings of messages are always deliverable in parallel
@@ -229,14 +232,14 @@ class OutboxBase(Model):
     # the largest back off effectively applies to the entire 'shard' key.
     scheduled_for = models.DateTimeField(null=False, default=THE_PAST)
 
+    # Initial creation date for the outbox which should not be modified. Used for lag time calculation.
+    date_added = models.DateTimeField(null=False, default=timezone.now, editable=False)
+
     def last_delay(self) -> datetime.timedelta:
-        return min(
-            max(self.scheduled_for - self.scheduled_from, datetime.timedelta(seconds=1)),
-            datetime.timedelta(hours=1),
-        )
+        return max(self.scheduled_for - self.scheduled_from, datetime.timedelta(seconds=1))
 
     def next_schedule(self, now: datetime.datetime) -> datetime.datetime:
-        return now + (self.last_delay() * 2)
+        return now + min((self.last_delay() * 2), datetime.timedelta(hours=1))
 
     def save(self, **kwds: Any) -> None:  # type: ignore[override]
         if _outbox_context.flushing_enabled:
@@ -366,7 +369,7 @@ class RegionOutboxBase(OutboxBase):
     class Meta:
         abstract = True
 
-    __repr__ = sane_repr(*coalesced_columns)
+    __repr__ = sane_repr("payload", *coalesced_columns)
 
 
 @region_silo_only_model
@@ -416,7 +419,7 @@ class ControlOutboxBase(OutboxBase):
     class Meta:
         abstract = True
 
-    __repr__ = sane_repr(*coalesced_columns)
+    __repr__ = sane_repr("payload", *coalesced_columns)
 
     @classmethod
     def get_webhook_payload_from_request(cls, request: HttpRequest) -> OutboxWebhookPayload:
@@ -502,7 +505,7 @@ _outbox_context = OutboxContext()
 @contextlib.contextmanager
 def outbox_context(
     inner: Atomic | None = None, flush: bool | None = None
-) -> Generator[None, None, None]:
+) -> Generator[Atomic | None, None, None]:
     # If we don't specify our flush, use the outer specified override
     if flush is None:
         flush = _outbox_context.flushing_enabled
@@ -516,16 +519,16 @@ def outbox_context(
 
     if inner:
         assert inner.using is not None
-        with unguarded_write(using=inner.using), inner:
+        with unguarded_write(using=inner.using), enforce_constraints(inner):
             _outbox_context.flushing_enabled = flush
             try:
-                yield
+                yield inner
             finally:
                 _outbox_context.flushing_enabled = original
     else:
         _outbox_context.flushing_enabled = flush
         try:
-            yield
+            yield None
         finally:
             _outbox_context.flushing_enabled = original
 

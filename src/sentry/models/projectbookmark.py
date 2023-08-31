@@ -20,7 +20,6 @@ class ProjectBookmark(Model):
     Identifies a bookmark relationship between a user and a project
     """
 
-    __include_in_export__ = True
     __relocation_scope__ = RelocationScope.Organization
 
     project = FlexibleForeignKey(Project, blank=True, null=True, db_constraint=False)
