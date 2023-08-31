@@ -215,6 +215,106 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             == f"This rule is an exact duplicate of '{rule.label}' in this project and may not be created."
         )
 
+    def test_duplicate_rule_environment(self):
+        """Test the duplicate check for various forms of environments being set (and not set)"""
+
+        conditions = [
+            {
+                "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
+                "name": "A new issue is created",
+            }
+        ]
+        actions = [
+            {
+                "targetType": "IssueOwners",
+                "fallthroughType": "ActiveMembers",
+                "id": "sentry.mail.actions.NotifyEmailAction",
+                "targetIdentifier": "",
+                "name": "Send a notification to IssueOwners and if none can be found then send a notification to ActiveMembers",
+            }
+        ]
+
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            name="no_env_rule",
+            frequency=1440,
+            owner=self.user.get_actor_identifier(),
+            actionMatch="any",
+            filterMatch="all",
+            actions=actions,
+            conditions=conditions,
+        )
+        no_env_rule = Rule.objects.get(id=response.data.get("id"))
+
+        # first make sure we detect a duplicate rule if they're the same and don't have envs set
+        response = self.get_error_response(
+            self.organization.slug,
+            self.project.slug,
+            name="also_no_env_rule",
+            frequency=1440,
+            owner=self.user.get_actor_identifier(),
+            actionMatch="any",
+            filterMatch="all",
+            actions=actions,
+            conditions=conditions,
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+
+        assert (
+            response.data["name"][0]
+            == f"This rule is an exact duplicate of '{no_env_rule.label}' in this project and may not be created."
+        )
+
+        # next test that we can create a rule that's a duplicate of the first rule but with an environment set
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            name="env_rule",
+            frequency=1440,
+            environment=self.environment.name,
+            owner=self.user.get_actor_identifier(),
+            actionMatch="any",
+            filterMatch="all",
+            actions=actions,
+            conditions=conditions,
+        )
+        env_rule = Rule.objects.get(id=response.data.get("id"))
+
+        # now test that we CAN'T create a duplicate rule with the same env as the last rule
+        response = self.get_error_response(
+            self.organization.slug,
+            self.project.slug,
+            name="same_env_rule",
+            frequency=1440,
+            environment=self.environment.name,
+            owner=self.user.get_actor_identifier(),
+            actionMatch="any",
+            filterMatch="all",
+            actions=actions,
+            conditions=conditions,
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+        assert (
+            response.data["name"][0]
+            == f"This rule is an exact duplicate of '{env_rule.label}' in this project and may not be created."
+        )
+
+        # finally, test that we can create a rule that's duplicate except it has a different environment
+        dev_env = self.create_environment(self.project, name="dev", organization=self.organization)
+        self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            name="diff_env_rule",
+            frequency=1440,
+            environment=dev_env.name,
+            owner=self.user.get_actor_identifier(),
+            actionMatch="any",
+            filterMatch="all",
+            actions=actions,
+            conditions=conditions,
+        )
+
     def test_pre_save(self):
         """Test that a rule with name data in the conditions and actions is saved without it"""
         conditions = [
