@@ -25,6 +25,12 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
+export function getSampleEventQuery({transaction, durationBaseline}) {
+  return `event.type:transaction transaction:"${transaction}" transaction.duration:>=${
+    durationBaseline * 0.7
+  }ms transaction.duration:<=${durationBaseline * 1.3}ms`;
+}
+
 // A hook for getting "sample events" for a transaction
 // In its current state it will just fetch at most 5 events that match the
 // transaction name within a range of the duration baseline provided
@@ -48,9 +54,7 @@ function useFetchSampleEvents({
     start: new Date(start * 1000).toISOString(),
     end: new Date(end * 1000).toISOString(),
     fields: [{field: 'id'}],
-    query: `event.type:transaction transaction:"${transaction}" transaction.duration:>=${
-      durationBaseline * 0.7
-    }ms transaction.duration:<=${durationBaseline * 1.3}ms`,
+    query: getSampleEventQuery({transaction, durationBaseline}),
 
     createdBy: undefined,
     display: undefined,
