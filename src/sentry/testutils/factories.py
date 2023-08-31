@@ -91,8 +91,8 @@ from sentry.models import (
     UserEmail,
     UserPermission,
     UserReport,
+    get_actor_id_for_user,
 )
-from sentry.models.actor import get_actor_id_for_user
 from sentry.models.apikey import ApiKey
 from sentry.models.apitoken import ApiToken
 from sentry.models.commitfilechange import CommitFileChange
@@ -1426,7 +1426,7 @@ class Factories:
         kwargs.setdefault("external_name", "")
 
         actor_id = get_actor_id_for_user(user)
-        return ExternalActor.objects.create(actor_id=actor_id, **kwargs)
+        return ExternalActor.objects.create(user_id=user.id, actor_id=actor_id, **kwargs)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
@@ -1434,7 +1434,7 @@ class Factories:
         kwargs.setdefault("provider", ExternalProviders.GITHUB.value)
         kwargs.setdefault("external_name", "@getsentry/ecosystem")
 
-        return ExternalActor.objects.create(actor=team.actor, **kwargs)
+        return ExternalActor.objects.create(team_id=team.id, actor_id=team.actor_id, **kwargs)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)

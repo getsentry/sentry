@@ -82,7 +82,10 @@ class SlackUnlinkTeamView(BaseView):
         if len(external_teams) == 0:
             return render_error_page(request, body_text="HTTP 404: Team not found")
 
-        team = external_teams[0].actor.resolve()
+        if external_teams[0].team_id is None:
+            return render_error_page(request, body_text="HTTP 404: Team not found")
+
+        team = external_teams[0].team
 
         if request.method != "POST":
             return render_to_response(

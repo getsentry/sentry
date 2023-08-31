@@ -139,6 +139,7 @@ class SlackLinkTeamView(BaseView):
 
         external_team, created = ExternalActor.objects.get_or_create(
             actor_id=team.actor_id,
+            team_id=team.id,
             organization=team.organization,
             integration_id=integration.id,
             provider=ExternalProviders.SLACK.value,
