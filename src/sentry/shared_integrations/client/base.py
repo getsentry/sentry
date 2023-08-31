@@ -422,7 +422,7 @@ class BaseApiClient(TrackResponseMixin):
                         )
             if buffer.is_integration_broken():
                 self.disable_plugin(buffer) if self.integration_type == "plugin" and plugins.exists(
-                    self.plugin_name
+                    self.slug
                 ) else self.disable_integration(buffer)
 
         except Exception:
@@ -466,7 +466,7 @@ class BaseApiClient(TrackResponseMixin):
                     )
             if buffer.is_integration_broken():
                 self.disable_plugin(buffer) if self.integration_type == "plugin" and plugins.exists(
-                    self.plugin_name
+                    self.slug
                 ) else self.disable_integration(buffer)
         except Exception:
             metrics.incr("integration.slack.disable_on_broken.redis")
@@ -533,7 +533,7 @@ class BaseApiClient(TrackResponseMixin):
         return
 
     def disable_plugin(self, buffer) -> None:
-        plugin = plugins.get(self.plugin_name)
+        plugin = plugins.get(self.slug)
         if not plugin.is_enabled():
             return
 
