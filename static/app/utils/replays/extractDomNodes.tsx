@@ -44,15 +44,22 @@ export default function extractDomNodes({
         const firstFrameAfterEvent = frames.findIndex(
           frame => frame.timestampMs >= lastEventTimestamp
         );
-
         lastEventTimestamp = event.timestamp;
+        console.group('type');
 
+        // console.log(firstFrameAfterEvent);
+        // console.log(rrwebEvents);
         for (let i = firstFrameAfterEvent; i < frames.length; i++) {
           const frame = frames[i];
+
+          console.log(frame);
+          console.log(lastEventTimestamp);
+          console.log(firstFrameAfterEvent);
 
           // Sometimes frames have nodeId -1 so we ignore these
           // @ts-expect-error
           if (!frame?.data || frame?.data.nodeId === -1) {
+            // console.log(frame);
             continue;
           }
 
@@ -62,9 +69,12 @@ export default function extractDomNodes({
           if (found) {
             extractions.set(frame, found);
           } else {
+            // console.log('here');
+
             break;
           }
         }
+        console.groupEnd();
       }
 
       // Check if we've finished looking at all events
