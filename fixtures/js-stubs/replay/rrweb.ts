@@ -66,6 +66,7 @@ export function RRWebFullSnapshotFrameEvent({
         id: 0,
         childNodes: [
           RRWebDOMFrame({
+            id: 1,
             tagName: 'body',
             attributes: {
               style:

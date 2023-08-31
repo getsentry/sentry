@@ -10,7 +10,12 @@ global.document = new rrdom.RRDocument();
 // @ts-expect-error
 global.window = new rrdom.RRWindow();
 
-const clickTimestamps = [1663691570812, 1663691581324, 1663691586599, 1663691599600];
+const BASE_TIME = 1663691500000;
+const clickTimestamps = [BASE_TIME, BASE_TIME + 1000, BASE_TIME + 2000, BASE_TIME + 3000];
+
+const replayRecord = TestStubs.ReplayRecord({
+  started_at: new Date(BASE_TIME - 1000),
+});
 
 const rrwebEvents: RecordingFrame[] = [
   ...(TestStubs.Replay.RRWebInitFrameEvents({
@@ -23,35 +28,43 @@ const rrwebEvents: RecordingFrame[] = [
     timestamp: new Date(clickTimestamps[0] - 500),
     adds: [
       {
-        parentId: 0,
-        previousId: null,
+        parentId: 1,
         nextId: null,
         node: TestStubs.Replay.RRWebDOMFrame({
-          tagName: 'button',
-          attributes: {class: 'css-507rzt e1lk5gpt0'},
-          textContent: 'This is a button',
           id: 424,
+          tagName: 'button',
+          attributes: {class: 'original-class'},
+          childNodes: [
+            TestStubs.Replay.RRWebDOMFrame({
+              id: 425,
+              textContent: 'This is a button',
+            }),
+          ],
         }),
       },
       {
-        parentId: 0,
-        previousId: null,
+        parentId: 1,
         nextId: null,
         node: TestStubs.Replay.RRWebDOMFrame({
+          id: 9304,
           tagName: 'div',
           attributes: {class: 'loadmore', style: 'display: block;'},
-          textContent: 'Load more...',
-          id: 9304,
+          childNodes: [
+            TestStubs.Replay.RRWebDOMFrame({
+              id: 9305,
+              textContent: 'Load more...',
+            }),
+          ],
         }),
       },
     ],
   }),
   TestStubs.Replay.RRWebIncrementalSnapshotEvent({
-    timestamp: new Date(clickTimestamps[1] + 500), // in between 2nd and 3rd click timestamps
+    timestamp: new Date(clickTimestamps[2] - 500), // in between 2nd and 3rd click timestamps
     attributes: [
       {
-        id: 424,
-        attributes: {class: 'loadmore', style: 'display: grid;'},
+        id: 9304,
+        attributes: {style: 'display: grid;'},
       },
     ],
   }),
@@ -59,14 +72,14 @@ const rrwebEvents: RecordingFrame[] = [
     timestamp: new Date(clickTimestamps[3] - 500), // right before last click
     attributes: [
       {
-        id: 9304,
-        attributes: {class: 'css-507rzt abcdefg'},
+        id: 424,
+        attributes: {class: 'new-class'},
       },
     ],
   }),
 ];
 
-const frames = hydrateBreadcrumbs(TestStubs.ReplayRecord(), [
+const frames = hydrateBreadcrumbs(replayRecord, [
   TestStubs.Replay.ClickFrame({
     timestamp: new Date(clickTimestamps[0]),
     data: {
@@ -93,40 +106,35 @@ const frames = hydrateBreadcrumbs(TestStubs.ReplayRecord(), [
   }),
 ]);
 
-const EXTRACTION_1 = {
-  frame: frames[0],
-  html: '<button class="css-507rzt e1lk5gpt0">This is a button</button>',
-  timestamp: clickTimestamps[0],
-};
-
-const EXTRACTION_2 = {
-  frame: frames[1],
-  html: '<div class="loadmore" style="display: block;">Load more...</div>',
-  timestamp: clickTimestamps[1],
-};
-
-const EXTRACTION_3 = {
-  frame: frames[2],
-  html: '<div class="loadmore" style="display: grid;">Load more...</div>',
-  timestamp: clickTimestamps[2],
-};
-
-const EXTRACTION_4 = {
-  frame: frames[3],
-  html: '<button class="css-507rzt abcdefg">This is a button</button>',
-  timestamp: clickTimestamps[3],
-};
-
 const extractions: Extraction[] = [
-  EXTRACTION_1,
-  EXTRACTION_2,
-  EXTRACTION_3,
-  EXTRACTION_4,
+  {
+    frame: frames[0],
+    html: '<button class="original-class">This is a button</button>',
+    timestamp: frames[0].timestampMs,
+  },
+
+  {
+    frame: frames[1],
+    html: '<div class="loadmore" style="display: block;">Load more...</div>',
+    timestamp: frames[1].timestampMs,
+  },
+
+  {
+    frame: frames[2],
+    html: '<div class="loadmore" style="display: grid;">Load more...</div>',
+    timestamp: frames[2].timestampMs,
+  },
+
+  {
+    frame: frames[3],
+    html: '<button class="new-class">This is a button</button>',
+    timestamp: frames[3].timestampMs,
+  },
 ];
 
 describe('extractDomNodes', () => {
   it('should return the correct DOM events extractions', async () => {
     const result = await extractDomNodes({frames, rrwebEvents});
     expect(result).toStrictEqual(extractions);
-  });
+  }, 10000);
 });

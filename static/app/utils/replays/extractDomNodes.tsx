@@ -1,20 +1,16 @@
+import type {Mirror} from '@sentry-internal/rrweb';
 import {Replayer} from '@sentry-internal/rrweb';
 
-import type {
-  BreadcrumbFrame,
-  RecordingFrame,
-  SpanFrame,
-} from 'sentry/utils/replays/types';
-import {EventType} from 'sentry/utils/replays/types';
+import type {RecordingFrame, ReplayFrame} from 'sentry/utils/replays/types';
 
 export type Extraction = {
-  frame: BreadcrumbFrame | SpanFrame;
+  frame: ReplayFrame;
   html: string | null;
   timestamp: number;
 };
 
 type Args = {
-  frames: (BreadcrumbFrame | SpanFrame)[] | undefined;
+  frames: ReplayFrame[] | undefined;
   rrwebEvents: RecordingFrame[] | undefined;
 };
 
@@ -23,67 +19,79 @@ export default function extractDomNodes({
   rrwebEvents,
 }: Args): Promise<Extraction[]> {
   return new Promise(resolve => {
-    const extractions = new Map<BreadcrumbFrame | SpanFrame, Extraction>();
+    if (!frames.length) {
+      resolve([]);
+      return;
+    }
+
+    console.time('extractDomNodes ' + frames.length);
+    const extractions = new Map<ReplayFrame, Extraction>();
+
     const player = createPlayer(rrwebEvents);
-    let lastEventTimestamp = 0;
+    const mirror = player.getMirror();
 
-    frames.forEach(frame =>
-      extractions.set(frame, {
-        frame,
-        html: null,
-        timestamp: frame.timestampMs,
-      })
-    );
+    const nextFrame = (function () {
+      let i = 0;
+      return () => frames[i++];
+    })();
 
-    const callback = event => {
-      if (
-        event.type === EventType.IncrementalSnapshot ||
-        event.type === EventType.FullSnapshot
-      ) {
-        // Get first frame with a timestamp less than the last seen event timestamp
-        const firstFrameAfterEvent = frames.findIndex(
-          frame => frame.timestampMs >= lastEventTimestamp
-        );
-        lastEventTimestamp = event.timestamp;
-        // console.group('type');
+    const onDone = () => {
+      resolve(Array.from(extractions.values()));
+      console.timeEnd('extractDomNodes ' + frames.length);
+    };
 
-        // console.log(firstFrameAfterEvent);
-        // console.log(rrwebEvents);
-        for (let i = firstFrameAfterEvent; i < frames.length; i++) {
-          const frame = frames[i];
-
-          // Sometimes frames have nodeId -1 so we ignore these
-          // @ts-expect-error
-          if (!frame?.data || frame?.data.nodeId === -1) {
-            // console.log(frame);
-            continue;
-          }
-
-          // If we found the frame.data.nodeId inside the player at this timestamp, push it to the DOM events list
-          // Otherwise, push with null HTML for now
-          const found = extractNode(frame, player);
-          if (found) {
-            extractions.set(frame, found);
-          } else {
-            // console.log('here');
-
-            break;
-          }
-        }
-        // console.groupEnd();
-      }
-
-      // Check if we've finished looking at all events
-      // If so, return the resolved promise
-      const meta = player.getMetaData();
-      const percent = player.getCurrentTime() / meta.totalTime;
-      if (percent >= 1) {
-        resolve([...extractions.values()]);
+    const nextOrDone = () => {
+      const next = nextFrame();
+      if (next) {
+        matchFrame(next);
+      } else {
+        onDone();
       }
     };
 
-    player.on('event-cast', callback);
-    window.setTimeout(() => player.play(0), 0);
+    type FrameRef = {
+      frame: undefined | ReplayFrame;
+      nodeId: undefined | number;
+    };
+
+    const nodeIdRef: FrameRef = {
+      frame: undefined,
+      nodeId: undefined,
+    };
+
+    const handlePause = () => {
+      if (!nodeIdRef.nodeId && !nodeIdRef.frame) {
+        return;
+      }
+      const frame = nodeIdRef.frame as ReplayFrame;
+      const nodeId = nodeIdRef.nodeId as number;
+
+      const html = extractHtml(nodeId as number, mirror);
+      extractions.set(frame as ReplayFrame, {
+        frame,
+        html,
+        timestamp: frame.timestampMs,
+      });
+      nextOrDone();
+    };
+
+    const matchFrame = frame => {
+      nodeIdRef.frame = frame;
+      nodeIdRef.nodeId =
+        frame.data && 'nodeId' in frame.data ? frame.data.nodeId : undefined;
+
+      if (nodeIdRef.nodeId === undefined || nodeIdRef.nodeId === -1) {
+        nextOrDone();
+        return;
+      }
+
+      window.setTimeout(() => {
+        player.pause(frame.offsetMs);
+      }, 0);
+    };
+
+    player.on('pause', handlePause);
+    matchFrame(nextFrame());
   });
 }
 
@@ -113,13 +121,9 @@ function createPlayer(rrwebEvents): Replayer {
   return replayerRef;
 }
 
-function extractNode(
-  frame: BreadcrumbFrame | SpanFrame,
-  replayer: Replayer
-): Extraction | null {
-  const mirror = replayer.getMirror();
-  const nodeId = frame.data && 'nodeId' in frame.data ? frame.data.nodeId : -1;
+function extractHtml(nodeId: number, mirror: Mirror): string | null {
   const node = mirror.getNode(nodeId);
+
   const html =
     (node && 'outerHTML' in node ? (node.outerHTML as string) : node?.textContent) || '';
   // Limit document node depth to 2
@@ -128,14 +132,7 @@ function extractNode(
   if (truncated.length > 1500) {
     truncated = truncated.substring(0, 1500);
   }
-  if (!truncated) {
-    return null;
-  }
-  return {
-    frame,
-    html: truncated,
-    timestamp: frame.timestampMs,
-  };
+  return truncated ? truncated : null;
 }
 
 function removeChildLevel(max: number, collection: HTMLCollection, current: number = 0) {
