@@ -1,8 +1,14 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import TeamStore from 'sentry/stores/teamStore';
 import AlertsContainer from 'sentry/views/alerts';
 
 describe('AlertsContainer', function () {
+  beforeEach(() => {
+    const team = TestStubs.Team({slug: 'team-slug', isMember: true});
+    TeamStore.loadInitialData([{...team, access: ['team:read']}]);
+  });
+
   function SubView({hasMetricAlerts}: {hasMetricAlerts?: boolean}) {
     return <div>{hasMetricAlerts ? 'access' : 'no access'}</div>;
   }
