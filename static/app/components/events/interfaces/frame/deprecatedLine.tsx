@@ -1,4 +1,4 @@
-import React, {Component} from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 import scrollToElement from 'scroll-to-element';
@@ -332,7 +332,7 @@ export class DeprecatedLine extends Component<Props, State> {
       );
 
     return (
-      <React.Fragment>
+      <Fragment>
         <StrictClick onClick={this.isExpandable() ? this.toggleContext : undefined}>
           <DefaultLine
             className="title"
@@ -392,7 +392,7 @@ export class DeprecatedLine extends Component<Props, State> {
             <ExternalLink href={data.sourceLink}>{t('Open in source')}</ExternalLink>
           </DefaultLine>
         )}
-      </React.Fragment>
+      </Fragment>
     );
   }
 
@@ -420,7 +420,7 @@ export class DeprecatedLine extends Component<Props, State> {
     );
 
     return (
-      <React.Fragment>
+      <Fragment>
         <StrictClick onClick={this.isExpandable() ? this.toggleContext : undefined}>
           <DefaultLine
             className="title as-table"
@@ -495,7 +495,7 @@ export class DeprecatedLine extends Component<Props, State> {
             <ExternalLink href={data.sourceLink}>{t('Open in source')}</ExternalLink>
           </DefaultLine>
         )}
-      </React.Fragment>
+      </Fragment>
     );
   }
 
