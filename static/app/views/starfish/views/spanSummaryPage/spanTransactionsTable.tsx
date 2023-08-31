@@ -156,7 +156,13 @@ export function SpanTransactionsTable({span, endpoint, endpointMethod, sort}: Pr
           columnOrder={getColumnOrder(span)}
           columnSortBy={[]}
           grid={{
-            renderHeadCell: col => renderHeadCell({column: col, sort, location}),
+            renderHeadCell: col =>
+              renderHeadCell({
+                column: col,
+                sort,
+                location,
+                sortParameterName: QueryParameterNames.ENDPOINTS_SORT,
+              }),
             renderBodyCell,
           }}
           location={location}
