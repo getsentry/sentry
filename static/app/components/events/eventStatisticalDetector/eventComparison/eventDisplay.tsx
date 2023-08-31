@@ -22,7 +22,7 @@ import {getShortEventId} from 'sentry/utils/events';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {GroupEventCarouselActions} from 'sentry/views/issueDetails/groupEventCarousel';
+import {GroupEventActions} from 'sentry/views/issueDetails/groupEventCarousel';
 
 // A hook for getting "sample events" for a transaction
 // In its current state it will just fetch at most 5 events that match the
@@ -152,11 +152,7 @@ function EventDisplay({
               </ButtonLabelWrapper>
             }
           />
-          <GroupEventCarouselActions
-            event={eventData}
-            group={group}
-            projectSlug={project.slug}
-          />
+          <GroupEventActions event={eventData} group={group} projectSlug={project.slug} />
         </StyledEventSelectorControlBar>
         <ComparisonContentWrapper>
           <MinimapContainer>

@@ -241,17 +241,13 @@ function EventNavigationDropdown({group, event, isDisabled}: GroupEventNavigatio
   );
 }
 
-type GroupEventCarouselActionsProps = {
+type GroupEventActionsProps = {
   event: Event;
   group: Group;
   projectSlug: string;
 };
 
-export function GroupEventCarouselActions({
-  event,
-  group,
-  projectSlug,
-}: GroupEventCarouselActionsProps) {
+export function GroupEventActions({event, group, projectSlug}: GroupEventActionsProps) {
   const theme = useTheme();
   const xlargeViewport = useMedia(`(min-width: ${theme.breakpoints.xlarge})`);
   const organization = useOrganization();
@@ -480,11 +476,7 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
         <QuickTrace event={event} organization={organization} location={location} />
       </div>
       <ActionsWrapper>
-        <GroupEventCarouselActions
-          event={event}
-          group={group}
-          projectSlug={projectSlug}
-        />
+        <GroupEventActions event={event} group={group} projectSlug={projectSlug} />
         <EventNavigationDropdown
           isDisabled={!hasPreviousEvent && !hasNextEvent}
           group={group}
