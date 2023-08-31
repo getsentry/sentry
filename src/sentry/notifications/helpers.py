@@ -6,10 +6,13 @@ from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Q
 
-from sentry.api.endpoints.notification_defaults import TYPE_DEFAULTS
 from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
-from sentry.notifications.defaults import NOTIFICATION_SETTING_DEFAULTS
+from sentry.notifications.defaults import (
+    NOTIFICATION_SETTING_DEFAULTS,
+    NOTIFICATION_SETTINGS_ALL_SOMETIMES,
+    NOTIFICATION_SETTINGS_ALL_SOMETIMES_V2,
+)
 from sentry.notifications.types import (
     NOTIFICATION_SCOPE_TYPE,
     NOTIFICATION_SETTING_OPTION_VALUES,
@@ -63,6 +66,27 @@ def _get_default_value_by_provider(
         for provider in NOTIFICATION_SETTING_DEFAULTS.keys()
     }
 
+def get_provider_defaults():
+    # create the data structure outside the endpoint
+    provider_defaults = []
+    for key, value in NOTIFICATION_SETTING_DEFAULTS.items():
+        provider = EXTERNAL_PROVIDERS[key]
+        # if the value is NOTIFICATION_SETTINGS_ALL_SOMETIMES then it means the provider
+        # is on by default
+        if value == NOTIFICATION_SETTINGS_ALL_SOMETIMES:
+            provider_defaults.append(provider)
+    return provider_defaults
+
+
+def get_type_defaults():
+    # this tells us what the default value is for each notification type
+    type_defaults = {}
+    for key, value in NOTIFICATION_SETTINGS_ALL_SOMETIMES_V2.items():
+        # for the given notification type, figure out what the default value is
+        notification_type = NOTIFICATION_SETTING_TYPES[key]
+        default = NOTIFICATION_SETTING_OPTION_VALUES[value]
+        type_defaults[notification_type] = default
+    return type_defaults
 
 def _get_setting_mapping_from_mapping(
     notification_settings_by_recipient: Mapping[
