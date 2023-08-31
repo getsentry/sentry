@@ -461,12 +461,11 @@ def get_integration_id_for_event(
 
 
 class ObjectStatus:
-    VISIBLE = 0
+    ACTIVE = 0
     HIDDEN = 1
     PENDING_DELETION = 2
     DELETION_IN_PROGRESS = 3
 
-    ACTIVE = 0
     DISABLED = 1
 
     @classmethod
