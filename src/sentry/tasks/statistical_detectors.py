@@ -163,6 +163,8 @@ def detect_function_trends(project_ids: List[int], start: datetime, **kwargs) ->
         sample_rate=1.0,
     )
 
+    # TODO: pass on the regressed/improved functions to the next task
+
 
 def all_function_payloads(
     project_ids: List[int],
