@@ -1,7 +1,7 @@
 from collections import defaultdict
 from typing import MutableMapping
 
-from django.db.models import Max, prefetch_related_objects
+from django.db.models import Max, Q, prefetch_related_objects
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.rule import RuleSerializer
@@ -16,6 +16,7 @@ from sentry.incidents.models import (
 )
 from sentry.models.actor import ACTOR_TYPES, Actor, actor_type_to_string
 from sentry.models.rule import Rule
+from sentry.models.rulesnooze import RuleSnooze
 from sentry.services.hybrid_cloud.app import app_service
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
@@ -165,6 +166,12 @@ class AlertRuleSerializer(Serializer):
             "dateCreated": obj.date_added,
             "createdBy": attrs.get("created_by", None),
         }
+        rule_snooze = RuleSnooze.objects.filter(
+            Q(user_id=user.id) | Q(user_id=None), alert_rule=obj
+        )
+        if rule_snooze.exists():
+            data["snooze"] = True
+
         if "latestIncident" in self.expand:
             data["latestIncident"] = attrs.get("latestIncident", None)
 
