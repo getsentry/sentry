@@ -2,16 +2,28 @@ import threading
 import time
 import zlib
 from threading import Lock, Thread
-from typing import Any, Callable, Dict, Generic, List, Literal, Optional, Set, Tuple, TypeVar, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Generic,
+    List,
+    Literal,
+    Optional,
+    Set,
+    Tuple,
+    TypeVar,
+    Union,
+    cast,
+)
 
-from sentry.metrics.base import MetricsBackend
+from sentry.metrics.base import MetricsBackend, Tags
 from sentry.utils import metrics
 
 # The thread local instance must be initialized globally in order to correctly use the state.
 thread_local = threading.local()
 
 
-Tags = Dict[str, str]
 T = TypeVar("T")
 
 
@@ -200,12 +212,12 @@ class Aggregator:
         if timestamp is None:
             timestamp = time.time()
 
-        bucket_key = (
+        bucket_key: ComposedKey = (
             int((timestamp // self.ROLLUP_IN_SECONDS) * self.ROLLUP_IN_SECONDS),
             ty,
             key,
             unit,
-            tuple(sorted(tuple((tags or {}).items()))),
+            cast(Tuple[Tuple[str, str], ...], tuple(sorted(tuple((tags or {}).items())))),
         )
 
         with self._lock:

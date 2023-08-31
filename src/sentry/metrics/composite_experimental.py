@@ -16,11 +16,12 @@ class CompositeExperimentalMetricsBackend(MetricsBackend):
     def _initialize_backends(self, primary_backend: Optional[str], backend_args: Dict[str, Any]):
         # If we don't have a primary metrics backend we default to the dummy, which won't do anything.
         if primary_backend is None:
-            self._primary_backend = DummyMetricsBackend()
+            self._primary_backend: MetricsBackend = DummyMetricsBackend()
+        else:
+            cls: Type[MetricsBackend] = import_string(primary_backend)
+            self._primary_backend = cls(**backend_args)
 
-        cls: Type[MetricsBackend] = import_string(primary_backend)
-        self._primary_backend = cls(**backend_args)
-        self._minimetrics = MiniMetricsMetricsBackend()
+        self._minimetrics: MetricsBackend = MiniMetricsMetricsBackend()
 
     def incr(
         self,
