@@ -1,7 +1,6 @@
 import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {EventTags} from 'sentry/components/events/eventTags';
@@ -12,10 +11,9 @@ import WaterfallModel from 'sentry/components/events/interfaces/spans/waterfallM
 import OpsBreakdown from 'sentry/components/events/opsBreakdown';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import TextOverflow from 'sentry/components/textOverflow';
-import {IconEllipsis, IconJson, IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {EventTransaction, Project} from 'sentry/types';
+import {EventTransaction, Group, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
@@ -24,6 +22,7 @@ import {getShortEventId} from 'sentry/utils/events';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {GroupEventActions} from 'sentry/views/issueDetails/groupEventCarousel';
 
 export function getSampleEventQuery({
   transaction,
@@ -94,6 +93,7 @@ type EventDisplayProps = {
   durationBaseline: number;
   end: number;
   eventSelectLabel: string;
+  group: Group;
   project: Project;
   start: number;
   transaction: string;
@@ -106,6 +106,7 @@ function EventDisplay({
   end,
   transaction,
   durationBaseline,
+  group,
 }: EventDisplayProps) {
   const location = useLocation();
   const organization = useOrganization();
@@ -169,9 +170,7 @@ function EventDisplay({
               </ButtonLabelWrapper>
             }
           />
-          <Button aria-label="icon" icon={<IconEllipsis />} size="sm" />
-          <Button aria-label="icon" icon={<IconJson />} size="sm" />
-          <Button aria-label="icon" icon={<IconLink />} size="sm" />
+          <GroupEventActions event={eventData} group={group} projectSlug={project.slug} />
         </StyledEventSelectorControlBar>
         <ComparisonContentWrapper>
           <MinimapContainer>
