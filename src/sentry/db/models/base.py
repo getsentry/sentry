@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from typing import Any, Callable, Iterable, Mapping, Optional, Tuple, Type, TypeVar
+from typing import Any, Callable, Iterable, Mapping, Optional, Tuple, Type, TypeVar, cast
 
 from django.apps.config import AppConfig
 from django.core.serializers.base import DeserializedObject
-from django.db import models
+from django.db import models, router, transaction
 from django.db.models import signals
 from django.utils import timezone
 
@@ -155,6 +155,74 @@ class Model(BaseModel):
 
     __repr__ = sane_repr("id")
 
+    def save(self, *args: Any, **kwds: Any) -> None:
+        from sentry.models.outbox import outbox_context
+
+        from .outboxes import ProducesControlOutboxesOnUpdate, ProducesRegionOutboxOnUpdate
+
+        if isinstance(self, ProducesControlOutboxesOnUpdate):
+            with outbox_context(
+                transaction.atomic(router.db_for_write(type(cast(Any, self)))),
+                flush=self.__default_flush__,
+            ):
+                super().save(*args, **kwds)
+                for outbox in self.outboxes_for_update():
+                    outbox.save()
+        elif isinstance(self, ProducesRegionOutboxOnUpdate):
+            with outbox_context(
+                transaction.atomic(router.db_for_write(type(cast(Any, self)))),
+                flush=self.__default_flush__,
+            ):
+                super().save(*args, **kwds)
+                self.outbox_for_update().save()
+        else:
+            super().save(*args, **kwds)
+
+    def update(self, *args: Any, **kwds: Any) -> None:
+        from sentry.models.outbox import outbox_context
+
+        from .outboxes import ProducesControlOutboxesOnUpdate, ProducesRegionOutboxOnUpdate
+
+        if isinstance(self, ProducesControlOutboxesOnUpdate):
+            with outbox_context(
+                transaction.atomic(router.db_for_write(type(cast(Any, self)))),
+                flush=self.__default_flush__,
+            ):
+                super().update(*args, **kwds)
+                for outbox in self.outboxes_for_update():
+                    outbox.save()
+        elif isinstance(self, ProducesRegionOutboxOnUpdate):
+            with outbox_context(
+                transaction.atomic(router.db_for_write(type(cast(Any, self)))),
+                flush=self.__default_flush__,
+            ):
+                super().update(*args, **kwds)
+                self.outbox_for_update().save()
+        else:
+            super().update(*args, **kwds)
+
+    def delete(self, *args: Any, **kwds: Any) -> None:
+        from sentry.models.outbox import outbox_context
+
+        from .outboxes import ProducesControlOutboxesOnUpdate, ProducesRegionOutboxOnUpdate
+
+        if isinstance(self, ProducesControlOutboxesOnUpdate):
+            with outbox_context(
+                transaction.atomic(router.db_for_write(type(cast(Any, self)))),
+                flush=self.__default_flush__,
+            ):
+                for outbox in self.outboxes_for_update():
+                    outbox.save()
+        elif isinstance(self, ProducesRegionOutboxOnUpdate):
+            with outbox_context(
+                transaction.atomic(router.db_for_write(type(cast(Any, self)))),
+                flush=self.__default_flush__,
+            ):
+                self.outbox_for_update().save()
+                super().delete(*args, **kwds)
+        else:
+            super().delete(*args, **kwds)
+
 
 class DefaultFieldsModel(Model):
     date_updated = models.DateTimeField(default=timezone.now)
@@ -188,6 +256,13 @@ def __model_class_prepared(sender: Any, **kwargs: Any) -> None:
             f"Organization, Project  and related settings. It should be False for high volume models "
             f"like Group."
         )
+
+    from .outboxes import ProcessUpdatesWithControlOutboxes, ProcessUpdatesWithRegionOutboxes
+
+    if issubclass(sender, ProcessUpdatesWithControlOutboxes):
+        sender.__category__.connect_control_model_updates(sender)
+    elif issubclass(sender, ProcessUpdatesWithRegionOutboxes):
+        sender.__category__.connect_region_model_updates(sender)
 
 
 signals.pre_save.connect(__model_pre_save)

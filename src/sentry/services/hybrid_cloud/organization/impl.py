@@ -22,11 +22,14 @@ from sentry.models import (
     OrganizationStatus,
     OutboxCategory,
     OutboxScope,
+    RegionReplicatedAuthIdentity,
+    RegionReplicatedAuthProvider,
     Team,
     outbox_context,
 )
 from sentry.models.organizationmember import InviteStatus
 from sentry.services.hybrid_cloud import OptionValue, logger
+from sentry.services.hybrid_cloud.auth import RpcAuthIdentity, RpcAuthProvider
 from sentry.services.hybrid_cloud.organization import (
     OrganizationService,
     OrganizationSignalService,
@@ -511,6 +514,61 @@ class DatabaseBackedOrganizationService(OrganizationService):
     def delete_option(self, *, organization_id: int, key: str) -> None:
         orm_organization = Organization.objects.get_from_cache(id=organization_id)
         orm_organization.delete_option(key)
+
+    def upsert_replicated_auth_provider(
+        self, *, auth_provider: RpcAuthProvider, region_name: str
+    ) -> None:
+        try:
+            with enforce_constraints(
+                transaction.atomic(router.db_for_write(RegionReplicatedAuthProvider))
+            ):
+                organization = Organization.objects.get(id=auth_provider.organization_id)
+                existing = RegionReplicatedAuthProvider.objects.filter(
+                    auth_provider_id=auth_provider.id
+                ).first()
+                update = {
+                    "organization": organization,
+                    "provider": auth_provider.provider,
+                    "config": auth_provider.config,
+                    "default_role": auth_provider.default_role,
+                    "default_global_access": auth_provider.default_global_access,
+                    "allow_unlinked": auth_provider.flags.allow_unlinked,
+                    "scim_enabled": auth_provider.flags.scim_enabled,
+                }
+
+                if not existing:
+                    RegionReplicatedAuthProvider.objects.create(
+                        auth_provider_id=auth_provider.id, **update
+                    )
+                    return
+
+                existing.update(**update)
+        except Organization.DoesNotExist:
+            return
+
+    def upsert_replicated_auth_identity(
+        self, *, auth_identity: RpcAuthIdentity, region_name: str
+    ) -> None:
+        with enforce_constraints(
+            transaction.atomic(router.db_for_write(RegionReplicatedAuthIdentity))
+        ):
+            existing = RegionReplicatedAuthIdentity.objects.filter(
+                auth_identity_id=auth_identity.id
+            ).first()
+            update = {
+                "user_id": auth_identity.user_id,
+                "auth_provider_id": auth_identity.auth_provider_id,
+                "ident": auth_identity.ident,
+                "data": auth_identity.data,
+            }
+
+            if not existing:
+                RegionReplicatedAuthIdentity.objects.create(
+                    auth_identity_id=auth_identity.id, **update
+                )
+                return
+
+            existing.update(**update)
 
     def send_signal(
         self,

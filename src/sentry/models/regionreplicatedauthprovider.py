@@ -11,14 +11,17 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
+from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.fields.jsonfield import JSONField
-from sentry.models import AuthProvider
 
 
 @region_silo_only_model
 class RegionReplicatedAuthProvider(Model):
     __relocation_scope__ = RelocationScope.Organization
 
+    auth_provider_id = HybridCloudForeignKey(
+        "sentry.AuthProvider", on_delete="CASCADE", unique=True
+    )
     organization = FlexibleForeignKey("sentry.Organization", on_delete=models.CASCADE, unique=True)
     provider = models.CharField(max_length=128)
     config = JSONField()
@@ -30,7 +33,8 @@ class RegionReplicatedAuthProvider(Model):
     # we are replicating from.
     date_added = models.DateTimeField(default=timezone.now)
 
-    flags = AuthProvider.flags
+    scim_enabled = models.BooleanField()
+    allow_unlinked = models.BooleanField()
 
     class Meta:
         app_label = "sentry"

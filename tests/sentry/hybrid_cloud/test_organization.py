@@ -4,13 +4,21 @@ from typing import Any, Callable, List, Optional, Sequence, Tuple
 import pytest
 
 from sentry.models import (
+    AuthIdentity,
+    AuthProvider,
     Organization,
     OrganizationMember,
     OrganizationMemberTeam,
     Project,
+    RegionReplicatedAuthIdentity,
+    RegionReplicatedAuthProvider,
     Team,
     TeamStatus,
     User,
+)
+from sentry.services.hybrid_cloud.auth.serial import (
+    serialize_auth_identity,
+    serialize_auth_provider,
 )
 from sentry.services.hybrid_cloud.organization import (
     RpcOrganization,
@@ -278,6 +286,100 @@ def test_options():
     assert organization_service.get_option(organization_id=org.id, key="test") == "a string"
     assert organization_service.get_option(organization_id=org.id, key="test2") is False
     assert organization_service.get_option(organization_id=org.id, key="test3") == 5
+
+
+@django_db_all(transaction=True)
+@all_silo_test(stable=True)
+def test_replicate_auth_provider():
+    user = Factories.create_user()
+    org = Factories.create_organization(owner=user)
+
+    with assume_test_silo_mode(SiloMode.REGION):
+        assert RegionReplicatedAuthProvider.objects.count() == 0
+
+    with assume_test_silo_mode(SiloMode.CONTROL):
+        auth_provider = AuthProvider.objects.create(
+            organization_id=org.id, provider="abc", config={"a": 1}
+        )
+
+    with assume_test_silo_mode(SiloMode.REGION):
+        replicated = RegionReplicatedAuthProvider.objects.get(organization_id=org.id)
+
+    assert replicated.auth_provider_id == auth_provider.id
+    assert replicated.provider == auth_provider.provider
+    assert replicated.config == auth_provider.config
+    assert replicated.default_role == auth_provider.default_role
+    assert replicated.default_global_access == auth_provider.default_global_access
+    assert replicated.scim_enabled == auth_provider.flags.scim_enabled
+    assert replicated.allow_unlinked == auth_provider.flags.allow_unlinked
+
+    with assume_test_silo_mode(SiloMode.CONTROL):
+        auth_provider.provider = "new_provider"
+        auth_provider.flags.scim_enabled = not auth_provider.flags.scim_enabled
+        auth_provider.save()
+
+    with assume_test_silo_mode(SiloMode.REGION):
+        replicated = RegionReplicatedAuthProvider.objects.get(organization_id=org.id)
+
+    assert replicated.auth_provider_id == auth_provider.id
+    assert replicated.provider == auth_provider.provider
+    assert replicated.scim_enabled == auth_provider.flags.scim_enabled
+
+    serialized = serialize_auth_provider(auth_provider)
+    serialized.organization_id = 99999
+
+    # Should still succeed despite non existent organization
+    organization_service.upsert_replicated_auth_provider(auth_provider=serialized, region_name="us")
+
+
+@django_db_all(transaction=True)
+@all_silo_test(stable=True)
+def test_replicate_auth_identity():
+    user = Factories.create_user()
+    org = Factories.create_organization(owner=user)
+
+    with assume_test_silo_mode(SiloMode.REGION):
+        assert RegionReplicatedAuthIdentity.objects.count() == 0
+
+    with assume_test_silo_mode(SiloMode.CONTROL):
+        auth_provider = AuthProvider.objects.create(
+            organization_id=org.id, provider="abc", config={"a": 1}
+        )
+        auth_identity = AuthIdentity.objects.create(
+            user=user, auth_provider=auth_provider, ident="some-ident", data={"b": 2}
+        )
+
+    with assume_test_silo_mode(SiloMode.REGION):
+        replicated = RegionReplicatedAuthIdentity.objects.get(
+            ident=auth_identity.ident, auth_provider_id=auth_provider.id
+        )
+
+    assert replicated.auth_identity_id == auth_identity.id
+    assert replicated.auth_provider_id == auth_identity.auth_provider_id
+    assert replicated.user_id == auth_identity.user_id
+    assert replicated.data == auth_identity.data
+    assert replicated.ident == auth_identity.ident
+
+    with assume_test_silo_mode(SiloMode.CONTROL):
+        auth_identity.data = {"v": "new data"}
+        auth_identity.save()
+
+    with assume_test_silo_mode(SiloMode.REGION):
+        replicated = RegionReplicatedAuthIdentity.objects.get(
+            ident=auth_identity.ident, auth_provider_id=auth_provider.id
+        )
+
+    assert replicated.auth_identity_id == auth_identity.id
+    assert replicated.data == auth_identity.data
+
+    serialized = serialize_auth_identity(auth_identity)
+    serialized.id = 99999
+
+    # Should still succeed despite non existent organization
+    with pytest.raises(Exception):
+        organization_service.upsert_replicated_auth_identity(
+            auth_identity=serialized, region_name="us"
+        )
 
 
 class RpcOrganizationMemberTest(TestCase):

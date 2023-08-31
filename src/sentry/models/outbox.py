@@ -6,7 +6,21 @@ import dataclasses
 import datetime
 import threading
 from enum import IntEnum
-from typing import Any, Generator, Iterable, List, Mapping, Set, Type, TypeVar
+from typing import (
+    Any,
+    Collection,
+    Dict,
+    Generator,
+    Iterable,
+    List,
+    Mapping,
+    Optional,
+    Set,
+    Tuple,
+    Type,
+    TypeVar,
+    cast,
+)
 
 import sentry_sdk
 from django import db
@@ -21,6 +35,7 @@ from typing_extensions import Self
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
+    BaseModel,
     BoundedBigIntegerField,
     BoundedPositiveIntegerField,
     JSONField,
@@ -28,6 +43,10 @@ from sentry.db.models import (
     control_silo_only_model,
     region_silo_only_model,
     sane_repr,
+)
+from sentry.db.models.outboxes import (
+    ProcessUpdatesWithControlOutboxes,
+    ProcessUpdatesWithRegionOutboxes,
 )
 from sentry.db.postgres.transactions import (
     django_test_transaction_water_mark,
@@ -41,59 +60,19 @@ from sentry.utils import metrics
 THE_PAST = datetime.datetime(2016, 8, 1, 0, 0, 0, 0, tzinfo=timezone.utc)
 
 _T = TypeVar("_T")
+_M = TypeVar("_M", bound=BaseModel)
 
 
 class OutboxFlushError(Exception):
     pass
 
 
-class OutboxScope(IntEnum):
-    categories: Mapping[OutboxScope, Set[OutboxCategory]]
+class InvalidOutboxError(Exception):
+    pass
 
-    ORGANIZATION_SCOPE = 0
-    USER_SCOPE = 1
-    WEBHOOK_SCOPE = 2
-    AUDIT_LOG_SCOPE = 3
-    USER_IP_SCOPE = 4
-    INTEGRATION_SCOPE = 5
-    APP_SCOPE = 6
-    TEAM_SCOPE = 7
-    PROVISION_SCOPE = 8
-    SUBSCRIPTION_SCOPE = 9
 
-    def __str__(self):
-        return self.name
-
-    @classmethod
-    def register_categories(cls, mapping: Mapping[OutboxScope, Set[OutboxCategory]]):
-        cls.categories = mapping
-        missing_scopes = {v for v in cls} - set(mapping.keys())
-        assert (
-            not missing_scopes
-        ), f"OutboxScope.register_categories missing entry for {missing_scopes}"
-        missing_categories = {v for v in OutboxCategory} - {
-            v for categories in mapping.values() for v in categories
-        }
-        assert (
-            not missing_categories
-        ), f"OutboxScope.register_categories missing entry for {missing_categories}"
-
-    @classmethod
-    def as_choices(cls):
-        return [(i.value, i.value) for i in cls]
-
-    @staticmethod
-    def get_tag_name(scope: OutboxScope):
-        if scope == OutboxScope.ORGANIZATION_SCOPE:
-            return "organization_id"
-        if scope == OutboxScope.USER_SCOPE:
-            return "user_id"
-        if scope == OutboxScope.TEAM_SCOPE:
-            return "team_id"
-        if scope == OutboxScope.APP_SCOPE:
-            return "app_id"
-
-        return "shard_identifier"
+_outbox_categories_for_scope: Dict[int, Set[OutboxCategory]] = {}
+_used_categories: Set[OutboxCategory] = set()
 
 
 class OutboxCategory(IntEnum):
@@ -122,20 +101,177 @@ class OutboxCategory(IntEnum):
     MARK_INVALID_SSO = 22
     SUBSCRIPTION_UPDATE = 23
 
+    AUTH_PROVIDER_UPDATE = 24
+    AUTH_IDENTITY_UPDATE = 25
+
     @classmethod
     def as_choices(cls):
         return [(i.value, i.value) for i in cls]
 
+    def connect_region_model_updates(self, model: Type[ProcessUpdatesWithRegionOutboxes]) -> None:
+        def receiver(
+            object_identifier: int,
+            payload: Optional[Mapping[str, Any]],
+            shard_identifier: int,
+            *args,
+            **kwds,
+        ):
+            from sentry.receivers.outbox import maybe_process_tombstone
 
-OutboxScope.register_categories(
-    {
-        OutboxScope.USER_SCOPE: {
-            OutboxCategory.USER_UPDATE,
-            OutboxCategory.UNUSED_ONE,
-            OutboxCategory.UNUSED_TWO,
-            OutboxCategory.UNUSUED_THREE,
-        },
-        OutboxScope.ORGANIZATION_SCOPE: {
+            maybe_instance: ProcessUpdatesWithRegionOutboxes | None = maybe_process_tombstone(
+                cast(Any, model), object_identifier, region_name=None
+            )
+            if maybe_instance is None:
+                model.handle_async_deletion(
+                    identifier=object_identifier, shard_identifier=shard_identifier, payload=payload
+                )
+            else:
+                maybe_instance.handle_async_replication(shard_identifier=shard_identifier)
+
+        process_region_outbox.connect(receiver, weak=False, sender=self)
+
+    def connect_control_model_updates(self, model: Type[ProcessUpdatesWithControlOutboxes]) -> None:
+        def receiver(
+            object_identifier: int,
+            payload: Optional[Mapping[str, Any]],
+            shard_identifier: int,
+            region_name: str,
+            *args,
+            **kwds,
+        ):
+            from sentry.receivers.outbox import maybe_process_tombstone
+
+            maybe_instance: ProcessUpdatesWithControlOutboxes | None = maybe_process_tombstone(
+                cast(Any, model), object_identifier, region_name=region_name
+            )
+            if maybe_instance is None:
+                model.handle_async_deletion(
+                    identifier=object_identifier,
+                    region_name=region_name,
+                    shard_identifier=shard_identifier,
+                    payload=payload,
+                )
+            else:
+                maybe_instance.handle_async_replication(
+                    shard_identifier=shard_identifier, region_name=region_name
+                )
+
+        process_control_outbox.connect(receiver, weak=False, sender=self)
+
+    def get_scope(self) -> OutboxScope:
+        for scope_int, categories in _outbox_categories_for_scope.items():
+            if self not in categories:
+                continue
+            break
+        else:
+            raise KeyError
+        return OutboxScope(scope_int)
+
+    def as_region_outbox(
+        self,
+        model: Any | None = None,
+        payload: Any | None = None,
+        shard_identifier: int | None = None,
+        object_identifier: int | None = None,
+        outbox: Type[RegionOutboxBase] | None = None,
+    ) -> RegionOutboxBase:
+
+        scope = self.get_scope()
+
+        shard_identifier, object_identifier = self.infer_identifiers(
+            scope, model, object_identifier=object_identifier, shard_identifier=shard_identifier
+        )
+
+        Outbox = outbox or RegionOutbox
+
+        return Outbox(
+            shard_identifier=shard_identifier,
+            category=self,
+            object_identifier=object_identifier,
+            payload=payload,
+        )
+
+    def as_control_outboxes(
+        self,
+        region_names: Collection[str],
+        model: Any | None = None,
+        payload: Any | None = None,
+        shard_identifier: int | None = None,
+        object_identifier: int | None = None,
+        outbox: Type[ControlOutboxBase] | None = None,
+    ) -> List[ControlOutboxBase]:
+
+        scope = self.get_scope()
+
+        shard_identifier, object_identifier = self.infer_identifiers(
+            scope, model, object_identifier=object_identifier, shard_identifier=shard_identifier
+        )
+
+        Outbox = outbox or ControlOutbox
+
+        return [
+            Outbox(
+                shard_scope=scope,
+                shard_identifier=shard_identifier,
+                category=self,
+                object_identifier=object_identifier,
+                region_name=region_name,
+                payload=payload,
+            )
+            for region_name in region_names
+        ]
+
+    def infer_identifiers(
+        self,
+        scope: OutboxScope,
+        model: Optional[BaseModel],
+        *,
+        object_identifier: int | None,
+        shard_identifier: int | None,
+    ) -> Tuple[int, int]:
+        from sentry.models.organization import Organization
+        from sentry.models.user import User
+
+        assert (model is not None) ^ (
+            object_identifier is not None
+        ), "Either model or object_identifier must be specified"
+
+        if model is not None and hasattr(model, "id"):
+            object_identifier = model.id
+
+        if shard_identifier is None and model is not None:
+            if scope == OutboxScope.ORGANIZATION_SCOPE:
+                if isinstance(model, Organization):
+                    shard_identifier = model.id
+                elif hasattr(model, "organization_id"):
+                    shard_identifier = model.organization_id
+            if scope == OutboxScope.USER_SCOPE:
+                if isinstance(model, User):
+                    shard_identifier = model.id
+                elif hasattr(model, "user_id"):
+                    shard_identifier = model.user_id
+
+        assert (
+            model is not None
+        ) or shard_identifier is not None, "Either model or shard_identifier must be specified"
+
+        assert object_identifier is not None
+        assert shard_identifier is not None
+        return shard_identifier, object_identifier
+
+
+def scope_categories(enum_value: int, categories: Set[OutboxCategory]) -> int:
+    _outbox_categories_for_scope[enum_value] = categories
+    inter = _used_categories.intersection(categories)
+    assert not inter, f"OutboxCategories {inter} were already registered to a different scope"
+    _used_categories.update(categories)
+    return enum_value
+
+
+class OutboxScope(IntEnum):
+    ORGANIZATION_SCOPE = scope_categories(
+        0,
+        {
             OutboxCategory.ORGANIZATION_MEMBER_UPDATE,
             OutboxCategory.MARK_INVALID_SSO,
             OutboxCategory.RESET_IDP_FLAGS,
@@ -147,23 +283,79 @@ OutboxScope.register_categories(
             OutboxCategory.POST_ORGANIZATION_PROVISION,
             OutboxCategory.DISABLE_AUTH_PROVIDER,
             OutboxCategory.ORGANIZATION_MAPPING_CUSTOMER_ID_UPDATE,
+            OutboxCategory.AUTH_PROVIDER_UPDATE,
         },
-        OutboxScope.WEBHOOK_SCOPE: {OutboxCategory.WEBHOOK_PROXY},
-        OutboxScope.AUDIT_LOG_SCOPE: {OutboxCategory.AUDIT_LOG_EVENT},
-        OutboxScope.USER_IP_SCOPE: {OutboxCategory.USER_IP_EVENT},
-        OutboxScope.INTEGRATION_SCOPE: {OutboxCategory.INTEGRATION_UPDATE},
-        OutboxScope.APP_SCOPE: {
+    )
+    USER_SCOPE = scope_categories(
+        1,
+        {
+            OutboxCategory.USER_UPDATE,
+            OutboxCategory.UNUSED_ONE,
+            OutboxCategory.UNUSED_TWO,
+            OutboxCategory.UNUSUED_THREE,
+            OutboxCategory.AUTH_IDENTITY_UPDATE,
+        },
+    )
+    WEBHOOK_SCOPE = scope_categories(2, {OutboxCategory.WEBHOOK_PROXY})
+    AUDIT_LOG_SCOPE = scope_categories(3, {OutboxCategory.AUDIT_LOG_EVENT})
+    USER_IP_SCOPE = scope_categories(
+        4,
+        {
+            OutboxCategory.USER_IP_EVENT,
+        },
+    )
+    INTEGRATION_SCOPE = scope_categories(
+        5,
+        {
+            OutboxCategory.INTEGRATION_UPDATE,
+        },
+    )
+    APP_SCOPE = scope_categories(
+        6,
+        {
             OutboxCategory.API_APPLICATION_UPDATE,
             OutboxCategory.SENTRY_APP_INSTALLATION_UPDATE,
         },
-        OutboxScope.TEAM_SCOPE: {OutboxCategory.TEAM_UPDATE},
-        OutboxScope.PROVISION_SCOPE: {
-            OutboxCategory.PROVISION_ORGANIZATION,
-            OutboxCategory.POST_ORGANIZATION_PROVISION,
+    )
+    TEAM_SCOPE = scope_categories(
+        7,
+        {
+            OutboxCategory.TEAM_UPDATE,
         },
-        OutboxScope.SUBSCRIPTION_SCOPE: {OutboxCategory.SUBSCRIPTION_UPDATE},
-    }
-)
+    )
+    PROVISION_SCOPE = scope_categories(
+        8,
+        {
+            OutboxCategory.PROVISION_ORGANIZATION,
+        },
+    )
+    SUBSCRIPTION_SCOPE = scope_categories(9, {OutboxCategory.SUBSCRIPTION_UPDATE})
+
+    def __str__(self):
+        return self.name
+
+    @classmethod
+    def as_choices(cls):
+        return [(i.value, i.value) for i in cls]
+
+    @staticmethod
+    def get_tag_name(scope: OutboxScope):
+        if scope == OutboxScope.ORGANIZATION_SCOPE:
+            return "organization_id"
+        if scope == OutboxScope.USER_SCOPE:
+            return "user_id"
+        if scope == OutboxScope.TEAM_SCOPE:
+            return "team_id"
+        if scope == OutboxScope.APP_SCOPE:
+            return "app_id"
+
+        return "shard_identifier"
+
+
+_missing_categories = set(OutboxCategory) - _used_categories
+assert (
+    not _missing_categories
+), f"OutboxCategories {_missing_categories} not registered to an OutboxScope"
 
 
 @dataclasses.dataclass
@@ -297,10 +489,7 @@ class OutboxBase(Model):
         return now + min((self.last_delay() * 2), datetime.timedelta(hours=1))
 
     def save(self, **kwds: Any) -> None:  # type: ignore[override]
-        if (
-            OutboxCategory(self.category)
-            not in OutboxScope.categories[OutboxScope(self.shard_scope)]
-        ):
+        if OutboxCategory(self.category) not in _outbox_categories_for_scope[int(self.shard_scope)]:
             raise InvalidOutboxError(
                 f"Outbox.category {self.category} not configured for scope {self.shard_scope}"
             )
@@ -598,7 +787,3 @@ def outbox_context(
 
 process_region_outbox = Signal()  # ["payload", "object_identifier"]
 process_control_outbox = Signal()  # ["payload", "region_name", "object_identifier"]
-
-
-class InvalidOutboxError(Exception):
-    pass

@@ -38,6 +38,12 @@ class Migration(CheckedMigration):
                         primary_key=True, serialize=False
                     ),
                 ),
+                (
+                    "auth_provider_id",
+                    sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
+                        "sentry.AuthProvider", db_index=True, unique=True, on_delete="CASCADE"
+                    ),
+                ),
                 ("provider", models.CharField(max_length=128)),
                 ("config", sentry.db.models.fields.jsonfield.JSONField(default=dict)),
                 (
@@ -54,6 +60,8 @@ class Migration(CheckedMigration):
                         unique=True,
                     ),
                 ),
+                ("allow_unlinked", models.BooleanField()),
+                ("scim_enabled", models.BooleanField()),
             ],
             options={
                 "db_table": "sentry_regionreplicatedauthprovider",
@@ -69,13 +77,19 @@ class Migration(CheckedMigration):
                     ),
                 ),
                 (
+                    "auth_identity_id",
+                    sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
+                        "sentry.AuthIdentity", db_index=True, unique=True, on_delete="CASCADE"
+                    ),
+                ),
+                (
                     "user_id",
                     sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
                         "sentry.User", db_index=True, on_delete="CASCADE"
                     ),
                 ),
                 (
-                    "auth_provider",
+                    "auth_provider_id",
                     sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
                         "sentry.AuthProvider", db_index=True, on_delete="CASCADE"
                     ),
@@ -86,7 +100,7 @@ class Migration(CheckedMigration):
             ],
             options={
                 "db_table": "sentry_regionreplicatedauthidentity",
-                "unique_together": {("auth_provider", "user"), ("auth_provider", "ident")},
+                "unique_together": {("auth_provider_id", "user"), ("auth_provider_id", "ident")},
             },
         ),
     ]
