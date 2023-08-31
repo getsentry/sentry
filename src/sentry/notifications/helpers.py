@@ -773,7 +773,7 @@ def get_setting_options_for_recipient(
     recipient: RpcActor | Team | User,
     project: Project | None = None,
     organization: Organization | None = None,
-) -> MutableMapping[NotificationScopeEnum, NotificationSettingsOptionEnum]:
+) -> MutableMapping[str, NotificationSettingsOptionEnum]:
     all_settings = get_all_setting_options(recipient, project, organization)
 
     notification_settings = {}
