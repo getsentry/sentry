@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import base64
-from typing import Any, List, Mapping
+from typing import Any, List, Mapping, Optional
 
 from django.contrib.auth.models import AnonymousUser
 from django.db import router, transaction
@@ -28,13 +28,14 @@ from sentry.services.hybrid_cloud.auth import (
     AuthenticationRequest,
     AuthService,
     MiddlewareAuthenticationResponse,
+    RpcApiKey,
     RpcAuthenticatorType,
     RpcAuthProvider,
     RpcAuthState,
     RpcMemberSsoState,
     RpcOrganizationAuthConfig,
 )
-from sentry.services.hybrid_cloud.auth.serial import serialize_auth_provider
+from sentry.services.hybrid_cloud.auth.serial import serialize_api_key, serialize_auth_provider
 from sentry.services.hybrid_cloud.organization import (
     RpcOrganizationMemberSummary,
     organization_service,
@@ -118,6 +119,17 @@ def _can_override_sso_as_owner(
 
 
 class DatabaseBackedAuthService(AuthService):
+    def get_organization_api_keys(self, *, organization_id: int) -> List[RpcApiKey]:
+        return [
+            serialize_api_key(k) for k in ApiKey.objects.filter(organization_id=organization_id)
+        ]
+
+    def get_organization_key(self, *, key: str) -> Optional[RpcApiKey]:
+        try:
+            return serialize_api_key(ApiKey.objects.get(key=key))
+        except ApiKey.DoesNotExist:
+            return None
+
     def get_org_auth_config(
         self, *, organization_ids: List[int]
     ) -> List[RpcOrganizationAuthConfig]:
@@ -221,11 +233,12 @@ class DatabaseBackedAuthService(AuthService):
             ).values_list("organization_id", flat=True)
         )
 
-    def get_auth_providers(self, organization_id: int) -> List[RpcAuthProvider]:
-        return [
-            serialize_auth_provider(auth_provider)
-            for auth_provider in AuthProvider.objects.filter(organization_id=organization_id)
-        ]
+    def get_auth_provider(self, organization_id: int) -> Optional[RpcAuthProvider]:
+        try:
+            auth_provider = AuthProvider.objects.get(organization_id=organization_id)
+        except AuthProvider.DoesNotExist:
+            return None
+        return serialize_auth_provider(auth_provider)
 
     def change_scim(
         self, *, user_id: int, provider_id: int, enabled: bool, allow_unlinked: bool

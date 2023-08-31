@@ -1,6 +1,6 @@
 import logging
 from dataclasses import dataclass
-from typing import Any, Dict, List, Literal, Optional, Sequence, Set, Tuple, TypedDict, Union, cast
+from typing import Any, Dict, List, Literal, Optional, Sequence, Set, Tuple, TypedDict, Union
 
 from sentry import features, options
 from sentry.api.endpoints.project_transaction_threshold import DEFAULT_THRESHOLD
@@ -56,7 +56,7 @@ def get_metric_extraction_config(project: Project) -> Optional[MetricExtractionC
      - On-demand metrics widgets.
     """
     # For efficiency purposes, we fetch the flags in batch and propagate them downstream.
-    enabled_features = _on_demand_metrics_feature_flags(project.organization)
+    enabled_features = on_demand_metrics_feature_flags(project.organization)
 
     prefilling = (
         "organizations:on-demand-metrics-prefill" in enabled_features
@@ -76,7 +76,7 @@ def get_metric_extraction_config(project: Project) -> Optional[MetricExtractionC
     }
 
 
-def _on_demand_metrics_feature_flags(organization: Organization) -> Set[str]:
+def on_demand_metrics_feature_flags(organization: Organization) -> Set[str]:
     feature_names = [
         "organizations:on-demand-metrics-extraction",
         "organizations:on-demand-metrics-extraction-experimental",
@@ -84,12 +84,12 @@ def _on_demand_metrics_feature_flags(organization: Organization) -> Set[str]:
         "organizations:enable-on-demand-metrics-prefill",
     ]
 
-    feature_values = features.batch_has(feature_names, organization=organization)
-    if feature_values is None:
-        return set()
+    enabled_features = set()
+    for feature in feature_names:
+        if features.has(feature, organization=organization):
+            enabled_features.add(feature)
 
-    all_features = feature_values.get(f"organization:{organization.id}", {})
-    return cast(Set[str], {name for name, value in all_features.items() if value})
+    return enabled_features
 
 
 def _get_alert_metric_specs(

@@ -29,9 +29,8 @@ logger = logging.getLogger("sentry.integrations.opsgenie")
 DESCRIPTION = """
 Trigger alerts in Opsgenie from Sentry.
 
-Opsgenie is a cloud-based service for dev & ops teams, providing reliable alerts, on-call schedule management and escalations.
-Opsgenie integrates with monitoring tools & services and ensures that the right people are notified via email, SMS, phone calls,
-and iOS & Android push notifications.
+Opsgenie is a cloud-based service for dev and ops teams, providing reliable alerts, on-call schedule management, and escalations.
+Opsgenie integrates with monitoring tools and services to ensure that the right people are notified via email, SMS, phone, and iOS/Android push notifications.
 """
 
 
@@ -71,14 +70,14 @@ class InstallationForm(forms.Form):
     )
     provider = forms.CharField(
         label=_("Account Name"),
-        help_text=_("Example: 'example' for https://example.app.opsgenie.com/"),
+        help_text=_("Example: 'acme' for https://acme.app.opsgenie.com/"),
         widget=forms.TextInput(),
     )
 
     api_key = forms.CharField(
         label=("Opsgenie Integration Key"),
         help_text=_(
-            "Optionally add your first integration key for sending alerts. You can rename this key later."
+            "Optionally, add your first integration key for sending alerts. You can rename this key later."
         ),
         widget=forms.TextInput(),
         required=False,
@@ -120,8 +119,7 @@ class OpsgenieIntegration(IntegrationInstallation):
                 "name": "team_table",
                 "type": "table",
                 "label": "Opsgenie integrations",
-                "help": "If integration keys need to be updated, deleted, or added manually please do so here. Your keys must be associated with a 'Sentry' Integration in Opsgenie. \
-                Alert rules will need to be individually updated for any key additions or deletions.",
+                "help": "Your keys have to be associated with a Sentry integration in Opsgenie. You can update, delete, or add them here. You’ll need to update alert rules individually for any added or deleted keys.",
                 "addButtonText": "",
                 "columnLabels": {
                     "team": "Label",

@@ -2,6 +2,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import tagstore
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -12,6 +13,10 @@ from sentry.api.serializers.models.tagvalue import UserTagValueSerializer
 
 @region_silo_endpoint
 class GroupTagKeyValuesEndpoint(GroupEndpoint, EnvironmentMixin):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, group, key) -> Response:
         """
         List a Tag's Values

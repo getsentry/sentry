@@ -26,6 +26,7 @@ function NoProjectMessage({
 }: Props) {
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
   const {teams, initiallyLoaded: teamsLoaded} = useTeams();
+  const isTeamMember = teams.some(team => team.isMember);
 
   const orgSlug = organization.slug;
   const {canCreateProject} = useProjectCreationAccess({organization, teams});
@@ -39,7 +40,10 @@ function NoProjectMessage({
       ? !!projects?.some(p => p.hasAccess)
       : !!projects?.some(p => p.isMember && p.hasAccess);
 
-  if (hasProjectAccess || !projectsLoaded || !teamsLoaded) {
+  if (
+    (isTeamMember || isSuperuser) &&
+    (hasProjectAccess || !projectsLoaded || !teamsLoaded)
+  ) {
     return <Fragment>{children}</Fragment>;
   }
 
@@ -81,7 +85,7 @@ function NoProjectMessage({
         <Layout.Title>{t('Remain Calm')}</Layout.Title>
         <HelpMessage>{t('You need at least one project to use this view')}</HelpMessage>
         <Actions gap={1}>
-          {!orgHasProjects ? (
+          {!orgHasProjects && canCreateProject ? (
             createProjectAction
           ) : (
             <Fragment>
