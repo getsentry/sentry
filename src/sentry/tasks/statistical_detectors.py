@@ -112,7 +112,7 @@ def detect_function_trends(project_ids: List[int], start: datetime, **kwargs) ->
 
     detector_store = redis.RedisDetectorStore()
 
-    for payloads in chunked(all_function_payloads(project_ids, start), 1000):
+    for payloads in chunked(all_function_payloads(project_ids, start), 100):
         functions_count += len(payloads)
 
         raw_states = detector_store.bulk_read_states(payloads)

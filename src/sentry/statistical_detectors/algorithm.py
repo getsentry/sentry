@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Callable, Mapping, MutableMapping, Optional
 
 from sentry.statistical_detectors.detector import (
@@ -44,7 +44,7 @@ class MovingAverageCrossOverDetectorState(DetectorState):
     @classmethod
     def from_redis_dict(cls, data: Any) -> MovingAverageCrossOverDetectorState:
         ts = data.get(cls.FIELD_TIMESTAMP)
-        timestamp = None if ts is None else datetime.fromtimestamp(int(ts))
+        timestamp = None if ts is None else datetime.fromtimestamp(int(ts), timezone.utc)
         count = int(data[cls.FIELD_COUNT])
         moving_avg_short = int(data[cls.FIELD_MOVING_AVG_SHORT])
         moving_avg_long = int(data[cls.FIELD_MOVING_AVG_LONG])

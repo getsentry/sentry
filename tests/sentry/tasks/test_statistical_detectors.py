@@ -216,6 +216,33 @@ def test_detect_function_trends_query_timerange(functions_query, timestamp, proj
     assert params["end"] == datetime(2023, 8, 1, 11, 1, tzinfo=timezone.utc)
 
 
+@mock.patch("sentry.tasks.statistical_detectors.query_functions")
+@django_db_all
+def test_detect_function_trends(
+    query_functions,
+    timestamp,
+    project,
+):
+    timestamps = [timestamp - timedelta(hours=i) for i in range(3, 0, -1)]
+
+    query_functions.side_effect = [
+        [
+            DetectorPayload(
+                project_id=project.id,
+                group=123,
+                count=100,
+                value=100,
+                timestamp=ts,
+            ),
+        ]
+        for ts in timestamps
+    ]
+
+    with override_options({"statistical_detectors.enable": True}):
+        for ts in timestamps:
+            detect_function_trends([project.id], ts)
+
+
 @region_silo_test(stable=True)
 class FunctionsQueryTest(ProfilesSnubaTestCase):
     def setUp(self):
