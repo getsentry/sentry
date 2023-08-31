@@ -25,7 +25,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0539_add_last_state_change_monitorenv"),
+        ("sentry", "0540_add_release_threshold_table"),
     ]
 
     operations = [

@@ -5,17 +5,12 @@ import scrollToElement from 'scroll-to-element';
 
 import {Button} from 'sentry/components/button';
 import {analyzeFrameForRootCause} from 'sentry/components/events/interfaces/analyzeFrames';
-import {
-  StacktraceFilenameQuery,
-  useSourceMapDebug,
-} from 'sentry/components/events/interfaces/crashContent/exception/useSourceMapDebug';
 import LeadHint from 'sentry/components/events/interfaces/frame/line/leadHint';
 import {getThreadById} from 'sentry/components/events/interfaces/utils';
 import StrictClick from 'sentry/components/strictClick';
 import Tag from 'sentry/components/tag';
-import {Tooltip} from 'sentry/components/tooltip';
 import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
-import {IconChevron, IconRefresh, IconWarning} from 'sentry/icons';
+import {IconChevron, IconRefresh} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import DebugMetaStore from 'sentry/stores/debugMetaStore';
 import {space} from 'sentry/styles/space';
@@ -47,7 +42,6 @@ export interface DeprecatedLineProps {
   data: Frame;
   event: Event;
   registers: Record<string, string>;
-  debugFrames?: StacktraceFilenameQuery[];
   emptySourceNotation?: boolean;
   frameMeta?: Record<any, any>;
   hiddenFrameCount?: number;
@@ -100,27 +94,6 @@ function makeFilter(
   }
 
   return addr;
-}
-
-function SourceMapWarning({
-  debugFrames,
-  frame,
-}: {
-  frame: Frame;
-  debugFrames?: StacktraceFilenameQuery[];
-}) {
-  const debugFrame = debugFrames?.find(debug => debug.filename === frame.filename);
-  const {data} = useSourceMapDebug(debugFrame?.query, {
-    enabled: !!debugFrame,
-  });
-
-  return data?.errors?.length ? (
-    <IconWrapper>
-      <Tooltip skipWrapper title={t('Missing source map')}>
-        <IconWarning color="red400" size="sm" aria-label={t('Missing source map')} />
-      </Tooltip>
-    </IconWrapper>
-  ) : null;
 }
 
 export class DeprecatedLine extends Component<Props, State> {
@@ -310,7 +283,6 @@ export class DeprecatedLine extends Component<Props, State> {
   renderDefaultLine() {
     const {
       isHoverPreviewed,
-      debugFrames,
       data,
       isANR,
       threadId,
@@ -344,7 +316,6 @@ export class DeprecatedLine extends Component<Props, State> {
             stacktraceChangesEnabled={stacktraceChangesEnabled && !data.inApp}
           >
             <LeftLineTitle>
-              <SourceMapWarning frame={data} debugFrames={debugFrames} />
               <div>
                 {this.renderLeadHint()}
                 <DefaultTitle
@@ -617,12 +588,6 @@ const StyledLi = styled('li')`
       visibility: visible;
     }
   }
-`;
-
-const IconWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  margin-right: ${space(1)};
 `;
 
 const SuspectFrameTag = styled(Tag)`

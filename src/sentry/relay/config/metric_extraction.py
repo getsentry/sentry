@@ -56,7 +56,7 @@ def get_metric_extraction_config(project: Project) -> Optional[MetricExtractionC
      - On-demand metrics widgets.
     """
     # For efficiency purposes, we fetch the flags in batch and propagate them downstream.
-    enabled_features = _on_demand_metrics_feature_flags(project.organization)
+    enabled_features = on_demand_metrics_feature_flags(project.organization)
 
     prefilling = (
         "organizations:on-demand-metrics-prefill" in enabled_features
@@ -76,7 +76,7 @@ def get_metric_extraction_config(project: Project) -> Optional[MetricExtractionC
     }
 
 
-def _on_demand_metrics_feature_flags(organization: Organization) -> Set[str]:
+def on_demand_metrics_feature_flags(organization: Organization) -> Set[str]:
     feature_names = [
         "organizations:on-demand-metrics-extraction",
         "organizations:on-demand-metrics-extraction-experimental",
