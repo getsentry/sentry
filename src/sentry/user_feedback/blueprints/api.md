@@ -77,6 +77,27 @@ Retrieve a collection of user-feedback items.
   }
   ```
 
+### Create User Feedback [POST]
+
+Create a new user-feedback item.
+
+- Request
+
+  ```json
+  {
+    "data": {
+      "email": "colton.allen@sentry.io",
+      "error_ids": ["4f0e18332d11431c9b97d924edecb76e"],
+      "feedback_text": "I really like this user-feedback feature!",
+      "id": "1ffe0775ac0f4417aed9de36d9f6f8dc",
+      "replay_id": "ec3b4dc8b79f417596f7a1aa4fcca5d2",
+      "timestamp": "2023-08-31T14:10:34.954048",
+      "trace_ids": ["fbb42a39a61e4aa6969b4fecbfbbc114"],
+      "url": "https://docs.sentry.io/platforms/javascript/"
+    }
+  }
+  ```
+
 ## User Feedback [/projects/<organization_slug>/<project_slug>/user-feedback/<user_feedback_id>/]
 
 - Model
