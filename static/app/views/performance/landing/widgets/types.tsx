@@ -37,10 +37,11 @@ export type PerformanceWidgetProps = {
   organization: Organization;
   title: string;
   titleTooltip: string;
-
   InteractiveTitle?: React.ComponentType<{isLoading: boolean}> | null;
 
   chartColor?: string;
+
+  subTitle?: string;
 
   withStaticFilters?: boolean;
 };
@@ -140,10 +141,11 @@ export type GenericPerformanceWidgetProps<T extends WidgetDataConstraint> = {
   title: string;
   titleTooltip: string;
   EmptyComponent?: React.ComponentType<{height?: number}>;
-
   HeaderActions?: HeaderActions<T>;
+
   InteractiveTitle?: InteractiveTitle<T> | null;
   Subtitle?: Subtitle<T>;
+  subTitle?: string;
 };
 
 export type GenericPerformanceWithData<T extends WidgetDataConstraint> =
