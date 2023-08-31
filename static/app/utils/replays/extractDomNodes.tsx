@@ -45,16 +45,12 @@ export default function extractDomNodes({
           frame => frame.timestampMs >= lastEventTimestamp
         );
         lastEventTimestamp = event.timestamp;
-        console.group('type');
+        // console.group('type');
 
         // console.log(firstFrameAfterEvent);
         // console.log(rrwebEvents);
         for (let i = firstFrameAfterEvent; i < frames.length; i++) {
           const frame = frames[i];
-
-          console.log(frame);
-          console.log(lastEventTimestamp);
-          console.log(firstFrameAfterEvent);
 
           // Sometimes frames have nodeId -1 so we ignore these
           // @ts-expect-error
@@ -74,7 +70,7 @@ export default function extractDomNodes({
             break;
           }
         }
-        console.groupEnd();
+        // console.groupEnd();
       }
 
       // Check if we've finished looking at all events
