@@ -316,7 +316,7 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
                 })
               }
             >
-              {t('Edit Rule')}
+              {rule.status === 'disabled' ? t('Edit to enable') : t('Edit Rule')}
             </Button>
           </ButtonBar>
         </Layout.HeaderActions>
@@ -324,6 +324,15 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
       <Layout.Body>
         <Layout.Main>
           {renderIncompatibleAlert()}
+          {rule.status === 'disabled' && (
+            <Alert type="warning" showIcon>
+              {rule.actions?.length === 0
+                ? t(
+                    'This alert is missing actions. Please edit the alert rule to enable this alert.'
+                  )
+                : t('This alert needs to be edited in order to be enabled.')}
+            </Alert>
+          )}
           {isSnoozed && (
             <Alert showIcon>
               {ruleActionCategory === RuleActionsCategories.NO_DEFAULT
