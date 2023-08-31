@@ -8,6 +8,7 @@ from rest_framework.response import Response
 from sentry import analytics, audit_log, features, options
 from sentry import ratelimits as ratelimiter
 from sentry import roles
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.paginator import DateTimePaginator, OffsetPaginator
@@ -31,7 +32,7 @@ from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.signals import org_setup_complete, terms_accepted
 
 
-class OrganizationSerializer(BaseOrganizationSerializer):
+class OrganizationPostSerializer(BaseOrganizationSerializer):
     defaultTeam = serializers.BooleanField(required=False)
     agreeTerms = serializers.BooleanField(required=True)
     idempotencyKey = serializers.CharField(max_length=IDEMPOTENCY_KEY_LENGTH, required=False)
@@ -51,6 +52,10 @@ class OrganizationSerializer(BaseOrganizationSerializer):
 
 @region_silo_endpoint
 class OrganizationIndexEndpoint(Endpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (OrganizationPermission,)
 
     def get(self, request: Request) -> Response:
@@ -209,7 +214,7 @@ class OrganizationIndexEndpoint(Endpoint):
                 status=429,
             )
 
-        serializer = OrganizationSerializer(data=request.data)
+        serializer = OrganizationPostSerializer(data=request.data)
 
         if serializer.is_valid():
             result = serializer.validated_data

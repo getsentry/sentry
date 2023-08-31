@@ -215,6 +215,11 @@ class HandleTriggerActionTest(TestCase):
                 mock_handler
             )
             incident = self.create_incident()
+            activity = create_incident_activity(
+                incident,
+                IncidentActivityType.STATUS_CHANGE,
+                value=IncidentStatus.CRITICAL.value,
+            )
             metric_value = 1234
             with self.tasks():
                 handle_trigger_action.delay(
@@ -227,7 +232,7 @@ class HandleTriggerActionTest(TestCase):
                 )
             mock_handler.assert_called_once_with(self.action, incident, self.project)
             mock_handler.return_value.fire.assert_called_once_with(
-                metric_value, IncidentStatus.CRITICAL
+                metric_value, IncidentStatus.CRITICAL, str(activity.notification_uuid)
             )
 
 

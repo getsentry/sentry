@@ -2723,6 +2723,23 @@
       "Region"
     ]
   },
+  "sentry.ReleaseThreshold": {
+    "foreign_keys": {
+      "environment": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.Environment"
+      },
+      "project": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.Project"
+      }
+    },
+    "model": "sentry.ReleaseThreshold",
+    "relocation_scope": "Excluded",
+    "silos": [
+      "Region"
+    ]
+  },
   "sentry.Repository": {
     "foreign_keys": {
       "integration_id": {

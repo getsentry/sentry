@@ -87,7 +87,7 @@ class OpsgenieActionHandlerTest(FireTest):
         assert data["priority"] == "P1"
         assert (
             data["details"]["URL"]
-            == f"http://testserver/organizations/baz/alerts/rules/details/{alert_rule.id}/?alert={incident.identifier}"
+            == f"http://testserver/organizations/baz/alerts/rules/details/{alert_rule.id}/?alert={incident.identifier}&referrer=metric_alert_opsgenie"
         )
 
     @responses.activate
