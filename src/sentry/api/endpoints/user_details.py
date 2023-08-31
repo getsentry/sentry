@@ -75,7 +75,11 @@ class UserOptionsSerializer(serializers.Serializer):
 
 class BaseUserSerializer(CamelSnakeModelSerializer):
     def validate_username(self, value):
-        if User.objects.filter(username__iexact=value).exclude(id=self.instance.id).exists():
+        if (
+            User.objects.filter(username__iexact=value)
+            .exclude(id=self.instance.id if hasattr(self.instance, "id") else 0)
+            .exists()
+        ):
             raise serializers.ValidationError("That username is already in use.")
         return value
 
