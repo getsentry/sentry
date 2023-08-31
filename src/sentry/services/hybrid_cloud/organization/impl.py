@@ -552,6 +552,19 @@ class DatabaseBackedOrganizationService(OrganizationService):
         with enforce_constraints(
             transaction.atomic(router.db_for_write(RegionReplicatedAuthIdentity))
         ):
+            # Since coalesced outboxes won't replicate the precise ordering of changes, these
+            # unique keys can cause a deadlock in updates.  To address this, we just delete
+            # any conflicting items and allow future outboxes to carry the updates
+            # for the auth identities that should follow (given they will share the same shard).
+            RegionReplicatedAuthIdentity.objects.filter(
+                ident=auth_identity.ident,
+                auth_provider_id=auth_identity.auth_provider_id,
+            ).exclude(auth_identity_id=auth_identity.id).delete()
+            RegionReplicatedAuthIdentity.objects.filter(
+                user_id=auth_identity.user_id,
+                auth_provider_id=auth_identity.auth_provider_id,
+            ).exclude(auth_identity_id=auth_identity.id).delete()
+
             existing = RegionReplicatedAuthIdentity.objects.filter(
                 auth_identity_id=auth_identity.id
             ).first()

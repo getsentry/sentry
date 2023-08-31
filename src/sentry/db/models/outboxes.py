@@ -16,7 +16,7 @@ class ProducesRegionOutboxOnUpdate:
     or raw sql).  See `get_protected_operations` for info on working around this.
     """
 
-    __default_flush__ = True
+    __default_flush__: bool | None = None
 
     def outbox_for_update(self, shard_identifier: int | None = None) -> RegionOutboxBase:
         raise NotImplementedError
@@ -89,7 +89,7 @@ class ProducesControlOutboxesOnUpdate:
     or raw sql).  See `get_protected_operations` for info on working around this.
     """
 
-    __default_flush__ = True
+    __default_flush__: bool | None = None
 
     def outboxes_for_update(self, shard_identifier: int | None = None) -> List[ControlOutboxBase]:
         raise NotImplementedError

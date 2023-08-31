@@ -100,7 +100,7 @@ class Migration(CheckedMigration):
             ],
             options={
                 "db_table": "sentry_regionreplicatedauthidentity",
-                "unique_together": {("auth_provider_id", "user"), ("auth_provider_id", "ident")},
+                "unique_together": {("auth_provider_id", "user_id"), ("auth_provider_id", "ident")},
             },
         ),
     ]

@@ -374,65 +374,33 @@ def test_replicate_auth_identity():
     assert replicated.data == auth_identity.data
 
     with assume_test_silo_mode(SiloMode.CONTROL):
-        auth_identity_a = AuthIdentity.objects.create(
-            user=user2, auth_provider=auth_provider, ident="some-ident-2", data={"b": 2}
-        )
-        auth_identity_b = AuthIdentity.objects.create(
-            user=user3, auth_provider=auth_provider, ident="some-ident-3", data={"b": 2}
-        )
+        auth_identities = [
+            auth_identity,
+            AuthIdentity.objects.create(
+                user=user2, auth_provider=auth_provider, ident="some-ident-2", data={"b": 2}
+            ),
+            AuthIdentity.objects.create(
+                user=user3, auth_provider=auth_provider, ident="some-ident-3", data={"b": 2}
+            ),
+        ]
+        auth_idents = [ai.ident for ai in auth_identities]
+        conflicting_pairs = list(zip(auth_identities, [*auth_idents[1:], auth_idents[0]]))
 
-        with outbox_runner(rerun_until_converged=True), outbox_context(flush=False):
-            old_ident = auth_identity.ident
+        with outbox_runner(), outbox_context(flush=False):
+            for ai in auth_identities:
+                ai.ident += "-new"
+                ai.save()
 
-            auth_identity.ident = auth_identity_a.ident
-            with pytest.raises(Exception):
-                auth_identity.save()
-            assert auth_identity.ident == auth_identity_a.ident
-            with assume_test_silo_mode(SiloMode.REGION):
-                assert (
-                    RegionReplicatedAuthIdentity.objects.get(
-                        auth_identity_id=auth_identity.id
-                    ).ident
-                    != auth_identity_a.ident
-                )
-
-            auth_identity_a.ident = auth_identity_b.ident
-            with pytest.raises(Exception):
-                auth_identity_a.save()
-            assert auth_identity_a.ident == auth_identity_b.ident
-            with assume_test_silo_mode(SiloMode.REGION):
-                assert (
-                    RegionReplicatedAuthIdentity.objects.get(
-                        auth_identity_id=auth_identity_a.id
-                    ).ident
-                    != auth_identity_b.ident
-                )
-
-            auth_identity_b.ident = old_ident
-            with pytest.raises(Exception):
-                auth_identity_b.save()
-            assert auth_identity_b.ident == old_ident
-            with assume_test_silo_mode(SiloMode.REGION):
-                assert (
-                    RegionReplicatedAuthIdentity.objects.get(
-                        auth_identity_id=auth_identity_b.id
-                    ).ident
-                    != old_ident
-                )
+            for ai, next_ident in conflicting_pairs:
+                ai.ident = next_ident
+                ai.save()
 
         with assume_test_silo_mode(SiloMode.REGION):
-            assert (
-                RegionReplicatedAuthIdentity.objects.get(auth_identity_id=auth_identity.id).ident
-                == auth_identity_a.ident
-            )
-            assert (
-                RegionReplicatedAuthIdentity.objects.get(auth_identity_id=auth_identity_a.id).ident
-                == auth_identity_b.ident
-            )
-            assert (
-                RegionReplicatedAuthIdentity.objects.get(auth_identity_id=auth_identity_b.id).ident
-                == old_ident
-            )
+            for ai, next_ident in zip(auth_identities, [*auth_idents[1:], auth_idents[0]]):
+                assert (
+                    RegionReplicatedAuthIdentity.objects.get(auth_identity_id=ai.id).ident
+                    == next_ident
+                )
 
 
 class RpcOrganizationMemberTest(TestCase):
