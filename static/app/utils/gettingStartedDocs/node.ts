@@ -51,7 +51,6 @@ export function getDefaultNodeImports({
   productSelection,
 }: {
   productSelection: ProductSelectionMap;
-  basePackage?: string;
 }) {
   const imports: string[] = [
     `// You can also use CommonJS \`require('@sentry/node')\` instead of \`import\``,
@@ -59,6 +58,21 @@ export function getDefaultNodeImports({
   ];
   if (productSelection.profiling) {
     imports.push(`import { ProfilingIntegration } from '@sentry/profiling'`);
+  }
+  return imports;
+}
+
+export function getDefaulServerlessImports({
+  productSelection,
+}: {
+  productSelection: ProductSelectionMap;
+}) {
+  const imports: string[] = [
+    `// You can also use ESM \`import * as Sentry from "@sentry/serverless"\` instead of \`require\``,
+    `const Sentry = require("@sentry/serverless")`,
+  ];
+  if (productSelection.profiling) {
+    imports.push(`const { ProfilingIntegration } = require("@sentry/profiling")`);
   }
   return imports;
 }
