@@ -436,7 +436,7 @@ class OrganizationMember(Model):
             "recover_url": absolute_uri(recover_uri),
             "has_password": has_password,
             "organization": self.organization,
-            "disabled_by_email": disabling_user.email,
+            "actor_email": disabling_user.email,
             "provider": provider,
         }
 
