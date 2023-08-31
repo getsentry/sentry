@@ -5,7 +5,8 @@ from rest_framework.request import Request
 
 from sentry import features
 from sentry.integrations.utils import get_identity_or_404
-from sentry.models import Identity, Integration, NotificationSetting, NotificationSettingProvider
+from sentry.models import Identity, Integration, NotificationSetting
+from sentry.notifications.helpers import has_any_provider_settings
 from sentry.notifications.notifications.integration_nudge import IntegrationNudgeNotification
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.signing import unsign
@@ -68,9 +69,7 @@ class SlackLinkIdentityView(BaseView):
         send_slack_response(integration, SUCCESS_LINKED_MESSAGE, params, command="link")
         has_slack_settings = None
         if features.has("organizations:notification-settings-v2", organization):
-            has_slack_settings = NotificationSettingProvider.objects.has_any_provider_settings(
-                request.user, ExternalProviders.SLACK
-            )
+            has_slack_settings = has_any_provider_settings(request.user, ExternalProviders.SLACK)
         else:
             has_slack_settings = NotificationSetting.objects.has_any_provider_settings(
                 request.user, ExternalProviders.SLACK

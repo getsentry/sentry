@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping
+from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, MutableSet, Union
 
 from django.contrib.auth.models import AnonymousUser
+from django.db.models import Q, QuerySet
 
 from sentry.notifications.defaults import NOTIFICATION_SETTING_DEFAULTS
 from sentry.notifications.types import (
@@ -19,7 +20,8 @@ from sentry.notifications.types import (
 )
 from sentry.services.hybrid_cloud import extract_id_from
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
-from sentry.services.hybrid_cloud.notifications import RpcNotificationSetting
+from sentry.services.hybrid_cloud.notifications import RpcNotificationSetting, notifications_service
+from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.types.integrations import (
     EXTERNAL_PROVIDERS,
     ExternalProviders,
@@ -201,6 +203,8 @@ def transform_to_notification_settings_by_recipient(
             MutableMapping[ExternalProviders, NotificationSettingOptionValues],
         ],
     ] = defaultdict(lambda: defaultdict(dict))
+    # {user -> {scope -> {provider -> value}}
+    # TODO: is this somewhere where we need to add the hierarchy?
     for ns in notification_settings:
         if ns.team_id is not None:
             recipient = team_mapping[ns.team_id]
@@ -604,3 +608,173 @@ def get_providers_for_recipient(
     user_providers = [get_provider_enum_from_string(idp_type) for idp_type in idp_types]
     user_providers.append(ExternalProviders.EMAIL)  # always add in email as an option
     return user_providers
+
+
+def filter_to_accepting_recipients(
+    parent: Union[Organization, Project],
+    recipients: Iterable[RpcActor | Team | RpcUser],
+    type: NotificationSettingTypes = NotificationSettingTypes.ISSUE_ALERTS,
+) -> Mapping[ExternalProviders, Iterable[RpcActor]]:
+    """
+    Filters a list of teams or users down to the recipients by provider who
+    are subscribed to alerts. We check both the project level settings and
+    global default settings.
+    """
+    recipient_actors = RpcActor.many_from_object(recipients)
+
+    notification_settings = notifications_service.get_settings_for_recipient_by_parent(
+        type=type, parent_id=parent.id, recipients=recipient_actors
+    )
+    notification_settings_by_recipient = transform_to_notification_settings_by_recipient(
+        notification_settings, recipient_actors
+    )
+
+    mapping = defaultdict(set)
+    for recipient in recipient_actors:
+        providers = where_should_recipient_be_notified(
+            notification_settings_by_recipient, recipient, type
+        )
+        for provider in providers:
+            mapping[provider].add(recipient)
+    return mapping
+
+
+def get_notification_recipients(project: Project) -> Mapping[ExternalProviders, Iterable[RpcActor]]:
+    from sentry.models import NotificationSettingProvider
+
+    """
+    Return a set of users that should receive Issue Alert emails for a given
+    project. To start, we get the set of all users. Then we fetch all of
+    their relevant notification settings and put them into reference
+    dictionary. Finally, we traverse the set of users and return the ones
+    that should get a notification.
+    """
+    user_ids = project.member_set.values_list("user_id", flat=True)
+
+    notifications = NotificationSettingProvider.objects.filter(
+        type=NotificationSettingTypes.ISSUE_ALERTS.value,
+        scope_type=NotificationScopeType.PROJECT.value,
+        scope_identifier=project.id,
+        user_id__in=user_ids,
+    )
+
+    mapping = defaultdict(set)
+    for notification in notifications:
+        providers = notifications.provider
+        mapping[providers].add(notification.user_id)
+
+    return mapping
+
+
+# TODO (tests only)
+def get_settings(
+    provider: ExternalProviders,
+    type: NotificationSettingTypes,
+    user_id: int | None = None,
+    team_id: int | None = None,
+    project: Project | None = None,
+    organization: Organization | None = None,
+) -> NotificationSettingOptionValues:
+    """
+    One and only one of (user, team, project, or organization)
+    must not be null. This function automatically translates a missing DB
+    row to NotificationSettingOptionValues.DEFAULT.
+    """
+    # The `unique_together` constraint should guarantee 0 or 1 rows, but
+    # using `list()` rather than `.first()` to prevent Django from adding an
+    # ordering that could make the query slow.
+
+    settings = list(
+        find_settings(
+            provider,
+            type,
+            team_id=team_id,
+            user_id=user_id,
+            project=project,
+            organization=organization,
+        )
+    )[:1]
+    return (
+        NotificationSettingOptionValues(settings[0].value)
+        if settings
+        else NotificationSettingOptionValues.DEFAULT
+    )
+
+
+# TODO
+def find_settings(
+    provider: ExternalProviders,
+    type: NotificationSettingTypes,
+    user_id: int | None = None,
+    team_id: int | None = None,
+    project: Project | int | None = None,
+    organization: Organization | int | None = None,
+) -> QuerySet:
+    """Wrapper for .filter that translates object parameters to scopes and targets."""
+    from sentry.models import NotificationSettingProvider
+
+    # TODO: does this need to look at options instead?
+    assert (user_id and not team_id) or (
+        team_id and not user_id
+    ), "Can only get settings for team or user"
+
+    scope_type, scope_identifier = get_scope(
+        team=team_id, user=user_id, project=project, organization=organization
+    )
+
+    return NotificationSettingProvider.objects.filter(
+        provider=provider.value,
+        type=type.value,
+        scope_type=scope_type.value,
+        scope_identifier=scope_identifier,
+        user_id=user_id,
+        team_id=team_id,
+    )
+
+
+def get_for_recipient_by_parent(
+    type_: NotificationSettingTypes,
+    parent: Organization | Project,
+    recipients: Iterable[RpcActor | Team | User | RpcUser],
+) -> QuerySet:
+    """
+    Find all of a project/organization's notification settings for a list of
+    users or teams. Note that this WILL work with a mixed list. This will
+    include each user or team's project/organization-independent settings.
+    """
+    from sentry.models import NotificationSettingProvider
+
+    user_ids: MutableSet[int] = set()
+    team_ids: MutableSet[int] = set()
+
+    for raw_recipient in recipients:
+        recipient = RpcActor.from_object(raw_recipient, fetch_actor=False)
+        if recipient.actor_type == ActorType.TEAM:
+            team_ids.add(recipient.id)
+        if recipient.actor_type == ActorType.USER:
+            user_ids.add(recipient.id)
+
+    # If the list would be empty, don't bother querying.
+    if not (team_ids or user_ids):
+        return QuerySet.none()
+
+    parent_specific_scope_type = get_scope_type(type_)
+    # READ HERE
+    query = (
+        Q(
+            scope_type=parent_specific_scope_type.value,
+            scope_identifier=parent.id,
+        )
+        | Q(
+            scope_type=NotificationScopeType.USER.value,
+            scope_identifier__in=user_ids,
+        )
+        | Q(
+            scope_type=NotificationScopeType.TEAM.value,
+            scope_identifier__in=team_ids,
+        )
+    )
+
+    return NotificationSettingProvider.objects.filter(
+        (Q(team_id__in=team_ids) | Q(user_id__in=user_ids)), type=type_.value, *query
+    )

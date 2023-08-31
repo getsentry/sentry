@@ -107,6 +107,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):  # noqa: F821
         defaults = {"value": value.value}
         with configure_scope() as scope:
             with transaction.atomic(router.db_for_write(NotificationSetting)):
+                # READ HERE
                 setting, created = self.get_or_create(
                     provider=provider.value,
                     type=type.value,
@@ -249,6 +250,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):  # noqa: F821
                 | Q(user_id__in=user_ids if user_ids else [])
             )
 
+        # READ HERE
         return self.filter(query)
 
     def remove_for_user(self, user: User, type: NotificationSettingTypes | None = None) -> None:
@@ -343,6 +345,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):  # noqa: F821
             return self.none()
 
         parent_specific_scope_type = get_scope_type(type_)
+        # READ HERE
         return self.filter(
             Q(
                 scope_type=parent_specific_scope_type.value,
@@ -471,6 +474,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):  # noqa: F821
         kwargs = {}
         kwargs["provider"] = provider.value
 
+        # READ HERE
         self.filter(
             Q(scope_type=NotificationScopeType.PROJECT.value, scope_identifier__in=project_ids)
             | Q(

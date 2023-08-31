@@ -306,11 +306,15 @@ def disabled_users_from_project(project: Project) -> Mapping[ExternalProviders, 
     rpc_users = user_service.get_many(filter={"user_ids": user_ids})
     users = RpcActor.many_from_object(rpc_users)
 
-    notification_settings = NotificationSetting.objects.get_for_recipient_by_parent(
-        NotificationSettingTypes.ISSUE_ALERTS,
-        parent=project,
-        recipients=users,
-    )
+    notification_settings = None
+    if features.has("organizations:notification-settings-v2", project.organization):
+        pass
+    else:
+        notification_settings = NotificationSetting.objects.get_for_recipient_by_parent(
+            NotificationSettingTypes.ISSUE_ALERTS,
+            parent=project,
+            recipients=users,
+        )
     notification_settings_by_recipient = transform_to_notification_settings_by_recipient(
         notification_settings, users
     )

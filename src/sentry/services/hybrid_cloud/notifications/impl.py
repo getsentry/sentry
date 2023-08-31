@@ -7,7 +7,7 @@ from django.db.models import Q, QuerySet
 
 from sentry.api.serializers.base import Serializer
 from sentry.api.serializers.models.notification_setting import NotificationSettingsSerializer
-from sentry.models import NotificationSetting, User
+from sentry.models import NotificationSetting, NotificationSettingProvider, User
 from sentry.notifications.helpers import get_scope_type
 from sentry.notifications.types import (
     NotificationScopeType,
@@ -83,6 +83,7 @@ class DatabaseBackedNotificationsService(NotificationsService):
         users: List[RpcUser],
         value: NotificationSettingOptionValues,
     ) -> List[RpcNotificationSetting]:
+        # READ HERE
         settings = NotificationSetting.objects.filter(
             user_id__in=[u.id for u in users],
             type__in=types,
@@ -94,25 +95,19 @@ class DatabaseBackedNotificationsService(NotificationsService):
     def get_settings_for_recipient_by_parent(
         self, *, type: NotificationSettingTypes, parent_id: int, recipients: Sequence[RpcActor]
     ) -> List[RpcNotificationSetting]:
+        # if features.has("organizations:notification-settings-v2", organization):
         team_ids = [r.id for r in recipients if r.actor_type == ActorType.TEAM]
         user_ids = [r.id for r in recipients if r.actor_type == ActorType.USER]
 
-        parent_specific_scope_type = get_scope_type(type)
-        notification_settings = NotificationSetting.objects.filter(
-            Q(
-                scope_type=parent_specific_scope_type.value,
-                scope_identifier=parent_id,
-            )
-            | Q(
-                scope_type=NotificationScopeType.USER.value,
-                scope_identifier__in=user_ids,
-            )
-            | Q(
-                scope_type=NotificationScopeType.TEAM.value,
-                scope_identifier__in=team_ids,
-            ),
-            (Q(team_id__in=team_ids) | Q(user_id__in=user_ids)),
-            type=type.value,
+        # TODO(snigs): find setting by org/proj scope or user or team
+        # this is where we need to change the hierarchy
+        # parent_specific_scope_type = get_scope_type(type)
+        notification_settings = NotificationSetting.objects.filter()
+
+        _ = NotificationSettingProvider.objects.filter(
+            Q(user_id__in=user_ids) | Q(team_id__in=team_ids),
+            type=NotificationSettingTypes.ISSUE_ALERTS.value,
+            scope_type=NotificationScopeType.PROJECT.value,
         )
 
         return [serialize_notification_setting(s) for s in notification_settings]
@@ -128,6 +123,7 @@ class DatabaseBackedNotificationsService(NotificationsService):
         scope_type = get_scope_type(type)
         return [
             serialize_notification_setting(s)
+            # READ HERE
             for s in NotificationSetting.objects.filter(
                 Q(
                     scope_type=scope_type.value,
