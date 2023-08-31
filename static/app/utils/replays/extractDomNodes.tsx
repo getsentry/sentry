@@ -5,6 +5,7 @@ import type {
   RecordingFrame,
   SpanFrame,
 } from 'sentry/utils/replays/types';
+import {EventType} from 'sentry/utils/replays/types';
 
 export type Extraction = {
   frame: BreadcrumbFrame | SpanFrame;
@@ -26,11 +27,22 @@ export default function extractDomNodes({
     const player = createPlayer(rrwebEvents);
     let lastEventTimestamp = 0;
 
+    frames.forEach(frame =>
+      extractions.set(frame, {
+        frame,
+        html: null,
+        timestamp: frame.timestampMs,
+      })
+    );
+
     const callback = event => {
-      if (event.type === 2 || event.type === 3) {
+      if (
+        event.type === EventType.IncrementalSnapshot ||
+        event.type === EventType.FullSnapshot
+      ) {
         // Get first frame with a timestamp less than the last seen event timestamp
         const firstFrameAfterEvent = frames.findIndex(
-          f => f.timestampMs >= lastEventTimestamp
+          frame => frame.timestampMs >= lastEventTimestamp
         );
 
         lastEventTimestamp = event.timestamp;
@@ -40,7 +52,7 @@ export default function extractDomNodes({
 
           // Sometimes frames have nodeId -1 so we ignore these
           // @ts-expect-error
-          if (!frame?.data || frame.data.nodeId === -1) {
+          if (!frame?.data || frame?.data.nodeId === -1) {
             continue;
           }
 
@@ -50,12 +62,7 @@ export default function extractDomNodes({
           if (found) {
             extractions.set(frame, found);
           } else {
-            extractions.set(frame, {
-              frame,
-              html: null,
-              timestamp: frame.timestampMs,
-            });
-            return;
+            break;
           }
         }
       }
