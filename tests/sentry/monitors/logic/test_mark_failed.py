@@ -27,7 +27,7 @@ from sentry.testutils.silo import region_silo_test
 
 
 @region_silo_test(stable=True)
-class MonitorEnvironmentTestCase(TestCase):
+class MarkFailedTestCase(TestCase):
     @with_feature({"organizations:issue-platform": False})
     @patch("sentry.coreapi.insert_data_to_database_legacy")
     def test_mark_failed_default_params_legacy(self, mock_insert_data_to_database_legacy):
