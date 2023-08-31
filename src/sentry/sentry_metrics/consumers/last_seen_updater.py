@@ -123,7 +123,9 @@ class LastSeenUpdaterStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         should_accept = not self.__prefilter.should_drop(message)
 
         if not should_accept:
-            self.__metrics.incr("last_seen_updater.dropped_message")
+            self.__metrics.incr("last_seen_updater.dropped_messages")
+        else:
+            self.__metrics.incr("last_seen_updater.retained_messages")
 
         return should_accept
 
