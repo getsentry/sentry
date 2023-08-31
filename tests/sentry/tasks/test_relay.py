@@ -135,7 +135,6 @@ def invalidation_debounce_cache(monkeypatch):
     return debounce_cache
 
 
-@pytest.mark.parametrize("projectconfig_version", (3, 4))
 @django_db_all
 def test_debounce(
     monkeypatch,
@@ -143,7 +142,6 @@ def test_debounce(
     default_organization,
     debounce_cache,
     django_cache,
-    projectconfig_version,
 ):
     tasks = []
 
@@ -153,18 +151,13 @@ def test_debounce(
 
     monkeypatch.setattr("sentry.tasks.relay.build_project_config.apply_async", apply_async)
 
-    schedule_build_project_config(
-        version=projectconfig_version, public_key=default_projectkey.public_key
-    )
-    schedule_build_project_config(
-        version=projectconfig_version, public_key=default_projectkey.public_key
-    )
+    schedule_build_project_config(public_key=default_projectkey.public_key)
+    schedule_build_project_config(public_key=default_projectkey.public_key)
 
     assert len(tasks) == 1
     assert tasks[0]["public_key"] == default_projectkey.public_key
 
 
-@pytest.mark.parametrize("projectconfig_version", (3, 4))
 @django_db_all
 def test_generate(
     monkeypatch,
@@ -173,12 +166,11 @@ def test_generate(
     default_projectkey,
     redis_cache,
     django_cache,
-    projectconfig_version,
 ):
     # redis_cache.delete_many([default_projectkey.public_key])
     assert not redis_cache.get(default_projectkey.public_key)
 
-    build_project_config(version=projectconfig_version, public_key=default_projectkey.public_key)
+    build_project_config(default_projectkey.public_key)
 
     cfg = redis_cache.get(default_projectkey.public_key)
 
@@ -267,17 +259,19 @@ def test_project_get_option_does_not_reload(
     assert not build_project_config.called
 
 
-@pytest.mark.parametrize("projectconfig_version", (3, 4))
 @django_db_all
 def test_invalidation_project_deleted(
-    default_project, emulate_transactions, redis_cache, django_cache, projectconfig_version
+    default_project,
+    emulate_transactions,
+    redis_cache,
+    django_cache,
 ):
     # Ensure we have a ProjectKey
     project_key = next(_cache_keys_for_project(default_project))
     assert project_key
 
     # Ensure we have a config in the cache.
-    build_project_config(public_key=project_key, version=projectconfig_version)
+    build_project_config(public_key=project_key)
     assert redis_cache.get(project_key)["disabled"] is False
 
     project_id = default_project.id

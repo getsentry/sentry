@@ -352,15 +352,10 @@ def test_get_deleted_project():
     assert list(get_active_projects(ClustererNamespace.TRANSACTIONS)) == []
 
 
-@pytest.mark.parametrize("projectconfig_version", (3, 4))
 @django_db_all
-def test_transaction_clusterer_generates_rules(default_project, projectconfig_version):
+def test_transaction_clusterer_generates_rules(default_project):
     def _get_projconfig_tx_rules(project: Project):
-        return (
-            get_project_config(project, full_config=True, version=projectconfig_version)
-            .to_dict()["config"]
-            .get("txNameRules")
-        )
+        return get_project_config(project, full_config=True).to_dict()["config"].get("txNameRules")
 
     feature = "organizations:transaction-name-normalize"
     with Feature({feature: False}):

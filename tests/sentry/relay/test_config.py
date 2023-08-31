@@ -93,33 +93,25 @@ def _validate_project_config(config):
     validate_project_config(json.dumps(config), strict=True)
 
 
-@pytest.mark.parametrize("projectconfig_version", (3, 4))
 @django_db_all
 @region_silo_test(stable=True)
-def test_get_project_config_non_visible(default_project, projectconfig_version):
+def test_get_project_config_non_visible(default_project):
     keys = ProjectKey.objects.filter(project=default_project)
     default_project.update(status=ObjectStatus.PENDING_DELETION)
-    cfg = get_project_config(
-        default_project, full_config=True, project_keys=keys, version=projectconfig_version
-    )
+    cfg = get_project_config(default_project, full_config=True, project_keys=keys)
     assert cfg.to_dict() == {"disabled": True}
 
 
 @django_db_all
 @region_silo_test(stable=True)
 @pytest.mark.parametrize("full", [False, True], ids=["slim_config", "full_config"])
-@pytest.mark.parametrize("projectconfig_version", (3, 4))
-def test_get_project_config(
-    default_project, insta_snapshot, django_cache, full, projectconfig_version
-):
+def test_get_project_config(default_project, insta_snapshot, django_cache, full):
     # We could use the default_project fixture here, but we would like to avoid 1) hitting the db 2) creating a mock
     default_project.update_option("sentry:relay_pii_config", PII_CONFIG)
     default_project.organization.update_option("sentry:relay_pii_config", PII_CONFIG)
     keys = ProjectKey.objects.filter(project=default_project)
 
-    project_cfg = get_project_config(
-        default_project, full_config=full, project_keys=keys, version=projectconfig_version
-    )
+    project_cfg = get_project_config(default_project, full_config=full, project_keys=keys)
     cfg = project_cfg.to_dict()
 
     _validate_project_config(cfg["config"])
@@ -144,16 +136,11 @@ SOME_EXCEPTION = RuntimeError("foo")
 @region_silo_test(stable=True)
 @mock.patch("sentry.relay.config.generate_rules", side_effect=SOME_EXCEPTION)
 @mock.patch("sentry.relay.config.logger")
-@pytest.mark.parametrize("projectconfig_version", (3, 4))
-def test_get_experimental_config_dyn_sampling(
-    mock_logger, _, default_project, projectconfig_version
-):
+def test_get_experimental_config_dyn_sampling(mock_logger, _, default_project):
     keys = ProjectKey.objects.filter(project=default_project)
     with Feature({"organizations:dynamic-sampling": True}):
         # Does not raise:
-        cfg = get_project_config(
-            default_project, full_config=True, project_keys=keys, version=projectconfig_version
-        )
+        cfg = get_project_config(default_project, full_config=True, project_keys=keys)
     # Key is missing from config:
     assert "dynamicSampling" not in cfg.to_dict()["config"]
     assert mock_logger.error.call_args == mock.call(ANY, exc_info=True)
@@ -162,9 +149,8 @@ def test_get_experimental_config_dyn_sampling(
 @django_db_all
 @region_silo_test(stable=True)
 @mock.patch("sentry.relay.config.capture_exception")
-@pytest.mark.parametrize("projectconfig_version", (3, 4))
 def test_get_experimental_config_transaction_metrics_exception(
-    mock_capture_exception, default_project, projectconfig_version
+    mock_capture_exception, default_project
 ):
     keys = ProjectKey.objects.filter(project=default_project)
     default_project.update_option("sentry:breakdowns", {"invalid_breakdowns": "test"})
@@ -172,9 +158,7 @@ def test_get_experimental_config_transaction_metrics_exception(
     default_project.update_option("sentry:transaction_metrics_custom_tags", 42)
 
     with Feature({"organizations:transaction-metrics-extraction": True}):
-        cfg = get_project_config(
-            default_project, full_config=True, project_keys=keys, version=projectconfig_version
-        )
+        cfg = get_project_config(default_project, full_config=True, project_keys=keys)
 
     config = cfg.to_dict()["config"]
 
@@ -186,9 +170,8 @@ def test_get_experimental_config_transaction_metrics_exception(
 @region_silo_test(stable=True)
 @pytest.mark.parametrize("has_custom_filters", [False, True])
 @pytest.mark.parametrize("has_blacklisted_ips", [False, True])
-@pytest.mark.parametrize("projectconfig_version", (3, 4))
 def test_project_config_uses_filter_features(
-    default_project, has_custom_filters, has_blacklisted_ips, projectconfig_version
+    default_project, has_custom_filters, has_blacklisted_ips
 ):
     error_messages = ["some_error"]
     releases = ["1.2.3", "4.5.6"]
@@ -201,9 +184,7 @@ def test_project_config_uses_filter_features(
         default_project.update_option("sentry:blacklisted_ips", blacklisted_ips)
 
     with Feature({"projects:custom-inbound-filters": has_custom_filters}):
-        project_cfg = get_project_config(
-            default_project, full_config=True, version=projectconfig_version
-        )
+        project_cfg = get_project_config(default_project, full_config=True)
 
     cfg = project_cfg.to_dict()
     _validate_project_config(cfg["config"])
@@ -227,12 +208,9 @@ def test_project_config_uses_filter_features(
 @django_db_all
 @region_silo_test(stable=True)
 @mock.patch("sentry.relay.config.EXPOSABLE_FEATURES", ["organizations:profiling"])
-@pytest.mark.parametrize("projectconfig_version", (3, 4))
-def test_project_config_exposed_features(default_project, projectconfig_version):
+def test_project_config_exposed_features(default_project):
     with Feature({"organizations:profiling": True}):
-        project_cfg = get_project_config(
-            default_project, full_config=True, version=projectconfig_version
-        )
+        project_cfg = get_project_config(default_project, full_config=True)
 
     cfg = project_cfg.to_dict()
     _validate_project_config(cfg["config"])
@@ -243,11 +221,10 @@ def test_project_config_exposed_features(default_project, projectconfig_version)
 @django_db_all
 @region_silo_test(stable=True)
 @mock.patch("sentry.relay.config.EXPOSABLE_FEATURES", ["badprefix:custom-inbound-filters"])
-@pytest.mark.parametrize("projectconfig_version", (3, 4))
-def test_project_config_exposed_features_raise_exc(default_project, projectconfig_version):
+def test_project_config_exposed_features_raise_exc(default_project):
     with Feature({"projects:custom-inbound-filters": True}):
         with pytest.raises(RuntimeError) as exc_info:
-            get_project_config(default_project, full_config=True, version=projectconfig_version)
+            get_project_config(default_project, full_config=True)
         assert (
             str(exc_info.value)
             == "EXPOSABLE_FEATURES must start with 'organizations:' or 'projects:'"
@@ -258,9 +235,8 @@ def test_project_config_exposed_features_raise_exc(default_project, projectconfi
 @region_silo_test(stable=True)
 @patch("sentry.dynamic_sampling.rules.biases.boost_latest_releases_bias.apply_dynamic_factor")
 @freeze_time("2022-10-21 18:50:25.000000+00:00")
-@pytest.mark.parametrize("projectconfig_version", (3, 4))
 def test_project_config_with_all_biases_enabled(
-    eval_dynamic_factor_lr, default_project, default_team, projectconfig_version
+    eval_dynamic_factor_lr, default_project, default_team
 ):
     """
     Tests that dynamic sampling information return correct uniform rules
@@ -329,7 +305,7 @@ def test_project_config_with_all_biases_enabled(
             "sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate",
             return_value=0.1,
         ):
-            project_cfg = get_project_config(default_project, version=projectconfig_version)
+            project_cfg = get_project_config(default_project)
 
     cfg = project_cfg.to_dict()
     _validate_project_config(cfg["config"])
@@ -441,19 +417,14 @@ def test_project_config_with_all_biases_enabled(
 
 @django_db_all
 @pytest.mark.parametrize("transaction_metrics", ("with_metrics", "without_metrics"))
-@pytest.mark.parametrize("projectconfig_version", (3, 4))
 @region_silo_test(stable=True)
-def test_project_config_with_breakdown(
-    default_project, insta_snapshot, transaction_metrics, projectconfig_version
-):
+def test_project_config_with_breakdown(default_project, insta_snapshot, transaction_metrics):
     with Feature(
         {
             "organizations:transaction-metrics-extraction": transaction_metrics == "with_metrics",
         }
     ):
-        project_cfg = get_project_config(
-            default_project, full_config=True, version=projectconfig_version
-        )
+        project_cfg = get_project_config(default_project, full_config=True)
 
     cfg = project_cfg.to_dict()
     _validate_project_config(cfg["config"])
@@ -470,22 +441,15 @@ def test_project_config_with_breakdown(
 @region_silo_test(stable=True)
 @pytest.mark.parametrize("has_metrics_extraction", (True, False))
 @pytest.mark.parametrize("abnormal_mechanism_rollout", (0, 1))
-@pytest.mark.parametrize("projectconfig_version", (3, 4))
 def test_project_config_with_organizations_metrics_extraction(
-    default_project,
-    set_sentry_option,
-    abnormal_mechanism_rollout,
-    has_metrics_extraction,
-    projectconfig_version,
+    default_project, set_sentry_option, abnormal_mechanism_rollout, has_metrics_extraction
 ):
     with set_sentry_option(
         "sentry-metrics.releasehealth.abnormal-mechanism-extraction-rate",
         abnormal_mechanism_rollout,
     ):
         with Feature({"organizations:metrics-extraction": has_metrics_extraction}):
-            project_cfg = get_project_config(
-                default_project, full_config=True, version=projectconfig_version
-            )
+            project_cfg = get_project_config(default_project, full_config=True)
 
         cfg = project_cfg.to_dict()
         _validate_project_config(cfg["config"])
@@ -502,14 +466,12 @@ def test_project_config_with_organizations_metrics_extraction(
 @django_db_all
 @pytest.mark.parametrize("has_project_transaction_threshold", (False, True))
 @pytest.mark.parametrize("has_project_transaction_threshold_overrides", (False, True))
-@pytest.mark.parametrize("projectconfig_version", (3, 4))
 @region_silo_test(stable=True)
 def test_project_config_satisfaction_thresholds(
     default_project,
     insta_snapshot,
     has_project_transaction_threshold_overrides,
     has_project_transaction_threshold,
-    projectconfig_version,
 ):
     if has_project_transaction_threshold:
         default_project.projecttransactionthreshold_set.create(
@@ -535,9 +497,7 @@ def test_project_config_satisfaction_thresholds(
             "organizations:transaction-metrics-extraction": True,
         }
     ):
-        project_cfg = get_project_config(
-            default_project, full_config=True, version=projectconfig_version
-        )
+        project_cfg = get_project_config(default_project, full_config=True)
 
     cfg = project_cfg.to_dict()
     _validate_project_config(cfg["config"])
@@ -546,14 +506,9 @@ def test_project_config_satisfaction_thresholds(
 
 @django_db_all
 @region_silo_test(stable=True)
-@pytest.mark.parametrize("projectconfig_version", (3, 4))
-def test_project_config_with_span_attributes(
-    default_project, insta_snapshot, projectconfig_version
-):
+def test_project_config_with_span_attributes(default_project, insta_snapshot):
     # The span attributes config is not set with the flag turnd off
-    project_cfg = get_project_config(
-        default_project, full_config=True, version=projectconfig_version
-    )
+    project_cfg = get_project_config(default_project, full_config=True)
     cfg = project_cfg.to_dict()
     _validate_project_config(cfg["config"])
     insta_snapshot(cfg["config"]["spanAttributes"])
@@ -565,8 +520,7 @@ def test_project_config_with_span_attributes(
 @pytest.mark.parametrize(
     "killswitch", (False, True), ids=("killswitch_disabled", "killswitch_enabled")
 )
-@pytest.mark.parametrize("projectconfig_version", (3, 4))
-def test_has_metric_extraction(default_project, feature_flag, killswitch, projectconfig_version):
+def test_has_metric_extraction(default_project, feature_flag, killswitch):
     options = override_options(
         {
             "relay.drop-transaction-metrics": [{"project_id": default_project.id}]
@@ -580,7 +534,7 @@ def test_has_metric_extraction(default_project, feature_flag, killswitch, projec
         }
     )
     with feature, options:
-        project_config = get_project_config(default_project, version=projectconfig_version)
+        project_config = get_project_config(default_project)
         config = project_config.to_dict()["config"]
         _validate_project_config(config)
         if killswitch or not feature_flag:
@@ -591,17 +545,14 @@ def test_has_metric_extraction(default_project, feature_flag, killswitch, projec
 
 
 @django_db_all
-@pytest.mark.parametrize("projectconfig_version", (3, 4))
-def test_accept_transaction_names(default_project, projectconfig_version):
+def test_accept_transaction_names(default_project):
     feature = Feature(
         {
             "organizations:transaction-metrics-extraction": True,
         }
     )
     with feature:
-        config = get_project_config(default_project, version=projectconfig_version).to_dict()[
-            "config"
-        ]
+        config = get_project_config(default_project).to_dict()["config"]
 
         _validate_project_config(config)
         transaction_metrics_config = config["transactionMetrics"]
@@ -610,15 +561,12 @@ def test_accept_transaction_names(default_project, projectconfig_version):
 
 
 @pytest.mark.parametrize("num_clusterer_runs", [9, 10])
-@pytest.mark.parametrize("projectconfig_version", (3, 4))
 @django_db_all
-def test_txnames_ready(default_project, num_clusterer_runs, projectconfig_version):
+def test_txnames_ready(default_project, num_clusterer_runs):
     with mock.patch(
         "sentry.relay.config.get_clusterer_meta", return_value={"runs": num_clusterer_runs}
     ):
-        config = get_project_config(default_project, version=projectconfig_version).to_dict()[
-            "config"
-        ]
+        config = get_project_config(default_project).to_dict()["config"]
     _validate_project_config(config)
     if num_clusterer_runs == 9:
         assert "txNameReady" not in config
@@ -627,17 +575,14 @@ def test_txnames_ready(default_project, num_clusterer_runs, projectconfig_versio
 
 
 @django_db_all
-@pytest.mark.parametrize("projectconfig_version", (3, 4))
-def test_accept_span_desc_rules(default_project, projectconfig_version):
+def test_accept_span_desc_rules(default_project):
     with Feature({"projects:span-metrics-extraction": True}), mock.patch(
         "sentry.relay.config.get_sorted_rules",
         return_value=[
             ("**/test/*/**", 0),
         ],
     ):
-        config = get_project_config(default_project, version=projectconfig_version).to_dict()[
-            "config"
-        ]
+        config = get_project_config(default_project).to_dict()["config"]
         _validate_project_config(config)
         assert "spanDescriptionRules" in config
 
@@ -700,15 +645,14 @@ def test_project_config_get_at_path(default_project):
     [True, False],
     ids=["healthcheck set", "healthcheck not set"],
 )
-@pytest.mark.parametrize("projectconfig_version", (3, 4))
-def test_healthcheck_filter(default_project, health_check_set, projectconfig_version):
+def test_healthcheck_filter(default_project, health_check_set):
     """
     Tests that the project config properly returns healthcheck filters when the
     user has enabled healthcheck filters.
     """
 
     default_project.update_option("filters:filtered-transaction", "1" if health_check_set else "0")
-    config = get_project_config(default_project, version=projectconfig_version).to_dict()["config"]
+    config = get_project_config(default_project).to_dict()["config"]
 
     _validate_project_config(config)
     filter_settings = get_path(config, "filterSettings")
@@ -723,24 +667,20 @@ def test_healthcheck_filter(default_project, health_check_set, projectconfig_ver
 
 
 @django_db_all
-@pytest.mark.parametrize("projectconfig_version", (3, 4))
-def test_alert_metric_extraction_rules_empty(default_project, projectconfig_version):
+def test_alert_metric_extraction_rules_empty(default_project):
     features = {
         "organizations:transaction-metrics-extraction": True,
         "organizations:on-demand-metrics-extraction": True,
     }
 
     with Feature(features):
-        config = get_project_config(default_project, version=projectconfig_version).to_dict()[
-            "config"
-        ]
+        config = get_project_config(default_project).to_dict()["config"]
         validate_project_config(json.dumps(config), strict=False)
         assert "metricExtraction" not in config
 
 
 @django_db_all
-@pytest.mark.parametrize("projectconfig_version", (3, 4))
-def test_alert_metric_extraction_rules(default_project, factories, projectconfig_version):
+def test_alert_metric_extraction_rules(default_project, factories):
     # Alert compatible with out-of-the-box metrics. This should NOT be included
     # in the config.
     factories.create_alert_rule(
@@ -764,9 +704,7 @@ def test_alert_metric_extraction_rules(default_project, factories, projectconfig
     }
 
     with Feature(features):
-        config = get_project_config(default_project, version=projectconfig_version).to_dict()[
-            "config"
-        ]
+        config = get_project_config(default_project).to_dict()["config"]
         validate_project_config(json.dumps(config), strict=False)
         assert config["metricExtraction"] == {
             "version": 1,
