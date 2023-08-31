@@ -12,14 +12,15 @@ from sentry.utils.http import absolute_uri
 
 
 class OrganizationRequestProjectCreationSerializer(CamelSnakeSerializer):
-    publish_status = {
-        "POST": ApiPublishStatus.UNKNOWN,
-    }
     target_user_email = serializers.EmailField(required=True)
 
 
 @region_silo_endpoint
 class OrganizationRequestProjectCreation(OrganizationRequestChangeEndpoint):
+    publish_status = {
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
+
     def post(self, request: Request, organization) -> Response:
         """
         Send an email requesting a project be created
