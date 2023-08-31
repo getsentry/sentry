@@ -12,6 +12,7 @@ import ButtonBar from 'sentry/components/buttonBar';
 import Card from 'sentry/components/card';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
+import OpsgenieForm from 'sentry/components/notificationActions/forms/opsgenieForm';
 import PagerdutyForm from 'sentry/components/notificationActions/forms/pagerdutyForm';
 import SlackForm from 'sentry/components/notificationActions/forms/slackForm';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -51,6 +52,10 @@ type NotificationActionItemProps = {
    */
   onUpdate: (actionId: number, editedAction: NotificationAction) => void;
   /**
+   * Map of opsgenie integration IDs to available actions for those IDs
+   */
+  opsgenieIntegrations: Record<number, AvailableNotificationAction[]>;
+  /**
    * Map of pagerduty integration IDs to available actions for those IDs
    */
   pagerdutyIntegrations: Record<number, AvailableNotificationAction[]>;
@@ -73,6 +78,7 @@ function NotificationActionItem({
   availableActions,
   defaultEdit = false,
   pagerdutyIntegrations,
+  opsgenieIntegrations,
   project,
   recipientRoles,
   onDelete,
@@ -121,6 +127,14 @@ function NotificationActionItem({
             <div>{t('Send a notification to the')}</div>
             <NotificationRecipient>{action.targetDisplay}</NotificationRecipient>
             <div>{t('service')}</div>
+          </Fragment>
+        );
+      case NotificationActionService.OPSGENIE:
+        return (
+          <Fragment>
+            <div>{t('Send a notification to the')}</div>
+            <NotificationRecipient>{action.targetDisplay}</NotificationRecipient>
+            <div>{t('team')}</div>
           </Fragment>
         );
       default:
@@ -180,7 +194,7 @@ function NotificationActionItem({
     }
   };
 
-  // Only used for Pagerduty
+  // Used for PagerDuty/Opsgenie
   const handleChange = (names: string[], values: any[]) => {
     const updatedAction = {...editedAction};
     names.forEach((name, i) => {
@@ -290,6 +304,16 @@ function NotificationActionItem({
             onSave={handleSave}
             onCancel={handleCancel}
             pagerdutyIntegrations={pagerdutyIntegrations}
+          />
+        );
+      case NotificationActionService.OPSGENIE:
+        return (
+          <OpsgenieForm
+            action={editedAction}
+            onChange={handleChange}
+            onSave={handleSave}
+            onCancel={handleCancel}
+            opsgenieIntegrations={opsgenieIntegrations}
           />
         );
       default:

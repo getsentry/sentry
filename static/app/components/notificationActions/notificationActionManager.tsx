@@ -131,6 +131,21 @@ function NotificationActionManager({
       return integrations;
     }, [availableServices]);
 
+  const opsgenieIntegrations: Record<number, AvailableNotificationAction[]> =
+    useMemo(() => {
+      const integrations: Record<number, AvailableNotificationAction[]> = {};
+      availableServices[NotificationActionService.OPSGENIE].forEach(team => {
+        const integrationId = team.action.integrationId;
+        if (integrationId) {
+          if (integrationId in integrations) {
+            integrations[integrationId].push(team);
+          } else {
+            integrations[integrationId] = [team];
+          }
+        }
+      });
+      return integrations;
+    }, [availableServices]);
   const renderNotificationActions = () => {
     if (!notificationActions) {
       return [];
@@ -147,6 +162,7 @@ function NotificationActionManager({
           action={action}
           recipientRoles={recipientRoles}
           availableActions={availableServices[serviceType]}
+          opsgenieIntegrations={opsgenieIntegrations}
           pagerdutyIntegrations={pagerdutyIntegrations}
           project={project}
           onDelete={removeNotificationAction}
