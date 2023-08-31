@@ -89,7 +89,11 @@ function AllEventsTable(props: Props) {
       data?.occurrence?.evidenceData ?? {};
 
     // Surface the "bad" events that occur after the breakpoint
-    idQuery = getSampleEventQuery({transaction, durationBaseline: aggregateRange2});
+    idQuery = getSampleEventQuery({
+      transaction,
+      durationBaseline: aggregateRange2,
+      addUpperBound: false,
+    });
 
     eventView.dataset = DiscoverDatasets.DISCOVER;
     eventView.start = new Date(breakpoint * 1000).toISOString();

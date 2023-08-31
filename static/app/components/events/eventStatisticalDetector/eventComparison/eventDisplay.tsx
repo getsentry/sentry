@@ -25,10 +25,24 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
-export function getSampleEventQuery({transaction, durationBaseline}) {
-  return `event.type:transaction transaction:"${transaction}" transaction.duration:>=${
-    durationBaseline * 0.7
-  }ms transaction.duration:<=${durationBaseline * 1.3}ms`;
+export function getSampleEventQuery({
+  transaction,
+  durationBaseline,
+  addUpperBound = true,
+}: {
+  durationBaseline: number;
+  transaction: string;
+  addUpperBound?: boolean;
+}) {
+  const baseQuery = `event.type:transaction transaction:"${transaction}" transaction.duration:>=${
+    durationBaseline * 0.5
+  }ms`;
+
+  if (addUpperBound) {
+    return `${baseQuery} transaction.duration:<=${durationBaseline * 1.5}ms`;
+  }
+
+  return baseQuery;
 }
 
 // A hook for getting "sample events" for a transaction
