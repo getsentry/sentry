@@ -286,6 +286,18 @@ export function GroupEventCarouselActions({
       }),
   });
 
+  const {onClick: copyEventDetailLink} = useCopyToClipboard({
+    successMessage: t('Event URL copied to clipboard'),
+    text:
+      window.location.origin +
+      normalizeUrl(
+        eventDetailsRoute({
+          eventSlug: generateEventSlug({project: projectSlug, id: event.id}),
+          orgSlug: organization.slug,
+        })
+      ),
+  });
+
   const {onClick: copyEventId} = useCopyToClipboard({
     successMessage: t('Event ID copied to clipboard'),
     text: event.id,
@@ -315,7 +327,7 @@ export function GroupEventCarouselActions({
             key: 'copy-event-url',
             label: t('Copy Event Link'),
             hidden: xlargeViewport,
-            onAction: copyLink,
+            onAction: isDurationRegressionIssue ? copyEventDetailLink : copyLink,
           },
           {
             key: 'json',
@@ -362,6 +374,17 @@ export function GroupEventCarouselActions({
           title={isHelpfulEventUiEnabled ? t('Copy link to this issue event') : undefined}
           size={BUTTON_SIZE}
           onClick={copyLink}
+          aria-label={t('Copy Link')}
+          icon={isHelpfulEventUiEnabled ? <IconLink /> : undefined}
+        >
+          {!isHelpfulEventUiEnabled && 'Copy Link'}
+        </Button>
+      )}
+      {xlargeViewport && isDurationRegressionIssue && (
+        <Button
+          title={isHelpfulEventUiEnabled ? t('Copy link to this event') : undefined}
+          size={BUTTON_SIZE}
+          onClick={copyEventDetailLink}
           aria-label={t('Copy Link')}
           icon={isHelpfulEventUiEnabled ? <IconLink /> : undefined}
         >
