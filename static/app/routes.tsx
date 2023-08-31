@@ -1585,6 +1585,14 @@ function buildRoutes() {
           )}
         />
       </Route>
+      <Route path="browser/">
+        <Route
+          path="interactions/"
+          component={make(
+            () => import('sentry/views/performance/browser/interactionsLandingPage')
+          )}
+        />
+      </Route>
       <Route path="summary/">
         <IndexRoute
           component={make(
