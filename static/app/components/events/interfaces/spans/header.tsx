@@ -976,3 +976,4 @@ const RightSidePane = styled('div')`
 `;
 
 export default TraceViewHeader;
+export {ActualMinimap};
