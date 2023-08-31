@@ -233,11 +233,6 @@ class DatabaseBackedAuthService(AuthService):
             ).values_list("organization_id", flat=True)
         )
 
-    def get_auth_providers(self, organization_id: int) -> List[RpcAuthProvider]:
-        # DEPRECATED. TODO: Delete after usages are removed from getsentry.
-        auth_provider = self.get_auth_provider(organization_id)
-        return [auth_provider] if auth_provider else []
-
     def get_auth_provider(self, organization_id: int) -> Optional[RpcAuthProvider]:
         try:
             auth_provider = AuthProvider.objects.get(organization_id=organization_id)

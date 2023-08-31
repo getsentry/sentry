@@ -5,7 +5,8 @@ import {SpanFunction, SpanMetricsField} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 
 type Query = {
-  [QueryParameterNames.SPANS_SORT]: string;
+  [QueryParameterNames.SPANS_SORT]?: string;
+  [QueryParameterNames.ENDPOINTS_SORT]?: string;
 };
 
 const SORTABLE_FIELDS = [
@@ -24,13 +25,13 @@ export type ValidSort = Sort & {
  * Parses a `Sort` object from the URL. In case of multiple specified sorts
  * picks the first one, since span module UIs only support one sort at a time.
  */
-export function useModuleSort(fallback: Sort = DEFAULT_SORT) {
+export function useModuleSort(
+  sortParameterName: QueryParameterNames | 'sort' = 'sort',
+  fallback: Sort = DEFAULT_SORT
+) {
   const location = useLocation<Query>();
 
-  return (
-    fromSorts(location.query[QueryParameterNames.SPANS_SORT]).filter(isAValidSort)[0] ??
-    fallback
-  );
+  return fromSorts(location.query[sortParameterName]).filter(isAValidSort)[0] ?? fallback;
 }
 
 const DEFAULT_SORT: Sort = {

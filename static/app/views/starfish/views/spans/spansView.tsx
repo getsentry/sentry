@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
 import {ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
+import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {ActionSelector} from 'sentry/views/starfish/views/spans/selectors/actionSelector';
 import {DomainSelector} from 'sentry/views/starfish/views/spans/selectors/domainSelector';
 import {SpanOperationSelector} from 'sentry/views/starfish/views/spans/selectors/spanOperationSelector';
@@ -25,7 +26,7 @@ export default function SpansView(props: Props) {
   const moduleName = props.moduleName ?? ModuleName.ALL;
 
   const moduleFilters = useModuleFilters();
-  const sort = useModuleSort();
+  const sort = useModuleSort(QueryParameterNames.SPANS_SORT);
 
   return (
     <Fragment>
