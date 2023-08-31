@@ -1,7 +1,12 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {ParseResult, parseSearch, Token} from 'sentry/components/searchSyntax/parser';
+import {
+  ParseResult,
+  parseSearch,
+  Token,
+  TokenResult,
+} from 'sentry/components/searchSyntax/parser';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import {Organization} from 'sentry/types';
@@ -79,12 +84,14 @@ function getSearchFiltersFromTokens(tokens: ParseResult): SearchFilter[] {
   return tokens.flatMap(getTokenKeyValuePair).filter(Boolean) as SearchFilter[];
 }
 
-function getTokenKeyValuePair(token): SearchFilter[] | SearchFilter | null {
+function getTokenKeyValuePair(
+  token: TokenResult<Token>
+): SearchFilter[] | SearchFilter | null {
   if (token.type === Token.LOGIC_GROUP) {
     return getSearchFiltersFromTokens(token.inner);
   }
   if (token.type === Token.FILTER) {
-    return {key: token.key.value, operator: token.operator, value: token.value.value};
+    return {key: token.key.text, operator: token.operator, value: token.value.text};
   }
 
   return null;
