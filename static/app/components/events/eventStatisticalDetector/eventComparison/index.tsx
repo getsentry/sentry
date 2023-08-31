@@ -31,7 +31,7 @@ function EventComparison({event, project}: EventComparisonProps) {
       <strong>{t('Compare Events:')}</strong>
       <p>{COMPARISON_DESCRIPTION}</p>
       <StyledGrid>
-        <div style={{gridColumnStart: 1}}>
+        <StyledGridItem position="left">
           <EventDisplay
             eventSelectLabel={t('Baseline Event ID')}
             project={project}
@@ -40,8 +40,8 @@ function EventComparison({event, project}: EventComparisonProps) {
             transaction={transaction}
             durationBaseline={aggregateRange1}
           />
-        </div>
-        <div style={{gridColumnStart: 2}}>
+        </StyledGridItem>
+        <StyledGridItem position="right">
           <EventDisplay
             eventSelectLabel={t('Regressed Event ID')}
             project={project}
@@ -50,7 +50,7 @@ function EventComparison({event, project}: EventComparisonProps) {
             transaction={transaction}
             durationBaseline={aggregateRange2}
           />
-        </div>
+        </StyledGridItem>
       </StyledGrid>
     </DataSection>
   );
@@ -62,4 +62,9 @@ const StyledGrid = styled('div')`
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: ${space(2)};
+`;
+
+const StyledGridItem = styled('div')<{position: 'left' | 'right'}>`
+  min-width: 0;
+  grid-column-start: ${p => (p.position === 'left' ? 1 : 2)};
 `;
