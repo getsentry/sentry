@@ -120,7 +120,12 @@ class LastSeenUpdaterStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         self.__prefilter = LastSeenUpdaterMessageFilter(metrics=self.__metrics)
 
     def __should_accept(self, message: Message[KafkaPayload]) -> bool:
-        return not self.__prefilter.should_drop(message)
+        should_accept = not self.__prefilter.should_drop(message)
+
+        if not should_accept:
+            self.__metrics.incr("last_seen_updater.dropped_message")
+
+        return should_accept
 
     def create_with_partitions(
         self,
