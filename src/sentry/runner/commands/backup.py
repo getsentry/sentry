@@ -22,7 +22,7 @@ def import_(src, silent):
             use_update_instead_of_create=True,
             use_natural_foreign_keys=True,
         ),
-        (lambda *args, **kwargs: None) if silent else click.echo,
+        printer=(lambda *args, **kwargs: None) if silent else click.echo,
     )
 
 
@@ -50,6 +50,6 @@ def export(dest, silent, indent, exclude):
             excluded_models=set(exclude),
             use_natural_foreign_keys=True,
         ),
-        indent,
-        (lambda *args, **kwargs: None) if silent else click.echo,
+        indent=indent,
+        printer=(lambda *args, **kwargs: None) if silent else click.echo,
     )
