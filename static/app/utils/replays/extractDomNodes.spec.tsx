@@ -1,3 +1,7 @@
+/**
+ * @jest-environment jsdom
+ */
+
 import * as rrdom from 'rrdom';
 
 import type {Extraction} from 'sentry/utils/replays/extractDomNodes';
@@ -66,40 +70,32 @@ const rrwebEvents: RecordingFrame[] = [
   }),
 ];
 
-const frames = [
-  hydrateBreadcrumbs(TestStubs.ReplayRecord(), [
-    TestStubs.Replay.ClickFrame({
-      timestamp: new Date(clickTimestamps[0]),
-      data: {
-        nodeId: 424,
-      },
-    }),
-  ])[0],
-  hydrateBreadcrumbs(TestStubs.ReplayRecord(), [
-    TestStubs.Replay.ClickFrame({
-      timestamp: new Date(clickTimestamps[1]),
-      data: {
-        nodeId: 9304,
-      },
-    }),
-  ])[0],
-  hydrateBreadcrumbs(TestStubs.ReplayRecord(), [
-    TestStubs.Replay.ClickFrame({
-      timestamp: new Date(clickTimestamps[2]),
-      data: {
-        nodeId: 9304,
-      },
-    }),
-  ])[0],
-  hydrateBreadcrumbs(TestStubs.ReplayRecord(), [
-    TestStubs.Replay.ClickFrame({
-      timestamp: new Date(clickTimestamps[3]),
-      data: {
-        nodeId: 424,
-      },
-    }),
-  ])[0],
-];
+const frames = hydrateBreadcrumbs(TestStubs.ReplayRecord(), [
+  TestStubs.Replay.ClickFrame({
+    timestamp: new Date(clickTimestamps[0]),
+    data: {
+      nodeId: 424,
+    },
+  }),
+  TestStubs.Replay.ClickFrame({
+    timestamp: new Date(clickTimestamps[1]),
+    data: {
+      nodeId: 9304,
+    },
+  }),
+  TestStubs.Replay.ClickFrame({
+    timestamp: new Date(clickTimestamps[2]),
+    data: {
+      nodeId: 9304,
+    },
+  }),
+  TestStubs.Replay.ClickFrame({
+    timestamp: new Date(clickTimestamps[3]),
+    data: {
+      nodeId: 424,
+    },
+  }),
+]);
 
 const EXTRACTION_1 = {
   frame: frames[0],

@@ -236,7 +236,6 @@ export default class ReplayReader {
     extractDomNodes({
       frames: this.getDOMFrames(),
       rrwebEvents: this.getRRWebFrames(),
-      finishedAt: this._replayRecord.finished_at,
     })
   );
 

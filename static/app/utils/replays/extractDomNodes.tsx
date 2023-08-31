@@ -23,6 +23,14 @@ export default function extractDomNodes({
 }: Args): Promise<Extraction[]> {
   return new Promise(resolve => {
     const extractions = new Map<BreadcrumbFrame | SpanFrame, Extraction>();
+    frames.forEach(frame =>
+      extractions.set(frame, {
+        frame,
+        html: null,
+        timestamp: frame.timestampMs,
+      })
+    );
+
     const player = createPlayer(rrwebEvents);
     let lastEventTimestamp = 0;
 
@@ -30,7 +38,7 @@ export default function extractDomNodes({
       if (event.type === 2 || event.type === 3) {
         // Get first frame with a timestamp less than the last seen event timestamp
         const firstFrameAfterEvent = frames.findIndex(
-          f => f.timestampMs >= lastEventTimestamp
+          frame => frame.timestampMs >= lastEventTimestamp
         );
 
         lastEventTimestamp = event.timestamp;
@@ -44,18 +52,11 @@ export default function extractDomNodes({
           }
 
           // If we found the frame.data.nodeId inside the player at this timestamp, push it to the DOM events list
-          // Otherwise, push with null HTML for now
           const found = extractNode(frame, player);
           if (found) {
             extractions.set(frame, found);
-          } else {
-            extractions.set(frame, {
-              frame,
-              html: null,
-              timestamp: frame.timestampMs,
-            });
-            return;
           }
+          continue;
         }
       }
 
