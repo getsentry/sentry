@@ -81,7 +81,9 @@ function AllEventsTable(props: Props) {
   eventView.statsPeriod = '90d';
 
   let idQuery = `issue.id:${issueId}`;
-  if (
+  if (group.issueCategory === IssueCategory.PERFORMANCE && !groupIsOccurrenceBacked) {
+    idQuery = `performance.issue_ids:${issueId} event.type:transaction`;
+  } else if (
     group.issueType === IssueType.PERFORMANCE_DURATION_REGRESSION &&
     groupIsOccurrenceBacked
   ) {
