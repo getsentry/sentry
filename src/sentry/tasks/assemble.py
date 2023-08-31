@@ -192,6 +192,14 @@ def set_assemble_status(task, scope, checksum, state, detail=None):
     default_cache.set(cache_key, (state, detail), 600)
 
 
+def delete_assemble_status(task, scope, checksum):
+    """
+    Deletes the status of an assembling task.
+    """
+    cache_key = _get_cache_key(task, scope, checksum)
+    default_cache.delete(cache_key)
+
+
 @instrumented_task(
     name="sentry.tasks.assemble.assemble_dif",
     queue="assemble",
