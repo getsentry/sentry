@@ -59,7 +59,7 @@ export class OnDemandMetricRequest extends EventsRequest {
         onError?.(errorMessage);
         this.setState({
           errored: true,
-          errorMessage: 'Error fetching estimated data',
+          errorMessage: t('Error fetching estimated data'),
         });
       }
 
