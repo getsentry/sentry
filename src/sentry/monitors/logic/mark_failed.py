@@ -48,7 +48,7 @@ def mark_failed_threshold(
 ):
     from sentry.signals import monitor_environment_failed
 
-    # update monitor environment values on every check-in
+    # update monitor environment timestamps on every check-in
     if last_checkin is None:
         next_checkin_base = timezone.now()
         last_checkin = monitor_env.last_checkin or timezone.now()
@@ -58,6 +58,7 @@ def mark_failed_threshold(
     next_checkin = monitor_env.monitor.get_next_expected_checkin(next_checkin_base)
     next_checkin_latest = monitor_env.monitor.get_next_expected_checkin_latest(next_checkin_base)
 
+    # update monitor environment timestamps without updating status
     affected = MonitorEnvironment.objects.filter(
         Q(last_checkin__lte=last_checkin) | Q(last_checkin__isnull=True), id=monitor_env.id
     ).update(
@@ -82,7 +83,7 @@ def mark_failed_threshold(
         ):
             return False
 
-        # Change monitor state + update fingerprint timestamp
+        # change monitor status + update fingerprint timestamp
         monitor_env.status = MonitorStatus.ERROR
         monitor_env.last_state_change = last_checkin
         monitor_env.save()
@@ -91,7 +92,7 @@ def mark_failed_threshold(
         MonitorStatus.MISSED_CHECKIN,
         MonitorStatus.TIMEOUT,
     ]:
-        # if in an errored state, just get the most recent check-in and send occurrence
+        # if monitor environment has a failed status, get the most recent check-in and send occurrence
         previous_checkins = [
             MonitorCheckIn.objects.filter(monitor_environment=monitor_env)
             .order_by("-date_added")
