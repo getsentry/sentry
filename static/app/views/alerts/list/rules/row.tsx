@@ -22,8 +22,8 @@ import {
   IconArrow,
   IconChevron,
   IconEllipsis,
-  IconFlag,
   IconMute,
+  IconNot,
   IconUser,
 } from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -119,7 +119,7 @@ function RuleListRow({
       if (rule.status === 'disabled') {
         return (
           <IssueAlertStatusWrapper>
-            <IconFlag size="sm" color="red300" />
+            <IconNot size="sm" color="subText" />
             {t('Disabled')}
           </IssueAlertStatusWrapper>
         );
