@@ -5,6 +5,7 @@ from threading import Lock, Thread
 from typing import Any, Callable, Dict, Generic, List, Literal, Optional, Set, Tuple, TypeVar, Union
 
 from sentry.metrics.base import MetricsBackend
+from sentry.utils import metrics
 
 Tags = Dict[str, str]
 T = TypeVar("T")
@@ -141,7 +142,7 @@ class Aggregator:
         while self._running:
             cutoff = time.time() - self.ROLLUP_IN_SECONDS
             cleanup = set()
-            metrics = []
+            extracted_metrics = []
             buckets = self.buckets
 
             with self._lock:
@@ -162,25 +163,25 @@ class Aggregator:
                     if tags:
                         m["tags"] = dict(tags)
 
-                    metrics.append(m)
+                    extracted_metrics.append(m)
                     cleanup.add(bucket_key)
 
                 for key in cleanup:
                     buckets.pop(key)
 
-            if metrics:
-                self._emit(metrics)
+            if extracted_metrics:
+                self._emit(extracted_metrics)
 
             time.sleep(2.0)
 
-    def _emit(self, metrics: Any) -> Any:
+    def _emit(self, extracted_metrics: Any) -> Any:
         # In order to avoid an infinite recursion for metrics, we want to use a thread local variable that will signal
         # the downstream calls to only propagate the metric to DataDog, otherwise if propagated to minimetrics, it will
         # cause unbounded recursion.
         thread_local = threading.local()
         thread_local.in_minimetrics = True
         # We want to emit a metric on how many metrics we would technically emit if we were to use minimetrics.
-        metrics.incr("minimetrics.emit", amount=len(metrics))
+        metrics.incr("minimetrics.emit", amount=len(extracted_metrics))
         # We clear the thread local variables, in order to make metrics extraction continue as normal.
         thread_local.__dict__.clear()
 
@@ -209,6 +210,7 @@ class Aggregator:
             if metric is None:
                 metric = METRIC_TYPES[ty]()
                 self.buckets[bucket_key] = metric
+
             metric.add(value)
 
 
@@ -273,8 +275,8 @@ class Client:
 #   * Check usage of instance
 #
 class MiniMetricsMetricsBackend(MetricsBackend):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, prefix: Optional[str] = None):
+        super().__init__(prefix=prefix)
         self._client = Client()
 
     def incr(
@@ -285,7 +287,7 @@ class MiniMetricsMetricsBackend(MetricsBackend):
         amount: Union[float, int] = 1,
         sample_rate: float = 1,
     ) -> None:
-        self._client.incr(key=key, value=amount, tags=tags)
+        self._client.incr(key=self._get_key(key), value=amount, tags=tags)
 
     def timing(
         self,
@@ -295,7 +297,7 @@ class MiniMetricsMetricsBackend(MetricsBackend):
         tags: Optional[Tags] = None,
         sample_rate: float = 1,
     ) -> None:
-        self._client.timing(key=key, value=value, tags=tags)
+        self._client.timing(key=self._get_key(key), value=value, tags=tags)
 
     def gauge(
         self,
@@ -305,4 +307,4 @@ class MiniMetricsMetricsBackend(MetricsBackend):
         tags: Optional[Tags] = None,
         sample_rate: float = 1,
     ) -> None:
-        self._client.gauge(key=key, value=value, tags=tags)
+        self._client.gauge(key=self._get_key(key), value=value, tags=tags)
