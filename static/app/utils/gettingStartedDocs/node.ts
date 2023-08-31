@@ -54,8 +54,8 @@ export function getDefaultNodeImports({
   basePackage?: string;
 }) {
   const imports: string[] = [
-    `import * as Sentry from '@sentry/node'`,
     `// You can also use CommonJS \`require('@sentry/node')\` instead of \`import\``,
+    `import * as Sentry from '@sentry/node'`,    
   ];
   if (productSelection.profiling) {
     imports.push(`import { ProfilingIntegration } from '@sentry/profiling'`);
