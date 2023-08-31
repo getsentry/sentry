@@ -4,9 +4,9 @@ from collections import defaultdict
 from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping
 
 from django.contrib.auth.models import AnonymousUser
-from django.db.models import Q, QuerySet
+from django.db.models import Q
 
-from sentry.api.endpoints.notification_defaults import TYPE_DEFAULTS, get_type_defaults
+from sentry.api.endpoints.notification_defaults import TYPE_DEFAULTS
 from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.notifications.defaults import NOTIFICATION_SETTING_DEFAULTS
@@ -617,15 +617,25 @@ def get_providers_for_recipient(
     return user_providers
 
 
-def get_all_setting_providers(recipient: RpcActor | Team | User, project: Project | None = None, organization: Organization | None = None,):
-    project_settings = Q(
-        scope_type=NotificationScopeType.PROJECT.value, scope_identifier=project.id
-    ) if project else Q()
+def get_all_setting_providers(
+    recipient: RpcActor | Team | User,
+    project: Project | None = None,
+    organization: Organization | None = None,
+):
+    project_settings = (
+        Q(scope_type=NotificationScopeType.PROJECT.value, scope_identifier=project.id)
+        if project
+        else Q()
+    )
 
-    org_settings = Q(
-        scope_type=NotificationScopeType.ORGANIZATION.value,
-        scope_identifier=project.organization.id,
-    ) if organization else Q()
+    org_settings = (
+        Q(
+            scope_type=NotificationScopeType.ORGANIZATION.value,
+            scope_identifier=project.organization.id,
+        )
+        if organization
+        else Q()
+    )
 
     team_or_user_settings = Q()
     if recipient.actor_type == ActorType.USER or isinstance(recipient, (RpcUser, User)):
@@ -641,15 +651,26 @@ def get_all_setting_providers(recipient: RpcActor | Team | User, project: Projec
         project_settings | org_settings | team_or_user_settings
     )
 
-def get_all_setting_options(recipient: RpcActor | Team | User, project: Project | None = None, organization: Organization | None = None,):
-    project_settings = Q(
-        scope_type=NotificationScopeType.PROJECT.value, scope_identifier=project.id
-    ) if project else Q()
 
-    org_settings = Q(
-        scope_type=NotificationScopeType.ORGANIZATION.value,
-        scope_identifier=project.organization.id,
-    ) if organization else Q()
+def get_all_setting_options(
+    recipient: RpcActor | Team | User,
+    project: Project | None = None,
+    organization: Organization | None = None,
+):
+    project_settings = (
+        Q(scope_type=NotificationScopeType.PROJECT.value, scope_identifier=project.id)
+        if project
+        else Q()
+    )
+
+    org_settings = (
+        Q(
+            scope_type=NotificationScopeType.ORGANIZATION.value,
+            scope_identifier=project.organization.id,
+        )
+        if organization
+        else Q()
+    )
 
     team_or_user_settings = Q()
     if recipient.actor_type == ActorType.USER or isinstance(recipient, (RpcUser, User)):
@@ -667,7 +688,9 @@ def get_all_setting_options(recipient: RpcActor | Team | User, project: Project 
 
 
 def get_settings_for_recipient(
-    recipient: RpcActor | Team | User, project: Project | None = None, organization: Organization | None = None,
+    recipient: RpcActor | Team | User,
+    project: Project | None = None,
+    organization: Organization | None = None,
 ) -> MutableMapping[NotificationScopeType, NotificationSettingOptionValues]:
     all_settings = get_all_setting_options(recipient, project)
 
@@ -702,3 +725,21 @@ def get_settings_for_recipient(
             notification_settings[type] = TYPE_DEFAULTS[type]
 
     return notification_settings
+
+
+def has_any_provider_settings(
+    recipient: RpcActor | Team | User, provider: ExternalProviders
+) -> bool:
+    settings = get_all_setting_providers(recipient)
+    for setting in settings:
+        if not setting.provider == provider.value:
+            continue
+
+        if setting.value in {
+            NotificationSettingOptionValues.ALWAYS.value,
+            NotificationSettingOptionValues.COMMITTED_ONLY.value,
+            NotificationSettingOptionValues.SUBSCRIBE_ONLY.value,
+        }:
+            return True
+
+    return False
