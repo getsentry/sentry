@@ -32,6 +32,8 @@ from django.db import IntegrityError, OperationalError, connection, router, tran
 from django.db.models import Func
 from django.db.models.signals import post_save
 from django.utils.encoding import force_str
+from urllib3 import Retry
+from urllib3.exceptions import MaxRetryError
 
 from sentry import (
     eventstore,
@@ -44,6 +46,7 @@ from sentry import (
     tsdb,
 )
 from sentry.attachments import CachedAttachment, MissingAttachmentChunks, attachment_cache
+from sentry.conf.server import SEVERITY_DETECTION_RETRIES
 from sentry.constants import (
     DEFAULT_STORE_NORMALIZER_ARGS,
     LOG_LEVELS_MAP,
@@ -105,6 +108,7 @@ from sentry.models import (
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.release import follows_semver_versioning_scheme
+from sentry.net.http import connection_from_url
 from sentry.plugins.base import plugins
 from sentry.projectoptions.defaults import BETA_GROUPING_CONFIG, DEFAULT_GROUPING_CONFIG
 from sentry.quotas.base import index_data_category
@@ -2000,6 +2004,57 @@ def _process_existing_aggregate(
     buffer_incr(Group, update_kwargs, {"id": group.id}, extra)
 
     return bool(is_regression)
+
+
+severity_connection_pool = connection_from_url(
+    settings.SEVERITY_DETECTION_URL,
+    retries=Retry(
+        total=SEVERITY_DETECTION_RETRIES,  # Defaults to 1
+        status_forcelist=[
+            408,  # Request timeout
+            429,  # Too many requests
+            502,  # Bad gateway
+            503,  # Service unavailable
+            504,  # Gateway timeout
+        ],
+    ),
+    timeout=settings.SEVERITY_DETECTION_TIMEOUT,  # Defaults to 300 milliseconds
+)
+
+
+def _get_severity_score(event: Event) -> float | None:
+    severity = None
+
+    metadata = event.get_event_metadata()
+    error_type = metadata.get("type")
+    error_msg = metadata.get("value")
+    message = ""
+    if error_type:
+        message = error_type if not error_msg else f"{error_type}: {error_msg}"
+
+    if message:
+        with metrics.timer("event_manager._get_severity_score"):
+            with sentry_sdk.start_span(op="event_manager._get_severity_score"):
+                try:
+                    response = severity_connection_pool.urlopen(
+                        "POST",
+                        "/issues/severity-score",
+                        body=json.dumps({"message": message or "<unknown event>"}),
+                        headers={"content-type": "application/json;charset=utf-8"},
+                    )
+                    severity = json.loads(response.data).get("severity")
+                except MaxRetryError as e:
+                    logger.warning(
+                        f"Unable to get severity score from microservice after {SEVERITY_DETECTION_RETRIES} retr{'ies' if SEVERITY_DETECTION_RETRIES >1 else 'y'}. Got MaxRetryError caused by: {repr(e.reason)}.",
+                        extra={"event_id": event.data["event_id"], "reason": e.reason},
+                    )
+                except Exception as e:
+                    logger.warning(
+                        f"Unable to get severity score from microservice. Got: {repr(e)}.",
+                        extra={"event_id": event.data["event_id"], "reason": e},
+                    )
+
+    return severity
 
 
 Attachment = CachedAttachment
