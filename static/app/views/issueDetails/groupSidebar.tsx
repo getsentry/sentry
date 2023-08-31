@@ -26,6 +26,7 @@ import {
   AvatarUser,
   CurrentRelease,
   Group,
+  IssueType,
   Organization,
   OrganizationSummary,
   Project,
@@ -190,14 +191,16 @@ export default function GroupSidebar({
   return (
     <Container>
       <AssignedTo group={group} event={event} project={project} onAssign={trackAssign} />
-      <GroupReleaseStats
-        organization={organization}
-        project={project}
-        environments={environments}
-        allEnvironments={allEnvironmentsGroupData}
-        group={group}
-        currentRelease={currentRelease}
-      />
+      {group.issueType !== IssueType.PERFORMANCE_DURATION_REGRESSION && (
+        <GroupReleaseStats
+          organization={organization}
+          project={project}
+          environments={environments}
+          allEnvironments={allEnvironmentsGroupData}
+          group={group}
+          currentRelease={currentRelease}
+        />
+      )}
       {event && (
         <ErrorBoundary mini>
           <ExternalIssueList project={project} group={group} event={event} />
