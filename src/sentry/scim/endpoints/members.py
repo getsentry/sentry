@@ -149,7 +149,6 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
         "PATCH": ApiPublishStatus.PUBLIC,
     }
     permission_classes = (OrganizationSCIMMemberPermission,)
-    public = {"GET", "DELETE", "PATCH"}
 
     def convert_args(
         self,
@@ -379,7 +378,6 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
         "POST": ApiPublishStatus.PUBLIC,
     }
     permission_classes = (OrganizationSCIMMemberPermission,)
-    public = {"GET", "POST"}
 
     @extend_schema(
         operation_id="List an Organization's Members",
