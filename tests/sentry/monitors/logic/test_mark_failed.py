@@ -457,6 +457,7 @@ class MonitorEnvironmentTestCase(TestCase):
             monitor=monitor,
             environment=self.environment,
             status=MonitorStatus.OK,
+            last_state_change=None,
         )
 
         MonitorCheckIn.objects.create(
@@ -477,6 +478,7 @@ class MonitorEnvironmentTestCase(TestCase):
                 status=status,
             )
             mark_failed(monitor_environment, reason=status)
+            assert monitor_environment.last_state_change is None
 
         # failure has not hit threshold, monitor should be in an OK status
         monitor_environment = MonitorEnvironment.objects.get(id=monitor_environment.id)
@@ -503,3 +505,4 @@ class MonitorEnvironmentTestCase(TestCase):
         # failure has hit threshold, monitor should be in a failed state
         monitor_environment = MonitorEnvironment.objects.get(id=monitor_environment.id)
         assert monitor_environment.status != MonitorStatus.OK
+        assert monitor_environment.last_state_change == monitor_environment.last_checkin
