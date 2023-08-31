@@ -91,6 +91,9 @@ class UserEmail(Model):
         self, pk_map: PrimaryKeyMap, obj: DeserializedObject, scope: ImportScope
     ) -> Optional[Tuple[int, int]]:
         old_pk = super()._normalize_before_relocation_import(pk_map, scope)
+        if old_pk is None:
+            return None
+
         (useremail, _) = self.__class__.objects.get_or_create(
             user=self.user, email=self.email, defaults=model_to_dict(self)
         )

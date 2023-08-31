@@ -28,13 +28,14 @@ from sentry.services.hybrid_cloud.auth import (
     AuthenticationRequest,
     AuthService,
     MiddlewareAuthenticationResponse,
+    RpcApiKey,
     RpcAuthenticatorType,
     RpcAuthProvider,
     RpcAuthState,
     RpcMemberSsoState,
     RpcOrganizationAuthConfig,
 )
-from sentry.services.hybrid_cloud.auth.serial import serialize_auth_provider
+from sentry.services.hybrid_cloud.auth.serial import serialize_api_key, serialize_auth_provider
 from sentry.services.hybrid_cloud.organization import (
     RpcOrganizationMemberSummary,
     organization_service,
@@ -118,6 +119,17 @@ def _can_override_sso_as_owner(
 
 
 class DatabaseBackedAuthService(AuthService):
+    def get_organization_api_keys(self, *, organization_id: int) -> List[RpcApiKey]:
+        return [
+            serialize_api_key(k) for k in ApiKey.objects.filter(organization_id=organization_id)
+        ]
+
+    def get_organization_key(self, *, key: str) -> Optional[RpcApiKey]:
+        try:
+            return serialize_api_key(ApiKey.objects.get(key=key))
+        except ApiKey.DoesNotExist:
+            return None
+
     def get_org_auth_config(
         self, *, organization_ids: List[int]
     ) -> List[RpcOrganizationAuthConfig]:
@@ -220,11 +232,6 @@ class DatabaseBackedAuthService(AuthService):
                 flags=F("flags").bitor(AuthProvider.flags.scim_enabled)
             ).values_list("organization_id", flat=True)
         )
-
-    def get_auth_providers(self, organization_id: int) -> List[RpcAuthProvider]:
-        # DEPRECATED. TODO: Delete after usages are removed from getsentry.
-        auth_provider = self.get_auth_provider(organization_id)
-        return [auth_provider] if auth_provider else []
 
     def get_auth_provider(self, organization_id: int) -> Optional[RpcAuthProvider]:
         try:

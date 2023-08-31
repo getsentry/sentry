@@ -1365,8 +1365,6 @@ SENTRY_FEATURES = {
     "organizations:create": True,
     # Enable usage of customer domains on the frontend
     "organizations:customer-domains": False,
-    # Allow disabling github integrations when broken is detected
-    "organizations:github-disable-on-broken": False,
     # Enable the 'discover' interface.
     "organizations:discover": False,
     # Enables events endpoint rate limit
@@ -1419,6 +1417,10 @@ SENTRY_FEATURES = {
     "organizations:profiling-memory-chart": False,
     # Enable profiling battery usage chart
     "organizations:profiling-battery-usage-chart": False,
+    # Enable disabling github integrations when broken is detected
+    "organizations:github-disable-on-broken": False,
+    # Enable disabling gitlab integrations when broken is detected
+    "organizations:gitlab-disable-on-broken": False,
     # Enable multi project selection
     "organizations:global-views": False,
     # Enable experimental new version of Merged Issues where sub-hashes are shown
@@ -1473,6 +1475,11 @@ SENTRY_FEATURES = {
     # Enable interface functionality to synchronize groups between sentry and
     # issues on external services.
     "organizations:integrations-issue-sync": True,
+    # Enable integration functionality to work with enterprise alert rules
+    "organizations:integrations-enterprise-alert-rule": True,
+    # Enable integration functionality to work with enterprise alert rules (specifically incident
+    # management integrations)
+    "organizations:integrations-enterprise-incident-management": True,
     # Enable interface functionality to receive event hooks.
     "organizations:integrations-event-hooks": True,
     # Enable integration functionality to work with alert rules
@@ -1713,10 +1720,10 @@ SENTRY_FEATURES = {
     "organizations:sdk-crash-detection": False,
     # Enable functionality for recap server polling.
     "organizations:recap-server": False,
-    # Enable additional logging for alerts
-    "organizations:detailed-alert-logging": False,
     # Enable the new notification settings system
     "organizations:notification-settings-v2": False,
+    # Enable new release UI
+    "organizations:release-ui-v2": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
@@ -1756,6 +1763,8 @@ SENTRY_FEATURES = {
     "projects:auto-associate-commits-to-release": False,
     # Starfish: extract metrics from the spans
     "projects:span-metrics-extraction": False,
+    # Metrics: Enable ingestion, storage, and rendering of custom metrics
+    "organizations:custom-metrics": False,
     # Don't add feature defaults down here! Please add them in their associated
     # group sorted alphabetically.
 }

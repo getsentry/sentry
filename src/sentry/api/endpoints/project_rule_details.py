@@ -170,6 +170,10 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
                         status=status.HTTP_400_BAD_REQUEST,
                     )
 
+            if rule.status == ObjectStatus.DISABLED:
+                rule.status = ObjectStatus.ACTIVE
+                rule.save()
+
             if data.get("pending_save"):
                 client = RedisRuleStatus()
                 kwargs.update({"uuid": client.uuid, "rule_id": rule.id})
