@@ -5,12 +5,17 @@ import dataclasses
 import functools
 from typing import Any, List
 
+from django.conf import settings
 from django.core.handlers.wsgi import WSGIRequest
+from sentry_sdk.api import capture_exception
 
 from sentry.models.outbox import (
+    THE_PAST,
     ControlOutbox,
+    ControlOutboxBase,
     OutboxCategory,
     OutboxScope,
+    RegionOutboxBase,
     WebhookProviderIdentifier,
 )
 from sentry.silo import SiloMode
@@ -19,17 +24,19 @@ from sentry.testutils.silo import assume_test_silo_mode
 
 
 @contextlib.contextmanager
-def outbox_runner(wrapped: Any | None = None) -> Any:
+def outbox_runner(wrapped: Any | None = None, rerun_until_converged=False) -> Any:
     """
     A context manager that, upon *successful exit*, executes all pending outbox jobs that are scheduled for
-    the current time, synchronously.  Exceptions block further processing as written -- to test retry cases,
-    use the inner implementation functions directly.
+    the current time, synchronously.  When rerun_until_converged is True, outboxes scheduled in the future are also
+    run, exceptions are swallowed, and up to 100 iteration attempts are made to successfully process all pending
+    outboxes in this manner.  This is useful in the case that you are testing known temporary failure cases, such
+    as unordered outbox processing with implicit dependencies.
     """
     if callable(wrapped):
 
         def wrapper(*args: Any, **kwargs: Any) -> Any:
             assert callable(wrapped)
-            with outbox_runner():
+            with outbox_runner(rerun_until_converged=rerun_until_converged):
                 return wrapped(*args, **kwargs)
 
         functools.update_wrapper(wrapper, wrapped)
@@ -38,11 +45,45 @@ def outbox_runner(wrapped: Any | None = None) -> Any:
     yield
     from sentry.testutils.helpers.task_runner import TaskRunner
 
-    with TaskRunner(), assume_test_silo_mode(SiloMode.MONOLITH):
-        while enqueue_outbox_jobs():
-            pass
-        while enqueue_outbox_jobs_control():
-            pass
+    def execute_iteration():
+        with TaskRunner(), assume_test_silo_mode(SiloMode.MONOLITH):
+            while enqueue_outbox_jobs():
+                pass
+            while enqueue_outbox_jobs_control():
+                pass
+
+    if rerun_until_converged:
+        for _ in range(100):
+            has_work = False
+            with assume_test_silo_mode(SiloMode.MONOLITH):
+                for outbox_name in settings.SENTRY_OUTBOX_MODELS["CONTROL"]:
+                    has_work = (
+                        has_work
+                        or ControlOutboxBase.from_outbox_name(outbox_name).objects.update(
+                            scheduled_for=THE_PAST
+                        )
+                        > 0
+                    )
+
+                for outbox_name in settings.SENTRY_OUTBOX_MODELS["REGION"]:
+                    has_work = (
+                        has_work
+                        or RegionOutboxBase.from_outbox_name(outbox_name).objects.update(
+                            scheduled_for=THE_PAST
+                        )
+                        > 0
+                    )
+            if not has_work:
+                break
+
+            try:
+                execute_iteration()
+            except Exception:
+                capture_exception()
+        else:
+            raise AssertionError("outbox_runner did not converge after 100 iterations!")
+    else:
+        execute_iteration()
 
 
 def assert_webhook_outboxes(

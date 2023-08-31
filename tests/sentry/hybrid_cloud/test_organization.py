@@ -15,11 +15,9 @@ from sentry.models import (
     Team,
     TeamStatus,
     User,
+    outbox_context,
 )
-from sentry.services.hybrid_cloud.auth.serial import (
-    serialize_auth_identity,
-    serialize_auth_provider,
-)
+from sentry.services.hybrid_cloud.auth.serial import serialize_auth_provider
 from sentry.services.hybrid_cloud.organization import (
     RpcOrganization,
     RpcOrganizationMember,
@@ -32,6 +30,7 @@ from sentry.services.hybrid_cloud.project import RpcProject
 from sentry.silo import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import Factories
+from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
 
@@ -336,6 +335,8 @@ def test_replicate_auth_provider():
 @all_silo_test(stable=True)
 def test_replicate_auth_identity():
     user = Factories.create_user()
+    user2 = Factories.create_user()
+    user3 = Factories.create_user()
     org = Factories.create_organization(owner=user)
 
     with assume_test_silo_mode(SiloMode.REGION):
@@ -372,14 +373,66 @@ def test_replicate_auth_identity():
     assert replicated.auth_identity_id == auth_identity.id
     assert replicated.data == auth_identity.data
 
-    serialized = serialize_auth_identity(auth_identity)
-    serialized.id = 99999
-
-    # Should still succeed despite non existent organization
-    with pytest.raises(Exception):
-        organization_service.upsert_replicated_auth_identity(
-            auth_identity=serialized, region_name="us"
+    with assume_test_silo_mode(SiloMode.CONTROL):
+        auth_identity_a = AuthIdentity.objects.create(
+            user=user2, auth_provider=auth_provider, ident="some-ident-2", data={"b": 2}
         )
+        auth_identity_b = AuthIdentity.objects.create(
+            user=user3, auth_provider=auth_provider, ident="some-ident-3", data={"b": 2}
+        )
+
+        with outbox_runner(rerun_until_converged=True), outbox_context(flush=False):
+            old_ident = auth_identity.ident
+
+            auth_identity.ident = auth_identity_a.ident
+            with pytest.raises(Exception):
+                auth_identity.save()
+            assert auth_identity.ident == auth_identity_a.ident
+            with assume_test_silo_mode(SiloMode.REGION):
+                assert (
+                    RegionReplicatedAuthIdentity.objects.get(
+                        auth_identity_id=auth_identity.id
+                    ).ident
+                    != auth_identity_a.ident
+                )
+
+            auth_identity_a.ident = auth_identity_b.ident
+            with pytest.raises(Exception):
+                auth_identity_a.save()
+            assert auth_identity_a.ident == auth_identity_b.ident
+            with assume_test_silo_mode(SiloMode.REGION):
+                assert (
+                    RegionReplicatedAuthIdentity.objects.get(
+                        auth_identity_id=auth_identity_a.id
+                    ).ident
+                    != auth_identity_b.ident
+                )
+
+            auth_identity_b.ident = old_ident
+            with pytest.raises(Exception):
+                auth_identity_b.save()
+            assert auth_identity_b.ident == old_ident
+            with assume_test_silo_mode(SiloMode.REGION):
+                assert (
+                    RegionReplicatedAuthIdentity.objects.get(
+                        auth_identity_id=auth_identity_b.id
+                    ).ident
+                    != old_ident
+                )
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            assert (
+                RegionReplicatedAuthIdentity.objects.get(auth_identity_id=auth_identity.id).ident
+                == auth_identity_a.ident
+            )
+            assert (
+                RegionReplicatedAuthIdentity.objects.get(auth_identity_id=auth_identity_a.id).ident
+                == auth_identity_b.ident
+            )
+            assert (
+                RegionReplicatedAuthIdentity.objects.get(auth_identity_id=auth_identity_b.id).ident
+                == old_ident
+            )
 
 
 class RpcOrganizationMemberTest(TestCase):

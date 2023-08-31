@@ -9,6 +9,13 @@ if TYPE_CHECKING:
 
 
 class ProducesRegionOutboxOnUpdate:
+    """
+    A class that 'signals' to BaseModel that save/update/delete methods should produce outboxes in the same transaction.
+    See the BaseModel implementations for how this works.  Furthermore, using this mixin causes get_protected_operations
+    to protect any updates/deletes/inserts of this model that do not go through the model methods (such as querysets
+    or raw sql).  See `get_protected_operations` for info on working around this.
+    """
+
     __default_flush__ = True
 
     def outbox_for_update(self, shard_identifier: int | None = None) -> RegionOutboxBase:
@@ -16,6 +23,13 @@ class ProducesRegionOutboxOnUpdate:
 
 
 class ProcessUpdatesWithRegionOutboxes(ProducesRegionOutboxOnUpdate):
+    """
+    An extension of ProducesRegionOutboxOnUpdate that provides a default implementation for `outbox_for_update`
+    based on the category nd outbox type configured as class variables.  It also provides a default signal handler
+    that invokes either of handle_async_replication or handle_async_replication based on wether the object has
+    been deleted or not.  Subclasses can and often should override these methods to configure outbox processing.
+    """
+
     __category__: OutboxCategory
     __outbox_type__: Type[RegionOutboxBase] | None = None
 
@@ -68,6 +82,13 @@ class ProcessUpdatesWithRegionOutboxes(ProducesRegionOutboxOnUpdate):
 
 
 class ProducesControlOutboxesOnUpdate:
+    """
+    A class that 'signals' to BaseModel that save/update/delete methods should produce outboxes in the same transaction.
+    See the BaseModel implementations for how this works.  Furthermore, using this mixin causes get_protected_operations
+    to protect any updates/deletes/inserts of this model that do not go through the model methods (such as querysets
+    or raw sql).  See `get_protected_operations` for info on working around this.
+    """
+
     __default_flush__ = True
 
     def outboxes_for_update(self, shard_identifier: int | None = None) -> List[ControlOutboxBase]:
@@ -75,6 +96,13 @@ class ProducesControlOutboxesOnUpdate:
 
 
 class ProcessUpdatesWithControlOutboxes(ProducesControlOutboxesOnUpdate):
+    """
+    An extension of ProducesRegionOutboxOnUpdate that provides a default implementation for `outboxes_for_update`
+    based on the category nd outbox type configured as class variables.  It also provides a default signal handler
+    that invokes either of handle_async_replication or handle_async_replication based on wether the object has
+    been deleted or not.  Subclasses can and often should override these methods to configure outbox processing.
+    """
+
     __category__: OutboxCategory
     __outbox_type__: Type[ControlOutboxBase] | None = None
 

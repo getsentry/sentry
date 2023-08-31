@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 from typing import Any, Callable, Iterable, Mapping, Optional, Tuple, Type, TypeVar, cast
 
 from django.apps.config import AppConfig
@@ -161,7 +162,8 @@ class Model(BaseModel):
 
     __repr__ = sane_repr("id")
 
-    def save(self, *args: Any, **kwds: Any) -> None:
+    @contextlib.contextmanager
+    def _maybe_prepare_outboxes(self, *, outbox_before_super: bool):
         from sentry.models.outbox import outbox_context
 
         from .outboxes import ProducesControlOutboxesOnUpdate, ProducesRegionOutboxOnUpdate
@@ -171,63 +173,37 @@ class Model(BaseModel):
                 transaction.atomic(router.db_for_write(type(cast(Any, self)))),
                 flush=self.__default_flush__,
             ):
-                super().save(*args, **kwds)
+                if not outbox_before_super:
+                    yield
                 for outbox in self.outboxes_for_update():
                     outbox.save()
+                if outbox_before_super:
+                    yield
+
         elif isinstance(self, ProducesRegionOutboxOnUpdate):
             with outbox_context(
                 transaction.atomic(router.db_for_write(type(cast(Any, self)))),
                 flush=self.__default_flush__,
             ):
-                super().save(*args, **kwds)
+                if not outbox_before_super:
+                    yield
                 self.outbox_for_update().save()
+                if outbox_before_super:
+                    yield
         else:
+            yield
+
+    def save(self, *args: Any, **kwds: Any) -> None:
+        with self._maybe_prepare_outboxes(outbox_before_super=False):
             super().save(*args, **kwds)
 
-    def update(self, *args: Any, **kwds: Any) -> None:
-        from sentry.models.outbox import outbox_context
+    def update(self, *args: Any, **kwds: Any) -> int:
+        with self._maybe_prepare_outboxes(outbox_before_super=False):
+            return super().update(*args, **kwds)
 
-        from .outboxes import ProducesControlOutboxesOnUpdate, ProducesRegionOutboxOnUpdate
-
-        if isinstance(self, ProducesControlOutboxesOnUpdate):
-            with outbox_context(
-                transaction.atomic(router.db_for_write(type(cast(Any, self)))),
-                flush=self.__default_flush__,
-            ):
-                super().update(*args, **kwds)
-                for outbox in self.outboxes_for_update():
-                    outbox.save()
-        elif isinstance(self, ProducesRegionOutboxOnUpdate):
-            with outbox_context(
-                transaction.atomic(router.db_for_write(type(cast(Any, self)))),
-                flush=self.__default_flush__,
-            ):
-                super().update(*args, **kwds)
-                self.outbox_for_update().save()
-        else:
-            super().update(*args, **kwds)
-
-    def delete(self, *args: Any, **kwds: Any) -> None:
-        from sentry.models.outbox import outbox_context
-
-        from .outboxes import ProducesControlOutboxesOnUpdate, ProducesRegionOutboxOnUpdate
-
-        if isinstance(self, ProducesControlOutboxesOnUpdate):
-            with outbox_context(
-                transaction.atomic(router.db_for_write(type(cast(Any, self)))),
-                flush=self.__default_flush__,
-            ):
-                for outbox in self.outboxes_for_update():
-                    outbox.save()
-        elif isinstance(self, ProducesRegionOutboxOnUpdate):
-            with outbox_context(
-                transaction.atomic(router.db_for_write(type(cast(Any, self)))),
-                flush=self.__default_flush__,
-            ):
-                self.outbox_for_update().save()
-                super().delete(*args, **kwds)
-        else:
-            super().delete(*args, **kwds)
+    def delete(self, *args: Any, **kwds: Any) -> Tuple[int, Mapping[str, Any]]:
+        with self._maybe_prepare_outboxes(outbox_before_super=True):
+            return super().delete(*args, **kwds)
 
 
 class DefaultFieldsModel(Model):
