@@ -13,6 +13,7 @@ import {formatTime} from 'sentry/components/replays/utils';
 import StringWalker from 'sentry/components/replays/walker/stringWalker';
 import ScoreBar from 'sentry/components/scoreBar';
 import TimeSince from 'sentry/components/timeSince';
+import {Tooltip} from 'sentry/components/tooltip';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {IconCalendar, IconDelete, IconEllipsis, IconFire} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -460,15 +461,17 @@ export function OSCell({replay, showDropdownFilters}: Props) {
   return (
     <Item>
       <Container>
-        <ContextIcon
-          name={name ?? ''}
-          version={version && hasRoomForColumns ? version : undefined}
-          showVersion={false}
-          showTooltip={false}
-        />
-        {showDropdownFilters ? (
-          <OSBrowserDropdownFilter type="os" name={name} version={version} />
-        ) : null}
+        <Tooltip title={`${name} ${version}`}>
+          <ContextIcon
+            name={name ?? ''}
+            version={version && hasRoomForColumns ? version : undefined}
+            showVersion={false}
+            showTooltip={false}
+          />
+          {showDropdownFilters ? (
+            <OSBrowserDropdownFilter type="os" name={name} version={version} />
+          ) : null}
+        </Tooltip>
       </Container>
     </Item>
   );
@@ -485,15 +488,17 @@ export function BrowserCell({replay, showDropdownFilters}: Props) {
   return (
     <Item>
       <Container>
-        <ContextIcon
-          name={name ?? ''}
-          version={version && hasRoomForColumns ? version : undefined}
-          showVersion={false}
-          showTooltip={false}
-        />
-        {showDropdownFilters ? (
-          <OSBrowserDropdownFilter type="browser" name={name} version={version} />
-        ) : null}
+        <Tooltip title={`${name} ${version}`}>
+          <ContextIcon
+            name={name ?? ''}
+            version={version && hasRoomForColumns ? version : undefined}
+            showVersion={false}
+            showTooltip={false}
+          />
+          {showDropdownFilters ? (
+            <OSBrowserDropdownFilter type="browser" name={name} version={version} />
+          ) : null}
+        </Tooltip>
       </Container>
     </Item>
   );
