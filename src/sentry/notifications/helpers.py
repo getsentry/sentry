@@ -21,8 +21,10 @@ from sentry.notifications.types import (
     VALID_VALUES_FOR_KEY,
     VALID_VALUES_FOR_KEY_V2,
     GroupSubscriptionReason,
+    NotificationScopeEnum,
     NotificationScopeType,
     NotificationSettingOptionValues,
+    NotificationSettingsOptionEnum,
     NotificationSettingTypes,
 )
 from sentry.services.hybrid_cloud import extract_id_from
@@ -664,29 +666,45 @@ def get_all_setting_providers(
     project: Project | None = None,
     organization: Organization | None = None,
 ) -> Iterable[NotificationSettingProvider]:
+    user_id, team_id = None, None
+    if recipient_is_user(recipient):
+        user_id = recipient.id
+    elif recipient_is_team(recipient):
+        team_id = recipient.id
+
+    if user_id is None and team_id is None:
+        raise Exception("recipient must be either user or team")
+
     project_settings = (
-        Q(scope_type=NotificationScopeType.PROJECT.value, scope_identifier=project.id)
+        Q(
+            scope_type=NotificationScopeEnum.PROJECT.value,
+            scope_identifier=project.id,
+            user_id=user_id,
+            team_id=team_id,
+        )
         if project
         else Q()
     )
 
     org_settings = (
         Q(
-            scope_type=NotificationScopeType.ORGANIZATION.value,
+            scope_type=NotificationScopeEnum.ORGANIZATION.value,
             scope_identifier=project.organization.id,
+            user_id=user_id,
+            team_id=team_id,
         )
         if organization
         else Q()
     )
 
     team_or_user_settings = Q()
-    if recipient_is_user(recipient):
+    if user_id is not None:
         team_or_user_settings = Q(
-            scope_type=NotificationScopeType.USER.value, scope_identifier=recipient.id
+            scope_type=NotificationScopeEnum.USER.value, scope_identifier=user_id
         )
-    elif recipient_is_team(recipient):
+    elif team_id is not None:
         team_or_user_settings = Q(
-            scope_type=NotificationScopeType.TEAM.value, scope_identifier=recipient.id
+            scope_type=NotificationScopeEnum.TEAM.value, scope_identifier=team_id
         )
 
     return NotificationSettingProvider.objects.filter(
@@ -698,30 +716,50 @@ def get_all_setting_options(
     recipient: RpcActor | Team | User,
     project: Project | None = None,
     organization: Organization | None = None,
-):
+) -> Iterable[NotificationSettingOption]:
+    user_id, team_id = None, None
+    if recipient_is_user(recipient):
+        user_id = recipient.id
+    elif recipient_is_team(recipient):
+        team_id = recipient.id
+
+    if user_id is None and team_id is None:
+        raise Exception("recipient must be either user or team")
+
     project_settings = (
-        Q(scope_type=NotificationScopeType.PROJECT.value, scope_identifier=project.id)
+        Q(
+            scope_type=NotificationScopeEnum.PROJECT.value,
+            scope_identifier=project.id,
+            user_id=user_id,
+            team_id=team_id,
+        )
         if project
         else Q()
     )
 
     org_settings = (
         Q(
-            scope_type=NotificationScopeType.ORGANIZATION.value,
+            scope_type=NotificationScopeEnum.ORGANIZATION.value,
             scope_identifier=project.organization.id,
+            user_id=user_id,
+            team_id=team_id,
         )
         if organization
         else Q()
     )
 
     team_or_user_settings = Q()
-    if recipient_is_user(recipient):
+    if user_id is not None:
         team_or_user_settings = Q(
-            scope_type=NotificationScopeType.USER.value, scope_identifier=recipient.id
+            scope_type=NotificationScopeEnum.USER.value,
+            scope_identifier=user_id,
+            user_id=user_id,
         )
-    elif recipient_is_team(recipient):
+    elif team_id is not None:
         team_or_user_settings = Q(
-            scope_type=NotificationScopeType.TEAM.value, scope_identifier=recipient.id
+            scope_type=NotificationScopeEnum.TEAM.value,
+            scope_identifier=team_id,
+            team_id=team_id,
         )
 
     NotificationSettingOption.objects.filter(
@@ -733,26 +771,26 @@ def get_settings_for_recipient(
     recipient: RpcActor | Team | User,
     project: Project | None = None,
     organization: Organization | None = None,
-) -> MutableMapping[NotificationScopeType, NotificationSettingOptionValues]:
-    all_settings = get_all_setting_options(recipient, project)
+) -> MutableMapping[NotificationScopeEnum, NotificationSettingsOptionEnum]:
+    all_settings = get_all_setting_options(recipient, project, organization)
 
     notification_settings = {}
     # Project settings take precedence over all other notification settings
     for setting in all_settings:
-        if setting.scope_type == NotificationScopeType.PROJECT.value:
+        if setting.scope_type == NotificationScopeEnum.PROJECT.value:
             notification_settings[setting.type] = setting.value
 
     # Organization settings apply when project settings are not set
     for setting in all_settings:
-        if setting.scope_type == NotificationScopeType.ORGANIZATION.value:
+        if setting.scope_type == NotificationScopeEnum.ORGANIZATION.value:
             if setting.type not in notification_settings:
                 notification_settings[setting.type] = setting.value
 
     # Team/User settings are the most specific.
     if recipient_is_user(recipient):
-        scope_type = NotificationScopeType.USER.value
+        scope_type = NotificationScopeEnum.USER.value
     elif recipient_is_team(recipient):
-        scope_type = NotificationScopeType.TEAM.value
+        scope_type = NotificationScopeEnum.TEAM.value
     else:
         raise Exception("recipient must be either user or team")
 
@@ -780,9 +818,9 @@ def has_any_provider_settings(
             continue
 
         if setting.value in {
-            NotificationSettingOptionValues.ALWAYS.value,
-            NotificationSettingOptionValues.COMMITTED_ONLY.value,
-            NotificationSettingOptionValues.SUBSCRIBE_ONLY.value,
+            NotificationSettingsOptionEnum.ALWAYS.value,
+            NotificationSettingsOptionEnum.COMMITTED_ONLY.value,
+            NotificationSettingsOptionEnum.SUBSCRIBE_ONLY.value,
         }:
             return True
 
