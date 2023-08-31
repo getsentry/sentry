@@ -1,4 +1,4 @@
-import {Component} from 'react';
+import React, {Component} from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 import scrollToElement from 'scroll-to-element';
@@ -11,6 +11,7 @@ import {
 } from 'sentry/components/events/interfaces/crashContent/exception/useSourceMapDebug';
 import LeadHint from 'sentry/components/events/interfaces/frame/line/leadHint';
 import {getThreadById} from 'sentry/components/events/interfaces/utils';
+import ExternalLink from 'sentry/components/links/externalLink';
 import StrictClick from 'sentry/components/strictClick';
 import Tag from 'sentry/components/tag';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -331,48 +332,67 @@ export class DeprecatedLine extends Component<Props, State> {
       );
 
     return (
-      <StrictClick onClick={this.isExpandable() ? this.toggleContext : undefined}>
-        <DefaultLine
-          className="title"
-          data-test-id="title"
-          isSubFrame={!!isSubFrame}
-          hasToggle={!!hiddenFrameCount}
-          stacktraceChangesEnabled={stacktraceChangesEnabled}
-          isNotInApp={!data.inApp}
-        >
-          <DefaultLineTitleWrapper
-            stacktraceChangesEnabled={stacktraceChangesEnabled && !data.inApp}
+      <React.Fragment>
+        <StrictClick onClick={this.isExpandable() ? this.toggleContext : undefined}>
+          <DefaultLine
+            className="title"
+            data-test-id="title"
+            isSubFrame={!!isSubFrame}
+            hasToggle={!!hiddenFrameCount}
+            stacktraceChangesEnabled={stacktraceChangesEnabled}
+            isNotInApp={!data.inApp}
           >
-            <LeftLineTitle>
-              <SourceMapWarning frame={data} debugFrames={debugFrames} />
-              <div>
-                {this.renderLeadHint()}
-                <DefaultTitle
-                  frame={data}
-                  platform={this.props.platform ?? 'other'}
-                  isHoverPreviewed={isHoverPreviewed}
-                  meta={this.props.frameMeta}
-                />
-              </div>
-            </LeftLineTitle>
-            {this.renderRepeats()}
-          </DefaultLineTitleWrapper>
-          {organization?.features.includes('anr-analyze-frames') && anrCulprit ? (
-            <SuspectFrameTag type="warning" to="" onClick={this.scrollToSuspectRootCause}>
-              {t('Suspect Frame')}
-            </SuspectFrameTag>
-          ) : null}
-          {stacktraceChangesEnabled ? this.renderShowHideToggle() : null}
-          {!data.inApp ? (
-            stacktraceChangesEnabled ? null : (
-              <Tag>{t('System')}</Tag>
-            )
-          ) : (
-            <Tag type="info">{t('In App')}</Tag>
-          )}
-          {this.renderExpander()}
-        </DefaultLine>
-      </StrictClick>
+            <DefaultLineTitleWrapper
+              stacktraceChangesEnabled={stacktraceChangesEnabled && !data.inApp}
+            >
+              <LeftLineTitle>
+                <SourceMapWarning frame={data} debugFrames={debugFrames} />
+                <div>
+                  {this.renderLeadHint()}
+                  <DefaultTitle
+                    frame={data}
+                    platform={this.props.platform ?? 'other'}
+                    isHoverPreviewed={isHoverPreviewed}
+                    meta={this.props.frameMeta}
+                  />
+                </div>
+              </LeftLineTitle>
+              {this.renderRepeats()}
+            </DefaultLineTitleWrapper>
+            {organization?.features.includes('anr-analyze-frames') && anrCulprit ? (
+              <SuspectFrameTag
+                type="warning"
+                to=""
+                onClick={this.scrollToSuspectRootCause}
+              >
+                {t('Suspect Frame')}
+              </SuspectFrameTag>
+            ) : null}
+            {stacktraceChangesEnabled ? this.renderShowHideToggle() : null}
+            {!data.inApp ? (
+              stacktraceChangesEnabled ? null : (
+                <Tag>{t('System')}</Tag>
+              )
+            ) : (
+              <Tag type="info">{t('In App')}</Tag>
+            )}
+            {this.renderExpander()}
+          </DefaultLine>
+        </StrictClick>
+
+        {data.sourceLink && (
+          <DefaultLine
+            className="title"
+            data-test-id="sourceLink"
+            isSubFrame={!!isSubFrame}
+            hasToggle={false}
+            stacktraceChangesEnabled={stacktraceChangesEnabled}
+            isNotInApp={!data.inApp}
+          >
+            <ExternalLink href={data.sourceLink}>{t('Open in source')}</ExternalLink>
+          </DefaultLine>
+        )}
+      </React.Fragment>
     );
   }
 
@@ -400,68 +420,82 @@ export class DeprecatedLine extends Component<Props, State> {
     );
 
     return (
-      <StrictClick onClick={this.isExpandable() ? this.toggleContext : undefined}>
-        <DefaultLine
-          className="title as-table"
-          data-test-id="title"
-          stacktraceChangesEnabled={stacktraceChangesEnabled}
-          isSubFrame={!!isSubFrame}
-          hasToggle={!!hiddenFrameCount}
-          isNotInApp={!data.inApp}
-        >
-          <NativeLineContent isFrameAfterLastNonApp={!!isFrameAfterLastNonApp}>
-            <PackageInfo>
-              {leadHint}
-              <PackageLink
-                includeSystemFrames={!!includeSystemFrames}
-                withLeadHint={leadHint !== null}
-                packagePath={data.package}
-                onClick={this.scrollToImage}
-                isClickable={this.shouldShowLinkToImage()}
-                isHoverPreviewed={isHoverPreviewed}
-              >
-                {!isHoverPreviewed && (
-                  <PackageStatus
-                    status={packageStatus}
-                    tooltip={t('Go to Images Loaded')}
-                  />
-                )}
-              </PackageLink>
-            </PackageInfo>
-            {data.instructionAddr && (
-              <TogglableAddress
-                address={data.instructionAddr}
-                startingAddress={image ? image.image_addr ?? null : null}
-                isAbsolute={!!showingAbsoluteAddress}
-                isFoundByStackScanning={this.isFoundByStackScanning()}
-                isInlineFrame={!!this.isInlineFrame()}
-                onToggle={onAddressToggle}
-                relativeAddressMaxlength={maxLengthOfRelativeAddress}
+      <React.Fragment>
+        <StrictClick onClick={this.isExpandable() ? this.toggleContext : undefined}>
+          <DefaultLine
+            className="title as-table"
+            data-test-id="title"
+            stacktraceChangesEnabled={stacktraceChangesEnabled}
+            isSubFrame={!!isSubFrame}
+            hasToggle={!!hiddenFrameCount}
+            isNotInApp={!data.inApp}
+          >
+            <NativeLineContent isFrameAfterLastNonApp={!!isFrameAfterLastNonApp}>
+              <PackageInfo>
+                {leadHint}
+                <PackageLink
+                  includeSystemFrames={!!includeSystemFrames}
+                  withLeadHint={leadHint !== null}
+                  packagePath={data.package}
+                  onClick={this.scrollToImage}
+                  isClickable={this.shouldShowLinkToImage()}
+                  isHoverPreviewed={isHoverPreviewed}
+                >
+                  {!isHoverPreviewed && (
+                    <PackageStatus
+                      status={packageStatus}
+                      tooltip={t('Go to Images Loaded')}
+                    />
+                  )}
+                </PackageLink>
+              </PackageInfo>
+              {data.instructionAddr && (
+                <TogglableAddress
+                  address={data.instructionAddr}
+                  startingAddress={image ? image.image_addr ?? null : null}
+                  isAbsolute={!!showingAbsoluteAddress}
+                  isFoundByStackScanning={this.isFoundByStackScanning()}
+                  isInlineFrame={!!this.isInlineFrame()}
+                  onToggle={onAddressToggle}
+                  relativeAddressMaxlength={maxLengthOfRelativeAddress}
+                  isHoverPreviewed={isHoverPreviewed}
+                />
+              )}
+              <Symbol
+                frame={data}
+                showCompleteFunctionName={!!showCompleteFunctionName}
+                onFunctionNameToggle={onFunctionNameToggle}
                 isHoverPreviewed={isHoverPreviewed}
               />
-            )}
-            <Symbol
-              frame={data}
-              showCompleteFunctionName={!!showCompleteFunctionName}
-              onFunctionNameToggle={onFunctionNameToggle}
-              isHoverPreviewed={isHoverPreviewed}
-            />
-          </NativeLineContent>
-          <DefaultLineTitleWrapper
-            stacktraceChangesEnabled={stacktraceChangesEnabled && !data.inApp}
-          >
-            {this.renderExpander()}
-          </DefaultLineTitleWrapper>
+            </NativeLineContent>
+            <DefaultLineTitleWrapper
+              stacktraceChangesEnabled={stacktraceChangesEnabled && !data.inApp}
+            >
+              {this.renderExpander()}
+            </DefaultLineTitleWrapper>
 
-          {!data.inApp ? (
-            stacktraceChangesEnabled ? null : (
-              <Tag>{t('System')}</Tag>
-            )
-          ) : (
-            <Tag type="info">{t('In App')}</Tag>
-          )}
-        </DefaultLine>
-      </StrictClick>
+            {!data.inApp ? (
+              stacktraceChangesEnabled ? null : (
+                <Tag>{t('System')}</Tag>
+              )
+            ) : (
+              <Tag type="info">{t('In App')}</Tag>
+            )}
+          </DefaultLine>
+        </StrictClick>
+        {data.sourceLink && (
+          <DefaultLine
+            className="title"
+            data-test-id="sourceLink"
+            isSubFrame={!!isSubFrame}
+            hasToggle={false}
+            stacktraceChangesEnabled={stacktraceChangesEnabled}
+            isNotInApp={!data.inApp}
+          >
+            <ExternalLink href={data.sourceLink}>{t('Open in source')}</ExternalLink>
+          </DefaultLine>
+        )}
+      </React.Fragment>
     );
   }
 
