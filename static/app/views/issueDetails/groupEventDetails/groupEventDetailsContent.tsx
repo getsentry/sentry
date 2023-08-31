@@ -14,6 +14,7 @@ import {EventEvidence} from 'sentry/components/events/eventEvidence';
 import {EventExtraData} from 'sentry/components/events/eventExtraData';
 import EventReplay from 'sentry/components/events/eventReplay';
 import {EventSdk} from 'sentry/components/events/eventSdk';
+import EventBreakpointChart from 'sentry/components/events/eventStatisticalDetector/breakpointChart';
 import RegressionMessage from 'sentry/components/events/eventStatisticalDetector/regressionMessage';
 import {EventTagsAndScreenshot} from 'sentry/components/events/eventTagsAndScreenshot';
 import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
@@ -88,12 +89,13 @@ function GroupEventDetailsContent({
   if (group.issueType === IssueType.PERFORMANCE_DURATION_REGRESSION) {
     return (
       <Feature
-        features={['performance-duration-regression']}
+        features={['performance-duration-regression-visible']}
         organization={organization}
         renderDisabled
       >
         <Fragment>
           <RegressionMessage event={event} />
+          <EventBreakpointChart event={event} />
         </Fragment>
       </Feature>
     );

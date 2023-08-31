@@ -10,6 +10,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics, release_health
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import EnvironmentMixin, ReleaseAnalyticsMixin, region_silo_endpoint
 from sentry.api.bases import NoProjects
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
@@ -215,6 +216,10 @@ def debounce_update_release_health_data(organization, project_ids):
 class OrganizationReleasesEndpoint(
     OrganizationReleasesBaseEndpoint, EnvironmentMixin, ReleaseAnalyticsMixin
 ):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     SESSION_SORTS = frozenset(
         [
             "crash_free_sessions",
@@ -581,6 +586,10 @@ class OrganizationReleasesEndpoint(
 
 @region_silo_endpoint
 class OrganizationReleasesStatsEndpoint(OrganizationReleasesBaseEndpoint, EnvironmentMixin):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, organization) -> Response:
         """
         List an Organization's Releases specifically for building timeseries

@@ -4,7 +4,7 @@ from sentry.backup.comparators import get_default_comparators
 from sentry.backup.findings import ComparatorFindingKind, InstanceID
 from sentry.testutils.helpers.backups import (
     ValidationError,
-    clear_database_but_keep_sequences,
+    clear_database,
     import_export_from_fixture_then_validate,
 )
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -75,7 +75,7 @@ def test_good_continuing_sequences(tmp_path):
     )
 
     # Empty the database without resetting primary keys.
-    clear_database_but_keep_sequences()
+    clear_database()
 
     # Test that foreign keys are properly re-pointed to newly allocated primary keys as they are
     # assigned.

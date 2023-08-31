@@ -1,6 +1,7 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
+import TeamStore from 'sentry/stores/teamStore';
 import TeamInsightsContainer from 'sentry/views/organizationStats/teamInsights';
 
 describe('TeamInsightsContainer', () => {
@@ -22,6 +23,8 @@ describe('TeamInsightsContainer', () => {
   });
   it('allows access for orgs with flag', () => {
     ProjectsStore.loadInitialData([TestStubs.Project()]);
+    const team = TestStubs.Team({slug: 'team-slug', isMember: true});
+    TeamStore.loadInitialData([{...team, access: ['team:read']}]);
     const organization = TestStubs.Organization({features: ['team-insights']});
     const context = TestStubs.routerContext([{organization}]);
     render(
