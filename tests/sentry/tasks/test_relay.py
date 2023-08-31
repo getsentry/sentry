@@ -164,6 +164,7 @@ def test_debounce(
     assert tasks[0]["public_key"] == default_projectkey.public_key
 
 
+@pytest.mark.parametrize("projectconfig_version", (3, 4))
 @django_db_all
 def test_generate(
     monkeypatch,
@@ -172,11 +173,12 @@ def test_generate(
     default_projectkey,
     redis_cache,
     django_cache,
+    projectconfig_version,
 ):
     # redis_cache.delete_many([default_projectkey.public_key])
     assert not redis_cache.get(default_projectkey.public_key)
 
-    build_project_config(default_projectkey.public_key)
+    build_project_config(version=projectconfig_version, public_key=default_projectkey.public_key)
 
     cfg = redis_cache.get(default_projectkey.public_key)
 
@@ -265,19 +267,17 @@ def test_project_get_option_does_not_reload(
     assert not build_project_config.called
 
 
+@pytest.mark.parametrize("projectconfig_version", (3, 4))
 @django_db_all
 def test_invalidation_project_deleted(
-    default_project,
-    emulate_transactions,
-    redis_cache,
-    django_cache,
+    default_project, emulate_transactions, redis_cache, django_cache, projectconfig_version
 ):
     # Ensure we have a ProjectKey
     project_key = next(_cache_keys_for_project(default_project))
     assert project_key
 
     # Ensure we have a config in the cache.
-    build_project_config(public_key=project_key)
+    build_project_config(public_key=project_key, version=projectconfig_version)
     assert redis_cache.get(project_key)["disabled"] is False
 
     project_id = default_project.id
