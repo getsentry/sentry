@@ -81,25 +81,25 @@ def mark_failed_threshold(
             ]
         ):
             return False
+
+        # Change monitor state + update fingerprint timestamp
+        monitor_env.status = MonitorStatus.ERROR
+        monitor_env.last_state_change = last_checkin
+        monitor_env.save()
     elif monitor_env.status in [
         MonitorStatus.ERROR,
         MonitorStatus.MISSED_CHECKIN,
         MonitorStatus.TIMEOUT,
     ]:
         # if in an errored state, just get the most recent check-in and send occurrence
-        previous_checkins = (
+        previous_checkins = [
             MonitorCheckIn.objects.filter(monitor_environment=monitor_env)
             .order_by("-date_added")
-            .limit(1)
-        )
+            .first()
+        ]
     else:
         # don't send occurrence for other statuses
         return False
-
-    # Change monitor state + update fingerprint timestamp
-    monitor_env.status = MonitorStatus.ERROR
-    monitor_env.last_state_change = last_checkin
-    monitor_env.save()
 
     # Do not create event if monitor is disabled
     if monitor_env.monitor.status == ObjectStatus.DISABLED:

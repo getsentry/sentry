@@ -511,3 +511,19 @@ class MonitorEnvironmentTestCase(TestCase):
 
         # assert correct number of occurrences was sent
         assert len(mock_produce_occurrence_to_kafka.mock_calls) == failure_issue_threshold
+
+        # send another check-in to make sure we don't update last_state_change
+        status = next(failure_statuses)
+        MonitorCheckIn.objects.create(
+            monitor=monitor,
+            monitor_environment=monitor_environment,
+            project_id=self.project.id,
+            status=status,
+        )
+        mark_failed(monitor_environment, reason=status)
+        monitor_environment = MonitorEnvironment.objects.get(id=monitor_environment.id)
+        assert monitor_environment.status == MonitorStatus.ERROR
+        assert monitor_environment.last_state_change == monitor_environment.last_checkin
+
+        # assert correct number of occurrences was sent
+        assert len(mock_produce_occurrence_to_kafka.mock_calls) == failure_issue_threshold + 1
