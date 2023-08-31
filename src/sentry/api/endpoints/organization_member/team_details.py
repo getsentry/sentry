@@ -103,7 +103,6 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         "PUT": ApiPublishStatus.UNKNOWN,
         "POST": ApiPublishStatus.PUBLIC,
     }
-    public = {"DELETE", "POST"}
     permission_classes = (OrganizationTeamMemberPermission,)
 
     def _can_create_team_member(self, request: Request, team: Team) -> bool:

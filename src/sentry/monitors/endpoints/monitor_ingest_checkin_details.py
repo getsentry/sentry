@@ -34,7 +34,6 @@ class MonitorIngestCheckInDetailsEndpoint(MonitorIngestEndpoint):
     publish_status = {
         "PUT": ApiPublishStatus.PUBLIC,
     }
-    public = {"PUT"}
 
     @extend_schema(
         operation_id="Update a Check-In",

@@ -47,7 +47,6 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.PUBLIC,
     }
-    public = {"POST"}
 
     rate_limits = RateLimitConfig(
         limit_overrides={

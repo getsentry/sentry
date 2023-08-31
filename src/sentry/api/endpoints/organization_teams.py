@@ -72,7 +72,6 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
     }
-    public = {"GET", "POST"}
     permission_classes = (OrganizationTeamsPermission,)
 
     def team_serializer_for_post(self):

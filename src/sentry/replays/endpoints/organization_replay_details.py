@@ -31,8 +31,6 @@ class OrganizationReplayDetailsEndpoint(OrganizationEndpoint):
     organization that the user has access to.
     """
 
-    public = {"GET"}
-
     @extend_schema(
         operation_id="Retrieve a Replay Instance",
         parameters=[GlobalParams.ORG_SLUG, ReplayParams.REPLAY_ID, ReplayValidator],

@@ -31,7 +31,6 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
     }
-    public = {"GET"}
 
     @extend_schema(
         operation_id="List an Organization's Projects",

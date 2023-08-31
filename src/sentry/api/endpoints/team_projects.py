@@ -74,7 +74,6 @@ class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
     }
-    public = {"GET", "POST"}
     permission_classes = (TeamProjectPermission,)
 
     @extend_schema(

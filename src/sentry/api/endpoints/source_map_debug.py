@@ -33,7 +33,6 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
     }
-    public = {"GET"}
     owner = ApiOwner.ISSUES
 
     @extend_schema(

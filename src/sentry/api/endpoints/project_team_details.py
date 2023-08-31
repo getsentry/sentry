@@ -30,7 +30,6 @@ class ProjectTeamDetailsEndpoint(ProjectEndpoint):
         "DELETE": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
     }
-    public = {"POST", "DELETE"}
     permission_classes = (ProjectTeamsPermission,)
 
     @extend_schema(

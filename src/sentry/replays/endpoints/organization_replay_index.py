@@ -30,7 +30,6 @@ class OrganizationReplayIndexEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
     }
-    public = {"GET"}
 
     def get_replay_filter_params(self, request, organization):
 

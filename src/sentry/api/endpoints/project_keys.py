@@ -31,7 +31,6 @@ class ProjectKeysEndpoint(ProjectEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
     }
-    public = {"GET", "POST"}
 
     @extend_schema(
         operation_id="List a Project's Client Keys",
