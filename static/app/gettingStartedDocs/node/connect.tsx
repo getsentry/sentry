@@ -22,7 +22,7 @@ export const steps = ({
   installSnippet,
   importContent,
   initContent,
-}: Partial<StepProps> = {}): LayoutProps['steps'] => [
+}: StepProps): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
     description: (
