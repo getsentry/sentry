@@ -198,7 +198,7 @@ describe('AlertRuleDetails', () => {
     createWrapper();
     expect(
       await screen.findByText(
-        'This alert is missing actions. Please edit the alert rule to enable this alert.'
+        'This alert is disabled due to missing actions. Please edit the alert rule to enable this alert.'
       )
     ).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Edit to enable'})).toBeInTheDocument();
@@ -216,7 +216,9 @@ describe('AlertRuleDetails', () => {
     });
     createWrapper();
     expect(
-      await screen.findByText('This alert needs to be edited in order to be enabled.')
+      await screen.findByText(
+        'This alert is disabled due to its configuration and needs to be edited to be enabled.'
+      )
     ).toBeInTheDocument();
   });
 

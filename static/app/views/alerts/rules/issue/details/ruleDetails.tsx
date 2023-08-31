@@ -334,9 +334,11 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
             <Alert type="warning" showIcon>
               {rule.actions?.length === 0
                 ? t(
-                    'This alert is missing actions. Please edit the alert rule to enable this alert.'
+                    'This alert is disabled due to missing actions. Please edit the alert rule to enable this alert.'
                   )
-                : t('This alert needs to be edited in order to be enabled.')}
+                : t(
+                    'This alert is disabled due to its configuration and needs to be edited to be enabled.'
+                  )}
             </Alert>
           )}
           {isSnoozed && (

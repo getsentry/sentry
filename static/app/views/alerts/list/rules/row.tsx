@@ -22,8 +22,8 @@ import {
   IconArrow,
   IconChevron,
   IconEllipsis,
-  IconFlag,
   IconMute,
+  IconNot,
   IconUser,
 } from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -119,7 +119,7 @@ function RuleListRow({
       if (rule.status === 'disabled') {
         return (
           <IssueAlertStatusWrapper>
-            <IconFlag size="sm" color="red300" />
+            <IconNot size="sm" color="subText" />
             {t('Disabled')}
           </IssueAlertStatusWrapper>
         );
@@ -431,6 +431,7 @@ const IssueAlertStatusWrapper = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(1)};
+  line-height: 2;
 `;
 
 const AlertNameWrapper = styled('div')<{isIssueAlert?: boolean}>`
