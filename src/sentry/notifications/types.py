@@ -161,6 +161,12 @@ NOTIFICATION_SETTING_V2_CHOICES = [
     NotificationSettingsOptionEnum.COMMITTED_ONLY.value,
 ]
 
+NOTIFICATION_SETTING_ENABLED_VALUES = [
+    NotificationSettingsOptionEnum.ALWAYS.value,
+    NotificationSettingsOptionEnum.SUBSCRIBE_ONLY.value,
+    NotificationSettingsOptionEnum.COMMITTED_ONLY.value,
+]
+
 
 class NotificationScopeEnum(Enum):
     USER = "user"
