@@ -1,6 +1,6 @@
 import {Fragment, useMemo, useState} from 'react';
 import pick from 'lodash/pick';
-import qs from 'qs';
+import * as qs from 'query-string';
 
 import {LinkButton} from 'sentry/components/button';
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
