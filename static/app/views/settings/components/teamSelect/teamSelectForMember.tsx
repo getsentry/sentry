@@ -155,7 +155,7 @@ function TeamRow({
 }) {
   const hasOrgAdmin = organization.access.includes('org:admin');
   const isIdpProvisioned = team.flags['idp:provisioned'];
-  const isPermissionGroup = (team.orgRole && hasOrgAdmin) as boolean;
+  const isPermissionGroup = (team.orgRole && !hasOrgAdmin) as boolean;
   const isRemoveDisabled = disabled || isIdpProvisioned || isPermissionGroup;
 
   const buttonHelpText = getButtonHelpText(isIdpProvisioned, isPermissionGroup);
