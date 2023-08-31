@@ -70,13 +70,13 @@ sensio_framework_extra:
       {
         description: (
           <p>
-            {tct('Add your DSN to [code:config/packages/sentry.yaml]:', {code: <code />})}
+            {tct('Add to [code:config/packages/sentry.yaml]:', {code: <code />})}
           </p>
         ),
         language: 'php',
         code: `
 sentry:
-  dsn: "%env(${dsn})%"
+  dsn: "%env(SENTRY_DSN)%"
         `,
       },
       {
