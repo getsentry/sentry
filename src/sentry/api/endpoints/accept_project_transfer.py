@@ -7,6 +7,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log, roles
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
@@ -24,6 +25,10 @@ class InvalidPayload(Exception):
 
 @region_silo_endpoint
 class AcceptProjectTransferEndpoint(Endpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     authentication_classes = (SessionAuthentication,)
     permission_classes = (IsAuthenticated,)
 

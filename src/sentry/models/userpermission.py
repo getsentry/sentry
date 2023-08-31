@@ -2,12 +2,13 @@ from typing import FrozenSet
 
 from django.db import models
 
+from sentry.backup.mixins import SanitizeUserImportsMixin
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, control_silo_only_model, sane_repr
 
 
 @control_silo_only_model
-class UserPermission(Model):
+class UserPermission(SanitizeUserImportsMixin, Model):
     """
     Permissions are applied to administrative users and control explicit scope-like permissions within the API.
 
