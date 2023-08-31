@@ -577,18 +577,7 @@ class MonitorEnvironment(Model):
                 previous_checkin.status == CheckInStatus.OK
                 for previous_checkin in previous_checkins
             ):
-                # send occurrence for active issue
-                # from sentry.monitors.logic.mark_failed import create_issue_platform_occurrence, get_occurrence_context_from_checkin, get_reason_from_checkin
-                # monitor_env = checkin.monitor_environment
-                # fingerprint = [
-                #     "monitor",
-                #     str(monitor_env.monitor.guid),
-                #     monitor_env.environment.name,
-                #     str(monitor_env.last_state_change),
-                # ]
-                # reason = get_reason_from_checkin(checkin)
-                # occurrence_context = get_occurrence_context_from_checkin(checkin)
-                # create_issue_platform_occurrence(monitor_env, reason, occurrence_context, fingerprint)
+                # don't send occurrence for active issue on an OK check-in
                 return
 
         next_checkin = self.monitor.get_next_expected_checkin(ts)

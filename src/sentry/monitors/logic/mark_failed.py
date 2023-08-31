@@ -317,7 +317,7 @@ def get_occurrence_context_from_checkin(checkin: MonitorCheckIn):
         expected_time = (
             checkin.expected_time.strftime(SUBTITLE_DATETIME_FORMAT)
             if checkin.expected_time
-            else "exc"
+            else None
         )
         return {"expected_time": expected_time}
     elif status == CheckInStatus.TIMEOUT:
