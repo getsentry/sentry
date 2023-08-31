@@ -12,7 +12,6 @@ import {defined} from 'sentry/utils';
 
 import Line from '../../frame/line';
 import {getImageRange, parseAddress, stackTracePlatformIcon} from '../../utils';
-import {StacktraceFilenameQuery} from '../exception/useSourceMapDebug';
 
 import StacktracePlatformIcon from './platformIcon';
 
@@ -21,7 +20,6 @@ type Props = {
   event: Event;
   platform: PlatformType;
   className?: string;
-  debugFrames?: StacktraceFilenameQuery[];
   expandFirstFrame?: boolean;
   groupingCurrentLevel?: Group['metadata']['current_level'];
   hideIcon?: boolean;
@@ -34,7 +32,6 @@ type Props = {
 
 export function HierarchicalGroupingContent({
   data,
-  debugFrames,
   platform,
   event,
   newestFirst,
@@ -204,7 +201,6 @@ export function HierarchicalGroupingContent({
             isUsedForGrouping,
             frameMeta: meta?.frames?.[frameIndex],
             registersMeta: meta?.registers,
-            debugFrames,
           };
 
           nRepeats = 0;
