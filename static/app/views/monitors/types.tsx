@@ -71,7 +71,7 @@ export type MonitorConfig = CrontabConfig | IntervalConfig;
 
 export interface MonitorEnvironment {
   dateCreated: string;
-  lastCheckIn: string;
+  lastCheckIn: string | null;
   name: string;
   nextCheckIn: string;
   status: MonitorStatus;
