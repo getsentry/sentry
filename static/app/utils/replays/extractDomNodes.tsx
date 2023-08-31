@@ -5,7 +5,6 @@ import type {
   RecordingFrame,
   SpanFrame,
 } from 'sentry/utils/replays/types';
-import {EventType} from 'sentry/utils/replays/types';
 
 export type Extraction = {
   frame: BreadcrumbFrame | SpanFrame;
@@ -24,25 +23,14 @@ export default function extractDomNodes({
 }: Args): Promise<Extraction[]> {
   return new Promise(resolve => {
     const extractions = new Map<BreadcrumbFrame | SpanFrame, Extraction>();
-    frames.forEach(frame =>
-      extractions.set(frame, {
-        frame,
-        html: null,
-        timestamp: frame.timestampMs,
-      })
-    );
-
     const player = createPlayer(rrwebEvents);
     let lastEventTimestamp = 0;
 
     const callback = event => {
-      if (
-        event.type === EventType.FullSnapshot ||
-        event.type === EventType.IncrementalSnapshot
-      ) {
+      if (event.type === 2 || event.type === 3) {
         // Get first frame with a timestamp less than the last seen event timestamp
         const firstFrameAfterEvent = frames.findIndex(
-          frame => frame.timestampMs >= lastEventTimestamp
+          f => f.timestampMs >= lastEventTimestamp
         );
 
         lastEventTimestamp = event.timestamp;
@@ -50,11 +38,9 @@ export default function extractDomNodes({
         for (let i = firstFrameAfterEvent; i < frames.length; i++) {
           const frame = frames[i];
 
-          if (!frame.data) {
-            continue;
-          }
           // Sometimes frames have nodeId -1 so we ignore these
-          else if (frame.data && 'nodeId' in frame.data && frame.data.nodeId === -1) {
+          // @ts-expect-error
+          if (!frame?.data || frame.data.nodeId === -1) {
             continue;
           }
 
@@ -64,6 +50,11 @@ export default function extractDomNodes({
           if (found) {
             extractions.set(frame, found);
           } else {
+            extractions.set(frame, {
+              frame,
+              html: null,
+              timestamp: frame.timestampMs,
+            });
             return;
           }
         }
@@ -77,6 +68,7 @@ export default function extractDomNodes({
         resolve([...extractions.values()]);
       }
     };
+
     player.on('event-cast', callback);
     window.setTimeout(() => player.play(0), 0);
   });
