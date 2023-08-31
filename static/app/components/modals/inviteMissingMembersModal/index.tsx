@@ -58,10 +58,7 @@ export function InviteMissingMembersModal({
 
   const api = useApi();
 
-  if (
-    (memberInvites && memberInvites.length === 0) ||
-    !organization.access.includes('org:write')
-  ) {
+  if (memberInvites.length === 0 || !organization.access.includes('org:write')) {
     return null;
   }
 

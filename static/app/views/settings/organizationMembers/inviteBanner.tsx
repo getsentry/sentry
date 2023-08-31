@@ -1,5 +1,6 @@
 import {useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
+import * as qs from 'query-string';
 
 import {openInviteMissingMembersModal} from 'sentry/actionCreators/modal';
 import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
@@ -81,8 +82,7 @@ export function InviteBanner({
   }, [api, organization, promptsFeature, hideBanner]);
 
   useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const inviteMissingMembers = params.get('inviteMissingMembers');
+    const {inviteMissingMembers} = qs.parse(location.search);
 
     if (!hideBanner && inviteMissingMembers) {
       openInviteModal();
