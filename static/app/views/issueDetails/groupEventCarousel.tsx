@@ -244,7 +244,6 @@ function EventNavigationDropdown({group, event, isDisabled}: GroupEventNavigatio
 type GroupEventCarouselActionsProps = {
   event: Event;
   group: Group;
-  // isDisabled: boolean;
   projectSlug: string;
 };
 
