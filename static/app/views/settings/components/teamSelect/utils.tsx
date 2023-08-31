@@ -129,9 +129,7 @@ function renderDropdownOption({
 }) {
   const hasOrgAdmin = organization.access.includes('org:admin');
   const isIdpProvisioned = isAddingTeamToMember && team.flags['idp:provisioned'];
-  const isPermissionGroup = (isAddingTeamToMember &&
-    team.orgRole &&
-    !hasOrgAdmin) as boolean;
+  const isPermissionGroup = isAddingTeamToMember && !!team.orgRole && !hasOrgAdmin;
   const buttonHelpText = getButtonHelpText(isIdpProvisioned, isPermissionGroup);
 
   return {
