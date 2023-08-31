@@ -369,6 +369,7 @@ API_PUBLISH_STATUS_ALLOWLIST_DONT_MODIFY = {
     "/api/0/organizations/{organization_slug}/searches/": {"GET", "POST"},
     "/api/0/organizations/{organization_slug}/sessions/": {"GET"},
     "/api/0/organizations/{organization_slug}/releases/{version}/resolved/": {"GET"},
+    "/api/0/organizations/{organization_slug}/request-project-creation/": {"POST"},
     "/api/0/organizations/{organization_slug}/members/{member_id}/unreleased-commits/": {"GET"},
     "/api/0/organizations/{organization_slug}/members/{member_id}/teams/{team_slug}/": {
         "GET",
@@ -605,6 +606,7 @@ API_PUBLISH_STATUS_ALLOWLIST_DONT_MODIFY = {
     },
     "/api/0/projects/{organization_slug}/{project_slug}/dynamic-sampling/rate/": {"GET"},
     "/api/0/projects/{organization_slug}/{project_slug}/dynamic-sampling/distribution/": {"GET"},
+    "/api/0/projects/{organization_slug}/{project_slug}/repo-path-parsing/": {"POST"},
     "/api/0/teams/{organization_slug}/{team_slug}/": {"DELETE", "GET", "PUT"},
     "/api/0/teams/{organization_slug}/{team_slug}/issues/old/": {"GET"},
     "/api/0/teams/{organization_slug}/{team_slug}/release-count/": {"GET"},
