@@ -92,7 +92,7 @@ function EventSpanOpBreakdown({event}: {event: Event}) {
   });
 
   const postBreakpointPrunedSpanOps = Object.entries(postBreakpointData?.data[0] || {})
-    .filter(entry => entry[1] > 0)
+    .filter(entry => (entry[1] as number) > 0)
     .map(entry => ({
       value: entry[1] as number,
       name: SPAN_OPS_NAME_MAP[entry[0]],
