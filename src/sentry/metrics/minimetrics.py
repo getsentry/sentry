@@ -191,9 +191,9 @@ class Aggregator:
             time.sleep(2.0)
 
     def _emit(self, extracted_metrics: Any) -> Any:
-        # In order to avoid an infinite recursion for metrics, we want to use a thread local variable that will signal
-        # the downstream calls to only propagate the metric to DataDog, otherwise if propagated to minimetrics, it will
-        # cause unbounded recursion.
+        # In order to avoid an infinite recursion for metrics, we want to use a thread local variable that will
+        # signal the downstream calls to only propagate the metric to the primary backend, otherwise if propagated to
+        # minimetrics, it will cause unbounded recursion.
         thread_local.in_minimetrics = True
         # We want to emit a metric on how many metrics we would technically emit if we were to use minimetrics.
         metrics.incr("minimetrics.emit", amount=len(extracted_metrics))
