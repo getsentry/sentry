@@ -172,24 +172,15 @@ function NetworkList({
     );
   };
 
-  const handleClick = useCallback(() => {
-    const frame = getNextReplayFrame({
-      frames: items,
-      targetOffsetMs: currentTime,
-      allowExact: true,
-    });
-    let index = items.findIndex(spanFrame => frame === spanFrame);
-    // frameIndex is -1 at end of replay, so use last index
-    if (index === -1) {
-      index = items.length - 1;
-    }
+  const handleClick = () => {
+    const index = indexAtCurrentTime();
     // When Jump Down, ensures purple line is visible and index needs to be 1 to jump to top of network list
     if (index > visibleRange[1] || index === 0) {
       setScrollToRow(index + 1);
     } else {
       setScrollToRow(index);
     }
-  }, [setScrollToRow, items, currentTime, visibleRange]);
+  };
 
   function indexAtCurrentTime() {
     const frame = getNextReplayFrame({
@@ -199,7 +190,7 @@ function NetworkList({
     });
     const frameIndex = items.findIndex(spanFrame => frame === spanFrame);
     // frameIndex is -1 at end of replay, so use last index
-    const index = frameIndex === -1 ? items.length : frameIndex;
+    const index = frameIndex === -1 ? items.length - 1 : frameIndex;
     return index;
   }
 
