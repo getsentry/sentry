@@ -1500,3 +1500,9 @@ register(
     default=100,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+register(
+    "delightful_metrics.minimetrics_sample_rate",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)

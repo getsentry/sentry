@@ -1,5 +1,6 @@
 from typing import Any, Dict, Optional, Type, Union
 
+from sentry import options
 from sentry.metrics.base import MetricsBackend, Tags
 from sentry.metrics.dummy import DummyMetricsBackend
 from sentry.metrics.minimetrics import MiniMetricsMetricsBackend
@@ -13,6 +14,10 @@ class CompositeExperimentalMetricsBackend(MetricsBackend):
             kwargs.pop("primary_backend", None), kwargs.pop("backend_args", {})
         )
         self._allow_list = set(kwargs.pop("allow_list", set()))
+        # We want to control the sample rate of minimetrics independently of the primary backend's sample rate.
+        self._minimetrics_sample_rate = options.get(
+            "delightful_metrics.minimetrics_sample_rate", 0.0
+        )
 
     def _initialize_backends(self, primary_backend: Optional[str], backend_args: Dict[str, Any]):
         # If we don't have a primary metrics backend we default to the dummy, which won't do anything.
@@ -38,7 +43,7 @@ class CompositeExperimentalMetricsBackend(MetricsBackend):
         key = self._get_key(key)
         self._primary_backend.incr(key, instance, tags, amount, sample_rate)
         if self._is_allowed(key):
-            self._minimetrics.incr(key, instance, tags, amount, sample_rate)
+            self._minimetrics.incr(key, instance, tags, amount, self._minimetrics_sample_rate)
 
     def timing(
         self,
@@ -51,7 +56,7 @@ class CompositeExperimentalMetricsBackend(MetricsBackend):
         key = self._get_key(key)
         self._primary_backend.timing(key, value, instance, tags, sample_rate)
         if self._is_allowed(key):
-            self._minimetrics.timing(key, value, instance, tags, sample_rate)
+            self._minimetrics.timing(key, value, instance, tags, self._minimetrics_sample_rate)
 
     def gauge(
         self,
@@ -64,4 +69,4 @@ class CompositeExperimentalMetricsBackend(MetricsBackend):
         key = self._get_key(key)
         self._primary_backend.gauge(key, value, instance, tags, sample_rate)
         if self._is_allowed(key):
-            self._minimetrics.gauge(key, value, instance, tags, sample_rate)
+            self._minimetrics.gauge(key, value, instance, tags, self._minimetrics_sample_rate)

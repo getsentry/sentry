@@ -1,3 +1,4 @@
+import random
 import threading
 import time
 import zlib
@@ -292,6 +293,10 @@ class MiniMetricsMetricsBackend(MetricsBackend):
         super().__init__(prefix=prefix)
         self._client = Client()
 
+    @staticmethod
+    def _keep_metric(sample_rate: float) -> bool:
+        return random.random() < sample_rate
+
     def incr(
         self,
         key: str,
@@ -300,7 +305,8 @@ class MiniMetricsMetricsBackend(MetricsBackend):
         amount: Union[float, int] = 1,
         sample_rate: float = 1,
     ) -> None:
-        self._client.incr(key=self._get_key(key), value=amount, tags=tags)
+        if self._keep_metric(sample_rate):
+            self._client.incr(key=self._get_key(key), value=amount, tags=tags)
 
     def timing(
         self,
@@ -310,7 +316,8 @@ class MiniMetricsMetricsBackend(MetricsBackend):
         tags: Optional[Tags] = None,
         sample_rate: float = 1,
     ) -> None:
-        self._client.timing(key=self._get_key(key), value=value, tags=tags)
+        if self._keep_metric(sample_rate):
+            self._client.timing(key=self._get_key(key), value=value, tags=tags)
 
     def gauge(
         self,
@@ -320,4 +327,5 @@ class MiniMetricsMetricsBackend(MetricsBackend):
         tags: Optional[Tags] = None,
         sample_rate: float = 1,
     ) -> None:
-        self._client.gauge(key=self._get_key(key), value=value, tags=tags)
+        if self._keep_metric(sample_rate):
+            self._client.gauge(key=self._get_key(key), value=value, tags=tags)
