@@ -7,7 +7,7 @@ import {IconWarning} from 'sentry/icons';
 import {Organization} from 'sentry/types';
 import {FieldKey, getFieldDefinition} from 'sentry/utils/fields';
 import {
-  ON_DEMAND_METRICS_SUPPORTED_TAGS,
+  ON_DEMAND_METRICS_UNSUPPORTED_TAGS,
   STANDARD_SEARCH_FIELD_KEYS,
 } from 'sentry/utils/onDemandMetrics/constants';
 
@@ -16,7 +16,7 @@ function isStandardSearchFilterKey(key: string): boolean {
 }
 
 function isOnDemandSupportedFilterKey(key: string): boolean {
-  return ON_DEMAND_METRICS_SUPPORTED_TAGS.has(key as FieldKey);
+  return !ON_DEMAND_METRICS_UNSUPPORTED_TAGS.has(key as FieldKey);
 }
 
 function isCustomTag(key: string): boolean {
