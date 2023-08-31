@@ -1763,6 +1763,8 @@ SENTRY_FEATURES = {
     "projects:auto-associate-commits-to-release": False,
     # Starfish: extract metrics from the spans
     "projects:span-metrics-extraction": False,
+    # Metrics: Enable ingestion, storage, and rendering of custom metrics
+    "organizations:custom-metrics": False,
     # Don't add feature defaults down here! Please add them in their associated
     # group sorted alphabetically.
 }

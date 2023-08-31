@@ -275,6 +275,7 @@ default_manager.add("organizations:recap-server", OrganizationFeature, FeatureHa
 default_manager.add("organizations:notification-settings-v2", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:on-demand-metrics-prefill", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:enable-on-demand-metrics-prefill", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+default_manager.add("organizations:custom-metrics", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:release-ui-v2", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 
 # Project scoped features
