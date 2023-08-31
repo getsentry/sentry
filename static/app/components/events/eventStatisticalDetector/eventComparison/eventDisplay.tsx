@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import {EventTags} from 'sentry/components/events/eventTags';
 import {MINIMAP_HEIGHT} from 'sentry/components/events/interfaces/spans/constants';
 import {noFilter} from 'sentry/components/events/interfaces/spans/filter';
 import {ActualMinimap} from 'sentry/components/events/interfaces/spans/header';
@@ -13,6 +14,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import TextOverflow from 'sentry/components/textOverflow';
 import {IconEllipsis, IconJson, IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {EventTransaction, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
@@ -87,6 +89,7 @@ function EventDisplay({
   transaction,
   durationBaseline,
 }: EventDisplayProps) {
+  const location = useLocation();
   const organization = useOrganization();
   const [selectedEventId, setSelectedEventId] = useState<string>('');
 
@@ -130,53 +133,67 @@ function EventDisplay({
   }
 
   const waterfallModel = new WaterfallModel(eventData);
-
   return (
-    <div>
-      <StyledEventSelectorControlBar>
-        <CompactSelect
-          size="sm"
-          disabled={false}
-          options={eventIds.map(id => ({value: id, label: id}))}
-          value={selectedEventId}
-          onChange={({value}) => setSelectedEventId(value)}
-          triggerLabel={
-            <ButtonLabelWrapper>
-              <TextOverflow>
-                {eventSelectLabel}: {getShortEventId(selectedEventId)}
-              </TextOverflow>
-            </ButtonLabelWrapper>
-          }
-        />
-        <Button aria-label="icon" icon={<IconEllipsis />} size="sm" />
-        <Button aria-label="icon" icon={<IconJson />} size="sm" />
-        <Button aria-label="icon" icon={<IconLink />} size="sm" />
-      </StyledEventSelectorControlBar>
-      <ComparisonContentWrapper>
-        <MinimapContainer>
-          <MinimapPositioningContainer>
-            <ActualMinimap
-              spans={waterfallModel.getWaterfall({
-                viewStart: 0,
-                viewEnd: 1,
-              })}
-              generateBounds={waterfallModel.generateBounds({
-                viewStart: 0,
-                viewEnd: 1,
-              })}
-              dividerPosition={0}
-              rootSpan={waterfallModel.rootSpan.span}
-            />
-          </MinimapPositioningContainer>
-        </MinimapContainer>
+    <EventDisplayContainer>
+      <div>
+        <StyledEventSelectorControlBar>
+          <CompactSelect
+            size="sm"
+            disabled={false}
+            options={eventIds.map(id => ({value: id, label: id}))}
+            value={selectedEventId}
+            onChange={({value}) => setSelectedEventId(value)}
+            triggerLabel={
+              <ButtonLabelWrapper>
+                <TextOverflow>
+                  {eventSelectLabel}: {getShortEventId(selectedEventId)}
+                </TextOverflow>
+              </ButtonLabelWrapper>
+            }
+          />
+          <Button aria-label="icon" icon={<IconEllipsis />} size="sm" />
+          <Button aria-label="icon" icon={<IconJson />} size="sm" />
+          <Button aria-label="icon" icon={<IconLink />} size="sm" />
+        </StyledEventSelectorControlBar>
+        <ComparisonContentWrapper>
+          <MinimapContainer>
+            <MinimapPositioningContainer>
+              <ActualMinimap
+                spans={waterfallModel.getWaterfall({
+                  viewStart: 0,
+                  viewEnd: 1,
+                })}
+                generateBounds={waterfallModel.generateBounds({
+                  viewStart: 0,
+                  viewEnd: 1,
+                })}
+                dividerPosition={0}
+                rootSpan={waterfallModel.rootSpan.span}
+              />
+            </MinimapPositioningContainer>
+          </MinimapContainer>
 
-        <OpsBreakdown event={eventData} operationNameFilters={noFilter} hideHeader />
-      </ComparisonContentWrapper>
-    </div>
+          <OpsBreakdown event={eventData} operationNameFilters={noFilter} hideHeader />
+        </ComparisonContentWrapper>
+      </div>
+
+      <EventTags
+        event={eventData}
+        organization={organization}
+        projectSlug={project.slug}
+        location={location}
+      />
+    </EventDisplayContainer>
   );
 }
 
 export {EventDisplay};
+
+const EventDisplayContainer = styled('div')`
+  display: flex;
+  gap: ${space(1)};
+  flex-direction: column;
+`;
 
 const ButtonLabelWrapper = styled('span')`
   width: 100%;

@@ -31,22 +31,26 @@ function EventComparison({event, project}: EventComparisonProps) {
       <strong>{t('Compare Events:')}</strong>
       <p>{COMPARISON_DESCRIPTION}</p>
       <StyledGrid>
-        <EventDisplay
-          eventSelectLabel={t('Baseline Event ID')}
-          project={project}
-          start={requestStart}
-          end={breakpoint}
-          transaction={transaction}
-          durationBaseline={aggregateRange1}
-        />
-        <EventDisplay
-          eventSelectLabel={t('Regressed Event ID')}
-          project={project}
-          start={breakpoint}
-          end={requestEnd}
-          transaction={transaction}
-          durationBaseline={aggregateRange2}
-        />
+        <div style={{gridColumnStart: 1}}>
+          <EventDisplay
+            eventSelectLabel={t('Baseline Event ID')}
+            project={project}
+            start={requestStart}
+            end={breakpoint}
+            transaction={transaction}
+            durationBaseline={aggregateRange1}
+          />
+        </div>
+        <div style={{gridColumnStart: 2}}>
+          <EventDisplay
+            eventSelectLabel={t('Regressed Event ID')}
+            project={project}
+            start={breakpoint}
+            end={requestEnd}
+            transaction={transaction}
+            durationBaseline={aggregateRange2}
+          />
+        </div>
       </StyledGrid>
     </DataSection>
   );
