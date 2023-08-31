@@ -23,6 +23,7 @@ from sentry.notifications.types import (
     GroupSubscriptionReason,
     NotificationScopeEnum,
     NotificationScopeType,
+    NotificationSettingEnum,
     NotificationSettingOptionValues,
     NotificationSettingsOptionEnum,
     NotificationSettingTypes,
@@ -33,6 +34,7 @@ from sentry.services.hybrid_cloud.notifications import RpcNotificationSetting
 from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.types.integrations import (
     EXTERNAL_PROVIDERS,
+    ExternalProviderEnum,
     ExternalProviders,
     get_provider_enum_from_string,
     get_provider_name,
@@ -646,7 +648,7 @@ def get_providers_for_recipient(
 
 
 def recipient_is_user(recipient: RpcActor | Team | User) -> bool:
-    from sentry.interfaces.user import User
+    from sentry.models.user import User
 
     if isinstance(recipient, RpcActor) and recipient.actor_type == ActorType.USER:
         return True
@@ -673,7 +675,7 @@ def get_all_setting_providers(
         team_id = recipient.id
 
     if user_id is None and team_id is None:
-        raise Exception("recipient must be either user or team")
+        raise Exception(f"recipient must be either user or team, got {type(recipient)}")
 
     project_settings = (
         Q(
@@ -689,11 +691,11 @@ def get_all_setting_providers(
     org_settings = (
         Q(
             scope_type=NotificationScopeEnum.ORGANIZATION.value,
-            scope_identifier=organization.id,
+            scope_identifier=organization.id if organization else project.organization.id,
             user_id=user_id,
             team_id=team_id,
         )
-        if organization
+        if organization or project
         else Q()
     )
 
@@ -767,7 +769,7 @@ def get_all_setting_options(
     )
 
 
-def get_settings_for_recipient(
+def get_setting_options_for_recipient(
     recipient: RpcActor | Team | User,
     project: Project | None = None,
     organization: Organization | None = None,
@@ -801,18 +803,17 @@ def get_settings_for_recipient(
 
     # Fill in any missing settings with the default
     defaults = get_type_defaults()
-    for type in NOTIFICATION_SETTING_TYPES:
-        if type not in notification_settings:
+    for type in NotificationSettingEnum:
+        if type not in notification_settings and type in defaults:
             notification_settings[type] = defaults[type]
 
     return notification_settings
 
 
-def has_any_provider_settings(
-    recipient: RpcActor | Team | User, provider: ExternalProviders
+def user_has_any_provider_settings(
+    recipient: RpcActor | Team | User, provider: ExternalProviderEnum
 ) -> bool:
     settings = get_all_setting_providers(recipient)
-
     for setting in settings:
         if not setting.provider == provider.value:
             continue
