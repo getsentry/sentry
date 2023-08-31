@@ -7,6 +7,10 @@ from typing import Any, Callable, Dict, Generic, List, Literal, Optional, Set, T
 from sentry.metrics.base import MetricsBackend
 from sentry.utils import metrics
 
+# The thread local instance must be initialized globally in order to correctly use the state.
+thread_local = threading.local()
+
+
 Tags = Dict[str, str]
 T = TypeVar("T")
 
@@ -128,7 +132,7 @@ ComposedKey = Tuple[int, str, str, MetricUnit, Tuple[Tuple[str, str], ...]]
 
 
 class Aggregator:
-    ROLLUP_IN_SECONDS = 10.0
+    ROLLUP_IN_SECONDS = 1.0
 
     def __init__(self) -> None:
         self.buckets: Dict[ComposedKey, Metric[Any]] = {}
@@ -178,7 +182,6 @@ class Aggregator:
         # In order to avoid an infinite recursion for metrics, we want to use a thread local variable that will signal
         # the downstream calls to only propagate the metric to DataDog, otherwise if propagated to minimetrics, it will
         # cause unbounded recursion.
-        thread_local = threading.local()
         thread_local.in_minimetrics = True
         # We want to emit a metric on how many metrics we would technically emit if we were to use minimetrics.
         metrics.incr("minimetrics.emit", amount=len(extracted_metrics))
@@ -221,7 +224,6 @@ class Client:
     @staticmethod
     def _is_in_minimetrics():
         try:
-            thread_local = threading.local()
             return thread_local.in_minimetrics
         except AttributeError:
             return False
@@ -273,7 +275,6 @@ class Client:
 # TODO:
 #   * Check how to use units
 #   * Check usage of instance
-#
 class MiniMetricsMetricsBackend(MetricsBackend):
     def __init__(self, prefix: Optional[str] = None):
         super().__init__(prefix=prefix)
