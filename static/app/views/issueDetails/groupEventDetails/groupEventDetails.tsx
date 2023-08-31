@@ -20,6 +20,7 @@ import {
   Group,
   GroupActivityReprocess,
   GroupReprocessing,
+  IssueType,
   Organization,
   Project,
 } from 'sentry/types';
@@ -220,13 +221,15 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
                         group={group}
                       />
                       <QuickTraceContext.Provider value={results}>
-                        {eventWithMeta && (
-                          <GroupEventHeader
-                            group={group}
-                            event={eventWithMeta}
-                            project={project}
-                          />
-                        )}
+                        {eventWithMeta &&
+                          group.issueType !==
+                            IssueType.PERFORMANCE_DURATION_REGRESSION && (
+                            <GroupEventHeader
+                              group={group}
+                              event={eventWithMeta}
+                              project={project}
+                            />
+                          )}
                         {renderContent()}
                       </QuickTraceContext.Provider>
                     </StyledLayoutMain>
