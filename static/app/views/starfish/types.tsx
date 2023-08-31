@@ -28,16 +28,37 @@ export enum SpanMetricsField {
   PROJECT_ID = 'project.id',
 }
 
-export type SpanMetricsFieldTypes = {
-  [SpanMetricsField.SPAN_OP]: string;
-  [SpanMetricsField.SPAN_DESCRIPTION]: string;
-  [SpanMetricsField.SPAN_MODULE]: string;
-  [SpanMetricsField.SPAN_ACTION]: string;
-  [SpanMetricsField.SPAN_DOMAIN]: string;
-  [SpanMetricsField.SPAN_GROUP]: string;
-  [SpanMetricsField.SPAN_SELF_TIME]: number;
-  [SpanMetricsField.SPAN_DURATION]: number;
+export type SpanNumberFields = 'span.self_time' | 'span.duration';
+
+export type SpanStringFields =
+  | 'span.op'
+  | 'span.description'
+  | 'span.module'
+  | 'span.action'
+  | 'span.domain'
+  | 'span.group'
+  | 'project.id';
+
+export type SpanFunctions =
+  | 'sps'
+  | 'spm'
+  | 'count'
+  | 'time_spent_percentage'
+  | 'http_error_count';
+
+export type MetricsResponse = {
+  [Property in SpanNumberFields as `avg(${Property})`]: number;
+} & {
+  [Property in SpanNumberFields as `sum(${Property})`]: number;
+} & {
+  [Property in SpanFunctions as `${Property}()`]: number;
+} & {
+  [Property in SpanStringFields as `${Property}`]: string;
+} & {
+  'time_spent_percentage(local)': number;
 };
+
+export type MetricsProperty = keyof MetricsResponse;
 
 export enum SpanIndexedField {
   SPAN_SELF_TIME = 'span.self_time',
@@ -78,7 +99,6 @@ export type Op = SpanIndexedFieldTypes[SpanIndexedField.SPAN_OP];
 export enum SpanFunction {
   SPS = 'sps',
   SPM = 'spm',
-  SPS_PERCENENT_CHANGE = 'sps_percent_change',
   TIME_SPENT_PERCENTAGE = 'time_spent_percentage',
   HTTP_ERROR_COUNT = 'http_error_count',
 }
@@ -113,12 +133,6 @@ export const STARFISH_AGGREGATION_FIELDS: Record<
   [SpanFunction.HTTP_ERROR_COUNT]: {
     desc: t('Count of 5XX http errors'),
     defaultOutputType: 'integer',
-    kind: FieldKind.FUNCTION,
-    valueType: FieldValueType.NUMBER,
-  },
-  [SpanFunction.SPS_PERCENENT_CHANGE]: {
-    desc: t('Spans per second percentage change'),
-    defaultOutputType: 'percentage',
     kind: FieldKind.FUNCTION,
     valueType: FieldValueType.NUMBER,
   },
