@@ -30,7 +30,7 @@ function EventBreakpointChart({event}: EventBreakpointChartProps) {
   eventView.query = `event.type:transaction transaction:"${transaction}"`;
   eventView.fields = [{field: 'transaction'}, {field: 'project'}];
   eventView.start = new Date(requestStart * 1000).toISOString();
-  eventView.end = new Date(Math.min(requestEnd * 1000, Date.now())).toISOString();
+  eventView.end = new Date(requestEnd * 1000).toISOString();
 
   // The evidence data keys are returned to us in camelCase, but we need to
   // convert them to snake_case to match the NormalizedTrendsTransaction type
