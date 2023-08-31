@@ -25,9 +25,7 @@ export const steps = ({
 }: StepProps): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
-    description: (
-      <p>{tct('Add [code:@sentry/node] as a dependency:', {code: <code />})}</p>
-    ),
+    description: <p>{tct('Add Sentry Node SDK as a dependency:', {code: <code />})}</p>,
     configurations: [
       {
         language: 'bash',
@@ -46,7 +44,7 @@ ${importContent}
 
 // Configure Sentry before doing anything else
 Sentry.init({
-${initContent},
+${initContent}
 });
 
 function mainHandler(req, res) {
