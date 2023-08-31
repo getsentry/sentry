@@ -395,7 +395,9 @@ class BaseApiClient(TrackResponseMixin):
             if is_response_error(response):
                 buffer.record_error()
         if buffer.is_integration_broken():
-            self.disable_integration(buffer)
+            self.disable_plugin(buffer) if self.integration_type == "plugin" and plugins.exists(
+                self.plugin_name
+            ) else self.disable_integration(buffer)
 
     def record_error(self, error: Exception):
         redis_key = self._get_redis_key()
@@ -407,7 +409,9 @@ class BaseApiClient(TrackResponseMixin):
         else:
             buffer.record_error()
         if buffer.is_integration_broken():
-            self.disable_integration(buffer)
+            self.disable_plugin(buffer) if self.integration_type == "plugin" and plugins.exists(
+                self.plugin_name
+            ) else self.disable_integration(buffer)
 
     def disable_integration(self, buffer) -> None:
         rpc_integration, rpc_org_integration = integration_service.get_organization_contexts(
@@ -470,12 +474,13 @@ class BaseApiClient(TrackResponseMixin):
         return
 
     def disable_plugin(self, buffer) -> None:
-        plugin = plugins.get(self.slug)
+        plugin = plugins.get(self.plugin_name)
         if not plugin.is_enabled():
             return
 
         project = Project.objects.get(id=self.project_id)
-
+        if not plugin.is_enabled(project):
+            return
         extra = {
             "project_id": self.project_id,
             "buffer_record": buffer._get_all_from_buffer(),
@@ -491,6 +496,6 @@ class BaseApiClient(TrackResponseMixin):
             extra=extra,
         )
         if features.has("organizations:plugin-disable-on-broken", project.organization):
-            plugin.disable()
+            plugin.disable(project=project)
             notify_disable(project.organization, self.plugin_name, self._get_redis_key())
             buffer.clear()

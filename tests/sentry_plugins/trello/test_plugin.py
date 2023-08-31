@@ -1,10 +1,15 @@
+from datetime import datetime, timedelta
 from functools import cached_property
 from urllib.parse import parse_qsl, urlparse
 
+import pytest
 import responses
 from django.test import RequestFactory
+from freezegun import freeze_time
 
+from sentry.integrations.request_buffer import IntegrationRequestBuffer
 from sentry.testutils.cases import PluginTestCase
+from sentry.testutils.helpers import with_feature
 from sentry.utils import json
 from sentry_plugins.trello.plugin import TrelloPlugin
 
@@ -277,3 +282,42 @@ class TrelloPluginApiTests(TrelloPluginTestBase):
             "key": "39g",
             "query": "Key",
         }
+
+    @responses.activate
+    def test_error_recorded(self):
+        self.plugin.unset_option("organization", self.project)
+        responses.add(responses.GET, "https://api.trello.com/1/search", status=401)
+
+        request = self.make_request(
+            user=self.user,
+            method="GET",
+            GET={"autocomplete_field": "issue_id", "autocomplete_query": "Key"},
+        )
+
+        with pytest.raises(Exception):
+            self.plugin.view_autocomplete(request, self.group)
+        buffer = IntegrationRequestBuffer(self.plugin.get_client(self.project)._get_redis_key())
+        assert int(buffer._get_all_from_buffer()[0]["error_count"]) == 1
+
+    @responses.activate
+    @with_feature("organizations:plugin-disable-on-broken")
+    @freeze_time("2022-01-01 03:30:00")
+    def test_plugin_disabled(self):
+        self.plugin.unset_option("organization", self.project)
+        responses.add(responses.GET, "https://api.trello.com/1/search", status=401)
+
+        request = self.make_request(
+            user=self.user,
+            method="GET",
+            GET={"autocomplete_field": "issue_id", "autocomplete_query": "Key"},
+        )
+
+        buffer = IntegrationRequestBuffer(self.plugin.get_client(self.project)._get_redis_key())
+        now = datetime.now() - timedelta(hours=1)
+        for i in reversed(range(10)):
+            with freeze_time(now - timedelta(days=i)):
+                buffer.record_error()
+        assert buffer.is_integration_broken() is True
+        with pytest.raises(Exception):
+            self.plugin.view_autocomplete(request, self.group)
+        assert self.plugin.is_enabled(self.project) is False
