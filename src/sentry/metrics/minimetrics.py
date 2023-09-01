@@ -219,7 +219,7 @@ class Aggregator:
                 # For sets, we want to track the cardinality of the set.
                 value = len(metric_value)
 
-            counts_by_type[metric["type"]] += value
+            counts_by_type[metric_type] += value
 
         # For each type and count we want to emit a metric.
         for metric_type, metric_count in counts_by_type.items():
