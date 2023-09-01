@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
     time_limit=10,  # Extra 5 seconds to remove the debounce key.
     expires=30,  # Relay stops waiting for this anyway.
 )
-def build_project_config(version: int, public_key=None, **kwargs):
+def build_project_config(version: int = 3, public_key=None, **kwargs):
     """Build a project config and put it in the Redis cache.
 
     This task is used to compute missing project configs, it is aggressively
