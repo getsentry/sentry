@@ -328,7 +328,7 @@ export class DeprecatedLine extends Component<Props, State> {
             </LeftLineTitle>
             {this.renderRepeats()}
           </DefaultLineTitleWrapper>
-          <DefaultLineAuxiliaryWrapper>
+          <DefaultLineTagWrapper>
             {organization?.features.includes('anr-analyze-frames') && anrCulprit ? (
               <Tag type="warning" to="" onClick={this.scrollToSuspectRootCause}>
                 {t('Suspect Frame')}
@@ -343,7 +343,7 @@ export class DeprecatedLine extends Component<Props, State> {
               <Tag type="info">{t('In App')}</Tag>
             )}
             {this.renderExpander()}
-          </DefaultLineAuxiliaryWrapper>
+          </DefaultLineTagWrapper>
         </DefaultLine>
       </StrictClick>
     );
@@ -420,7 +420,7 @@ export class DeprecatedLine extends Component<Props, State> {
               isHoverPreviewed={isHoverPreviewed}
             />
           </NativeLineContent>
-          <DefaultLineAuxiliaryWrapper>
+          <DefaultLineTagWrapper>
             <DefaultLineTitleWrapper
               stacktraceChangesEnabled={stacktraceChangesEnabled && !data.inApp}
             >
@@ -434,7 +434,7 @@ export class DeprecatedLine extends Component<Props, State> {
             ) : (
               <Tag type="info">{t('In App')}</Tag>
             )}
-          </DefaultLineAuxiliaryWrapper>
+          </DefaultLineTagWrapper>
         </DefaultLine>
       </StrictClick>
     );
@@ -566,7 +566,7 @@ const StyledIconRefresh = styled(IconRefresh)`
   margin-right: ${space(0.25)};
 `;
 
-const DefaultLineAuxiliaryWrapper = styled('div')`
+const DefaultLineTagWrapper = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(1)};
