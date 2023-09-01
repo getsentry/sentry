@@ -302,7 +302,6 @@ class PostAssembler(Generic[TArchive], ABC):
 
     def __init__(self, assemble_result: AssembleResult):
         self.assemble_result = assemble_result
-        self.archive = None  # type:ignore
         self._validate_bundle_guarded()
 
     def __enter__(self):
@@ -314,15 +313,9 @@ class PostAssembler(Generic[TArchive], ABC):
         if exc_type is not None:
             self.delete_bundle_file_object()
 
-        self.close()
-
-    def close(self):
-        if self.archive:
-            self.archive.close()
-            self.archive = None  # type:ignore
+        self.archive.close()
 
     def delete_bundle_file_object(self):
-        self.close()
         self.assemble_result.delete_bundle()
 
     def _validate_bundle_guarded(self):
