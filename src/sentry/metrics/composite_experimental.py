@@ -7,6 +7,8 @@ from sentry.metrics.minimetrics import MiniMetricsMetricsBackend
 from sentry.options import UnknownOption
 from sentry.utils.imports import import_string
 
+__all__ = ["CompositeExperimentalMetricsBackend"]
+
 
 class CompositeExperimentalMetricsBackend(MetricsBackend):
     def __init__(self, **kwargs: Any):
