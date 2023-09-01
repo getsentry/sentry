@@ -6,7 +6,7 @@ import uuid
 from abc import ABC, abstractmethod
 from datetime import datetime
 from os import path
-from typing import IO, List, NamedTuple, Optional, Tuple
+from typing import IO, Generic, List, NamedTuple, Optional, Protocol, Tuple, TypeVar
 
 import sentry_sdk
 from django.db import IntegrityError, router
@@ -288,10 +288,21 @@ class AssembleArtifactsError(Exception):
     pass
 
 
-class PostAssembler(ABC):
+class HasClose(Protocol):
+    @abstractmethod
+    def close(self):
+        pass
+
+
+TArchive = TypeVar("TArchive", bound=HasClose)
+
+
+class PostAssembler(Generic[TArchive], ABC):
+    archive: TArchive
+
     def __init__(self, assemble_result: AssembleResult):
         self.assemble_result = assemble_result
-        self.archive = None
+        self.archive = None  # type:ignore
         self._validate_bundle_guarded()
 
     def __enter__(self):
@@ -308,7 +319,7 @@ class PostAssembler(ABC):
     def close(self):
         if self.archive:
             self.archive.close()
-            self.archive = None
+            self.archive = None  # type:ignore
 
     def delete_bundle_file_object(self):
         self.close()
@@ -333,7 +344,7 @@ class PostAssembler(ABC):
         pass
 
 
-class ReleaseBundlePostAssembler(PostAssembler):
+class ReleaseBundlePostAssembler(PostAssembler[ReleaseArchive]):
     def __init__(self, assemble_result: AssembleResult, organization: Organization, version: str):
         super().__init__(assemble_result)
         self.organization = organization
@@ -471,7 +482,7 @@ class ReleaseBundlePostAssembler(PostAssembler):
         return True
 
 
-class ArtifactBundlePostAssembler(PostAssembler):
+class ArtifactBundlePostAssembler(PostAssembler[ArtifactBundleArchive]):
     def __init__(
         self,
         assemble_result: AssembleResult,
