@@ -22,6 +22,9 @@ class CompositeExperimentalMetricsBackend(MetricsBackend):
             self._primary_backend: MetricsBackend = DummyMetricsBackend()
         else:
             cls: Type[MetricsBackend] = import_string(primary_backend)
+            # In case there is a prefix, we don't want to push it downstream, since it will be already prefixed by
+            # this backend instance.
+            backend_args.pop("prefix", None)
             self._primary_backend = cls(**backend_args)
 
         self._minimetrics: MetricsBackend = MiniMetricsMetricsBackend()
@@ -45,10 +48,12 @@ class CompositeExperimentalMetricsBackend(MetricsBackend):
         amount: Union[float, int] = 1,
         sample_rate: float = 1,
     ) -> None:
-        key = self._get_key(key)
-        self._primary_backend.incr(key, instance, tags, amount, sample_rate)
+        prefixed_key = self._get_key(key)
+        self._primary_backend.incr(prefixed_key, instance, tags, amount, sample_rate)
         if self._is_allowed(key):
-            self._minimetrics.incr(key, instance, tags, amount, self._minimetrics_sample_rate())
+            self._minimetrics.incr(
+                prefixed_key, instance, tags, amount, self._minimetrics_sample_rate()
+            )
 
     def timing(
         self,
@@ -58,10 +63,12 @@ class CompositeExperimentalMetricsBackend(MetricsBackend):
         tags: Optional[Tags] = None,
         sample_rate: float = 1,
     ) -> None:
-        key = self._get_key(key)
-        self._primary_backend.timing(key, value, instance, tags, sample_rate)
+        prefixed_key = self._get_key(key)
+        self._primary_backend.timing(prefixed_key, value, instance, tags, sample_rate)
         if self._is_allowed(key):
-            self._minimetrics.timing(key, value, instance, tags, self._minimetrics_sample_rate())
+            self._minimetrics.timing(
+                prefixed_key, value, instance, tags, self._minimetrics_sample_rate()
+            )
 
     def gauge(
         self,
@@ -71,7 +78,9 @@ class CompositeExperimentalMetricsBackend(MetricsBackend):
         tags: Optional[Tags] = None,
         sample_rate: float = 1,
     ) -> None:
-        key = self._get_key(key)
-        self._primary_backend.gauge(key, value, instance, tags, sample_rate)
+        prefixed_key = self._get_key(key)
+        self._primary_backend.gauge(prefixed_key, value, instance, tags, sample_rate)
         if self._is_allowed(key):
-            self._minimetrics.gauge(key, value, instance, tags, self._minimetrics_sample_rate())
+            self._minimetrics.gauge(
+                prefixed_key, value, instance, tags, self._minimetrics_sample_rate()
+            )

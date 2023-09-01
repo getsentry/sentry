@@ -2,6 +2,7 @@ import random
 import threading
 import time
 import zlib
+from collections import defaultdict
 from threading import Lock, Thread
 from typing import (
     Any,
@@ -191,13 +192,40 @@ class Aggregator:
 
             time.sleep(2.0)
 
-    def _emit(self, extracted_metrics: Any) -> Any:
+    @staticmethod
+    def _emit(extracted_metrics: Any) -> Any:
         # In order to avoid an infinite recursion for metrics, we want to use a thread local variable that will
         # signal the downstream calls to only propagate the metric to the primary backend, otherwise if propagated to
         # minimetrics, it will cause unbounded recursion.
         thread_local.in_minimetrics = True
-        # We want to emit a metric on how many metrics we would technically emit if we were to use minimetrics.
-        metrics.incr("minimetrics.emit", amount=len(extracted_metrics))
+
+        # We obtain the counts for each metric type, since we want to know how many by type we have.
+        counts_by_type = defaultdict(lambda: 0)
+        for metric in extracted_metrics:
+            metric_type = metric["type"]
+            metric_value = metric["value"]
+
+            value = 0
+            if metric_type == "c":
+                # For counters, we want to sum the count value.
+                value = metric_value
+            elif metric_value == "d":
+                # For distributions, we want to track the size of the distribution.
+                value = len(metric_value)
+            elif metric_value == "g":
+                # For gauges, we will emit a count of 1.
+                value = 1
+            elif metric_value == "s":
+                # For sets, we want to track the cardinality of the set.
+                value = len(metric_value)
+
+            counts_by_type[metric["type"]] += value
+
+        # For each type and count we want to emit a metric.
+        for metric_type, metric_count in counts_by_type.items():
+            # We want to emit a metric on how many metrics we would technically emit if we were to use minimetrics.
+            metrics.incr("minimetrics.emit", amount=metric_count, tags={"metric_type": metric_type})
+
         # We clear the thread local variables, in order to make metrics extraction continue as normal.
         thread_local.__dict__.clear()
 
