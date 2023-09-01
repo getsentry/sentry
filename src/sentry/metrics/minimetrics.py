@@ -146,7 +146,7 @@ ComposedKey = Tuple[int, str, str, MetricUnit, Tuple[Tuple[str, str], ...]]
 
 
 class Aggregator:
-    ROLLUP_IN_SECONDS = 1.0
+    ROLLUP_IN_SECONDS = 10.0
 
     def __init__(self) -> None:
         self.buckets: Dict[ComposedKey, Metric[Any]] = {}
