@@ -11,7 +11,7 @@ class ProjectIntegration(Model):
      Project Integrations.
     """
 
-    __relocation_scope__ = RelocationScope.Excluded
+    __relocation_scope__ = RelocationScope.Global
 
     project = FlexibleForeignKey("sentry.Project")
     integration_id = HybridCloudForeignKey("sentry.Integration", on_delete="CASCADE")

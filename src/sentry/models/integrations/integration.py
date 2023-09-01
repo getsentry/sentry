@@ -46,7 +46,7 @@ class Integration(DefaultFieldsModel):
     workspace, a single GH org, etc.), which can be shared by multiple Sentry orgs.
     """
 
-    __relocation_scope__ = RelocationScope.Excluded
+    __relocation_scope__ = RelocationScope.Global
 
     provider = models.CharField(max_length=64)
     external_id = models.CharField(max_length=64)

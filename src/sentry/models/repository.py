@@ -21,7 +21,7 @@ from sentry.signals import pending_delete
 
 @region_silo_only_model
 class Repository(Model, PendingDeletionMixin):
-    __relocation_scope__ = RelocationScope.Organization
+    __relocation_scope__ = RelocationScope.Global
 
     organization_id = BoundedBigIntegerField(db_index=True)
     name = models.CharField(max_length=200)

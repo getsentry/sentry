@@ -441,9 +441,11 @@ def get_default_comparators():
             "sentry.authidentity": [HashObfuscatingComparator("ident", "token")],
             "sentry.alertrule": [DateUpdatedComparator("date_modified")],
             "sentry.incidenttrigger": [DateUpdatedComparator("date_modified")],
+            "sentry.integration": [DateUpdatedComparator("date_updated")],
             "sentry.orgauthtoken": [
                 HashObfuscatingComparator("token_hashed", "token_last_characters")
             ],
+            "sentry.organizationintegration": [DateUpdatedComparator("date_updated")],
             "sentry.organizationmember": [HashObfuscatingComparator("token")],
             "sentry.projectkey": [HashObfuscatingComparator("public_key", "secret_key")],
             "sentry.querysubscription": [DateUpdatedComparator("date_updated")],

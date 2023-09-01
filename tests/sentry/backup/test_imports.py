@@ -15,6 +15,7 @@ from sentry.backup.imports import (
     import_in_user_scope,
 )
 from sentry.backup.scopes import ExportScope, RelocationScope
+from sentry.models.authenticator import Authenticator
 from sentry.models.email import Email
 from sentry.models.organization import Organization
 from sentry.models.orgauthtoken import OrgAuthToken
@@ -99,6 +100,7 @@ class SanitizationTests(BackupTestCase):
 
         assert User.objects.filter(is_staff=True).count() == 0
         assert User.objects.filter(is_superuser=True).count() == 0
+        assert Authenticator.objects.count() == 0
         assert UserPermission.objects.count() == 0
         assert UserRole.objects.count() == 0
         assert UserRoleUser.objects.count() == 0
@@ -115,6 +117,7 @@ class SanitizationTests(BackupTestCase):
 
         assert User.objects.filter(is_staff=True).count() == 0
         assert User.objects.filter(is_superuser=True).count() == 0
+        assert Authenticator.objects.count() == 0
         assert UserPermission.objects.count() == 0
         assert UserRole.objects.count() == 0
         assert UserRoleUser.objects.count() == 0
@@ -130,6 +133,7 @@ class SanitizationTests(BackupTestCase):
         assert User.objects.filter(is_staff=True).count() == 2
         assert User.objects.filter(is_superuser=True).count() == 2
         assert User.objects.filter(is_staff=False, is_superuser=False).count() == 2
+        assert Authenticator.objects.count() == 4
 
         # 1 from `max_user`, 1 from `permission_user`.
         assert UserPermission.objects.count() == 2
@@ -236,7 +240,7 @@ class FilterTests(ImportTestCase):
         assert User.objects.count() == 3
         assert UserIP.objects.count() == 3
         assert UserEmail.objects.count() == 3
-        assert Email.objects.count() == 2
+        assert Email.objects.count() == 2  # Lower due to shared emails
 
         assert User.objects.filter(username="user_1").exists()
         assert User.objects.filter(username="user_2").exists()
