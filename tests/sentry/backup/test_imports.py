@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import tempfile
 from copy import deepcopy
+from datetime import datetime
 from functools import cached_property
 from pathlib import Path
 
@@ -104,6 +105,18 @@ class SanitizationTests(BackupTestCase):
         assert User.objects.count() == 4
         assert User.objects.filter(is_staff=False, is_superuser=False).count() == 4
 
+        # Every user except `max_user` shares an email.
+        assert Email.objects.count() == 2
+
+        # All `UserEmail`s must have their verification status reset in this scope.
+        assert UserEmail.objects.count() == 4
+        assert UserEmail.objects.filter(is_verified=True).count() == 0
+        assert UserEmail.objects.filter(date_hash_added__lt=datetime(2023, 7, 1, 0, 0)).count() == 0
+        assert (
+            UserEmail.objects.filter(validation_hash="mCnWesSVvYQcq7qXQ36AZHwosAd6cghE").count()
+            == 0
+        )
+
         assert User.objects.filter(is_staff=True).count() == 0
         assert User.objects.filter(is_superuser=True).count() == 0
         assert Authenticator.objects.count() == 0
@@ -120,6 +133,18 @@ class SanitizationTests(BackupTestCase):
 
         assert User.objects.count() == 4
         assert User.objects.filter(is_staff=False, is_superuser=False).count() == 4
+
+        # Every user except `max_user` shares an email.
+        assert Email.objects.count() == 2
+
+        # All `UserEmail`s must have their verification status reset in this scope.
+        assert UserEmail.objects.count() == 4
+        assert UserEmail.objects.filter(is_verified=True).count() == 0
+        assert UserEmail.objects.filter(date_hash_added__lt=datetime(2023, 7, 1, 0, 0)).count() == 0
+        assert (
+            UserEmail.objects.filter(validation_hash="mCnWesSVvYQcq7qXQ36AZHwosAd6cghE").count()
+            == 0
+        )
 
         assert User.objects.filter(is_staff=True).count() == 0
         assert User.objects.filter(is_superuser=True).count() == 0
@@ -140,6 +165,19 @@ class SanitizationTests(BackupTestCase):
         assert User.objects.filter(is_superuser=True).count() == 2
         assert User.objects.filter(is_staff=False, is_superuser=False).count() == 2
         assert Authenticator.objects.count() == 4
+        assert UserEmail.objects.count() == 4
+
+        # Every user except `max_user` shares an email.
+        assert Email.objects.count() == 2
+
+        # All `UserEmail`s must keep their imported verification status reset in this scope.
+        assert UserEmail.objects.count() == 4
+        assert UserEmail.objects.filter(is_verified=True).count() == 4
+        assert UserEmail.objects.filter(date_hash_added__lt=datetime(2023, 7, 1, 0, 0)).count() == 4
+        assert (
+            UserEmail.objects.filter(validation_hash="mCnWesSVvYQcq7qXQ36AZHwosAd6cghE").count()
+            == 4
+        )
 
         # 1 from `max_user`, 1 from `permission_user`.
         assert UserPermission.objects.count() == 2
