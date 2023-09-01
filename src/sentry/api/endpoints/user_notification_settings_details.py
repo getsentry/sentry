@@ -81,6 +81,7 @@ class UserNotificationSettingsDetailsEndpoint(UserEndpoint):
 
         :auth required:
         """
+
         notification_settings = validate(request.data, user=user)
         NotificationSetting.objects.update_settings_bulk(notification_settings, user=user)
 
