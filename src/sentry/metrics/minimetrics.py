@@ -200,12 +200,12 @@ class Aggregator:
         thread_local.in_minimetrics = True
 
         # We obtain the counts for each metric type, since we want to know how many by type we have.
-        counts_by_type = defaultdict(lambda: 0)
+        counts_by_type: Dict[str, float] = defaultdict(lambda: 0)
         for metric in extracted_metrics:
             metric_type = metric["type"]
             metric_value = metric["value"]
 
-            value = 0
+            value = 0.0
             if metric_type == "c":
                 # For counters, we want to sum the count value.
                 value = metric_value
@@ -224,7 +224,9 @@ class Aggregator:
         # For each type and count we want to emit a metric.
         for metric_type, metric_count in counts_by_type.items():
             # We want to emit a metric on how many metrics we would technically emit if we were to use minimetrics.
-            metrics.incr("minimetrics.emit", amount=metric_count, tags={"metric_type": metric_type})
+            metrics.incr(
+                "minimetrics.emit", amount=int(metric_count), tags={"metric_type": metric_type}
+            )
 
         # We clear the thread local variables, in order to make metrics extraction continue as normal.
         thread_local.__dict__.clear()
