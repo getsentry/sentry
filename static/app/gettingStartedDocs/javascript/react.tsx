@@ -69,13 +69,16 @@ npm install --save @sentry/react
       {
         language: 'javascript',
         code: `
-        Sentry.init({
-          ${sentryInitContent}
-        });
+//...
+import * as Sentry from "@sentry/react";
 
-        const container = document.getElementById(“app”);
-        const root = createRoot(container);
-        root.render(<App />)
+Sentry.init({
+  ${sentryInitContent}
+});
+
+const container = document.getElementById(“app”);
+const root = createRoot(container);
+root.render(<App />);
         `,
       },
     ],
@@ -93,7 +96,7 @@ npm install --save @sentry/react
       {
         language: 'javascript',
         code: `
-        return <button onClick={() => methodDoesNotExist()}>Break the world</button>;
+return <button onClick={() => methodDoesNotExist()}>Break the world</button>;
         `,
       },
     ],
