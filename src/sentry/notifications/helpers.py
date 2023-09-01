@@ -688,7 +688,7 @@ def get_query(
         if user_id is None and team_id is None:
             raise Exception(f"recipient must be either user or team, got {type(recipient)}")
 
-    user_ids = user_ids or ([user_id] if user_id else None)
+    user_ids = user_ids or ([user_id] if user_id else [])
     project_settings = (
         Q(
             scope_type=NotificationScopeEnum.PROJECT.value,
