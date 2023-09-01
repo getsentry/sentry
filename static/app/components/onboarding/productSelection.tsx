@@ -169,6 +169,7 @@ function Product({
           </TooltipDescription>
         ))
       }
+      delay={500}
       isHoverable
     >
       <ProductWrapper
