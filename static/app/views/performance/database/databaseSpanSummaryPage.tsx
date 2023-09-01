@@ -61,7 +61,7 @@ function SpanSummaryPage({params}: Props) {
     ? {transactionName: endpoint, 'transaction.method': endpointMethod}
     : {};
 
-  const sort = useModuleSort(DEFAULT_SORT);
+  const sort = useModuleSort(QueryParameterNames.ENDPOINTS_SORT, DEFAULT_SORT);
 
   const {data: fullSpan} = useFullSpanFromTrace(groupId);
 

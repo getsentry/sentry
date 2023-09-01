@@ -28,6 +28,7 @@ import {OnboardingSelectedSDK} from 'sentry/types';
 import {IssueAlertRule} from 'sentry/types/alerts';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {decodeList} from 'sentry/utils/queryString';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {SetupDocsLoader} from 'sentry/views/onboarding/setupDocsLoader';
@@ -77,7 +78,7 @@ export function ProjectInstallPlatform({location, params}: Props) {
   );
 
   const products = useMemo(
-    () => (location.query.product ?? []) as ProductSolution[],
+    () => decodeList(location.query.product ?? []) as ProductSolution[],
     [location.query.product]
   );
 
