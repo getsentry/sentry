@@ -1,5 +1,6 @@
 import logging
 import time
+from typing import Optional
 
 import sentry_sdk
 from django.db import router, transaction
@@ -24,7 +25,7 @@ logger = logging.getLogger(__name__)
     time_limit=10,  # Extra 5 seconds to remove the debounce key.
     expires=30,  # Relay stops waiting for this anyway.
 )
-def build_project_config(version: int = 3, public_key=None, **kwargs):
+def build_project_config(public_key=None, version: Optional[int] = None, **kwargs):
     """Build a project config and put it in the Redis cache.
 
     This task is used to compute missing project configs, it is aggressively
@@ -35,6 +36,10 @@ def build_project_config(version: int = 3, public_key=None, **kwargs):
 
     Do not invoke this task directly, instead use :func:`schedule_build_project_config`.
     """
+
+    if version is None:
+        version = 3
+
     sentry_sdk.set_tag("public_key", public_key)
     sentry_sdk.set_tag("version", version)
 
@@ -81,7 +86,7 @@ def schedule_build_project_config(public_key, version: int):
         "relay.projectconfig_cache.scheduled",
         tags={"task": "build"},
     )
-    build_project_config.delay(version=version, public_key=public_key, tmp_scheduled=tmp_scheduled)
+    build_project_config.delay(public_key=public_key, version=version, tmp_scheduled=tmp_scheduled)
 
     # Checking if the project is debounced and debouncing it are two separate
     # actions that aren't atomic. If the process marks a project as debounced
