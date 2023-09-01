@@ -63,7 +63,6 @@ export function Exception({
     <TraceEventDataSection
       title={<PermalinkTitle>{t('Stack Trace')}</PermalinkTitle>}
       type={EntryType.EXCEPTION}
-      stackType={StackType.ORIGINAL}
       projectSlug={projectSlug}
       eventId={event.id}
       recentFirst={isStacktraceNewestFirst()}

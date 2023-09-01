@@ -1,6 +1,6 @@
 import logging
 import warnings
-from typing import List
+from typing import List, Optional
 
 from django.contrib.auth.models import AbstractBaseUser
 from django.contrib.auth.models import UserManager as DjangoUserManager
@@ -370,13 +370,20 @@ class User(BaseModel, AbstractBaseUser):
     def clear_lost_passwords(self):
         LostPasswordHash.objects.filter(user=self).delete()
 
-    def _normalize_before_relocation_import(self, pk_map: PrimaryKeyMap, scope: ImportScope) -> int:
+    def _normalize_before_relocation_import(
+        self, pk_map: PrimaryKeyMap, scope: ImportScope
+    ) -> Optional[int]:
         old_pk = super()._normalize_before_relocation_import(pk_map, scope)
+        if old_pk is None:
+            return None
+
         if scope != ImportScope.Global:
             self.is_staff = False
             self.is_superuser = False
 
-        # TODO(getsentry/team-ospo#181): Handle usernames that already exist.
+        # TODO(getsentry/team-ospo#181): Handle usernames that already exist. This will involve
+        # marking the user "unclaimed", wiping their password, and adding a random suffix to their
+        # username.
 
         return old_pk
 

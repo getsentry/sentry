@@ -29,10 +29,10 @@ import {
   useSpanTransactionMetrics,
 } from 'sentry/views/starfish/queries/useSpanTransactionMetrics';
 import {
+  MetricsResponse,
   SpanIndexedField,
   SpanIndexedFieldTypes,
   SpanMetricsField,
-  SpanMetricsFieldTypes,
 } from 'sentry/views/starfish/types';
 import {extractRoute} from 'sentry/views/starfish/utils/extractRoute';
 import {useRoutingContext} from 'sentry/views/starfish/utils/routingContext';
@@ -50,10 +50,7 @@ type Row = {
 
 type Props = {
   sort: ValidSort;
-  span: Pick<
-    SpanMetricsFieldTypes,
-    SpanMetricsField.SPAN_GROUP | SpanMetricsField.SPAN_OP
-  >;
+  span: Pick<MetricsResponse, SpanMetricsField.SPAN_GROUP | SpanMetricsField.SPAN_OP>;
   endpoint?: string;
   endpointMethod?: string;
 };
@@ -156,7 +153,13 @@ export function SpanTransactionsTable({span, endpoint, endpointMethod, sort}: Pr
           columnOrder={getColumnOrder(span)}
           columnSortBy={[]}
           grid={{
-            renderHeadCell: col => renderHeadCell({column: col, sort, location}),
+            renderHeadCell: col =>
+              renderHeadCell({
+                column: col,
+                sort,
+                location,
+                sortParameterName: QueryParameterNames.ENDPOINTS_SORT,
+              }),
             renderBodyCell,
           }}
           location={location}

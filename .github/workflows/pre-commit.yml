@@ -21,6 +21,9 @@ defaults:
 # hack for https://github.com/actions/cache/issues/810#issuecomment-1222550359
 env:
   SEGMENT_DOWNLOAD_TIMEOUT_MINS: 3
+  # workaround: secrets cannot be directly referenced in `if`
+  # https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#example-using-secrets
+  SECRET_ACCESS: ${{toJSON(secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY != null)}}
 
 jobs:
   lint:
@@ -28,7 +31,9 @@ jobs:
     runs-on: ubuntu-20.04
     timeout-minutes: 10
     steps:
-      - uses: getsentry/action-github-app-token@97c9e23528286821f97fba885c1b1123284b29cc # v2.0.0
+      - # get a non-default github token so that any changes are verified by CI
+        if: env.SECRET_ACCESS == 'true'
+        uses: getsentry/action-github-app-token@97c9e23528286821f97fba885c1b1123284b29cc # v2.0.0
         id: token
         with:
           app_id: ${{ vars.SENTRY_INTERNAL_APP_ID }}
@@ -38,8 +43,6 @@ jobs:
         id: changes
         uses: getsentry/paths-filter@4512585405083f25c027a35db413c2b3b9006d50 # v2.11.1
         with:
-          token: ${{ steps.token.outputs.token }}
-
           # Enable listing of files matching each filter.
           # Paths to files will be available in `${FILTER_NAME}_files` output variable.
           list-files: json
@@ -76,7 +79,8 @@ jobs:
             xargs pre-commit run --files
 
       - name: Apply any pre-commit fixed files
-        if: startsWith(github.ref, 'refs/pull')
+        # note: this runs "always" or else it's skipped when pre-commit fails
+        if: env.SECRET_ACCESS == 'true' && startsWith(github.ref, 'refs/pull') && always()
         uses: getsentry/action-github-commit@748c31dd78cffe76f51bef49a0be856b6effeda7 # v1.1.0
         with:
           github-token: ${{ steps.token.outputs.token }}

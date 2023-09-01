@@ -20,8 +20,8 @@ from sentry.backup.exports import (
     export_in_user_scope,
 )
 from sentry.backup.findings import ComparatorFindings
-from sentry.backup.imports import OldImportConfig, _import
-from sentry.backup.scopes import ExportScope, ImportScope
+from sentry.backup.imports import import_in_global_scope
+from sentry.backup.scopes import ExportScope
 from sentry.backup.validate import validate
 from sentry.db.models.fields.bounded import BoundedBigAutoField
 from sentry.incidents.models import (
@@ -33,6 +33,7 @@ from sentry.incidents.models import (
     TimeSeriesSnapshot,
 )
 from sentry.models.apiauthorization import ApiAuthorization
+from sentry.models.apigrant import ApiGrant
 from sentry.models.apikey import ApiKey
 from sentry.models.apitoken import ApiToken
 from sentry.models.authenticator import Authenticator
@@ -45,7 +46,9 @@ from sentry.models.dashboard_widget import (
     DashboardWidgetQuery,
     DashboardWidgetTypes,
 )
-from sentry.models.environment import EnvironmentProject
+from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.models.integrations.project_integration import ProjectIntegration
 from sentry.models.integrations.sentry_app import SentryApp
 from sentry.models.options.option import ControlOption, Option
 from sentry.models.options.organization_option import OrganizationOption
@@ -58,22 +61,13 @@ from sentry.models.projectownership import ProjectOwnership
 from sentry.models.projectredirect import ProjectRedirect
 from sentry.models.recentsearch import RecentSearch
 from sentry.models.relay import Relay, RelayUsage
-from sentry.models.repository import Repository
 from sentry.models.rule import RuleActivity, RuleActivityType
 from sentry.models.savedsearch import SavedSearch, Visibility
 from sentry.models.search_common import SearchType
 from sentry.models.user import User
 from sentry.models.userip import UserIP
 from sentry.models.userrole import UserRole, UserRoleUser
-from sentry.monitors.models import (
-    CheckInStatus,
-    Monitor,
-    MonitorCheckIn,
-    MonitorEnvironment,
-    MonitorLocation,
-    MonitorType,
-    ScheduleType,
-)
+from sentry.monitors.models import Monitor, MonitorType, ScheduleType
 from sentry.sentry_apps.apps import SentryAppUpdater
 from sentry.silo import unguarded_write
 from sentry.testutils.cases import TransactionTestCase
@@ -97,7 +91,7 @@ class ValidationError(Exception):
         self.info = info
 
 
-def export_to_file(path: Path, scope: ExportScope) -> JSONData:
+def export_to_file(path: Path, scope: ExportScope, filter_by: set[str] | None = None) -> JSONData:
     """Helper function that exports the current state of the database to the specified file."""
 
     json_file_path = str(path)
@@ -105,11 +99,11 @@ def export_to_file(path: Path, scope: ExportScope) -> JSONData:
         # These functions are just thin wrappers, but its best to exercise them directly anyway in
         # case that ever changes.
         if scope == ExportScope.Global:
-            export_in_global_scope(tmp_file, NOOP_PRINTER)
+            export_in_global_scope(tmp_file, printer=NOOP_PRINTER)
         elif scope == ExportScope.Organization:
-            export_in_organization_scope(tmp_file, NOOP_PRINTER)
+            export_in_organization_scope(tmp_file, org_filter=filter_by, printer=NOOP_PRINTER)
         elif scope == ExportScope.User:
-            export_in_user_scope(tmp_file, NOOP_PRINTER)
+            export_in_user_scope(tmp_file, user_filter=filter_by, printer=NOOP_PRINTER)
         else:
             raise AssertionError(f"Unknown `ExportScope`: `{scope.name}`")
 
@@ -126,24 +120,29 @@ def reversed_dependencies():
     return sorted
 
 
-def clear_database_but_keep_sequences():
+def clear_database(*, reset_pks: bool = False):
     """Deletes all models we care about from the database, in a sequence that ensures we get no
     foreign key errors."""
 
-    with unguarded_write(using="default"), transaction.atomic(using="default"):
-        reversed = reversed_dependencies()
-        for model in reversed:
-            # For some reason, the tables for `SentryApp*` models don't get deleted properly here
-            # when using `model.objects.all().delete()`, so we have to call out to Postgres
-            # manually.
-            connection = connections[router.db_for_write(SentryApp)]
-            with connection.cursor() as cursor:
-                table = model._meta.db_table
-                cursor.execute(f"DELETE FROM {table:s};")
+    with unguarded_write(using="default"):
+        if reset_pks:
+            call_command("flush", verbosity=0, interactive=False)
+            return
 
-        # Clear remaining tables that are not explicitly in Sentry's own model dependency graph.
-        for model in set(apps.get_models()) - set(reversed):
-            model.objects.all().delete()
+        with transaction.atomic(using="default"):
+            reversed = reversed_dependencies()
+            for model in reversed:
+                # For some reason, the tables for `SentryApp*` models don't get deleted properly
+                # here when using `model.objects.all().delete()`, so we have to call out to Postgres
+                # manually.
+                connection = connections[router.db_for_write(SentryApp)]
+                with connection.cursor() as cursor:
+                    table = model._meta.db_table
+                    cursor.execute(f"DELETE FROM {table:s};")
+
+            # Clear remaining tables that are not explicitly in Sentry's own model dependency graph.
+            for model in set(apps.get_models()) - set(reversed):
+                model.objects.all().delete()
 
 
 def import_export_then_validate(method_name: str, *, reset_pks: bool = True) -> JSONData:
@@ -157,17 +156,12 @@ def import_export_then_validate(method_name: str, *, reset_pks: bool = True) -> 
         # Export the current state of the database into the "expected" temporary file, then
         # parse it into a JSON object for comparison.
         expect = export_to_file(tmp_expect, ExportScope.Global)
+        clear_database(reset_pks=reset_pks)
 
         # Write the contents of the "expected" JSON file into the now clean database.
         # TODO(Hybrid-Cloud): Review whether this is the correct route to apply in this case.
-        with unguarded_write(using="default"):
-            if reset_pks:
-                call_command("flush", verbosity=0, interactive=False)
-            else:
-                clear_database_but_keep_sequences()
-
-            with open(tmp_expect) as tmp_file:
-                _import(tmp_file, ImportScope.Global, OldImportConfig(), NOOP_PRINTER)
+        with unguarded_write(using="default"), open(tmp_expect) as tmp_file:
+            import_in_global_scope(tmp_file, printer=NOOP_PRINTER)
 
         # Validate that the "expected" and "actual" JSON matches.
         actual = export_to_file(tmp_actual, ExportScope.Global)
@@ -211,7 +205,7 @@ def import_export_from_fixture_then_validate(
 
     # TODO(Hybrid-Cloud): Review whether this is the correct route to apply in this case.
     with unguarded_write(using="default"), open(fixture_file_path) as fixture_file:
-        _import(fixture_file, ImportScope.Global, OldImportConfig(), NOOP_PRINTER)
+        import_in_global_scope(fixture_file, printer=NOOP_PRINTER)
 
     res = validate(
         expect, export_to_file(tmp_path.joinpath("tmp_test_file.json"), ExportScope.Global), map
@@ -228,11 +222,15 @@ class BackupTestCase(TransactionTestCase):
         self,
         username: str,
         *,
+        email: str | None = None,
         is_admin: bool = False,
         is_staff: bool = False,
         is_superuser: bool = False,
     ) -> User:
-        user = self.create_user(username, is_staff=is_staff, is_superuser=is_superuser)
+        email = username if email is None else email
+        user = self.create_user(
+            email, username=username, is_staff=is_staff, is_superuser=is_superuser
+        )
         UserOption.objects.create(user=user, key="timezone", value="Europe/Vienna")
         UserIP.objects.create(
             user=user,
@@ -240,6 +238,7 @@ class BackupTestCase(TransactionTestCase):
             first_seen=datetime(2012, 4, 5, 3, 29, 45, tzinfo=timezone.utc),
             last_seen=datetime(2012, 4, 5, 3, 29, 45, tzinfo=timezone.utc),
         )
+        Authenticator.objects.create(user=user, type=1)
 
         if is_admin:
             self.add_user_permission(user, "users.admin")
@@ -248,10 +247,15 @@ class BackupTestCase(TransactionTestCase):
 
         return user
 
-    def create_exhaustive_organization(self, slug: str, owner: User, invitee: User) -> Organization:
-        org = self.create_organization(name=f"test_org_for_{slug}", owner=owner)
-        membership = self.create_member(organization=org, user=invitee, role="member")
+    def create_exhaustive_organization(
+        self, slug: str, owner: User, invitee: User, other: list[User] | None = None
+    ) -> Organization:
+        org = self.create_organization(name=slug, owner=owner)
         owner_id: BoundedBigAutoField = owner.id
+        invited = self.create_member(organization=org, user=invitee, role="member")
+        if other:
+            for o in other:
+                self.create_member(organization=org, user=o, role="member")
 
         OrganizationOption.objects.create(
             organization=org, key="sentry:account-rate-limit", value=0
@@ -268,7 +272,6 @@ class BackupTestCase(TransactionTestCase):
         )
         ApiKey.objects.create(key=uuid4().hex, organization_id=org.id)
         auth_provider = AuthProvider.objects.create(organization_id=org.id, provider="sentry")
-        Authenticator.objects.create(user=owner, type=1)
         AuthIdentity.objects.create(
             user=owner,
             auth_provider=auth_provider,
@@ -281,20 +284,31 @@ class BackupTestCase(TransactionTestCase):
             },
         )
 
+        # Team
+        team = self.create_team(name=f"test_team_in_{slug}", organization=org)
+        self.create_team_membership(user=owner, team=team)
+        OrganizationAccessRequest.objects.create(member=invited, team=team)
+
         # Project*
-        project = self.create_project()
+        project = self.create_project(name=f"project-{slug}", teams=[team])
         self.create_project_key(project)
         self.create_project_bookmark(project=project, user=owner)
-        project = self.create_project()
         ProjectOwnership.objects.create(
             project=project, raw='{"hello":"hello"}', schema={"hello": "hello"}
         )
         ProjectRedirect.record(project, f"project_slug_in_{slug}")
 
-        # Team
-        team = self.create_team(name=f"test_team_in_{slug}", organization=org)
-        self.create_team_membership(user=owner, team=team)
-        OrganizationAccessRequest.objects.create(member=membership, team=team)
+        # Integration*
+        integration = Integration.objects.create(
+            provider="slack", name=f"Slack for {slug}", external_id=f"slack:{slug}"
+        )
+        OrganizationIntegration.objects.create(
+            organization_id=org.id, integration=integration, config='{"hello":"hello"}'
+        )
+        # Note: this model is deprecated, and can safely be removed from this test when it is finally removed. Until then, it is included for completeness.
+        ProjectIntegration.objects.create(
+            project=project, integration_id=integration.id, config='{"hello":"hello"}'
+        )
 
         # Rule*
         rule = self.create_project_rule(project=project)
@@ -302,36 +316,29 @@ class BackupTestCase(TransactionTestCase):
         self.snooze_rule(user_id=owner_id, owner_id=owner_id, rule=rule)
 
         # Environment*
-        env = self.create_environment()
-        EnvironmentProject.objects.create(project=project, environment=env, is_hidden=False)
+        self.create_environment(project=project)
 
-        # Monitor*
-        monitor = Monitor.objects.create(
+        # Monitor
+        Monitor.objects.create(
             organization_id=project.organization.id,
             project_id=project.id,
             type=MonitorType.CRON_JOB,
             config={"schedule": "* * * * *", "schedule_type": ScheduleType.CRONTAB},
         )
-        mon_env = MonitorEnvironment.objects.create(
-            monitor=monitor,
-            environment=env,
-        )
-        location = MonitorLocation.objects.create(guid=uuid4(), name=f"test_location_in_{slug}")
-        MonitorCheckIn.objects.create(
-            monitor=monitor,
-            monitor_environment=mon_env,
-            location=location,
-            project_id=monitor.project_id,
-            status=CheckInStatus.IN_PROGRESS,
-        )
 
         # AlertRule*
-        alert = self.create_alert_rule(include_all_projects=True, excluded_projects=[project])
-        trigger = self.create_alert_rule_trigger(alert_rule=alert, excluded_projects=[self.project])
+        other_project = self.create_project(name=f"other-project-{slug}", teams=[team])
+        alert = self.create_alert_rule(
+            organization=org,
+            projects=[project],
+            include_all_projects=True,
+            excluded_projects=[other_project],
+        )
+        trigger = self.create_alert_rule_trigger(alert_rule=alert, excluded_projects=[project])
         self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
 
         # Incident*
-        incident = self.create_incident()
+        incident = self.create_incident(org, [project])
         IncidentActivity.objects.create(
             incident=incident,
             type=1,
@@ -390,11 +397,12 @@ class BackupTestCase(TransactionTestCase):
 
         # misc
         Counter.increment(project, 1)
-        Repository.objects.create(
-            name=f"test_repo_for_{slug}",
-            organization_id=org.id,
-            # TODO(getsentry/issue#187): Re-activate once we add `Integration` model to exports.
-            # integration_id=self.integration.id,
+        self.create_repo(
+            project=project,
+            name="getsentry/getsentry",
+            provider="integrations:github",
+            integration_id=integration.id,
+            url="https://github.com/getsentry/getsentry",
         )
 
         return org
@@ -411,6 +419,13 @@ class BackupTestCase(TransactionTestCase):
         ApiAuthorization.objects.create(application=app.application, user=owner)
         ApiToken.objects.create(
             application=app.application, user=owner, token=uuid4().hex, expires_at=None
+        )
+        ApiGrant.objects.create(
+            user=owner,
+            application=app.application,
+            expires_at="2022-01-01 11:11",
+            redirect_uri="https://example.com",
+            scope_list=["openid", "profile", "email"],
         )
 
         # ServiceHook
