@@ -659,3 +659,49 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
 def test_search_value(raw, result):
     search_value = SearchValue(raw)
     assert search_value.value == result
+
+
+@pytest.mark.parametrize(
+    "query",
+    [
+        "event.type:=transaction",
+        "!event.type:[transaction]",
+        "event.type:[transaction, event]",
+        "event.type:[1, 2]",
+        "transaction.duration:>=1.0",
+        "transaction.duration:>1.0",
+        "transaction.duration:=1.0",
+        "transaction.duration:<=1.0",
+        "transaction.duration:<1.0",
+    ],
+)
+def test_search_filter_to_query_string(query):
+    """
+    Does a round trip (from query string to tokens and back to query string)
+    """
+
+    filters = parse_search_query(query)
+    assert len(filters) == 1
+    actual = filters[0].to_query_string()
+    assert actual == query
+
+
+@pytest.mark.parametrize(
+    "value,expected_query_string",
+    [
+        (1, "1"),
+        ("abc", "abc"),
+        ([1, 2, 3], "[1, 2, 3]"),
+        (["a", "b", "c"], "[a, b, c]"),
+        (datetime.datetime(2023, 10, 15, 11, 12, 13), "2023-10-15T11:12:13"),
+    ],
+)
+def test_search_value_to_query_string(value, expected_query_string):
+    """
+    Test turning a QueryValue back to a string usable in a query string
+    """
+
+    search_value = SearchValue(value)
+    actual = search_value.to_query_string()
+
+    assert actual == expected_query_string
