@@ -26,6 +26,8 @@ export enum ProductSolution {
 // Since the ProductSelection component is rendered in the onboarding/project creation flow only, it is ok to have this list here
 // NOTE: Please keep the prefix in alphabetical order
 export const platformProductAvailability = {
+  android: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'apple-ios': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   javascript: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.SESSION_REPLAY],
   'javascript-react': [
     ProductSolution.PERFORMANCE_MONITORING,
