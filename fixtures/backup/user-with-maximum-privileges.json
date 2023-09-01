@@ -5,9 +5,9 @@
         "fields": {
             "password": "pbkdf2_sha256$150000$iEvdIknqYjTr$+QsGn0tfIJ1FZLxQI37mVU1gL2KbL/wqjMtG/dFhsMA=",
             "last_login": null,
-            "username": "testing@example.com",
+            "username": "maximum@example.com",
             "name": "",
-            "email": "testing@example.com",
+            "email": "maximum@example.com",
             "is_staff": true,
             "is_active": true,
             "is_superuser": true,
@@ -39,7 +39,7 @@
         "pk": 1,
         "fields": {
             "user": 1,
-            "email": "testing@example.com",
+            "email": "maximum@example.com",
             "validation_hash": "mCnWesSVvYQcq7qXQ36AZHwosAd6cghE",
             "date_hash_added": "2023-06-22T22:59:55.521Z",
             "is_verified": true
