@@ -5,7 +5,6 @@ from datetime import timedelta
 from typing import TYPE_CHECKING, Iterable, Mapping, Optional, Tuple
 
 from django.conf import settings
-from django.core.serializers.base import DeserializedObject
 from django.db import models
 from django.forms import model_to_dict
 from django.utils import timezone
@@ -88,7 +87,7 @@ class UserEmail(Model):
     # with `sentry.user` simultaneously? Will need to make more robust user handling logic, and to
     # test what happens when a UserEmail already exists.
     def write_relocation_import(
-        self, pk_map: PrimaryKeyMap, obj: DeserializedObject, scope: ImportScope
+        self, pk_map: PrimaryKeyMap, scope: ImportScope
     ) -> Optional[Tuple[int, int]]:
         old_pk = super()._normalize_before_relocation_import(pk_map, scope)
         if old_pk is None:
