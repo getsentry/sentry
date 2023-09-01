@@ -8,8 +8,11 @@ from sentry.notifications.helpers import (
     collect_groups_by_project,
     get_all_setting_options,
     get_all_setting_providers,
+    get_notification_recipients,
     get_scope_type,
     get_setting_options_for_recipient,
+    get_setting_options_for_users,
+    get_setting_providers_for_users,
     get_settings_by_provider,
     get_subscription_from_attributes,
     get_values_by_provider_by_type,
@@ -344,3 +347,68 @@ class NotificationSettingV2HelpersTest(TestCase):
         assert user_has_any_provider_settings(self.user, provider=ExternalProviderEnum.SLACK)
         assert user_has_any_provider_settings(self.user, provider=ExternalProviderEnum.EMAIL)
         assert not user_has_any_provider_settings(self.user, provider=ExternalProviderEnum.MSTEAMS)
+
+    def test_get_setting_options_for_user(self):
+        new_user = self.create_user()
+        setting_option_1 = add_notification_setting_option(
+            scope_type=NotificationScopeEnum.ORGANIZATION.value,
+            scope_identifier=self.organization.id,
+            type=NotificationSettingEnum.ISSUE_ALERTS.value,
+            value=NotificationSettingsOptionEnum.NEVER.value,
+            user_id=new_user.id,
+        )
+
+        options = get_setting_options_for_users(
+            [self.user.id, new_user.id], self.project, self.organization
+        )
+        assert options[new_user][NotificationSettingEnum.ISSUE_ALERTS.value] == setting_option_1
+        user_options = options[self.user]
+        assert user_options[NotificationSettingEnum.ISSUE_ALERTS.value] == self.setting_options[1]
+        assert user_options[NotificationSettingEnum.DEPLOY.value] == self.setting_options[0]
+
+    def test_get_setting_providers_for_user(self):
+        new_user = self.create_user()
+        setting_provider_1 = add_notification_setting_provider(
+            scope_type=NotificationScopeEnum.ORGANIZATION.value,
+            scope_identifier=self.organization.id,
+            provider=ExternalProviderEnum.MSTEAMS.value,
+            type=NotificationSettingEnum.ISSUE_ALERTS.value,
+            value=NotificationSettingsOptionEnum.NEVER.value,
+            user_id=new_user.id,
+        )
+
+        options = get_setting_providers_for_users(
+            [self.user.id, new_user.id], self.project, self.organization
+        )
+        assert options[new_user][ExternalProviderEnum.MSTEAMS.value] == setting_provider_1
+        user_options = options[self.user]
+        assert user_options[ExternalProviderEnum.MSTEAMS.value] == self.setting_providers[1]
+        assert user_options[ExternalProviderEnum.SLACK.value] == self.setting_providers[0]
+        assert user_options[ExternalProviderEnum.EMAIL.value] == self.setting_providers[2]
+
+    def test_get_notification_recipients(self):
+        new_user = self.create_user()
+        self.create_member(
+            organization=self.organization, user=new_user, role="member", teams=[self.team]
+        )
+
+        _ = add_notification_setting_option(
+            scope_type=NotificationScopeEnum.PROJECT.value,
+            scope_identifier=self.project.id,
+            type=NotificationSettingEnum.ISSUE_ALERTS.value,
+            value=NotificationSettingsOptionEnum.ALWAYS.value,
+            user_id=new_user.id,
+        )
+        _ = add_notification_setting_provider(
+            scope_type=NotificationScopeEnum.USER.value,
+            scope_identifier=new_user.id,
+            provider=ExternalProviderEnum.MSTEAMS.value,
+            type=NotificationSettingEnum.ISSUE_ALERTS.value,
+            value=NotificationSettingsOptionEnum.SUBSCRIBE_ONLY.value,
+            user_id=new_user.id,
+        )
+
+        recipients = get_notification_recipients(self.project)
+        assert recipients[ExternalProviderEnum.SLACK.value] == {self.user}
+        assert recipients[ExternalProviderEnum.EMAIL.value] == {self.user}
+        assert recipients[ExternalProviderEnum.MSTEAMS.value] == {new_user}

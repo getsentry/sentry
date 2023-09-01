@@ -689,7 +689,7 @@ def get_query(
         if user_id is None and team_id is None:
             raise Exception(f"recipient must be either user or team, got {type(recipient)}")
 
-    user_ids = user_ids or [user_id]
+    user_ids = user_ids or ([user_id] if user_id else [])
     project_settings = (
         Q(
             scope_type=NotificationScopeEnum.PROJECT.value,
@@ -713,10 +713,10 @@ def get_query(
     )
 
     team_or_user_settings = Q()
-    if user_id is not None:
+    if user_ids:
         team_or_user_settings = Q(
             scope_type=NotificationScopeEnum.USER.value,
-            scope_identifier=user_id,
+            scope_identifier__in=user_ids,
             user_id__in=user_ids,
         )
     elif team_id is not None:
@@ -811,7 +811,7 @@ def get_setting_options_for_recipient(
     return notification_settings
 
 
-def get_settings_options_for_users(
+def get_setting_options_for_users(
     user_ids: Iterable[int],
     project: Project | None = None,
     organization: Organization | None = None,
@@ -837,24 +837,24 @@ def get_settings_options_for_users(
         if ns.scope_type == NotificationScopeEnum.ORGANIZATION.value:
             ns_dict = user_to_setting[ns.user]
             if ns.type not in ns_dict:
-                ns_dict[ns.type] = ns
+                user_to_setting[ns.user][ns.type] = ns
 
     for ns in notification_settings:
         if ns.scope_type == NotificationScopeEnum.USER.value:
             ns_dict = user_to_setting[ns.user]
             if ns.type not in ns_dict:
-                ns_dict[ns.type] = ns
+                user_to_setting[ns.user][ns.type] = ns
 
     defaults = get_type_defaults()
     for _, ns_dict in user_to_setting.items():
-        for type in NOTIFICATION_SETTING_TYPES:
-            if type not in ns_dict:
-                ns_dict[type] = defaults[type]
+        for type in NotificationSettingEnum:
+            if type not in ns_dict and type in defaults:
+                user_to_setting[ns.user][type] = defaults[type]
 
     return user_to_setting
 
 
-def get_settings_providers_for_users(
+def get_setting_providers_for_users(
     user_ids: Iterable[int],
     project: Project | None = None,
     organization: Organization | None = None,
@@ -900,9 +900,9 @@ def get_notification_recipients(project: Project) -> Mapping[ExternalProviders, 
         project: The project to get notification settings for.
     """
     user_ids = project.member_set.values_list("user_id", flat=True)
+    options = get_setting_options_for_users(user_ids, project=project)
+    providers = get_setting_providers_for_users(user_ids, project=project)
 
-    options = get_settings_options_for_users(user_ids, project=project)
-    providers = get_settings_providers_for_users(user_ids, project=project)
     enabled_providers = {
         user: {
             provider: ps
