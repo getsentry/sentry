@@ -451,7 +451,11 @@ def get_default_comparators():
             "sentry.querysubscription": [DateUpdatedComparator("date_updated")],
             "sentry.relay": [HashObfuscatingComparator("relay_id", "public_key")],
             "sentry.relayusage": [HashObfuscatingComparator("relay_id", "public_key")],
-            "sentry.sentryapp": [EmailObfuscatingComparator("creator_label")],
+            "sentry.sentryapp": [
+                DateUpdatedComparator("date_updated"),
+                EmailObfuscatingComparator("creator_label"),
+            ],
+            "sentry.sentryappinstallation": [DateUpdatedComparator("date_updated")],
             "sentry.servicehook": [HashObfuscatingComparator("secret")],
             "sentry.user": [HashObfuscatingComparator("password")],
             "sentry.useremail": [

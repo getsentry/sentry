@@ -140,7 +140,8 @@ class Fixtures:
         return Factories.create_environment(project=project, **kwargs)
 
     def create_project(self, **kwargs):
-        kwargs.setdefault("teams", [self.team])
+        if "teams" not in kwargs:
+            kwargs["teams"] = [self.team]
         return Factories.create_project(**kwargs)
 
     def create_project_bookmark(self, project=None, *args, **kwargs):

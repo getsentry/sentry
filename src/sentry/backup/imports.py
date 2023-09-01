@@ -149,7 +149,7 @@ def _import(
                             if f.model == type(o) and getattr(o, f.field, None) not in f.values:
                                 break
                         else:
-                            written = o.write_relocation_import(pk_map, obj, scope)
+                            written = o.write_relocation_import(pk_map, scope)
                             if written is not None:
                                 old_pk, new_pk = written
                                 pk_map.insert(model_name, old_pk, new_pk)

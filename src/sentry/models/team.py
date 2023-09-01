@@ -5,7 +5,6 @@ from collections import defaultdict
 from typing import TYPE_CHECKING, Literal, Optional, Sequence, Tuple, Union, overload
 
 from django.conf import settings
-from django.core.serializers.base import DeserializedObject
 from django.db import IntegrityError, connections, models, router, transaction
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
@@ -369,9 +368,9 @@ class Team(Model, SnowflakeIdMixin):
 
     # TODO(hybrid-cloud): actor refactor. Remove this method when done.
     def write_relocation_import(
-        self, pk_map: PrimaryKeyMap, obj: DeserializedObject, scope: ImportScope
+        self, pk_map: PrimaryKeyMap, scope: ImportScope
     ) -> Optional[Tuple[int, int]]:
-        written = super().write_relocation_import(pk_map, obj, scope)
+        written = super().write_relocation_import(pk_map, scope)
         if written is not None:
             (_, new_pk) = written
 
