@@ -23,7 +23,8 @@ class CompositeExperimentalMetricsBackend(MetricsBackend):
         else:
             cls: Type[MetricsBackend] = import_string(primary_backend)
             # In case there is a prefix, we don't want to push it downstream, since it will be already prefixed by
-            # this backend instance.
+            # this backend instance. With this you NEED to make sure that the primary backend has a default value for
+            # `prefix`.
             backend_args.pop("prefix", None)
             self._primary_backend = cls(**backend_args)
 
