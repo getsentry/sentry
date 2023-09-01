@@ -816,25 +816,17 @@ def get_settings_options_for_users(
     project: Project | None = None,
     organization: Organization | None = None,
 ) -> MutableMapping[RpcActor, MutableMapping[NotificationSettingEnum, NotificationSettingOption]]:
-    project_settings = Q(
-        scope_type=NotificationScopeEnum.PROJECT.value,
-        scope_identifier=project.id,
-        user_id__in=user_ids,
-    )
-    org_settings = Q(
-        scope_type=NotificationScopeEnum.ORGANIZATION.value,
-        scope_identifier=(organization or project.organization.id),
-        user_id__in=user_ids,
-    )
-    user_settings = Q(
-        scope_type=NotificationScopeEnum.USER.value,
-        scope_identifier__in=user_ids,
-        user_id__in=user_ids,
-    )
+    """
+    Returns a map of users to NotificationSettingOption by type:
+    {user -> {notification type -> setting}}.
 
-    notification_settings = NotificationSettingOption.objects.filter(
-        project_settings | org_settings | user_settings
-    )
+    Args:
+        user_ids: The user ids to get notification settings for.
+        project: The project to get notification settings for.
+        organization: The organization to get notification settings for.
+    """
+    query = get_query(project=project, organization=organization, user_ids=user_ids)
+    notification_settings = NotificationSettingOption.objects.filter(query)
 
     user_to_setting = defaultdict(dict)
     for ns in notification_settings:
@@ -867,25 +859,17 @@ def get_settings_providers_for_users(
     project: Project | None = None,
     organization: Organization | None = None,
 ) -> MutableMapping[RpcActor, MutableMapping[NotificationSettingEnum, NotificationSettingProvider]]:
-    project_settings = Q(
-        scope_type=NotificationScopeEnum.PROJECT.value,
-        scope_identifier=project.id,
-        user_id__in=user_ids,
-    )
-    org_settings = Q(
-        scope_type=NotificationScopeEnum.ORGANIZATION.value,
-        scope_identifier=(organization or project.organization.id),
-        user_id__in=user_ids,
-    )
-    user_settings = Q(
-        scope_type=NotificationScopeEnum.USER.value,
-        scope_identifier__in=user_ids,
-        user_id__in=user_ids,
-    )
+    """
+    Returns a map of users to NotificationSettingProvider by provider:
+    {user -> {provider -> setting}}.
 
-    notification_settings = NotificationSettingProvider.objects.filter(
-        project_settings | org_settings | user_settings
-    )
+    Args:
+        user_ids: The user ids to get notification settings for.
+        project: The project to get notification settings for.
+        organization: The organization to get notification settings for.
+    """
+    query = get_query(project=project, organization=organization, user_ids=user_ids)
+    notification_settings = NotificationSettingProvider.objects.filter(query)
 
     user_to_setting = defaultdict(dict)
     for ns in notification_settings:
@@ -904,16 +888,17 @@ def get_settings_providers_for_users(
             if ns.provider not in ns_dict:
                 ns_dict[ns.provider] = ns
 
-    defaults = get_type_defaults()
-    for _, ns_dict in user_to_setting.items():
-        for type in NOTIFICATION_SETTING_TYPES:
-            if type not in ns_dict:
-                ns_dict[type] = defaults[type]
-
+    # TODO: Are there any provider defaults to fill in?
     return user_to_setting
 
 
 def get_notification_recipients(project: Project) -> Mapping[ExternalProviders, Iterable[RpcActor]]:
+    """
+    Returns the recipients that should be notified for each provider.
+
+    Args:
+        project: The project to get notification settings for.
+    """
     user_ids = project.member_set.values_list("user_id", flat=True)
 
     options = get_settings_options_for_users(user_ids, project=project)
@@ -939,6 +924,13 @@ def get_notification_recipients(project: Project) -> Mapping[ExternalProviders, 
 def user_has_any_provider_settings(
     recipient: RpcActor | Team | User, provider: ExternalProviderEnum
 ) -> bool:
+    """
+    Returns whether the recipient has any notification settings for the given provider.
+
+    Args:
+        recipient: The recipient of the notification settings (user or team).
+        provider: The provider to check for.
+    """
     settings = get_all_setting_providers(recipient)
     for setting in settings:
         if not setting.provider == provider.value:
