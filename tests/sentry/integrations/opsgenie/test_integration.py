@@ -181,8 +181,8 @@ class OpsgenieMigrationIntegrationTest(APITestCase):
             self.installation.schedule_migrate_opsgenie_plugin()
 
         org_integration = OrganizationIntegration.objects.get(integration_id=self.integration.id)
-        id1 = str(self.organization.id) + "-thonk"
-        id2 = str(self.organization.id) + "-thinkies"
+        id1 = str(self.organization_integration.id) + "-thonk"
+        id2 = str(self.organization_integration.id) + "-thinkies"
         assert org_integration.config == {
             "team_table": [
                 {"id": id1, "team": "thonk [MIGRATED]", "integration_key": "123-key"},
@@ -242,7 +242,7 @@ class OpsgenieMigrationIntegrationTest(APITestCase):
             self.installation.schedule_migrate_opsgenie_plugin()
 
         org_integration = OrganizationIntegration.objects.get(integration_id=self.integration.id)
-        id1 = str(self.organization.id) + "-thonk"
+        id1 = str(self.organization_integration.id) + "-thonk"
 
         assert org_integration.config == {
             "team_table": [
@@ -258,7 +258,7 @@ class OpsgenieMigrationIntegrationTest(APITestCase):
         org_integration.config = {
             "team_table": [
                 {
-                    "id": str(self.organization.id) + "-pikachu",
+                    "id": str(self.organization_integration.id) + "-pikachu",
                     "team": "pikachu",
                     "integration_key": "123-key",
                 },
@@ -278,7 +278,7 @@ class OpsgenieMigrationIntegrationTest(APITestCase):
         assert org_integration.config == {
             "team_table": [
                 {
-                    "id": str(self.organization.id) + "-pikachu",
+                    "id": str(self.organization_integration.id) + "-pikachu",
                     "team": "pikachu",
                     "integration_key": "123-key",
                 },
@@ -295,7 +295,7 @@ class OpsgenieMigrationIntegrationTest(APITestCase):
             {
                 "id": "sentry.integrations.opsgenie.notify_action.OpsgenieNotifyTeamAction",
                 "account": org_integration.id,
-                "team": str(self.organization.id) + "-pikachu",
+                "team": str(self.organization_integration.id) + "-pikachu",
             },
         ]
 
@@ -323,7 +323,7 @@ class OpsgenieMigrationIntegrationTest(APITestCase):
             self.installation.schedule_migrate_opsgenie_plugin()
 
         org_integration = OrganizationIntegration.objects.get(integration_id=self.integration.id)
-        id1 = str(self.organization.id) + "-thonk"
+        id1 = str(self.organization_integration.id) + "-thonk"
         rule_updated = Rule.objects.get(
             label="rule",
             project=self.project,
@@ -353,7 +353,7 @@ class OpsgenieMigrationIntegrationTest(APITestCase):
         org_integration.config = {
             "team_table": [
                 {
-                    "id": str(self.organization.id) + "-pikachu",
+                    "id": str(self.organization_integration.id) + "-pikachu",
                     "team": "pikachu",
                     "integration_key": "123-key",
                 },
@@ -371,7 +371,7 @@ class OpsgenieMigrationIntegrationTest(APITestCase):
                     {
                         "id": "sentry.integrations.opsgenie.notify_action.OpsgenieNotifyTeamAction",
                         "account": org_integration.id,
-                        "team": str(self.organization.id) + "-pikachu",
+                        "team": str(self.organization_integration.id) + "-pikachu",
                     },
                 ],
             },
@@ -383,7 +383,7 @@ class OpsgenieMigrationIntegrationTest(APITestCase):
         assert org_integration.config == {
             "team_table": [
                 {
-                    "id": str(self.organization.id) + "-pikachu",
+                    "id": str(self.organization_integration.id) + "-pikachu",
                     "team": "pikachu",
                     "integration_key": "123-key",
                 },
@@ -400,6 +400,6 @@ class OpsgenieMigrationIntegrationTest(APITestCase):
             {
                 "id": "sentry.integrations.opsgenie.notify_action.OpsgenieNotifyTeamAction",
                 "account": org_integration.id,
-                "team": str(self.organization.id) + "-pikachu",
+                "team": str(self.organization_integration.id) + "-pikachu",
             },
         ]
