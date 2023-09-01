@@ -154,10 +154,10 @@ def test_debounce(
     monkeypatch.setattr("sentry.tasks.relay.build_project_config.apply_async", apply_async)
 
     schedule_build_project_config(
-        version=projectconfig_version, public_key=default_projectkey.public_key
+        public_key=default_projectkey.public_key, version=projectconfig_version
     )
     schedule_build_project_config(
-        version=projectconfig_version, public_key=default_projectkey.public_key
+        public_key=default_projectkey.public_key, version=projectconfig_version
     )
 
     assert len(tasks) == 1
@@ -178,7 +178,7 @@ def test_generate(
     # redis_cache.delete_many([default_projectkey.public_key])
     assert not redis_cache.get(default_projectkey.public_key)
 
-    build_project_config(version=projectconfig_version, public_key=default_projectkey.public_key)
+    build_project_config(public_key=default_projectkey.public_key, version=projectconfig_version)
 
     cfg = redis_cache.get(default_projectkey.public_key)
 
