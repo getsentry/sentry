@@ -1,24 +1,27 @@
 import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
 import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import {PlatformKey} from 'sentry/data/platformCategories';
 import {t, tct} from 'sentry/locale';
-import type {Organization} from 'sentry/types';
+import {
+  getDefaulServerlessImports,
+  getDefaultInitParams,
+  getProductInitParams,
+  getProductIntegrations,
+  getProductSelectionMap,
+  joinWithIndentation,
+} from 'sentry/utils/gettingStartedDocs/node';
 
-type StepProps = {
-  newOrg: boolean;
-  organization: Organization;
-  platformKey: PlatformKey;
-  projectId: string;
-  sentryInitContent: string;
-};
-
-const performanceOtherConfig = `// Performance Monitoring
-tracesSampleRate: 1.0, // Capture 100% of the transactions, reduce in production!`;
+interface StepProps {
+  importContent: string;
+  initContent: string;
+  installSnippet: string;
+}
 
 export const steps = ({
-  sentryInitContent,
-}: Partial<StepProps> = {}): LayoutProps['steps'] => [
+  installSnippet,
+  importContent,
+  initContent,
+}: StepProps): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
     description: (
@@ -32,20 +35,15 @@ export const steps = ({
     configurations: [
       {
         language: 'json',
-        code: `
-dependencies: {
-  //...
-  "@sentry/serverless": "^7"
-}
-        `,
+        code: installSnippet,
       },
     ],
   },
   {
-    title: t('Configure SDK for Http Functions'),
+    type: StepType.CONFIGURE,
     description: (
       <p>
-        {tct('Use [code:wrapHttpFunction] to wrap your http function:', {
+        {tct('Use the Sentry SDK to wrap your functions:', {
           code: <code />,
         })}
       </p>
@@ -54,72 +52,31 @@ dependencies: {
       {
         language: 'javascript',
         code: `
-        const Sentry = require("@sentry/serverless");
+${importContent}
 
-        Sentry.GCPFunction.init({
-          ${sentryInitContent}
-        });
+Sentry.GCPFunction.init({
+  ${initContent}
+});
 
-        exports.helloHttp = Sentry.GCPFunction.wrapHttpFunction((req, res) => {
-          /* Your function code */
-        });
-        `,
-      },
-    ],
-  },
-  {
-    title: t('Configure SDK for Background Functions'),
-    description: (
-      <p>
-        {tct('Use [code:wrapEventFunction] to wrap your background function:', {
-          code: <code />,
-        })}
-      </p>
-    ),
-    configurations: [
-      {
-        language: 'javascript',
-        code: `
-        const Sentry = require("@sentry/serverless");
+// Use wrapHttpFunction to instrument your http functions
+exports.helloHttp = Sentry.GCPFunction.wrapHttpFunction((req, res) => {
+  /* Your function code */
+});
 
-        Sentry.GCPFunction.init({
-          ${sentryInitContent}
-        });
+// Use wrapEventFunction to instrument your background functions
+exports.helloEvents = Sentry.GCPFunction.wrapEventFunction(
+  (data, context, callback) => {
+    /* Your function code */
+  }
+);
 
-        exports.helloEvents = Sentry.GCPFunction.wrapEventFunction(
-          (data, context, callback) => {
-            /* Your function code */
-          }
-        );
-        `,
-      },
-    ],
-  },
-  {
-    title: t('Configure SDK for CloudEvent Functions'),
-    description: (
-      <p>
-        {tct('Use [code:wrapCloudEventFunction] to wrap your CloudEvent function:', {
-          code: <code />,
-        })}
-      </p>
-    ),
-    configurations: [
-      {
-        language: 'javascript',
-        code: `
-        const Sentry = require("@sentry/serverless");
-
-        Sentry.GCPFunction.init({
-          ${sentryInitContent}
-        });
-
-        exports.helloEvents = Sentry.GCPFunction.wrapCloudEventFunction(
-          (context, callback) => {
-            /* Your function code */
-          }
-        );
-        `,
+// Use wrapCloudEventFunction to instrument your CloudEvent functions
+exports.helloEvents = Sentry.GCPFunction.wrapCloudEventFunction(
+  (context, callback) => {
+    /* Your function code */
+  }
+);
+`,
       },
     ],
   },
@@ -132,28 +89,54 @@ dependencies: {
       {
         language: 'javascript',
         code: `
-        exports.helloHttp = Sentry.GCPFunction.wrapHttpFunction((req, res) => {
-          throw new Error("oh, hello there!");
-        });
+exports.helloHttp = Sentry.GCPFunction.wrapHttpFunction((req, res) => {
+  throw new Error("oh, hello there!");
+});
         `,
       },
     ],
   },
 ];
 
-export function GettingStartedWithGCPFunctions({dsn, newOrg, platformKey}: ModuleProps) {
-  let sentryInitContent: string[] = [`dsn: "${dsn}",`];
+export function GettingStartedWithGCPFunctions({
+  dsn,
+  newOrg,
+  platformKey,
+  activeProductSelection = [],
+}: ModuleProps) {
+  const productSelection = getProductSelectionMap(activeProductSelection);
 
-  const otherConfigs = [performanceOtherConfig];
+  const installSnippet: string[] = [
+    'dependencies: {',
+    '  //...',
+    `  "@sentry/serverless": "^7",`,
+  ];
 
-  if (otherConfigs.length > 0) {
-    sentryInitContent = sentryInitContent.concat(otherConfigs);
+  if (productSelection.profiling) {
+    installSnippet.push(`  "@sentry/profiling-node": "^1",`);
   }
+  installSnippet.push('  //...', '}');
+
+  const imports = getDefaulServerlessImports({productSelection});
+  const integrations = getProductIntegrations({productSelection});
+
+  const integrationParam =
+    integrations.length > 0
+      ? `integrations: [\n${joinWithIndentation(integrations)}\n],`
+      : null;
+
+  const initContent = joinWithIndentation([
+    ...getDefaultInitParams({dsn}),
+    ...(integrationParam ? [integrationParam] : []),
+    ...getProductInitParams({productSelection}),
+  ]);
 
   return (
     <Layout
       steps={steps({
-        sentryInitContent: sentryInitContent.join('\n'),
+        installSnippet: installSnippet.join('\n'),
+        importContent: imports.join('\n'),
+        initContent,
       })}
       newOrg={newOrg}
       platformKey={platformKey}
