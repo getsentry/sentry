@@ -4,7 +4,11 @@ from collections import defaultdict
 from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping
 
 from django.contrib.auth.models import AnonymousUser
+from pyparsing import Optional
 
+from sentry import features
+from sentry.models.organizationmapping import OrganizationMapping
+from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.notifications.defaults import NOTIFICATION_SETTING_DEFAULTS
 from sentry.notifications.types import (
     NOTIFICATION_SCOPE_TYPE,
@@ -610,3 +614,29 @@ def get_providers_for_recipient(
     user_providers = [get_provider_enum_from_string(idp_type) for idp_type in idp_types]
     user_providers.append(ExternalProviders.EMAIL)  # always add in email as an option
     return user_providers
+
+
+def is_double_write_enabled(user_id: Optional[int] = None, team_id: Optional[int] = None):
+    from sentry.models import Team
+    from sentry.services.hybrid_cloud.organization_mapping.serial import (
+        serialize_organization_mapping,
+    )
+
+    if team_id is not None:
+        # this only works in a region silo so if this is called from a
+        # control silo we need to figure out what to do
+        orgs = [Team.objects.get(id=team_id).organization]
+    elif user_id is not None:
+        # done in a control silo so use the maping
+        org_ids = OrganizationMemberMapping.objects.filter(user_id=user_id).values_list(
+            "organization_id", flat=True
+        )
+        orgs = list(
+            map(
+                serialize_organization_mapping,
+                OrganizationMapping.objects.filter(organization_id__in=list(org_ids)),
+            )
+        )
+    else:
+        raise ValueError("Need team_id or user_id")
+    return any(features.has("organizations:notifications-double-write", org) for org in orgs)
