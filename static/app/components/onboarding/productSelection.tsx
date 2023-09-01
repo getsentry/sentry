@@ -26,6 +26,8 @@ export enum ProductSolution {
 // Since the ProductSelection component is rendered in the onboarding/project creation flow only, it is ok to have this list here
 // NOTE: Please keep the prefix in alphabetical order
 export const platformProductAvailability = {
+  android: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'apple-ios': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   javascript: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.SESSION_REPLAY],
   'javascript-react': [
     ProductSolution.PERFORMANCE_MONITORING,
@@ -63,8 +65,40 @@ export const platformProductAvailability = {
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.SESSION_REPLAY,
   ],
+  node: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'node-azurefunctions': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+  ],
+  'node-connect': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'node-express': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'node-koa': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   python: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'python-aiohttp': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'python-awslambda': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'python-bottle': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'python-celery': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'python-chalice': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-django': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'python-falcon': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'python-fastapi': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'python-flask': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'python-gcpfunctions': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+  ],
+  'python-pyramid': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'python-quart': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'python-rq': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'python-sanic': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'python-serverless': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+  ],
+  'python-tornado': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'python-starlette': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'python-tryton': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'python-wsgi': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
 } as Record<PlatformKey, ProductSolution[]>;
 
 export type DisabledProduct = {

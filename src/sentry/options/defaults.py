@@ -269,6 +269,13 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+register(
+    "api.prevent-numeric-slugs",
+    default=False,
+    type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Beacon
 register("beacon.anonymous", type=Bool, flags=FLAG_REQUIRED)
 
@@ -997,6 +1004,11 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "sentry-metrics.writes-limiter.limits.custom.per-org",
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "sentry-metrics.writes-limiter.limits.generic-metrics.per-org",
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -1024,6 +1036,11 @@ register(
 )
 register(
     "sentry-metrics.writes-limiter.limits.releasehealth.global",
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "sentry-metrics.writes-limiter.limits.custom.global",
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
@@ -1074,6 +1091,11 @@ register(
 )
 register(
     "sentry-metrics.cardinality-limiter.limits.spans.per-org",
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "sentry-metrics.cardinality-limiter.limits.custom.per-org",
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
@@ -1491,5 +1513,11 @@ register(
 register(
     "on_demand.max_widget_specs",
     default=100,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "delightful_metrics.minimetrics_sample_rate",
+    default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

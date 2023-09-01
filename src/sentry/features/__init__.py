@@ -56,7 +56,6 @@ default_manager = FeatureManager()  # NOQA
 # fmt: off
 
 # Features that don't use resource scoping
-default_manager.add("app:enterprise-prevent-numeric-slugs", SystemFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("auth:register", SystemFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:create", SystemFeature, FeatureHandlerStrategy.INTERNAL)
 
@@ -74,7 +73,6 @@ default_manager.add("organizations:customer-domains", OrganizationFeature, Featu
 default_manager.add("organizations:dashboards-mep", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:dashboards-rh-widget", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:dashboards-import", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-default_manager.add("organizations:disable-sentryapps-on-broken", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:discover", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:discover-events-rate-limit", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:enterprise-data-secrecy", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
@@ -247,6 +245,8 @@ default_manager.add("organizations:integrations-alert-rule", OrganizationFeature
 default_manager.add("organizations:integrations-chat-unfurl", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:integrations-codeowners", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:integrations-deployment", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
+default_manager.add("organizations:integrations-enterprise-alert-rule", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
+default_manager.add("organizations:integrations-enterprise-incident-management", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:integrations-event-hooks", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:integrations-feature-flag-integration", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:integrations-incident-management", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
@@ -268,14 +268,15 @@ default_manager.add("organizations:ds-sliding-window", OrganizationFeature, Feat
 default_manager.add("organizations:ds-sliding-window-org", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:ds-org-recalibration", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:github-disable-on-broken", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-default_manager.add("organizations:slack-fatal-disable-on-broken", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+default_manager.add("organizations:gitlab-disable-on-broken", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:sourcemaps-bundle-flat-file-indexing", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:sourcemaps-upload-release-as-artifact-bundle", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:recap-server", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
-default_manager.add("organizations:detailed-alert-logging", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:notification-settings-v2", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:on-demand-metrics-prefill", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:enable-on-demand-metrics-prefill", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+default_manager.add("organizations:custom-metrics", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
+default_manager.add("organizations:release-ui-v2", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 
 # Project scoped features
 default_manager.add("projects:alert-filters", ProjectFeature, FeatureHandlerStrategy.INTERNAL)

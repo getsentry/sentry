@@ -98,6 +98,8 @@ type TestStubFixtures = {
   MetricsTotalCountByReleaseIn24h: SimpleStub;
   MissingMembers: OverridableStubList;
   NotificationDefaults: SimpleStub;
+  OpsgenieIntegration: OverridableStub;
+  OpsgenieIntegrationProvider: OverridableStub;
   OrgOwnedApps: SimpleStub;
   OrgRoleList: OverridableStub;
   Organization: OverridableStub;

@@ -7,11 +7,11 @@ on:
 env:
     CLI_VERSION: v0.1.5
 
-    # Cancel in progress workflows on pull_requests.
-    # https://docs.github.com/en/actions/using-jobs/using-concurrency#example-using-a-fallback-value
-    concurrency:
-    group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
-    cancel-in-progress: true
+# Cancel in progress workflows on pull_requests.
+# https://docs.github.com/en/actions/using-jobs/using-concurrency#example-using-a-fallback-value
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
 
 jobs:
     files-changed:
@@ -41,10 +41,6 @@ jobs:
         needs: files-changed
         timeout-minutes: 40
         runs-on: ubuntu-latest
-        strategy:
-          # This helps not having to run multiple jobs because one fails, thus, reducing resource usage
-          # and reducing the risk that one of many runs would turn red again (read: intermittent tests)
-          fail-fast: false
         steps:
         - uses: actions/checkout@v3
           with:

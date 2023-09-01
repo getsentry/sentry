@@ -2,8 +2,7 @@ from __future__ import annotations
 
 from typing import Literal, Type
 
-from sentry.backup.helpers import get_exportable_final_derivations_of
-from sentry.db.models import BaseModel
+from sentry.backup.helpers import get_exportable_sentry_models
 from sentry.testutils.helpers.backups import BackupTestCase
 from tests.sentry.backup import run_backup_tests_only_on_single_db, targets
 
@@ -19,7 +18,7 @@ def mark(*marking: Type | Literal["__all__"]):
     all: Literal["__all__"] = "__all__"
     for model in marking:
         if model == all:
-            all_models = get_exportable_final_derivations_of(BaseModel)
+            all_models = get_exportable_sentry_models()
             RELEASE_TESTED_MODELS.update({c.__name__ for c in all_models})
             return list(all_models)
 
