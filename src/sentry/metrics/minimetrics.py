@@ -22,6 +22,8 @@ from typing import (
 from sentry.metrics.base import MetricsBackend, Tags
 from sentry.utils import metrics
 
+__all__ = ["MiniMetricsMetricsBackend"]
+
 # The thread local instance must be initialized globally in order to correctly use the state.
 thread_local = threading.local()
 
