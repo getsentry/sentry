@@ -20,6 +20,9 @@ class RegionOutboxProducingModel(BaseModel):
     or raw sql).  See `get_protected_operations` for info on working around this.
     """
 
+    class Meta:
+        abstract = True
+
     __default_flush__: bool | None = None
     __replication_version__: int = 1
 
@@ -63,6 +66,9 @@ class ReplicatedRegionModel(RegionOutboxProducingModel):
 
     __category__: OutboxCategory
     __outbox_type__: Type[RegionOutboxBase] | None = None
+
+    class Meta:
+        abstract = True
 
     def payload_for_update(self) -> Mapping[str, Any] | None:
         """
@@ -123,6 +129,9 @@ class ControlOutboxProducingModel(BaseModel):
     __default_flush__: bool | None = None
     __replication_version__: int = 1
 
+    class Meta:
+        abstract = True
+
     @contextlib.contextmanager
     def _maybe_prepare_outboxes(self, *, outbox_before_super: bool):
         from sentry.models.outbox import outbox_context
@@ -164,6 +173,9 @@ class ReplicatedControlModel(ControlOutboxProducingModel):
 
     __category__: OutboxCategory
     __outbox_type__: Type[ControlOutboxBase] | None = None
+
+    class Meta:
+        abstract = True
 
     def outbox_region_names(self) -> Collection[str]:
         """
