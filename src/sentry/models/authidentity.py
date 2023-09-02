@@ -15,7 +15,7 @@ from sentry.types.region import find_regions_for_orgs
 
 @control_silo_only_model
 class AuthIdentity(Model, ProcessUpdatesWithControlOutboxes):
-    __relocation_scope__ = RelocationScope.Organization
+    __relocation_scope__ = RelocationScope.Global
     __category__ = OutboxCategory.AUTH_IDENTITY_UPDATE
 
     # NOTE: not a fk to sentry user

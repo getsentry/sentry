@@ -4,7 +4,6 @@ import contextlib
 from typing import Any, Callable, Iterable, Mapping, Optional, Tuple, Type, TypeVar, cast
 
 from django.apps.config import AppConfig
-from django.core.serializers.base import DeserializedObject
 from django.db import models, router, transaction
 from django.db.models import signals
 from django.utils import timezone
@@ -140,7 +139,7 @@ class BaseModel(models.Model):
         return old_pk
 
     def write_relocation_import(
-        self, pk_map: PrimaryKeyMap, obj: DeserializedObject, scope: ImportScope
+        self, pk_map: PrimaryKeyMap, scope: ImportScope
     ) -> Optional[Tuple[int, int]]:
         """
         Writes a deserialized model to the database. If this write is successful, this method will return a tuple of the old and new `pk`s.
@@ -150,7 +149,7 @@ class BaseModel(models.Model):
         if old_pk is None:
             return
 
-        obj.save(force_insert=True)
+        self.save(force_insert=True)
         return (old_pk, self.pk)
 
 

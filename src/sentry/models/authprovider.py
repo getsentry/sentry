@@ -46,7 +46,7 @@ class AuthProviderDefaultTeams(Model):
 
 @control_silo_only_model
 class AuthProvider(Model, ProcessUpdatesWithControlOutboxes):
-    __relocation_scope__ = RelocationScope.Organization
+    __relocation_scope__ = RelocationScope.Global
     __category__ = OutboxCategory.AUTH_PROVIDER_UPDATE
 
     organization_id = HybridCloudForeignKey("sentry.Organization", on_delete="cascade", unique=True)

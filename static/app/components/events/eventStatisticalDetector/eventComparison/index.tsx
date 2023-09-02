@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {EventDisplay} from 'sentry/components/events/eventStatisticalDetector/eventComparison/eventDisplay';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Event, Project} from 'sentry/types';
+import {Event, Group, Project} from 'sentry/types';
 
 import {DataSection} from '../../styles';
 
@@ -13,10 +13,11 @@ const COMPARISON_DESCRIPTION = t(
 
 type EventComparisonProps = {
   event: Event;
+  group: Group;
   project: Project;
 };
 
-function EventComparison({event, project}: EventComparisonProps) {
+function EventComparison({event, project, group}: EventComparisonProps) {
   const {
     aggregateRange1,
     aggregateRange2,
@@ -31,7 +32,7 @@ function EventComparison({event, project}: EventComparisonProps) {
       <strong>{t('Compare Events:')}</strong>
       <p>{COMPARISON_DESCRIPTION}</p>
       <StyledGrid>
-        <div style={{gridColumnStart: 1}}>
+        <StyledGridItem position="left">
           <EventDisplay
             eventSelectLabel={t('Baseline Event ID')}
             project={project}
@@ -39,9 +40,10 @@ function EventComparison({event, project}: EventComparisonProps) {
             end={breakpoint}
             transaction={transaction}
             durationBaseline={aggregateRange1}
+            group={group}
           />
-        </div>
-        <div style={{gridColumnStart: 2}}>
+        </StyledGridItem>
+        <StyledGridItem position="right">
           <EventDisplay
             eventSelectLabel={t('Regressed Event ID')}
             project={project}
@@ -49,8 +51,9 @@ function EventComparison({event, project}: EventComparisonProps) {
             end={requestEnd}
             transaction={transaction}
             durationBaseline={aggregateRange2}
+            group={group}
           />
-        </div>
+        </StyledGridItem>
       </StyledGrid>
     </DataSection>
   );
@@ -62,4 +65,9 @@ const StyledGrid = styled('div')`
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: ${space(2)};
+`;
+
+const StyledGridItem = styled('div')<{position: 'left' | 'right'}>`
+  min-width: 0;
+  grid-column-start: ${p => (p.position === 'left' ? 1 : 2)};
 `;

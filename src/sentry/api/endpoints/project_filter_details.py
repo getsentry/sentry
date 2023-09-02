@@ -27,7 +27,6 @@ class ProjectFilterDetailsEndpoint(ProjectEndpoint):
     publish_status = {
         "PUT": ApiPublishStatus.PUBLIC,
     }
-    public = {"PUT"}
 
     @extend_schema(
         operation_id="Update an Inbound Data Filter",
