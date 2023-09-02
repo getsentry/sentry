@@ -79,12 +79,21 @@
     "sentry.AuthProvider",
     "sentry.User"
   ],
+  "sentry.AuthIdentityReplica": [
+    "sentry.AuthIdentity",
+    "sentry.AuthProvider",
+    "sentry.User"
+  ],
   "sentry.AuthProvider": [
     "sentry.Organization"
   ],
   "sentry.AuthProviderDefaultTeams": [
     "sentry.AuthProvider",
     "sentry.Team"
+  ],
+  "sentry.AuthProviderReplica": [
+    "sentry.AuthProvider",
+    "sentry.Organization"
   ],
   "sentry.Authenticator": [
     "sentry.User"
@@ -567,13 +576,6 @@
     "sentry.User"
   ],
   "sentry.RegionOutbox": [],
-  "sentry.RegionReplicatedAuthIdentity": [
-    "sentry.AuthProvider",
-    "sentry.User"
-  ],
-  "sentry.RegionReplicatedAuthProvider": [
-    "sentry.Organization"
-  ],
   "sentry.RegionScheduledDeletion": [],
   "sentry.RegionTombstone": [],
   "sentry.Relay": [],
