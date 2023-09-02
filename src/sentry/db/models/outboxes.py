@@ -5,17 +5,17 @@ from typing import TYPE_CHECKING, Any, Collection, List, Mapping, Tuple, Type
 
 from django.db import router, transaction
 
-from sentry.db.models import BaseModel
+from sentry.db.models import Model
 from sentry.types.region import find_regions_for_orgs
 
 if TYPE_CHECKING:
     from sentry.models.outbox import ControlOutboxBase, OutboxCategory, RegionOutboxBase
 
 
-class RegionOutboxProducingModel(BaseModel):
+class RegionOutboxProducingModel(Model):
     """
-    A class that 'signals' to BaseModel that save/update/delete methods should produce outboxes in the same transaction.
-    See the BaseModel implementations for how this works.  Furthermore, using this mixin causes get_protected_operations
+    overrides model save, update, and delete methods such that, within an atomic transaction,
+    an outbox returned from outbox_for_update is saved. Furthermore, using this mixin causes get_protected_operations
     to protect any updates/deletes/inserts of this model that do not go through the model methods (such as querysets
     or raw sql).  See `get_protected_operations` for info on working around this.
     """
@@ -118,10 +118,10 @@ class ReplicatedRegionModel(RegionOutboxProducingModel):
         pass
 
 
-class ControlOutboxProducingModel(BaseModel):
+class ControlOutboxProducingModel(Model):
     """
-    A class that 'signals' to BaseModel that save/update/delete methods should produce outboxes in the same transaction.
-    See the BaseModel implementations for how this works.  Furthermore, using this mixin causes get_protected_operations
+    An extension of RegionOutboxProducingModel that provides a default implementation for `outbox_for_update`
+    based on the category nd outbox type configured as class variables.  Furthermore, using this mixin causes get_protected_operations
     to protect any updates/deletes/inserts of this model that do not go through the model methods (such as querysets
     or raw sql).  See `get_protected_operations` for info on working around this.
     """
