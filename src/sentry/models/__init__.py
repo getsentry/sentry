@@ -12,7 +12,9 @@ from .assistant import *  # NOQA
 from .auditlogentry import *  # NOQA
 from .authenticator import *  # NOQA
 from .authidentity import *  # NOQA
+from .authidentityreplica import *  # NOQA
 from .authprovider import *  # NOQA
+from .authproviderreplica import *  # NOQA
 from .avatars import *  # NOQA
 from .broadcast import *  # NOQA
 from .commit import *  # NOQA
@@ -89,8 +91,6 @@ from .promptsactivity import *  # NOQA
 from .pullrequest import *  # NOQA
 from .rawevent import *  # NOQA
 from .recentsearch import *  # NOQA
-from .regionreplicatedauthidentity import *  # NOQA
-from .regionreplicatedauthprovider import *  # NOQA
 from .relay import *  # NOQA
 from .release import *  # NOQA
 from .releaseactivity import *  # NOQA

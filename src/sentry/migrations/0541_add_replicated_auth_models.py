@@ -30,7 +30,7 @@ class Migration(CheckedMigration):
 
     operations = [
         migrations.CreateModel(
-            name="RegionReplicatedAuthProvider",
+            name="AuthProviderReplica",
             fields=[
                 (
                     "id",
@@ -64,11 +64,11 @@ class Migration(CheckedMigration):
                 ("scim_enabled", models.BooleanField()),
             ],
             options={
-                "db_table": "sentry_regionreplicatedauthprovider",
+                "db_table": "sentry_authproviderreplica",
             },
         ),
         migrations.CreateModel(
-            name="RegionReplicatedAuthIdentity",
+            name="AuthIdentityReplica",
             fields=[
                 (
                     "id",
@@ -99,7 +99,7 @@ class Migration(CheckedMigration):
                 ("date_added", models.DateTimeField(default=django.utils.timezone.now)),
             ],
             options={
-                "db_table": "sentry_regionreplicatedauthidentity",
+                "db_table": "sentry_authidentityreplica",
                 "unique_together": {("auth_provider_id", "user_id"), ("auth_provider_id", "ident")},
             },
         ),

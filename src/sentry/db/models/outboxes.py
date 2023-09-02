@@ -1,14 +1,18 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Collection, List, Mapping, Type
+import contextlib
+from typing import TYPE_CHECKING, Any, Collection, List, Mapping, Tuple, Type
 
+from django.db import router, transaction
+
+from sentry.db.models import BaseModel
 from sentry.types.region import find_regions_for_orgs
 
 if TYPE_CHECKING:
     from sentry.models.outbox import ControlOutboxBase, OutboxCategory, RegionOutboxBase
 
 
-class ProducesRegionOutboxOnUpdate:
+class RegionOutboxProducingModel(BaseModel):
     """
     A class that 'signals' to BaseModel that save/update/delete methods should produce outboxes in the same transaction.
     See the BaseModel implementations for how this works.  Furthermore, using this mixin causes get_protected_operations
@@ -17,14 +21,41 @@ class ProducesRegionOutboxOnUpdate:
     """
 
     __default_flush__: bool | None = None
+    __replication_version__: int = 1
+
+    @contextlib.contextmanager
+    def _maybe_prepare_outboxes(self, *, outbox_before_super: bool):
+        from sentry.models.outbox import outbox_context
+
+        with outbox_context(
+            transaction.atomic(router.db_for_write(type(self))),
+            flush=self.__default_flush__,
+        ):
+            if not outbox_before_super:
+                yield
+            self.outbox_for_update().save()
+            if outbox_before_super:
+                yield
+
+    def save(self, *args: Any, **kwds: Any) -> None:
+        with self._maybe_prepare_outboxes(outbox_before_super=False):
+            super().save(*args, **kwds)
+
+    def update(self, *args: Any, **kwds: Any) -> int:
+        with self._maybe_prepare_outboxes(outbox_before_super=False):
+            return super().update(*args, **kwds)
+
+    def delete(self, *args: Any, **kwds: Any) -> Tuple[int, Mapping[str, Any]]:
+        with self._maybe_prepare_outboxes(outbox_before_super=True):
+            return super().delete(*args, **kwds)
 
     def outbox_for_update(self, shard_identifier: int | None = None) -> RegionOutboxBase:
         raise NotImplementedError
 
 
-class ProcessUpdatesWithRegionOutboxes(ProducesRegionOutboxOnUpdate):
+class ReplicatedRegionModel(RegionOutboxProducingModel):
     """
-    An extension of ProducesRegionOutboxOnUpdate that provides a default implementation for `outbox_for_update`
+    An extension of RegionOutboxProducingModel that provides a default implementation for `outbox_for_update`
     based on the category nd outbox type configured as class variables.  It also provides a default signal handler
     that invokes either of handle_async_replication or handle_async_replication based on wether the object has
     been deleted or not.  Subclasses can and often should override these methods to configure outbox processing.
@@ -81,7 +112,7 @@ class ProcessUpdatesWithRegionOutboxes(ProducesRegionOutboxOnUpdate):
         pass
 
 
-class ProducesControlOutboxesOnUpdate:
+class ControlOutboxProducingModel(BaseModel):
     """
     A class that 'signals' to BaseModel that save/update/delete methods should produce outboxes in the same transaction.
     See the BaseModel implementations for how this works.  Furthermore, using this mixin causes get_protected_operations
@@ -90,14 +121,42 @@ class ProducesControlOutboxesOnUpdate:
     """
 
     __default_flush__: bool | None = None
+    __replication_version__: int = 1
+
+    @contextlib.contextmanager
+    def _maybe_prepare_outboxes(self, *, outbox_before_super: bool):
+        from sentry.models.outbox import outbox_context
+
+        with outbox_context(
+            transaction.atomic(router.db_for_write(type(self))),
+            flush=self.__default_flush__,
+        ):
+            if not outbox_before_super:
+                yield
+            for outbox in self.outboxes_for_update():
+                outbox.save()
+            if outbox_before_super:
+                yield
+
+    def save(self, *args: Any, **kwds: Any) -> None:
+        with self._maybe_prepare_outboxes(outbox_before_super=False):
+            super().save(*args, **kwds)
+
+    def update(self, *args: Any, **kwds: Any) -> int:
+        with self._maybe_prepare_outboxes(outbox_before_super=False):
+            return super().update(*args, **kwds)
+
+    def delete(self, *args: Any, **kwds: Any) -> Tuple[int, Mapping[str, Any]]:
+        with self._maybe_prepare_outboxes(outbox_before_super=True):
+            return super().delete(*args, **kwds)
 
     def outboxes_for_update(self, shard_identifier: int | None = None) -> List[ControlOutboxBase]:
         raise NotImplementedError
 
 
-class ProcessUpdatesWithControlOutboxes(ProducesControlOutboxesOnUpdate):
+class ReplicatedControlModel(ControlOutboxProducingModel):
     """
-    An extension of ProducesRegionOutboxOnUpdate that provides a default implementation for `outboxes_for_update`
+    An extension of RegionOutboxProducingModel that provides a default implementation for `outboxes_for_update`
     based on the category nd outbox type configured as class variables.  It also provides a default signal handler
     that invokes either of handle_async_replication or handle_async_replication based on wether the object has
     been deleted or not.  Subclasses can and often should override these methods to configure outbox processing.

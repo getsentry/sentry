@@ -44,10 +44,7 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
-from sentry.db.models.outboxes import (
-    ProcessUpdatesWithControlOutboxes,
-    ProcessUpdatesWithRegionOutboxes,
-)
+from sentry.db.models.outboxes import ReplicatedControlModel, ReplicatedRegionModel
 from sentry.db.postgres.transactions import (
     django_test_transaction_water_mark,
     enforce_constraints,
@@ -108,7 +105,7 @@ class OutboxCategory(IntEnum):
     def as_choices(cls):
         return [(i.value, i.value) for i in cls]
 
-    def connect_region_model_updates(self, model: Type[ProcessUpdatesWithRegionOutboxes]) -> None:
+    def connect_region_model_updates(self, model: Type[ReplicatedRegionModel]) -> None:
         def receiver(
             object_identifier: int,
             payload: Optional[Mapping[str, Any]],
@@ -118,7 +115,7 @@ class OutboxCategory(IntEnum):
         ):
             from sentry.receivers.outbox import maybe_process_tombstone
 
-            maybe_instance: ProcessUpdatesWithRegionOutboxes | None = maybe_process_tombstone(
+            maybe_instance: ReplicatedRegionModel | None = maybe_process_tombstone(
                 cast(Any, model), object_identifier, region_name=None
             )
             if maybe_instance is None:
@@ -130,7 +127,7 @@ class OutboxCategory(IntEnum):
 
         process_region_outbox.connect(receiver, weak=False, sender=self)
 
-    def connect_control_model_updates(self, model: Type[ProcessUpdatesWithControlOutboxes]) -> None:
+    def connect_control_model_updates(self, model: Type[ReplicatedControlModel]) -> None:
         def receiver(
             object_identifier: int,
             payload: Optional[Mapping[str, Any]],
@@ -141,7 +138,7 @@ class OutboxCategory(IntEnum):
         ):
             from sentry.receivers.outbox import maybe_process_tombstone
 
-            maybe_instance: ProcessUpdatesWithControlOutboxes | None = maybe_process_tombstone(
+            maybe_instance: ReplicatedControlModel | None = maybe_process_tombstone(
                 cast(Any, model), object_identifier, region_name=region_name
             )
             if maybe_instance is None:

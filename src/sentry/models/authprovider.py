@@ -17,7 +17,7 @@ from sentry.db.models import (
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.fields.jsonfield import JSONField
-from sentry.db.models.outboxes import ProcessUpdatesWithControlOutboxes
+from sentry.db.models.outboxes import ReplicatedControlModel
 from sentry.models.outbox import ControlOutbox, OutboxCategory, OutboxScope
 from sentry.types.region import find_regions_for_orgs
 
@@ -45,7 +45,7 @@ class AuthProviderDefaultTeams(Model):
 
 
 @control_silo_only_model
-class AuthProvider(Model, ProcessUpdatesWithControlOutboxes):
+class AuthProvider(ReplicatedControlModel):
     __relocation_scope__ = RelocationScope.Global
     __category__ = OutboxCategory.AUTH_PROVIDER_UPDATE
 

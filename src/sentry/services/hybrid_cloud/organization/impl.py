@@ -10,6 +10,8 @@ from sentry.api.serializers import serialize
 from sentry.db.postgres.transactions import enforce_constraints
 from sentry.models import (
     Activity,
+    AuthIdentityReplica,
+    AuthProviderReplica,
     ControlOutbox,
     GroupAssignee,
     GroupBookmark,
@@ -22,8 +24,6 @@ from sentry.models import (
     OrganizationStatus,
     OutboxCategory,
     OutboxScope,
-    RegionReplicatedAuthIdentity,
-    RegionReplicatedAuthProvider,
     Team,
     outbox_context,
 )
@@ -519,11 +519,9 @@ class DatabaseBackedOrganizationService(OrganizationService):
         self, *, auth_provider: RpcAuthProvider, region_name: str
     ) -> None:
         try:
-            with enforce_constraints(
-                transaction.atomic(router.db_for_write(RegionReplicatedAuthProvider))
-            ):
+            with enforce_constraints(transaction.atomic(router.db_for_write(AuthProviderReplica))):
                 organization = Organization.objects.get(id=auth_provider.organization_id)
-                existing = RegionReplicatedAuthProvider.objects.filter(
+                existing = AuthProviderReplica.objects.filter(
                     auth_provider_id=auth_provider.id
                 ).first()
                 update = {
@@ -537,9 +535,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
                 }
 
                 if not existing:
-                    RegionReplicatedAuthProvider.objects.create(
-                        auth_provider_id=auth_provider.id, **update
-                    )
+                    AuthProviderReplica.objects.create(auth_provider_id=auth_provider.id, **update)
                     return
 
                 existing.update(**update)
@@ -549,25 +545,21 @@ class DatabaseBackedOrganizationService(OrganizationService):
     def upsert_replicated_auth_identity(
         self, *, auth_identity: RpcAuthIdentity, region_name: str
     ) -> None:
-        with enforce_constraints(
-            transaction.atomic(router.db_for_write(RegionReplicatedAuthIdentity))
-        ):
+        with enforce_constraints(transaction.atomic(router.db_for_write(AuthIdentityReplica))):
             # Since coalesced outboxes won't replicate the precise ordering of changes, these
             # unique keys can cause a deadlock in updates.  To address this, we just delete
             # any conflicting items and allow future outboxes to carry the updates
             # for the auth identities that should follow (given they will share the same shard).
-            RegionReplicatedAuthIdentity.objects.filter(
+            AuthIdentityReplica.objects.filter(
                 ident=auth_identity.ident,
                 auth_provider_id=auth_identity.auth_provider_id,
             ).exclude(auth_identity_id=auth_identity.id).delete()
-            RegionReplicatedAuthIdentity.objects.filter(
+            AuthIdentityReplica.objects.filter(
                 user_id=auth_identity.user_id,
                 auth_provider_id=auth_identity.auth_provider_id,
             ).exclude(auth_identity_id=auth_identity.id).delete()
 
-            existing = RegionReplicatedAuthIdentity.objects.filter(
-                auth_identity_id=auth_identity.id
-            ).first()
+            existing = AuthIdentityReplica.objects.filter(auth_identity_id=auth_identity.id).first()
             update = {
                 "user_id": auth_identity.user_id,
                 "auth_provider_id": auth_identity.auth_provider_id,
@@ -576,9 +568,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
             }
 
             if not existing:
-                RegionReplicatedAuthIdentity.objects.create(
-                    auth_identity_id=auth_identity.id, **update
-                )
+                AuthIdentityReplica.objects.create(auth_identity_id=auth_identity.id, **update)
                 return
 
             existing.update(**update)

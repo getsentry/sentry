@@ -5,13 +5,13 @@ import pytest
 
 from sentry.models import (
     AuthIdentity,
+    AuthIdentityReplica,
     AuthProvider,
+    AuthProviderReplica,
     Organization,
     OrganizationMember,
     OrganizationMemberTeam,
     Project,
-    RegionReplicatedAuthIdentity,
-    RegionReplicatedAuthProvider,
     Team,
     TeamStatus,
     User,
@@ -294,7 +294,7 @@ def test_replicate_auth_provider():
     org = Factories.create_organization(owner=user)
 
     with assume_test_silo_mode(SiloMode.REGION):
-        assert RegionReplicatedAuthProvider.objects.count() == 0
+        assert AuthProviderReplica.objects.count() == 0
 
     with assume_test_silo_mode(SiloMode.CONTROL):
         auth_provider = AuthProvider.objects.create(
@@ -302,7 +302,7 @@ def test_replicate_auth_provider():
         )
 
     with assume_test_silo_mode(SiloMode.REGION):
-        replicated = RegionReplicatedAuthProvider.objects.get(organization_id=org.id)
+        replicated = AuthProviderReplica.objects.get(organization_id=org.id)
 
     assert replicated.auth_provider_id == auth_provider.id
     assert replicated.provider == auth_provider.provider
@@ -318,7 +318,7 @@ def test_replicate_auth_provider():
         auth_provider.save()
 
     with assume_test_silo_mode(SiloMode.REGION):
-        replicated = RegionReplicatedAuthProvider.objects.get(organization_id=org.id)
+        replicated = AuthProviderReplica.objects.get(organization_id=org.id)
 
     assert replicated.auth_provider_id == auth_provider.id
     assert replicated.provider == auth_provider.provider
@@ -340,7 +340,7 @@ def test_replicate_auth_identity():
     org = Factories.create_organization(owner=user)
 
     with assume_test_silo_mode(SiloMode.REGION):
-        assert RegionReplicatedAuthIdentity.objects.count() == 0
+        assert AuthIdentityReplica.objects.count() == 0
 
     with assume_test_silo_mode(SiloMode.CONTROL):
         auth_provider = AuthProvider.objects.create(
@@ -351,7 +351,7 @@ def test_replicate_auth_identity():
         )
 
     with assume_test_silo_mode(SiloMode.REGION):
-        replicated = RegionReplicatedAuthIdentity.objects.get(
+        replicated = AuthIdentityReplica.objects.get(
             ident=auth_identity.ident, auth_provider_id=auth_provider.id
         )
 
@@ -366,7 +366,7 @@ def test_replicate_auth_identity():
         auth_identity.save()
 
     with assume_test_silo_mode(SiloMode.REGION):
-        replicated = RegionReplicatedAuthIdentity.objects.get(
+        replicated = AuthIdentityReplica.objects.get(
             ident=auth_identity.ident, auth_provider_id=auth_provider.id
         )
 
@@ -397,10 +397,7 @@ def test_replicate_auth_identity():
 
         with assume_test_silo_mode(SiloMode.REGION):
             for ai, next_ident in zip(auth_identities, [*auth_idents[1:], auth_idents[0]]):
-                assert (
-                    RegionReplicatedAuthIdentity.objects.get(auth_identity_id=ai.id).ident
-                    == next_ident
-                )
+                assert AuthIdentityReplica.objects.get(auth_identity_id=ai.id).ident == next_ident
 
 
 class RpcOrganizationMemberTest(TestCase):

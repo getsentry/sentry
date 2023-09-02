@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-import contextlib
-from typing import Any, Callable, Iterable, Mapping, Optional, Tuple, Type, TypeVar, cast
+from typing import Any, Callable, Iterable, Mapping, Optional, Tuple, Type, TypeVar
 
 from django.apps.config import AppConfig
-from django.db import models, router, transaction
+from django.db import models
 from django.db.models import signals
 from django.utils import timezone
 
@@ -161,49 +160,6 @@ class Model(BaseModel):
 
     __repr__ = sane_repr("id")
 
-    @contextlib.contextmanager
-    def _maybe_prepare_outboxes(self, *, outbox_before_super: bool):
-        from sentry.models.outbox import outbox_context
-
-        from .outboxes import ProducesControlOutboxesOnUpdate, ProducesRegionOutboxOnUpdate
-
-        if isinstance(self, ProducesControlOutboxesOnUpdate):
-            with outbox_context(
-                transaction.atomic(router.db_for_write(type(cast(Any, self)))),
-                flush=self.__default_flush__,
-            ):
-                if not outbox_before_super:
-                    yield
-                for outbox in self.outboxes_for_update():
-                    outbox.save()
-                if outbox_before_super:
-                    yield
-
-        elif isinstance(self, ProducesRegionOutboxOnUpdate):
-            with outbox_context(
-                transaction.atomic(router.db_for_write(type(cast(Any, self)))),
-                flush=self.__default_flush__,
-            ):
-                if not outbox_before_super:
-                    yield
-                self.outbox_for_update().save()
-                if outbox_before_super:
-                    yield
-        else:
-            yield
-
-    def save(self, *args: Any, **kwds: Any) -> None:
-        with self._maybe_prepare_outboxes(outbox_before_super=False):
-            super().save(*args, **kwds)
-
-    def update(self, *args: Any, **kwds: Any) -> int:
-        with self._maybe_prepare_outboxes(outbox_before_super=False):
-            return super().update(*args, **kwds)
-
-    def delete(self, *args: Any, **kwds: Any) -> Tuple[int, Mapping[str, Any]]:
-        with self._maybe_prepare_outboxes(outbox_before_super=True):
-            return super().delete(*args, **kwds)
-
 
 class DefaultFieldsModel(Model):
     date_updated = models.DateTimeField(default=timezone.now)
@@ -238,11 +194,11 @@ def __model_class_prepared(sender: Any, **kwargs: Any) -> None:
             f"like Group."
         )
 
-    from .outboxes import ProcessUpdatesWithControlOutboxes, ProcessUpdatesWithRegionOutboxes
+    from .outboxes import ReplicatedControlModel, ReplicatedRegionModel
 
-    if issubclass(sender, ProcessUpdatesWithControlOutboxes):
+    if issubclass(sender, ReplicatedControlModel):
         sender.__category__.connect_control_model_updates(sender)
-    elif issubclass(sender, ProcessUpdatesWithRegionOutboxes):
+    elif issubclass(sender, ReplicatedRegionModel):
         sender.__category__.connect_region_model_updates(sender)
 
 

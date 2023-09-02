@@ -8,8 +8,8 @@ from sentry.db.models.fields.jsonfield import JSONField
 
 
 @region_silo_only_model
-class RegionReplicatedAuthIdentity(Model):
-    __relocation_scope__ = RelocationScope.User
+class AuthIdentityReplica(Model):
+    __relocation_scope__ = RelocationScope.Excluded
 
     auth_identity_id = HybridCloudForeignKey(
         "sentry.AuthIdentity", on_delete="CASCADE", unique=True
@@ -25,7 +25,7 @@ class RegionReplicatedAuthIdentity(Model):
 
     class Meta:
         app_label = "sentry"
-        db_table = "sentry_regionreplicatedauthidentity"
+        db_table = "sentry_authidentityreplica"
         unique_together = (("auth_provider_id", "ident"), ("auth_provider_id", "user_id"))
 
     __repr__ = sane_repr("user_id", "auth_provider_id")
