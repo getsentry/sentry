@@ -155,9 +155,7 @@ def _process_backfill(
     app_name: str, model_name: str, make_outboxes: Callable[[BaseModel], None], task: Task
 ) -> None:
     try:
-        model: Type[ControlOutboxProducingModel] = apps.get_model(
-            app_label=app_name, model_name=model_name
-        )
+        model: Type = apps.get_model(app_label=app_name, model_name=model_name)
         if not issubclass(model, ControlOutboxProducingModel):
             return
         processing_state = _chunk_processing_batch(model, batch_size=get_batch_size())

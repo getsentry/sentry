@@ -48,7 +48,7 @@ class RegionOutboxProducingModel(Model):
         with self._maybe_prepare_outboxes(outbox_before_super=False):
             return super().update(*args, **kwds)
 
-    def delete(self, *args: Any, **kwds: Any) -> Tuple[int, Mapping[str, Any]]:
+    def delete(self, *args: Any, **kwds: Any) -> Tuple[int, dict[str, Any]]:
         with self._maybe_prepare_outboxes(outbox_before_super=True):
             return super().delete(*args, **kwds)
 
@@ -155,7 +155,7 @@ class ControlOutboxProducingModel(Model):
         with self._maybe_prepare_outboxes(outbox_before_super=False):
             return super().update(*args, **kwds)
 
-    def delete(self, *args: Any, **kwds: Any) -> Tuple[int, Mapping[str, Any]]:
+    def delete(self, *args: Any, **kwds: Any) -> Tuple[int, dict[str, Any]]:
         with self._maybe_prepare_outboxes(outbox_before_super=True):
             return super().delete(*args, **kwds)
 
