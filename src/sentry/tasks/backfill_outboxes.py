@@ -8,7 +8,7 @@ This helps keep replicated models replicated when logic or columns change over t
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Callable, Tuple, Type, Union
+from typing import Any, Callable, Tuple, Type, Union
 
 import sentry_sdk
 from celery import Task
@@ -155,19 +155,14 @@ def _process_backfill(
     app_name: str, model_name: str, make_outboxes: Callable[[BaseModel], None], task: Task
 ) -> None:
     try:
-        model: Type = apps.get_model(app_label=app_name, model_name=model_name)
-        if not issubclass(model, ControlOutboxProducingModel):
-            return
+        model: Any = apps.get_model(app_label=app_name, model_name=model_name)
         processing_state = _chunk_processing_batch(model, batch_size=get_batch_size())
         if not processing_state:
             return
 
-        inst: ControlOutboxProducingModel
         for inst in model.objects.filter(id__gt=processing_state.low, id__lte=processing_state.up):
             with outbox_context(transaction.atomic(router.db_for_write(model)), flush=False):
                 make_outboxes(inst)
-                for outbox in inst.outboxes_for_update():
-                    outbox.save()
 
         if not processing_state.has_more:
             set_processing_state(model._meta.db_table, 0, model.__replication_version__ + 1)

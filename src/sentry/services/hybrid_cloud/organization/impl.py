@@ -521,6 +521,11 @@ class DatabaseBackedOrganizationService(OrganizationService):
         try:
             with enforce_constraints(transaction.atomic(router.db_for_write(AuthProviderReplica))):
                 organization = Organization.objects.get(id=auth_provider.organization_id)
+                # Deletes do not cascade immediately -- if we removed and add a new provider
+                # we should just clear that older provider.
+                AuthProviderReplica.objects.filter(organization=organization).exclude(
+                    auth_provider_id=auth_provider.id
+                ).delete()
                 existing = AuthProviderReplica.objects.filter(
                     auth_provider_id=auth_provider.id
                 ).first()
