@@ -23,6 +23,7 @@ export type ModuleProps = {
   organization?: Organization;
   platformKey?: PlatformKey;
   projectId?: Project['id'];
+  projectSlug?: Project['slug'];
   sourcePackageRegistries?: ReturnType<typeof useSourcePackageRegistries>;
 };
 
@@ -108,6 +109,7 @@ export function SdkDocumentation({
       platformKey={platform?.id}
       organization={organization}
       projectId={projectId}
+      projectSlug={projectSlug}
       sourcePackageRegistries={sourcePackageRegistries}
     />
   );

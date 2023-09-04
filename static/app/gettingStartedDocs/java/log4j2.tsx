@@ -6,6 +6,13 @@ import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDoc
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {t, tct} from 'sentry/locale';
 
+interface StepProps {
+  dsn: string;
+  organizationSlug?: string;
+  projectSlug?: string;
+  sourcePackageRegistries?: ModuleProps['sourcePackageRegistries'];
+}
+
 // Configuration Start
 const introduction = (
   <p>
@@ -25,9 +32,9 @@ const introduction = (
 export const steps = ({
   dsn,
   sourcePackageRegistries,
-}: Partial<
-  Pick<ModuleProps, 'dsn' | 'sourcePackageRegistries'>
-> = {}): LayoutProps['steps'] => [
+  projectSlug,
+  organizationSlug,
+}: StepProps): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
     description: t(
@@ -78,9 +85,9 @@ export const steps = ({
       <!-- minimum required version is 2.17.3 -->
       <sentryCliExecutablePath>/path/to/sentry-cli</sentryCliExecutablePath>
 
-      <org>___ORG_SLUG___</org>
+      <org>${organizationSlug}</org>
 
-      <project>___PROJECT_SLUG___</project>
+      <project>${projectSlug}</project>
 
       <!-- in case you're self hosting, provide the URL here -->
       <!--<url>http://localhost:8000/</url>-->
@@ -145,8 +152,8 @@ sentry {
   // code as part of your stack traces in Sentry.
   includeSourceContext = true
 
-  org = "___ORG_SLUG___"
-  projectName = "___PROJECT_SLUG___"
+  org = "${organizationSlug}"
+  projectName = "${projectSlug}"
   authToken = "your-sentry-auth-token"
 }
             `,
@@ -293,11 +300,18 @@ try {
 export function GettingStartedWithLog4j2({
   dsn,
   sourcePackageRegistries,
+  projectSlug,
+  organization,
   ...props
 }: ModuleProps) {
   return (
     <Layout
-      steps={steps({dsn, sourcePackageRegistries})}
+      steps={steps({
+        dsn,
+        sourcePackageRegistries,
+        projectSlug: projectSlug ?? '___PROJECT_SLUG___',
+        organizationSlug: organization?.slug ?? '___ORG_SLUG___',
+      })}
       introduction={introduction}
       {...props}
     />

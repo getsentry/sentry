@@ -9,7 +9,9 @@ describe('GettingStartedWithSpring', function () {
     const {container} = render(<GettingStartedWithSpring dsn="test-dsn" />);
 
     // Steps
-    for (const step of steps()) {
+    for (const step of steps({
+      dsn: 'test-dsn',
+    })) {
       expect(
         screen.getByRole('heading', {name: step.title ?? StepTitle[step.type], level: 4})
       ).toBeInTheDocument();
