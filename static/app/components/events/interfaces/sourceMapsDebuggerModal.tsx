@@ -76,7 +76,7 @@ export function SourceMapsDebuggerModal({
     uploadedSomeArtifactToRelease: false,
     eventHasDebugIds: false,
     projectHasUploadedArtifacts: false,
-    sdkDebugIdSupport: 'needs-upgrade',
+    sdkDebugIdSupport: 'full',
     stackFrameDebugId: null,
     uploadedSourceFileWithCorrectDebugId: false,
     uploadedSourceMapWithCorrectDebugId: false,
@@ -155,13 +155,13 @@ export function SourceMapsDebuggerModal({
           Stack Frame when this event was captured. For Sentry to be able to unminify this
           Stack Frame you need to configure source maps.
         </p>
-        <p>
+        <WizardInstructionParagraph>
           The easiest way to get started using source maps is running the Sentry Source
           Map Wizard in the terminal inside your project:
-          <InstructionCodeSnippet language="bash" dark>
-            {'npx @sentry/wizard@latest -i sourcemaps'}
-          </InstructionCodeSnippet>
-        </p>
+        </WizardInstructionParagraph>
+        <InstructionCodeSnippet language="bash" dark>
+          {'npx @sentry/wizard@latest -i sourcemaps'}
+        </InstructionCodeSnippet>
         <p>
           There are three different ways you can configure source maps. Once you're
           getting started with source maps, the following check lists will help you set
@@ -631,12 +631,12 @@ function EventHasReleaseNameChecklistItem({facts}: {facts: Facts}) {
         <p>
           The captured event does not have a <MonoBlock>release</MonoBlock> value.
           Configure a <MonoBlock>release</MonoBlock> value in the SDK:
-          <InstructionCodeSnippet language="javascript" dark hideCopyButton>
-            {`Sentry.init({
+        </p>
+        <InstructionCodeSnippet language="javascript" dark hideCopyButton>
+          {`Sentry.init({
   release: 'your-release-name'
 })`}
-          </InstructionCodeSnippet>
-        </p>
+        </InstructionCodeSnippet>
         <p>
           Alternatively, you can configure one of our build tools to automatically inject
           a release value into your code:{' '}
@@ -710,16 +710,15 @@ function ReleaseSourceFileMatchingChecklistItem({facts}: {facts: Facts}) {
               Upload your build artifacts to Sentry using the dist{' '}
               <MonoBlock>{facts.distName}</MonoBlock> or adjust the dist value in your SDK
               options.
-              <DistCodeSnippet />
             </p>
           ) : (
             <p>
               Upload your build artifacts to Sentry using a matching
               <MonoBlock>dist</MonoBlock> value or adjust the <MonoBlock>dist</MonoBlock>{' '}
               value in your SDK options.
-              <DistCodeSnippet />
             </p>
           )}
+          <DistCodeSnippet />
           {/* TODO: Link to Uploaded Artifacts */}
         </CheckListInstruction>
       </CheckListItem>
@@ -900,6 +899,10 @@ const StyledProgressRing = styled(ProgressRing)`
   margin-right: ${space(0.5)};
 `;
 
+const WizardInstructionParagraph = styled('p')`
+  margin-bottom: ${space(1)};
+`;
+
 const InstructionCodeSnippet = styled(CodeSnippet)`
-  margin-top: ${space(1)};
+  margin: ${space(1)} 0 ${space(2)};
 `;
