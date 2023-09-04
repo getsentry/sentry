@@ -255,6 +255,13 @@ export const profiling: PlatformKey[] = [
   'python-pyramid',
   'python-tornado',
   'python-rq',
+  'python-aiohttp',
+  'python-chalice',
+  'python-falcon',
+  'python-quart',
+  'python-tryton',
+  'python-wsgi',
+  'python-serverless',
   // rust
   'rust',
   // php
