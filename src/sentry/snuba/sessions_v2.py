@@ -341,8 +341,7 @@ class QueryDefinition:
         conditions = SessionsV2QueryBuilder(**self.to_query_builder_dict()).where
         filter_conditions = []
         for condition in conditions:
-            if (unsupported_reason := self._is_supported_condition(condition)) is not None:
-                raise InvalidField(f"Invalid condition: {unsupported_reason}")
+            self._check_supported_condition(condition)
 
             # Exclude sessions "started" timestamp condition and org_id condition, as it is not needed for metrics
             # queries.
@@ -357,13 +356,10 @@ class QueryDefinition:
         return filter_conditions
 
     @classmethod
-    def _is_supported_condition(cls, condition):
+    def _check_supported_condition(cls, condition):
         if isinstance(condition, BooleanCondition):
             for nested_condition in condition.conditions:
-                if (
-                    unsupported_reason := cls._is_supported_condition(nested_condition)
-                ) is not None:
-                    return unsupported_reason
+                cls._check_supported_condition(nested_condition)
         elif isinstance(condition, Condition):
             if isinstance(condition.lhs, Function):
                 # Since we moved to metrics backed sessions, we don't allow wildcard search anymore. The reason for this
@@ -371,7 +367,7 @@ class QueryDefinition:
                 # db impossible. The solution would be to lift it out at the application level, but it will impact
                 # performance.
                 if condition.lhs.function == "match":
-                    return "wildcard search is not supported"
+                    raise InvalidField("Invalid condition: wildcard search is not supported")
 
     def __repr__(self):
         return f"{self.__class__.__name__}({repr(self.__dict__)})"
