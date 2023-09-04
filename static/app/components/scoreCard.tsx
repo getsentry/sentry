@@ -11,7 +11,7 @@ export type ScoreCardProps = {
   title: React.ReactNode;
   className?: string;
   help?: React.ReactNode;
-  isHoverable?: boolean;
+  isTooltipHoverable?: boolean;
   renderOpenButton?: () => React.ReactNode;
   score?: React.ReactNode;
   trend?: React.ReactNode;
@@ -26,7 +26,7 @@ function ScoreCard({
   trendStatus,
   className,
   renderOpenButton,
-  isHoverable,
+  isTooltipHoverable,
 }: ScoreCardProps) {
   return (
     <ScorePanel className={className}>
@@ -38,7 +38,7 @@ function ScoreCard({
               title={help}
               size="sm"
               position="top"
-              isHoverable={isHoverable}
+              isHoverable={isTooltipHoverable}
             />
           )}
         </HeaderTitle>

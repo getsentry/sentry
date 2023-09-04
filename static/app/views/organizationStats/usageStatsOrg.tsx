@@ -462,7 +462,7 @@ class UsageStatsOrganization<
         score={loading ? undefined : card.score}
         help={card.help}
         trend={card.trend}
-        isHoverable
+        isTooltipHoverable
       />
     ));
   }
