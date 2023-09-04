@@ -44,7 +44,7 @@ interface Facts {
     | 'not-allowed'
     | 'unknown';
   stackFrameDebugId: string | null;
-  stackFramePath: string;
+  stackFramePath: string | null;
   uploadedSomeArtifact: boolean;
   uploadedSomeArtifactToRelease: boolean;
   uploadedSomeArtifactWithDebugId: boolean;
@@ -58,27 +58,34 @@ interface SourceMapsDebuggerModalProps extends ModalRenderProps {}
 export function SourceMapsDebuggerModal({Body, Header}: SourceMapsDebuggerModalProps) {
   const theme = useTheme();
 
-  const facts: Facts = {
+  // TODO: Replace this initial state with prop
+  const [facts, setFacts] = useState<Facts>({
     sourceFileReleaseNameFetchingResult: 'none',
-    sourceFileScrapingStatus: 'success',
+    sourceFileScrapingStatus: 'unknown',
     sourceMapReleaseNameFetchingResult: 'none',
-    sourceMapScrapingStatus: 'success',
+    sourceMapScrapingStatus: 'unknown',
     uploadedSomeArtifactWithDebugId: false,
-    uploadedSomeArtifact: true,
-    uploadedSomeArtifactToRelease: true,
+    uploadedSomeArtifact: false,
+    uploadedSomeArtifactToRelease: false,
     eventHasDebugIds: false,
     projectHasUploadedArtifacts: false,
-    sdkDebugIdSupport: 'full',
-    stackFrameDebugId: '1aca7171-be82-4db7-b42d-4c0fd35d96a8',
-    uploadedSourceFileWithCorrectDebugId: true,
+    sdkDebugIdSupport: 'needs-upgrade',
+    stackFrameDebugId: null,
+    uploadedSourceFileWithCorrectDebugId: false,
     uploadedSourceMapWithCorrectDebugId: false,
-    sdkVersion: '7.23.0',
+    sdkVersion: undefined,
     releaseName: null,
     distName: null,
     releaseSourceMapReference: null,
     matchingArtifactName: '~/build/bundle.min.js',
     stackFramePath: '/build/bundle.min.js',
-  };
+  });
+
+  const [debuggerDebuggerContent, setDebuggerDebuggerContent] = useState<string>(
+    JSON.stringify(facts, null, 2)
+  );
+  const [debuggerDebuggerContentValid, setDebuggerDebuggerContentValid] =
+    useState<boolean>(true);
 
   let debugIdProgress = 0;
   if (facts.sdkDebugIdSupport === 'full') {
@@ -99,7 +106,7 @@ export function SourceMapsDebuggerModal({Body, Header}: SourceMapsDebuggerModalP
   if (facts.releaseName !== null) {
     releaseNameProgress++;
   }
-  if (facts.uploadedSomeArtifactToRelease !== null) {
+  if (facts.uploadedSomeArtifactToRelease) {
     releaseNameProgress++;
   }
   if (facts.sourceFileReleaseNameFetchingResult === 'found') {
@@ -113,7 +120,9 @@ export function SourceMapsDebuggerModal({Body, Header}: SourceMapsDebuggerModalP
   const scrapingProgress = 0;
   const scrapingProgressPercent = scrapingProgress / 3;
 
-  const [activeTab, setActiveTab] = useState<'debug-ids' | 'release' | 'fetching'>(() => {
+  const [activeTab, setActiveTab] = useState<
+    'debug-ids' | 'release' | 'fetching' | 'debugger-debugger'
+  >(() => {
     const possibleTabs = [
       {tab: 'debug-ids', progress: debugIdProgressPercent},
       {tab: 'release', progress: releaseNameProgressPercent},
@@ -151,7 +160,7 @@ export function SourceMapsDebuggerModal({Body, Header}: SourceMapsDebuggerModalP
           getting started with source maps, the following check lists will help you set
           them up correctly. Complete any one of the following processes:
         </p>
-        <Tabs<'debug-ids' | 'release' | 'fetching'>
+        <Tabs<'debug-ids' | 'release' | 'fetching' | 'debugger-debugger'>
           value={activeTab}
           onChange={tab => {
             setActiveTab(tab);
@@ -193,6 +202,13 @@ export function SourceMapsDebuggerModal({Body, Header}: SourceMapsDebuggerModalP
                 barWidth={4}
               />
               {t('Hosting Publicly')}
+            </TabList.Item>
+            <TabList.Item
+              key="debugger-debugger"
+              textValue="debugger debugger"
+              hidden={process.env.NODE_ENV === 'production'}
+            >
+              Debugger debugger (dev only)
             </TabList.Item>
           </TabList>
           <StyledTabPanels>
@@ -250,6 +266,25 @@ export function SourceMapsDebuggerModal({Body, Header}: SourceMapsDebuggerModalP
               ) : (
                 <VerifyAgainNote />
               )}
+            </TabPanels.Item>
+            <TabPanels.Item key="debugger-debugger">
+              <textarea
+                style={{width: '100%', resize: 'vertical'}}
+                rows={24}
+                value={debuggerDebuggerContent}
+                onChange={e => {
+                  setDebuggerDebuggerContent(e.target.value);
+                  let newFacts;
+                  try {
+                    newFacts = JSON.parse(e.target.value);
+                    setFacts(newFacts);
+                    setDebuggerDebuggerContentValid(true);
+                  } catch {
+                    setDebuggerDebuggerContentValid(false);
+                  }
+                }}
+              />
+              <p>{debuggerDebuggerContentValid ? 'valid' : 'invalid'}</p>
             </TabPanels.Item>
           </StyledTabPanels>
         </Tabs>
@@ -718,6 +753,18 @@ function ReleaseSourceFileMatchingChecklistItem({facts}: {facts: Facts}) {
     );
   }
 
+  if (facts.stackFramePath === null) {
+    <CheckListItem status="alert" title={itemName}>
+      <CheckListInstruction type="muted">
+        <h6>Stack Frame Without Path</h6>
+        <p>
+          This stack frame doesn't have a path. Check your SDK configuration to send a
+          stack frame path!
+        </p>
+      </CheckListInstruction>
+    </CheckListItem>;
+  }
+
   return (
     <CheckListItem status="alert" title={itemName}>
       <CheckListInstruction type="muted">
@@ -750,8 +797,8 @@ function DistCodeSnippet() {
   return (
     <InstructionCodeSnippet language="javascript" dark hideCopyButton>
       {`Sentry.init({
-      dist: 'your-dist-name'
-    })`}
+  dist: 'your-dist-name'
+})`}
     </InstructionCodeSnippet>
   );
 }
@@ -827,8 +874,9 @@ const ListItemContentContainer = styled('div')`
 const CompletionNoteContainer = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(1.5)};
-  margin-top: ${space(1)};
+  gap: ${space(2)};
+  margin-top: ${space(1.5)};
+  padding: 0 ${space(2)} 0 0;
   height: 24px;
 `;
 
