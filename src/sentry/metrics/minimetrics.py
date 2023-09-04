@@ -21,6 +21,8 @@ from typing import (
 from sentry.metrics.base import MetricsBackend, Tags
 from sentry.utils import metrics
 
+__all__ = ["MiniMetricsMetricsBackend"]
+
 # The thread local instance must be initialized globally in order to correctly use the state.
 thread_local = threading.local()
 
@@ -145,7 +147,7 @@ ComposedKey = Tuple[int, str, str, MetricUnit, Tuple[Tuple[str, str], ...]]
 
 
 class Aggregator:
-    ROLLUP_IN_SECONDS = 1.0
+    ROLLUP_IN_SECONDS = 10.0
 
     def __init__(self) -> None:
         self.buckets: Dict[ComposedKey, Metric[Any]] = {}
@@ -191,13 +193,42 @@ class Aggregator:
 
             time.sleep(2.0)
 
-    def _emit(self, extracted_metrics: Any) -> Any:
+    @staticmethod
+    def _emit(extracted_metrics: Any) -> Any:
         # In order to avoid an infinite recursion for metrics, we want to use a thread local variable that will
         # signal the downstream calls to only propagate the metric to the primary backend, otherwise if propagated to
         # minimetrics, it will cause unbounded recursion.
         thread_local.in_minimetrics = True
-        # We want to emit a metric on how many metrics we would technically emit if we were to use minimetrics.
-        metrics.incr("minimetrics.emit", amount=len(extracted_metrics))
+
+        # We obtain the counts for each metric type, since we want to know how many by type we have.
+        counts_by_type: Dict[str, float] = {}
+        for metric in extracted_metrics:
+            metric_type = metric["type"]
+            metric_value = metric["value"]
+
+            value = 0.0
+            if metric_type == "c":
+                # For counters, we want to sum the count value.
+                value = metric_value
+            elif metric_value == "d":
+                # For distributions, we want to track the size of the distribution.
+                value = len(metric_value)
+            elif metric_value == "g":
+                # For gauges, we will emit a count of 1.
+                value = 1
+            elif metric_value == "s":
+                # For sets, we want to track the cardinality of the set.
+                value = len(metric_value)
+
+            counts_by_type[metric_type] = counts_by_type.get(metric_value, 0) + value
+
+        # For each type and count we want to emit a metric.
+        for metric_type, metric_count in counts_by_type.items():
+            # We want to emit a metric on how many metrics we would technically emit if we were to use minimetrics.
+            metrics.incr(
+                "minimetrics.emit", amount=int(metric_count), tags={"metric_type": metric_type}
+            )
+
         # We clear the thread local variables, in order to make metrics extraction continue as normal.
         thread_local.__dict__.clear()
 

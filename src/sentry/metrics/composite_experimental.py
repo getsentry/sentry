@@ -7,22 +7,26 @@ from sentry.metrics.minimetrics import MiniMetricsMetricsBackend
 from sentry.options import UnknownOption
 from sentry.utils.imports import import_string
 
+__all__ = ["CompositeExperimentalMetricsBackend"]
+
 
 class CompositeExperimentalMetricsBackend(MetricsBackend):
-    def __init__(self, prefix: Optional[str] = None, **kwargs: Any):
-        super().__init__(prefix=prefix)
+    def __init__(self, **kwargs: Any):
+        super().__init__()
         self._initialize_backends(
-            kwargs.pop("primary_backend", None), kwargs.pop("backend_args", {})
+            kwargs.pop("primary_backend", None), kwargs.pop("primary_backend_args", {})
         )
         self._allow_list = set(kwargs.pop("allow_list", set()))
 
-    def _initialize_backends(self, primary_backend: Optional[str], backend_args: Dict[str, Any]):
+    def _initialize_backends(
+        self, primary_backend: Optional[str], primary_backend_args: Dict[str, Any]
+    ):
         # If we don't have a primary metrics backend we default to the dummy, which won't do anything.
         if primary_backend is None:
             self._primary_backend: MetricsBackend = DummyMetricsBackend()
         else:
             cls: Type[MetricsBackend] = import_string(primary_backend)
-            self._primary_backend = cls(**backend_args)
+            self._primary_backend = cls(**primary_backend_args)
 
         self._minimetrics: MetricsBackend = MiniMetricsMetricsBackend()
 
@@ -45,7 +49,6 @@ class CompositeExperimentalMetricsBackend(MetricsBackend):
         amount: Union[float, int] = 1,
         sample_rate: float = 1,
     ) -> None:
-        key = self._get_key(key)
         self._primary_backend.incr(key, instance, tags, amount, sample_rate)
         if self._is_allowed(key):
             self._minimetrics.incr(key, instance, tags, amount, self._minimetrics_sample_rate())
@@ -58,7 +61,6 @@ class CompositeExperimentalMetricsBackend(MetricsBackend):
         tags: Optional[Tags] = None,
         sample_rate: float = 1,
     ) -> None:
-        key = self._get_key(key)
         self._primary_backend.timing(key, value, instance, tags, sample_rate)
         if self._is_allowed(key):
             self._minimetrics.timing(key, value, instance, tags, self._minimetrics_sample_rate())
@@ -71,7 +73,6 @@ class CompositeExperimentalMetricsBackend(MetricsBackend):
         tags: Optional[Tags] = None,
         sample_rate: float = 1,
     ) -> None:
-        key = self._get_key(key)
         self._primary_backend.gauge(key, value, instance, tags, sample_rate)
         if self._is_allowed(key):
             self._minimetrics.gauge(key, value, instance, tags, self._minimetrics_sample_rate())
