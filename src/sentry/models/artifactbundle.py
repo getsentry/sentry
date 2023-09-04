@@ -171,7 +171,7 @@ class ArtifactBundleFlatFileIndex(Model):
     def update_flat_file_index(self, data: str):
         encoded_data = data.encode()
 
-        metric_name = "debug_id_index" if self.dist_name == NULL_STRING else "url_index"
+        metric_name = "debug_id_index" if self.release_name == NULL_STRING else "url_index"
         metrics.timing(
             f"artifact_bundle_flat_file_indexing.{metric_name}.size_in_bytes",
             value=len(encoded_data),
