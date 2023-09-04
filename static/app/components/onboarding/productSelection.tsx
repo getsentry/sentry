@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useMemo} from 'react';
+import {Fragment, ReactNode, useCallback, useEffect, useMemo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -124,7 +124,7 @@ type ProductProps = {
   /**
    * Brief product description
    */
-  description?: string;
+  description?: ReactNode;
   /**
    * If the product is disabled. It contains a reason and an optional onClick handler
    */
@@ -169,6 +169,7 @@ function Product({
           </TooltipDescription>
         ))
       }
+      delay={500}
       isHoverable
     >
       <ProductWrapper
@@ -254,16 +255,24 @@ export function ProductSelection({
 
   const handleClickProduct = useCallback(
     (product: ProductSolution) => {
-      let newProduct = urlProducts.includes(product)
-        ? urlProducts.filter(p => p !== product)
-        : [...urlProducts, product];
+      const newProduct = new Set(
+        urlProducts.includes(product)
+          ? urlProducts.filter(p => p !== product)
+          : [...urlProducts, product]
+      );
 
       if (defaultProducts?.includes(ProductSolution.PROFILING)) {
+        // Ensure that if profiling is enabled, performance monitoring is also enabled
         if (
-          !newProduct.includes(ProductSolution.PERFORMANCE_MONITORING) &&
-          newProduct.includes(ProductSolution.PROFILING)
+          product === ProductSolution.PROFILING &&
+          newProduct.has(ProductSolution.PROFILING)
         ) {
-          newProduct = [...newProduct, ProductSolution.PERFORMANCE_MONITORING];
+          newProduct.add(ProductSolution.PERFORMANCE_MONITORING);
+        } else if (
+          product === ProductSolution.PERFORMANCE_MONITORING &&
+          !newProduct.has(ProductSolution.PERFORMANCE_MONITORING)
+        ) {
+          newProduct.delete(ProductSolution.PROFILING);
         }
       }
 
@@ -271,7 +280,7 @@ export function ProductSelection({
         pathname: router.location.pathname,
         query: {
           ...router.location.query,
-          product: newProduct,
+          product: [...newProduct],
         },
       });
     },
@@ -317,20 +326,11 @@ export function ProductSelection({
             )}
             docLink="https://docs.sentry.io/platforms/javascript/guides/react/performance/"
             onClick={() => handleClickProduct(ProductSolution.PERFORMANCE_MONITORING)}
-            disabled={
-              urlProducts.includes(ProductSolution.PROFILING)
-                ? {
-                    reason: t(
-                      'You must have Performance Monitoring set up to use Profiling. Disabling it is not possible while Profiling is selected.'
-                    ),
-                  }
-                : disabledProducts?.find(
-                    disabledProduct =>
-                      disabledProduct.product === ProductSolution.PERFORMANCE_MONITORING
-                  )
-            }
+            disabled={disabledProducts?.find(
+              disabledProduct =>
+                disabledProduct.product === ProductSolution.PERFORMANCE_MONITORING
+            )}
             checked={urlProducts.includes(ProductSolution.PERFORMANCE_MONITORING)}
-            permanentDisabled={urlProducts.includes(ProductSolution.PROFILING)}
           />
         )}
         {products.includes(ProductSolution.SESSION_REPLAY) && (
@@ -351,8 +351,11 @@ export function ProductSelection({
         {products.includes(ProductSolution.PROFILING) && (
           <Product
             label={t('Profiling')}
-            description={t(
-              'See the exact functions and lines of code causing your performance bottlenecks, so you can speed up troubleshooting and optimize resource consumption.'
+            description={tct(
+              '[strong:Requires Performance Monitoring]\nSee the exact lines of code causing your performance bottlenecks, for faster troubleshooting and resource optimization.',
+              {
+                strong: <strong />,
+              }
             )}
             docLink="https://docs.sentry.io/platforms/python/profiling/"
             onClick={() => handleClickProduct(ProductSolution.PROFILING)}

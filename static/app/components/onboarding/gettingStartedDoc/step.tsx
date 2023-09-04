@@ -98,7 +98,11 @@ function getConfiguration({
           disableUserSelection={partialLoading}
         >
           {language === 'javascript'
-            ? beautify.js(code, {indent_size: 2, e4x: true})
+            ? beautify.js(code, {
+                indent_size: 2,
+                e4x: true,
+                brace_style: 'preserve-inline',
+              })
             : code.trim()}
         </CodeSnippet>
       )}
