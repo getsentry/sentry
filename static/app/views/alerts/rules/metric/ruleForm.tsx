@@ -462,11 +462,15 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
 
   handleFieldChange = (name: string, value: unknown) => {
     const {projects} = this.props;
-    if (name === 'alertType') {
-      this.handleOnDemandAlertDataset(this.state.dataset, this.state.query);
+    const dataset = this.checkOnDemandMetricsDataset(
+      this.state.dataset,
+      this.state.query
+    );
 
+    if (name === 'alertType') {
       this.setState({
         alertType: value as MetricAlertType,
+        dataset,
       });
       return;
     }
@@ -483,14 +487,18 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
         'alertType',
       ].includes(name)
     ) {
-      this.setState(({project: _project, aggregate, dataset, alertType}) => {
-        const newAlertType = getAlertTypeFromAggregateDataset({aggregate, dataset});
+      this.setState(({project: _project, aggregate, alertType}) => {
+        const newAlertType = getAlertTypeFromAggregateDataset({
+          aggregate,
+          dataset,
+        });
 
         return {
           [name]: value,
           project:
             name === 'projectId' ? projects.find(({id}) => id === value) : _project,
           alertType: alertType !== newAlertType ? 'custom' : alertType,
+          dataset,
         };
       });
     }
@@ -508,7 +516,8 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       query,
     });
 
-    this.setState({query, isQueryValid});
+    const dataset = this.checkOnDemandMetricsDataset(this.state.dataset, query);
+    this.setState({query, dataset, isQueryValid});
   };
 
   validateOnDemandMetricAlert() {
@@ -788,14 +797,14 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
 
   // If the user is creating an on-demand metric alert, we want to override the dataset
   // to be generic metrics instead of transactions
-  handleOnDemandAlertDataset = (dataset: Dataset, query: string) => {
+  checkOnDemandMetricsDataset = (dataset: Dataset, query: string) => {
     if (!hasOnDemandMetricAlertFeature(this.props.organization)) {
-      return;
+      return dataset;
     }
     if (dataset !== Dataset.TRANSACTIONS || !isOnDemandQueryString(query)) {
-      return;
+      return dataset;
     }
-    this.setState({dataset: Dataset.GENERIC_METRICS});
+    return Dataset.GENERIC_METRICS;
   };
 
   renderLoading() {
