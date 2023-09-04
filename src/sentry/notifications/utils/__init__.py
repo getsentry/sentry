@@ -42,7 +42,6 @@ from sentry.models import (
     EventError,
     Group,
     GroupLink,
-    Integration,
     Organization,
     Project,
     Release,
@@ -259,9 +258,9 @@ def has_integrations(organization: Organization, project: Project) -> bool:
     from sentry.plugins.base import plugins
 
     project_plugins = plugins.for_project(project, version=1)
-    organization_integrations = Integration.objects.filter(
-        organizationintegration__organization_id=organization.id
-    ).first()
+    organization_integrations = integration_service.get_integrations(
+        organization_id=organization.id, limit=1
+    )
     # TODO: fix because project_plugins is an iterator and thus always truthy
     return bool(project_plugins or organization_integrations)
 
