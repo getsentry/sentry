@@ -18,13 +18,15 @@ class CompositeExperimentalMetricsBackend(MetricsBackend):
         )
         self._allow_list = set(kwargs.pop("allow_list", set()))
 
-    def _initialize_backends(self, primary_backend: Optional[str], backend_args: Dict[str, Any]):
+    def _initialize_backends(
+        self, primary_backend: Optional[str], primary_backend_args: Dict[str, Any]
+    ):
         # If we don't have a primary metrics backend we default to the dummy, which won't do anything.
         if primary_backend is None:
             self._primary_backend: MetricsBackend = DummyMetricsBackend()
         else:
             cls: Type[MetricsBackend] = import_string(primary_backend)
-            self._primary_backend = cls(**backend_args)
+            self._primary_backend = cls(**primary_backend_args)
 
         self._minimetrics: MetricsBackend = MiniMetricsMetricsBackend()
 
