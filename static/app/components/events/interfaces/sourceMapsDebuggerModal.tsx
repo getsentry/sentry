@@ -486,13 +486,7 @@ function UploadedSourceFileWithCorrectDebugIdChecklistItem({facts}: {facts: Fact
             Make sure to inject Debug IDs into all of your source files and to upload all
             of them to Sentry.
           </p>
-          {/* <p>
-            TODO: Link to Uploaded Artifacts (
-            <Link to="">
-              Go to uploaded Artifacts <IconOpen size="xs" />
-            </Link>
-            )
-          </p> */}
+          {/* TODO: Link to Uploaded Artifacts */}
         </CheckListInstruction>
       </CheckListItem>
     );
@@ -516,13 +510,7 @@ function UploadedSourceFileWithCorrectDebugIdChecklistItem({facts}: {facts: Fact
             to learn how to inject Debug IDs into your build artifacts and how to upload
             them to Sentry.
           </p>
-          {/* <p>
-            TODO: Link to Uploaded Artifacts (
-            <Link to="">
-              Go to uploaded Artifacts <IconOpen size="xs" />
-            </Link>
-            )
-          </p> */}
+          {/* TODO: Link to Uploaded Artifacts */}
         </CheckListInstruction>
       </CheckListItem>
     );
@@ -540,13 +528,7 @@ function UploadedSourceFileWithCorrectDebugIdChecklistItem({facts}: {facts: Fact
           to learn how to inject Debug IDs into your build artifacts and how to upload
           them to Sentry.
         </p>
-        {/* <p>
-          TODO: Link to Uploaded Artifacts (
-          <Link to="">
-            Go to uploaded Artifacts <IconOpen size="xs" />
-          </Link>
-          )
-        </p> */}
+        {/* TODO: Link to Uploaded Artifacts */}
       </CheckListInstruction>
     </CheckListItem>
   );
@@ -584,13 +566,7 @@ function UploadedSourceMapWithCorrectDebugIdChecklistItem({facts}: {facts: Facts
             Make sure to inject Debug IDs into all of your source files and to upload all
             of them to Sentry.
           </p>
-          {/* <p>
-            TODO: Link to Uploaded Artifacts (
-            <Link to="">
-              Go to uploaded Artifacts <IconOpen size="xs" />
-            </Link>
-            )
-          </p> */}
+          {/* TODO: Link to Uploaded Artifacts */}
         </CheckListInstruction>
         {notRequiredNote}
       </CheckListItem>
@@ -615,13 +591,7 @@ function UploadedSourceMapWithCorrectDebugIdChecklistItem({facts}: {facts: Facts
             to learn how to inject Debug IDs into your build artifacts and how to upload
             them to Sentry.
           </p>
-          {/* <p>
-            TODO: Link to Uploaded Artifacts (
-            <Link to="">
-              Go to uploaded Artifacts <IconOpen size="xs" />
-            </Link>
-            )
-          </p> */}
+          {/* TODO: Link to Uploaded Artifacts */}
         </CheckListInstruction>
         {notRequiredNote}
       </CheckListItem>
@@ -640,13 +610,7 @@ function UploadedSourceMapWithCorrectDebugIdChecklistItem({facts}: {facts: Facts
           to learn how to inject Debug IDs into your build artifacts and how to upload
           them to Sentry.
         </p>
-        {/* <p>
-          TODO: Link to Uploaded Artifacts (
-          <Link to="">
-            Go to uploaded Artifacts <IconOpen size="xs" />
-          </Link>
-          )
-        </p> */}
+        {/* TODO: Link to Uploaded Artifacts */}
       </CheckListInstruction>
       {notRequiredNote}
     </CheckListItem>
@@ -711,13 +675,7 @@ function ReleaseHasUploadedArtifactsChecklistItem({facts}: {facts: Facts}) {
             Sentry Source Maps Documentation <IconOpen size="xs" />
           </ExternalLink>{' '}
           to learn how to to upload your build artifacts to Sentry.
-          {/* <p>
-            TODO: Link to Uploaded Artifacts (
-            <Link to="">
-              Go to uploaded Artifacts <IconOpen size="xs" />
-            </Link>
-            )
-          </p> */}
+          {/* TODO: Link to Uploaded Artifacts */}
         </p>
       </CheckListInstruction>
     </CheckListItem>
@@ -762,13 +720,7 @@ function ReleaseSourceFileMatchingChecklistItem({facts}: {facts: Facts}) {
               <DistCodeSnippet />
             </p>
           )}
-          {/* <p>
-            TODO: Link to Uploaded Artifacts (
-            <Link to="">
-              Go to uploaded Artifacts <IconOpen size="xs" />
-            </Link>
-            )
-          </p> */}
+          {/* TODO: Link to Uploaded Artifacts */}
         </CheckListInstruction>
       </CheckListItem>
     );
