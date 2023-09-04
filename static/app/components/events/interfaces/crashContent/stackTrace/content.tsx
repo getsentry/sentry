@@ -1,7 +1,9 @@
-import {cloneElement, Fragment, useState} from 'react';
+import {cloneElement, Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {openModal} from 'sentry/actionCreators/modal';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import {SourceMapsDebuggerModal} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
 import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import {Frame, Organization, PlatformType} from 'sentry/types';
@@ -62,6 +64,20 @@ function Content({
   const [showingAbsoluteAddresses, setShowingAbsoluteAddresses] = useState(false);
   const [showCompleteFunctionName, setShowCompleteFunctionName] = useState(false);
   const [toggleFrameMap, setToggleFrameMap] = useState(setInitialFrameMap());
+
+  // TODO: Remove this when we have a way of showing the source map debugger inside a stack frame
+  useEffect(() => {
+    // @ts-ignore
+    window.showSourceMapDebugger = () => {
+      openModal(modalProps => <SourceMapsDebuggerModal {...modalProps} />, {
+        backdrop: true,
+      });
+    };
+    return () => {
+      // @ts-ignore
+      delete window.showSourceMapDebugger;
+    };
+  }, []);
 
   const {frames = [], framesOmitted, registers} = data;
 
