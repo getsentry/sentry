@@ -25,6 +25,7 @@ import {getDisplayName} from 'sentry/utils/environment';
 import {
   createOnDemandFilterWarning,
   hasOnDemandMetricAlertFeature,
+  isOnDemandQueryString,
 } from 'sentry/utils/onDemandMetrics';
 import withApi from 'sentry/utils/withApi';
 import withProjects from 'sentry/utils/withProjects';
@@ -486,7 +487,8 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                     // We only need strict validation for Transaction queries, everything else is fine
                     highlightUnsupportedTags={
                       organization.features.includes('alert-allow-indexed') ||
-                      hasOnDemandMetricAlertFeature(organization)
+                      (hasOnDemandMetricAlertFeature(organization) &&
+                        isOnDemandQueryString(initialData.query))
                         ? false
                         : [Dataset.GENERIC_METRICS, Dataset.TRANSACTIONS].includes(
                             dataset
