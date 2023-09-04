@@ -1477,6 +1477,33 @@ class OrganizationSessionsEndpointMetricsTest(
             )
 
     @freeze_time(MOCK_DATETIME)
+    def test_wildcard_search(self):
+        default_request = {
+            "project": [-1],
+            "statsPeriod": "2d",
+            "interval": "1d",
+        }
+
+        def req(**kwargs):
+            return self.do_request(dict(default_request, **kwargs))
+
+        response = req(field=["sum(session)"], query="release:foo@*")
+        assert response.status_code == 400
+        assert response.data == {"detail": "Invalid condition: wildcard search is not supported"}
+
+        response = req(field=["sum(session)"], query="release:foo@* AND release:bar@*")
+        assert response.status_code == 400
+        assert response.data == {"detail": "Invalid condition: wildcard search is not supported"}
+
+        response = req(field=["sum(session)"], query="release:foo@* OR release:bar@*")
+        assert response.status_code == 400
+        assert response.data == {"detail": "Invalid condition: wildcard search is not supported"}
+
+        response = req(field=["sum(session)"], query="(release:foo@* OR release:bar) OR project:1")
+        assert response.status_code == 400
+        assert response.data == {"detail": "Invalid condition: wildcard search is not supported"}
+
+    @freeze_time(MOCK_DATETIME)
     def test_filter_by_session_status(self):
         default_request = {
             "project": [-1],
