@@ -368,7 +368,7 @@ class QueryDefinition:
             if isinstance(condition.lhs, Function):
                 # Since we moved to metrics backed sessions, we don't allow wildcard search anymore. The reason for this
                 # is that we don't store tag values as strings in the database, this makes wildcard match on the
-                # db not possible. The solution would be to lift it out at the application level, but it will impact
+                # db impossible. The solution would be to lift it out at the application level, but it will impact
                 # performance.
                 if condition.lhs.function == "match":
                     return "wildcard search is not supported"
