@@ -11,6 +11,8 @@ import {ProjectPerformanceType} from '../../utils';
 
 import {PerformanceWidgetSetting} from './widgetDefinitions';
 
+export const QUERY_LIMIT_PARAM = 4;
+
 export const eventsRequestQueryProps = [
   'children',
   'organization',

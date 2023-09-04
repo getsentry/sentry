@@ -36,6 +36,7 @@ import SelectableList, {
 } from '../components/selectableList';
 import {transformTrendsDiscover} from '../transforms/transformTrendsDiscover';
 import {PerformanceWidgetProps, QueryDefinition, WidgetDataResult} from '../types';
+import {QUERY_LIMIT_PARAM} from '../utils';
 import {PerformanceWidgetSetting} from '../widgetDefinitions';
 
 type DataType = {
@@ -100,7 +101,7 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
           location={location}
           trendChangeType={derivedTrendChangeType}
           trendFunctionField={trendFunctionField}
-          limit={3}
+          limit={QUERY_LIMIT_PARAM}
           cursor="0:0:1"
           noPagination
           withBreakpoint={withBreakpoint}

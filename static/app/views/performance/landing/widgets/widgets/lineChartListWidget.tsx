@@ -47,7 +47,11 @@ import SelectableList, {
 import {transformDiscoverToList} from '../transforms/transformDiscoverToList';
 import {transformEventsRequestToArea} from '../transforms/transformEventsToArea';
 import {PerformanceWidgetProps, QueryDefinition, WidgetDataResult} from '../types';
-import {eventsRequestQueryProps, getMEPParamsIfApplicable} from '../utils';
+import {
+  eventsRequestQueryProps,
+  getMEPParamsIfApplicable,
+  QUERY_LIMIT_PARAM,
+} from '../utils';
 import {PerformanceWidgetSetting} from '../widgetDefinitions';
 
 type DataType = {
@@ -182,7 +186,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
             {...provided}
             eventView={eventView}
             location={location}
-            limit={3}
+            limit={QUERY_LIMIT_PARAM}
             cursor="0:0:1"
             noPagination
             queryExtras={extraQueryParams}

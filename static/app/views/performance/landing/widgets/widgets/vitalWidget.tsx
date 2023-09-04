@@ -47,7 +47,7 @@ import SelectableList, {
 import {transformDiscoverToList} from '../transforms/transformDiscoverToList';
 import {transformEventsRequestToVitals} from '../transforms/transformEventsToVitals';
 import {PerformanceWidgetProps, QueryDefinition, WidgetDataResult} from '../types';
-import {eventsRequestQueryProps, getMEPQueryParams} from '../utils';
+import {eventsRequestQueryProps, getMEPQueryParams, QUERY_LIMIT_PARAM} from '../utils';
 import {ChartDefinition, PerformanceWidgetSetting} from '../widgetDefinitions';
 
 type DataType = {
@@ -241,7 +241,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
     };
 
   const getItems = provided =>
-    provided.widgetData.list.data.slice(0, 3).map(
+    provided.widgetData.list.data.slice(0, QUERY_LIMIT_PARAM).map(
       listItem =>
         function () {
           const transaction = (listItem?.transaction as string | undefined) ?? '';
