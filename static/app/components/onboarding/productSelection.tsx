@@ -352,7 +352,7 @@ export function ProductSelection({
           <Product
             label={t('Profiling')}
             description={tct(
-              '[strong:Requires Performance Monitoring]\nSee the exact functions and lines of code causing your performance bottlenecks, so you can speed up troubleshooting and optimize resource consumption.',
+              '[strong:Requires Performance Monitoring]\nSee the exact lines of code causing your performance bottlenecks, for faster troubleshooting and resource optimization.',
               {
                 strong: <strong />,
               }
