@@ -39,7 +39,6 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
         "PUT": ApiPublishStatus.PUBLIC,
     }
-    public = {"GET", "PUT", "DELETE"}
 
     @extend_schema(
         operation_id="Retrieve a Monitor",

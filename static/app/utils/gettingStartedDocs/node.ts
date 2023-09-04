@@ -31,15 +31,19 @@ export function joinWithIndentation(lines: string[], indent = 2) {
 
 export function getInstallSnippet({
   productSelection,
+  additionalPackages = [],
   basePackage = '@sentry/node',
 }: {
   productSelection: ProductSelectionMap;
+  additionalPackages?: string[];
   basePackage?: string;
 }) {
-  const packages = [basePackage];
+  let packages = [basePackage];
   if (productSelection.profiling) {
     packages.push('@sentry/profiling-node');
   }
+  packages = packages.concat(additionalPackages);
+
   return `# Using yarn
 yarn add ${packages.join(' ')}
 
@@ -51,14 +55,28 @@ export function getDefaultNodeImports({
   productSelection,
 }: {
   productSelection: ProductSelectionMap;
-  basePackage?: string;
 }) {
   const imports: string[] = [
     `// You can also use CommonJS \`require('@sentry/node')\` instead of \`import\``,
-    `import * as Sentry from '@sentry/node'`,
+    `import * as Sentry from "@sentry/node"`,
   ];
   if (productSelection.profiling) {
-    imports.push(`import { ProfilingIntegration } from '@sentry/profiling'`);
+    imports.push(`import { ProfilingIntegration } from "@sentry/profiling"`);
+  }
+  return imports;
+}
+
+export function getDefaulServerlessImports({
+  productSelection,
+}: {
+  productSelection: ProductSelectionMap;
+}) {
+  const imports: string[] = [
+    `// You can also use ESM \`import * as Sentry from "@sentry/serverless"\` instead of \`require\``,
+    `const Sentry = require("@sentry/serverless")`,
+  ];
+  if (productSelection.profiling) {
+    imports.push(`const { ProfilingIntegration } = require("@sentry/profiling")`);
   }
   return imports;
 }

@@ -14,7 +14,9 @@ import {EventEvidence} from 'sentry/components/events/eventEvidence';
 import {EventExtraData} from 'sentry/components/events/eventExtraData';
 import EventReplay from 'sentry/components/events/eventReplay';
 import {EventSdk} from 'sentry/components/events/eventSdk';
+import EventSpanOpBreakdown from 'sentry/components/events/eventStatisticalDetector/aggregateSpanOps/spanOpBreakdown';
 import EventBreakpointChart from 'sentry/components/events/eventStatisticalDetector/breakpointChart';
+import EventComparison from 'sentry/components/events/eventStatisticalDetector/eventComparison';
 import RegressionMessage from 'sentry/components/events/eventStatisticalDetector/regressionMessage';
 import {EventTagsAndScreenshot} from 'sentry/components/events/eventTagsAndScreenshot';
 import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
@@ -96,6 +98,8 @@ function GroupEventDetailsContent({
         <Fragment>
           <RegressionMessage event={event} />
           <EventBreakpointChart event={event} />
+          <EventSpanOpBreakdown event={event} />
+          <EventComparison event={event} group={group} project={project} />
         </Fragment>
       </Feature>
     );

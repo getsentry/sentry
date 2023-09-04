@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import tempfile
 from copy import deepcopy
+from datetime import datetime
 from functools import cached_property
 from pathlib import Path
 
@@ -15,9 +16,16 @@ from sentry.backup.imports import (
     import_in_user_scope,
 )
 from sentry.backup.scopes import ExportScope, RelocationScope
+from sentry.models.authenticator import Authenticator
 from sentry.models.email import Email
+from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization
+from sentry.models.organizationmapping import OrganizationMapping
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.models.orgauthtoken import OrgAuthToken
+from sentry.models.project import Project
+from sentry.models.projectkey import ProjectKey
 from sentry.models.user import User
 from sentry.models.useremail import UserEmail
 from sentry.models.userip import UserIP
@@ -97,8 +105,21 @@ class SanitizationTests(BackupTestCase):
         assert User.objects.count() == 4
         assert User.objects.filter(is_staff=False, is_superuser=False).count() == 4
 
+        # Every user except `max_user` shares an email.
+        assert Email.objects.count() == 2
+
+        # All `UserEmail`s must have their verification status reset in this scope.
+        assert UserEmail.objects.count() == 4
+        assert UserEmail.objects.filter(is_verified=True).count() == 0
+        assert UserEmail.objects.filter(date_hash_added__lt=datetime(2023, 7, 1, 0, 0)).count() == 0
+        assert (
+            UserEmail.objects.filter(validation_hash="mCnWesSVvYQcq7qXQ36AZHwosAd6cghE").count()
+            == 0
+        )
+
         assert User.objects.filter(is_staff=True).count() == 0
         assert User.objects.filter(is_superuser=True).count() == 0
+        assert Authenticator.objects.count() == 0
         assert UserPermission.objects.count() == 0
         assert UserRole.objects.count() == 0
         assert UserRoleUser.objects.count() == 0
@@ -113,8 +134,21 @@ class SanitizationTests(BackupTestCase):
         assert User.objects.count() == 4
         assert User.objects.filter(is_staff=False, is_superuser=False).count() == 4
 
+        # Every user except `max_user` shares an email.
+        assert Email.objects.count() == 2
+
+        # All `UserEmail`s must have their verification status reset in this scope.
+        assert UserEmail.objects.count() == 4
+        assert UserEmail.objects.filter(is_verified=True).count() == 0
+        assert UserEmail.objects.filter(date_hash_added__lt=datetime(2023, 7, 1, 0, 0)).count() == 0
+        assert (
+            UserEmail.objects.filter(validation_hash="mCnWesSVvYQcq7qXQ36AZHwosAd6cghE").count()
+            == 0
+        )
+
         assert User.objects.filter(is_staff=True).count() == 0
         assert User.objects.filter(is_superuser=True).count() == 0
+        assert Authenticator.objects.count() == 0
         assert UserPermission.objects.count() == 0
         assert UserRole.objects.count() == 0
         assert UserRoleUser.objects.count() == 0
@@ -130,6 +164,20 @@ class SanitizationTests(BackupTestCase):
         assert User.objects.filter(is_staff=True).count() == 2
         assert User.objects.filter(is_superuser=True).count() == 2
         assert User.objects.filter(is_staff=False, is_superuser=False).count() == 2
+        assert Authenticator.objects.count() == 4
+        assert UserEmail.objects.count() == 4
+
+        # Every user except `max_user` shares an email.
+        assert Email.objects.count() == 2
+
+        # All `UserEmail`s must keep their imported verification status reset in this scope.
+        assert UserEmail.objects.count() == 4
+        assert UserEmail.objects.filter(is_verified=True).count() == 4
+        assert UserEmail.objects.filter(date_hash_added__lt=datetime(2023, 7, 1, 0, 0)).count() == 4
+        assert (
+            UserEmail.objects.filter(validation_hash="mCnWesSVvYQcq7qXQ36AZHwosAd6cghE").count()
+            == 4
+        )
 
         # 1 from `max_user`, 1 from `permission_user`.
         assert UserPermission.objects.count() == 2
@@ -157,6 +205,61 @@ class ImportTestCase(BackupTestCase):
         export_to_file(tmp_path, ExportScope.Global)
         clear_database()
         return tmp_path
+
+
+@run_backup_tests_only_on_single_db
+class SignalingTests(ImportTestCase):
+    """
+    Some models are automatically created via signals and similar automagic from related models. We test that behavior here.
+    """
+
+    def test_import_signaling_user(self):
+        self.create_exhaustive_user("user", email="me@example.com")
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
+            with open(tmp_path) as tmp_file:
+                import_in_user_scope(tmp_file, printer=NOOP_PRINTER)
+
+        assert User.objects.count() == 1
+        assert User.objects.filter(email="me@example.com").exists()
+
+        assert UserEmail.objects.count() == 1
+        assert UserEmail.objects.filter(email="me@example.com").exists()
+
+        assert Email.objects.count() == 1
+        assert Email.objects.filter(email="me@example.com").exists()
+
+    def test_import_signaling_organization(self):
+        owner = self.create_exhaustive_user("owner")
+        invited = self.create_exhaustive_user("invited")
+        member = self.create_exhaustive_user("member")
+        self.create_exhaustive_organization("some-org", owner, invited, [member])
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
+            with open(tmp_path) as tmp_file:
+                import_in_organization_scope(tmp_file, printer=NOOP_PRINTER)
+
+        assert Organization.objects.count() == 1
+        assert Organization.objects.filter(slug="some-org").exists()
+
+        assert OrganizationMapping.objects.count() == 1
+        assert OrganizationMapping.objects.filter(slug="some-org").exists()
+
+        assert OrganizationMember.objects.count() == 3
+        assert OrganizationMemberMapping.objects.count() == 3
+
+        # The exhaustive org has 2 projects which automatically get 1 key and 3 options each.
+        assert Project.objects.count() == 2
+        assert Project.objects.filter(name="project-some-org").exists()
+        assert Project.objects.filter(name="other-project-some-org").exists()
+
+        assert ProjectKey.objects.count() == 2
+        assert ProjectOption.objects.count() == 6
+        assert ProjectOption.objects.filter(key="sentry:relay-rev").exists()
+        assert ProjectOption.objects.filter(key="sentry:relay-rev-lastchange").exists()
+        assert ProjectOption.objects.filter(key="sentry:option-epoch").exists()
 
 
 @run_backup_tests_only_on_single_db
@@ -236,7 +339,7 @@ class FilterTests(ImportTestCase):
         assert User.objects.count() == 3
         assert UserIP.objects.count() == 3
         assert UserEmail.objects.count() == 3
-        assert Email.objects.count() == 2
+        assert Email.objects.count() == 2  # Lower due to shared emails
 
         assert User.objects.filter(username="user_1").exists()
         assert User.objects.filter(username="user_2").exists()

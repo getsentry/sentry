@@ -11,7 +11,7 @@ from sentry.db.models.fields.jsonfield import JSONField
 
 @control_silo_only_model
 class AuthIdentity(Model):
-    __relocation_scope__ = RelocationScope.Organization
+    __relocation_scope__ = RelocationScope.Global
 
     # NOTE: not a fk to sentry user
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL)

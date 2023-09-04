@@ -18,9 +18,10 @@ from sentry.models import (
     SentryAppInstallationToken,
 )
 from sentry.models.integrations.sentry_app import MASKED_VALUE
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import Feature, with_feature
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.utils import json
 
 POPULARITY = 27
@@ -36,6 +37,7 @@ class SentryAppsTest(APITestCase):
     endpoint = "sentry-api-0-sentry-apps"
 
     def setUp(self):
+        super().setUp()
         self.default_popularity = SentryApp._meta.get_field("popularity").default
 
     def set_up_apps(self):
@@ -277,7 +279,7 @@ class GetSentryAppsTest(SentryAppsTest):
         assert internal_app.uuid not in [a["uuid"] for a in response.data]
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class SuperUserPostSentryAppsTest(SentryAppsTest):
     method = "post"
 
@@ -300,6 +302,7 @@ class SuperUserPostSentryAppsTest(SentryAppsTest):
         assert {"popularity": POPULARITY}.items() <= json.loads(response.content).items()
 
 
+@control_silo_test(stable=True)
 class PostWithTokenSentryAppsTest(SentryAppsTest):
     def setUp(self):
         super().setUp()
@@ -347,6 +350,7 @@ class PostWithTokenSentryAppsTest(SentryAppsTest):
         )
 
 
+@control_silo_test(stable=True)
 class PostSentryAppsTest(SentryAppsTest):
     method = "post"
 
@@ -357,11 +361,12 @@ class PostSentryAppsTest(SentryAppsTest):
     def assert_sentry_app_status_code(self, sentry_app: SentryApp, status_code: int):
         token = ApiToken.objects.get(application=sentry_app.application)
 
-        url = reverse("sentry-api-0-organization-projects", args=[self.organization.slug])
-        response = self.client.get(
-            url, HTTP_ORIGIN="http://example.com", HTTP_AUTHORIZATION=f"Bearer {token.token}"
-        )
-        assert response.status_code == status_code
+        with assume_test_silo_mode(SiloMode.REGION):
+            url = reverse("sentry-api-0-organization-projects", args=[self.organization.slug])
+            response = self.client.get(
+                url, HTTP_ORIGIN="http://example.com", HTTP_AUTHORIZATION=f"Bearer {token.token}"
+            )
+            assert response.status_code == status_code
 
     def test_creates_sentry_app(self):
         response = self.get_success_response(**self.get_data())
@@ -588,22 +593,24 @@ class PostSentryAppsTest(SentryAppsTest):
     def test_members_cant_create(self):
         # create extra owner because we are demoting one
         self.create_member(organization=self.organization, user=self.create_user(), role="owner")
-        member_om = OrganizationMember.objects.get(
-            user_id=self.user.id, organization=self.organization
-        )
-        member_om.role = "member"
-        member_om.save()
+        with assume_test_silo_mode(SiloMode.REGION):
+            member_om = OrganizationMember.objects.get(
+                user_id=self.user.id, organization=self.organization
+            )
+            member_om.role = "member"
+            member_om.save()
 
         self.get_error_response(**self.get_data(), status_code=403)
 
     def test_create_integration_exceeding_scopes(self):
         # create extra owner because we are demoting one
         self.create_member(organization=self.organization, user=self.create_user(), role="owner")
-        member_om = OrganizationMember.objects.get(
-            user_id=self.user.id, organization=self.organization
-        )
-        member_om.role = "manager"
-        member_om.save()
+        with assume_test_silo_mode(SiloMode.REGION):
+            member_om = OrganizationMember.objects.get(
+                user_id=self.user.id, organization=self.organization
+            )
+            member_om.role = "manager"
+            member_om.save()
 
         data = self.get_data(events=(), scopes=("org:read", "org:write", "org:admin"))
         response = self.get_error_response(**data, status_code=400)

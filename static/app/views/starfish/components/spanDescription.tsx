@@ -1,12 +1,12 @@
 import styled from '@emotion/styled';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
-import {SpanMetricsField, SpanMetricsFieldTypes} from 'sentry/views/starfish/types';
+import {MetricsResponse, SpanMetricsField} from 'sentry/views/starfish/types';
 import {SQLishFormatter} from 'sentry/views/starfish/utils/sqlish/SQLishFormatter';
 
 type Props = {
   span: Pick<
-    SpanMetricsFieldTypes,
+    MetricsResponse,
     SpanMetricsField.SPAN_OP | SpanMetricsField.SPAN_DESCRIPTION
   >;
 };
