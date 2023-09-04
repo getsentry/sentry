@@ -14,7 +14,7 @@ class CompositeExperimentalMetricsBackend(MetricsBackend):
     def __init__(self, **kwargs: Any):
         super().__init__()
         self._initialize_backends(
-            kwargs.pop("primary_backend", None), kwargs.pop("backend_args", {})
+            kwargs.pop("primary_backend", None), kwargs.pop("primary_backend_args", {})
         )
         self._allow_list = set(kwargs.pop("allow_list", set()))
 
