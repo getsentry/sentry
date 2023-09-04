@@ -4,7 +4,7 @@ import math
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
-from snuba_sdk import Column, Condition, Function, Limit, Op
+from snuba_sdk import BooleanCondition, Column, Condition, Function, Limit, Op
 
 from sentry.api.utils import get_date_range_from_params
 from sentry.release_health.base import AllowedResolution, SessionsQueryConfig
@@ -356,9 +356,15 @@ class QueryDefinition:
 
         return filter_conditions
 
-    @staticmethod
-    def _is_supported_condition(condition):
-        if isinstance(condition, Condition):
+    @classmethod
+    def _is_supported_condition(cls, condition):
+        if isinstance(condition, BooleanCondition):
+            for nested_condition in condition.conditions:
+                if (
+                    unsupported_reason := cls._is_supported_condition(nested_condition)
+                ) is not None:
+                    return unsupported_reason
+        elif isinstance(condition, Condition):
             if isinstance(condition.lhs, Function):
                 # Since we moved to metrics backed sessions, we don't allow wildcard search anymore. The reason for this
                 # is that we don't store tag values as strings in the database, this makes wildcard match on the
