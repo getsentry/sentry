@@ -47,7 +47,7 @@ from sentry.utils import metrics
 from sentry.utils.http import get_origins
 from sentry.utils.options import sample_modulo
 
-from .measurements import CUSTOM_MEASUREMENT_LIMIT, get_measurements_config
+from .measurements import CUSTOM_MEASUREMENT_LIMIT
 
 #: These features will be listed in the project config
 EXPOSABLE_FEATURES = [
@@ -352,9 +352,6 @@ def _get_project_config(
     # of events forwarded by Relay, because dynamic sampling will stop filtering
     # anything.
     add_experimental_config(config, "dynamicSampling", get_dynamic_sampling_config, project)
-
-    # Limit the number of custom measurements
-    add_experimental_config(config, "measurements", get_measurements_config)
 
     # Rules to replace high cardinality transaction names
     add_experimental_config(config, "txNameRules", get_transaction_names_config, project)
