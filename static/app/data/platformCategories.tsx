@@ -173,6 +173,8 @@ const categoryList = [
   {id: 'serverless', name: t('Serverless'), platforms: serverless},
 ] as const;
 
+export const deprecatedPlatforms = new Set(['node-serverlesscloud']);
+
 export const sourceMaps: PlatformKey[] = [
   ...frontend,
   'react-native',
