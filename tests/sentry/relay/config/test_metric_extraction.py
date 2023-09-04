@@ -23,7 +23,6 @@ from sentry.testutils.pytest.fixtures import django_db_all
 ON_DEMAND_METRICS = "organizations:on-demand-metrics-extraction"
 ON_DEMAND_METRICS_WIDGETS = "organizations:on-demand-metrics-extraction-experimental"
 ON_DEMAND_METRICS_PREFILL = "organizations:on-demand-metrics-prefill"
-ON_DEMAND_METRIC_PREFILL_ENABLE = "organizations:enable-on-demand-metrics-prefill"
 
 
 def create_alert(
@@ -405,13 +404,12 @@ def test_get_metric_extraction_config_with_apdex(default_project):
 @pytest.mark.parametrize(
     "enabled_features, number_of_metrics",
     [
-        ([ON_DEMAND_METRICS], 1),  # Only alerts.
-        ([ON_DEMAND_METRICS_WIDGETS, ON_DEMAND_METRICS_PREFILL], 0),  # Nothing.
-        ([ON_DEMAND_METRICS, ON_DEMAND_METRICS_WIDGETS], 2),  # Alerts and widgets.
-        ([ON_DEMAND_METRICS_PREFILL, ON_DEMAND_METRIC_PREFILL_ENABLE], 1),  # Alerts.
-        ([ON_DEMAND_METRICS_PREFILL], 0),  # Nothing.
+        ([ON_DEMAND_METRICS], 1),  # Alerts.
+        ([ON_DEMAND_METRICS_PREFILL], 1),  # Alerts.
         ([ON_DEMAND_METRICS, ON_DEMAND_METRICS_PREFILL], 1),  # Alerts.
-        ([ON_DEMAND_METRICS, ON_DEMAND_METRIC_PREFILL_ENABLE], 1),  # Alerts.
+        ([ON_DEMAND_METRICS, ON_DEMAND_METRICS_WIDGETS], 2),  # Alerts and widgets.
+        ([ON_DEMAND_METRICS_WIDGETS], 0),  # Nothing.
+        ([ON_DEMAND_METRICS_PREFILL, ON_DEMAND_METRICS_WIDGETS], 1),  # Alerts.
         ([], 0),  # Nothing.
     ],
 )
@@ -441,7 +439,7 @@ def test_get_metric_extraction_config_with_transactions_dataset(default_project)
     )
 
     # We test with prefilling, and we expect that both alerts are fetched since we support both datasets.
-    with Feature({ON_DEMAND_METRICS_PREFILL: True, ON_DEMAND_METRIC_PREFILL_ENABLE: True}):
+    with Feature({ON_DEMAND_METRICS_PREFILL: True}):
         config = get_metric_extraction_config(default_project)
 
         assert config
