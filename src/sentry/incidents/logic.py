@@ -1572,10 +1572,7 @@ def get_filtered_actions(
 
 def schedule_update_project_config(alert_rule: AlertRule, projects: Sequence[Project]):
     enabled_features = on_demand_metrics_feature_flags(alert_rule.organization)
-    prefilling = (
-        "organizations:on-demand-metrics-prefill" in enabled_features
-        and "organizations:enable-on-demand-metrics-prefill" in enabled_features
-    )
+    prefilling = "organizations:on-demand-metrics-prefill" in enabled_features
 
     if not projects or not (
         "organizations:on-demand-metrics-extraction" in enabled_features or prefilling
