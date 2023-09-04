@@ -1,5 +1,4 @@
 import {Fragment, MouseEvent as ReactMouseEvent} from 'react';
-import {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
@@ -46,7 +45,6 @@ export type UsageStatsOrganizationProps = {
   isSingleProject: boolean;
   organization: Organization;
   projectIds: number[];
-  router: InjectedRouter;
   chartTransform?: string;
 } & DeprecatedAsyncComponent['props'];
 
@@ -263,7 +261,9 @@ class UsageStatsOrganization<
     const navigateToInboundFilterSettings = (event: ReactMouseEvent) => {
       event.preventDefault();
       const url = `/settings/${organization.slug}/projects/:projectId/filters/data-filters/`;
-      navigateTo(url, router);
+      if (router) {
+        navigateTo(url, router);
+      }
     };
 
     const cardMetadata: Record<string, ScoreCardProps> = {
