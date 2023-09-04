@@ -381,7 +381,9 @@ class User(BaseModel, AbstractBaseUser):
             self.is_staff = False
             self.is_superuser = False
 
-        # TODO(getsentry/team-ospo#181): Handle usernames that already exist.
+        # TODO(getsentry/team-ospo#181): Handle usernames that already exist. This will involve
+        # marking the user "unclaimed", wiping their password, and adding a random suffix to their
+        # username.
 
         return old_pk
 

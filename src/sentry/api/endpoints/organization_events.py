@@ -126,7 +126,6 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
     }
-    public = {"GET"}
 
     enforce_rate_limit = True
 
