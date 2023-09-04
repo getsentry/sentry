@@ -584,7 +584,7 @@ def _filter_option_to_config_setting(flt: _FilterSpec, setting: str) -> Mapping[
 #: When you increment this version, outdated Relays will stop extracting
 #: transaction metrics.
 #: See https://github.com/getsentry/relay/blob/4f3e224d5eeea8922fe42163552e8f20db674e86/relay-server/src/metrics_extraction/transactions.rs#L71
-TRANSACTION_METRICS_EXTRACTION_VERSION = 1
+TRANSACTION_METRICS_EXTRACTION_VERSION = 2
 
 
 class CustomMeasurementSettings(TypedDict):
