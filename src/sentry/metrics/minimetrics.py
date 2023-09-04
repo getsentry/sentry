@@ -1,5 +1,4 @@
 import random
-import threading
 import time
 import zlib
 from threading import Lock, Thread
@@ -18,18 +17,16 @@ from typing import (
     cast,
 )
 
+import sentry_sdk.transport as sdk_transport
+from django.conf import settings
+
 from sentry.metrics.base import MetricsBackend, Tags
-from sentry.utils import metrics
 
 __all__ = ["MiniMetricsMetricsBackend"]
 
-# The thread local instance must be initialized globally in order to correctly use the state.
-thread_local = threading.local()
-
 
 T = TypeVar("T")
-
-
+MetricType = Literal["d", "s", "g", "c"]
 MetricUnit = Literal[
     None,
     "nanosecond",
@@ -55,6 +52,44 @@ MetricUnit = Literal[
     "ratio",
     "percent",
 ]
+
+
+class DogStatsDEncoder:
+    def __init__(
+        self,
+        metric_name: str,
+        value: Union[int, float, List[float]],
+        metric_type: MetricType,
+        sample_rate: float,
+        tags: Optional[Tags],
+    ):
+        self._metric_name = metric_name
+        # TODO: check how to support gauge and set.
+        self._value = value
+        self._metric_type = metric_type
+        self._sample_rate = sample_rate
+        self._tags = tags
+
+    def encode(self) -> str:
+        return f"{self._metric_name}:{self._get_value()}|{self._metric_type}{self._get_sample_rate()}{self._get_tags()}"
+
+    def _get_value(self) -> str:
+        if isinstance(self._value, float) or isinstance(self._value, int):
+            return str(self._value)
+        elif isinstance(self._value, List):
+            return ":".join(self._value)
+
+        raise Exception("The metric value must be either a float or a list of floats")
+
+    def _get_sample_rate(self) -> str:
+        return f"|@{self._sample_rate}"
+
+    def _get_tags(self) -> str:
+        if not self._tags:
+            return ""
+
+        tags = ",".join([f"{tag_key}:{tag_value}" for tag_key, tag_value in self._tags.items()])
+        return f"|#{tags}"
 
 
 class Metric(Generic[T]):
@@ -136,7 +171,7 @@ class SetMetric(Metric[Union[str, int]]):
         return [_hash(x) for x in self.value]
 
 
-METRIC_TYPES: Dict[str, Callable[[], Metric[Any]]] = {
+METRIC_TYPES: Dict[MetricType, Callable[[], Metric[Any]]] = {
     "c": CounterMetric,
     "g": GaugeMetric,
     "d": DistributionMetric,
@@ -151,11 +186,16 @@ class Aggregator:
 
     def __init__(self) -> None:
         self.buckets: Dict[ComposedKey, Metric[Any]] = {}
+        self._prepare_transport()
         self._lock = Lock()
         self._running = True
         self._flusher = Thread(target=self._flush)
         self._flusher.daemon = True
         self._flusher.start()
+
+    def _prepare_transport(self):
+        sdk_options = dict(settings.SENTRY_SDK_CONFIG)
+        self._transport = sdk_transport.HttpTransport({"dsn": sdk_options.pop("dsn", None)})
 
     def _flush(self) -> None:
         while self._running:
@@ -193,48 +233,33 @@ class Aggregator:
 
             time.sleep(2.0)
 
-    @staticmethod
-    def _emit(extracted_metrics: Any) -> Any:
-        # In order to avoid an infinite recursion for metrics, we want to use a thread local variable that will
-        # signal the downstream calls to only propagate the metric to the primary backend, otherwise if propagated to
-        # minimetrics, it will cause unbounded recursion.
-        thread_local.in_minimetrics = True
+    def _emit(self, extracted_metrics: Any) -> Any:
+        for extracted_metric in extracted_metrics:
+            payload = DogStatsDEncoder(
+                metric_name="",
+                value=extracted_metric["value"],
+                metric_type=extracted_metric["type"],
+                sample_rate=1.0,
+                tags=extracted_metric.get("tags"),
+            ).encode()
 
-        # We obtain the counts for each metric type, since we want to know how many by type we have.
-        counts_by_type: Dict[str, float] = {}
-        for metric in extracted_metrics:
-            metric_type = metric["type"]
-            metric_value = metric["value"]
-
-            value = 0.0
-            if metric_type == "c":
-                # For counters, we want to sum the count value.
-                value = metric_value
-            elif metric_value == "d":
-                # For distributions, we want to track the size of the distribution.
-                value = len(metric_value)
-            elif metric_value == "g":
-                # For gauges, we will emit a count of 1.
-                value = 1
-            elif metric_value == "s":
-                # For sets, we want to track the cardinality of the set.
-                value = len(metric_value)
-
-            counts_by_type[metric_type] = counts_by_type.get(metric_value, 0) + value
-
-        # For each type and count we want to emit a metric.
-        for metric_type, metric_count in counts_by_type.items():
-            # We want to emit a metric on how many metrics we would technically emit if we were to use minimetrics.
-            metrics.incr(
-                "minimetrics.emit", amount=int(metric_count), tags={"metric_type": metric_type}
+            self._transport.capture_envelope(
+                sdk_transport.Envelope(
+                    headers=None,
+                    items=[
+                        sdk_transport.Item(
+                            payload=payload,
+                            type="metrics",
+                            content_type="text",
+                            headers={"timestamp": int(time.time())},
+                        )
+                    ],
+                )
             )
-
-        # We clear the thread local variables, in order to make metrics extraction continue as normal.
-        thread_local.__dict__.clear()
 
     def add(
         self,
-        ty: str,
+        ty: MetricType,
         key: str,
         value: Any,
         unit: MetricUnit,
@@ -265,13 +290,6 @@ class Client:
     def __init__(self) -> None:
         self.aggregator = Aggregator()
 
-    @staticmethod
-    def _is_in_minimetrics():
-        try:
-            return thread_local.in_minimetrics
-        except AttributeError:
-            return False
-
     def incr(
         self,
         key: str,
@@ -280,8 +298,7 @@ class Client:
         tags: Optional[Tags] = None,
         timestamp: Optional[float] = None,
     ) -> None:
-        if not self._is_in_minimetrics():
-            self.aggregator.add("c", key, value, unit, tags, timestamp)
+        self.aggregator.add("c", key, value, unit, tags, timestamp)
 
     def timing(
         self,
@@ -291,8 +308,7 @@ class Client:
         tags: Optional[Tags] = None,
         timestamp: Optional[float] = None,
     ) -> None:
-        if not self._is_in_minimetrics():
-            self.aggregator.add("d", key, value, unit, tags, timestamp)
+        self.aggregator.add("d", key, value, unit, tags, timestamp)
 
     def set(
         self,
@@ -301,8 +317,7 @@ class Client:
         tags: Optional[Tags] = None,
         timestamp: Optional[float] = None,
     ) -> None:
-        if not self._is_in_minimetrics():
-            self.aggregator.add("s", key, value, None, tags, timestamp)
+        self.aggregator.add("s", key, value, None, tags, timestamp)
 
     def gauge(
         self,
@@ -312,8 +327,7 @@ class Client:
         tags: Optional[Tags] = None,
         timestamp: Optional[float] = None,
     ) -> None:
-        if not self._is_in_minimetrics():
-            self.aggregator.add("g", key, value, unit, tags, timestamp)
+        self.aggregator.add("g", key, value, unit, tags, timestamp)
 
 
 # TODO:
