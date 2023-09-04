@@ -2,7 +2,6 @@ import random
 import threading
 import time
 import zlib
-from collections import defaultdict
 from threading import Lock, Thread
 from typing import (
     Any,
@@ -202,7 +201,7 @@ class Aggregator:
         thread_local.in_minimetrics = True
 
         # We obtain the counts for each metric type, since we want to know how many by type we have.
-        counts_by_type: Dict[str, float] = defaultdict(lambda: 0)
+        counts_by_type: Dict[str, float] = {}
         for metric in extracted_metrics:
             metric_type = metric["type"]
             metric_value = metric["value"]
@@ -221,7 +220,7 @@ class Aggregator:
                 # For sets, we want to track the cardinality of the set.
                 value = len(metric_value)
 
-            counts_by_type[metric_type] += value
+            counts_by_type[metric_type] = counts_by_type.get(metric_value, 0) + value
 
         # For each type and count we want to emit a metric.
         for metric_type, metric_count in counts_by_type.items():
