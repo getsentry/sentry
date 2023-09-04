@@ -328,20 +328,22 @@ export class DeprecatedLine extends Component<Props, State> {
             </LeftLineTitle>
             {this.renderRepeats()}
           </DefaultLineTitleWrapper>
-          {organization?.features.includes('anr-analyze-frames') && anrCulprit ? (
-            <SuspectFrameTag type="warning" to="" onClick={this.scrollToSuspectRootCause}>
-              {t('Suspect Frame')}
-            </SuspectFrameTag>
-          ) : null}
-          {stacktraceChangesEnabled ? this.renderShowHideToggle() : null}
-          {!data.inApp ? (
-            stacktraceChangesEnabled ? null : (
-              <Tag>{t('System')}</Tag>
-            )
-          ) : (
-            <Tag type="info">{t('In App')}</Tag>
-          )}
-          {this.renderExpander()}
+          <DefaultLineTagWrapper>
+            {organization?.features.includes('anr-analyze-frames') && anrCulprit ? (
+              <Tag type="warning" to="" onClick={this.scrollToSuspectRootCause}>
+                {t('Suspect Frame')}
+              </Tag>
+            ) : null}
+            {stacktraceChangesEnabled ? this.renderShowHideToggle() : null}
+            {!data.inApp ? (
+              stacktraceChangesEnabled ? null : (
+                <Tag>{t('System')}</Tag>
+              )
+            ) : (
+              <Tag type="info">{t('In App')}</Tag>
+            )}
+            {this.renderExpander()}
+          </DefaultLineTagWrapper>
         </DefaultLine>
       </StrictClick>
     );
@@ -418,19 +420,21 @@ export class DeprecatedLine extends Component<Props, State> {
               isHoverPreviewed={isHoverPreviewed}
             />
           </NativeLineContent>
-          <DefaultLineTitleWrapper
-            stacktraceChangesEnabled={stacktraceChangesEnabled && !data.inApp}
-          >
-            {this.renderExpander()}
-          </DefaultLineTitleWrapper>
+          <DefaultLineTagWrapper>
+            <DefaultLineTitleWrapper
+              stacktraceChangesEnabled={stacktraceChangesEnabled && !data.inApp}
+            >
+              {this.renderExpander()}
+            </DefaultLineTitleWrapper>
 
-          {!data.inApp ? (
-            stacktraceChangesEnabled ? null : (
-              <Tag>{t('System')}</Tag>
-            )
-          ) : (
-            <Tag type="info">{t('In App')}</Tag>
-          )}
+            {!data.inApp ? (
+              stacktraceChangesEnabled ? null : (
+                <Tag>{t('System')}</Tag>
+              )
+            ) : (
+              <Tag type="info">{t('In App')}</Tag>
+            )}
+          </DefaultLineTagWrapper>
         </DefaultLine>
       </StrictClick>
     );
@@ -551,19 +555,21 @@ const DefaultLine = styled('div')<{
   isSubFrame: boolean;
   stacktraceChangesEnabled: boolean;
 }>`
-  display: grid;
-  grid-template-columns: ${p =>
-    p.stacktraceChangesEnabled && p.isNotInApp && !p.hasToggle
-      ? `1fr ${space(2)}`
-      : `1fr auto ${space(2)}`};
+  display: flex;
+  justify-content: space-between;
   align-items: center;
-  column-gap: ${space(1)};
   background: ${p =>
     p.stacktraceChangesEnabled && p.isSubFrame ? `${p.theme.surface100} !important` : ''};
 `;
 
 const StyledIconRefresh = styled(IconRefresh)`
   margin-right: ${space(0.25)};
+`;
+
+const DefaultLineTagWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
 `;
 
 // the Button's label has the padding of 3px because the button size has to be 16x16 px.
@@ -588,10 +594,6 @@ const StyledLi = styled('li')`
       visibility: visible;
     }
   }
-`;
-
-const SuspectFrameTag = styled(Tag)`
-  margin-right: ${space(1)};
 `;
 
 const ToggleButton = styled(Button)`
