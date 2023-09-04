@@ -408,7 +408,7 @@ class CheckAM2Compatibility:
         return (
             AlertRule.objects.filter(
                 organization_id=organization_id,
-                snuba_query__dataset__in=[Dataset.Transactions.value],
+                snuba_query__dataset=[Dataset.Transactions.value],
             )
             .select_related("snuba_query")
             .values_list("id", "snuba_query__aggregate", "snuba_query__query")
