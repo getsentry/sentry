@@ -2,17 +2,20 @@ import {Fragment, PropsWithChildren, ReactNode, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {ModalRenderProps, openModal} from 'sentry/actionCreators/modal';
 import Alert from 'sentry/components/alert';
 import Badge from 'sentry/components/badge';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {FeedbackModal} from 'sentry/components/featureFeedback/feedbackModal';
 import ExternalLink from 'sentry/components/links/externalLink';
+import Link from 'sentry/components/links/link';
 import ProgressRing from 'sentry/components/progressRing';
 import {TabPanels, Tabs} from 'sentry/components/tabs';
 import {TabList} from 'sentry/components/tabs/tabList';
 import {
   IconCheckmark,
   IconCircle,
+  IconMegaphone,
   IconOpen,
   IconQuestion,
   IconRefresh,
@@ -55,7 +58,11 @@ interface Facts {
 
 interface SourceMapsDebuggerModalProps extends ModalRenderProps {}
 
-export function SourceMapsDebuggerModal({Body, Header}: SourceMapsDebuggerModalProps) {
+export function SourceMapsDebuggerModal({
+  Body,
+  Header,
+  Footer,
+}: SourceMapsDebuggerModalProps) {
   const theme = useTheme();
 
   // TODO: Replace this initial state with prop
@@ -289,9 +296,23 @@ export function SourceMapsDebuggerModal({Body, Header}: SourceMapsDebuggerModalP
           </StyledTabPanels>
         </Tabs>
       </Body>
-      {/* <Footer>
-        <Link to="">Was this helpful? (TODO)</Link>
-      </Footer> */}
+      <Footer>
+        <Link
+          to=""
+          onClick={e => {
+            e.stopPropagation();
+            openModal(modalProps => (
+              <FeedbackModal
+                featureName="sourcemaps-debugger"
+                feedbackTypes={['This was helpful', 'This was not helpful']}
+                {...modalProps}
+              />
+            ));
+          }}
+        >
+          Was this helpful? <IconMegaphone size="xs" />
+        </Link>
+      </Footer>
     </Fragment>
   );
 }
