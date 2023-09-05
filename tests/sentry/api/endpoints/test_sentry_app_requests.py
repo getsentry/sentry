@@ -10,7 +10,8 @@ from sentry.testutils.silo import region_silo_test
 from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
 
 
-class SentryAppRequestsTest(APITestCase):
+@region_silo_test(stable=True)
+class SentryAppRequestsGetTest(APITestCase):
     def setUp(self):
         self.superuser = self.create_user(email="superuser@example.com", is_superuser=True)
         self.user = self.create_user(email="user@example.com")
@@ -34,9 +35,6 @@ class SentryAppRequestsTest(APITestCase):
             name="Internal app", organization=self.org
         )
 
-
-@region_silo_test(stable=True)
-class GetSentryAppRequestsTest(SentryAppRequestsTest):
     def test_superuser_sees_unowned_published_requests(self):
         self.login_as(user=self.superuser, superuser=True)
 

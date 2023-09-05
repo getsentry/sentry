@@ -25,7 +25,6 @@ import {space} from 'sentry/styles/space';
 import {MissingMember, Organization, OrgRole} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useApi from 'sentry/utils/useApi';
-import withOrganization from 'sentry/utils/withOrganization';
 import {
   StyledExternalLink,
   Subtitle,
@@ -59,7 +58,7 @@ export function InviteMissingMembersModal({
 
   const api = useApi();
 
-  if (!memberInvites || !organization.access.includes('org:write')) {
+  if (memberInvites.length === 0 || !organization.access.includes('org:write')) {
     return null;
   }
 
@@ -304,7 +303,7 @@ export function InviteMissingMembersModal({
   );
 }
 
-export default withOrganization(InviteMissingMembersModal);
+export default InviteMissingMembersModal;
 
 const StyledPanelTable = styled(PanelTable)`
   grid-template-columns: max-content 1fr max-content 1fr 1fr;
@@ -329,9 +328,7 @@ const ContentRow = styled('div')`
   display: flex;
   align-items: center;
   font-size: ${p => p.theme.fontSizeMedium};
-  & > *:first-child {
-    margin-right: ${space(0.75)};
-  }
+  gap: ${space(0.75)};
 `;
 
 export const modalCss = css`

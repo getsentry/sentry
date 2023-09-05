@@ -29,10 +29,10 @@ import {
   useSpanTransactionMetrics,
 } from 'sentry/views/starfish/queries/useSpanTransactionMetrics';
 import {
-  SpanIndexedFields,
+  MetricsResponse,
+  SpanIndexedField,
   SpanIndexedFieldTypes,
-  SpanMetricsFields,
-  SpanMetricsFieldTypes,
+  SpanMetricsField,
 } from 'sentry/views/starfish/types';
 import {extractRoute} from 'sentry/views/starfish/utils/extractRoute';
 import {useRoutingContext} from 'sentry/views/starfish/utils/routingContext';
@@ -50,10 +50,7 @@ type Row = {
 
 type Props = {
   sort: ValidSort;
-  span: Pick<
-    SpanMetricsFieldTypes,
-    SpanMetricsFields.SPAN_GROUP | SpanMetricsFields.SPAN_OP
-  >;
+  span: Pick<MetricsResponse, SpanMetricsField.SPAN_GROUP | SpanMetricsField.SPAN_OP>;
   endpoint?: string;
   endpointMethod?: string;
 };
@@ -74,7 +71,7 @@ export function SpanTransactionsTable({span, endpoint, endpointMethod, sort}: Pr
     isLoading,
     pageLinks,
   } = useSpanTransactionMetrics(
-    span[SpanMetricsFields.SPAN_GROUP],
+    span[SpanMetricsField.SPAN_GROUP],
     {
       transactions: endpoint ? [endpoint] : undefined,
       sorts: [sort],
@@ -99,7 +96,7 @@ export function SpanTransactionsTable({span, endpoint, endpointMethod, sort}: Pr
 
       const pathname = `${routingContext.baseURL}/${
         extractRoute(location) ?? 'spans'
-      }/span/${encodeURIComponent(span[SpanMetricsFields.SPAN_GROUP])}`;
+      }/span/${encodeURIComponent(span[SpanMetricsField.SPAN_GROUP])}`;
       const query = {
         ...location.query,
         endpoint,
@@ -156,7 +153,13 @@ export function SpanTransactionsTable({span, endpoint, endpointMethod, sort}: Pr
           columnOrder={getColumnOrder(span)}
           columnSortBy={[]}
           grid={{
-            renderHeadCell: col => renderHeadCell({column: col, sort, location}),
+            renderHeadCell: col =>
+              renderHeadCell({
+                column: col,
+                sort,
+                location,
+                sortParameterName: QueryParameterNames.ENDPOINTS_SORT,
+              }),
             renderBodyCell,
           }}
           location={location}
@@ -182,7 +185,7 @@ export function SpanTransactionsTable({span, endpoint, endpointMethod, sort}: Pr
 const getColumnOrder = (
   span: Pick<
     SpanIndexedFieldTypes,
-    SpanIndexedFields.SPAN_GROUP | SpanIndexedFields.SPAN_OP
+    SpanIndexedField.SPAN_GROUP | SpanIndexedField.SPAN_OP
   >
 ): TableColumnHeader[] => [
   {
@@ -192,11 +195,11 @@ const getColumnOrder = (
   },
   {
     key: 'spm()',
-    name: getThroughputTitle(span[SpanIndexedFields.SPAN_OP]),
+    name: getThroughputTitle(span[SpanIndexedField.SPAN_OP]),
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: `avg(${SpanMetricsFields.SPAN_SELF_TIME})`,
+    key: `avg(${SpanMetricsField.SPAN_SELF_TIME})`,
     name: DataTitles.avg,
     width: COL_WIDTH_UNDEFINED,
   },

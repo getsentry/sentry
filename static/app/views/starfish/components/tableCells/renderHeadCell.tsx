@@ -8,17 +8,23 @@ import {
   parseFunction,
   Sort,
 } from 'sentry/utils/discover/fields';
-import {SpanMetricsFields, StarfishFunctions} from 'sentry/views/starfish/types';
+import {SpanFunction, SpanMetricsField} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 
 type Options = {
   column: GridColumnHeader<string>;
   location?: Location;
   sort?: Sort;
+  sortParameterName?:
+    | QueryParameterNames.ENDPOINTS_SORT
+    | QueryParameterNames.SPANS_SORT
+    | typeof DEFAULT_SORT_PARAMETER_NAME;
 };
 
-const {SPAN_SELF_TIME} = SpanMetricsFields;
-const {TIME_SPENT_PERCENTAGE, SPS, SPM, HTTP_ERROR_COUNT} = StarfishFunctions;
+const DEFAULT_SORT_PARAMETER_NAME = 'sort';
+
+const {SPAN_SELF_TIME} = SpanMetricsField;
+const {TIME_SPENT_PERCENTAGE, SPS, SPM, HTTP_ERROR_COUNT} = SpanFunction;
 
 export const SORTABLE_FIELDS = new Set([
   `avg(${SPAN_SELF_TIME})`,
@@ -30,7 +36,7 @@ export const SORTABLE_FIELDS = new Set([
   `${HTTP_ERROR_COUNT}()`,
 ]);
 
-export const renderHeadCell = ({column, location, sort}: Options) => {
+export const renderHeadCell = ({column, location, sort, sortParameterName}: Options) => {
   const {key, name} = column;
   const alignment = getAlignment(key);
 
@@ -54,7 +60,7 @@ export const renderHeadCell = ({column, location, sort}: Options) => {
           ...location,
           query: {
             ...location?.query,
-            [QueryParameterNames.SPANS_SORT]: newSort,
+            [sortParameterName ?? DEFAULT_SORT_PARAMETER_NAME]: newSort,
           },
         };
       }}

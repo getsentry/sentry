@@ -119,10 +119,10 @@ def _scim_member_serializer_with_expansion(organization):
     care about this and rely on the behavior of setting "active" to false
     to delete a member.
     """
-    auth_providers = auth_service.get_auth_providers(organization_id=organization.id)
+    auth_provider = auth_service.get_auth_provider(organization_id=organization.id)
     expand = ["active"]
 
-    if any(ap.provider == ACTIVE_DIRECTORY_PROVIDER_NAME for ap in auth_providers):
+    if auth_provider and auth_provider.provider == ACTIVE_DIRECTORY_PROVIDER_NAME:
         expand = []
     return OrganizationMemberSCIMSerializer(expand=expand)
 
@@ -149,7 +149,6 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
         "PATCH": ApiPublishStatus.PUBLIC,
     }
     permission_classes = (OrganizationSCIMMemberPermission,)
-    public = {"GET", "DELETE", "PATCH"}
 
     def convert_args(
         self,
@@ -379,7 +378,6 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
         "POST": ApiPublishStatus.PUBLIC,
     }
     permission_classes = (OrganizationSCIMMemberPermission,)
-    public = {"GET", "POST"}
 
     @extend_schema(
         operation_id="List an Organization's Members",

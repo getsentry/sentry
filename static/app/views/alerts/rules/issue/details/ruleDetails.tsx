@@ -7,7 +7,7 @@ import Access from 'sentry/components/acl/access';
 import {Alert} from 'sentry/components/alert';
 import SnoozeAlert from 'sentry/components/alerts/snoozeAlert';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -299,12 +299,18 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
                   ruleActionCategory={ruleActionCategory}
                   hasAccess={hasAccess}
                   type="issue"
+                  disabled={rule.status === 'disabled'}
                 />
               )}
             </Access>
-            <Button size="sm" icon={<IconCopy />} to={duplicateLink}>
+            <LinkButton
+              size="sm"
+              icon={<IconCopy />}
+              to={duplicateLink}
+              disabled={rule.status === 'disabled'}
+            >
               {t('Duplicate')}
-            </Button>
+            </LinkButton>
             <Button
               size="sm"
               icon={<IconEdit />}
@@ -316,7 +322,7 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
                 })
               }
             >
-              {t('Edit Rule')}
+              {rule.status === 'disabled' ? t('Edit to enable') : t('Edit Rule')}
             </Button>
           </ButtonBar>
         </Layout.HeaderActions>
@@ -324,6 +330,17 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
       <Layout.Body>
         <Layout.Main>
           {renderIncompatibleAlert()}
+          {rule.status === 'disabled' && (
+            <Alert type="warning" showIcon>
+              {rule.actions?.length === 0
+                ? t(
+                    'This alert is disabled due to missing actions. Please edit the alert rule to enable this alert.'
+                  )
+                : t(
+                    'This alert is disabled due to its configuration and needs to be edited to be enabled.'
+                  )}
+            </Alert>
+          )}
           {isSnoozed && (
             <Alert showIcon>
               {ruleActionCategory === RuleActionsCategories.NO_DEFAULT
