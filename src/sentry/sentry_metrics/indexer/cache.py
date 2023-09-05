@@ -39,8 +39,8 @@ class StringIndexerCache:
         # introduce jitter in the cache_ttl so that when we have large
         # amount of new keys written into the cache, they don't expire all at once
         cache_ttl = settings.SENTRY_METRICS_INDEXER_CACHE_TTL
-        jitter = random.uniform(0, 0.25) * cache_ttl
-        return int(cache_ttl + jitter)
+        jitter = random.uniform(0, 0.1) * cache_ttl
+        return int(cache_ttl - jitter)
 
     def make_cache_key(self, key: str) -> str:
         use_case_id, org_id, string = key.split(":", 2)
@@ -81,9 +81,7 @@ class StringIndexerCache:
 
     def get_many(self, keys: Iterable[str]) -> MutableMapping[str, Optional[int]]:
         cache_keys = {self.make_cache_key(key): key for key in keys}
-        results: Mapping[str, Optional[int]] = self.cache.get_many(
-            cache_keys.keys(), version=self.version
-        )
+        results: Mapping[str, Optional[int]] = self.cache.get_many(cache_keys, version=self.version)
         return self._format_results(keys, results)
 
     def set_many(self, key_values: Mapping[str, int]) -> None:
