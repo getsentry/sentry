@@ -14,7 +14,7 @@ import {
 
 type OnCallServiceFormProps = {
   /**
-   * Map of Pagerduty/Opsgenie integration IDs to available actions for those IDs
+   * Map of pagerduty/opsgenie integration IDs to available actions for those IDs
    */
   Integrations: Record<number, AvailableNotificationAction[]>;
   /**
