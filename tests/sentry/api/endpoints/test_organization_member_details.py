@@ -16,11 +16,12 @@ from sentry.models import (
     SentryAppInstallationToken,
     UserOption,
 )
+from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 
 class OrganizationMemberTestBase(APITestCase):
@@ -31,6 +32,7 @@ class OrganizationMemberTestBase(APITestCase):
         self.login_as(self.user)
 
 
+@region_silo_test
 class GetOrganizationMemberTest(OrganizationMemberTestBase):
     def test_me(self):
         response = self.get_success_response(self.organization.slug, "me")
@@ -727,12 +729,15 @@ class ResetOrganizationMember2faTest(APITestCase):
             organization=self.org, user=self.member, role="member", teams=[]
         )
         self.login_as(self.member)
-        totp = TotpInterface()
-        totp.enroll(self.member)
-        assert totp.authenticator is not None
-        self.interface_id = totp.authenticator.id
-        assert Authenticator.objects.filter(user=self.member).exists()
 
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            totp = TotpInterface()
+            totp.enroll(self.member)
+            assert totp.authenticator is not None
+            self.interface_id = totp.authenticator.id
+            assert Authenticator.objects.filter(user=self.member).exists()
+
+    @assume_test_silo_mode(SiloMode.CONTROL)
     def assert_can_get_authenticators(self):
         path = reverse(
             "sentry-api-0-organization-member-details", args=[self.org.slug, self.member_om.id]
@@ -745,6 +750,7 @@ class ResetOrganizationMember2faTest(APITestCase):
         assert data["user"]["has2fa"] is True
         assert data["user"]["canReset2fa"] is True
 
+    @assume_test_silo_mode(SiloMode.CONTROL)
     def assert_cannot_get_authenticators(self):
         path = reverse(
             "sentry-api-0-organization-member-details", args=[self.org.slug, self.member_om.id]
@@ -756,6 +762,7 @@ class ResetOrganizationMember2faTest(APITestCase):
         assert "authenticators" not in data["user"]
         assert "canReset2fa" not in data["user"]
 
+    @assume_test_silo_mode(SiloMode.CONTROL)
     def assert_can_remove_authenticators(self):
         path = reverse(
             "sentry-api-0-user-authenticator-details", args=[self.member.id, self.interface_id]
@@ -764,6 +771,7 @@ class ResetOrganizationMember2faTest(APITestCase):
         assert resp.status_code == 204
         assert not Authenticator.objects.filter(user=self.member).exists()
 
+    @assume_test_silo_mode(SiloMode.CONTROL)
     def assert_cannot_remove_authenticators(self):
         path = reverse(
             "sentry-api-0-user-authenticator-details", args=[self.member.id, self.interface_id]
@@ -840,13 +848,15 @@ class ResetOrganizationMember2faTest(APITestCase):
 
     def test_cannot_reset_member_2fa__org_requires_2fa(self):
         self.login_as(self.owner)
-        TotpInterface().enroll(self.owner)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            TotpInterface().enroll(self.owner)
 
         self.org.update(flags=F("flags").bitor(Organization.flags.require_2fa))
         assert self.org.flags.require_2fa.is_set is True
 
         self.assert_cannot_remove_authenticators()
 
+    @assume_test_silo_mode(SiloMode.CONTROL)
     def test_owner_can_only_reset_member_2fa(self):
         self.login_as(self.owner)
 

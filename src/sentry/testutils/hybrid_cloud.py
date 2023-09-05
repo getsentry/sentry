@@ -114,9 +114,10 @@ class EnforceNoCrossTransactionWrapper:
             len(open_transactions) < 2
         ), f"Found mixed open transactions between dbs {open_transactions}"
         if open_transactions:
-            assert (
-                self.alias in open_transactions
-            ), f"Transaction opened for db {open_transactions}, but command running against db {self.alias}"
+            if not (self.alias in open_transactions):
+                raise AssertionError(
+                    f"Transaction opened for db {open_transactions}, but command running against db {self.alias}"
+                )
 
         return execute(*params)
 
