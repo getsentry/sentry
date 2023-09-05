@@ -83,7 +83,7 @@ class ReplicatedRegionModel(RegionOutboxProducingModel):
     def outbox_for_update(self, shard_identifier: int | None = None) -> RegionOutboxBase:
         """
         Returns outboxes that result from this model's creation, update, or deletion.
-        Subclasses generally should override outbox_region_names or payload_for_update to customize
+        Subclasses generally should override payload_for_update to customize
         this behavior.
         """
         return self.__category__.as_region_outbox(
