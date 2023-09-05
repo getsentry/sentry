@@ -4,11 +4,13 @@ import moment from 'moment';
 
 import Panel from 'sentry/components/panels/panel';
 import Text from 'sentry/components/text';
+import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {parsePeriodToHours} from 'sentry/utils/dates';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
@@ -49,6 +51,7 @@ export function CronDetailsTimeline({monitor, organization}: Props) {
 
   const elapsedMinutes = config.elapsedMinutes;
   const rollup = Math.floor((elapsedMinutes * 60) / timelineWidth);
+  const debouncedRollup = useDebouncedValue(rollup, DEFAULT_DEBOUNCE_DURATION);
 
   const monitorStatsQueryKey = `/organizations/${organization.slug}/monitors-stats/`;
   const {data: monitorStats, isLoading} = useApiQuery<Record<string, MonitorBucketData>>(
@@ -59,7 +62,7 @@ export function CronDetailsTimeline({monitor, organization}: Props) {
           until: Math.floor(end.getTime() / 1000),
           since: Math.floor(start.getTime() / 1000),
           monitor: monitor.slug,
-          resolution: `${rollup}s`,
+          resolution: `${debouncedRollup}s`,
           ...location.query,
         },
       },

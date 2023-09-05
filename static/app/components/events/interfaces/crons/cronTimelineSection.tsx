@@ -4,11 +4,13 @@ import styled from '@emotion/styled';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {Overlay} from 'sentry/components/overlay';
 import Panel from 'sentry/components/panels/panel';
+import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {fadeIn} from 'sentry/styles/animations';
 import {space} from 'sentry/styles/space';
 import {Event, Organization} from 'sentry/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import useRouter from 'sentry/utils/useRouter';
 import {CheckInTimeline} from 'sentry/views/monitors/components/overviewTimeline/checkInTimeline';
@@ -45,6 +47,7 @@ export function CronTimelineSection({event, organization}: Props) {
 
   const timeWindowConfig = getConfigFromTimeRange(start, end, timelineWidth);
   const rollup = Math.floor((timeWindowConfig.elapsedMinutes * 60) / timelineWidth);
+  const debouncedRollup = useDebouncedValue(rollup, DEFAULT_DEBOUNCE_DURATION);
 
   const monitorStatsQueryKey = `/organizations/${organization.slug}/monitors-stats/`;
   const {data: monitorStats, isLoading} = useApiQuery<Record<string, MonitorBucketData>>(
@@ -55,7 +58,7 @@ export function CronTimelineSection({event, organization}: Props) {
           until: Math.floor(end.getTime() / 1000),
           since: Math.floor(start.getTime() / 1000),
           monitor: monitorSlug,
-          resolution: `${rollup}s`,
+          resolution: `${debouncedRollup}s`,
         },
       },
     ],

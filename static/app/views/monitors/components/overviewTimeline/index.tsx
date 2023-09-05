@@ -3,8 +3,10 @@ import styled from '@emotion/styled';
 
 import Panel from 'sentry/components/panels/panel';
 import {Sticky} from 'sentry/components/sticky';
+import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {space} from 'sentry/styles/space';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
@@ -36,6 +38,8 @@ export function OverviewTimeline({monitorList}: Props) {
 
   const timeWindowConfig = getConfigFromTimeRange(start, nowRef.current, timelineWidth);
   const rollup = Math.floor((timeWindowConfig.elapsedMinutes * 60) / timelineWidth);
+  const debouncedRollup = useDebouncedValue(rollup, DEFAULT_DEBOUNCE_DURATION);
+
   const monitorStatsQueryKey = `/organizations/${organization.slug}/monitors-stats/`;
   const {data: monitorStats, isLoading} = useApiQuery<Record<string, MonitorBucketData>>(
     [
@@ -45,7 +49,7 @@ export function OverviewTimeline({monitorList}: Props) {
           until: Math.floor(nowRef.current.getTime() / 1000),
           since: Math.floor(start.getTime() / 1000),
           monitor: monitorList.map(m => m.slug),
-          resolution: `${rollup}s`,
+          resolution: `${debouncedRollup}s`,
           ...location.query,
         },
       },
