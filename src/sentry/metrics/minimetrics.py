@@ -2,7 +2,7 @@ import random
 import threading
 import time
 import zlib
-from threading import Lock, Thread
+from threading import Event, Lock, Thread
 from typing import (
     Any,
     Callable,
@@ -58,6 +58,9 @@ MetricUnit = Literal[
 
 
 class Metric(Generic[T]):
+    def current_complexity(self) -> int:
+        return 1
+
     def add(self, value: T) -> None:
         raise NotImplementedError()
 
@@ -111,6 +114,9 @@ class DistributionMetric(Metric[float]):
     def __init__(self) -> None:
         self.value: List[float] = []
 
+    def current_complexity(self) -> int:
+        return len(self.value)
+
     def add(self, value: float) -> None:
         self.value.append(value)
 
@@ -123,6 +129,9 @@ class SetMetric(Metric[Union[str, int]]):
 
     def __init__(self) -> None:
         self.value: Set[Union[str, int]] = set()
+
+    def current_complexity(self) -> int:
+        return len(self.value)
 
     def add(self, value: Union[str, int]) -> None:
         self.value.add(value)
@@ -148,27 +157,34 @@ ComposedKey = Tuple[int, str, str, MetricUnit, Tuple[Tuple[str, str], ...]]
 
 class Aggregator:
     ROLLUP_IN_SECONDS = 10.0
-    MAX_BUCKETS = 100000
+    MAX_COMPLEXITY = 100000
 
     def __init__(self) -> None:
         self.buckets: Dict[ComposedKey, Metric[Any]] = {}
+        self._bucket_complexity = 0
         self._lock = Lock()
         self._running = True
+        self._flush_event = Event()
+        self._force_flush = False
+
         self._flusher = Thread(target=self._flush)
         self._flusher.daemon = True
         self._flusher.start()
 
     def _flush(self) -> None:
         while self._running:
+            force_flush = self._force_flush
+            self._force_flush = False
             cutoff = time.time() - self.ROLLUP_IN_SECONDS
             cleanup = set()
+            remove_complexity = 0
             extracted_metrics = []
             buckets = self.buckets
 
             with self._lock:
                 for bucket_key, metric in buckets.items():
                     ts, ty, name, unit, tags = bucket_key
-                    if ts > cutoff:
+                    if not force_flush and ts > cutoff:
                         continue
 
                     m = {
@@ -185,14 +201,22 @@ class Aggregator:
 
                     extracted_metrics.append(m)
                     cleanup.add(bucket_key)
+                    remove_complexity += metric.current_complexity
 
                 for key in cleanup:
                     buckets.pop(key)
+                self._bucket_complexity -= remove_complexity
 
             if extracted_metrics:
                 self._emit(extracted_metrics)
 
-            time.sleep(2.0)
+            self._event.wait(2.0)
+
+    def _consider_flush(self):
+        total_complexity = len(self.buckets) + self._bucket_complexity
+        if total_complexity > self.MAX_COMPLEXITY:
+            self._force_flush = True
+            self._flush_event.set()
 
     @classmethod
     def _emit(cls, extracted_metrics: Any) -> Any:
@@ -265,7 +289,7 @@ class Aggregator:
         with self._lock:
             metric = self.buckets.get(bucket_key)
             if metric is None:
-                if len(self.buckets) >= self.MAX_BUCKETS:
+                if len(self.buckets) >= self.MAX_COMPLEXITY:
                     # We want to track how many times buckets limits have been reached.
                     self._safe_emit_count_metric(key="minimetrics.buckets_limit_reached", amount=1)
                     return
@@ -277,7 +301,11 @@ class Aggregator:
                     key="minimetrics.buckets_size", value=len(self.buckets)
                 )
 
+            complexity = metric.current_complexity
             metric.add(value)
+            self._bucket_complexity += metric.current_complexity - complexity
+
+        self._consider_flush()
 
 
 class Client:
