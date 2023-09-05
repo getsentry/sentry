@@ -264,44 +264,6 @@ try {
       </Fragment>
     ),
   },
-  {
-    title: t('Measure Performance'),
-    description: t('You can capture transactions using the SDK. For example:'),
-    configurations: [
-      {
-        language: 'java',
-        code: `
-import io.sentry.ITransaction;
-import io.sentry.Sentry;
-import io.sentry.SpanStatus;
-
-// A good name for the transaction is key, to help identify what this is about
-ITransaction transaction = Sentry.startTransaction("processOrderBatch()", "task");
-try {
-processOrderBatch();
-} catch (Exception e) {
-transaction.setThrowable(e);
-transaction.setStatus(SpanStatus.INTERNAL_ERROR);
-throw e;
-} finally {
-transaction.finish();
-}
-        `,
-      },
-    ],
-    additionalInfo: (
-      <p>
-        {tct(
-          'For more information about the API and automatic instrumentations included in the SDK, [link:visit the docs].',
-          {
-            link: (
-              <ExternalLink href="https://docs.sentry.io/platforms/java/performance/" />
-            ),
-          }
-        )}
-      </p>
-    ),
-  },
 ];
 // Configuration End
 

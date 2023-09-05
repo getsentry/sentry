@@ -329,21 +329,6 @@ try {
       </p>
     ),
   },
-  {
-    title: t('Measure Performance'),
-    description: (
-      <p>
-        {tct(
-          'Check out [link:the documentation] to learn how to configure and use Sentry Performance Monitoring with Spring.',
-          {
-            link: (
-              <ExternalLink href="https://docs.sentry.io/platforms/java/guides/spring/performance/" />
-            ),
-          }
-        )}
-      </p>
-    ),
-  },
 ];
 // Configuration End
 
