@@ -238,7 +238,7 @@ class Aggregator:
         if extracted_metrics:
             self._emit(extracted_metrics, force_flush)
 
-    def kill(self):
+    def stop(self):
         # Firstly we tell the flusher that we want to force flush.
         with self._lock:
             self._force_flush = True
@@ -439,7 +439,7 @@ class MiniMetricsMetricsBackend(MetricsBackend):
             old_close = client.close
 
             def new_close(*args, **kwargs):
-                self.client.aggregator.kill()
+                self.client.aggregator.stop()
                 return old_close(*args, **kwargs)
 
             client.close = new_close
