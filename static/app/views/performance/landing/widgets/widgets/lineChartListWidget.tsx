@@ -51,6 +51,7 @@ import {
   eventsRequestQueryProps,
   getMEPParamsIfApplicable,
   QUERY_LIMIT_PARAM,
+  TOTAL_EXPANDABLE_ROWS_HEIGHT,
 } from '../utils';
 import {PerformanceWidgetSetting} from '../widgetDefinitions';
 
@@ -221,11 +222,13 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           let yAxis = provided.yAxis;
           let interval = getInterval(pageFilterDatetime, 'medium');
           let partialDataParam = true;
+
           if (
-            !provided.widgetData.list.data[selectedListIndex]?.transaction &&
-            !provided.widgetData.list.data[selectedListIndex][
-              SpanMetricsField.SPAN_DESCRIPTION
-            ]
+            !provided.widgetData.list.data[selectedListIndex] ||
+            (!provided.widgetData.list.data[selectedListIndex]?.transaction &&
+              !provided.widgetData.list.data[selectedListIndex][
+                SpanMetricsField.SPAN_DESCRIPTION
+              ])
           ) {
             return null;
           }
@@ -534,7 +537,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
             />
           ),
           // accordion items height + chart height
-          height: 120 + props.chartHeight,
+          height: TOTAL_EXPANDABLE_ROWS_HEIGHT + props.chartHeight,
           noPadding: true,
         },
       ]

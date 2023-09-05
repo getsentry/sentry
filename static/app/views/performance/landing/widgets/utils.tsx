@@ -13,6 +13,8 @@ import {PerformanceWidgetSetting} from './widgetDefinitions';
 
 export const QUERY_LIMIT_PARAM = 4;
 
+export const TOTAL_EXPANDABLE_ROWS_HEIGHT = 37 * QUERY_LIMIT_PARAM;
+
 export const eventsRequestQueryProps = [
   'children',
   'organization',
