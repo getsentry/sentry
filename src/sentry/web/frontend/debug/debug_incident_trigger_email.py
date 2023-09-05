@@ -1,4 +1,5 @@
 from unittest import mock
+from uuid import uuid4
 
 from django.utils import timezone
 
@@ -45,7 +46,13 @@ class DebugIncidentTriggerEmailView(MailPreviewView):
         trigger = AlertRuleTrigger(alert_rule=alert_rule)
 
         return generate_incident_trigger_email_context(
-            project, incident, trigger, TriggerStatus.ACTIVE, IncidentStatus(incident.status), user
+            project,
+            incident,
+            trigger,
+            TriggerStatus.ACTIVE,
+            IncidentStatus(incident.status),
+            user,
+            notification_uuid=str(uuid4()),
         )
 
     @property
