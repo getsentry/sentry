@@ -1,9 +1,10 @@
 import types
 from urllib.parse import parse_qs, urlparse
 
-from sentry.models import NotificationSetting, Rule
+from sentry.models.notificationsetting import NotificationSetting
 from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
+from sentry.models.rule import Rule
 from sentry.notifications.helpers import (
     collect_groups_by_project,
     get_all_setting_options,
@@ -332,15 +333,15 @@ class NotificationSettingV2HelpersTest(TestCase):
             == self.setting_options
         )
         options_for_recipient = get_setting_options_for_recipient(
-            self.user, self.project, self.organization
+            recipient=self.user, project=self.project, organization=self.organization
         )
         assert (
-            options_for_recipient[NotificationSettingEnum.DEPLOY.value]
-            == NotificationSettingsOptionEnum.ALWAYS.value
+            options_for_recipient[NotificationSettingEnum.DEPLOY]
+            == NotificationSettingsOptionEnum.ALWAYS
         )
         assert (
-            options_for_recipient[NotificationSettingEnum.ISSUE_ALERTS.value]
-            == NotificationSettingsOptionEnum.ALWAYS.value
+            options_for_recipient[NotificationSettingEnum.ISSUE_ALERTS]
+            == NotificationSettingsOptionEnum.ALWAYS
         )
 
     def test_user_has_any_provider_settings(self):
