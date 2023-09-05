@@ -27,7 +27,7 @@ FILTER_HAS_A_REPLAY = "AND !replayId:''"
 
 class ReplayDataSourceValidator(serializers.Serializer):
     data_source = serializers.ChoiceField(
-        choices=((Dataset.Discover.value), (Dataset.IssuePlatform.value)),
+        choices=(Dataset.Discover.value, Dataset.IssuePlatform.value),
         default=Dataset.Discover.value,
     )
 
