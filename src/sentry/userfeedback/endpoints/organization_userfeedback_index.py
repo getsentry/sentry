@@ -13,7 +13,11 @@ from sentry.models.organization import Organization
 class OrganizationUserFeedbackIndexEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
+        "POST": ApiPublishStatus.EXPERIMENTAL,
     }
 
     def get(self, request: Request, organization: Organization) -> Response:
+        pass
+
+    def post(self, request: Request, organization: Organization) -> Response:
         pass
