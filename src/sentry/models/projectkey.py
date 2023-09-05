@@ -286,7 +286,18 @@ class ProjectKey(Model):
         if old_pk is None:
             return None
 
-        (key, _) = self.__class__.objects.get_or_create(
+        # If there is a key collision, generate new keys.
+        #
+        # TODO(getsentry/team-ospo#190): Is this the right behavior? Another option is to just
+        # update the SQL schema to no longer require uniqueness.
+        matching_public_key = self.__class__.objects.filter(public_key=self.public_key).first()
+        if not self.public_key or matching_public_key:
+            self.public_key = self.generate_api_key()
+        matching_secret_key = self.__class__.objects.filter(secret_key=self.secret_key).first()
+        if not self.secret_key or matching_secret_key:
+            self.secret_key = self.generate_api_key()
+
+        (key, _) = ProjectKey.objects.get_or_create(
             project=self.project, defaults=model_to_dict(self)
         )
         if key:
