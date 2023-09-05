@@ -65,8 +65,7 @@ export function SourceMapsDebuggerModal({
 }: SourceMapsDebuggerModalProps) {
   const theme = useTheme();
 
-  // TODO: Replace this initial state with prop
-  const [facts, setFacts] = useState<Facts>({
+  const facts: Facts = {
     sourceFileReleaseNameFetchingResult: 'unsuccessful',
     sourceFileScrapingStatus: 'unknown',
     sourceMapReleaseNameFetchingResult: 'unsuccessful',
@@ -86,13 +85,7 @@ export function SourceMapsDebuggerModal({
     releaseSourceMapReference: null,
     matchingArtifactName: '~/build/bundle.min.js',
     stackFramePath: '/build/bundle.min.js',
-  });
-
-  const [debuggerDebuggerContent, setDebuggerDebuggerContent] = useState<string>(
-    JSON.stringify(facts, null, 2)
-  );
-  const [debuggerDebuggerContentValid, setDebuggerDebuggerContentValid] =
-    useState<boolean>(true);
+  };
 
   let debugIdProgress = 0;
   if (facts.sdkDebugIdSupport === 'full') {
@@ -127,9 +120,7 @@ export function SourceMapsDebuggerModal({
   const scrapingProgress = 0;
   const scrapingProgressPercent = scrapingProgress / 3;
 
-  const [activeTab, setActiveTab] = useState<
-    'debug-ids' | 'release' | 'fetching' | 'debugger-debugger'
-  >(() => {
+  const [activeTab, setActiveTab] = useState<'debug-ids' | 'release' | 'fetching'>(() => {
     const possibleTabs = [
       {tab: 'debug-ids', progress: debugIdProgressPercent},
       {tab: 'release', progress: releaseNameProgressPercent},
@@ -167,7 +158,7 @@ export function SourceMapsDebuggerModal({
           getting started with source maps, the following check lists will help you set
           them up correctly. Complete any one of the following processes:
         </p>
-        <Tabs<'debug-ids' | 'release' | 'fetching' | 'debugger-debugger'>
+        <Tabs<'debug-ids' | 'release' | 'fetching'>
           value={activeTab}
           onChange={tab => {
             setActiveTab(tab);
@@ -200,7 +191,11 @@ export function SourceMapsDebuggerModal({
               />
               {t('Releases')}
             </TabList.Item>
-            <TabList.Item key="fetching" textValue={`Fetching (${scrapingProgress}/4)`}>
+            <TabList.Item
+              key="fetching"
+              textValue={`Fetching (${scrapingProgress}/4)`}
+              disabled
+            >
               <StyledProgressRing
                 progressColor={activeTab === 'fetching' ? theme.purple300 : theme.gray300}
                 backgroundColor={theme.gray200}
@@ -209,13 +204,6 @@ export function SourceMapsDebuggerModal({
                 barWidth={4}
               />
               {t('Hosting Publicly')}
-            </TabList.Item>
-            <TabList.Item
-              key="debugger-debugger"
-              textValue="debugger debugger"
-              hidden={process.env.NODE_ENV === 'production'}
-            >
-              Debugger debugger (dev only)
             </TabList.Item>
           </TabList>
           <StyledTabPanels>
@@ -270,25 +258,6 @@ export function SourceMapsDebuggerModal({
               ) : (
                 <VerifyAgainNote />
               )}
-            </TabPanels.Item>
-            <TabPanels.Item key="debugger-debugger">
-              <textarea
-                style={{width: '100%', resize: 'vertical'}}
-                rows={24}
-                value={debuggerDebuggerContent}
-                onChange={e => {
-                  setDebuggerDebuggerContent(e.target.value);
-                  let newFacts;
-                  try {
-                    newFacts = JSON.parse(e.target.value);
-                    setFacts(newFacts);
-                    setDebuggerDebuggerContentValid(true);
-                  } catch {
-                    setDebuggerDebuggerContentValid(false);
-                  }
-                }}
-              />
-              <p>{debuggerDebuggerContentValid ? 'valid' : 'invalid'}</p>
             </TabPanels.Item>
           </StyledTabPanels>
         </Tabs>
