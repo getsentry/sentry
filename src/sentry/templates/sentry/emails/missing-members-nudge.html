@@ -1,0 +1,15 @@
+{% extends "sentry/emails/base.html" %}
+{% load i18n %}
+
+{% block main %}
+{% for member in missing_members %}
+<p>
+{% for key, value in member.items %}
+<span>{{value}}</span>
+{% endfor %}
+</p>
+{% endfor %}
+
+{{members_list_url}}
+
+{% endblock %}
