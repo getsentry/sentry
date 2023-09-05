@@ -249,11 +249,11 @@ class Aggregator:
 
             counts_by_type[metric_type] = counts_by_type.get(metric_type, 0) + value
 
-            (prev_buckets_size, prev_buckets_complexity) = complexities_by_type.get(
+            (prev_buckets_count, prev_buckets_complexity) = complexities_by_type.get(
                 metric_type, (0, 0)
             )
             complexities_by_type[metric_type] = (
-                prev_buckets_size + 1,
+                prev_buckets_count + 1,
                 prev_buckets_complexity + metric_complexity,
             )
 
@@ -266,11 +266,11 @@ class Aggregator:
                 tags={"metric_type": metric_type, "force_flush": force_flush},
             )
 
-        for metric_type, (buckets_size, buckets_complexity) in complexities_by_type.items():
+        for metric_type, (buckets_count, buckets_complexity) in complexities_by_type.items():
             # We want to emit a metric on how many buckets and complexity there was for a metric type.
             cls._safe_emit_count_metric(
-                key="minimetrics.flushed_buckets_size",
-                amount=buckets_size,
+                key="minimetrics.flushed_buckets_count",
+                amount=buckets_count,
                 tags={"metric_type": metric_type, "force_flush": force_flush},
             )
             cls._safe_emit_count_metric(
