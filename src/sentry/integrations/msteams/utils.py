@@ -102,18 +102,19 @@ def send_incident_alert_notification(
     metric_value: int | None,
     new_status: IncidentStatus,
     notification_uuid: str | None = None,
-) -> None:
+) -> bool:
     from .card_builder import build_incident_attachment
 
     if action.target_identifier is None:
         raise ValueError("Can't send without `target_identifier`")
 
     attachment = build_incident_attachment(incident, new_status, metric_value, notification_uuid)
-    integration_service.send_msteams_incident_alert_notification(
+    success = integration_service.send_msteams_incident_alert_notification(
         integration_id=action.integration_id,
         channel=action.target_identifier,
         attachment=attachment,
     )
+    return success
 
 
 def get_preinstall_client(service_url):

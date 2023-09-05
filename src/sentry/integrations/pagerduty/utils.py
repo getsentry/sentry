@@ -62,7 +62,7 @@ def send_incident_alert_notification(
     metric_value: int,
     new_status: IncidentStatus,
     notification_uuid: str | None = None,
-) -> None:
+) -> bool:
     integration_id = action.integration_id
     organization_id = incident.organization_id
 
@@ -107,6 +107,7 @@ def send_incident_alert_notification(
     )
     try:
         client.send_trigger(attachment)
+        return True
     except ApiError as e:
         logger.info(
             "rule.fail.pagerduty_metric_alert",

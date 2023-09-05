@@ -62,19 +62,19 @@ def send_incident_alert_notification(
     metric_value: int,
     new_status: IncidentStatus,
     notification_uuid: str | None = None,
-) -> None:
+) -> bool:
     integration, org_integration = integration_service.get_organization_context(
         organization_id=incident.organization_id, integration_id=action.integration_id
     )
     if org_integration is None or integration is None or integration.status != ObjectStatus.ACTIVE:
         logger.info("Opsgenie integration removed, but the rule is still active.")
-        return
+        return False
 
     team = get_team(org_integration=org_integration, team_id=action.target_identifier)
     if not team:
         # team removed, but the rule is still active
         logger.info("Opsgenie team removed, but the rule is still active.")
-        return
+        return False
 
     integration_key = team["integration_key"]
     client = OpsgenieClient(
@@ -85,6 +85,7 @@ def send_incident_alert_notification(
     attachment = build_incident_attachment(incident, new_status, metric_value, notification_uuid)
     try:
         client.send_notification(attachment)
+        return True
     except ApiError as e:
         logger.info(
             "rule.fail.opsgenie_notification",
