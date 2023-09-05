@@ -87,11 +87,6 @@ export enum CombinedAlertType {
   ISSUE = 'rule',
 }
 
-// export type CombinedMetricIssueAlerts = (IssueAlertRule | MetricRule) & {
-//   type: CombinedAlertType;
-//   latestIncident?: Incident | null;
-// };
-
 interface IssueAlert extends IssueAlertRule {
   type: CombinedAlertType.ISSUE;
   latestIncident?: Incident | null;
