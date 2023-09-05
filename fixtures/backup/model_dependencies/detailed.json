@@ -201,7 +201,7 @@
       }
     },
     "model": "sentry.ApiGrant",
-    "relocation_scope": "Excluded",
+    "relocation_scope": "Global",
     "silos": [
       "Control"
     ]
@@ -350,7 +350,7 @@
       }
     },
     "model": "sentry.AuthIdentity",
-    "relocation_scope": "Organization",
+    "relocation_scope": "Global",
     "silos": [
       "Control"
     ]
@@ -363,7 +363,7 @@
       }
     },
     "model": "sentry.AuthProvider",
-    "relocation_scope": "Organization",
+    "relocation_scope": "Global",
     "silos": [
       "Control"
     ]
@@ -1600,7 +1600,7 @@
   "sentry.Integration": {
     "foreign_keys": {},
     "model": "sentry.Integration",
-    "relocation_scope": "Excluded",
+    "relocation_scope": "Global",
     "silos": [
       "Control"
     ]
@@ -1743,7 +1743,7 @@
       }
     },
     "model": "sentry.MonitorEnvironment",
-    "relocation_scope": "Organization",
+    "relocation_scope": "Excluded",
     "silos": [
       "Region"
     ]
@@ -1751,7 +1751,7 @@
   "sentry.MonitorLocation": {
     "foreign_keys": {},
     "model": "sentry.MonitorLocation",
-    "relocation_scope": "Organization",
+    "relocation_scope": "Excluded",
     "silos": [
       "Region"
     ]
@@ -1936,7 +1936,7 @@
       }
     },
     "model": "sentry.OrganizationIntegration",
-    "relocation_scope": "Excluded",
+    "relocation_scope": "Global",
     "silos": [
       "Control"
     ]
@@ -2242,7 +2242,7 @@
       }
     },
     "model": "sentry.ProjectIntegration",
-    "relocation_scope": "Excluded",
+    "relocation_scope": "Global",
     "silos": [
       "Region"
     ]
@@ -2723,6 +2723,23 @@
       "Region"
     ]
   },
+  "sentry.ReleaseThreshold": {
+    "foreign_keys": {
+      "environment": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.Environment"
+      },
+      "project": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.Project"
+      }
+    },
+    "model": "sentry.ReleaseThreshold",
+    "relocation_scope": "Excluded",
+    "silos": [
+      "Region"
+    ]
+  },
   "sentry.Repository": {
     "foreign_keys": {
       "integration_id": {
@@ -2735,7 +2752,7 @@
       }
     },
     "model": "sentry.Repository",
-    "relocation_scope": "Organization",
+    "relocation_scope": "Global",
     "silos": [
       "Region"
     ]

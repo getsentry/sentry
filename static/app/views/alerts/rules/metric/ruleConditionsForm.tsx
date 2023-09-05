@@ -25,6 +25,7 @@ import {getDisplayName} from 'sentry/utils/environment';
 import {
   createOnDemandFilterWarning,
   hasOnDemandMetricAlertFeature,
+  isOnDemandQueryString,
 } from 'sentry/utils/onDemandMetrics';
 import withApi from 'sentry/utils/withApi';
 import withProjects from 'sentry/utils/withProjects';
@@ -34,11 +35,7 @@ import {
   DATA_SOURCE_LABELS,
   DATA_SOURCE_TO_SET_AND_EVENT_TYPES,
 } from 'sentry/views/alerts/utils';
-import {
-  AlertType,
-  datasetOmittedTags,
-  datasetSupportedTags,
-} from 'sentry/views/alerts/wizard/options';
+import {AlertType, getSupportedAndOmittedTags} from 'sentry/views/alerts/wizard/options';
 
 import {getProjectOptions} from '../utils';
 
@@ -479,8 +476,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                     }
                     searchSource="alert_builder"
                     defaultQuery={initialData?.query ?? ''}
-                    omitTags={datasetOmittedTags(dataset, organization)}
-                    supportedTags={datasetSupportedTags(dataset, organization)}
+                    {...getSupportedAndOmittedTags(dataset, organization)}
                     includeSessionTagsValues={dataset === Dataset.SESSIONS}
                     disabled={disabled}
                     useFormWrapper={false}
@@ -491,7 +487,8 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                     // We only need strict validation for Transaction queries, everything else is fine
                     highlightUnsupportedTags={
                       organization.features.includes('alert-allow-indexed') ||
-                      hasOnDemandMetricAlertFeature(organization)
+                      (hasOnDemandMetricAlertFeature(organization) &&
+                        isOnDemandQueryString(initialData.query))
                         ? false
                         : [Dataset.GENERIC_METRICS, Dataset.TRANSACTIONS].includes(
                             dataset

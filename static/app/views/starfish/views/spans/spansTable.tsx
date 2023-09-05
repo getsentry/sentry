@@ -103,7 +103,13 @@ export default function SpansTable({
             },
           ]}
           grid={{
-            renderHeadCell: column => renderHeadCell({column, sort, location}),
+            renderHeadCell: column =>
+              renderHeadCell({
+                column,
+                sort,
+                location,
+                sortParameterName: QueryParameterNames.SPANS_SORT,
+              }),
             renderBodyCell: (column, row) =>
               renderBodyCell(
                 column,

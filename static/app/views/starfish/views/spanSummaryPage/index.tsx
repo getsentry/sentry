@@ -19,7 +19,6 @@ import {
   SpanSummaryQueryFilters,
   useSpanMetrics,
 } from 'sentry/views/starfish/queries/useSpanMetrics';
-import {SpanFunction, SpanMetricsField} from 'sentry/views/starfish/types';
 import {extractRoute} from 'sentry/views/starfish/utils/extractRoute';
 import {ROUTE_NAMES} from 'sentry/views/starfish/utils/routeNames';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
@@ -54,8 +53,9 @@ function SpanSummaryPage({params, location}: Props) {
     : {};
 
   const sort =
-    fromSorts(location.query[QueryParameterNames.SPANS_SORT]).filter(isAValidSort)[0] ??
-    DEFAULT_SORT; // We only allow one sort on this table in this view
+    fromSorts(location.query[QueryParameterNames.ENDPOINTS_SORT]).filter(
+      isAValidSort
+    )[0] ?? DEFAULT_SORT; // We only allow one sort on this table in this view
 
   if (endpointMethod && queryFilter) {
     queryFilter['transaction.method'] = endpointMethod;
@@ -64,24 +64,16 @@ function SpanSummaryPage({params, location}: Props) {
   const {data: spanMetrics, isLoading: isSpanMetricsLoading} = useSpanMetrics(
     groupId,
     queryFilter,
-    [
-      SpanMetricsField.SPAN_OP,
-      SpanMetricsField.SPAN_GROUP,
-      SpanMetricsField.PROJECT_ID,
-      `${SpanFunction.SPS}()`,
-    ],
+    ['span.op', 'span.group', 'project.id', 'sps()'],
     'api.starfish.span-summary-page-metrics'
   );
 
   const span = {
-    [SpanMetricsField.SPAN_OP]: spanMetrics[SpanMetricsField.SPAN_OP],
-    [SpanMetricsField.SPAN_GROUP]: groupId,
+    ['span.op']: spanMetrics['span.op'],
+    ['span.group']: groupId,
   };
 
-  const title = [
-    getSpanOperationDescription(span[SpanMetricsField.SPAN_OP]),
-    t('Summary'),
-  ].join(' ');
+  const title = [getSpanOperationDescription(span['span.op']), t('Summary')].join(' ');
 
   const crumbs: Crumb[] = [];
   crumbs.push({
@@ -137,8 +129,7 @@ function SpanSummaryPage({params, location}: Props) {
                 )}
 
                 <SampleList
-                  groupId={span[SpanMetricsField.SPAN_GROUP]}
-                  projectId={spanMetrics[SpanMetricsField.PROJECT_ID]}
+                  groupId={span['span.group']}
                   transactionName={transaction}
                   transactionMethod={transactionMethod}
                 />

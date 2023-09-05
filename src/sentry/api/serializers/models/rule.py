@@ -5,6 +5,7 @@ from django.db.models import Max, Q, prefetch_related_objects
 from rest_framework import serializers
 
 from sentry.api.serializers import Serializer, register
+from sentry.constants import ObjectStatus
 from sentry.models import (
     ACTOR_TYPES,
     Environment,
@@ -175,7 +176,7 @@ class RuleSerializer(Serializer):
             "createdBy": attrs.get("created_by", None),
             "environment": environment.name if environment is not None else None,
             "projects": [obj.project.slug],
-            "status": obj.status,
+            "status": "active" if obj.status == ObjectStatus.ACTIVE else "disabled",
         }
         if "last_triggered" in attrs:
             d["lastTriggered"] = attrs["last_triggered"]
