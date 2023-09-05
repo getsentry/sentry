@@ -23,7 +23,8 @@ class DatadogMetricsBackendTest(TestCase):
     @patch("sentry.metrics.minimetrics.Aggregator.ROLLUP_IN_SECONDS", 1.0)
     @patch("sentry.metrics.minimetrics.metrics.incr")
     def test_incr_bad(self, metrics_incr):
-        self.backend.incr("foo", instance="bar", tags={"foo": ["bar"]})
+        # The backend supports this type.
+        self.backend.incr("foo", instance="bar", tags={"foo": ["bar"]})  # type:ignore
         # We wait for the metric to be flushed.
         time.sleep(2.0)
         # We stop the flusher.

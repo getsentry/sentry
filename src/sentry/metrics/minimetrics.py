@@ -3,7 +3,20 @@ import threading
 import time
 import zlib
 from threading import Event, Lock, Thread
-from typing import Any, Callable, Dict, Generic, List, Literal, Optional, Set, Tuple, TypeVar, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Generic,
+    List,
+    Literal,
+    Mapping,
+    Optional,
+    Set,
+    Tuple,
+    TypeVar,
+    Union,
+)
 
 from sentry.metrics.base import MetricsBackend, Tags
 from sentry.utils import metrics
@@ -44,7 +57,7 @@ MetricUnit = Literal[
 ]
 
 
-def _flatten_tags(tags: Optional[Dict[str, Union[str, List[str]]]]) -> Tuple[Tuple[str, str], ...]:
+def _flatten_tags(tags: Optional[Mapping[str, Any]]) -> Tuple[Tuple[str, str], ...]:
     rv = []
     for key, value in (tags or {}).items():
         if isinstance(value, (list, tuple)):
@@ -200,7 +213,9 @@ class Aggregator:
                     if unit:
                         m["unit"] = unit
                     if tags:
-                        m["tags"] = dict(tags)
+                        # We need to be careful here, since we have a list of tuples where the first element of tuples
+                        # can be duplicated, thus converting to a dict will end up compressing and losing data.
+                        m["tags"] = tags
 
                     extracted_metrics.append((m, metric.current_complexity))
                     cleanup.add(bucket_key)
