@@ -12,8 +12,8 @@ class DatadogMetricsBackendTest(TestCase):
     @patch("sentry.metrics.minimetrics.metrics.incr")
     def test_incr_with_no_tags(self, metrics_incr):
         self.backend.incr("foo", instance="bar")
-        # We stop the flusher.
         self.backend.client.aggregator.kill()
+
         assert len(self.backend.client.aggregator.buckets) == 0
         assert metrics_incr.call_count == 3
 
@@ -22,7 +22,7 @@ class DatadogMetricsBackendTest(TestCase):
     def test_incr_with_tag_value_as_list(self, metrics_incr):
         # The minimetrics backend supports the list type.
         self.backend.incr("foo", instance="bar", tags={"foo": ["bar", "baz"]})  # type:ignore
-        # We stop the flusher.
         self.backend.client.aggregator.kill()
+
         assert len(self.backend.client.aggregator.buckets) == 0
         assert metrics_incr.call_count == 3
