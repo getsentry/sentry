@@ -5,4 +5,5 @@ HIDDEN_PLUGINS = (
     "slack",
     "jira",
     "pagerduty",
+    "opsgenie",
 )
