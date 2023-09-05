@@ -101,7 +101,7 @@ export class FlamegraphChart {
       return bAvg - aAvg;
     });
 
-    this.domains.y[1] = this.domains.y[1] + 5;
+    this.domains.y[1] = this.domains.y[1] + this.domains.y[1] * 0.1;
     this.configSpace = configSpace.withHeight(this.domains.y[1] - this.domains.y[0]);
     this.formatter = makeFormatter(measurements[0].unit, 0);
     this.tooltipFormatter = makeFormatter(measurements[0].unit, 2);
