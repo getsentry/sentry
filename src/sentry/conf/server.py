@@ -705,6 +705,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.auth",
     "sentry.tasks.auto_remove_inbox",
     "sentry.tasks.auto_resolve_issues",
+    "sentry.tasks.backfill_outboxes",
     "sentry.tasks.beacon",
     "sentry.tasks.check_auth",
     "sentry.tasks.clear_expired_snoozes",
