@@ -22,7 +22,7 @@ const performanceConfig: IssueCategoryConfigMapping = {
     },
     attachments: {enabled: false},
     mergedIssues: {enabled: false},
-    replays: {enabled: false},
+    replays: {enabled: true},
     similarIssues: {enabled: false},
     userFeedback: {enabled: false},
     // Performance issues render a custom SpanEvidence component
