@@ -37,7 +37,7 @@ def _remove_container_if_exists(docker_client, container_name):
         pass  # container not found
     else:
         try:
-            container.stop()
+            container.kill()
         except Exception:
             pass  # maybe the container is already stopped
         try:
