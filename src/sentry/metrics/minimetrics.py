@@ -238,7 +238,45 @@ class Aggregator:
         if extracted_metrics:
             self._emit(extracted_metrics, force_flush)
 
+    def add(
+        self,
+        ty: str,
+        key: str,
+        value: Any,
+        unit: MetricUnit,
+        tags: Optional[Tags],
+        timestamp: Optional[float],
+    ) -> None:
+        if not self._is_flusher_active():
+            return
+
+        if timestamp is None:
+            timestamp = time.time()
+
+        bucket_key: ComposedKey = (
+            int((timestamp // self.ROLLUP_IN_SECONDS) * self.ROLLUP_IN_SECONDS),
+            ty,
+            key,
+            unit,
+            _flatten_tags(tags),
+        )
+
+        with self._lock:
+            metric = self.buckets.get(bucket_key)
+            if metric is None:
+                metric = METRIC_TYPES[ty]()
+                self.buckets[bucket_key] = metric
+
+            # We first change the complexity by taking the old one and the new one.
+            previous_complexity = metric.current_complexity
+            metric.add(value)
+            self._bucket_complexity += metric.current_complexity - previous_complexity
+            # Given the new complexity we consider whether we want to force flush.
+            self.consider_force_flush()
+
     def stop(self):
+        self._assert_flusher_active()
+
         # Firstly we tell the flusher that we want to force flush.
         with self._lock:
             self._force_flush = True
@@ -247,12 +285,19 @@ class Aggregator:
         # Secondly we notify the flusher to move on and we wait for its completion.
         self._flush_event.set()
         self._flusher.join()
+        self._flusher = None
 
     def consider_force_flush(self):
         total_complexity = len(self.buckets) + self._bucket_complexity
         if total_complexity >= self.MAX_COMPLEXITY:
             self._force_flush = True
             self._flush_event.set()
+
+    def _is_flusher_active(self):
+        return self._flusher is not None
+
+    def _assert_flusher_active(self):
+        assert self._is_flusher_active(), "The flusher is not active"
 
     @classmethod
     def _emit(cls, extracted_metrics: List[Tuple[Any, int]], force_flush: bool) -> Any:
@@ -327,39 +372,6 @@ class Aggregator:
         thread_local.in_minimetrics = True
         block()
         thread_local.in_minimetrics = False
-
-    def add(
-        self,
-        ty: str,
-        key: str,
-        value: Any,
-        unit: MetricUnit,
-        tags: Optional[Tags],
-        timestamp: Optional[float],
-    ) -> None:
-        if timestamp is None:
-            timestamp = time.time()
-
-        bucket_key: ComposedKey = (
-            int((timestamp // self.ROLLUP_IN_SECONDS) * self.ROLLUP_IN_SECONDS),
-            ty,
-            key,
-            unit,
-            _flatten_tags(tags),
-        )
-
-        with self._lock:
-            metric = self.buckets.get(bucket_key)
-            if metric is None:
-                metric = METRIC_TYPES[ty]()
-                self.buckets[bucket_key] = metric
-
-            # We first change the complexity by taking the old one and the new one.
-            previous_complexity = metric.current_complexity
-            metric.add(value)
-            self._bucket_complexity += metric.current_complexity - previous_complexity
-            # Given the new complexity we consider whether we want to force flush.
-            self.consider_force_flush()
 
 
 class Client:
