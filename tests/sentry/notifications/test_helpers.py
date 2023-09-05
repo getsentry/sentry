@@ -362,10 +362,16 @@ class NotificationSettingV2HelpersTest(TestCase):
         options = get_setting_options_for_users(
             [self.user.id, new_user.id], self.project, self.organization
         )
-        assert options[new_user][NotificationSettingEnum.ISSUE_ALERTS.value] == setting_option_1
+        assert (
+            options[new_user][NotificationSettingEnum.ISSUE_ALERTS].value == setting_option_1.value
+        )
+
         user_options = options[self.user]
-        assert user_options[NotificationSettingEnum.ISSUE_ALERTS.value] == self.setting_options[1]
-        assert user_options[NotificationSettingEnum.DEPLOY.value] == self.setting_options[0]
+        assert (
+            user_options[NotificationSettingEnum.ISSUE_ALERTS].value
+            == self.setting_options[1].value
+        )
+        assert user_options[NotificationSettingEnum.DEPLOY].value == self.setting_options[0].value
 
     def test_get_setting_providers_for_user(self):
         new_user = self.create_user()
@@ -381,11 +387,11 @@ class NotificationSettingV2HelpersTest(TestCase):
         options = get_setting_providers_for_users(
             [self.user.id, new_user.id], self.project, self.organization
         )
-        assert options[new_user][ExternalProviderEnum.MSTEAMS.value] == setting_provider_1
+        assert options[new_user][ExternalProviderEnum.MSTEAMS] == setting_provider_1
         user_options = options[self.user]
-        assert user_options[ExternalProviderEnum.MSTEAMS.value] == self.setting_providers[1]
-        assert user_options[ExternalProviderEnum.SLACK.value] == self.setting_providers[0]
-        assert user_options[ExternalProviderEnum.EMAIL.value] == self.setting_providers[2]
+        assert user_options[ExternalProviderEnum.MSTEAMS] == self.setting_providers[1]
+        assert user_options[ExternalProviderEnum.SLACK] == self.setting_providers[0]
+        assert user_options[ExternalProviderEnum.EMAIL] == self.setting_providers[2]
 
     def test_get_notification_recipients(self):
         new_user = self.create_user()
@@ -410,6 +416,6 @@ class NotificationSettingV2HelpersTest(TestCase):
         )
 
         recipients = get_notification_recipients(self.project)
-        assert recipients[ExternalProviderEnum.SLACK.value] == {self.user}
-        assert recipients[ExternalProviderEnum.EMAIL.value] == {self.user}
-        assert recipients[ExternalProviderEnum.MSTEAMS.value] == {new_user}
+        assert recipients[ExternalProviderEnum.SLACK] == {self.user}
+        assert recipients[ExternalProviderEnum.EMAIL] == {self.user}
+        assert recipients[ExternalProviderEnum.MSTEAMS] == {new_user}

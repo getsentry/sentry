@@ -15,7 +15,6 @@ from sentry.notifications.defaults import (
 )
 from sentry.notifications.types import (
     NOTIFICATION_SCOPE_TYPE,
-    NOTIFICATION_SETTING_ENABLED_VALUES,
     NOTIFICATION_SETTING_OPTION_VALUES,
     NOTIFICATION_SETTING_TYPES,
     SUBSCRIPTION_REASON_MAP,
@@ -838,7 +837,9 @@ def get_setting_options_for_users(
     user_ids: Iterable[int],
     project: Project | None = None,
     organization: Organization | None = None,
-) -> MutableMapping[RpcActor, MutableMapping[NotificationSettingEnum, NotificationSettingOption]]:
+) -> MutableMapping[
+    RpcActor, MutableMapping[NotificationSettingEnum, NotificationSettingsOptionEnum]
+]:
     """
     Returns a map of users to NotificationSettingOption by type:
     {user -> {notification type -> setting}}.
@@ -851,22 +852,28 @@ def get_setting_options_for_users(
     query = get_query(project=project, organization=organization, user_ids=user_ids)
     notification_settings = NotificationSettingOption.objects.filter(query)
 
-    user_to_setting = defaultdict(dict)
+    user_to_setting: MutableMapping[
+        RpcActor, MutableMapping[NotificationSettingEnum, NotificationSettingsOptionEnum]
+    ] = defaultdict(dict)
     for ns in notification_settings:
         if ns.scope_type == NotificationScopeEnum.PROJECT.value:
-            user_to_setting[ns.user][ns.type] = ns
+            setting_type = NotificationSettingEnum(ns.type)
+            setting_value = NotificationSettingsOptionEnum(ns.value)
+            user_to_setting[ns.user][setting_type] = setting_value
 
     for ns in notification_settings:
         if ns.scope_type == NotificationScopeEnum.ORGANIZATION.value:
             ns_dict = user_to_setting[ns.user]
-            if ns.type not in ns_dict:
-                user_to_setting[ns.user][ns.type] = ns
+            setting_type = NotificationSettingEnum(ns.type)
+            if setting_type not in ns_dict:
+                user_to_setting[ns.user][setting_type] = NotificationSettingsOptionEnum(ns.value)
 
     for ns in notification_settings:
         if ns.scope_type == NotificationScopeEnum.USER.value:
             ns_dict = user_to_setting[ns.user]
-            if ns.type not in ns_dict:
-                user_to_setting[ns.user][ns.type] = ns
+            setting_type = NotificationSettingEnum(ns.type)
+            if setting_type not in ns_dict:
+                user_to_setting[ns.user][setting_type] = NotificationSettingsOptionEnum(ns.value)
 
     defaults = get_type_defaults()
     for _, ns_dict in user_to_setting.items():
@@ -881,7 +888,7 @@ def get_setting_providers_for_users(
     user_ids: Iterable[int],
     project: Project | None = None,
     organization: Organization | None = None,
-) -> MutableMapping[RpcActor, MutableMapping[NotificationSettingEnum, NotificationSettingProvider]]:
+) -> MutableMapping[RpcActor, MutableMapping[ExternalProviderEnum, NotificationSettingProvider]]:
     """
     Returns a map of users to NotificationSettingProvider by provider:
     {user -> {provider -> setting}}.
@@ -894,28 +901,33 @@ def get_setting_providers_for_users(
     query = get_query(project=project, organization=organization, user_ids=user_ids)
     notification_settings = NotificationSettingProvider.objects.filter(query)
 
-    user_to_setting = defaultdict(dict)
+    user_to_setting: MutableMapping[
+        RpcActor, MutableMapping[ExternalProviderEnum, NotificationSettingProvider]
+    ] = defaultdict(dict)
     for ns in notification_settings:
         if ns.scope_type == NotificationScopeEnum.PROJECT.value:
-            user_to_setting[ns.user][ns.provider] = ns
+            provider = ExternalProviderEnum(ns.provider)
+            user_to_setting[ns.user][provider] = ns
 
     for ns in notification_settings:
         if ns.scope_type == NotificationScopeEnum.ORGANIZATION.value:
             ns_dict = user_to_setting[ns.user]
-            if ns.provider not in ns_dict:
-                ns_dict[ns.provider] = ns
+            provider = ExternalProviderEnum(ns.provider)
+            if provider not in ns_dict:
+                ns_dict[provider] = ns
 
     for ns in notification_settings:
         if ns.scope_type == NotificationScopeEnum.USER.value:
             ns_dict = user_to_setting[ns.user]
-            if ns.provider not in ns_dict:
-                ns_dict[ns.provider] = ns
+            provider = ExternalProviderEnum(ns.provider)
+            if provider not in ns_dict:
+                ns_dict[provider] = ns
 
     # TODO: Are there any provider defaults to fill in?
     return user_to_setting
 
 
-def get_notification_recipients(project: Project) -> Mapping[ExternalProviders, Iterable[RpcActor]]:
+def get_notification_recipients(project: Project) -> Mapping[ExternalProviderEnum, set[RpcActor]]:
     """
     Returns the recipients that should be notified for each provider.
 
@@ -926,7 +938,9 @@ def get_notification_recipients(project: Project) -> Mapping[ExternalProviders, 
     options = get_setting_options_for_users(user_ids, project=project)
     providers = get_setting_providers_for_users(user_ids, project=project)
 
-    enabled_providers = {
+    enabled_providers: Mapping[
+        RpcActor, Mapping[ExternalProviderEnum, NotificationSettingProvider]
+    ] = {
         user: {
             provider: ps
             for provider, ps in setting.items()
@@ -935,10 +949,10 @@ def get_notification_recipients(project: Project) -> Mapping[ExternalProviders, 
         for user, setting in providers.items()
     }
 
-    recipients = defaultdict(set)
+    recipients: Mapping[ExternalProviderEnum, set[RpcActor]] = defaultdict(set)
     for user in options.keys():
-        providers = enabled_providers[user].keys()
-        for provider in providers:
+        user_providers = enabled_providers[user].keys()
+        for provider in user_providers:
             recipients[provider].add(user)
 
     return recipients
