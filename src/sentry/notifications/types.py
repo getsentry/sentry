@@ -112,7 +112,6 @@ NOTIFICATION_SETTING_TYPES = {
     NotificationSettingTypes.QUOTA_WARNINGS: NotificationSettingEnum.QUOTA_WARNINGS.value,
     NotificationSettingTypes.QUOTA_SPEND_ALLOCATIONS: NotificationSettingEnum.QUOTA_SPEND_ALLOCATIONS.value,
     NotificationSettingTypes.SPIKE_PROTECTION: NotificationSettingEnum.SPIKE_PROTECTION.value,
-    NotificationSettingTypes.MISSING_MEMBERS: NotificationSettingEnum.MISSING_MEMBERS.value,
     NotificationSettingTypes.REPORTS: NotificationSettingEnum.REPORTS.value,
 }
 
@@ -261,10 +260,6 @@ VALID_VALUES_FOR_KEY = {
         NotificationSettingOptionValues.NEVER,
     },
     NotificationSettingTypes.SPIKE_PROTECTION: {
-        NotificationSettingOptionValues.ALWAYS,
-        NotificationSettingOptionValues.NEVER,
-    },
-    NotificationSettingTypes.MISSING_MEMBERS: {
         NotificationSettingOptionValues.ALWAYS,
         NotificationSettingOptionValues.NEVER,
     },
