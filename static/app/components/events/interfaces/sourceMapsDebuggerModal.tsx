@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 
 import {ModalRenderProps, openModal} from 'sentry/actionCreators/modal';
 import Alert from 'sentry/components/alert';
-import Badge from 'sentry/components/badge';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {FeedbackModal} from 'sentry/components/featureFeedback/feedbackModal';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -63,7 +62,7 @@ export function SourceMapsDebuggerModal({
 
   const facts: Facts = {
     sourceFileReleaseNameFetchingResult: 'unsuccessful',
-    sourceFileScrapingStatus: {status: 'error', error: 'asdf'},
+    sourceFileScrapingStatus: {status: 'found'},
     sourceMapReleaseNameFetchingResult: 'unsuccessful',
     sourceMapScrapingStatus: {status: 'error', error: 'asdf'},
     uploadedSomeArtifactWithDebugId: false,
@@ -118,9 +117,9 @@ export function SourceMapsDebuggerModal({
     releaseNameProgress++;
   }
   if (facts.sourceMapScrapingStatus.status === 'found') {
-    releaseNameProgress++;
+    releaseNameProgress += 2;
   }
-  const scrapingProgressPercent = scrapingProgress / 2;
+  const scrapingProgressPercent = scrapingProgress / 3;
 
   const [activeTab, setActiveTab] = useState<'debug-ids' | 'release' | 'fetching'>(() => {
     const possibleTabs = [
@@ -177,8 +176,7 @@ export function SourceMapsDebuggerModal({
                 size={16}
                 barWidth={4}
               />
-              {t('Debug IDs')}
-              <Badge text="Recommended" type="alpha" />
+              {t('Debug IDs (recommended)')}
             </TabList.Item>
             <TabList.Item
               key="release"
@@ -244,8 +242,8 @@ export function SourceMapsDebuggerModal({
             </TabPanels.Item>
             <TabPanels.Item key="fetching">
               <CheckList>
-                <CheckListItem status="none" title="Source file available to Sentry" />
-                <CheckListItem status="none" title="Source map available to Sentry" />
+                <ScrapingSourceFileAvailableChecklistItem facts={facts} />
+                <ScrapingSourceMapAvailableChecklistItem facts={facts} />
               </CheckList>
               {scrapingProgressPercent === 1 ? (
                 <ChecklistDoneNote />
@@ -792,6 +790,71 @@ function ReleaseSourceMapMatchingChecklistItem({facts}: {facts: Facts}) {
           reference.
         </p>
         {/* TODO: Link to Uploaded Artifacts */}
+      </CheckListInstruction>
+      <SourceMapStepNotRequiredNote />
+    </CheckListItem>
+  );
+}
+
+function ScrapingSourceFileAvailableChecklistItem({facts}: {facts: Facts}) {
+  const itemName = 'Source file available to Sentry';
+
+  if (facts.sourceFileScrapingStatus.status === 'found') {
+    return <CheckListItem status="checked" title={itemName} />;
+  }
+
+  if (
+    facts.uploadedSourceFileWithCorrectDebugId ||
+    facts.sourceFileReleaseNameFetchingResult === 'found' ||
+    facts.sourceFileScrapingStatus.status === 'none'
+  ) {
+    return (
+      <CheckListItem status="alert" title={itemName}>
+        <CheckListInstruction type="muted">
+          <h6>Fetching Not Attempted</h6>
+          <p>
+            The source file was already locaded via Debug IDs or Releases. Sentry will
+            only attempt to fetch the source file from your servers as a fallback
+            mechanism.
+          </p>
+        </CheckListInstruction>
+        <SourceMapStepNotRequiredNote />
+      </CheckListItem>
+    );
+  }
+
+  return (
+    <CheckListItem status="alert" title={itemName}>
+      <CheckListInstruction type="muted">
+        <h6>Error While Fetching</h6>
+        <p>Sentry encountered an error while fetching your source file.</p>
+        <p>Error message: "{facts.sourceFileScrapingStatus.error}"</p>
+      </CheckListInstruction>
+    </CheckListItem>
+  );
+}
+
+function ScrapingSourceMapAvailableChecklistItem({facts}: {facts: Facts}) {
+  const itemName = 'Source map available to Sentry';
+
+  if (facts.sourceMapScrapingStatus.status === 'found') {
+    return <CheckListItem status="checked" title={itemName} />;
+  }
+
+  if (facts.sourceFileScrapingStatus.status === 'none') {
+    return <CheckListItem status="none" title={itemName} />;
+  }
+
+  if (facts.sourceMapScrapingStatus.status === 'none') {
+    return <CheckListItem status="none" title={itemName} />;
+  }
+
+  return (
+    <CheckListItem status="alert" title={itemName}>
+      <CheckListInstruction type="muted">
+        <h6>Error While Fetching</h6>
+        <p>Sentry encountered an error while fetching your source map.</p>
+        <p>Error message: "{facts.sourceMapScrapingStatus.error}"</p>
       </CheckListInstruction>
       <SourceMapStepNotRequiredNote />
     </CheckListItem>
