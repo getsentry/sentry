@@ -22,7 +22,7 @@ import {GenericPerformanceWidget} from '../components/performanceWidget';
 import {transformDiscoverToSingleValue} from '../transforms/transformDiscoverToSingleValue';
 import {transformEventsRequestToArea} from '../transforms/transformEventsToArea';
 import {PerformanceWidgetProps, QueryDefinition, WidgetDataResult} from '../types';
-import {eventsRequestQueryProps, getMEPQueryParams} from '../utils';
+import {eventsRequestQueryProps, getMEPQueryParams, QUERY_LIMIT_PARAM} from '../utils';
 
 type DataType = {
   chart: WidgetDataResult & ReturnType<typeof transformEventsRequestToArea>;
@@ -92,6 +92,7 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
             {({queryBatching}) => (
               <DiscoverQuery
                 {...provided}
+                limit={QUERY_LIMIT_PARAM}
                 queryBatching={queryBatching}
                 eventView={eventView}
                 location={location}

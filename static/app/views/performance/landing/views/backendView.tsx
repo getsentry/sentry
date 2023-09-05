@@ -47,7 +47,7 @@ export function BackendView(props: BasePerformanceViewProps) {
       doubleChartRowCharts.push(PerformanceWidgetSetting.MOST_CHANGED);
     }
 
-    if (props.organization.features.includes('starfish-view')) {
+    if (props.organization.features.includes('performance-database-view')) {
       doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES);
     }
   } else {
