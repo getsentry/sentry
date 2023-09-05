@@ -1,5 +1,6 @@
 import {
   formatTo,
+  fromNanoJoulesToWatts,
   makeFormatter,
   makeTimelineFormatter,
 } from 'sentry/utils/profiling/units/units';
@@ -9,6 +10,13 @@ describe('makeTimelineFormatter', () => {
     const formatter = makeTimelineFormatter('seconds');
     expect(formatter(61)).toBe('01:01.000');
     expect(formatter(-61)).toBe('-01:01.000');
+  });
+
+  it('converts nanojoules to watts', () => {
+    // 1e9 nanojoules in 1 second = 1 watt
+    expect(fromNanoJoulesToWatts(1e9, 1)).toBe(1);
+    // 1e9 nanojoules in 100ms = 10 watts
+    expect(fromNanoJoulesToWatts(1e9, 0.1)).toBe(10);
   });
 
   it('nanojoules', () => {
