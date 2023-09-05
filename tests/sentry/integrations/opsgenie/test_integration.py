@@ -8,7 +8,10 @@ from sentry.integrations.opsgenie.integration import OpsgenieIntegrationProvider
 from sentry.models import Rule
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
-from sentry.tasks.integrations.migrate_opsgenie_plugin import ALERT_LEGACY_INTEGRATIONS
+from sentry.tasks.integrations.migrate_opsgenie_plugin import (
+    ALERT_LEGACY_INTEGRATIONS,
+    ALERT_LEGACY_INTEGRATIONS_WITH_NAME,
+)
 from sentry.testutils.cases import APITestCase, IntegrationTestCase
 from sentry.testutils.silo import control_silo_test
 from sentry_plugins.opsgenie.plugin import OpsGeniePlugin
@@ -403,3 +406,45 @@ class OpsgenieMigrationIntegrationTest(APITestCase):
                 "team": str(self.organization_integration.id) + "-pikachu",
             },
         ]
+
+    def test_migrate_plugin_with_name(self):
+        """
+        Test that the Opsgenie plugin is migrated correctly if the legacy alert action has a name field.
+        """
+        org_integration = OrganizationIntegration.objects.get(integration_id=self.integration.id)
+        org_integration.config = {"team_table": []}
+        org_integration.save()
+
+        Rule.objects.create(
+            label="rule",
+            project=self.project,
+            data={"match": "all", "actions": [ALERT_LEGACY_INTEGRATIONS_WITH_NAME]},
+        )
+
+        with self.tasks():
+            self.installation.schedule_migrate_opsgenie_plugin()
+
+        org_integration = OrganizationIntegration.objects.get(integration_id=self.integration.id)
+        id1 = str(self.organization_integration.id) + "-thonk"
+        assert org_integration.config == {
+            "team_table": [
+                {"id": id1, "team": "thonk [MIGRATED]", "integration_key": "123-key"},
+            ]
+        }
+
+        rule_updated = Rule.objects.get(
+            label="rule",
+            project=self.project,
+        )
+
+        assert rule_updated.data["actions"] == [
+            ALERT_LEGACY_INTEGRATIONS,
+            {
+                "id": "sentry.integrations.opsgenie.notify_action.OpsgenieNotifyTeamAction",
+                "account": self.integration.id,
+                "team": id1,
+            },
+        ]
+
+        assert self.plugin.is_enabled(self.project) is False
+        assert self.plugin.is_configured(self.project) is False

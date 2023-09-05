@@ -8,6 +8,10 @@ from sentry.services.hybrid_cloud.integration.service import integration_service
 from sentry.tasks.base import instrumented_task, retry
 
 ALERT_LEGACY_INTEGRATIONS = {"id": "sentry.rules.actions.notify_event.NotifyEventAction"}
+ALERT_LEGACY_INTEGRATIONS_WITH_NAME = {
+    "id": "sentry.rules.actions.notify_event.NotifyEventAction",
+    "name": "Send a notification (for all legacy integrations)",
+}
 logger = logging.getLogger(__name__)
 
 
@@ -77,6 +81,7 @@ def migrate_opsgenie_plugin(integration_id: int, organization_id: int) -> None:
             rule
             for rule in Rule.objects.filter(project_id=project.id)
             if ALERT_LEGACY_INTEGRATIONS in rule.data["actions"]
+            or ALERT_LEGACY_INTEGRATIONS_WITH_NAME in rule.data["actions"]
         ]
         with transaction.atomic(router.db_for_write(Rule)):
             for rule in rules_to_migrate:
