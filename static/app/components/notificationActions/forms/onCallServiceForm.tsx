@@ -14,7 +14,7 @@ import {
 
 type OnCallServiceFormProps = {
   /**
-   * Map of pagerduty/opsgenie integration IDs to available actions for those IDs
+   * Map of Pagerduty/Opsgenie integration IDs to available actions for those IDs
    */
   Integrations: Record<number, AvailableNotificationAction[]>;
   /**
@@ -61,7 +61,7 @@ function OnCallServiceForm({
     });
   }, [Integrations, onChange]);
 
-  // Each Pagerduty/Opsgenie account has its own list of services/keys
+  // Each Pagerduty/Opsgenie account has its own list of services/teams
   const getServiceOptions = (): MenuItemProps[] => {
     if (!action.integrationId) {
       return [];
@@ -79,13 +79,13 @@ function OnCallServiceForm({
       },
     }));
   };
-  const keySelectionTxt =
+  const keySelectionText =
     onCallService === 'pagerduty'
       ? t('account with the service')
-      : t('account with the key');
+      : t('account with the team');
 
-  const dropdownTxt =
-    onCallService === 'pagerduty' ? t('Select Service') : t('Select Key');
+  const dropdownText =
+    onCallService === 'pagerduty' ? t('Select Service') : t('Select Team');
 
   return (
     <NotificationActionFormContainer>
@@ -106,14 +106,14 @@ function OnCallServiceForm({
           )}
         />
 
-        <div>{keySelectionTxt}</div>
+        <div>{keySelectionText}</div>
 
         <DropdownMenu
           items={getServiceOptions()}
           trigger={triggerProps => (
             <DropdownButton
               {...triggerProps}
-              aria-label={dropdownTxt}
+              aria-label={dropdownText}
               size="xs"
               data-test-id="target-display-dropdown"
             >

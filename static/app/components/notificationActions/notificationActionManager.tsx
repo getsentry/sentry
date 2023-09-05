@@ -172,6 +172,16 @@ function NotificationActionManager({
       ));
     });
   };
+  const getLabel = (serviceType: string) => {
+    switch (serviceType) {
+      case NotificationActionService.SENTRY_NOTIFICATION:
+        return t('Send a Sentry notification');
+      case NotificationActionService.OPSGENIE:
+        return t('Send an Opsgenie notification');
+      default:
+        return t('Send a %s notification', capitalize(serviceType));
+    }
+  };
 
   const getMenuItems = () => {
     const menuItems: MenuItemProps[] = [];
@@ -186,15 +196,7 @@ function NotificationActionManager({
       ) {
         return;
       }
-      let label = t(
-        'Send a %s notification',
-        serviceType !== NotificationActionService.SENTRY_NOTIFICATION
-          ? capitalize(serviceType)
-          : 'Sentry'
-      );
-      if (serviceType === NotificationActionService.OPSGENIE) {
-        label = t('Send an Opsgenie notification');
-      }
+      const label = getLabel(serviceType);
       menuItems.push({
         key: serviceType,
         label,

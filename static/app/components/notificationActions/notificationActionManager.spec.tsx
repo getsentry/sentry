@@ -447,10 +447,10 @@ describe('Adds, deletes, and updates notification actions', function () {
 
     // Use default account
     expect(screen.getByText('sentry-enterprise')).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Select Key'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Select Team'})).toBeInTheDocument();
 
     // Select team
-    await userEvent.click(screen.getByRole('button', {name: 'Select Key'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Select Team'}));
     await userEvent.click(screen.getByText('opsgenie-test-team'));
 
     await userEvent.click(screen.getByText('Save'));
