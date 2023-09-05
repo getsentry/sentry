@@ -21,6 +21,7 @@ from sentry.api.endpoints.organization_missing_org_members import OrganizationMi
 from sentry.api.endpoints.organization_projects_experiment import (
     OrganizationProjectsExperimentEndpoint,
 )
+from sentry.api.endpoints.release_threshold import ReleaseThresholdEndpoint
 from sentry.api.utils import method_dispatch
 from sentry.data_export.endpoints.data_export import DataExportEndpoint
 from sentry.data_export.endpoints.data_export_details import DataExportDetailsEndpoint
@@ -2099,6 +2100,11 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/$",
         ProjectReleasesEndpoint.as_view(),
         name="sentry-api-0-project-releases",
+    ),
+    re_path(
+        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/thresholds/$",
+        ReleaseThresholdEndpoint.as_view(),
+        name="sentry-api-0-project-releases-thresholds",
     ),
     re_path(
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/commits/$",
