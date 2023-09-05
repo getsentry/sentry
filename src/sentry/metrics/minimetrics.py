@@ -48,10 +48,11 @@ def _flatten_tags(tags: Optional[Dict[str, Union[str, List[str]]]]) -> Tuple[Tup
     rv = []
     for key, value in (tags or {}).items():
         if isinstance(value, (list, tuple)):
-            for value in value:
-                rv.append((key, value))
+            for inner_value in value:
+                rv.append((key, inner_value))
         else:
             rv.append((key, value))
+
     return tuple(sorted(rv))
 
 
