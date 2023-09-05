@@ -23,7 +23,7 @@ import {
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
-interface Facts {
+interface SourceResoultionResults {
   distName: string | null;
   eventHasDebugIds: boolean;
   matchingArtifactName: string;
@@ -51,72 +51,53 @@ interface Facts {
   sdkVersion?: string;
 }
 
-interface SourceMapsDebuggerModalProps extends ModalRenderProps {}
+interface SourceMapsDebuggerModalProps extends ModalRenderProps {
+  sourceResolutionResults: SourceResoultionResults;
+}
 
 export function SourceMapsDebuggerModal({
   Body,
   Header,
   Footer,
+  sourceResolutionResults,
 }: SourceMapsDebuggerModalProps) {
   const theme = useTheme();
 
-  const facts: Facts = {
-    sourceFileReleaseNameFetchingResult: 'unsuccessful',
-    sourceFileScrapingStatus: {status: 'found'},
-    sourceMapReleaseNameFetchingResult: 'unsuccessful',
-    sourceMapScrapingStatus: {status: 'error', error: 'asdf'},
-    uploadedSomeArtifactWithDebugId: false,
-    uploadedSomeArtifact: false,
-    uploadedSomeArtifactToRelease: false,
-    eventHasDebugIds: false,
-    projectHasUploadedArtifacts: false,
-    sdkDebugIdSupport: 'full',
-    stackFrameDebugId: null,
-    uploadedSourceFileWithCorrectDebugId: false,
-    uploadedSourceMapWithCorrectDebugId: false,
-    sdkVersion: undefined,
-    releaseName: null,
-    distName: null,
-    releaseSourceMapReference: null,
-    matchingArtifactName: '~/build/bundle.min.js',
-    stackFramePath: '/build/bundle.min.js',
-  };
-
   let debugIdProgress = 0;
-  if (facts.sdkDebugIdSupport === 'full') {
+  if (sourceResolutionResults.sdkDebugIdSupport === 'full') {
     debugIdProgress++;
   }
-  if (facts.stackFrameDebugId !== null) {
+  if (sourceResolutionResults.stackFrameDebugId !== null) {
     debugIdProgress++;
   }
-  if (facts.uploadedSourceFileWithCorrectDebugId) {
+  if (sourceResolutionResults.uploadedSourceFileWithCorrectDebugId) {
     debugIdProgress++;
   }
-  if (facts.uploadedSourceMapWithCorrectDebugId) {
+  if (sourceResolutionResults.uploadedSourceMapWithCorrectDebugId) {
     debugIdProgress++;
   }
   const debugIdProgressPercent = debugIdProgress / 4;
 
   let releaseNameProgress = 0;
-  if (facts.releaseName !== null) {
+  if (sourceResolutionResults.releaseName !== null) {
     releaseNameProgress++;
   }
-  if (facts.uploadedSomeArtifactToRelease) {
+  if (sourceResolutionResults.uploadedSomeArtifactToRelease) {
     releaseNameProgress++;
   }
-  if (facts.sourceFileReleaseNameFetchingResult === 'found') {
+  if (sourceResolutionResults.sourceFileReleaseNameFetchingResult === 'found') {
     releaseNameProgress++;
   }
-  if (facts.sourceMapReleaseNameFetchingResult === 'found') {
+  if (sourceResolutionResults.sourceMapReleaseNameFetchingResult === 'found') {
     releaseNameProgress++;
   }
   const releaseNameProgressPercent = releaseNameProgress / 4;
 
   let scrapingProgress = 0;
-  if (facts.sourceFileScrapingStatus.status === 'found') {
+  if (sourceResolutionResults.sourceFileScrapingStatus.status === 'found') {
     scrapingProgress++;
   }
-  if (facts.sourceMapScrapingStatus.status === 'found') {
+  if (sourceResolutionResults.sourceMapScrapingStatus.status === 'found') {
     scrapingProgress += 4;
   }
   const scrapingProgressPercent = scrapingProgress / 5;
@@ -212,10 +193,14 @@ export function SourceMapsDebuggerModal({
                 steps below to get a readable stack trace:
               </p>
               <CheckList>
-                <InstalledSdkChecklistItem facts={facts} />
-                <HasDebugIdChecklistItem facts={facts} />
-                <UploadedSourceFileWithCorrectDebugIdChecklistItem facts={facts} />
-                <UploadedSourceMapWithCorrectDebugIdChecklistItem facts={facts} />
+                <InstalledSdkChecklistItem facts={sourceResolutionResults} />
+                <HasDebugIdChecklistItem facts={sourceResolutionResults} />
+                <UploadedSourceFileWithCorrectDebugIdChecklistItem
+                  facts={sourceResolutionResults}
+                />
+                <UploadedSourceMapWithCorrectDebugIdChecklistItem
+                  facts={sourceResolutionResults}
+                />
               </CheckList>
               {debugIdProgressPercent === 1 ? <ChecklistDoneNote /> : <VerifyAgainNote />}
             </TabPanels.Item>
@@ -229,10 +214,12 @@ export function SourceMapsDebuggerModal({
                 trace:
               </p>
               <CheckList>
-                <EventHasReleaseNameChecklistItem facts={facts} />
-                <ReleaseHasUploadedArtifactsChecklistItem facts={facts} />
-                <ReleaseSourceFileMatchingChecklistItem facts={facts} />
-                <ReleaseSourceMapMatchingChecklistItem facts={facts} />
+                <EventHasReleaseNameChecklistItem facts={sourceResolutionResults} />
+                <ReleaseHasUploadedArtifactsChecklistItem
+                  facts={sourceResolutionResults}
+                />
+                <ReleaseSourceFileMatchingChecklistItem facts={sourceResolutionResults} />
+                <ReleaseSourceMapMatchingChecklistItem facts={sourceResolutionResults} />
               </CheckList>
               {releaseNameProgressPercent === 1 ? (
                 <ChecklistDoneNote />
@@ -242,8 +229,12 @@ export function SourceMapsDebuggerModal({
             </TabPanels.Item>
             <TabPanels.Item key="fetching">
               <CheckList>
-                <ScrapingSourceFileAvailableChecklistItem facts={facts} />
-                <ScrapingSourceMapAvailableChecklistItem facts={facts} />
+                <ScrapingSourceFileAvailableChecklistItem
+                  facts={sourceResolutionResults}
+                />
+                <ScrapingSourceMapAvailableChecklistItem
+                  facts={sourceResolutionResults}
+                />
               </CheckList>
               {scrapingProgressPercent === 1 ? (
                 <ChecklistDoneNote />
@@ -299,7 +290,7 @@ function CheckListItem({children, title, status}: PropsWithChildren<CheckListIte
   );
 }
 
-function InstalledSdkChecklistItem({facts}: {facts: Facts}) {
+function InstalledSdkChecklistItem({facts}: {facts: SourceResoultionResults}) {
   const itemName = 'Installed SDK supports Debug IDs';
 
   if (facts.sdkDebugIdSupport === 'needs-upgrade') {
@@ -351,7 +342,7 @@ function InstalledSdkChecklistItem({facts}: {facts: Facts}) {
   );
 }
 
-function HasDebugIdChecklistItem({facts}: {facts: Facts}) {
+function HasDebugIdChecklistItem({facts}: {facts: SourceResoultionResults}) {
   const itemName = 'Stack frame has Debug IDs';
 
   if (facts.stackFrameDebugId !== null) {
@@ -419,7 +410,11 @@ function HasDebugIdChecklistItem({facts}: {facts: Facts}) {
   );
 }
 
-function UploadedSourceFileWithCorrectDebugIdChecklistItem({facts}: {facts: Facts}) {
+function UploadedSourceFileWithCorrectDebugIdChecklistItem({
+  facts,
+}: {
+  facts: SourceResoultionResults;
+}) {
   const itemName = 'Uploaded source file with a matching Debug ID';
 
   if (facts.stackFrameDebugId === null) {
@@ -492,7 +487,11 @@ function UploadedSourceFileWithCorrectDebugIdChecklistItem({facts}: {facts: Fact
   );
 }
 
-function UploadedSourceMapWithCorrectDebugIdChecklistItem({facts}: {facts: Facts}) {
+function UploadedSourceMapWithCorrectDebugIdChecklistItem({
+  facts,
+}: {
+  facts: SourceResoultionResults;
+}) {
   const itemName = 'Uploaded source map with a matching Debug ID';
 
   if (facts.stackFrameDebugId === null || !facts.uploadedSourceFileWithCorrectDebugId) {
@@ -568,7 +567,7 @@ function UploadedSourceMapWithCorrectDebugIdChecklistItem({facts}: {facts: Facts
   );
 }
 
-function EventHasReleaseNameChecklistItem({facts}: {facts: Facts}) {
+function EventHasReleaseNameChecklistItem({facts}: {facts: SourceResoultionResults}) {
   const itemName = 'Event has release value';
 
   if (facts.releaseName !== null) {
@@ -600,7 +599,11 @@ function EventHasReleaseNameChecklistItem({facts}: {facts: Facts}) {
   );
 }
 
-function ReleaseHasUploadedArtifactsChecklistItem({facts}: {facts: Facts}) {
+function ReleaseHasUploadedArtifactsChecklistItem({
+  facts,
+}: {
+  facts: SourceResoultionResults;
+}) {
   const itemName = 'Release has uploaded artifacts';
 
   if (facts.releaseName === null) {
@@ -633,7 +636,11 @@ function ReleaseHasUploadedArtifactsChecklistItem({facts}: {facts: Facts}) {
   );
 }
 
-function ReleaseSourceFileMatchingChecklistItem({facts}: {facts: Facts}) {
+function ReleaseSourceFileMatchingChecklistItem({
+  facts,
+}: {
+  facts: SourceResoultionResults;
+}) {
   const itemName = 'Stack frame path matches source file artifact';
 
   if (!facts.uploadedSomeArtifactToRelease) {
@@ -713,7 +720,11 @@ function ReleaseSourceFileMatchingChecklistItem({facts}: {facts: Facts}) {
   );
 }
 
-function ReleaseSourceMapMatchingChecklistItem({facts}: {facts: Facts}) {
+function ReleaseSourceMapMatchingChecklistItem({
+  facts,
+}: {
+  facts: SourceResoultionResults;
+}) {
   const itemName = 'Source map reference matches source map artifact name';
 
   if (facts.sourceFileReleaseNameFetchingResult !== 'found') {
@@ -796,7 +807,11 @@ function ReleaseSourceMapMatchingChecklistItem({facts}: {facts: Facts}) {
   );
 }
 
-function ScrapingSourceFileAvailableChecklistItem({facts}: {facts: Facts}) {
+function ScrapingSourceFileAvailableChecklistItem({
+  facts,
+}: {
+  facts: SourceResoultionResults;
+}) {
   const itemName = 'Source file available to Sentry';
 
   if (facts.sourceFileScrapingStatus.status === 'found') {
@@ -834,7 +849,11 @@ function ScrapingSourceFileAvailableChecklistItem({facts}: {facts: Facts}) {
   );
 }
 
-function ScrapingSourceMapAvailableChecklistItem({facts}: {facts: Facts}) {
+function ScrapingSourceMapAvailableChecklistItem({
+  facts,
+}: {
+  facts: SourceResoultionResults;
+}) {
   const itemName = 'Source map available to Sentry';
 
   if (facts.sourceMapScrapingStatus.status === 'found') {
