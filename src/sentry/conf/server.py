@@ -1051,7 +1051,7 @@ CELERYBEAT_SCHEDULE_REGION = {
         "schedule": crontab(
             minute=0,
             hour=7,
-            day_of_month=1,  # 00:00 PDT, 03:00 EDT, 7:00 UTC
+            day_of_month="1",  # 00:00 PDT, 03:00 EDT, 7:00 UTC
         ),
         "options": {"expires": 60 * 25},
     },

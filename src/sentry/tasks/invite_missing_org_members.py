@@ -10,9 +10,8 @@ from sentry.tasks.base import instrumented_task
 
 
 @instrumented_task(
-    name="sentry.tasks.invite_missing_members.schedule_organizations",
+    name="sentry.tasks.invite_missing_org_members.schedule_organizations",
     max_retries=3,
-    acks_late=True,
     silo_mode=SiloMode.REGION,
 )
 def schedule_organizations():
@@ -59,7 +58,7 @@ def send_nudge_email(org_id):
             {
                 "email": commit_author.email,
                 "external_id": commit_author.external_id,
-                "commit_count": commit_author.commit_count,
+                "commit_count": commit_author.commit__count,
             }
         )
 

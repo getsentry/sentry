@@ -8,6 +8,7 @@ from typing import Dict, Sequence
 
 from django.db.models import Count, Q, QuerySet
 from django.utils import timezone
+from django_stubs_ext import WithAnnotations
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -28,7 +29,7 @@ from sentry.services.hybrid_cloud.integration import integration_service
 
 class MissingOrgMemberSerializer(Serializer):
     def serialize(self, obj, attrs, user, **kwargs):
-        return {"email": obj.email, "externalId": obj.external_id, "commitCount": obj.commit_count}
+        return {"email": obj.email, "externalId": obj.external_id, "commitCount": obj.commit__count}
 
 
 class MissingMembersPermission(OrganizationPermission):
@@ -37,7 +38,7 @@ class MissingMembersPermission(OrganizationPermission):
 
 def _get_missing_organization_members(
     organization: Organization, provider: str, integration_ids: Sequence[int]
-) -> QuerySet[CommitAuthor]:
+) -> QuerySet[WithAnnotations[CommitAuthor]]:
     member_emails = set(organization.member_set.exclude(email=None).values_list("email", flat=True))
     member_emails.update(
         set(organization.member_set.exclude(user_email=None).values_list("user_email", flat=True))
@@ -57,8 +58,8 @@ def _get_missing_organization_members(
             commit__repository_id__in=set(org_repos),
             commit__date_added__gte=timezone.now() - timedelta(days=30),
         )
-        .annotate(commit_count=Count("commit"))
-        .order_by("-commit_count")
+        .annotate(Count("commit"))
+        .order_by("-commit__count")
     )
 
 
