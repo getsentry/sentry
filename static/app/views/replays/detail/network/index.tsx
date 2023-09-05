@@ -205,7 +205,7 @@ function NetworkList() {
           }}
         >
           {networkFrames ? (
-            <OverflowHidden style={{display: 'grid'}}>
+            <OverflowHidden>
               <AutoSizer onResize={onWrapperResize}>
                 {({height, width}) => (
                   <MultiGrid
@@ -246,26 +246,26 @@ function NetworkList() {
                 )}
               </AutoSizer>
               {sortConfig.by === 'startTimestamp' && showJumpUpButton ? (
-                <Button
+                <JumpButton
                   onClick={handleClick}
                   aria-label={t('Jump Up')}
                   priority="primary"
                   size="xs"
-                  style={{position: 'absolute', justifySelf: 'center', top: '28px'}}
+                  style={{top: '30px'}}
                 >
-                  {t('↑ Jump to your timestamp')}
-                </Button>
+                  {t('↑ Jump to current timestamp')}
+                </JumpButton>
               ) : null}
               {sortConfig.by === 'startTimestamp' && showJumpDownButton ? (
-                <Button
-                  priority="primary"
-                  size="xs"
+                <JumpButton
                   onClick={handleClick}
                   aria-label={t('Jump Down')}
-                  style={{position: 'absolute', justifySelf: 'center', bottom: '5px'}}
+                  priority="primary"
+                  size="xs"
+                  style={{bottom: '5px'}}
                 >
-                  {t('↓ Jump to your timestamp')}
-                </Button>
+                  {t('↓ Jump to current timestamp')}
+                </JumpButton>
               ) : null}
             </OverflowHidden>
           ) : (
@@ -304,6 +304,12 @@ const OverflowHidden = styled('div')`
   position: relative;
   height: 100%;
   overflow: hidden;
+  display: grid;
+`;
+
+const JumpButton = styled(Button)`
+  position: absolute;
+  justify-self: center;
 `;
 
 const NetworkTable = styled(FluidHeight)`
