@@ -75,7 +75,8 @@ class ReplicatedRegionModel(RegionOutboxProducingModel):
         A custom json payload to be included in outboxes generated via creation, update, or deletion.
         Note that outboxes are COALESCED!  This means that when multiple updates are processed at once,
         only the latest value is used and all others ignored.  That means that not every payload generated is
-        guaranteed to be processed.
+        guaranteed to be processed. It is recommended that outboxes that could be coalesced only contain
+        data required to find the effected record from the database before making any RPC calls.
         """
         return None
 
