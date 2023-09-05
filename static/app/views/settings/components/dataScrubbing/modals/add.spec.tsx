@@ -17,8 +17,7 @@ import {
 const relayPiiConfig = TestStubs.DataScrubbingRelayPiiConfig();
 const stringRelayPiiConfig = JSON.stringify(relayPiiConfig);
 const organizationSlug = 'sentry';
-const convertedRules = convertRelayPiiConfig(stringRelayPiiConfig);
-const rules = convertedRules;
+const rules = convertRelayPiiConfig(stringRelayPiiConfig);
 const successfullySaved = jest.fn();
 const projectId = 'foo';
 const endpoint = `/projects/${organizationSlug}/${projectId}/`;

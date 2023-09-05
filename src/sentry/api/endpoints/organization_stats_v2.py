@@ -144,7 +144,6 @@ class OrganizationStatsEndpointV2(OrganizationEventsEndpointBase):
             RateLimitCategory.ORGANIZATION: RateLimit(20, 1),
         }
     }
-    public = {"GET"}
 
     @extend_schema(
         operation_id="Retrieve Event Counts for an Organization (v2)",
