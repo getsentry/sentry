@@ -58,6 +58,7 @@ MetricUnit = Literal[
 
 
 class Metric(Generic[T]):
+    @property
     def current_complexity(self) -> int:
         return 1
 
@@ -114,6 +115,7 @@ class DistributionMetric(Metric[float]):
     def __init__(self) -> None:
         self.value: List[float] = []
 
+    @property
     def current_complexity(self) -> int:
         return len(self.value)
 
@@ -130,6 +132,7 @@ class SetMetric(Metric[Union[str, int]]):
     def __init__(self) -> None:
         self.value: Set[Union[str, int]] = set()
 
+    @property
     def current_complexity(self) -> int:
         return len(self.value)
 
@@ -205,21 +208,22 @@ class Aggregator:
 
                 for key in cleanup:
                     buckets.pop(key)
+
                 self._bucket_complexity -= remove_complexity
 
             if extracted_metrics:
-                self._emit(extracted_metrics)
+                self._emit(extracted_metrics, force_flush)
 
-            self._event.wait(2.0)
+            self._flush_event.wait(2.0)
 
     def _consider_flush(self):
         total_complexity = len(self.buckets) + self._bucket_complexity
-        if total_complexity > self.MAX_COMPLEXITY:
+        if total_complexity >= self.MAX_COMPLEXITY:
             self._force_flush = True
             self._flush_event.set()
 
     @classmethod
-    def _emit(cls, extracted_metrics: Any) -> Any:
+    def _emit(cls, extracted_metrics: Any, force_flush: bool) -> Any:
         # We obtain the counts for each metric type, since we want to know how many by type we have.
         counts_by_type: Dict[str, float] = {}
         for metric in extracted_metrics:
@@ -246,7 +250,9 @@ class Aggregator:
         for metric_type, metric_count in counts_by_type.items():
             # We want to emit a metric on how many metrics we would technically emit if we were to use minimetrics.
             cls._safe_emit_count_metric(
-                key="minimetrics.emit", amount=int(metric_count), tags={"metric_type": metric_type}
+                key="minimetrics.emit",
+                amount=int(metric_count),
+                tags={"metric_type": metric_type, "force_flush": force_flush},
             )
 
     @classmethod
@@ -258,13 +264,13 @@ class Aggregator:
         # We increment the metric.
         metrics.incr(key, amount=amount, tags=tags)
         # We clear the thread local variables, in order to make metrics extraction continue as normal.
-        thread_local.__dict__.clear()
+        thread_local.in_minimetrics = False
 
     @classmethod
     def _safe_emit_distribution_metric(cls, key: str, value: int, tags: Optional[Tags] = None):
         thread_local.in_minimetrics = True
         metrics.timing(key, value=value, tags=tags)
-        thread_local.__dict__.clear()
+        thread_local.in_minimetrics = False
 
     def add(
         self,
@@ -289,17 +295,8 @@ class Aggregator:
         with self._lock:
             metric = self.buckets.get(bucket_key)
             if metric is None:
-                if len(self.buckets) >= self.MAX_COMPLEXITY:
-                    # We want to track how many times buckets limits have been reached.
-                    self._safe_emit_count_metric(key="minimetrics.buckets_limit_reached", amount=1)
-                    return
-
                 metric = METRIC_TYPES[ty]()
                 self.buckets[bucket_key] = metric
-                # We want to track how many buckets we have, in order to understand their growth.
-                self._safe_emit_distribution_metric(
-                    key="minimetrics.buckets_size", value=len(self.buckets)
-                )
 
             complexity = metric.current_complexity
             metric.add(value)
