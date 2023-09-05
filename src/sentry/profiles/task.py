@@ -454,6 +454,22 @@ def _process_symbolicator_results_for_sample(
                 return stack[:-2]
             return stack
 
+    elif profile["platform"] == "python":
+
+        def truncate_stack_needed(
+            frames: List[dict[str, Any]],
+            stack: List[Any],
+        ) -> List[Any]:
+            # If the stack was collected from the main thread,
+            # it may have an extra frame for the `<module>` that
+            # is not valuable to show in the final profile and
+            # causes issues with aggregations.
+            #
+            # We choose to remove it here to improve the aggregation.
+            if frames[stack[-1]].get("function", "") == "<module>":
+                return stack[:-1]
+            return stack
+
     else:
 
         def truncate_stack_needed(
