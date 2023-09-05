@@ -99,6 +99,8 @@ class JsonForm extends Component<Props, State> {
     fields,
     formPanelProps,
     title,
+    initiallyCollapsed,
+    id,
   }: {
     fields: FieldObject[];
     formPanelProps: Pick<
@@ -111,6 +113,8 @@ class JsonForm extends Component<Props, State> {
       | 'renderHeader'
     > &
       Pick<State, 'highlighted'>;
+    id?: string;
+    initiallyCollapsed?: boolean;
     title?: React.ReactNode;
   }) {
     const shouldDisplayForm = this.shouldDisplayForm(fields);
@@ -123,7 +127,15 @@ class JsonForm extends Component<Props, State> {
       return null;
     }
 
-    return <FormPanel title={title} fields={fields} {...formPanelProps} />;
+    return (
+      <FormPanel
+        title={title}
+        fields={fields}
+        {...formPanelProps}
+        initiallyCollapsed={initiallyCollapsed}
+        id={id}
+      />
+    );
   }
 
   render() {
