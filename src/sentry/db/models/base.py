@@ -194,6 +194,13 @@ def __model_class_prepared(sender: Any, **kwargs: Any) -> None:
             f"like Group."
         )
 
+    from .outboxes import ReplicatedControlModel, ReplicatedRegionModel
+
+    if issubclass(sender, ReplicatedControlModel):
+        sender.category.connect_control_model_updates(sender)
+    elif issubclass(sender, ReplicatedRegionModel):
+        sender.category.connect_region_model_updates(sender)
+
 
 signals.pre_save.connect(__model_pre_save)
 signals.post_save.connect(__model_post_save)

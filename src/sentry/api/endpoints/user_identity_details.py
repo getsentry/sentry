@@ -14,5 +14,9 @@ class UserIdentityDetailsEndpoint(UserEndpoint):
     }
 
     def delete(self, request: Request, user, identity_id) -> Response:
-        AuthIdentity.objects.filter(user=user, id=identity_id).delete()
+        try:
+            ai = AuthIdentity.objects.get(user=user, id=identity_id)
+            ai.delete()
+        except AuthIdentity.DoesNotExist:
+            pass
         return Response(status=204)

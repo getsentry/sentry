@@ -1,17 +1,22 @@
 from datetime import timedelta
+from typing import Collection
 
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import FlexibleForeignKey, Model, control_silo_only_model, sane_repr
+from sentry.db.models import FlexibleForeignKey, control_silo_only_model, sane_repr
 from sentry.db.models.fields.jsonfield import JSONField
+from sentry.db.models.outboxes import ReplicatedControlModel
+from sentry.models import OutboxCategory
+from sentry.types.region import find_regions_for_orgs
 
 
 @control_silo_only_model
-class AuthIdentity(Model):
+class AuthIdentity(ReplicatedControlModel):
     __relocation_scope__ = RelocationScope.Global
+    category = OutboxCategory.AUTH_IDENTITY_UPDATE
 
     # NOTE: not a fk to sentry user
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL)
@@ -21,6 +26,18 @@ class AuthIdentity(Model):
     last_verified = models.DateTimeField(default=timezone.now)
     last_synced = models.DateTimeField(default=timezone.now)
     date_added = models.DateTimeField(default=timezone.now)
+
+    def outbox_region_names(self) -> Collection[str]:
+        return find_regions_for_orgs([self.auth_provider.organization_id])
+
+    def handle_async_replication(self, region_name: str, shard_identifier: int) -> None:
+        from sentry.services.hybrid_cloud.auth.serial import serialize_auth_identity
+        from sentry.services.hybrid_cloud.organization.service import organization_service
+
+        serialized = serialize_auth_identity(self)
+        organization_service.upsert_replicated_auth_identity(
+            auth_identity=serialized, region_name=region_name
+        )
 
     class Meta:
         app_label = "sentry"

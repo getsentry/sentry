@@ -53,14 +53,6 @@ def process_user_ip_event(payload: Any, **kwds: Any):
         log_rpc_service.record_user_ip(event=UserIpEvent(**payload))
 
 
-# No longer used.
-@receiver(process_region_outbox, sender=OutboxCategory.ORGANIZATION_MEMBER_CREATE)
-def process_organization_member_create(
-    object_identifier: int, payload: Any, shard_identifier: int, **kwds: Any
-):
-    pass
-
-
 @receiver(process_region_outbox, sender=OutboxCategory.ORGANIZATION_MEMBER_UPDATE)
 def process_organization_member_updates(
     object_identifier: int, payload: Any, shard_identifier: int, **kwds: Any
