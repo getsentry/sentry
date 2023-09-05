@@ -408,7 +408,6 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
       (query !== lastQuery && (defined(query) || defined(lastQuery))) ||
       customPerformanceMetrics !== lastCustomPerformanceMetrics
     ) {
-      // eslint-disable-next-line react/no-did-update-set-state
       this.setState(this.makeQueryState(addSpace(query ?? undefined)));
     } else if (disallowWildcard !== lastDisallowWildcard) {
       // Re-parse query to apply new options (without resetting it to the query prop value)
