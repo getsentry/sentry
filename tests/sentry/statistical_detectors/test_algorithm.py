@@ -86,6 +86,20 @@ def test_moving_average_cross_over_detector_state_to_redis_dict(state, expected)
             ),
             id="without timestamp",
         ),
+        pytest.param(
+            {
+                MovingAverageCrossOverDetectorState.FIELD_COUNT: "10",
+                MovingAverageCrossOverDetectorState.FIELD_MOVING_AVG_SHORT: "10.0",
+                MovingAverageCrossOverDetectorState.FIELD_MOVING_AVG_LONG: "10.0",
+            },
+            MovingAverageCrossOverDetectorState(
+                timestamp=None,
+                count=10,
+                moving_avg_short=10,
+                moving_avg_long=10,
+            ),
+            id="without timestamp",
+        ),
     ],
 )
 def test_moving_average_cross_over_detector_state_from_redis_dict(data, expected):
