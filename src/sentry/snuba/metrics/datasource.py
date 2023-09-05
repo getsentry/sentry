@@ -38,11 +38,10 @@ from sentry.snuba.metrics.fields.base import (
     get_derived_metrics,
     org_id_from_projects,
 )
-from sentry.snuba.metrics.naming_layer.mapping import get_mri
+from sentry.snuba.metrics.naming_layer.mapping import get_all_mris, get_mri
 from sentry.snuba.metrics.naming_layer.mri import (
     MRI_SCHEMA_REGEX,
     get_available_operations,
-    get_known_mris,
     is_custom_measurement,
     parse_mri,
 )
@@ -146,10 +145,10 @@ def get_available_derived_metrics(
     return found_derived_metrics.intersection(public_derived_metrics)
 
 
-def get_metrics_meta(projects: Sequence[Project], use_case_id: UseCaseID) -> Sequence[MetricMeta]:
-    metas = []
-    unique_mris = set(get_known_mris(use_case_id) + get_stored_mris(projects, use_case_id))
+def get_metrics(projects: Sequence[Project], use_case_id: UseCaseID) -> Sequence[MetricMeta]:
 
+    result = []
+    unique_mris = set(get_all_mris() + get_custom_mris(projects, use_case_id))
     for mri in sorted(unique_mris):
         parsed_mri = parse_mri(mri)
 
@@ -158,6 +157,7 @@ def get_metrics_meta(projects: Sequence[Project], use_case_id: UseCaseID) -> Seq
         metas.append(
             MetricMeta(
                 mri=mri,
+                unit=parsed_mri.unit,
                 name=parsed_mri.name,
                 operations=ops,
                 # TODO: check unit casting
@@ -188,6 +188,29 @@ def get_stored_mris(projects: Sequence[Project], use_case_id: UseCaseID) -> List
     ).values()
 
     return list(mris)
+
+
+def get_custom_mris(projects: Sequence[Project], use_case_id: UseCaseID) -> List[str]:
+    custom_mris = []
+
+    for entity_key in METRIC_TYPE_TO_ENTITY.values():
+        org_id = projects[0].organization_id
+        custom_metrics = _get_metrics_for_entity(
+            entity_key=entity_key,
+            project_ids=[project.id for project in projects],
+            org_id=org_id,
+        )
+        custom_metrics_ids = {row["metric_id"] for row in custom_metrics}
+        try:
+            mris = bulk_reverse_resolve(use_case_id, org_id, custom_metrics_ids)
+            custom_mris += list(mris.values())
+        except InvalidParams:
+            # An instance of `InvalidParams` exception is raised here when there is no reverse
+            # mapping from MRI to public name because of the naming change
+            logger.error("datasource.get_metrics.get_public_name_from_mri.error", exc_info=True)
+            continue
+
+    return custom_mris
 
 
 def get_custom_measurements(
