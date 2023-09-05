@@ -25,7 +25,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 
 import CronsFeedbackButton from './components/cronsFeedbackButton';
-import {CronsLandingPanel} from './components/landingPanel';
+import {CronsLandingPanel} from './components/cronsLandingPanel';
 import {NewMonitorButton} from './components/newMonitorButton';
 import {OverviewTimeline} from './components/overviewTimeline';
 import {Monitor} from './types';
