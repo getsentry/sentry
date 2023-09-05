@@ -12,8 +12,7 @@ import ButtonBar from 'sentry/components/buttonBar';
 import Card from 'sentry/components/card';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
-import OpsgenieForm from 'sentry/components/notificationActions/forms/opsgenieForm';
-import PagerdutyForm from 'sentry/components/notificationActions/forms/pagerdutyForm';
+import OnCallServiceForm from 'sentry/components/notificationActions/forms/onCallServiceForm';
 import SlackForm from 'sentry/components/notificationActions/forms/slackForm';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconEllipsis, IconMail} from 'sentry/icons';
@@ -298,22 +297,24 @@ function NotificationActionItem({
         );
       case NotificationActionService.PAGERDUTY:
         return (
-          <PagerdutyForm
+          <OnCallServiceForm
             action={editedAction}
             onChange={handleChange}
             onSave={handleSave}
             onCancel={handleCancel}
-            pagerdutyIntegrations={pagerdutyIntegrations}
+            Integrations={pagerdutyIntegrations}
+            onCallService="pagerduty"
           />
         );
       case NotificationActionService.OPSGENIE:
         return (
-          <OpsgenieForm
+          <OnCallServiceForm
             action={editedAction}
             onChange={handleChange}
             onSave={handleSave}
             onCancel={handleCancel}
-            opsgenieIntegrations={opsgenieIntegrations}
+            Integrations={opsgenieIntegrations}
+            onCallService="opsgenie"
           />
         );
       default:

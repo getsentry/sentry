@@ -5,10 +5,6 @@ import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
-// import {
-//   NotificationActionCell,
-//   NotificationActionFormContainer,
-// } from 'sentry/components/notificationActions/notificationActionItem';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {
@@ -16,40 +12,44 @@ import {
   NotificationAction,
 } from 'sentry/types/notificationActions';
 
-type PagerdutyFormProps = {
+type OnCallServiceFormProps = {
+  /**
+   * Map of pagerduty/opsgenie integration IDs to available actions for those IDs
+   */
+  Integrations: Record<number, AvailableNotificationAction[]>;
   /**
    * The notification action being represented
    */
   action: Partial<NotificationAction>;
+  /**
+   * The type of on-call service (Pagerduty or Opsgenie)
+   */
+  onCallService: string;
   onCancel: () => void;
   onChange: (names: string[], values: any[]) => void;
   onSave: () => void;
-  /**
-   * Map of pagerduty integration IDs to available actions for those IDs
-   */
-  pagerdutyIntegrations: Record<number, AvailableNotificationAction[]>;
 };
 
-function PagerdutyForm({
+function OnCallServiceForm({
   action,
+  onCallService,
   onCancel,
   onChange,
   onSave,
-  pagerdutyIntegrations,
-}: PagerdutyFormProps) {
+  Integrations,
+}: OnCallServiceFormProps) {
   const [selectedAccount, setSelectedAccount] = useState(
     action.integrationId
-      ? pagerdutyIntegrations[action.integrationId][0].action.integrationName
+      ? Integrations[action.integrationId][0].action.integrationName
       : ''
   );
   const [selectedDisplay, setSelectedDisplay] = useState(action.targetDisplay ?? '');
 
   const accountOptions: MenuItemProps[] = useMemo(() => {
-    return Object.keys(pagerdutyIntegrations).map<MenuItemProps>(integrationId => {
+    return Object.keys(Integrations).map<MenuItemProps>(integrationId => {
       // Get the name of the integration for the integrationId from the first
       // AvailableNotificationAction element in the array
-      const integrationName =
-        pagerdutyIntegrations[integrationId][0].action.integrationName;
+      const integrationName = Integrations[integrationId][0].action.integrationName;
       return {
         key: integrationName,
         label: integrationName,
@@ -59,14 +59,14 @@ function PagerdutyForm({
         },
       };
     });
-  }, [pagerdutyIntegrations, onChange]);
+  }, [Integrations, onChange]);
 
-  // Each Pagerduty account has its own list of services
+  // Each Pagerduty/Opsgenie account has its own list of services/keys
   const getServiceOptions = (): MenuItemProps[] => {
     if (!action.integrationId) {
       return [];
     }
-    const services = pagerdutyIntegrations[action.integrationId];
+    const services = Integrations[action.integrationId];
     return services.map<MenuItemProps>(service => ({
       key: service.action.targetDisplay ?? '',
       label: service.action.targetDisplay,
@@ -79,6 +79,13 @@ function PagerdutyForm({
       },
     }));
   };
+  const keySelectionTxt =
+    onCallService === 'pagerduty'
+      ? t('account with the service')
+      : t('account with the key');
+
+  const dropdownTxt =
+    onCallService === 'pagerduty' ? t('Select Service') : t('Select Key');
 
   return (
     <NotificationActionFormContainer>
@@ -92,21 +99,21 @@ function PagerdutyForm({
               isOpen={isOpen}
               aria-label={t('Select Account')}
               size="xs"
-              data-test-id="pagerduty-account-dropdown"
+              data-test-id="on-call-account-dropdown"
             >
               {selectedAccount}
             </DropdownButton>
           )}
         />
 
-        <div>{t('account with the service')}</div>
+        <div>{keySelectionTxt}</div>
 
         <DropdownMenu
           items={getServiceOptions()}
           trigger={triggerProps => (
             <DropdownButton
               {...triggerProps}
-              aria-label={t('Select Service')}
+              aria-label={dropdownTxt}
               size="xs"
               data-test-id="target-display-dropdown"
             >
@@ -141,4 +148,4 @@ const NotificationActionFormContainer = styled('div')`
   width: 100%;
 `;
 
-export default PagerdutyForm;
+export default OnCallServiceForm;
