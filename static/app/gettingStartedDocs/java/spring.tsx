@@ -90,7 +90,7 @@ sentry {
   <version>${
     sourcePackageRegistries?.isLoading
       ? t('\u2026loading')
-      : sourcePackageRegistries?.data?.['sentry.java.spring']?.version ?? '6.27.0'
+      : sourcePackageRegistries?.data?.['sentry.java.spring']?.version ?? '6.28.0'
   }</version>
 </dependency>
           `,
@@ -106,7 +106,7 @@ sentry {
   <version>${
     sourcePackageRegistries?.isLoading
       ? t('\u2026loading')
-      : sourcePackageRegistries?.data?.['sentry.java.spring.jakarta']?.version ?? '6.27.0'
+      : sourcePackageRegistries?.data?.['sentry.java.spring.jakarta']?.version ?? '6.28.0'
   }</version>
 </dependency>
         `,

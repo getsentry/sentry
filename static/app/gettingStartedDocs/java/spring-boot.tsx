@@ -241,7 +241,7 @@ sentry:
               sourcePackageRegistries?.isLoading
                 ? t('\u2026loading')
                 : sourcePackageRegistries?.data?.['sentry.java.logback']?.version ??
-                  '6.27.0'
+                  '6.28.0'
             }'`,
           },
         ],

@@ -83,7 +83,7 @@ plugins {
     sourcePackageRegistries?.isLoading
       ? t('\u2026loading')
       : sourcePackageRegistries?.data?.['sentry.java.android.gradle-plugin']?.version ??
-        '3.11.1'
+        '3.12.0'
   }"
 }
 
