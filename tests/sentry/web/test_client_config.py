@@ -4,11 +4,13 @@ import functools
 from typing import Callable, Optional, Tuple
 
 import pytest
+from django.conf import settings
 from django.contrib.auth.models import AnonymousUser, User
 from django.core.cache import cache
 from django.http import HttpRequest
 from django.test import override_settings
 
+from sentry import options
 from sentry.app import env
 from sentry.middleware.auth import AuthenticationMiddleware
 from sentry.middleware.placeholder import placeholder_get_response
@@ -16,10 +18,17 @@ from sentry.models import AuthIdentity, AuthProvider, Organization
 from sentry.silo import SiloMode
 from sentry.testutils.factories import Factories
 from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.testutils.region import override_regions
+from sentry.types.region import Region, RegionCategory
 from sentry.utils.auth import login
 from sentry.web.client_config import get_client_config
 
 RequestFactory = Callable[[], Optional[Tuple[HttpRequest, User]]]
+
+region_data = [
+    Region("us", 1, "http://us.testserver", RegionCategory.MULTI_TENANT),
+    Region("eu", 2, "http://eu.testserver", RegionCategory.MULTI_TENANT),
+]
 
 
 def request_factory(f):
@@ -141,3 +150,40 @@ def test_client_config_deleted_user():
     result = get_client_config(request)
     assert result["isAuthenticated"] is False
     assert result["user"] is None
+
+
+@django_db_all
+@override_regions(regions=[])
+@override_settings(SILO_MODE=SiloMode.CONTROL, SENTRY_REGION=settings.SENTRY_MONOLITH_REGION)
+def test_client_config_empty_region_data():
+    request, user = make_user_request_from_org()
+    request.user = user
+    result = get_client_config(request)
+
+    assert len(result["regions"]) == 1
+    regions = result["regions"]
+    assert regions[0]["name"] == settings.SENTRY_MONOLITH_REGION
+    assert regions[0]["url"] == options.get("system.url-prefix")
+
+    assert len(result["availableRegions"]) == 1
+    regions = result["availableRegions"]
+    assert regions[0]["name"] == settings.SENTRY_MONOLITH_REGION
+    assert regions[0]["url"] == options.get("system.url-prefix")
+
+
+@django_db_all
+@override_regions(regions=region_data)
+@override_settings(SILO_MODE=SiloMode.CONTROL)
+def test_client_config_with_region_data():
+    request, user = make_user_request_from_org()
+    request.user = user
+    result = get_client_config(request)
+
+    assert len(result["regions"]) == 1
+    regions = result["regions"]
+    assert regions[0]["name"] == "us"
+    assert regions[0]["url"] == region_data[0].address
+
+    assert len(result["availableRegions"]) == 2
+    regions = result["availableRegions"]
+    assert {r["name"] for r in regions} == {"eu", "us"}

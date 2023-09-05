@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import Any, Collection, Container, Iterable, List, Optional, Set
+from typing import Any, Collection, Container, Dict, Iterable, List, Optional, Set
 from urllib.parse import urljoin
 
 import sentry_sdk
@@ -74,7 +74,18 @@ class Region:
         """
         from sentry.api.utils import generate_region_url
 
-        return urljoin(generate_region_url(self.name), path)
+        if self.name == settings.SENTRY_MONOLITH_REGION:
+            base_url = options.get("system.url-prefix")
+        else:
+            base_url = generate_region_url(self.name)
+
+        return urljoin(base_url, path)
+
+    def api_serialize(self) -> Dict[str, Any]:
+        return {
+            "name": self.name,
+            "url": self.to_url(""),
+        }
 
     def is_historic_monolith_region(self) -> bool:
         """Check whether this is a historic monolith region.

@@ -159,8 +159,11 @@ function buildRequestUrl(baseUrl: string, path: string, query: RequestOptions['q
     throw err;
   }
 
-  // Append the baseUrl
-  let fullUrl = path.includes(baseUrl) ? path : baseUrl + path;
+  // Append the baseUrl if required
+  let fullUrl: string = path;
+  if (!path.startsWith('http')) {
+    fullUrl = path.includes(baseUrl) ? path : baseUrl + path;
+  }
 
   // Append query parameters
   if (params) {
