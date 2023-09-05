@@ -17,8 +17,8 @@ from typing import (
     cast,
 )
 
-import sentry_sdk.transport as sdk_transport
-from django.conf import settings
+import sentry_sdk
+from sentry_sdk.envelope import Envelope, Item
 
 from sentry.metrics.base import Tags
 
@@ -193,16 +193,11 @@ class Aggregator:
 
     def __init__(self) -> None:
         self.buckets: Dict[ComposedKey, Metric[Any]] = {}
-        self._prepare_transport()
         self._lock = Lock()
         self._running = True
         self._flusher = Thread(target=self._flush)
         self._flusher.daemon = True
         self._flusher.start()
-
-    def _prepare_transport(self):
-        sdk_options = dict(settings.SENTRY_SDK_CONFIG)
-        self._transport = sdk_transport.HttpTransport({"dsn": sdk_options.pop("dsn", None)})
 
     def _flush(self) -> None:
         while self._running:
@@ -243,6 +238,10 @@ class Aggregator:
             time.sleep(2.0)
 
     def _emit(self, extracted_metrics: Any) -> Any:
+        client = sentry_sdk.Hub.current.client
+        if client is None:
+            return
+
         for extracted_metric in extracted_metrics:
             payload = DogStatsDEncoder(
                 metric_name="",
@@ -252,11 +251,11 @@ class Aggregator:
                 tags=extracted_metric.get("tags"),
             ).encode()
 
-            self._transport.capture_envelope(
-                sdk_transport.Envelope(
+            client.transport.capture_envelope(
+                Envelope(
                     headers=None,
                     items=[
-                        sdk_transport.Item(
+                        Item(
                             payload=payload,
                             type="metrics",
                             content_type="text",
