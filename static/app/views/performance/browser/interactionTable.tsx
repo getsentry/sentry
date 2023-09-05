@@ -1,3 +1,5 @@
+import {Link} from 'react-router';
+
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   GridColumnHeader,
@@ -11,6 +13,7 @@ type Row = {
   p75: number;
   page: string;
   'span.action': string;
+  'span.group': string;
 };
 
 type Column = GridColumnHeader<keyof Row>;
@@ -18,13 +21,13 @@ type Column = GridColumnHeader<keyof Row>;
 function InteractionsTable() {
   const location = useLocation();
   const columnOrder: GridColumnOrder<keyof Row>[] = [
-    {key: 'component', width: COL_WIDTH_UNDEFINED, name: 'Component'},
-    {key: 'span.action', width: COL_WIDTH_UNDEFINED, name: 'Action'},
+    {key: 'span.group', width: COL_WIDTH_UNDEFINED, name: 'Interaction'},
     {key: 'page', width: COL_WIDTH_UNDEFINED, name: 'Page'},
     {key: 'p75', width: COL_WIDTH_UNDEFINED, name: 'Duration (p75)'},
   ];
   const data: Row[] = [
     {
+      'span.group': 'Button',
       component: '<DownloadButton/>',
       p75: 23,
       page: '/performance',
@@ -40,6 +43,14 @@ function InteractionsTable() {
 
   const renderBodyCell = (col: Column, row: Row) => {
     const {key} = col;
+    if (key === 'span.group') {
+      const spanGroup = row['span.group'];
+      return (
+        <Link to={`/performance/browser/interactions/${spanGroup}`}>
+          {row['span.action']} on {row.component}
+        </Link>
+      );
+    }
     return <span>{row[key]}</span>;
   };
 
