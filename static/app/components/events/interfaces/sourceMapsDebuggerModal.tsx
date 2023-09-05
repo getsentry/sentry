@@ -32,14 +32,14 @@ interface Facts {
   releaseName: string | null;
   releaseSourceMapReference: string | null;
   sdkDebugIdSupport: 'full' | 'needs-upgrade' | 'unofficial-sdk';
-  sourceFileReleaseNameFetchingResult: 'found' | 'wrong-dist' | 'not-found' | 'none';
+  sourceFileReleaseNameFetchingResult: 'found' | 'wrong-dist' | 'unsuccessful';
   sourceFileScrapingStatus:
     | 'success'
     | 'not-found'
     | 'too-big'
     | 'not-allowed'
     | 'unknown';
-  sourceMapReleaseNameFetchingResult: 'found' | 'wrong-dist' | 'not-found' | 'none';
+  sourceMapReleaseNameFetchingResult: 'found' | 'wrong-dist' | 'unsuccessful';
   sourceMapScrapingStatus:
     | 'success'
     | 'not-found'
@@ -67,9 +67,9 @@ export function SourceMapsDebuggerModal({
 
   // TODO: Replace this initial state with prop
   const [facts, setFacts] = useState<Facts>({
-    sourceFileReleaseNameFetchingResult: 'none',
+    sourceFileReleaseNameFetchingResult: 'unsuccessful',
     sourceFileScrapingStatus: 'unknown',
-    sourceMapReleaseNameFetchingResult: 'none',
+    sourceMapReleaseNameFetchingResult: 'unsuccessful',
     sourceMapScrapingStatus: 'unknown',
     uploadedSomeArtifactWithDebugId: false,
     uploadedSomeArtifact: false,
@@ -248,10 +248,7 @@ export function SourceMapsDebuggerModal({
                 <EventHasReleaseNameChecklistItem facts={facts} />
                 <ReleaseHasUploadedArtifactsChecklistItem facts={facts} />
                 <ReleaseSourceFileMatchingChecklistItem facts={facts} />
-                <CheckListItem
-                  status="none"
-                  title="Source map reference matches source map artifact name"
-                />
+                <ReleaseSourceMapMatchingChecklistItem facts={facts} />
               </CheckList>
               {releaseNameProgressPercent === 1 ? (
                 <ChecklistDoneNote />
@@ -537,13 +534,6 @@ function UploadedSourceFileWithCorrectDebugIdChecklistItem({facts}: {facts: Fact
 function UploadedSourceMapWithCorrectDebugIdChecklistItem({facts}: {facts: Facts}) {
   const itemName = 'Uploaded source map with a matching Debug ID';
 
-  const notRequiredNote = (
-    <CheckListInstruction type="muted" showIcon>
-      You can safely ignore this step if you don't do any transformations to your code
-      before deploying.
-    </CheckListInstruction>
-  );
-
   if (facts.stackFrameDebugId === null || !facts.uploadedSourceFileWithCorrectDebugId) {
     return <CheckListItem status="none" title={itemName} />;
   }
@@ -568,7 +558,7 @@ function UploadedSourceMapWithCorrectDebugIdChecklistItem({facts}: {facts: Facts
           </p>
           {/* TODO: Link to Uploaded Artifacts */}
         </CheckListInstruction>
-        {notRequiredNote}
+        <SourceMapStepNotRequiredNote />
       </CheckListItem>
     );
   }
@@ -593,7 +583,7 @@ function UploadedSourceMapWithCorrectDebugIdChecklistItem({facts}: {facts: Facts
           </p>
           {/* TODO: Link to Uploaded Artifacts */}
         </CheckListInstruction>
-        {notRequiredNote}
+        <SourceMapStepNotRequiredNote />
       </CheckListItem>
     );
   }
@@ -612,7 +602,7 @@ function UploadedSourceMapWithCorrectDebugIdChecklistItem({facts}: {facts: Facts
         </p>
         {/* TODO: Link to Uploaded Artifacts */}
       </CheckListInstruction>
-      {notRequiredNote}
+      <SourceMapStepNotRequiredNote />
     </CheckListItem>
   );
 }
@@ -685,10 +675,7 @@ function ReleaseHasUploadedArtifactsChecklistItem({facts}: {facts: Facts}) {
 function ReleaseSourceFileMatchingChecklistItem({facts}: {facts: Facts}) {
   const itemName = 'Stack frame path matches source file artifact';
 
-  if (
-    !facts.uploadedSomeArtifactToRelease ||
-    facts.sourceFileReleaseNameFetchingResult === 'none'
-  ) {
+  if (!facts.uploadedSomeArtifactToRelease) {
     return <CheckListItem status="none" title={itemName} />;
   }
 
@@ -702,8 +689,8 @@ function ReleaseSourceFileMatchingChecklistItem({facts}: {facts: Facts}) {
         <CheckListInstruction type="muted">
           <h6>Dist Value Not Matching</h6>
           <p>
-            You uploaded an artifact with the right name, however the dist value on this
-            event does not match the dist value on the artifact.
+            You uploaded a source file artifact with the right name, however the dist
+            value on this event does not match the dist value on the artifact.
           </p>
           {facts.distName !== null ? (
             <p>
@@ -765,6 +752,89 @@ function ReleaseSourceFileMatchingChecklistItem({facts}: {facts: Facts}) {
   );
 }
 
+function ReleaseSourceMapMatchingChecklistItem({facts}: {facts: Facts}) {
+  const itemName = 'Source map reference matches source map artifact name';
+
+  if (facts.sourceFileReleaseNameFetchingResult !== 'found') {
+    return <CheckListItem status="none" title={itemName} />;
+  }
+
+  if (facts.sourceMapReleaseNameFetchingResult === 'found') {
+    return <CheckListItem status="checked" title={itemName} />;
+  }
+
+  if (facts.releaseSourceMapReference === null) {
+    return (
+      <CheckListItem status="alert" title={itemName}>
+        <CheckListInstruction type="muted">
+          <h6>Missing Source Map Reference</h6>
+          <p>
+            The source file for this stack frame is missing a source map reference. A
+            source map reference is usually represented by a{' '}
+            <MonoBlock>//# sourceMappingURL=...</MonoBlock> comment at the bottom of your
+            source file.
+          </p>
+          <p>
+            You can fix this by configuring your build tool to emit a{' '}
+            <MonoBlock>sourceMappingURL</MonoBlock> comment.
+          </p>
+        </CheckListInstruction>
+        <SourceMapStepNotRequiredNote />
+      </CheckListItem>
+    );
+  }
+
+  if (facts.sourceMapReleaseNameFetchingResult === 'wrong-dist') {
+    return (
+      <CheckListItem status="alert" title={itemName}>
+        <CheckListInstruction type="muted">
+          <h6>Dist Value Not Matching</h6>
+          <p>
+            You uploaded a source map artifact with the right name, however the dist value
+            on this event does not match the dist value on the artifact.
+          </p>
+          {facts.distName !== null ? (
+            <p>
+              Upload your build artifacts to Sentry using the dist{' '}
+              <MonoBlock>{facts.distName}</MonoBlock> or adjust the dist value in your SDK
+              options.
+            </p>
+          ) : (
+            <p>
+              Upload your build artifacts to Sentry using a matching
+              <MonoBlock>dist</MonoBlock> value or adjust the <MonoBlock>dist</MonoBlock>{' '}
+              value in your SDK options.
+            </p>
+          )}
+          <DistCodeSnippet />
+          {/* TODO: Link to Uploaded Artifacts */}
+        </CheckListInstruction>
+      </CheckListItem>
+    );
+  }
+
+  return (
+    <CheckListItem status="alert" title={itemName}>
+      <CheckListInstruction type="muted">
+        <h6>Not Found</h6>
+        <p>
+          The source file had a source map reference{' '}
+          <MonoBlock>{facts.releaseSourceMapReference}</MonoBlock>, but there was no
+          source map artifact uploaded at that location. Make sure to generate and upload
+          all of your source maps!
+        </p>
+        <p>
+          Note, that if the source map reference is a relative path, Sentry will look for
+          a source map artifact relative to the source file that contains the source map
+          reference.
+        </p>
+        {/* TODO: Link to Uploaded Artifacts */}
+      </CheckListInstruction>
+      <SourceMapStepNotRequiredNote />
+    </CheckListItem>
+  );
+}
+
 function DistCodeSnippet() {
   return (
     <InstructionCodeSnippet language="javascript" dark hideCopyButton>
@@ -795,6 +865,15 @@ function ChecklistDoneNote() {
         You completed all of the steps above. Capture a new event to verify your setup!
       </p>
     </CompletionNoteContainer>
+  );
+}
+
+function SourceMapStepNotRequiredNote() {
+  return (
+    <CheckListInstruction type="muted" showIcon>
+      You can safely ignore this step if you don't do any transformations to your code
+      before deploying.
+    </CheckListInstruction>
   );
 }
 
@@ -847,9 +926,9 @@ const CompletionNoteContainer = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(2)};
-  margin-top: ${space(1.5)};
+  margin-top: ${space(1)};
+  margin-bottom: ${space(0.5)};
   padding: 0 ${space(2)} 0 0;
-  height: 24px;
 `;
 
 const ListItemTitleWrapper = styled('div')`
@@ -893,6 +972,7 @@ const MonoBlock = styled('code')`
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSizeExtraSmall};
   font-weight: 400;
+  white-space: nowrap;
 `;
 
 const StyledProgressRing = styled(ProgressRing)`
