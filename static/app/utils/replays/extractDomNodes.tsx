@@ -24,7 +24,6 @@ export default function extractDomNodes({
       return;
     }
 
-    console.time('extractDomNodes ' + frames.length);
     const extractions = new Map<ReplayFrame, Extraction>();
 
     const player = createPlayer(rrwebEvents);
@@ -37,7 +36,6 @@ export default function extractDomNodes({
 
     const onDone = () => {
       resolve(Array.from(extractions.values()));
-      console.timeEnd('extractDomNodes ' + frames.length);
     };
 
     const nextOrDone = () => {
