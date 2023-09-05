@@ -73,14 +73,14 @@ class AlertRuleSerializer(Serializer):
             )
         )
 
-        use_by_user_id: MutableMapping[int, RpcUser] = {
+        user_by_user_id: MutableMapping[int, RpcUser] = {
             user.id: user
             for user in user_service.get_many(
                 filter=dict(user_ids=[r.user_id for r in rule_activities if r.user_id is not None])
             )
         }
         for rule_activity in rule_activities:
-            rpc_user = use_by_user_id.get(rule_activity.user_id)
+            rpc_user = user_by_user_id.get(rule_activity.user_id)
             if rpc_user:
                 user = dict(id=rpc_user.id, name=rpc_user.get_display_name(), email=rpc_user.email)
             else:
@@ -126,7 +126,9 @@ class AlertRuleSerializer(Serializer):
                 .annotate(incident_id=Max("id"))
                 .values("incident_id")
             ):
-                incident_map[incident.alert_rule_id] = serialize(incident, user=user)
+                incident_map[incident.alert_rule_id] = serialize(
+                    incident, user=user_by_user_id.get(user.get("id"))
+                )
             for alert_rule in alert_rules.values():
                 result[alert_rule]["latestIncident"] = incident_map.get(alert_rule.id, None)
 
