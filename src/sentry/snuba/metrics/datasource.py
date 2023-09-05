@@ -8,7 +8,7 @@ until we have a proper metadata store set up. To keep things simple, and hopeful
 efficient, we only look at the past 24 hours.
 """
 
-__all__ = ("get_metrics", "get_tags", "get_tag_values", "get_series", "get_single_metric_info")
+__all__ = ("get_metrics_meta", "get_tags", "get_tag_values", "get_series", "get_single_metric_info")
 
 import logging
 from collections import defaultdict, deque
@@ -38,10 +38,11 @@ from sentry.snuba.metrics.fields.base import (
     get_derived_metrics,
     org_id_from_projects,
 )
-from sentry.snuba.metrics.naming_layer.mapping import get_all_mris, get_mri
+from sentry.snuba.metrics.naming_layer.mapping import get_mri
 from sentry.snuba.metrics.naming_layer.mri import (
     MRI_SCHEMA_REGEX,
     get_available_operations,
+    get_known_mris,
     is_custom_measurement,
     parse_mri,
 )
@@ -77,6 +78,7 @@ def _get_metrics_for_entity(
     entity_key: EntityKey,
     project_ids: Sequence[int],
     org_id: int,
+    use_case_id: UseCaseID,
     start: Optional[datetime] = None,
     end: Optional[datetime] = None,
 ) -> List[SnubaDataType]:
@@ -84,7 +86,7 @@ def _get_metrics_for_entity(
         entity_key=entity_key,
         select=[Column("metric_id")],
         groupby=[Column("metric_id")],
-        where=[],
+        where=[Condition(Column("use_case_id"), Op.EQ, use_case_id.value)],
         referrer="snuba.metrics.get_metrics_names_for_entity",
         project_ids=project_ids,
         org_id=org_id,
@@ -144,48 +146,46 @@ def get_available_derived_metrics(
     return found_derived_metrics.intersection(public_derived_metrics)
 
 
-def get_metrics(projects: Sequence[Project], use_case_id: UseCaseID) -> Sequence[MetricMeta]:
+def get_metrics_meta(projects: Sequence[Project], use_case_id: UseCaseID) -> Sequence[MetricMeta]:
+    metas = []
+    unique_mris = set(get_known_mris(use_case_id) + get_stored_mris(projects, use_case_id))
 
-    result = []
-    unique_mris = set(get_all_mris() + get_custom_mris(projects, use_case_id))
     for mri in sorted(unique_mris):
         parsed_mri = parse_mri(mri)
 
         ops = get_available_operations(parsed_mri)
 
-        result.append(
+        metas.append(
             MetricMeta(
                 mri=mri,
-                unit=parsed_mri.unit,
                 name=parsed_mri.name,
                 operations=ops,
+                # TODO: check unit casting
+                unit=parsed_mri.unit,
+                # TODO: add entity letter to entity key mapping i.e. c -> counter
+                type=parsed_mri.entity,
             )
         )
 
-    return result
+    return metas
 
 
-def get_custom_mris(projects: Sequence[Project], use_case_id: UseCaseID) -> List[str]:
-    custom_mris = []
+def get_stored_mris(projects: Sequence[Project], use_case_id: UseCaseID) -> Sequence[str]:
+    org_id = projects[0].organization_id
 
+    stored_metrics = []
     for entity_key in METRIC_TYPE_TO_ENTITY.values():
-        org_id = projects[0].organization_id
-        custom_metrics = _get_metrics_for_entity(
+        stored_metrics += _get_metrics_for_entity(
             entity_key=entity_key,
             project_ids=[project.id for project in projects],
             org_id=org_id,
+            use_case_id=use_case_id,
         )
-        custom_metrics_ids = {row["metric_id"] for row in custom_metrics}
-        try:
-            mris = bulk_reverse_resolve(use_case_id, org_id, custom_metrics_ids)
-            custom_mris += list(mris.values())
-        except InvalidParams:
-            # An instance of `InvalidParams` exception is raised here when there is no reverse
-            # mapping from MRI to public name because of the naming change
-            logger.error("datasource.get_metrics.get_public_name_from_mri.error", exc_info=True)
-            continue
 
-    return custom_mris
+    mris = bulk_reverse_resolve(
+        use_case_id, org_id, [row["metric_id"] for row in stored_metrics]
+    ).values()
+    return list(mris)
 
 
 def get_custom_measurements(
