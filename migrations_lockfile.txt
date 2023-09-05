@@ -7,5 +7,5 @@ will then be regenerated, and you should be able to merge without conflicts.
 
 nodestore: 0002_nodestore_no_dictfield
 replays: 0003_add_size_to_recording_segment
-sentry: 0541_add_replicated_auth_models
+sentry: 0542_add_commitfilechange_language_col
 social_auth: 0002_default_auto_field
