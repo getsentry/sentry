@@ -175,8 +175,6 @@ class Aggregator:
 
     def _flush(self) -> None:
         while self._running:
-            force_flush = self._force_flush
-            self._force_flush = False
             cutoff = time.time() - self.ROLLUP_IN_SECONDS
             cleanup = set()
             remove_complexity = 0
@@ -184,6 +182,9 @@ class Aggregator:
             buckets = self.buckets
 
             with self._lock:
+                force_flush = self._force_flush
+                self._force_flush = False
+
                 for bucket_key, metric in buckets.items():
                     ts, ty, name, unit, tags = bucket_key
                     if not force_flush and ts > cutoff:
@@ -298,11 +299,12 @@ class Aggregator:
                 metric = METRIC_TYPES[ty]()
                 self.buckets[bucket_key] = metric
 
+            # We first change the complexity by taking the old one and the new one.
             complexity = metric.current_complexity
             metric.add(value)
             self._bucket_complexity += metric.current_complexity - complexity
-
-        self._consider_flush()
+            # Given the new complexity we consider whether we want to early flush.
+            self._consider_flush()
 
 
 class Client:
