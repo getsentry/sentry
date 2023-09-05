@@ -260,7 +260,7 @@ class MetricMeta(TypedDict):
     operations: Collection[MetricOperationType]
     unit: Optional[MetricUnit]
     metric_id: Optional[int]
-    mri_string: str
+    mri: str
 
 
 class MetricMetaWithTagKeys(MetricMeta):

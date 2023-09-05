@@ -22,6 +22,7 @@ __all__ = (
     "MRI_SCHEMA_REGEX",
     "MRI_EXPRESSION_REGEX",
     "parse_mri",
+    "get_available_operations",
 )
 
 import re
@@ -29,7 +30,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Optional
 
-from sentry.snuba.metrics.utils import OP_REGEX
+from sentry.snuba.metrics.utils import AVAILABLE_GENERIC_OPERATIONS, AVAILABLE_OPERATIONS, OP_REGEX
 
 NAMESPACE_REGEX = r"(transactions|errors|issues|sessions|alerts|custom|spans)"
 ENTITY_TYPE_REGEX = r"(c|s|d|g|e)"
@@ -172,3 +173,20 @@ def is_custom_measurement(parsed_mri: ParsedMRI) -> bool:
         # Iterate through the transaction MRI and check that this parsed_mri isn't in there
         parsed_mri.mri_string not in [mri.value for mri in TransactionMRI.__members__.values()]
     )
+
+
+def get_available_operations(parsed_mri: ParsedMRI) -> dict:
+    entity_name_suffixes = {
+        "c": "counters",
+        "s": "sets",
+        "d": "distributions",
+        "g": "gauges",
+    }
+    if parsed_mri.entity == "e":
+        return {}
+    elif parsed_mri.namespace == "sessions":
+        entity_key = f"metrics_{entity_name_suffixes[parsed_mri.entity]}"
+        return AVAILABLE_OPERATIONS[entity_key]
+    else:
+        entity_key = f"generic_metrics_{entity_name_suffixes[parsed_mri.entity]}"
+        return AVAILABLE_GENERIC_OPERATIONS[entity_key]

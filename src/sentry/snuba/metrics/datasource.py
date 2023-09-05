@@ -39,7 +39,12 @@ from sentry.snuba.metrics.fields.base import (
     org_id_from_projects,
 )
 from sentry.snuba.metrics.naming_layer.mapping import get_all_mris, get_mri
-from sentry.snuba.metrics.naming_layer.mri import MRI_SCHEMA_REGEX, is_custom_measurement, parse_mri
+from sentry.snuba.metrics.naming_layer.mri import (
+    MRI_SCHEMA_REGEX,
+    get_available_operations,
+    is_custom_measurement,
+    parse_mri,
+)
 from sentry.snuba.metrics.query import Groupable, MetricField, MetricsQuery
 from sentry.snuba.metrics.query_builder import (
     SnubaQueryBuilder,
@@ -140,54 +145,47 @@ def get_available_derived_metrics(
 
 
 def get_metrics(projects: Sequence[Project], use_case_id: UseCaseID) -> Sequence[MetricMeta]:
-    ENTITY_TO_DATASET = {
-        "sessions": {
-            "c": "metrics_counters",
-            "s": "metrics_sets",
-            "d": "metrics_distributions",
-            "g": "metrics_gauges",
-        },
-        "transactions": {
-            "c": "generic_metrics_counters",
-            "s": "generic_metrics_sets",
-            "d": "generic_metrics_distributions",
-            "g": "generic_metrics_gauges",
-        },
-        "spans": {
-            "c": "generic_metrics_counters",
-            "s": "generic_metrics_sets",
-            "d": "generic_metrics_distributions",
-            "g": "generic_metrics_gauges",
-        },
-        "custom": {
-            "c": "generic_metrics_counters",
-            "s": "generic_metrics_sets",
-            "d": "generic_metrics_distributions",
-            "g": "generic_metrics_gauges",
-        },
-    }
 
     result = []
-    for mri in get_all_mris():
-        parsed = parse_mri(mri)
+    unique_mris = set(get_all_mris() + get_custom_mris(projects, use_case_id))
+    for mri in sorted(unique_mris):
+        parsed_mri = parse_mri(mri)
 
-        if parsed.entity not in ENTITY_TO_DATASET["sessions"].keys():
-            ops = []
-        elif parsed.namespace == "sessions":
-            ops = AVAILABLE_OPERATIONS[ENTITY_TO_DATASET[parsed.namespace][parsed.entity]]
-        else:
-            ops = AVAILABLE_GENERIC_OPERATIONS[ENTITY_TO_DATASET[parsed.namespace][parsed.entity]]
+        ops = get_available_operations(parsed_mri)
 
         result.append(
             MetricMeta(
                 mri=mri,
-                unit=parsed.unit,
-                name=parsed.name,
+                unit=parsed_mri.unit,
+                name=parsed_mri.name,
                 operations=ops,
             )
         )
 
     return result
+
+
+def get_custom_mris(projects: Sequence[Project], use_case_id: UseCaseID) -> List[str]:
+    custom_mris = []
+
+    for entity_key in METRIC_TYPE_TO_ENTITY.values():
+        org_id = projects[0].organization_id
+        custom_metrics = _get_metrics_for_entity(
+            entity_key=entity_key,
+            project_ids=[project.id for project in projects],
+            org_id=org_id,
+        )
+        custom_metrics_ids = {row["metric_id"] for row in custom_metrics}
+        try:
+            mris = bulk_reverse_resolve(use_case_id, org_id, custom_metrics_ids)
+            custom_mris += list(mris.values())
+        except InvalidParams:
+            # An instance of `InvalidParams` exception is raised here when there is no reverse
+            # mapping from MRI to public name because of the naming change
+            logger.error("datasource.get_metrics.get_public_name_from_mri.error", exc_info=True)
+            continue
+
+    return custom_mris
 
 
 def get_custom_measurements(
@@ -225,7 +223,7 @@ def get_custom_measurements(
                         ],
                         unit=parsed_mri.unit,
                         metric_id=row["metric_id"],
-                        mri_string=parsed_mri.mri_string,
+                        mri=parsed_mri.mri_string,
                     )
                 )
 
