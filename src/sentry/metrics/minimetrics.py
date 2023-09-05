@@ -210,13 +210,13 @@ class Aggregator:
             if metric_type == "c":
                 # For counters, we want to sum the count value.
                 value = metric_value
-            elif metric_value == "d":
+            elif metric_type == "d":
                 # For distributions, we want to track the size of the distribution.
                 value = len(metric_value)
-            elif metric_value == "g":
+            elif metric_type == "g":
                 # For gauges, we will emit a count of 1.
-                value = 1
-            elif metric_value == "s":
+                value = metric_value.get("count", 1)
+            elif metric_type == "s":
                 # For sets, we want to track the cardinality of the set.
                 value = len(metric_value)
 
