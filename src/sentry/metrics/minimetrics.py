@@ -202,7 +202,7 @@ class Aggregator:
                     if tags:
                         m["tags"] = dict(tags)
 
-                    extracted_metrics.append(m)
+                    extracted_metrics.append((m, metric.current_complexity))
                     cleanup.add(bucket_key)
                     remove_complexity += metric.current_complexity
 
@@ -223,10 +223,11 @@ class Aggregator:
             self._flush_event.set()
 
     @classmethod
-    def _emit(cls, extracted_metrics: Any, force_flush: bool) -> Any:
+    def _emit(cls, extracted_metrics: List[Tuple[Any, int]], force_flush: bool) -> Any:
+        complexities_by_type: Dict[str, Tuple[int, int]] = {}
         # We obtain the counts for each metric type, since we want to know how many by type we have.
         counts_by_type: Dict[str, float] = {}
-        for metric in extracted_metrics:
+        for metric, metric_complexity in extracted_metrics:
             metric_type = metric["type"]
             metric_value = metric["value"]
 
@@ -245,6 +246,7 @@ class Aggregator:
                 value = len(metric_value)
 
             counts_by_type[metric_type] = counts_by_type.get(metric_type, 0) + value
+            complexities_by_type[metric_type] = complexities_by_type(metric_type, (0, 0))
 
         # For each type and count we want to emit a metric.
         for metric_type, metric_count in counts_by_type.items():
