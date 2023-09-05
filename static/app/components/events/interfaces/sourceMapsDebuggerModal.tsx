@@ -34,18 +34,14 @@ interface Facts {
   sdkDebugIdSupport: 'full' | 'needs-upgrade' | 'unofficial-sdk';
   sourceFileReleaseNameFetchingResult: 'found' | 'wrong-dist' | 'unsuccessful';
   sourceFileScrapingStatus:
-    | 'success'
-    | 'not-found'
-    | 'too-big'
-    | 'not-allowed'
-    | 'unknown';
+    | {status: 'found'}
+    | {error: string; status: 'error'}
+    | {status: 'none'};
   sourceMapReleaseNameFetchingResult: 'found' | 'wrong-dist' | 'unsuccessful';
   sourceMapScrapingStatus:
-    | 'success'
-    | 'not-found'
-    | 'too-big'
-    | 'not-allowed'
-    | 'unknown';
+    | {status: 'found'}
+    | {error: string; status: 'error'}
+    | {status: 'none'};
   stackFrameDebugId: string | null;
   stackFramePath: string | null;
   uploadedSomeArtifact: boolean;
@@ -67,9 +63,9 @@ export function SourceMapsDebuggerModal({
 
   const facts: Facts = {
     sourceFileReleaseNameFetchingResult: 'unsuccessful',
-    sourceFileScrapingStatus: 'unknown',
+    sourceFileScrapingStatus: {status: 'error', error: 'asdf'},
     sourceMapReleaseNameFetchingResult: 'unsuccessful',
-    sourceMapScrapingStatus: 'unknown',
+    sourceMapScrapingStatus: {status: 'error', error: 'asdf'},
     uploadedSomeArtifactWithDebugId: false,
     uploadedSomeArtifact: false,
     uploadedSomeArtifactToRelease: false,
@@ -118,7 +114,13 @@ export function SourceMapsDebuggerModal({
   const releaseNameProgressPercent = releaseNameProgress / 4;
 
   const scrapingProgress = 0;
-  const scrapingProgressPercent = scrapingProgress / 3;
+  if (facts.sourceFileScrapingStatus.status === 'found') {
+    releaseNameProgress++;
+  }
+  if (facts.sourceMapScrapingStatus.status === 'found') {
+    releaseNameProgress++;
+  }
+  const scrapingProgressPercent = scrapingProgress / 2;
 
   const [activeTab, setActiveTab] = useState<'debug-ids' | 'release' | 'fetching'>(() => {
     const possibleTabs = [
@@ -191,11 +193,7 @@ export function SourceMapsDebuggerModal({
               />
               {t('Releases')}
             </TabList.Item>
-            <TabList.Item
-              key="fetching"
-              textValue={`Fetching (${scrapingProgress}/4)`}
-              disabled
-            >
+            <TabList.Item key="fetching" textValue={`Fetching (${scrapingProgress}/4)`}>
               <StyledProgressRing
                 progressColor={activeTab === 'fetching' ? theme.purple300 : theme.gray300}
                 backgroundColor={theme.gray200}
@@ -247,10 +245,6 @@ export function SourceMapsDebuggerModal({
             <TabPanels.Item key="fetching">
               <CheckList>
                 <CheckListItem status="none" title="Source file available to Sentry" />
-                <CheckListItem
-                  status="none"
-                  title="Source file contains source map reference"
-                />
                 <CheckListItem status="none" title="Source map available to Sentry" />
               </CheckList>
               {scrapingProgressPercent === 1 ? (
