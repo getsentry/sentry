@@ -283,7 +283,7 @@ class DetailedUserSerializer(UserSerializer):
 
     def _get_memberships(
         self, users: Sequence[User]
-    ) -> Mapping[id, list[OrganizationMemberMapping]]:
+    ) -> Mapping[int, list[OrganizationMemberMapping]]:
         members = list(OrganizationMemberMapping.objects.filter(user_id__in={u.id for u in users}))
         active_org_ids = set(
             OrganizationMapping.objects.filter(
