@@ -1,7 +1,5 @@
 from unittest.mock import patch
 
-import pytest
-
 from sentry.metrics.minimetrics import MiniMetricsMetricsBackend
 from sentry.testutils.cases import TestCase
 
@@ -38,7 +36,11 @@ class MiniMetricsMetricsBackendTest(TestCase):
         assert len(self.backend.client.aggregator.buckets) == 0
         assert metrics_incr.call_count == 0
 
-    def test_stop_called_twice(self):
+    @patch("sentry.metrics.minimetrics.Aggregator.ROLLUP_IN_SECONDS", 1.0)
+    @patch("sentry.metrics.minimetrics.metrics.incr")
+    def test_stop_called_twice(self, metrics_incr):
         self.backend.client.aggregator.stop()
-        with pytest.raises(AssertionError):
-            self.backend.client.aggregator.stop()
+        self.backend.client.aggregator.stop()
+
+        assert len(self.backend.client.aggregator.buckets) == 0
+        assert metrics_incr.call_count == 0

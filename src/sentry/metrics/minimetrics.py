@@ -247,7 +247,7 @@ class Aggregator:
         tags: Optional[Tags],
         timestamp: Optional[float],
     ) -> None:
-        if not self._is_flusher_active():
+        if self._flusher is None:
             return
 
         if timestamp is None:
@@ -275,7 +275,8 @@ class Aggregator:
             self.consider_force_flush()
 
     def stop(self):
-        self._assert_flusher_active()
+        if self._flusher is None:
+            return
 
         # Firstly we tell the flusher that we want to force flush.
         with self._lock:
@@ -285,21 +286,14 @@ class Aggregator:
         # Secondly we notify the flusher to move on and we wait for its completion.
         self._flush_event.set()
         # Checking also here because of mypy.
-        if self._flusher is not None:
-            self._flusher.join()
-            self._flusher = None
+        self._flusher.join()
+        self._flusher = None
 
     def consider_force_flush(self):
         total_complexity = len(self.buckets) + self._bucket_complexity
         if total_complexity >= self.MAX_COMPLEXITY:
             self._force_flush = True
             self._flush_event.set()
-
-    def _is_flusher_active(self):
-        return self._flusher is not None
-
-    def _assert_flusher_active(self):
-        assert self._is_flusher_active(), "The flusher is not active"
 
     @classmethod
     def _emit(cls, extracted_metrics: List[Tuple[Any, int]], force_flush: bool) -> Any:
