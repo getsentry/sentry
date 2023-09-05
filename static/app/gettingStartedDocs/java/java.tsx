@@ -139,16 +139,11 @@ sentry {
       <version>${
         sourcePackageRegistries?.isLoading
           ? t('\u2026loading')
-          : sourcePackageRegistries?.data?.['sentry.java.mavenplugin']?.version ?? '0.0.3'
+          : sourcePackageRegistries?.data?.['sentry.java.mavenplugin']?.version ?? '0.0.4'
       }</version>
       <configuration>
       <!-- for showing output of sentry-cli -->
       <debugSentryCli>true</debugSentryCli>
-
-      <!-- download the latest sentry-cli and provide path to it here -->
-      <!-- download it here: https://github.com/getsentry/sentry-cli/releases -->
-      <!-- minimum required version is 2.17.3 -->
-      <sentryCliExecutablePath>/path/to/sentry-cli</sentryCliExecutablePath>
 
       <org>${organizationSlug}</org>
 
