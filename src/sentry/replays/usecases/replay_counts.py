@@ -103,9 +103,7 @@ def _get_select_column(query: str) -> tuple[str, Sequence[Any]]:
     parsed_query = parse_search_query(query)
 
     select_column_conditions = [
-        cond
-        for cond in parsed_query
-        if cond.key.name in ["issue.id", "transaction", "replay_id", "group_id"]
+        cond for cond in parsed_query if cond.key.name in ["issue.id", "transaction", "replay_id"]
     ]
 
     if len(select_column_conditions) > 1:
