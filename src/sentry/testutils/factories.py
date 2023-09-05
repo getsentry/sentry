@@ -91,8 +91,8 @@ from sentry.models import (
     UserEmail,
     UserPermission,
     UserReport,
+    get_actor_id_for_user,
 )
-from sentry.models.actor import get_actor_id_for_user
 from sentry.models.apikey import ApiKey
 from sentry.models.apitoken import ApiToken
 from sentry.models.commitfilechange import CommitFileChange
@@ -423,7 +423,15 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
-    def create_project_rule(project, action_data=None, condition_data=None):
+    def create_project_rule(
+        project,
+        action_data=None,
+        condition_data=None,
+        name="",
+        action_match="all",
+        filter_match="all",
+        **kwargs,
+    ):
         action_data = action_data or [
             {
                 "id": "sentry.rules.actions.notify_event.NotifyEventAction",
@@ -446,8 +454,15 @@ class Factories:
             },
         ]
         return Rule.objects.create(
+            label=name,
             project=project,
-            data={"conditions": condition_data, "actions": action_data, "action_match": "all"},
+            data={
+                "conditions": condition_data,
+                "actions": action_data,
+                "action_match": action_match,
+                "filter_match": filter_match,
+            },
+            **kwargs,
         )
 
     @staticmethod
@@ -1413,7 +1428,7 @@ class Factories:
         kwargs.setdefault("external_name", "")
 
         actor_id = get_actor_id_for_user(user)
-        return ExternalActor.objects.create(actor_id=actor_id, **kwargs)
+        return ExternalActor.objects.create(user_id=user.id, actor_id=actor_id, **kwargs)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
@@ -1421,7 +1436,7 @@ class Factories:
         kwargs.setdefault("provider", ExternalProviders.GITHUB.value)
         kwargs.setdefault("external_name", "@getsentry/ecosystem")
 
-        return ExternalActor.objects.create(actor=team.actor, **kwargs)
+        return ExternalActor.objects.create(team_id=team.id, actor_id=team.actor_id, **kwargs)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)

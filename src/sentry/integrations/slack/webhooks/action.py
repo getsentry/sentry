@@ -11,6 +11,7 @@ from rest_framework.response import Response
 
 from sentry import analytics
 from sentry.api import ApiClient, client
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.helpers.group_index import update_groups
 from sentry.auth.access import from_member
@@ -130,6 +131,9 @@ def _is_message(data: Mapping[str, Any]) -> bool:
 
 @region_silo_endpoint
 class SlackActionEndpoint(Endpoint):
+    publish_status = {
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     authentication_classes = ()
     permission_classes = ()
     slack_request_class = SlackActionRequest

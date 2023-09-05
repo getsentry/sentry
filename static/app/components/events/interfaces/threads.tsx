@@ -282,7 +282,6 @@ export function Threads({
       )}
       <TraceEventDataSection
         type={EntryType.THREADS}
-        stackType={StackType.ORIGINAL}
         projectSlug={projectSlug}
         eventId={event.id}
         recentFirst={isStacktraceNewestFirst()}
