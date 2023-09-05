@@ -142,7 +142,7 @@ def main(argv: Sequence[str] | None = None) -> None:
         run_with_retries(hc.check_container)
 
         print(f"Checking {hc.container_name} container health...")
-        run_with_retries(s.check)
+        run_with_retries(hc.check)
 
 
 if __name__ == "__main__":
