@@ -259,7 +259,6 @@ class MetricMeta(TypedDict):
     type: MetricType
     operations: Collection[MetricOperationType]
     unit: Optional[MetricUnit]
-    metric_id: Optional[int]
     mri: str
 
 

@@ -423,7 +423,7 @@ class RawOp(MetricOperation):
         org_id: int,
         params: Optional[MetricOperationParams] = None,
     ) -> Function:
-        if use_case_id in [UseCaseID.TRANSACTIONS, UseCaseID.CUSTOM]:
+        if use_case_id is UseCaseID.TRANSACTIONS or use_case_id is UseCaseID.CUSTOM:
             snuba_function = GENERIC_OP_TO_SNUBA_FUNCTION[entity][self.op]
         else:
             snuba_function = OP_TO_SNUBA_FUNCTION[entity][self.op]
