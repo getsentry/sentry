@@ -50,6 +50,7 @@ interface ErrorMessage {
     url?: string;
     urlPrefix?: string;
   } & Record<string, any>;
+  meta?: Record<string, any>;
 }
 
 const keyMapping = {
@@ -59,10 +60,11 @@ const keyMapping = {
 };
 
 function getErrorMessage(
-  error: ActionableItemErrors | EventErrorData
+  error: ActionableItemErrors | EventErrorData,
+  meta?: Record<string, any>
 ): Array<ErrorMessage> {
   const errorData = error.data ?? {};
-
+  const metaData = meta ?? {};
   switch (error.type) {
     // Event Errors
     case ProguardProcessingErrors.PROGUARD_MISSING_LINENO:
@@ -72,6 +74,7 @@ function getErrorMessage(
           desc: null,
           expandTitle: t('Fix Proguard Processing Error'),
           data: errorData,
+          meta: metaData,
         },
       ];
     case ProguardProcessingErrors.PROGUARD_MISSING_MAPPING:
@@ -81,6 +84,7 @@ function getErrorMessage(
           desc: null,
           expandTitle: t('Fix Proguard Processing Error'),
           data: errorData,
+          meta: metaData,
         },
       ];
     case NativeProcessingErrors.NATIVE_MISSING_OPTIONALLY_BUNDLED_DSYM:
@@ -90,6 +94,7 @@ function getErrorMessage(
           desc: null,
           expandTitle: t('Fix Native Processing Error'),
           data: errorData,
+          meta: metaData,
         },
       ];
 
@@ -100,6 +105,7 @@ function getErrorMessage(
           desc: null,
           expandTitle: t('Fix Native Processing Error'),
           data: errorData,
+          meta: metaData,
         },
       ];
     case NativeProcessingErrors.NATIVE_BAD_DSYM:
@@ -109,6 +115,7 @@ function getErrorMessage(
           desc: null,
           expandTitle: t('Fix Native Processing Error'),
           data: errorData,
+          meta: metaData,
         },
       ];
     case JavascriptProcessingErrors.JS_MISSING_SOURCES_CONTEXT:
@@ -118,6 +125,7 @@ function getErrorMessage(
           desc: null,
           expandTitle: t('Fix Processing Error'),
           data: errorData,
+          meta: metaData,
         },
       ];
     case HttpProcessingErrors.FETCH_GENERIC_ERROR:
@@ -127,6 +135,7 @@ function getErrorMessage(
           desc: null,
           expandTitle: t('Fix Processing Error'),
           data: errorData,
+          meta: metaData,
         },
       ];
     case HttpProcessingErrors.RESTRICTED_IP:
@@ -136,6 +145,7 @@ function getErrorMessage(
           desc: null,
           expandTitle: t('Fix Processing Error'),
           data: errorData,
+          meta: metaData,
         },
       ];
     case HttpProcessingErrors.SECURITY_VIOLATION:
@@ -145,6 +155,7 @@ function getErrorMessage(
           desc: null,
           expandTitle: t('Fix Processing Error'),
           data: errorData,
+          meta: metaData,
         },
       ];
     case GenericSchemaErrors.FUTURE_TIMESTAMP:
@@ -154,6 +165,7 @@ function getErrorMessage(
           desc: null,
           expandTitle: t('Fix Processing Error'),
           data: errorData,
+          meta: metaData,
         },
       ];
 
@@ -164,6 +176,7 @@ function getErrorMessage(
           desc: null,
           expandTitle: t('Fix Processing Error'),
           data: errorData,
+          meta: metaData,
         },
       ];
     case GenericSchemaErrors.PAST_TIMESTAMP:
@@ -173,6 +186,7 @@ function getErrorMessage(
           desc: null,
           expandTitle: t('Fix Processing Error'),
           data: errorData,
+          meta: metaData,
         },
       ];
     case GenericSchemaErrors.VALUE_TOO_LONG:
@@ -182,6 +196,7 @@ function getErrorMessage(
           desc: null,
           expandTitle: t('Fix Processing Error'),
           data: errorData,
+          meta: metaData,
         },
       ];
 
@@ -192,6 +207,7 @@ function getErrorMessage(
           desc: null,
           expandTitle: t('Fix Processing Error'),
           data: errorData,
+          meta: metaData,
         },
       ];
     case GenericSchemaErrors.INVALID_ENVIRONMENT:
@@ -201,6 +217,7 @@ function getErrorMessage(
           desc: null,
           expandTitle: t('Fix Processing Error'),
           data: errorData,
+          meta: metaData,
         },
       ];
     case GenericSchemaErrors.INVALID_ATTRIBUTE:
@@ -210,6 +227,7 @@ function getErrorMessage(
           desc: null,
           expandTitle: t('Fix Processing Error'),
           data: errorData,
+          meta: metaData,
         },
       ];
 
@@ -325,10 +343,11 @@ function groupedErrors(
   if (!data || !progaurdErrors || !event) {
     return {};
   }
+  const {_meta} = event;
   const errors = [...data.errors, ...progaurdErrors]
     .filter(error => shouldErrorBeShown(error, event))
-    .map(error =>
-      getErrorMessage(error).map(message => ({
+    .map((error, errorIdx) =>
+      getErrorMessage(error, _meta?.errors?.[errorIdx]).map(message => ({
         ...message,
         type: error.type,
       }))

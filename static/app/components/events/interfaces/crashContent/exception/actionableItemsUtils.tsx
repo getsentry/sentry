@@ -136,7 +136,7 @@ function isDataMinified(str: string | null) {
     return false;
   }
 
-  return !![...str.matchAll(MINIFIED_DATA_JAVA_EVENT_REGEX_MATCH)].length;
+  return MINIFIED_DATA_JAVA_EVENT_REGEX_MATCH.test(str);
 }
 
 const hasThreadOrExceptionMinifiedFrameData = (
@@ -147,20 +147,20 @@ const hasThreadOrExceptionMinifiedFrameData = (
     const exceptionValues: Array<ExceptionValue> =
       definedEvent.entries?.find(e => e.type === EntryType.EXCEPTION)?.data?.values ?? [];
 
-    return !!exceptionValues.find(exceptionValue =>
-      exceptionValue.stacktrace?.frames?.find(frame => isDataMinified(frame.module))
+    return exceptionValues.some(exceptionValue =>
+      exceptionValue.stacktrace?.frames?.some(frame => isDataMinified(frame.module))
     );
   }
 
   const threadExceptionValues = getThreadException(definedEvent, bestThread)?.values;
 
-  return !!(threadExceptionValues
-    ? threadExceptionValues.find(threadExceptionValue =>
-        threadExceptionValue.stacktrace?.frames?.find(frame =>
+  return threadExceptionValues
+    ? threadExceptionValues.some(threadExceptionValue =>
+        threadExceptionValue.stacktrace?.frames?.some(frame =>
           isDataMinified(frame.module)
         )
       )
-    : bestThread?.stacktrace?.frames?.find(frame => isDataMinified(frame.module)));
+    : bestThread?.stacktrace?.frames?.some(frame => isDataMinified(frame.module));
 };
 
 export const useFetchProguardMappingFiles = ({
@@ -208,10 +208,11 @@ export const useFetchProguardMappingFiles = ({
     {
       staleTime: Infinity,
       enabled: shouldFetch,
+      retry: false,
     }
   );
 
-  const getProguardErrorsFromMappingFiles = () => {
+  function getProguardErrorsFromMappingFiles(): EventErrorData[] {
     if (isShare) {
       return [];
     }
@@ -266,7 +267,7 @@ export const useFetchProguardMappingFiles = ({
     }
 
     return [];
-  };
+  }
 
   return {
     proguardErrorsLoading: shouldFetch && isLoading,
