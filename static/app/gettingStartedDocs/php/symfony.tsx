@@ -69,18 +69,8 @@ sensio_framework_extra:
     configurations: [
       {
         description: (
-          <p>
-            {tct('Add your DSN to [code:config/packages/sentry.yaml]:', {code: <code />})}
-          </p>
+          <p>{tct('Add your DSN to your [code:.env] file:', {code: <code />})}</p>
         ),
-        language: 'php',
-        code: `
-sentry:
-  dsn: "%env(${dsn})%"
-        `,
-      },
-      {
-        description: <p>{tct('And in your [code:.env] file:', {code: <code />})}</p>,
         language: 'plain',
         code: `
 ###> sentry/sentry-symfony ###

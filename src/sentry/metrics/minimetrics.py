@@ -2,7 +2,7 @@ import random
 import threading
 import time
 import zlib
-from threading import Lock, Thread
+from threading import Event, Lock, Thread
 from typing import (
     Any,
     Callable,
@@ -10,13 +10,15 @@ from typing import (
     Generic,
     List,
     Literal,
+    Mapping,
     Optional,
     Set,
     Tuple,
     TypeVar,
     Union,
-    cast,
 )
+
+import sentry_sdk
 
 from sentry.metrics.base import MetricsBackend, Tags
 from sentry.utils import metrics
@@ -57,7 +59,23 @@ MetricUnit = Literal[
 ]
 
 
+def _flatten_tags(tags: Optional[Mapping[str, Any]]) -> Tuple[Tuple[str, str], ...]:
+    rv = []
+    for key, value in (tags or {}).items():
+        if isinstance(value, (list, tuple)):
+            for inner_value in value:
+                rv.append((key, inner_value))
+        else:
+            rv.append((key, value))
+
+    return tuple(sorted(rv))
+
+
 class Metric(Generic[T]):
+    @property
+    def current_complexity(self) -> int:
+        return 1
+
     def add(self, value: T) -> None:
         raise NotImplementedError()
 
@@ -111,6 +129,10 @@ class DistributionMetric(Metric[float]):
     def __init__(self) -> None:
         self.value: List[float] = []
 
+    @property
+    def current_complexity(self) -> int:
+        return len(self.value)
+
     def add(self, value: float) -> None:
         self.value.append(value)
 
@@ -123,6 +145,10 @@ class SetMetric(Metric[Union[str, int]]):
 
     def __init__(self) -> None:
         self.value: Set[Union[str, int]] = set()
+
+    @property
+    def current_complexity(self) -> int:
+        return len(self.value)
 
     def add(self, value: Union[str, int]) -> None:
         self.value.add(value)
@@ -148,61 +174,141 @@ ComposedKey = Tuple[int, str, str, MetricUnit, Tuple[Tuple[str, str], ...]]
 
 class Aggregator:
     ROLLUP_IN_SECONDS = 10.0
+    MAX_COMPLEXITY = 100000
 
     def __init__(self) -> None:
         self.buckets: Dict[ComposedKey, Metric[Any]] = {}
-        self._lock = Lock()
-        self._running = True
-        self._flusher = Thread(target=self._flush)
+        self._bucket_complexity: int = 0
+        self._lock: Lock = Lock()
+        self._running: bool = True
+        self._flush_event: Event = Event()
+        self._force_flush: bool = False
+        # Thread handling the flushing loop.
+        self._flusher: Optional[Thread] = Thread(target=self._flush_loop)
         self._flusher.daemon = True
         self._flusher.start()
 
-    def _flush(self) -> None:
-        while self._running:
+    def _flush_loop(self) -> None:
+        # We check without locking these variables, such racy check can lead to problems if we are not careful. The most
+        # important invariant of the system that needs to be maintained is that if running and force_flush are false,
+        # the number of buckets is equal to 0.
+        while self._running or self._force_flush:
+            self._flush()
+            self._flush_event.wait(2.0)
+
+    def _flush(self):
+        with self._lock:
             cutoff = time.time() - self.ROLLUP_IN_SECONDS
-            cleanup = set()
-            extracted_metrics = []
+            complexity_to_remove = 0
             buckets = self.buckets
+            force_flush = self._force_flush
+            flushed_buckets = set()
+            extracted_metrics = []
 
-            with self._lock:
-                for bucket_key, metric in buckets.items():
-                    ts, ty, name, unit, tags = bucket_key
-                    if ts > cutoff:
-                        continue
+            for bucket_key, metric in buckets.items():
+                ts, ty, name, unit, tags = bucket_key
+                if not force_flush and ts > cutoff:
+                    continue
 
-                    m = {
-                        "timestamp": ts,
-                        "width": int(self.ROLLUP_IN_SECONDS),
-                        "name": name,
-                        "type": ty,
-                        "value": metric.serialize_value(),
-                    }
-                    if unit:
-                        m["unit"] = unit
-                    if tags:
-                        m["tags"] = dict(tags)
+                extracted_metric = {
+                    "timestamp": ts,
+                    "width": int(self.ROLLUP_IN_SECONDS),
+                    "name": name,
+                    "type": ty,
+                    "value": metric.serialize_value(),
+                }
+                if unit:
+                    extracted_metric["unit"] = unit
+                if tags:
+                    # We need to be careful here, since we have a list of tuples where the first element of tuples
+                    # can be duplicated, thus converting to a dict will end up compressing and losing data.
+                    extracted_metric["tags"] = tags
 
-                    extracted_metrics.append(m)
-                    cleanup.add(bucket_key)
+                extracted_metrics.append((extracted_metric, metric.current_complexity))
+                flushed_buckets.add(bucket_key)
+                complexity_to_remove += metric.current_complexity
 
-                for key in cleanup:
-                    buckets.pop(key)
+            # We remove all flushed buckets, in order to avoid memory leaks.
+            for bucket_key in flushed_buckets:
+                buckets.pop(bucket_key)
 
-            if extracted_metrics:
-                self._emit(extracted_metrics)
+            self._force_flush = False
+            self._bucket_complexity -= complexity_to_remove
 
-            time.sleep(2.0)
+        if extracted_metrics:
+            self._emit(extracted_metrics, force_flush)
 
-    @staticmethod
-    def _emit(extracted_metrics: Any) -> Any:
-        # In order to avoid an infinite recursion for metrics, we want to use a thread local variable that will
-        # signal the downstream calls to only propagate the metric to the primary backend, otherwise if propagated to
-        # minimetrics, it will cause unbounded recursion.
-        thread_local.in_minimetrics = True
+    def add(
+        self,
+        ty: str,
+        key: str,
+        value: Any,
+        unit: MetricUnit,
+        tags: Optional[Tags],
+        timestamp: Optional[float],
+    ) -> None:
+        if not self._is_flusher_active():
+            return
 
+        if timestamp is None:
+            timestamp = time.time()
+
+        bucket_key: ComposedKey = (
+            int((timestamp // self.ROLLUP_IN_SECONDS) * self.ROLLUP_IN_SECONDS),
+            ty,
+            key,
+            unit,
+            _flatten_tags(tags),
+        )
+
+        with self._lock:
+            metric = self.buckets.get(bucket_key)
+            if metric is None:
+                metric = METRIC_TYPES[ty]()
+                self.buckets[bucket_key] = metric
+
+            # We first change the complexity by taking the old one and the new one.
+            previous_complexity = metric.current_complexity
+            metric.add(value)
+            self._bucket_complexity += metric.current_complexity - previous_complexity
+            # Given the new complexity we consider whether we want to force flush.
+            self.consider_force_flush()
+
+    def stop(self):
+        self._assert_flusher_active()
+
+        # Firstly we tell the flusher that we want to force flush.
+        with self._lock:
+            self._force_flush = True
+            self._running = False
+
+        # Secondly we notify the flusher to move on and we wait for its completion.
+        self._flush_event.set()
+        # Checking also here because of mypy.
+        if self._flusher is not None:
+            self._flusher.join()
+            self._flusher = None
+
+    def consider_force_flush(self):
+        total_complexity = len(self.buckets) + self._bucket_complexity
+        if total_complexity >= self.MAX_COMPLEXITY:
+            self._force_flush = True
+            self._flush_event.set()
+
+    def _is_flusher_active(self):
+        return self._flusher is not None
+
+    def _assert_flusher_active(self):
+        assert self._is_flusher_active(), "The flusher is not active"
+
+    @classmethod
+    def _emit(cls, extracted_metrics: List[Tuple[Any, int]], force_flush: bool) -> Any:
+        # We obtain the counts for each metric type of how many buckets we have and how much complexity is in each
+        # bucket.
+        complexities_by_type: Dict[str, Tuple[int, int]] = {}
         # We obtain the counts for each metric type, since we want to know how many by type we have.
         counts_by_type: Dict[str, float] = {}
-        for metric in extracted_metrics:
+        for metric, metric_complexity in extracted_metrics:
             metric_type = metric["type"]
             metric_value = metric["value"]
 
@@ -222,43 +328,52 @@ class Aggregator:
 
             counts_by_type[metric_type] = counts_by_type.get(metric_type, 0) + value
 
+            (prev_buckets_count, prev_buckets_complexity) = complexities_by_type.get(
+                metric_type, (0, 0)
+            )
+            complexities_by_type[metric_type] = (
+                prev_buckets_count + 1,
+                prev_buckets_complexity + metric_complexity,
+            )
+
         # For each type and count we want to emit a metric.
         for metric_type, metric_count in counts_by_type.items():
             # We want to emit a metric on how many metrics we would technically emit if we were to use minimetrics.
-            metrics.incr(
-                "minimetrics.emit", amount=int(metric_count), tags={"metric_type": metric_type}
+            cls._safe_emit_count_metric(
+                key="minimetrics.emit",
+                amount=int(metric_count),
+                tags={"metric_type": metric_type, "force_flush": force_flush},
             )
 
-        # We clear the thread local variables, in order to make metrics extraction continue as normal.
-        thread_local.__dict__.clear()
+        for metric_type, (buckets_count, buckets_complexity) in complexities_by_type.items():
+            # We want to emit a metric on how many buckets and complexity there was for a metric type.
+            cls._safe_emit_count_metric(
+                key="minimetrics.flushed_buckets_count",
+                amount=buckets_count,
+                tags={"metric_type": metric_type, "force_flush": force_flush},
+            )
+            cls._safe_emit_count_metric(
+                key="minimetrics.flushed_buckets_complexity",
+                amount=buckets_complexity,
+                tags={"metric_type": metric_type, "force_flush": force_flush},
+            )
 
-    def add(
-        self,
-        ty: str,
-        key: str,
-        value: Any,
-        unit: MetricUnit,
-        tags: Optional[Tags],
-        timestamp: Optional[float],
-    ) -> None:
-        if timestamp is None:
-            timestamp = time.time()
+    @classmethod
+    def _safe_emit_count_metric(cls, key: str, amount: int, tags: Optional[Tags] = None):
+        cls._safe_run(lambda: metrics.incr(key, amount=amount, tags=tags))
 
-        bucket_key: ComposedKey = (
-            int((timestamp // self.ROLLUP_IN_SECONDS) * self.ROLLUP_IN_SECONDS),
-            ty,
-            key,
-            unit,
-            cast(Tuple[Tuple[str, str], ...], tuple(sorted(tuple((tags or {}).items())))),
-        )
+    @classmethod
+    def _safe_emit_distribution_metric(cls, key: str, value: int, tags: Optional[Tags] = None):
+        cls._safe_run(lambda: metrics.timing(key, value=value, tags=tags))
 
-        with self._lock:
-            metric = self.buckets.get(bucket_key)
-            if metric is None:
-                metric = METRIC_TYPES[ty]()
-                self.buckets[bucket_key] = metric
-
-            metric.add(value)
+    @classmethod
+    def _safe_run(cls, block: Callable[[], None]):
+        # In order to avoid an infinite recursion for metrics, we want to use a thread local variable that will
+        # signal the downstream calls to only propagate the metric to the primary backend, otherwise if propagated to
+        # minimetrics, it will cause unbounded recursion.
+        thread_local.in_minimetrics = True
+        block()
+        thread_local.in_minimetrics = False
 
 
 class Client:
@@ -322,7 +437,26 @@ class Client:
 class MiniMetricsMetricsBackend(MetricsBackend):
     def __init__(self, prefix: Optional[str] = None):
         super().__init__(prefix=prefix)
-        self._client = Client()
+        self.client = Client()
+
+    def _patch_sdk(self):
+        client = sentry_sdk.Hub.main.client
+        if client is not None:
+            old_flush = client.flush
+
+            def new_flush(*args, **kwargs):
+                self.client.aggregator.consider_force_flush()
+                return old_flush(*args, **kwargs)
+
+            client.flush = new_flush  # type:ignore
+
+            old_close = client.close
+
+            def new_close(*args, **kwargs):
+                self.client.aggregator.stop()
+                return old_close(*args, **kwargs)
+
+            client.close = new_close  # type:ignore
 
     @staticmethod
     def _keep_metric(sample_rate: float) -> bool:
@@ -337,7 +471,7 @@ class MiniMetricsMetricsBackend(MetricsBackend):
         sample_rate: float = 1,
     ) -> None:
         if self._keep_metric(sample_rate):
-            self._client.incr(key=self._get_key(key), value=amount, tags=tags)
+            self.client.incr(key=self._get_key(key), value=amount, tags=tags)
 
     def timing(
         self,
@@ -348,7 +482,7 @@ class MiniMetricsMetricsBackend(MetricsBackend):
         sample_rate: float = 1,
     ) -> None:
         if self._keep_metric(sample_rate):
-            self._client.timing(key=self._get_key(key), value=value, tags=tags)
+            self.client.timing(key=self._get_key(key), value=value, tags=tags)
 
     def gauge(
         self,
@@ -359,4 +493,4 @@ class MiniMetricsMetricsBackend(MetricsBackend):
         sample_rate: float = 1,
     ) -> None:
         if self._keep_metric(sample_rate):
-            self._client.gauge(key=self._get_key(key), value=value, tags=tags)
+            self.client.gauge(key=self._get_key(key), value=value, tags=tags)
