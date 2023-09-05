@@ -178,7 +178,7 @@ runs:
             -d --network host \
             -e ZOOKEEPER_CLIENT_PORT=2181 \
             -e KAFKA_OPTS="-Dzookeeper.4lw.commands.whitelist=*" \
-            confluentinc/cp-zookeeper:4.1.0 \
+            ghcr.io/getsentry/image-mirror-confluentinc-cp-kafka:6.2.0 \
             &
 
           # This is the production version; do not change w/o changing it there as well
