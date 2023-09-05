@@ -199,7 +199,7 @@ class OpsgenieMigrationIntegrationTest(APITestCase):
             ALERT_LEGACY_INTEGRATIONS,
             {
                 "id": "sentry.integrations.opsgenie.notify_action.OpsgenieNotifyTeamAction",
-                "account": org_integration.id,
+                "account": self.integration.id,
                 "team": id1,
             },
         ]
@@ -212,7 +212,7 @@ class OpsgenieMigrationIntegrationTest(APITestCase):
             ALERT_LEGACY_INTEGRATIONS,
             {
                 "id": "sentry.integrations.opsgenie.notify_action.OpsgenieNotifyTeamAction",
-                "account": org_integration.id,
+                "account": self.integration.id,
                 "team": id2,
             },
         ]
@@ -294,7 +294,7 @@ class OpsgenieMigrationIntegrationTest(APITestCase):
             ALERT_LEGACY_INTEGRATIONS,
             {
                 "id": "sentry.integrations.opsgenie.notify_action.OpsgenieNotifyTeamAction",
-                "account": org_integration.id,
+                "account": self.integration.id,
                 "team": str(self.organization_integration.id) + "-pikachu",
             },
         ]
@@ -333,7 +333,7 @@ class OpsgenieMigrationIntegrationTest(APITestCase):
             ALERT_LEGACY_INTEGRATIONS,
             {
                 "id": "sentry.integrations.opsgenie.notify_action.OpsgenieNotifyTeamAction",
-                "account": org_integration.id,
+                "account": self.integration.id,
                 "team": id1,
             },
         ]
@@ -370,7 +370,7 @@ class OpsgenieMigrationIntegrationTest(APITestCase):
                     ALERT_LEGACY_INTEGRATIONS,
                     {
                         "id": "sentry.integrations.opsgenie.notify_action.OpsgenieNotifyTeamAction",
-                        "account": org_integration.id,
+                        "account": self.integration.id,
                         "team": str(self.organization_integration.id) + "-pikachu",
                     },
                 ],
@@ -399,7 +399,7 @@ class OpsgenieMigrationIntegrationTest(APITestCase):
             ALERT_LEGACY_INTEGRATIONS,
             {
                 "id": "sentry.integrations.opsgenie.notify_action.OpsgenieNotifyTeamAction",
-                "account": org_integration.id,
+                "account": self.integration.id,
                 "team": str(self.organization_integration.id) + "-pikachu",
             },
         ]
