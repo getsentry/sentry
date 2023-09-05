@@ -91,6 +91,7 @@ function ComponentSelector({value}: {value?: string}) {
   ];
   return (
     <SelectControl
+      inFieldLabel={`${t('Component')}:`}
       options={options}
       value={value}
       onChange={(newValue: Option) => {
@@ -116,6 +117,7 @@ function ActionSelector({value}: {value?: string}) {
   ];
   return (
     <SelectControl
+      inFieldLabel={`${t('Action')}:`}
       options={options}
       value={value}
       onChange={(newValue: Option) => {
@@ -136,11 +138,12 @@ function PageSelector({value}: {value?: string}) {
 
   const options: Option[] = [
     {value: '', label: 'All'},
-    {value: '/page1/page', label: 'page1'},
+    {value: '/performance', label: 'page1'},
     {value: '/page2', label: 'page2'},
   ];
   return (
     <SelectControl
+      inFieldLabel={`${t('Page')}:`}
       options={options}
       value={value}
       onChange={(newValue: Option) => {
