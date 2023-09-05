@@ -1529,7 +1529,7 @@ SENTRY_FEATURES = {
     # Enable rate limits for inviting members.
     "organizations:invite-members-rate-limits": True,
     # Enable new issue alert "issue owners" fallback
-    "organizations:issue-alert-fallback-targeting": False,
+    "organizations:issue-alert-fallback-targeting": True,
     # Enable experimental replay-issue rendering on Issue Details page
     "organizations:issue-details-replay-event": False,
     # Enable sorting Issue detail events by 'most helpful'
@@ -1637,7 +1637,7 @@ SENTRY_FEATURES = {
     # Enable the AM1 trial ended banner on sentry.io
     "organizations:session-replay-trial-ended-banner": False,
     # Enable the new suggested assignees feature
-    "organizations:streamline-targeting-context": False,
+    "organizations:streamline-targeting-context": True,
     # Enable the new experimental starfish view
     "organizations:starfish-view": False,
     # Enable starfish endpoint that's used for regressing testing purposes
