@@ -405,6 +405,42 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         )
         assert_rule_from_payload(self.rule, payload)
 
+    def test_remove_conditions(self):
+        """Test that you can edit an alert rule to have no conditions (aka fire on every event)"""
+        conditions = [
+            {
+                "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
+            }
+        ]
+        actions = [
+            {
+                "targetType": "IssueOwners",
+                "fallthroughType": "ActiveMembers",
+                "id": "sentry.mail.actions.NotifyEmailAction",
+                "targetIdentifier": "",
+            }
+        ]
+        rule = self.create_project_rule(
+            project=self.project,
+            action_match=actions,
+            condition_match=conditions,
+            name="no conditions",
+        )
+        payload = {
+            "name": rule.label,
+            "environment": None,
+            "actionMatch": "all",
+            "filterMatch": "all",
+            "frequency": 30,
+            "conditions": [],
+            "actions": actions,
+        }
+
+        self.get_success_response(
+            self.organization.slug, self.project.slug, rule.id, status_code=200, **payload
+        )
+        assert_rule_from_payload(rule, payload)
+
     def test_update_duplicate_rule(self):
         """Test that if you edit a rule such that it's now the exact duplicate of another rule in the same project
         we do not allow it"""
