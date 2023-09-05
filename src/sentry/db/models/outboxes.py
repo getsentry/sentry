@@ -59,7 +59,7 @@ class RegionOutboxProducingModel(Model):
 class ReplicatedRegionModel(RegionOutboxProducingModel):
     """
     An extension of RegionOutboxProducingModel that provides a default implementation for `outbox_for_update`
-    based on the category nd outbox type configured as class variables.  It also provides a default signal handler
+    based on the category and outbox type configured as class variables.  It also provides a default signal handler
     that invokes either of handle_async_replication or handle_async_replication based on wether the object has
     been deleted or not.  Subclasses can and often should override these methods to configure outbox processing.
     """
