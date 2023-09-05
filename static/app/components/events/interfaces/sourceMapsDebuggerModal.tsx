@@ -112,14 +112,14 @@ export function SourceMapsDebuggerModal({
   }
   const releaseNameProgressPercent = releaseNameProgress / 4;
 
-  const scrapingProgress = 0;
+  let scrapingProgress = 0;
   if (facts.sourceFileScrapingStatus.status === 'found') {
-    releaseNameProgress++;
+    scrapingProgress++;
   }
   if (facts.sourceMapScrapingStatus.status === 'found') {
-    releaseNameProgress += 2;
+    scrapingProgress += 4;
   }
-  const scrapingProgressPercent = scrapingProgress / 3;
+  const scrapingProgressPercent = scrapingProgress / 5;
 
   const [activeTab, setActiveTab] = useState<'debug-ids' | 'release' | 'fetching'>(() => {
     const possibleTabs = [
