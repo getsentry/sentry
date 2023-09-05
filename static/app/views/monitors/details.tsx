@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
+import sortBy from 'lodash/sortBy';
 
 import DatePageFilter from 'sentry/components/datePageFilter';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -76,9 +77,7 @@ function MonitorDetails({params, location}: Props) {
     );
   }
 
-  const envsSortedByLastCheck = monitor.environments.sort((a, b) =>
-    a.lastCheckIn.localeCompare(b.lastCheckIn)
-  );
+  const envsSortedByLastCheck = sortBy(monitor.environments, e => e.lastCheckIn);
 
   return (
     <SentryDocumentTitle title={`Crons — ${monitor.name}`}>
