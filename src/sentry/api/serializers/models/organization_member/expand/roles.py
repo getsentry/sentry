@@ -44,7 +44,7 @@ class OrganizationMemberWithRolesSerializer(OrganizationMemberWithTeamsSerialize
         users_by_id = {
             u["id"]: u
             for u in user_service.serialize_many(
-                filter=dict(user_ids=[om.user_id for om in item_list]),
+                filter=dict(user_ids=[om.user_id for om in item_list if om.user_id is not None]),
                 serializer=UserSerializeType.DETAILED,
             )
         }
