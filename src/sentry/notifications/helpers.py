@@ -78,7 +78,7 @@ def _get_default_value_by_provider(
     }
 
 
-def get_provider_defaults():
+def get_provider_defaults() -> list[ExternalProviderEnum]:
     # create the data structure outside the endpoint
     provider_defaults = []
     for key, value in NOTIFICATION_SETTING_DEFAULTS.items():
@@ -86,7 +86,7 @@ def get_provider_defaults():
         # if the value is NOTIFICATION_SETTINGS_ALL_SOMETIMES then it means the provider
         # is on by default
         if value == NOTIFICATION_SETTINGS_ALL_SOMETIMES:
-            provider_defaults.append(provider)
+            provider_defaults.append(ExternalProviderEnum(provider))
     return provider_defaults
 
 
@@ -847,5 +847,7 @@ def user_has_any_provider_settings(
     return False
 
 
-PROVIDER_DEFAULTS = get_provider_defaults()
-TYPE_DEFAULTS = get_type_defaults()
+PROVIDER_DEFAULTS: list[ExternalProviderEnum] = get_provider_defaults()
+TYPE_DEFAULTS: Mapping[
+    NotificationSettingEnum, NotificationSettingsOptionEnum
+] = get_type_defaults()
