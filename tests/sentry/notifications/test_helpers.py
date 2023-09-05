@@ -416,6 +416,6 @@ class NotificationSettingV2HelpersTest(TestCase):
         )
 
         recipients = get_notification_recipients(self.project)
-        assert recipients[ExternalProviderEnum.SLACK] == {self.user}
-        assert recipients[ExternalProviderEnum.EMAIL] == {self.user}
+        assert recipients[ExternalProviderEnum.SLACK] == {self.user, new_user}
+        assert recipients[ExternalProviderEnum.EMAIL] == {self.user, new_user}
         assert recipients[ExternalProviderEnum.MSTEAMS] == {new_user}

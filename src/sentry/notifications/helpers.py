@@ -93,12 +93,7 @@ def get_provider_defaults() -> list[ExternalProviderEnum]:
 def get_type_defaults() -> Mapping[NotificationSettingEnum, NotificationSettingsOptionEnum]:
     # this tells us what the default value is for each notification type
     type_defaults = {}
-    for (
-        key,
-        value,
-    ) in (
-        NOTIFICATION_SETTINGS_ALL_SOMETIMES_V2.items()
-    ):  # key: NotificationSettingTypes, value: NotificationSettingOptionValues
+    for key, value in NOTIFICATION_SETTINGS_ALL_SOMETIMES_V2.items():
         # for the given notification type, figure out what the default value is
         notification_type = NotificationSettingEnum(NOTIFICATION_SETTING_TYPES[key])
         default = NotificationSettingsOptionEnum(NOTIFICATION_SETTING_OPTION_VALUES[value])
@@ -961,7 +956,7 @@ def get_setting_providers_for_users(
     for _, res_dict in result.items():
         for provider in ExternalProviderEnum:
             if provider not in res_dict and provider in provider_defaults:
-                res_dict[provider] = NotificationSettingsOptionEnum(provider)
+                res_dict[provider] = NotificationSettingsOptionEnum.ALWAYS
     return result
 
 
