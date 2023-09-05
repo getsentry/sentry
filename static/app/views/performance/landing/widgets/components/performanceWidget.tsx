@@ -189,7 +189,7 @@ const PerformanceWidgetPlaceholder = styled(Placeholder)`
   border-bottom-left-radius: inherit;
 `;
 
-const LoadingWrapper = styled('div')<{height: number}>`
+const LoadingWrapper = styled('div')<{height?: number}>`
   height: ${p => p.height}px;
   display: flex;
   align-items: center;
