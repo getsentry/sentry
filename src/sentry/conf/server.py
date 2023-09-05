@@ -726,6 +726,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.files",
     "sentry.tasks.groupowner",
     "sentry.tasks.integrations",
+    "sentry.tasks.invite_msising_org_members",
     "sentry.tasks.low_priority_symbolication",
     "sentry.tasks.merge",
     "sentry.tasks.options",
@@ -1044,6 +1045,15 @@ CELERYBEAT_SCHEDULE_REGION = {
             minute=0, hour=12, day_of_week="monday"  # 05:00 PDT, 09:00 EDT, 12:00 UTC
         ),
         "options": {"expires": 60 * 60 * 3},
+    },
+    "schedule-monthly-invite-missing-org-members": {
+        "task": "sentry.tasks.invite_missing_org_members.schedule_organizations",
+        "schedule": crontab(
+            minute=0,
+            hour=7,
+            day_of_month=1,  # 00:00 PDT, 03:00 EDT, 7:00 UTC
+        ),
+        "options": {"expires": 60 * 25},
     },
     "schedule-hybrid-cloud-foreign-key-jobs": {
         "task": "sentry.tasks.deletion.hybrid_cloud.schedule_hybrid_cloud_foreign_key_jobs",
