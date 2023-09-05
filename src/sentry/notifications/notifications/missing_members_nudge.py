@@ -19,7 +19,7 @@ class MissingMembersNudgeNotification(BaseNotification):
     template_path = "sentry/emails/missing-members-nudge"
 
     RoleBasedRecipientStrategyClass = MemberWriteRoleRecipientStrategy
-    notification_setting_type = NotificationSettingTypes.MISSING_MEMBERS
+    notification_setting_type = NotificationSettingTypes.APPROVAL
 
     def __init__(
         self,
