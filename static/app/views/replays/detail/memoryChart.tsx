@@ -10,6 +10,7 @@ import XAxis from 'sentry/components/charts/components/xAxis';
 import YAxis from 'sentry/components/charts/components/yAxis';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import Placeholder from 'sentry/components/placeholder';
+import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {showPlayerTime} from 'sentry/components/replays/utils';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -233,11 +234,6 @@ const MemoizedMemoryChart = memo(
   ))
 );
 
-interface MemoryChartContainerProps extends Props {
-  currentHoverTime: number | undefined;
-  currentTime: number;
-}
-
 /**
  * This container is used to update echarts outside of React. `currentTime` is
  * the current time of the player -- if replay is currently playing, this will
@@ -248,14 +244,14 @@ interface MemoryChartContainerProps extends Props {
  * infrequently as possible, so we use React.memo and only pass in props that
  * are not frequently updated.
  */
-function MemoryChartContainer({
-  currentTime,
-  currentHoverTime,
-  startTimestampMs = 0,
-  ...props
-}: MemoryChartContainerProps) {
+function MemoryChartContainer() {
+  const {currentTime, currentHoverTime, replay, setCurrentTime, setCurrentHoverTime} =
+    useReplayContext();
   const chart = useRef<ReactEchartsRef>(null);
   const theme = useTheme();
+
+  const memoryFrames = replay?.getMemoryFrames();
+  const startTimestampMs = replay?.getReplay()?.started_at?.getTime() ?? 0;
 
   useEffect(() => {
     if (!chart.current) {
@@ -306,7 +302,13 @@ function MemoryChartContainer({
   }, [currentHoverTime, startTimestampMs, theme]);
 
   return (
-    <MemoizedMemoryChart ref={chart} startTimestampMs={startTimestampMs} {...props} />
+    <MemoizedMemoryChart
+      ref={chart}
+      memoryFrames={memoryFrames}
+      setCurrentHoverTime={setCurrentHoverTime}
+      setCurrentTime={setCurrentTime}
+      startTimestampMs={startTimestampMs}
+    />
   );
 }
 

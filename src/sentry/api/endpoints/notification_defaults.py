@@ -23,7 +23,9 @@ class NotificationDefaultsEndpoints(Endpoint):
         """
         return Response(
             {
-                "providerDefaults": PROVIDER_DEFAULTS,
-                "typeDefaults": TYPE_DEFAULTS,
+                "providerDefaults": [provider.value for provider in PROVIDER_DEFAULTS],
+                "typeDefaults": {
+                    type.value: default.value for type, default in TYPE_DEFAULTS.items()
+                },
             }
         )

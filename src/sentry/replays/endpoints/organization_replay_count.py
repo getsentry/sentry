@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from rest_framework import status
+from rest_framework import serializers, status
+from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 from snuba_sdk import Request
 
@@ -12,6 +13,7 @@ from sentry.api.bases.organization_events import OrganizationEventsV2EndpointBas
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import Organization
 from sentry.replays.usecases.replay_counts import get_replay_counts
+from sentry.snuba.dataset import Dataset
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 MAX_REPLAY_COUNT = 51
@@ -22,6 +24,13 @@ MAX_VALS_PROVIDED = {
 }
 
 FILTER_HAS_A_REPLAY = "AND !replayId:''"
+
+
+class ReplayDataSourceValidator(serializers.Serializer):
+    data_source = serializers.ChoiceField(
+        choices=(Dataset.Discover.value, Dataset.IssuePlatform.value),
+        default=Dataset.Discover.value,
+    )
 
 
 @region_silo_endpoint
@@ -54,9 +63,15 @@ class OrganizationReplayCountEndpoint(OrganizationEventsV2EndpointBase):
         except NoProjects:
             return Response({})
 
+        result = ReplayDataSourceValidator(data=request.GET)
+        if not result.is_valid():
+            raise ParseError(result.errors)
+        data_source = Dataset.Discover
+        if result.validated_data["data_source"] == Dataset.IssuePlatform.value:
+            data_source = Dataset.IssuePlatform
         try:
             replay_counts = get_replay_counts(
-                snuba_params, request.GET.get("query"), request.GET.get("returnIds")
+                snuba_params, request.GET.get("query"), request.GET.get("returnIds"), data_source
             )
         except (InvalidSearchQuery, ValueError) as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
