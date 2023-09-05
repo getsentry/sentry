@@ -17,14 +17,8 @@ interface StepProps {
 const introduction = (
   <p>
     {tct(
-      "There are two variants of Sentry available for Spring Boot. If you're using Spring Boot 2, use [springBootStarterLink:sentry-spring-boot-starter]. If you're using Spring Boot 3, use [springBootStarterJakartaLink:sentry-spring-boot-starter-jakarta] instead. Sentry's integration with [springBootLink:Spring Boot] supports Spring Boot 2.1.0 and above to report unhandled exceptions as well as release and registration of beans. If you're on an older version, use [legacyIntegrationLink:our legacy integration].",
+      "Sentry's integration with [springBootLink:Spring Boot] supports Spring Boot 2.1.0 and above to report unhandled exceptions as well as release and registration of beans. If you're on an older version, use [legacyIntegrationLink:our legacy integration].",
       {
-        springBootStarterLink: (
-          <ExternalLink href="https://github.com/getsentry/sentry-java/tree/master/sentry-spring-boot-starter" />
-        ),
-        springBootStarterJakartaLink: (
-          <ExternalLink href="https://github.com/getsentry/sentry-java/tree/master/sentry-spring-boot-starter-jakarta" />
-        ),
         springBootLink: <ExternalLink href="https://spring.io/projects/spring-boot" />,
         legacyIntegrationLink: (
           <ExternalLink href="https://docs.sentry.io/platforms/java/legacy/spring/" />
@@ -77,6 +71,21 @@ sentry {
       },
       {
         description: <h5>{t('Maven')}</h5>,
+        additionalInfo: (
+          <p>
+            {tct(
+              "There are two variants of Sentry available for Spring Boot. If you're using Spring Boot 2, use [springBootStarterLink:sentry-spring-boot-starter]. If you're using Spring Boot 3, use [springBootStarterJakartaLink:sentry-spring-boot-starter-jakarta] instead.",
+              {
+                springBootStarterLink: (
+                  <ExternalLink href="https://github.com/getsentry/sentry-java/tree/master/sentry-spring-boot-starter" />
+                ),
+                springBootStarterJakartaLink: (
+                  <ExternalLink href="https://github.com/getsentry/sentry-java/tree/master/sentry-spring-boot-starter-jakarta" />
+                ),
+              }
+            )}
+          </p>
+        ),
         configurations: [
           {
             language: 'xml',
@@ -162,7 +171,7 @@ sentry {
 
         <!-- provide your auth token via SENTRY_AUTH_TOKEN environment variable -->
         <!-- you can find it in Sentry UI: Settings > Account > API > Auth Tokens -->
-        <authToken>env.SENTRY_AUTH_TOKEN}</authToken>
+        <authToken>\${env.SENTRY_AUTH_TOKEN}</authToken>
       </configuration>
       <executions>
         <execution>

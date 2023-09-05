@@ -131,7 +131,7 @@ sentry {
 
       <!-- provide your auth token via SENTRY_AUTH_TOKEN environment variable -->
       <!-- you can find it in Sentry UI: Settings > Account > API > Auth Tokens -->
-      <authToken>env.SENTRY_AUTH_TOKEN</authToken>
+      <authToken>\${env.SENTRY_AUTH_TOKEN}</authToken>
       </configuration>
       <executions>
         <execution>
