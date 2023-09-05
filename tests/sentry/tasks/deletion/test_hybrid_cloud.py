@@ -15,6 +15,7 @@ from sentry.tasks.deletion.hybrid_cloud import (
     set_watermark,
 )
 from sentry.testutils.factories import Factories
+from sentry.testutils.helpers.task_runner import BurstTaskRunner
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, region_silo_test
 from sentry.types.region import find_regions_for_user
@@ -130,8 +131,11 @@ def test_region_processing(task_runner):
     assert results2.exists()
 
     # Processing now only removes the first set
-    with task_runner():
+    with BurstTaskRunner() as burst:
         schedule_hybrid_cloud_foreign_key_jobs()
+
+    burst()
+
     assert not results1.exists()
     assert results2.exists()
 
@@ -157,8 +161,10 @@ def test_control_processing(task_runner):
 
     with assume_test_silo_mode(SiloMode.CONTROL):
         results, _ = setup_deletable_objects(10)
-        with task_runner():
+        with BurstTaskRunner() as burst:
             schedule_hybrid_cloud_foreign_key_jobs_control()
+
+        burst()
 
         # Do not process
         assert results.exists()
