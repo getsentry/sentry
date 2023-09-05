@@ -1,0 +1,70 @@
+from sentry import features
+from sentry.api.endpoints.organization_missing_org_members import _get_missing_organization_members
+from sentry.constants import ObjectStatus
+from sentry.models.organization import Organization
+from sentry.models.repository import Repository
+from sentry.notifications.notifications.missing_members_nudge import MissingMembersNudgeNotification
+from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.silo.base import SiloMode
+from sentry.tasks.base import instrumented_task
+
+
+@instrumented_task(
+    name="sentry.tasks.invite_missing_members.schedule_organizations",
+    max_retries=3,
+    acks_late=True,
+    silo_mode=SiloMode.REGION,
+)
+def schedule_organizations():
+    org_ids_with_github_repos = set(
+        Repository.objects.filter(
+            provider="integrations:github", status=ObjectStatus.ACTIVE
+        ).values_list("organization_id", flat=True)
+    )
+
+    for org_id in org_ids_with_github_repos:
+        send_nudge_email.delay(org_id)
+
+
+@instrumented_task(
+    name="sentry.tasks.invite_missing_members.send_nudge_email",
+    silo_mode=SiloMode.REGION,
+)
+def send_nudge_email(org_id):
+    try:
+        organization = Organization.objects.get_from_cache(id=org_id)
+    except Organization.DoesNotExist:
+        return
+
+    if not features.has("organizations:integrations-gh-invite", organization):
+        return
+
+    integrations = integration_service.get_integrations(
+        organization_id=org_id, providers=["github"], status=ObjectStatus.ACTIVE
+    )
+
+    if not integrations:
+        return
+
+    commit_author_query = _get_missing_organization_members(
+        organization, provider="github", integration_ids=[i.id for i in integrations]
+    )
+
+    if not commit_author_query.exists():  # don't email if no missing commit authors
+        return
+
+    commit_authors = []
+    for commit_author in commit_author_query:
+        commit_authors.append(
+            {
+                "email": commit_author.email,
+                "external_id": commit_author.external_id,
+                "commit_count": commit_author.commit_count,
+            }
+        )
+
+    notification = MissingMembersNudgeNotification(
+        organization=organization, commit_authors=commit_authors
+    )
+
+    notification.send()
