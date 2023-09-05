@@ -224,6 +224,8 @@ class Aggregator:
 
     @classmethod
     def _emit(cls, extracted_metrics: List[Tuple[Any, int]], force_flush: bool) -> Any:
+        # We obtain the counts for each metric type of how many buckets we have and how much complexity is in each
+        # bucket.
         complexities_by_type: Dict[str, Tuple[int, int]] = {}
         # We obtain the counts for each metric type, since we want to know how many by type we have.
         counts_by_type: Dict[str, float] = {}
@@ -246,7 +248,14 @@ class Aggregator:
                 value = len(metric_value)
 
             counts_by_type[metric_type] = counts_by_type.get(metric_type, 0) + value
-            complexities_by_type[metric_type] = complexities_by_type(metric_type, (0, 0))
+
+            (prev_buckets_size, prev_buckets_complexity) = complexities_by_type.get(
+                metric_type, (0, 0)
+            )
+            complexities_by_type[metric_type] = (
+                prev_buckets_size + 1,
+                prev_buckets_complexity + metric_complexity,
+            )
 
         # For each type and count we want to emit a metric.
         for metric_type, metric_count in counts_by_type.items():
@@ -254,6 +263,19 @@ class Aggregator:
             cls._safe_emit_count_metric(
                 key="minimetrics.emit",
                 amount=int(metric_count),
+                tags={"metric_type": metric_type, "force_flush": force_flush},
+            )
+
+        for metric_type, (buckets_size, buckets_complexity) in complexities_by_type.items():
+            # We want to emit a metric on how many buckets and complexity there was for a metric type.
+            cls._safe_emit_count_metric(
+                key="minimetrics.flushed_buckets_size",
+                amount=buckets_size,
+                tags={"metric_type": metric_type, "force_flush": force_flush},
+            )
+            cls._safe_emit_count_metric(
+                key="minimetrics.flushed_buckets_complexity",
+                amount=buckets_complexity,
                 tags={"metric_type": metric_type, "force_flush": force_flush},
             )
 
