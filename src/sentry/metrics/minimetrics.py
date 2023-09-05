@@ -18,6 +18,8 @@ from typing import (
     Union,
 )
 
+import sentry_sdk
+
 from sentry.metrics.base import MetricsBackend, Tags
 from sentry.utils import metrics
 
@@ -181,57 +183,72 @@ class Aggregator:
         self._running = True
         self._flush_event = Event()
         self._force_flush = False
-
-        self._flusher = Thread(target=self._flush)
+        # Thread handling the flushing loop.
+        self._flusher = Thread(target=self._flush_loop)
         self._flusher.daemon = True
         self._flusher.start()
 
-    def _flush(self) -> None:
-        while self._running:
-            cutoff = time.time() - self.ROLLUP_IN_SECONDS
-            cleanup = set()
-            remove_complexity = 0
-            extracted_metrics = []
-            buckets = self.buckets
-
-            with self._lock:
-                force_flush = self._force_flush
-                self._force_flush = False
-
-                for bucket_key, metric in buckets.items():
-                    ts, ty, name, unit, tags = bucket_key
-                    if not force_flush and ts > cutoff:
-                        continue
-
-                    m = {
-                        "timestamp": ts,
-                        "width": int(self.ROLLUP_IN_SECONDS),
-                        "name": name,
-                        "type": ty,
-                        "value": metric.serialize_value(),
-                    }
-                    if unit:
-                        m["unit"] = unit
-                    if tags:
-                        # We need to be careful here, since we have a list of tuples where the first element of tuples
-                        # can be duplicated, thus converting to a dict will end up compressing and losing data.
-                        m["tags"] = tags
-
-                    extracted_metrics.append((m, metric.current_complexity))
-                    cleanup.add(bucket_key)
-                    remove_complexity += metric.current_complexity
-
-                for key in cleanup:
-                    buckets.pop(key)
-
-                self._bucket_complexity -= remove_complexity
-
-            if extracted_metrics:
-                self._emit(extracted_metrics, force_flush)
-
+    def _flush_loop(self) -> None:
+        # We check without locking these variables, such racy check can lead to problems if we are not careful. The most
+        # important invariant of the system that needs to be maintained is that if running and force_flush are false,
+        # the number of buckets is equal to 0.
+        while self._running or self._force_flush:
+            self._flush()
             self._flush_event.wait(2.0)
 
-    def _consider_flush(self):
+    def _flush(self):
+        with self._lock:
+            cutoff = time.time() - self.ROLLUP_IN_SECONDS
+            complexity_to_remove = 0
+            buckets = self.buckets
+            force_flush = self._force_flush
+            flushed_buckets = set()
+            extracted_metrics = []
+
+            for bucket_key, metric in buckets.items():
+                ts, ty, name, unit, tags = bucket_key
+                if not force_flush and ts > cutoff:
+                    continue
+
+                extracted_metric = {
+                    "timestamp": ts,
+                    "width": int(self.ROLLUP_IN_SECONDS),
+                    "name": name,
+                    "type": ty,
+                    "value": metric.serialize_value(),
+                }
+                if unit:
+                    extracted_metric["unit"] = unit
+                if tags:
+                    # We need to be careful here, since we have a list of tuples where the first element of tuples
+                    # can be duplicated, thus converting to a dict will end up compressing and losing data.
+                    extracted_metric["tags"] = tags
+
+                extracted_metrics.append((extracted_metric, metric.current_complexity))
+                flushed_buckets.add(bucket_key)
+                complexity_to_remove += metric.current_complexity
+
+            # We remove all flushed buckets, in order to avoid memory leaks.
+            for bucket_key in flushed_buckets:
+                buckets.pop(bucket_key)
+
+            self._force_flush = False
+            self._bucket_complexity -= complexity_to_remove
+
+        if extracted_metrics:
+            self._emit(extracted_metrics, force_flush)
+
+    def kill(self):
+        # Firstly we tell the flusher that we want to force flush.
+        with self._lock:
+            self._force_flush = True
+            self._running = False
+
+        # Secondly we notify the flusher to move on and we wait for its completion.
+        self._flush_event.set()
+        self._flusher.join()
+
+    def consider_force_flush(self):
         total_complexity = len(self.buckets) + self._bucket_complexity
         if total_complexity >= self.MAX_COMPLEXITY:
             self._force_flush = True
@@ -341,8 +358,8 @@ class Aggregator:
             previous_complexity = metric.current_complexity
             metric.add(value)
             self._bucket_complexity += metric.current_complexity - previous_complexity
-            # Given the new complexity we consider whether we want to early flush.
-            self._consider_flush()
+            # Given the new complexity we consider whether we want to force flush.
+            self.consider_force_flush()
 
 
 class Client:
@@ -406,7 +423,26 @@ class Client:
 class MiniMetricsMetricsBackend(MetricsBackend):
     def __init__(self, prefix: Optional[str] = None):
         super().__init__(prefix=prefix)
-        self._client = Client()
+        self.client = Client()
+
+    def _patch_sdk(self):
+        client = sentry_sdk.Hub.main.client
+        if client is not None:
+            old_flush = client.flush
+
+            def new_flush(*args, **kwargs):
+                self.client.aggregator.consider_force_flush()
+                return old_flush(*args, **kwargs)
+
+            client.flush = new_flush
+
+            old_close = client.close
+
+            def new_close(*args, **kwargs):
+                self.client.aggregator.kill()
+                return old_close(*args, **kwargs)
+
+            client.close = new_close
 
     @staticmethod
     def _keep_metric(sample_rate: float) -> bool:
@@ -421,7 +457,7 @@ class MiniMetricsMetricsBackend(MetricsBackend):
         sample_rate: float = 1,
     ) -> None:
         if self._keep_metric(sample_rate):
-            self._client.incr(key=self._get_key(key), value=amount, tags=tags)
+            self.client.incr(key=self._get_key(key), value=amount, tags=tags)
 
     def timing(
         self,
@@ -432,7 +468,7 @@ class MiniMetricsMetricsBackend(MetricsBackend):
         sample_rate: float = 1,
     ) -> None:
         if self._keep_metric(sample_rate):
-            self._client.timing(key=self._get_key(key), value=value, tags=tags)
+            self.client.timing(key=self._get_key(key), value=value, tags=tags)
 
     def gauge(
         self,
@@ -443,4 +479,4 @@ class MiniMetricsMetricsBackend(MetricsBackend):
         sample_rate: float = 1,
     ) -> None:
         if self._keep_metric(sample_rate):
-            self._client.gauge(key=self._get_key(key), value=value, tags=tags)
+            self.client.gauge(key=self._get_key(key), value=value, tags=tags)
