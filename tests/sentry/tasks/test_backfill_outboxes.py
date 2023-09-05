@@ -61,8 +61,7 @@ def test_control_processing(task_runner):
         schedule_backfill_outbox_jobs_control()
 
     assert (
-        get_processing_state(AuthIdentity._meta.db_table)[1]
-        == AuthIdentity.__replication_version__ + 1
+        get_processing_state(AuthIdentity._meta.db_table)[1] == AuthIdentity.replication_version + 1
     )
 
     with outbox_runner():
@@ -96,7 +95,7 @@ def test_control_processing(task_runner):
         assert AuthIdentityReplica.objects.filter(auth_provider_id=ap2.id).count() == 0
         AuthIdentityReplica.objects.all().delete()
 
-    with patch("sentry.models.authidentity.AuthIdentity.__replication_version__", new=10000):
+    with patch("sentry.models.authidentity.AuthIdentity.replication_version", new=10000):
         with outbox_runner(), task_runner():
             schedule_backfill_outbox_jobs_control()
 

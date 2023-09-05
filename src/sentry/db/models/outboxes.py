@@ -23,8 +23,8 @@ class RegionOutboxProducingModel(Model):
     class Meta:
         abstract = True
 
-    __default_flush__: bool | None = None
-    __replication_version__: int = 1
+    default_flush: bool | None = None
+    replication_version: int = 1
 
     @contextlib.contextmanager
     def _maybe_prepare_outboxes(self, *, outbox_before_super: bool):
@@ -32,7 +32,7 @@ class RegionOutboxProducingModel(Model):
 
         with outbox_context(
             transaction.atomic(router.db_for_write(type(self))),
-            flush=self.__default_flush__,
+            flush=self.default_flush,
         ):
             if not outbox_before_super:
                 yield
@@ -64,8 +64,8 @@ class ReplicatedRegionModel(RegionOutboxProducingModel):
     been deleted or not.  Subclasses can and often should override these methods to configure outbox processing.
     """
 
-    __category__: OutboxCategory
-    __outbox_type__: Type[RegionOutboxBase] | None = None
+    category: OutboxCategory
+    outbox_type: Type[RegionOutboxBase] | None = None
 
     class Meta:
         abstract = True
@@ -86,11 +86,11 @@ class ReplicatedRegionModel(RegionOutboxProducingModel):
         Subclasses generally should override payload_for_update to customize
         this behavior.
         """
-        return self.__category__.as_region_outbox(
+        return self.category.as_region_outbox(
             model=self,
             payload=self.payload_for_update(),
             shard_identifier=shard_identifier,
-            outbox=self.__outbox_type__,
+            outbox=self.outbox_type,
         )
 
     @classmethod
@@ -127,8 +127,8 @@ class ControlOutboxProducingModel(Model):
     or raw sql).  See `get_protected_operations` for info on working around this.
     """
 
-    __default_flush__: bool | None = None
-    __replication_version__: int = 1
+    default_flush: bool | None = None
+    replication_version: int = 1
 
     class Meta:
         abstract = True
@@ -139,7 +139,7 @@ class ControlOutboxProducingModel(Model):
 
         with outbox_context(
             transaction.atomic(router.db_for_write(type(self))),
-            flush=self.__default_flush__,
+            flush=self.default_flush,
         ):
             if not outbox_before_super:
                 yield
@@ -172,8 +172,8 @@ class ReplicatedControlModel(ControlOutboxProducingModel):
     been deleted or not.  Subclasses can and often should override these methods to configure outbox processing.
     """
 
-    __category__: OutboxCategory
-    __outbox_type__: Type[ControlOutboxBase] | None = None
+    category: OutboxCategory
+    outbox_type: Type[ControlOutboxBase] | None = None
 
     class Meta:
         abstract = True
@@ -203,12 +203,12 @@ class ReplicatedControlModel(ControlOutboxProducingModel):
         Subclasses generally should override outbox_region_names or payload_for_update to customize
         this behavior.
         """
-        return self.__category__.as_control_outboxes(
+        return self.category.as_control_outboxes(
             region_names=self.outbox_region_names(),
             model=self,
             payload=self.payload_for_update(),
             shard_identifier=shard_identifier,
-            outbox=self.__outbox_type__,
+            outbox=self.outbox_type,
         )
 
     @classmethod

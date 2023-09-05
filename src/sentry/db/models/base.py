@@ -197,9 +197,9 @@ def __model_class_prepared(sender: Any, **kwargs: Any) -> None:
     from .outboxes import ReplicatedControlModel, ReplicatedRegionModel
 
     if issubclass(sender, ReplicatedControlModel):
-        sender.__category__.connect_control_model_updates(sender)
+        sender.category.connect_control_model_updates(sender)
     elif issubclass(sender, ReplicatedRegionModel):
-        sender.__category__.connect_region_model_updates(sender)
+        sender.category.connect_region_model_updates(sender)
 
 
 signals.pre_save.connect(__model_pre_save)

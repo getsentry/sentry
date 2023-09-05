@@ -1,5 +1,5 @@
 """
-Checks OutboxProducingModel classes and their __replication_version__.
+Checks OutboxProducingModel classes and their replication_version.
 When the replication_version on any class is bumped, this task queues up
 outboxes for all the model instances of said class.
 
@@ -66,11 +66,11 @@ def _chunk_processing_batch(
     batch_size: int,
 ) -> BackfillBatch | None:
     lower, version = get_processing_state(model._meta.db_table)
-    if version > model.__replication_version__:
+    if version > model.replication_version:
         return None
-    if version < model.__replication_version__:
+    if version < model.replication_version:
         lower = 0
-        version = model.__replication_version__
+        version = model.replication_version
     upper = model.objects.aggregate(Max("id"))["id__max"] or 0
     batch_upper = min(upper, lower + batch_size)
 
@@ -165,7 +165,7 @@ def _process_backfill(
                 make_outboxes(inst)
 
         if not processing_state.has_more:
-            set_processing_state(model._meta.db_table, 0, model.__replication_version__ + 1)
+            set_processing_state(model._meta.db_table, 0, model.replication_version + 1)
         else:
             set_processing_state(
                 model._meta.db_table, processing_state.up, processing_state.version
