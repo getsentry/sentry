@@ -61,7 +61,7 @@ export function getDefaultNodeImports({
     `import * as Sentry from "@sentry/node";`,
   ];
   if (productSelection.profiling) {
-    imports.push(`import { ProfilingIntegration } from "@sentry/profiling";`);
+    imports.push(`import { ProfilingIntegration } from "@sentry/profiling-node";`);
   }
   return imports;
 }
