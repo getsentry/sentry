@@ -15,7 +15,6 @@ MAX_VALS_PROVIDED = {
     "issue.id": 25,
     "transaction": 25,
     "replay_id": 100,
-    "group_id": 25,
 }
 
 FILTER_HAS_A_REPLAY = " AND !replayId:''"
