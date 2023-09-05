@@ -977,7 +977,7 @@ def get_notification_recipients(project: Project) -> Mapping[ExternalProviderEnu
         user: {
             provider: ps
             for provider, ps in setting.items()
-            if ps != NotificationSettingsOptionEnum.NEVER.value
+            if ps != NotificationSettingsOptionEnum.NEVER
         }
         for user, setting in providers.items()
     }

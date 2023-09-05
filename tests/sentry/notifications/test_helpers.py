@@ -387,11 +387,11 @@ class NotificationSettingV2HelpersTest(TestCase):
         options = get_setting_providers_for_users(
             [self.user.id, new_user.id], self.project, self.organization
         )
-        assert options[new_user][ExternalProviderEnum.MSTEAMS] == setting_provider_1
+        assert options[new_user][ExternalProviderEnum.MSTEAMS].value == setting_provider_1.value
         user_options = options[self.user]
-        assert user_options[ExternalProviderEnum.MSTEAMS] == self.setting_providers[1]
-        assert user_options[ExternalProviderEnum.SLACK] == self.setting_providers[0]
-        assert user_options[ExternalProviderEnum.EMAIL] == self.setting_providers[2]
+        assert user_options[ExternalProviderEnum.MSTEAMS].value == self.setting_providers[1].value
+        assert user_options[ExternalProviderEnum.SLACK].value == self.setting_providers[0].value
+        assert user_options[ExternalProviderEnum.EMAIL].value == self.setting_providers[2].value
 
     def test_get_notification_recipients(self):
         new_user = self.create_user()
@@ -411,7 +411,7 @@ class NotificationSettingV2HelpersTest(TestCase):
             scope_identifier=new_user.id,
             provider=ExternalProviderEnum.MSTEAMS.value,
             type=NotificationSettingEnum.ISSUE_ALERTS.value,
-            value=NotificationSettingsOptionEnum.SUBSCRIBE_ONLY.value,
+            value=NotificationSettingsOptionEnum.ALWAYS.value,
             user_id=new_user.id,
         )
 
