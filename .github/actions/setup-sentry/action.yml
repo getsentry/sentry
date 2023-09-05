@@ -177,6 +177,7 @@ runs:
             --name sentry_zookeeper \
             -d --network host \
             -e ZOOKEEPER_CLIENT_PORT=2181 \
+            -e KAFKA_OPTS="-Dzookeeper.4lw.commands.whitelist=*" \
             confluentinc/cp-zookeeper:4.1.0 \
             &
 
