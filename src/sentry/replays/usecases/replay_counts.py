@@ -40,17 +40,17 @@ def get_replay_counts(snuba_params: SnubaParams, query, return_ids, data_source)
         return _get_counts(replay_results, replay_ids_mapping)
 
 
-def _get_replay_id_mappings(query, snuba_params, data_source="discover") -> dict[str, list[str]]:
+def _get_replay_id_mappings(
+    query, snuba_params, data_source=Dataset.Discover
+) -> dict[str, list[str]]:
 
     select_column, value = _get_select_column(query)
-    query = query + FILTER_HAS_A_REPLAY if data_source == "discover" else query
+    query = query + FILTER_HAS_A_REPLAY if data_source == Dataset.Discover else query
 
     if select_column == "replay_id":
         # just return a mapping of replay_id:replay_id instead of hitting discover
         # if we want to validate list of replay_ids existence
         return {v: [v] for v in value}
-
-    data_source = Dataset.IssuePlatform if data_source == "issue_platform" else Dataset.Discover
 
     builder = QueryBuilder(
         dataset=data_source,

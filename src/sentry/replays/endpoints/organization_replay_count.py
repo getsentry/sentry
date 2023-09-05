@@ -12,6 +12,7 @@ from sentry.api.bases.organization_events import OrganizationEventsV2EndpointBas
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import Organization
 from sentry.replays.usecases.replay_counts import get_replay_counts
+from sentry.snuba.dataset import Dataset
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 MAX_REPLAY_COUNT = 51
@@ -26,7 +27,8 @@ FILTER_HAS_A_REPLAY = "AND !replayId:''"
 
 class ReplayDataSourceValidator(serializers.Serializer):
     data_source = serializers.ChoiceField(
-        choices=(("discover"), ("issue_platform")), default="discover"
+        choices=((Dataset.Discover.value), (Dataset.IssuePlatform.value)),
+        default=Dataset.Discover.value,
     )
 
 
@@ -60,9 +62,9 @@ class OrganizationReplayCountEndpoint(OrganizationEventsV2EndpointBase):
         result = ReplayDataSourceValidator(data=request.GET)
         if not result.is_valid():
             raise ParseError(result.errors)
-        data_source = "discover"
-        if result.validated_data["data_source"] == "issue_platform":
-            data_source = "issue_platform"
+        data_source = Dataset.Discover
+        if result.validated_data["data_source"] == Dataset.IssuePlatform.value:
+            data_source = Dataset.IssuePlatform
         try:
             replay_counts = get_replay_counts(
                 snuba_params, request.GET.get("query"), request.GET.get("returnIds"), data_source

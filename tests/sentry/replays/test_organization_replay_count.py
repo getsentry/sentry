@@ -8,6 +8,7 @@ import pytest
 from django.urls import reverse
 
 from sentry.replays.testutils import mock_replay
+from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import (
     APITestCase,
     PerformanceIssueTestCase,
@@ -273,7 +274,7 @@ class OrganizationReplayCountEndpointTest(
 
         query = {
             "query": f"issue.id:[{issue1.group.id}, {issue2.group.id}, {issue3.group.id}]",
-            "data_source": "issue_platform",
+            "data_source": Dataset.IssuePlatform.value,
         }
         with self.feature(self.features):
             response = self.client.get(self.url, query, format="json")

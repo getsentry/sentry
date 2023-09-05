@@ -649,7 +649,9 @@ class Group(Model):
             return cached_has_replays
 
         data_source = (
-            "issue_platform" if self.issue_category == GroupCategory.PERFORMANCE else "discover"
+            Dataset.IssuePlatform.value
+            if self.issue_category == GroupCategory.PERFORMANCE
+            else Dataset.Discover.value
         )
 
         counts = get_replay_counts(
