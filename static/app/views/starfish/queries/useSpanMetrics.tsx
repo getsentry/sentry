@@ -3,29 +3,24 @@ import {Location} from 'history';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
-import {SpanMetricsFields} from 'sentry/views/starfish/types';
+import {
+  MetricsProperty,
+  MetricsResponse,
+  SpanMetricsField,
+} from 'sentry/views/starfish/types';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 
-const {SPAN_GROUP} = SpanMetricsFields;
-
-export type SpanMetrics = {
-  [metric: string]: number | string;
-  'http_error_count()': number;
-  'p95(span.self_time)': number;
-  'span.op': string;
-  'spm()': number;
-  'time_spent_percentage()': number;
-};
+const {SPAN_GROUP} = SpanMetricsField;
 
 export type SpanSummaryQueryFilters = {
   'transaction.method'?: string;
   transactionName?: string;
 };
 
-export const useSpanMetrics = (
+export const useSpanMetrics = <T extends MetricsProperty[]>(
   group: string,
   queryFilters: SpanSummaryQueryFilters,
-  fields: string[] = [],
+  fields: T,
   referrer: string = 'span-metrics'
 ) => {
   const location = useLocation();
@@ -37,14 +32,20 @@ export const useSpanMetrics = (
     Boolean(group) && Object.values(queryFilters).every(value => Boolean(value));
 
   // TODO: Add referrer
-  const result = useSpansQuery<SpanMetrics[]>({
+  const result = useSpansQuery({
     eventView,
     initialData: [],
     enabled,
     referrer,
   });
 
-  return {...result, data: result?.data?.[0] ?? {}, isEnabled: enabled};
+  const data = (result?.data?.[0] ?? {}) as Pick<MetricsResponse, T[number]>;
+
+  return {
+    ...result,
+    data,
+    isEnabled: enabled,
+  };
 };
 
 function getEventView(

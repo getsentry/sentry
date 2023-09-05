@@ -5,6 +5,7 @@ from sentry.silo import SiloMode
 from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
@@ -83,6 +84,14 @@ class TeamUpdateTest(TeamDetailsTestBase):
         team = Team.objects.get(id=team.id)
         assert team.name == "hello world"
         assert team.slug == "foobar"
+
+    @override_options({"api.prevent-numeric-slugs": True})
+    def test_invalid_numeric_slug(self):
+        response = self.get_error_response(self.organization.slug, self.team.slug, slug="1234")
+        assert response.data["slug"][0] == (
+            "Enter a valid slug consisting of lowercase letters, numbers, underscores or "
+            "hyphens. It cannot be entirely numeric."
+        )
 
     def test_member_without_team_role(self):
         user = self.create_user("foo@example.com")

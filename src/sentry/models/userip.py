@@ -5,6 +5,7 @@ from django.core.cache import cache
 from django.db import models
 from django.utils import timezone
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, control_silo_only_model, sane_repr
 from sentry.models import User
 from sentry.services.hybrid_cloud.log import UserIpEvent, log_service
@@ -14,7 +15,7 @@ from sentry.utils.geo import geo_by_addr
 
 @control_silo_only_model
 class UserIP(Model):
-    __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.User
 
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL)
     ip_address = models.GenericIPAddressField()

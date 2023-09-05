@@ -2,14 +2,23 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
 import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import {t, tct} from 'sentry/locale';
+
+interface StepProps {
+  dsn: string;
+  hasPerformance: boolean;
+  hasProfiling: boolean;
+  sourcePackageRegistries?: ModuleProps['sourcePackageRegistries'];
+}
 
 // Configuration Start
 export const steps = ({
   dsn,
-}: {
-  dsn?: string;
-} = {}): LayoutProps['steps'] => [
+  sourcePackageRegistries,
+  hasPerformance,
+  hasProfiling,
+}: StepProps): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
     description: (
@@ -44,8 +53,13 @@ https://github.com/getsentry/sentry-cocoa.git
           </p>
         ),
         language: 'swift',
+        partialLoading: sourcePackageRegistries?.isLoading,
         code: `
-.package(url: "https://github.com/getsentry/sentry-cocoa", from: "8.9.3"),
+.package(url: "https://github.com/getsentry/sentry-cocoa", from: "${
+          sourcePackageRegistries?.isLoading
+            ? t('\u2026loading')
+            : sourcePackageRegistries?.data?.['sentry.cocoa']?.version ?? '8.9.3'
+        }"),
         `,
       },
     ],
@@ -75,11 +89,22 @@ func application(_ application: UIApplication,
 
     SentrySDK.start { options in
         options.dsn = "${dsn}"
-        options.debug = true // Enabled debug when first installing is always helpful
+        options.debug = true // Enabled debug when first installing is always helpful${
+          hasPerformance
+            ? `
 
         // Set tracesSampleRate to 1.0 to capture 100% of transactions for performance monitoring.
         // We recommend adjusting this value in production.
-        options.tracesSampleRate = 1.0
+        options.tracesSampleRate = 1.0`
+            : ''
+        }${
+          hasProfiling
+            ? `
+        // Set profilesSampleRate to 1.0 to profile 100% of sampled transactions.
+        // We recommend adjusting this value in production
+        options.profilesSampleRate = 1.0`
+            : ''
+        }
     }
 
     return true
@@ -108,11 +133,22 @@ struct SwiftUIApp: App {
     init() {
         SentrySDK.start { options in
             options.dsn = "${dsn}"
-            options.debug = true // Enabled debug when first installing is always helpful
+            options.debug = true // Enabled debug when first installing is always helpful${
+              hasPerformance
+                ? `
 
             // Set tracesSampleRate to 1.0 to capture 100% of transactions for performance monitoring.
             // We recommend adjusting this value in production.
-            options.tracesSampleRate = 1.0
+            options.tracesSampleRate = 1.0`
+                : ''
+            }${
+          hasProfiling
+            ? `
+            // Set profilesSampleRate to 1.0 to profile 100% of sampled transactions.
+            // We recommend adjusting this value in production
+            options.profilesSampleRate = 1.0`
+            : ''
+        }
         }
     }
 }
@@ -231,8 +267,23 @@ export const nextSteps = [
 ];
 // Configuration End
 
-export function GettingStartedWithIos({dsn, ...props}: ModuleProps) {
-  return <Layout steps={steps({dsn})} nextSteps={nextSteps} {...props} />;
+export function GettingStartedWithIos({
+  dsn,
+  sourcePackageRegistries,
+  activeProductSelection = [],
+  ...props
+}: ModuleProps) {
+  const hasPerformance = activeProductSelection.includes(
+    ProductSolution.PERFORMANCE_MONITORING
+  );
+  const hasProfiling = activeProductSelection.includes(ProductSolution.PROFILING);
+  return (
+    <Layout
+      steps={steps({dsn, sourcePackageRegistries, hasPerformance, hasProfiling})}
+      nextSteps={nextSteps}
+      {...props}
+    />
+  );
 }
 
 export default GettingStartedWithIos;

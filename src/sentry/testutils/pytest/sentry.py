@@ -162,7 +162,6 @@ def pytest_configure(config):
             "system.organization-base-hostname": "{slug}.testserver",
             "system.organization-url-template": "http://{hostname}",
             "system.region-api-url-template": "http://{region}.testserver",
-            "system.region": "us",
             "system.secret-key": "a" * 52,
             "slack.client-id": "slack-client-id",
             "slack.client-secret": "slack-client-secret",
@@ -189,11 +188,13 @@ def pytest_configure(config):
             "aws-lambda.python.layer-version": "34",
         }
     )
-
+    settings.SENTRY_OPTIONS_COMPLAIN_ON_ERRORS = True
     settings.VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON = False
+    settings.SENTRY_REGION = "us"
+
+    # ID controls
     settings.SENTRY_USE_BIG_INTS = True
     settings.SENTRY_USE_SNOWFLAKE = True
-
     settings.SENTRY_SNOWFLAKE_EPOCH_START = datetime(1999, 12, 31, 0, 0).timestamp()
 
     # Plugin-related settings

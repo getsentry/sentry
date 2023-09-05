@@ -8,7 +8,6 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import {getFrameMethod, getFrameStatus} from 'sentry/utils/replays/resourceFrame';
-import type {SpanFrame} from 'sentry/utils/replays/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 import useUrlParams from 'sentry/utils/useUrlParams';
@@ -30,28 +29,21 @@ const BODY_HEIGHT = 28;
 
 const RESIZEABLE_HANDLE_HEIGHT = 90;
 
-type Props = {
-  isNetworkDetailsSetup: boolean;
-  networkFrames: undefined | SpanFrame[];
-  projectId: undefined | string;
-  startTimestampMs: number;
-};
-
 const cellMeasurer = {
   defaultHeight: BODY_HEIGHT,
   defaultWidth: 100,
   fixedHeight: true,
 };
 
-function NetworkList({
-  isNetworkDetailsSetup,
-  networkFrames,
-  projectId,
-  startTimestampMs,
-}: Props) {
+function NetworkList() {
   const organization = useOrganization();
-  const {currentTime, currentHoverTime} = useReplayContext();
+  const {currentTime, currentHoverTime, replay} = useReplayContext();
   const {onMouseEnter, onMouseLeave, onClickTimestamp} = useCrumbHandlers();
+
+  const isNetworkDetailsSetup = Boolean(replay?.isNetworkDetailsSetup());
+  const networkFrames = replay?.getNetworkFrames();
+  const projectId = replay?.getReplay()?.project_id;
+  const startTimestampMs = replay?.getReplay()?.started_at?.getTime() || 0;
 
   const [scrollToRow, setScrollToRow] = useState<undefined | number>(undefined);
 

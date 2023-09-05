@@ -6,6 +6,13 @@ import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDoc
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {t, tct} from 'sentry/locale';
 
+interface StepProps {
+  dsn: string;
+  organizationSlug?: string;
+  projectSlug?: string;
+  sourcePackageRegistries?: ModuleProps['sourcePackageRegistries'];
+}
+
 // Configuration Start
 const introduction = (
   <p>
@@ -21,9 +28,10 @@ const introduction = (
 
 export const steps = ({
   dsn,
-}: {
-  dsn?: string;
-} = {}): LayoutProps['steps'] => [
+  sourcePackageRegistries,
+  projectSlug,
+  organizationSlug,
+}: StepProps): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
     description: t('Install the SDK via Gradle, Maven, or SBT:'),
@@ -33,12 +41,35 @@ export const steps = ({
         configurations: [
           {
             language: 'groovy',
+            partialLoading: sourcePackageRegistries?.isLoading,
             description: (
               <p>
                 {tct('For Gradle, add to your [code:build.gradle] file:', {
                   code: <code />,
                 })}
               </p>
+            ),
+            code: `
+// Make sure mavenCentral is there.
+repositories {
+    mavenCentral()
+}
+
+// Add Sentry's SDK as a dependency.
+dependencies {
+    implementation 'io.sentry:sentry:${
+      sourcePackageRegistries?.isLoading
+        ? t('\u2026loading')
+        : sourcePackageRegistries?.data?.['sentry.java']?.version ?? '6.27.0'
+    }'
+}
+          `,
+          },
+          {
+            language: 'groovy',
+            partialLoading: sourcePackageRegistries?.isLoading,
+            description: t(
+              'To upload your source code to Sentry so it can be shown in stack traces, use our Gradle plugin.'
             ),
             code: `
 buildscript {
@@ -48,7 +79,12 @@ buildscript {
 }
 
 plugins {
-  id "io.sentry.jvm.gradle" version "3.12.0"
+  id "io.sentry.jvm.gradle" version "${
+    sourcePackageRegistries?.isLoading
+      ? t('\u2026loading')
+      : sourcePackageRegistries?.data?.['sentry.java.android.gradle-plugin']?.version ??
+        '3.11.1'
+  }"
 }
 
 sentry {
@@ -57,11 +93,11 @@ sentry {
   // code as part of your stack traces in Sentry.
   includeSourceContext = true
 
-  org = "___ORG_SLUG___"
-  projectName = "___PROJECT_SLUG___"
+  org = "${organizationSlug}"
+  projectName = "${projectSlug}"
   authToken = "your-sentry-auth-token"
 }
-          `,
+        `,
           },
         ],
       },
@@ -70,6 +106,7 @@ sentry {
         configurations: [
           {
             language: 'xml',
+            partialLoading: sourcePackageRegistries?.isLoading,
             description: (
               <p>
                 {tct('For Maven, add to your [code:pom.xml] file:', {code: <code />})}
@@ -79,12 +116,17 @@ sentry {
 <dependency>
   <groupId>io.sentry</groupId>
   <artifactId>sentry</artifactId>
-  <version>6.28.0</version>
+  <version>${
+    sourcePackageRegistries?.isLoading
+      ? t('\u2026loading')
+      : sourcePackageRegistries?.data?.['sentry.java']?.version ?? '6.27.0'
+  }</version>
 </dependency>
             `,
           },
           {
             language: 'xml',
+            partialLoading: sourcePackageRegistries?.isLoading,
             description: t(
               'To upload your source code to Sentry so it can be shown in stack traces, use our Maven plugin.'
             ),
@@ -94,7 +136,11 @@ sentry {
     <plugin>
       <groupId>io.sentry</groupId>
       <artifactId>sentry-maven-plugin</artifactId>
-      <version>0.0.3</version>
+      <version>${
+        sourcePackageRegistries?.isLoading
+          ? t('\u2026loading')
+          : sourcePackageRegistries?.data?.['sentry.java.mavenplugin']?.version ?? '0.0.3'
+      }</version>
       <configuration>
       <!-- for showing output of sentry-cli -->
       <debugSentryCli>true</debugSentryCli>
@@ -104,9 +150,9 @@ sentry {
       <!-- minimum required version is 2.17.3 -->
       <sentryCliExecutablePath>/path/to/sentry-cli</sentryCliExecutablePath>
 
-      <org>___ORG_SLUG___</org>
+      <org>${organizationSlug}</org>
 
-      <project>___PROJECT_SLUG___</project>
+      <project>${projectSlug}</project>
 
       <!-- in case you're self hosting, provide the URL here -->
       <!--<url>http://localhost:8000/</url>-->
@@ -137,7 +183,12 @@ sentry {
           {
             description: <p>{tct('For [strong:SBT]:', {strong: <strong />})}</p>,
             language: 'scala',
-            code: `libraryDependencies += "io.sentry" % "sentry" % "6.28.0"`,
+            partialLoading: sourcePackageRegistries?.isLoading,
+            code: `libraryDependencies += "io.sentry" % "sentry" % "${
+              sourcePackageRegistries?.isLoading
+                ? t('\u2026loading')
+                : sourcePackageRegistries?.data?.['sentry.java']?.version ?? '6.27.0'
+            }"`,
           },
         ],
       },
@@ -259,8 +310,25 @@ transaction.finish();
 ];
 // Configuration End
 
-export function GettingStartedWithJava({dsn, ...props}: ModuleProps) {
-  return <Layout steps={steps({dsn})} introduction={introduction} {...props} />;
+export function GettingStartedWithJava({
+  dsn,
+  sourcePackageRegistries,
+  projectSlug,
+  organization,
+  ...props
+}: ModuleProps) {
+  return (
+    <Layout
+      steps={steps({
+        dsn,
+        sourcePackageRegistries,
+        projectSlug: projectSlug ?? '___PROJECT_SLUG___',
+        organizationSlug: organization?.slug ?? '___ORG_SLUG___',
+      })}
+      introduction={introduction}
+      {...props}
+    />
+  );
 }
 
 export default GettingStartedWithJava;

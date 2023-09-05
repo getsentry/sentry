@@ -164,7 +164,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         with assume_test_silo_mode(SiloMode.CONTROL):
             auditlog = AuditLogEntry.objects.filter(
                 organization_id=self.project.organization.id,
-                event=audit_log.get_event_id("PROJECT_EDIT"),
+                event=audit_log.get_event_id("PROJECT_OWNERSHIPRULE_EDIT"),
                 target_object=self.project.id,
             )
         assert len(auditlog) == 1
@@ -178,7 +178,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         with assume_test_silo_mode(SiloMode.CONTROL):
             auditlog = AuditLogEntry.objects.filter(
                 organization_id=self.project.organization.id,
-                event=audit_log.get_event_id("PROJECT_EDIT"),
+                event=audit_log.get_event_id("PROJECT_OWNERSHIPRULE_EDIT"),
                 target_object=self.project.id,
             )
         assert len(auditlog) == 1

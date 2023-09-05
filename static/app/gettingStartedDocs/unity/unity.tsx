@@ -11,9 +11,10 @@ import {t, tct} from 'sentry/locale';
 // Configuration Start
 export const steps = ({
   dsn,
-}: {
-  dsn?: string;
-} = {}): LayoutProps['steps'] => [
+  sourcePackageRegistries,
+}: Partial<
+  Pick<ModuleProps, 'dsn' | 'sourcePackageRegistries'>
+> = {}): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
     description: (
@@ -31,7 +32,12 @@ export const steps = ({
     configurations: [
       {
         language: 'bash',
-        code: 'https://github.com/getsentry/unity.git#1.5.0',
+        partialLoading: sourcePackageRegistries?.isLoading,
+        code: `https://github.com/getsentry/unity.git#${
+          sourcePackageRegistries?.isLoading
+            ? t('\u2026loading')
+            : sourcePackageRegistries?.data?.['sentry.dotnet.unity']?.version ?? '1.5.0'
+        }`,
       },
     ],
     additionalInfo: (
@@ -120,8 +126,12 @@ SentrySdk.CaptureMessage("Test event");
 ];
 // Configuration End
 
-export function GettingStartedWithUnity({dsn, ...props}: ModuleProps) {
-  return <Layout steps={steps({dsn})} {...props} />;
+export function GettingStartedWithUnity({
+  dsn,
+  sourcePackageRegistries,
+  ...props
+}: ModuleProps) {
+  return <Layout steps={steps({dsn, sourcePackageRegistries})} {...props} />;
 }
 
 export default GettingStartedWithUnity;

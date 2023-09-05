@@ -6,6 +6,13 @@ import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDoc
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {t, tct} from 'sentry/locale';
 
+interface StepProps {
+  dsn: string;
+  organizationSlug?: string;
+  projectSlug?: string;
+  sourcePackageRegistries?: ModuleProps['sourcePackageRegistries'];
+}
+
 // Configuration Start
 const introduction = (
   <p>
@@ -29,9 +36,10 @@ const introduction = (
 
 export const steps = ({
   dsn,
-}: {
-  dsn?: string;
-} = {}): LayoutProps['steps'] => [
+  sourcePackageRegistries,
+  projectSlug,
+  organizationSlug,
+}: StepProps): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
     description: t('Install using either Maven or Gradle:'),
@@ -47,7 +55,12 @@ buildscript {
 }
 
 plugins {
-  id "io.sentry.jvm.gradle" version "3.12.0"
+  id "io.sentry.jvm.gradle" version "${
+    sourcePackageRegistries?.isLoading
+      ? t('\u2026loading')
+      : sourcePackageRegistries?.data?.['sentry.java.android.gradle-plugin']?.version ??
+        '3.12.0'
+  }"
 }
 
 sentry {
@@ -67,23 +80,34 @@ sentry {
         configurations: [
           {
             language: 'xml',
+            partialLoading: sourcePackageRegistries?.isLoading,
             description: <strong>{t('Spring Boot 2')}</strong>,
             code: `
 <dependency>
     <groupId>io.sentry</groupId>
     <artifactId>sentry-spring-boot-starter</artifactId>
-    <version>6.28.0</version>
+    <version>${
+      sourcePackageRegistries?.isLoading
+        ? t('\u2026loading')
+        : sourcePackageRegistries?.data?.['sentry.java.spring-boot']?.version ?? '6.28.0'
+    }</version>
 </dependency>
           `,
           },
           {
             language: 'xml',
+            partialLoading: sourcePackageRegistries?.isLoading,
             description: <strong>{t('Spring Boot 3')}</strong>,
             code: `
 <dependency>
     <groupId>io.sentry</groupId>
     <artifactId>sentry-spring-boot-starter-jakarta</artifactId>
-    <version>6.28.0</version>
+    <version>${
+      sourcePackageRegistries?.isLoading
+        ? t('\u2026loading')
+        : sourcePackageRegistries?.data?.['sentry.java.spring-boot.jakarta']?.version ??
+          '6.28.0'
+    }</version>
 </dependency>
         `,
           },
@@ -147,7 +171,11 @@ sentry:
 <dependency>
     <groupId>io.sentry</groupId>
     <artifactId>sentry-logback</artifactId>
-    <version>6.28.0</version>
+    <version>${
+      sourcePackageRegistries?.isLoading
+        ? t('\u2026loading')
+        : sourcePackageRegistries?.data?.['sentry.java.logback']?.version ?? '6.28.0'
+    }</version>
 </dependency>
           `,
           },
@@ -162,7 +190,11 @@ sentry:
     <plugin>
       <groupId>io.sentry</groupId>
       <artifactId>sentry-maven-plugin</artifactId>
-      <version>0.0.3</version>
+      <version>${
+        sourcePackageRegistries?.isLoading
+          ? t('\u2026loading')
+          : sourcePackageRegistries?.data?.['sentry.java.mavenplugin']?.version ?? '0.0.3'
+      }</version>
       <configuration>
         <!-- for showing output of sentry-cli -->
         <debugSentryCli>true</debugSentryCli>
@@ -172,9 +204,9 @@ sentry:
         <!-- minimum required version is 2.17.3 -->
         <sentryCliExecutablePath>/path/to/sentry-cli</sentryCliExecutablePath>
 
-        <org>___ORG_SLUG___</org>
+        <org>${organizationSlug}</org>
 
-        <project>___PROJECT_SLUG___</project>
+        <project>${projectSlug}</project>
 
         <!-- in case you're self hosting, provide the URL here -->
         <!--<url>http://localhost:8000/</url>-->
@@ -204,7 +236,13 @@ sentry:
         configurations: [
           {
             language: 'properties',
-            code: "implementation 'io.sentry:sentry-logback:6.28.0'",
+            partialLoading: sourcePackageRegistries?.isLoading,
+            code: `implementation 'io.sentry:sentry-logback:${
+              sourcePackageRegistries?.isLoading
+                ? t('\u2026loading')
+                : sourcePackageRegistries?.data?.['sentry.java.logback']?.version ??
+                  '6.27.0'
+            }'`,
           },
         ],
       },
@@ -366,8 +404,25 @@ class PersonService {
 ];
 // Configuration End
 
-export function GettingStartedWithSpringBoot({dsn, ...props}: ModuleProps) {
-  return <Layout steps={steps({dsn})} introduction={introduction} {...props} />;
+export function GettingStartedWithSpringBoot({
+  dsn,
+  sourcePackageRegistries,
+  projectSlug,
+  organization,
+  ...props
+}: ModuleProps) {
+  return (
+    <Layout
+      steps={steps({
+        dsn,
+        sourcePackageRegistries,
+        projectSlug: projectSlug ?? '___PROJECT_SLUG___',
+        organizationSlug: organization?.slug ?? '___ORG_SLUG___',
+      })}
+      introduction={introduction}
+      {...props}
+    />
+  );
 }
 
 export default GettingStartedWithSpringBoot;

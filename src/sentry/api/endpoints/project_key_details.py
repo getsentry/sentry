@@ -5,6 +5,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log, features
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -26,7 +27,11 @@ from sentry.models import ProjectKey, ProjectKeyStatus
 @extend_schema(tags=["Projects"])
 @region_silo_endpoint
 class ProjectKeyDetailsEndpoint(ProjectEndpoint):
-    public = {"GET", "PUT", "DELETE"}
+    publish_status = {
+        "DELETE": ApiPublishStatus.PUBLIC,
+        "GET": ApiPublishStatus.PUBLIC,
+        "PUT": ApiPublishStatus.PUBLIC,
+    }
 
     @extend_schema(
         operation_id="Retrieve a Client Key",

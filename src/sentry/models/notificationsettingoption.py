@@ -1,5 +1,6 @@
 from django.db import models
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import control_silo_only_model, sane_repr
 
 from .notificationsettingbase import NotificationSettingBase
@@ -7,7 +8,7 @@ from .notificationsettingbase import NotificationSettingBase
 
 @control_silo_only_model
 class NotificationSettingOption(NotificationSettingBase):
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     class Meta:
         app_label = "sentry"

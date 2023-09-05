@@ -8,6 +8,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
@@ -122,7 +123,9 @@ def rate_limit_events(request: Request, organization_slug=None, *args, **kwargs)
 @extend_schema(tags=["Discover"])
 @region_silo_endpoint
 class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
-    public = {"GET"}
+    publish_status = {
+        "GET": ApiPublishStatus.PUBLIC,
+    }
 
     enforce_rate_limit = True
 

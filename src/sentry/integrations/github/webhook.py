@@ -15,6 +15,7 @@ from django.views.decorators.csrf import csrf_exempt
 from rest_framework.request import Request
 
 from sentry import analytics, features, options
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.constants import ObjectStatus
 from sentry.integrations.utils.scope import clear_tags_and_context
@@ -78,7 +79,7 @@ class Webhook:
                     "external_id": str(external_id),
                 },
             )
-            logger.exception("Integration does not exist.")
+            metrics.incr("github.webhook.integration_does_not_exist")
             return
 
         if "repository" in event:
@@ -552,6 +553,9 @@ class GitHubWebhookBase(Endpoint):
 
 @region_silo_endpoint
 class GitHubIntegrationsWebhookEndpoint(GitHubWebhookBase):
+    publish_status = {
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     _handlers = {
         "push": PushEventWebhook,
         "pull_request": PullRequestEventWebhook,

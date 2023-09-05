@@ -220,4 +220,6 @@ class CombinedRuleSerializerTest(BaseAlertRuleSerializerTest, APITestCase, TestC
 
         self.assert_alert_rule_serialized(alert_rule, result[0])
         assert result[1]["id"] == str(issue_rule.id)
+        assert result[1]["status"] == "active"
+        assert not result[1]["snooze"]
         self.assert_alert_rule_serialized(other_alert_rule, result[2])

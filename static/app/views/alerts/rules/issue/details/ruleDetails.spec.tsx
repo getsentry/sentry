@@ -186,6 +186,42 @@ describe('AlertRuleDetails', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('rule disabled banner because of missing actions and hides some actions', async () => {
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/rules/${rule.id}/`,
+      body: TestStubs.ProjectAlertRule({
+        actions: [],
+        status: 'disabled',
+      }),
+      match: [MockApiClient.matchQuery({expand: 'lastTriggered'})],
+    });
+    createWrapper();
+    expect(
+      await screen.findByText(
+        'This alert is disabled due to missing actions. Please edit the alert rule to enable this alert.'
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Edit to enable'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Duplicate'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Mute for me'})).toBeDisabled();
+  });
+
+  it('rule disabled banner generic', async () => {
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/rules/${rule.id}/`,
+      body: TestStubs.ProjectAlertRule({
+        status: 'disabled',
+      }),
+      match: [MockApiClient.matchQuery({expand: 'lastTriggered'})],
+    });
+    createWrapper();
+    expect(
+      await screen.findByText(
+        'This alert is disabled due to its configuration and needs to be edited to be enabled.'
+      )
+    ).toBeInTheDocument();
+  });
+
   it('renders the mute button and can mute/unmute alerts', async () => {
     const postRequest = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/rules/${rule.id}/snooze/`,
