@@ -46,8 +46,8 @@ class MovingAverageCrossOverDetectorState(DetectorState):
         ts = data.get(cls.FIELD_TIMESTAMP)
         timestamp = None if ts is None else datetime.fromtimestamp(int(ts), timezone.utc)
         count = int(data[cls.FIELD_COUNT])
-        moving_avg_short = int(data[cls.FIELD_MOVING_AVG_SHORT])
-        moving_avg_long = int(data[cls.FIELD_MOVING_AVG_LONG])
+        moving_avg_short = float(data[cls.FIELD_MOVING_AVG_SHORT])
+        moving_avg_long = float(data[cls.FIELD_MOVING_AVG_LONG])
         return cls(
             timestamp=timestamp,
             count=count,
