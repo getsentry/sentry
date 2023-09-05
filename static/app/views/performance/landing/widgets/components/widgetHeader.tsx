@@ -49,6 +49,11 @@ const StyledHeaderTitleLegend = styled(HeaderTitleLegend)`
   position: relative;
   z-index: initial;
   top: -${space(0.5)};
+
+  ${FeatureBadge} {
+    position: relative;
+    top: -${space(0.25)};
+  }
 `;
 
 const TitleContainer = styled('div')`

@@ -32,6 +32,7 @@ import {SpanDescriptionCell} from 'sentry/views/starfish/components/tableCells/s
 import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
 import {ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
+import {RoutingContextProvider} from 'sentry/views/starfish/utils/routingContext';
 
 import {excludeTransaction} from '../../utils';
 import Accordion from '../components/accordion';
@@ -454,30 +455,32 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
               const totalTime: number =
                 listItem[`sum(${SpanMetricsField.SPAN_SELF_TIME})`];
               return (
-                <Fragment>
-                  <StyledTextOverflow>
-                    <SpanDescriptionCell
-                      projectId={projectID}
-                      group={group}
-                      description={description}
-                      moduleName={ModuleName.DB}
-                    />
-                  </StyledTextOverflow>
-                  <RightAlignedCell>
-                    <TimeSpentCell percentage={timeSpentPercentage} total={totalTime} />
-                  </RightAlignedCell>
-                  {!props.withStaticFilters && (
-                    <ListClose
-                      setSelectListIndex={setSelectListIndex}
-                      onClick={() =>
-                        excludeTransaction(listItem.transaction, {
-                          eventView: props.eventView,
-                          location,
-                        })
-                      }
-                    />
-                  )}
-                </Fragment>
+                <RoutingContextProvider value={{baseURL: '/performance/database'}}>
+                  <Fragment>
+                    <StyledTextOverflow>
+                      <SpanDescriptionCell
+                        projectId={projectID}
+                        group={group}
+                        description={description}
+                        moduleName={ModuleName.DB}
+                      />
+                    </StyledTextOverflow>
+                    <RightAlignedCell>
+                      <TimeSpentCell percentage={timeSpentPercentage} total={totalTime} />
+                    </RightAlignedCell>
+                    {!props.withStaticFilters && (
+                      <ListClose
+                        setSelectListIndex={setSelectListIndex}
+                        onClick={() =>
+                          excludeTransaction(listItem.transaction, {
+                            eventView: props.eventView,
+                            location,
+                          })
+                        }
+                      />
+                    )}
+                  </Fragment>
+                </RoutingContextProvider>
               );
             default:
               if (typeof rightValue === 'number') {
