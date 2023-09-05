@@ -18,7 +18,7 @@ class DatadogMetricsBackendTest(TestCase):
         # We stop the flusher.
         self.backend._client.aggregator._running = False
         self.backend._client.aggregator._flusher.join()
-        metrics_incr.assert_called_once()
+        assert metrics_incr.call_count == 3
 
     @patch("sentry.metrics.minimetrics.Aggregator.ROLLUP_IN_SECONDS", 1.0)
     @patch("sentry.metrics.minimetrics.metrics.incr")
@@ -30,4 +30,4 @@ class DatadogMetricsBackendTest(TestCase):
         # We stop the flusher.
         self.backend._client.aggregator._running = False
         self.backend._client.aggregator._flusher.join()
-        metrics_incr.assert_called_once()
+        assert metrics_incr.call_count == 3
