@@ -205,6 +205,7 @@ default_manager.add("organizations:sentry-pride-logo-footer", OrganizationFeatur
 default_manager.add('organizations:team-project-creation-all', OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add('organizations:team-project-creation-all-allowlist', OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:team-roles", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
+default_manager.add("organizations:team-workflow-notifications", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:transaction-name-normalize", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:transaction-name-mark-scrubbed-as-sanitized", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:transaction-name-sanitization", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
