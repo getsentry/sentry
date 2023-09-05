@@ -117,6 +117,40 @@ export function AvailableNotificationActions(
           },
         ],
       },
+      {
+        action: {
+          triggerType: 'spike-protection',
+          serviceType: 'opsgenie',
+          targetType: 'specific',
+          integrationId: 3,
+          integrationName: 'sentry-enterprise',
+          targetIdentifier: '1-opsgenie-test-team-2',
+          targetDisplay: 'opsgenie-test-team-2',
+        },
+        requires: [
+          {
+            name: 'projects',
+            description: 'Project slugs which will receive the action',
+          },
+        ],
+      },
+      {
+        action: {
+          triggerType: 'spike-protection',
+          serviceType: 'opsgenie',
+          targetType: 'specific',
+          integrationId: 3,
+          integrationName: 'sentry-enterprise',
+          targetIdentifier: '1-opsgenie-test-team',
+          targetDisplay: 'opsgenie-test-team',
+        },
+        requires: [
+          {
+            name: 'projects',
+            description: 'Project slugs which will receive the action',
+          },
+        ],
+      },
       ...params,
     ],
   };
