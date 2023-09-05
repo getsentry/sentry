@@ -832,6 +832,7 @@ def get_setting_options_for_users(
     user_ids: Iterable[int],
     project: Project | None = None,
     organization: Organization | None = None,
+    additional_filters: Q | None = None,
 ) -> MutableMapping[
     RpcActor, MutableMapping[NotificationSettingEnum, NotificationSettingsOptionEnum]
 ]:
@@ -844,8 +845,11 @@ def get_setting_options_for_users(
         project: The project to get notification settings for.
         organization: The organization to get notification settings for.
     """
+    if not additional_filters:
+        additional_filters = Q()
+
     query = get_query(project=project, organization=organization, user_ids=user_ids)
-    notification_settings = NotificationSettingOption.objects.filter(query)
+    notification_settings = NotificationSettingOption.objects.filter(query & additional_filters)
 
     user_to_setting: MutableMapping[
         RpcActor, MutableMapping[NotificationSettingEnum, NotificationSettingOption]
