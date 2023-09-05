@@ -628,6 +628,24 @@ Attempted to dereference garbage pointer 0x10."
     )
 
 
+def test__get_crashed_thread_registers_no_exception():
+    acr = AppleCrashReport(
+        exceptions=[],
+        threads=[{"id": 1, "crashed": True, "stacktrace": {"registers": {}}}],
+    )
+
+    assert acr._get_crashed_thread_registers() == ""
+
+
+def test__get_crashed_thread_registers_no_thread_registers():
+    acr = AppleCrashReport(
+        exceptions=[{"thread_id": 1}],
+        threads=[],
+    )
+
+    assert acr._get_crashed_thread_registers() == ""
+
+
 def test__get_crashed_thread_registers_arm64():
     acr = AppleCrashReport(
         exceptions=[{"thread_id": 1}],
