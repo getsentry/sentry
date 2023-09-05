@@ -41,7 +41,14 @@ from sentry.types.integrations import (
 )
 
 if TYPE_CHECKING:
-    from sentry.models import Group, GroupSubscription, Organization, Project, Team, User
+    from sentry.models import (  # noqa: S005
+        Group,
+        GroupSubscription,
+        Organization,
+        Project,
+        Team,
+        User,
+    )
 
 
 def _get_notification_setting_default(
@@ -83,13 +90,18 @@ def get_provider_defaults():
     return provider_defaults
 
 
-def get_type_defaults():
+def get_type_defaults() -> Mapping[NotificationSettingEnum, NotificationSettingsOptionEnum]:
     # this tells us what the default value is for each notification type
     type_defaults = {}
-    for key, value in NOTIFICATION_SETTINGS_ALL_SOMETIMES_V2.items():
+    for (
+        key,
+        value,
+    ) in (
+        NOTIFICATION_SETTINGS_ALL_SOMETIMES_V2.items()
+    ):  # key: NotificationSettingTypes, value: NotificationSettingOptionValues
         # for the given notification type, figure out what the default value is
-        notification_type = NOTIFICATION_SETTING_TYPES[key]
-        default = NOTIFICATION_SETTING_OPTION_VALUES[value]
+        notification_type = NotificationSettingEnum(NOTIFICATION_SETTING_TYPES[key])
+        default = NotificationSettingsOptionEnum(NOTIFICATION_SETTING_OPTION_VALUES[value])
         type_defaults[notification_type] = default
     return type_defaults
 
@@ -635,10 +647,10 @@ def get_values_by_provider(
 def get_providers_for_recipient(
     recipient: User,
 ) -> Iterable[ExternalProviders]:
-    from sentry.models import Identity
+    from sentry.models.identity import Identity
 
     possible_providers = NOTIFICATION_SETTING_DEFAULTS.keys()
-    provider_names = [get_provider_name(provider) for provider in possible_providers]
+    provider_names = [get_provider_name(provider.value) for provider in possible_providers]
     idp_types = Identity.objects.filter(
         user__id=recipient.id, idp__type__in=provider_names
     ).values_list("idp__type", flat=True)
@@ -678,8 +690,11 @@ def get_query(
         organization: The organization to get notification settings for.
         user_ids: The user ids to get notification settings for.
     """
+    if not user_ids and not recipient:
+        raise Exception("recipient or user_ids must be provided")
+
     user_id, team_id = None, None
-    if not user_ids:
+    if not user_ids and recipient:
         if recipient_is_user(recipient):
             user_id = recipient.id
         elif recipient_is_team(recipient):
@@ -703,7 +718,11 @@ def get_query(
     org_settings = (
         Q(
             scope_type=NotificationScopeEnum.ORGANIZATION.value,
-            scope_identifier=organization.id if organization else project.organization.id,
+            scope_identifier=organization.id
+            if organization
+            else project.organization.id
+            if project
+            else None,
             user_id__in=user_ids,
             team_id=team_id,
         )
@@ -773,20 +792,23 @@ def get_setting_options_for_recipient(
     recipient: RpcActor | Team | User,
     project: Project | None = None,
     organization: Organization | None = None,
-) -> MutableMapping[str, NotificationSettingsOptionEnum]:
+) -> MutableMapping[NotificationSettingEnum, NotificationSettingsOptionEnum]:
     all_settings = get_all_setting_options(recipient, project, organization)
 
     notification_settings = {}
     # Project settings take precedence over all other notification settings
     for setting in all_settings:
         if setting.scope_type == NotificationScopeEnum.PROJECT.value:
-            notification_settings[setting.type] = setting.value
+            notification_settings[
+                NotificationSettingEnum(setting.type)
+            ] = NotificationSettingsOptionEnum(setting.value)
 
     # Organization settings apply when project settings are not set
     for setting in all_settings:
         if setting.scope_type == NotificationScopeEnum.ORGANIZATION.value:
-            if setting.type not in notification_settings:
-                notification_settings[setting.type] = setting.value
+            setting_type = NotificationSettingEnum(setting.type)
+            if setting_type not in notification_settings:
+                notification_settings[setting_type] = NotificationSettingsOptionEnum(setting.value)
 
     # Team/User settings are the most specific.
     if recipient_is_user(recipient):
@@ -798,8 +820,9 @@ def get_setting_options_for_recipient(
 
     for setting in all_settings:
         if setting.scope_type == scope_type:
-            if setting.type not in notification_settings:
-                notification_settings[setting.type] = setting.value
+            setting_type = NotificationSettingEnum(setting.type)
+            if setting_type not in notification_settings:
+                notification_settings[setting_type] = NotificationSettingsOptionEnum(setting.value)
 
     # Fill in any missing settings with the default
     defaults = get_type_defaults()
@@ -818,11 +841,7 @@ def user_has_any_provider_settings(
         if not setting.provider == provider.value:
             continue
 
-        if setting.value in {
-            NotificationSettingsOptionEnum.ALWAYS.value,
-            NotificationSettingsOptionEnum.COMMITTED_ONLY.value,
-            NotificationSettingsOptionEnum.SUBSCRIBE_ONLY.value,
-        }:
+        if setting.value == NotificationSettingsOptionEnum.ALWAYS.value:
             return True
 
     return False
