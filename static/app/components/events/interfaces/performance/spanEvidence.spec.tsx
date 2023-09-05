@@ -6,8 +6,7 @@ import {
 } from 'sentry-test/performance/utils';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {EntryType} from 'sentry/types';
-import {projectDetectorSettingsId} from 'sentry/views/settings/projectPerformance/projectPerformance';
+import {EntryType, IssueType} from 'sentry/types';
 
 import {SpanEvidenceSection} from './spanEvidence';
 
@@ -116,7 +115,7 @@ describe('spanEvidence', () => {
     expect(settingsBtn).toBeInTheDocument();
     expect(settingsBtn).toHaveAttribute(
       'href',
-      `/settings/projects/project-slug/performance/#${projectDetectorSettingsId}`
+      `/settings/projects/project-slug/performance/?issueType=${IssueType.PERFORMANCE_SLOW_DB_QUERY}#${IssueType.PERFORMANCE_SLOW_DB_QUERY}`
     );
   });
 

@@ -42,9 +42,8 @@ export function SpanEvidenceSection({event, organization, projectSlug}: Props) {
   const hasProfilingFeature = organization.features.includes('profiling');
 
   const issueType = getIssueTypeFromOccurenceType(event.occurrence?.type);
-  const hasConfigurableThresholds = organization.features.includes(
-    'project-performance-settings-admin'
-  );
+  const hasConfigurableThresholds =
+    organization.features.includes('project-performance-settings-admin') && issueType;
 
   return (
     <EventDataSection
