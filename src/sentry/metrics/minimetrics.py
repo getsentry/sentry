@@ -178,13 +178,13 @@ class Aggregator:
 
     def __init__(self) -> None:
         self.buckets: Dict[ComposedKey, Metric[Any]] = {}
-        self._bucket_complexity = 0
-        self._lock = Lock()
-        self._running = True
-        self._flush_event = Event()
-        self._force_flush = False
+        self._bucket_complexity: int = 0
+        self._lock: Lock = Lock()
+        self._running: bool = True
+        self._flush_event: Event = Event()
+        self._force_flush: bool = False
         # Thread handling the flushing loop.
-        self._flusher = Thread(target=self._flush_loop)
+        self._flusher: Optional[Thread] = Thread(target=self._flush_loop)
         self._flusher.daemon = True
         self._flusher.start()
 
@@ -284,8 +284,10 @@ class Aggregator:
 
         # Secondly we notify the flusher to move on and we wait for its completion.
         self._flush_event.set()
-        self._flusher.join()
-        self._flusher = None
+        # Checking also here because of mypy.
+        if self._flusher is not None:
+            self._flusher.join()
+            self._flusher = None
 
     def consider_force_flush(self):
         total_complexity = len(self.buckets) + self._bucket_complexity
@@ -446,7 +448,7 @@ class MiniMetricsMetricsBackend(MetricsBackend):
                 self.client.aggregator.consider_force_flush()
                 return old_flush(*args, **kwargs)
 
-            client.flush = new_flush
+            client.flush = new_flush  # type:ignore
 
             old_close = client.close
 
@@ -454,7 +456,7 @@ class MiniMetricsMetricsBackend(MetricsBackend):
                 self.client.aggregator.stop()
                 return old_close(*args, **kwargs)
 
-            client.close = new_close
+            client.close = new_close  # type:ignore
 
     @staticmethod
     def _keep_metric(sample_rate: float) -> bool:
