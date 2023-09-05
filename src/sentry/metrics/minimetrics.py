@@ -309,7 +309,6 @@ class Aggregator:
         # minimetrics, it will cause unbounded recursion.
         thread_local.in_minimetrics = True
         block()
-        # We clear the thread local variables, in order to make metrics extraction continue as normal.
         thread_local.in_minimetrics = False
 
     def add(
@@ -339,9 +338,9 @@ class Aggregator:
                 self.buckets[bucket_key] = metric
 
             # We first change the complexity by taking the old one and the new one.
-            complexity = metric.current_complexity
+            previous_complexity = metric.current_complexity
             metric.add(value)
-            self._bucket_complexity += metric.current_complexity - complexity
+            self._bucket_complexity += metric.current_complexity - previous_complexity
             # Given the new complexity we consider whether we want to early flush.
             self._consider_flush()
 
