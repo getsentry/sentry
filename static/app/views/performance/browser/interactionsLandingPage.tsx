@@ -4,7 +4,9 @@ import styled from '@emotion/styled';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import FeatureBadge from 'sentry/components/featureBadge';
-import SelectControl from 'sentry/components/forms/controls/selectControl';
+import SelectControl, {
+  ControlProps,
+} from 'sentry/components/forms/controls/selectControl';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
@@ -90,16 +92,16 @@ function ComponentSelector({value}: {value?: string}) {
     {value: 'closeButton', label: '<CloseButton/>'},
   ];
   return (
-    <SelectControl
+    <SelectControlWithProps
       inFieldLabel={`${t('Component')}:`}
       options={options}
       value={value}
-      onChange={(newValue: Option) => {
+      onChange={newValue => {
         browserHistory.push({
           ...location,
           query: {
             ...location.query,
-            [COMPONENT]: newValue.value,
+            [COMPONENT]: newValue?.value,
           },
         });
       }}
@@ -116,16 +118,16 @@ function ActionSelector({value}: {value?: string}) {
     {value: 'change', label: 'Change'},
   ];
   return (
-    <SelectControl
+    <SelectControlWithProps
       inFieldLabel={`${t('Action')}:`}
       options={options}
       value={value}
-      onChange={(newValue: Option) => {
+      onChange={newValue => {
         browserHistory.push({
           ...location,
           query: {
             ...location.query,
-            [SPAN_ACTION]: newValue.value,
+            [SPAN_ACTION]: newValue?.value,
           },
         });
       }}
@@ -142,21 +144,25 @@ function PageSelector({value}: {value?: string}) {
     {value: '/page2', label: 'page2'},
   ];
   return (
-    <SelectControl
+    <SelectControlWithProps
       inFieldLabel={`${t('Page')}:`}
       options={options}
       value={value}
-      onChange={(newValue: Option) => {
+      onChange={newValue => {
         browserHistory.push({
           ...location,
           query: {
             ...location.query,
-            [PAGE]: newValue.value,
+            [PAGE]: newValue?.value,
           },
         });
       }}
     />
   );
+}
+
+function SelectControlWithProps(props: ControlProps & {options: Option[]}) {
+  return <SelectControl {...props} />;
 }
 
 const PaddedContainer = styled('div')`
