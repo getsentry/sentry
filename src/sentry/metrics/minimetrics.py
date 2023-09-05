@@ -257,19 +257,20 @@ class Aggregator:
 
     @classmethod
     def _safe_emit_count_metric(cls, key: str, amount: int, tags: Optional[Tags] = None):
+        cls._safe_run(lambda: metrics.incr(key, amount=amount, tags=tags))
+
+    @classmethod
+    def _safe_emit_distribution_metric(cls, key: str, value: int, tags: Optional[Tags] = None):
+        cls._safe_run(lambda: metrics.timing(key, value=value, tags=tags))
+
+    @classmethod
+    def _safe_run(cls, block: Callable[[], None]):
         # In order to avoid an infinite recursion for metrics, we want to use a thread local variable that will
         # signal the downstream calls to only propagate the metric to the primary backend, otherwise if propagated to
         # minimetrics, it will cause unbounded recursion.
         thread_local.in_minimetrics = True
-        # We increment the metric.
-        metrics.incr(key, amount=amount, tags=tags)
+        block()
         # We clear the thread local variables, in order to make metrics extraction continue as normal.
-        thread_local.in_minimetrics = False
-
-    @classmethod
-    def _safe_emit_distribution_metric(cls, key: str, value: int, tags: Optional[Tags] = None):
-        thread_local.in_minimetrics = True
-        metrics.timing(key, value=value, tags=tags)
         thread_local.in_minimetrics = False
 
     def add(
