@@ -1,4 +1,4 @@
-import { ProductSolution } from 'sentry/components/onboarding/productSelection';
+import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 
 type ProductSelectionMap = Record<ProductSolution, boolean>;
 
@@ -93,7 +93,7 @@ export function getProductIntegrations({
   return integrations;
 }
 
-export function getDefaultInitParams({ dsn }: { dsn: string }) {
+export function getDefaultInitParams({dsn}: {dsn: string}) {
   return [`dsn: '${dsn}',`];
 }
 
