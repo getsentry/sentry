@@ -206,7 +206,7 @@ class Aggregator:
             metric_type = metric["type"]
             metric_value = metric["value"]
 
-            value = 0.0
+            value: float = 0.0
             if metric_type == "c":
                 # For counters, we want to sum the count value.
                 value = metric_value
@@ -220,7 +220,7 @@ class Aggregator:
                 # For sets, we want to track the cardinality of the set.
                 value = len(metric_value)
 
-            counts_by_type[metric_type] = counts_by_type.get(metric_value, 0) + value
+            counts_by_type[metric_type] = counts_by_type.get(metric_type, 0) + value
 
         # For each type and count we want to emit a metric.
         for metric_type, metric_count in counts_by_type.items():
