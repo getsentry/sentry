@@ -19,7 +19,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0540_add_release_threshold_table"),
+        ("sentry", "0541_add_replicated_auth_models"),
     ]
 
     operations = [
