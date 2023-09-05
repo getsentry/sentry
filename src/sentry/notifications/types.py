@@ -69,6 +69,9 @@ class NotificationSettingTypes(ValueEqualityEnum):
     # Notifications about spikes
     SPIKE_PROTECTION = 60
 
+    # Nudge notifications
+    MISSING_MEMBERS = 70
+
     # new for settings v2 but only with helper functions
     # This value shouldn't be stored in the DB
     REPORTS = -1
@@ -89,6 +92,7 @@ class NotificationSettingEnum(Enum):
     QUOTA_WARNINGS = "quotaWarnings"
     QUOTA_SPEND_ALLOCATIONS = "quotaSpendAllocations"
     SPIKE_PROTECTION = "spikeProtection"
+    MISSING_MEMBERS = "missingMembers"
     REPORTS = "reports"
 
 

@@ -18,7 +18,7 @@ import {
 import {CanvasView} from 'sentry/utils/profiling/canvasView';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
-import type {FlamegraphChart as FlamegraphChartType} from 'sentry/utils/profiling/flamegraphChart';
+import {FlamegraphChart as FlamegraphChartModel} from 'sentry/utils/profiling/flamegraphChart';
 import {
   getConfigViewTranslationBetweenVectors,
   getPhysicalSpacePositionFromOffset,
@@ -41,10 +41,10 @@ import {FlamegraphChartTooltip} from './flamegraphChartTooltip';
 interface FlamegraphChartProps {
   canvasBounds: Rect;
   canvasPoolManager: CanvasPoolManager;
-  chart: FlamegraphChartType | null;
+  chart: FlamegraphChartModel | null;
   chartCanvas: FlamegraphCanvas | null;
   chartCanvasRef: HTMLCanvasElement | null;
-  chartView: CanvasView<FlamegraphChartType> | null;
+  chartView: CanvasView<FlamegraphChartModel> | null;
   noMeasurementMessage: string | undefined;
   setChartCanvasRef: (ref: HTMLCanvasElement | null) => void;
 }
@@ -287,6 +287,13 @@ export function FlamegraphChart({
       {profiles.type === 'loading' || profiles.type === 'initial' ? (
         <CollapsibleTimelineLoadingIndicator />
       ) : profiles.type === 'resolved' && !chart?.series.length ? (
+        <CollapsibleTimelineMessage>
+          {noMeasurementMessage || t('Profile has no measurements')}
+        </CollapsibleTimelineMessage>
+      ) : (chart?.series?.length ?? 0) > 0 &&
+        chart?.series.every(
+          s => s.points.length < FlamegraphChartModel.MIN_RENDERABLE_POINTS
+        ) ? (
         <CollapsibleTimelineMessage>
           {noMeasurementMessage || t('Profile has no measurements')}
         </CollapsibleTimelineMessage>
