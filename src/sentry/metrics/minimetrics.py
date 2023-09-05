@@ -3,20 +3,7 @@ import threading
 import time
 import zlib
 from threading import Event, Lock, Thread
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Generic,
-    List,
-    Literal,
-    Optional,
-    Set,
-    Tuple,
-    TypeVar,
-    Union,
-    cast,
-)
+from typing import Any, Callable, Dict, Generic, List, Literal, Optional, Set, Tuple, TypeVar, Union
 
 from sentry.metrics.base import MetricsBackend, Tags
 from sentry.utils import metrics
@@ -55,6 +42,17 @@ MetricUnit = Literal[
     "ratio",
     "percent",
 ]
+
+
+def _flatten_tags(tags: Optional[Dict[str, Union[str, List[str]]]]) -> Tuple[Tuple[str, str], ...]:
+    rv = []
+    for key, value in (tags or {}).items():
+        if isinstance(value, (list, tuple)):
+            for value in value:
+                rv.append((key, value))
+        else:
+            rv.append((key, value))
+    return tuple(sorted(rv))
 
 
 class Metric(Generic[T]):
@@ -290,7 +288,7 @@ class Aggregator:
             ty,
             key,
             unit,
-            cast(Tuple[Tuple[str, str], ...], tuple(sorted(tuple((tags or {}).items())))),
+            _flatten_tags(tags),
         )
 
         with self._lock:
