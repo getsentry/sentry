@@ -110,61 +110,15 @@ sentry {
     }</version>
 </dependency>
         `,
+            additionalInfo: (
+              <p>
+                {tct(
+                  'If you use Logback for logging you may also want to send error logs to Sentry. Add a dependency to the [sentryLogbackCode:sentry-logback] module. Sentry Spring Boot Starter will auto-configure [sentryAppenderCode:SentryAppender].',
+                  {sentryAppenderCode: <code />, sentryLogbackCode: <code />}
+                )}
+              </p>
+            ),
           },
-        ],
-      },
-    ],
-  },
-  {
-    type: StepType.CONFIGURE,
-    description: (
-      <p>
-        {tct(
-          'Open up [applicationPropertiesCode:src/main/application.properties] (or [applicationYmlCode:src/main/application.yml]) and configure the DSN, and any other settings you need:',
-          {
-            applicationPropertiesCode: <code />,
-            applicationYmlCode: <code />,
-          }
-        )}
-      </p>
-    ),
-    configurations: [
-      {
-        language: 'properties',
-        description: (
-          <p>{tct('Modify [code:src/main/application.properties]:', {code: <code />})}</p>
-        ),
-        code: `
-sentry.dsn=${dsn}
-# Set traces-sample-rate to 1.0 to capture 100% of transactions for performance monitoring.
-# We recommend adjusting this value in production.
-sentry.traces-sample-rate=1.0
-        `,
-      },
-      {
-        language: 'properties',
-        description: (
-          <p>{tct('Or, modify [code:src/main/application.yml]:', {code: <code />})}</p>
-        ),
-        code: `
-sentry:
-  dsn:${dsn}
-  # Set traces-sample-rate to 1.0 to capture 100% of transactions for performance monitoring.
-  # We recommend adjusting this value in production.
-  traces-sample-rate: 1.0
-        `,
-        additionalInfo: (
-          <p>
-            {tct(
-              'If you use Logback for logging you may also want to send error logs to Sentry. Add a dependency to the [sentryLogbackCode:sentry-logback] module using either Maven or Gradle. Sentry Spring Boot Starter will auto-configure [sentryAppenderCode:SentryAppender].',
-              {sentryAppenderCode: <code />, sentryLogbackCode: <code />}
-            )}
-          </p>
-        ),
-      },
-      {
-        description: <h5>{t('Maven')}</h5>,
-        configurations: [
           {
             language: 'xml',
             code: `
@@ -226,20 +180,46 @@ sentry:
           },
         ],
       },
-      {
-        description: <h5>{t('Gradle')}</h5>,
-        configurations: [
+    ],
+  },
+  {
+    type: StepType.CONFIGURE,
+    description: (
+      <p>
+        {tct(
+          'Open up [applicationPropertiesCode:src/main/application.properties] (or [applicationYmlCode:src/main/application.yml]) and configure the DSN, and any other settings you need:',
           {
-            language: 'properties',
-            partialLoading: sourcePackageRegistries?.isLoading,
-            code: `implementation 'io.sentry:sentry-logback:${
-              sourcePackageRegistries?.isLoading
-                ? t('\u2026loading')
-                : sourcePackageRegistries?.data?.['sentry.java.logback']?.version ??
-                  '6.28.0'
-            }'`,
-          },
-        ],
+            applicationPropertiesCode: <code />,
+            applicationYmlCode: <code />,
+          }
+        )}
+      </p>
+    ),
+    configurations: [
+      {
+        language: 'properties',
+        description: (
+          <p>{tct('Modify [code:src/main/application.properties]:', {code: <code />})}</p>
+        ),
+        code: `
+sentry.dsn=${dsn}
+# Set traces-sample-rate to 1.0 to capture 100% of transactions for performance monitoring.
+# We recommend adjusting this value in production.
+sentry.traces-sample-rate=1.0
+        `,
+      },
+      {
+        language: 'properties',
+        description: (
+          <p>{tct('Or, modify [code:src/main/application.yml]:', {code: <code />})}</p>
+        ),
+        code: `
+sentry:
+  dsn:${dsn}
+  # Set traces-sample-rate to 1.0 to capture 100% of transactions for performance monitoring.
+  # We recommend adjusting this value in production.
+  traces-sample-rate: 1.0
+        `,
       },
     ],
   },
