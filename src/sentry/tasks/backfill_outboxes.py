@@ -97,7 +97,7 @@ def schedule_backfill_outbox_jobs_control():
     acks_late=True,
     silo_mode=SiloMode.REGION,
 )
-def schedule_hybrid_cloud_foreign_key_jobs():
+def schedule_backfill_outbox_jobs():
     _schedule_backfill_outboxes(RegionOutboxProducingModel, process_backfill_outboxes)
 
 

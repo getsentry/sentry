@@ -913,12 +913,6 @@ CELERYBEAT_SCHEDULE_CONTROL = {
         "schedule": crontab(minute="*/1"),
         "options": {"expires": 30, "queue": "outbox.control"},
     },
-    "backfill-outboxes-control": {
-        "task": "sentry.tasks.backfill_outboxes.process_backfill_outboxes_control",
-        # Run every 5 minutes
-        "schedule": crontab(minute="*/5"),
-        "options": {"expires": 150, "queue": "outbox.control"},
-    },
     "schedule-deletions-control": {
         "task": "sentry.tasks.deletion.run_scheduled_deletions_control",
         # Run every 15 minutes
@@ -1012,12 +1006,6 @@ CELERYBEAT_SCHEDULE_REGION = {
         # Run every 1 minute
         "schedule": crontab(minute="*/1"),
         "options": {"expires": 30},
-    },
-    "backfill-outboxes": {
-        "task": "sentry.tasks.backfill_outboxes.process_backfill_outboxes",
-        # Run every 5 minutes
-        "schedule": crontab(minute="*/5"),
-        "options": {"expires": 150},
     },
     "update-user-reports": {
         "task": "sentry.tasks.update_user_reports",
