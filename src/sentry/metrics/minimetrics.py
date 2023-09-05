@@ -148,6 +148,7 @@ ComposedKey = Tuple[int, str, str, MetricUnit, Tuple[Tuple[str, str], ...]]
 
 class Aggregator:
     ROLLUP_IN_SECONDS = 10.0
+    MAX_BUCKETS = 100000
 
     def __init__(self) -> None:
         self.buckets: Dict[ComposedKey, Metric[Any]] = {}
@@ -193,13 +194,8 @@ class Aggregator:
 
             time.sleep(2.0)
 
-    @staticmethod
-    def _emit(extracted_metrics: Any) -> Any:
-        # In order to avoid an infinite recursion for metrics, we want to use a thread local variable that will
-        # signal the downstream calls to only propagate the metric to the primary backend, otherwise if propagated to
-        # minimetrics, it will cause unbounded recursion.
-        thread_local.in_minimetrics = True
-
+    @classmethod
+    def _emit(cls, extracted_metrics: Any) -> Any:
         # We obtain the counts for each metric type, since we want to know how many by type we have.
         counts_by_type: Dict[str, float] = {}
         for metric in extracted_metrics:
@@ -225,11 +221,25 @@ class Aggregator:
         # For each type and count we want to emit a metric.
         for metric_type, metric_count in counts_by_type.items():
             # We want to emit a metric on how many metrics we would technically emit if we were to use minimetrics.
-            metrics.incr(
-                "minimetrics.emit", amount=int(metric_count), tags={"metric_type": metric_type}
+            cls._safe_emit_count_metric(
+                key="minimetrics.emit", amount=int(metric_count), tags={"metric_type": metric_type}
             )
 
+    @classmethod
+    def _safe_emit_count_metric(cls, key: str, amount: int, tags: Optional[Tags] = None):
+        # In order to avoid an infinite recursion for metrics, we want to use a thread local variable that will
+        # signal the downstream calls to only propagate the metric to the primary backend, otherwise if propagated to
+        # minimetrics, it will cause unbounded recursion.
+        thread_local.in_minimetrics = True
+        # We increment the metric.
+        metrics.incr(key, amount=amount, tags=tags)
         # We clear the thread local variables, in order to make metrics extraction continue as normal.
+        thread_local.__dict__.clear()
+
+    @classmethod
+    def _safe_emit_distribution_metric(cls, key: str, value: int, tags: Optional[Tags] = None):
+        thread_local.in_minimetrics = True
+        metrics.timing(key, value=value, tags=tags)
         thread_local.__dict__.clear()
 
     def add(
@@ -255,8 +265,17 @@ class Aggregator:
         with self._lock:
             metric = self.buckets.get(bucket_key)
             if metric is None:
+                if len(self.buckets) >= self.MAX_BUCKETS:
+                    # We want to track how many times buckets limits have been reached.
+                    self._safe_emit_count_metric(key="minimetrics.buckets_limit_reached", amount=1)
+                    return
+
                 metric = METRIC_TYPES[ty]()
                 self.buckets[bucket_key] = metric
+                # We want to track how many buckets we have, in order to understand their growth.
+                self._safe_emit_distribution_metric(
+                    key="minimetrics.buckets_size", value=len(self.buckets)
+                )
 
             metric.add(value)
 
