@@ -775,6 +775,7 @@ CELERY_QUEUES_CONTROL = [
     Queue("app_platform.control", routing_key="app_platform.control", exchange=control_exchange),
     Queue("auth.control", routing_key="auth.control", exchange=control_exchange),
     Queue("cleanup.control", routing_key="cleanup.control", exchange=control_exchange),
+    Queue("email", routing_key="email", exchange=control_exchange),
     Queue("integrations.control", routing_key="integrations.control", exchange=control_exchange),
     Queue("files.delete.control", routing_key="files.delete.control", exchange=control_exchange),
     Queue(
@@ -1734,8 +1735,6 @@ SENTRY_FEATURES = {
     "organizations:sourcemaps-upload-release-as-artifact-bundle": False,
     # Signals that the organization supports the on demand metrics prefill.
     "organizations:on-demand-metrics-prefill": False,
-    # Signals that the organization can start prefilling on demand metrics.
-    "organizations:enable-on-demand-metrics-prefill": False,
     # Enable data forwarding functionality for projects.
     "projects:data-forwarding": True,
     # Enable functionality to discard groups.
@@ -3481,6 +3480,11 @@ if int(PG_VERSION.split(".", maxsplit=1)[0]) < 12:
 
 ANOMALY_DETECTION_URL = "127.0.0.1:9091"
 ANOMALY_DETECTION_TIMEOUT = 30
+
+# TODO: Once this moves to its own service, this URL will need to be updated
+SEVERITY_DETECTION_URL = ANOMALY_DETECTION_URL
+SEVERITY_DETECTION_TIMEOUT = 0.3  # 300 milliseconds
+SEVERITY_DETECTION_RETRIES = 1
 
 # This is the URL to the profiling service
 SENTRY_VROOM = os.getenv("VROOM", "http://127.0.0.1:8085")

@@ -34,6 +34,7 @@ export class FlamegraphChart {
     y: [0, 0],
   };
 
+  static MIN_RENDERABLE_POINTS = 3;
   static Empty = new FlamegraphChart(Rect.Empty(), [], [[0, 0, 0, 0]]);
 
   constructor(
@@ -64,7 +65,10 @@ export class FlamegraphChart {
         points: new Array(measurement?.values?.length ?? 0).fill(0),
       };
 
-      if (!measurement?.values?.length) {
+      if (
+        !measurement?.values?.length ||
+        measurement?.values.length < FlamegraphChart.MIN_RENDERABLE_POINTS
+      ) {
         continue;
       }
 
