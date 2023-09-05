@@ -40,7 +40,6 @@ const SplitDivider = styled((props: Props & DOMAttributes<HTMLDivElement>) => (
   &[data-slide-direction='updown'] {
     cursor: ns-resize;
     width: 100%;
-    height: ${space(2)};
 
     & > svg {
       transform: rotate(90deg);

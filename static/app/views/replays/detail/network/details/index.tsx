@@ -120,8 +120,6 @@ const CloseButtonWrapper = styled('div')`
 `;
 
 const StyledSplitDivider = styled(SplitDivider)`
-  height: 100%;
-
   :hover,
   &[data-is-held='true'] {
     z-index: ${p => p.theme.zIndex.initial + 1};
