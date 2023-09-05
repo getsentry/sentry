@@ -1,5 +1,5 @@
 """
-Checks OutboxProduciongModel classes and their __replication_version__.
+Checks OutboxProducingModel classes and their __replication_version__.
 When the replication_version on any class is bumped, this task queues up
 outboxes for all the model instances of said class.
 
