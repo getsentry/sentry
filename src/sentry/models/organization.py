@@ -346,9 +346,11 @@ class Organization(Model, OptionMixin, OrganizationAbsoluteUrlMixin, SnowflakeId
 
     def has_single_owner(self):
         owners = list(
-            self.get_members_with_org_roles([roles.get_top_dog().id]).values_list("id", flat=True)
+            self.get_members_with_org_roles([roles.get_top_dog().id])[:2].values_list(
+                "id", flat=True
+            )
         )
-        return len(owners[:2]) == 1
+        return len(owners) == 1
 
     def get_members_with_org_roles(
         self,
