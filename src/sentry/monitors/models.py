@@ -592,7 +592,7 @@ class MonitorEnvironment(Model):
             if self.monitor.status != ObjectStatus.DISABLED:
                 params["status"] = MonitorStatus.OK
             # in the future this will auto-resolve associated issues
-            if self.status != CheckInStatus.OK:
+            if self.status != MonitorStatus.OK:
                 params["last_state_change"] = ts
 
         MonitorEnvironment.objects.filter(id=self.id).exclude(last_checkin__gt=ts).update(**params)
