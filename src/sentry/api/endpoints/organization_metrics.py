@@ -13,7 +13,7 @@ from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import string_to_use_case_id
 from sentry.snuba.metrics import (
     QueryDefinition,
-    get_metrics,
+    get_metrics_meta,
     get_series,
     get_single_metric_info,
     get_tag_values,
@@ -51,7 +51,7 @@ class OrganizationMetricsEndpoint(OrganizationEndpoint):
     def get(self, request: Request, organization) -> Response:
         projects = self.get_projects(request, organization)
 
-        metrics = get_metrics(projects, use_case_id=get_use_case_id(request))
+        metrics = get_metrics_meta(projects, use_case_id=get_use_case_id(request))
 
         return Response(metrics, status=200)
 

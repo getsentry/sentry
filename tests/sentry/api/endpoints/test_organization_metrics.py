@@ -87,90 +87,8 @@ class OrganizationMetricsMetaTest(OrganizationMetricMetaIntegrationTestCase):
         super().setUp()
         self.proj2 = self.create_project(organization=self.organization)
         self.transaction_proj = self.create_project(organization=self.organization)
-        self.session_metrics_meta = [
-            {
-                "name": "sentry.sessions.session",
-                "type": "counter",
-                "operations": ["max_timestamp", "min_timestamp", "sum"],
-                "unit": None,
-            },
-            {
-                "name": "sentry.sessions.user",
-                "type": "set",
-                "operations": ["count_unique", "max_timestamp", "min_timestamp"],
-                "unit": None,
-            },
-            {"name": "session.abnormal", "operations": [], "type": "numeric", "unit": "sessions"},
-            {"name": "session.abnormal_user", "operations": [], "type": "numeric", "unit": "users"},
-            {"name": "session.all", "type": "numeric", "operations": [], "unit": "sessions"},
-            {"name": "session.all_user", "type": "numeric", "operations": [], "unit": "users"},
-            {"name": "session.anr_rate", "operations": [], "type": "numeric", "unit": "percentage"},
-            {"name": "session.crash_free", "operations": [], "type": "numeric", "unit": "sessions"},
-            {
-                "name": "session.crash_free_rate",
-                "type": "numeric",
-                "operations": [],
-                "unit": "percentage",
-            },
-            {
-                "name": "session.crash_free_user",
-                "operations": [],
-                "type": "numeric",
-                "unit": "users",
-            },
-            {
-                "name": "session.crash_free_user_rate",
-                "type": "numeric",
-                "operations": [],
-                "unit": "percentage",
-            },
-            {
-                "name": "session.crash_rate",
-                "type": "numeric",
-                "operations": [],
-                "unit": "percentage",
-            },
-            {
-                "name": "session.crash_user_rate",
-                "type": "numeric",
-                "operations": [],
-                "unit": "percentage",
-            },
-            {"name": "session.crashed", "type": "numeric", "operations": [], "unit": "sessions"},
-            {"name": "session.crashed_user", "type": "numeric", "operations": [], "unit": "users"},
-            {
-                "name": "session.errored_preaggregated",
-                "operations": [],
-                "type": "numeric",
-                "unit": "sessions",
-            },
-            {
-                "name": "session.errored_user",
-                "type": "numeric",
-                "operations": [],
-                "unit": "users",
-            },
-            {
-                "name": "session.foreground_anr_rate",
-                "operations": [],
-                "type": "numeric",
-                "unit": "percentage",
-            },
-            {
-                "name": "session.healthy_user",
-                "type": "numeric",
-                "operations": [],
-                "unit": "users",
-            },
-        ]
 
-    # TODO do we really need this test ?
-    def test_metrics_index(self):
-        """
-
-        Note that this test will fail once we have a metrics meta store,
-        because the setUp bypasses it.
-        """
+    def test_metrics_meta_sessions(self):
         response = self.get_success_response(
             self.organization.slug, project=[self.project.id], useCase=["sessions"]
         )
@@ -182,3 +100,18 @@ class OrganizationMetricsMetaTest(OrganizationMetricMetaIntegrationTestCase):
             assert "name" in metric
             assert "mri" in metric
             assert type(metric["operations"]) == list
+
+    def test_metrics_meta_transactions(self):
+        response = self.get_success_response(
+            self.organization.slug, project=[self.project.id], useCase=["transactions"]
+        )
+
+        assert type(response.data) == list
+        assert len(response.data) == 46
+
+    def test_metrics_meta_invalid_use_case(self):
+        response = self.get_error_response(
+            self.organization.slug, project=[self.project.id], useCase=["not-a-use-case"]
+        )
+
+        assert response.status_code == 400

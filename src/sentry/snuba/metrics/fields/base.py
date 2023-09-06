@@ -158,7 +158,7 @@ def run_metrics_query(
 
 
 def _get_known_entity_of_metric_mri(metric_mri: str) -> Optional[EntityKey]:
-    # ToDo(ahmed): Add an abstraction that returns relevant data based on UseCaseID without repeating code
+    # ToDo(ogi): Reimplement this
     try:
         SessionMRI(metric_mri)
         entity_prefix = metric_mri.split(":")[0]
@@ -177,6 +177,16 @@ def _get_known_entity_of_metric_mri(metric_mri: str) -> Optional[EntityKey]:
             "d": EntityKey.GenericMetricsDistributions,
             "s": EntityKey.GenericMetricsSets,
         }[entity_prefix]
+    except (ValueError, IndexError, KeyError):
+        pass
+    try:
+        entity_prefix, namespace = metric_mri.split(":")
+        if namespace.startswith("custom"):
+            return {
+                "c": EntityKey.GenericMetricsCounters,
+                "d": EntityKey.GenericMetricsDistributions,
+                "s": EntityKey.GenericMetricsSets,
+            }[entity_prefix]
     except (ValueError, IndexError, KeyError):
         pass
 
@@ -413,7 +423,7 @@ class RawOp(MetricOperation):
         org_id: int,
         params: Optional[MetricOperationParams] = None,
     ) -> Function:
-        if use_case_id is UseCaseID.TRANSACTIONS:
+        if use_case_id in [UseCaseID.TRANSACTIONS, UseCaseID.CUSTOM]:
             snuba_function = GENERIC_OP_TO_SNUBA_FUNCTION[entity][self.op]
         else:
             snuba_function = OP_TO_SNUBA_FUNCTION[entity][self.op]
