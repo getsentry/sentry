@@ -30,7 +30,6 @@ from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
     Authenticator,
     AuthIdentity,
-    OrganizationMember,
     OrganizationStatus,
     User,
     UserAvatar,
@@ -39,6 +38,8 @@ from sentry.models import (
     UserPermission,
     UserRoleUser,
 )
+from sentry.models.organizationmapping import OrganizationMapping
+from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.services.hybrid_cloud.organization_mapping import organization_mapping_service
 from sentry.services.hybrid_cloud.user import RpcUser
@@ -271,18 +272,23 @@ class DetailedUserSerializer(UserSerializer):
             lambda x: not x.interface.is_backup_interface,
         )
 
-        memberships = manytoone_to_dict(
-            OrganizationMember.objects.filter(
-                user_id__in={u.id for u in item_list},
-                organization__status=OrganizationStatus.ACTIVE,
-            ),
-            "user_id",
-        )
+        memberships = OrganizationMemberMapping.objects.filter(
+            user_id__in={u.id for u in item_list}
+        ).values_list("user_id", "organization_id", named=True)
+        active_organizations = OrganizationMapping.objects.filter(
+            organization_id__in={m.organization_id for m in memberships},
+            status=OrganizationStatus.ACTIVE,
+        ).values_list("organization_id", flat=True)
+
+        active_memberships = defaultdict(int)
+        for membership in memberships:
+            if membership.organization_id in active_organizations:
+                active_memberships[membership.user_id] += 1
 
         for item in item_list:
             attrs[item]["authenticators"] = authenticators[item.id]
             # org can reset 2FA if the user is only in one org
-            attrs[item]["canReset2fa"] = len(memberships[item.id]) == 1
+            attrs[item]["canReset2fa"] = active_memberships[item.id] == 1
 
         return attrs
 
