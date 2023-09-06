@@ -318,20 +318,18 @@ class NotificationSettingV2HelpersTest(TestCase):
         self.setting_providers = [setting_provider_1, setting_provider_2, setting_provider_3]
 
     def test_get_all_setting_options(self):
-        assert (
-            list(get_all_setting_options(self.user, self.project, self.organization))
-            == self.setting_options
-        )
+        options = list(get_all_setting_options([self.user], self.project, self.organization))
+        assert options == self.setting_options
 
     def test_get_all_setting_providers(self):
         assert (
-            list(get_all_setting_providers(self.user, self.project, self.organization))
+            list(get_all_setting_providers([self.user], self.project, self.organization))
             == self.setting_providers
         )
 
     def test_get_setting_options_for_recipient(self):
         assert (
-            list(get_all_setting_options(self.user, self.project, self.organization))
+            list(get_all_setting_options([self.user], self.project, self.organization))
             == self.setting_options
         )
         options_for_recipient = get_setting_options_for_recipient(
