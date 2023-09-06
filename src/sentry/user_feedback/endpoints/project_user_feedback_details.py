@@ -16,7 +16,7 @@ class ProjectUserFeedbackDetailsEndpoint(ProjectEndpoint):
     publish_status = {
         "DELETE": ApiPublishStatus.EXPERIMENTAL,
         "GET": ApiPublishStatus.EXPERIMENTAL,
-        "PUT": ApiPublishStatus.EXPERIMENTAL,
+        "PATCH": ApiPublishStatus.EXPERIMENTAL,
     }
 
     def get(self, request: Request, project: Project, user_feedback_id: str) -> Response:
@@ -34,4 +34,7 @@ class ProjectUserFeedbackDetailsEndpoint(ProjectEndpoint):
         )
 
     def delete(self, request: Request, project: Project, user_feedback_id: str) -> Response:
+        pass
+
+    def patch(self, request: Request, project: Project, user_feedback_id: str) -> Response:
         pass
