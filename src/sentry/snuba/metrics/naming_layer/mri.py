@@ -19,6 +19,7 @@ metric that is queryable by the API.
 __all__ = (
     "SessionMRI",
     "TransactionMRI",
+    "SpanMRI",
     "MRI_SCHEMA_REGEX",
     "MRI_EXPRESSION_REGEX",
     "parse_mri",
@@ -139,6 +140,21 @@ class TransactionMRI(Enum):
     COUNT_ON_DEMAND = "c:transactions/on_demand@none"
     DIST_ON_DEMAND = "d:transactions/on_demand@none"
     SET_ON_DEMAND = "s:transactions/on_demand@none"
+
+
+class SpanMRI(Enum):
+    USER = "s:spans/user@none"
+    DURATION = "d:spans/duration@millisecond"
+    SELF_TIME = "d:spans/exclusive_time@millisecond"
+    SELF_TIME_LIGHT = "d:spans/exclusive_time_light@millisecond"
+
+    # Derived
+    ALL = "e:spans/all@none"
+    ALL_LIGHT = "e:spans_light/all@none"
+    HTTP_ERROR_COUNT = "e:spans/http_error_count@none"
+    HTTP_ERROR_RATE = "e:spans/http_error_rate@ratio"
+    HTTP_ERROR_COUNT_LIGHT = "e:spans/http_error_count_light@none"
+    HTTP_ERROR_RATE_LIGHT = "e:spans/http_error_rate_light@ratio"
 
 
 @dataclass

@@ -325,6 +325,8 @@ METRIC_FUNCTION_LIST_BY_TYPE = {
         "min",
         "sum",
         "percentile",
+        "http_error_count",
+        "http_error_rate",
     ],
     "generic_set": [
         "count_miserable",

@@ -37,7 +37,12 @@ from sentry.snuba.metrics.fields.snql import (
     subtraction,
     uniq_aggregation_on_metric,
 )
-from sentry.snuba.metrics.naming_layer import SessionMRI, TransactionMRI, get_public_name_from_mri
+from sentry.snuba.metrics.naming_layer import (
+    SessionMRI,
+    SpanMRI,
+    TransactionMRI,
+    get_public_name_from_mri,
+)
 from sentry.testutils.cases import TestCase
 
 pytestmark = pytest.mark.sentry_metrics
@@ -61,6 +66,8 @@ def get_entity_of_metric_mocked(_, metric_mri, use_case_id):
         TransactionMRI.DURATION.value: EntityKey.MetricsDistributions,
         TransactionMRI.USER.value: EntityKey.MetricsSets,
         TransactionMRI.MEASUREMENTS_LCP.value: EntityKey.MetricsDistributions,
+        SpanMRI.SELF_TIME.value: EntityKey.MetricsDistributions,
+        SpanMRI.SELF_TIME_LIGHT.value: EntityKey.MetricsDistributions,
     }[metric_mri]
 
 

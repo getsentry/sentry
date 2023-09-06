@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Callable, Mapping, Optional, Union
 
 import sentry_sdk
-from snuba_sdk import Column, Function, OrderBy
+from snuba_sdk import AliasedExpression, Column, Function, OrderBy
 
 from sentry.api.event_search import SearchFilter
 from sentry.exceptions import IncompatibleMetricsQuery
@@ -11,6 +11,7 @@ from sentry.search.events import builder, constants, fields
 from sentry.search.events.datasets import field_aliases, function_aliases
 from sentry.search.events.datasets.base import DatasetConfig
 from sentry.search.events.types import SelectType, WhereType
+from sentry.snuba.metrics.naming_layer.mri import SpanMRI
 from sentry.snuba.referrer import Referrer
 
 
@@ -711,6 +712,30 @@ class SpansMetricsLayerDatasetConfig(DatasetConfig):
                         args=args, alias=alias, resolve_mri=self.resolve_mri, fixed_percentile=1.0
                     ),
                     default_result_type="duration",
+                ),
+                fields.MetricsFunction(
+                    "http_error_count",
+                    snql_metric_layer=lambda args, alias: AliasedExpression(
+                        Column(
+                            SpanMRI.HTTP_ERROR_COUNT_LIGHT.value
+                            if not self.builder.has_transaction
+                            else SpanMRI.HTTP_ERROR_COUNT.value
+                        ),
+                        alias,
+                    ),
+                    default_result_type="integer",
+                ),
+                fields.MetricsFunction(
+                    "http_error_rate",
+                    snql_metric_layer=lambda args, alias: AliasedExpression(
+                        Column(
+                            SpanMRI.HTTP_ERROR_RATE_LIGHT.value
+                            if not self.builder.has_transaction
+                            else SpanMRI.HTTP_ERROR_RATE.value
+                        ),
+                        alias,
+                    ),
+                    default_result_type="percentage",
                 ),
             ]
         }

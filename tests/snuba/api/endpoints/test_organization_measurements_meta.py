@@ -64,6 +64,8 @@ class OrganizationMeasurementsMetaEndpoint(MetricsEnhancedPerformanceTestCase):
                     "min",
                     "sum",
                     "percentile",
+                    "http_error_count",
+                    "http_error_rate",
                 ],
                 "unit": "millisecond",
             }
