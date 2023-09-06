@@ -365,7 +365,7 @@
           <p style="font-size: 11px;">Rewind and replay every step of a user’s journey before and after they encounter an issue.</p>
           {% url 'sentry-organization-replays' organization.slug as replay_landing %}
           {% querystring referrer="weekly_report_upsell" notification_uuid=notification_uuid as query %}
-          <a href="{% org_url organization replay_landing query=querystring %}" class="btn"
+          <a href="{% org_url organization replay_landing query=query %}" class="btn"
             style="margin-top: 8px;">Set Up Session Replay</a>
         </div>
       </td>
