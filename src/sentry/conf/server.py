@@ -2596,15 +2596,12 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
             # https://docs.confluent.io/platform/current/installation/docker/config-reference.html#cp-kakfa-example
             "environment": {
                 "KAFKA_PROCESS_ROLES": "broker,controller",
-                "KAFKA_CONTROLLER_QUORUM_VOTERS": "1@{containers[kafka][name]}:29093",
+                "KAFKA_CONTROLLER_QUORUM_VOTERS": "1@127.0.0.1:29093",
                 "KAFKA_CONTROLLER_LISTENER_NAMES": "CONTROLLER",
                 "KAFKA_NODE_ID": "1",
                 "CLUSTER_ID": "MkU3OEVBNTcwNTJENDM2Qk",
-                # "KAFKA_BOOTSTRAP_SERVERS": "127.0.0.1:9092",
                 "KAFKA_LISTENERS": "PLAINTEXT://0.0.0.0:29092,EXTERNAL://0.0.0.0:9092,CONTROLLER://0.0.0.0:29093",
-                # can probably remove PLAINTEXT from advert listeners?
-                "KAFKA_ADVERTISED_LISTENERS": "PLAINTEXT://{containers[kafka][name]}:29092,EXTERNAL://{containers[kafka]"
-                "[ports][9092/tcp][0]}:{containers[kafka][ports][9092/tcp][1]}",
+                "KAFKA_ADVERTISED_LISTENERS": "PLAINTEXT://127.0.0.1:29092,EXTERNAL://127.0.0.1:9092",
                 "KAFKA_LISTENER_SECURITY_PROTOCOL_MAP": "PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT",
                 "KAFKA_INTER_BROKER_LISTENER_NAME": "PLAINTEXT",
                 "KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR": "1",
@@ -2661,7 +2658,7 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
                 "CLICKHOUSE_HTTP_PORT": "8123",
                 "DEFAULT_BROKERS": ""
                 if "snuba" in settings.SENTRY_EVENTSTREAM
-                else "{containers[kafka][name]}:9093",  # uh...
+                else "{containers[kafka][name]}:9092",
                 "REDIS_HOST": "{containers[redis][name]}",
                 "REDIS_PORT": "6379",
                 "REDIS_DB": "1",
