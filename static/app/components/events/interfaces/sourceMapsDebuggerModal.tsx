@@ -1023,7 +1023,7 @@ function ScrapingSourceMapAvailableChecklistItem({
   shouldValidate: boolean;
   sourceResolutionResults: SourceResolutionResults;
 }) {
-  const itemName = 'Source map available to Sentry';
+  const itemName = t('Source map available to Sentry');
 
   if (!shouldValidate) {
     return <CheckListItem status="none" title={itemName} />;
