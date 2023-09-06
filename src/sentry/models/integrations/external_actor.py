@@ -21,7 +21,6 @@ logger = logging.getLogger(__name__)
 class ExternalActor(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Excluded
 
-    actor = FlexibleForeignKey("sentry.Actor", db_index=True, on_delete=models.CASCADE)
     team = FlexibleForeignKey("sentry.Team", null=True, db_index=True, on_delete=models.CASCADE)
     user_id = HybridCloudForeignKey("sentry.User", null=True, db_index=True, on_delete="CASCADE")
     organization = FlexibleForeignKey("sentry.Organization")
@@ -47,7 +46,6 @@ class ExternalActor(DefaultFieldsModel):
         app_label = "sentry"
         db_table = "sentry_externalactor"
         unique_together = (
-            ("organization", "provider", "external_name", "actor"),
             ("organization", "provider", "external_name", "team_id"),
             ("organization", "provider", "external_name", "user_id"),
         )
