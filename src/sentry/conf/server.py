@@ -402,7 +402,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.search",
     "sentry.sentry_metrics.indexer.postgres.apps.Config",
     "sentry.snuba",
-    "sentry.userfeedback",
+    "sentry.user_feedback",
     "sentry.utils.suspect_resolutions.apps.Config",
     "sentry.utils.suspect_resolutions_releases.apps.Config",
     "social_auth",
@@ -3281,7 +3281,7 @@ MIGRATIONS_LOCKFILE_APP_WHITELIST = (
     "replays",
     "sentry",
     "social_auth",
-    "userfeedback",
+    "user_feedback",
 )
 # Where to write the lockfile to.
 MIGRATIONS_LOCKFILE_PATH = os.path.join(PROJECT_ROOT, os.path.pardir, os.path.pardir)
