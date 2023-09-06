@@ -689,7 +689,7 @@ def update_tracked_data(model):
         model.__data = UNSAVED
 
 
-class DeleteConfirmationArgs(TypedDict, total=False):
+class DeleteConfirmationArgs(TypedDict):
     username: str
     ip_address: str
     deletion_datetime: datetime
