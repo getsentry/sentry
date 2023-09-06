@@ -755,5 +755,6 @@
   "sites.Site": [],
   "social_auth.UserSocialAuth": [
     "sentry.User"
-  ]
+  ],
+  "user_feedback.UserFeedback": []
 }

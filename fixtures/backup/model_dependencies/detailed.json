@@ -3346,5 +3346,13 @@
     "silos": [
       "Control"
     ]
+  },
+  "user_feedback.UserFeedback": {
+    "foreign_keys": {},
+    "model": "user_feedback.UserFeedback",
+    "relocation_scope": "Excluded",
+    "silos": [
+      "Region"
+    ]
   }
 }
