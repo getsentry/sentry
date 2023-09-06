@@ -192,13 +192,17 @@ export function SourceMapsDebuggerModal({
                 steps below to get a readable stack trace:
               </p>
               <CheckList>
-                <InstalledSdkChecklistItem facts={sourceResolutionResults} />
-                <HasDebugIdChecklistItem facts={sourceResolutionResults} />
+                <InstalledSdkChecklistItem
+                  sourceResolutionResults={sourceResolutionResults}
+                />
+                <HasDebugIdChecklistItem
+                  sourceResolutionResults={sourceResolutionResults}
+                />
                 <UploadedSourceFileWithCorrectDebugIdChecklistItem
-                  facts={sourceResolutionResults}
+                  sourceResolutionResults={sourceResolutionResults}
                 />
                 <UploadedSourceMapWithCorrectDebugIdChecklistItem
-                  facts={sourceResolutionResults}
+                  sourceResolutionResults={sourceResolutionResults}
                 />
               </CheckList>
               {debugIdProgressPercent === 1 ? <ChecklistDoneNote /> : <VerifyAgainNote />}
@@ -213,12 +217,18 @@ export function SourceMapsDebuggerModal({
                 trace:
               </p>
               <CheckList>
-                <EventHasReleaseNameChecklistItem facts={sourceResolutionResults} />
-                <ReleaseHasUploadedArtifactsChecklistItem
-                  facts={sourceResolutionResults}
+                <EventHasReleaseNameChecklistItem
+                  sourceResolutionResults={sourceResolutionResults}
                 />
-                <ReleaseSourceFileMatchingChecklistItem facts={sourceResolutionResults} />
-                <ReleaseSourceMapMatchingChecklistItem facts={sourceResolutionResults} />
+                <ReleaseHasUploadedArtifactsChecklistItem
+                  sourceResolutionResults={sourceResolutionResults}
+                />
+                <ReleaseSourceFileMatchingChecklistItem
+                  sourceResolutionResults={sourceResolutionResults}
+                />
+                <ReleaseSourceMapMatchingChecklistItem
+                  sourceResolutionResults={sourceResolutionResults}
+                />
               </CheckList>
               {releaseNameProgressPercent === 1 ? (
                 <ChecklistDoneNote />
@@ -229,10 +239,10 @@ export function SourceMapsDebuggerModal({
             <TabPanels.Item key="fetching">
               <CheckList>
                 <ScrapingSourceFileAvailableChecklistItem
-                  facts={sourceResolutionResults}
+                  sourceResolutionResults={sourceResolutionResults}
                 />
                 <ScrapingSourceMapAvailableChecklistItem
-                  facts={sourceResolutionResults}
+                  sourceResolutionResults={sourceResolutionResults}
                 />
               </CheckList>
               {scrapingProgressPercent === 1 ? (
@@ -289,19 +299,24 @@ function CheckListItem({children, title, status}: PropsWithChildren<CheckListIte
   );
 }
 
-function InstalledSdkChecklistItem({facts}: {facts: SourceResoultionResults}) {
+function InstalledSdkChecklistItem({
+  sourceResolutionResults,
+}: {
+  sourceResolutionResults: SourceResoultionResults;
+}) {
   const itemName = 'Installed SDK supports Debug IDs';
 
-  if (facts.sdkDebugIdSupport === 'needs-upgrade') {
+  if (sourceResolutionResults.sdkDebugIdSupport === 'needs-upgrade') {
     return (
       <CheckListItem status="alert" title={itemName}>
         <CheckListInstruction type="muted">
           <h6>Outdated SDK</h6>
-          {facts.sdkVersion ? (
+          {sourceResolutionResults.sdkVersion ? (
             <p>
-              You are using version <MonoBlock>{facts.sdkVersion}</MonoBlock> of the
-              Sentry SDK which does not support debug IDs. You should upgrade to at least
-              version <MonoBlock>7.56.0</MonoBlock>.
+              You are using version{' '}
+              <MonoBlock>{sourceResolutionResults.sdkVersion}</MonoBlock> of the Sentry
+              SDK which does not support debug IDs. You should upgrade to at least version{' '}
+              <MonoBlock>7.56.0</MonoBlock>.
             </p>
           ) : (
             <p>
@@ -319,7 +334,10 @@ function InstalledSdkChecklistItem({facts}: {facts: SourceResoultionResults}) {
     );
   }
 
-  if (facts.stackFrameDebugId !== null || facts.sdkDebugIdSupport === 'full') {
+  if (
+    sourceResolutionResults.stackFrameDebugId !== null ||
+    sourceResolutionResults.sdkDebugIdSupport === 'full'
+  ) {
     return <CheckListItem status="checked" title={itemName} />;
   }
 
@@ -341,18 +359,22 @@ function InstalledSdkChecklistItem({facts}: {facts: SourceResoultionResults}) {
   );
 }
 
-function HasDebugIdChecklistItem({facts}: {facts: SourceResoultionResults}) {
+function HasDebugIdChecklistItem({
+  sourceResolutionResults,
+}: {
+  sourceResolutionResults: SourceResoultionResults;
+}) {
   const itemName = 'Stack frame has Debug IDs';
 
-  if (facts.stackFrameDebugId !== null) {
+  if (sourceResolutionResults.stackFrameDebugId !== null) {
     return <CheckListItem status="checked" title={itemName} />;
   }
 
-  if (facts.sdkDebugIdSupport === 'needs-upgrade') {
+  if (sourceResolutionResults.sdkDebugIdSupport === 'needs-upgrade') {
     return <CheckListItem status="none" title={itemName} />;
   }
 
-  if (facts.eventHasDebugIds) {
+  if (sourceResolutionResults.eventHasDebugIds) {
     return (
       <CheckListItem status="alert" title={itemName}>
         <CheckListInstruction type="muted">
@@ -367,7 +389,7 @@ function HasDebugIdChecklistItem({facts}: {facts: SourceResoultionResults}) {
     );
   }
 
-  if (facts.uploadedSomeArtifactWithDebugId) {
+  if (sourceResolutionResults.uploadedSomeArtifactWithDebugId) {
     return (
       <CheckListItem status="alert" title={itemName}>
         <CheckListInstruction type="muted">
@@ -410,21 +432,21 @@ function HasDebugIdChecklistItem({facts}: {facts: SourceResoultionResults}) {
 }
 
 function UploadedSourceFileWithCorrectDebugIdChecklistItem({
-  facts,
+  sourceResolutionResults,
 }: {
-  facts: SourceResoultionResults;
+  sourceResolutionResults: SourceResoultionResults;
 }) {
   const itemName = 'Uploaded source file with a matching Debug ID';
 
-  if (facts.stackFrameDebugId === null) {
+  if (sourceResolutionResults.stackFrameDebugId === null) {
     return <CheckListItem status="none" title={itemName} />;
   }
 
-  if (facts.uploadedSourceFileWithCorrectDebugId) {
+  if (sourceResolutionResults.uploadedSourceFileWithCorrectDebugId) {
     return <CheckListItem status="checked" title={itemName} />;
   }
 
-  if (facts.uploadedSomeArtifactWithDebugId) {
+  if (sourceResolutionResults.uploadedSomeArtifactWithDebugId) {
     return (
       <CheckListItem status="alert" title={itemName}>
         <CheckListInstruction type="muted">
@@ -432,7 +454,7 @@ function UploadedSourceFileWithCorrectDebugIdChecklistItem({
           <p>
             You already uploaded artifacts with Debug IDs but none of the uploaded source
             files had a Debug ID matching this stack frame's Debug ID:{' '}
-            {<MonoBlock>Debug ID: {facts.stackFrameDebugId}</MonoBlock>}
+            {<MonoBlock>Debug ID: {sourceResolutionResults.stackFrameDebugId}</MonoBlock>}
           </p>
           <p>
             Make sure to inject Debug IDs into all of your source files and to upload all
@@ -444,7 +466,7 @@ function UploadedSourceFileWithCorrectDebugIdChecklistItem({
     );
   }
 
-  if (facts.uploadedSomeArtifact) {
+  if (sourceResolutionResults.uploadedSomeArtifact) {
     return (
       <CheckListItem status="alert" title={itemName}>
         <CheckListInstruction type="muted">
@@ -487,21 +509,24 @@ function UploadedSourceFileWithCorrectDebugIdChecklistItem({
 }
 
 function UploadedSourceMapWithCorrectDebugIdChecklistItem({
-  facts,
+  sourceResolutionResults,
 }: {
-  facts: SourceResoultionResults;
+  sourceResolutionResults: SourceResoultionResults;
 }) {
   const itemName = 'Uploaded source map with a matching Debug ID';
 
-  if (facts.stackFrameDebugId === null || !facts.uploadedSourceFileWithCorrectDebugId) {
+  if (
+    sourceResolutionResults.stackFrameDebugId === null ||
+    !sourceResolutionResults.uploadedSourceFileWithCorrectDebugId
+  ) {
     return <CheckListItem status="none" title={itemName} />;
   }
 
-  if (facts.uploadedSourceMapWithCorrectDebugId) {
+  if (sourceResolutionResults.uploadedSourceMapWithCorrectDebugId) {
     return <CheckListItem status="checked" title={itemName} />;
   }
 
-  if (facts.uploadedSomeArtifactWithDebugId) {
+  if (sourceResolutionResults.uploadedSomeArtifactWithDebugId) {
     return (
       <CheckListItem status="alert" title={itemName}>
         <CheckListInstruction type="muted">
@@ -509,7 +534,7 @@ function UploadedSourceMapWithCorrectDebugIdChecklistItem({
           <p>
             You already uploaded artifacts with Debug IDs but none of the uploaded source
             maps had a Debug ID matching this stack frame's Debug ID:{' '}
-            {<MonoBlock>Debug ID: {facts.stackFrameDebugId}</MonoBlock>}
+            {<MonoBlock>Debug ID: {sourceResolutionResults.stackFrameDebugId}</MonoBlock>}
           </p>
           <p>
             Make sure to inject Debug IDs into all of your source files and to upload all
@@ -522,7 +547,7 @@ function UploadedSourceMapWithCorrectDebugIdChecklistItem({
     );
   }
 
-  if (facts.uploadedSomeArtifact) {
+  if (sourceResolutionResults.uploadedSomeArtifact) {
     return (
       <CheckListItem status="alert" title={itemName}>
         <CheckListInstruction type="muted">
@@ -566,10 +591,14 @@ function UploadedSourceMapWithCorrectDebugIdChecklistItem({
   );
 }
 
-function EventHasReleaseNameChecklistItem({facts}: {facts: SourceResoultionResults}) {
+function EventHasReleaseNameChecklistItem({
+  sourceResolutionResults,
+}: {
+  sourceResolutionResults: SourceResoultionResults;
+}) {
   const itemName = 'Event has release value';
 
-  if (facts.releaseName !== null) {
+  if (sourceResolutionResults.releaseName !== null) {
     return <CheckListItem status="checked" title={itemName} />;
   }
 
@@ -599,17 +628,17 @@ function EventHasReleaseNameChecklistItem({facts}: {facts: SourceResoultionResul
 }
 
 function ReleaseHasUploadedArtifactsChecklistItem({
-  facts,
+  sourceResolutionResults,
 }: {
-  facts: SourceResoultionResults;
+  sourceResolutionResults: SourceResoultionResults;
 }) {
   const itemName = 'Release has uploaded artifacts';
 
-  if (facts.releaseName === null) {
+  if (sourceResolutionResults.releaseName === null) {
     return <CheckListItem status="none" title={itemName} />;
   }
 
-  if (facts.uploadedSomeArtifactToRelease) {
+  if (sourceResolutionResults.uploadedSomeArtifactToRelease) {
     return <CheckListItem status="checked" title={itemName} />;
   }
 
@@ -620,7 +649,7 @@ function ReleaseHasUploadedArtifactsChecklistItem({
         <p>
           The release this event belongs to doesn't have any uploaded artifacts. Upload
           your build artifacts to Sentry using the release:{' '}
-          <MonoBlock>{facts.releaseName}</MonoBlock>
+          <MonoBlock>{sourceResolutionResults.releaseName}</MonoBlock>
         </p>
         <p>
           Read the{' '}
@@ -636,21 +665,21 @@ function ReleaseHasUploadedArtifactsChecklistItem({
 }
 
 function ReleaseSourceFileMatchingChecklistItem({
-  facts,
+  sourceResolutionResults,
 }: {
-  facts: SourceResoultionResults;
+  sourceResolutionResults: SourceResoultionResults;
 }) {
   const itemName = 'Stack frame path matches source file artifact';
 
-  if (!facts.uploadedSomeArtifactToRelease) {
+  if (!sourceResolutionResults.uploadedSomeArtifactToRelease) {
     return <CheckListItem status="none" title={itemName} />;
   }
 
-  if (facts.sourceFileReleaseNameFetchingResult === 'found') {
+  if (sourceResolutionResults.sourceFileReleaseNameFetchingResult === 'found') {
     return <CheckListItem status="checked" title={itemName} />;
   }
 
-  if (facts.sourceFileReleaseNameFetchingResult === 'wrong-dist') {
+  if (sourceResolutionResults.sourceFileReleaseNameFetchingResult === 'wrong-dist') {
     return (
       <CheckListItem status="alert" title={itemName}>
         <CheckListInstruction type="muted">
@@ -659,11 +688,11 @@ function ReleaseSourceFileMatchingChecklistItem({
             You uploaded a source file artifact with the right name, however the dist
             value on this event does not match the dist value on the artifact.
           </p>
-          {facts.distName !== null ? (
+          {sourceResolutionResults.distName !== null ? (
             <p>
               Upload your build artifacts to Sentry using the dist{' '}
-              <MonoBlock>{facts.distName}</MonoBlock> or adjust the dist value in your SDK
-              options.
+              <MonoBlock>{sourceResolutionResults.distName}</MonoBlock> or adjust the dist
+              value in your SDK options.
             </p>
           ) : (
             <p>
@@ -679,7 +708,7 @@ function ReleaseSourceFileMatchingChecklistItem({
     );
   }
 
-  if (facts.stackFramePath === null) {
+  if (sourceResolutionResults.stackFramePath === null) {
     <CheckListItem status="alert" title={itemName}>
       <CheckListInstruction type="muted">
         <h6>Stack Frame Without Path</h6>
@@ -696,12 +725,13 @@ function ReleaseSourceFileMatchingChecklistItem({
       <CheckListInstruction type="muted">
         <h6>Stack Frame Not Matching Artifact Name</h6>
         <p>
-          The path for this stack frame is <MonoBlock>{facts.stackFramePath}</MonoBlock>{' '}
-          and no matching artifact in this release was found.
+          The path for this stack frame is{' '}
+          <MonoBlock>{sourceResolutionResults.stackFramePath}</MonoBlock> and no matching
+          artifact in this release was found.
         </p>
         <p>
           Upload a source file with exactly the same name or a protocol + hostname prefix:{' '}
-          <MonoBlock>{facts.matchingArtifactName}</MonoBlock>
+          <MonoBlock>{sourceResolutionResults.matchingArtifactName}</MonoBlock>
         </p>
         <p>
           Refer to the documentation of the tool you're using to upload source files to
@@ -720,21 +750,21 @@ function ReleaseSourceFileMatchingChecklistItem({
 }
 
 function ReleaseSourceMapMatchingChecklistItem({
-  facts,
+  sourceResolutionResults,
 }: {
-  facts: SourceResoultionResults;
+  sourceResolutionResults: SourceResoultionResults;
 }) {
   const itemName = 'Source map reference matches source map artifact name';
 
-  if (facts.sourceFileReleaseNameFetchingResult !== 'found') {
+  if (sourceResolutionResults.sourceFileReleaseNameFetchingResult !== 'found') {
     return <CheckListItem status="none" title={itemName} />;
   }
 
-  if (facts.sourceMapReleaseNameFetchingResult === 'found') {
+  if (sourceResolutionResults.sourceMapReleaseNameFetchingResult === 'found') {
     return <CheckListItem status="checked" title={itemName} />;
   }
 
-  if (facts.releaseSourceMapReference === null) {
+  if (sourceResolutionResults.releaseSourceMapReference === null) {
     return (
       <CheckListItem status="alert" title={itemName}>
         <CheckListInstruction type="muted">
@@ -755,7 +785,7 @@ function ReleaseSourceMapMatchingChecklistItem({
     );
   }
 
-  if (facts.sourceMapReleaseNameFetchingResult === 'wrong-dist') {
+  if (sourceResolutionResults.sourceMapReleaseNameFetchingResult === 'wrong-dist') {
     return (
       <CheckListItem status="alert" title={itemName}>
         <CheckListInstruction type="muted">
@@ -764,11 +794,11 @@ function ReleaseSourceMapMatchingChecklistItem({
             You uploaded a source map artifact with the right name, however the dist value
             on this event does not match the dist value on the artifact.
           </p>
-          {facts.distName !== null ? (
+          {sourceResolutionResults.distName !== null ? (
             <p>
               Upload your build artifacts to Sentry using the dist{' '}
-              <MonoBlock>{facts.distName}</MonoBlock> or adjust the dist value in your SDK
-              options.
+              <MonoBlock>{sourceResolutionResults.distName}</MonoBlock> or adjust the dist
+              value in your SDK options.
             </p>
           ) : (
             <p>
@@ -790,9 +820,9 @@ function ReleaseSourceMapMatchingChecklistItem({
         <h6>Not Found</h6>
         <p>
           The source file had a source map reference{' '}
-          <MonoBlock>{facts.releaseSourceMapReference}</MonoBlock>, but there was no
-          source map artifact uploaded at that location. Make sure to generate and upload
-          all of your source maps!
+          <MonoBlock>{sourceResolutionResults.releaseSourceMapReference}</MonoBlock>, but
+          there was no source map artifact uploaded at that location. Make sure to
+          generate and upload all of your source maps!
         </p>
         <p>
           Note, that if the source map reference is a relative path, Sentry will look for
@@ -807,20 +837,20 @@ function ReleaseSourceMapMatchingChecklistItem({
 }
 
 function ScrapingSourceFileAvailableChecklistItem({
-  facts,
+  sourceResolutionResults,
 }: {
-  facts: SourceResoultionResults;
+  sourceResolutionResults: SourceResoultionResults;
 }) {
   const itemName = 'Source file available to Sentry';
 
-  if (facts.sourceFileScrapingStatus.status === 'found') {
+  if (sourceResolutionResults.sourceFileScrapingStatus.status === 'found') {
     return <CheckListItem status="checked" title={itemName} />;
   }
 
   if (
-    facts.uploadedSourceFileWithCorrectDebugId ||
-    facts.sourceFileReleaseNameFetchingResult === 'found' ||
-    facts.sourceFileScrapingStatus.status === 'none'
+    sourceResolutionResults.uploadedSourceFileWithCorrectDebugId ||
+    sourceResolutionResults.sourceFileReleaseNameFetchingResult === 'found' ||
+    sourceResolutionResults.sourceFileScrapingStatus.status === 'none'
   ) {
     return (
       <CheckListItem status="alert" title={itemName}>
@@ -842,28 +872,28 @@ function ScrapingSourceFileAvailableChecklistItem({
       <CheckListInstruction type="muted">
         <h6>Error While Fetching</h6>
         <p>Sentry encountered an error while fetching your source file.</p>
-        <p>Error message: "{facts.sourceFileScrapingStatus.error}"</p>
+        <p>Error message: "{sourceResolutionResults.sourceFileScrapingStatus.error}"</p>
       </CheckListInstruction>
     </CheckListItem>
   );
 }
 
 function ScrapingSourceMapAvailableChecklistItem({
-  facts,
+  sourceResolutionResults,
 }: {
-  facts: SourceResoultionResults;
+  sourceResolutionResults: SourceResoultionResults;
 }) {
   const itemName = 'Source map available to Sentry';
 
-  if (facts.sourceMapScrapingStatus.status === 'found') {
+  if (sourceResolutionResults.sourceMapScrapingStatus.status === 'found') {
     return <CheckListItem status="checked" title={itemName} />;
   }
 
-  if (facts.sourceFileScrapingStatus.status === 'none') {
+  if (sourceResolutionResults.sourceFileScrapingStatus.status === 'none') {
     return <CheckListItem status="none" title={itemName} />;
   }
 
-  if (facts.sourceMapScrapingStatus.status === 'none') {
+  if (sourceResolutionResults.sourceMapScrapingStatus.status === 'none') {
     return <CheckListItem status="none" title={itemName} />;
   }
 
@@ -872,7 +902,7 @@ function ScrapingSourceMapAvailableChecklistItem({
       <CheckListInstruction type="muted">
         <h6>Error While Fetching</h6>
         <p>Sentry encountered an error while fetching your source map.</p>
-        <p>Error message: "{facts.sourceMapScrapingStatus.error}"</p>
+        <p>Error message: "{sourceResolutionResults.sourceMapScrapingStatus.error}"</p>
       </CheckListInstruction>
       <SourceMapStepNotRequiredNote />
     </CheckListItem>
