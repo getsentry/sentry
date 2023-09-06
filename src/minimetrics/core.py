@@ -89,18 +89,6 @@ class ExtractedMetric(TypedDict):
     tags: Optional[MetricTagsInternal]
 
 
-def _to_internal_metric_tags(tags: Optional[MetricTagValueExternal]) -> MetricTagsInternal:
-    rv = []
-    for key, value in (tags or {}).items():
-        if isinstance(value, (list, tuple)):
-            for inner_value in value:
-                rv.append((key, inner_value))
-        else:
-            rv.append((key, value))
-
-    return tuple(sorted(rv))
-
-
 class Metric(Generic[T]):
     @property
     def current_complexity(self) -> int:
@@ -159,7 +147,7 @@ class DistributionMetric(Metric[float]):
         return len(self.value)
 
     def add(self, value: float) -> None:
-        self.value.append(value)
+        self.value.append(float(value))
 
     def serialize_value(self) -> Any:
         return self.value
@@ -281,7 +269,7 @@ class Aggregator:
             unit,
             # We have to convert tags into our own internal format, since we don't support lists as
             # tag values.
-            _to_internal_metric_tags(tags),
+            self._to_internal_metric_tags(tags),
         )
 
         with self._lock:
@@ -316,6 +304,19 @@ class Aggregator:
         if total_complexity >= self.MAX_COMPLEXITY:
             self._force_flush = True
             self._flush_event.set()
+
+    @classmethod
+    def _to_internal_metric_tags(cls, tags: Optional[MetricTagValueExternal]) -> MetricTagsInternal:
+        rv = []
+        for key, value in (tags or {}).items():
+            if isinstance(value, (list, tuple)):
+                for inner_value in value:
+                    rv.append((key, inner_value))
+            else:
+                rv.append((key, value))
+
+        # It's very important to sort the tags in order to obtain the same bucket key.
+        return tuple(sorted(rv))
 
     @classmethod
     def _emit(cls, extracted_metrics: List[Tuple[ExtractedMetric, int]], force_flush: bool) -> Any:
@@ -410,7 +411,7 @@ class MiniMetricsClient:
         key: str,
         value: float,
         unit: MetricUnit = "nanosecond",
-        tags: Optional[MetricTagsInternal] = None,
+        tags: Optional[MetricTagsExternal] = None,
         timestamp: Optional[float] = None,
     ) -> None:
         if not self._is_in_minimetrics():
