@@ -58,8 +58,7 @@ class UserIP(Model):
 
         # Only preserve the submitted timing data in the global scope.
         if scope != ImportScope.Global:
-            self.first_seen = timezone.now()
-            self.last_seen = self.first_seen
+            self.first_seen = self.last_seen = timezone.now()
 
         return old_pk
 
