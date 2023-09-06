@@ -22,6 +22,7 @@ function EventStatisticalDetectorMessage({event}: EventStatisticalDetectorMessag
     orgSlug: organization.slug,
     transaction: transactionName,
     query: {},
+    trendFunction: 'p95',
     projectID: event.projectID,
     display: DisplayModes.TREND,
   });
