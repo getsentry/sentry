@@ -2584,18 +2584,29 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
     ),
     "kafka": lambda settings, options: (
         {
-            "image": "redpandadata/redpanda:v22.3.23",
+            "image": "confluentinc/cp-kafka:7.5.0",
             "ports": {"9092/tcp": 9092},
-            "command": [
-                "redpanda",
-                "start",
-                "--kafka-addr",
-                "internal://0.0.0.0:9093,external://0.0.0.0:9092",
-                "--advertise-kafka-addr",
-                "internal://sentry_kafka:9093,external://127.0.0.1:9092",
-                "--mode",
-                "dev-container",
-            ],
+            # https://docs.confluent.io/platform/current/installation/docker/config-reference.html#cp-kakfa-example
+            "environment": {
+                "KAFKA_PROCESS_ROLES": "broker,controller",
+                "KAFKA_CONTROLLER_QUORUM_VOTERS": "1@{containers[kafka][name]}:29093",
+                "KAFKA_CONTROLLER_LISTENER_NAMES": "CONTROLLER",
+                "KAFKA_NODE_ID": "1",
+                "CLUSTER_ID": "MkU3OEVBNTcwNTJENDM2Qk",
+                # "KAFKA_BOOTSTRAP_SERVERS": "127.0.0.1:9092",
+                "KAFKA_LISTENERS": "PLAINTEXT://0.0.0.0:29092,EXTERNAL://0.0.0.0:9092,CONTROLLER://0.0.0.0:29093",
+                # can probably remove PLAINTEXT from advert listeners?
+                "KAFKA_ADVERTISED_LISTENERS": "PLAINTEXT://{containers[kafka][name]}:29092,EXTERNAL://{containers[kafka]"
+                "[ports][9092/tcp][0]}:{containers[kafka][ports][9092/tcp][1]}",
+                "KAFKA_LISTENER_SECURITY_PROTOCOL_MAP": "PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT",
+                "KAFKA_INTER_BROKER_LISTENER_NAME": "PLAINTEXT",
+                "KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR": "1",
+                "KAFKA_OFFSETS_TOPIC_NUM_PARTITIONS": "1",
+                "KAFKA_LOG_RETENTION_HOURS": "24",
+                "KAFKA_MESSAGE_MAX_BYTES": "50000000",
+                "KAFKA_MAX_REQUEST_SIZE": "50000000",
+            },
+            "volumes": {"kafka": {"bind": "/var/lib/kafka/data"}},
             "only_if": "kafka" in settings.SENTRY_EVENTSTREAM
             or settings.SENTRY_USE_RELAY
             or settings.SENTRY_DEV_PROCESS_SUBSCRIPTIONS
@@ -2643,7 +2654,7 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
                 "CLICKHOUSE_HTTP_PORT": "8123",
                 "DEFAULT_BROKERS": ""
                 if "snuba" in settings.SENTRY_EVENTSTREAM
-                else "{containers[kafka][name]}:9093",
+                else "{containers[kafka][name]}:9093",  # uh...
                 "REDIS_HOST": "{containers[redis][name]}",
                 "REDIS_PORT": "6379",
                 "REDIS_DB": "1",

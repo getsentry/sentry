@@ -29,9 +29,10 @@ def main() -> None:
         "docker",
         "exec",
         "sentry_kafka",
-        "rpk",
-        "topic",
-        "list",
+        "kafka-topics",
+        "--bootstrap-server",
+        "127.0.0.1:9092",
+        "--list",
     ]
 
     healthchecks = [postgres_healthcheck]

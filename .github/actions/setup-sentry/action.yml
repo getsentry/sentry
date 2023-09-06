@@ -171,12 +171,17 @@ runs:
         if [ "$NEED_KAFKA" = "true" ]; then
           docker run \
             --name sentry_kafka \
-            -d --network host \
-            redpandadata/redpanda:v22.3.23 \
-            redpanda start \
-            --kafka-addr internal://0.0.0.0:9093,external://0.0.0.0:9092 \
-            --advertise-kafka-addr internal://127.0.0.1:9093,external://127.0.0.1:9092 \
-            --mode dev-container \
+            -e KAFKA_PROCESS_ROLES=broker,controller \
+            -e KAFKA_CONTROLLER_QUORUM_VOTERS=1@127.0.0.1:29093 \
+            -e KAFKA_CONTROLLER_LISTENER_NAMES=CONTROLLER \
+            -e KAFKA_NODE_ID=1 \
+            -e CLUSTER_ID=MkU3OEVBNTcwNTJENDM2Qk \
+            -e KAFKA_LISTENERS=PLAINTEXT://0.0.0.0:29092,EXTERNAL://0.0.0.0:9092,CONTROLLER://0.0.0.0:29093 \
+            -e KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://127.0.0.1:9093,EXTERNAL://127.0.0.1:9092 \
+            -e KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT \
+            -e KAFKA_INTER_BROKER_LISTENER_NAME=PLAINTEXT \
+            -e KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1 \
+            confluentinc/cp-kafka:7.5.0 \
             &
         fi
 
