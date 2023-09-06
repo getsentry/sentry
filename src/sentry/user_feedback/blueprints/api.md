@@ -60,7 +60,6 @@ Retrieve a collection of user-feedback items.
 | device.name       | optional[string] | -                                                   |
 | dist              | string           |                                                     |
 | environment       | string           |                                                     |
-| error_ids         | array[string]    | A list of error_ids encountered during the session. |
 | id                | string           |                                                     |
 | locale            | object           | Browser locale information.                         |
 | locale.lang       | string           | The language preference of the user's browser.      |
@@ -78,7 +77,6 @@ Retrieve a collection of user-feedback items.
 | status            | string           | One of: resolved, unresolved.                       |
 | tags              | object           | Mapping of key, value pairs.                        |
 | timestamp         | string           | ISO-8061 formatted UTC datetime.                    |
-| trace_ids         | array[string]    | A list of trace_ids.                                |
 | url               | string           | The page the user-feedback was triggered on.        |
 | user              | object           | The authorized user's information.                  |
 | user.display_name | optional[string] | -                                                   |
@@ -106,7 +104,6 @@ Retrieve a collection of user-feedback items.
         },
         "dist": "abc123",
         "environment": "production",
-        "error_ids": ["4f0e18332d11431c9b97d924edecb76e"],
         "id": "1ffe0775ac0f4417aed9de36d9f6f8dc",
         "locale": {
           "lang": "en",
@@ -130,7 +127,6 @@ Retrieve a collection of user-feedback items.
           "it": ["me", "you're", "looking", "for"]
         },
         "timestamp": "2023-08-31T14:10:34.954048",
-        "trace_ids": ["fbb42a39a61e4aa6969b4fecbfbbc114"],
         "url": "https://docs.sentry.io/platforms/javascript/",
         "user": {
           "display_name": "John Doe",
@@ -156,7 +152,6 @@ Create a new user-feedback item.
       "dist": "abc123",
       "contact_email": "colton.allen@sentry.io",
       "environment": "production",
-      "error_ids": ["4f0e18332d11431c9b97d924edecb76e"],
       "id": "1ffe0775ac0f4417aed9de36d9f6f8dc",
       "message": "I really like this user-feedback feature!",
       "platform": "javascript",
@@ -175,7 +170,6 @@ Create a new user-feedback item.
         "key": "value"
       },
       "timestamp": "2023-08-31T14:10:34.954048",
-      "trace_ids": ["fbb42a39a61e4aa6969b4fecbfbbc114"],
       "url": "https://docs.sentry.io/platforms/javascript/",
       "user": {
         "email": "username@example.com",
@@ -210,7 +204,6 @@ Create a new user-feedback item.
         },
         "dist": "abc123",
         "environment": "production",
-        "error_ids": ["4f0e18332d11431c9b97d924edecb76e"],
         "id": "1ffe0775ac0f4417aed9de36d9f6f8dc",
         "locale": {
           "lang": "en",
@@ -234,7 +227,6 @@ Create a new user-feedback item.
           "it": ["me", "you're", "looking", "for"]
         },
         "timestamp": "2023-08-31T14:10:34.954048",
-        "trace_ids": ["fbb42a39a61e4aa6969b4fecbfbbc114"],
         "url": "https://docs.sentry.io/platforms/javascript/",
         "user": {
           "display_name": "John Doe",
