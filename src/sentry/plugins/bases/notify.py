@@ -6,13 +6,14 @@ from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 from django import forms
 from requests.exceptions import HTTPError, SSLError
 
-from sentry import digests, ratelimits
+from sentry import digests, features, ratelimits
 from sentry.exceptions import InvalidIdentity, PluginError
 from sentry.models import NotificationSetting
+from sentry.notifications.helpers import get_notification_recipients
 from sentry.plugins.base import Notification, Plugin
 from sentry.plugins.base.configuration import react_plugin_config
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.types.integrations import ExternalProviders
+from sentry.types.integrations import ExternalProviderEnum, ExternalProviders
 
 
 class NotificationConfigurationForm(forms.Form):
@@ -141,9 +142,12 @@ class NotificationPlugin(Plugin):
         notifications for the provided project.
         """
         if self.get_conf_key() == "mail":
-            return NotificationSetting.objects.get_notification_recipients(project)[
-                ExternalProviders.EMAIL
-            ]
+            if features.has("organizations:notification-settings-v2", self.project.organization):
+                return get_notification_recipients(self.project)[ExternalProviderEnum.EMAIL]
+            else:
+                return NotificationSetting.objects.get_notification_recipients(project)[
+                    ExternalProviders.EMAIL
+                ]
 
         return self.get_notification_recipients(project, f"{self.get_conf_key()}:alert")
 
