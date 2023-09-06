@@ -52,8 +52,12 @@ class DigestNotification(ProjectNotification):
         target_type: ActionTargetType,
         target_identifier: int | None = None,
         fallthrough_choice: FallthroughChoiceType | None = None,
+        notification_uuid: str | None = None,
     ) -> None:
-        super().__init__(project)
+        if notification_uuid:
+            super().__init__(project, notification_uuid)
+        else:
+            super().__init__(project)
         self.digest = digest
         self.target_type = target_type
         self.target_identifier = target_identifier

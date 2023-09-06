@@ -68,11 +68,15 @@ class AlertRuleNotification(ProjectNotification):
         target_type: ActionTargetType,
         target_identifier: int | None = None,
         fallthrough_choice: FallthroughChoiceType | None = None,
+        notification_uuid: str | None = None,
     ) -> None:
         event = notification.event
         group = event.group
         project = group.project
-        super().__init__(project)
+        if notification_uuid:
+            super().__init__(project, notification_uuid)
+        else:
+            super().__init__(project)
         self.group = group
         self.event = event
         self.target_type = target_type
@@ -146,13 +150,19 @@ class AlertRuleNotification(ProjectNotification):
         fallback_params: MutableMapping[str, str] = {}
         group_header = get_group_substatus_text(self.group)
 
+        notification_uuid = self.notification_uuid if hasattr(self, "notification_uuid") else None
         context = {
             "project_label": self.project.get_full_name(),
             "group": self.group,
             "group_header": group_header,
             "event": self.event,
             "link": get_group_settings_link(
-                self.group, environment, rule_details, None, **fallback_params
+                self.group,
+                environment,
+                rule_details,
+                None,
+                notification_uuid=notification_uuid,
+                **fallback_params,
             ),
             "rules": rule_details,
             "has_integrations": has_integrations(self.organization, self.project),
