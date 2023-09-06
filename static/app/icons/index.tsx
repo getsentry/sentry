@@ -20,6 +20,7 @@ export {IconCodecov} from './iconCodecov';
 export {IconCommit} from './iconCommit';
 export {IconContract} from './iconContract';
 export {IconCopy} from './iconCopy';
+export {IconCursorArrow} from './iconCursorArrow';
 export {IconDashboard} from './iconDashboard';
 export {IconDelete} from './iconDelete';
 export {IconDiamond} from './iconDiamond';
