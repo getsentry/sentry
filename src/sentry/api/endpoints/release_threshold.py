@@ -21,6 +21,12 @@ class ReleaseThresholdSerializer(serializers.Serializer):
     project = ProjectField()
     environment = EnvironmentField(required=False, allow_null=True)
 
+    def validate_threshold_type(self, threshold_type):
+        return ReleaseThresholdType.STRING_TO_INT[threshold_type]
+
+    def validate_trigger_type(self, threshold_type):
+        return TriggerType.STRING_TO_INT[threshold_type]
+
 
 class ReleaseThresholdEndpoint(ProjectEndpoint):
     owner: ApiOwner = ApiOwner.ENTERPRISE
@@ -40,6 +46,7 @@ class ReleaseThresholdEndpoint(ProjectEndpoint):
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
         result = serializer.validated_data
+
         release_threshold = ReleaseThreshold.objects.create(
             threshold_type=result.get("threshold_type"),
             trigger_type=result.get("trigger_type"),
