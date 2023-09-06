@@ -23,7 +23,7 @@ import {
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
-interface SourceResoultionResults {
+interface SourceResolutionResults {
   distName: string | null;
   eventHasDebugIds: boolean;
   matchingArtifactName: string;
@@ -52,7 +52,7 @@ interface SourceResoultionResults {
 }
 
 interface SourceMapsDebuggerModalProps extends ModalRenderProps {
-  sourceResolutionResults: SourceResoultionResults;
+  sourceResolutionResults: SourceResolutionResults;
 }
 
 export function SourceMapsDebuggerModal({
@@ -302,7 +302,7 @@ function CheckListItem({children, title, status}: PropsWithChildren<CheckListIte
 function InstalledSdkChecklistItem({
   sourceResolutionResults,
 }: {
-  sourceResolutionResults: SourceResoultionResults;
+  sourceResolutionResults: SourceResolutionResults;
 }) {
   const itemName = 'Installed SDK supports Debug IDs';
 
@@ -362,7 +362,7 @@ function InstalledSdkChecklistItem({
 function HasDebugIdChecklistItem({
   sourceResolutionResults,
 }: {
-  sourceResolutionResults: SourceResoultionResults;
+  sourceResolutionResults: SourceResolutionResults;
 }) {
   const itemName = 'Stack frame has Debug IDs';
 
@@ -434,7 +434,7 @@ function HasDebugIdChecklistItem({
 function UploadedSourceFileWithCorrectDebugIdChecklistItem({
   sourceResolutionResults,
 }: {
-  sourceResolutionResults: SourceResoultionResults;
+  sourceResolutionResults: SourceResolutionResults;
 }) {
   const itemName = 'Uploaded source file with a matching Debug ID';
 
@@ -511,7 +511,7 @@ function UploadedSourceFileWithCorrectDebugIdChecklistItem({
 function UploadedSourceMapWithCorrectDebugIdChecklistItem({
   sourceResolutionResults,
 }: {
-  sourceResolutionResults: SourceResoultionResults;
+  sourceResolutionResults: SourceResolutionResults;
 }) {
   const itemName = 'Uploaded source map with a matching Debug ID';
 
@@ -594,7 +594,7 @@ function UploadedSourceMapWithCorrectDebugIdChecklistItem({
 function EventHasReleaseNameChecklistItem({
   sourceResolutionResults,
 }: {
-  sourceResolutionResults: SourceResoultionResults;
+  sourceResolutionResults: SourceResolutionResults;
 }) {
   const itemName = 'Event has release value';
 
@@ -630,7 +630,7 @@ function EventHasReleaseNameChecklistItem({
 function ReleaseHasUploadedArtifactsChecklistItem({
   sourceResolutionResults,
 }: {
-  sourceResolutionResults: SourceResoultionResults;
+  sourceResolutionResults: SourceResolutionResults;
 }) {
   const itemName = 'Release has uploaded artifacts';
 
@@ -667,7 +667,7 @@ function ReleaseHasUploadedArtifactsChecklistItem({
 function ReleaseSourceFileMatchingChecklistItem({
   sourceResolutionResults,
 }: {
-  sourceResolutionResults: SourceResoultionResults;
+  sourceResolutionResults: SourceResolutionResults;
 }) {
   const itemName = 'Stack frame path matches source file artifact';
 
@@ -752,7 +752,7 @@ function ReleaseSourceFileMatchingChecklistItem({
 function ReleaseSourceMapMatchingChecklistItem({
   sourceResolutionResults,
 }: {
-  sourceResolutionResults: SourceResoultionResults;
+  sourceResolutionResults: SourceResolutionResults;
 }) {
   const itemName = 'Source map reference matches source map artifact name';
 
@@ -839,7 +839,7 @@ function ReleaseSourceMapMatchingChecklistItem({
 function ScrapingSourceFileAvailableChecklistItem({
   sourceResolutionResults,
 }: {
-  sourceResolutionResults: SourceResoultionResults;
+  sourceResolutionResults: SourceResolutionResults;
 }) {
   const itemName = 'Source file available to Sentry';
 
@@ -881,7 +881,7 @@ function ScrapingSourceFileAvailableChecklistItem({
 function ScrapingSourceMapAvailableChecklistItem({
   sourceResolutionResults,
 }: {
-  sourceResolutionResults: SourceResoultionResults;
+  sourceResolutionResults: SourceResolutionResults;
 }) {
   const itemName = 'Source map available to Sentry';
 
