@@ -72,9 +72,10 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
 
     def build_group_title(self, notification_uuid: str | None = None) -> TextBlock:
         text = build_attachment_title(self.group)
-        link = self.group.get_absolute_url(
-            params={"referrer": "msteams", "notification_uuid": notification_uuid}
-        )
+        params = {"referrer": "msteams"}
+        if notification_uuid:
+            params.update({"notification_uuid": notification_uuid})
+        link = self.group.get_absolute_url(params=params)
 
         title_text = f"[{text}]({link})"
         return create_text_block(

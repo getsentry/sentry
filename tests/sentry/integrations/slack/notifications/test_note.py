@@ -37,8 +37,8 @@ class SlackNoteNotificationTest(SlackActivityNotificationTest, PerformanceIssueT
         assert text == f"New comment by {self.name}"
         assert attachment["title"] == f"{self.group.title}"
         assert (
-            attachment["title_link"]
-            == f"http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=note_activity-slack"
+            f"http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=note_activity-slack&notification_uuid="
+            in attachment["title_link"]
         )
         assert attachment["text"] == notification.activity.data["text"]
         assert (
@@ -62,8 +62,8 @@ class SlackNoteNotificationTest(SlackActivityNotificationTest, PerformanceIssueT
         assert text == f"New comment by {self.name}"
         assert attachment["title"] == "N+1 Query"
         assert (
-            attachment["title_link"]
-            == f"http://testserver/organizations/{self.organization.slug}/issues/{event.group.id}/?referrer=note_activity-slack"
+            f"http://testserver/organizations/{self.organization.slug}/issues/{event.group.id}/?referrer=note_activity-slack&notification_uuid="
+            in attachment["title_link"]
         )
         assert attachment["text"] == notification.activity.data["text"]
         assert (
