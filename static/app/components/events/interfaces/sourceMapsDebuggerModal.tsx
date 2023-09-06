@@ -63,49 +63,20 @@ export function SourceMapsDebuggerModal({
 }: SourceMapsDebuggerModalProps) {
   const theme = useTheme();
 
-  let debugIdProgress = 0;
-  if (sourceResolutionResults.sdkDebugIdSupport === 'full') {
-    debugIdProgress++;
-  }
-  if (sourceResolutionResults.stackFrameDebugId !== null) {
-    debugIdProgress++;
-  }
-  if (sourceResolutionResults.uploadedSourceFileWithCorrectDebugId) {
-    debugIdProgress++;
-  }
-  if (sourceResolutionResults.uploadedSourceMapWithCorrectDebugId) {
-    debugIdProgress++;
-  }
-  const debugIdProgressPercent = debugIdProgress / 4;
-
-  let releaseNameProgress = 0;
-  if (sourceResolutionResults.releaseName !== null) {
-    releaseNameProgress++;
-  }
-  if (sourceResolutionResults.uploadedSomeArtifactToRelease) {
-    releaseNameProgress++;
-  }
-  if (sourceResolutionResults.sourceFileReleaseNameFetchingResult === 'found') {
-    releaseNameProgress++;
-  }
-  if (sourceResolutionResults.sourceMapReleaseNameFetchingResult === 'found') {
-    releaseNameProgress++;
-  }
-  const releaseNameProgressPercent = releaseNameProgress / 4;
-
-  let scrapingProgress = 0;
-  if (sourceResolutionResults.sourceFileScrapingStatus.status === 'found') {
-    scrapingProgress++;
-  }
-  if (sourceResolutionResults.sourceMapScrapingStatus.status === 'found') {
-    scrapingProgress += 4;
-  }
-  const scrapingProgressPercent = scrapingProgress / 5;
+  const {debugIdProgress, debugIdProgressPercent} = getDebugIdProgress(
+    sourceResolutionResults
+  );
+  const {releaseProgress, releaseProgressPercent} = getReleaseProgress(
+    sourceResolutionResults
+  );
+  const {scrapingProgress, scrapingProgressPercent} = getScrapingProgress(
+    sourceResolutionResults
+  );
 
   const [activeTab, setActiveTab] = useState<'debug-ids' | 'release' | 'fetching'>(() => {
     const possibleTabs = [
       {tab: 'debug-ids', progress: debugIdProgressPercent},
-      {tab: 'release', progress: releaseNameProgressPercent},
+      {tab: 'release', progress: releaseProgressPercent},
       {tab: 'fetching', progress: scrapingProgressPercent},
     ] as const;
 
@@ -158,14 +129,11 @@ export function SourceMapsDebuggerModal({
               />
               {t('Debug IDs (recommended)')}
             </TabList.Item>
-            <TabList.Item
-              key="release"
-              textValue={`Release Name (${releaseNameProgress}/4)`}
-            >
+            <TabList.Item key="release" textValue={`Release Name (${releaseProgress}/4)`}>
               <StyledProgressRing
                 progressColor={activeTab === 'release' ? theme.purple300 : theme.gray300}
                 backgroundColor={theme.gray200}
-                value={releaseNameProgressPercent * 100}
+                value={releaseProgressPercent * 100}
                 size={16}
                 barWidth={4}
               />
@@ -231,11 +199,7 @@ export function SourceMapsDebuggerModal({
                   sourceResolutionResults={sourceResolutionResults}
                 />
               </CheckList>
-              {releaseNameProgressPercent === 1 ? (
-                <ChecklistDoneNote />
-              ) : (
-                <VerifyAgainNote />
-              )}
+              {releaseProgressPercent === 1 ? <ChecklistDoneNote /> : <VerifyAgainNote />}
             </TabPanels.Item>
             <TabPanels.Item key="fetching">
               <CheckList>
@@ -274,6 +238,55 @@ export function SourceMapsDebuggerModal({
       </Footer>
     </Fragment>
   );
+}
+
+function getDebugIdProgress(sourceResolutionResults: SourceResolutionResults) {
+  let debugIdProgress = 0;
+  if (sourceResolutionResults.sdkDebugIdSupport === 'full') {
+    debugIdProgress++;
+  }
+  if (sourceResolutionResults.stackFrameDebugId !== null) {
+    debugIdProgress++;
+  }
+  if (sourceResolutionResults.uploadedSourceFileWithCorrectDebugId) {
+    debugIdProgress++;
+  }
+  if (sourceResolutionResults.uploadedSourceMapWithCorrectDebugId) {
+    debugIdProgress++;
+  }
+  return {debugIdProgress, debugIdProgressPercent: debugIdProgress / 4};
+}
+
+function getReleaseProgress(sourceResolutionResults: SourceResolutionResults) {
+  let releaseProgress = 0;
+  if (sourceResolutionResults.releaseName !== null) {
+    releaseProgress++;
+  }
+  if (sourceResolutionResults.uploadedSomeArtifactToRelease) {
+    releaseProgress++;
+  }
+  if (sourceResolutionResults.sourceFileReleaseNameFetchingResult === 'found') {
+    releaseProgress++;
+  }
+  if (sourceResolutionResults.sourceMapReleaseNameFetchingResult === 'found') {
+    releaseProgress++;
+  }
+  return {releaseProgress, releaseProgressPercent: releaseProgress / 4};
+}
+
+function getScrapingProgress(sourceResolutionResults: SourceResolutionResults) {
+  let scrapingProgress = 0;
+  if (sourceResolutionResults.sourceFileScrapingStatus.status === 'found') {
+    scrapingProgress++;
+  }
+  if (sourceResolutionResults.sourceMapScrapingStatus.status === 'found') {
+    // We give this step a relative weight of 4/5ths because this is actually way
+    // harder than step 1 and we want do deprioritize this tab over the others
+    // because the scraping process comes with a few downsides that aren't immediately
+    // obvious.
+    scrapingProgress += 4;
+  }
+  return {scrapingProgress, scrapingProgressPercent: scrapingProgress / 5};
 }
 
 function CheckListItem({children, title, status}: PropsWithChildren<CheckListItemProps>) {
