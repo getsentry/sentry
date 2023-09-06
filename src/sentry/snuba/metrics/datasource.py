@@ -203,6 +203,7 @@ def get_custom_measurements(
             entity_key=METRIC_TYPE_TO_ENTITY[metric_type],
             project_ids=project_ids,
             org_id=organization_id,
+            use_case_id=use_case_id,
             start=start,
             end=end,
         )
