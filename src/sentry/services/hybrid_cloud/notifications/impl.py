@@ -209,7 +209,7 @@ class DatabaseBackedNotificationsService(NotificationsService):
             result[project.id] = providers[user]
 
         return {NotificationScopeEnum.PROJECT: result}
- 
+
     def remove_notification_settings(
         self, *, team_id: Optional[int], user_id: Optional[int], provider: ExternalProviders
     ) -> None:
