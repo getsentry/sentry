@@ -183,6 +183,7 @@ class OutboxCategory(IntEnum):
         Outbox = outbox or RegionOutbox
 
         return Outbox(
+            shard_scope=scope,
             shard_identifier=shard_identifier,
             category=self,
             object_identifier=object_identifier,

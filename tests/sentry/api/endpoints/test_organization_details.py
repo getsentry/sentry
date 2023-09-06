@@ -874,7 +874,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
         # Ensure that the organization update has been flushed, but it collides when attempting an upsert
         with pytest.raises(OutboxFlushError):
-            Organization.outbox_for_update(org_id=self.organization.id).drain_shard()
+            self.organization.outbox_for_update().drain_shard()
 
         with assume_test_silo_mode(SiloMode.CONTROL):
             organization_mapping = OrganizationMapping.objects.get(
@@ -883,12 +883,12 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert organization_mapping.slug == previous_slug
 
         # Flush the colliding org slug change
-        Organization.outbox_for_update(org_id=org_with_colliding_slug.id).drain_shard()
+        org_with_colliding_slug.outbox_for_update().drain_shard()
         colliding_org_mapping.refresh_from_db()
         assert colliding_org_mapping.slug == "unique-slug"
 
         # Flush the desired slug change and assert the correct slug was resolved
-        Organization.outbox_for_update(org_id=self.organization.id).drain_shard()
+        self.organization.outbox_for_update().drain_shard()
         organization_mapping.refresh_from_db()
         assert organization_mapping.slug == desired_slug
 
