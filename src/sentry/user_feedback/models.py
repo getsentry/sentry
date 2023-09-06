@@ -29,4 +29,4 @@ class UserFeedback(Model):
         db_table = "user_feedback_user_feedback"
         index_together = [("project_id", "date_added")]
 
-    __repr__ = sane_repr("project_id", "id")
+    __repr__ = sane_repr("project_id", "event_id")
