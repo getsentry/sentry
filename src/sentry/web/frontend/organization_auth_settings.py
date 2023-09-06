@@ -27,7 +27,7 @@ from sentry.services.hybrid_cloud.auth import RpcAuthProvider, auth_service
 from sentry.services.hybrid_cloud.organization import RpcOrganization, organization_service
 from sentry.tasks.auth import email_missing_links, email_unlink_notifications
 from sentry.utils.http import absolute_uri
-from sentry.web.frontend.base import ControlSiloOrganizationView
+from sentry.web.frontend.base import OrganizationView, region_silo_view
 
 ERR_NO_SSO = _("The SSO feature is not enabled for this organization.")
 
@@ -84,7 +84,8 @@ def auth_provider_settings_form(provider, auth_provider, organization, request):
     return form
 
 
-class OrganizationAuthSettingsView(ControlSiloOrganizationView):
+@region_silo_view
+class OrganizationAuthSettingsView(OrganizationView):
     # We restrict auth settings to org:write as it allows a non-owner to
     # escalate members to own by disabling the default role.
     required_scope = "org:write"
