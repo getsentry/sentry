@@ -76,7 +76,7 @@ export function getDefaulServerlessImports({
     `const Sentry = require("@sentry/serverless");`,
   ];
   if (productSelection.profiling) {
-    imports.push(`const { ProfilingIntegration } = require("@sentry/profiling");`);
+    imports.push(`const { ProfilingIntegration } = require("@sentry/profiling-node");`);
   }
   return imports;
 }
