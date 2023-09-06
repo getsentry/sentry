@@ -24,9 +24,24 @@ class Migration(CheckedMigration):
     ]
 
     operations = [
-        migrations.AddField(
-            model_name="authidentityreplica",
-            name="last_verified",
-            field=models.DateTimeField(default=django.utils.timezone.now),
-        ),
+        migrations.SeparateDatabaseAndState(
+            database_operations=[
+                migrations.RunSQL(
+                    """
+                    ALTER TABLE "sentry_authidentityreplica" ADD COLUMN "last_verified" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW();
+                    """,
+                    reverse_sql="""
+                    ALTER TABLE "sentry_authidentityreplica" DROP COLUMN "last_verified";
+                    """,
+                    hints={"tables": ["sentry_authidentityreplica"]},
+                ),
+            ],
+            state_operations=[
+                migrations.AddField(
+                    model_name="authidentityreplica",
+                    name="last_verified",
+                    field=models.DateTimeField(default=django.utils.timezone.now),
+                ),
+            ],
+        )
     ]

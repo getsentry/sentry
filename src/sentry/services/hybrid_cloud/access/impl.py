@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import FrozenSet, Optional
 
 from django.db.models import Q
 
@@ -27,10 +27,10 @@ from sentry.services.hybrid_cloud.user.service import user_service
 
 
 class ControlAccessService(AccessService):
-    def get_permissions_for_user(self, user_id: int) -> List[str]:
+    def get_permissions_for_user(self, user_id: int) -> FrozenSet[str]:
         user = user_service.get_user(user_id)
         if user is None:
-            return list()
+            return frozenset()
         return user.roles | user.permissions
 
     def get_auth_provider(self, organization_id: int) -> Optional[RpcAuthProvider]:
@@ -124,8 +124,8 @@ class RegionAccessService(AccessService):
             auth_provider_id=auth_provider.id, user_id__in=user_ids
         ).exists()
 
-    def get_permissions_for_user(self, user_id: int) -> List[str]:
+    def get_permissions_for_user(self, user_id: int) -> FrozenSet[str]:
         user = user_service.get_user(user_id)
         if user is None:
-            return list()
+            return frozenset
         return user.roles | user.permissions

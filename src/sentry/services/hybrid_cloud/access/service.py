@@ -1,6 +1,6 @@
 import abc
 from datetime import timedelta
-from typing import List, Optional
+from typing import FrozenSet, Optional
 
 from django.utils import timezone
 
@@ -64,7 +64,7 @@ class AccessService(abc.ABC):
 
         # we special case superuser so that if they're a member of the org they must still follow SSO checks
         # or put another way, superusers who are not members of orgs bypass SSO.
-        if member is None:
+        if member is None or member.user_id is None:
             if is_super_user:
                 return _SSO_BYPASS
             return _SSO_NONMEMBER
@@ -113,7 +113,7 @@ class AccessService(abc.ABC):
         return RpcAuthState(sso_state=sso_state, permissions=permissions)
 
     @abc.abstractmethod
-    def get_permissions_for_user(self, user_id: int) -> List[str]:
+    def get_permissions_for_user(self, user_id: int) -> FrozenSet[str]:
         pass
 
 
