@@ -61,7 +61,7 @@ describe('useReplaysFromIssue', () => {
   });
 
   it('should fetch a list of replay ids for a performance issue', async () => {
-    const MOCK_GROUP = TestStubs.Group({IssueCategory: IssueCategory.PERFORMANCE});
+    const MOCK_GROUP = TestStubs.Group({issueCategory: IssueCategory.PERFORMANCE});
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/replay-count/`,
