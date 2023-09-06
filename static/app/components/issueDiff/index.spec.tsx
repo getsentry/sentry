@@ -7,7 +7,7 @@ jest.mock('sentry/api');
 describe('IssueDiff', function () {
   const entries = TestStubs.Entries();
   const api = new MockApiClient();
-  const project = TestStubs.ProjectDetails();
+  const project = TestStubs.Project();
 
   beforeEach(function () {
     MockApiClient.addMockResponse({
