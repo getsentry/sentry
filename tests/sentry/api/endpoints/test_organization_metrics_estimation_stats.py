@@ -6,7 +6,12 @@ import pytest
 from django.utils import timezone
 from freezegun import freeze_time
 
-from sentry.api.endpoints.organization_metrics_estimation_stats import CountResult, estimate_volume
+from sentry.api.endpoints.organization_metrics_estimation_stats import (
+    CountResult,
+    discover_to_metrics_function_call,
+    estimate_volume,
+    to_metrics_columns,
+)
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.testutils.cases import APITestCase, BaseMetricsLayerTestCase
 from sentry.testutils.silo import region_silo_test
@@ -158,3 +163,38 @@ def test_estimate_volume(indexed, base_indexed, metrics, expected):
     for idx, val in enumerate(actual):
         count: Optional[float] = cast(List[CountResult], val[1])[0]["count"]
         assert pytest.approx(count, 0.001) == expected[idx]
+
+
+@pytest.mark.parametrize(
+    "raw, converted",
+    [
+        ["apdex()", "apdex()"],
+        ["apdex(300)", "apdex()"],
+        ["percentile(75)", "percentile(75)"],
+        ["max()", "max()"],
+        ["p100()", "p100()"],
+        ["epm()", "epm()"],
+        ["last_seen()", "last_seen()"],
+    ],
+)
+def test_discover_to_metrics_function_call(raw: str, converted: str):
+    """
+    Tests the conversion from a discover function call to a metrics function call
+    """
+    actual = discover_to_metrics_function_call(raw)
+    assert actual == converted
+
+
+@pytest.mark.parametrize(
+    "discover, expected_metrics",
+    [
+        [["apdex()"], ["apdex()"]],
+        [["epm()", "apdex(300)", "max()"], ["epm()", "apdex()", "max()"]],
+    ],
+)
+def test_to_metrics_column(discover, expected_metrics):
+    """
+    Tests that it converts discover columns to metrics columns
+    """
+    actual_metrics = to_metrics_columns(discover)
+    assert actual_metrics == expected_metrics
