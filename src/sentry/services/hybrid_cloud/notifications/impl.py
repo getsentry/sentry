@@ -15,6 +15,7 @@ from sentry.notifications.helpers import (
     get_setting_options_for_users,
     get_setting_providers_for_users,
 )
+from sentry.notifications.helpers import get_scope_type
 from sentry.notifications.types import (
     NotificationScopeEnum,
     NotificationScopeType,
@@ -31,10 +32,7 @@ from sentry.services.hybrid_cloud.filter_query import (
 )
 from sentry.services.hybrid_cloud.notifications import NotificationsService, RpcNotificationSetting
 from sentry.services.hybrid_cloud.notifications.model import NotificationSettingFilterArgs
-from sentry.services.hybrid_cloud.notifications.serial import (
-    serialize_notification_option,
-    serialize_notification_setting,
-)
+from sentry.services.hybrid_cloud.notifications.serial import serialize_notification_setting
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.types.integrations import ExternalProviderEnum, ExternalProviders
 
@@ -88,9 +86,6 @@ class DatabaseBackedNotificationsService(NotificationsService):
                     setting_option=setting_option,
                 )
 
-    # TODO(snigdha): this doesn't seem to be used anywhere, but
-    # we will need to replace the logic for notifications V2 with
-    # get_setting_options_for_users
     def get_settings_for_users(
         self,
         *,
@@ -105,23 +100,6 @@ class DatabaseBackedNotificationsService(NotificationsService):
             scope_type=NotificationScopeType.USER.value,
         )
         return [serialize_notification_setting(u) for u in settings]
-
-    def get_setting_options_for_users(
-        self,
-        *,
-        types: List[NotificationSettingTypes],
-        users: List[RpcUser],
-        value: NotificationSettingOptionValues,
-    ) -> List[RpcNotificationSetting]:
-        settings = get_setting_options_for_users(
-            user_ids=[u.id for u in users],
-            additional_filters=Q(
-                type__in=types,
-                value=value.value,
-                scope_type=NotificationScopeType.USER.value,
-            ),
-        )
-        return [serialize_notification_option(u) for u in settings]
 
     def get_settings_for_recipient_by_parent(
         self, *, type: NotificationSettingTypes, parent_id: int, recipients: Sequence[RpcActor]
@@ -151,11 +129,7 @@ class DatabaseBackedNotificationsService(NotificationsService):
 
     # TODO(snigdha): clean this up with v2 - the new logic is in get_setting_options_by_project.
     def get_settings_for_user_by_projects(
-        self,
-        *,
-        type: NotificationSettingTypes,
-        user_id: int,
-        parent_ids: List[int],
+        self, *, type: NotificationSettingTypes, user_id: int, parent_ids: List[int]
     ) -> List[RpcNotificationSetting]:
         try:
             User.objects.get(id=user_id)
