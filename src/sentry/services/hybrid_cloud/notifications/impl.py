@@ -15,7 +15,6 @@ from sentry.notifications.helpers import (
     get_setting_options_for_users,
     get_setting_providers_for_users,
 )
-from sentry.notifications.helpers import get_scope_type
 from sentry.notifications.types import (
     NotificationScopeEnum,
     NotificationScopeType,
