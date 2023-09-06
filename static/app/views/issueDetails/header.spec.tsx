@@ -136,11 +136,21 @@ describe('groupDetails', () => {
 
     it('displays the correct tabs with all features enabled', async () => {
       const orgWithFeatures = TestStubs.Organization({
-        features: ['similarity-view', 'event-attachments'],
+        features: ['similarity-view', 'event-attachments', 'session-replay'],
       });
 
       const projectWithSimilarityView = TestStubs.Project({
         features: ['similarity-view'],
+      });
+
+      const MOCK_GROUP = TestStubs.Group({issueCategory: IssueCategory.PERFORMANCE});
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/replay-count/`,
+        method: 'GET',
+        body: {
+          [MOCK_GROUP.id]: ['replay42', 'replay256'],
+        },
       });
 
       render(
@@ -170,6 +180,7 @@ describe('groupDetails', () => {
       expect(
         screen.queryByRole('tab', {name: /similar issues/i})
       ).not.toBeInTheDocument();
+      expect(screen.queryByRole('tab', {name: /replays/i})).not.toBeInTheDocument();
     });
   });
 });

@@ -196,6 +196,7 @@ def get_deletion_key(flat_file_id: int) -> str:
 @sentry_sdk.tracing.trace
 def mark_bundle_for_flat_file_indexing(
     artifact_bundle: ArtifactBundle,
+    has_debug_ids: bool,
     project_ids: List[int],
     release: Optional[str],
     dist: Optional[str],
@@ -208,7 +209,8 @@ def mark_bundle_for_flat_file_indexing(
                 FlatFileIdentifier(project_id, release=release, dist=dist or NULL_STRING)
             )
 
-        identifiers.append(FlatFileIdentifier.for_debug_id(project_id))
+        if has_debug_ids:
+            identifiers.append(FlatFileIdentifier.for_debug_id(project_id))
 
     # Create / Update the indexing state in the database
     for identifier in identifiers:

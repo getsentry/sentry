@@ -121,6 +121,8 @@
   "sentry.DebugIdArtifactBundle",
   "sentry.ProjectArtifactBundle",
   "sentry.AuditLogEntry",
+  "sentry.AuthIdentityReplica",
+  "sentry.AuthProviderReplica",
   "sentry.CommitFileChange",
   "sentry.DashboardWidget",
   "sentry.ProguardArtifactRelease",
