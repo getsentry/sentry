@@ -20,7 +20,7 @@ import {
   IconRefresh,
   IconWarning,
 } from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
 interface SourceResolutionResults {
@@ -94,21 +94,22 @@ export function SourceMapsDebuggerModal({
       </Header>
       <Body>
         <p>
-          Looks like it wasn't possible to determine the original source code for this
-          Stack Frame when this event was captured. For Sentry to be able to unminify this
-          Stack Frame you need to configure source maps.
+          {t(
+            "Looks like it wasn't possible to determine the original source code for this Stack Frame when this event was captured. For Sentry to be able to unminify this Stack Frame you need to configure source maps."
+          )}
         </p>
         <WizardInstructionParagraph>
-          The easiest way to get started using source maps is running the Sentry Source
-          Map Wizard in the terminal inside your project:
+          {t(
+            'The easiest way to get started using source maps is running the Sentry Source Map Wizard in the terminal inside your project:'
+          )}
         </WizardInstructionParagraph>
         <InstructionCodeSnippet language="bash" dark>
           {'npx @sentry/wizard@latest -i sourcemaps'}
         </InstructionCodeSnippet>
         <p>
-          There are three different ways you can configure source maps. Once you're
-          getting started with source maps, the following check lists will help you set
-          them up correctly. Complete any one of the following processes:
+          {t(
+            "There are three different ways you can configure source maps. Once you're getting started with source maps, the following check lists will help you set them up correctly. Complete any one of the following processes:"
+          )}
         </p>
         <Tabs<'debug-ids' | 'release' | 'fetching'>
           value={activeTab}
@@ -117,7 +118,10 @@ export function SourceMapsDebuggerModal({
           }}
         >
           <TabList>
-            <TabList.Item key="debug-ids" textValue={`Debug IDs (${debugIdProgress}/4)`}>
+            <TabList.Item
+              key="debug-ids"
+              textValue={`${t('Debug IDs')} (${debugIdProgress}/4)`}
+            >
               <StyledProgressRing
                 progressColor={
                   activeTab === 'debug-ids' ? theme.purple300 : theme.gray300
@@ -129,7 +133,10 @@ export function SourceMapsDebuggerModal({
               />
               {t('Debug IDs (recommended)')}
             </TabList.Item>
-            <TabList.Item key="release" textValue={`Release Name (${releaseProgress}/4)`}>
+            <TabList.Item
+              key="release"
+              textValue={`${t('Releases')} (${releaseProgress}/4)`}
+            >
               <StyledProgressRing
                 progressColor={activeTab === 'release' ? theme.purple300 : theme.gray300}
                 backgroundColor={theme.gray200}
@@ -139,7 +146,10 @@ export function SourceMapsDebuggerModal({
               />
               {t('Releases')}
             </TabList.Item>
-            <TabList.Item key="fetching" textValue={`Fetching (${scrapingProgress}/4)`}>
+            <TabList.Item
+              key="fetching"
+              textValue={`${t('Hosting Publicly')} (${scrapingProgress}/4)`}
+            >
               <StyledProgressRing
                 progressColor={activeTab === 'fetching' ? theme.purple300 : theme.gray300}
                 backgroundColor={theme.gray200}
@@ -153,11 +163,14 @@ export function SourceMapsDebuggerModal({
           <StyledTabPanels>
             <TabPanels.Item key="debug-ids">
               <p>
-                <ExternalLink href="https://docs.sentry.io/platforms/javascript/sourcemaps/troubleshooting_js/artifact-bundles/">
-                  Debug IDs <IconOpen size="xs" />
-                </ExternalLink>{' '}
-                are a way of matching your source files to source maps. Follow all of the
-                steps below to get a readable stack trace:
+                {tct(
+                  '[link:Debug IDs] are a way of matching your source files to source maps. Follow all of the steps below to get a readable stack trace:',
+                  {
+                    link: (
+                      <ExternalLinkWithIcon href="https://docs.sentry.io/platforms/javascript/sourcemaps/troubleshooting_js/artifact-bundles/" />
+                    ),
+                  }
+                )}
               </p>
               <CheckList>
                 <InstalledSdkChecklistItem
@@ -186,12 +199,14 @@ export function SourceMapsDebuggerModal({
             </TabPanels.Item>
             <TabPanels.Item key="release">
               <p>
-                You can match your stack trace to your source code based on{' '}
-                <ExternalLink href="https://docs.sentry.io/product/releases/">
-                  Releases <IconOpen size="xs" />
-                </ExternalLink>{' '}
-                and artifact names. Follow all of the steps below to get a readable stack
-                trace:
+                {tct(
+                  'You can match your stack trace to your source code based on [link:Releases] and artifact names. Follow all of the steps below to get a readable stack trace:',
+                  {
+                    link: (
+                      <ExternalLinkWithIcon href="https://docs.sentry.io/product/releases/" />
+                    ),
+                  }
+                )}
               </p>
               <CheckList>
                 <EventHasReleaseNameChecklistItem
@@ -244,13 +259,13 @@ export function SourceMapsDebuggerModal({
             openModal(modalProps => (
               <FeedbackModal
                 featureName="sourcemaps-debugger"
-                feedbackTypes={['This was helpful', 'This was not helpful']}
+                feedbackTypes={[t('This was helpful'), t('This was not helpful')]}
                 {...modalProps}
               />
             ));
           }}
         >
-          Was this helpful? <IconMegaphone size="xs" />
+          {t('Was this helpful?')} <IconMegaphone size="xs" />
         </Link>
       </Footer>
     </Fragment>
@@ -339,38 +354,38 @@ function InstalledSdkChecklistItem({
   >;
   sourceResolutionResults: SourceResolutionResults;
 }) {
-  const itemName = 'Installed SDK supports Debug IDs';
+  const itemName = t('Installed SDK supports Debug IDs');
 
   if (sourceResolutionResults.sdkDebugIdSupport === 'needs-upgrade') {
     return (
       <CheckListItem status="alert" title={itemName}>
         <CheckListInstruction type="muted">
-          <h6>Outdated SDK</h6>
-          {sourceResolutionResults.sdkVersion ? (
-            <p>
-              You are using version{' '}
-              <MonoBlock>{sourceResolutionResults.sdkVersion}</MonoBlock> of the Sentry
-              SDK which does not support debug IDs. You should upgrade to at least version{' '}
-              <MonoBlock>7.56.0</MonoBlock>.
-            </p>
-          ) : (
-            <p>
-              You are using an outdated version of the Sentry SDK which does not support
-              debug IDs. You should upgrade to at least version{' '}
-              <MonoBlock>7.56.0</MonoBlock>.
-            </p>
-          )}
+          <h6>{t('Outdated SDK')}</h6>
           <p>
-            If upgrading the SDK is not an option for you, you can use the{' '}
-            <Link
-              to=""
-              onClick={() => {
-                setActiveTab('release');
-              }}
-            >
-              Release Name
-            </Link>
-            process instead.
+            {sourceResolutionResults.sdkVersion
+              ? tct(
+                  'You are using version [currentVersion] of the Sentry SDK which does not support debug IDs. You should upgrade to at lease version [targetVersion].',
+                  {
+                    currentVersion: (
+                      <MonoBlock>{sourceResolutionResults.sdkVersion}</MonoBlock>
+                    ),
+                    targetVersion: <MonoBlock>7.56.0</MonoBlock>,
+                  }
+                )
+              : tct(
+                  'You are using an outdated version of the Sentry SDK which does not support debug IDs. You should upgrade to at least version [targetVersion]',
+                  {
+                    targetVersion: <MonoBlock>7.56.0</MonoBlock>,
+                  }
+                )}
+          </p>
+          <p>
+            {tct(
+              'If upgrading the SDK is not an option for you, you can use the [link:Release Name] process instead.',
+              {
+                link: <Link to="" onClick={() => setActiveTab('release')} />,
+              }
+            )}
           </p>
         </CheckListInstruction>
       </CheckListItem>
@@ -387,24 +402,19 @@ function InstalledSdkChecklistItem({
   return (
     <CheckListItem status="question" title={itemName}>
       <CheckListInstruction type="muted">
-        <h6>Unofficial SDK</h6>
+        <h6>{t('Unofficial SDK')}</h6>
         <p>
-          You are using an unofficial Sentry SDK. Please check whether this SDK already
-          supports Debug IDs. It's possible that this SDK supports debug IDs but you may
-          be better off using the{' '}
-          <Link
-            to=""
-            onClick={() => {
-              setActiveTab('release');
-            }}
-          >
-            Release Name
-          </Link>{' '}
-          method of uploading source maps.
+          {tct(
+            "You are using an unofficial Sentry SDK. Please check whether this SDK already supports Debug IDs. It's possible that this SDK supports debug IDs but you may be better off using the [link:Release Name] method of uploading source maps.",
+            {
+              link: <Link to="" onClick={() => setActiveTab('release')} />,
+            }
+          )}
         </p>
         <p>
-          If this SDK depends on an official Sentry SDK, the earliest version that
-          supports Debug IDs is version 7.56.0
+          {t(
+            'If this SDK depends on an official Sentry SDK, the earliest version that supports Debug IDs is version 7.56.0'
+          )}
         </p>
       </CheckListInstruction>
     </CheckListItem>
@@ -418,7 +428,7 @@ function HasDebugIdChecklistItem({
   shouldValidate: boolean;
   sourceResolutionResults: SourceResolutionResults;
 }) {
-  const itemName = 'Stack frame has Debug IDs';
+  const itemName = t('Stack frame has Debug IDs');
 
   if (!shouldValidate) {
     return <CheckListItem status="none" title={itemName} />;
@@ -432,11 +442,12 @@ function HasDebugIdChecklistItem({
     return (
       <CheckListItem status="alert" title={itemName}>
         <CheckListInstruction type="muted">
-          <h6>Source Is Missing Injection</h6>
+          <h6>{t('Source Is Missing Injection')}</h6>
           <p>
-            The event already has debug IDs for some stack frames but not for this one.
-            Please configure the tool you are using to upload source maps to inject debug
-            IDs into <b>all</b> of your build artifacts.
+            {tct(
+              'The event already has debug IDs for some stack frames but not for this one. Please configure the tool you are using to upload source maps to inject debug IDs into [bold:all] of your build artifacts.',
+              {bold: <b />}
+            )}
           </p>
         </CheckListInstruction>
       </CheckListItem>
@@ -449,19 +460,19 @@ function HasDebugIdChecklistItem({
         <CheckListInstruction type="muted">
           <h6>Uploaded Files Not Deployed</h6>
           <p>
-            It seems you already uploaded artifacts with Debug IDs, however, this event
-            doesn't contain any Debug IDs yet. Make sure to also deploy the artifacts you
-            uploaded to Sentry. For Sentry to be able to show your original source code,
-            it is required that you deploy the exact same files that you uploaded to
-            Sentry.
+            {t(
+              "It seems you already uploaded artifacts with Debug IDs, however, this event doesn't contain any Debug IDs yet. Make sure to also deploy the artifacts you uploaded to Sentry. For Sentry to be able to show your original source code, it is required that you deploy the exact same files that you uploaded to Sentry."
+            )}
           </p>
           <p>
-            Read the{' '}
-            <ExternalLink href="https://docs.sentry.io/platforms/javascript/sourcemaps/">
-              Sentry Source Maps Documentation <IconOpen size="xs" />
-            </ExternalLink>{' '}
-            to learn how to inject Debug IDs into your build artifacts and how to upload
-            them to Sentry.
+            {tct(
+              'Read the [link:Sentry Source Maps Documentation] to learn how to inject Debug IDs into your build artifacts and how to upload them to Sentry.',
+              {
+                link: (
+                  <ExternalLinkWithIcon href="https://docs.sentry.io/platforms/javascript/sourcemaps/" />
+                ),
+              }
+            )}
           </p>
         </CheckListInstruction>
       </CheckListItem>
@@ -471,14 +482,16 @@ function HasDebugIdChecklistItem({
   return (
     <CheckListItem status="alert" title={itemName}>
       <CheckListInstruction type="muted">
-        <h6>No Debug ID Tooling Used</h6>
+        <h6>{t('No Debug ID Tooling Used')}</h6>
         <p>
-          This event doesn't contain any Debug IDs. Read the{' '}
-          <ExternalLink href="https://docs.sentry.io/platforms/javascript/sourcemaps/">
-            Sentry Source Maps Documentation <IconOpen size="xs" />
-          </ExternalLink>{' '}
-          to learn how to inject Debug IDs into your build artifacts and how to upload
-          them to Sentry.
+          {tct(
+            "This event doesn't contain any Debug IDs. Read the [link:Sentry Source Maps Documentation] to learn how to inject Debug IDs into your build artifacts and how to upload them to Sentry.",
+            {
+              link: (
+                <ExternalLinkWithIcon href="https://docs.sentry.io/platforms/javascript/sourcemaps/" />
+              ),
+            }
+          )}
         </p>
       </CheckListInstruction>
     </CheckListItem>
@@ -492,7 +505,7 @@ function UploadedSourceFileWithCorrectDebugIdChecklistItem({
   shouldValidate: boolean;
   sourceResolutionResults: SourceResolutionResults;
 }) {
-  const itemName = 'Uploaded source file with a matching Debug ID';
+  const itemName = t('Uploaded source file with a matching Debug ID');
 
   if (!shouldValidate) {
     return <CheckListItem status="none" title={itemName} />;
@@ -506,15 +519,21 @@ function UploadedSourceFileWithCorrectDebugIdChecklistItem({
     return (
       <CheckListItem status="alert" title={itemName}>
         <CheckListInstruction type="muted">
-          <h6>No Soure File With Matching Debug ID</h6>
+          <h6>{t('No Soure File With Matching Debug ID')}</h6>
           <p>
-            You already uploaded artifacts with Debug IDs but none of the uploaded source
-            files had a Debug ID matching this stack frame's Debug ID:{' '}
-            {<MonoBlock>Debug ID: {sourceResolutionResults.stackFrameDebugId}</MonoBlock>}
+            {tct(
+              "You already uploaded artifacts with Debug IDs but none of the uploaded source files had a Debug ID matching this stack frame's Debug ID: [debugId]",
+              {
+                debugId: (
+                  <MonoBlock>{sourceResolutionResults.stackFrameDebugId}</MonoBlock>
+                ),
+              }
+            )}
           </p>
           <p>
-            Make sure to inject Debug IDs into all of your source files and to upload all
-            of them to Sentry.
+            {t(
+              'Make sure to inject Debug IDs into all of your source files and to upload all of them to Sentry.'
+            )}
           </p>
           {/* TODO: Link to Uploaded Artifacts */}
         </CheckListInstruction>
@@ -526,19 +545,21 @@ function UploadedSourceFileWithCorrectDebugIdChecklistItem({
     return (
       <CheckListItem status="alert" title={itemName}>
         <CheckListInstruction type="muted">
-          <h6>Uploaded Artifacts Without Debug IDs</h6>
+          <h6>{t('Uploaded Artifacts Without Debug IDs')}</h6>
           <p>
-            You already uploaded artifacts for this project but none of the artifacts
-            contain Debug IDs. Make sure you inject Debug IDs into your source files
-            before uploading them to Sentry.
+            {t(
+              'You already uploaded artifacts for this project but none of the artifacts contain Debug IDs. Make sure you inject Debug IDs into your source files before uploading them to Sentry.'
+            )}
           </p>
           <p>
-            Read the{' '}
-            <ExternalLink href="https://docs.sentry.io/platforms/javascript/sourcemaps/">
-              Sentry Source Maps Documentation <IconOpen size="xs" />
-            </ExternalLink>{' '}
-            to learn how to inject Debug IDs into your build artifacts and how to upload
-            them to Sentry.
+            {tct(
+              'Read the [link:Sentry Source Maps Documentation] to learn how to inject Debug IDs into your build artifacts and how to upload them to Sentry.',
+              {
+                link: (
+                  <ExternalLinkWithIcon href="https://docs.sentry.io/platforms/javascript/sourcemaps/" />
+                ),
+              }
+            )}
           </p>
           {/* TODO: Link to Uploaded Artifacts */}
         </CheckListInstruction>
@@ -549,14 +570,16 @@ function UploadedSourceFileWithCorrectDebugIdChecklistItem({
   return (
     <CheckListItem status="alert" title={itemName}>
       <CheckListInstruction type="muted">
-        <h6>No Artifacts Uploaded</h6>
+        <h6>{t('No Artifacts Uploaded')}</h6>
         <p>
-          You didn't upload any artifacts yet. Read the{' '}
-          <ExternalLink href="https://docs.sentry.io/platforms/javascript/sourcemaps/">
-            Sentry Source Maps Documentation <IconOpen size="xs" />
-          </ExternalLink>{' '}
-          to learn how to inject Debug IDs into your build artifacts and how to upload
-          them to Sentry.
+          {tct(
+            "You didn't upload any artifacts yet. Read the [link:Sentry Source Maps Documentation] to learn how to inject Debug IDs into your build artifacts and how to upload them to Sentry.",
+            {
+              link: (
+                <ExternalLinkWithIcon href="https://docs.sentry.io/platforms/javascript/sourcemaps/" />
+              ),
+            }
+          )}
         </p>
         {/* TODO: Link to Uploaded Artifacts */}
       </CheckListInstruction>
@@ -571,7 +594,7 @@ function UploadedSourceMapWithCorrectDebugIdChecklistItem({
   shouldValidate: boolean;
   sourceResolutionResults: SourceResolutionResults;
 }) {
-  const itemName = 'Uploaded source map with a matching Debug ID';
+  const itemName = t('Uploaded source map with a matching Debug ID');
 
   if (!shouldValidate) {
     return <CheckListItem status="none" title={itemName} />;
@@ -585,15 +608,21 @@ function UploadedSourceMapWithCorrectDebugIdChecklistItem({
     return (
       <CheckListItem status="alert" title={itemName}>
         <CheckListInstruction type="muted">
-          <h6>No Soure Map With Matching Debug ID</h6>
+          <h6>{t('No Soure Map With Matching Debug ID')}</h6>
           <p>
-            You already uploaded artifacts with Debug IDs but none of the uploaded source
-            maps had a Debug ID matching this stack frame's Debug ID:{' '}
-            {<MonoBlock>Debug ID: {sourceResolutionResults.stackFrameDebugId}</MonoBlock>}
+            {tct(
+              "You already uploaded artifacts with Debug IDs but none of the uploaded source maps had a Debug ID matching this stack frame's Debug ID: [debugId]",
+              {
+                debugId: (
+                  <MonoBlock>{sourceResolutionResults.stackFrameDebugId}</MonoBlock>
+                ),
+              }
+            )}
           </p>
           <p>
-            Make sure to inject Debug IDs into all of your source files and to upload all
-            of them to Sentry.
+            {t(
+              'Make sure to inject Debug IDs into all of your source files and to upload all of them to Sentry.'
+            )}
           </p>
           {/* TODO: Link to Uploaded Artifacts */}
         </CheckListInstruction>
@@ -606,19 +635,21 @@ function UploadedSourceMapWithCorrectDebugIdChecklistItem({
     return (
       <CheckListItem status="alert" title={itemName}>
         <CheckListInstruction type="muted">
-          <h6>Uploaded Artifacts Without Debug IDs</h6>
+          <h6>{t('Uploaded Artifacts Without Debug IDs')}</h6>
           <p>
-            You already uploaded artifacts for this project but none of the artifacts
-            contain Debug IDs. Make sure you inject Debug IDs into your source files
-            before uploading them to Sentry.
+            {t(
+              'You already uploaded artifacts for this project but none of the artifacts contain Debug IDs. Make sure you inject Debug IDs into your source files before uploading them to Sentry.'
+            )}
           </p>
           <p>
-            Read the{' '}
-            <ExternalLink href="https://docs.sentry.io/platforms/javascript/sourcemaps/">
-              Sentry Source Maps Documentation <IconOpen size="xs" />
-            </ExternalLink>{' '}
-            to learn how to inject Debug IDs into your build artifacts and how to upload
-            them to Sentry.
+            {tct(
+              'Read the [link:Sentry Source Maps Documentation] to learn how to inject Debug IDs into your build artifacts and how to upload them to Sentry.',
+              {
+                link: (
+                  <ExternalLinkWithIcon href="https://docs.sentry.io/platforms/javascript/sourcemaps/" />
+                ),
+              }
+            )}
           </p>
           {/* TODO: Link to Uploaded Artifacts */}
         </CheckListInstruction>
@@ -630,14 +661,16 @@ function UploadedSourceMapWithCorrectDebugIdChecklistItem({
   return (
     <CheckListItem status="alert" title={itemName}>
       <CheckListInstruction type="muted">
-        <h6>No Artifacts Uploaded</h6>
+        <h6>{t('No Artifacts Uploaded')}</h6>
         <p>
-          You didn't upload any artifacts yet. Read the{' '}
-          <ExternalLink href="https://docs.sentry.io/platforms/javascript/sourcemaps/">
-            Sentry Source Maps Documentation <IconOpen size="xs" />
-          </ExternalLink>{' '}
-          to learn how to inject Debug IDs into your build artifacts and how to upload
-          them to Sentry.
+          {tct(
+            "You didn't upload any artifacts yet. Read the [link:Sentry Source Maps Documentation] to learn how to inject Debug IDs into your build artifacts and how to upload them to Sentry.",
+            {
+              link: (
+                <ExternalLinkWithIcon href="https://docs.sentry.io/platforms/javascript/sourcemaps/" />
+              ),
+            }
+          )}
         </p>
         {/* TODO: Link to Uploaded Artifacts */}
       </CheckListInstruction>
@@ -651,7 +684,7 @@ function EventHasReleaseNameChecklistItem({
 }: {
   sourceResolutionResults: SourceResolutionResults;
 }) {
-  const itemName = 'Event has release value';
+  const itemName = t('Event has release value');
 
   if (sourceResolutionResults.releaseName !== null) {
     return <CheckListItem status="checked" title={itemName} />;
@@ -660,10 +693,12 @@ function EventHasReleaseNameChecklistItem({
   return (
     <CheckListItem status="alert" title={itemName}>
       <CheckListInstruction type="muted">
-        <h6>No Release Value</h6>
+        <h6>{t('No Release Value')}</h6>
         <p>
-          The captured event does not have a <MonoBlock>release</MonoBlock> value.
-          Configure a <MonoBlock>release</MonoBlock> value in the SDK:
+          {tct(
+            'The captured event does not have a [release] value. Configure a [release] value in the SDK:',
+            {release: <MonoBlock>release</MonoBlock>}
+          )}
         </p>
         <InstructionCodeSnippet language="javascript" dark hideCopyButton>
           {`Sentry.init({
@@ -671,11 +706,14 @@ function EventHasReleaseNameChecklistItem({
 })`}
         </InstructionCodeSnippet>
         <p>
-          Alternatively, you can configure one of our build tools to automatically inject
-          a release value into your code:{' '}
-          <ExternalLink href="https://docs.sentry.io/platforms/javascript/sourcemaps/#sentry-bundler-support">
-            Sentry Bundler Support <IconOpen size="xs" />
-          </ExternalLink>
+          {tct(
+            'Alternatively, you can configure one of our build tools to automatically inject a release value into your code: [link:Sentry Bundler Support]',
+            {
+              link: (
+                <ExternalLinkWithIcon href="https://docs.sentry.io/platforms/javascript/sourcemaps/#sentry-bundler-support" />
+              ),
+            }
+          )}
         </p>
       </CheckListInstruction>
     </CheckListItem>
@@ -689,7 +727,7 @@ function ReleaseHasUploadedArtifactsChecklistItem({
   shouldValidate: boolean;
   sourceResolutionResults: SourceResolutionResults;
 }) {
-  const itemName = 'Release has uploaded artifacts';
+  const itemName = t('Release has uploaded artifacts');
 
   if (!shouldValidate) {
     return <CheckListItem status="none" title={itemName} />;
@@ -702,19 +740,22 @@ function ReleaseHasUploadedArtifactsChecklistItem({
   return (
     <CheckListItem status="alert" title={itemName}>
       <CheckListInstruction type="muted">
-        <h6>No Uploaded Artifacts</h6>
+        <h6>{t('No Uploaded Artifacts')}</h6>
         <p>
-          The release this event belongs to doesn't have any uploaded artifacts. Upload
-          your build artifacts to Sentry using the release:{' '}
+          {t(
+            "The release this event belongs to doesn't have any uploaded artifacts. Upload your build artifacts to Sentry using the release:"
+          )}{' '}
           <MonoBlock>{sourceResolutionResults.releaseName}</MonoBlock>
         </p>
         <p>
-          Read the{' '}
-          <ExternalLink href="https://docs.sentry.io/platforms/javascript/sourcemaps/troubleshooting_js/legacy-uploading-methods/">
-            Sentry Source Maps Documentation <IconOpen size="xs" />
-          </ExternalLink>{' '}
-          to learn how to to upload your build artifacts to Sentry.
-          {/* TODO: Link to Uploaded Artifacts */}
+          {tct(
+            'Read the [link:Sentry Source Maps Documentation] to learn how to to upload your build artifacts to Sentry.',
+            {
+              link: (
+                <ExternalLinkWithIcon href="https://docs.sentry.io/platforms/javascript/sourcemaps/troubleshooting_js/legacy-uploading-methods/" />
+              ),
+            }
+          )}
         </p>
       </CheckListInstruction>
     </CheckListItem>
@@ -728,7 +769,7 @@ function ReleaseSourceFileMatchingChecklistItem({
   shouldValidate: boolean;
   sourceResolutionResults: SourceResolutionResults;
 }) {
-  const itemName = 'Stack frame path matches source file artifact';
+  const itemName = t('Stack frame path matches source file artifact');
 
   if (!shouldValidate) {
     return <CheckListItem status="none" title={itemName} />;
@@ -742,22 +783,25 @@ function ReleaseSourceFileMatchingChecklistItem({
     return (
       <CheckListItem status="alert" title={itemName}>
         <CheckListInstruction type="muted">
-          <h6>Dist Value Not Matching</h6>
+          <h6>{t('Dist Value Not Matching')}</h6>
           <p>
-            You uploaded a source file artifact with the right name, however the dist
-            value on this event does not match the dist value on the artifact.
+            {t(
+              'You uploaded a source file artifact with the right name, however the dist value on this event does not match the dist value on the artifact.'
+            )}
           </p>
           {sourceResolutionResults.distName !== null ? (
             <p>
-              Upload your build artifacts to Sentry using the dist{' '}
-              <MonoBlock>{sourceResolutionResults.distName}</MonoBlock> or adjust the dist
-              value in your SDK options.
+              {tct(
+                'Upload your build artifacts to Sentry using the dist [dist] or adjust the dist value in your SDK options.',
+                {dist: <MonoBlock>{sourceResolutionResults.distName}</MonoBlock>}
+              )}
             </p>
           ) : (
             <p>
-              Upload your build artifacts to Sentry using a matching
-              <MonoBlock>dist</MonoBlock> value or adjust the <MonoBlock>dist</MonoBlock>{' '}
-              value in your SDK options.
+              {tct(
+                'Upload your build artifacts to Sentry using a matching [dist] value or adjust the [dist] value in your SDK options.',
+                {dist: <MonoBlock>dist</MonoBlock>}
+              )}
             </p>
           )}
           <DistCodeSnippet />
@@ -770,10 +814,11 @@ function ReleaseSourceFileMatchingChecklistItem({
   if (sourceResolutionResults.stackFramePath === null) {
     <CheckListItem status="alert" title={itemName}>
       <CheckListInstruction type="muted">
-        <h6>Stack Frame Without Path</h6>
+        <h6>{t('Stack Frame Without Path')}</h6>
         <p>
-          This stack frame doesn't have a path. Check your SDK configuration to send a
-          stack frame path!
+          {t(
+            "This stack frame doesn't have a path. Check your SDK configuration to send a stack frame path!"
+          )}
         </p>
       </CheckListInstruction>
     </CheckListItem>;
@@ -782,26 +827,37 @@ function ReleaseSourceFileMatchingChecklistItem({
   return (
     <CheckListItem status="alert" title={itemName}>
       <CheckListInstruction type="muted">
-        <h6>Stack Frame Not Matching Artifact Name</h6>
+        <h6>{t('Stack Frame Not Matching Artifact Name')}</h6>
         <p>
-          The path for this stack frame is{' '}
-          <MonoBlock>{sourceResolutionResults.stackFramePath}</MonoBlock> and no matching
-          artifact in this release was found.
+          {tct(
+            'The path for this stack frame is [stackFramePath] and no matching artifact in this release was found.',
+            {
+              stackFramePath: (
+                <MonoBlock>{sourceResolutionResults.stackFramePath}</MonoBlock>
+              ),
+            }
+          )}
         </p>
         <p>
-          Upload a source file with exactly the same name or a protocol + hostname prefix:{' '}
+          {t(
+            'Upload a source file with exactly the same name or a protocol + hostname prefix:'
+          )}{' '}
           <MonoBlock>{sourceResolutionResults.matchingArtifactName}</MonoBlock>
         </p>
         <p>
-          Refer to the documentation of the tool you're using to upload source files to
-          understand how to change artifact names.
+          {t(
+            "Refer to the documentation of the tool you're using to upload source files to understand how to change artifact names."
+          )}
         </p>
         <p>
-          If the stack frame path is changing based on runtime parameters, you can use the{' '}
-          <ExternalLink href="https://docs.sentry.io/platforms/javascript/configuration/integrations/rewriteframes/">
-            RewriteFrames integration <IconOpen size="xs" />
-          </ExternalLink>{' '}
-          to dynamically change the the stack frame path.
+          {tct(
+            'If the stack frame path is changing based on runtime parameters, you can use the [link:RewriteFrames integration] to dynamically change the the stack frame path.',
+            {
+              link: (
+                <ExternalLinkWithIcon href="https://docs.sentry.io/platforms/javascript/configuration/integrations/rewriteframes/" />
+              ),
+            }
+          )}
         </p>
       </CheckListInstruction>
     </CheckListItem>
@@ -815,7 +871,7 @@ function ReleaseSourceMapMatchingChecklistItem({
   shouldValidate: boolean;
   sourceResolutionResults: SourceResolutionResults;
 }) {
-  const itemName = 'Source map reference matches source map artifact name';
+  const itemName = t('Source map reference matches source map artifact name');
 
   if (!shouldValidate) {
     return <CheckListItem status="none" title={itemName} />;
@@ -829,16 +885,18 @@ function ReleaseSourceMapMatchingChecklistItem({
     return (
       <CheckListItem status="alert" title={itemName}>
         <CheckListInstruction type="muted">
-          <h6>Missing Source Map Reference</h6>
+          <h6>{t('Missing Source Map Reference')}</h6>
           <p>
-            The source file for this stack frame is missing a source map reference. A
-            source map reference is usually represented by a{' '}
-            <MonoBlock>//# sourceMappingURL=...</MonoBlock> comment at the bottom of your
-            source file.
+            {tct(
+              'The source file for this stack frame is missing a source map reference. A source map reference is usually represented by a [sourceMappingUrl] comment at the bottom of your source file.',
+              {sourceMappingUrl: <MonoBlock>//# sourceMappingURL=...</MonoBlock>}
+            )}
           </p>
           <p>
-            You can fix this by configuring your build tool to emit a{' '}
-            <MonoBlock>sourceMappingURL</MonoBlock> comment.
+            {tct(
+              'You can fix this by configuring your build tool to emit a [sourceMappingUrl] comment.',
+              {sourceMappingUrl: <MonoBlock>sourceMappingURL</MonoBlock>}
+            )}
           </p>
         </CheckListInstruction>
         <SourceMapStepNotRequiredNote />
@@ -850,22 +908,25 @@ function ReleaseSourceMapMatchingChecklistItem({
     return (
       <CheckListItem status="alert" title={itemName}>
         <CheckListInstruction type="muted">
-          <h6>Dist Value Not Matching</h6>
+          <h6>{t('Dist Value Not Matching')}</h6>
           <p>
-            You uploaded a source map artifact with the right name, however the dist value
-            on this event does not match the dist value on the artifact.
+            {t(
+              'You uploaded a source map artifact with the right name, however the dist value on this event does not match the dist value on the artifact.'
+            )}
           </p>
           {sourceResolutionResults.distName !== null ? (
             <p>
-              Upload your build artifacts to Sentry using the dist{' '}
-              <MonoBlock>{sourceResolutionResults.distName}</MonoBlock> or adjust the dist
-              value in your SDK options.
+              {tct(
+                'Upload your build artifacts to Sentry using the dist [dist] or adjust the dist value in your SDK options.',
+                {dist: <MonoBlock>{sourceResolutionResults.distName}</MonoBlock>}
+              )}
             </p>
           ) : (
             <p>
-              Upload your build artifacts to Sentry using a matching
-              <MonoBlock>dist</MonoBlock> value or adjust the <MonoBlock>dist</MonoBlock>{' '}
-              value in your SDK options.
+              {tct(
+                'Upload your build artifacts to Sentry using a matching [dist] value or adjust the [dist] value in your SDK options.',
+                {dist: <MonoBlock>dist</MonoBlock>}
+              )}
             </p>
           )}
           <DistCodeSnippet />
@@ -878,17 +939,21 @@ function ReleaseSourceMapMatchingChecklistItem({
   return (
     <CheckListItem status="alert" title={itemName}>
       <CheckListInstruction type="muted">
-        <h6>Not Found</h6>
+        <h6>{t('Not Found')}</h6>
         <p>
-          The source file had a source map reference{' '}
-          <MonoBlock>{sourceResolutionResults.releaseSourceMapReference}</MonoBlock>, but
-          there was no source map artifact uploaded at that location. Make sure to
-          generate and upload all of your source maps!
+          {tct(
+            'The source file had a source map reference [sourceMapReference], but there was no source map artifact uploaded at that location. Make sure to generate and upload all of your source maps!',
+            {
+              sourceMapReference: (
+                <MonoBlock>{sourceResolutionResults.releaseSourceMapReference}</MonoBlock>
+              ),
+            }
+          )}
         </p>
         <p>
-          Note, that if the source map reference is a relative path, Sentry will look for
-          a source map artifact relative to the source file that contains the source map
-          reference.
+          {t(
+            'Note, that if the source map reference is a relative path, Sentry will look for a source map artifact relative to the source file that contains the source map reference.'
+          )}
         </p>
         {/* TODO: Link to Uploaded Artifacts */}
       </CheckListInstruction>
@@ -902,7 +967,7 @@ function ScrapingSourceFileAvailableChecklistItem({
 }: {
   sourceResolutionResults: SourceResolutionResults;
 }) {
-  const itemName = 'Source file available to Sentry';
+  const itemName = t('Source file available to Sentry');
 
   if (sourceResolutionResults.sourceFileScrapingStatus.status === 'found') {
     return <CheckListItem status="checked" title={itemName} />;
@@ -916,11 +981,11 @@ function ScrapingSourceFileAvailableChecklistItem({
     return (
       <CheckListItem status="alert" title={itemName}>
         <CheckListInstruction type="muted">
-          <h6>Fetching Not Attempted</h6>
+          <h6>{t('Fetching Not Attempted')}</h6>
           <p>
-            The source file was already locaded via Debug IDs or Releases. Sentry will
-            only attempt to fetch the source file from your servers as a fallback
-            mechanism.
+            {t(
+              'The source file was already locaded via Debug IDs or Releases. Sentry will only attempt to fetch the source file from your servers as a fallback mechanism.'
+            )}
           </p>
         </CheckListInstruction>
         <SourceMapStepNotRequiredNote />
@@ -931,9 +996,11 @@ function ScrapingSourceFileAvailableChecklistItem({
   return (
     <CheckListItem status="alert" title={itemName}>
       <CheckListInstruction type="muted">
-        <h6>Error While Fetching</h6>
-        <p>Sentry encountered an error while fetching your source file.</p>
-        <p>Error message: "{sourceResolutionResults.sourceFileScrapingStatus.error}"</p>
+        <h6>{t('Error While Fetching')}</h6>
+        <p>{t('Sentry encountered an error while fetching your source file.')}</p>
+        <p>
+          {t('Error message')}: "{sourceResolutionResults.sourceFileScrapingStatus.error}"
+        </p>
       </CheckListInstruction>
     </CheckListItem>
   );
@@ -963,12 +1030,22 @@ function ScrapingSourceMapAvailableChecklistItem({
   return (
     <CheckListItem status="alert" title={itemName}>
       <CheckListInstruction type="muted">
-        <h6>Error While Fetching</h6>
-        <p>Sentry encountered an error while fetching your source map.</p>
-        <p>Error message: "{sourceResolutionResults.sourceMapScrapingStatus.error}"</p>
+        <h6>{t('Error While Fetching')}</h6>
+        <p>{t('Sentry encountered an error while fetching your source map.')}</p>
+        <p>
+          {t('Error message')}: "{sourceResolutionResults.sourceMapScrapingStatus.error}"
+        </p>
       </CheckListInstruction>
       <SourceMapStepNotRequiredNote />
     </CheckListItem>
+  );
+}
+
+function ExternalLinkWithIcon({href, children}: PropsWithChildren<{href: string}>) {
+  return (
+    <ExternalLink href={href}>
+      {children} <IconOpen size="xs" />
+    </ExternalLink>
   );
 }
 
@@ -987,8 +1064,9 @@ function VerifyAgainNote() {
     <CompletionNoteContainer>
       <IconRefresh size="lg" color="gray300" />
       <p>
-        Once you changed your configuration, redeploy your app and capture a new event to
-        verify your changes!
+        {t(
+          'Once you changed your configuration, redeploy your app and capture a new event to verify your changes!'
+        )}
       </p>
     </CompletionNoteContainer>
   );
@@ -999,7 +1077,9 @@ function ChecklistDoneNote() {
     <CompletionNoteContainer>
       <IconCheckmark size="md" color="green200" />
       <p>
-        You completed all of the steps above. Capture a new event to verify your setup!
+        {t(
+          'You completed all of the steps above. Capture a new event to verify your setup!'
+        )}
       </p>
     </CompletionNoteContainer>
   );
@@ -1008,8 +1088,9 @@ function ChecklistDoneNote() {
 function SourceMapStepNotRequiredNote() {
   return (
     <CheckListInstruction type="muted" showIcon>
-      You can safely ignore this step if you don't do any transformations to your code
-      before deploying.
+      {
+        "You can safely ignore this step if you don't do any transformations to your code before deploying."
+      }
     </CheckListInstruction>
   );
 }
