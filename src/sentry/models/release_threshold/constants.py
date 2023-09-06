@@ -1,11 +1,3 @@
-from django.db import models
-from django.utils import timezone
-
-from sentry.backup.scopes import RelocationScope
-from sentry.db.models import FlexibleForeignKey, Model, region_silo_only_model
-from sentry.db.models.fields.bounded import BoundedPositiveIntegerField
-
-
 class ReleaseThresholdType:
     TOTAL_ERROR_COUNT = 0
     NEW_ISSUE_COUNT = 1
@@ -78,16 +70,36 @@ class TriggerType:
         )
 
 
-@region_silo_only_model
-class ReleaseThreshold(Model):
-    __relocation_scope__ = RelocationScope.Excluded
+THRESHOLD_TYPE_INT_TO_STR = {
+    ReleaseThresholdType.TOTAL_ERROR_COUNT: ReleaseThresholdType.TOTAL_ERROR_COUNT_STR,
+    ReleaseThresholdType.NEW_ISSUE_COUNT_STR: ReleaseThresholdType.NEW_ISSUE_COUNT_STR,
+    ReleaseThresholdType.UNHANDLED_ISSUE_COUNT: ReleaseThresholdType.UNHANDLED_ISSUE_COUNT_STR,
+    ReleaseThresholdType.REGRESSED_ISSUE_COUNT: ReleaseThresholdType.REGRESSED_ISSUE_COUNT_STR,
+    ReleaseThresholdType.FAILURE_RATE: ReleaseThresholdType.FAILURE_RATE_STR,
+    ReleaseThresholdType.CRASH_FREE_SESSION_RATE: ReleaseThresholdType.CRASH_FREE_SESSION_RATE_STR,
+    ReleaseThresholdType.CRASH_FREE_USER_RATE: ReleaseThresholdType.CRASH_FREE_USER_RATE_STR,
+}
 
-    threshold_type = BoundedPositiveIntegerField(choices=ReleaseThresholdType.as_choices())
-    trigger_type = BoundedPositiveIntegerField(choices=TriggerType.as_choices())
+THRESHOLD_TYPE_STR_TO_INT = {
+    ReleaseThresholdType.TOTAL_ERROR_COUNT_STR: ReleaseThresholdType.TOTAL_ERROR_COUNT,
+    ReleaseThresholdType.NEW_ISSUE_COUNT_STR: ReleaseThresholdType.NEW_ISSUE_COUNT,
+    ReleaseThresholdType.UNHANDLED_ISSUE_COUNT_STR: ReleaseThresholdType.UNHANDLED_ISSUE_COUNT,
+    ReleaseThresholdType.REGRESSED_ISSUE_COUNT_STR: ReleaseThresholdType.REGRESSED_ISSUE_COUNT,
+    ReleaseThresholdType.FAILURE_RATE_STR: ReleaseThresholdType.FAILURE_RATE,
+    ReleaseThresholdType.CRASH_FREE_SESSION_RATE_STR: ReleaseThresholdType.CRASH_FREE_SESSION_RATE,
+    ReleaseThresholdType.CRASH_FREE_USER_RATE_STR: ReleaseThresholdType.CRASH_FREE_USER_RATE,
+}
 
-    value = models.IntegerField()
-    window_in_seconds = models.IntegerField()
+TRIGGER_TYPE_INT_TO_STR = {
+    TriggerType.PERCENT_OVER: TriggerType.PERCENT_OVER_STR,
+    TriggerType.PERCENT_UNDER: TriggerType.PERCENT_UNDER_STR,
+    TriggerType.ABSOLUTE_OVER: TriggerType.ABSOLUTE_OVER_STR,
+    TriggerType.ABSOLUTE_UNDER: TriggerType.ABSOLUTE_UNDER_STR,
+}
 
-    project = FlexibleForeignKey("sentry.Project", db_index=True)
-    environment = FlexibleForeignKey("sentry.Environment", null=True, db_index=True)
-    date_added = models.DateTimeField(default=timezone.now)
+TRIGGER_TYPE_STRING_TO_INT = {
+    TriggerType.PERCENT_OVER_STR: TriggerType.PERCENT_OVER,
+    TriggerType.PERCENT_UNDER_STR: TriggerType.PERCENT_UNDER,
+    TriggerType.ABSOLUTE_OVER_STR: TriggerType.ABSOLUTE_OVER,
+    TriggerType.ABSOLUTE_UNDER_STR: TriggerType.ABSOLUTE_UNDER,
+}
