@@ -5,12 +5,12 @@ from sentry.userfeedback.models import UserFeedback
 
 
 class UserFeedbackResponseType(TypedDict):
-    dateAdded: str
-    replayId: Optional[str]
+    date_added: str
+    replay_id: Optional[str]
     url: Optional[str]
-    errorIds: List[str]
-    traceIds: List[str]
-    feedbackText: str
+    error_ids: List[str]
+    trace_ids: List[str]
+    feedback_text: str
     context: Optional[Any]
 
 
@@ -18,12 +18,12 @@ class UserFeedbackResponseType(TypedDict):
 class UserFeedbackSerializer(Serializer):
     def serialize(self, obj, attrs, user, **kwargs) -> UserFeedbackResponseType:
         result = {
-            "dateAdded": obj.date_added,
-            "replayId": obj.replay_id,
+            "date_added": obj.date_added,
+            "replay_id": obj.replay_id,
             "url": obj.url,
-            "errorIds": obj.error_ids,
-            "traceIds": obj.trace_ids,
-            "feedbackText": obj.feedback_text,
+            "error_ids": obj.error_ids,
+            "trace_ids": obj.trace_ids,
+            "feedback_text": obj.feedback_text,
             "context": obj.context,
         }
         return result

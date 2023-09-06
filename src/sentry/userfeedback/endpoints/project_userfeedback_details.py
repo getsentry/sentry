@@ -19,19 +19,19 @@ class ProjectUserFeedbackDetailsEndpoint(ProjectEndpoint):
         "PUT": ApiPublishStatus.EXPERIMENTAL,
     }
 
-    def get(self, request: Request, project: Project, userfeedback_id: str) -> Response:
+    def get(self, request: Request, project: Project, user_feedback_id: str) -> Response:
         try:
-            userfeedback = UserFeedback.objects.get(id=userfeedback_id, project_id=project.id)
+            user_feedback = UserFeedback.objects.get(id=user_feedback_id, project_id=project.id)
         except UserFeedback.DoesNotExist:
             raise serializers.ValidationError("User feedback does not exist")
 
         return Response(
             serialize(
-                userfeedback,
+                user_feedback,
                 request.user,
                 UserFeedbackSerializer(),
             )
         )
 
-    def delete(self, request: Request, project: Project, userfeedback_id: str) -> Response:
+    def delete(self, request: Request, project: Project, user_feedback_id: str) -> Response:
         pass
