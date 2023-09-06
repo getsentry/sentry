@@ -1,6 +1,6 @@
 import logging
 import warnings
-from typing import List
+from typing import List, Optional
 
 from django.contrib.auth.models import AbstractBaseUser
 from django.contrib.auth.models import UserManager as DjangoUserManager
@@ -15,7 +15,8 @@ from django.utils.translation import gettext_lazy as _
 
 from bitfield import TypedClassBitField
 from sentry.auth.authenticators import available_authenticators
-from sentry.backup.scopes import RelocationScope
+from sentry.backup.dependencies import PrimaryKeyMap
+from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import (
     BaseManager,
     BaseModel,
@@ -333,17 +334,20 @@ class User(BaseModel, AbstractBaseUser):
         AuditLogEntry.objects.filter(actor=from_user).update(actor=to_user)
         AuditLogEntry.objects.filter(target_user=from_user).update(target_user=to_user)
 
-        # remove any SSO identities that exist on from_user that might conflict
-        # with to_user's existing identities (only applies if both users have
-        # SSO identities in the same org), then pass the rest on to to_user
-        # NOTE: This could, become calls to identity_service.delete_ide
-        AuthIdentity.objects.filter(
-            user=from_user,
-            auth_provider__organization_id__in=AuthIdentity.objects.filter(user=to_user).values(
-                "auth_provider__organization_id"
-            ),
-        ).delete()
-        AuthIdentity.objects.filter(user=from_user).update(user=to_user)
+        with outbox_context(flush=False):
+            # remove any SSO identities that exist on from_user that might conflict
+            # with to_user's existing identities (only applies if both users have
+            # SSO identities in the same org), then pass the rest on to to_user
+            # NOTE: This could, become calls to identity_service.delete_ide
+            for ai in AuthIdentity.objects.filter(
+                user=from_user,
+                auth_provider__organization_id__in=AuthIdentity.objects.filter(user=to_user).values(
+                    "auth_provider__organization_id"
+                ),
+            ):
+                ai.delete()
+            for ai in AuthIdentity.objects.filter(user=from_user):
+                ai.update(user=to_user)
 
     def set_password(self, raw_password):
         super().set_password(raw_password)
@@ -368,6 +372,23 @@ class User(BaseModel, AbstractBaseUser):
 
     def clear_lost_passwords(self):
         LostPasswordHash.objects.filter(user=self).delete()
+
+    def _normalize_before_relocation_import(
+        self, pk_map: PrimaryKeyMap, scope: ImportScope
+    ) -> Optional[int]:
+        old_pk = super()._normalize_before_relocation_import(pk_map, scope)
+        if old_pk is None:
+            return None
+
+        if scope != ImportScope.Global:
+            self.is_staff = False
+            self.is_superuser = False
+
+        # TODO(getsentry/team-ospo#181): Handle usernames that already exist. This will involve
+        # marking the user "unclaimed", wiping their password, and adding a random suffix to their
+        # username.
+
+        return old_pk
 
 
 # HACK(dcramer): last_login needs nullable for Django 1.8

@@ -1,6 +1,7 @@
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization_events import OrganizationEventsEndpointBase
 from sentry.snuba.metrics_performance import query as metrics_query
@@ -8,6 +9,10 @@ from sentry.snuba.metrics_performance import query as metrics_query
 
 @region_silo_endpoint
 class OrganizationEventsRootCauseAnalysisEndpoint(OrganizationEventsEndpointBase):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request, organization):
         if not features.has(
             "organizations:statistical-detectors-root-cause-analysis",

@@ -157,10 +157,7 @@ def clock_pulse(current_datetime=None):
     soft_time_limit=10,
     silo_mode=SiloMode.REGION,
 )
-def check_missing(current_datetime=None):
-    if current_datetime is None:
-        current_datetime = timezone.now()
-
+def check_missing(current_datetime: datetime):
     # [!!]: We want our reference time to be clamped to the very start of the
     # minute, otherwise we may mark checkins as missed if they didn't happen
     # immediately before this task was run (usually a few seconds into the minute)
@@ -168,6 +165,10 @@ def check_missing(current_datetime=None):
     # Because we query `next_checkin_latest__lt=current_datetime` clamping to the
     # minute will ignore monitors that haven't had their checkin yet within
     # this minute.
+    #
+    # XXX(epurkhiser): This *should* have already been handle by the
+    # try_monitor_tasks_trigger, since it clamps the reference timestamp, but I
+    # am leaving this here to be safe
     current_datetime = current_datetime.replace(second=0, microsecond=0)
 
     qs = (
@@ -210,9 +211,7 @@ def check_missing(current_datetime=None):
             )
 
             monitor = monitor_environment.monitor
-            expected_time = None
-            if monitor_environment.last_checkin:
-                expected_time = monitor.get_next_expected_checkin(monitor_environment.last_checkin)
+            expected_time = monitor_environment.next_checkin
 
             # add missed checkin.
             #
@@ -247,10 +246,7 @@ def check_missing(current_datetime=None):
     soft_time_limit=10,
     silo_mode=SiloMode.REGION,
 )
-def check_timeout(current_datetime=None):
-    if current_datetime is None:
-        current_datetime = timezone.now()
-
+def check_timeout(current_datetime: datetime):
     current_datetime = current_datetime.replace(second=0, microsecond=0)
 
     qs = MonitorCheckIn.objects.filter(

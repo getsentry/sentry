@@ -24,7 +24,8 @@ from sentry_sdk import Scope
 
 from sentry import analytics, options, tsdb
 from sentry.api.api_owners import ApiOwner
-from sentry.apidocs.hooks import HTTP_METHODS_SET
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.apidocs.hooks import HTTP_METHOD_NAME
 from sentry.auth import access
 from sentry.models import Environment
 from sentry.ratelimits.config import DEFAULT_RATE_LIMIT_CONFIG, RateLimitConfig
@@ -153,9 +154,8 @@ class Endpoint(APIView):
 
     cursor_name = "cursor"
 
-    public: Optional[HTTP_METHODS_SET] = None
     owner: ApiOwner = ApiOwner.UNOWNED
-
+    publish_status: dict[HTTP_METHOD_NAME, ApiPublishStatus] = {}
     rate_limits: RateLimitConfig | dict[
         str, dict[RateLimitCategory, RateLimit]
     ] = DEFAULT_RATE_LIMIT_CONFIG

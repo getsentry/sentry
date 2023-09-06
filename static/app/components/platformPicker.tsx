@@ -9,7 +9,11 @@ import ListLink from 'sentry/components/links/listLink';
 import NavTabs from 'sentry/components/navTabs';
 import SearchBar from 'sentry/components/searchBar';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
-import categoryList, {filterAliases, PlatformKey} from 'sentry/data/platformCategories';
+import categoryList, {
+  deprecatedPlatforms,
+  filterAliases,
+  PlatformKey,
+} from 'sentry/data/platformCategories';
 import platforms from 'sentry/data/platforms';
 import {IconClose, IconProject} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -22,6 +26,8 @@ export const PLATFORM_CATEGORIES: {
   name: string;
   platforms?: PlatformKey[];
 }[] = [...JSON.parse(JSON.stringify(categoryList)), {id: 'all', name: t('All')}];
+
+const activePlatforms = platforms.filter(({id}) => !deprecatedPlatforms.has(id));
 
 const PlatformList = styled('div')`
   display: grid;
@@ -93,7 +99,7 @@ class PlatformPicker extends Component<PlatformPickerProps, State> {
       return (currentCategory?.platforms as undefined | string[])?.includes(platform.id);
     };
 
-    const filtered = platforms
+    const filtered = activePlatforms
       .filter(this.state.filter ? subsetMatch : categoryMatch)
       .sort((a, b) => a.id.localeCompare(b.id));
 
