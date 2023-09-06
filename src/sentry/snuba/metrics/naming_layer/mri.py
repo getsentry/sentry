@@ -177,7 +177,7 @@ def is_custom_measurement(parsed_mri: ParsedMRI) -> bool:
     )
 
 
-def get_available_operations(parsed_mri: ParsedMRI) -> dict:
+def get_available_operations(parsed_mri: ParsedMRI) -> List[str]:
     entity_name_suffixes = {
         "c": "counters",
         "s": "sets",
@@ -185,7 +185,7 @@ def get_available_operations(parsed_mri: ParsedMRI) -> dict:
         "g": "gauges",
     }
     if parsed_mri.entity == "e":
-        return {}
+        return []
     elif parsed_mri.namespace == "sessions":
         entity_key = f"metrics_{entity_name_suffixes[parsed_mri.entity]}"
         return AVAILABLE_OPERATIONS[entity_key]
