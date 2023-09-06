@@ -12,10 +12,10 @@ class HealthCheck:
     id: str
     container_name: str
     check_by_default: bool
-    check: Callable[[], None]
+    check: Callable[[], None] | None
     deps: list[str]
 
-    def __init__(self, id, container_name, check_by_default, check, deps=None):
+    def __init__(self, id, container_name, check_by_default, check=None, deps=None):
         self.id = id
         self.container_name = container_name
         self.check_by_default = check_by_default
@@ -89,6 +89,11 @@ all_service_healthchecks = {
         os.getenv("NEED_KAFKA") == "true",
         check_zookeeper,
     ),
+    "symbolicator": HealthCheck(
+        "symbolicator",
+        "sentry_symbolicator",
+        True,
+    ),
 }
 
 
@@ -106,6 +111,16 @@ def run_with_retries(cmd: Callable[[], None], retries: int = 3, timeout: int = 5
             return
 
     raise SystemExit(1)
+
+
+def check_health(id: str) -> None:
+    hc = all_service_healthchecks[id]
+    print(f"Checking {hc.container_name} is running...")
+    run_with_retries(hc.check_container)
+
+    if hc.check is not None:
+        print(f"Checking {hc.container_name} container health...")
+        run_with_retries(hc.check)
 
 
 def main(argv: Sequence[str] | None = None) -> None:
@@ -134,15 +149,11 @@ def main(argv: Sequence[str] | None = None) -> None:
             continue
 
         for dep in s.deps:
-            healthchecks.append(all_service_healthchecks[dep])
-        healthchecks.append(s)
+            healthchecks.append(dep)
+        healthchecks.append(s.id)
 
     for hc in healthchecks:
-        print(f"Checking {hc.container_name} is running...")
-        run_with_retries(hc.check_container)
-
-        print(f"Checking {hc.container_name} container health...")
-        run_with_retries(hc.check)
+        check_health(hc)
 
 
 if __name__ == "__main__":
