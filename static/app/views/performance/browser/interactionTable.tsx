@@ -7,6 +7,7 @@ import GridEditable, {
   GridColumnSortBy,
 } from 'sentry/components/gridEditable';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useInteractionsQuery} from 'sentry/views/performance/browser/useInteractionsQuery';
 
 type Row = {
   component: string;
@@ -25,15 +26,17 @@ function InteractionsTable() {
     {key: 'page', width: COL_WIDTH_UNDEFINED, name: 'Page'},
     {key: 'p75', width: COL_WIDTH_UNDEFINED, name: 'Duration (p75)'},
   ];
-  const data: Row[] = [
-    {
-      'span.group': 'Button',
-      component: '<DownloadButton/>',
-      p75: 23,
-      page: '/performance',
-      'span.action': 'click',
-    },
-  ];
+  const {data, isLoading} = useInteractionsQuery();
+  const tableData: Row[] =
+    !isLoading && data.length
+      ? data.map(row => ({
+          'span.group': 'NOT IMPLEMENTED',
+          component: row.interactionElement,
+          p75: row['p75(transaction.duration)'],
+          page: row.transaction,
+          'span.action': getFriendlyActionName(row['transaction.op']),
+        }))
+      : [];
 
   const sort: GridColumnSortBy<keyof Row> = {key: 'p75', order: 'desc'};
 
@@ -56,7 +59,8 @@ function InteractionsTable() {
 
   return (
     <GridEditable
-      data={data}
+      data={tableData}
+      isLoading={isLoading}
       columnOrder={columnOrder}
       columnSortBy={[sort]}
       grid={{renderHeadCell, renderBodyCell}}
@@ -64,5 +68,14 @@ function InteractionsTable() {
     />
   );
 }
+
+const getFriendlyActionName = (action: string) => {
+  switch (action) {
+    case 'ui.action.click':
+      return 'Click';
+    default:
+      return action;
+  }
+};
 
 export default InteractionsTable;
