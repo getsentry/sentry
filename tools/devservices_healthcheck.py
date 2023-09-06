@@ -49,8 +49,8 @@ def check_zookeeper():
 def check_kafka():
     # sentry_zookeeper:2181 doesn't work in CI, but 127.0.0.1 doesn't work locally
     zookeeper_origin = "sentry_zookeeper"
-    if os.getenv("CI") == "true":
-        zookeeper_origin = "127.0.0.1"
+    # if os.getenv("CI") == "true":
+    #     zookeeper_origin = "127.0.0.1"
 
     subprocess.run(
         (
