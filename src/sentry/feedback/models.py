@@ -8,7 +8,7 @@ from sentry.db.models.fields.array import ArrayField
 
 
 @region_silo_only_model
-class UserFeedback(Model):
+class Feedback(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
     project_id = BoundedBigIntegerField(db_index=True)
@@ -25,8 +25,8 @@ class UserFeedback(Model):
     data = models.JSONField(null=True)
 
     class Meta:
-        app_label = "user_feedback"
-        db_table = "user_feedback_user_feedback"
+        app_label = "feedback"
+        db_table = "feedback_feedback"
         index_together = [("project_id", "date_added")]
 
     __repr__ = sane_repr("project_id", "event_id")
