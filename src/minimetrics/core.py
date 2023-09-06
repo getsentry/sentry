@@ -13,6 +13,7 @@ from typing import (
     Optional,
     Set,
     Tuple,
+    TypedDict,
     TypeVar,
     Union,
 )
@@ -51,17 +52,41 @@ MetricUnit = Literal[
     "ratio",
     "percent",
 ]
+# Type of the metric.
+MetricType = Literal["d", "s", "g", "c"]
+# Value of the metric.
+MetricValue = Union[int, float, str]
 # Tag key of a metric.
 MetricTagKey = str
+
 # Internal representation of tags as a tuple of tuples (this is done in order to allow for the same key to exist
 # multiple times).
 MetricTagValueInternal = Union[str, int, float]
 MetricTagsInternal = Tuple[Tuple[MetricTagKey, MetricTagValueInternal], ...]
+
 # External representation of tags as a dictionary.
 MetricTagValueExternal = Union[str, int, float, List[Union[str, int, float]]]
 MetricTagsExternal = Mapping[MetricTagKey, MetricTagValueExternal]
+
 # Key of the bucket.
-ComposedKey = Tuple[int, str, str, MetricUnit, MetricTagsInternal]
+ComposedKey = Tuple[int, MetricType, str, MetricUnit, MetricTagsInternal]
+
+# Value of a metric that was extracted after bucketing.
+ExtractedMetricValue = Union[int, float, List[Union[int, float]]]
+
+
+class ExtractedMetric(TypedDict):
+    """
+    Metric extracted from a bucket.
+    """
+
+    type: MetricType
+    name: str
+    value: ExtractedMetricValue
+    timestamp: int
+    width: int
+    unit: Optional[MetricUnit]
+    tags: Optional[MetricTagsInternal]
 
 
 def _to_internal_metric_tags(tags: Optional[MetricTagValueExternal]) -> MetricTagsInternal:
@@ -119,13 +144,8 @@ class GaugeMetric(Metric[float]):
         self.sum += value
 
     def serialize_value(self) -> Any:
-        return {
-            "min": self.min,
-            "max": self.max,
-            "last": self.last,
-            "sum": self.sum,
-            "count": self.count,
-        }
+        # For now, we compress gauges with the last value.
+        return self.last
 
 
 class DistributionMetric(Metric[float]):
@@ -213,18 +233,16 @@ class Aggregator:
                 if not force_flush and ts > cutoff:
                     continue
 
-                extracted_metric = {
+                extracted_metric: ExtractedMetric = {
+                    "type": ty,
+                    "name": name,
+                    "value": metric.serialize_value(),
                     "timestamp": ts,
                     "width": int(self.ROLLUP_IN_SECONDS),
-                    "name": name,
-                    "type": ty,
-                    "value": metric.serialize_value(),
                 }
                 if unit:
                     extracted_metric["unit"] = unit
                 if tags:
-                    # We need to be careful here, since we have a list of tuples where the first element of tuples
-                    # can be duplicated, thus converting to a dict will end up compressing and losing data.
                     extracted_metric["tags"] = tags
 
                 extracted_metrics.append((extracted_metric, metric.current_complexity))
@@ -243,9 +261,9 @@ class Aggregator:
 
     def add(
         self,
-        ty: str,
+        ty: MetricType,
         key: str,
-        value: Any,
+        value: MetricValue,
         unit: MetricUnit,
         tags: Optional[MetricTagsExternal],
         timestamp: Optional[float],
@@ -300,7 +318,7 @@ class Aggregator:
             self._flush_event.set()
 
     @classmethod
-    def _emit(cls, extracted_metrics: List[Tuple[Any, int]], force_flush: bool) -> Any:
+    def _emit(cls, extracted_metrics: List[Tuple[ExtractedMetric, int]], force_flush: bool) -> Any:
         # We obtain the counts for each metric type of how many buckets we have and how much complexity is in each
         # bucket.
         complexities_by_type: Dict[str, Tuple[int, int]] = {}
@@ -318,8 +336,8 @@ class Aggregator:
                 # For distributions, we want to track the size of the distribution.
                 value = len(metric_value)
             elif metric_type == "g":
-                # For gauges, we will emit a count of 1.
-                value = metric_value.get("count", 1)
+                # For gauges, we will emit the single compressed value.
+                value = metric_value
             elif metric_type == "s":
                 # For sets, we want to track the cardinality of the set.
                 value = len(metric_value)

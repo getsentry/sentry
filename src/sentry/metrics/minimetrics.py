@@ -13,9 +13,6 @@ def _to_minimetrics_external_metric_tags(tags: Optional[Tags]) -> Optional[Metri
     return cast(Optional[MetricTagsExternal], tags)
 
 
-# TODO:
-#   * Check how to use units
-#   * Check usage of instance
 class MiniMetricsMetricsBackend(MetricsBackend):
     def __init__(self, prefix: Optional[str] = None):
         super().__init__(prefix=prefix)
