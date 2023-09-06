@@ -211,6 +211,8 @@ default_manager.add("organizations:transaction-name-mark-scrubbed-as-sanitized",
 default_manager.add("organizations:transaction-name-sanitization", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:transaction-metrics-extraction", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:use-metrics-layer", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+default_manager.add("organizations:user-feedback-ingest", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
+default_manager.add("organizations:user-feedback-ui", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:widget-viewer-modal-minimap", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:u2f-superuser-form", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 # NOTE: Don't add features down here! Add them to their specific group and sort
