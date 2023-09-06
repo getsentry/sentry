@@ -23,6 +23,7 @@ from sentry.db.models import (
 from sentry.nodestore.base import NodeStorage
 from sentry.utils import json, metrics
 from sentry.utils.hashlib import sha1_text
+from sentry.utils.safe import get_path
 from sentry.utils.services import LazyServiceWrapper
 
 # Sentinel values used to represent a null state in the database. This is done since the `NULL` type in the db is
@@ -116,7 +117,7 @@ class ArtifactBundle(Model):
 def delete_file_for_artifact_bundle(instance, **kwargs):
     from sentry.tasks.assemble import AssembleTask, delete_assemble_status
 
-    if instance.organization_id is not None and instance.file.checksum is not None:
+    if instance.organization_id is not None and get_path(instance, "file", "checksum") is not None:
         delete_assemble_status(
             AssembleTask.ARTIFACT_BUNDLE,
             instance.organization_id,
