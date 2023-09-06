@@ -193,6 +193,7 @@ export function SourceMapsDebuggerModal({
               </p>
               <CheckList>
                 <InstalledSdkChecklistItem
+                  setActiveTab={setActiveTab}
                   sourceResolutionResults={sourceResolutionResults}
                 />
                 <HasDebugIdChecklistItem
@@ -301,7 +302,11 @@ function CheckListItem({children, title, status}: PropsWithChildren<CheckListIte
 
 function InstalledSdkChecklistItem({
   sourceResolutionResults,
+  setActiveTab,
 }: {
+  setActiveTab: React.Dispatch<
+    React.SetStateAction<'release' | 'debug-ids' | 'fetching'>
+  >;
   sourceResolutionResults: SourceResolutionResults;
 }) {
   const itemName = 'Installed SDK supports Debug IDs';
@@ -326,7 +331,15 @@ function InstalledSdkChecklistItem({
             </p>
           )}
           <p>
-            If upgrading the SDK is not an option for you, you can use the "Release Name"
+            If upgrading the SDK is not an option for you, you can use the{' '}
+            <Link
+              to=""
+              onClick={() => {
+                setActiveTab('release');
+              }}
+            >
+              Release Name
+            </Link>
             process instead.
           </p>
         </CheckListInstruction>
@@ -348,7 +361,16 @@ function InstalledSdkChecklistItem({
         <p>
           You are using an unofficial Sentry SDK. Please check whether this SDK already
           supports Debug IDs. It's possible that this SDK supports debug IDs but you may
-          be better off using the Release Name method of uploading source maps.
+          be better off using the{' '}
+          <Link
+            to=""
+            onClick={() => {
+              setActiveTab('release');
+            }}
+          >
+            Release Name
+          </Link>{' '}
+          method of uploading source maps.
         </p>
         <p>
           If this SDK depends on an official Sentry SDK, the earliest version that
