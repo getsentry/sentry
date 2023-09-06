@@ -135,43 +135,33 @@ class DatabaseBackedNotificationsService(NotificationsService):
         return [serialize_notification_setting(s) for s in notification_settings]
 
     def get_settings_for_user_by_projects(
-        self, *, type: NotificationSettingTypes, user_id: int, parent_ids: List[int]
+        self,
+        *,
+        type: NotificationSettingTypes,
+        user_id: int,
+        parent_ids: List[int],
     ) -> List[RpcNotificationSetting]:
-        if not parent_ids:
+        try:
+            User.objects.get(id=user_id)
+        except User.DoesNotExist:
             return []
 
-        org = parent_ids[0].organization
-        if not features.has("organizations:notification-settings-v2", org):
-            try:
-                User.objects.get(id=user_id)
-            except User.DoesNotExist:
-                return []
-
-            scope_type = get_scope_type(type)
-            return [
-                serialize_notification_setting(s)
-                for s in NotificationSetting.objects.filter(
-                    Q(
-                        scope_type=scope_type.value,
-                        scope_identifier__in=parent_ids,
-                    )
-                    | Q(
-                        scope_type=NotificationScopeType.USER.value,
-                        scope_identifier=user_id,
-                    ),
-                    type=type.value,
-                    user_id=user_id,
+        scope_type = get_scope_type(type)
+        return [
+            serialize_notification_setting(s)
+            for s in NotificationSetting.objects.filter(
+                Q(
+                    scope_type=scope_type.value,
+                    scope_identifier__in=parent_ids,
                 )
-            ]
-        else:
-            user = None
-            try:
-                User.objects.get(id=user_id)
-            except User.DoesNotExist:
-                return []
-
-            if not user:
-                return []
+                | Q(
+                    scope_type=NotificationScopeType.USER.value,
+                    scope_identifier=user_id,
+                ),
+                type=type.value,
+                user_id=user_id,
+            )
+        ]
 
     def remove_notification_settings(
         self, *, team_id: Optional[int], user_id: Optional[int], provider: ExternalProviders
