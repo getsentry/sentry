@@ -12,8 +12,12 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
+import EventView from 'sentry/utils/discover/eventView';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import InteractionsTable from 'sentry/views/performance/browser/interactionTable';
 import {
@@ -137,12 +141,42 @@ function ActionSelector({value}: {value?: string}) {
 
 function PageSelector({value}: {value?: string}) {
   const location = useLocation();
+  const pageFilters = usePageFilters();
+  const {slug: orgSlug} = useOrganization();
 
-  const options: Option[] = [
-    {value: '', label: 'All'},
-    {value: '/performance', label: 'page1'},
-    {value: '/page2', label: 'page2'},
-  ];
+  const fields = ['transaction', 'p75(transaction.duration)', 'tpm()'];
+  const queryConditions = ['event.type:transaction', 'transaction.op:pageload'];
+
+  const eventView = EventView.fromNewQueryWithPageFilters(
+    {
+      fields, // for some reason we need a function, otherwise the query fails
+      name: 'Interaction module - page selector',
+      version: 2,
+      dataset: DiscoverDatasets.METRICS,
+      query: queryConditions.join(' '),
+      orderby: 'transaction',
+    },
+    pageFilters.selection
+  );
+
+  const {isLoading, data} = useDiscoverQuery({
+    eventView,
+    location,
+    orgSlug,
+    limit: 100,
+  });
+
+  const options: Option[] =
+    !isLoading && data?.data.length
+      ? [
+          {label: 'All', value: ''},
+          ...data?.data.map(row => ({
+            value: row.transaction.toString(),
+            label: row.transaction.toString(),
+          })),
+        ]
+      : [];
+
   return (
     <SelectControlWithProps
       inFieldLabel={`${t('Page')}:`}
