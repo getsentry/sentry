@@ -24,7 +24,10 @@ from sentry.services.hybrid_cloud.filter_query import (
 )
 from sentry.services.hybrid_cloud.notifications import NotificationsService, RpcNotificationSetting
 from sentry.services.hybrid_cloud.notifications.model import NotificationSettingFilterArgs
-from sentry.services.hybrid_cloud.notifications.serial import serialize_notification_setting
+from sentry.services.hybrid_cloud.notifications.serial import (
+    serialize_notification_option,
+    serialize_notification_setting,
+)
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.types.integrations import ExternalProviders
 
@@ -95,18 +98,19 @@ class DatabaseBackedNotificationsService(NotificationsService):
                 value=value.value,
                 scope_type=NotificationScopeType.USER.value,
             )
-        else:
-            # TODO(snigdha): this doesn't seem to be used anywhere,
-            # but we should test this better before using it in prod.
-            settings = get_setting_options_for_users(
-                user_ids=[u.id for u in users],
-                additional_filters=Q(
-                    type__in=types,
-                    value=value.value,
-                    scope_type=NotificationScopeType.USER.value,
-                ),
-            )
-        return [serialize_notification_setting(u) for u in settings]
+            return [serialize_notification_setting(u) for u in settings]
+
+        # TODO(snigdha): this doesn't seem to be used anywhere,
+        # but we should test this better before using it in prod.
+        settings = get_setting_options_for_users(
+            user_ids=[u.id for u in users],
+            additional_filters=Q(
+                type__in=types,
+                value=value.value,
+                scope_type=NotificationScopeType.USER.value,
+            ),
+        )
+        return [serialize_notification_option(u) for u in settings]
 
     def get_settings_for_recipient_by_parent(
         self, *, type: NotificationSettingTypes, parent_id: int, recipients: Sequence[RpcActor]
