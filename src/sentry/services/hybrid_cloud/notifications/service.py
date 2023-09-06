@@ -61,6 +61,13 @@ class NotificationsService(RpcService):
 
     @rpc_method
     @abstractmethod
+    def get_setting_options_by_project(
+        self, *, type: NotificationSettingTypes, user_id: int, projects: List[int]
+    ) -> List[RpcNotificationSetting]:
+        pass
+
+    @rpc_method
+    @abstractmethod
     def update_settings(
         self,
         *,

@@ -177,7 +177,6 @@ class DatabaseBackedNotificationsService(NotificationsService):
         self,
         user_id: int,
         projects: Iterable[Project],
-        organization: Organization,
         type: NotificationSettingEnum,
     ) -> MutableMapping[
         NotificationScopeEnum,
@@ -197,7 +196,7 @@ class DatabaseBackedNotificationsService(NotificationsService):
             providers = get_setting_providers_for_users(
                 [user_id],
                 project=project,
-                organization=organization,
+                organization=project.organization,
                 additional_filters=Q(type=type),
             )
 
