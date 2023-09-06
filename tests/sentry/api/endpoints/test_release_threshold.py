@@ -136,7 +136,7 @@ class ReleaseThresholdCreateTest(APITestCase):
         )
 
         assert response.status_code == 201
-        # {'threshold_type': 'total_error_count', 'trigger_type': 'absolute_over', 'value': 100, 'window_in_seconds': 1800, 'project': {'id': '4552578081357825', 'slug': 'bar', 'name': 'Bar', 'platform': None, 'dateCreated': datetime.datetime(2023, 9, 5, 21, 44, 58, 78647, tzinfo=<UTC>), 'isBookmarked': False, 'isMember': False, 'features': ['alert-filters', 'data-forwarding', 'minidump', 'race-free-group-creation', 'rate-limits'], 'firstEvent': None, 'firstTransactionEvent': False, 'access': set(), 'hasAccess': True, 'hasMinifiedStackTrace': False, 'hasMonitors': False, 'hasProfiles': False, 'hasReplays': False, 'hasSessions': False, 'isInternal': False, 'isPublic': False, 'avatar': {'avatarType': 'letter_avatar', 'avatarUuid': None}, 'color': '#87bf3f', 'status': 'active'}, 'environment': {'id': '1', 'name': 'canary'}, 'date_added': datetime.datetime(2023, 9, 5, 21, 44, 58, 749322, tzinfo=<UTC>)}
+
         data = response.data
         assert data["threshold_type"] == "total_error_count"
         assert data["trigger_type"] == "absolute_over"
