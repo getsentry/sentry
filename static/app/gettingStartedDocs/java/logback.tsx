@@ -40,14 +40,38 @@ export const steps = ({
     ),
     configurations: [
       {
+        description: (
+          <p>
+            {tct(
+              'To see source context in Sentry, you have to generate an auth token by visiting the [link:Organization Auth Tokens] settings. You can then set the token as an environment variable that is used by the build plugins.',
+              {
+                link: (
+                  <ExternalLink href="https://sentry.io/orgredirect/organizations/:orgslug/settings/auth-tokens/" />
+                ),
+              }
+            )}
+          </p>
+        ),
+        language: 'bash',
+        code: `
+SENTRY_AUTH_TOKEN=___ORG_AUTH_TOKEN___
+            `,
+      },
+      {
         description: <h5>{t('Gradle')}</h5>,
         configurations: [
           {
             description: (
               <p>
-                {tct('For Gradle, add to your [code:build.gradle] file:', {
-                  code: <code />,
-                })}
+                {tct(
+                  'The [link:Sentry Gradle Plugin] automatically installs the Sentry SDK as well as available integrations for your dependencies. Add the following to your [code:build.gradle] file:',
+                  {
+                    code: <code />,
+                    link: (
+                      <ExternalLink href="https://github.com/getsentry/sentry-android-gradle-plugin" />
+                    ),
+                  }
+                )}
               </p>
             ),
             language: 'groovy',
@@ -75,7 +99,7 @@ sentry {
 
   org = "${organizationSlug}"
   projectName = "${projectSlug}"
-  authToken = "your-sentry-auth-token"
+  authToken = System.getenv("SENTRY_AUTH_TOKEN")
 }
             `,
           },
@@ -128,7 +152,6 @@ sentry {
       <!--<url>http://localhost:8000/</url>-->
 
       <!-- provide your auth token via SENTRY_AUTH_TOKEN environment variable -->
-      <!-- you can find it in Sentry UI: Settings > Account > API > Auth Tokens -->
       <authToken>\${env.SENTRY_AUTH_TOKEN}</authToken>
       </configuration>
       <executions>
@@ -290,6 +313,15 @@ try {
     ),
   },
 ];
+
+export const nextSteps = [
+  {
+    id: 'examples',
+    name: t('Examples'),
+    description: t('Check out our sample applications.'),
+    link: 'https://github.com/getsentry/sentry-java/tree/main/sentry-samples',
+  },
+];
 // Configuration End
 
 export function GettingStartedWithLogBack({
@@ -299,6 +331,8 @@ export function GettingStartedWithLogBack({
   organization,
   ...props
 }: ModuleProps) {
+  const nextStepDocs = [...nextSteps];
+
   return (
     <Layout
       steps={steps({
@@ -307,6 +341,7 @@ export function GettingStartedWithLogBack({
         projectSlug: projectSlug ?? '___PROJECT_SLUG___',
         organizationSlug: organization?.slug ?? '___ORG_SLUG___',
       })}
+      nextSteps={nextStepDocs}
       introduction={introduction}
       {...props}
     />

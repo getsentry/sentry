@@ -17,7 +17,7 @@ interface StepProps {
 const introduction = (
   <p>
     {tct(
-      "Sentry's integration with Spring supports Spring Framework 5.1.2 and above to report unhandled exceptions and optional user information. If you're on an older version, use [legacyIntegrationLink:our legacy integration].",
+      "Sentry's integration with Spring supports Spring Framework 5.1.2 and above. If you're on an older version, use [legacyIntegrationLink:our legacy integration].",
       {
         legacyIntegrationLink: (
           <ExternalLink href="https://docs.sentry.io/platforms/java/guides/spring/legacy/" />
@@ -40,9 +40,42 @@ export const steps = ({
     ),
     configurations: [
       {
-        description: <h5>{t('Gradle')}</h5>,
-        language: 'groovy',
+        description: (
+          <p>
+            {tct(
+              'To see source context in Sentry, you have to generate an auth token by visiting the [link:Organization Auth Tokens] settings. You can then set the token as an environment variable that is used by the build plugins.',
+              {
+                link: (
+                  <ExternalLink href="https://sentry.io/orgredirect/organizations/:orgslug/settings/auth-tokens/" />
+                ),
+              }
+            )}
+          </p>
+        ),
+        language: 'bash',
         code: `
+SENTRY_AUTH_TOKEN=___ORG_AUTH_TOKEN___
+            `,
+      },
+      {
+        description: <h5>{t('Gradle')}</h5>,
+        configurations: [
+          {
+            description: (
+              <p>
+                {tct(
+                  'The [link:Sentry Gradle Plugin] automatically installs the Sentry SDK as well as available integrations for your dependencies. Add the following to your [code:build.gradle] file:',
+                  {
+                    code: <code />,
+                    link: (
+                      <ExternalLink href="https://github.com/getsentry/sentry-android-gradle-plugin" />
+                    ),
+                  }
+                )}
+              </p>
+            ),
+            language: 'groovy',
+            code: `
 buildscript {
   repositories {
     mavenCentral()
@@ -66,9 +99,11 @@ sentry {
 
   org = "${organizationSlug}"
   projectName = "${projectSlug}"
-  authToken = "your-sentry-auth-token"
+  authToken = System.getenv("SENTRY_AUTH_TOKEN")
 }
-          `,
+            `,
+          },
+        ],
       },
       {
         description: <h5>{t('Maven')}</h5>,
@@ -240,7 +275,6 @@ import org.springframework.core.Ordered
       <!--<url>http://localhost:8000/</url>-->
 
       <!-- provide your auth token via SENTRY_AUTH_TOKEN environment variable -->
-      <!-- you can find it in Sentry UI: Settings > Account > API > Auth Tokens -->
       <authToken>\${env.SENTRY_AUTH_TOKEN}</authToken>
     </configuration>
     <executions>
@@ -339,6 +373,23 @@ try {
     ),
   },
 ];
+
+export const nextSteps = [
+  {
+    id: 'examples',
+    name: t('Examples'),
+    description: t('Check out our sample applications.'),
+    link: 'https://github.com/getsentry/sentry-java/tree/main/sentry-samples',
+  },
+  {
+    id: 'performance-monitoring',
+    name: t('Performance Monitoring'),
+    description: t(
+      'Stay ahead of latency issues and trace every slow transaction to a poor-performing API call or database query.'
+    ),
+    link: 'https://docs.sentry.io/platforms/java/guides/spring/performance/',
+  },
+];
 // Configuration End
 
 export function GettingStartedWithSpring({
@@ -348,6 +399,8 @@ export function GettingStartedWithSpring({
   organization,
   ...props
 }: ModuleProps) {
+  const nextStepDocs = [...nextSteps];
+
   return (
     <Layout
       steps={steps({
@@ -356,6 +409,7 @@ export function GettingStartedWithSpring({
         projectSlug: projectSlug ?? '___PROJECT_SLUG___',
         organizationSlug: organization?.slug ?? '___ORG_SLUG___',
       })}
+      nextSteps={nextStepDocs}
       introduction={introduction}
       {...props}
     />

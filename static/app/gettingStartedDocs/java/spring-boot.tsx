@@ -17,7 +17,7 @@ interface StepProps {
 const introduction = (
   <p>
     {tct(
-      "Sentry's integration with [springBootLink:Spring Boot] supports Spring Boot 2.1.0 and above to report unhandled exceptions as well as release and registration of beans. If you're on an older version, use [legacyIntegrationLink:our legacy integration].",
+      "Sentry's integration with [springBootLink:Spring Boot] supports Spring Boot 2.1.0 and above. If you're on an older version, use [legacyIntegrationLink:our legacy integration].",
       {
         springBootLink: <ExternalLink href="https://spring.io/projects/spring-boot" />,
         legacyIntegrationLink: (
@@ -39,9 +39,43 @@ export const steps = ({
     description: t('Install using either Maven or Gradle:'),
     configurations: [
       {
+        description: (
+          <p>
+            {tct(
+              'To see source context in Sentry, you have to generate an auth token by visiting the [link:Organization Auth Tokens] settings. You can then set the token as an environment variable that is used by the build plugins.',
+              {
+                link: (
+                  <ExternalLink href="https://sentry.io/orgredirect/organizations/:orgslug/settings/auth-tokens/" />
+                ),
+              }
+            )}
+          </p>
+        ),
+        language: 'bash',
+        code: `
+SENTRY_AUTH_TOKEN=___ORG_AUTH_TOKEN___
+            `,
+      },
+      {
         language: 'javascript', // TODO: This shouldn't be javascript but because of better formatting we use it for now
         description: <h5>{t('Gradle')}</h5>,
-        code: `
+        configurations: [
+          {
+            description: (
+              <p>
+                {tct(
+                  'The [link:Sentry Gradle Plugin] automatically installs the Sentry SDK as well as available integrations for your dependencies. Add the following to your [code:build.gradle] file:',
+                  {
+                    code: <code />,
+                    link: (
+                      <ExternalLink href="https://github.com/getsentry/sentry-android-gradle-plugin" />
+                    ),
+                  }
+                )}
+              </p>
+            ),
+            language: 'groovy',
+            code: `
 buildscript {
   repositories {
     mavenCentral()
@@ -65,9 +99,11 @@ sentry {
 
   org = "${organizationSlug}"
   projectName = "${projectSlug}"
-  authToken = "your-sentry-auth-token"
+  authToken = System.getenv("SENTRY_AUTH_TOKEN")
 }
-        `,
+            `,
+          },
+        ],
       },
       {
         description: <h5>{t('Maven')}</h5>,
@@ -170,7 +206,6 @@ sentry {
         <!--<url>http://localhost:8000/</url>-->
 
         <!-- provide your auth token via SENTRY_AUTH_TOKEN environment variable -->
-        <!-- you can find it in Sentry UI: Settings > Account > API > Auth Tokens -->
         <authToken>\${env.SENTRY_AUTH_TOKEN}</authToken>
       </configuration>
       <executions>
@@ -283,6 +318,23 @@ sentry:
     ),
   },
 ];
+
+export const nextSteps = [
+  {
+    id: 'examples',
+    name: t('Examples'),
+    description: t('Check out our sample applications.'),
+    link: 'https://github.com/getsentry/sentry-java/tree/main/sentry-samples',
+  },
+  {
+    id: 'performance-monitoring',
+    name: t('Performance Monitoring'),
+    description: t(
+      'Stay ahead of latency issues and trace every slow transaction to a poor-performing API call or database query.'
+    ),
+    link: 'https://docs.sentry.io/platforms/java/guides/spring-boot/performance/',
+  },
+];
 // Configuration End
 
 export function GettingStartedWithSpringBoot({
@@ -292,6 +344,8 @@ export function GettingStartedWithSpringBoot({
   organization,
   ...props
 }: ModuleProps) {
+  const nextStepDocs = [...nextSteps];
+
   return (
     <Layout
       steps={steps({
@@ -300,6 +354,7 @@ export function GettingStartedWithSpringBoot({
         projectSlug: projectSlug ?? '___PROJECT_SLUG___',
         organizationSlug: organization?.slug ?? '___ORG_SLUG___',
       })}
+      nextSteps={nextStepDocs}
       introduction={introduction}
       {...props}
     />
