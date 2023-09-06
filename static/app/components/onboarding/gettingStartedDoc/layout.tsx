@@ -6,11 +6,8 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {Step, StepProps} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import {ProductSelection} from 'sentry/components/onboarding/productSelection';
 import {PlatformKey} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -35,15 +32,8 @@ export type LayoutProps = {
   platformKey?: PlatformKey;
 };
 
-export function Layout({
-  steps,
-  platformKey,
-  nextSteps = [],
-  newOrg,
-  introduction,
-}: LayoutProps) {
+export function Layout({steps, platformKey, nextSteps = [], introduction}: LayoutProps) {
   const organization = useOrganization();
-  const {isSelfHosted} = useLegacyStore(ConfigStore);
 
   return (
     <Wrapper>
@@ -53,15 +43,10 @@ export function Layout({
           <Divider />
         </Fragment>
       )}
-      {!isSelfHosted && newOrg && (
-        <ProductSelection platform={platformKey} withBottomMargin />
-      )}
-      {!isSelfHosted && !newOrg && (
-        <ProductSelectionAvailabilityHook
-          organization={organization}
-          platform={platformKey}
-        />
-      )}
+      <ProductSelectionAvailabilityHook
+        organization={organization}
+        platform={platformKey}
+      />
       <Steps>
         {steps.map(step => (
           <Step key={step.title ?? step.type} {...step} />
