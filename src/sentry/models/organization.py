@@ -268,7 +268,16 @@ class Organization(
         return super().delete(**kwargs)
 
     def handle_async_replication(self, shard_identifier: int) -> None:
-        pass
+        from sentry.services.hybrid_cloud.organization_mapping.serial import (
+            update_organization_mapping_from_instance,
+        )
+        from sentry.services.hybrid_cloud.organization_mapping.service import (
+            organization_mapping_service,
+        )
+        from sentry.types.region import get_local_region
+
+        update = update_organization_mapping_from_instance(self, get_local_region())
+        organization_mapping_service.upsert(organization_id=self.id, update=update)
 
     @classmethod
     def handle_async_deletion(
