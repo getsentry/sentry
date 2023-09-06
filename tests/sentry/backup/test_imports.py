@@ -5,9 +5,11 @@ from copy import deepcopy
 from datetime import datetime
 from functools import cached_property
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 from django.db import IntegrityError
+from rest_framework.serializers import ValidationError
 
 from sentry.backup.helpers import get_exportable_sentry_models
 from sentry.backup.imports import (
@@ -68,7 +70,7 @@ class SanitizationTests(BackupTestCase):
 
         return user
 
-    def generate_tmp_json_file(self, tmp_path) -> json.JSONData:
+    def generate_tmp_json_file(self, tmp_path: Path) -> json.JSONData:
         """
         Generates a file filled with users with different combinations of admin privileges.
         """
@@ -198,6 +200,100 @@ class SanitizationTests(BackupTestCase):
                 with pytest.raises(IntegrityError):
                     import_in_user_scope(tmp_file, printer=NOOP_PRINTER)
 
+    @patch("sentry.models.userip.geo_by_addr")
+    def test_good_regional_user_ip_in_user_scope(self, mock_geo_by_addr):
+        mock_geo_by_addr.return_value = {
+            "country_code": "US",
+            "region": "CA",
+            "subdivision": "San Francisco",
+        }
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
+            with open(tmp_path, "w+") as tmp_file:
+                models = self.json_of_exhaustive_user_with_minimum_privileges
+
+                # Modify the UserIP to be in California, USA.
+                for model in models:
+                    if model["model"] == "sentry.userip":
+                        model["fields"]["ip_address"] = "8.8.8.8"
+                json.dump(models, tmp_file)
+
+            with open(tmp_path) as tmp_file:
+                import_in_user_scope(tmp_file, printer=NOOP_PRINTER)
+
+        assert UserIP.objects.count() == 1
+        assert UserIP.objects.filter(ip_address="8.8.8.8").exists()
+        assert UserIP.objects.filter(country_code="US").exists()
+        assert UserIP.objects.filter(region_code="CA").exists()
+        assert UserIP.objects.filter(last_seen__gt=datetime(2023, 7, 1, 0, 0)).exists()
+
+        # Unlike global scope, this time must be reset.
+        assert UserIP.objects.filter(first_seen__gt=datetime(2023, 7, 1, 0, 0)).exists()
+
+    @patch("sentry.models.userip.geo_by_addr")
+    def test_good_regional_user_ip_in_global_scope(self, mock_geo_by_addr):
+        mock_geo_by_addr.return_value = {
+            "country_code": "US",
+            "region": "CA",
+            "subdivision": "San Francisco",
+        }
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
+            with open(tmp_path, "w+") as tmp_file:
+                models = self.json_of_exhaustive_user_with_minimum_privileges
+
+                # Modify the UserIP to be in California, USA.
+                for model in models:
+                    if model["model"] == "sentry.userip":
+                        model["fields"]["ip_address"] = "8.8.8.8"
+                json.dump(models, tmp_file)
+
+            with open(tmp_path) as tmp_file:
+                import_in_global_scope(tmp_file, printer=NOOP_PRINTER)
+
+        assert UserIP.objects.count() == 1
+        assert UserIP.objects.filter(ip_address="8.8.8.8").exists()
+        assert UserIP.objects.filter(country_code="US").exists()
+        assert UserIP.objects.filter(region_code="CA").exists()
+        assert UserIP.objects.filter(last_seen__gt=datetime(2023, 7, 1, 0, 0)).exists()
+
+        # Unlike org/user scope, this must NOT be reset.
+        assert not UserIP.objects.filter(first_seen__gt=datetime(2023, 7, 1, 0, 0)).exists()
+
+    def test_bad_invalid_user_ip(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
+            with open(tmp_path, "w+") as tmp_file:
+                models = self.json_of_exhaustive_user_with_minimum_privileges
+
+                # Modify the IP address to be in invalid.
+                for m in models:
+                    if m["model"] == "sentry.userip":
+                        m["fields"]["ip_address"] = "0.1.2.3.4.5.6.7.8.9.abc.def"
+                json.dump(list(models), tmp_file)
+
+            with open(tmp_path) as tmp_file:
+                with pytest.raises(ValidationError):
+                    import_in_user_scope(tmp_file, printer=NOOP_PRINTER)
+
+    def test_bad_invalid_user_option(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
+            with open(tmp_path, "w+") as tmp_file:
+                models = self.json_of_exhaustive_user_with_minimum_privileges
+
+                # Modify the `timezone` option to be in invalid.
+                for m in models:
+                    if m["model"] == "sentry.useroption" and m["fields"]["key"] == "timezone":
+                        m["fields"]["value"] = '"MiddleEarth/Gondor"'
+                json.dump(list(models), tmp_file)
+
+            with open(tmp_path) as tmp_file:
+                with pytest.raises(ValidationError):
+                    import_in_user_scope(tmp_file, printer=NOOP_PRINTER)
+
 
 class ImportTestCase(BackupTestCase):
     def export_to_tmp_file_and_clear_database(self, tmp_dir) -> Path:
@@ -210,7 +306,13 @@ class ImportTestCase(BackupTestCase):
 @run_backup_tests_only_on_single_db
 class SignalingTests(ImportTestCase):
     """
-    Some models are automatically created via signals and similar automagic from related models. We test that behavior here.
+    Some models are automatically created via signals and similar automagic from related models. We
+    test that behavior here. Specifically, we test the following:
+        - That `Email` and `UserEmail` are automatically created when `User` is.
+        - That `OrganizationMapping` and `OrganizationMemberMapping` are automatically created when
+          `Organization is.
+        - That `ProjectKey` and `ProjectOption` instances are automatically created when `Project`
+          is.
     """
 
     def test_import_signaling_user(self):

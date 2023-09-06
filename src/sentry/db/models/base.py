@@ -141,7 +141,11 @@ class BaseModel(models.Model):
         self, pk_map: PrimaryKeyMap, scope: ImportScope
     ) -> Optional[Tuple[int, int]]:
         """
-        Writes a deserialized model to the database. If this write is successful, this method will return a tuple of the old and new `pk`s.
+        Writes a deserialized model to the database. If this write is successful, this method will
+        return a tuple of the old and new `pk`s.
+
+        Overrides of this method can throw either `django.core.exceptions.ValidationError` or
+        `rest_framework.serializers.ValidationError`.
         """
 
         old_pk = self._normalize_before_relocation_import(pk_map, scope)
