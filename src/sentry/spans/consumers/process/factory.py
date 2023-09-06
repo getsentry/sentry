@@ -80,7 +80,11 @@ def _build_snuba_span(relay_span: Mapping[str, Any]) -> MutableMapping[str, Any]
 
     if span_data:
         for relay_tag, snuba_tag in TAG_MAPPING.items():
-            if relay_tag in span_data and (tag_value := span_data.get(relay_tag)) is not None:
+            tag_value = span_data.get(relay_tag)
+            if tag_value is None:
+                if snuba_tag == "group":
+                    metrics.incr("spans.missing_group")
+            else:
                 sentry_tags[snuba_tag] = tag_value
 
     if "op" not in sentry_tags and (op := relay_span.get("op", "")) is not None:
