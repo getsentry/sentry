@@ -20,7 +20,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0541_add_replicated_auth_models"),
+        ("sentry", "0542_add_commitfilechange_language_col"),
     ]
 
     operations = [
