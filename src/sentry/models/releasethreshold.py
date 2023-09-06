@@ -23,18 +23,6 @@ class ReleaseThresholdType:
     CRASH_FREE_SESSION_RATE_STR = "crash_free_session_rate"
     CRASH_FREE_USER_RATE_STR = "crash_free_user_rate"
 
-    # @classmethod
-    # def as_choices(cls):
-    #     return (
-    #         (cls.TOTAL_ERROR_COUNT, "Total Error Count"),
-    #         (cls.NEW_ISSUE_COUNT, "New Issue Count"),
-    #         (cls.UNHANDLED_ISSUE_COUNT, "Unhandled Issue Count"),
-    #         (cls.REGRESSED_ISSUE_COUNT, "Regressed Issue Count"),
-    #         (cls.FAILURE_RATE, "Failure Rate"),
-    #         (cls.CRASH_FREE_SESSION_RATE, "Crash Free Session Rate"),
-    #         (cls.CRASH_FREE_USER_RATE, "Crash Free User Rate"),
-    #     )
-
     STRING_TO_INT = {
         TOTAL_ERROR_COUNT_STR: TOTAL_ERROR_COUNT,
         NEW_ISSUE_COUNT_STR: NEW_ISSUE_COUNT,
@@ -54,18 +42,6 @@ class ReleaseThresholdType:
         CRASH_FREE_SESSION_RATE: CRASH_FREE_SESSION_RATE_STR,
         CRASH_FREE_USER_RATE: CRASH_FREE_USER_RATE_STR,
     }
-
-    @classmethod
-    def as_choices(cls):
-        return (
-            (cls.TOTAL_ERROR_COUNT_STR, cls.TOTAL_ERROR_COUNT),
-            (cls.NEW_ISSUE_COUNT_STR, cls.NEW_ISSUE_COUNT),
-            (cls.UNHANDLED_ISSUE_COUNT_STR, cls.UNHANDLED_ISSUE_COUNT),
-            (cls.REGRESSED_ISSUE_COUNT_STR, cls.REGRESSED_ISSUE_COUNT),
-            (cls.FAILURE_RATE_STR, cls.FAILURE_RATE),
-            (cls.CRASH_FREE_SESSION_RATE_STR, cls.CRASH_FREE_SESSION_RATE),
-            (cls.CRASH_FREE_USER_RATE_STR, cls.CRASH_FREE_USER_RATE),
-        )
 
     @classmethod
     def as_str_choices(cls):
@@ -104,15 +80,6 @@ class TriggerType:
         ABSOLUTE_OVER: ABSOLUTE_OVER_STR,
         ABSOLUTE_UNDER: ABSOLUTE_UNDER_STR,
     }
-
-    @classmethod
-    def as_choices(cls):
-        return (
-            (cls.PERCENT_OVER_STR, cls.PERCENT_OVER),
-            (cls.PERCENT_UNDER_STR, cls.PERCENT_UNDER),
-            (cls.ABSOLUTE_OVER_STR, cls.ABSOLUTE_OVER),
-            (cls.ABSOLUTE_UNDER_STR, cls.ABSOLUTE_UNDER),
-        )
 
     @classmethod
     def as_str_choices(cls):
