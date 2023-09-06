@@ -82,3 +82,13 @@ def test_user_pk_mapping(tmp_path):
     import_export_from_fixture_then_validate(
         tmp_path, "user-pk-mapping.json", get_default_comparators()
     )
+
+
+# The import should be robust to usernames and organization slugs that have had random suffixes
+# added on due to conflicts in the existing database.
+@run_backup_tests_only_on_single_db
+@django_db_all(transaction=True)
+def test_auto_suffix_username_and_organization_slug(tmp_path):
+    import_export_from_fixture_then_validate(
+        tmp_path, "duplicate-username-and-organization-slug.json", get_default_comparators()
+    )
