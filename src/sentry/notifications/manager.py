@@ -197,6 +197,10 @@ class NotificationsManager(BaseManager["NotificationSetting"]):  # noqa: F821
                 **{id_key: actor_id},
             )
 
+        if not is_double_write_enabled(user_id=user_id, team_id=team_id):
+            return
+
+        # implement the double write now
         query_args = {
             "type": NOTIFICATION_SETTING_TYPES[type],
             "scope_type": NOTIFICATION_SCOPE_TYPE[scope_type],
