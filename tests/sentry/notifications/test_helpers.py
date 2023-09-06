@@ -1,6 +1,8 @@
 import types
 from urllib.parse import parse_qs, urlparse
 
+from django.db.models import Q
+
 from sentry.models.notificationsetting import NotificationSetting
 from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
@@ -316,20 +318,18 @@ class NotificationSettingV2HelpersTest(TestCase):
         self.setting_providers = [setting_provider_1, setting_provider_2, setting_provider_3]
 
     def test_get_all_setting_options(self):
-        assert (
-            list(get_all_setting_options(self.user, self.project, self.organization))
-            == self.setting_options
-        )
+        options = list(get_all_setting_options([self.user], self.project, self.organization))
+        assert options == self.setting_options
 
     def test_get_all_setting_providers(self):
         assert (
-            list(get_all_setting_providers(self.user, self.project, self.organization))
+            list(get_all_setting_providers([self.user], self.project, self.organization))
             == self.setting_providers
         )
 
     def test_get_setting_options_for_recipient(self):
         assert (
-            list(get_all_setting_options(self.user, self.project, self.organization))
+            list(get_all_setting_options([self.user], self.project, self.organization))
             == self.setting_options
         )
         options_for_recipient = get_setting_options_for_recipient(
@@ -372,6 +372,19 @@ class NotificationSettingV2HelpersTest(TestCase):
             == self.setting_options[1].value
         )
         assert user_options[NotificationSettingEnum.DEPLOY].value == self.setting_options[0].value
+
+    def test_get_setting_options_for_user_with_additional_filters(self):
+        options = get_setting_options_for_users(
+            [self.user.id],
+            self.project,
+            self.organization,
+            additional_filters=Q(type=NotificationSettingEnum.ISSUE_ALERTS.value),
+        )
+
+        assert (
+            options[self.user][NotificationSettingEnum.ISSUE_ALERTS].value
+            == self.setting_options[1].value
+        )
 
     def test_get_setting_providers_for_user(self):
         new_user = self.create_user()
