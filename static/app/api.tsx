@@ -146,28 +146,29 @@ export const initApiClientErrorHandling = () =>
 /**
  * Construct a full request URL
  */
-function buildRequestUrl(baseUrl: string, path: string, query: RequestOptions['query']) {
+function buildRequestUrl(baseUrl: string, path: string, options: RequestOptions) {
   let params: string;
   try {
-    params = qs.stringify(query ?? []);
+    params = qs.stringify(options.query ?? []);
   } catch (err) {
     Sentry.withScope(scope => {
       scope.setExtra('path', path);
-      scope.setExtra('query', query);
+      scope.setExtra('query', options.query);
       Sentry.captureException(err);
     });
     throw err;
   }
 
   // Append the baseUrl if required
-  let fullUrl: string = path;
-  if (!path.startsWith('http')) {
-    fullUrl = path.includes(baseUrl) ? path : baseUrl + path;
-  }
+  let fullUrl = path.includes(baseUrl) ? path : baseUrl + path;
 
   // Append query parameters
   if (params) {
     fullUrl += fullUrl.includes('?') ? `&${params}` : `?${params}`;
+  }
+
+  if (options.host) {
+    fullUrl = `${options.host}${fullUrl}`;
   }
 
   return fullUrl;
@@ -225,6 +226,10 @@ export type RequestOptions = RequestCallbacks & {
    * Headers add to the request.
    */
   headers?: Record<string, string>;
+  /**
+   * The host the request should be made to.
+   */
+  host?: string;
   /**
    * The HTTP method to use when making the API request
    */
@@ -367,7 +372,7 @@ export class Client {
   request(path: string, options: Readonly<RequestOptions> = {}): Request {
     const method = options.method || (options.data ? 'POST' : 'GET');
 
-    let fullUrl = buildRequestUrl(this.baseUrl, path, options.query);
+    let fullUrl = buildRequestUrl(this.baseUrl, path, options);
 
     let data = options.data;
 

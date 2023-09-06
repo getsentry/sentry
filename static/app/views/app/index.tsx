@@ -79,7 +79,7 @@ function App({children, params}: Props) {
       // Get the current user's organizations from each region the user has membership on
       const results = await Promise.all(
         regions.map(region =>
-          api.requestPromise(`${region.url}/organizations/`, {query: {member: '1'}})
+          api.requestPromise(`/organizations/`, {query: {member: '1'}, host: region.url})
         )
       );
       const data = results.reduce((acc, response) => acc.concat(response), []);
