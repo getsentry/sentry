@@ -16,6 +16,7 @@ import IdBadge from 'sentry/components/idBadge';
 import ListItem from 'sentry/components/list/listItem';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
+import {InvalidReason} from 'sentry/components/searchSyntax/parser';
 import {SearchInvalidTag} from 'sentry/components/smartSearchBar/searchInvalidTag';
 import {IconInfo} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -451,6 +452,12 @@ class RuleConditionsForm extends PureComponent<Props, State> {
               return (
                 <SearchContainer>
                   <StyledSearchBar
+                    disallowWildcard={dataset === Dataset.SESSIONS}
+                    invalidMessages={{
+                      [InvalidReason.WILDCARD_NOT_ALLOWED]: t(
+                        'The wildcard operator is not supported here.'
+                      ),
+                    }}
                     customInvalidTagMessage={item => {
                       if (
                         ![Dataset.GENERIC_METRICS, Dataset.TRANSACTIONS].includes(dataset)

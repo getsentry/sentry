@@ -149,31 +149,29 @@ class JSONScrubbingComparator(ABC):
 
 
 class DateUpdatedComparator(JSONScrubbingComparator):
-    """Comparator that ensures that the specified field's value on the right input is an ISO-8601
+    """Comparator that ensures that the specified fields' value on the right input is an ISO-8601
     date that is greater than (ie, occurs after) or equal to the specified field's left input."""
 
-    def __init__(self, field: str):
-        super().__init__(field)
-        self.field = field
-
     def compare(self, on: InstanceID, left: JSONData, right: JSONData) -> list[ComparatorFinding]:
-        f = self.field
-        if left["fields"].get(f) is None and right["fields"].get(f) is None:
-            return []
+        findings = []
+        fields = sorted(self.fields)
+        for f in fields:
+            if left["fields"].get(f) is None and right["fields"].get(f) is None:
+                continue
 
-        left_date_updated = left["fields"][f]
-        right_date_updated = right["fields"][f]
-        if parser.parse(left_date_updated) > parser.parse(right_date_updated):
-            return [
-                ComparatorFinding(
-                    kind=self.get_kind(),
-                    on=on,
-                    left_pk=left["pk"],
-                    right_pk=right["pk"],
-                    reason=f"""the left value ({left_date_updated}) of `{f}` was not less than or equal to the right value ({right_date_updated})""",
+            left_date_updated = left["fields"][f]
+            right_date_updated = right["fields"][f]
+            if parser.parse(left_date_updated) > parser.parse(right_date_updated):
+                findings.append(
+                    ComparatorFinding(
+                        kind=self.get_kind(),
+                        on=on,
+                        left_pk=left["pk"],
+                        right_pk=right["pk"],
+                        reason=f"""the left value ({left_date_updated}) of `{f}` was not less than or equal to the right value ({right_date_updated})""",
+                    )
                 )
-            ]
-        return []
+        return findings
 
 
 class DatetimeEqualityComparator(JSONScrubbingComparator):
@@ -429,8 +427,8 @@ def get_default_comparators():
     """Helper function executed at startup time which builds the static default comparators map."""
 
     # Some comparators (like `DateAddedComparator`) we can automatically assign by inspecting the
-    # `Field` type on the Django `Model` definition. Others, like the ones in this map, we must assign
-    # manually, since there is no clever way to derive them automatically.
+    # `Field` type on the Django `Model` definition. Others, like the ones in this map, we must
+    # assign manually, since there is no clever way to derive them automatically.
     default_comparators: ComparatorMap = defaultdict(
         list,
         {
@@ -462,6 +460,7 @@ def get_default_comparators():
                 DateUpdatedComparator("date_hash_added"),
                 IgnoredComparator("validation_hash", "is_verified"),
             ],
+            "sentry.userip": [DateUpdatedComparator("first_seen", "last_seen")],
             "sentry.userrole": [DateUpdatedComparator("date_updated")],
             "sentry.userroleuser": [DateUpdatedComparator("date_updated")],
         },

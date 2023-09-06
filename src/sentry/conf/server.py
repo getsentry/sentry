@@ -1145,6 +1145,11 @@ CELERYBEAT_SCHEDULE_REGION = {
         "schedule": crontab(minute="*/1"),
         "options": {"expires": 60},
     },
+    "refresh-artifact-bundles-in-use": {
+        "task": "sentry.debug_files.tasks.refresh_artifact_bundles_in_use",
+        "schedule": crontab(minute="*/1"),
+        "options": {"expires": 60},
+    },
 }
 
 # Assign the configuration keys celery uses based on our silo mode.
@@ -1504,7 +1509,7 @@ SENTRY_FEATURES = {
     # Enable Discord integration notifications
     "organizations:integrations-discord-notifications": False,
     # Enable Opsgenie integration
-    "organizations:integrations-opsgenie": False,
+    "organizations:integrations-opsgenie": True,
     # Enable one-click migration from Opsgenie plugin
     "organizations:integrations-opsgenie-migration": False,
     # Limit project events endpoint to only query back a certain number of days
@@ -1730,6 +1735,10 @@ SENTRY_FEATURES = {
     "organizations:notification-settings-v2": False,
     # Enable new release UI
     "organizations:release-ui-v2": False,
+    # Enable User Feedback v2 ingest
+    "organizations:user-feedback-ingest": False,
+    # Enable User Feedback v2 UI
+    "organizations:user-feedback-ui": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
