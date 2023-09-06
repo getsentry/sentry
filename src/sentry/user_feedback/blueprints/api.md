@@ -72,8 +72,9 @@ Retrieve a collection of user-feedback items.
 | platform          | string           |                                                     |
 | release           | string           |                                                     |
 | replay_id         | optional[string] | The id of a running replay.                         |
-| request           | string           |                                                     |
 | sdk               | object           | SDK information.                                    |
+| sdk.name          | string           | -                                                   |
+| sdk.version       | string           | -                                                   |
 | status            | string           | One of: resolved, unresolved.                       |
 | tags              | object           | Mapping of key, value pairs.                        |
 | timestamp         | string           | ISO-8061 formatted UTC datetime.                    |
