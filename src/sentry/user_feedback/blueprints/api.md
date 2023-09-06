@@ -170,7 +170,6 @@ Create a new user-feedback item.
         "name": "sentry.javascript.react",
         "version": "6.18.1"
       },
-      "status": "unresolved",
       "tags": {
         "key": "value"
       },
