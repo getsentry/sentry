@@ -17,7 +17,6 @@ import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {getRelativeSummary} from 'sentry/components/organizations/timeRangeSelector/utils';
-import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import Pagination from 'sentry/components/pagination';
 import Panel from 'sentry/components/panels/panel';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
@@ -49,7 +48,9 @@ import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 
 import ReleaseArchivedNotice from '../detail/overview/releaseArchivedNotice';
 import {isMobileRelease} from '../utils';
+import {THRESHOLDS_VIEW} from '../utils/constants';
 
+import Header from './header';
 import ReleaseCard from './releaseCard';
 import ReleasesAdoptionChart from './releasesAdoptionChart';
 import ReleasesDisplayOptions, {ReleasesDisplayOption} from './releasesDisplayOptions';
@@ -57,6 +58,7 @@ import ReleasesPromo from './releasesPromo';
 import ReleasesRequest from './releasesRequest';
 import ReleasesSortOptions, {ReleasesSortOption} from './releasesSortOptions';
 import ReleasesStatusOptions, {ReleasesStatusOption} from './releasesStatusOptions';
+import ThresholdsList from './thresholdsList';
 
 type RouteParams = {
   orgId: string;
@@ -98,14 +100,31 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
           : ReleaseStatus.ACTIVE,
     };
 
+    /**
+     * params are request params passed into the api call
+     * options are configs to determine how to handle the request
+     * So far only includes keys:
+     * paginate - determines whether to paginate?
+     * disableEntireQuery - enable/disable query params?
+     * allowError - () => bool, function to determine whether to dynamically determine whether to persist an error response
+     */
+    // const query = this.props.location.query;
+    const testQuery = location.query;
+    //     "organizations:release-ui-v2": False,
+    const hasV2ReleaseUIEnabled = organization.features.includes('release-ui-v2');
     const endpoints: ReturnType<DeprecatedAsyncView['getEndpoints']> = [
       [
-        'releases',
-        `/organizations/${organization.slug}/releases/`,
-        {query},
-        {disableEntireQuery: true},
+        'releases', // stateKey
+        `/organizations/${organization.slug}/releases/`, // endpoint
+        {query}, // params
+        {disableEntireQuery: true}, // options
       ],
     ];
+    if (hasV2ReleaseUIEnabled) {
+      endpoints.push(
+        ['transferDetails', '/accept-transfer/', {testQuery}] // test endpoint
+      );
+    }
 
     return endpoints;
   }
@@ -436,6 +455,16 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
 
     const selectedProject = this.getSelectedProject();
     const hasReleasesSetup = selectedProject?.features.includes('releases');
+    const hasV2ReleaseUIEnabled = organization.features.includes('release-ui-v2');
+
+    // TODO: modify inner body depending on thresholds view?
+    // maintain filters
+
+    // {hasThresholdsFlag && router.location.query.view === 'thresholds' ? (
+    //   <div>Foobar</div>
+    // ) : (
+    //   <div>Bar</div>
+    // )}
 
     if (this.shouldShowLoadingIndicator()) {
       return <LoadingIndicator />;
@@ -447,6 +476,10 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
 
     if (this.shouldShowQuickstart) {
       return <ReleasesPromo organization={organization} project={selectedProject!} />;
+    }
+
+    if (hasV2ReleaseUIEnabled && router.location.query.view === THRESHOLDS_VIEW) {
+      return <ThresholdsList />;
     }
 
     return (
@@ -502,8 +535,9 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
   }
 
   renderBody() {
-    const {organization, selection} = this.props;
+    const {organization, selection, router} = this.props;
     const {releases, reloading, error} = this.state;
+    const hasV2ReleaseUIEnabled = organization.features.includes('release-ui-v2');
 
     const activeSort = this.getSort();
     const activeStatus = this.getStatus();
@@ -516,43 +550,47 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
     const showReleaseAdoptionStages =
       hasAnyMobileProject && selection.environments.length === 1;
     const hasReleasesSetup = releases && releases.length > 0;
+    const viewingThresholds = router.location.query.view === THRESHOLDS_VIEW;
 
     return (
       <PageFiltersContainer showAbsolute={false}>
         <NoProjectMessage organization={organization}>
-          <Layout.Header>
-            <Layout.HeaderContent>
-              <Layout.Title>
-                {t('Releases')}
-                <PageHeadingQuestionTooltip
-                  docsUrl="https://docs.sentry.io/product/releases/"
-                  title={t(
-                    'A visualization of your release adoption from the past 24 hours, providing a high-level view of the adoption stage, percentage of crash-free users and sessions, and more.'
-                  )}
-                />
-              </Layout.Title>
-            </Layout.HeaderContent>
-          </Layout.Header>
-
+          {/*
+            TODO:
+            - IF release-ui-v2 flag is set, then render the header tabs
+                    - OR - just render the headers tab and pass the flag?
+            - IF release-ui-v2 flag is set AND route query includes view=thresholds, render thresholds
+          */}
+          <Header
+            organization={organization}
+            router={router}
+            hasV2ReleaseUIEnabled={hasV2ReleaseUIEnabled}
+          />
           <Layout.Body>
             <Layout.Main fullWidth>
+              {/* TODO: is health cta relevant for thresholds? probably not */}
               {this.renderHealthCta()}
 
+              {/* TODO: update filter bar for thresholds. DatePageFilter is not relevant */}
               <ReleasesPageFilterBar condensed>
                 <GuideAnchor target="release_projects">
                   <ProjectPageFilter />
                 </GuideAnchor>
                 <EnvironmentPageFilter />
-                <DatePageFilter
-                  alignDropdown="left"
-                  disallowArbitraryRelativeRanges
-                  menuFooterMessage={t(
-                    'Changing this date range will recalculate the release metrics.'
-                  )}
-                />
+                {!viewingThresholds && (
+                  <DatePageFilter
+                    alignDropdown="left"
+                    disallowArbitraryRelativeRanges
+                    menuFooterMessage={t(
+                      'Changing this date range will recalculate the release metrics.'
+                    )}
+                  />
+                )}
               </ReleasesPageFilterBar>
 
-              {this.shouldShowQuickstart ? null : (
+              {/* TODO: search bar not relevant for thresholds? */}
+              {/* Different search bar - should be able to search for projects. don't need status/date/display filters */}
+              {this.shouldShowQuickstart || viewingThresholds ? null : (
                 <SortAndFilterWrapper>
                   <GuideAnchor
                     target="releases_search"
@@ -601,6 +639,8 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
               {error
                 ? super.renderError()
                 : this.renderInnerBody(activeDisplay, showReleaseAdoptionStages)}
+              {/* TODO: remove test render */}
+              {/* {this.renderInnerBody(activeDisplay, showReleaseAdoptionStages)} */}
             </Layout.Main>
           </Layout.Body>
         </NoProjectMessage>
