@@ -260,7 +260,7 @@ Deletes a replay instance.
     - w
   - start (optional, string) - ISO 8601 format (`YYYY-MM-DDTHH:mm:ss.sssZ`)
   - end (optional, string) - ISO 8601 format. Required if `start` is set.
-  - limit (optional, number)
+  - per_page (optional, number)
     Default: 10
   - offset (optional, number)
     Default: 0
