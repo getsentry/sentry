@@ -21,7 +21,7 @@ import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
-import {IssueType, Organization, Project, Scope} from 'sentry/types';
+import {IssueTitle, IssueType, Organization, Project, Scope} from 'sentry/types';
 import {DynamicSamplingBiasType} from 'sentry/types/sampling';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatPercentage} from 'sentry/utils/formatters';
@@ -476,7 +476,7 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
 
     return [
       {
-        title: t('N+1 DB Queries'),
+        title: IssueTitle.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
         fields: [
           {
             name: DetectorConfigCustomer.N_PLUS_DB_DURATION,
@@ -497,11 +497,10 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
             disabledReason,
           },
         ],
-        id: IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
         initiallyCollapsed: issueType !== IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
       },
       {
-        title: t('Slow DB Queries'),
+        title: IssueTitle.PERFORMANCE_SLOW_DB_QUERY,
         fields: [
           {
             name: DetectorConfigCustomer.SLOW_DB_DURATION,
@@ -521,11 +520,10 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
             disabledReason,
           },
         ],
-        id: IssueType.PERFORMANCE_SLOW_DB_QUERY,
         initiallyCollapsed: issueType !== IssueType.PERFORMANCE_SLOW_DB_QUERY,
       },
       {
-        title: t('N+1 API Calls'),
+        title: IssueTitle.PERFORMANCE_N_PLUS_ONE_API_CALLS,
         fields: [
           {
             name: DetectorConfigCustomer.N_PLUS_API_CALLS_DURATION,
@@ -547,11 +545,10 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
             disabledReason,
           },
         ],
-        id: IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS,
         initiallyCollapsed: issueType !== IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS,
       },
       {
-        title: t('Large Render Blocking Asset'),
+        title: IssueTitle.PERFORMANCE_RENDER_BLOCKING_ASSET,
         fields: [
           {
             name: DetectorConfigCustomer.RENDER_BLOCKING_ASSET_RATIO,
@@ -572,11 +569,10 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
             disabledReason,
           },
         ],
-        id: IssueType.PERFORMANCE_RENDER_BLOCKING_ASSET,
         initiallyCollapsed: issueType !== IssueType.PERFORMANCE_RENDER_BLOCKING_ASSET,
       },
       {
-        title: t('Large HTTP Payload'),
+        title: IssueTitle.PERFORMANCE_LARGE_HTTP_PAYLOAD,
         fields: [
           {
             name: DetectorConfigCustomer.LARGE_HTT_PAYLOAD_SIZE,
@@ -597,11 +593,10 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
             disabledReason,
           },
         ],
-        id: IssueType.PERFORMANCE_LARGE_HTTP_PAYLOAD,
         initiallyCollapsed: issueType !== IssueType.PERFORMANCE_LARGE_HTTP_PAYLOAD,
       },
       {
-        title: t('DB on Main Thread'),
+        title: IssueTitle.PERFORMANCE_DB_MAIN_THREAD,
         fields: [
           {
             name: DetectorConfigCustomer.DB_ON_MAIN_THREAD_DURATION,
@@ -621,11 +616,10 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
             disabledReason,
           },
         ],
-        id: IssueType.PERFORMANCE_DB_MAIN_THREAD,
         initiallyCollapsed: issueType !== IssueType.PERFORMANCE_DB_MAIN_THREAD,
       },
       {
-        title: t('File I/O on Main Thread'),
+        title: IssueTitle.PERFORMANCE_FILE_IO_MAIN_THREAD,
         fields: [
           {
             name: DetectorConfigCustomer.FILE_IO_MAIN_THREAD_DURATION,
@@ -645,11 +639,10 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
             disabledReason,
           },
         ],
-        id: IssueType.PERFORMANCE_FILE_IO_MAIN_THREAD,
         initiallyCollapsed: issueType !== IssueType.PERFORMANCE_FILE_IO_MAIN_THREAD,
       },
       {
-        title: t('Consecutive DB Queries'),
+        title: IssueTitle.PERFORMANCE_CONSECUTIVE_DB_QUERIES,
         fields: [
           {
             name: DetectorConfigCustomer.CONSECUTIVE_DB_MIN_TIME_SAVED,
@@ -669,11 +662,10 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
             disabledReason,
           },
         ],
-        id: IssueType.PERFORMANCE_CONSECUTIVE_DB_QUERIES,
         initiallyCollapsed: issueType !== IssueType.PERFORMANCE_CONSECUTIVE_DB_QUERIES,
       },
       {
-        title: t('Uncompressed Asset'),
+        title: IssueTitle.PERFORMANCE_UNCOMPRESSED_ASSET,
         fields: [
           {
             name: DetectorConfigCustomer.UNCOMPRESSED_ASSET_SIZE,
@@ -712,11 +704,10 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
             disabledReason,
           },
         ],
-        id: IssueType.PERFORMANCE_UNCOMPRESSED_ASSET,
         initiallyCollapsed: issueType !== IssueType.PERFORMANCE_UNCOMPRESSED_ASSET,
       },
       {
-        title: t('Consecutive HTTP'),
+        title: IssueTitle.PERFORMANCE_CONSECUTIVE_HTTP,
         fields: [
           {
             name: DetectorConfigCustomer.CONSECUTIVE_HTTP_MIN_TIME_SAVED,
@@ -737,11 +728,10 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
             disabledReason,
           },
         ],
-        id: IssueType.PERFORMANCE_CONSECUTIVE_HTTP,
         initiallyCollapsed: issueType !== IssueType.PERFORMANCE_CONSECUTIVE_HTTP,
       },
       {
-        title: t('HTTP Overhead'),
+        title: IssueTitle.PERFORMANCE_HTTP_OVERHEAD,
         fields: [
           {
             name: DetectorConfigCustomer.HTTP_OVERHEAD_REQUEST_DELAY,
@@ -761,7 +751,6 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
             disabledReason,
           },
         ],
-        id: IssueType.PERFORMANCE_HTTP_OVERHEAD,
         initiallyCollapsed: issueType !== IssueType.PERFORMANCE_HTTP_OVERHEAD,
       },
     ];

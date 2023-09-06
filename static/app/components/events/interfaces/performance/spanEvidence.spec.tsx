@@ -6,7 +6,8 @@ import {
 } from 'sentry-test/performance/utils';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {EntryType, IssueType} from 'sentry/types';
+import {EntryType, IssueTitle, IssueType} from 'sentry/types';
+import {sanitizeQuerySelector} from 'sentry/utils/sanitizeQuerySelector';
 
 import {SpanEvidenceSection} from './spanEvidence';
 
@@ -90,6 +91,7 @@ describe('spanEvidence', () => {
     const event = TestStubs.Event({
       occurrence: {
         type: 1001,
+        issueTitle: IssueTitle.PERFORMANCE_SLOW_DB_QUERY,
       },
       entries: [
         {
@@ -115,7 +117,9 @@ describe('spanEvidence', () => {
     expect(settingsBtn).toBeInTheDocument();
     expect(settingsBtn).toHaveAttribute(
       'href',
-      `/settings/projects/project-slug/performance/?issueType=${IssueType.PERFORMANCE_SLOW_DB_QUERY}#${IssueType.PERFORMANCE_SLOW_DB_QUERY}`
+      `/settings/projects/project-slug/performance/?issueType=${
+        IssueType.PERFORMANCE_SLOW_DB_QUERY
+      }#${sanitizeQuerySelector(IssueTitle.PERFORMANCE_SLOW_DB_QUERY)}`
     );
   });
 

@@ -11,6 +11,7 @@ import {
   getIssueTypeFromOccurenceType,
   Organization,
 } from 'sentry/types';
+import {sanitizeQuerySelector} from 'sentry/utils/sanitizeQuerySelector';
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
 import {ProfileContext, ProfilesProvider} from 'sentry/views/profiling/profilesProvider';
 
@@ -42,6 +43,8 @@ export function SpanEvidenceSection({event, organization, projectSlug}: Props) {
   const hasProfilingFeature = organization.features.includes('profiling');
 
   const issueType = getIssueTypeFromOccurenceType(event.occurrence?.type);
+  const issueTitle = event.occurrence?.issueTitle;
+  const sanitizedIssueTitle = issueTitle && sanitizeQuerySelector(issueTitle);
   const hasConfigurableThresholds =
     organization.features.includes('project-performance-settings-admin') && issueType;
 
@@ -56,7 +59,7 @@ export function SpanEvidenceSection({event, organization, projectSlug}: Props) {
         hasConfigurableThresholds && (
           <LinkButton
             data-test-id="span-evidence-settings-btn"
-            to={`/settings/projects/${projectSlug}/performance/?issueType=${issueType}#${issueType}`}
+            to={`/settings/projects/${projectSlug}/performance/?issueType=${issueType}#${sanitizedIssueTitle}`}
             size="xs"
           >
             <StyledSettingsIcon size="xs" />

@@ -96,14 +96,13 @@ class JsonForm extends Component<Props, State> {
   }
 
   renderForm({
-    fields,
     formPanelProps,
-    title,
-    initiallyCollapsed,
-    id,
   }: {
-    fields: FieldObject[];
-    formPanelProps: Pick<
+    formPanelProps: {
+      fields: FieldObject[];
+      initiallyCollapsed?: boolean;
+      title?: React.ReactNode;
+    } & Pick<
       Props,
       | 'access'
       | 'disabled'
@@ -113,11 +112,8 @@ class JsonForm extends Component<Props, State> {
       | 'renderHeader'
     > &
       Pick<State, 'highlighted'>;
-    id?: string;
-    initiallyCollapsed?: boolean;
-    title?: React.ReactNode;
   }) {
-    const shouldDisplayForm = this.shouldDisplayForm(fields);
+    const shouldDisplayForm = this.shouldDisplayForm(formPanelProps.fields);
 
     if (
       !shouldDisplayForm &&
@@ -127,15 +123,7 @@ class JsonForm extends Component<Props, State> {
       return null;
     }
 
-    return (
-      <FormPanel
-        title={title}
-        fields={fields}
-        {...formPanelProps}
-        initiallyCollapsed={initiallyCollapsed}
-        id={id}
-      />
-    );
+    return <FormPanel {...formPanelProps} />;
   }
 
   render() {
@@ -167,6 +155,8 @@ class JsonForm extends Component<Props, State> {
       renderHeader,
       highlighted: this.state.highlighted,
       collapsible,
+      fields: fields ?? [],
+      title,
       initiallyCollapsed,
     };
 
@@ -174,11 +164,13 @@ class JsonForm extends Component<Props, State> {
       <div {...otherProps}>
         {typeof forms !== 'undefined' &&
           forms.map((formGroup, i) => (
-            <Fragment key={i}>{this.renderForm({formPanelProps, ...formGroup})}</Fragment>
+            <Fragment key={i}>
+              {this.renderForm({formPanelProps: {...formPanelProps, ...formGroup}})}
+            </Fragment>
           ))}
         {typeof forms === 'undefined' &&
           typeof fields !== 'undefined' &&
-          this.renderForm({fields, formPanelProps, title})}
+          this.renderForm({formPanelProps})}
       </div>
     );
   }
