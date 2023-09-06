@@ -51,6 +51,7 @@ export class SQLishFormatter {
         scope.setFingerprint(['sqlish-parse-error']);
         // Get the last 100 characters of the error message
         scope.setExtra('message', error.message?.slice(-100));
+        scope.setExtra('found', error.found);
         Sentry.captureException(error);
       });
       // If we fail to parse the SQL, return the original string
