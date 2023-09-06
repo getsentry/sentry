@@ -778,12 +778,6 @@ urlpatterns += [
         react_page_view,
         name="user-feedback",
     ),
-    # User Feedback v2
-    re_path(
-        r"^feedback/",
-        react_page_view,
-        name="feedback",
-    ),
     # Data Export
     re_path(
         r"^data-export/",
