@@ -1,6 +1,7 @@
 import logging
 
 from django.db import models, router, transaction
+from django.db.models import Q
 from django.db.models.signals import post_delete, post_save
 
 from sentry.backup.scopes import RelocationScope
@@ -49,6 +50,13 @@ class ExternalActor(DefaultFieldsModel):
             ("organization", "provider", "external_name", "team_id"),
             ("organization", "provider", "external_name", "user_id"),
         )
+
+        constraints = [
+            models.CheckConstraint(
+                check=Q(user_id__isnull=False) | Q(team_id__isnull=False),
+                name="external_actor_team_or_user",
+            ),
+        ]
 
     def delete(self, **kwargs):
         from sentry.services.hybrid_cloud.integration import integration_service
