@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Callable, List, Mapping, Optional, Sequence
+from collections import defaultdict
+from typing import Callable, Iterable, List, Mapping, MutableMapping, Optional, Sequence
 
 from django.db import router, transaction
 from django.db.models import Q, QuerySet
@@ -10,10 +11,18 @@ from sentry.api.serializers.base import Serializer
 from sentry.api.serializers.models.notification_setting import NotificationSettingsSerializer
 from sentry.models import NotificationSetting, User
 from sentry.models.organization import Organization
-from sentry.notifications.helpers import get_scope_type, get_setting_options_for_users
+from sentry.models.project import Project
+from sentry.notifications.helpers import (
+    get_scope_type,
+    get_setting_options_for_users,
+    get_setting_providers_for_users,
+)
 from sentry.notifications.types import (
+    NotificationScopeEnum,
     NotificationScopeType,
+    NotificationSettingEnum,
     NotificationSettingOptionValues,
+    NotificationSettingsOptionEnum,
     NotificationSettingTypes,
 )
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
@@ -26,7 +35,7 @@ from sentry.services.hybrid_cloud.notifications import NotificationsService, Rpc
 from sentry.services.hybrid_cloud.notifications.model import NotificationSettingFilterArgs
 from sentry.services.hybrid_cloud.notifications.serial import serialize_notification_setting
 from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.types.integrations import ExternalProviders
+from sentry.types.integrations import ExternalProviderEnum, ExternalProviders
 
 
 class DatabaseBackedNotificationsService(NotificationsService):
@@ -134,44 +143,67 @@ class DatabaseBackedNotificationsService(NotificationsService):
 
         return [serialize_notification_setting(s) for s in notification_settings]
 
+    # TODO(snigdha): clean this up with v2 - the new logic is in get_setting_options_by_project.
     def get_settings_for_user_by_projects(
-        self, *, type: NotificationSettingTypes, user_id: int, parent_ids: List[int]
+        self,
+        *,
+        type: NotificationSettingTypes,
+        user_id: int,
+        parent_ids: List[int],
     ) -> List[RpcNotificationSetting]:
-        if not parent_ids:
+        try:
+            User.objects.get(id=user_id)
+        except User.DoesNotExist:
             return []
 
-        org = parent_ids[0].organization
-        if not features.has("organizations:notification-settings-v2", org):
-            try:
-                User.objects.get(id=user_id)
-            except User.DoesNotExist:
-                return []
-
-            scope_type = get_scope_type(type)
-            return [
-                serialize_notification_setting(s)
-                for s in NotificationSetting.objects.filter(
-                    Q(
-                        scope_type=scope_type.value,
-                        scope_identifier__in=parent_ids,
-                    )
-                    | Q(
-                        scope_type=NotificationScopeType.USER.value,
-                        scope_identifier=user_id,
-                    ),
-                    type=type.value,
-                    user_id=user_id,
+        scope_type = get_scope_type(type)
+        return [
+            serialize_notification_setting(s)
+            for s in NotificationSetting.objects.filter(
+                Q(
+                    scope_type=scope_type.value,
+                    scope_identifier__in=parent_ids,
                 )
-            ]
-        else:
-            user = None
-            try:
-                User.objects.get(id=user_id)
-            except User.DoesNotExist:
-                return []
+                | Q(
+                    scope_type=NotificationScopeType.USER.value,
+                    scope_identifier=user_id,
+                ),
+                type=type.value,
+                user_id=user_id,
+            )
+        ]
 
-            if not user:
-                return []
+    def get_setting_options_by_project(
+        self,
+        user_id: int,
+        projects: Iterable[Project],
+        organization: Organization,
+        type: NotificationSettingEnum,
+    ) -> MutableMapping[
+        NotificationScopeEnum,
+        MutableMapping[int, MutableMapping[ExternalProviderEnum, NotificationSettingsOptionEnum]],
+    ]:
+        """
+        Returns a a mapping of project scopes settings, with projects IDs
+        mapped to a map of provider to notifications setting values.
+        """
+        user = User.objects.get(id=user_id)
+        result: MutableMapping[
+            int, MutableMapping[ExternalProviderEnum, NotificationSettingsOptionEnum]
+        ] = defaultdict(dict)
+
+        # TODO(snigdha): This is an N+1 query. We should optimize this if there's a visible performance impact.
+        for project in projects:
+            providers = get_setting_providers_for_users(
+                [user_id],
+                project=project,
+                organization=organization,
+                additional_filters=Q(type=type),
+            )
+
+            result[project.id] = providers[user]
+
+        return {NotificationScopeEnum.PROJECT: result}
 
     def remove_notification_settings(
         self, *, team_id: Optional[int], user_id: Optional[int], provider: ExternalProviders
