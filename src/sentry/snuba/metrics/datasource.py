@@ -170,14 +170,15 @@ def get_metrics_meta(projects: Sequence[Project], use_case_id: UseCaseID) -> Seq
     return metas
 
 
-def get_stored_mris(projects: Sequence[Project], use_case_id: UseCaseID) -> Sequence[str]:
+def get_stored_mris(projects: Sequence[Project], use_case_id: UseCaseID) -> List[str]:
     org_id = projects[0].organization_id
+    project_ids = [project.id for project in projects]
 
     stored_metrics = []
     for entity_key in METRIC_TYPE_TO_ENTITY.values():
         stored_metrics += _get_metrics_for_entity(
             entity_key=entity_key,
-            project_ids=[project.id for project in projects],
+            project_ids=project_ids,
             org_id=org_id,
             use_case_id=use_case_id,
         )
@@ -185,6 +186,7 @@ def get_stored_mris(projects: Sequence[Project], use_case_id: UseCaseID) -> Sequ
     mris = bulk_reverse_resolve(
         use_case_id, org_id, [row["metric_id"] for row in stored_metrics]
     ).values()
+
     return list(mris)
 
 
