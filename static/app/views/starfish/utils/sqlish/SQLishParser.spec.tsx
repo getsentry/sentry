@@ -26,7 +26,9 @@ describe('SQLishParser', function () {
       'flags | %s)', // Bitwise OR
       'flags ^ %s)', // Bitwise XOR
       'flags ~ %s)', // Bitwise NOT
-      '+ %s as count', // Arithmetic
+      '+ %s as count', // Arithmetic I
+      '- %s as count', // Arithmetic II
+      "ILIKE '\\_')", // Backslash
     ])('Parses %s', sql => {
       expect(() => {
         parser.parse(sql);
