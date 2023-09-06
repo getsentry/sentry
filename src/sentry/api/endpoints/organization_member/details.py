@@ -74,7 +74,6 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
         "PUT": ApiPublishStatus.PUBLIC,
     }
-    public = {"GET", "PUT", "DELETE"}
     permission_classes = [RelaxedMemberPermission]
 
     def _get_member(

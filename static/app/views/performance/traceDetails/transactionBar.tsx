@@ -1,4 +1,5 @@
 import {Component, createRef, Fragment} from 'react';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
@@ -88,6 +89,7 @@ type Props = {
   isOrphanError?: boolean;
   measurements?: Map<number, VerticalMark>;
   numOfOrphanErrors?: number;
+  onlyOrphanErrors?: boolean;
 };
 
 type State = {
@@ -126,11 +128,11 @@ class TransactionBar extends Component<Props, State> {
   transactionTitleRef = createRef<HTMLDivElement>();
   spanContentRef: HTMLDivElement | null = null;
 
-  toggleDisplayDetail = () => {
-    const {transaction} = this.props;
+  handleRowCellClick = () => {
+    const {transaction, organization} = this.props;
 
     if (isTraceError(transaction)) {
-      return;
+      browserHistory.push(generateIssueEventTarget(transaction, organization));
     }
 
     if (isTraceTransaction<TraceFullDetailed>(transaction)) {
@@ -560,11 +562,12 @@ class TransactionBar extends Component<Props, State> {
     dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps;
     scrollbarManagerChildrenProps: ScrollbarManager.ScrollbarManagerChildrenProps;
   }) {
-    const {hasGuideAnchor, index, transaction, organization} = this.props;
+    const {hasGuideAnchor, index, transaction, onlyOrphanErrors = false} = this.props;
     const {showDetail} = this.state;
     const {dividerPosition} = dividerHandlerChildrenProps;
+    const hideDurationRectangle = isTraceRoot(transaction) && onlyOrphanErrors;
 
-    const rowcellContainer = (
+    return (
       <RowCellContainer showDetail={showDetail}>
         <RowCell
           data-test-id="transaction-row-title"
@@ -574,7 +577,7 @@ class TransactionBar extends Component<Props, State> {
             paddingTop: 0,
           }}
           showDetail={showDetail}
-          onClick={this.toggleDisplayDetail}
+          onClick={this.handleRowCellClick}
           ref={this.transactionTitleRef}
         >
           <GuideAnchor target="trace_view_guide_row" disabled={!hasGuideAnchor}>
@@ -594,24 +597,16 @@ class TransactionBar extends Component<Props, State> {
             overflow: 'visible',
           }}
           showDetail={showDetail}
-          onClick={this.toggleDisplayDetail}
+          onClick={this.handleRowCellClick}
         >
           <RowReplayTimeIndicators />
           <GuideAnchor target="trace_view_guide_row_details" disabled={!hasGuideAnchor}>
-            {this.renderRectangle()}
+            {!hideDurationRectangle && this.renderRectangle()}
             {this.renderMeasurements()}
           </GuideAnchor>
         </RowCell>
         {!showDetail && this.renderGhostDivider(dividerHandlerChildrenProps)}
       </RowCellContainer>
-    );
-
-    return isTraceError(transaction) ? (
-      <Link to={generateIssueEventTarget(transaction, organization)}>
-        {rowcellContainer}
-      </Link>
-    ) : (
-      rowcellContainer
     );
   }
 

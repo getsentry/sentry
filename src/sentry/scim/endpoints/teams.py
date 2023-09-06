@@ -103,7 +103,6 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint):
         "POST": ApiPublishStatus.PUBLIC,
     }
     permission_classes = (OrganizationSCIMTeamPermission,)
-    public = {"GET", "POST"}
 
     @extend_schema(
         operation_id="List an Organization's Paginated Teams",
@@ -240,7 +239,6 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
         "PATCH": ApiPublishStatus.PUBLIC,
     }
     permission_classes = (OrganizationSCIMTeamPermission,)
-    public = {"GET", "PATCH", "DELETE"}
 
     def convert_args(self, request: Request, organization_slug: str, team_id, *args, **kwargs):
         args, kwargs = super().convert_args(request, organization_slug)

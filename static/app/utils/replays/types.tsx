@@ -98,7 +98,10 @@ export function isPaintFrame(frame: SpanFrame): frame is PaintFrame {
 }
 
 export function isDeadClick(frame: SlowClickFrame) {
-  return frame.data.endReason === 'timeout';
+  return (
+    ['a', 'button', 'input'].includes(frame.data.node?.tagName.toLowerCase() ?? '') &&
+    frame.data.endReason === 'timeout'
+  );
 }
 
 export function isDeadRageClick(frame: SlowClickFrame) {

@@ -2099,7 +2099,7 @@ class GetCustomMeasurementsTestCase(MetricsEnhancedPerformanceTestCase):
                     self.organization.id,
                     something_custom_metric,
                 ),
-                "mri_string": something_custom_metric,
+                "mri": something_custom_metric,
             }
         ]
 
@@ -2153,7 +2153,7 @@ class GetCustomMeasurementsTestCase(MetricsEnhancedPerformanceTestCase):
                     self.organization.id,
                     something_custom_metric,
                 ),
-                "mri_string": something_custom_metric,
+                "mri": something_custom_metric,
             }
         ]
 
