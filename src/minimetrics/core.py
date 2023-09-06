@@ -18,6 +18,8 @@ from typing import (
     Union,
 )
 
+from typing_extensions import NotRequired
+
 from sentry.utils import metrics
 
 # The thread local instance must be initialized globally in order to correctly use the state.
@@ -85,8 +87,8 @@ class ExtractedMetric(TypedDict):
     value: ExtractedMetricValue
     timestamp: int
     width: int
-    unit: Optional[MetricUnit]
-    tags: Optional[MetricTagsInternal]
+    unit: NotRequired[MetricUnit]
+    tags: NotRequired[MetricTagsInternal]
 
 
 class Metric(Generic[T]):
@@ -306,7 +308,7 @@ class Aggregator:
             self._flush_event.set()
 
     @classmethod
-    def _to_internal_metric_tags(cls, tags: Optional[MetricTagValueExternal]) -> MetricTagsInternal:
+    def _to_internal_metric_tags(cls, tags: Optional[MetricTagsExternal]) -> MetricTagsInternal:
         rv = []
         for key, value in (tags or {}).items():
             if isinstance(value, (list, tuple)):
@@ -322,9 +324,9 @@ class Aggregator:
     def _emit(cls, extracted_metrics: List[Tuple[ExtractedMetric, int]], force_flush: bool) -> Any:
         # We obtain the counts for each metric type of how many buckets we have and how much complexity is in each
         # bucket.
-        complexities_by_type: Dict[str, Tuple[int, int]] = {}
+        complexities_by_type: Dict[MetricType, Tuple[int, int]] = {}
         # We obtain the counts for each metric type, since we want to know how many by type we have.
-        counts_by_type: Dict[str, float] = {}
+        counts_by_type: Dict[MetricType, float] = {}
         for metric, metric_complexity in extracted_metrics:
             metric_type = metric["type"]
             metric_value = metric["value"]
@@ -332,16 +334,16 @@ class Aggregator:
             value: float = 0.0
             if metric_type == "c":
                 # For counters, we want to sum the count value.
-                value = metric_value
+                value = metric_value  # type:ignore
             elif metric_type == "d":
                 # For distributions, we want to track the size of the distribution.
-                value = len(metric_value)
+                value = float(len(metric_value))  # type:ignore
             elif metric_type == "g":
                 # For gauges, we will emit the single compressed value.
-                value = metric_value
+                value = metric_value  # type:ignore
             elif metric_type == "s":
                 # For sets, we want to track the cardinality of the set.
-                value = len(metric_value)
+                value = float(len(metric_value))  # type:ignore
 
             counts_by_type[metric_type] = counts_by_type.get(metric_type, 0) + value
 

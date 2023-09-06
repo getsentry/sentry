@@ -15,7 +15,7 @@ def test_client_incr(_emit):
         "user.classes": [1, 2, 3],
     }
     client = MiniMetricsClient()
-    client.incr("button_clicked", 1.0, tags=tags)
+    client.incr("button_clicked", 1.0, tags=tags)  # type:ignore
     client.aggregator.stop()
 
     assert len(client.aggregator.buckets) == 0
@@ -57,7 +57,7 @@ def test_client_timing(_emit):
         "user.classes": [1, 2, 3],
     }
     client = MiniMetricsClient()
-    client.timing("execution_time", 1.0, tags=tags)
+    client.timing("execution_time", 1.0, tags=tags)  # type:ignore
     client.aggregator.stop()
 
     assert len(client.aggregator.buckets) == 0
@@ -99,7 +99,7 @@ def test_client_set(_emit):
         "user.classes": [1, 2, 3],
     }
     client = MiniMetricsClient()
-    client.set("user", "riccardo", tags=tags)
+    client.set("user", "riccardo", tags=tags)  # type:ignore
     client.aggregator.stop()
 
     assert len(client.aggregator.buckets) == 0
@@ -140,7 +140,7 @@ def test_client_gauge(_emit):
         "user.classes": [1, 2, 3],
     }
     client = MiniMetricsClient()
-    client.gauge("frontend_time", 15.0, tags=tags)
+    client.gauge("frontend_time", 15.0, tags=tags)  # type:ignore
     client.aggregator.stop()
 
     assert len(client.aggregator.buckets) == 0
