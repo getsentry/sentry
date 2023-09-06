@@ -52,7 +52,7 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
             # Maybe this is a custom measurment?
             for measurement in self.builder.custom_measurement_map:
                 if measurement["name"] == value and measurement["metric_id"] is not None:
-                    return Column(measurement["mri_string"])
+                    return Column(measurement["mri"])
         if metric_mri is None:
             metric_mri = value
         return Column(metric_mri)

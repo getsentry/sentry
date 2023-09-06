@@ -163,7 +163,6 @@ class OpsgenieIntegrationProvider(IntegrationProvider):
     metadata = metadata
     integration_cls = OpsgenieIntegration
     features = frozenset([IntegrationFeatures.INCIDENT_MANAGEMENT, IntegrationFeatures.ALERT_RULE])
-    requires_feature_flag = True  # limited release
 
     def get_pipeline_views(self) -> Sequence[PipelineView]:
         return [InstallationConfigView()]
