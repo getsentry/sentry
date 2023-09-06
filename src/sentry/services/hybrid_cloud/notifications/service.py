@@ -6,7 +6,6 @@
 from abc import abstractmethod
 from typing import List, Mapping, Optional, Sequence, cast
 
-from sentry.models.organization import Organization
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.services.hybrid_cloud.auth.model import AuthenticationContext
@@ -50,7 +49,6 @@ class NotificationsService(RpcService):
         types: List[NotificationSettingTypes],
         users: List[RpcUser],
         value: NotificationSettingOptionValues,
-        organization: Organization,
     ) -> List[RpcNotificationSetting]:
         pass
 

@@ -5,11 +5,9 @@ from typing import Callable, List, Mapping, Optional, Sequence
 from django.db import router, transaction
 from django.db.models import Q, QuerySet
 
-from sentry import features
 from sentry.api.serializers.base import Serializer
 from sentry.api.serializers.models.notification_setting import NotificationSettingsSerializer
 from sentry.models import NotificationSetting, User
-from sentry.models.organization import Organization
 from sentry.notifications.helpers import get_scope_type, get_setting_options_for_users
 from sentry.notifications.types import (
     NotificationScopeType,
@@ -81,27 +79,31 @@ class DatabaseBackedNotificationsService(NotificationsService):
                     setting_option=setting_option,
                 )
 
+    # TODO(snigdha): this doesn't seem to be used anywhere, but
+    # we will need to replace the logic for notifications V2 with
+    # get_setting_options_for_users
     def get_settings_for_users(
         self,
         *,
         types: List[NotificationSettingTypes],
         users: List[RpcUser],
         value: NotificationSettingOptionValues,
-        organization: Organization | None = None,
     ) -> List[RpcNotificationSetting]:
-        if not organization or not features.has(
-            "organizations:notification-settings-v2", organization
-        ):
-            settings = NotificationSetting.objects.filter(
-                user_id__in=[u.id for u in users],
-                type__in=types,
-                value=value.value,
-                scope_type=NotificationScopeType.USER.value,
-            )
-            return [serialize_notification_setting(u) for u in settings]
+        settings = NotificationSetting.objects.filter(
+            user_id__in=[u.id for u in users],
+            type__in=types,
+            value=value.value,
+            scope_type=NotificationScopeType.USER.value,
+        )
+        return [serialize_notification_setting(u) for u in settings]
 
-        # TODO(snigdha): this doesn't seem to be used anywhere,
-        # but we should test this better before using it in prod.
+    def get_setting_options_for_users(
+        self,
+        *,
+        types: List[NotificationSettingTypes],
+        users: List[RpcUser],
+        value: NotificationSettingOptionValues,
+    ) -> List[RpcNotificationSetting]:
         settings = get_setting_options_for_users(
             user_ids=[u.id for u in users],
             additional_filters=Q(
