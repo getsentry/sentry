@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any, Iterable, List, Mapping, Optional, Set, Union, cast
 
 from django.db import IntegrityError, models, router, transaction
+from django.db.models.expressions import F
 from django.dispatch import Signal
 
 from sentry import roles
@@ -514,6 +515,27 @@ class DatabaseBackedOrganizationService(OrganizationService):
     def delete_option(self, *, organization_id: int, key: str) -> None:
         orm_organization = Organization.objects.get_from_cache(id=organization_id)
         orm_organization.delete_option(key)
+
+    def send_sso_link_emails(
+        self, *, organization_id: int, sending_user_email: str, provider_key: str
+    ) -> None:
+        from sentry.auth import manager
+        from sentry.auth.exceptions import ProviderNotRegistered
+
+        try:
+            provider = manager.get(provider_key)
+        except ProviderNotRegistered as e:
+            logger.warning("Could not send SSO link emails: %s", e)
+            return
+
+        member_list = OrganizationMember.objects.filter(
+            organization_id=organization_id,
+            flags=F("flags").bitand(~OrganizationMember.flags["sso:linked"]),
+        ).select_related("organization")
+
+        provider = manager.get(provider_key)
+        for member in member_list:
+            member.send_sso_link_email(sending_user_email, provider)
 
     def upsert_replicated_auth_provider(
         self, *, auth_provider: RpcAuthProvider, region_name: str
