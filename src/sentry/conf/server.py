@@ -1735,6 +1735,10 @@ SENTRY_FEATURES = {
     "organizations:notification-settings-v2": False,
     # Enable new release UI
     "organizations:release-ui-v2": False,
+    # Enable User Feedback v2 ingest
+    "organizations:user-feedback-ingest": False,
+    # Enable User Feedback v2 UI
+    "organizations:user-feedback-ui": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
