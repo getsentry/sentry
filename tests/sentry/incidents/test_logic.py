@@ -68,7 +68,7 @@ from sentry.incidents.models import (
 )
 from sentry.models import ActorTuple, Integration, OrganizationIntegration
 from sentry.models.actor import get_actor_id_for_user
-from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError
+from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError, IntegrationError
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.testutils.cases import BaseIncidentsTest, BaseMetricsTestCase, SnubaTestCase, TestCase
@@ -1425,6 +1425,65 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
                 integration_id=integration.id,
             )
 
+    @responses.activate
+    def test_discord(self):
+        base_url: str = "https://discord.com/api/v10"
+        channel_id = "channel-id"
+        guild_id = "example-discord-server"
+        guild_name = "Server Name"
+        integration = Integration.objects.create(
+            provider="discord",
+            name="Example Discord",
+            external_id=f"{guild_id}",
+            metadata={
+                "guild_id": f"{guild_id}",
+                "name": f"{guild_name}",
+            },
+        )
+        type = AlertRuleTriggerAction.Type.DISCORD
+        target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
+        responses.add(
+            method=responses.GET,
+            url=f"{base_url}/channels/{channel_id}",
+            json={
+                "guild_id": f"{guild_id}",
+                "name": f"{guild_name}",
+            },
+        )
+        action = create_alert_rule_trigger_action(
+            self.trigger,
+            type,
+            target_type,
+            target_identifier=channel_id,
+            integration_id=integration.id,
+        )
+        assert action.alert_rule_trigger == self.trigger
+        assert action.type == type.value
+        assert action.target_type == target_type.value
+        assert action.target_display == channel_id
+        assert action.integration_id == integration.id
+
+    def test_discord_not_existing(self):
+        integration = Integration.objects.create(
+            provider="discord",
+            name="Example Discord",
+            external_id="guild-id",
+            metadata={
+                "guild_id": "guild_id",
+                "name": "guild_name",
+            },
+        )
+        type = AlertRuleTriggerAction.Type.DISCORD
+        target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
+        with pytest.raises(IntegrationError):
+            create_alert_rule_trigger_action(
+                self.trigger,
+                type,
+                target_type,
+                target_identifier="channel_id",
+                integration_id=integration.id,
+            )
+
 
 class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
     @cached_property
@@ -1509,6 +1568,71 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
                 type,
                 target_type,
                 target_identifier=channel_name,
+                integration_id=integration.id,
+            )
+
+    @responses.activate
+    def test_discord(self):
+        base_url: str = "https://discord.com/api/v10"
+        channel_id = "channel-id"
+        guild_id = "example-discord-server"
+        guild_name = "Server Name"
+
+        integration = Integration.objects.create(
+            provider="discord",
+            name="Example Discord",
+            external_id=f"{guild_id}",
+            metadata={
+                "guild_id": f"{guild_id}",
+                "name": f"{guild_name}",
+            },
+        )
+
+        integration.add_organization(self.organization, self.user)
+        type = AlertRuleTriggerAction.Type.DISCORD
+        target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
+
+        responses.add(
+            method=responses.GET,
+            url=f"{base_url}/channels/{channel_id}",
+            json={
+                "guild_id": f"{guild_id}",
+                "name": f"{guild_name}",
+            },
+        )
+
+        action = update_alert_rule_trigger_action(
+            self.action,
+            type,
+            target_type,
+            target_identifier=channel_id,
+            integration_id=integration.id,
+        )
+        assert action.alert_rule_trigger == self.trigger
+        assert action.type == type.value
+        assert action.target_type == target_type.value
+        assert action.target_identifier == channel_id
+        assert action.target_display == channel_id
+        assert action.integration_id == integration.id
+
+    def test_discord_not_existing(self):
+        integration = Integration.objects.create(
+            provider="discord",
+            name="Example Discord",
+            external_id="guild-id",
+            metadata={
+                "guild_id": "guild_id",
+                "name": "guild_name",
+            },
+        )
+        type = AlertRuleTriggerAction.Type.DISCORD
+        target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
+        with pytest.raises(IntegrationError):
+            update_alert_rule_trigger_action(
+                self.action,
+                type,
+                target_type,
+                target_identifier="channel_id",
                 integration_id=integration.id,
             )
 
