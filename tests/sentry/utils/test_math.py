@@ -80,7 +80,7 @@ def test_simple_moving_average(sequence, expected):
     ],
 )
 def test_exponential_moving_average(sequence, expected):
-    avg = ExponentialMovingAverage(2, 10)
+    avg = ExponentialMovingAverage(2 / 11)
     for x in sequence:
         avg.update(x)
     assert avg.value == pytest.approx(expected, abs=1e-3)

@@ -326,9 +326,9 @@ export class DeprecatedLine extends Component<Props, State> {
                 />
               </div>
             </LeftLineTitle>
-            {this.renderRepeats()}
           </DefaultLineTitleWrapper>
           <DefaultLineTagWrapper>
+            {this.renderRepeats()}
             {organization?.features.includes('anr-analyze-frames') && anrCulprit ? (
               <Tag type="warning" to="" onClick={this.scrollToSuspectRootCause}>
                 {t('Suspect Frame')}
@@ -523,7 +523,6 @@ const LeftLineTitle = styled('div')`
 
 const RepeatedContent = styled(LeftLineTitle)`
   justify-content: center;
-  margin-right: ${space(1)};
 `;
 
 const NativeLineContent = styled('div')<{isFrameAfterLastNonApp: boolean}>`
