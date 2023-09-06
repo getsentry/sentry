@@ -20,6 +20,7 @@ import {
   BrowserStarfishFields,
   useBrowserModuleFilters,
 } from 'sentry/views/performance/browser/useBrowserFilters';
+import {usePagesQuery} from 'sentry/views/performance/browser/usePageQuery';
 import {ModulePageProviders} from 'sentry/views/performance/database/modulePageProviders';
 
 const {COMPONENT, PAGE, SPAN_ACTION} = BrowserStarfishFields;
@@ -138,11 +139,19 @@ function ActionSelector({value}: {value?: string}) {
 function PageSelector({value}: {value?: string}) {
   const location = useLocation();
 
-  const options: Option[] = [
-    {value: '', label: 'All'},
-    {value: '/performance', label: 'page1'},
-    {value: '/page2', label: 'page2'},
-  ];
+  const {data: pages, isLoading} = usePagesQuery();
+
+  const options: Option[] =
+    !isLoading && pages.length
+      ? [
+          {label: 'All', value: ''},
+          ...pages.map(page => ({
+            value: page,
+            label: page,
+          })),
+        ]
+      : [];
+
   return (
     <SelectControlWithProps
       inFieldLabel={`${t('Page')}:`}
