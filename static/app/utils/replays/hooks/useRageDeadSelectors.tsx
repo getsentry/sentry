@@ -8,7 +8,7 @@ type RageDeadSelectorResponse = {
   dom_element: string;
 };
 
-export function useRageDeadSelectors(limit: number, sort?: string) {
+export function useRageDeadSelectors(per_page?: number, sort?: string) {
   const organization = useOrganization();
   const location = useLocation();
   const {query} = location;
@@ -17,7 +17,7 @@ export function useRageDeadSelectors(limit: number, sort?: string) {
     [
       `/organizations/${organization.slug}/replay-selectors/`,
       {
-        query: {...query, per_page: limit, sort},
+        query: {...query, per_page: per_page ?? 10, sort: sort ?? '-count_dead_clicks'},
       },
     ],
     {staleTime: Infinity}
