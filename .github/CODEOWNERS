@@ -289,7 +289,6 @@ yarn.lock                                                @getsentry/owners-js-de
 /static/app/views/replays/        @getsentry/replay-frontend
 /src/sentry/replays/              @getsentry/replay-backend
 /tests/sentry/replays/            @getsentry/replay-backend
-/src/sentry/user_feedback/        @getsentry/replay-backend
 ## End of Replays
 
 

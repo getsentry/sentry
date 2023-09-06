@@ -56,7 +56,7 @@
   "sentry.PerfStringIndexer",
   "nodestore.Node",
   "replays.ReplayRecordingSegment",
-  "user_feedback.UserFeedback",
+  "feedback.Feedback",
   "social_auth.UserSocialAuth",
   "sentry.DiscoverSavedQueryProject",
   "sentry.ProcessingIssue",

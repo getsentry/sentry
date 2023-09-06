@@ -1,4 +1,12 @@
 {
+  "feedback.Feedback": {
+    "foreign_keys": {},
+    "model": "feedback.Feedback",
+    "relocation_scope": "Excluded",
+    "silos": [
+      "Region"
+    ]
+  },
   "nodestore.Node": {
     "foreign_keys": {},
     "model": "nodestore.Node",
@@ -3383,14 +3391,6 @@
     "relocation_scope": "Excluded",
     "silos": [
       "Control"
-    ]
-  },
-  "user_feedback.UserFeedback": {
-    "foreign_keys": {},
-    "model": "user_feedback.UserFeedback",
-    "relocation_scope": "Excluded",
-    "silos": [
-      "Region"
     ]
   }
 }
