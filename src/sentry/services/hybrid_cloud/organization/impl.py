@@ -570,6 +570,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
                 "auth_provider_id": auth_identity.auth_provider_id,
                 "ident": auth_identity.ident,
                 "data": auth_identity.data,
+                "last_verified": auth_identity.last_verified,
             }
 
             if not existing:
