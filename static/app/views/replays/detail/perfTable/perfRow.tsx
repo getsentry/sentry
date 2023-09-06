@@ -2,7 +2,6 @@ import {CSSProperties, Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
-import BreadcrumbIcon from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/type/icon';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconClock, IconRefresh} from 'sentry/icons';
 import {tct} from 'sentry/locale';
@@ -35,7 +34,7 @@ export default function PerfRow({
   traceRow,
 }: Props) {
   const {lcpFrames, replayFrame: frame, paintFrames, flattenedTraces} = traceRow;
-  const {color, description, title, type} = getFrameDetails(frame);
+  const {color, description, title, icon} = getFrameDetails(frame);
   const lcp = lcpFrames.length ? getFrameDetails(lcpFrames[0]) : null;
 
   const handleDimensionChange = useCallback(
@@ -72,7 +71,7 @@ export default function PerfRow({
       <Vertical style={{gap: space(1)}}>
         <Horizontal style={{gap: space(1)}}>
           <IconWrapper color={color} hasOccurred={hasOccurred}>
-            <BreadcrumbIcon type={type} />
+            {icon}
           </IconWrapper>
           <Vertical style={{flexGrow: 1}}>
             <Title hasOccurred={hasOccurred}>{title}</Title>
