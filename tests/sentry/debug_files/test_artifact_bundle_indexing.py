@@ -127,7 +127,7 @@ class FlatFileIndexingTest(FlatFileTestCase):
         artifact_bundle = self.mock_simple_artifact_bundle()
 
         identifiers = mark_bundle_for_flat_file_indexing(
-            artifact_bundle, [self.project.id], release, dist
+            artifact_bundle, False, [self.project.id], release, dist
         )
 
         with ArtifactBundleArchive(artifact_bundle.file.getfile()) as archive:
@@ -144,7 +144,7 @@ class FlatFileIndexingTest(FlatFileTestCase):
         artifact_bundle = self.mock_simple_artifact_bundle(with_debug_ids=True)
 
         identifiers = mark_bundle_for_flat_file_indexing(
-            artifact_bundle, [self.project.id], None, None
+            artifact_bundle, True, [self.project.id], None, None
         )
 
         with ArtifactBundleArchive(artifact_bundle.file.getfile()) as archive:
@@ -164,7 +164,7 @@ class FlatFileIndexingTest(FlatFileTestCase):
         artifact_bundle = self.mock_simple_artifact_bundle(with_debug_ids=True)
 
         identifiers = mark_bundle_for_flat_file_indexing(
-            artifact_bundle, [self.project.id], release, dist
+            artifact_bundle, True, [self.project.id], release, dist
         )
 
         with ArtifactBundleArchive(artifact_bundle.file.getfile()) as archive:
@@ -187,7 +187,7 @@ class FlatFileIndexingTest(FlatFileTestCase):
         artifact_bundle = self.mock_simple_artifact_bundle(with_debug_ids=True)
 
         identifiers = mark_bundle_for_flat_file_indexing(
-            artifact_bundle, [self.project.id], None, None
+            artifact_bundle, True, [self.project.id], None, None
         )
 
         with ArtifactBundleArchive(artifact_bundle.file.getfile()) as archive:
@@ -210,7 +210,7 @@ class FlatFileIndexingTest(FlatFileTestCase):
         artifact_bundle = self.mock_simple_artifact_bundle(with_debug_ids=True)
 
         identifiers = mark_bundle_for_flat_file_indexing(
-            artifact_bundle, [self.project.id], release, dist
+            artifact_bundle, True, [self.project.id], release, dist
         )
 
         with ArtifactBundleArchive(artifact_bundle.file.getfile()) as archive:
@@ -237,10 +237,10 @@ class FlatFileIndexingTest(FlatFileTestCase):
         artifact_bundle2 = self.mock_simple_artifact_bundle()
 
         identifiers1 = mark_bundle_for_flat_file_indexing(
-            artifact_bundle1, [self.project.id], release, dist
+            artifact_bundle1, False, [self.project.id], release, dist
         )
         identifiers2 = mark_bundle_for_flat_file_indexing(
-            artifact_bundle2, [self.project.id], release, dist
+            artifact_bundle2, False, [self.project.id], release, dist
         )
         assert identifiers1 == identifiers2
 
@@ -287,10 +287,10 @@ class FlatFileIndexingTest(FlatFileTestCase):
         artifact_bundle2 = self.mock_simple_artifact_bundle()
 
         identifiers1 = mark_bundle_for_flat_file_indexing(
-            artifact_bundle1, [self.project.id], release, dist
+            artifact_bundle1, False, [self.project.id], release, dist
         )
         identifiers2 = mark_bundle_for_flat_file_indexing(
-            artifact_bundle2, [self.project.id], release, dist
+            artifact_bundle2, False, [self.project.id], release, dist
         )
         assert identifiers1 == identifiers2
         identifier = identifiers1[0]
