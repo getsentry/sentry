@@ -167,7 +167,7 @@ runs:
           services="${services} chartcuterie"
         fi
 
-        sentry devservices up $services &
+
 
         # TODO: Use devservices kafka. See https://github.com/getsentry/sentry/pull/20986#issuecomment-704510570
         if [ "$NEED_KAFKA" = "true" ]; then
@@ -194,8 +194,10 @@ runs:
           #   -e KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1 \
           #   confluentinc/cp-kafka:5.1.2 \
           #  &
-          sentry devservices up zookeeper kafka &
+          services="${services} zookeeper kafka"
         fi
+
+        sentry devservices up $services &
 
         wait
 
