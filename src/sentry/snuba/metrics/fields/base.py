@@ -181,7 +181,7 @@ def _get_known_entity_of_metric_mri(metric_mri: str) -> Optional[EntityKey]:
         pass
     try:
         entity_prefix, namespace = metric_mri.split(":")
-        if namespace.startswit("custom"):
+        if namespace.startswith("custom"):
             return {
                 "c": EntityKey.GenericMetricsCounters,
                 "d": EntityKey.GenericMetricsDistributions,
