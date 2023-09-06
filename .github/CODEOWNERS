@@ -293,11 +293,11 @@ yarn.lock                                                @getsentry/owners-js-de
 
 
 ## Feedback v2
-/static/app/components/feedback/   @getsentry/replay-frontend
-/static/app/utils/feedback/        @getsentry/replay-frontend
-/static/app/views/feedback/        @getsentry/replay-frontend
-/src/sentry/feedback/              @getsentry/replay-backend
-/tests/sentry/feedback/            @getsentry/replay-backend
+/static/app/components/feedback/   @getsentry/feedback-frontend
+/static/app/utils/feedback/        @getsentry/feedback-frontend
+/static/app/views/feedback/        @getsentry/feedback-frontend
+/src/sentry/feedback/              @getsentry/feedback-backend
+/tests/sentry/feedback/            @getsentry/feedback-backend
 ## End of Feedback v2
 
 
