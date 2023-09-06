@@ -137,13 +137,10 @@ def search_filter_to_condition(
 # Leaving it here for now so this is easier to review/remove.
 from sentry.replays.usecases.query.configs.aggregate import search_config as agg_search_config
 from sentry.replays.usecases.query.configs.aggregate_sort import sort_config as agg_sort_config
+from sentry.replays.usecases.query.configs.aggregate_sort import sort_is_scalar_compatible
 from sentry.replays.usecases.query.configs.scalar import (
     can_scalar_search_subquery,
     scalar_search_config,
-)
-from sentry.replays.usecases.query.configs.scalar_sort import (
-    can_scalar_sort_subquery,
-    scalar_sort_config,
 )
 
 Paginators = namedtuple("Paginators", ("limit", "offset"))
@@ -169,28 +166,27 @@ def query_using_optimized_search(
             SearchFilter(SearchKey("environment"), "IN", SearchValue(environments))
         )
 
-    can_scalar_sort = can_scalar_sort_subquery(sort or "started_at")
-    can_scalar_search, has_varying_condition = can_scalar_search_subquery(search_filters)
+    can_scalar_sort = sort_is_scalar_compatible(sort or "started_at")
+    can_scalar_search = can_scalar_search_subquery(search_filters)
 
     if can_scalar_sort and can_scalar_search:
-        query = make_simple_scalar_query(
+        query = make_scalar_search_conditions_query(
             search_filters=search_filters,
             sort=sort,
             project_ids=project_ids,
             period_start=period_start,
             period_stop=period_stop,
-            has_varying_condition=has_varying_condition,
         )
-        referrer = "replays.query.browse_subquery"
+        referrer = "replays.query.browse_scalar_conditions_subquery"
     else:
-        query = make_simple_aggregation_query(
+        query = make_aggregate_search_conditions_query(
             search_filters=search_filters,
             sort=sort,
             project_ids=project_ids,
             period_start=period_start,
             period_stop=period_stop,
         )
-        referrer = "replays.query.browse_aggregated_subquery"
+        referrer = "replays.query.browse_aggregated_conditions_subquery"
 
     if pagination:
         query = query.set_limit(pagination.limit)
@@ -223,32 +219,15 @@ def query_using_optimized_search(
     return _make_ordered(replay_ids, results)
 
 
-def make_simple_scalar_query(
+def make_scalar_search_conditions_query(
     search_filters: list[Union[SearchFilter, str, ParenExpression]],
     sort: str | None,
     project_ids: list[int],
     period_start: datetime,
     period_stop: datetime,
-    has_varying_condition: bool,
 ) -> Query:
-    orderby = _sort_to_orderby(scalar_sort_config, sort)
-
-    if has_varying_condition:
-        group_by = [Column("replay_id")]
-        where = handle_search_filters(scalar_search_config, search_filters)
-
-        # Because we're grouping we have to wrap our ordering key in an aggregate condition.
-        orderby = [OrderBy(Function("any", parameters=[orderby[0].exp]), orderby[0].direction)]
-    else:
-        group_by = []
-        where = handle_search_filters(scalar_search_config, search_filters)
-
-        # Because we're not grouping we have to filter by segment_id to remove duplicate
-        # replay_ids.
-        #
-        # NOTE: This could still return duplicates if the segment_id has not been de-duplicated by
-        # ClickHouse. This is current production behavior and we have not received any reports.
-        where.append(Condition(Column("segment_id"), Op.EQ, 0))
+    where = handle_search_filters(scalar_search_config, search_filters)
+    orderby = handle_ordering(sort)
 
     return Query(
         match=Entity("replays"),
@@ -260,12 +239,12 @@ def make_simple_scalar_query(
             *where,
         ],
         orderby=orderby,
-        groupby=group_by,
+        groupby=[Column("replay_id")],
         granularity=Granularity(3600),
     )
 
 
-def make_simple_aggregation_query(
+def make_aggregate_search_conditions_query(
     search_filters: list[Union[SearchFilter, str, ParenExpression]],
     sort: str | None,
     project_ids: list[int],
@@ -273,7 +252,7 @@ def make_simple_aggregation_query(
     period_stop: datetime,
 ) -> Query:
     having: list[Condition] = handle_search_filters(agg_search_config, search_filters)
-    orderby = _sort_to_orderby(agg_sort_config, sort)
+    orderby = handle_ordering(sort)
 
     return Query(
         match=Entity("replays"),
@@ -337,18 +316,18 @@ def _execute_query(query: Query, tenant_id: dict[str, int], referrer: str) -> Ma
     )
 
 
-def _sort_to_orderby(config, sort: str | None) -> list[OrderBy]:
+def handle_ordering(sort: str | None) -> list[OrderBy]:
     if sort is None:
-        return [OrderBy(_get_sort_column(config, "started_at"), Direction.DESC)]
+        return [OrderBy(_get_sort_column("started_at"), Direction.DESC)]
     elif sort.startswith("-"):
-        return [OrderBy(_get_sort_column(config, sort[1:]), Direction.DESC)]
+        return [OrderBy(_get_sort_column(sort[1:]), Direction.DESC)]
     else:
-        return [OrderBy(_get_sort_column(config, sort), Direction.ASC)]
+        return [OrderBy(_get_sort_column(sort), Direction.ASC)]
 
 
-def _get_sort_column(config, column_name: str) -> Function:
+def _get_sort_column(column_name: str) -> Function:
     try:
-        return config[column_name]
+        return agg_sort_config[column_name]
     except KeyError:
         raise ParseError(f"The field `{column_name}` is not a sortable field.")
 

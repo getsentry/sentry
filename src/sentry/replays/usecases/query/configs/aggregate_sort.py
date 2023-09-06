@@ -3,6 +3,8 @@
 Very similar to our filtering configurations except in this module we do not need the field
 abstraction.  We can pass any valid Snuba expression and the query will be sorted by it.
 """
+from __future__ import annotations
+
 from snuba_sdk import Column, Function
 
 from sentry.replays.usecases.query.conditions.activity import aggregate_activity
@@ -50,3 +52,33 @@ sort_config = {
 sort_config["browser"] = sort_config["browser.name"]
 sort_config["os"] = sort_config["os.name"]
 sort_config["os_name"] = sort_config["os.name"]
+
+
+def sort_is_scalar_compatible(sort: str) -> bool:
+    """Return "True" if the sort does not interfere with scalar search optimizations."""
+    if sort.startswith("-"):
+        sort = sort[1:]
+    return sort in optimized_sort_fields
+
+
+optimized_sort_fields: set[str] = {
+    "browser.name",
+    "browser.version",
+    "device.brand",
+    "device.family",
+    "device.model",
+    "device.name",
+    "dist",
+    "environment",
+    "os.name",
+    "os.version",
+    "platform",
+    "releases",
+    "sdk.name",
+    "sdk.version",
+    "started_at",
+    "user.email",
+    "user.id",
+    "user.ip_address",
+    "user.username",
+}
