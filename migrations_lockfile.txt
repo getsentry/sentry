@@ -9,4 +9,4 @@ nodestore: 0002_nodestore_no_dictfield
 replays: 0003_add_size_to_recording_segment
 sentry: 0540_add_release_threshold_table
 social_auth: 0002_default_auto_field
-userfeedback: 0001_user_feedback
+user_feedback: 0001_user_feedback

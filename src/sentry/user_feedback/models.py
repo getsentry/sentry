@@ -25,6 +25,6 @@ class UserFeedback(DefaultFieldsModel):
 
     class Meta:
         app_label = "user_feedback"
-        db_table = "userfeedback_userfeedback"
+        db_table = "user_feedback_user_feedback"
 
     __repr__ = sane_repr("project_id", "id")
