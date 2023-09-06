@@ -128,11 +128,23 @@ class DoubleWriteTests(TestCase):
         team1 = self.create_team(organization=org1)
         self.create_team(organization=org2)
 
-        is_double_write_enabled(team_id=team1.id)
+        is_double_write_enabled(organization_id_for_team=team1.organization_id)
+
+        mapped_org1 = OrganizationMapping.objects.get(organization_id=org1.id)
+        mapped_org2 = OrganizationMapping.objects.get(organization_id=org2.id)
+
         # Ensure mock_has is called on the right organizations
-        mock_has.assert_any_call("organizations:notifications-double-write", org1)
+        mock_has.assert_any_call(
+            "organizations:notifications-double-write", serialize_organization_mapping(mapped_org1)
+        )
         for call in mock_has.call_args_list:
-            self.assertNotEqual(call[0], ("organizations:notifications-double-write", org2))
+            self.assertNotEqual(
+                call[0],
+                (
+                    "organizations:notifications-double-write",
+                    serialize_organization_mapping(mapped_org2),
+                ),
+            )
 
     def test_test_is_double_write_invalid_input(self):
         with pytest.raises(ValueError):

@@ -850,29 +850,28 @@ def user_has_any_provider_settings(
     return False
 
 
-def is_double_write_enabled(user_id: Optional[int] = None, team_id: Optional[int] = None):
-    from sentry.models import Team
+def is_double_write_enabled(
+    user_id: Optional[int] = None, organization_id_for_team: Optional[int] = None
+):
     from sentry.services.hybrid_cloud.organization_mapping.serial import (
         serialize_organization_mapping,
     )
 
-    if team_id is not None:
-        # this only works in a region silo so if this is called from a
-        # control silo we need to figure out what to do
-        orgs = [Team.objects.get(id=team_id).organization]
+    # all operations are expected to happen in the control siolo
+    if organization_id_for_team is not None:
+        org_ids = [organization_id_for_team]
     elif user_id is not None:
-        # done in a control silo so use the maping
         org_ids = OrganizationMemberMapping.objects.filter(user_id=user_id).values_list(
             "organization_id", flat=True
         )
-        orgs = list(
-            map(
-                serialize_organization_mapping,
-                OrganizationMapping.objects.filter(organization_id__in=list(org_ids)),
-            )
-        )
     else:
-        raise ValueError("Need team_id or user_id")
+        raise ValueError("Need organization_id_for_team or user_id")
+    orgs = list(
+        map(
+            serialize_organization_mapping,
+            OrganizationMapping.objects.filter(organization_id__in=list(org_ids)),
+        )
+    )
     return any(features.has("organizations:notifications-double-write", org) for org in orgs)
 
 

@@ -138,6 +138,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):  # noqa: F821
         organization: Organization | int | None = None,
         actor: RpcActor | None = None,
         skip_provider_updates: bool = False,
+        organization_id_for_team: Optional[int] = None,
     ) -> None:
         """
         Save a target's notification preferences.
@@ -182,6 +183,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):  # noqa: F821
                 team_id=team_id,
                 project=project,
                 organization=organization,
+                organization_id_for_team=organization_id_for_team,
             )
         else:
             if not validate(type, value):
@@ -197,7 +199,9 @@ class NotificationsManager(BaseManager["NotificationSetting"]):  # noqa: F821
                 **{id_key: actor_id},
             )
 
-        if not is_double_write_enabled(user_id=user_id, team_id=team_id):
+        if not is_double_write_enabled(
+            user_id=user_id, organization_id_for_team=organization_id_for_team
+        ):
             return
 
         # implement the double write now
@@ -229,6 +233,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):  # noqa: F821
         team_id: int | None = None,
         project: Project | int | None = None,
         organization: Organization | int | None = None,
+        organization_id_for_team: Optional[int] = None,
     ) -> None:
         """
         We don't anticipate this function will be used by the API but is useful
@@ -239,7 +244,9 @@ class NotificationsManager(BaseManager["NotificationSetting"]):  # noqa: F821
             user_id = user.id
 
         # get the actor type and actor id
-        use_double_write = is_double_write_enabled(user_id=user_id, team_id=team_id)
+        use_double_write = is_double_write_enabled(
+            user_id=user_id, organization_id_for_team=organization_id_for_team
+        )
         if use_double_write:
             scope_type, scope_identifier = get_scope(
                 team=team_id, user=user_id, project=project, organization=organization
@@ -525,6 +532,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):  # noqa: F821
         ],
         team: Team | None = None,
         user: User | None = None,
+        organization_id_for_team: Optional[int] = None,
     ) -> None:
         assert user or team, "Cannot update settings if user or team is not passed"
         """
@@ -572,7 +580,9 @@ class NotificationsManager(BaseManager["NotificationSetting"]):  # noqa: F821
 
         user_id = user.id if user else None
         team_id = team.id if team else None
-        if not is_double_write_enabled(user_id=user_id, team_id=team_id):
+        if not is_double_write_enabled(
+            user_id=user_id, organization_id_for_team=organization_id_for_team
+        ):
             return
 
         # first update the NotificationSettingOption based on what's passed in

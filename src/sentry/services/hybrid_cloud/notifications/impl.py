@@ -49,6 +49,7 @@ class DatabaseBackedNotificationsService(NotificationsService):
         project_id: Optional[int] = None,
         organization_id: Optional[int] = None,
         skip_provider_updates: bool = False,
+        organization_id_for_team: Optional[int] = None,
     ) -> None:
         NotificationSetting.objects.update_settings(
             provider=external_provider,
@@ -58,6 +59,7 @@ class DatabaseBackedNotificationsService(NotificationsService):
             organization=organization_id,
             actor=actor,
             skip_provider_updates=skip_provider_updates,
+            organization_id_for_team=organization_id_for_team,
         )
 
     def bulk_update_settings(

@@ -71,6 +71,7 @@ class NotificationsService(RpcService):
         project_id: Optional[int] = None,
         organization_id: Optional[int] = None,
         skip_provider_updates: bool = False,
+        organization_id_for_team: Optional[int] = None,
     ) -> None:
         pass
 
