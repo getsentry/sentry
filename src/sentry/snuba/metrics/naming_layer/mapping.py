@@ -97,7 +97,7 @@ def extract_custom_metric_alias(internal_name: str) -> Optional[str]:
         and match.group("namespace") == "transactions"
     ):
         return match.group("name")
-    elif match.group("namespace") == "custom":
+    elif match is not None and match.group("namespace") == "custom":
         return match.group("name")
     else:
         return None
