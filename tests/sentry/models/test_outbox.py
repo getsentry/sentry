@@ -67,9 +67,14 @@ class ControlOutboxTest(TestCase):
     region_config = (region,)
 
     def test_prepare_next_from_shard_no_conflict_with_processing(self):
-        with outbox_context(flush=False):
+        with outbox_runner():
+            org = Factories.create_organization()
             user1 = Factories.create_user()
+            Factories.create_member(organization_id=org.id, user_id=user1.id)
+
+        with outbox_context(flush=False):
             outbox = user1.outboxes_for_update()[0]
+            outbox.save()
             with outbox.process_shard(None) as next_shard_row:
                 assert next_shard_row is not None
 
