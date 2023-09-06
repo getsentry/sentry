@@ -131,6 +131,21 @@ function NotificationActionManager({
       return integrations;
     }, [availableServices]);
 
+  const opsgenieIntegrations: Record<number, AvailableNotificationAction[]> =
+    useMemo(() => {
+      const integrations: Record<number, AvailableNotificationAction[]> = {};
+      availableServices[NotificationActionService.OPSGENIE].forEach(team => {
+        const integrationId = team.action.integrationId;
+        if (integrationId) {
+          if (integrationId in integrations) {
+            integrations[integrationId].push(team);
+          } else {
+            integrations[integrationId] = [team];
+          }
+        }
+      });
+      return integrations;
+    }, [availableServices]);
   const renderNotificationActions = () => {
     if (!notificationActions) {
       return [];
@@ -147,6 +162,7 @@ function NotificationActionManager({
           action={action}
           recipientRoles={recipientRoles}
           availableActions={availableServices[serviceType]}
+          opsgenieIntegrations={opsgenieIntegrations}
           pagerdutyIntegrations={pagerdutyIntegrations}
           project={project}
           onDelete={removeNotificationAction}
@@ -155,6 +171,16 @@ function NotificationActionManager({
         />
       ));
     });
+  };
+  const getLabel = (serviceType: string) => {
+    switch (serviceType) {
+      case NotificationActionService.SENTRY_NOTIFICATION:
+        return t('Send a Sentry notification');
+      case NotificationActionService.OPSGENIE:
+        return t('Send an Opsgenie notification');
+      default:
+        return t('Send a %s notification', capitalize(serviceType));
+    }
   };
 
   const getMenuItems = () => {
@@ -170,15 +196,10 @@ function NotificationActionManager({
       ) {
         return;
       }
-
+      const label = getLabel(serviceType);
       menuItems.push({
         key: serviceType,
-        label: t(
-          'Send a %s notification',
-          serviceType !== NotificationActionService.SENTRY_NOTIFICATION
-            ? capitalize(serviceType)
-            : 'Sentry'
-        ),
+        label,
         onAction: () => {
           // Add notification action
           const updatedActions = [...notificationActions, validActions[0].action];

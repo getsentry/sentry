@@ -705,6 +705,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.auth",
     "sentry.tasks.auto_remove_inbox",
     "sentry.tasks.auto_resolve_issues",
+    "sentry.tasks.backfill_outboxes",
     "sentry.tasks.beacon",
     "sentry.tasks.check_auth",
     "sentry.tasks.clear_expired_snoozes",
@@ -1364,6 +1365,8 @@ SENTRY_FEATURES = {
     # Enable creating organizations within sentry (if SENTRY_SINGLE_ORGANIZATION
     # is not enabled).
     "organizations:create": True,
+    # Enable the new crons onboarding experience with platform specific options
+    "organizations:crons-new-onboarding": False,
     # Enable usage of customer domains on the frontend
     "organizations:customer-domains": False,
     # Enable the 'discover' interface.
@@ -1711,6 +1714,8 @@ SENTRY_FEATURES = {
     "organizations:team-project-creation-all-allowlist": False,
     # Enable setting team-level roles and receiving permissions from them
     "organizations:team-roles": True,
+    # Enable team workflow notifications
+    "organizations:team-workflow-notifications": False,
     # Enable team member role provisioning through scim
     "organizations:scim-team-roles": False,
     # Enable the setting of org roles for team
@@ -1739,8 +1744,6 @@ SENTRY_FEATURES = {
     "projects:data-forwarding": True,
     # Enable functionality to discard groups.
     "projects:discard-groups": False,
-    # Extract spans from transactions in Relay, and forward them via Kafka.
-    "projects:extract-standalone-spans": False,
     # Enable considering group severity when creating and evaluating alert rules
     "projects:first-event-severity-alerting": False,
     # Enable calculating a severity score for events which create a new group
