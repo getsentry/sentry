@@ -334,13 +334,13 @@ class Aggregator:
             value: float = 0.0
             if metric_type == "c":
                 # For counters, we want to sum the count value.
-                value = metric_value  # type:ignore
+                value = float(metric_value)  # type:ignore
             elif metric_type == "d":
                 # For distributions, we want to track the size of the distribution.
                 value = float(len(metric_value))  # type:ignore
             elif metric_type == "g":
                 # For gauges, we will emit the single compressed value.
-                value = metric_value  # type:ignore
+                value = float(metric_value)  # type:ignore
             elif metric_type == "s":
                 # For sets, we want to track the cardinality of the set.
                 value = float(len(metric_value))  # type:ignore
