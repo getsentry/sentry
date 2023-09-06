@@ -812,7 +812,8 @@ def get_setting_options_for_users(
     organization: Organization | None = None,
     additional_filters: Q | None = None,
 ) -> MutableMapping[
-    RpcActor, MutableMapping[NotificationSettingEnum, NotificationSettingsOptionEnum]
+    RpcActor,
+    MutableMapping[NotificationSettingEnum, NotificationSettingsOptionEnum],
 ]:
     """
     Returns a map of users to NotificationSettingOption by type:
