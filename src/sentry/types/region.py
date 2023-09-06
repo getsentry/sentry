@@ -253,7 +253,7 @@ def _find_orgs_for_user(user_id: int) -> Set[int]:
 
 
 def find_regions_for_orgs(org_ids: Container[int]) -> Set[str]:
-    from sentry.models import OrganizationMapping
+    from sentry.models.organizationmapping import OrganizationMapping
 
     if SiloMode.get_current_mode() == SiloMode.MONOLITH:
         return {settings.SENTRY_MONOLITH_REGION}
