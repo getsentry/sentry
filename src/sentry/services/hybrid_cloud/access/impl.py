@@ -127,5 +127,5 @@ class RegionAccessService(AccessService):
     def get_permissions_for_user(self, user_id: int) -> FrozenSet[str]:
         user = user_service.get_user(user_id)
         if user is None:
-            return frozenset
+            return frozenset()
         return user.roles | user.permissions
