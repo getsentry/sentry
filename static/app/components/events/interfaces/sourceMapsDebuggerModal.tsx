@@ -165,12 +165,20 @@ export function SourceMapsDebuggerModal({
                   sourceResolutionResults={sourceResolutionResults}
                 />
                 <HasDebugIdChecklistItem
+                  shouldValidate={
+                    sourceResolutionResults.sdkDebugIdSupport === 'full' ||
+                    sourceResolutionResults.sdkDebugIdSupport === 'unofficial-sdk'
+                  }
                   sourceResolutionResults={sourceResolutionResults}
                 />
                 <UploadedSourceFileWithCorrectDebugIdChecklistItem
+                  shouldValidate={sourceResolutionResults.stackFrameDebugId !== null}
                   sourceResolutionResults={sourceResolutionResults}
                 />
                 <UploadedSourceMapWithCorrectDebugIdChecklistItem
+                  shouldValidate={
+                    sourceResolutionResults.uploadedSourceFileWithCorrectDebugId
+                  }
                   sourceResolutionResults={sourceResolutionResults}
                 />
               </CheckList>
@@ -190,12 +198,18 @@ export function SourceMapsDebuggerModal({
                   sourceResolutionResults={sourceResolutionResults}
                 />
                 <ReleaseHasUploadedArtifactsChecklistItem
+                  shouldValidate={sourceResolutionResults.releaseName !== null}
                   sourceResolutionResults={sourceResolutionResults}
                 />
                 <ReleaseSourceFileMatchingChecklistItem
+                  shouldValidate={sourceResolutionResults.uploadedSomeArtifactToRelease}
                   sourceResolutionResults={sourceResolutionResults}
                 />
                 <ReleaseSourceMapMatchingChecklistItem
+                  shouldValidate={
+                    sourceResolutionResults.sourceFileReleaseNameFetchingResult ===
+                    'found'
+                  }
                   sourceResolutionResults={sourceResolutionResults}
                 />
               </CheckList>
@@ -207,6 +221,9 @@ export function SourceMapsDebuggerModal({
                   sourceResolutionResults={sourceResolutionResults}
                 />
                 <ScrapingSourceMapAvailableChecklistItem
+                  shouldValidate={
+                    sourceResolutionResults.sourceFileScrapingStatus.status === 'found'
+                  }
                   sourceResolutionResults={sourceResolutionResults}
                 />
               </CheckList>
@@ -396,17 +413,19 @@ function InstalledSdkChecklistItem({
 
 function HasDebugIdChecklistItem({
   sourceResolutionResults,
+  shouldValidate,
 }: {
+  shouldValidate: boolean;
   sourceResolutionResults: SourceResolutionResults;
 }) {
   const itemName = 'Stack frame has Debug IDs';
 
-  if (sourceResolutionResults.stackFrameDebugId !== null) {
-    return <CheckListItem status="checked" title={itemName} />;
+  if (!shouldValidate) {
+    return <CheckListItem status="none" title={itemName} />;
   }
 
-  if (sourceResolutionResults.sdkDebugIdSupport === 'needs-upgrade') {
-    return <CheckListItem status="none" title={itemName} />;
+  if (sourceResolutionResults.stackFrameDebugId !== null) {
+    return <CheckListItem status="checked" title={itemName} />;
   }
 
   if (sourceResolutionResults.eventHasDebugIds) {
@@ -468,12 +487,14 @@ function HasDebugIdChecklistItem({
 
 function UploadedSourceFileWithCorrectDebugIdChecklistItem({
   sourceResolutionResults,
+  shouldValidate,
 }: {
+  shouldValidate: boolean;
   sourceResolutionResults: SourceResolutionResults;
 }) {
   const itemName = 'Uploaded source file with a matching Debug ID';
 
-  if (sourceResolutionResults.stackFrameDebugId === null) {
+  if (!shouldValidate) {
     return <CheckListItem status="none" title={itemName} />;
   }
 
@@ -545,15 +566,14 @@ function UploadedSourceFileWithCorrectDebugIdChecklistItem({
 
 function UploadedSourceMapWithCorrectDebugIdChecklistItem({
   sourceResolutionResults,
+  shouldValidate,
 }: {
+  shouldValidate: boolean;
   sourceResolutionResults: SourceResolutionResults;
 }) {
   const itemName = 'Uploaded source map with a matching Debug ID';
 
-  if (
-    sourceResolutionResults.stackFrameDebugId === null ||
-    !sourceResolutionResults.uploadedSourceFileWithCorrectDebugId
-  ) {
+  if (!shouldValidate) {
     return <CheckListItem status="none" title={itemName} />;
   }
 
@@ -664,12 +684,14 @@ function EventHasReleaseNameChecklistItem({
 
 function ReleaseHasUploadedArtifactsChecklistItem({
   sourceResolutionResults,
+  shouldValidate,
 }: {
+  shouldValidate: boolean;
   sourceResolutionResults: SourceResolutionResults;
 }) {
   const itemName = 'Release has uploaded artifacts';
 
-  if (sourceResolutionResults.releaseName === null) {
+  if (!shouldValidate) {
     return <CheckListItem status="none" title={itemName} />;
   }
 
@@ -701,12 +723,14 @@ function ReleaseHasUploadedArtifactsChecklistItem({
 
 function ReleaseSourceFileMatchingChecklistItem({
   sourceResolutionResults,
+  shouldValidate,
 }: {
+  shouldValidate: boolean;
   sourceResolutionResults: SourceResolutionResults;
 }) {
   const itemName = 'Stack frame path matches source file artifact';
 
-  if (!sourceResolutionResults.uploadedSomeArtifactToRelease) {
+  if (!shouldValidate) {
     return <CheckListItem status="none" title={itemName} />;
   }
 
@@ -786,12 +810,14 @@ function ReleaseSourceFileMatchingChecklistItem({
 
 function ReleaseSourceMapMatchingChecklistItem({
   sourceResolutionResults,
+  shouldValidate,
 }: {
+  shouldValidate: boolean;
   sourceResolutionResults: SourceResolutionResults;
 }) {
   const itemName = 'Source map reference matches source map artifact name';
 
-  if (sourceResolutionResults.sourceFileReleaseNameFetchingResult !== 'found') {
+  if (!shouldValidate) {
     return <CheckListItem status="none" title={itemName} />;
   }
 
@@ -915,17 +941,19 @@ function ScrapingSourceFileAvailableChecklistItem({
 
 function ScrapingSourceMapAvailableChecklistItem({
   sourceResolutionResults,
+  shouldValidate,
 }: {
+  shouldValidate: boolean;
   sourceResolutionResults: SourceResolutionResults;
 }) {
   const itemName = 'Source map available to Sentry';
 
-  if (sourceResolutionResults.sourceMapScrapingStatus.status === 'found') {
-    return <CheckListItem status="checked" title={itemName} />;
+  if (!shouldValidate) {
+    return <CheckListItem status="none" title={itemName} />;
   }
 
-  if (sourceResolutionResults.sourceFileScrapingStatus.status === 'none') {
-    return <CheckListItem status="none" title={itemName} />;
+  if (sourceResolutionResults.sourceMapScrapingStatus.status === 'found') {
+    return <CheckListItem status="checked" title={itemName} />;
   }
 
   if (sourceResolutionResults.sourceMapScrapingStatus.status === 'none') {
