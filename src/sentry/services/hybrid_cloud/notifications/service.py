@@ -70,6 +70,7 @@ class NotificationsService(RpcService):
         actor: RpcActor,
         project_id: Optional[int] = None,
         organization_id: Optional[int] = None,
+        skip_provider_updates: bool = False,
     ) -> None:
         pass
 

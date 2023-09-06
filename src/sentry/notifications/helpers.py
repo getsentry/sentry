@@ -1,11 +1,10 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping
+from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Optional
 
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Q
-from pyparsing import Optional
 
 from sentry import features
 from sentry.models.notificationsettingoption import NotificationSettingOption

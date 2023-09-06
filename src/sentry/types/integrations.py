@@ -50,7 +50,7 @@ EXTERNAL_PROVIDERS = {
 }
 
 # the list of providers allowed for personal notifications
-NOTIFICATION_PROVIDERS = [
+PERSONAL_NOTIFICATION_PROVIDERS = [
     ExternalProviderEnum.EMAIL.value,
     ExternalProviderEnum.SLACK.value,
     ExternalProviderEnum.MSTEAMS.value,

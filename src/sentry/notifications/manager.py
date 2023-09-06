@@ -476,8 +476,10 @@ class NotificationsManager(BaseManager["NotificationSetting"]):  # noqa: F821
                 if provider not in enabled_providers_by_type[type]:
                     disabled_providers_by_type[type].add(provider)
             else:
+                # if the value is not never, it's explicitly enabled
                 enabled_providers_by_type[type].add(provider)
-                # if considered disabled then
+                # because the provider is specifially enabled for one sub-entity
+                # we know it shouldn't be disabled at the user/team level
                 if provider in disabled_providers_by_type[type]:
                     disabled_providers_by_type[type].remove(provider)
 
@@ -569,7 +571,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):  # noqa: F821
         if not is_double_write_enabled(user_id=user_id, team_id=team_id):
             return
 
-        # first update the NotificationSettingOption based on what's passed int
+        # first update the NotificationSettingOption based on what's passed in
         for (provider, type, scope_type, scope_identifier, value) in notification_settings:
             query_args = {
                 "type": NOTIFICATION_SETTING_TYPES[type],
@@ -587,7 +589,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):  # noqa: F821
                     values={"value": NOTIFICATION_SETTING_OPTION_VALUES[value]},
                 )
 
-        # update the provider settings after we update other things
+        # update the provider settings after we update the NotificationSettingOption
         self.update_provider_settings(user_id, team_id)
 
     def remove_parent_settings_for_organization(
