@@ -7,8 +7,8 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.models.project import Project
-from sentry.userfeedback.models import UserFeedback
-from sentry.userfeedback.serializers import UserFeedbackSerializer
+from sentry.user_feedback.models import UserFeedback
+from sentry.user_feedback.serializers import UserFeedbackSerializer
 
 
 @region_silo_endpoint

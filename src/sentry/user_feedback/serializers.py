@@ -1,7 +1,7 @@
 from typing import Any, List, Optional, TypedDict
 
 from sentry.api.serializers.base import Serializer, register
-from sentry.userfeedback.models import UserFeedback
+from sentry.user_feedback.models import UserFeedback
 
 
 class UserFeedbackResponseType(TypedDict):

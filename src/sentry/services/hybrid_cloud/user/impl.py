@@ -9,7 +9,7 @@ from sentry.api.serializers import (
     DetailedUserSerializer,
     UserSerializer,
 )
-from sentry.api.serializers.base import Serializer
+from sentry.api.serializers.base import Serializer, serialize
 from sentry.db.models.query import in_iexact
 from sentry.models import (
     OrganizationMapping,
@@ -136,9 +136,17 @@ class DatabaseBackedUserService(UserService):
         user_id: int,
         attrs: UserUpdateArgs,
     ) -> Any:
+        try:
+            user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            return None
+
         if len(attrs):
-            User.objects.filter(id=user_id).update(**attrs)
-        return self.serialize_many(filter=dict(user_ids=[user_id]))[0]
+            for k, v in attrs.items():
+                setattr(user, k, v)
+            user.save()
+
+        return serialize(user)
 
     def get_user_by_social_auth(
         self, *, organization_id: int, provider: str, uid: str

@@ -79,12 +79,21 @@
     "sentry.AuthProvider",
     "sentry.User"
   ],
+  "sentry.AuthIdentityReplica": [
+    "sentry.AuthIdentity",
+    "sentry.AuthProvider",
+    "sentry.User"
+  ],
   "sentry.AuthProvider": [
     "sentry.Organization"
   ],
   "sentry.AuthProviderDefaultTeams": [
     "sentry.AuthProvider",
     "sentry.Team"
+  ],
+  "sentry.AuthProviderReplica": [
+    "sentry.AuthProvider",
+    "sentry.Organization"
   ],
   "sentry.Authenticator": [
     "sentry.User"
@@ -755,5 +764,6 @@
   "sites.Site": [],
   "social_auth.UserSocialAuth": [
     "sentry.User"
-  ]
+  ],
+  "user_feedback.UserFeedback": []
 }

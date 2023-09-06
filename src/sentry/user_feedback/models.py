@@ -24,7 +24,7 @@ class UserFeedback(DefaultFieldsModel):
     # Should user feedback ID be defined on the client SDK?
 
     class Meta:
-        app_label = "userfeedback"
-        db_table = "userfeedback_userfeedback"
+        app_label = "user_feedback"
+        db_table = "user_feedback_user_feedback"
 
     __repr__ = sane_repr("project_id", "id")

@@ -116,7 +116,11 @@ class ArtifactBundle(Model):
 def delete_file_for_artifact_bundle(instance, **kwargs):
     from sentry.tasks.assemble import AssembleTask, delete_assemble_status
 
-    if instance.organization_id is not None and instance.file.checksum is not None:
+    if (
+        instance.organization_id is not None
+        and instance.file is not None
+        and instance.file.checksum is not None
+    ):
         delete_assemble_status(
             AssembleTask.ARTIFACT_BUNDLE,
             instance.organization_id,

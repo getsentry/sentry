@@ -355,6 +355,27 @@
       "Control"
     ]
   },
+  "sentry.AuthIdentityReplica": {
+    "foreign_keys": {
+      "auth_identity_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.AuthIdentity"
+      },
+      "auth_provider_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.AuthProvider"
+      },
+      "user_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.User"
+      }
+    },
+    "model": "sentry.AuthIdentityReplica",
+    "relocation_scope": "Excluded",
+    "silos": [
+      "Region"
+    ]
+  },
   "sentry.AuthProvider": {
     "foreign_keys": {
       "organization_id": {
@@ -383,6 +404,23 @@
     "relocation_scope": "Excluded",
     "silos": [
       "Control"
+    ]
+  },
+  "sentry.AuthProviderReplica": {
+    "foreign_keys": {
+      "auth_provider_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.AuthProvider"
+      },
+      "organization": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.Organization"
+      }
+    },
+    "model": "sentry.AuthProviderReplica",
+    "relocation_scope": "Excluded",
+    "silos": [
+      "Region"
     ]
   },
   "sentry.Authenticator": {
@@ -3345,6 +3383,14 @@
     "relocation_scope": "Excluded",
     "silos": [
       "Control"
+    ]
+  },
+  "user_feedback.UserFeedback": {
+    "foreign_keys": {},
+    "model": "user_feedback.UserFeedback",
+    "relocation_scope": "Excluded",
+    "silos": [
+      "Region"
     ]
   }
 }
