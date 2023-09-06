@@ -32,7 +32,7 @@ export function ClickFrame(fields: TestableFrame<'ui.click'>): MockFrame<'ui.cli
     data: fields.data ?? {},
     message: fields.message ?? '',
     timestamp: fields.timestamp.getTime() / 1000,
-    type: BreadcrumbType.CLICK,
+    type: BreadcrumbType.UI,
   };
 }
 
@@ -41,7 +41,7 @@ export function InputFrame(fields: TestableFrame<'ui.input'>): MockFrame<'ui.inp
     category: 'ui.input',
     message: fields.message ?? '',
     timestamp: fields.timestamp.getTime() / 1000,
-    type: BreadcrumbType.INPUT,
+    type: BreadcrumbType.DEFAULT,
   };
 }
 
@@ -59,7 +59,7 @@ export function KeyboardEventFrame(
     },
     message: fields.message,
     timestamp: fields.timestamp.getTime() / 1000,
-    type: BreadcrumbType.KEYDOWN,
+    type: BreadcrumbType.DEFAULT,
   };
 }
 
@@ -94,7 +94,7 @@ export function SlowClickFrame(
     },
     message: fields.message,
     timestamp: fields.timestamp.getTime() / 1000,
-    type: BreadcrumbType.CLICK,
+    type: BreadcrumbType.DEFAULT,
   };
 }
 
