@@ -66,18 +66,16 @@ class RelayProjectConfigsEndpoint(Endpoint):
             # Always compute the full config. It's invalid to send partial
             # configs to processing relays, and these validate the requests they
             # get with permissions and trim configs down accordingly.
-            response.update(
-                # XXX(iker): we assume we can safely parse the version by
-                # casting it to an int if `_should_post_or_schedule` returns True
-                self._post_or_schedule_by_key(request, version=int(version))
-            )
+            response.update(self._post_or_schedule_by_key(request))
         elif version in ["2", "3", "4"]:
             response["configs"] = self._post_by_key(
-                request=request, full_config_requested=full_config_requested, version=int(version)
+                request=request,
+                full_config_requested=full_config_requested,
             )
         elif version == "1":
             response["configs"] = self._post_by_project(
-                request=request, full_config_requested=full_config_requested, version=1
+                request=request,
+                full_config_requested=full_config_requested,
             )
         else:
             return Response("Unsupported version, we only support versions 1 to 4.", 400)
@@ -132,13 +130,13 @@ class RelayProjectConfigsEndpoint(Endpoint):
 
         return post_or_schedule
 
-    def _post_or_schedule_by_key(self, request: Request, version: int):
+    def _post_or_schedule_by_key(self, request: Request):
         public_keys = set(request.relay_request_data.get("publicKeys") or ())
 
         proj_configs = {}
         pending = []
         for key in public_keys:
-            computed = self._get_cached_or_schedule(key, version)
+            computed = self._get_cached_or_schedule(key)
             if not computed:
                 pending.append(key)
             else:
@@ -152,7 +150,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
         metrics.incr("relay.project_configs.post_v3.fetched", amount=len(proj_configs))
         return {"configs": proj_configs, "pending": pending}
 
-    def _get_cached_or_schedule(self, public_key, version: int) -> Optional[dict]:
+    def _get_cached_or_schedule(self, public_key) -> Optional[dict]:
         """
         Returns the config of a project if it's in the cache; else, schedules a
         task to compute and write it into the cache.
@@ -163,11 +161,11 @@ class RelayProjectConfigsEndpoint(Endpoint):
         if cached_config:
             return cached_config
 
-        schedule_build_project_config(public_key=public_key, version=version)
+        schedule_build_project_config(public_key=public_key)
         return None
 
     def _post_by_key(
-        self, request: Request, full_config_requested, version: int
+        self, request: Request, full_config_requested
     ) -> MutableMapping[str, ProjectConfig]:
         public_keys = request.relay_request_data.get("publicKeys")
         public_keys = set(public_keys or ())
@@ -238,7 +236,6 @@ class RelayProjectConfigsEndpoint(Endpoint):
                         project,
                         full_config=full_config_requested,
                         project_keys=[key],
-                        version=version,
                     )
 
             configs[public_key] = project_config.to_dict()
@@ -249,7 +246,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
         return configs
 
     def _post_by_project(
-        self, request: Request, full_config_requested, version: int
+        self, request: Request, full_config_requested
     ) -> MutableMapping[str, ProjectConfig]:
         project_ids = set(request.relay_request_data.get("projects") or ())
 
@@ -305,7 +302,6 @@ class RelayProjectConfigsEndpoint(Endpoint):
                         project,
                         full_config=full_config_requested,
                         project_keys=project_keys.get(project.id) or [],
-                        version=version,
                     )
 
             configs[str(project_id)] = project_config.to_dict()

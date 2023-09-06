@@ -173,6 +173,8 @@ const categoryList = [
   {id: 'serverless', name: t('Serverless'), platforms: serverless},
 ] as const;
 
+export const deprecatedPlatforms = new Set(['node-serverlesscloud']);
+
 export const sourceMaps: PlatformKey[] = [
   ...frontend,
   'react-native',
@@ -255,6 +257,13 @@ export const profiling: PlatformKey[] = [
   'python-pyramid',
   'python-tornado',
   'python-rq',
+  'python-aiohttp',
+  'python-chalice',
+  'python-falcon',
+  'python-quart',
+  'python-tryton',
+  'python-wsgi',
+  'python-serverless',
   // rust
   'rust',
   // php

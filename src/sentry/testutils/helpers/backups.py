@@ -33,6 +33,7 @@ from sentry.incidents.models import (
     TimeSeriesSnapshot,
 )
 from sentry.models.apiauthorization import ApiAuthorization
+from sentry.models.apigrant import ApiGrant
 from sentry.models.apikey import ApiKey
 from sentry.models.apitoken import ApiToken
 from sentry.models.authenticator import Authenticator
@@ -45,7 +46,9 @@ from sentry.models.dashboard_widget import (
     DashboardWidgetQuery,
     DashboardWidgetTypes,
 )
-from sentry.models.environment import EnvironmentProject
+from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.models.integrations.project_integration import ProjectIntegration
 from sentry.models.integrations.sentry_app import SentryApp
 from sentry.models.options.option import ControlOption, Option
 from sentry.models.options.organization_option import OrganizationOption
@@ -58,22 +61,13 @@ from sentry.models.projectownership import ProjectOwnership
 from sentry.models.projectredirect import ProjectRedirect
 from sentry.models.recentsearch import RecentSearch
 from sentry.models.relay import Relay, RelayUsage
-from sentry.models.repository import Repository
 from sentry.models.rule import RuleActivity, RuleActivityType
 from sentry.models.savedsearch import SavedSearch, Visibility
 from sentry.models.search_common import SearchType
 from sentry.models.user import User
 from sentry.models.userip import UserIP
 from sentry.models.userrole import UserRole, UserRoleUser
-from sentry.monitors.models import (
-    CheckInStatus,
-    Monitor,
-    MonitorCheckIn,
-    MonitorEnvironment,
-    MonitorLocation,
-    MonitorType,
-    ScheduleType,
-)
+from sentry.monitors.models import Monitor, MonitorType, ScheduleType
 from sentry.sentry_apps.apps import SentryAppUpdater
 from sentry.silo import unguarded_write
 from sentry.testutils.cases import TransactionTestCase
@@ -97,7 +91,7 @@ class ValidationError(Exception):
         self.info = info
 
 
-def export_to_file(path: Path, scope: ExportScope) -> JSONData:
+def export_to_file(path: Path, scope: ExportScope, filter_by: set[str] | None = None) -> JSONData:
     """Helper function that exports the current state of the database to the specified file."""
 
     json_file_path = str(path)
@@ -107,9 +101,9 @@ def export_to_file(path: Path, scope: ExportScope) -> JSONData:
         if scope == ExportScope.Global:
             export_in_global_scope(tmp_file, printer=NOOP_PRINTER)
         elif scope == ExportScope.Organization:
-            export_in_organization_scope(tmp_file, printer=NOOP_PRINTER)
+            export_in_organization_scope(tmp_file, org_filter=filter_by, printer=NOOP_PRINTER)
         elif scope == ExportScope.User:
-            export_in_user_scope(tmp_file, printer=NOOP_PRINTER)
+            export_in_user_scope(tmp_file, user_filter=filter_by, printer=NOOP_PRINTER)
         else:
             raise AssertionError(f"Unknown `ExportScope`: `{scope.name}`")
 
@@ -138,8 +132,8 @@ def clear_database(*, reset_pks: bool = False):
         with transaction.atomic(using="default"):
             reversed = reversed_dependencies()
             for model in reversed:
-                # For some reason, the tables for `SentryApp*` models don't get deleted properly here
-                # when using `model.objects.all().delete()`, so we have to call out to Postgres
+                # For some reason, the tables for `SentryApp*` models don't get deleted properly
+                # here when using `model.objects.all().delete()`, so we have to call out to Postgres
                 # manually.
                 connection = connections[router.db_for_write(SentryApp)]
                 with connection.cursor() as cursor:
@@ -244,6 +238,7 @@ class BackupTestCase(TransactionTestCase):
             first_seen=datetime(2012, 4, 5, 3, 29, 45, tzinfo=timezone.utc),
             last_seen=datetime(2012, 4, 5, 3, 29, 45, tzinfo=timezone.utc),
         )
+        Authenticator.objects.create(user=user, type=1)
 
         if is_admin:
             self.add_user_permission(user, "users.admin")
@@ -277,7 +272,6 @@ class BackupTestCase(TransactionTestCase):
         )
         ApiKey.objects.create(key=uuid4().hex, organization_id=org.id)
         auth_provider = AuthProvider.objects.create(organization_id=org.id, provider="sentry")
-        Authenticator.objects.create(user=owner, type=1)
         AuthIdentity.objects.create(
             user=owner,
             auth_provider=auth_provider,
@@ -290,20 +284,31 @@ class BackupTestCase(TransactionTestCase):
             },
         )
 
+        # Team
+        team = self.create_team(name=f"test_team_in_{slug}", organization=org)
+        self.create_team_membership(user=owner, team=team)
+        OrganizationAccessRequest.objects.create(member=invited, team=team)
+
         # Project*
-        project = self.create_project()
+        project = self.create_project(name=f"project-{slug}", teams=[team])
         self.create_project_key(project)
         self.create_project_bookmark(project=project, user=owner)
-        project = self.create_project()
         ProjectOwnership.objects.create(
             project=project, raw='{"hello":"hello"}', schema={"hello": "hello"}
         )
         ProjectRedirect.record(project, f"project_slug_in_{slug}")
 
-        # Team
-        team = self.create_team(name=f"test_team_in_{slug}", organization=org)
-        self.create_team_membership(user=owner, team=team)
-        OrganizationAccessRequest.objects.create(member=invited, team=team)
+        # Integration*
+        integration = Integration.objects.create(
+            provider="slack", name=f"Slack for {slug}", external_id=f"slack:{slug}"
+        )
+        OrganizationIntegration.objects.create(
+            organization_id=org.id, integration=integration, config='{"hello":"hello"}'
+        )
+        # Note: this model is deprecated, and can safely be removed from this test when it is finally removed. Until then, it is included for completeness.
+        ProjectIntegration.objects.create(
+            project=project, integration_id=integration.id, config='{"hello":"hello"}'
+        )
 
         # Rule*
         rule = self.create_project_rule(project=project)
@@ -311,36 +316,29 @@ class BackupTestCase(TransactionTestCase):
         self.snooze_rule(user_id=owner_id, owner_id=owner_id, rule=rule)
 
         # Environment*
-        env = self.create_environment()
-        EnvironmentProject.objects.create(project=project, environment=env, is_hidden=False)
+        self.create_environment(project=project)
 
-        # Monitor*
-        monitor = Monitor.objects.create(
+        # Monitor
+        Monitor.objects.create(
             organization_id=project.organization.id,
             project_id=project.id,
             type=MonitorType.CRON_JOB,
             config={"schedule": "* * * * *", "schedule_type": ScheduleType.CRONTAB},
         )
-        mon_env = MonitorEnvironment.objects.create(
-            monitor=monitor,
-            environment=env,
-        )
-        location = MonitorLocation.objects.create(guid=uuid4(), name=f"test_location_in_{slug}")
-        MonitorCheckIn.objects.create(
-            monitor=monitor,
-            monitor_environment=mon_env,
-            location=location,
-            project_id=monitor.project_id,
-            status=CheckInStatus.IN_PROGRESS,
-        )
 
         # AlertRule*
-        alert = self.create_alert_rule(include_all_projects=True, excluded_projects=[project])
-        trigger = self.create_alert_rule_trigger(alert_rule=alert, excluded_projects=[self.project])
+        other_project = self.create_project(name=f"other-project-{slug}", teams=[team])
+        alert = self.create_alert_rule(
+            organization=org,
+            projects=[project],
+            include_all_projects=True,
+            excluded_projects=[other_project],
+        )
+        trigger = self.create_alert_rule_trigger(alert_rule=alert, excluded_projects=[project])
         self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
 
         # Incident*
-        incident = self.create_incident()
+        incident = self.create_incident(org, [project])
         IncidentActivity.objects.create(
             incident=incident,
             type=1,
@@ -399,11 +397,12 @@ class BackupTestCase(TransactionTestCase):
 
         # misc
         Counter.increment(project, 1)
-        Repository.objects.create(
-            name=f"test_repo_for_{slug}",
-            organization_id=org.id,
-            # TODO(getsentry/issue#187): Re-activate once we add `Integration` model to exports.
-            # integration_id=self.integration.id,
+        self.create_repo(
+            project=project,
+            name="getsentry/getsentry",
+            provider="integrations:github",
+            integration_id=integration.id,
+            url="https://github.com/getsentry/getsentry",
         )
 
         return org
@@ -420,6 +419,13 @@ class BackupTestCase(TransactionTestCase):
         ApiAuthorization.objects.create(application=app.application, user=owner)
         ApiToken.objects.create(
             application=app.application, user=owner, token=uuid4().hex, expires_at=None
+        )
+        ApiGrant.objects.create(
+            user=owner,
+            application=app.application,
+            expires_at="2022-01-01 11:11",
+            redirect_uri="https://example.com",
+            scope_list=["openid", "profile", "email"],
         )
 
         # ServiceHook

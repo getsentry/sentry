@@ -11,7 +11,9 @@ from sentry.incidents.models import AlertRule
 from sentry.models import DashboardWidgetQuery, Organization, Project
 from sentry.silo import SiloMode
 from sentry.snuba import metrics_performance
+from sentry.snuba.dataset import Dataset
 from sentry.snuba.discover import query as discover_query
+from sentry.snuba.metrics.extraction import should_use_on_demand_metrics
 from sentry.snuba.metrics_enhanced_performance import query as performance_query
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json
@@ -372,6 +374,10 @@ class CheckAM2Compatibility:
             return None
 
     @classmethod
+    def is_on_demand_metrics_data(cls, aggregate, query):
+        return should_use_on_demand_metrics(Dataset.Transactions.value, aggregate, query, True)
+
+    @classmethod
     def get_excluded_conditions(cls):
         # We want an empty condition as identity for the AND chaining.
         qs = Q()
@@ -402,7 +408,7 @@ class CheckAM2Compatibility:
         return (
             AlertRule.objects.filter(
                 organization_id=organization_id,
-                snuba_query__dataset__in=["transactions", "discover"],
+                snuba_query__dataset=[Dataset.Transactions.value],
             )
             .select_related("snuba_query")
             .values_list("id", "snuba_query__aggregate", "snuba_query__query")
@@ -486,7 +492,9 @@ class CheckAM2Compatibility:
 
         unsupported_alerts = []
         for alert_id, aggregate, query in cls.get_all_alerts_of_organization(organization.id):
-            supports_metrics = cls.is_metrics_data(organization.id, all_projects, query)
+            supports_metrics = cls.is_on_demand_metrics_data(
+                aggregate, query
+            ) or cls.is_metrics_data(organization.id, all_projects, query)
             if supports_metrics is None:
                 with sentry_sdk.push_scope() as scope:
                     scope.set_tag("org_id", organization.id)

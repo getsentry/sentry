@@ -32,6 +32,7 @@ from django.test import override_settings
 from sentry import deletions
 from sentry.db.models.base import ModelSiloLimit
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.db.models.outboxes import ReplicatedControlModel, ReplicatedRegionModel
 from sentry.deletions.base import BaseDeletionTask
 from sentry.models.actor import Actor
 from sentry.models.notificationsetting import NotificationSetting
@@ -302,10 +303,19 @@ def get_protected_operations() -> List[re.Pattern]:
                     continue
                 seen_models.add(fk_model)
                 _protected_operations.append(protected_table(fk_model._meta.db_table, "delete"))
+            if isinstance(model, ReplicatedControlModel) or isinstance(
+                model, ReplicatedRegionModel
+            ):
+                _protected_operations.append(protected_table(model._meta.db_table, "insert"))
+                _protected_operations.append(protected_table(model._meta.db_table, "update"))
+                _protected_operations.append(protected_table(model._meta.db_table, "delete"))
 
     # Protect inserts/updates that require outbox messages.
     _protected_operations.extend(
         [
+            protected_table("sentry_user", "insert"),
+            protected_table("sentry_user", "update"),
+            protected_table("sentry_user", "delete"),
             protected_table("sentry_organizationmember", "insert"),
             protected_table("sentry_organizationmember", "update"),
             protected_table("sentry_organizationmember", "delete"),

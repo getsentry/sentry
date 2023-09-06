@@ -1,12 +1,13 @@
 import {Fragment, useMemo, useState} from 'react';
+import styled from '@emotion/styled';
 import pick from 'lodash/pick';
-import qs from 'qs';
 
 import {LinkButton} from 'sentry/components/button';
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import {getInterval} from 'sentry/components/charts/utils';
 import Count from 'sentry/components/count';
 import Link from 'sentry/components/links/link';
+import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';
 import Truncate from 'sentry/components/truncate';
 import {t, tct} from 'sentry/locale';
@@ -27,10 +28,11 @@ import {
   getPerformanceDuration,
   UNPARAMETERIZED_TRANSACTION,
 } from 'sentry/views/performance/utils';
+import {SpanDescriptionCell} from 'sentry/views/starfish/components/tableCells/spanDescriptionCell';
 import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
-import {SpanMetricsField} from 'sentry/views/starfish/types';
+import {ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
-import {extractRoute} from 'sentry/views/starfish/utils/extractRoute';
+import {RoutingContextProvider} from 'sentry/views/starfish/utils/routingContext';
 
 import {excludeTransaction} from '../../utils';
 import Accordion from '../components/accordion';
@@ -46,7 +48,12 @@ import SelectableList, {
 import {transformDiscoverToList} from '../transforms/transformDiscoverToList';
 import {transformEventsRequestToArea} from '../transforms/transformEventsToArea';
 import {PerformanceWidgetProps, QueryDefinition, WidgetDataResult} from '../types';
-import {eventsRequestQueryProps, getMEPParamsIfApplicable} from '../utils';
+import {
+  eventsRequestQueryProps,
+  getMEPParamsIfApplicable,
+  QUERY_LIMIT_PARAM,
+  TOTAL_EXPANDABLE_ROWS_HEIGHT,
+} from '../utils';
 import {PerformanceWidgetSetting} from '../widgetDefinitions';
 
 type DataType = {
@@ -157,7 +164,6 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           eventView.additionalConditions.removeFilter('time_spent_percentage()');
           mutableSearch.addFilterValue('has', 'span.description');
           mutableSearch.addFilterValue('span.module', 'db');
-          mutableSearch.addFilterValue('!span.op', 'db.redis');
           mutableSearch.addFilterValue('transaction.op', 'http.server');
           eventView.query = mutableSearch.formatString();
         } else if (isSlowestType || isFramesType) {
@@ -182,7 +188,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
             {...provided}
             eventView={eventView}
             location={location}
-            limit={3}
+            limit={QUERY_LIMIT_PARAM}
             cursor="0:0:1"
             noPagination
             queryExtras={extraQueryParams}
@@ -217,11 +223,13 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           let yAxis = provided.yAxis;
           let interval = getInterval(pageFilterDatetime, 'medium');
           let partialDataParam = true;
+
           if (
-            !provided.widgetData.list.data[selectedListIndex]?.transaction &&
-            !provided.widgetData.list.data[selectedListIndex][
-              SpanMetricsField.SPAN_DESCRIPTION
-            ]
+            !provided.widgetData.list.data[selectedListIndex] ||
+            (!provided.widgetData.list.data[selectedListIndex]?.transaction &&
+              !provided.widgetData.list.data[selectedListIndex][
+                SpanMetricsField.SPAN_DESCRIPTION
+              ])
           ) {
             return null;
           }
@@ -442,33 +450,37 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
             case PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES:
               const description: string = listItem[SpanMetricsField.SPAN_DESCRIPTION];
               const group: string = listItem[SpanMetricsField.SPAN_GROUP];
+              const projectID: number = listItem['project.id'];
               const timeSpentPercentage: number = listItem[fieldString];
               const totalTime: number =
                 listItem[`sum(${SpanMetricsField.SPAN_SELF_TIME})`];
               return (
-                <Fragment>
-                  <GrowLink
-                    to={`/performance/database/${
-                      extractRoute(location) ?? 'spans'
-                    }/span/${group}?${qs.stringify({...location.query})}`}
-                  >
-                    <Truncate value={description} maxLength={40} />
-                  </GrowLink>
-                  <RightAlignedCell>
-                    <TimeSpentCell percentage={timeSpentPercentage} total={totalTime} />
-                  </RightAlignedCell>
-                  {!props.withStaticFilters && (
-                    <ListClose
-                      setSelectListIndex={setSelectListIndex}
-                      onClick={() =>
-                        excludeTransaction(listItem.transaction, {
-                          eventView: props.eventView,
-                          location,
-                        })
-                      }
-                    />
-                  )}
-                </Fragment>
+                <RoutingContextProvider value={{baseURL: '/performance/database'}}>
+                  <Fragment>
+                    <StyledTextOverflow>
+                      <SpanDescriptionCell
+                        projectId={projectID}
+                        group={group}
+                        description={description}
+                        moduleName={ModuleName.DB}
+                      />
+                    </StyledTextOverflow>
+                    <RightAlignedCell>
+                      <TimeSpentCell percentage={timeSpentPercentage} total={totalTime} />
+                    </RightAlignedCell>
+                    {!props.withStaticFilters && (
+                      <ListClose
+                        setSelectListIndex={setSelectListIndex}
+                        onClick={() =>
+                          excludeTransaction(listItem.transaction, {
+                            eventView: props.eventView,
+                            location,
+                          })
+                        }
+                      />
+                    )}
+                  </Fragment>
+                </RoutingContextProvider>
               );
             default:
               if (typeof rightValue === 'number') {
@@ -528,7 +540,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
             />
           ),
           // accordion items height + chart height
-          height: 120 + props.chartHeight,
+          height: TOTAL_EXPANDABLE_ROWS_HEIGHT + props.chartHeight,
           noPadding: true,
         },
       ]
@@ -602,3 +614,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
 }
 
 const EventsRequest = withApi(_EventsRequest);
+
+const StyledTextOverflow = styled(TextOverflow)`
+  flex: 1;
+`;

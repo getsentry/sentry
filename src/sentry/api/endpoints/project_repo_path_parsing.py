@@ -95,9 +95,6 @@ class PathMappingSerializer(CamelSnakeSerializer):
 
 
 class ProjectRepoPathParsingEndpointLoosePermission(ProjectPermission):
-    publish_status = {
-        "POST": ApiPublishStatus.UNKNOWN,
-    }
     """
     Similar to the code_mappings endpoint, loosen permissions to all users
     """
@@ -109,6 +106,9 @@ class ProjectRepoPathParsingEndpointLoosePermission(ProjectPermission):
 
 @region_silo_endpoint
 class ProjectRepoPathParsingEndpoint(ProjectEndpoint):
+    publish_status = {
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (ProjectRepoPathParsingEndpointLoosePermission,)
     """
     Returns the parameters associated with the RepositoryProjectPathConfig

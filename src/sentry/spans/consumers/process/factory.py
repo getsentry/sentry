@@ -62,7 +62,9 @@ def _build_snuba_span(relay_span: Mapping[str, Any]) -> MutableMapping[str, Any]
     snuba_span["retention_days"] = retention_days
     snuba_span["segment_id"] = relay_span.get("segment_id", "0")
     snuba_span["span_id"] = relay_span.get("span_id", "0")
-    snuba_span["tags"] = relay_span.get("tags")
+    snuba_span["tags"] = {
+        k: v for k, v in (relay_span.get("tags", {}) or {}).items() if v is not None
+    }
     snuba_span["trace_id"] = uuid.UUID(relay_span["trace_id"]).hex
     snuba_span["version"] = SPAN_SCHEMA_VERSION
 
@@ -78,14 +80,21 @@ def _build_snuba_span(relay_span: Mapping[str, Any]) -> MutableMapping[str, Any]
 
     if span_data:
         for relay_tag, snuba_tag in TAG_MAPPING.items():
-            if relay_tag in span_data:
-                sentry_tags[snuba_tag] = span_data.get(relay_tag)
+            tag_value = span_data.get(relay_tag)
+            if tag_value is None:
+                if snuba_tag == "group":
+                    metrics.incr("spans.missing_group")
+            else:
+                sentry_tags[snuba_tag] = tag_value
 
-    if "op" not in sentry_tags:
-        sentry_tags["op"] = relay_span.get("op", "")
+    if "op" not in sentry_tags and (op := relay_span.get("op", "")) is not None:
+        sentry_tags["op"] = op
 
-    if "status" not in sentry_tags:
-        sentry_tags["status"] = relay_span.get("status", "")
+    if "status" not in sentry_tags and (status := relay_span.get("status", "")) is not None:
+        sentry_tags["status"] = status
+
+    if "status_code" in sentry_tags:
+        sentry_tags["status_code"] = int(sentry_tags["status_code"])
 
     snuba_span["sentry_tags"] = sentry_tags
 

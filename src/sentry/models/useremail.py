@@ -5,9 +5,7 @@ from datetime import timedelta
 from typing import TYPE_CHECKING, Iterable, Mapping, Optional, Tuple
 
 from django.conf import settings
-from django.core.serializers.base import DeserializedObject
 from django.db import models
-from django.forms import model_to_dict
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
@@ -84,17 +82,33 @@ class UserEmail(Model):
         """@deprecated"""
         return cls.objects.get_primary_email(user)
 
-    # TODO(getsentry/team-ospo#181): what's up with email/useremail here? Seems like both get added
-    # with `sentry.user` simultaneously? Will need to make more robust user handling logic, and to
-    # test what happens when a UserEmail already exists.
-    def write_relocation_import(
-        self, pk_map: PrimaryKeyMap, obj: DeserializedObject, scope: ImportScope
-    ) -> Optional[Tuple[int, int]]:
+    def _normalize_before_relocation_import(
+        self, pk_map: PrimaryKeyMap, scope: ImportScope
+    ) -> Optional[int]:
         old_pk = super()._normalize_before_relocation_import(pk_map, scope)
         if old_pk is None:
             return None
 
-        (useremail, _) = self.__class__.objects.get_or_create(
-            user=self.user, email=self.email, defaults=model_to_dict(self)
-        )
+        # Only preserve validation hashes in global scope - in all others, have the user verify
+        # their email again.
+        if scope != ImportScope.Global:
+            self.is_verified = False
+            self.validation_hash = get_secure_token()
+            self.date_hash_added = timezone.now()
+
+        return old_pk
+
+    def write_relocation_import(
+        self, pk_map: PrimaryKeyMap, scope: ImportScope
+    ) -> Optional[Tuple[int, int]]:
+        old_pk = self._normalize_before_relocation_import(pk_map, scope)
+        if old_pk is None:
+            return None
+
+        useremail = self.__class__.objects.get(user=self.user, email=self.email)
+        for f in self._meta.fields:
+            if f.name not in ["id", "pk"]:
+                setattr(useremail, f.name, getattr(self, f.name))
+        useremail.save()
+
         return (old_pk, useremail.pk)

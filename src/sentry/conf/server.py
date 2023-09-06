@@ -705,6 +705,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.auth",
     "sentry.tasks.auto_remove_inbox",
     "sentry.tasks.auto_resolve_issues",
+    "sentry.tasks.backfill_outboxes",
     "sentry.tasks.beacon",
     "sentry.tasks.check_auth",
     "sentry.tasks.clear_expired_snoozes",
@@ -775,6 +776,7 @@ CELERY_QUEUES_CONTROL = [
     Queue("app_platform.control", routing_key="app_platform.control", exchange=control_exchange),
     Queue("auth.control", routing_key="auth.control", exchange=control_exchange),
     Queue("cleanup.control", routing_key="cleanup.control", exchange=control_exchange),
+    Queue("email", routing_key="email", exchange=control_exchange),
     Queue("integrations.control", routing_key="integrations.control", exchange=control_exchange),
     Queue("files.delete.control", routing_key="files.delete.control", exchange=control_exchange),
     Queue(
@@ -1143,6 +1145,11 @@ CELERYBEAT_SCHEDULE_REGION = {
         "schedule": crontab(minute="*/1"),
         "options": {"expires": 60},
     },
+    "refresh-artifact-bundles-in-use": {
+        "task": "sentry.debug_files.tasks.refresh_artifact_bundles_in_use",
+        "schedule": crontab(minute="*/1"),
+        "options": {"expires": 60},
+    },
 }
 
 # Assign the configuration keys celery uses based on our silo mode.
@@ -1363,6 +1370,8 @@ SENTRY_FEATURES = {
     # Enable creating organizations within sentry (if SENTRY_SINGLE_ORGANIZATION
     # is not enabled).
     "organizations:create": True,
+    # Enable the new crons onboarding experience with platform specific options
+    "organizations:crons-new-onboarding": False,
     # Enable usage of customer domains on the frontend
     "organizations:customer-domains": False,
     # Enable the 'discover' interface.
@@ -1710,6 +1719,8 @@ SENTRY_FEATURES = {
     "organizations:team-project-creation-all-allowlist": False,
     # Enable setting team-level roles and receiving permissions from them
     "organizations:team-roles": True,
+    # Enable team workflow notifications
+    "organizations:team-workflow-notifications": False,
     # Enable team member role provisioning through scim
     "organizations:scim-team-roles": False,
     # Enable the setting of org roles for team
@@ -1734,14 +1745,10 @@ SENTRY_FEATURES = {
     "organizations:sourcemaps-upload-release-as-artifact-bundle": False,
     # Signals that the organization supports the on demand metrics prefill.
     "organizations:on-demand-metrics-prefill": False,
-    # Signals that the organization can start prefilling on demand metrics.
-    "organizations:enable-on-demand-metrics-prefill": False,
     # Enable data forwarding functionality for projects.
     "projects:data-forwarding": True,
     # Enable functionality to discard groups.
     "projects:discard-groups": False,
-    # Extract spans from transactions in Relay, and forward them via Kafka.
-    "projects:extract-standalone-spans": False,
     # Enable considering group severity when creating and evaluating alert rules
     "projects:first-event-severity-alerting": False,
     # Enable calculating a severity score for events which create a new group
@@ -3481,6 +3488,11 @@ if int(PG_VERSION.split(".", maxsplit=1)[0]) < 12:
 
 ANOMALY_DETECTION_URL = "127.0.0.1:9091"
 ANOMALY_DETECTION_TIMEOUT = 30
+
+# TODO: Once this moves to its own service, this URL will need to be updated
+SEVERITY_DETECTION_URL = ANOMALY_DETECTION_URL
+SEVERITY_DETECTION_TIMEOUT = 0.3  # 300 milliseconds
+SEVERITY_DETECTION_RETRIES = 1
 
 # This is the URL to the profiling service
 SENTRY_VROOM = os.getenv("VROOM", "http://127.0.0.1:8085")

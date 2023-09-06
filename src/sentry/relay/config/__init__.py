@@ -51,7 +51,6 @@ from .measurements import CUSTOM_MEASUREMENT_LIMIT, get_measurements_config
 
 #: These features will be listed in the project config
 EXPOSABLE_FEATURES = [
-    "projects:extract-standalone-spans",
     "projects:span-metrics-extraction",
     "organizations:transaction-name-mark-scrubbed-as-sanitized",
     "organizations:transaction-name-normalize",
@@ -176,12 +175,7 @@ def get_quotas(project: Project, keys: Optional[Sequence[ProjectKey]] = None) ->
 
 
 def get_project_config(
-    project: Project,
-    full_config: bool = True,
-    project_keys: Optional[Sequence[ProjectKey]] = None,
-    *,
-    # TODO(iker): default to an up-to-date version once we've moved to v4.
-    version: int = 3,
+    project: Project, full_config: bool = True, project_keys: Optional[Sequence[ProjectKey]] = None
 ) -> "ProjectConfig":
     """Constructs the ProjectConfig information.
     :param project: The project to load configuration for. Ensure that
@@ -194,16 +188,12 @@ def get_project_config(
         no project keys are provided it is assumed that the config does not
         need to contain auth information (this is the case when used in
         python's StoreView)
-    :param version: version of the project config to build.
     :return: a ProjectConfig object for the given project
     """
     with sentry_sdk.push_scope() as scope:
         scope.set_tag("project", project.id)
-        scope.set_tag("version", version)
         with metrics.timer("relay.config.get_project_config.duration"):
-            return _get_project_config(
-                project, full_config=full_config, project_keys=project_keys, version=version
-            )
+            return _get_project_config(project, full_config=full_config, project_keys=project_keys)
 
 
 def get_dynamic_sampling_config(project: Project) -> Optional[Mapping[str, Any]]:
@@ -322,11 +312,7 @@ def _should_extract_abnormal_mechanism(project: Project) -> bool:
 
 
 def _get_project_config(
-    project: Project,
-    full_config: bool = True,
-    project_keys: Optional[Sequence[ProjectKey]] = None,
-    *,
-    version: int,
+    project: Project, full_config: bool = True, project_keys: Optional[Sequence[ProjectKey]] = None
 ) -> "ProjectConfig":
     if project.status != ObjectStatus.ACTIVE:
         return ProjectConfig(project, disabled=True)
@@ -366,9 +352,8 @@ def _get_project_config(
     # anything.
     add_experimental_config(config, "dynamicSampling", get_dynamic_sampling_config, project)
 
-    if version <= 3:
-        # Limit the number of custom measurements
-        add_experimental_config(config, "measurements", get_measurements_config)
+    # Limit the number of custom measurements
+    add_experimental_config(config, "measurements", get_measurements_config)
 
     # Rules to replace high cardinality transaction names
     add_experimental_config(config, "txNameRules", get_transaction_names_config, project)
