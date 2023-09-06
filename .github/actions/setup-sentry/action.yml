@@ -171,6 +171,7 @@ runs:
         if [ "$NEED_KAFKA" = "true" ]; then
           docker run \
             --name sentry_kafka \
+            -d --network host \
             -e KAFKA_PROCESS_ROLES=broker,controller \
             -e KAFKA_CONTROLLER_QUORUM_VOTERS=1@127.0.0.1:29093 \
             -e KAFKA_CONTROLLER_LISTENER_NAMES=CONTROLLER \
