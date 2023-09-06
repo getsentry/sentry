@@ -8,7 +8,6 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pytest
-from django.db import IntegrityError
 from rest_framework.serializers import ValidationError
 
 from sentry.backup.helpers import get_exportable_sentry_models
@@ -188,16 +187,39 @@ class SanitizationTests(BackupTestCase):
         assert UserRole.objects.count() == 1
         assert UserRoleUser.objects.count() == 1
 
-    # TODO(getsentry/team-ospo#181): Should fix this behavior to handle duplicate
-    def test_bad_already_taken_username(self):
+    def test_generate_suffix_for_already_taken_username(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
             self.create_user("testing@example.com")
             tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
             with open(tmp_path, "w+") as tmp_file:
-                json.dump(self.json_of_exhaustive_user_with_minimum_privileges, tmp_file)
+                same_username_user = self.json_of_exhaustive_user_with_minimum_privileges
+                copy_of_same_username_user = self.copy_user(
+                    same_username_user, "testing@example.com"
+                )
+                json.dump(same_username_user + copy_of_same_username_user, tmp_file)
 
             with open(tmp_path) as tmp_file:
-                with pytest.raises(IntegrityError):
+                import_in_user_scope(tmp_file, printer=NOOP_PRINTER)
+
+            assert User.objects.count() == 3
+            assert User.objects.filter(username__icontains="testing@example.com").count() == 3
+            assert User.objects.filter(username__iexact="testing@example.com").count() == 1
+            assert User.objects.filter(username__icontains="testing@example.com-").count() == 2
+
+    def test_bad_invalid_user(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
+            with open(tmp_path, "w+") as tmp_file:
+                models = self.json_of_exhaustive_user_with_minimum_privileges
+
+                # Modify all username to be longer than 128 characters.
+                for model in models:
+                    if model["model"] == "sentry.user":
+                        model["fields"]["username"] = "x" * 129
+                json.dump(models, tmp_file)
+
+            with open(tmp_path) as tmp_file:
+                with pytest.raises(ValidationError):
                     import_in_user_scope(tmp_file, printer=NOOP_PRINTER)
 
     @patch("sentry.models.userip.geo_by_addr")
