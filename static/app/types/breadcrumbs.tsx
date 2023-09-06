@@ -27,6 +27,9 @@ export enum BreadcrumbType {
   SESSION = 'session',
   TRANSACTION = 'transaction',
   INIT = 'init',
+  CLICK = 'click',
+  INPUT = 'input',
+  KEYDOWN = 'keydown',
 }
 
 interface BreadcrumbTypeBase {

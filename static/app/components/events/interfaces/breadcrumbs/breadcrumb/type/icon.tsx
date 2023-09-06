@@ -1,7 +1,10 @@
 import {
+  IconCursorArrow,
   IconFire,
   IconFix,
   IconInfo,
+  IconInput,
+  IconKeyDown,
   IconLocation,
   IconMobile,
   IconRefresh,
@@ -29,6 +32,12 @@ function Icon({type}: Props) {
       return <IconFix size="xs" />;
     case BreadcrumbType.INFO:
       return <IconInfo size="xs" />;
+    case BreadcrumbType.CLICK:
+      return <IconCursorArrow size="xs" />;
+    case BreadcrumbType.KEYDOWN:
+      return <IconKeyDown size="xs" />;
+    case BreadcrumbType.INPUT:
+      return <IconInput size="xs" />;
     case BreadcrumbType.ERROR:
       return <IconFire size="xs" />;
     case BreadcrumbType.HTTP:

@@ -58,7 +58,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
     const node = frame.data.node;
     if (isDeadClick(frame)) {
       return {
-        color: 'red300',
+        color: isDeadRageClick(frame) ? 'red300' : 'yellow300',
         description: tct(
           'Click on [selector] did not cause a visible effect within [timeout] ms',
           {
@@ -66,7 +66,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
             timeout: Math.round(frame.data.timeAfterClickMs),
           }
         ),
-        type: BreadcrumbType.ERROR,
+        type: BreadcrumbType.CLICK,
         title: isDeadRageClick(frame) ? 'Rage Click' : 'Dead Click',
         tabKey: TabKey.DOM,
       };
@@ -130,21 +130,21 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
     description: frame.message ?? '',
     tabKey: TabKey.DOM,
     title: 'User Click',
-    type: BreadcrumbType.UI,
+    type: BreadcrumbType.CLICK,
   }),
   'ui.input': () => ({
     color: 'purple300',
     description: 'User Action',
     tabKey: TabKey.DOM,
     title: 'User Input',
-    type: BreadcrumbType.UI,
+    type: BreadcrumbType.INPUT,
   }),
   'ui.keyDown': () => ({
     color: 'purple300',
     description: 'User Action',
     tabKey: TabKey.DOM,
     title: 'User KeyDown',
-    type: BreadcrumbType.UI,
+    type: BreadcrumbType.KEYDOWN,
   }),
   'ui.blur': () => ({
     color: 'purple300',
