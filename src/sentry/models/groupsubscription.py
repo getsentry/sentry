@@ -41,6 +41,8 @@ class GroupSubscriptionManager(BaseManager):
         Subscribe a user or team to an issue, but only if that user or team has not explicitly
         unsubscribed.
         """
+        from sentry.models import Team, User
+
         try:
             with transaction.atomic(router.db_for_write(GroupSubscription)):
                 if isinstance(subscriber, User) or isinstance(subscriber, RpcUser):

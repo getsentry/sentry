@@ -22,12 +22,12 @@ class SubscribeTest(TestCase):
         group = self.create_group()
         user = self.create_user()
 
-        GroupSubscription.objects.subscribe(group=group, user=user)
+        GroupSubscription.objects.subscribe(group=group, subscriber=user)
 
         assert GroupSubscription.objects.filter(group=group, user_id=user.id).exists()
 
         # should not error
-        GroupSubscription.objects.subscribe(group=group, user=user)
+        GroupSubscription.objects.subscribe(group=group, subscriber=user)
 
     def test_bulk(self):
         group = self.create_group()
