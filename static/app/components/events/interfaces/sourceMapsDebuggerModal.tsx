@@ -231,6 +231,16 @@ export function SourceMapsDebuggerModal({
               {releaseProgressPercent === 1 ? <ChecklistDoneNote /> : <VerifyAgainNote />}
             </TabPanels.Item>
             <TabPanels.Item key="fetching">
+              <p>
+                {tct(
+                  'Sentry will fetch your source files and source maps if you [link:host them publicly].',
+                  {
+                    link: (
+                      <ExternalLinkWithIcon href="https://docs.sentry.io/platforms/javascript/sourcemaps/uploading/hosting-publicly/" />
+                    ),
+                  }
+                )}
+              </p>
               <CheckList>
                 <ScrapingSourceFileAvailableChecklistItem
                   sourceResolutionResults={sourceResolutionResults}
