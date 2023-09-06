@@ -109,12 +109,11 @@ export function SourceMapsDebuggerModal({
       {tab: 'fetching', progress: scrapingProgressPercent},
     ] as const;
 
-    return possibleTabs.reduce((prev, curr) => {
-      if (curr.progress > prev.progress) {
-        return curr;
-      }
-      return prev;
-    }, possibleTabs[0]).tab;
+    // Get the tab with the most progress
+    return possibleTabs.reduce(
+      (prev, curr) => (curr.progress > prev.progress ? curr : prev),
+      possibleTabs[0]
+    ).tab;
   });
 
   return (
