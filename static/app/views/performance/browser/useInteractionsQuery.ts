@@ -15,6 +15,7 @@ export const useInteractionsQuery = () => {
     browserFilters.page ? `transaction:${browserFilters.page}` : '',
   ];
 
+  // TODO - we should be using metrics data here
   const eventView = EventView.fromNewQueryWithPageFilters(
     {
       fields: [
