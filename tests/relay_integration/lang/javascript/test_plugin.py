@@ -12,6 +12,7 @@ from django.conf import settings
 from django.core.files.base import ContentFile
 from django.utils import timezone
 
+from sentry.debug_files.artifact_bundles import refresh_artifact_bundles_in_use
 from sentry.models import (
     ArtifactBundle,
     DebugIdArtifactBundle,
@@ -2511,6 +2512,10 @@ class TestJavascriptIntegration(RelayStoreHelper):
 
         assert frame.data["resolved_with"] == "index"
         assert frame.data["symbolicated"]
+
+        # explicitly trigger the task that is refreshing bundles, usually this
+        # happens on a schedule:
+        refresh_artifact_bundles_in_use()
 
         artifact_bundles = ArtifactBundle.objects.filter(
             organization_id=self.organization.id,

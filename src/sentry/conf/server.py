@@ -1145,6 +1145,11 @@ CELERYBEAT_SCHEDULE_REGION = {
         "schedule": crontab(minute="*/1"),
         "options": {"expires": 60},
     },
+    "refresh-artifact-bundles-in-use": {
+        "task": "sentry.debug_files.tasks.refresh_artifact_bundles_in_use",
+        "schedule": crontab(minute="*/1"),
+        "options": {"expires": 60},
+    },
 }
 
 # Assign the configuration keys celery uses based on our silo mode.
