@@ -6,6 +6,7 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {Step, StepProps} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {ProductSelection} from 'sentry/components/onboarding/productSelection';
 import {PlatformKey} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -13,6 +14,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 const ProductSelectionAvailabilityHook = HookOrDefault({
   hookName: 'component:product-selection-availability',
+  defaultComponent: ProductSelection,
 });
 
 type NextStep = {
