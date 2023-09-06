@@ -16,7 +16,7 @@ import {IssueCategory} from 'sentry/types';
 import * as analytics from 'sentry/utils/analytics';
 import GroupActions from 'sentry/views/issueDetails/actions';
 
-const project = TestStubs.ProjectDetails({
+const project = TestStubs.Project({
   id: '2448',
   name: 'project name',
   slug: 'project',
