@@ -34,6 +34,13 @@ class ComparatorFindingKind(IntEnum):
     # The JSON of two instances of a model, after certain fields have been scrubbed by all applicable comparators, were not byte-for-byte equivalent.
     UnequalJSON = auto()
 
+    # Failed to compare an auto suffixed field.
+    AutoSuffixComparator = auto()
+
+    # Failed to compare an auto suffixed field because one of the fields being compared was not
+    # present or `None`.
+    AutoSuffixComparatorExistenceCheck = auto()
+
     # Two datetime fields were not equal.
     DatetimeEqualityComparator = auto()
 
