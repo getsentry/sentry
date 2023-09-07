@@ -116,8 +116,8 @@ class Metric(Generic[T]):
 class CounterMetric(Metric[float]):
     __slots__ = ("value",)
 
-    def __init__(self) -> None:
-        self.value = 0.0
+    def __init__(self, first: float) -> None:
+        self.value = first
 
     def add(self, value: float) -> None:
         self.value += value
@@ -127,14 +127,20 @@ class CounterMetric(Metric[float]):
 
 
 class GaugeMetric(Metric[float]):
-    __slots__ = ("min", "max", "sum", "count", "last")
+    __slots__ = (
+        "last",
+        "min",
+        "max",
+        "sum",
+        "count",
+    )
 
-    def __init__(self) -> None:
-        self.last = 0.0
-        self.min = 0.0
-        self.max = 0.0
-        self.sum = 0.0
-        self.count = 0
+    def __init__(self, first: float) -> None:
+        self.last = first
+        self.min = first
+        self.max = first
+        self.sum = first
+        self.count = 1
 
     @property
     def weight(self) -> int:
@@ -143,16 +149,10 @@ class GaugeMetric(Metric[float]):
 
     def add(self, value: float) -> None:
         self.last = value
+        self.min = min(self.min, value)
+        self.max = max(self.max, value)
         self.sum += value
         self.count += 1
-
-        # If we didn't have any value, we will initialize the min and max accordingly.
-        if self.count == 0.0:
-            self.min = value
-            self.max = value
-        else:
-            self.min = min(self.min, value)
-            self.max = max(self.max, value)
 
     def serialize_value(self) -> Any:
         return {
@@ -167,8 +167,8 @@ class GaugeMetric(Metric[float]):
 class DistributionMetric(Metric[float]):
     __slots__ = ("value",)
 
-    def __init__(self) -> None:
-        self.value: List[float] = []
+    def __init__(self, first: float) -> None:
+        self.value: List[float] = [first]
 
     @property
     def weight(self) -> int:
@@ -184,8 +184,8 @@ class DistributionMetric(Metric[float]):
 class SetMetric(Metric[Union[str, int]]):
     __slots__ = ("value",)
 
-    def __init__(self) -> None:
-        self.value: Set[Union[str, int]] = set()
+    def __init__(self, first: Union[str, int]) -> None:
+        self.value: Set[Union[str, int]] = {first}
 
     @property
     def weight(self) -> int:
@@ -203,7 +203,7 @@ class SetMetric(Metric[Union[str, int]]):
         return [_hash(x) for x in self.value]
 
 
-METRIC_TYPES: Dict[str, Callable[[], Metric[Any]]] = {
+METRIC_TYPES: Dict[str, Callable[[Any], Metric[Any]]] = {
     "c": CounterMetric,
     "g": GaugeMetric,
     "d": DistributionMetric,
@@ -234,9 +234,6 @@ class Aggregator:
         self._flusher.start()
 
     def _flush_loop(self) -> None:
-        # We check without locking these variables, such racy check can lead to problems if we are not careful. The most
-        # important invariant of the system that needs to be maintained is that if running and force_flush are false,
-        # the number of buckets is equal to 0.
         while self._running or self._force_flush:
             self._flush()
             self._flush_event.wait(2.0)
@@ -251,23 +248,10 @@ class Aggregator:
             extracted_metrics = []
 
             for bucket_key, metric in buckets.items():
-                ts, ty, name, unit, tags = bucket_key
-                if not force_flush and ts > cutoff:
+                if not force_flush and bucket_key.timestamp > cutoff:
                     continue
 
-                extracted_metric: ExtractedMetric = {
-                    "type": ty,
-                    "name": name,
-                    "value": metric.serialize_value(),
-                    "timestamp": ts,
-                    "width": int(self.ROLLUP_IN_SECONDS),
-                }
-                if unit:
-                    extracted_metric["unit"] = unit
-                if tags:
-                    extracted_metric["tags"] = tags
-
-                extracted_metrics.append((extracted_metric, metric.weight))
+                extracted_metrics.append((bucket_key, metric))
                 flushed_buckets.add(bucket_key)
                 weight_to_remove += metric.weight
 
@@ -308,13 +292,13 @@ class Aggregator:
 
         with self._lock:
             metric = self.buckets.get(bucket_key)
-            if metric is None:
-                metric = METRIC_TYPES[ty]()
-                self.buckets[bucket_key] = metric
+            if metric is not None:
+                metric.add(value)
+            else:
+                metric = self.buckets[bucket_key] = METRIC_TYPES[ty](value)
 
             # We first change the weight by taking the old one and the new one.
             previous_weight = metric.weight
-            metric.add(value)
             self._buckets_total_weight += metric.weight - previous_weight
             # Given the new weight we consider whether we want to force flush.
             self.consider_force_flush()
@@ -334,6 +318,7 @@ class Aggregator:
         self._flusher = None
 
     def consider_force_flush(self):
+        # It's important to acquire a lock around this method, since it will touch shared data structures.
         total_weight = len(self.buckets) + self._buckets_total_weight
         if total_weight >= self.MAX_WEIGHT:
             self._force_flush = True
@@ -354,17 +339,18 @@ class Aggregator:
         return tuple(sorted(rv))
 
     @classmethod
-    def _emit(cls, extracted_metrics: List[Tuple[ExtractedMetric, int]], force_flush: bool) -> Any:
+    def _emit(cls, extracted_metrics: List[Tuple[BucketKey, Metric]], force_flush: bool) -> Any:
         # We obtain the counts for each metric type of how many buckets we have and how much weight is in each
         # bucket.
         stats_by_type: Dict[MetricType, Tuple[int, int]] = {}
 
-        for metric, weight in extracted_metrics:
-            metric_type = metric["type"]
-            (prev_buckets_count, prev_buckets_weight) = stats_by_type.get(metric_type, (0, 0))
-            stats_by_type[metric_type] = (
+        for bucket_key, metric in extracted_metrics:
+            (prev_buckets_count, prev_buckets_weight) = stats_by_type.get(
+                bucket_key.metric_type, (0, 0)
+            )
+            stats_by_type[bucket_key.metric_type] = (
                 prev_buckets_count + 1,
-                prev_buckets_weight + weight,
+                prev_buckets_weight + metric.weight,
             )
 
         for metric_type, (buckets_count, buckets_weight) in stats_by_type.items():
