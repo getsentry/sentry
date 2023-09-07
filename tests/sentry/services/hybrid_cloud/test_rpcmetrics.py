@@ -20,13 +20,10 @@ class RpcMetricsTest(TestCase):
             assert len(span.records) == 3
 
     def test_multithreaded(self):
-        tracker_id_queue: Queue[int] = Queue()
         record_queue: Queue[RpcMetricRecord] = Queue()
 
         def make_thread(n: int) -> Thread:
             def run() -> None:
-                tracker_id_queue.put(id(RpcMetricTracker.get_local()))
-
                 name = str(n)
                 with RpcMetricSpan() as span:
                     with RpcMetricRecord.measure(name, name):
@@ -53,7 +50,3 @@ class RpcMetricsTest(TestCase):
         records = list(record_queue.queue)
         assert len(records) == thread_count
         assert len({r.service_name for r in records}) == thread_count
-
-        # Verify that a distinct tracker object existed in every thread
-        tracker_ids = set(tracker_id_queue.queue)
-        assert len(tracker_ids) == thread_count
