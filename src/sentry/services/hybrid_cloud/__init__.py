@@ -13,7 +13,6 @@ from typing import (
     Generic,
     Iterable,
     Mapping,
-    Optional,
     Protocol,
     Type,
     TypeVar,
@@ -21,7 +20,6 @@ from typing import (
 )
 
 import pydantic
-import sentry_sdk
 from django.db import router, transaction
 from django.db.models import Model
 from typing_extensions import Self
@@ -41,25 +39,6 @@ IDEMPOTENCY_KEY_LENGTH = 48
 REGION_NAME_LENGTH = 48
 
 DEFAULT_DATE = datetime.datetime(2000, 1, 1)
-
-
-def report_pydantic_type_validation_error(
-    field: pydantic.fields.ModelField,
-    value: Any,
-    errors: pydantic.error_wrappers.ErrorList,
-    model_class: Optional[Type[Any]],
-) -> None:
-    with sentry_sdk.push_scope() as scope:
-        scope.set_context(
-            "pydantic_validation",
-            {
-                "field": field.name,
-                "value_type": str(type(value)),
-                "errors": str(errors),
-                "model_class": str(model_class),
-            },
-        )
-        sentry_sdk.capture_message("Pydantic type validation error")
 
 
 class ValueEqualityEnum(Enum):
