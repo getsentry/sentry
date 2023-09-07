@@ -92,8 +92,8 @@ public function register() {
         description: (
           <p>
             {tct(
-              'It creates the config file ([sentryPHPCode:config/sentry.php]) and adds the [dsnCode:DSN] to your ".env" file where you can add further configuration options:',
-              {dsnCode: <code />, sentryPHPCode: <code />}
+              'It creates the config file ([sentryPHPCode:config/sentry.php]) and adds the [dsnCode:DSN] to your [envCode:.env] file where you can add further configuration options:',
+              {sentryPHPCode: <code />, dsnCode: <code />, envCode: <code />}
             )}
           </p>
         ),

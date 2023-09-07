@@ -80,6 +80,11 @@ export const platformProductAvailability = {
   'node-koa': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   php: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'php-laravel': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  // TODO(arthur): cleanup naming missmatch between php-symfony and php-symfony2
+  ['php-symfony' as 'php-symfony2']: [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+  ],
   python: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-aiohttp': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-awslambda': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
