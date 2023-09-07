@@ -463,7 +463,7 @@ class RpcService(abc.ABC):
         return service
 
 
-class RpcResolutionException(RpcException):
+class RpcResolutionException(Exception):
     """Indicate that an RPC service or method name could not be resolved."""
 
 
@@ -485,12 +485,12 @@ def _look_up_service_method(
     try:
         service = _global_service_registry[service_name]
     except KeyError:
-        raise RpcResolutionException(service_name, method_name, "Not a service name")
+        raise RpcResolutionException(f"Not a service name: {service_name!r}")
 
     try:
         method = getattr(service, method_name)
     except AttributeError:
-        raise RpcResolutionException(service_name, method_name, "Not a method name")
+        raise RpcResolutionException(f"Not a method name on {service_name!r}: {method_name!r}")
 
     return service, method
 
