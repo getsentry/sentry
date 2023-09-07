@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import abc
+import uuid
 from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Optional, Sequence
 
 import sentry_sdk
@@ -31,8 +32,6 @@ class BaseNotification(abc.ABC):
     analytics_event: str = ""
 
     def __init__(self, organization: Organization, notification_uuid: str | None = None):
-        import uuid
-
         self.organization = organization
         self.notification_uuid = notification_uuid if notification_uuid else str(uuid.uuid4())
 
