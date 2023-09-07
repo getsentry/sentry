@@ -2,12 +2,21 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
 import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import {t, tct} from 'sentry/locale';
+
+interface StepProps {
+  dsn: string;
+  hasPerformance: boolean;
+  hasProfiling: boolean;
+}
 
 // Configuration Start
 export const steps = ({
   dsn,
-}: Partial<Pick<ModuleProps, 'dsn'>> = {}): LayoutProps['steps'] => [
+  hasPerformance,
+  hasProfiling,
+}: StepProps): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
     description: (
@@ -27,6 +36,15 @@ export const steps = ({
         language: 'bash',
         code: 'composer require sentry/sdk',
       },
+      ...(hasProfiling
+        ? [
+            {
+              description: t('Install the Excimer extension via PECL:'),
+              language: 'bash',
+              code: 'pecl install excimer',
+            },
+          ]
+        : []),
     ],
   },
   {
@@ -37,7 +55,33 @@ export const steps = ({
     configurations: [
       {
         language: 'php',
-        code: `\\Sentry\\init(['dsn' => '${dsn}' ]);`,
+        code: `\\Sentry\\init([
+    'dsn' => '${dsn}',${
+          hasPerformance
+            ? `
+    // Specify a fixed sample rate
+    'traces_sample_rate' => 1.0,`
+            : ''
+        }${
+          hasProfiling
+            ? `
+    // Set a sampling rate for profiling - this is relative to traces_sample_rate
+    'profiles_sample_rate' => 1.0,`
+            : ''
+        }
+]);`,
+        additionalInfo: hasPerformance && (
+          <p>
+            {tct(
+              'To instrument certain regions of your code, you can [instrumentationLink:create transactions to capture them].',
+              {
+                instrumentationLink: (
+                  <ExternalLink href="https://docs.sentry.io/platforms/php/performance/instrumentation/custom-instrumentation/" />
+                ),
+              }
+            )}
+          </p>
+        ),
       },
     ],
   },
@@ -54,20 +98,23 @@ try {
   $this->functionFailsForSure();
 } catch (\\Throwable $exception) {
   \\Sentry\\captureException($exception);
-}
-
-// OR
-
-\\Sentry\\captureLastError();
-        `,
+}`,
       },
     ],
   },
 ];
 // Configuration End
 
-export function GettingStartedWithPHP({dsn, ...props}: ModuleProps) {
-  return <Layout steps={steps({dsn})} {...props} />;
+export function GettingStartedWithPHP({
+  dsn,
+  activeProductSelection = [],
+  ...props
+}: ModuleProps) {
+  const hasPerformance = activeProductSelection.includes(
+    ProductSolution.PERFORMANCE_MONITORING
+  );
+  const hasProfiling = activeProductSelection.includes(ProductSolution.PROFILING);
+  return <Layout steps={steps({dsn, hasPerformance, hasProfiling})} {...props} />;
 }
 
 export default GettingStartedWithPHP;
