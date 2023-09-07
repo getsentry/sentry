@@ -32,7 +32,7 @@ class OrganizationMemberTestBase(APITestCase):
         self.login_as(self.user)
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class GetOrganizationMemberTest(OrganizationMemberTestBase):
     def test_me(self):
         response = self.get_success_response(self.organization.slug, "me")

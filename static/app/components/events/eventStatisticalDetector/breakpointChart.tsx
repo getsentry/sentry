@@ -32,6 +32,9 @@ function EventBreakpointChart({event}: EventBreakpointChartProps) {
   eventView.start = new Date(requestStart * 1000).toISOString();
   eventView.end = new Date(requestEnd * 1000).toISOString();
 
+  // If start and end were defined, then do not use default 14d stats period
+  eventView.statsPeriod = requestStart && requestEnd ? '' : eventView.statsPeriod;
+
   // The evidence data keys are returned to us in camelCase, but we need to
   // convert them to snake_case to match the NormalizedTrendsTransaction type
   const normalizedOccurrenceEvent = Object.keys(
