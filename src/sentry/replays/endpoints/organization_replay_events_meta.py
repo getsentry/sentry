@@ -4,6 +4,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
@@ -13,6 +14,9 @@ from sentry.snuba import discover
 
 @region_silo_endpoint
 class OrganizationReplayEventsMetaEndpoint(OrganizationEventsV2EndpointBase):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     """The generic Events endpoints require that the `organizations:global-views` feature
     be enabled before they return across multiple projects.
 

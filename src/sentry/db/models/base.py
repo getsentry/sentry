@@ -1,12 +1,14 @@
 from __future__ import annotations
 
-from typing import Any, Callable, Iterable, Mapping, Tuple, Type, TypeVar
+from typing import Any, Callable, Iterable, Mapping, Optional, Tuple, Type, TypeVar
 
 from django.apps.config import AppConfig
 from django.db import models
 from django.db.models import signals
 from django.utils import timezone
 
+from sentry.backup.dependencies import PrimaryKeyMap, dependencies, normalize_model_name
+from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.silo import SiloLimit, SiloMode
 
 from .fields.bounded import BoundedBigAutoField
@@ -42,6 +44,8 @@ def sane_repr(*attrs: str) -> Callable[[object], str]:
 class BaseModel(models.Model):
     class Meta:
         abstract = True
+
+    __relocation_scope__: RelocationScope
 
     objects = BaseManager[M]()  # type: ignore
 
@@ -96,6 +100,66 @@ class BaseModel(models.Model):
         name = self._meta.get_field(field_name).get_cache_name()
         return name in self._state.fields_cache
 
+    def get_relocation_scope(self) -> RelocationScope:
+        """
+        Retrieves the `RelocationScope` for a `Model` subclass. It generally just forwards `__relocation_scope__`, but some models have instance-specific logic for deducing the scope.
+        """
+
+        return self.__relocation_scope__
+
+    def _normalize_before_relocation_import(
+        self, pk_map: PrimaryKeyMap, _: ImportScope
+    ) -> Optional[int]:
+        """
+        A helper function that normalizes a deserialized model. Note that this modifies the model in
+        place, so it should generally be done inside of the companion `write_relocation_import`
+        method, to avoid data skew or corrupted local state.
+
+        The only reason this function is left as a standalone, rather than being folded into
+        `write_relocation_import`, is that it is often useful to adjust just the normalization logic
+        by itself. Overrides of this method should take care not to mutate the `pk_map`.
+
+        The default normalization logic merely replaces foreign keys with their new values from the
+        provided `pk_map`.
+
+        The method returns the old `pk` that was replaced.
+        """
+
+        deps = dependencies()
+        model_name = normalize_model_name(self)
+        for field, model_relation in deps[model_name].foreign_keys.items():
+            field_id = field if field.endswith("_id") else f"{field}_id"
+            fk = getattr(self, field_id, None)
+            if fk is not None:
+                new_fk = pk_map.get(normalize_model_name(model_relation.model), fk)
+                if new_fk is None:
+                    return None
+
+                setattr(self, field_id, new_fk)
+
+        old_pk = self.pk
+        self.pk = None
+
+        return old_pk
+
+    def write_relocation_import(
+        self, pk_map: PrimaryKeyMap, scope: ImportScope
+    ) -> Optional[Tuple[int, int]]:
+        """
+        Writes a deserialized model to the database. If this write is successful, this method will
+        return a tuple of the old and new `pk`s.
+
+        Overrides of this method can throw either `django.core.exceptions.ValidationError` or
+        `rest_framework.serializers.ValidationError`.
+        """
+
+        old_pk = self._normalize_before_relocation_import(pk_map, scope)
+        if old_pk is None:
+            return
+
+        self.save(force_insert=True)
+        return (old_pk, self.pk)
+
 
 class Model(BaseModel):
     id: models.Field[int, int] = BoundedBigAutoField(primary_key=True)
@@ -129,15 +193,22 @@ def __model_class_prepared(sender: Any, **kwargs: Any) -> None:
     if not issubclass(sender, BaseModel):
         return
 
-    if not hasattr(sender, "__include_in_export__"):
+    if not hasattr(sender, "__relocation_scope__"):
         raise ValueError(
-            f"{sender!r} model has not defined __include_in_export__. This is used to determine "
+            f"{sender!r} model has not defined __relocation_scope__. This is used to determine "
             f"which models we export from sentry as part of our migration workflow: \n"
             f"https://docs.sentry.io/product/sentry-basics/migration/#3-export-your-data.\n"
             f"This should be True for core, low volume models used to configure Sentry. Things like "
             f"Organization, Project  and related settings. It should be False for high volume models "
             f"like Group."
         )
+
+    from .outboxes import ReplicatedControlModel, ReplicatedRegionModel
+
+    if issubclass(sender, ReplicatedControlModel):
+        sender.category.connect_control_model_updates(sender)
+    elif issubclass(sender, ReplicatedRegionModel):
+        sender.category.connect_region_model_updates(sender)
 
 
 signals.pre_save.connect(__model_pre_save)

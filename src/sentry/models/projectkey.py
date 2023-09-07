@@ -2,18 +2,21 @@ from __future__ import annotations
 
 import re
 import secrets
-from typing import Any
+from typing import Any, Optional, Tuple
 from urllib.parse import urlparse
 
 import petname
 from django.conf import settings
 from django.db import ProgrammingError, models
+from django.forms import model_to_dict
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from bitfield import TypedClassBitField
 from sentry import features, options
+from sentry.backup.dependencies import PrimaryKeyMap
+from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import (
     BaseManager,
     BoundedPositiveIntegerField,
@@ -49,7 +52,7 @@ class ProjectKeyManager(BaseManager):
 
 @region_silo_only_model
 class ProjectKey(Model):
-    __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Organization
 
     project = FlexibleForeignKey("sentry.Project", related_name="key_set")
     label = models.CharField(max_length=64, blank=True, null=True)
@@ -275,3 +278,19 @@ class ProjectKey(Model):
 
     def get_scopes(self):
         return self.scopes
+
+    def write_relocation_import(
+        self, pk_map: PrimaryKeyMap, scope: ImportScope
+    ) -> Optional[Tuple[int, int]]:
+        old_pk = super()._normalize_before_relocation_import(pk_map, scope)
+        if old_pk is None:
+            return None
+
+        (key, _) = self.__class__.objects.get_or_create(
+            project=self.project, defaults=model_to_dict(self)
+        )
+        if key:
+            self.pk = key.pk
+            self.save()
+
+        return (old_pk, self.pk)

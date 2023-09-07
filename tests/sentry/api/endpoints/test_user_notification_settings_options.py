@@ -127,3 +127,22 @@ class UserNotificationSettingsOptionsPutTest(UserNotificationSettingsOptionsBase
             value=NotificationSettingsOptionEnum.SUBSCRIBE_ONLY.value,
         )
         assert response.data["nonFieldErrors"] == ["Invalid type for value"]
+
+    def test_reports(self):
+        response = self.get_success_response(
+            "me",
+            user_id=self.user.id,
+            scope_type="organization",
+            scope_identifier=self.organization.id,
+            type="reports",
+            status_code=status.HTTP_201_CREATED,
+            value="always",
+        )
+        row = NotificationSettingOption.objects.filter(
+            user_id=self.user.id,
+            scope_type=NotificationScopeEnum.ORGANIZATION.value,
+            scope_identifier=self.organization.id,
+            type=NotificationSettingEnum.REPORTS.value,
+            value=NotificationSettingsOptionEnum.ALWAYS.value,
+        ).first()
+        assert response.data["id"] == str(row.id)

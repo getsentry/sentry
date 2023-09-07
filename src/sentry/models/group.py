@@ -22,6 +22,7 @@ from django.utils.translation import gettext_lazy as _
 from snuba_sdk import Column, Condition, Op
 
 from sentry import eventstore, eventtypes, tagstore
+from sentry.backup.scopes import RelocationScope
 from sentry.constants import DEFAULT_LOGGER_NAME, LOG_LEVELS, MAX_CULPRIT_LENGTH
 from sentry.db.models import (
     BaseManager,
@@ -474,7 +475,7 @@ class Group(Model):
     Aggregated message which summarizes a set of Events.
     """
 
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     project = FlexibleForeignKey("sentry.Project")
     logger = models.CharField(
@@ -647,10 +648,17 @@ class Group(Model):
             )
             return cached_has_replays
 
+        data_source = (
+            Dataset.IssuePlatform
+            if self.issue_category == GroupCategory.PERFORMANCE
+            else Dataset.Discover
+        )
+
         counts = get_replay_counts(
             make_snuba_params_for_replay_count_query(),
             f"issue.id:[{self.id}]",
             return_ids=False,
+            data_source=data_source,
         )
 
         has_replays = counts.get(self.id, 0) > 0  # type: ignore

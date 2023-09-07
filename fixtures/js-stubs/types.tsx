@@ -71,12 +71,10 @@ type TestStubFixtures = {
   GitHubIntegration: OverridableStub;
   GitHubIntegrationConfig: SimpleStub;
   GitHubIntegrationProvider: OverridableStub;
-  GitHubRepositoryProvider: OverridableStub;
   GlobalSelection: OverridableStub;
   Group: OverridableStub;
   GroupStats: OverridableStub;
   GroupingConfigs: SimpleStub;
-  GroupingEnhancements: SimpleStub;
   Groups: SimpleStub;
   HiddenEnvironments: SimpleStub;
   Incident: OverridableStub;
@@ -99,6 +97,9 @@ type TestStubFixtures = {
   MetricsSessionUserCountByStatusByRelease: SimpleStub;
   MetricsTotalCountByReleaseIn24h: SimpleStub;
   MissingMembers: OverridableStubList;
+  NotificationDefaults: SimpleStub;
+  OpsgenieIntegration: OverridableStub;
+  OpsgenieIntegrationProvider: OverridableStub;
   OrgOwnedApps: SimpleStub;
   OrgRoleList: OverridableStub;
   Organization: OverridableStub;

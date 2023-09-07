@@ -20,6 +20,7 @@ from structlog import get_logger
 
 from bitfield.models import typed_dict_bitfield
 from sentry import features, roles
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
@@ -196,7 +197,7 @@ class OrganizationMember(Model):
     be set to ownership.
     """
 
-    __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Organization
 
     objects = OrganizationMemberManager()
 
@@ -390,19 +391,13 @@ class OrganizationMember(Model):
             logger = get_logger(name="sentry.mail")
             logger.exception(e)
 
-    def send_sso_link_email(self, user_id: int, provider):
+    def send_sso_link_email(self, sending_user_email: str, provider):
         from sentry.utils.email import MessageBuilder
 
         link_args = {"organization_slug": self.organization.slug}
-
-        email = ""
-        user = user_service.get_user(user_id=user_id)
-        if user:
-            email = user.email
-
         context = {
             "organization": self.organization,
-            "email": email,
+            "actor_email": sending_user_email,
             "provider": provider,
             "url": absolute_uri(reverse("sentry-auth-organization", kwargs=link_args)),
         }
@@ -441,7 +436,7 @@ class OrganizationMember(Model):
             "recover_url": absolute_uri(recover_uri),
             "has_password": has_password,
             "organization": self.organization,
-            "disabled_by_email": disabling_user.email,
+            "actor_email": disabling_user.email,
             "provider": provider,
         }
 

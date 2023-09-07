@@ -60,7 +60,8 @@
   "[python]": {
     "editor.formatOnSave": true,
     "editor.codeActionsOnSave": {
-      "source.organizeImports": true
+      "source.organizeImports": true,
+      "source.fixAll.eslint": false
     },
     "editor.defaultFormatter": "ms-python.black-formatter"
   },

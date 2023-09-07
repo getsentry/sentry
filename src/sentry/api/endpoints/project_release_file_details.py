@@ -8,6 +8,7 @@ from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.endpoints.debug_files import has_download_permission
@@ -191,7 +192,7 @@ class ReleaseFileDetailsMixin:
 
         file = releasefile.file
 
-        # TODO(dcramer): this doesnt handle a failure from file.deletefile() to
+        # TODO(dcramer): this doesnt handle a failure from file.delete() to
         # the actual deletion of the db row
         releasefile.delete()
         file.delete()
@@ -201,6 +202,11 @@ class ReleaseFileDetailsMixin:
 
 @region_silo_endpoint
 class ProjectReleaseFileDetailsEndpoint(ProjectEndpoint, ReleaseFileDetailsMixin):
+    publish_status = {
+        "DELETE": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.UNKNOWN,
+        "PUT": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (ProjectReleasePermission,)
 
     def get(self, request: Request, project, version, file_id) -> Response:

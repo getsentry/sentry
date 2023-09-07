@@ -223,7 +223,10 @@ export default function MetricDetailsBody({
           </DetailWrapper>
         </Layout.Main>
         <Layout.Side>
-          <MetricDetailsSidebar rule={rule} />
+          <MetricDetailsSidebar
+            rule={rule}
+            isOnDemandMetricAlert={isOnDemandMetricAlert(dataset, query)}
+          />
         </Layout.Side>
       </Layout.Body>
     </Fragment>

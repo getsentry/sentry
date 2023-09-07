@@ -16,6 +16,7 @@ import IdBadge from 'sentry/components/idBadge';
 import ListItem from 'sentry/components/list/listItem';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
+import {InvalidReason} from 'sentry/components/searchSyntax/parser';
 import {SearchInvalidTag} from 'sentry/components/smartSearchBar/searchInvalidTag';
 import {IconInfo} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -25,6 +26,7 @@ import {getDisplayName} from 'sentry/utils/environment';
 import {
   createOnDemandFilterWarning,
   hasOnDemandMetricAlertFeature,
+  isOnDemandQueryString,
 } from 'sentry/utils/onDemandMetrics';
 import withApi from 'sentry/utils/withApi';
 import withProjects from 'sentry/utils/withProjects';
@@ -34,11 +36,7 @@ import {
   DATA_SOURCE_LABELS,
   DATA_SOURCE_TO_SET_AND_EVENT_TYPES,
 } from 'sentry/views/alerts/utils';
-import {
-  AlertType,
-  datasetOmittedTags,
-  datasetSupportedTags,
-} from 'sentry/views/alerts/wizard/options';
+import {AlertType, getSupportedAndOmittedTags} from 'sentry/views/alerts/wizard/options';
 
 import {getProjectOptions} from '../utils';
 
@@ -454,6 +452,12 @@ class RuleConditionsForm extends PureComponent<Props, State> {
               return (
                 <SearchContainer>
                   <StyledSearchBar
+                    disallowWildcard={dataset === Dataset.SESSIONS}
+                    invalidMessages={{
+                      [InvalidReason.WILDCARD_NOT_ALLOWED]: t(
+                        'The wildcard operator is not supported here.'
+                      ),
+                    }}
                     customInvalidTagMessage={item => {
                       if (
                         ![Dataset.GENERIC_METRICS, Dataset.TRANSACTIONS].includes(dataset)
@@ -479,8 +483,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                     }
                     searchSource="alert_builder"
                     defaultQuery={initialData?.query ?? ''}
-                    omitTags={datasetOmittedTags(dataset, organization)}
-                    supportedTags={datasetSupportedTags(dataset, organization)}
+                    {...getSupportedAndOmittedTags(dataset, organization)}
                     includeSessionTagsValues={dataset === Dataset.SESSIONS}
                     disabled={disabled}
                     useFormWrapper={false}
@@ -491,7 +494,8 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                     // We only need strict validation for Transaction queries, everything else is fine
                     highlightUnsupportedTags={
                       organization.features.includes('alert-allow-indexed') ||
-                      hasOnDemandMetricAlertFeature(organization)
+                      (hasOnDemandMetricAlertFeature(organization) &&
+                        isOnDemandQueryString(initialData.query))
                         ? false
                         : [Dataset.GENERIC_METRICS, Dataset.TRANSACTIONS].includes(
                             dataset

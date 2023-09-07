@@ -3,6 +3,7 @@ from datetime import timedelta
 from django.db import models
 from django.utils import timezone
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedBigIntegerField,
     FlexibleForeignKey,
@@ -16,7 +17,7 @@ from sentry.utils.cache import cache
 
 @region_silo_only_model
 class ReleaseEnvironment(Model):
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     organization = FlexibleForeignKey("sentry.Organization", db_index=True, db_constraint=False)
     # DEPRECATED

@@ -9,6 +9,7 @@ from django.db import models
 from django.db.models.fields.related import ForeignKey, OneToOneField
 
 from sentry.backup.helpers import EXCLUDED_APPS
+from sentry.backup.scopes import RelocationScope
 from sentry.silo import SiloMode
 from sentry.utils import json
 
@@ -50,6 +51,7 @@ class ModelRelations(NamedTuple):
 
     model: Type[models.base.Model]
     foreign_keys: dict[str, ForeignField]
+    relocation_scope: RelocationScope
     silos: list[SiloMode]
 
     def flatten(self) -> set[Type[models.base.Model]]:
@@ -67,15 +69,14 @@ class DependenciesJSONEncoder(json.JSONEncoder):
     `ModelRelations`."""
 
     def default(self, obj):
-        if isinstance(obj, models.base.Model):
-            return normalize_model_name(type(obj))
         if meta := getattr(obj, "_meta", None):
-            # Note: done to accommodate `node.Nodestore`.
             return f"{meta.app_label}.{meta.object_name}"
         if isinstance(obj, ForeignFieldKind):
             return obj.name
-        if isinstance(obj, SiloMode):
+        if isinstance(obj, RelocationScope):
             return obj.name
+        if isinstance(obj, SiloMode):
+            return obj.name.lower().capitalize()
         if isinstance(obj, set):
             return sorted(list(obj), key=lambda obj: normalize_model_name(obj))
         return super().default(obj)
@@ -133,7 +134,8 @@ def dependencies() -> dict[str, ModelRelations]:
 
     # Process the list of models, and get the list of dependencies
     model_dependencies_list: dict[str, ModelRelations] = {}
-    for app_config in apps.get_app_configs():
+    app_configs = apps.get_app_configs()
+    for app_config in app_configs:
         if app_config.label in EXCLUDED_APPS:
             continue
 
@@ -146,13 +148,12 @@ def dependencies() -> dict[str, ModelRelations]:
         for model in model_iterator:
             foreign_keys: dict[str, ForeignField] = dict()
 
-            # Now add a dependency for any FK relation with a model that defines a natural key.
+            # Now add a dependency for any FK relation visible to Django.
             for field in model._meta.get_fields():
                 rel_model = getattr(field.remote_field, "model", None)
                 if rel_model is not None and rel_model != model:
-                    # TODO(hybrid-cloud): actor refactor.
-                    # Add cludgy conditional preventing walking actor.team_id, actor.user_id
-                    # Which avoids circular imports
+                    # TODO(hybrid-cloud): actor refactor. Add kludgy conditional preventing walking
+                    # actor.team_id, which avoids circular imports
                     if model == Actor and rel_model == Team:
                         continue
 
@@ -218,6 +219,7 @@ def dependencies() -> dict[str, ModelRelations]:
             model_dependencies_list[normalize_model_name(model)] = ModelRelations(
                 model=model,
                 foreign_keys=foreign_keys,
+                relocation_scope=getattr(model, "__relocation_scope__", RelocationScope.Excluded),
                 silos=list(
                     getattr(model._meta, "silo_limit", ModelSiloLimit(SiloMode.MONOLITH)).modes
                 ),
