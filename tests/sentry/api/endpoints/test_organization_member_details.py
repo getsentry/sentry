@@ -737,7 +737,6 @@ class ResetOrganizationMember2faTest(APITestCase):
             self.interface_id = totp.authenticator.id
             assert Authenticator.objects.filter(user=self.member).exists()
 
-    @assume_test_silo_mode(SiloMode.CONTROL)
     def assert_can_get_authenticators(self):
         path = reverse(
             "sentry-api-0-organization-member-details", args=[self.org.slug, self.member_om.id]
@@ -750,7 +749,6 @@ class ResetOrganizationMember2faTest(APITestCase):
         assert data["user"]["has2fa"] is True
         assert data["user"]["canReset2fa"] is True
 
-    @assume_test_silo_mode(SiloMode.CONTROL)
     def assert_cannot_get_authenticators(self):
         path = reverse(
             "sentry-api-0-organization-member-details", args=[self.org.slug, self.member_om.id]
