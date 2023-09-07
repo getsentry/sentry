@@ -1,4 +1,4 @@
-import React, {Fragment} from 'react';
+import {Fragment} from 'react';
 import {
   IndexRedirect,
   IndexRoute as BaseIndexRoute,
@@ -291,7 +291,9 @@ function buildRoutes() {
         <IndexRoute
           component={make(
             () =>
-              import('sentry/views/settings/account/notifications/notificationSettings')
+              import(
+                'sentry/views/settings/account/notifications/notificationSettingsController'
+              )
           )}
         />
         <Route
@@ -1585,6 +1587,14 @@ function buildRoutes() {
           )}
         />
       </Route>
+      <Route path="browser/">
+        <Route
+          path="interactions/"
+          component={make(
+            () => import('sentry/views/performance/browser/interactionsLandingPage')
+          )}
+        />
+      </Route>
       <Route path="summary/">
         <IndexRoute
           component={make(
@@ -1698,15 +1708,7 @@ function buildRoutes() {
           component={make(() => import('sentry/views/starfish/views/spanSummaryPage'))}
         />
       </Route>
-      <Route path="database/">
-        <IndexRoute
-          component={make(() => import('sentry/views/starfish/modules/DBModule'))}
-        />
-        <Route
-          path="span/:groupId/"
-          component={make(() => import('sentry/views/starfish/views/spanSummaryPage'))}
-        />
-      </Route>
+      <Redirect from="database/" to="/performance/database" />
       <Route path="initialization/">
         <IndexRoute
           component={make(

@@ -114,6 +114,19 @@ class ArtifactBundle(Model):
 
 
 def delete_file_for_artifact_bundle(instance, **kwargs):
+    from sentry.tasks.assemble import AssembleTask, delete_assemble_status
+
+    if (
+        instance.organization_id is not None
+        and instance.file is not None
+        and instance.file.checksum is not None
+    ):
+        delete_assemble_status(
+            AssembleTask.ARTIFACT_BUNDLE,
+            instance.organization_id,
+            instance.file.checksum,
+        )
+
     instance.file.delete()
 
 
@@ -162,7 +175,7 @@ class ArtifactBundleFlatFileIndex(Model):
     def update_flat_file_index(self, data: str):
         encoded_data = data.encode()
 
-        metric_name = "debug_id_index" if self.dist_name == NULL_STRING else "url_index"
+        metric_name = "debug_id_index" if self.release_name == NULL_STRING else "url_index"
         metrics.timing(
             f"artifact_bundle_flat_file_indexing.{metric_name}.size_in_bytes",
             value=len(encoded_data),

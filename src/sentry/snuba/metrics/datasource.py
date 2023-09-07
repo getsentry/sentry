@@ -8,7 +8,7 @@ until we have a proper metadata store set up. To keep things simple, and hopeful
 efficient, we only look at the past 24 hours.
 """
 
-__all__ = ("get_metrics", "get_tags", "get_tag_values", "get_series", "get_single_metric_info")
+__all__ = ("get_metrics_meta", "get_tags", "get_tag_values", "get_series", "get_single_metric_info")
 
 import logging
 from collections import defaultdict, deque
@@ -38,8 +38,14 @@ from sentry.snuba.metrics.fields.base import (
     get_derived_metrics,
     org_id_from_projects,
 )
-from sentry.snuba.metrics.naming_layer.mapping import get_all_mris, get_mri
-from sentry.snuba.metrics.naming_layer.mri import MRI_SCHEMA_REGEX, is_custom_measurement, parse_mri
+from sentry.snuba.metrics.naming_layer.mapping import get_mri
+from sentry.snuba.metrics.naming_layer.mri import (
+    MRI_SCHEMA_REGEX,
+    get_available_operations,
+    get_known_mris,
+    is_custom_measurement,
+    parse_mri,
+)
 from sentry.snuba.metrics.query import Groupable, MetricField, MetricsQuery
 from sentry.snuba.metrics.query_builder import (
     SnubaQueryBuilder,
@@ -72,6 +78,7 @@ def _get_metrics_for_entity(
     entity_key: EntityKey,
     project_ids: Sequence[int],
     org_id: int,
+    use_case_id: UseCaseID,
     start: Optional[datetime] = None,
     end: Optional[datetime] = None,
 ) -> List[SnubaDataType]:
@@ -79,7 +86,7 @@ def _get_metrics_for_entity(
         entity_key=entity_key,
         select=[Column("metric_id")],
         groupby=[Column("metric_id")],
-        where=[],
+        where=[Condition(Column("use_case_id"), Op.EQ, use_case_id.value)],
         referrer="snuba.metrics.get_metrics_names_for_entity",
         project_ids=project_ids,
         org_id=org_id,
@@ -139,49 +146,48 @@ def get_available_derived_metrics(
     return found_derived_metrics.intersection(public_derived_metrics)
 
 
-def get_metrics(projects: Sequence[Project], use_case_id: UseCaseID) -> Sequence[MetricMeta]:
-    ENTITY_TO_DATASET = {
-        "sessions": {
-            "c": "metrics_counters",
-            "s": "metrics_sets",
-            "d": "metrics_distributions",
-            "g": "metrics_gauges",
-        },
-        "transactions": {
-            "c": "generic_metrics_counters",
-            "s": "generic_metrics_sets",
-            "d": "generic_metrics_distributions",
-            "g": "generic_metrics_gauges",
-        },
-        "spans": {
-            "c": "generic_metrics_counters",
-            "s": "generic_metrics_sets",
-            "d": "generic_metrics_distributions",
-            "g": "generic_metrics_gauges",
-        },
-    }
+def get_metrics_meta(projects: Sequence[Project], use_case_id: UseCaseID) -> Sequence[MetricMeta]:
+    metas = []
+    unique_mris = set(get_known_mris(use_case_id) + get_stored_mris(projects, use_case_id))
 
-    result = []
-    for mri in get_all_mris():
-        parsed = parse_mri(mri)
+    for mri in sorted(unique_mris):
+        parsed_mri = parse_mri(mri)
 
-        if parsed.entity not in ENTITY_TO_DATASET["sessions"].keys():
-            ops = []
-        elif parsed.namespace == "sessions":
-            ops = AVAILABLE_OPERATIONS[ENTITY_TO_DATASET[parsed.namespace][parsed.entity]]
-        else:
-            ops = AVAILABLE_GENERIC_OPERATIONS[ENTITY_TO_DATASET[parsed.namespace][parsed.entity]]
+        ops = get_available_operations(parsed_mri)
 
-        result.append(
+        metas.append(
             MetricMeta(
                 mri=mri,
-                unit=parsed.unit,
-                name=parsed.name,
+                name=parsed_mri.name,
                 operations=ops,
+                # TODO: check unit casting
+                unit=parsed_mri.unit,
+                # TODO: add entity letter to entity key mapping i.e. c -> counter
+                type=parsed_mri.entity,
             )
         )
 
-    return result
+    return metas
+
+
+def get_stored_mris(projects: Sequence[Project], use_case_id: UseCaseID) -> List[str]:
+    org_id = projects[0].organization_id
+    project_ids = [project.id for project in projects]
+
+    stored_metrics = []
+    for entity_key in METRIC_TYPE_TO_ENTITY.values():
+        stored_metrics += _get_metrics_for_entity(
+            entity_key=entity_key,
+            project_ids=project_ids,
+            org_id=org_id,
+            use_case_id=use_case_id,
+        )
+
+    mris = bulk_reverse_resolve(
+        use_case_id, org_id, [row["metric_id"] for row in stored_metrics]
+    ).values()
+
+    return list(mris)
 
 
 def get_custom_measurements(
@@ -199,6 +205,7 @@ def get_custom_measurements(
             entity_key=METRIC_TYPE_TO_ENTITY[metric_type],
             project_ids=project_ids,
             org_id=organization_id,
+            use_case_id=use_case_id,
             start=start,
             end=end,
         )
@@ -219,7 +226,7 @@ def get_custom_measurements(
                         ],
                         unit=parsed_mri.unit,
                         metric_id=row["metric_id"],
-                        mri_string=parsed_mri.mri_string,
+                        mri=parsed_mri.mri_string,
                     )
                 )
 

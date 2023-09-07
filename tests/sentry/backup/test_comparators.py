@@ -3,6 +3,7 @@ from copy import deepcopy
 import pytest
 
 from sentry.backup.comparators import (
+    AutoSuffixComparator,
     DatetimeEqualityComparator,
     DateUpdatedComparator,
     EmailObfuscatingComparator,
@@ -61,6 +62,8 @@ def test_bad_comparator_only_one_side_existing():
     }
     res = cmp.existence(id, missing, present)
     assert res
+    assert len(res) == 1
+
     assert res[0]
     assert res[0].on == id
     assert res[0].kind == ComparatorFindingKind.DateUpdatedComparatorExistenceCheck
@@ -71,6 +74,8 @@ def test_bad_comparator_only_one_side_existing():
 
     res = cmp.existence(id, present, missing)
     assert res
+    assert len(res) == 1
+
     assert res[0]
     assert res[0].kind == ComparatorFindingKind.DateUpdatedComparatorExistenceCheck
     assert res[0].on == id
@@ -78,6 +83,132 @@ def test_bad_comparator_only_one_side_existing():
     assert res[0].right_pk == 1
     assert "right" in res[0].reason
     assert "my_date_field" in res[0].reason
+
+
+def test_good_auto_suffix_comparator():
+    cmp = AutoSuffixComparator("same", "suffixed")
+    id = InstanceID("test", 0)
+    left: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "same": "foo-bar",
+            "suffixed": "foo-bar",
+        },
+    }
+    right: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "same": "foo-bar",
+            "suffixed": "foo-bar-baz",
+        },
+    }
+    assert not cmp.compare(id, left, right)
+
+
+def test_bad_auto_suffix_comparator():
+    cmp = AutoSuffixComparator("same", "suffixed")
+    id = InstanceID("test", 0)
+    left: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "same": "foo-bar",
+            "suffixed": "foo-bar",
+        },
+    }
+    right: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "same": "unequal",
+            "suffixed": "foo-barbaz",
+        },
+    }
+    res = cmp.compare(id, left, right)
+    assert res
+    assert len(res) == 2
+
+    assert res[0]
+    assert res[0].kind == ComparatorFindingKind.AutoSuffixComparator
+    assert res[0].on == id
+    assert res[0].left_pk == 1
+    assert res[0].right_pk == 1
+    assert "foo-bar" in res[0].reason
+    assert "unequal" in res[0].reason
+
+    assert res[1]
+    assert res[1].kind == ComparatorFindingKind.AutoSuffixComparator
+    assert res[1].on == id
+    assert res[1].left_pk == 1
+    assert res[1].right_pk == 1
+    assert "foo-bar" in res[1].reason
+    assert "foo-barbaz" in res[1].reason
+
+
+def test_good_auto_suffix_comparator_existence():
+    cmp = AutoSuffixComparator("auto_suffix_field")
+    id = InstanceID("test", 0)
+    present: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "auto_suffix_field": "foo-bar",
+        },
+    }
+    missing: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {},
+    }
+    res = cmp.existence(id, missing, present)
+    assert res
+    assert len(res) == 1
+
+    assert res[0]
+    assert res[0].on == id
+    assert res[0].kind == ComparatorFindingKind.AutoSuffixComparatorExistenceCheck
+    assert res[0].left_pk == 1
+    assert res[0].right_pk == 1
+    assert "left" in res[0].reason
+    assert "auto_suffix_field" in res[0].reason
+
+
+def test_good_auto_suffix_comparator_scrubbed():
+    cmp = AutoSuffixComparator("same", "suffixed")
+    left: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "same": "foo-bar",
+            "suffixed": "foo-bar",
+        },
+    }
+    right: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "same": "foo-bar",
+            "suffixed": "foo-bar-baz",
+        },
+    }
+    cmp.scrub(left, right)
+    assert left["scrubbed"]
+    assert left["scrubbed"]["AutoSuffixComparator::same"] is ScrubbedData()
+    assert left["scrubbed"]["AutoSuffixComparator::suffixed"] is ScrubbedData()
+
+    assert right["scrubbed"]
+    assert right["scrubbed"]["AutoSuffixComparator::same"] is ScrubbedData()
+    assert right["scrubbed"]["AutoSuffixComparator::suffixed"] is ScrubbedData()
 
 
 def test_good_datetime_equality_comparator():
@@ -123,6 +254,8 @@ def test_bad_datetime_equality_comparator():
     }
     res = cmp.compare(id, left, right)
     assert res
+    assert len(res) == 1
+
     assert res[0]
     assert res[0].kind == ComparatorFindingKind.DatetimeEqualityComparator
     assert res[0].on == id
@@ -176,6 +309,8 @@ def test_bad_date_updated_comparator():
     }
     res = cmp.compare(id, left, right)
     assert res
+    assert len(res) == 1
+
     assert res[0]
     assert res[0].kind == ComparatorFindingKind.DateUpdatedComparator
     assert res[0].on == id
@@ -233,6 +368,7 @@ def test_bad_email_obfuscating_comparator():
     }
     res = cmp.compare(id, left, right)
     assert res
+    assert len(res) == 2
 
     assert res[0]
     assert res[0].kind == ComparatorFindingKind.EmailObfuscatingComparator
@@ -249,6 +385,36 @@ def test_bad_email_obfuscating_comparator():
     assert res[1].right_pk == 1
     assert "a...@...le.com" in res[1].reason
     assert "a...@...ng.com" in res[1].reason
+
+
+def test_good_email_obfuscating_comparator_existence():
+    cmp = EmailObfuscatingComparator("email_obfuscating_field")
+    id = InstanceID("test", 0)
+    present: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "email_obfuscating_field": "brian@testing.com",
+        },
+    }
+    missing: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {},
+    }
+    res = cmp.existence(id, missing, present)
+    assert res
+    assert len(res) == 1
+
+    assert res[0]
+    assert res[0].on == id
+    assert res[0].kind == ComparatorFindingKind.EmailObfuscatingComparatorExistenceCheck
+    assert res[0].left_pk == 1
+    assert res[0].right_pk == 1
+    assert "left" in res[0].reason
+    assert "email_obfuscating_field" in res[0].reason
 
 
 def test_good_email_obfuscating_comparator_scrubbed():
@@ -340,6 +506,7 @@ def test_bad_hash_obfuscating_comparator():
     }
     res = cmp.compare(id, left, right)
     assert res
+    assert len(res) == 2
 
     assert res[0]
     assert res[0].kind == ComparatorFindingKind.HashObfuscatingComparator
@@ -356,6 +523,36 @@ def test_bad_hash_obfuscating_comparator():
     assert res[1].right_pk == 1
     assert "123...39b" in res[1].reason
     assert "124...39c" in res[1].reason
+
+
+def test_good_hash_obfuscating_comparator_existence():
+    cmp = HashObfuscatingComparator("hash_obfuscating_field")
+    id = InstanceID("test", 0)
+    present: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "hash_obfuscating_field": "foo",
+        },
+    }
+    missing: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {},
+    }
+    res = cmp.existence(id, missing, present)
+    assert res
+    assert len(res) == 1
+
+    assert res[0]
+    assert res[0].on == id
+    assert res[0].kind == ComparatorFindingKind.HashObfuscatingComparatorExistenceCheck
+    assert res[0].left_pk == 1
+    assert res[0].right_pk == 1
+    assert "left" in res[0].reason
+    assert "hash_obfuscating_field" in res[0].reason
 
 
 def test_good_hash_obfuscating_comparator_scrubbed():
@@ -400,12 +597,10 @@ def test_good_hash_obfuscating_comparator_scrubbed():
     ]
 
 
-DEPENDENCIES = dependencies()
-
-
 def test_good_foreign_key_comparator():
+    deps = dependencies()
     cmp = ForeignKeyComparator(
-        {k: v.model for k, v in DEPENDENCIES["sentry.UserEmail"].foreign_keys.items()}
+        {k: v.model for k, v in deps["sentry.UserEmail"].foreign_keys.items()}
     )
     id = InstanceID("sentry.useremail", 0)
     left_pk_map = PrimaryKeyMap()
@@ -441,9 +636,52 @@ def test_good_foreign_key_comparator():
     assert not cmp.compare(id, left, right)
 
 
-def test_good_foreign_key_comparator_scrubbed():
+def test_good_foreign_key_comparator_existence():
+    deps = dependencies()
     cmp = ForeignKeyComparator(
-        {k: v.model for k, v in DEPENDENCIES["sentry.UserEmail"].foreign_keys.items()}
+        {k: v.model for k, v in deps["sentry.UserEmail"].foreign_keys.items()}
+    )
+    id = InstanceID("test", 0)
+    present: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "user": 12,
+            "email": "testing@example.com",
+            "validation_hash": "ABC123",
+            "date_hash_added": "2023-06-23T00:00:00.000Z",
+            "is_verified": True,
+        },
+    }
+    missing: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "email": "testing@example.com",
+            "validation_hash": "ABC123",
+            "date_hash_added": "2023-06-23T00:00:00.000Z",
+            "is_verified": True,
+        },
+    }
+    res = cmp.existence(id, missing, present)
+    assert res
+    assert len(res) == 1
+
+    assert res[0]
+    assert res[0].on == id
+    assert res[0].kind == ComparatorFindingKind.ForeignKeyComparatorExistenceCheck
+    assert res[0].left_pk == 1
+    assert res[0].right_pk == 1
+    assert "left" in res[0].reason
+    assert "user" in res[0].reason
+
+
+def test_good_foreign_key_comparator_scrubbed():
+    deps = dependencies()
+    cmp = ForeignKeyComparator(
+        {k: v.model for k, v in deps["sentry.UserEmail"].foreign_keys.items()}
     )
     left: JSONData = {
         "model": "test",
@@ -467,8 +705,9 @@ def test_good_foreign_key_comparator_scrubbed():
 
 
 def test_bad_foreign_key_comparator_set_primary_key_maps_not_called():
+    deps = dependencies()
     cmp = ForeignKeyComparator(
-        {k: v.model for k, v in DEPENDENCIES["sentry.UserEmail"].foreign_keys.items()}
+        {k: v.model for k, v in deps["sentry.UserEmail"].foreign_keys.items()}
     )
     id = InstanceID("sentry.useremail", 0)
     left_pk_map = PrimaryKeyMap()
@@ -505,8 +744,9 @@ def test_bad_foreign_key_comparator_set_primary_key_maps_not_called():
 
 
 def test_bad_foreign_key_comparator_unequal_mapping():
+    deps = dependencies()
     cmp = ForeignKeyComparator(
-        {k: v.model for k, v in DEPENDENCIES["sentry.UserEmail"].foreign_keys.items()}
+        {k: v.model for k, v in deps["sentry.UserEmail"].foreign_keys.items()}
     )
     id = InstanceID("sentry.useremail", 0)
     left_pk_map = PrimaryKeyMap()
@@ -541,6 +781,8 @@ def test_bad_foreign_key_comparator_unequal_mapping():
 
     res = cmp.compare(id, left, right)
     assert res
+    assert len(res) == 1
+
     assert res[0]
     assert res[0].kind == ComparatorFindingKind.ForeignKeyComparator
     assert res[0].on == id
@@ -552,8 +794,9 @@ def test_bad_foreign_key_comparator_unequal_mapping():
 
 
 def test_bad_foreign_key_comparator_missing_mapping():
+    deps = dependencies()
     cmp = ForeignKeyComparator(
-        {k: v.model for k, v in DEPENDENCIES["sentry.UserEmail"].foreign_keys.items()}
+        {k: v.model for k, v in deps["sentry.UserEmail"].foreign_keys.items()}
     )
     id = InstanceID("sentry.useremail", 0)
     left_pk_map = PrimaryKeyMap()
@@ -586,6 +829,7 @@ def test_bad_foreign_key_comparator_missing_mapping():
 
     res = cmp.compare(id, left, right)
     assert len(res) == 2
+
     assert res[0]
     assert res[0].kind == ComparatorFindingKind.ForeignKeyComparator
     assert res[0].on == id
@@ -618,6 +862,36 @@ def test_good_ignored_comparator():
         },
     }
     assert not cmp.compare(id, model, model)
+
+
+def test_good_ignored_comparator_existence():
+    cmp = IgnoredComparator("ignored_field")
+    id = InstanceID("test", 0)
+    present: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "ignored_field": "foo",
+        },
+    }
+    missing: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {},
+    }
+    res = cmp.existence(id, missing, present)
+    assert res
+    assert len(res) == 1
+
+    assert res[0]
+    assert res[0].on == id
+    assert res[0].kind == ComparatorFindingKind.IgnoredComparatorExistenceCheck
+    assert res[0].left_pk == 1
+    assert res[0].right_pk == 1
+    assert "left" in res[0].reason
+    assert "ignored_field" in res[0].reason
 
 
 def test_good_ignored_comparator_scrubbed():

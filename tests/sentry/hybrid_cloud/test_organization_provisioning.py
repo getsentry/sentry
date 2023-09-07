@@ -84,7 +84,7 @@ class TestOrganizationProvisioningService(TestCase):
 
         with outbox_context(flush=False):
             results: RpcOrganization = organization_provisioning_service.provision_organization(
-                region_name="na", org_provision_args=org_args
+                region_name="us", org_provision_args=org_args
             )
 
         assert_post_install_outbox_created(org=results, provisioning_options=org_args)
@@ -102,7 +102,7 @@ class TestOrganizationProvisioningService(TestCase):
         self.create_organization(slug="santry", name="santry", owner=self.create_user())
 
         results: RpcOrganization = organization_provisioning_service.provision_organization(
-            region_name="na", org_provision_args=org_args
+            region_name="us", org_provision_args=org_args
         )
 
         assert results
@@ -123,7 +123,7 @@ class TestIdempotentProvisionOrganization(TestCase):
             results: Optional[
                 RpcOrganization
             ] = organization_provisioning_service.idempotent_provision_organization(
-                region_name="na", org_provision_args=org_args
+                region_name="us", org_provision_args=org_args
             )
 
         assert results
@@ -153,7 +153,7 @@ class TestIdempotentProvisionOrganization(TestCase):
         results: Optional[
             RpcOrganization
         ] = organization_provisioning_service.idempotent_provision_organization(
-            region_name="na", org_provision_args=org_args
+            region_name="us", org_provision_args=org_args
         )
 
         with assume_test_silo_mode(SiloMode.REGION):
@@ -176,7 +176,7 @@ class TestIdempotentProvisionOrganization(TestCase):
             results: Optional[
                 RpcOrganization
             ] = organization_provisioning_service.idempotent_provision_organization(
-                region_name="na", org_provision_args=org_args
+                region_name="us", org_provision_args=org_args
             )
 
         assert results
@@ -207,7 +207,7 @@ class TestIdempotentProvisionOrganization(TestCase):
             results: Optional[
                 RpcOrganization
             ] = organization_provisioning_service.idempotent_provision_organization(
-                region_name="na", org_provision_args=org_args
+                region_name="us", org_provision_args=org_args
             )
 
         assert results is None

@@ -6,11 +6,12 @@ from unittest.mock import patch
 from django.conf import settings
 from django.test.utils import override_settings
 
+from sentry.api.base import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.constants import ObjectStatus
 from sentry.models import Rule, RuleSource
 from sentry.monitors.models import Monitor, MonitorStatus, MonitorType, ScheduleType
 from sentry.testutils.cases import MonitorTestCase
-from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import region_silo_test
 
 
@@ -208,9 +209,22 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
             "config": {"schedule_type": "crontab", "schedule": "@daily"},
         }
         response = self.get_success_response(self.organization.slug, **data)
+
         assert response.data["slug"] == "my-monitor"
 
-    @with_feature("app:enterprise-prevent-numeric-slugs")
+    @override_options({"api.prevent-numeric-slugs": True})
+    def test_invalid_numeric_slug(self):
+        data = {
+            "project": self.project.slug,
+            "name": "My Monitor",
+            "slug": "1234",
+            "type": "cron_job",
+            "config": {"schedule_type": "crontab", "schedule": "@daily"},
+        }
+        response = self.get_error_response(self.organization.slug, **data, status_code=400)
+        assert response.data["slug"][0] == DEFAULT_SLUG_ERROR_MESSAGE
+
+    @override_options({"api.prevent-numeric-slugs": True})
     def test_generated_slug_not_entirely_numeric(self):
         data = {
             "project": self.project.slug,

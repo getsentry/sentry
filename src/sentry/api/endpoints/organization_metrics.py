@@ -3,6 +3,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -12,7 +13,7 @@ from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import string_to_use_case_id
 from sentry.snuba.metrics import (
     QueryDefinition,
-    get_metrics,
+    get_metrics_meta,
     get_series,
     get_single_metric_info,
     get_tag_values,
@@ -40,6 +41,9 @@ def get_use_case_id(request: Request) -> UseCaseID:
 
 @region_silo_endpoint
 class OrganizationMetricsEndpoint(OrganizationEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     """Get metric name, available operations and the metric unit"""
 
     owner = ApiOwner.TELEMETRY_EXPERIENCE
@@ -47,13 +51,16 @@ class OrganizationMetricsEndpoint(OrganizationEndpoint):
     def get(self, request: Request, organization) -> Response:
         projects = self.get_projects(request, organization)
 
-        metrics = get_metrics(projects, use_case_id=get_use_case_id(request))
+        metrics = get_metrics_meta(projects, use_case_id=get_use_case_id(request))
 
         return Response(metrics, status=200)
 
 
 @region_silo_endpoint
 class OrganizationMetricDetailsEndpoint(OrganizationEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     """Get metric name, available operations, metric unit and available tags"""
 
     owner = ApiOwner.TELEMETRY_EXPERIENCE
@@ -77,6 +84,9 @@ class OrganizationMetricDetailsEndpoint(OrganizationEndpoint):
 
 @region_silo_endpoint
 class OrganizationMetricsTagsEndpoint(OrganizationEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     """Get list of tag names for this project
 
     If the ``metric`` query param is provided, only tags for a certain metric
@@ -107,6 +117,9 @@ class OrganizationMetricsTagsEndpoint(OrganizationEndpoint):
 
 @region_silo_endpoint
 class OrganizationMetricsTagDetailsEndpoint(OrganizationEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     """Get all existing tag values for a metric"""
 
     owner = ApiOwner.TELEMETRY_EXPERIENCE
@@ -136,6 +149,9 @@ class OrganizationMetricsTagDetailsEndpoint(OrganizationEndpoint):
 
 @region_silo_endpoint
 class OrganizationMetricsDataEndpoint(OrganizationEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     """Get the time series data for one or more metrics.
 
     The data can be filtered and grouped by tags.

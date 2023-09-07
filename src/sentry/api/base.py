@@ -22,9 +22,10 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from sentry_sdk import Scope
 
-from sentry import analytics, features, options, tsdb
+from sentry import analytics, options, tsdb
 from sentry.api.api_owners import ApiOwner
-from sentry.apidocs.hooks import HTTP_METHODS_SET
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.apidocs.hooks import HTTP_METHOD_NAME
 from sentry.auth import access
 from sentry.models import Environment
 from sentry.ratelimits.config import DEFAULT_RATE_LIMIT_CONFIG, RateLimitConfig
@@ -154,9 +155,8 @@ class Endpoint(APIView):
 
     cursor_name = "cursor"
 
-    public: Optional[HTTP_METHODS_SET] = None
     owner: ApiOwner = ApiOwner.UNOWNED
-
+    publish_status: dict[HTTP_METHOD_NAME, ApiPublishStatus] = {}
     rate_limits: RateLimitConfig | dict[
         str, dict[RateLimitCategory, RateLimit]
     ] = DEFAULT_RATE_LIMIT_CONFIG
@@ -605,7 +605,7 @@ class PreventNumericSlugMixin:
         Validates that the slug is not entirely numeric. Requires a feature flag
         to be turned on.
         """
-        if features.has("app:enterprise-prevent-numeric-slugs") and slug.isnumeric():
+        if options.get("api.prevent-numeric-slugs") and slug.isnumeric():
             raise serializers.ValidationError(DEFAULT_SLUG_ERROR_MESSAGE)
         return slug
 

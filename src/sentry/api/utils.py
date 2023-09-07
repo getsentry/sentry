@@ -9,6 +9,7 @@ from datetime import timedelta
 from typing import Any, List, Literal, Mapping, Tuple, overload
 from urllib.parse import urlparse
 
+from django.conf import settings
 from django.http import HttpResponseNotAllowed
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
@@ -263,7 +264,7 @@ def generate_organization_url(org_slug: str) -> str:
 def generate_region_url(region_name: str | None = None) -> str:
     region_url_template: str | None = options.get("system.region-api-url-template")
     if region_name is None:
-        region_name = options.get("system.region") or None
+        region_name = settings.SENTRY_REGION
     if not region_url_template or not region_name:
         return options.get("system.url-prefix")
     return region_url_template.replace("{region}", region_name)

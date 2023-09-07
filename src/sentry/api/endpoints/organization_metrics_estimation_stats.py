@@ -7,9 +7,11 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEventsV2EndpointBase
 from sentry.models import Organization
+from sentry.search.events import fields
 from sentry.snuba import discover, metrics_performance
 from sentry.snuba.metrics.extraction import to_standard_metrics_query
 from sentry.snuba.referrer import Referrer
@@ -27,6 +29,9 @@ MetricVolumeRow = List[Union[int, List[CountResult]]]
 
 @region_silo_endpoint
 class OrganizationMetricsEstimationStatsEndpoint(OrganizationEventsV2EndpointBase):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     """Gets the estimated volume of an organization's metric events."""
 
     def get(self, request: Request, organization: Organization) -> Response:
@@ -88,6 +93,8 @@ def get_stats_generator(use_discover: bool, remove_on_demand: bool):
             module: ModuleType = discover
         else:
             module = metrics_performance
+            # (RaduW) horrible hack check function definition
+            query_columns = to_metrics_columns(query_columns)
 
         if remove_on_demand:
             query = to_standard_metrics_query(query)
@@ -173,3 +180,39 @@ def _is_data_aligned(left: List[MetricVolumeRow], right: List[MetricVolumeRow]) 
         return True
 
     return left[0][0] == right[0][0] and left[-1][0] == right[-1][0]
+
+
+def to_metrics_columns(query_columns: Sequence[str]):
+    """
+    (RaduW): This is a hack to convert the columns from discover to metrics
+    specifically this was done to convert 'apdex(XXX)' to 'apdex()'
+    for metrics we need to fix the acceptable rate at tag creation time
+    (i.e. in Relay) so at query creation time we can only work with whatever was
+    collected, so apdex() does not accept a parameter
+
+    If things get more complicated create a more robust parsing solution.
+
+    """
+    ret_val = []
+    for column in query_columns:
+        if fields.is_function(column):
+            column = discover_to_metrics_function_call(column)
+        ret_val.append(column)
+    return ret_val
+
+
+def discover_to_metrics_function_call(column: str):
+    """
+    (RaduW): Hacky function cleanup, converts discover function calls to
+    metric function calls
+
+    """
+    if fields.is_function(column):
+        function, params, alias = fields.parse_function(column)
+
+        if function.lower() == "apdex":
+            ret_val = "apdex()"
+            if alias:
+                ret_val += f" AS {alias}"
+            return ret_val
+    return column

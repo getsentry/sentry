@@ -54,16 +54,16 @@ export function createSentrySampleProfileFrameIndex(
 }
 
 export function createFrameIndex(
-  type: 'mobile' | 'node' | 'web',
+  type: 'mobile' | 'node' | 'javascript',
   frames: Readonly<Profiling.Schema['shared']['frames']>
 ): FrameIndex;
 export function createFrameIndex(
-  type: 'mobile' | 'node' | 'web',
+  type: 'mobile' | 'node' | 'javascript',
   frames: Readonly<JSSelfProfiling.Frame[]>,
   trace: Readonly<JSSelfProfiling.Trace>
 ): FrameIndex;
 export function createFrameIndex(
-  type: 'mobile' | 'node' | 'web',
+  type: 'mobile' | 'node' | 'javascript',
   frames: Readonly<Profiling.Schema['shared']['frames'] | JSSelfProfiling.Frame[]>,
   trace?: Readonly<JSSelfProfiling.Trace>
 ): FrameIndex {
@@ -78,7 +78,7 @@ export function createFrameIndex(
               : undefined,
           ...frame,
         },
-        'web'
+        'javascript'
       );
       return acc;
     }, {});

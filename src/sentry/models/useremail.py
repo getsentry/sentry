@@ -2,14 +2,15 @@ from __future__ import annotations
 
 from collections import defaultdict
 from datetime import timedelta
-from typing import TYPE_CHECKING, Iterable, Mapping
+from typing import TYPE_CHECKING, Iterable, Mapping, Optional, Tuple
 
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
-from sentry.backup.scopes import RelocationScope
+from sentry.backup.dependencies import PrimaryKeyMap
+from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import (
     BaseManager,
     FlexibleForeignKey,
@@ -80,3 +81,34 @@ class UserEmail(Model):
     def get_primary_email(cls, user: User) -> UserEmail:
         """@deprecated"""
         return cls.objects.get_primary_email(user)
+
+    def _normalize_before_relocation_import(
+        self, pk_map: PrimaryKeyMap, scope: ImportScope
+    ) -> Optional[int]:
+        old_pk = super()._normalize_before_relocation_import(pk_map, scope)
+        if old_pk is None:
+            return None
+
+        # Only preserve validation hashes in global scope - in all others, have the user verify
+        # their email again.
+        if scope != ImportScope.Global:
+            self.is_verified = False
+            self.validation_hash = get_secure_token()
+            self.date_hash_added = timezone.now()
+
+        return old_pk
+
+    def write_relocation_import(
+        self, pk_map: PrimaryKeyMap, scope: ImportScope
+    ) -> Optional[Tuple[int, int]]:
+        old_pk = self._normalize_before_relocation_import(pk_map, scope)
+        if old_pk is None:
+            return None
+
+        useremail = self.__class__.objects.get(user=self.user, email=self.email)
+        for f in self._meta.fields:
+            if f.name not in ["id", "pk"]:
+                setattr(useremail, f.name, getattr(self, f.name))
+        useremail.save()
+
+        return (old_pk, useremail.pk)

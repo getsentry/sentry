@@ -15,6 +15,7 @@ from snuba_sdk.function import Function, Identifier, Lambda
 from snuba_sdk.orderby import Direction, OrderBy
 
 from sentry import eventstore
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
@@ -146,6 +147,10 @@ class SpansPerformanceSerializer(serializers.Serializer):
 
 @region_silo_endpoint
 class OrganizationEventsSpansPerformanceEndpoint(OrganizationEventsSpansEndpointBase):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, organization: Organization) -> Response:
 
         try:
@@ -221,6 +226,10 @@ class SpanSerializer(serializers.Serializer):
 
 @region_silo_endpoint
 class OrganizationEventsSpansExamplesEndpoint(OrganizationEventsSpansEndpointBase):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, organization: Organization) -> Response:
 
         try:
@@ -302,6 +311,10 @@ class SpanExamplesPaginator:
 
 @region_silo_endpoint
 class OrganizationEventsSpansStatsEndpoint(OrganizationEventsSpansEndpointBase):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, organization: Organization) -> Response:
 
         serializer = SpanSerializer(data=request.GET)

@@ -15,6 +15,7 @@ from symbolic.debuginfo import normalize_debug_id
 from symbolic.exceptions import SymbolicError
 
 from sentry import ratelimits, roles
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -24,9 +25,9 @@ from sentry.auth.superuser import is_active_superuser
 from sentry.auth.system import is_system_auth
 from sentry.constants import DEBUG_FILES_ROLE_DEFAULT, KNOWN_DIF_FORMATS
 from sentry.debug_files.debug_files import maybe_renew_debug_files
+from sentry.debug_files.upload import find_missing_chunks
 from sentry.models import (
     File,
-    FileBlobOwner,
     OrganizationMember,
     ProjectDebugFile,
     Release,
@@ -88,6 +89,10 @@ def has_download_permission(request, project):
 
 @region_silo_endpoint
 class ProguardArtifactReleasesEndpoint(ProjectEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (ProjectReleasePermission,)
 
     def post(self, request: Request, project) -> Response:
@@ -165,6 +170,11 @@ class ProguardArtifactReleasesEndpoint(ProjectEndpoint):
 
 @region_silo_endpoint
 class DebugFilesEndpoint(ProjectEndpoint):
+    publish_status = {
+        "DELETE": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (ProjectReleasePermission,)
 
     def download(self, debug_file_id, project):
@@ -340,6 +350,9 @@ class DebugFilesEndpoint(ProjectEndpoint):
 
 @region_silo_endpoint
 class UnknownDebugFilesEndpoint(ProjectEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (ProjectReleasePermission,)
 
     def get(self, request: Request, project) -> Response:
@@ -350,6 +363,9 @@ class UnknownDebugFilesEndpoint(ProjectEndpoint):
 
 @region_silo_endpoint
 class AssociateDSymFilesEndpoint(ProjectEndpoint):
+    publish_status = {
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (ProjectReleasePermission,)
 
     # Legacy endpoint, kept for backwards compatibility
@@ -357,18 +373,11 @@ class AssociateDSymFilesEndpoint(ProjectEndpoint):
         return Response({"associatedDsymFiles": []})
 
 
-def find_missing_chunks(organization, chunks):
-    """Returns a list of chunks which are missing for an org."""
-    owned = set(
-        FileBlobOwner.objects.filter(
-            blob__checksum__in=chunks, organization_id=organization.id
-        ).values_list("blob__checksum", flat=True)
-    )
-    return list(set(chunks) - owned)
-
-
 @region_silo_endpoint
 class DifAssembleEndpoint(ProjectEndpoint):
+    publish_status = {
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (ProjectReleasePermission,)
 
     def post(self, request: Request, project) -> Response:
@@ -456,7 +465,7 @@ class DifAssembleEndpoint(ProjectEndpoint):
                 continue
 
             # Check if all requested chunks have been uploaded.
-            missing_chunks = find_missing_chunks(project.organization, chunks)
+            missing_chunks = find_missing_chunks(project.organization.id, chunks)
             if missing_chunks:
                 file_response[checksum] = {
                     "state": ChunkFileState.NOT_FOUND,
@@ -487,6 +496,10 @@ class DifAssembleEndpoint(ProjectEndpoint):
 
 @region_silo_endpoint
 class SourceMapsEndpoint(ProjectEndpoint):
+    publish_status = {
+        "DELETE": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (ProjectReleasePermission,)
 
     def get(self, request: Request, project) -> Response:
