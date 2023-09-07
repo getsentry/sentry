@@ -49,7 +49,15 @@ def _construct_quotas(use_case_id: UseCaseID) -> Optional[Quota]:
     """
 
     if use_case_id in USE_CASE_ID_CARDINALITY_LIMIT_QUOTA_OPTIONS:
-        quota_args = options.get(USE_CASE_ID_CARDINALITY_LIMIT_QUOTA_OPTIONS[use_case_id])
+        custom_card_limit = options.get(USE_CASE_ID_CARDINALITY_LIMIT_QUOTA_OPTIONS[use_case_id])
+
+        # check that the option is set to a properly-formatted cardinality limit
+        if len(custom_card_limit) == 3:
+            quota_args = custom_card_limit
+        else:
+            quota_args = options.get(
+                "sentry-metrics.cardinality-limiter.limits.generic-metrics.per-org"
+            )
 
     else:
         quota_args = options.get(
