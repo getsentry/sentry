@@ -152,7 +152,7 @@ const InfoAlert = styled(Alert)`
   }
 `;
 
-const InfoICon = styled(IconInfo)`
+const InfoIcon = styled(IconInfo)`
   color: ${p => p.theme.blue400};
   margin-right: ${space(1.5)};
 `;
@@ -160,7 +160,7 @@ const InfoICon = styled(IconInfo)`
 export function OnDemandMetricAlert({message}: {message: React.ReactNode}) {
   return (
     <InfoAlert>
-      <InfoICon size="sm" />
+      <InfoIcon size="sm" />
       {message}
     </InfoAlert>
   );
