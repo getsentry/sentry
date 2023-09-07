@@ -265,7 +265,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):  # noqa: F821
                 team_id=team_id,
                 user_id=user_id,
                 type=type,
-                provider=EXTERNAL_PROVIDERS[provider.value],
+                provider=EXTERNAL_PROVIDERS[provider],
             ).delete()
 
         self.find_settings(
@@ -476,7 +476,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):  # noqa: F821
         # Get all the NotificationSetting rows for the user or team
         notification_settings = self.filter(user_id=user_id, team_id=team_id)
         # Initialize a dictionary to store the new NotificationSettingProvider values
-        enabled_providers_by_type = defaultdict(set)
+        enabled_providers_by_type: Mapping[str, Set[ExternalProviders]] = defaultdict(set)
         disabled_providers_by_type = defaultdict(set)
 
         # Iterate through all the stored NotificationSetting rows
