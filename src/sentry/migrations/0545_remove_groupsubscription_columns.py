@@ -33,6 +33,12 @@ class Migration(CheckedMigration):
                     model_name="groupsubscription",
                     name="subscription_team_or_user_check",
                 ),
+                migrations.AlterUniqueTogether(
+                    name="groupsubscription",
+                    unique_together={
+                        ("group", "user_id"),
+                    },
+                ),
             ],
             database_operations=[
                 migrations.RunSQL(
