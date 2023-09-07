@@ -139,9 +139,7 @@ describe('Onboarding Setup Docs', function () {
       }
     );
 
-    expect(
-      await screen.findByText(/implementation 'io.sentry:sentry:6.28.0'/)
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/"sentry" % "6.28.0"/)).toBeInTheDocument();
   });
 
   describe('renders Product Selection', function () {
