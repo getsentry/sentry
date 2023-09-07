@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import onboardingImg from 'sentry-images/spot/onboarding-preview.svg';
 
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import OnboardingPanel from 'sentry/components/onboardingPanel';
 import {t} from 'sentry/locale';
@@ -20,9 +20,9 @@ export function CronsLandingPanel() {
       </p>
       <OnboardingActions gap={1}>
         <NewMonitorButton>{t('Set up first cron monitor')}</NewMonitorButton>
-        <Button href="https://docs.sentry.io/product/crons" external>
+        <LinkButton href="https://docs.sentry.io/product/crons" external>
           {t('Read docs')}
-        </Button>
+        </LinkButton>
       </OnboardingActions>
     </OnboardingPanel>
   );
