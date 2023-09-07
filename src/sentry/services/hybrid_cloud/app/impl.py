@@ -242,7 +242,7 @@ class DatabaseBackedAppService(AppService):
         if sentry_app:
             installation = SentryAppInstallation.objects.get(sentry_app=sentry_app)
         else:
-            sentry_app: SentryApp = SentryAppCreator(
+            sentry_app = SentryAppCreator(
                 name=integration_name,
                 author="test",
                 organization_id=organization_id,
