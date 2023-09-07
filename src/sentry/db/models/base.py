@@ -111,11 +111,16 @@ class BaseModel(models.Model):
         self, pk_map: PrimaryKeyMap, _: ImportScope
     ) -> Optional[int]:
         """
-        A helper function that normalizes a deserialized model. Note that this modifies the model in place, so it should generally be done inside of the companion `write_relocation_import` method, to avoid data skew or corrupted local state.
+        A helper function that normalizes a deserialized model. Note that this modifies the model in
+        place, so it should generally be done inside of the companion `write_relocation_import`
+        method, to avoid data skew or corrupted local state.
 
-        The only reason this function is left as a standalone, rather than being folded into `write_relocation_import`, is that it is often useful to adjust just the normalization logic by itself. Overrides of this method should take care not to mutate the `pk_map`.
+        The only reason this function is left as a standalone, rather than being folded into
+        `write_relocation_import`, is that it is often useful to adjust just the normalization logic
+        by itself. Overrides of this method should take care not to mutate the `pk_map`.
 
-        The default normalization logic merely replaces foreign keys with their new values from the provided `pk_map`.
+        The default normalization logic merely replaces foreign keys with their new values from the
+        provided `pk_map`.
 
         The method returns the old `pk` that was replaced.
         """
@@ -128,7 +133,7 @@ class BaseModel(models.Model):
             if fk is not None:
                 new_fk = pk_map.get(normalize_model_name(model_relation.model), fk)
                 if new_fk is None:
-                    return
+                    return None
 
                 setattr(self, field_id, new_fk)
 
@@ -141,7 +146,11 @@ class BaseModel(models.Model):
         self, pk_map: PrimaryKeyMap, scope: ImportScope
     ) -> Optional[Tuple[int, int]]:
         """
-        Writes a deserialized model to the database. If this write is successful, this method will return a tuple of the old and new `pk`s.
+        Writes a deserialized model to the database. If this write is successful, this method will
+        return a tuple of the old and new `pk`s.
+
+        Overrides of this method can throw either `django.core.exceptions.ValidationError` or
+        `rest_framework.serializers.ValidationError`.
         """
 
         old_pk = self._normalize_before_relocation_import(pk_map, scope)
