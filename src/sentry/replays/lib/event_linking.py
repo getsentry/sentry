@@ -3,7 +3,7 @@ from __future__ import annotations
 from hashlib import md5
 from typing import TYPE_CHECKING, TypedDict
 
-from sentry.utils.json import json
+from sentry.utils import json
 
 if TYPE_CHECKING:
     from sentry.eventstore.models import BaseEvent
