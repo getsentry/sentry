@@ -8,9 +8,8 @@ from sentry.metrics.base import MetricsBackend, Tags
 
 
 def _to_minimetrics_external_metric_tags(tags: Optional[Tags]) -> Optional[MetricTagsExternal]:
-    # The types are not fully compatible, since `Tags` has also `None` and `MetricTagsExternal` has
-    # also `List` but for now we assume they are compatible.
-    return cast(Optional[MetricTagsExternal], tags)
+    # We remove all `None` values, since then the types will be compatible.
+    return cast(Optional[MetricTagsExternal], [tag for tag in tags if tag is not None])
 
 
 class MiniMetricsMetricsBackend(MetricsBackend):

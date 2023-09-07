@@ -10,6 +10,7 @@ from typing import (
     List,
     Literal,
     Mapping,
+    NamedTuple,
     Optional,
     Set,
     Tuple,
@@ -63,15 +64,12 @@ MetricTagKey = str
 
 # Internal representation of tags as a tuple of tuples (this is done in order to allow for the same key to exist
 # multiple times).
-MetricTagValueInternal = Union[str, int, float]
+MetricTagValueInternal = str
 MetricTagsInternal = Tuple[Tuple[MetricTagKey, MetricTagValueInternal], ...]
 
 # External representation of tags as a dictionary.
-MetricTagValueExternal = Union[str, int, float, List[Union[str, int, float]]]
+MetricTagValueExternal = Union[str, List[str], Tuple[str, ...]]
 MetricTagsExternal = Mapping[MetricTagKey, MetricTagValueExternal]
-
-# Key of the bucket.
-ComposedKey = Tuple[int, MetricType, str, MetricUnit, MetricTagsInternal]
 
 # Value of a metric that was extracted after bucketing.
 ExtractedMetricValue = Union[int, float, List[Union[int, float]]]
@@ -91,9 +89,21 @@ class ExtractedMetric(TypedDict):
     tags: NotRequired[MetricTagsInternal]
 
 
+class BucketKey(NamedTuple):
+    """
+    Key of the bucket.
+    """
+
+    timestamp: int
+    metric_type: MetricType
+    metric_key: str
+    metric_unit: MetricUnit
+    metric_tags: MetricTagsInternal
+
+
 class Metric(Generic[T]):
     @property
-    def current_complexity(self) -> int:
+    def weight(self) -> int:
         return 1
 
     def add(self, value: T) -> None:
@@ -120,22 +130,38 @@ class GaugeMetric(Metric[float]):
     __slots__ = ("min", "max", "sum", "count", "last")
 
     def __init__(self) -> None:
-        self.min = float("inf")
-        self.max = float("-inf")
+        self.last = 0.0
+        self.min = 0.0
+        self.max = 0.0
         self.sum = 0.0
-        self.count = 0.0
-        self.last = float("nan")
+        self.count = 0
+
+    @property
+    def weight(self) -> int:
+        # Number of elements.
+        return 5
 
     def add(self, value: float) -> None:
-        self.min = min(self.min, value)
-        self.max = max(self.max, value)
         self.last = value
-        self.count += 1
         self.sum += value
+        self.count += 1
+
+        # If we didn't have any value, we will initialize the min and max accordingly.
+        if self.count == 0.0:
+            self.min = value
+            self.max = value
+        else:
+            self.min = min(self.min, value)
+            self.max = max(self.max, value)
 
     def serialize_value(self) -> Any:
-        # For now, we compress gauges with the last value.
-        return self.last
+        return {
+            "last": self.last,
+            "min": self.min,
+            "max": self.max,
+            "sum": self.sum,
+            "count": self.count,
+        }
 
 
 class DistributionMetric(Metric[float]):
@@ -145,7 +171,7 @@ class DistributionMetric(Metric[float]):
         self.value: List[float] = []
 
     @property
-    def current_complexity(self) -> int:
+    def weight(self) -> int:
         return len(self.value)
 
     def add(self, value: float) -> None:
@@ -162,7 +188,7 @@ class SetMetric(Metric[Union[str, int]]):
         self.value: Set[Union[str, int]] = set()
 
     @property
-    def current_complexity(self) -> int:
+    def weight(self) -> int:
         return len(self.value)
 
     def add(self, value: Union[str, int]) -> None:
@@ -187,14 +213,20 @@ METRIC_TYPES: Dict[str, Callable[[], Metric[Any]]] = {
 
 class Aggregator:
     ROLLUP_IN_SECONDS = 10.0
-    MAX_COMPLEXITY = 100000
+    MAX_WEIGHT = 100000
 
     def __init__(self) -> None:
-        self.buckets: Dict[ComposedKey, Metric[Any]] = {}
-        self._bucket_complexity: int = 0
+        self.buckets: Dict[BucketKey, Metric[Any]] = {}
+        # Stores the total weight of the in-memory buckets. Weight is determined on a per metric type basis and
+        # represents how much weight is there to represent the metric (e.g., counter = 1, distribution = n).
+        self._buckets_total_weight: int = 0
+        # Lock protecting concurrent access to variables by the flusher and the calling threads that call add or stop.
         self._lock: Lock = Lock()
+        # Signals whether the loop of the flusher is running.
         self._running: bool = True
+        # Used to maintain synchronization between the flusher and external callers.
         self._flush_event: Event = Event()
+        # Use to signal whether we want to flush the buckets in the next loop iteration, irrespectively of the cutoff.
         self._force_flush: bool = False
         # Thread handling the flushing loop.
         self._flusher: Optional[Thread] = Thread(target=self._flush_loop)
@@ -212,7 +244,7 @@ class Aggregator:
     def _flush(self):
         with self._lock:
             cutoff = time.time() - self.ROLLUP_IN_SECONDS
-            complexity_to_remove = 0
+            weight_to_remove = 0
             buckets = self.buckets
             force_flush = self._force_flush
             flushed_buckets = set()
@@ -235,16 +267,16 @@ class Aggregator:
                 if tags:
                     extracted_metric["tags"] = tags
 
-                extracted_metrics.append((extracted_metric, metric.current_complexity))
+                extracted_metrics.append((extracted_metric, metric.weight))
                 flushed_buckets.add(bucket_key)
-                complexity_to_remove += metric.current_complexity
+                weight_to_remove += metric.weight
 
             # We remove all flushed buckets, in order to avoid memory leaks.
             for bucket_key in flushed_buckets:
                 buckets.pop(bucket_key)
 
             self._force_flush = False
-            self._bucket_complexity -= complexity_to_remove
+            self._buckets_total_weight -= weight_to_remove
 
         if extracted_metrics:
             self._emit(extracted_metrics, force_flush)
@@ -264,14 +296,14 @@ class Aggregator:
         if timestamp is None:
             timestamp = time.time()
 
-        bucket_key: ComposedKey = (
-            int((timestamp // self.ROLLUP_IN_SECONDS) * self.ROLLUP_IN_SECONDS),
-            ty,
-            key,
-            unit,
+        bucket_key = BucketKey(
+            timestamp=int((timestamp // self.ROLLUP_IN_SECONDS) * self.ROLLUP_IN_SECONDS),
+            metric_type=ty,
+            metric_key=key,
+            metric_unit=unit,
             # We have to convert tags into our own internal format, since we don't support lists as
             # tag values.
-            self._to_internal_metric_tags(tags),
+            metric_tags=self._to_internal_metric_tags(tags),
         )
 
         with self._lock:
@@ -280,11 +312,11 @@ class Aggregator:
                 metric = METRIC_TYPES[ty]()
                 self.buckets[bucket_key] = metric
 
-            # We first change the complexity by taking the old one and the new one.
-            previous_complexity = metric.current_complexity
+            # We first change the weight by taking the old one and the new one.
+            previous_weight = metric.weight
             metric.add(value)
-            self._bucket_complexity += metric.current_complexity - previous_complexity
-            # Given the new complexity we consider whether we want to force flush.
+            self._buckets_total_weight += metric.weight - previous_weight
+            # Given the new weight we consider whether we want to force flush.
             self.consider_force_flush()
 
     def stop(self):
@@ -302,8 +334,8 @@ class Aggregator:
         self._flusher = None
 
     def consider_force_flush(self):
-        total_complexity = len(self.buckets) + self._bucket_complexity
-        if total_complexity >= self.MAX_COMPLEXITY:
+        total_weight = len(self.buckets) + self._buckets_total_weight
+        if total_weight >= self.MAX_WEIGHT:
             self._force_flush = True
             self._flush_event.set()
 
@@ -311,6 +343,7 @@ class Aggregator:
     def _to_internal_metric_tags(cls, tags: Optional[MetricTagsExternal]) -> MetricTagsInternal:
         rv = []
         for key, value in (tags or {}).items():
+            # If the value is a collection, we want to flatten it.
             if isinstance(value, (list, tuple)):
                 for inner_value in value:
                     rv.append((key, inner_value))
@@ -322,30 +355,28 @@ class Aggregator:
 
     @classmethod
     def _emit(cls, extracted_metrics: List[Tuple[ExtractedMetric, int]], force_flush: bool) -> Any:
-        # We obtain the counts for each metric type of how many buckets we have and how much complexity is in each
+        # We obtain the counts for each metric type of how many buckets we have and how much weight is in each
         # bucket.
-        complexities_by_type: Dict[MetricType, Tuple[int, int]] = {}
+        stats_by_type: Dict[MetricType, Tuple[int, int]] = {}
 
-        for metric, metric_complexity in extracted_metrics:
+        for metric, weight in extracted_metrics:
             metric_type = metric["type"]
-            (prev_buckets_count, prev_buckets_complexity) = complexities_by_type.get(
-                metric_type, (0, 0)
-            )
-            complexities_by_type[metric_type] = (
+            (prev_buckets_count, prev_buckets_weight) = stats_by_type.get(metric_type, (0, 0))
+            stats_by_type[metric_type] = (
                 prev_buckets_count + 1,
-                prev_buckets_complexity + metric_complexity,
+                prev_buckets_weight + weight,
             )
 
-        for metric_type, (buckets_count, buckets_complexity) in complexities_by_type.items():
-            # We want to emit a metric on how many buckets and complexity there was for a metric type.
+        for metric_type, (buckets_count, buckets_weight) in stats_by_type.items():
+            # We want to emit a metric on how many buckets and weight there was for a metric type.
             cls._safe_emit_distribution_metric(
                 key="minimetrics.flushed_buckets",
                 value=buckets_count,
                 tags={"metric_type": metric_type, "force_flush": force_flush},
             )
             cls._safe_emit_distribution_metric(
-                key="minimetrics.flushed_buckets_complexity",
-                value=buckets_complexity,
+                key="minimetrics.flushed_buckets_weight",
+                value=buckets_weight,
                 tags={"metric_type": metric_type, "force_flush": force_flush},
             )
 
@@ -406,11 +437,12 @@ class MiniMetricsClient:
         self,
         key: str,
         value: Union[str, int],
+        unit: MetricUnit = None,
         tags: Optional[MetricTagsExternal] = None,
         timestamp: Optional[float] = None,
     ) -> None:
         if not self._is_in_minimetrics():
-            self.aggregator.add("s", key, value, None, tags, timestamp)
+            self.aggregator.add("s", key, value, unit, tags, timestamp)
 
     def gauge(
         self,
