@@ -4,6 +4,7 @@ import abc
 import time
 import uuid
 from datetime import datetime, timedelta, timezone
+from hashlib import md5
 from typing import Any
 from unittest import mock
 from unittest.mock import Mock, patch
@@ -1666,18 +1667,27 @@ class ReplayLinkageTestMixin(BasePostProgressGroupMixin):
             )
             assert kafka_producer.return_value.publish.call_count == 1
             assert kafka_producer.return_value.publish.call_args[0][0] == "ingest-replay-events"
-            assert json.loads(kafka_producer.return_value.publish.call_args[0][1]) == {
-                "type": "replay_event",
-                "timestamp": event.timestamp,
+
+            ret_value = json.loads(kafka_producer.return_value.publish.call_args[0][1])
+
+            assert ret_value["type"] == "replay_event"
+            assert ret_value["start_time"] == event.timestamp
+            assert ret_value["replay_id"] == replay_id
+            assert ret_value["project_id"] == self.project.id
+            assert ret_value["segment_id"] is None
+            assert ret_value["retention_days"] == 90
+
+            # convert ret_value_payload which is a list of bytes to a string
+            ret_value_payload = json.loads(bytes(ret_value["payload"]).decode("utf-8"))
+
+            assert ret_value_payload == {
+                "type": "event_link",
                 "replay_id": replay_id,
-                "project_id": self.project.id,
-                "segment_id": None,
-                "retention_days": 90,
-                "payload": {
-                    "replay_id": replay_id,
-                    "event_id": event.event_id,
-                },
+                "error_id": event.event_id,
+                "timestamp": int(event.datetime.timestamp() * 1000),
+                "event_hash": md5((replay_id + event.event_id).encode("utf-8")).hexdigest(),
             }
+
             incr.assert_any_call("post_process.process_replay_link.id_sampled")
             incr.assert_any_call("post_process.process_replay_link.id_exists")
 
