@@ -4,13 +4,20 @@ on:
     branches:
       - master
       - releases/**
-
 jobs:
   publish-sentry:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8 # v3.1.0
-
+      - name: Pull the test image
+        id: image_pull
+        env:
+          IMAGE_URL: us.gcr.io/sentryio/sentry:${{ github.sha }}
+        shell: bash
+        run: |
+          echo "We poll for the Docker image that the GCB/GHA build produces until it succeeds or this job times out."
+          echo "Polling for $IMAGE_URL"
+          timeout 20m bash -c 'until docker pull "$IMAGE_URL" 2>/dev/null; do sleep 10; done'
       - name: Get short SHA for docker tag
         id: short_sha
         shell: bash
