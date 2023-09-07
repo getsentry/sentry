@@ -956,7 +956,8 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
       this.props.organization.features.includes('noisy-alert-warning') &&
       !!rule &&
       !isSavedAlertRule(rule) &&
-      rule.conditions.length === 0
+      rule.conditions.length === 0 &&
+      rule.filters.length === 0
     );
   }
 

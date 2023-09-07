@@ -645,7 +645,7 @@ describe('ProjectAlertsCreate', function () {
     ).toBeInTheDocument();
   });
 
-  it('displays noisy alert checkbox for no coniditions', async function () {
+  it('displays noisy alert checkbox for no conditions + filters', async function () {
     const mock = MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/rules/',
       method: 'POST',
