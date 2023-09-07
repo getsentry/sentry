@@ -143,7 +143,7 @@ Retrieve a collection of user-feedback items.
 
 ### Create User Feedback [POST]
 
-Create a new user-feedback item.
+Create a new user-feedback item. This method is a subset of the Event protocol with an additional "feedback" object added. Within the feedback object are feedback related event metadata.
 
 - Request
 
@@ -151,13 +151,16 @@ Create a new user-feedback item.
   {
     "data": {
       "dist": "abc123",
-      "contact_email": "colton.allen@sentry.io",
       "environment": "production",
+      "feedback": {
+        "contact_email": "colton.allen@sentry.io",
+        "message": "I really like this user-feedback feature!",
+        "replay_id": "ec3b4dc8b79f417596f7a1aa4fcca5d2",
+        "url": "https://docs.sentry.io/platforms/javascript/"
+      },
       "id": "1ffe0775ac0f4417aed9de36d9f6f8dc",
-      "message": "I really like this user-feedback feature!",
       "platform": "javascript",
       "release": "version@1.3",
-      "replay_id": "ec3b4dc8b79f417596f7a1aa4fcca5d2",
       "request": {
         "headers": {
           "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36"
@@ -171,7 +174,6 @@ Create a new user-feedback item.
         "key": "value"
       },
       "timestamp": "2023-08-31T14:10:34.954048",
-      "url": "https://docs.sentry.io/platforms/javascript/",
       "user": {
         "email": "username@example.com",
         "id": "123",
