@@ -129,14 +129,15 @@ class OrganizationMissingMembersEndpoint(OrganizationEndpoint):
             if shared_domain:
                 queryset = queryset.filter(email__endswith=shared_domain)
 
-            query = request.GET.get("query")
-            if query:
-                tokens = tokenize_query(query)
-                if "query" in tokens:
-                    query_value = " ".join(tokens["query"])
-                    queryset = queryset.filter(
-                        Q(email__icontains=query_value) | Q(external_id__icontains=query_value)
-                    )
+            if queryset.exists():
+                query = request.GET.get("query")
+                if query:
+                    tokens = tokenize_query(query)
+                    if "query" in tokens:
+                        query_value = " ".join(tokens["query"])
+                        queryset = queryset.filter(
+                            Q(email__icontains=query_value) | Q(external_id__icontains=query_value)
+                        )
 
             missing_members_for_integration = {
                 "integration": integration_provider,
