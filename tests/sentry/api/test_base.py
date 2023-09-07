@@ -169,7 +169,7 @@ class EndpointTest(APITestCase):
         response.render()
 
         assert response.status_code == 200, response.content
-        assert response["Access-Control-Allow-Origin"] == "http://acme.example.com"
+        assert response["Access-Control-Allow-Origin"] == "http://example.com"
         assert response["Access-Control-Allow-Headers"] == (
             "X-Sentry-Auth, X-Requested-With, Origin, Accept, "
             "Content-Type, Authentication, Authorization, Content-Encoding, "
