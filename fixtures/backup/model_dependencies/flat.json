@@ -1,4 +1,5 @@
 {
+  "feedback.Feedback": [],
   "nodestore.Node": [],
   "replays.ReplayRecordingSegment": [],
   "sentry.Activity": [
@@ -60,7 +61,6 @@
     "sentry.Organization"
   ],
   "sentry.ArtifactBundleFlatFileIndex": [
-    "sentry.File",
     "sentry.Project"
   ],
   "sentry.ArtifactBundleIndex": [

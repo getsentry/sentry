@@ -376,36 +376,37 @@ INSTALLED_APPS: tuple[str, ...] = (
     "django.contrib.messages",
     "django.contrib.sessions",
     "django.contrib.sites",
+    "django.contrib.staticfiles",
     "drf_spectacular",
     "crispy_forms",
     "rest_framework",
     "sentry",
     "sentry.analytics",
-    "sentry.incidents.apps.Config",
-    "sentry.discover",
     "sentry.analytics.events",
-    "sentry.nodestore",
+    "sentry.auth.providers.google.apps.Config",
+    "sentry.auth.providers.fly.apps.Config",
+    "sentry.discover",
+    "sentry.eventstream",
+    "sentry.incidents.apps.Config",
+    "sentry.issues.apps.Config",
+    "sentry.lang.java.apps.Config",
+    "sentry.lang.javascript.apps.Config",
     "sentry.monitors",
+    "sentry.nodestore",
+    "sentry.plugins.sentry_interface_types.apps.Config",
+    "sentry.plugins.sentry_urls.apps.Config",
+    "sentry.plugins.sentry_useragents.apps.Config",
+    "sentry.plugins.sentry_webhooks.apps.Config",
     "sentry.replays",
     "sentry.release_health",
     "sentry.search",
     "sentry.sentry_metrics.indexer.postgres.apps.Config",
     "sentry.snuba",
-    "sentry.lang.java.apps.Config",
-    "sentry.lang.javascript.apps.Config",
-    "sentry.plugins.sentry_interface_types.apps.Config",
-    "sentry.plugins.sentry_urls.apps.Config",
-    "sentry.plugins.sentry_useragents.apps.Config",
-    "sentry.plugins.sentry_webhooks.apps.Config",
+    "sentry.feedback",
     "sentry.utils.suspect_resolutions.apps.Config",
     "sentry.utils.suspect_resolutions_releases.apps.Config",
     "social_auth",
     "sudo",
-    "sentry.eventstream",
-    "sentry.auth.providers.google.apps.Config",
-    "sentry.auth.providers.fly.apps.Config",
-    "django.contrib.staticfiles",
-    "sentry.issues.apps.Config",
 )
 
 # Silence internal hints from Django's system checks
@@ -1509,7 +1510,7 @@ SENTRY_FEATURES = {
     # Enable Discord integration notifications
     "organizations:integrations-discord-notifications": False,
     # Enable Opsgenie integration
-    "organizations:integrations-opsgenie": False,
+    "organizations:integrations-opsgenie": True,
     # Enable one-click migration from Opsgenie plugin
     "organizations:integrations-opsgenie-migration": False,
     # Limit project events endpoint to only query back a certain number of days
@@ -1735,6 +1736,10 @@ SENTRY_FEATURES = {
     "organizations:notification-settings-v2": False,
     # Enable new release UI
     "organizations:release-ui-v2": False,
+    # Enable User Feedback v2 ingest
+    "organizations:user-feedback-ingest": False,
+    # Enable User Feedback v2 UI
+    "organizations:user-feedback-ui": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
@@ -1745,6 +1750,8 @@ SENTRY_FEATURES = {
     "organizations:sourcemaps-upload-release-as-artifact-bundle": False,
     # Signals that the organization supports the on demand metrics prefill.
     "organizations:on-demand-metrics-prefill": False,
+    # Excludes measurement config from project config builds.
+    "organizations:projconfig-exclude-measurements": False,
     # Enable data forwarding functionality for projects.
     "projects:data-forwarding": True,
     # Enable functionality to discard groups.
@@ -3290,6 +3297,7 @@ MIGRATIONS_LOCKFILE_APP_WHITELIST = (
     "replays",
     "sentry",
     "social_auth",
+    "feedback",
 )
 # Where to write the lockfile to.
 MIGRATIONS_LOCKFILE_PATH = os.path.join(PROJECT_ROOT, os.path.pardir, os.path.pardir)
