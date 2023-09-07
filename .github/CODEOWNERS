@@ -292,6 +292,15 @@ yarn.lock                                                @getsentry/owners-js-de
 ## End of Replays
 
 
+## Feedback v2
+/static/app/components/feedback/   @getsentry/feedback-frontend
+/static/app/utils/feedback/        @getsentry/feedback-frontend
+/static/app/views/feedback/        @getsentry/feedback-frontend
+/src/sentry/feedback/              @getsentry/feedback-backend
+/tests/sentry/feedback/            @getsentry/feedback-backend
+## End of Feedback v2
+
+
 ## Integrations
 /src/sentry/api/endpoints/integrations/                              @getsentry/issues
 /src/sentry/api/endpoints/project_stacktrace_link.py                 @getsentry/issues
