@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import datetime
 
-from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -18,8 +17,10 @@ from sentry.api.authentication import (
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.bases.project import ProjectPermission
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.serializers.base import serialize
 from sentry.constants import ObjectStatus
 from sentry.feedback.models import Feedback
+from sentry.feedback.serializers import FeedbackSerializer
 from sentry.models import Organization, ProjectKey
 from sentry.models.project import Project
 from sentry.utils.sdk import bind_organization_context, configure_scope
@@ -57,7 +58,7 @@ class FeedbackValidator(serializers.Serializer):
             "request": data["request"],
         }
         ret["date_added"] = datetime.datetime.fromtimestamp(data["timestamp"])
-        ret["event_id"] = data["event_id"]
+        ret["feedback_id"] = data["event_id"]
         ret["url"] = ""
         ret["project_id"] = self.context.get("project").id
         ret["replay_id"] = ""
@@ -76,7 +77,6 @@ class ProjectMonitorPermission(ProjectPermission):
 
 
 @region_silo_endpoint
-@extend_schema(tags=["Replays"])
 class OrganizationFeedbackIndexEndpoint(Endpoint):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
@@ -139,8 +139,9 @@ class OrganizationFeedbackIndexEndpoint(Endpoint):
         kwargs["project"] = project
         return args, kwargs
 
-    def get(self, request: Request, organization: Organization) -> Response:
-        pass
+    def get(self, request: Request, organization: Organization, project: Project) -> Response:
+        feedback_list = Feedback.objects.filter(project_id=project.id)
+        return Response(serialize(list(feedback_list), request.user, FeedbackSerializer()))
 
     def post(self, request: Request, organization: Organization, project: Project) -> Response:
         feedback_validator = FeedbackValidator(data=request.data, context={"project": project})
