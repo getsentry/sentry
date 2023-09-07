@@ -62,26 +62,22 @@ function InteractionsLandingPage() {
       </Layout.Header>
 
       <Layout.Body>
-        <Layout.Main fullWidth />
+        <Layout.Main fullWidth>
+          <PaddedContainer>
+            <PageFilterBar condensed>
+              <ProjectPageFilter />
+              <DatePageFilter alignDropdown="left" />
+            </PageFilterBar>
+          </PaddedContainer>
 
-        <PaddedContainer>
-          <PageFilterBar condensed>
-            <ProjectPageFilter />
-            <DatePageFilter alignDropdown="left" />
-          </PageFilterBar>
-        </PaddedContainer>
+          <FilterOptionsContainer>
+            <ComponentSelector value={filters[COMPONENT] || ''} />
+            <ActionSelector value={filters[SPAN_ACTION] || ''} />
+            <PageSelector value={filters[PAGE] || ''} />
+          </FilterOptionsContainer>
 
-        <div />
-
-        <FilterOptionsContainer>
-          <ComponentSelector value={filters[COMPONENT] || ''} />
-          <ActionSelector value={filters[SPAN_ACTION] || ''} />
-          <PageSelector value={filters[PAGE] || ''} />
-        </FilterOptionsContainer>
-
-        <div />
-
-        <InteractionsTable sort={sort} />
+          <InteractionsTable sort={sort} />
+        </Layout.Main>
       </Layout.Body>
     </ModulePageProviders>
   );

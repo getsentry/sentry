@@ -92,7 +92,6 @@ function InteractionsTable({sort}: Props) {
         }}
         location={location}
       />
-      <div />
       <Pagination pageLinks={pageLinks} />
     </Fragment>
   );

@@ -4,7 +4,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 
 type Query = {
-  [QueryParameterNames.INTERACTIONS_SORT]?: string;
+  sort?: string;
 };
 
 const SORTABLE_FIELDS = ['count()', 'p75(transaction.duration)', 'transaction'] as const;
