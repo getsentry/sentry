@@ -28,7 +28,7 @@ def wait_for_topics(admin_client: AdminClient, topics: List[str], timeout: int =
                     f"Timeout when waiting for Kafka topic '{topic}' to become available, last error: {last_error}"
                 )
 
-            result = admin_client.list_topics(topic=topic)
+            result = admin_client.list_topics(topic=topic, timeout=timeout)
             topic_metadata = result.topics.get(topic)
             if topic_metadata and topic_metadata.partitions and not topic_metadata.error:
                 logger.debug("Topic '%s' is ready", topic)
