@@ -3,6 +3,7 @@ pytest_plugins = [
     "sentry.testutils.pytest.sentry",
     "sentry.testutils.pytest.selenium",
     "sentry.testutils.pytest.fixtures",
+    "sentry.testutils.pytest.devservices",
     "sentry.testutils.pytest.unittest",
     "sentry.testutils.pytest.kafka",
     "sentry.testutils.pytest.relay",

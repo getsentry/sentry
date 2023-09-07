@@ -86,7 +86,7 @@ def load_fixture(name):
 
 class SymbolicatorResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
     @pytest.fixture(autouse=True)
-    def initialize(self, live_server):
+    def initialize(self, common_devservices_healthcheck, symbolicator_healthcheck, live_server):
         self.project.update_option("sentry:builtin_symbol_sources", [])
         self.min_ago = iso_format(before_now(minutes=1))
 

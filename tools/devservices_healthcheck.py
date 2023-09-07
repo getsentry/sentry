@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import logging
 import os
 import subprocess
 import time
@@ -8,11 +9,15 @@ from collections.abc import Sequence
 from typing import Callable
 
 
+class HealthcheckError(Exception):
+    pass
+
+
 class HealthCheck:
     id: str
     container_name: str
     check_by_default: bool
-    check: Callable[[], None] | None
+    check: Callable[[], None]
     deps: list[str]
 
     def __init__(self, id, container_name, check_by_default, check=None, deps=None):
@@ -29,21 +34,18 @@ class HealthCheck:
             text=True,
         )
         if response.stdout.strip() != "'running'":
-            raise SystemError(
-                f"Container '{self.container_name}' is not running. Try 'sentry devservices up {self.id}' to start it"
-            )
+            raise HealthcheckError(f"Container '{self.container_name}' is not running.")
 
 
 def check_zookeeper():
-    ruok = subprocess.Popen(("echo", "ruok"), stdout=subprocess.PIPE)
     response = subprocess.run(
-        ("nc", "127.0.0.1", "2181"),
-        stdin=ruok.stdout,
+        ("echo ruok | nc 127.0.0.1 2181"),
+        shell=True,
         capture_output=True,
         text=True,
     )
     if response.stdout != "imok":
-        raise SystemError(f"Zookeeper is not healthy. Response: {response.stdout}")
+        raise HealthcheckError(f"Zookeeper is not healthy. Response: {response.stdout}")
 
 
 def check_kafka():
@@ -76,6 +78,11 @@ all_service_healthchecks = {
             ["docker", "exec", "sentry_postgres", "pg_isready", "-U", "postgres"], check=True
         ),
     ),
+    "redis": HealthCheck(
+        "redis",
+        "sentry_redis",
+        True,
+    ),
     "kafka": HealthCheck(
         "kafka",
         "sentry_kafka",
@@ -92,35 +99,71 @@ all_service_healthchecks = {
     "symbolicator": HealthCheck(
         "symbolicator",
         "sentry_symbolicator",
-        True,
+        False,
     ),
 }
 
 
-def run_with_retries(cmd: Callable[[], None], retries: int = 3, timeout: int = 5) -> None:
+def run_with_retries(cmd: Callable[[], None], retries: int, timeout: int) -> None:
     for retry in range(1, retries + 1):
         try:
             cmd()
         except Exception as e:
             if retry == retries:
-                print(e)
+                print(f"Command failed, no more retries: {e}")
+                raise HealthcheckError(f"Command failed: {e}")
             else:
                 print(f"Command failed, retrying in {timeout}s (attempt {retry+1} of {retries})...")
                 time.sleep(timeout)
         else:
             return
 
-    raise SystemExit(1)
 
+def get_services_to_check(id: str) -> list[str]:
+    if all_service_healthchecks.get(id) is None:
+        raise HealthcheckError(f"Service '{id}' does not have a health check")
 
-def check_health(id: str) -> None:
+    checks = []
     hc = all_service_healthchecks[id]
-    print(f"Checking {hc.container_name} is running...")
-    run_with_retries(hc.check_container)
+    for dep in hc.deps:
+        dep_checks = get_services_to_check(dep)
+        for d in dep_checks:
+            checks.append(d)
+    checks.append(id)
+    return checks
 
-    if hc.check is not None:
-        print(f"Checking {hc.container_name} container health...")
-        run_with_retries(hc.check)
+
+def check_health(ids: list[str], retries: int = 3, timeout: int = 5) -> None:
+    checks = []
+    for id in ids:
+        s = get_services_to_check(id)
+        checks += s
+
+    # dict.fromkeys is used to remove duplicates while maintaining order
+    for name in dict.fromkeys(checks):
+        print(f"Checking service {name}")
+        hc = all_service_healthchecks[name]
+        print(f"Checking '{hc.container_name}' is running...")
+        ls = " ".join(list(set(checks)))
+        try:
+            run_with_retries(hc.check_container, retries, timeout)
+        except HealthcheckError:
+            raise HealthcheckError(
+                f"Container '{hc.container_name}' is not running.\n"
+                + f"    Start service: sentry devservices up {hc.id}\n"
+                + f"    Restart all services: sentry devservices down {ls} && sentry devservices up {ls}"
+            )
+
+        if hc.check is not None:
+            print(f"Checking '{hc.container_name}' container health...")
+            try:
+                run_with_retries(hc.check, retries, timeout)
+            except HealthcheckError:
+                raise HealthcheckError(
+                    f"Container '{hc.container_name}' does not appear to be healthy.\n"
+                    + f"    Restart service: sentry devservices down {hc.id} && sentry devservices up {hc.id}\n"
+                    + f"    Restart all services: sentry devservices down {ls} && sentry devservices up {ls}"
+                )
 
 
 def main(argv: Sequence[str] | None = None) -> None:
@@ -131,29 +174,23 @@ def main(argv: Sequence[str] | None = None) -> None:
         help="The services you wish to check on. Defaults to all services.",
     )
 
+    logging.basicConfig(level=logging.INFO)
+
     args = parser.parse_args(argv)
     services = args.service
 
-    print(f"Checking services: {services}")
+    healthchecks = services
+    if healthchecks is None:
+        healthchecks = []
+        for k in all_service_healthchecks:
+            if all_service_healthchecks[k].check_by_default:
+                healthchecks.append(k)
 
-    healthchecks = []
-    for k in all_service_healthchecks:
-        s = all_service_healthchecks[k]
-        check = False
-        if services is None:
-            check = s.check_by_default
-        else:
-            check = k in services
-
-        if not check:
-            continue
-
-        for dep in s.deps:
-            healthchecks.append(dep)
-        healthchecks.append(s.id)
-
-    for hc in healthchecks:
-        check_health(hc)
+    try:
+        check_health(healthchecks)
+    except HealthcheckError as e:
+        print(e)
+        raise SystemExit(1)
 
 
 if __name__ == "__main__":

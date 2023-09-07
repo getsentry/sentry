@@ -34,7 +34,7 @@ def get_unreal_crash_apple_file():
 
 class SymbolicatorUnrealIntegrationTest(RelayStoreHelper, TransactionTestCase):
     @pytest.fixture(autouse=True)
-    def initialize(self, live_server):
+    def initialize(self, common_devservices_healthcheck, symbolicator_healthcheck, live_server):
         self.project.update_option("sentry:builtin_symbol_sources", [])
 
         with patch("sentry.auth.system.is_internal_ip", return_value=True), self.options(

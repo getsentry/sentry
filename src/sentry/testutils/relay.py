@@ -174,7 +174,6 @@ class RelayStoreHelper(RequiredBaseclass):
         get_relay_attachments_url,
         wait_for_ingest_consumer,
     ):
-        print("<--------------------------- relay_setup_fixtures start")
         self.auth_header = get_auth_header(
             "TEST_USER_AGENT/0.0.0",
             self.projectkey.public_key,
@@ -187,6 +186,4 @@ class RelayStoreHelper(RequiredBaseclass):
         self.get_relay_unreal_url = get_relay_unreal_url
         self.get_relay_security_url = get_relay_security_url
         self.get_relay_attachments_url = get_relay_attachments_url
-        print("<--------------------------- relay_setup_fixtures middle")
         self.wait_for_ingest_consumer = wait_for_ingest_consumer(settings)
-        print("<--------------------------- relay_setup_fixtures end")

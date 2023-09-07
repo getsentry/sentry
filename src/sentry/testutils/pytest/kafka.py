@@ -51,7 +51,6 @@ class _KafkaAdminWrapper:
 
 @pytest.fixture
 def kafka_admin(request):
-    print("<-------------- kafka admin")
     """
     A fixture representing a simple wrapper over the admin interface
     :param request: the pytest request
@@ -91,8 +90,7 @@ def kafka_topics_setter():
 
 
 @pytest.fixture(scope="session")
-def scope_consumers():
-    print("<-------------- scope consumers")
+def scope_consumers(kafka_healthcheck):
     """
     Sets up an object to keep track of the scope consumers ( consumers that will only
     be created once per test session).
@@ -119,7 +117,6 @@ def scope_consumers():
 
 @pytest.fixture(scope="function")
 def session_ingest_consumer(scope_consumers, kafka_admin, task_runner):
-    print("<-------------- session ingest consumer")
     """
     Returns a factory for a session ingest consumer.
 
@@ -144,14 +141,10 @@ def session_ingest_consumer(scope_consumers, kafka_admin, task_runner):
         if scope_consumers[topic_event_name] is not None:
             # reuse whatever was already created (will ignore the settings)
             return scope_consumers[topic_event_name]
-        print(f"<------------ ingest_consumer() 1")
         # first time the consumer is requested, create it using settings
         admin = kafka_admin(settings)
-        print(f"<------------ ingest_consumer() 2")
         admin.delete_topic(topic_event_name)
-        print(f"<------------ ingest_consumer() 3")
         create_topics(cluster_name, [topic_event_name])
-        print(f"<------------ ingest_consumer() 4")
 
         # simulate the event ingestion task
         group_id = "test-consumer"
@@ -169,10 +162,8 @@ def session_ingest_consumer(scope_consumers, kafka_admin, task_runner):
             force_topic=topic_event_name,
             force_cluster=cluster_name,
         )
-        print(f"<------------ ingest_consumer() 5")
 
         scope_consumers[topic_event_name] = consumer
-        print(f"<------------ ingest_consumer() 6")
         return consumer
 
     return ingest_consumer
@@ -180,7 +171,6 @@ def session_ingest_consumer(scope_consumers, kafka_admin, task_runner):
 
 @pytest.fixture(scope="function")
 def wait_for_ingest_consumer(session_ingest_consumer, task_runner):
-    print("<-------------- wait for ingest consumer")
     """
     Returns a function that can be used to create a wait loop for the ingest consumer
 
@@ -200,9 +190,7 @@ def wait_for_ingest_consumer(session_ingest_consumer, task_runner):
     """
 
     def factory(settings, **kwargs):
-        print("<-------------- wait for ingest consumer FACTORY")
         consumer = session_ingest_consumer(settings, **kwargs)
-        print("<-------------- Got consumer.....")
 
         def waiter(exit_predicate, max_time=MAX_SECONDS_WAITING_FOR_EVENT):
             """
@@ -213,21 +201,14 @@ def wait_for_ingest_consumer(session_ingest_consumer, task_runner):
             :return: the first non None result returned by the exit predicate or None if the
                 max time has expired without the exit predicate returning a non None value
             """
-            print("<--------------------- Outside of task runner?")
             start_wait = time.time()
             with task_runner():
-                print("<--------------------- Outside of loop?")
                 while time.time() - start_wait < max_time:
-                    print("<--------------------- Start of loop?")
                     consumer._run_once()
                     # check if the condition is satisfied
                     val = exit_predicate()
                     if val is not None:
                         return val  # we got what we were waiting for stop looping
-                    else:
-                        print(
-                            f"<--------------------- Didn't get a consumer event yet, waiting... {time.time() - start_wait} < {max_time}"
-                        )
 
             _log.warning(
                 "Ingest consumer waiter timed-out after %d seconds", time.time() - start_wait

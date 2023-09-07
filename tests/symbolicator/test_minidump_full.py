@@ -28,10 +28,10 @@ from tests.symbolicator import insta_snapshot_native_stacktrace_data, redact_loc
 
 @pytest.mark.snuba
 class SymbolicatorMinidumpIntegrationTest(RelayStoreHelper, TransactionTestCase):
-    """
     @pytest.fixture(autouse=True)
-    def initialize(self, live_server, reset_snuba):
-        print("initialize")
+    def initialize(
+        self, common_devservices_healthcheck, symbolicator_healthcheck, live_server, reset_snuba
+    ):
         self.project.update_option("sentry:builtin_symbol_sources", [])
 
         with patch("sentry.auth.system.is_internal_ip", return_value=True), self.options(
@@ -73,12 +73,7 @@ class SymbolicatorMinidumpIntegrationTest(RelayStoreHelper, TransactionTestCase)
         "organizations:symbol-sources": False,
         "organizations:custom-symbol-sources": False,
     }
-    """
 
-    def test_matt(self):
-        print("Hello Matt.")
-
-    """
     def test_full_minidump(self):
         self.project.update_option("sentry:store_crash_reports", STORE_CRASH_REPORTS_ALL)
         self.upload_symbols()
@@ -217,4 +212,3 @@ class SymbolicatorMinidumpIntegrationTest(RelayStoreHelper, TransactionTestCase)
 
         thread_name = get_path(event.data, "threads", "values", 1, "name")
         assert thread_name == "sentry-http"
-    """
