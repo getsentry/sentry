@@ -181,6 +181,7 @@ function isSavedAlertRule(rule: State['rule']): rule is IssueAlertRule {
 class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
   pollingTimeout: number | undefined = undefined;
   trackIncompatibleAnalytics: boolean = false;
+  trackNoisyWarningViewed: boolean = false;
   isUnmounted = false;
 
   get isDuplicateRule(): boolean {
@@ -805,15 +806,26 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
   };
 
   handleDeleteRow = (type: ConditionOrActionProperty, idx: number) => {
-    this.setState(prevState => {
-      const clonedState = cloneDeep(prevState);
+    this.setState(
+      prevState => {
+        const clonedState = cloneDeep(prevState);
 
-      const newTypeList = prevState.rule ? [...prevState.rule[type]] : [];
-      newTypeList.splice(idx, 1);
+        const newTypeList = prevState.rule ? [...prevState.rule[type]] : [];
+        newTypeList.splice(idx, 1);
 
-      set(clonedState, `rule[${type}]`, newTypeList);
-      return clonedState;
-    });
+        set(clonedState, `rule[${type}]`, newTypeList);
+        return clonedState;
+      },
+      () => {
+        // After the row has been removed, check if warning is shown
+        if (this.displayNoConditionsWarning() && !this.trackNoisyWarningViewed) {
+          this.trackNoisyWarningViewed = true;
+          trackAnalytics('alert_builder.noisy_warning_viewed', {
+            organization: this.props.organization,
+          });
+        }
+      }
+    );
   };
 
   handleAddCondition = (template: IssueAlertRuleActionTemplate) =>
@@ -873,12 +885,7 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
     );
   }
 
-  getTeamId = () => {
-    const {rule} = this.state;
-    const owner = rule?.owner;
-    // ownership follows the format team:<id>, just grab the id
-    return owner && owner.split(':')[1];
-  };
+  getTeamId = () => {};
 
   handleOwnerChange = ({value}: {value: string}) => {
     const ownerValue = value && `team:${value}`;
@@ -988,6 +995,11 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
               checked={acceptedNoisyAlert}
               onChange={() => {
                 this.setState({acceptedNoisyAlert: !acceptedNoisyAlert});
+                if (!acceptedNoisyAlert) {
+                  trackAnalytics('alert_builder.noisy_warning_agreed', {
+                    organization: this.props.organization,
+                  });
+                }
               }}
               disabled={disabled}
             />

@@ -658,6 +658,10 @@ describe('ProjectAlertsCreate', function () {
     expect(
       screen.getByText(/Alerts without conditions can fire too frequently/)
     ).toBeInTheDocument();
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'alert_builder.noisy_warning_viewed',
+      expect.anything()
+    );
 
     await userEvent.click(screen.getByText('Save Rule'));
 
@@ -669,5 +673,9 @@ describe('ProjectAlertsCreate', function () {
     await userEvent.click(screen.getByText('Save Rule'));
 
     expect(mock).toHaveBeenCalled();
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'alert_builder.noisy_warning_agreed',
+      expect.anything()
+    );
   });
 });
