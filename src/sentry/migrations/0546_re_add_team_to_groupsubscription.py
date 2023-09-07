@@ -36,6 +36,13 @@ class Migration(CheckedMigration):
             name="groupsubscription",
             unique_together={("group", "team"), ("group", "user_id")},
         ),
+        migrations.AlterField(
+            model_name="groupsubscription",
+            name="user_id",
+            field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
+                "sentry.User", db_index=True, null=True, on_delete="CASCADE"
+            ),
+        ),
         migrations.AddConstraint(
             model_name="groupsubscription",
             constraint=models.CheckConstraint(
