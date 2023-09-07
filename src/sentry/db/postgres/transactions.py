@@ -105,9 +105,9 @@ def in_test_assert_no_transaction(msg: str):
 @contextlib.contextmanager
 def enforce_constraints(transaction: Atomic):
     """
-    nested transaction in django do not check constraints by default, meaning IntegrityErrors can 'float' to callers
+    Nested transaction in Django do not check constraints by default, meaning IntegrityErrors can 'float' to callers
     of functions that happen to wrap with additional transaction scopes.  Using this context manager around a transaction
-    will force constraints to be checked at the en of that transaction (or savepoint) even if it happens to be nested,
+    will force constraints to be checked at the end of that transaction (or savepoint) even if it happens to be nested,
     allowing you to handle the IntegrityError correctly.
     """
     with transaction:
