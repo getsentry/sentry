@@ -140,7 +140,7 @@ class GetOrganizationMemberTest(OrganizationMemberTestBase):
         assert role_ids == ["contributor", "admin"]
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMixin):
     method = "put"
 
@@ -262,7 +262,10 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
     def test_reinvite_sso_link(self):
         member = self.create_user("bar@example.com")
         member_om = self.create_member(organization=self.organization, user=member, role="member")
-        AuthProvider.objects.create(organization_id=self.organization.id, provider="dummy", flags=1)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            AuthProvider.objects.create(
+                organization_id=self.organization.id, provider="dummy", flags=1
+            )
 
         with self.tasks():
             self.get_success_response(self.organization.slug, member_om.id, reinvite=1)
@@ -524,8 +527,9 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
             scopes=("member:admin",),
             webhook_url="http://example.com",
         )
-        # there should only be one record created so just grab the first one
-        token = SentryAppInstallationToken.objects.first()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            # there should only be one record created so just grab the first one
+            token = SentryAppInstallationToken.objects.first()
 
         response = self.client.put(
             reverse(self.endpoint, args=[self.organization.slug, member_om.id]),
@@ -540,7 +544,7 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
         assert response.status_code == 400
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class DeleteOrganizationMemberTest(OrganizationMemberTestBase):
     method = "delete"
 
@@ -560,22 +564,24 @@ class DeleteOrganizationMemberTest(OrganizationMemberTestBase):
         org = self.create_organization()
         project2 = self.create_project(organization=org)
         member = self.create_user("ahmed@ahmed.io")
-        u1 = UserOption.objects.create(
-            user=member, project_id=self.project.id, key="mail:email", value="ahmed@ahmed.io"
-        )
-        u2 = UserOption.objects.create(
-            user=member, project_id=project2.id, key="mail:email", value="ahmed@ahmed.io"
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            u1 = UserOption.objects.create(
+                user=member, project_id=self.project.id, key="mail:email", value="ahmed@ahmed.io"
+            )
+            u2 = UserOption.objects.create(
+                user=member, project_id=project2.id, key="mail:email", value="ahmed@ahmed.io"
+            )
 
         member_om = self.create_member(organization=self.organization, user=member, role="member")
 
         self.get_success_response(self.organization.slug, member_om.id)
 
         assert not OrganizationMember.objects.filter(id=member_om.id).exists()
-        assert not UserOption.objects.filter(id=u1.id).exists()
-        # Ensure that `UserOption` for a user in a different org does not get deleted when that
-        # same member is deleted from another org
-        assert UserOption.objects.filter(id=u2.id).exists()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert not UserOption.objects.filter(id=u1.id).exists()
+            # Ensure that `UserOption` for a user in a different org does not get
+            # deleted when that same member is deleted from another org
+            assert UserOption.objects.filter(id=u2.id).exists()
 
     def test_invalid_id(self):
         member = self.create_user("bar@example.com")
