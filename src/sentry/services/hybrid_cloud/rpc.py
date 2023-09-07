@@ -336,6 +336,24 @@ class RpcService(abc.ABC):
         raise NotImplementedError
 
     @classmethod
+    def get_replicated_implementation(cls) -> RpcService | None:
+        """Return a service object that reads replicated data.
+
+        A base service class may override this class method to return an instance
+        that is backed by replicated data. That instance is a partial implementation
+        to be used on the remote silo, overriding any methods tagged with
+        `@rpc_method` that should be implemented by reading replicated data rather
+        than making a remote call. Any remaining RPC methods will automatically
+        receive remote implementations.
+
+        TODO: Consider changing nomenclature of `@rpc_method` decorator to indicate
+              that some of them aren't backed by RPCs at all (which affects rules about
+              whether they can be invoked inside a local DB transaction)
+        """
+
+        return None
+
+    @classmethod
     def _create_signatures(cls) -> Mapping[str, RpcMethodSignature]:
         model_table = {}
         for base_method in cls._get_all_rpc_methods():
@@ -420,11 +438,13 @@ class RpcService(abc.ABC):
 
             return remote_method
 
-        overrides = {
+        replicated_impl = cls.get_replicated_implementation()
+        base_class = cls if replicated_impl is None else type(replicated_impl)
+        rpc_overrides = {
             service_method.__name__: create_remote_method(service_method.__name__)
-            for service_method in cls._get_abstract_rpc_methods()
+            for service_method in base_class._get_abstract_rpc_methods()
         }
-        remote_service_class = type(f"{cls.__name__}__RemoteDelegate", (cls,), overrides)
+        remote_service_class = type(f"{cls.__name__}__RemoteDelegate", (base_class,), rpc_overrides)
         return cast(RpcService, remote_service_class())
 
     @classmethod

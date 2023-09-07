@@ -29,7 +29,7 @@ from sentry.services.hybrid_cloud.region import (
     RequireSingleOrganization,
     UnimplementedRegionResolution,
 )
-from sentry.services.hybrid_cloud.rpc import RpcService, regional_rpc_method
+from sentry.services.hybrid_cloud.rpc import RpcService, regional_rpc_method, rpc_method
 from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.silo import SiloMode
 
@@ -44,9 +44,22 @@ class OrganizationService(RpcService):
 
         return DatabaseBackedOrganizationService()
 
+    @classmethod
+    def get_replicated_implementation(cls) -> RpcService | None:
+        from sentry.services.hybrid_cloud.organization.impl import (
+            ReplicationBackedOrganizationService,
+        )
+
+        return ReplicationBackedOrganizationService()
+
     def get(self, id: int) -> Optional[RpcOrganization]:
         org_context = self.get_organization_by_id(id=id)
         return org_context.organization if org_context else None
+
+    @rpc_method
+    @abstractmethod
+    def get_slug_by_id(self, id: int) -> str | None:
+        """Silly example to illustrate replicated implementation. TODO: Remove"""
 
     @regional_rpc_method(resolve=ByOrganizationId("id"))
     @abstractmethod

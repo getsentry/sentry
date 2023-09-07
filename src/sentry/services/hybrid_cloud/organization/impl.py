@@ -20,6 +20,7 @@ from sentry.models import (
     GroupShare,
     GroupSubscription,
     Organization,
+    OrganizationMapping,
     OrganizationMember,
     OrganizationMemberTeam,
     OrganizationStatus,
@@ -608,6 +609,22 @@ class DatabaseBackedOrganizationService(OrganizationService):
         args: Mapping[str, str | int | None],
     ) -> None:
         signal.signal.send_robust(None, organization_id=organization_id, **args)
+
+    def get_slug_by_id(self, id: int) -> str | None:
+        try:
+            org = Organization.objects.get(organization_id=id)
+        except Organization.DoesNotExist:
+            return None
+        return org.slug
+
+
+class ReplicationBackedOrganizationService(OrganizationService):
+    def get_slug_by_id(self, id: int) -> str | None:
+        try:
+            mapping = OrganizationMapping.objects.get(organization_id=id)
+        except OrganizationMapping.DoesNotExist:
+            return None
+        return mapping.slug
 
 
 class OutboxBackedOrganizationSignalService(OrganizationSignalService):
