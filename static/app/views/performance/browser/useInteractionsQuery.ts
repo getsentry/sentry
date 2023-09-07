@@ -3,7 +3,10 @@ import EventView from 'sentry/utils/discover/eventView';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {useBrowserModuleFilters} from 'sentry/views/performance/browser/useBrowserFilters';
+import {
+  BrowserStarfishFields,
+  useBrowserModuleFilters,
+} from 'sentry/views/performance/browser/useBrowserFilters';
 import {ValidSort} from 'sentry/views/performance/browser/useBrowserSort';
 
 export const useInteractionsQuery = ({sort}: {sort: ValidSort}) => {
@@ -15,6 +18,9 @@ export const useInteractionsQuery = ({sort}: {sort: ValidSort}) => {
     'has:interactionElement',
     browserFilters.page ? `transaction:"${browserFilters.page}"` : '',
     browserFilters.component ? `interactionElement:"${browserFilters.component}"` : '',
+    browserFilters['transaction.op']
+      ? `transaction.op:"${browserFilters[BrowserStarfishFields.TRANSACTION_OP]}"`
+      : '',
   ];
 
   // TODO - we should be using metrics data here

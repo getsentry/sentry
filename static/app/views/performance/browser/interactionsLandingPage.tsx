@@ -25,7 +25,7 @@ import {useInteractionElementQuery} from 'sentry/views/performance/browser/useIn
 import {usePagesQuery} from 'sentry/views/performance/browser/usePageQuery';
 import {ModulePageProviders} from 'sentry/views/performance/database/modulePageProviders';
 
-const {COMPONENT, PAGE, SPAN_ACTION} = BrowserStarfishFields;
+const {COMPONENT, PAGE, TRANSACTION_OP} = BrowserStarfishFields;
 
 type Option = {
   label: string;
@@ -72,7 +72,7 @@ function InteractionsLandingPage() {
 
           <FilterOptionsContainer>
             <ComponentSelector value={filters[COMPONENT] || ''} />
-            <ActionSelector value={filters[SPAN_ACTION] || ''} />
+            <ActionSelector value={filters[TRANSACTION_OP] || ''} />
             <PageSelector value={filters[PAGE] || ''} />
           </FilterOptionsContainer>
 
@@ -122,8 +122,8 @@ function ActionSelector({value}: {value?: string}) {
 
   const options: Option[] = [
     {value: '', label: 'All'},
-    {value: 'click', label: 'Click'},
-    {value: 'change', label: 'Change'},
+    {value: 'ui.action.click', label: 'Click'},
+    {value: 'ui.action.right.click', label: 'Right Click'},
   ];
   return (
     <SelectControlWithProps
@@ -135,7 +135,7 @@ function ActionSelector({value}: {value?: string}) {
           ...location,
           query: {
             ...location.query,
-            [SPAN_ACTION]: newValue?.value,
+            [TRANSACTION_OP]: newValue?.value,
           },
         });
       }}
