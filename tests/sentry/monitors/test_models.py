@@ -1,10 +1,12 @@
 from datetime import datetime
+from unittest.mock import patch
 
 import pytest
 from django.conf import settings
 from django.test.utils import override_settings
 from django.utils import timezone
 
+from sentry.monitors.logic.mark_failed import mark_failed
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
@@ -18,6 +20,7 @@ from sentry.monitors.models import (
 )
 from sentry.monitors.validators import ConfigValidator
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import region_silo_test
 
 
@@ -152,7 +155,9 @@ class MonitorTestCase(TestCase):
 
 @region_silo_test(stable=True)
 class MonitorEnvironmentTestCase(TestCase):
-    def test_mark_ok_recovery_threshold(self):
+    @with_feature("organizations:issue-platform")
+    @patch("sentry.issues.producer.produce_occurrence_to_kafka")
+    def test_mark_ok_recovery_threshold(self, mock_produce_occurrence_to_kafka):
         recovery_threshold = 8
         monitor = Monitor.objects.create(
             name="test monitor",
@@ -169,6 +174,7 @@ class MonitorEnvironmentTestCase(TestCase):
             monitor=monitor,
             environment=self.environment,
             status=MonitorStatus.ERROR,
+            last_state_change=None,
         )
 
         MonitorCheckIn.objects.create(
@@ -190,14 +196,19 @@ class MonitorEnvironmentTestCase(TestCase):
         # failure has not hit threshold, monitor should be in an OK status
         monitor_environment = MonitorEnvironment.objects.get(id=monitor_environment.id)
         assert monitor_environment.status != MonitorStatus.OK
+        # check that timestamp has not updated
+        assert monitor_environment.last_state_change is None
 
         # create another failed check-in to break the chain
-        MonitorCheckIn.objects.create(
+        failed_checkin = MonitorCheckIn.objects.create(
             monitor=monitor,
             monitor_environment=monitor_environment,
             project_id=self.project.id,
             status=CheckInStatus.ERROR,
         )
+        mark_failed(monitor_environment, failed_checkin.date_added)
+        # assert occurrence was sent
+        assert len(mock_produce_occurrence_to_kafka.mock_calls) == 1
 
         for i in range(0, recovery_threshold):
             checkin = MonitorCheckIn.objects.create(
@@ -211,6 +222,8 @@ class MonitorEnvironmentTestCase(TestCase):
         # recovery has hit threshold, monitor should be in an ok state
         monitor_environment = MonitorEnvironment.objects.get(id=monitor_environment.id)
         assert monitor_environment.status == MonitorStatus.OK
+        # check that monitor environment has updated timestamp used for fingerprinting
+        assert monitor_environment.last_state_change == monitor_environment.last_checkin
 
     @override_settings(MAX_ENVIRONMENTS_PER_MONITOR=2)
     def test_monitor_environment_limits(self):
