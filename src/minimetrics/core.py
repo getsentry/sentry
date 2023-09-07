@@ -239,6 +239,9 @@ class Aggregator:
             self._flush_event.wait(2.0)
 
     def _flush(self):
+        # We want to emit a metric to track if the flusher is actually running.
+        self._safe_emit_count_metric("minimetrics.flusher.loop", amount=1)
+
         with self._lock:
             cutoff = time.time() - self.ROLLUP_IN_SECONDS
             weight_to_remove = 0
