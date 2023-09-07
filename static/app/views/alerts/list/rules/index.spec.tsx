@@ -364,6 +364,22 @@ describe('AlertRulesList', () => {
     expect(screen.getByText('Muted')).toBeInTheDocument();
   });
 
+  it('displays metric alert muted', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/combined-rules/',
+      headers: {Link: pageLinks},
+      body: [
+        TestStubs.MetricRule({
+          projects: ['earth'],
+          snooze: true,
+        }),
+      ],
+    });
+    createWrapper();
+    expect(await screen.findByText('My Incident Rule')).toBeInTheDocument();
+    expect(screen.getByText('Muted')).toBeInTheDocument();
+  });
+
   it('sorts by alert rule', async () => {
     createWrapper({organization});
 
