@@ -76,14 +76,25 @@ function App({children, params}: Props) {
   const loadOrganizations = useCallback(async () => {
     const regions = ConfigStore.get('regions');
     try {
-      // Get the current user's organizations from each region the user has membership on
-      const results = await Promise.all(
-        regions.map(region =>
-          api.requestPromise(`/organizations/`, {query: {member: '1'}, host: region.url})
-        )
-      );
-      const data = results.reduce((acc, response) => acc.concat(response), []);
-      OrganizationsStore.load(data);
+      if (!regions) {
+        // TODO(mark) remove this branch once the backend is out safely
+        const data = await api.requestPromise(`/organizations/`, {
+          query: {member: '1'},
+        });
+        OrganizationsStore.load(data);
+      } else {
+        // Get the current user's organizations from each region the user has membership on
+        const results = await Promise.all(
+          regions.map(region =>
+            api.requestPromise(`/organizations/`, {
+              query: {member: '1'},
+              host: region.url,
+            })
+          )
+        );
+        const data = results.reduce((acc, response) => acc.concat(response), []);
+        OrganizationsStore.load(data);
+      }
     } catch {
       // TODO: do something?
     }
