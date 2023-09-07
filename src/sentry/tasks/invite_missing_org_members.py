@@ -2,7 +2,6 @@ from sentry import features
 from sentry.api.endpoints.organization_missing_org_members import _get_missing_organization_members
 from sentry.constants import ObjectStatus
 from sentry.models.organization import Organization
-from sentry.models.repository import Repository
 from sentry.notifications.notifications.missing_members_nudge import MissingMembersNudgeNotification
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.silo.base import SiloMode
@@ -15,13 +14,14 @@ from sentry.tasks.base import instrumented_task
     silo_mode=SiloMode.REGION,
 )
 def schedule_organizations():
-    org_ids_with_github_repos = set(
-        Repository.objects.filter(
-            provider="integrations:github", status=ObjectStatus.ACTIVE
-        ).values_list("organization_id", flat=True)
+    github_org_integrations = integration_service.get_organization_integrations(
+        providers=["github"], status=ObjectStatus.ACTIVE
     )
+    orgs_with_github_integrations = {
+        org_integration.organization_id for org_integration in github_org_integrations
+    }
 
-    for org_id in org_ids_with_github_repos:
+    for org_id in orgs_with_github_integrations:
         send_nudge_email.delay(org_id)
 
 

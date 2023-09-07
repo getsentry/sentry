@@ -39,10 +39,10 @@ class MissingMembersPermission(OrganizationPermission):
 def _get_missing_organization_members(
     organization: Organization, provider: str, integration_ids: Sequence[int]
 ) -> QuerySet[WithAnnotations[CommitAuthor]]:
-    member_emails = set(organization.member_set.exclude(email=None).values_list("email", flat=True))
-    member_emails.update(
-        set(organization.member_set.exclude(user_email=None).values_list("user_email", flat=True))
-    )
+    member_emails = set(
+        organization.member_set.exclude(email=None).values_list("email", flat=True)
+    ) | set(organization.member_set.exclude(user_email=None).values_list("user_email", flat=True))
+
     nonmember_authors = CommitAuthor.objects.filter(organization_id=organization.id).exclude(
         Q(email__in=member_emails) | Q(external_id=None)
     )
