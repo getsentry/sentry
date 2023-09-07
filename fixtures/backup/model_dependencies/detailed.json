@@ -1471,6 +1471,10 @@
         "kind": "FlexibleForeignKey",
         "model": "sentry.Project"
       },
+      "team": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.Team"
+      },
       "user_id": {
         "kind": "HybridCloudForeignKey",
         "model": "sentry.User"
