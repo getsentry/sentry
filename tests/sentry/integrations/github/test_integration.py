@@ -985,3 +985,62 @@ class GitHubIntegrationTest(IntegrationTestCase):
         }
 
         assert commit_context == commit_context_expected
+
+    @responses.activate
+    def test_source_url_matches(self):
+        installation = self.get_installation_helper()
+
+        test_cases = [
+            (
+                "https://github.com/Test-Organization/sentry/blob/master/src/sentry/integrations/github/integration.py",
+                True,
+            ),
+            (
+                "https://notgithub.com/Test-Organization/sentry/blob/master/src/sentry/integrations/github/integration.py",
+                False,
+            ),
+            ("https://jianyuan.io", False),
+        ]
+        for source_url, matches in test_cases:
+            assert installation.source_url_matches(source_url) == matches
+
+    @responses.activate
+    def test_extract_branch_from_source_url(self):
+        installation = self.get_installation_helper()
+        integration = Integration.objects.get(provider=self.provider.key)
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name="Test-Organization/repo",
+                url="https://github.com/Test-Organization/repo",
+                provider="integrations:github",
+                external_id=123,
+                config={"name": "Test-Organization/repo"},
+                integration_id=integration.id,
+            )
+        source_url = "https://github.com/Test-Organization/repo/blob/master/src/sentry/integrations/github/integration.py"
+
+        assert installation.extract_branch_from_source_url(repo, source_url) == "master"
+
+    @responses.activate
+    def test_extract_source_path_from_source_url(self):
+        installation = self.get_installation_helper()
+        integration = Integration.objects.get(provider=self.provider.key)
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name="Test-Organization/repo",
+                url="https://github.com/Test-Organization/repo",
+                provider="integrations:github",
+                external_id=123,
+                config={"name": "Test-Organization/repo"},
+                integration_id=integration.id,
+            )
+        source_url = "https://github.com/Test-Organization/repo/blob/master/src/sentry/integrations/github/integration.py"
+
+        assert (
+            installation.extract_source_path_from_source_url(repo, source_url)
+            == "src/sentry/integrations/github/integration.py"
+        )
