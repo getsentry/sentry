@@ -34,7 +34,13 @@ export type LayoutProps = {
   platformKey?: PlatformKey;
 };
 
-export function Layout({steps, platformKey, nextSteps = [], introduction}: LayoutProps) {
+export function Layout({
+  steps,
+  platformKey,
+  newOrg,
+  nextSteps = [],
+  introduction,
+}: LayoutProps) {
   const organization = useOrganization();
 
   return (
@@ -48,6 +54,7 @@ export function Layout({steps, platformKey, nextSteps = [], introduction}: Layou
       <ProductSelectionAvailabilityHook
         organization={organization}
         platform={platformKey}
+        withBottomMargin={newOrg}
       />
       <Steps>
         {steps.map(step => (
