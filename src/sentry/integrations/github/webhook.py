@@ -17,7 +17,7 @@ from rest_framework.request import Request
 from sentry import analytics, features, options
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
-from sentry.constants import ObjectStatus
+from sentry.constants import EXTENSION_LANGUAGE_MAP, ObjectStatus
 from sentry.integrations.utils.scope import clear_tags_and_context
 from sentry.models import Commit, CommitAuthor, Organization, PullRequest, Repository
 from sentry.models.commitfilechange import CommitFileChange
@@ -357,16 +357,31 @@ class PushEventWebhook(Webhook):
                         date_added=parse_date(commit["timestamp"]).astimezone(timezone.utc),
                     )
                     for fname in commit["added"]:
+                        language = EXTENSION_LANGUAGE_MAP.get(fname.split(".")[-1])
                         CommitFileChange.objects.create(
-                            organization_id=organization.id, commit=c, filename=fname, type="A"
+                            organization_id=organization.id,
+                            commit=c,
+                            filename=fname,
+                            type="A",
+                            language=language,
                         )
                     for fname in commit["removed"]:
+                        language = EXTENSION_LANGUAGE_MAP.get(fname.split(".")[-1])
                         CommitFileChange.objects.create(
-                            organization_id=organization.id, commit=c, filename=fname, type="D"
+                            organization_id=organization.id,
+                            commit=c,
+                            filename=fname,
+                            type="D",
+                            language=language,
                         )
                     for fname in commit["modified"]:
+                        language = EXTENSION_LANGUAGE_MAP.get(fname.split(".")[-1])
                         CommitFileChange.objects.create(
-                            organization_id=organization.id, commit=c, filename=fname, type="M"
+                            organization_id=organization.id,
+                            commit=c,
+                            filename=fname,
+                            type="M",
+                            language=language,
                         )
             except IntegrityError:
                 pass
