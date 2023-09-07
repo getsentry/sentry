@@ -26,9 +26,8 @@ import sentry_sdk
 from django import db
 from django.db import OperationalError, connections, models, router, transaction
 from django.db.models import Max, Min
-from django.db.models.signals import post_migrate
 from django.db.transaction import Atomic
-from django.dispatch import Signal, receiver
+from django.dispatch import Signal
 from django.http import HttpRequest
 from django.utils import timezone
 from sentry_sdk.tracing import Span
@@ -422,36 +421,24 @@ class OutboxBase(Model):
     @classmethod
     def prepare_next_from_shard(cls, row: Mapping[str, Any]) -> Self | None:
         using = router.db_for_write(cls)
-        try:
-            with transaction.atomic(using=using, savepoint=False):
-                next_outbox: OutboxBase | None
-                next_outbox = (
-                    cls(**row)
-                    .selected_messages_in_shard()
-                    .order_by("id")
-                    .select_for_update(nowait=True)
-                    .first()
-                )
-                if not next_outbox:
-                    return None
-
-                # We rely on 'proof of failure by remaining' to handle retries -- basically, by scheduling this shard, we
-                # expect all objects to be drained before the next schedule comes around, or else we will run again.
-                # Note that the system does not strongly protect against concurrent processing -- this is expected in the
-                # case of drains, for instance.
-                now = timezone.now()
-                next_outbox.selected_messages_in_shard().update(
-                    scheduled_for=next_outbox.next_schedule(now), scheduled_from=now
-                )
-
-                return next_outbox
-        except OperationalError as e:
-            # If concurrent locking is happening on the table, gracefully pass and allow
-            # that work to process.
-            if "LockNotAvailable" in str(e):
+        with transaction.atomic(using=using, savepoint=False):
+            next_outbox: OutboxBase | None
+            next_outbox = (
+                cls(**row).selected_messages_in_shard().order_by("id").select_for_update().first()
+            )
+            if not next_outbox:
                 return None
-            else:
-                raise
+
+            # We rely on 'proof of failure by remaining' to handle retries -- basically, by scheduling this shard, we
+            # expect all objects to be drained before the next schedule comes around, or else we will run again.
+            # Note that the system does not strongly protect against concurrent processing -- this is expected in the
+            # case of drains, for instance.
+            now = timezone.now()
+            next_outbox.selected_messages_in_shard().update(
+                scheduled_for=next_outbox.next_schedule(now), scheduled_from=now
+            )
+
+            return next_outbox
 
     def key_from(self, attrs: Iterable[str]) -> Mapping[str, Any]:
         return {k: _ensure_not_null(k, getattr(self, k)) for k in attrs}
@@ -799,18 +786,19 @@ process_region_outbox = Signal()  # ["payload", "object_identifier"]
 process_control_outbox = Signal()  # ["payload", "region_name", "object_identifier"]
 
 
-@receiver(post_migrate, weak=False, dispatch_uid="schedule_backfill_outboxes")
-def schedule_backfill_outboxes(app_config, using, **kwargs):
-    from sentry.tasks.backfill_outboxes import (
-        schedule_backfill_outbox_jobs,
-        schedule_backfill_outbox_jobs_control,
-    )
-    from sentry.utils.env import in_test_environment
-
-    if in_test_environment():
-        return
-
-    if SiloMode.get_current_mode() != SiloMode.REGION:
-        schedule_backfill_outbox_jobs_control.delay()
-    if SiloMode.get_current_mode() != SiloMode.CONTROL:
-        schedule_backfill_outbox_jobs.delay()
+# Add this in after we successfully deploy, the job.
+# @receiver(post_migrate, weak=False, dispatch_uid="schedule_backfill_outboxes")
+# def schedule_backfill_outboxes(app_config, using, **kwargs):
+#     from sentry.tasks.backfill_outboxes import (
+#         schedule_backfill_outbox_jobs,
+#         schedule_backfill_outbox_jobs_control,
+#     )
+#     from sentry.utils.env import in_test_environment
+#
+#     if in_test_environment():
+#         return
+#
+#     if SiloMode.get_current_mode() != SiloMode.REGION:
+#         schedule_backfill_outbox_jobs_control.delay()
+#     if SiloMode.get_current_mode() != SiloMode.CONTROL:
+#         schedule_backfill_outbox_jobs.delay()
