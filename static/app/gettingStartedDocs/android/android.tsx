@@ -1,4 +1,8 @@
+import {Fragment} from 'react';
+
 import ExternalLink from 'sentry/components/links/externalLink';
+import List from 'sentry/components/list/';
+import ListItem from 'sentry/components/list/listItem';
 import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
 import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
@@ -24,15 +28,88 @@ export const steps = ({
     description: (
       <p>
         {tct(
-          'Add the [sagpLink:Sentry Android Gradle plugin] to your [app:app] module:',
+          'Add Sentry automatically to your app with the [wizardLink:Sentry wizard].',
           {
-            sagpLink: (
-              <ExternalLink href="https://docs.sentry.io/platforms/android/configuration/gradle/" />
+            wizardLink: (
+              <ExternalLink href="https://docs.sentry.io/platforms/android/#install" />
             ),
-            app: <code />,
           }
         )}
       </p>
+    ),
+    configurations: [
+      {
+        language: 'bash',
+        code: `brew install getsentry/tools/sentry-wizard && sentry-wizard -i android`,
+      },
+      {
+        description: (
+          <Fragment>
+            {t('The Sentry wizard will automatically patch your application:')}
+            <List symbol="bullet">
+              <ListItem>
+                {tct(
+                  "Update your app's [buildGradle:build.gradle] file with the Sentry Gradle plugin and configure it.",
+                  {
+                    buildGradle: <code />,
+                  }
+                )}
+              </ListItem>
+              <ListItem>
+                {tct(
+                  'Update your [manifest: AndroidManifest.xml] with the default Sentry configuration',
+                  {
+                    manifest: <code />,
+                  }
+                )}
+              </ListItem>
+              <ListItem>
+                {tct(
+                  'Create [sentryProperties: sentry.properties] with an auth token to upload proguard mappings (this file is automatically added to [gitignore: .gitignore])',
+                  {
+                    sentryProperties: <code />,
+                    gitignore: <code />,
+                  }
+                )}
+              </ListItem>
+              <ListItem>
+                {t(
+                  "Add an example error to your app's Main Activity to verify your Sentry setup"
+                )}
+              </ListItem>
+            </List>
+            <p>
+              {tct(
+                'Alternatively, you can also [manualSetupLink:set up the SDK manually]. You can skip the steps below when using the wizard.',
+                {
+                  manualSetupLink: (
+                    <ExternalLink href="https://docs.sentry.io/platforms/android/manual-setup/" />
+                  ),
+                }
+              )}
+            </p>
+          </Fragment>
+        ),
+      },
+    ],
+  },
+  {
+    type: StepType.CONFIGURE,
+    description: (
+      <Fragment>
+        <strong>{t('Install the Sentry SDK:')}</strong>
+        <p>
+          {tct(
+            'Add the [sagpLink:Sentry Android Gradle plugin] to your [app:app] module:',
+            {
+              sagpLink: (
+                <ExternalLink href="https://docs.sentry.io/platforms/android/configuration/gradle/" />
+              ),
+              app: <code />,
+            }
+          )}
+        </p>
+      </Fragment>
     ),
     configurations: [
       {
@@ -51,28 +128,21 @@ plugins {
         `,
       },
       {
-        description: t(
-          'The plugin will automatically add the Sentry Android SDK to your app.'
+        description: (
+          <Fragment>
+            <strong>{t('Configure the Sentry SDK:')}</strong>
+            <p>
+              {tct(
+                'Configuration is done via the application [manifest: AndroidManifest.xml]. Under the hood Sentry uses a [provider:ContentProvider] to initialize the SDK based on the values provided below. This way the SDK can capture important crashes and metrics right from the app start.',
+                {
+                  manifest: <code />,
+                  provider: <code />,
+                }
+              )}
+            </p>
+            <p>{t("Here's an example config which should get you started:")}</p>
+          </Fragment>
         ),
-      },
-    ],
-  },
-  {
-    type: StepType.CONFIGURE,
-    description: (
-      <p>
-        {tct(
-          'Configuration is done via the application [manifest: AndroidManifest.xml]. Under the hood Sentry uses a [provider:ContentProvider] to initialize the SDK based on the values provided below. This way the SDK can capture important crashes and metrics right from the app start.',
-          {
-            manifest: <code />,
-            provider: <code />,
-          }
-        )}
-      </p>
-    ),
-    configurations: [
-      {
-        description: t("Here's an example config which should get you started:"),
         language: 'xml',
         code: `
 <application>

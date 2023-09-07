@@ -1,4 +1,8 @@
+import {Fragment} from 'react';
+
 import ExternalLink from 'sentry/components/links/externalLink';
+import List from 'sentry/components/list/';
+import ListItem from 'sentry/components/list/listItem';
 import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
 import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
@@ -15,7 +19,6 @@ interface StepProps {
 // Configuration Start
 export const steps = ({
   dsn,
-  sourcePackageRegistries,
   hasPerformance,
   hasProfiling,
 }: StepProps): LayoutProps['steps'] => [
@@ -24,15 +27,92 @@ export const steps = ({
     description: (
       <p>
         {tct(
-          'We recommend installing the SDK with Swift Package Manager (SPM), but we also support [alternateMethods: alternate installation methods]. To integrate Sentry into your Xcode project using SPM, open your App in Xcode and open [addPackage: File > Add Packages]. Then add the SDK by entering the Git repo url in the top right search field:',
+          'Add Sentry automatically to your app with the [wizardLink:Sentry wizard].',
           {
-            alternateMethods: (
-              <ExternalLink href="https://docs.sentry.io/platforms/apple/install/" />
+            wizardLink: (
+              <ExternalLink href="https://docs.sentry.io/platforms/apple/guides/ios/#install" />
             ),
-            addPackage: <strong />,
           }
         )}
       </p>
+    ),
+    configurations: [
+      {
+        language: 'bash',
+        code: `brew install getsentry/tools/sentry-wizard && sentry-wizard -i ios`,
+      },
+      {
+        description: (
+          <Fragment>
+            {t('The Sentry wizard will automatically patch your application:')}
+            <List symbol="bullet">
+              <ListItem>
+                {t('Install the Sentry SDK via Swift Package Manager or Cocoapods')}
+              </ListItem>
+              <ListItem>
+                {tct(
+                  'Update your [appDelegate: AppDelegate] or SwiftUI App Initializer with the default Sentry configuration and an example error',
+                  {
+                    appDelegate: <code />,
+                  }
+                )}
+              </ListItem>
+              <ListItem>
+                {tct(
+                  'Add a new [phase: Upload Debug Symbols] phase to your [xcodebuild: xcodebuild] build script',
+                  {
+                    phase: <code />,
+                    xcodebuild: <code />,
+                  }
+                )}
+              </ListItem>
+              <ListItem>
+                {tct(
+                  'Create [sentryclirc: .sentryclirc] with an auth token to upload debug symbols (this file is automatically added to [gitignore: .gitignore])',
+                  {
+                    sentryclirc: <code />,
+                    gitignore: <code />,
+                  }
+                )}
+              </ListItem>
+              <ListItem>
+                {t(
+                  "When you're using Fastlane, it will add a Sentry lane for uploading debug symbols"
+                )}
+              </ListItem>
+            </List>
+            <p>
+              {tct(
+                'Alternatively, you can also [manualSetupLink:set up the SDK manually]. You can skip the steps below when using the wizard.',
+                {
+                  manualSetupLink: (
+                    <ExternalLink href="https://docs.sentry.io/platforms/android/manual-setup/" />
+                  ),
+                }
+              )}
+            </p>
+          </Fragment>
+        ),
+      },
+    ],
+  },
+  {
+    type: StepType.CONFIGURE,
+    description: (
+      <Fragment>
+        <strong>{t('Install the Sentry SDK:')}</strong>
+        <p>
+          {tct(
+            'We recommend installing the SDK with Swift Package Manager (SPM), but we also support [alternateMethods: alternate installation methods]. To integrate Sentry into your Xcode project using SPM, open your App in Xcode and open [addPackage: File > Add Packages]. Then add the SDK by entering the Git repo url in the top right search field:',
+            {
+              alternateMethods: (
+                <ExternalLink href="https://docs.sentry.io/platforms/apple/install/" />
+              ),
+              addPackage: <strong />,
+            }
+          )}
+        </p>
+      </Fragment>
     ),
     configurations: [
       {
@@ -43,41 +123,18 @@ https://github.com/getsentry/sentry-cocoa.git
       },
       {
         description: (
-          <p>
-            {tct(
-              'Alternatively, when your project uses a [packageSwift: Package.swift] file to manage dependencies, you can specify the target with:',
-              {
-                packageSwift: <code />,
-              }
-            )}
-          </p>
+          <Fragment>
+            <strong>{t('Configure the Sentry SDK:')}</strong>
+            <p>
+              {tct(
+                'Make sure you initialize the SDK as soon as possible in your application lifecycle e.g. in your AppDelegate [appDelegate: application:didFinishLaunchingWithOptions] method:',
+                {
+                  appDelegate: <code />,
+                }
+              )}
+            </p>
+          </Fragment>
         ),
-        language: 'swift',
-        partialLoading: sourcePackageRegistries?.isLoading,
-        code: `
-.package(url: "https://github.com/getsentry/sentry-cocoa", from: "${
-          sourcePackageRegistries?.isLoading
-            ? t('\u2026loading')
-            : sourcePackageRegistries?.data?.['sentry.cocoa']?.version ?? '8.9.3'
-        }"),
-        `,
-      },
-    ],
-  },
-  {
-    type: StepType.CONFIGURE,
-    description: (
-      <p>
-        {tct(
-          'Make sure you initialize the SDK as soon as possible in your application lifecycle e.g. in your AppDelegate [appDelegate: application:didFinishLaunchingWithOptions] method:',
-          {
-            appDelegate: <code />,
-          }
-        )}
-      </p>
-    ),
-    configurations: [
-      {
         language: 'swift',
         code: `
 import Sentry
