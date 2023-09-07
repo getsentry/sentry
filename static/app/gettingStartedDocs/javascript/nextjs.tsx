@@ -47,7 +47,7 @@ export const steps = (): LayoutProps['steps'] => [
           </ListItem>
           <ListItem>
             {tct(
-              'create or update your Next.js config [nextConfig:next.confg.js] with the default Sentry configuration',
+              'Create or update your Next.js config [nextConfig:next.confg.js] with the default Sentry configuration',
               {
                 nextConfig: <code />,
               }
