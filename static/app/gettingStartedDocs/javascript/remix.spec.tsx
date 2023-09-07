@@ -2,7 +2,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {StepTitle} from 'sentry/components/onboarding/gettingStartedDoc/step';
 
-import {GettingStartedWithSvelteKit, steps} from './sveltekit';
+import {GettingStartedWithRemix, steps} from './remix';
 
 describe('GettingStartedWithSvelteKit', function () {
   it('renders doc correctly', function () {
