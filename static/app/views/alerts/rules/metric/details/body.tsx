@@ -184,6 +184,7 @@ export default function MetricDetailsBody({
           />
           {onDemandMetricAlert && isEmptyAlert && (
             <OnDemandMetricAlert
+              dismissable
               message={t(
                 'This alert lacks historical data due to filters for which we don’t routinely extract metrics.'
               )}

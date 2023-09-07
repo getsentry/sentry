@@ -2,6 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import Alert from 'sentry/components/alert';
+import {Button} from 'sentry/components/button';
 import {
   ParseResult,
   parseSearch,
@@ -9,8 +10,8 @@ import {
   TokenResult,
 } from 'sentry/components/searchSyntax/parser';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconInfo, IconWarning} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
+import {IconClose, IconWarning} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import {FieldKey, getFieldDefinition} from 'sentry/utils/fields';
 import {
@@ -18,6 +19,7 @@ import {
   STANDARD_SEARCH_FIELD_KEYS,
 } from 'sentry/utils/onDemandMetrics/constants';
 import {Color} from 'sentry/utils/theme';
+import useDismissAlert from 'sentry/utils/useDismissAlert';
 
 function isStandardSearchFilterKey(key: string): boolean {
   return STANDARD_SEARCH_FIELD_KEYS.has(key as FieldKey);
@@ -105,6 +107,17 @@ export function getOnDemandKeys(query: string): string[] {
   return searchFilterKeys.filter(isOnDemandSearchKey);
 }
 
+export function hasOnDemandMetricAlertFeature(organization: Organization) {
+  return organization.features.includes('on-demand-metrics-extraction');
+}
+
+export function hasOnDemandMetricWidgetFeature(organization: Organization) {
+  return (
+    organization.features.includes('on-demand-metrics-extraction') &&
+    organization.features.includes('on-demand-metrics-extraction-experimental')
+  );
+}
+
 const EXTRAPOLATED_AREA_STRIPE_IMG =
   'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAABkAQMAAACFAjPUAAAAAXNSR0IB2cksfwAAAAlwSFlzAAALEwAACxMBAJqcGAAAAAZQTFRFpKy5SVlzL3npZAAAAA9JREFUeJxjsD/AMIqIQwBIyGOd43jaDwAAAABJRU5ErkJggg==';
 
@@ -117,17 +130,6 @@ export const extrapolatedAreaStyle = {
   },
   opacity: 1.0,
 };
-
-export function hasOnDemandMetricAlertFeature(organization: Organization) {
-  return organization.features.includes('on-demand-metrics-extraction');
-}
-
-export function hasOnDemandMetricWidgetFeature(organization: Organization) {
-  return (
-    organization.features.includes('on-demand-metrics-extraction') &&
-    organization.features.includes('on-demand-metrics-extraction-experimental')
-  );
-}
 
 export function OnDemandWarningIcon({
   msg,
@@ -143,28 +145,57 @@ export function OnDemandWarningIcon({
   );
 }
 
+const LOCAL_STORAGE_KEY = 'on-demand-empty-alert-dismissed';
+
+export function OnDemandMetricAlert({
+  message,
+  dismissable = false,
+}: {
+  message: React.ReactNode;
+  dismissable?: boolean;
+}) {
+  const {dismiss, isDismissed} = useDismissAlert({key: LOCAL_STORAGE_KEY});
+
+  if (isDismissed) {
+    return null;
+  }
+
+  return (
+    <InfoAlert showIcon>
+      {message}
+      {dismissable && (
+        <DismissButton
+          priority="link"
+          size="sm"
+          icon={<IconClose size="xs" />}
+          aria-label={t('Close Alert')}
+          onClick={dismiss}
+        />
+      )}
+    </InfoAlert>
+  );
+}
+
 const InfoAlert = styled(Alert)`
+  display: flex;
+  align-items: flex-start;
   border: 1px solid ${p => p.theme.blue400};
 
   & > span {
     display: flex;
-    align-items: center;
+    flex-grow: 1;
+    justify-content: space-between;
+
+    line-height: 1.5em;
   }
 `;
 
-const InfoIcon = styled(IconInfo)`
-  color: ${p => p.theme.blue400};
-  margin-right: ${space(1.5)};
+const DismissButton = styled(Button)`
+  pointer-events: all;
+  &:hover {
+    opacity: 0.5;
+  }
 `;
-
-export function OnDemandMetricAlert({message}: {message: React.ReactNode}) {
-  return (
-    <InfoAlert>
-      <InfoIcon size="sm" />
-      {message}
-    </InfoAlert>
-  );
-}
 
 const HoverableIconWarning = styled(IconWarning)`
   &:hover {
