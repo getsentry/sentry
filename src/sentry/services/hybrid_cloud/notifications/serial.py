@@ -1,5 +1,6 @@
 from sentry.models.notificationsetting import NotificationSetting
 from sentry.models.notificationsettingoption import NotificationSettingOption
+from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.services.hybrid_cloud.notifications import RpcNotificationSetting
 
 
@@ -26,4 +27,19 @@ def serialize_notification_option(setting: NotificationSettingOption) -> RpcNoti
         user_id=setting.user_id,
         type=setting.type,
         value=setting.value,
+    )
+
+
+def serialize_notification_option_with_provider(
+    option: NotificationSettingOption, provider: NotificationSettingProvider
+) -> RpcNotificationSetting:
+    return RpcNotificationSetting(
+        id=option.id,
+        scope_type=option.scope_type,
+        scope_identifier=option.scope_identifier,
+        team_id=option.team_id,
+        user_id=option.user_id,
+        type=option.type,
+        value=provider.value,
+        provider=provider.provider,
     )

@@ -83,7 +83,7 @@ class DatabaseBackedNotificationsService(NotificationsService):
 
     # TODO(snigdha): this doesn't seem to be used anywhere, we can
     # remove/replace it for notifications V2 using
-    # get_setting_options_for_users.
+    # get_setting_options_for_recipients.
     def get_settings_for_users(
         self,
         *,
@@ -100,6 +100,32 @@ class DatabaseBackedNotificationsService(NotificationsService):
         return [serialize_notification_setting(u) for u in settings]
 
     def get_settings_for_recipient_by_parent(
+        self, *, type: NotificationSettingTypes, parent_id: int, recipients: Sequence[RpcActor]
+    ) -> List[RpcNotificationSetting]:
+        team_ids = [r.id for r in recipients if r.actor_type == ActorType.TEAM]
+        user_ids = [r.id for r in recipients if r.actor_type == ActorType.USER]
+
+        parent_specific_scope_type = get_scope_type(type)
+        notification_settings = NotificationSetting.objects.filter(
+            Q(
+                scope_type=parent_specific_scope_type.value,
+                scope_identifier=parent_id,
+            )
+            | Q(
+                scope_type=NotificationScopeType.USER.value,
+                scope_identifier__in=user_ids,
+            )
+            | Q(
+                scope_type=NotificationScopeType.TEAM.value,
+                scope_identifier__in=team_ids,
+            ),
+            (Q(team_id__in=team_ids) | Q(user_id__in=user_ids)),
+            type=type.value,
+        )
+
+        return [serialize_notification_setting(s) for s in notification_settings]
+
+    def get_settings_for_recipient_by_parent_v2(
         self, *, type: NotificationSettingTypes, parent_id: int, recipients: Sequence[RpcActor]
     ) -> List[RpcNotificationSetting]:
         team_ids = [r.id for r in recipients if r.actor_type == ActorType.TEAM]
