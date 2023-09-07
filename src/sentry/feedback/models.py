@@ -14,7 +14,7 @@ class Feedback(Model):
     replay_id = models.CharField(max_length=32, null=True, db_index=True)
     url = models.CharField(max_length=1000, null=True)
     message = models.TextField()
-    event_id = UUIDField(unique=True)
+    feedback_id = UUIDField(unique=True)
     date_added = models.DateTimeField(default=timezone.now)
 
     # This is the data coming from the Sentry event and includes things like contexts
