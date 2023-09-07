@@ -9,13 +9,12 @@ import {Step, StepProps} from 'sentry/components/onboarding/gettingStartedDoc/st
 import {ProductSelection} from 'sentry/components/onboarding/productSelection';
 import {PlatformKey} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 
 const ProductSelectionAvailabilityHook = HookOrDefault({
   hookName: 'component:product-selection-availability',
+  defaultComponent: ProductSelection,
 });
 
 type NextStep = {
@@ -38,12 +37,11 @@ export type LayoutProps = {
 export function Layout({
   steps,
   platformKey,
-  nextSteps = [],
   newOrg,
+  nextSteps = [],
   introduction,
 }: LayoutProps) {
   const organization = useOrganization();
-  const {isSelfHosted} = useLegacyStore(ConfigStore);
 
   return (
     <Wrapper>
@@ -53,15 +51,11 @@ export function Layout({
           <Divider />
         </Fragment>
       )}
-      {!isSelfHosted && newOrg && (
-        <ProductSelection platform={platformKey} withBottomMargin />
-      )}
-      {!isSelfHosted && !newOrg && (
-        <ProductSelectionAvailabilityHook
-          organization={organization}
-          platform={platformKey}
-        />
-      )}
+      <ProductSelectionAvailabilityHook
+        organization={organization}
+        platform={platformKey}
+        withBottomMargin={newOrg}
+      />
       <Steps>
         {steps.map(step => (
           <Step key={step.title ?? step.type} {...step} />

@@ -87,7 +87,6 @@ function SetupDocs({location, recentCreatedProject: project}: StepProps) {
                   location={location}
                   platform={currentPlatform.id}
                   close={hideLoaderOnboarding}
-                  newOrg
                 />
               ) : (
                 <SdkDocumentation
