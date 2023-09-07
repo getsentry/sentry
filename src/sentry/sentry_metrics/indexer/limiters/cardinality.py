@@ -136,9 +136,12 @@ class TimeseriesCardinalityLimiter:
             )
 
         for prefix, hashes in request_hashes.items():
-            quota = prefix_to_quota[prefix]
+            quota = prefix_to_quota.get(prefix)
 
-            requested_quotas.append(RequestedQuota(prefix=prefix, unit_hashes=hashes, quota=quota))
+            if quota is not None:
+                requested_quotas.append(
+                    RequestedQuota(prefix=prefix, unit_hashes=hashes, quota=quota)
+                )
 
         timestamp, grants = self.backend.check_within_quotas(requested_quotas)
 
