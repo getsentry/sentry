@@ -268,10 +268,6 @@
   },
   "sentry.ArtifactBundleFlatFileIndex": {
     "foreign_keys": {
-      "flat_file_index": {
-        "kind": "FlexibleForeignKey",
-        "model": "sentry.File"
-      },
       "project_id": {
         "kind": "ImplicitForeignKey",
         "model": "sentry.Project"
