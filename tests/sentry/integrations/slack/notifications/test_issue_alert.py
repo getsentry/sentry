@@ -224,6 +224,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.ALWAYS,
             team_id=self.team.id,
+            organization_id_for_team=self.organization.id,
         )
 
         rule = GrammarRule(Matcher("path", "*"), [Owner("team", self.team.slug)])
@@ -296,6 +297,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.ALWAYS,
             team_id=self.team.id,
+            organization_id_for_team=self.organization.id,
         )
 
         OrganizationIntegration.objects.filter(integration=self.integration).update(
@@ -393,6 +395,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.ALWAYS,
             team_id=self.team.id,
+            organization_id_for_team=self.organization.id,
         )
 
         g_rule = GrammarRule(Matcher("path", "*"), [Owner("team", self.team.slug)])
@@ -486,6 +489,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.ALWAYS,
             team_id=self.team.id,
+            organization_id_for_team=self.organization.id,
         )
 
         event = self.store_event(
@@ -563,6 +567,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.ALWAYS,
             team_id=self.team.id,
+            organization_id_for_team=self.organization.id,
         )
         # add a new project
         project2 = self.create_project(
@@ -626,6 +631,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.ALWAYS,
             team_id=self.team.id,
+            organization_id_for_team=self.organization.id,
         )
         # remove the project from the team
         self.project.remove_team(self.team)
