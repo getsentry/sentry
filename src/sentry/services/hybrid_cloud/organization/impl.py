@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import abc
 from typing import Any, Iterable, List, Mapping, Optional, Set, Union, cast
 
 from django.db import IntegrityError, models, router, transaction
@@ -33,7 +34,6 @@ from sentry.services.hybrid_cloud import OptionValue, logger
 from sentry.services.hybrid_cloud.auth import RpcAuthIdentity, RpcAuthProvider
 from sentry.services.hybrid_cloud.organization import (
     OrganizationService,
-    OrganizationSignalService,
     RpcOrganization,
     RpcOrganizationFlagsUpdate,
     RpcOrganizationInvite,
@@ -609,8 +609,21 @@ class DatabaseBackedOrganizationService(OrganizationService):
     ) -> None:
         signal.signal.send_robust(None, organization_id=organization_id, **args)
 
+    def schedule_signal(
+        self, signal: Signal, organization_id: int, args: Mapping[str, Optional[Union[int, str]]]
+    ) -> None:
+        _signal = RpcOrganizationSignal.from_signal(signal)
+        transaction.on_commit(
+            lambda: DatabaseBackedOrganizationService().send_signal(
+                organization_id=organization_id,
+                signal=_signal,
+                args=args,
+            ),
+            router.db_for_write(Organization),
+        )
 
-class OutboxBackedOrganizationSignalService(OrganizationSignalService):
+
+class OutboxBackedOrganizationService(OrganizationService, abc.ABC):
     def schedule_signal(
         self, signal: Signal, organization_id: int, args: Mapping[str, Optional[Union[str, int]]]
     ) -> None:
@@ -628,18 +641,3 @@ class OutboxBackedOrganizationSignalService(OrganizationSignalService):
                     object_identifier=ControlOutbox.next_object_identifier(),
                     payload=payload,
                 ).save()
-
-
-class OnCommitBackedOrganizationSignalService(OrganizationSignalService):
-    def schedule_signal(
-        self, signal: Signal, organization_id: int, args: Mapping[str, int | str | None]
-    ) -> None:
-        _signal = RpcOrganizationSignal.from_signal(signal)
-        transaction.on_commit(
-            lambda: DatabaseBackedOrganizationService().send_signal(
-                organization_id=organization_id,
-                signal=_signal,
-                args=args,
-            ),
-            router.db_for_write(Organization),
-        )

@@ -2,13 +2,13 @@
 #     from __future__ import annotations
 # in modules such as this one where hybrid cloud data models or service classes are
 # defined, because we want to reflect on type annotations and avoid forward references.
-import abc
+
 from abc import abstractmethod
-from typing import Any, Iterable, List, Mapping, Optional, Union, cast
+from typing import Any, Iterable, List, Mapping, Optional, Type, Union, cast
 
 from django.dispatch import Signal
 
-from sentry.services.hybrid_cloud import OptionValue, silo_mode_delegation
+from sentry.services.hybrid_cloud import OptionValue
 from sentry.services.hybrid_cloud.auth import RpcAuthIdentity, RpcAuthProvider
 from sentry.services.hybrid_cloud.organization.model import (
     RpcOrganization,
@@ -43,6 +43,12 @@ class OrganizationService(RpcService):
         from sentry.services.hybrid_cloud.organization.impl import DatabaseBackedOrganizationService
 
         return DatabaseBackedOrganizationService()
+
+    @classmethod
+    def get_nonlocal_class(cls) -> Type[RpcService]:
+        from sentry.services.hybrid_cloud.organization.impl import OutboxBackedOrganizationService
+
+        return OutboxBackedOrganizationService
 
     def get(self, id: int) -> Optional[RpcOrganization]:
         org_context = self.get_organization_by_id(id=id)
@@ -314,19 +320,7 @@ class OrganizationService(RpcService):
     ) -> None:
         pass
 
-    def schedule_signal(
-        self,
-        signal: Signal,
-        organization_id: int,
-        args: Mapping[str, Optional[Union[int, str]]],
-    ) -> None:
-        _organization_signal_service.schedule_signal(
-            signal=signal, organization_id=organization_id, args=args
-        )
-
-
-class OrganizationSignalService(abc.ABC):
-    @abc.abstractmethod
+    @abstractmethod
     def schedule_signal(
         self,
         signal: Signal,
@@ -335,27 +329,5 @@ class OrganizationSignalService(abc.ABC):
     ) -> None:
         pass
 
-
-def _signal_from_outbox() -> OrganizationSignalService:
-    from sentry.services.hybrid_cloud.organization.impl import OutboxBackedOrganizationSignalService
-
-    return OutboxBackedOrganizationSignalService()
-
-
-def _signal_from_on_commit() -> OrganizationSignalService:
-    from sentry.services.hybrid_cloud.organization.impl import (
-        OnCommitBackedOrganizationSignalService,
-    )
-
-    return OnCommitBackedOrganizationSignalService()
-
-
-_organization_signal_service: OrganizationSignalService = silo_mode_delegation(
-    {
-        SiloMode.REGION: _signal_from_on_commit,
-        SiloMode.CONTROL: _signal_from_outbox,
-        SiloMode.MONOLITH: _signal_from_on_commit,
-    }
-)
 
 organization_service = cast(OrganizationService, OrganizationService.create_delegation())

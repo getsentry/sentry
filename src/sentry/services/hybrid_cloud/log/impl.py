@@ -79,8 +79,3 @@ class OutboxBackedLogService(LogService):
             payload=event.__dict__,
         )  # type: ignore
         outbox.save()
-
-    def find_last_log(
-        self, *, organization_id: int | None, target_object_id: int | None, event: int | None
-    ) -> AuditLogEvent | None:
-        return None

@@ -38,6 +38,7 @@ from sentry.utils.env import in_test_environment
 if TYPE_CHECKING:
     from sentry.services.hybrid_cloud.region import RegionResolutionStrategy
 
+
 logger = logging.getLogger(__name__)
 
 _T = TypeVar("_T")
@@ -45,6 +46,10 @@ _T = TypeVar("_T")
 _IS_RPC_METHOD_ATTR = "__is_rpc_method"
 _REGION_RESOLUTION_ATTR = "__region_resolution"
 _REGION_RESOLUTION_OPTIONAL_RETURN_ATTR = "__region_resolution_optional_return"
+
+
+def _is_abstract_method(method: Callable[..., Any]) -> bool:
+    return getattr(method, "__isabstractmethod__", False)
 
 
 class RpcException(Exception):
@@ -325,7 +330,7 @@ class RpcService(abc.ABC):
 
     @classmethod
     def _get_abstract_rpc_methods(cls) -> Iterator[Callable[..., Any]]:
-        return (m for m in cls._get_all_rpc_methods() if getattr(m, "__isabstractmethod__", False))
+        return (m for m in cls._get_all_rpc_methods() if _is_abstract_method(m))
 
     @classmethod
     def _has_rpc_methods(cls) -> bool:
@@ -348,6 +353,19 @@ class RpcService(abc.ABC):
         """
 
         raise NotImplementedError
+
+    @classmethod
+    def get_nonlocal_class(cls) -> Type[RpcService] | None:
+        """Return a service object that runs on a silo other than the local one.
+
+        A base service class may override this class method to return an instance
+        that writes to an outbox or reads replicated data. That instance may be a
+        partial implementation, overriding a subset of the base class's abstract
+        methods that can be implemented without making an RPC. Any remaining RPC
+        methods will automatically receive remote implementations.
+        """
+
+        return None
 
     @classmethod
     def _create_signatures(cls) -> Mapping[str, RpcMethodSignature]:
@@ -383,7 +401,7 @@ class RpcService(abc.ABC):
         for method_sig in cls._get_abstract_rpc_methods():
             method_impl = getattr(impl, method_sig.__name__)
 
-            if getattr(method_impl, "__isabstractmethod__", False):
+            if _is_abstract_method(method_impl):
                 raise RpcServiceSetupException(
                     cls.key,
                     method_sig.__name__,
@@ -403,7 +421,7 @@ class RpcService(abc.ABC):
         return impl
 
     @classmethod
-    def _create_remote_implementation(cls, use_test_client: bool | None = None) -> RpcService:
+    def _create_remote_implementation(cls, use_test_client: bool, force_remote: bool) -> RpcService:
         """Create a service object that makes remote calls to another silo.
 
         The service object will implement each abstract method with an RPC method
@@ -411,8 +429,14 @@ class RpcService(abc.ABC):
         an RPC method decorator are not overridden and are executed locally as normal
         (but are still available as part of the RPC interface for external clients).
         """
-        if use_test_client is None:
-            use_test_client = in_test_environment()
+
+        nonlocal_class = cls.get_nonlocal_class()
+
+        def should_generate_remote_method(service_method: Callable[..., Any]) -> bool:
+            if nonlocal_class is None or force_remote:
+                return True
+            nonlocal_method = getattr(nonlocal_class, service_method.__name__)
+            return _is_abstract_method(nonlocal_method)
 
         def create_remote_method(method_name: str) -> Callable[..., Any]:
             signature = cls._signatures[method_name]
@@ -440,21 +464,34 @@ class RpcService(abc.ABC):
 
             return remote_method
 
-        overrides = {
+        rpc_overrides = {
             service_method.__name__: create_remote_method(service_method.__name__)
             for service_method in cls._get_abstract_rpc_methods()
+            if should_generate_remote_method(service_method)
         }
-        remote_service_class = type(f"{cls.__name__}__RemoteDelegate", (cls,), overrides)
+        if nonlocal_class and not rpc_overrides:
+            return nonlocal_class()
+        base_class = cls if nonlocal_class is None else nonlocal_class
+        remote_service_class = type(f"{cls.__name__}__RemoteDelegate", (base_class,), rpc_overrides)
         return cast(RpcService, remote_service_class())
 
     @classmethod
-    def create_delegation(cls, use_test_client: bool | None = None) -> DelegatingRpcService:
+    def create_delegation(
+        cls, use_test_client: bool | None = None, force_remote: bool = False
+    ) -> DelegatingRpcService:
         """Instantiate a base service class for the current mode."""
+
+        if use_test_client is None:
+            use_test_client = in_test_environment()
+
+        def create_remote_implementation():
+            return cls._create_remote_implementation(use_test_client, force_remote)
+
         constructors = {
             mode: (
                 cls._get_and_validate_local_implementation
                 if mode == SiloMode.MONOLITH or mode == cls.local_mode
-                else lambda: cls._create_remote_implementation(use_test_client=use_test_client)
+                else create_remote_implementation
             )
             for mode in SiloMode
         }

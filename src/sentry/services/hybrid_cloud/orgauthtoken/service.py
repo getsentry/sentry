@@ -5,9 +5,8 @@
 
 from abc import abstractmethod
 from datetime import datetime
-from typing import Optional, cast
+from typing import Optional, Type, cast
 
-from sentry.services.hybrid_cloud import silo_mode_delegation
 from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
 from sentry.silo import SiloMode
 
@@ -18,7 +17,15 @@ class OrgAuthTokenService(RpcService):
 
     @classmethod
     def get_local_implementation(cls) -> RpcService:
-        return impl_by_db()
+        from .impl import DatabaseBackedOrgAuthTokenService
+
+        return DatabaseBackedOrgAuthTokenService()
+
+    @classmethod
+    def get_nonlocal_class(cls) -> Type[RpcService]:
+        from .impl import OutboxBackedOrgAuthTokenService
+
+        return OutboxBackedOrgAuthTokenService
 
     @rpc_method
     @abstractmethod
@@ -33,29 +40,14 @@ class OrgAuthTokenService(RpcService):
         pass
 
 
-def impl_by_db() -> OrgAuthTokenService:
-    from .impl import DatabaseBackedOrgAuthTokenService
-
-    return DatabaseBackedOrgAuthTokenService()
-
-
-def impl_by_outbox() -> OrgAuthTokenService:
-    from .impl import OutboxBackedOrgAuthTokenService
-
-    return OutboxBackedOrgAuthTokenService()
-
-
 # An asynchronous service which can delegate to an outbox implementation, essentially enqueueing
 # updates of tokens for future processing.
-orgauthtoken_service: OrgAuthTokenService = silo_mode_delegation(
-    {
-        SiloMode.REGION: impl_by_outbox,
-        SiloMode.CONTROL: impl_by_db,
-        SiloMode.MONOLITH: impl_by_db,
-    }
+orgauthtoken_service: OrgAuthTokenService = cast(
+    OrgAuthTokenService, OrgAuthTokenService.create_delegation()
 )
 
 
 orgauthtoken_rpc_service: OrgAuthTokenService = cast(
-    OrgAuthTokenService, OrgAuthTokenService.create_delegation()
+    OrgAuthTokenService,
+    OrgAuthTokenService.create_delegation(force_remote=True),
 )
