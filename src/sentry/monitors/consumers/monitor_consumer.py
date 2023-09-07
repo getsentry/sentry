@@ -21,6 +21,7 @@ from sentry.constants import ObjectStatus
 from sentry.killswitches import killswitch_matches_context
 from sentry.models import Project
 from sentry.monitors.logic.mark_failed import mark_failed
+from sentry.monitors.logic.mark_ok import mark_ok
 from sentry.monitors.models import (
     MAX_SLUG_LENGTH,
     CheckInStatus,
@@ -493,7 +494,7 @@ def _process_message(ts: datetime, wrapper: CheckinMessage | ClockPulseMessage) 
                         occurrence_context={"trace_id": trace_id},
                     )
                 else:
-                    monitor_environment.mark_ok(check_in, start_time)
+                    mark_ok(check_in, start_time)
 
                 metrics.incr(
                     "monitors.checkin.result",
