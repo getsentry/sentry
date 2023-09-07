@@ -24,6 +24,7 @@ import {
   SectionHeading,
   SectionValue,
 } from 'sentry/components/charts/styles';
+import {isEmptySeries} from 'sentry/components/charts/utils';
 import CircleIndicator from 'sentry/components/circleIndicator';
 import {
   parseStatsPeriod,
@@ -43,6 +44,7 @@ import {ReactEchartsRef, Series} from 'sentry/types/echarts';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {getDuration} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
+import {OnDemandMetricAlert} from 'sentry/utils/onDemandMetrics';
 import {MINUTES_THRESHOLD_TO_DISPLAY_SECONDS} from 'sentry/utils/sessions';
 import theme from 'sentry/utils/theme';
 import toArray from 'sentry/utils/toArray';
@@ -86,7 +88,6 @@ type Props = WithRouterProps & {
   rule: MetricRule;
   timePeriod: TimePeriodType;
   incidents?: Incident[];
-  onDataLoaded?: (data: AreaChartSeries[]) => void;
   onDemandMetricAlert?: boolean;
   selectedIncident?: Incident | null;
 };
@@ -294,8 +295,6 @@ class MetricChart extends PureComponent<Props, State> {
       return this.renderEmpty();
     }
 
-    this.props.onDataLoaded?.(timeseriesData);
-
     const handleIncidentClick = (incident: Incident) => {
       router.push(
         normalizeUrl({
@@ -497,6 +496,21 @@ class MetricChart extends PureComponent<Props, State> {
     );
   }
 
+  renderEmptyOnDemandAlert(timeseriesData: Series[] = [], loading?: boolean) {
+    if (loading || !this.props.onDemandMetricAlert || !isEmptySeries(timeseriesData[0])) {
+      return null;
+    }
+
+    return (
+      <OnDemandMetricAlert
+        dismissable
+        message={t(
+          'This alert lacks historical data due to filters for which we don’t routinely extract metrics.'
+        )}
+      />
+    );
+  }
+
   renderEmpty(placeholderText = '') {
     return (
       <ChartPanel>
@@ -594,9 +608,17 @@ class MetricChart extends PureComponent<Props, State> {
         referrer="api.alerts.alert-rule-chart"
         useOnDemandMetrics={onDemandMetricAlert}
       >
-        {({loading, timeseriesData, comparisonTimeseriesData}) =>
-          this.renderChart(loading, timeseriesData, undefined, comparisonTimeseriesData)
-        }
+        {({loading, timeseriesData, comparisonTimeseriesData}) => (
+          <Fragment>
+            {this.renderEmptyOnDemandAlert(timeseriesData, loading)}
+            {this.renderChart(
+              loading,
+              timeseriesData,
+              undefined,
+              comparisonTimeseriesData
+            )}
+          </Fragment>
+        )}
       </EventsRequest>
     );
   }

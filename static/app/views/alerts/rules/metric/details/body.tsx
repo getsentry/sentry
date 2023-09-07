@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {Fragment} from 'react';
 import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
@@ -6,7 +6,7 @@ import moment from 'moment';
 
 import type {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/alert';
-import {getInterval, isEmptySeries} from 'sentry/components/charts/utils';
+import {getInterval} from 'sentry/components/charts/utils';
 import * as Layout from 'sentry/components/layouts/thirds';
 import type {ChangeData} from 'sentry/components/organizations/timeRangeSelector';
 import PageTimeRangeSelector from 'sentry/components/pageTimeRangeSelector';
@@ -17,7 +17,6 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization, Project} from 'sentry/types';
 import {RuleActionsCategories} from 'sentry/types/alerts';
-import {OnDemandMetricAlert} from 'sentry/utils/onDemandMetrics';
 import MetricHistory from 'sentry/views/alerts/rules/metric/details/metricHistory';
 import {Dataset, MetricRule, TimePeriod} from 'sentry/views/alerts/rules/metric/types';
 import {extractEventTypeFilterFromRule} from 'sentry/views/alerts/rules/metric/utils/getEventTypeFilter';
@@ -111,8 +110,6 @@ export default function MetricDetailsBody({
     });
   };
 
-  const [isEmptyAlert, setIsEmptyAlert] = useState(false);
-
   if (!rule || !project) {
     return (
       <Layout.Body>
@@ -182,14 +179,7 @@ export default function MetricDetailsBody({
             showAbsolute={false}
             disallowArbitraryRelativeRanges
           />
-          {onDemandMetricAlert && isEmptyAlert && (
-            <OnDemandMetricAlert
-              dismissable
-              message={t(
-                'This alert lacks historical data due to filters for which we don’t routinely extract metrics.'
-              )}
-            />
-          )}
+
           <MetricChart
             api={api}
             rule={rule}
@@ -202,7 +192,6 @@ export default function MetricDetailsBody({
             query={isCrashFreeAlert(dataset) ? query : queryWithTypeFilter}
             filter={getFilter()}
             onDemandMetricAlert={onDemandMetricAlert}
-            onDataLoaded={data => setIsEmptyAlert(isEmptySeries(data[0]))}
           />
           <DetailWrapper>
             <ActivityWrapper>

@@ -416,5 +416,5 @@ export function useEchartsAriaLabels(
 }
 
 export function isEmptySeries(series: Series) {
-  return series.data.reduce((acc, dataPoint) => acc + dataPoint.value, 0) === 0;
+  return series.data.every(dataPoint => dataPoint.value === 0);
 }
