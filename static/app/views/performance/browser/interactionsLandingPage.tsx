@@ -20,6 +20,8 @@ import {
   BrowserStarfishFields,
   useBrowserModuleFilters,
 } from 'sentry/views/performance/browser/useBrowserFilters';
+import {useBrowserSort} from 'sentry/views/performance/browser/useBrowserSort';
+import {useInteractionElementQuery} from 'sentry/views/performance/browser/useInteractionElementQuery';
 import {usePagesQuery} from 'sentry/views/performance/browser/usePageQuery';
 import {ModulePageProviders} from 'sentry/views/performance/database/modulePageProviders';
 
@@ -33,6 +35,7 @@ type Option = {
 function InteractionsLandingPage() {
   const organization = useOrganization();
   const filters = useBrowserModuleFilters();
+  const sort = useBrowserSort();
 
   return (
     <ModulePageProviders title={[t('Performance'), t('Interactions')].join(' — ')}>
@@ -78,7 +81,7 @@ function InteractionsLandingPage() {
 
         <div />
 
-        <InteractionsTable />
+        <InteractionsTable sort={sort} />
       </Layout.Body>
     </ModulePageProviders>
   );
@@ -87,11 +90,19 @@ function InteractionsLandingPage() {
 function ComponentSelector({value}: {value?: string}) {
   const location = useLocation();
 
-  const options: Option[] = [
-    {value: '', label: 'All'},
-    {value: 'downloadButton', label: '<DownloadButton/>'},
-    {value: 'closeButton', label: '<CloseButton/>'},
-  ];
+  const {data, isLoading} = useInteractionElementQuery();
+
+  const options: Option[] =
+    !isLoading && data.length
+      ? [
+          {label: 'All', value: ''},
+          ...data.map(element => ({
+            label: element,
+            value: element,
+          })),
+        ]
+      : [];
+
   return (
     <SelectControlWithProps
       inFieldLabel={`${t('Component')}:`}
