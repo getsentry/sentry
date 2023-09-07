@@ -655,7 +655,7 @@ def get_providers_for_recipient(
     return user_providers
 
 
-def recipient_is_user(recipient: RpcActor | Team | User) -> bool:
+def recipient_is_user(recipient: RpcActor | Team | RpcUser) -> bool:
     from sentry.models.user import User
 
     if isinstance(recipient, RpcActor) and recipient.actor_type == ActorType.USER:
@@ -663,7 +663,7 @@ def recipient_is_user(recipient: RpcActor | Team | User) -> bool:
     return isinstance(recipient, (RpcUser, User))
 
 
-def recipient_is_team(recipient: RpcActor | Team | User) -> bool:
+def recipient_is_team(recipient: RpcActor | Team | RpcUser) -> bool:
     from sentry.models.team import Team
 
     if isinstance(recipient, RpcActor) and recipient.actor_type == ActorType.TEAM:
@@ -730,7 +730,7 @@ def get_query(
 
 
 def get_all_setting_providers(
-    recipients: Iterable[RpcActor | Team | User] | None = None,
+    recipients: Iterable[RpcActor | Team | RpcUser] | None = None,
     project: Project | None = None,
     organization: Organization | None = None,
 ) -> Iterable[NotificationSettingProvider]:
@@ -750,7 +750,7 @@ def get_all_setting_providers(
 
 
 def get_all_setting_options(
-    recipients: Iterable[RpcActor | Team | User] | None = None,
+    recipients: Iterable[RpcActor | Team | RpcUser] | None = None,
     project: Project | None = None,
     organization: Organization | None = None,
 ) -> Iterable[NotificationSettingOption]:
@@ -769,7 +769,7 @@ def get_all_setting_options(
 
 
 def get_setting_options_for_recipient(
-    recipient: RpcActor | Team | User,
+    recipient: RpcActor | Team | RpcUser,
     project: Project | None = None,
     organization: Organization | None = None,
 ) -> MutableMapping[NotificationSettingEnum, NotificationSettingsOptionEnum]:
@@ -985,7 +985,7 @@ def get_notification_recipients(project: Project) -> Mapping[ExternalProviderEnu
 
 
 def user_has_any_provider_settings(
-    recipient: RpcActor | Team | User, provider: ExternalProviderEnum
+    recipient: RpcActor | Team | RpcUser, provider: ExternalProviderEnum
 ) -> bool:
     """
     Returns whether the recipient has any notification settings for the given provider.
