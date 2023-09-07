@@ -56,7 +56,7 @@ class UserReportNotification(ProjectNotification):
         organization = self.organization
         link_query = f"project={self.project.id}"
         if hasattr(self, "notification_uuid"):
-            link_query += f"&notification_uuid={self.notification_uuid}"
+            link_query += f"&amp;notification_uuid={self.notification_uuid}"
         return {
             "enhanced_privacy": organization.flags.enhanced_privacy,
             "group": self.group,
