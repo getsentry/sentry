@@ -28,6 +28,7 @@ def schedule_organizations():
 @instrumented_task(
     name="sentry.tasks.invite_missing_members.send_nudge_email",
     silo_mode=SiloMode.REGION,
+    queue="nudge.invite_missing_org_members",
 )
 def send_nudge_email(org_id):
     try:

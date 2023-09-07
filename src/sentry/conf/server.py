@@ -892,6 +892,7 @@ CELERY_QUEUES_REGION = [
     Queue("performance.statistical_detector", routing_key="performance.statistical_detector"),
     Queue("profiling.statistical_detector", routing_key="profiling.statistical_detector"),
     CELERY_ISSUE_STATES_QUEUE,
+    Queue("nudge.invite_missing_org_members", routing_key="invite_missing_org_members"),
 ]
 
 from celery.schedules import crontab
