@@ -19,7 +19,10 @@ from sentry.api.authentication import (
 from sentry.models import ProjectKeyStatus, Relay
 from sentry.models.apitoken import ApiToken
 from sentry.models.orgauthtoken import OrgAuthToken
-from sentry.services.hybrid_cloud.rpc import RpcServiceSetupException, generate_request_signature
+from sentry.services.hybrid_cloud.rpc import (
+    RpcAuthenticationSetupException,
+    generate_request_signature,
+)
 from sentry.testutils.cases import TestCase
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import control_silo_test
@@ -308,5 +311,5 @@ class TestRpcSignatureAuthentication(TestCase):
         request = Request(request=request)
 
         with override_settings(RPC_SHARED_SECRET=None):
-            with pytest.raises(RpcServiceSetupException):
+            with pytest.raises(RpcAuthenticationSetupException):
                 self.auth.authenticate(request)
