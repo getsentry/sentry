@@ -29,10 +29,10 @@ class ReleaseThresholdSerializer(serializers.Serializer):
     project = ProjectField()
     environment = EnvironmentField(required=False, allow_null=True)
 
-    def validate_threshold_type(self, threshold_type):
+    def validate_threshold_type(self, threshold_type: str):
         return THRESHOLD_TYPE_STR_TO_INT[threshold_type]
 
-    def validate_trigger_type(self, threshold_type):
+    def validate_trigger_type(self, threshold_type: str):
         return TRIGGER_TYPE_STRING_TO_INT[threshold_type]
 
 
