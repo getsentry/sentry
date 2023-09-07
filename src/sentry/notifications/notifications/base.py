@@ -257,10 +257,7 @@ class BaseNotification(abc.ABC):
 class ProjectNotification(BaseNotification, abc.ABC):
     def __init__(self, project: Project, notification_uuid: str | None = None) -> None:
         self.project = project
-        if notification_uuid:
-            super().__init__(project.organization, notification_uuid)
-        else:
-            super().__init__(project.organization)
+        super().__init__(project.organization, notification_uuid)
 
     def get_project_link(self) -> str:
         return self.organization.absolute_url(

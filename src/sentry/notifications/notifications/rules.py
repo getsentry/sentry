@@ -73,10 +73,7 @@ class AlertRuleNotification(ProjectNotification):
         event = notification.event
         group = event.group
         project = group.project
-        if notification_uuid:
-            super().__init__(project, notification_uuid)
-        else:
-            super().__init__(project)
+        super().__init__(project, notification_uuid)
         self.group = group
         self.event = event
         self.target_type = target_type
