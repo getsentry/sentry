@@ -140,14 +140,6 @@ class DatabaseBackedAuthService(AuthService):
                 organization_id=organization_id, provider=provider_key, config=provider_config
             )
 
-            # TODO: Analytics requires a user id
-            # At provisioning time, no user is available so we cannot provide any user
-            # sso_enabled.send_robust(
-            #     organization=sentry_org,
-            #     provider=provider_key,
-            #     sender="EnablePartnerSSO",
-            # )
-
             AuditLogEntry.objects.create(
                 organization_id=organization_id,
                 actor_label=f"partner_provisioning_api:{provider_key}",
