@@ -270,6 +270,8 @@ def backfill_artifact_index_updates() -> bool:
     # we will randomize the order in which we update the indexes
     random.shuffle(indexes_needing_update)
 
+    index_not_fully_updated = False
+
     # First, we are processing all the indexes that need bundles *added* to them,
     # we also process *removals* at the same time.
     for index in indexes_needing_update:
@@ -278,7 +280,10 @@ def backfill_artifact_index_updates() -> bool:
         artifact_bundles = ArtifactBundle.objects.filter(
             flatfileindexstate__flat_file_index=index,
             flatfileindexstate__indexing_state=ArtifactBundleIndexingState.NOT_INDEXED.value,
-        ).select_related("file")
+        ).select_related("file")[:BACKFILL_BATCH_SIZE]
+
+        if len(artifact_bundles) >= BACKFILL_BATCH_SIZE:
+            index_not_fully_updated = True
 
         bundles_to_add = []
         for artifact_bundle in artifact_bundles:
@@ -337,6 +342,7 @@ def backfill_artifact_index_updates() -> bool:
     return (
         len(indexes_needing_update) >= BACKFILL_BATCH_SIZE
         or len(deletion_keys) >= BACKFILL_BATCH_SIZE
+        or index_not_fully_updated
     )
 
 
