@@ -85,7 +85,6 @@ default_manager.add("organizations:invite-members", OrganizationFeature, Feature
 default_manager.add("organizations:invite-members-rate-limits", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:integrations-discord", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:integrations-discord-notifications", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-default_manager.add("organizations:integrations-opsgenie", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:integrations-opsgenie-migration", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:integrations-open-pr-comment", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:issue-alert-fallback-targeting", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
@@ -212,6 +211,8 @@ default_manager.add("organizations:transaction-name-mark-scrubbed-as-sanitized",
 default_manager.add("organizations:transaction-name-sanitization", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:transaction-metrics-extraction", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:use-metrics-layer", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+default_manager.add("organizations:user-feedback-ingest", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
+default_manager.add("organizations:user-feedback-ui", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:widget-viewer-modal-minimap", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:u2f-superuser-form", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 # NOTE: Don't add features down here! Add them to their specific group and sort
