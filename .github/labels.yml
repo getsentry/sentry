@@ -235,6 +235,8 @@
   color: '8D5494'
 - name: 'Product Area: Settings - Spike Protection'
   color: '8D5494'
+- name: 'Product Area: Settings - Subscription'
+  color: '8D5494'
 - name: 'Product Area: Help'
   color: '8D5494'
 - name: "Product Area: What's New"

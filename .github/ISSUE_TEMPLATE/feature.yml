@@ -60,6 +60,7 @@ body:
         - 'Settings - Developer Settings'
         - 'Settings - Spend Allocation'
         - 'Settings - Spike Protection'
+        - 'Settings - Subscription'
         - 'Help'
         - "What's New"
         - 'Footer'
