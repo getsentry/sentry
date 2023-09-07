@@ -4,7 +4,6 @@ from django.utils import timezone
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import BoundedBigIntegerField, Model, region_silo_only_model, sane_repr
 from sentry.db.models.fields import UUIDField
-from sentry.db.models.fields.array import ArrayField
 
 
 @region_silo_only_model
@@ -14,9 +13,7 @@ class Feedback(Model):
     project_id = BoundedBigIntegerField(db_index=True)
     replay_id = models.CharField(max_length=32, null=True, db_index=True)
     url = models.CharField(max_length=1000, null=True)
-    error_ids = ArrayField()
-    trace_ids = ArrayField()
-    feedback_text = models.TextField()
+    message = models.TextField()
     event_id = UUIDField(unique=True)
     date_added = models.DateTimeField(default=timezone.now)
 
