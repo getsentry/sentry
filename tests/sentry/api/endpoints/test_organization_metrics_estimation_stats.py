@@ -141,8 +141,10 @@ class OrganizationMetricsEstimationStatsEndpointTest(APITestCase, BaseMetricsLay
 
     def test_apdex(self):
         """
-        Tests that the volume estimation endpoint correctly looks up the data in the Db and
-        returns the correct volume.
+        Tests that the apdex calculation works as expected.
+
+        This test adds some data to the Db (both transactions and metrics) and then
+        manually calculates the expected apdex that should be returned by the endpoint.
         """
 
         # --- Create test data ---
