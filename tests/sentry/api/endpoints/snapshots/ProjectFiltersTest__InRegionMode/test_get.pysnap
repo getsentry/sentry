@@ -1,0 +1,13 @@
+---
+source: tests/sentry/api/endpoints/test_project_filters.py
+---
+- active: false
+  id: browser-extensions
+- active: true
+  id: filtered-transaction
+- active: false
+  id: legacy-browsers
+- active: false
+  id: localhost
+- active: false
+  id: web-crawlers
