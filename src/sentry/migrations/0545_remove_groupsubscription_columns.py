@@ -42,6 +42,10 @@ class Migration(CheckedMigration):
             ],
             database_operations=[
                 migrations.RunSQL(
+                    reverse_sql="""
+                    ALTER TABLE sentry_groupsubscription ADD COLUMN team_id BIGINT NULL;
+                    ALTER TABLE sentry_groupsubscription ADD CONSTRAINT "subscription_team_or_user_check" CHECK (team_id IS NOT NULL AND user_id IS NULL OR team_id IS NULL AND user_id IS NOT NULL);
+                    """,
                     sql="""
                     ALTER TABLE sentry_groupsubscription DROP CONSTRAINT IF EXISTS subscription_team_or_user_check;
                     ALTER TABLE sentry_groupsubscription DROP COLUMN IF EXISTS team_id;
