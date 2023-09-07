@@ -141,6 +141,10 @@ SUPPORTED_SDK_VERSIONS = {
     "sentry.go": "0.16.0",
 }
 
+# List of SDKs that support performance. We will use this list as a first check for our sdks since if they don't
+# support performance we don't want to show them as incompatible with dynamic sampling in order to reduce noise.
+SDKS_SUPPORTING_PERFORMACE = {}
+
 TASK_SOFT_LIMIT_IN_SECONDS = 30 * 60  # 30 minutes
 ONE_MINUTE_TTL = 60  # 1 minute
 
@@ -297,6 +301,11 @@ class CheckAM2Compatibility:
 
         for project, found_sdks in found_sdks_per_project.items():
             for sdk_name, sdk_versions in found_sdks.items():
+                # If the SDK is not supporting performance, we don't want to try and check dynamic sampling
+                # compatibility, and we also don't return it as unsupported since it will create noise.
+                if sdk_name not in SDKS_SUPPORTING_PERFORMACE:
+                    continue
+
                 sdk_versions_set: Set[Tuple[str, Optional[str]]] = set()
                 found_supported_version = False
                 min_sdk_version = SUPPORTED_SDK_VERSIONS.get(sdk_name)
@@ -434,7 +443,8 @@ class CheckAM2Compatibility:
                 count_has_txn,
             ],
             params=params,
-            query=f"{count_null}:0 AND {count_has_txn}:>0",
+            # TODO: figure out a query to get all projects and how many transactions they have in the last 30 days.
+            query=f"{count_null}:>0 AND {count_has_txn}:>0",
             referrer="api.organization-events",
             functions_acl=["count_null_transactions", "count_has_transaction_name"],
             use_aggregate_conditions=True,
