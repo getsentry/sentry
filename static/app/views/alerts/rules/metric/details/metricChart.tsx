@@ -9,7 +9,6 @@ import momentTimezone from 'moment-timezone';
 
 import {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Button} from 'sentry/components/button';
 import {AreaChart, AreaChartSeries} from 'sentry/components/charts/areaChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
@@ -87,7 +86,8 @@ type Props = WithRouterProps & {
   rule: MetricRule;
   timePeriod: TimePeriodType;
   incidents?: Incident[];
-  isOnDemandMetricAlert?: boolean;
+  onDataLoaded?: (data: AreaChartSeries[]) => void;
+  onDemandMetricAlert?: boolean;
   selectedIncident?: Incident | null;
 };
 
@@ -197,8 +197,7 @@ class MetricChart extends PureComponent<Props, State> {
     totalDuration: number,
     criticalDuration: number,
     warningDuration: number,
-    waitingForDataDuration: number,
-    isOnDemandMetricAlert?: boolean
+    waitingForDataDuration: number
   ) {
     const {rule, organization, project, timePeriod, query} = this.props;
 
@@ -226,59 +225,40 @@ class MetricChart extends PureComponent<Props, State> {
         1
       );
 
-    const isOnDemandAlertWihtoutData =
-      isOnDemandMetricAlert && waitingForDataDuration === totalDuration;
-
     return (
       <StyledChartControls>
         <StyledInlineContainer>
-          {isOnDemandAlertWihtoutData ? (
-            <Fragment>
-              <GuideAnchor
-                disabled={false}
-                target="empty_on_demand_chart"
-                position="right"
-              >
-                <OnDemandNoDataWrapper>
-                  {t(
-                    'This alert lacks historical data due to filters for which we don’t routinely extract metrics.'
+          <Fragment>
+            <SectionHeading>{t('Summary')}</SectionHeading>
+            <StyledSectionValue>
+              <ValueItem>
+                <IconCheckmark color="successText" isCircled />
+                {resolvedPercent ? resolvedPercent.toFixed(2) : 0}%
+              </ValueItem>
+              <ValueItem>
+                <IconWarning color="warningText" />
+                {warningPercent ? warningPercent.toFixed(2) : 0}%
+              </ValueItem>
+              <ValueItem>
+                <IconFire color="errorText" />
+                {criticalPercent ? criticalPercent.toFixed(2) : 0}%
+              </ValueItem>
+              {waitingForDataPercent > 0 && (
+                <StyledTooltip
+                  underlineColor="gray200"
+                  showUnderline
+                  title={t(
+                    'The time spent waiting for metrics matching the filters used.'
                   )}
-                </OnDemandNoDataWrapper>
-              </GuideAnchor>
-            </Fragment>
-          ) : (
-            <Fragment>
-              <SectionHeading>{t('Summary')}</SectionHeading>
-              <StyledSectionValue>
-                <ValueItem>
-                  <IconCheckmark color="successText" isCircled />
-                  {resolvedPercent ? resolvedPercent.toFixed(2) : 0}%
-                </ValueItem>
-                <ValueItem>
-                  <IconWarning color="warningText" />
-                  {warningPercent ? warningPercent.toFixed(2) : 0}%
-                </ValueItem>
-                <ValueItem>
-                  <IconFire color="errorText" />
-                  {criticalPercent ? criticalPercent.toFixed(2) : 0}%
-                </ValueItem>
-                {waitingForDataPercent > 0 && (
-                  <StyledTooltip
-                    underlineColor="gray200"
-                    showUnderline
-                    title={t(
-                      'The time spent waiting for metrics matching the filters used.'
-                    )}
-                  >
-                    <ValueItem>
-                      <IconClock />
-                      {waitingForDataPercent.toFixed(2)}%
-                    </ValueItem>
-                  </StyledTooltip>
-                )}
-              </StyledSectionValue>
-            </Fragment>
-          )}
+                >
+                  <ValueItem>
+                    <IconClock />
+                    {waitingForDataPercent.toFixed(2)}%
+                  </ValueItem>
+                </StyledTooltip>
+              )}
+            </StyledSectionValue>
+          </Fragment>
         </StyledInlineContainer>
         {!isSessionAggregate(rule.aggregate) && (
           <Feature features={['discover-basic']}>
@@ -314,6 +294,8 @@ class MetricChart extends PureComponent<Props, State> {
       return this.renderEmpty();
     }
 
+    this.props.onDataLoaded?.(timeseriesData);
+
     const handleIncidentClick = (incident: Incident) => {
       router.push(
         normalizeUrl({
@@ -334,7 +316,7 @@ class MetricChart extends PureComponent<Props, State> {
       rule,
       incidents,
       selectedIncident,
-      isOnDemandMetricAlert: this.props.isOnDemandMetricAlert,
+      isOnDemandMetricAlert: this.props.onDemandMetricAlert,
       handleIncidentClick,
     });
 
@@ -509,8 +491,7 @@ class MetricChart extends PureComponent<Props, State> {
           totalDuration,
           criticalDuration,
           warningDuration,
-          waitingForDataDuration,
-          this.props.isOnDemandMetricAlert
+          waitingForDataDuration
         )}
       </ChartPanel>
     );
@@ -536,7 +517,7 @@ class MetricChart extends PureComponent<Props, State> {
       interval,
       query,
       location,
-      isOnDemandMetricAlert,
+      onDemandMetricAlert,
     } = this.props;
     const {aggregate, timeWindow, environment, dataset} = rule;
 
@@ -611,7 +592,7 @@ class MetricChart extends PureComponent<Props, State> {
         partial={false}
         queryExtras={queryExtras}
         referrer="api.alerts.alert-rule-chart"
-        useOnDemandMetrics={isOnDemandMetricAlert}
+        useOnDemandMetrics={onDemandMetricAlert}
       >
         {({loading, timeseriesData, comparisonTimeseriesData}) =>
           this.renderChart(loading, timeseriesData, undefined, comparisonTimeseriesData)
@@ -666,10 +647,6 @@ const StyledSectionValue = styled(SectionValue)`
   grid-template-columns: repeat(4, auto);
   gap: ${space(1.5)};
   margin: 0 0 0 ${space(1.5)};
-`;
-
-const OnDemandNoDataWrapper = styled(SectionValue)`
-  margin: 0;
 `;
 
 const ValueItem = styled('div')`

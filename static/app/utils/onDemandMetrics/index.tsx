@@ -1,6 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import Alert from 'sentry/components/alert';
 import {
   ParseResult,
   parseSearch,
@@ -8,13 +9,15 @@ import {
   TokenResult,
 } from 'sentry/components/searchSyntax/parser';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconWarning} from 'sentry/icons';
+import {IconInfo, IconWarning} from 'sentry/icons';
+import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {FieldKey, getFieldDefinition} from 'sentry/utils/fields';
 import {
   ON_DEMAND_METRICS_UNSUPPORTED_TAGS,
   STANDARD_SEARCH_FIELD_KEYS,
 } from 'sentry/utils/onDemandMetrics/constants';
+import {Color} from 'sentry/utils/theme';
 
 function isStandardSearchFilterKey(key: string): boolean {
   return STANDARD_SEARCH_FIELD_KEYS.has(key as FieldKey);
@@ -97,6 +100,11 @@ function getTokenKeyValuePair(
   return null;
 }
 
+export function getOnDemandKeys(query: string): string[] {
+  const searchFilterKeys = getSearchFilterKeys(query);
+  return searchFilterKeys.filter(isOnDemandSearchKey);
+}
+
 const EXTRAPOLATED_AREA_STRIPE_IMG =
   'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAABkAQMAAACFAjPUAAAAAXNSR0IB2cksfwAAAAlwSFlzAAALEwAACxMBAJqcGAAAAAZQTFRFpKy5SVlzL3npZAAAAA9JREFUeJxjsD/AMIqIQwBIyGOd43jaDwAAAABJRU5ErkJggg==';
 
@@ -121,11 +129,40 @@ export function hasOnDemandMetricWidgetFeature(organization: Organization) {
   );
 }
 
-export function OnDemandWarningIcon({msg}: {msg: React.ReactNode}) {
+export function OnDemandWarningIcon({
+  msg,
+  color = 'gray300',
+}: {
+  msg: React.ReactNode;
+  color?: Color;
+}) {
   return (
     <Tooltip title={msg}>
-      <HoverableIconWarning color="gray300" />
+      <HoverableIconWarning color={color} />
     </Tooltip>
+  );
+}
+
+const InfoAlert = styled(Alert)`
+  border: 1px solid ${p => p.theme.blue400};
+
+  & > span {
+    display: flex;
+    align-items: center;
+  }
+`;
+
+const InfoICon = styled(IconInfo)`
+  color: ${p => p.theme.blue400};
+  margin-right: ${space(1.5)};
+`;
+
+export function OnDemandMetricAlert({message}: {message: React.ReactNode}) {
+  return (
+    <InfoAlert>
+      <InfoICon size="sm" />
+      {message}
+    </InfoAlert>
   );
 }
 
