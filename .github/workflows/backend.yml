@@ -89,9 +89,7 @@ jobs:
           # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
           fetch-depth: '2'
 
-      - name: Update environment for silo databases
-        if: |
-          contains( github.event.pull_request.labels.*.name, 'Trigger: Silo db' )
+      - name: Update environment for split databases
         run: |
           echo "SENTRY_USE_SPLIT_DBS=1" >> "$GITHUB_ENV"
 
@@ -135,10 +133,8 @@ jobs:
           # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
           fetch-depth: '2'
 
-      - name: Update environment for silo databases
+      - name: Update environment for split databases
         id: silo_env
-        if: |
-          contains( github.event.pull_request.labels.*.name, 'Trigger: Silo db' )
         run: |
           echo "SENTRY_USE_SPLIT_DBS=1" >> "$GITHUB_ENV"
 
@@ -173,9 +169,7 @@ jobs:
     steps:
       - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8 # v3.1.0
 
-      - name: Update environment for silo databases
-        if: |
-          contains( github.event.pull_request.labels.*.name, 'Trigger: Silo db' )
+      - name: Update environment for split databases
         run: |
           echo "SENTRY_USE_SPLIT_DBS=1" >> "$GITHUB_ENV"
 
@@ -265,9 +259,7 @@ jobs:
     steps:
       - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8 # v3.1.0
 
-      - name: Update environment for silo databases
-        if: |
-          contains( github.event.pull_request.labels.*.name, 'Trigger: Silo db' )
+      - name: Update environment for split databases
         run: |
           echo "SENTRY_USE_SPLIT_DBS=1" >> "$GITHUB_ENV"
 
@@ -294,9 +286,7 @@ jobs:
           # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
           fetch-depth: '2'
 
-      - name: Update environment for silo databases
-        if: |
-          contains( github.event.pull_request.labels.*.name, 'Trigger: Silo db' )
+      - name: Update environment for split databases
         run: |
           echo "SENTRY_USE_SPLIT_DBS=1" >> "$GITHUB_ENV"
 
@@ -349,9 +339,7 @@ jobs:
           # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
           fetch-depth: '2'
 
-      - name: Update environment for silo databases
-        if: |
-          contains( github.event.pull_request.labels.*.name, 'Trigger: Silo db' )
+      - name: Update environment for split databases
         run: |
           echo "SENTRY_USE_SPLIT_DBS=1" >> "$GITHUB_ENV"
 
