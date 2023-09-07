@@ -13,10 +13,10 @@ from sentry.models import Project
 from sentry.models.release_threshold.constants import (
     THRESHOLD_TYPE_STR_TO_INT,
     TRIGGER_TYPE_STRING_TO_INT,
-    ReleaseThreshold,
     ReleaseThresholdType,
     TriggerType,
 )
+from sentry.models.release_threshold.releasethreshold import ReleaseThreshold
 
 
 class ReleaseThresholdSerializer(serializers.Serializer):
