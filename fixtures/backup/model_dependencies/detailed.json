@@ -1,4 +1,12 @@
 {
+  "feedback.Feedback": {
+    "foreign_keys": {},
+    "model": "feedback.Feedback",
+    "relocation_scope": "Excluded",
+    "silos": [
+      "Region"
+    ]
+  },
   "nodestore.Node": {
     "foreign_keys": {},
     "model": "nodestore.Node",
@@ -268,10 +276,6 @@
   },
   "sentry.ArtifactBundleFlatFileIndex": {
     "foreign_keys": {
-      "flat_file_index": {
-        "kind": "FlexibleForeignKey",
-        "model": "sentry.File"
-      },
       "project_id": {
         "kind": "ImplicitForeignKey",
         "model": "sentry.Project"
@@ -1466,6 +1470,10 @@
       "project": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.Project"
+      },
+      "team": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.Team"
       },
       "user_id": {
         "kind": "HybridCloudForeignKey",
