@@ -167,6 +167,14 @@ class DatabaseBackedAuthService(AuthService):
                     data={},
                 )
 
+    def get_auth_provider_with_config(
+        self, *, provider: str, config: Mapping[str, Any]
+    ) -> Optional[RpcAuthProvider]:
+        existing_provider = AuthProvider.objects.filter(provider=provider, config=config).first()
+        if existing_provider is None:
+            return None
+        return serialize_auth_provider(existing_provider)
+
     def get_org_auth_config(
         self, *, organization_ids: List[int]
     ) -> List[RpcOrganizationAuthConfig]:

@@ -124,5 +124,12 @@ class AuthService(RpcService):
     ) -> None:
         pass
 
+    @rpc_method
+    @abc.abstractmethod
+    def get_auth_provider_with_config(
+        self, *, provider: str, config: Mapping[str, Any]
+    ) -> Optional[RpcAuthProvider]:
+        pass
+
 
 auth_service: AuthService = cast(AuthService, AuthService.create_delegation())
