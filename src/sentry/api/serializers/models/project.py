@@ -58,7 +58,11 @@ from sentry.notifications.helpers import (
     get_most_specific_notification_setting_value,
     transform_to_notification_settings_by_scope,
 )
-from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
+from sentry.notifications.types import (
+    NotificationSettingEnum,
+    NotificationSettingOptionValues,
+    NotificationSettingTypes,
+)
 from sentry.roles import organization_roles
 from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.services.hybrid_cloud.notifications import notifications_service
@@ -310,14 +314,25 @@ class ProjectSerializer(Serializer):
                         user_id=user.id, project_id__in=project_ids
                     ).values_list("project_id", flat=True)
                 )
-
-                notification_settings_by_scope = transform_to_notification_settings_by_scope(
-                    notifications_service.get_settings_for_user_by_projects(
-                        type=NotificationSettingTypes.ISSUE_ALERTS,
-                        user_id=user.id,
-                        parent_ids=project_ids,
+                org = item_list[0].organization
+                notification_settings_by_scope = None
+                if features.has("organizations:notification-settings-v2", org):
+                    notification_settings_by_scope = (
+                        notifications_service.get_setting_options_by_project(
+                            user_id=user.id,
+                            projects=item_list,
+                            organization=org,
+                            type=NotificationSettingEnum.WORKFLOW,
+                        )
                     )
-                )
+                else:
+                    notification_settings_by_scope = transform_to_notification_settings_by_scope(
+                        notifications_service.get_settings_for_user_by_projects(
+                            type=NotificationSettingTypes.ISSUE_ALERTS,
+                            user_id=user.id,
+                            parent_ids=project_ids,
+                        )
+                    )
             else:
                 bookmarks = set()
                 notification_settings_by_scope = {}
