@@ -486,18 +486,5 @@ function getDemoModeGuides(): GuidesContent {
         },
       ],
     },
-    {
-      guide: 'explain_empty_on_demand_alert',
-      requiredTargets: ['empty_on_demand_chart'],
-      steps: [
-        {
-          title: t('Why is the chart empty?'),
-          target: 'empty_on_demand_chart',
-          description: t(
-            `This alert uses specific filters that we don't routinely collect metrics from. This means we don't have any historical data to show right now, but we'll capture all metrics that match the filters from this point on.`
-          ),
-        },
-      ],
-    },
   ];
 }
