@@ -325,28 +325,9 @@ class Aggregator:
         # We obtain the counts for each metric type of how many buckets we have and how much complexity is in each
         # bucket.
         complexities_by_type: Dict[MetricType, Tuple[int, int]] = {}
-        # We obtain the counts for each metric type, since we want to know how many by type we have.
-        counts_by_type: Dict[MetricType, float] = {}
+
         for metric, metric_complexity in extracted_metrics:
             metric_type = metric["type"]
-            metric_value = metric["value"]
-
-            value: float = 0.0
-            if metric_type == "c":
-                # For counters, we want to sum the count value.
-                value = float(metric_value)  # type:ignore
-            elif metric_type == "d":
-                # For distributions, we want to track the size of the distribution.
-                value = float(len(metric_value))  # type:ignore
-            elif metric_type == "g":
-                # For gauges, we will emit the single compressed value.
-                value = float(metric_value)  # type:ignore
-            elif metric_type == "s":
-                # For sets, we want to track the cardinality of the set.
-                value = float(len(metric_value))  # type:ignore
-
-            counts_by_type[metric_type] = counts_by_type.get(metric_type, 0) + value
-
             (prev_buckets_count, prev_buckets_complexity) = complexities_by_type.get(
                 metric_type, (0, 0)
             )
@@ -355,25 +336,16 @@ class Aggregator:
                 prev_buckets_complexity + metric_complexity,
             )
 
-        # For each type and count we want to emit a metric.
-        for metric_type, metric_count in counts_by_type.items():
-            # We want to emit a metric on how many metrics we would technically emit if we were to use minimetrics.
-            cls._safe_emit_count_metric(
-                key="minimetrics.emit",
-                amount=int(metric_count),
-                tags={"metric_type": metric_type, "force_flush": force_flush},
-            )
-
         for metric_type, (buckets_count, buckets_complexity) in complexities_by_type.items():
             # We want to emit a metric on how many buckets and complexity there was for a metric type.
-            cls._safe_emit_count_metric(
-                key="minimetrics.flushed_buckets_count",
-                amount=buckets_count,
+            cls._safe_emit_distribution_metric(
+                key="minimetrics.flushed_buckets",
+                value=buckets_count,
                 tags={"metric_type": metric_type, "force_flush": force_flush},
             )
-            cls._safe_emit_count_metric(
+            cls._safe_emit_distribution_metric(
                 key="minimetrics.flushed_buckets_complexity",
-                amount=buckets_complexity,
+                value=buckets_complexity,
                 tags={"metric_type": metric_type, "force_flush": force_flush},
             )
 
