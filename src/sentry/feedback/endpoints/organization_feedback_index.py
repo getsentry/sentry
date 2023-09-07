@@ -7,6 +7,7 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import (
     ApiKeyAuthentication,
@@ -81,7 +82,7 @@ class OrganizationFeedbackIndexEndpoint(Endpoint):
         "GET": ApiPublishStatus.EXPERIMENTAL,
         "POST": ApiPublishStatus.EXPERIMENTAL,
     }
-    # owner = ApiOwner.
+    owner = ApiOwner.FEEDBACK
 
     authentication_classes = (
         DSNAuthentication,
@@ -142,7 +143,6 @@ class OrganizationFeedbackIndexEndpoint(Endpoint):
         pass
 
     def post(self, request: Request, organization: Organization, project: Project) -> Response:
-
         feedback_validator = FeedbackValidator(data=request.data, context={"project": project})
         if not feedback_validator.is_valid():
             return self.respond(feedback_validator.errors, status=400)

@@ -2,6 +2,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api import serializers
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
@@ -18,7 +19,7 @@ class ProjectFeedbackDetailsEndpoint(ProjectEndpoint):
         "GET": ApiPublishStatus.EXPERIMENTAL,
         "PATCH": ApiPublishStatus.EXPERIMENTAL,
     }
-    # owner = ApiOwner.
+    owner = ApiOwner.FEEDBACK
 
     def get(self, request: Request, project: Project, feedback_id: str) -> Response:
         try:
