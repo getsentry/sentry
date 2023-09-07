@@ -31,7 +31,6 @@ class CommitFileChange(Model):
     type = models.CharField(
         max_length=1, choices=(("A", "Added"), ("D", "Deleted"), ("M", "Modified"))
     )
-    language = models.CharField(default=None, null=True, max_length=255)
 
     objects = CommitFileChangeManager()
 
