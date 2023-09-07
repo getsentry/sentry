@@ -186,6 +186,10 @@ class OrganizationCodeMappingsEndpoint(OrganizationEndpoint, OrganizationIntegra
         if not integration_id:
             return self.respond("Missing param: integration_id", status=status.HTTP_400_BAD_REQUEST)
 
+        project = Project.objects.get(id=request.data.get("projectId"))
+        if not request.access.has_project_access(project):
+            return self.respond(status=status.HTTP_403_FORBIDDEN)
+
         try:
             # We expect there to exist an org_integration
             org_integration = self.get_organization_integration(organization, integration_id)
@@ -201,10 +205,6 @@ class OrganizationCodeMappingsEndpoint(OrganizationEndpoint, OrganizationIntegra
             data=request.data,
         )
         if serializer.is_valid():
-            project = Project.objects.get(id=request.data.get("projectId"))
-            if not request.access.has_project_access(project):
-                return self.respond(status=status.HTTP_403_FORBIDDEN)
-
             repository_project_path_config = serializer.save()
             return self.respond(
                 serialize(repository_project_path_config, request.user),
