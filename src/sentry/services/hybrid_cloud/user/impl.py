@@ -160,6 +160,12 @@ class DatabaseBackedUserService(UserService):
             return None
         return serialize_rpc_user(user)
 
+    def get_first_superuser(self) -> Optional[RpcUser]:
+        user = User.objects.filter(is_superuser=True).first()
+        if user is None:
+            return None
+        return serialize_rpc_user(user)
+
     class _UserFilterQuery(
         FilterQueryDatabaseImpl[User, UserFilterArgs, RpcUser, UserSerializeType],
     ):

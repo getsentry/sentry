@@ -1736,6 +1736,10 @@ SENTRY_FEATURES = {
     "organizations:notification-settings-v2": False,
     # Enable new release UI
     "organizations:release-ui-v2": False,
+    # Enable User Feedback v2 ingest
+    "organizations:user-feedback-ingest": False,
+    # Enable User Feedback v2 UI
+    "organizations:user-feedback-ui": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
@@ -1746,6 +1750,8 @@ SENTRY_FEATURES = {
     "organizations:sourcemaps-upload-release-as-artifact-bundle": False,
     # Signals that the organization supports the on demand metrics prefill.
     "organizations:on-demand-metrics-prefill": False,
+    # Excludes measurement config from project config builds.
+    "organizations:projconfig-exclude-measurements": False,
     # Enable data forwarding functionality for projects.
     "projects:data-forwarding": True,
     # Enable functionality to discard groups.

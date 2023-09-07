@@ -61,7 +61,6 @@
     "sentry.Organization"
   ],
   "sentry.ArtifactBundleFlatFileIndex": [
-    "sentry.File",
     "sentry.Project"
   ],
   "sentry.ArtifactBundleIndex": [
@@ -334,6 +333,7 @@
   "sentry.GroupSubscription": [
     "sentry.Group",
     "sentry.Project",
+    "sentry.Team",
     "sentry.User"
   ],
   "sentry.GroupTombstone": [
