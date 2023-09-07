@@ -1,10 +1,10 @@
 from typing import Any, List, Optional, TypedDict
 
 from sentry.api.serializers.base import Serializer, register
-from sentry.user_feedback.models import UserFeedback
+from sentry.feedback.models import Feedback
 
 
-class UserFeedbackResponseType(TypedDict):
+class FeedbackResponseType(TypedDict):
     date_added: str
     replay_id: Optional[str]
     url: Optional[str]
@@ -14,9 +14,9 @@ class UserFeedbackResponseType(TypedDict):
     context: Optional[Any]
 
 
-@register(UserFeedback)
-class UserFeedbackSerializer(Serializer):
-    def serialize(self, obj, attrs, user, **kwargs) -> UserFeedbackResponseType:
+@register(Feedback)
+class FeedbackSerializer(Serializer):
+    def serialize(self, obj, attrs, user, **kwargs) -> FeedbackResponseType:
         result = {
             "date_added": obj.date_added,
             "replay_id": obj.replay_id,
