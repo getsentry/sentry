@@ -1,6 +1,5 @@
 from sentry.models import NotificationSetting, UserEmail, UserOption
 from sentry.models.notificationsettingoption import NotificationSettingOption
-from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
@@ -189,9 +188,6 @@ class UserNotificationFineTuningTest(UserNotificationFineTuningTestBase):
             scope_identifier=self.project2.id,
             value="never",
         ).exists()
-        assert NotificationSettingProvider.objects.filter(
-            **query_args, scope_type="user", scope_identifier=self.user.id, provider="email"
-        ).exists()
 
         # Can return to default
         data = {str(self.project.id): -1}
@@ -223,9 +219,6 @@ class UserNotificationFineTuningTest(UserNotificationFineTuningTestBase):
             scope_type="project",
             scope_identifier=self.project2.id,
             value="never",
-        ).exists()
-        assert NotificationSettingProvider.objects.filter(
-            **query_args, scope_type="user", scope_identifier=self.user.id, provider="email"
         ).exists()
 
     def test_saves_and_returns_email_routing(self):

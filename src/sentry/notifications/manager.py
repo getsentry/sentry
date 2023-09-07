@@ -252,6 +252,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):  # noqa: F821
                 team=team_id, user=user_id, project=project, organization=organization
             )
             scope_type_str = NOTIFICATION_SCOPE_TYPE[scope_type]
+            # remove the option setting
             NotificationSettingOption.objects.filter(
                 scope_type=scope_type_str,
                 scope_identifier=scope_identifier,
@@ -259,14 +260,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):  # noqa: F821
                 user_id=user_id,
                 type=type,
             ).delete()
-            NotificationSettingProvider.objects.filter(
-                scope_type=scope_type_str,
-                scope_identifier=scope_identifier,
-                team_id=team_id,
-                user_id=user_id,
-                type=type,
-                provider=EXTERNAL_PROVIDERS[provider],
-            ).delete()
+            # the provider setting is updated elsewhere
 
         self.find_settings(
             provider,
@@ -473,8 +467,15 @@ class NotificationsManager(BaseManager["NotificationSetting"]):  # noqa: F821
         )
         parent_scope_identifier = team_id if team_id is not None else user_id
 
-        # Get all the NotificationSetting rows for the user or team
-        notification_settings = self.filter(user_id=user_id, team_id=team_id)
+        # Get all the NotificationSetting rows for the user or team at the top level scope
+        notification_settings = self.filter(
+            user_id=user_id,
+            team_id=team_id,
+            scope_type__in=[
+                NotificationScopeType.USER.value,
+                NotificationScopeType.TEAM.value,
+            ],
+        )
         # Initialize a dictionary to store the new NotificationSettingProvider values
         enabled_providers_by_type: Mapping[str, Set[ExternalProviders]] = defaultdict(set)
         disabled_providers_by_type = defaultdict(set)
