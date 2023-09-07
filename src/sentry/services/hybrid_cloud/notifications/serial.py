@@ -15,15 +15,3 @@ def serialize_notification_setting(setting: NotificationSetting) -> RpcNotificat
         type=setting.type,
         value=setting.value,
     )
-
-
-def serialize_notification_option(setting: NotificationSettingOption) -> RpcNotificationSetting:
-    return RpcNotificationSetting(
-        id=setting.id,
-        scope_type=setting.scope_type,
-        scope_identifier=setting.scope_identifier,
-        team_id=setting.team_id,
-        user_id=setting.user_id,
-        type=setting.type,
-        value=setting.value,
-    )
