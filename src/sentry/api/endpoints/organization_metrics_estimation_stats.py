@@ -214,5 +214,10 @@ def discover_to_metrics_function_call(column: str):
             ret_val = "apdex()"
             if alias:
                 ret_val += f" AS {alias}"
+            else:
+                # (another hack) maintain the original name (since get_event_stats_data gets the column
+                # names from the request so it will not find the result unless it matches the original
+                # discover name)
+                ret_val += f" AS {fields.get_function_alias(column)}"
             return ret_val
     return column

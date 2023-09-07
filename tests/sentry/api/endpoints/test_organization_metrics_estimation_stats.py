@@ -139,6 +139,108 @@ class OrganizationMetricsEstimationStatsEndpointTest(APITestCase, BaseMetricsLay
                 )
                 assert pytest.approx(count, 0.001) == expected
 
+    def test_apdex(self):
+        """
+        Tests that the volume estimation endpoint correctly looks up the data in the Db and
+        returns the correct volume.
+        """
+
+        # --- Create test data ---
+
+        # the number of transactions created in the last 3 minutes
+        transactions_long = [1, 2, 3, 4]
+        transactions_short = [2, 4, 5, 6]
+
+        # the number of transaction metrics recorded in the last 4 minutes
+        # we set the satisfaction tag in order to calculate metrics apdex
+        satisfied_transactions = [10, 20, 10, 20]
+        tolerated_transactions = [10, 11, 12, 13]
+        frustrated_transactions = [14, 15, 16, 17]
+        metrics = {
+            "satisfied": satisfied_transactions,
+            "tolerated": tolerated_transactions,
+            "frustrated": frustrated_transactions,
+        }
+        num_minutes = len(transactions_long)
+
+        # create the transactions and the metrics in Snuba
+        for idx in range(num_minutes):
+            # put the transactions in the middle of the minute
+            seconds_before = (num_minutes - idx - 1) * MINUTE + SECOND * 30
+            # put the metric at the beginning of the minute (utility only takes minutes)
+            minutes_before = num_minutes - idx - 1
+            # short transactions
+            for _ in range(transactions_short[idx]):
+                self.create_transaction(self.now - seconds_before, 10)
+            # long transactions
+            for _ in range(transactions_long[idx]):
+                self.create_transaction(self.now - seconds_before, 100)
+            # transaction metrics
+            for satisfaction, transactions in metrics.items():
+                for _ in range(transactions[idx]):
+                    self.store_performance_metric(
+                        name=TransactionMRI.DURATION.value,
+                        tags={"transaction": "t1", "satisfaction": satisfaction},
+                        minutes_before_now=minutes_before,
+                        value=3.14,
+                        project_id=self.project.id,
+                        org_id=self.organization.id,
+                    )
+
+        # --- call the endpoint ---
+        response = self.get_response(
+            self.organization.slug,
+            interval="1m",
+            yAxis="apdex(50)",
+            statsPeriod="4m",
+            query="transaction.duration:<50 event.type:transaction",
+        )
+
+        assert response.status_code == 200, response.content
+
+        # --- calculate the expected results ---
+        # calculate apdex for metrics
+        metrics_apdex = []
+        for idx in range(len(satisfied_transactions)):
+            satisfied = satisfied_transactions[idx]
+            tolerated = tolerated_transactions[idx]
+            frustrated = frustrated_transactions[idx]
+            metrics_apdex.append((satisfied + tolerated / 2) / (satisfied + tolerated + frustrated))
+
+        # calculate the base transaction apdex (using all transactions)
+        base_apdex = []
+        for idx in range(len(transactions_short)):
+            base_apdex.append(
+                (transactions_short[idx] + 0.5 * transactions_long[idx])
+                / (transactions_short[idx] + transactions_long[idx])
+            )
+
+        # calculate the full transaction apdex
+        # since we only take transactions under 50 all are short so the apdex is 1
+        full_apdex = [1, 1, 1, 1]
+
+        expected_apdex_estimation = []
+        for idx in range(len(metrics_apdex)):
+            # we expect to get the indexed_result * base_metrics / base_indexed
+            expected_apdex_estimation.append(
+                full_apdex[idx] * (metrics_apdex[idx] / base_apdex[idx])
+            )
+
+        # --- check the results ---
+        timestamp = self.now.timestamp()
+        data = response.data
+        start = timestamp - 4 * 60
+        assert data["start"] == start
+        assert data["end"] == timestamp
+        for idx in range(4):
+            current_timestamp = start + idx * 60
+            current = data["data"][idx]
+            assert current[0] == current_timestamp
+            actual = current[1][0]["count"]
+
+            expected = expected_apdex_estimation[idx]
+            assert pytest.approx(actual, 0.001) == expected
+
 
 @pytest.mark.parametrize(
     "indexed, base_indexed, metrics, expected",
