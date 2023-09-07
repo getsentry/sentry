@@ -9,7 +9,11 @@ describe('GettingStartedWithLaravel', function () {
     const {container} = render(<GettingStartedWithLaravel dsn="test-dsn" />);
 
     // Steps
-    for (const step of steps()) {
+    for (const step of steps({
+      dsn: 'test-dsn',
+      hasPerformance: true,
+      hasProfiling: true,
+    })) {
       expect(
         screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
       ).toBeInTheDocument();

@@ -1751,6 +1751,8 @@ SENTRY_FEATURES = {
     "organizations:on-demand-metrics-prefill": False,
     # Enable writing to the new notification system when updating the old system
     "organizations:notifications-double-write": False,
+    # Excludes measurement config from project config builds.
+    "organizations:projconfig-exclude-measurements": False,
     # Enable data forwarding functionality for projects.
     "projects:data-forwarding": True,
     # Enable functionality to discard groups.
