@@ -56,7 +56,8 @@ function InteractionsTable({sort}: Props) {
       const spanGroup = row['span.group'];
       return (
         <Link to={`/performance/browser/interactions/${spanGroup}`}>
-          {getActionName(row['transaction.op'])} on {row.interactionElement}
+          {getActionName(row['transaction.op'])}
+          <span style={{fontWeight: 'bold'}}> {row.interactionElement}</span>
         </Link>
       );
     }
