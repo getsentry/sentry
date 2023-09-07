@@ -1,12 +1,10 @@
-import {Fragment, useRef} from 'react';
+import {useRef} from 'react';
 import styled from '@emotion/styled';
 import {Observer} from 'mobx-react';
 
 import Alert from 'sentry/components/alert';
 import AlertLink from 'sentry/components/alertLink';
-import {RadioOption} from 'sentry/components/forms/controls/radioGroup';
 import NumberField from 'sentry/components/forms/fields/numberField';
-import RadioField from 'sentry/components/forms/fields/radioField';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import SentryMemberTeamSelectorField from 'sentry/components/forms/fields/sentryMemberTeamSelectorField';
 import SentryProjectSelectorField from 'sentry/components/forms/fields/sentryProjectSelectorField';
@@ -16,6 +14,8 @@ import FormModel from 'sentry/components/forms/model';
 import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
 import Text from 'sentry/components/text';
 import {timezoneOptions} from 'sentry/data/timezones';
 import {t, tct, tn} from 'sentry/locale';
@@ -37,9 +37,9 @@ import {
   ScheduleType,
 } from '../types';
 
-const SCHEDULE_OPTIONS: RadioOption<string>[] = [
-  [ScheduleType.CRONTAB, t('Crontab')],
-  [ScheduleType.INTERVAL, t('Interval')],
+const SCHEDULE_OPTIONS: SelectValue<string>[] = [
+  {value: ScheduleType.CRONTAB, label: t('Crontab')},
+  {value: ScheduleType.INTERVAL, label: t('Interval')},
 ];
 
 const DEFAULT_MONITOR_TYPE = 'cron_job';
@@ -239,9 +239,7 @@ function MonitorForm({
     >
       <StyledList symbol="colored-numeric">
         <StyledListItem>{t('Add a name and project')}</StyledListItem>
-        <ListItemSubText>
-          {t('The monitor name will show up in alerts and notifications')}
-        </ListItemSubText>
+        <ListItemSubText>{t('The name will show up in notifications.')}</ListItemSubText>
         <InputGroup>
           <StyledTextField
             name="name"
@@ -276,36 +274,29 @@ function MonitorForm({
             inline={false}
           />
         </InputGroup>
-
-        <StyledListItem>{t('Choose your schedule type')}</StyledListItem>
+        <StyledListItem>{t('Set your schedule')}</StyledListItem>
         <ListItemSubText>
           {tct('You can use [link:the crontab syntax] or our interval schedule.', {
             link: <ExternalLink href="https://en.wikipedia.org/wiki/Cron" />,
           })}
         </ListItemSubText>
         <InputGroup>
-          <RadioField
+          {monitor !== undefined && (
+            <StyledAlert type="info">
+              {t(
+                'Any changes you make to the execution schedule will only be applied after the next expected check-in.'
+              )}
+            </StyledAlert>
+          )}
+          <StyledSelectField
             name="config.schedule_type"
-            choices={SCHEDULE_OPTIONS}
+            options={SCHEDULE_OPTIONS}
             defaultValue={ScheduleType.CRONTAB}
             orientInline
             required
             stacked
             inline={false}
           />
-        </InputGroup>
-        <StyledListItem>{t('Choose your schedule')}</StyledListItem>
-        <ListItemSubText>
-          {t('How often you expect your recurring jobs to run.')}
-        </ListItemSubText>
-        <InputGroup>
-          {monitor !== undefined && (
-            <Alert type="info">
-              {t(
-                'Any changes you make to the execution schedule will only be applied after the next expected check-in.'
-              )}
-            </Alert>
-          )}
           <Observer>
             {() => {
               const scheduleType = form.current.getValue('config.schedule_type');
@@ -370,69 +361,62 @@ function MonitorForm({
             }}
           </Observer>
         </InputGroup>
-        <StyledListItem>{t('Set a missed status')}</StyledListItem>
+        <StyledListItem>{t('Set thresholds')}</StyledListItem>
         <ListItemSubText>
-          {t("The number of minutes we'll wait before we consider a check-in as missed.")}
+          {t('Configure when we mark your monitor as failed or missed.')}
         </ListItemSubText>
         <InputGroup>
-          <StyledNumberField
-            name="config.checkin_margin"
-            placeholder="Defaults to 0 minutes"
-            stacked
-            inline={false}
-          />
+          <Panel>
+            <PanelBody>
+              <NumberField
+                name="config.checkin_margin"
+                placeholder="Defaults to 0 minutes"
+                help={t('Number of minutes before a check-in is considered missed.')}
+                label={t('Grace Period')}
+              />
+              <NumberField
+                name="config.max_runtime"
+                placeholder={`Defaults to ${DEFAULT_MAX_RUNTIME} minutes`}
+                help={t('Number of a minutes before a check-in is marked timed out.')}
+                label={t('Max Runtime')}
+              />
+            </PanelBody>
+          </Panel>
         </InputGroup>
-        <StyledListItem>{t('Set a failed status')}</StyledListItem>
-        <ListItemSubText>
-          {t(
-            "The number of minutes a check-in is allowed to run before it's considered failed."
-          )}
-        </ListItemSubText>
+        <StyledListItem>{t('Notifications')}</StyledListItem>
+        <ListItemSubText>{t('Configure who to notify and when.')}</ListItemSubText>
         <InputGroup>
-          <StyledNumberField
-            name="config.max_runtime"
-            placeholder={`Defaults to ${DEFAULT_MAX_RUNTIME} minutes`}
-            stacked
-            inline={false}
-          />
-        </InputGroup>
-        <Fragment>
-          <StyledListItem>{t('Notify members')}</StyledListItem>
-          <ListItemSubText>
-            {t(
-              'Tell us who to notify when a check-in reaches the thresholds above or has an error. You can send notifications to members or teams.'
-            )}
-          </ListItemSubText>
-          <InputGroup>
-            {monitor?.config.alert_rule_id && (
-              <AlertLink
-                priority="muted"
-                to={normalizeUrl(
-                  `/alerts/rules/${monitor.project.slug}/${monitor.config.alert_rule_id}/`
-                )}
-              >
-                {t('Customize this monitors notification configuration in Alerts')}
-              </AlertLink>
-            )}
-            <MultiColumnInput columns="5fr 3fr">
-              <StyledSentryMemberTeamSelectorField
+          <Panel>
+            <PanelBody>
+              {monitor?.config.alert_rule_id && (
+                <AlertLink
+                  priority="muted"
+                  to={normalizeUrl(
+                    `/alerts/rules/${monitor.project.slug}/${monitor.config.alert_rule_id}/`
+                  )}
+                  withoutMarginBottom
+                >
+                  {t('Customize this monitors notification configuration in Alerts')}
+                </AlertLink>
+              )}
+              <SentryMemberTeamSelectorField
+                label={t('Notify')}
+                help={t('Send notifications to a member or team.')}
                 name="alertRule.targets"
                 multiple
-                stacked
-                inline={false}
                 menuPlacement="auto"
               />
-              <StyledSelectField
+              <SelectField
+                label={t('Environment')}
+                help={t('Only receive notifications from a specific environment.')}
                 name="alertRule.environment"
                 options={alertRuleEnvs}
-                stacked
-                inline={false}
                 menuPlacement="auto"
                 defaultValue=""
               />
-            </MultiColumnInput>
-          </InputGroup>
-        </Fragment>
+            </PanelBody>
+          </Panel>
+        </InputGroup>
       </StyledList>
     </Form>
   );
@@ -441,7 +425,11 @@ function MonitorForm({
 export default MonitorForm;
 
 const StyledList = styled(List)`
-  width: 600px;
+  width: 800px;
+`;
+
+const StyledAlert = styled(Alert)`
+  margin-bottom: 0;
 `;
 
 const StyledNumberField = styled(NumberField)`
@@ -460,10 +448,6 @@ const StyledSentryProjectSelectorField = styled(SentryProjectSelectorField)`
   padding: 0;
 `;
 
-const StyledSentryMemberTeamSelectorField = styled(SentryMemberTeamSelectorField)`
-  padding: 0;
-`;
-
 const StyledListItem = styled(ListItem)`
   font-size: ${p => p.theme.fontSizeExtraLarge};
   font-weight: bold;
@@ -475,9 +459,9 @@ const LabelText = styled(Text)`
   color: ${p => p.theme.subText};
 `;
 
-const ListItemSubText = styled(LabelText)`
-  font-weight: normal;
+const ListItemSubText = styled(Text)`
   padding-left: ${space(4)};
+  color: ${p => p.theme.subText};
 `;
 
 const InputGroup = styled('div')`
