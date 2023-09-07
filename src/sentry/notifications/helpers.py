@@ -887,25 +887,26 @@ def get_setting_options_for_users(
     return result
 
 
-def get_setting_providers_for_users(
+def get_layered_setting_providers(
     user_ids: Iterable[int],
-    project: Project | None = None,
+    projects: Iterable[Project] | None = None,
     organization: Organization | None = None,
     additional_filters: Q | None = None,
-) -> MutableMapping[RpcActor, MutableMapping[ExternalProviderEnum, NotificationSettingsOptionEnum]]:
+):
     """
     Returns a map of users to NotificationSettingProvider by provider:
-    {user -> {provider -> setting}}.
+    {user -> {provider -> setting}}. NOTE: this does not include the default settings.
 
     Args:
         user_ids: The user ids to get notification settings for.
         project: The project to get notification settings for.
         organization: The organization to get notification settings for.
+        additional_filters: Additional filters to apply to the query for NotificationSettingProvider.
     """
+
     if not additional_filters:
         additional_filters = Q()
     users = User.objects.filter(id__in=user_ids)
-    projects = [project] if project else []
     query = get_query(recipients=users, projects=projects, organization=organization)
     notification_settings = NotificationSettingProvider.objects.filter(query & additional_filters)
 
@@ -937,6 +938,68 @@ def get_setting_providers_for_users(
                     NotificationScopeEnum.ORGANIZATION.value,
                 ]:
                     ns_dict[provider] = ns
+    return user_to_setting
+
+
+def get_setting_providers_for_projects(
+    user_ids: Iterable[int],
+    projects: Iterable[Project],
+    organization: Organization | None = None,
+    additional_filters: Q | None = None,
+) -> MutableMapping[int, MutableMapping[ExternalProviderEnum, NotificationSettingsOptionEnum]]:
+    """
+    Returns a map of project id to NotificationSettingProvider by provider:
+    {project id -> {provider -> setting}}.
+
+    Args:
+        user_ids: The user ids to get notification settings for.
+        project: The project to get notification settings for.
+        organization: The organization to get notification settings for.
+        additional_filters: Additional filters to apply to the query for NotificationSettingProvider.
+    """
+    user_to_setting = get_layered_setting_providers(
+        user_ids, projects, organization, additional_filters
+    )
+
+    result: MutableMapping[
+        int,
+        MutableMapping[ExternalProviderEnum, NotificationSettingsOptionEnum],
+    ]
+    for project in projects:
+        settings = user_to_setting.values()
+        for setting in settings:
+            result[project.id] = {
+                provider: NotificationSettingsOptionEnum(ns.value)
+                for provider, ns in setting.items()
+            }
+
+    provider_defaults = get_provider_defaults()
+    for _, res_dict in result.items():
+        for provider in ExternalProviderEnum:
+            if provider not in res_dict and provider in provider_defaults:
+                res_dict[provider] = NotificationSettingsOptionEnum.ALWAYS
+    return result
+
+
+def get_setting_providers_for_users(
+    user_ids: Iterable[int],
+    project: Project | None = None,
+    organization: Organization | None = None,
+    additional_filters: Q | None = None,
+) -> MutableMapping[RpcActor, MutableMapping[ExternalProviderEnum, NotificationSettingsOptionEnum]]:
+    """
+    Returns a map of users to NotificationSettingProvider by provider:
+    {user -> {provider -> setting}}.
+
+    Args:
+        user_ids: The user ids to get notification settings for.
+        project: The project to get notification settings for.
+        organization: The organization to get notification settings for.
+        additional_filters: Additional filters to apply to the query for NotificationSettingProvider.
+    """
+    user_to_setting = get_layered_setting_providers(
+        user_ids, [project] if project else None, organization, additional_filters
+    )
 
     result: MutableMapping[
         RpcActor, MutableMapping[ExternalProviderEnum, NotificationSettingsOptionEnum]

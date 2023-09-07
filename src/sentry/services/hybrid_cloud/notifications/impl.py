@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from collections import defaultdict
 from typing import Callable, Iterable, List, Mapping, MutableMapping, Optional, Sequence
 
 from django.db import router, transaction
@@ -11,7 +10,7 @@ from sentry.api.serializers.models.notification_setting import NotificationSetti
 from sentry.models.notificationsetting import NotificationSetting
 from sentry.models.project import Project
 from sentry.models.user import User
-from sentry.notifications.helpers import get_scope_type, get_setting_providers_for_users
+from sentry.notifications.helpers import get_scope_type, get_setting_providers_for_projects
 from sentry.notifications.types import (
     NotificationScopeEnum,
     NotificationScopeType,
@@ -166,23 +165,14 @@ class DatabaseBackedNotificationsService(NotificationsService):
         Returns a a mapping of project scopes settings, with projects IDs
         mapped to a map of provider to notifications setting values.
         """
-        user = User.objects.get(id=user_id)
-        project_to_settings: MutableMapping[
-            int, MutableMapping[ExternalProviderEnum, NotificationSettingsOptionEnum]
-        ] = defaultdict(dict)
+        providers = get_setting_providers_for_projects(
+            [user_id],
+            projects=projects,
+            organization=projects[0].organization,  # type:ignore
+            additional_filters=Q(type=type),
+        )
 
-        # TODO(snigdha): This is an N+1 query. We should optimize this if there's a visible performance impact.
-        for project in projects:
-            providers = get_setting_providers_for_users(
-                [user_id],
-                project=project,
-                organization=project.organization,
-                additional_filters=Q(type=type),
-            )
-
-            project_to_settings[project.id] = providers[user]
-
-        return {NotificationScopeEnum.PROJECT: project_to_settings}
+        return {NotificationScopeEnum.PROJECT: providers}
 
     def remove_notification_settings(
         self, *, team_id: Optional[int], user_id: Optional[int], provider: ExternalProviders
