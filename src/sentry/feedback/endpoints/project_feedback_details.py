@@ -18,6 +18,7 @@ class ProjectFeedbackDetailsEndpoint(ProjectEndpoint):
         "GET": ApiPublishStatus.EXPERIMENTAL,
         "PATCH": ApiPublishStatus.EXPERIMENTAL,
     }
+    # owner = ApiOwner.
 
     def get(self, request: Request, project: Project, feedback_id: str) -> Response:
         try:

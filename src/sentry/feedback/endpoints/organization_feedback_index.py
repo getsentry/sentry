@@ -60,9 +60,7 @@ class FeedbackValidator(serializers.Serializer):
         ret["url"] = ""
         ret["project_id"] = self.context.get("project").id
         ret["replay_id"] = ""
-        ret["error_ids"] = []
-        ret["trace_ids"] = []
-        ret["feedback_text"] = ""
+        ret["message"] = ""
 
         return ret
 
@@ -79,6 +77,12 @@ class ProjectMonitorPermission(ProjectPermission):
 @region_silo_endpoint
 @extend_schema(tags=["Replays"])
 class OrganizationFeedbackIndexEndpoint(Endpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.EXPERIMENTAL,
+        "POST": ApiPublishStatus.EXPERIMENTAL,
+    }
+    # owner = ApiOwner.
+
     authentication_classes = (
         DSNAuthentication,
         TokenAuthentication,
@@ -133,11 +137,6 @@ class OrganizationFeedbackIndexEndpoint(Endpoint):
         kwargs["organization"] = organization
         kwargs["project"] = project
         return args, kwargs
-
-    publish_status = {
-        "GET": ApiPublishStatus.EXPERIMENTAL,
-        "POST": ApiPublishStatus.EXPERIMENTAL,
-    }
 
     def get(self, request: Request, organization: Organization) -> Response:
         pass

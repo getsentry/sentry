@@ -39,3 +39,6 @@ class OrganizationFeedbackIndexTest(MonitorIngestTestCase):
         path = reverse(self.endpoint, args=[self.organization.slug])
         response = self.client.post(path, data=data, **self.dsn_auth_headers)
         assert response.status_code == 201, response.content
+
+    def test_get_feedback_list(self):
+        pass
