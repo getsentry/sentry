@@ -18,6 +18,7 @@ import {updateOnboardingTask} from 'sentry/actionCreators/onboardingTasks';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
+import Checkbox from 'sentry/components/checkbox';
 import Confirm from 'sentry/components/confirm';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
@@ -167,6 +168,7 @@ type State = DeprecatedAsyncView['state'] & {
   project: Project;
   sendingNotification: boolean;
   uuid: null | string;
+  acceptedNoisyAlert?: boolean;
   duplicateTargetRule?: UnsavedIssueAlertRule | IssueAlertRule | null;
   ownership?: null | IssueOwnership;
   rule?: UnsavedIssueAlertRule | IssueAlertRule | null;
@@ -179,6 +181,7 @@ function isSavedAlertRule(rule: State['rule']): rule is IssueAlertRule {
 class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
   pollingTimeout: number | undefined = undefined;
   trackIncompatibleAnalytics: boolean = false;
+  trackNoisyWarningViewed: boolean = false;
   isUnmounted = false;
 
   get isDuplicateRule(): boolean {
@@ -588,6 +591,12 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
       delete rule.environment;
     }
 
+    // Check conditions exist or they've accepted a noisy alert
+    if (this.displayNoConditionsWarning() && !this.state.acceptedNoisyAlert) {
+      this.setState({detailedError: {acceptedNoisyAlert: [t('Required')]}});
+      return;
+    }
+
     addLoadingMessage();
 
     try {
@@ -797,15 +806,26 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
   };
 
   handleDeleteRow = (type: ConditionOrActionProperty, idx: number) => {
-    this.setState(prevState => {
-      const clonedState = cloneDeep(prevState);
+    this.setState(
+      prevState => {
+        const clonedState = cloneDeep(prevState);
 
-      const newTypeList = prevState.rule ? [...prevState.rule[type]] : [];
-      newTypeList.splice(idx, 1);
+        const newTypeList = prevState.rule ? [...prevState.rule[type]] : [];
+        newTypeList.splice(idx, 1);
 
-      set(clonedState, `rule[${type}]`, newTypeList);
-      return clonedState;
-    });
+        set(clonedState, `rule[${type}]`, newTypeList);
+        return clonedState;
+      },
+      () => {
+        // After the row has been removed, check if warning is shown
+        if (this.displayNoConditionsWarning() && !this.trackNoisyWarningViewed) {
+          this.trackNoisyWarningViewed = true;
+          trackAnalytics('alert_builder.noisy_warning_viewed', {
+            organization: this.props.organization,
+          });
+        }
+      }
+    );
   };
 
   handleAddCondition = (template: IssueAlertRuleActionTemplate) =>
@@ -939,6 +959,59 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
           disabled={disabled}
         />
       </StyledField>
+    );
+  }
+
+  displayNoConditionsWarning(): boolean {
+    const {rule} = this.state;
+    return (
+      this.props.organization.features.includes('noisy-alert-warning') &&
+      !!rule &&
+      !isSavedAlertRule(rule) &&
+      rule.conditions.length === 0 &&
+      rule.filters.length === 0
+    );
+  }
+
+  renderAcknowledgeNoConditions(disabled: boolean) {
+    const {detailedError, acceptedNoisyAlert} = this.state;
+
+    return (
+      <Alert type="warning" showIcon>
+        <div>
+          {t(
+            'Alerts without conditions can fire too frequently. Are you sure you want to save this alert rule?'
+          )}
+        </div>
+        <AcknowledgeField
+          label={null}
+          help={null}
+          error={detailedError?.acceptedNoisyAlert?.[0]}
+          disabled={disabled}
+          required
+          stacked
+          flexibleControlStateSize
+          inline
+        >
+          <AcknowledgeLabel>
+            <Checkbox
+              size="md"
+              name="acceptedNoisyAlert"
+              checked={acceptedNoisyAlert}
+              onChange={() => {
+                this.setState({acceptedNoisyAlert: !acceptedNoisyAlert});
+                if (!acceptedNoisyAlert) {
+                  trackAnalytics('alert_builder.noisy_warning_agreed', {
+                    organization: this.props.organization,
+                  });
+                }
+              }}
+              disabled={disabled}
+            />
+            {t('Yes, I don’t mind if this alert gets noisy')}
+          </AcknowledgeLabel>
+        </AcknowledgeField>
+      </Alert>
     );
   }
 
@@ -1470,6 +1543,8 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
                 {this.renderRuleName(disabled)}
                 {this.renderTeamSelect(disabled)}
               </StyledFieldWrapper>
+              {this.displayNoConditionsWarning() &&
+                this.renderAcknowledgeNoConditions(disabled)}
             </ContentIndent>
           </List>
         </StyledForm>
@@ -1705,7 +1780,6 @@ const StyledFieldWrapper = styled('div')`
     grid-template-columns: 2fr 1fr;
     gap: ${space(1)};
   }
-  margin-bottom: 60px;
 `;
 
 const ContentIndent = styled('div')`
@@ -1716,4 +1790,27 @@ const ContentIndent = styled('div')`
 
 const Main = styled(Layout.Main)`
   padding: ${space(2)} ${space(4)};
+`;
+
+const AcknowledgeLabel = styled('label')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
+  line-height: 2;
+  font-weight: normal;
+`;
+
+const AcknowledgeField = styled(FieldGroup)`
+  padding: 0;
+  display: flex;
+  align-items: center;
+  margin-top: ${space(1)};
+
+  & > div {
+    padding-left: 0;
+    display: flex;
+    align-items: baseline;
+    flex: unset;
+    gap: ${space(1)};
+  }
 `;
