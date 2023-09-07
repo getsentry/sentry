@@ -120,17 +120,18 @@ def _schedule_backfill_outboxes(type: Type[BaseModel], backfill_task: Task) -> N
     silo_mode=SiloMode.CONTROL,
 )
 def process_backfill_outboxes_control(app_name: str, model_name: str) -> None:
-    def make_outboxes(m: BaseModel):
-        if isinstance(m, ControlOutboxProducingModel):
-            for outbox in m.outboxes_for_update():
-                outbox.save()
-
-    _process_backfill(
-        app_name=app_name,
-        model_name=model_name,
-        make_outboxes=make_outboxes,
-        task=process_backfill_outboxes_control,
-    )
+    return
+    # def make_outboxes(m: BaseModel):
+    #     if isinstance(m, ControlOutboxProducingModel):
+    #         for outbox in m.outboxes_for_update():
+    #             outbox.save()
+    #
+    # _process_backfill(
+    #     app_name=app_name,
+    #     model_name=model_name,
+    #     make_outboxes=make_outboxes,
+    #     task=process_backfill_outboxes_control,
+    # )
 
 
 @instrumented_task(
@@ -139,16 +140,17 @@ def process_backfill_outboxes_control(app_name: str, model_name: str) -> None:
     silo_mode=SiloMode.REGION,
 )
 def process_backfill_outboxes(app_name: str, model_name: str) -> None:
-    def make_outboxes(m: BaseModel):
-        if isinstance(m, RegionOutboxProducingModel):
-            m.outbox_for_update().save()
-
-    _process_backfill(
-        app_name=app_name,
-        model_name=model_name,
-        make_outboxes=make_outboxes,
-        task=process_backfill_outboxes,
-    )
+    return
+    # def make_outboxes(m: BaseModel):
+    #     if isinstance(m, RegionOutboxProducingModel):
+    #         m.outbox_for_update().save()
+    #
+    # _process_backfill(
+    #     app_name=app_name,
+    #     model_name=model_name,
+    #     make_outboxes=make_outboxes,
+    #     task=process_backfill_outboxes,
+    # )
 
 
 def _process_backfill(
