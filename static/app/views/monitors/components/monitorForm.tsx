@@ -1,4 +1,4 @@
-import {useRef} from 'react';
+import {Fragment, useRef} from 'react';
 import styled from '@emotion/styled';
 import {Observer} from 'mobx-react';
 
@@ -24,6 +24,7 @@ import {SelectValue} from 'sentry/types';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import slugify from 'sentry/utils/slugify';
 import commonTheme from 'sentry/utils/theme';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -163,6 +164,7 @@ function MonitorForm({
   onSubmitSuccess,
 }: Props) {
   const form = useRef(new FormModel({transformData, mapFormErrors}));
+  const organization = useOrganization();
   const {projects} = useProjects();
   const {selection} = usePageFilters();
 
@@ -212,6 +214,8 @@ function MonitorForm({
     },
     ...envOptions,
   ];
+
+  const hasIssuePlatform = organization.features.includes('issue-platform');
 
   return (
     <Form
@@ -410,18 +414,22 @@ function MonitorForm({
                 multiple
                 menuPlacement="auto"
               />
-              <NumberField
-                name="config.failure_issue_threshold"
-                placeholder="1"
-                help={t('Create an issue after this many missed or error check-ins')}
-                label={t('Tolerate Failures')}
-              />
-              <NumberField
-                name="config.recovery_threshold"
-                placeholder="1"
-                help={t('Recover monitor status after this many healthy check-ins')}
-                label={t('Recovery Threshold')}
-              />
+              {hasIssuePlatform && (
+                <Fragment>
+                  <NumberField
+                    name="config.failure_issue_threshold"
+                    placeholder="1"
+                    help={t('Create an issue after this many missed or error check-ins')}
+                    label={t('Tolerate Failures')}
+                  />
+                  <NumberField
+                    name="config.recovery_threshold"
+                    placeholder="1"
+                    help={t('Recover monitor status after this many healthy check-ins')}
+                    label={t('Recovery Threshold')}
+                  />
+                </Fragment>
+              )}
               <SelectField
                 label={t('Environment')}
                 help={t('Only receive notifications from a specific environment.')}
