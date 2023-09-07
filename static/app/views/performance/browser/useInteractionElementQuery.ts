@@ -3,6 +3,10 @@ import EventView from 'sentry/utils/discover/eventView';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {
+  BrowserStarfishFields,
+  useBrowserModuleFilters,
+} from 'sentry/views/performance/browser/useBrowserFilters';
 
 /**
  * Gets a list of all interactionElements on the selected project(s)
@@ -11,9 +15,16 @@ export const useInteractionElementQuery = () => {
   const location = useLocation();
   const pageFilters = usePageFilters();
   const {slug: orgSlug} = useOrganization();
+  const browserFilters = useBrowserModuleFilters();
 
   const fields = ['interactionElement', 'count()'];
-  const queryConditions = ['has:interactionElement'];
+  const queryConditions = [
+    'has:interactionElement',
+    browserFilters.page ? `transaction:"${browserFilters.page}"` : '',
+    browserFilters['transaction.op']
+      ? `transaction.op:"${browserFilters[BrowserStarfishFields.TRANSACTION_OP]}"`
+      : '',
+  ];
 
   const eventView = EventView.fromNewQueryWithPageFilters(
     {
