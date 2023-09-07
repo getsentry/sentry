@@ -644,4 +644,30 @@ describe('ProjectAlertsCreate', function () {
       screen.getByText('The issue changes state from archived to escalating')
     ).toBeInTheDocument();
   });
+
+  it('displays noisy alert checkbox for no coniditions', async function () {
+    const mock = MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/rules/',
+      method: 'POST',
+      body: TestStubs.ProjectAlertRule(),
+    });
+
+    createWrapper({organization: {features: ['noisy-alert-warning']}});
+    await userEvent.click((await screen.findAllByLabelText('Delete Node'))[0]);
+
+    expect(
+      screen.getByText(/Alerts without conditions can fire too frequently/)
+    ).toBeInTheDocument();
+
+    await userEvent.click(screen.getByText('Save Rule'));
+
+    expect(mock).not.toHaveBeenCalled();
+
+    await userEvent.click(
+      screen.getByRole('checkbox', {name: 'Yes, I don’t mind if this alert gets noisy'})
+    );
+    await userEvent.click(screen.getByText('Save Rule'));
+
+    expect(mock).toHaveBeenCalled();
+  });
 });
