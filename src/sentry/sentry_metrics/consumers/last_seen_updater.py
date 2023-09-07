@@ -14,6 +14,7 @@ from arroyo.processing.strategies.filter import FilterStep
 from arroyo.processing.strategies.reduce import Reduce
 from arroyo.processing.strategies.run_task import RunTask
 from arroyo.types import BaseValue, Commit, Message, Partition, Topic
+from django.conf import settings
 from django.utils import timezone
 
 from sentry.sentry_metrics.configuration import MetricsIngestConfiguration
@@ -122,10 +123,17 @@ class LastSeenUpdaterStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
     def __should_accept(self, message: Message[KafkaPayload]) -> bool:
         should_accept = not self.__prefilter.should_drop(message)
 
+        parsed_message = json.loads(message.payload.value.decode("utf-8"), use_rapid_json=True)
+        org_id = parsed_message["org_id"]
+
         if not should_accept:
-            self.__metrics.incr("last_seen_updater.dropped_messages")
-        else:
-            self.__metrics.incr("last_seen_updater.retained_messages")
+            if org_id in settings.LAST_SEEN_UPDATER_REINDEXED_ORGS:
+                self.__metrics.incr(
+                    "last_seen_updater.reindexed_orgs.dropped_messages",
+                    tags={"organization": org_id},
+                )
+            else:
+                self.__metrics.incr("last_seen_updater.dropped_messages")
 
         return should_accept
 
