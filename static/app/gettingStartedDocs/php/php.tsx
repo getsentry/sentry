@@ -19,20 +19,20 @@ export const steps = ({
 }: StepProps): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
-    description: (
-      <p>
-        {tct(
-          'To install the PHP SDK, you need to be using Composer in your project. For more details about Composer, see the [composerDocumentationLink:Composer documentation].',
-          {
-            composerDocumentationLink: (
-              <ExternalLink href="https://getcomposer.org/doc/" />
-            ),
-          }
-        )}
-      </p>
-    ),
     configurations: [
       {
+        description: (
+          <p>
+            {tct(
+              'To install the PHP SDK, you need to be using Composer in your project. For more details about Composer, see the [composerDocumentationLink:Composer documentation].',
+              {
+                composerDocumentationLink: (
+                  <ExternalLink href="https://getcomposer.org/doc/" />
+                ),
+              }
+            )}
+          </p>
+        ),
         language: 'bash',
         code: 'composer require sentry/sdk',
       },
