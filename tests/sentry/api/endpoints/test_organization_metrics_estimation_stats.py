@@ -203,7 +203,7 @@ class OrganizationMetricsEstimationStatsEndpointTest(APITestCase, BaseMetricsLay
         # --- calculate the expected results ---
         # calculate apdex for metrics
         metrics_apdex = []
-        for idx in range(len(satisfied_transactions)):
+        for idx in range(num_minutes):
             satisfied = satisfied_transactions[idx]
             tolerated = tolerated_transactions[idx]
             frustrated = frustrated_transactions[idx]
@@ -211,7 +211,7 @@ class OrganizationMetricsEstimationStatsEndpointTest(APITestCase, BaseMetricsLay
 
         # calculate the base transaction apdex (using all transactions)
         base_apdex = []
-        for idx in range(len(transactions_short)):
+        for idx in range(num_minutes):
             base_apdex.append(
                 (transactions_short[idx] + 0.5 * transactions_long[idx])
                 / (transactions_short[idx] + transactions_long[idx])
@@ -222,7 +222,7 @@ class OrganizationMetricsEstimationStatsEndpointTest(APITestCase, BaseMetricsLay
         full_apdex = [1, 1, 1, 1]
 
         expected_apdex_estimation = []
-        for idx in range(len(metrics_apdex)):
+        for idx in range(num_minutes):
             # we expect to get the indexed_result * base_metrics / base_indexed
             expected_apdex_estimation.append(
                 full_apdex[idx] * (metrics_apdex[idx] / base_apdex[idx])
