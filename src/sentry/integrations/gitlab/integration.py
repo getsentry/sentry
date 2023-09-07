@@ -119,6 +119,9 @@ class GitlabIntegration(
         resp = self.get_client().search_projects(group, query)
         return [{"identifier": repo["id"], "name": repo["name_with_namespace"]} for repo in resp]
 
+    def source_url_matches(self, url: str) -> bool:
+        return url.startswith("https://{}".format(self.model.metadata["domain_name"]))
+
     def format_source_url(self, repo: Repository, filepath: str, branch: str) -> str:
         base_url = self.model.metadata["base_url"]
         repo_name = repo.config["path"]
@@ -126,6 +129,18 @@ class GitlabIntegration(
         # Must format the url ourselves since `check_file` is a head request
         # "https://gitlab.com/gitlab-org/gitlab/blob/master/README.md"
         return f"{base_url}/{repo_name}/blob/{branch}/{filepath}"
+
+    def extract_branch_from_source_url(self, repo: Repository, url: str) -> str:
+        url = url.replace(f"{repo.url}/-/blob/", "")
+        url = url.replace(f"{repo.url}/blob/", "")
+        branch, _, _ = url.partition("/")
+        return branch
+
+    def extract_source_path_from_source_url(self, repo: Repository, url: str) -> str:
+        url = url.replace(f"{repo.url}/-/blob/", "")
+        url = url.replace(f"{repo.url}/blob/", "")
+        _, _, source_path = url.partition("/")
+        return source_path
 
     def search_projects(self, query):
         client = self.get_client()
