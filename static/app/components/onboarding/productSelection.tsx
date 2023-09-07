@@ -26,7 +26,7 @@ export enum ProductSolution {
 }
 
 interface DisabledProduct {
-  reason: string;
+  reason: ReactNode;
   onClick?: () => void;
 }
 
