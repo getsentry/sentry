@@ -186,7 +186,11 @@ class OrganizationCodeMappingsEndpoint(OrganizationEndpoint, OrganizationIntegra
         if not integration_id:
             return self.respond("Missing param: integration_id", status=status.HTTP_400_BAD_REQUEST)
 
-        project = Project.objects.get(id=request.data.get("projectId"))
+        try:
+            project = Project.objects.get(id=request.data.get("projectId"))
+        except Project.DoesNotExist:
+            return self.respond("Could not find project", status=status.HTTP_404_NOT_FOUND)
+
         if not request.access.has_project_access(project):
             return self.respond(status=status.HTTP_403_FORBIDDEN)
 
