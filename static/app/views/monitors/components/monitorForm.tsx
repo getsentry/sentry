@@ -173,6 +173,8 @@ function MonitorForm({
         rv['config.schedule_type'] = config.schedule_type;
         rv['config.checkin_margin'] = config.checkin_margin;
         rv['config.max_runtime'] = config.max_runtime;
+        rv['config.failure_issue_threshold'] = config.failure_issue_threshold;
+        rv['config.recovery_threshold'] = config.recovery_threshold;
 
         switch (config.schedule_type) {
           case 'interval':
@@ -407,6 +409,18 @@ function MonitorForm({
                 name="alertRule.targets"
                 multiple
                 menuPlacement="auto"
+              />
+              <NumberField
+                name="config.failure_issue_threshold"
+                placeholder="1"
+                help={t('Create an issue after this many missed or error check-ins')}
+                label={t('Tolerate Failures')}
+              />
+              <NumberField
+                name="config.recovery_threshold"
+                placeholder="1"
+                help={t('Recover monitor status after this many healthy check-ins')}
+                label={t('Recovery Threshold')}
               />
               <SelectField
                 label={t('Environment')}
