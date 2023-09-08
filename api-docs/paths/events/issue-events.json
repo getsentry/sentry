@@ -7,7 +7,7 @@
       {
         "name": "organization_slug",
         "in": "path",
-        "description": "The slug of the organization the issues belong to.",
+        "description": "The slug of the organization the issues belongs to.",
         "required": true,
         "schema": {
           "type": "string"
