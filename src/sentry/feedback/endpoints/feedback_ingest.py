@@ -84,6 +84,7 @@ class FeedbackIngestEndpoint(Endpoint):
     }
     owner = ApiOwner.FEEDBACK
 
+    # Authentication code borrowed from the monitor endpoints (which will eventually be removed)
     authentication_classes = (
         DSNAuthentication,
         TokenAuthentication,

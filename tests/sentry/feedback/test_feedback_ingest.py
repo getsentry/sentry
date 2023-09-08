@@ -93,9 +93,20 @@ class FeedbackIngestTest(MonitorIngestTestCase):
             assert len(feedback_list) == 1
 
             # Feedback object is what was posted
-            assert feedback_list[0].data["type"] == "transaction"
-            assert feedback_list[0].data["environment"] == "prod"
-            assert feedback_list[0].message == "This website is great!"
+            feedback = feedback_list[0]
+            assert feedback.data["type"] == "transaction"
+            assert feedback.data["environment"] == "prod"
+            assert feedback.data["sdk"]["name"] == "sentry.javascript.react"
+            assert feedback.data["transaction_info"]["source"] == "route"
+            assert feedback.data["tags"]["sentry_version"] == "23.9.0.dev0"
+            assert feedback.data["release"] == "frontend@40f88cd929122ac73749cc48f0ddb9aa223449ff"
+            assert feedback.data["user"]["name"] == "Josh Ferge"
+            assert (
+                feedback.data["request"]["url"]
+                == "https://sentry.sentry.io/replays/?project=11276&statsPeriod=7d"
+            )
+            assert feedback.data["platform"] == "javascript"
+            assert feedback.message == "This website is great!"
 
     def test_no_feature_enabled(self):
         # Feature disabled should lead to unsuccessful save
@@ -134,3 +145,10 @@ class FeedbackIngestTest(MonitorIngestTestCase):
             path = reverse(self.endpoint)
             response = self.client.post(path, data=wrong_type_test_data, **self.dsn_auth_headers)
             assert response.status_code == 500
+
+    def test_bad_slug_path(self):
+        # Bad slug in path should lead to unsuccessful save
+        with self.feature({"organizations:user-feedback-ingest": True}):
+            path = reverse(self.endpoint)
+            response = self.client.post(path + "bad_slug", data=test_data, **self.dsn_auth_headers)
+            assert response.status_code == 404
