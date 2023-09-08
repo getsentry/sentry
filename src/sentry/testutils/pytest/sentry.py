@@ -29,6 +29,8 @@ TEST_REDIS_DB = 9
 
 
 def configure_split_db(_settings):
+    if "control" in _settings.DATABASES:
+        return
     # Add connections for the region & control silo databases.
     _settings.DATABASES["control"] = _settings.DATABASES["default"].copy()
     _settings.DATABASES["control"]["NAME"] = "control"
