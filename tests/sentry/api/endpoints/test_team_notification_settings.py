@@ -2,8 +2,9 @@ from rest_framework import status
 
 from sentry.models import NotificationSetting
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
+from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.types.integrations import ExternalProviders
 
 
@@ -20,30 +21,31 @@ class TeamNotificationSettingsGetTest(TeamNotificationSettingsTestBase):
     def test_simple(self):
         _ = self.project  # HACK to force creation.
 
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.EMAIL,
-            NotificationSettingTypes.ISSUE_ALERTS,
-            NotificationSettingOptionValues.ALWAYS,
-            team_id=self.team.id,
-            project=self.project,
-            organization_id_for_team=self.organization.id,
-        )
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.EMAIL,
-            NotificationSettingTypes.DEPLOY,
-            NotificationSettingOptionValues.NEVER,
-            team_id=self.team.id,
-            organization=self.organization,
-            organization_id_for_team=self.organization.id,
-        )
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.SLACK,
-            NotificationSettingTypes.WORKFLOW,
-            NotificationSettingOptionValues.DEFAULT,
-            team_id=self.team.id,
-            project=self.project,
-            organization_id_for_team=self.organization.id,
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            NotificationSetting.objects.update_settings(
+                ExternalProviders.EMAIL,
+                NotificationSettingTypes.ISSUE_ALERTS,
+                NotificationSettingOptionValues.ALWAYS,
+                team_id=self.team.id,
+                project=self.project,
+                organization_id_for_team=self.organization.id,
+            )
+            NotificationSetting.objects.update_settings(
+                ExternalProviders.EMAIL,
+                NotificationSettingTypes.DEPLOY,
+                NotificationSettingOptionValues.NEVER,
+                team_id=self.team.id,
+                organization=self.organization,
+                organization_id_for_team=self.organization.id,
+            )
+            NotificationSetting.objects.update_settings(
+                ExternalProviders.SLACK,
+                NotificationSettingTypes.WORKFLOW,
+                NotificationSettingOptionValues.DEFAULT,
+                team_id=self.team.id,
+                project=self.project,
+                organization_id_for_team=self.organization.id,
+            )
 
         response = self.get_success_response(
             self.organization.slug, self.team.slug, v2="serializer"
@@ -55,20 +57,21 @@ class TeamNotificationSettingsGetTest(TeamNotificationSettingsTestBase):
         assert not response.data["workflow"]
 
     def test_type_querystring(self):
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.EMAIL,
-            NotificationSettingTypes.ISSUE_ALERTS,
-            NotificationSettingOptionValues.ALWAYS,
-            team_id=self.team.id,
-            organization_id_for_team=self.organization.id,
-        )
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.SLACK,
-            NotificationSettingTypes.WORKFLOW,
-            NotificationSettingOptionValues.ALWAYS,
-            team_id=self.team.id,
-            organization_id_for_team=self.organization.id,
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            NotificationSetting.objects.update_settings(
+                ExternalProviders.EMAIL,
+                NotificationSettingTypes.ISSUE_ALERTS,
+                NotificationSettingOptionValues.ALWAYS,
+                team_id=self.team.id,
+                organization_id_for_team=self.organization.id,
+            )
+            NotificationSetting.objects.update_settings(
+                ExternalProviders.SLACK,
+                NotificationSettingTypes.WORKFLOW,
+                NotificationSettingOptionValues.ALWAYS,
+                team_id=self.team.id,
+                organization_id_for_team=self.organization.id,
+            )
         response = self.get_success_response(
             self.organization.slug,
             self.team.slug,
@@ -105,15 +108,16 @@ class TeamNotificationSettingsTest(TeamNotificationSettingsTestBase):
     method = "put"
 
     def test_simple(self):
-        assert (
-            NotificationSetting.objects.get_settings(
-                provider=ExternalProviders.SLACK,
-                type=NotificationSettingTypes.ISSUE_ALERTS,
-                team_id=self.team.id,
-                project=self.project,
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert (
+                NotificationSetting.objects.get_settings(
+                    provider=ExternalProviders.SLACK,
+                    type=NotificationSettingTypes.ISSUE_ALERTS,
+                    team_id=self.team.id,
+                    project=self.project,
+                )
+                == NotificationSettingOptionValues.DEFAULT
             )
-            == NotificationSettingOptionValues.DEFAULT
-        )
 
         self.get_success_response(
             self.organization.slug,
@@ -122,15 +126,16 @@ class TeamNotificationSettingsTest(TeamNotificationSettingsTestBase):
             status_code=status.HTTP_204_NO_CONTENT,
         )
 
-        assert (
-            NotificationSetting.objects.get_settings(
-                provider=ExternalProviders.SLACK,
-                type=NotificationSettingTypes.ISSUE_ALERTS,
-                team_id=self.team.id,
-                project=self.project,
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert (
+                NotificationSetting.objects.get_settings(
+                    provider=ExternalProviders.SLACK,
+                    type=NotificationSettingTypes.ISSUE_ALERTS,
+                    team_id=self.team.id,
+                    project=self.project,
+                )
+                == NotificationSettingOptionValues.ALWAYS
             )
-            == NotificationSettingOptionValues.ALWAYS
-        )
 
     def test_empty_payload(self):
         self.get_error_response(
