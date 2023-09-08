@@ -12,6 +12,7 @@ from rest_framework.response import Response
 
 from sentry import roles
 from sentry.api import client
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.user import UserEndpoint
 from sentry.api.decorators import sudo_required
@@ -74,7 +75,13 @@ class UserOptionsSerializer(serializers.Serializer):
 
 class BaseUserSerializer(CamelSnakeModelSerializer):
     def validate_username(self, value):
-        if User.objects.filter(username__iexact=value).exclude(id=self.instance.id).exists():
+        if (
+            User.objects.filter(username__iexact=value)
+            # Django throws an exception if `id` is `None`, which it will be when we're importing
+            # new users via the relocation logic on the `User` model. So we cast `None` to `0` to
+            # make Django happy here.
+            .exclude(id=self.instance.id if hasattr(self.instance, "id") else 0).exists()
+        ):
             raise serializers.ValidationError("That username is already in use.")
         return value
 
@@ -130,6 +137,12 @@ class DeleteUserSerializer(serializers.Serializer):
 
 @control_silo_endpoint
 class UserDetailsEndpoint(UserEndpoint):
+    publish_status = {
+        "DELETE": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.UNKNOWN,
+        "PUT": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, user) -> Response:
         """
         Retrieve User Details

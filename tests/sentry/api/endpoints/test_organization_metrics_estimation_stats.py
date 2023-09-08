@@ -6,7 +6,11 @@ import pytest
 from django.utils import timezone
 from freezegun import freeze_time
 
-from sentry.api.endpoints.organization_metrics_estimation_stats import CountResult, estimate_volume
+from sentry.api.endpoints.organization_metrics_estimation_stats import (
+    CountResult,
+    _should_scale,
+    estimate_volume,
+)
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.testutils.cases import APITestCase, BaseMetricsLayerTestCase
 from sentry.testutils.silo import region_silo_test
@@ -134,6 +138,64 @@ class OrganizationMetricsEstimationStatsEndpointTest(APITestCase, BaseMetricsLay
                 )
                 assert pytest.approx(count, 0.001) == expected
 
+    def test_apdex(self):
+        """
+        Tests that the apdex calculation works as expected.
+
+        This test adds some indexed data to the Db.
+        Since apdex cannot be extrapolated only indexed data is used.
+        """
+
+        # --- Create test data ---
+
+        # the number of transactions created in the last 3 minutes
+        transactions_long = [1, 2, 3, 4]
+        transactions_short = [2, 4, 5, 6]
+
+        num_minutes = len(transactions_long)
+
+        # create the transactions and the metrics in Snuba
+        for idx in range(num_minutes):
+            # put the transactions in the middle of the minute
+            seconds_before = (num_minutes - idx - 1) * MINUTE + SECOND * 30
+            # short transactions
+            for _ in range(transactions_short[idx]):
+                self.create_transaction(self.now - seconds_before, 10)
+            # long transactions
+            for _ in range(transactions_long[idx]):
+                self.create_transaction(self.now - seconds_before, 100)
+
+        # --- call the endpoint ---
+        response = self.get_response(
+            self.organization.slug,
+            interval="1m",
+            yAxis="apdex(50)",
+            statsPeriod="4m",
+            query="transaction.duration:>0.09 event.type:transaction",
+        )
+
+        assert response.status_code == 200, response.content
+
+        def apdex(satisfactory, tolerable):
+            return (satisfactory + 0.5 * tolerable) / (satisfactory + tolerable)
+
+        # --- check the results ---
+        timestamp = self.now.timestamp()
+        data = response.data
+        start = timestamp - 4 * 60
+        assert data["start"] == start
+        assert data["end"] == timestamp
+        for idx in range(4):
+            current_timestamp = start + idx * 60
+            current = data["data"][idx]
+            assert current[0] == current_timestamp
+            actual = current[1][0]["count"]
+
+            # calculate the expected apdex, short transactions are satisfactory,
+            # long transactions are tolerable
+            expected = apdex(transactions_short[idx], transactions_long[idx])
+            assert pytest.approx(actual, 0.001) == expected
+
 
 @pytest.mark.parametrize(
     "indexed, base_indexed, metrics, expected",
@@ -158,3 +220,22 @@ def test_estimate_volume(indexed, base_indexed, metrics, expected):
     for idx, val in enumerate(actual):
         count: Optional[float] = cast(List[CountResult], val[1])[0]["count"]
         assert pytest.approx(count, 0.001) == expected[idx]
+
+
+@pytest.mark.parametrize(
+    "metric, should_scale",
+    [
+        ("count()", True),
+        ("p95(transaction.duration)", False),
+        ("apdex(300)", False),
+        ("failure_rate()", False),
+        ("percentile(measurements.lcp,0.55)", False),  # Largest Contentful Paint
+        ("p95(measurements.fid)", False),  # First Input Delay
+        ("avg(measurements.cls)", False),  # First Input Delay
+    ],
+)
+def test_should_scale(metric: str, should_scale: bool):
+    """
+    Tests the _should_scale function
+    """
+    assert _should_scale(metric) == should_scale

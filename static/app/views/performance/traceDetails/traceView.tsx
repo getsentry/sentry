@@ -1,4 +1,4 @@
-import React, {createRef, useEffect} from 'react';
+import {createRef, Fragment, useEffect} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
@@ -147,6 +147,7 @@ export default function TraceView({
     description: 'trace-view-content',
   });
   const hasOrphanErrors = orphanErrors && orphanErrors.length > 0;
+  const onlyOrphanErrors = hasOrphanErrors && (!traces || traces.length === 0);
 
   useEffect(() => {
     trackAnalytics('performance_views.trace_view.view', {
@@ -215,7 +216,7 @@ export default function TraceView({
 
     return {
       transactionGroup: (
-        <React.Fragment key={eventId}>
+        <Fragment key={eventId}>
           <TraceHiddenMessage
             isVisible={isVisible}
             numberOfHiddenTransactionsAbove={numberOfHiddenTransactionsAbove}
@@ -244,7 +245,7 @@ export default function TraceView({
             renderedChildren={accumulated.renderedChildren}
             barColor={pickBarColor(transaction['transaction.op'])}
           />
-        </React.Fragment>
+        </Fragment>
       ),
       lastIndex: accumulated.lastIndex,
       numberOfHiddenTransactionsAbove: accumulated.numberOfHiddenTransactionsAbove,
@@ -326,7 +327,7 @@ export default function TraceView({
       }
 
       transactionGroups.push(
-        <React.Fragment key={error.event_id}>
+        <Fragment key={error.event_id}>
           <TraceHiddenMessage
             isVisible={isVisible}
             numberOfHiddenTransactionsAbove={
@@ -356,7 +357,7 @@ export default function TraceView({
             hasGuideAnchor
             renderedChildren={[]}
           />
-        </React.Fragment>
+        </Fragment>
       );
     });
   }
@@ -440,6 +441,7 @@ export default function TraceView({
                     hasGuideAnchor={false}
                     renderedChildren={transactionGroups}
                     barColor={pickBarColor('')}
+                    onlyOrphanErrors={onlyOrphanErrors}
                     numOfOrphanErrors={orphanErrors?.length}
                   />
                   <TraceHiddenMessage

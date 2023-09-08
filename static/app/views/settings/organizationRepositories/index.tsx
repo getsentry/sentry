@@ -21,9 +21,7 @@ type State = DeprecatedAsyncView['state'] & {
 class OrganizationRepositoriesContainer extends DeprecatedAsyncView<Props, State> {
   getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     const {organization} = this.props;
-    return [
-      ['itemList', `/organizations/${organization.slug}/repos/`, {query: {status: ''}}],
-    ];
+    return [['itemList', `/organizations/${organization.slug}/repos/`]];
   }
 
   // Callback used by child component to signal state change

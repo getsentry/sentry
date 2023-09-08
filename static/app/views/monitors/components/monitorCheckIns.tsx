@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
@@ -80,7 +80,7 @@ function MonitorCheckIns({monitor, monitorEnvs, orgSlug}: Props) {
   const emptyCell = <Text>{'\u2014'}</Text>;
 
   return (
-    <React.Fragment>
+    <Fragment>
       <SectionHeading>{t('Recent Check-Ins')}</SectionHeading>
       <PanelTable
         headers={[
@@ -99,7 +99,7 @@ function MonitorCheckIns({monitor, monitorEnvs, orgSlug}: Props) {
               </RowPlaceholder>
             ))
           : checkInList.map(checkIn => (
-              <React.Fragment key={checkIn.id}>
+              <Fragment key={checkIn.id}>
                 <Status>
                   <StatusIndicator
                     status={checkStatusToIndicatorStatus[checkIn.status]}
@@ -179,11 +179,11 @@ function MonitorCheckIns({monitor, monitorEnvs, orgSlug}: Props) {
                   emptyCell
                 )}
                 <Timestamp date={checkIn.dateCreated} />
-              </React.Fragment>
+              </Fragment>
             ))}
       </PanelTable>
       <Pagination pageLinks={getResponseHeader?.('Link')} />
-    </React.Fragment>
+    </Fragment>
   );
 }
 

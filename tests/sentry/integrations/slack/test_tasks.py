@@ -1,8 +1,8 @@
-from functools import cached_property
 from unittest.mock import patch
 from urllib.parse import parse_qs
 from uuid import uuid4
 
+import pytest
 import responses
 
 from sentry.incidents.models import AlertRule, AlertRuleTriggerAction
@@ -27,9 +27,8 @@ class SlackTasksTest(TestCase):
         self.integration = install_slack(self.organization)
         self.uuid = uuid4().hex
 
-        self.mck = responses.mock
-        self.mck.__enter__()
-
+    @pytest.fixture(autouse=True)
+    def setup_responses(self):
         responses.add(
             method=responses.POST,
             url="https://slack.com/api/chat.scheduleMessage",
@@ -46,11 +45,9 @@ class SlackTasksTest(TestCase):
             content_type="application/json",
             body=json.dumps({"ok": True}),
         )
+        with responses.mock:
+            yield
 
-    def tearDown(self):
-        self.mck.__exit__(None, None, None)
-
-    @cached_property
     def metric_alert_data(self):
         return {
             "aggregate": "count()",
@@ -94,7 +91,6 @@ class SlackTasksTest(TestCase):
                 {
                     "channel": "#my-channel",
                     "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
-                    "name": "Send a notification to the funinthesun Slack workspace to #secrets and show tags [] in notification",
                     "tags": "",
                     "workspace": self.integration.id,
                 }
@@ -116,7 +112,6 @@ class SlackTasksTest(TestCase):
                 "channel": "#my-channel",
                 "channel_id": "chan-id",
                 "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
-                "name": "Send a notification to the funinthesun Slack workspace to #secrets and show tags [] in notification",
                 "tags": "",
                 "workspace": self.integration.id,
             }
@@ -143,7 +138,6 @@ class SlackTasksTest(TestCase):
                 {
                     "channel": "#my-channel",
                     "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
-                    "name": "Send a notification to the funinthesun Slack workspace to #secrets and show tags [] in notification",
                     "tags": "",
                     "workspace": self.integration.id,
                 }
@@ -165,7 +159,6 @@ class SlackTasksTest(TestCase):
                 "channel": "#my-channel",
                 "channel_id": "chan-id",
                 "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
-                "name": "Send a notification to the funinthesun Slack workspace to #secrets and show tags [] in notification",
                 "tags": "",
                 "workspace": self.integration.id,
             }
@@ -178,7 +171,7 @@ class SlackTasksTest(TestCase):
         return_value=("#", "chan-id", False),
     )
     def test_task_new_alert_rule(self, mock_get_channel_id, mock_set_value):
-        alert_rule_data = self.metric_alert_data
+        alert_rule_data = self.metric_alert_data()
 
         data = {
             "data": alert_rule_data,
@@ -208,7 +201,7 @@ class SlackTasksTest(TestCase):
         return_value=("#", None, False),
     )
     def test_task_failed_id_lookup(self, mock_get_channel_id, mock_set_value):
-        alert_rule_data = self.metric_alert_data
+        alert_rule_data = self.metric_alert_data()
 
         data = {
             "data": alert_rule_data,
@@ -233,7 +226,7 @@ class SlackTasksTest(TestCase):
         return_value=("#", None, True),
     )
     def test_task_timeout_id_lookup(self, mock_get_channel_id, mock_set_value):
-        alert_rule_data = self.metric_alert_data
+        alert_rule_data = self.metric_alert_data()
 
         data = {
             "data": alert_rule_data,
@@ -258,7 +251,7 @@ class SlackTasksTest(TestCase):
         return_value=("#", "chan-id", False),
     )
     def test_task_existing_metric_alert(self, mock_get_channel_id, mock_set_value):
-        alert_rule_data = self.metric_alert_data
+        alert_rule_data = self.metric_alert_data()
         alert_rule = self.create_alert_rule(
             organization=self.organization, projects=[self.project], name="New Rule", user=self.user
         )

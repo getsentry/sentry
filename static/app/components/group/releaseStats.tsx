@@ -48,7 +48,11 @@ function GroupReleaseStats({
       : undefined;
 
   const {data: groupReleaseData} = useApiQuery<GroupRelease>(
-    [defined(group) ? `/issues/${group.id}/first-last-release/` : ''],
+    [
+      defined(group)
+        ? `/organizations/${organization.slug}/issues/${group.id}/first-last-release/`
+        : '',
+    ],
     {
       staleTime: 30000,
       cacheTime: 30000,
