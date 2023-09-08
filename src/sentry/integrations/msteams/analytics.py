@@ -10,6 +10,7 @@ class MSTeamsIntegrationNotificationSent(analytics.Event):
         analytics.Attribute("category"),
         analytics.Attribute("actor_id"),
         analytics.Attribute("user_id", required=False),
+        analytics.Attribute("notification_uuid", required=False),
     )
 
 

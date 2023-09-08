@@ -73,6 +73,7 @@ class DiscordNotifyServiceAction(IntegrationEventAction):
             organization_id=event.organization.id,
             project_id=event.project_id,
             group_id=event.group_id,
+            notification_uuid=notification_uuid,
         )
         metrics.incr("notifications.sent", instance="discord.notifications", skip_internal=False)
         yield self.future(send_notification, key=key)
