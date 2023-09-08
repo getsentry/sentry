@@ -26,9 +26,8 @@ import sentry_sdk
 from django import db
 from django.db import OperationalError, connections, models, router, transaction
 from django.db.models import Max, Min
-from django.db.models.signals import post_migrate
 from django.db.transaction import Atomic
-from django.dispatch import Signal, receiver
+from django.dispatch import Signal
 from django.http import HttpRequest
 from django.utils import timezone
 from sentry_sdk.tracing import Span
@@ -445,6 +444,7 @@ class OutboxBase(Model):
                 )
 
                 return next_outbox
+
         except OperationalError as e:
             # If concurrent locking is happening on the table, gracefully pass and allow
             # that work to process.
@@ -799,18 +799,19 @@ process_region_outbox = Signal()  # ["payload", "object_identifier"]
 process_control_outbox = Signal()  # ["payload", "region_name", "object_identifier"]
 
 
-@receiver(post_migrate, weak=False, dispatch_uid="schedule_backfill_outboxes")
-def schedule_backfill_outboxes(app_config, using, **kwargs):
-    from sentry.tasks.backfill_outboxes import (
-        schedule_backfill_outbox_jobs,
-        schedule_backfill_outbox_jobs_control,
-    )
-    from sentry.utils.env import in_test_environment
-
-    if in_test_environment():
-        return
-
-    if SiloMode.get_current_mode() != SiloMode.REGION:
-        schedule_backfill_outbox_jobs_control.delay()
-    if SiloMode.get_current_mode() != SiloMode.CONTROL:
-        schedule_backfill_outbox_jobs.delay()
+# Add this in after we successfully deploy, the job.
+# @receiver(post_migrate, weak=False, dispatch_uid="schedule_backfill_outboxes")
+# def schedule_backfill_outboxes(app_config, using, **kwargs):
+#     from sentry.tasks.backfill_outboxes import (
+#         schedule_backfill_outbox_jobs,
+#         schedule_backfill_outbox_jobs_control,
+#     )
+#     from sentry.utils.env import in_test_environment
+#
+#     if in_test_environment():
+#         return
+#
+#     if SiloMode.get_current_mode() != SiloMode.REGION:
+#         schedule_backfill_outbox_jobs_control.delay()
+#     if SiloMode.get_current_mode() != SiloMode.CONTROL:
+#         schedule_backfill_outbox_jobs.delay()

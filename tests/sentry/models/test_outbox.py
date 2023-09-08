@@ -66,37 +66,6 @@ class ControlOutboxTest(TestCase):
     region = Region("eu", 1, "http://eu.testserver", RegionCategory.MULTI_TENANT)
     region_config = (region,)
 
-    def test_prepare_next_from_shard_no_conflict_with_processing(self):
-        with outbox_runner():
-            org = Factories.create_organization()
-            user1 = Factories.create_user()
-            Factories.create_member(organization_id=org.id, user_id=user1.id)
-
-        with outbox_context(flush=False):
-            outbox = user1.outboxes_for_update()[0]
-            outbox.save()
-            with outbox.process_shard(None) as next_shard_row:
-                assert next_shard_row is not None
-
-                def test_with_other_connection():
-                    try:
-                        assert (
-                            ControlOutbox.prepare_next_from_shard(
-                                {
-                                    k: getattr(next_shard_row, k)
-                                    for k in ControlOutbox.sharding_columns
-                                }
-                            )
-                            is None
-                        )
-                    finally:
-                        for c in connections.all():
-                            c.close()
-
-                t = threading.Thread(target=test_with_other_connection)
-                t.start()
-                t.join()
-
     def test_control_sharding_keys(self):
         request = RequestFactory().get("/extensions/slack/webhook/")
         with assume_test_silo_mode(SiloMode.REGION):
@@ -170,6 +139,37 @@ class ControlOutboxTest(TestCase):
                 "special-github-region",
             ),
         }
+
+    def test_prepare_next_from_shard_no_conflict_with_processing(self):
+        with outbox_runner():
+            org = Factories.create_organization()
+            user1 = Factories.create_user()
+            Factories.create_member(organization_id=org.id, user_id=user1.id)
+
+        with outbox_context(flush=False):
+            outbox = user1.outboxes_for_update()[0]
+            outbox.save()
+            with outbox.process_shard(None) as next_shard_row:
+                assert next_shard_row is not None
+
+                def test_with_other_connection():
+                    try:
+                        assert (
+                            ControlOutbox.prepare_next_from_shard(
+                                {
+                                    k: getattr(next_shard_row, k)
+                                    for k in ControlOutbox.sharding_columns
+                                }
+                            )
+                            is None
+                        )
+                    finally:
+                        for c in connections.all():
+                            c.close()
+
+                t = threading.Thread(target=test_with_other_connection)
+                t.start()
+                t.join()
 
     def test_control_outbox_for_webhooks(self):
         [outbox] = ControlOutbox.for_webhook_update(

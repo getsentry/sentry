@@ -18,7 +18,7 @@ from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.signing import unsign
 from sentry.web.decorators import transaction_start
-from sentry.web.frontend.base import BaseView
+from sentry.web.frontend.base import BaseView, region_silo_view
 from sentry.web.helpers import render_to_response
 
 from ..utils import is_valid_role, logger
@@ -62,6 +62,7 @@ class SelectTeamForm(forms.Form):
         self.fields["team"].widget.choices = self.fields["team"].choices
 
 
+@region_silo_view
 class SlackLinkTeamView(BaseView):
     """
     Django view for linking team to slack channel. Creates an entry on ExternalActor table.
