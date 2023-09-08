@@ -434,6 +434,7 @@ def pytest_addoption(parser):
 
 
 def pytest_configure(config):
+
     if hasattr(config, "workerinput"):
         return  # xdist worker
 

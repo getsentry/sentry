@@ -28,6 +28,20 @@ TEST_ROOT = os.path.normpath(
 TEST_REDIS_DB = 9
 
 
+def configure_split_db(_settings):
+    if "control" in _settings.DATABASES:
+        return
+    # Add connections for the region & control silo databases.
+    _settings.DATABASES["control"] = _settings.DATABASES["default"].copy()
+    _settings.DATABASES["control"]["NAME"] = "control"
+
+    # Use the region database in the default connection as region
+    # silo database is the 'default' elsewhere in application logic.
+    _settings.DATABASES["default"]["NAME"] = "region"
+
+    _settings.DATABASE_ROUTERS = ("sentry.db.router.SiloRouter",)
+
+
 def pytest_configure(config):
     import warnings
 
@@ -81,6 +95,8 @@ def pytest_configure(config):
             # an actual migration.
         else:
             raise RuntimeError("oops, wrong database: %r" % test_db)
+
+    configure_split_db(settings)
 
     # Ensure we can test secure ssl settings
     settings.SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
