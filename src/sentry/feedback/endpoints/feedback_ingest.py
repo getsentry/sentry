@@ -44,28 +44,31 @@ class FeedbackValidator(serializers.Serializer):
     message = serializers.CharField(required=False)
 
     def validate(self, data):
-        ret: Dict[str, Any] = {}
-        ret["data"] = {
-            "contexts": data["contexts"],
-            "tags": data["tags"],
-            "transaction": data["transaction"],
-            "type": data["type"],
-            "transaction_info": data["transaction_info"],
-            "platform": data["platform"],
-            "environment": data["environment"],
-            "release": data["release"],
-            "sdk": data["sdk"],
-            "user": data["user"],
-            "request": data["request"],
-        }
-        ret["date_added"] = datetime.datetime.fromtimestamp(data["timestamp"])
-        ret["feedback_id"] = data["event_id"]
-        ret["url"] = ""
-        ret["project_id"] = self.context["project"].id
-        ret["replay_id"] = ""
-        ret["message"] = data["message"]
+        try:
+            ret: Dict[str, Any] = {}
+            ret["data"] = {
+                "contexts": data["contexts"],
+                "tags": data["tags"],
+                "transaction": data["transaction"],
+                "type": data["type"],
+                "transaction_info": data["transaction_info"],
+                "platform": data["platform"],
+                "environment": data["environment"],
+                "release": data["release"],
+                "sdk": data["sdk"],
+                "user": data["user"],
+                "request": data["request"],
+            }
+            ret["date_added"] = datetime.datetime.fromtimestamp(data["timestamp"])
+            ret["feedback_id"] = data["event_id"]
+            ret["url"] = ""
+            ret["project_id"] = self.context["project"].id
+            ret["replay_id"] = ""
+            ret["message"] = data["message"]
 
-        return ret
+            return ret
+        except KeyError:
+            raise serializers.ValidationError("Input has wrong field name or type")
 
 
 class FeedbackIngestPermission(ProjectPermission):

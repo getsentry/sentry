@@ -128,7 +128,7 @@ class FeedbackIngestTest(MonitorIngestTestCase):
         with self.feature({"organizations:user-feedback-ingest": True}):
             path = reverse(self.endpoint)
             response = self.client.post(path, data=wrong_test_data, **self.dsn_auth_headers)
-            assert response.status_code == 500
+            assert response.status_code == 400
 
     def test_no_event_id(self):
         # Event ID is required for a successful post
@@ -144,7 +144,7 @@ class FeedbackIngestTest(MonitorIngestTestCase):
         with self.feature({"organizations:user-feedback-ingest": True}):
             path = reverse(self.endpoint)
             response = self.client.post(path, data=wrong_type_test_data, **self.dsn_auth_headers)
-            assert response.status_code == 500
+            assert response.status_code == 400
 
     def test_bad_slug_path(self):
         # Bad slug in path should lead to unsuccessful save
