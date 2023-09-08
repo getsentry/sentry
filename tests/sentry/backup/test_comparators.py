@@ -14,7 +14,7 @@ from sentry.backup.comparators import (
     SecretHexComparator,
     UUID4Comparator,
 )
-from sentry.backup.dependencies import PrimaryKeyMap, dependencies
+from sentry.backup.dependencies import ImportKind, PrimaryKeyMap, dependencies
 from sentry.backup.findings import ComparatorFindingKind, InstanceID
 from sentry.utils.json import JSONData
 
@@ -606,9 +606,9 @@ def test_good_foreign_key_comparator():
     )
     id = InstanceID("sentry.useremail", 0)
     left_pk_map = PrimaryKeyMap()
-    left_pk_map.insert("sentry.user", 12, 1)
+    left_pk_map.insert("sentry.user", 12, 1, ImportKind.Inserted)
     right_pk_map = PrimaryKeyMap()
-    right_pk_map.insert("sentry.user", 34, 1)
+    right_pk_map.insert("sentry.user", 34, 1, ImportKind.Inserted)
     left: JSONData = {
         "model": "test",
         "ordinal": 1,
@@ -713,9 +713,9 @@ def test_bad_foreign_key_comparator_set_primary_key_maps_not_called():
     )
     id = InstanceID("sentry.useremail", 0)
     left_pk_map = PrimaryKeyMap()
-    left_pk_map.insert("sentry.user", 12, 1)
+    left_pk_map.insert("sentry.user", 12, 1, ImportKind.Inserted)
     right_pk_map = PrimaryKeyMap()
-    right_pk_map.insert("sentry.user", 34, 1)
+    right_pk_map.insert("sentry.user", 34, 1, ImportKind.Inserted)
     left: JSONData = {
         "model": "test",
         "ordinal": 1,
@@ -752,9 +752,9 @@ def test_bad_foreign_key_comparator_unequal_mapping():
     )
     id = InstanceID("sentry.useremail", 0)
     left_pk_map = PrimaryKeyMap()
-    left_pk_map.insert("sentry.user", 12, 1)
+    left_pk_map.insert("sentry.user", 12, 1, ImportKind.Inserted)
     right_pk_map = PrimaryKeyMap()
-    right_pk_map.insert("sentry.user", 34, 2)
+    right_pk_map.insert("sentry.user", 34, 2, ImportKind.Inserted)
     left: JSONData = {
         "model": "test",
         "ordinal": 1,

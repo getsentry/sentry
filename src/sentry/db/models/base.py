@@ -7,7 +7,8 @@ from django.db import models
 from django.db.models import signals
 from django.utils import timezone
 
-from sentry.backup.dependencies import PrimaryKeyMap, dependencies, normalize_model_name
+from sentry.backup.dependencies import ImportKind, PrimaryKeyMap, dependencies, normalize_model_name
+from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.silo import SiloLimit, SiloMode
 
@@ -108,7 +109,7 @@ class BaseModel(models.Model):
         return self.__relocation_scope__
 
     def _normalize_before_relocation_import(
-        self, pk_map: PrimaryKeyMap, _: ImportScope
+        self, pk_map: PrimaryKeyMap, _s: ImportScope, _f: ImportFlags
     ) -> Optional[int]:
         """
         A helper function that normalizes a deserialized model. Note that this modifies the model in
@@ -131,7 +132,7 @@ class BaseModel(models.Model):
             field_id = field if field.endswith("_id") else f"{field}_id"
             fk = getattr(self, field_id, None)
             if fk is not None:
-                new_fk = pk_map.get(normalize_model_name(model_relation.model), fk)
+                new_fk = pk_map.get_pk(normalize_model_name(model_relation.model), fk)
                 if new_fk is None:
                     return None
 
@@ -143,8 +144,8 @@ class BaseModel(models.Model):
         return old_pk
 
     def write_relocation_import(
-        self, pk_map: PrimaryKeyMap, scope: ImportScope
-    ) -> Optional[Tuple[int, int]]:
+        self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
+    ) -> Optional[Tuple[int, int, ImportKind]]:
         """
         Writes a deserialized model to the database. If this write is successful, this method will
         return a tuple of the old and new `pk`s.
@@ -153,12 +154,12 @@ class BaseModel(models.Model):
         `rest_framework.serializers.ValidationError`.
         """
 
-        old_pk = self._normalize_before_relocation_import(pk_map, scope)
+        old_pk = self._normalize_before_relocation_import(pk_map, scope, flags)
         if old_pk is None:
             return
 
         self.save(force_insert=True)
-        return (old_pk, self.pk)
+        return (old_pk, self.pk, ImportKind.Inserted)
 
 
 class Model(BaseModel):

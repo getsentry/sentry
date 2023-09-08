@@ -9,7 +9,8 @@ from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
-from sentry.backup.dependencies import PrimaryKeyMap
+from sentry.backup.dependencies import ImportKind, PrimaryKeyMap
+from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import (
     BaseManager,
@@ -83,9 +84,13 @@ class UserEmail(Model):
         return cls.objects.get_primary_email(user)
 
     def _normalize_before_relocation_import(
-        self, pk_map: PrimaryKeyMap, scope: ImportScope
+        self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
     ) -> Optional[int]:
-        old_pk = super()._normalize_before_relocation_import(pk_map, scope)
+        # If we are merging users, ignore this import and use the merged user's data.
+        if pk_map.get_kind("sentry.User", self.user_id) == ImportKind.Existing:
+            return None
+
+        old_pk = super()._normalize_before_relocation_import(pk_map, scope, flags)
         if old_pk is None:
             return None
 
@@ -99,9 +104,9 @@ class UserEmail(Model):
         return old_pk
 
     def write_relocation_import(
-        self, pk_map: PrimaryKeyMap, scope: ImportScope
-    ) -> Optional[Tuple[int, int]]:
-        old_pk = self._normalize_before_relocation_import(pk_map, scope)
+        self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
+    ) -> Optional[Tuple[int, int, ImportKind]]:
+        old_pk = self._normalize_before_relocation_import(pk_map, scope, flags)
         if old_pk is None:
             return None
 
@@ -111,4 +116,4 @@ class UserEmail(Model):
                 setattr(useremail, f.name, getattr(self, f.name))
         useremail.save()
 
-        return (old_pk, useremail.pk)
+        return (old_pk, useremail.pk, ImportKind.Existing)

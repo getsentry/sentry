@@ -12,6 +12,7 @@ from django.db.models.signals import post_delete, post_save
 from django.utils import timezone
 
 from sentry.backup.dependencies import PrimaryKeyMap
+from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import (
     ArrayField,
@@ -216,9 +217,9 @@ class Incident(Model):
         return self.current_end_date - self.date_started
 
     def _normalize_before_relocation_import(
-        self, pk_map: PrimaryKeyMap, scope: ImportScope
+        self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
     ) -> Optional[int]:
-        old_pk = super()._normalize_before_relocation_import(pk_map, scope)
+        old_pk = super()._normalize_before_relocation_import(pk_map, scope, flags)
         if old_pk is None:
             return None
 
@@ -296,9 +297,9 @@ class IncidentActivity(Model):
         db_table = "sentry_incidentactivity"
 
     def _normalize_before_relocation_import(
-        self, pk_map: PrimaryKeyMap, scope: ImportScope
+        self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
     ) -> Optional[int]:
-        old_pk = super()._normalize_before_relocation_import(pk_map, scope)
+        old_pk = super()._normalize_before_relocation_import(pk_map, scope, flags)
         if old_pk is None:
             return None
 

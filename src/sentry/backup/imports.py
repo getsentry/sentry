@@ -11,7 +11,7 @@ from django.db import IntegrityError, connection, transaction
 from rest_framework.serializers import ValidationError as DjangoRestFrameworkValidationError
 
 from sentry.backup.dependencies import PrimaryKeyMap, normalize_model_name
-from sentry.backup.helpers import EXCLUDED_APPS, Filter
+from sentry.backup.helpers import EXCLUDED_APPS, Filter, ImportFlags
 from sentry.backup.scopes import ImportScope
 from sentry.silo import unguarded_write
 
@@ -43,6 +43,7 @@ def _import(
     scope: ImportScope,
     old_config: OldImportConfig,
     *,
+    flags: ImportFlags | None = None,
     filter_by: Filter | None = None,
     printer=click.echo,
 ):
@@ -134,6 +135,7 @@ def _import(
         # service up for writing to control silo models.
         with unguarded_write(using="default"), transaction.atomic("default"):
             allowed_relocation_scopes = scope.value
+            flags = flags if flags is not None else ImportFlags()
             pk_map = PrimaryKeyMap()
             for obj in serializers.deserialize(
                 "json", src, stream=True, use_natural_keys=old_config.use_natural_foreign_keys
@@ -151,10 +153,10 @@ def _import(
                             if f.model == type(o) and getattr(o, f.field, None) not in f.values:
                                 break
                         else:
-                            written = o.write_relocation_import(pk_map, scope)
+                            written = o.write_relocation_import(pk_map, scope, flags)
                             if written is not None:
-                                old_pk, new_pk = written
-                                pk_map.insert(model_name, old_pk, new_pk)
+                                old_pk, new_pk, import_kind = written
+                                pk_map.insert(model_name, old_pk, new_pk, import_kind)
 
     # For all database integrity errors, let's warn users to follow our
     # recommended backup/restore workflow before reraising exception. Most of
@@ -187,7 +189,13 @@ def _import(
         cursor.execute(sequence_reset_sql.getvalue())
 
 
-def import_in_user_scope(src, *, user_filter: set[str] | None = None, printer=click.echo):
+def import_in_user_scope(
+    src,
+    *,
+    flags: ImportFlags | None = None,
+    user_filter: set[str] | None = None,
+    printer=click.echo,
+):
     """
     Perform an import in the `User` scope, meaning that only models with `RelocationScope.User` will be imported from the provided `src` file.
 
@@ -201,12 +209,19 @@ def import_in_user_scope(src, *, user_filter: set[str] | None = None, printer=cl
         src,
         ImportScope.User,
         OldImportConfig(),
+        flags=flags,
         filter_by=Filter(User, "username", user_filter) if user_filter is not None else None,
         printer=printer,
     )
 
 
-def import_in_organization_scope(src, *, org_filter: set[str] | None = None, printer=click.echo):
+def import_in_organization_scope(
+    src,
+    *,
+    flags: ImportFlags | None = None,
+    org_filter: set[str] | None = None,
+    printer=click.echo,
+):
     """
     Perform an import in the `Organization` scope, meaning that only models with
     `RelocationScope.User` or `RelocationScope.Organization` will be imported from the provided
@@ -224,6 +239,7 @@ def import_in_organization_scope(src, *, org_filter: set[str] | None = None, pri
         src,
         ImportScope.Organization,
         OldImportConfig(),
+        flags=flags,
         filter_by=Filter(Organization, "slug", org_filter) if org_filter is not None else None,
         printer=printer,
     )

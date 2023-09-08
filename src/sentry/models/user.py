@@ -16,7 +16,8 @@ from django.utils.translation import gettext_lazy as _
 
 from bitfield import TypedClassBitField
 from sentry.auth.authenticators import available_authenticators
-from sentry.backup.dependencies import PrimaryKeyMap
+from sentry.backup.dependencies import ImportKind, PrimaryKeyMap
+from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import (
     BaseManager,
@@ -380,9 +381,9 @@ class User(BaseModel, AbstractBaseUser):
         LostPasswordHash.objects.filter(user=self).delete()
 
     def _normalize_before_relocation_import(
-        self, pk_map: PrimaryKeyMap, scope: ImportScope
+        self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
     ) -> Optional[int]:
-        old_pk = super()._normalize_before_relocation_import(pk_map, scope)
+        old_pk = super()._normalize_before_relocation_import(pk_map, scope, flags)
         if old_pk is None:
             return None
 
@@ -405,15 +406,20 @@ class User(BaseModel, AbstractBaseUser):
         return old_pk
 
     def write_relocation_import(
-        self, pk_map: PrimaryKeyMap, scope: ImportScope
-    ) -> Optional[Tuple[int, int]]:
+        self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
+    ) -> Optional[Tuple[int, int, ImportKind]]:
         from sentry.api.endpoints.user_details import (
             BaseUserSerializer,
             SuperuserUserSerializer,
             UserSerializer,
         )
 
-        old_pk = self._normalize_before_relocation_import(pk_map, scope)
+        if flags.merge_users:
+            existing = User.objects.filter(username=self.username).first()
+            if existing:
+                return (self.pk, existing.pk, ImportKind.Existing)
+
+        old_pk = self._normalize_before_relocation_import(pk_map, scope, flags)
         if old_pk is None:
             return None
 
@@ -427,7 +433,7 @@ class User(BaseModel, AbstractBaseUser):
         serializer_user.is_valid(raise_exception=True)
 
         self.save(force_insert=True)
-        return (old_pk, self.pk)
+        return (old_pk, self.pk, ImportKind.Inserted)
 
 
 # HACK(dcramer): last_login needs nullable for Django 1.8

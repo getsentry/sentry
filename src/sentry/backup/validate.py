@@ -6,7 +6,7 @@ from difflib import unified_diff
 from typing import Dict, Tuple
 
 from sentry.backup.comparators import ComparatorMap, ForeignKeyComparator, get_default_comparators
-from sentry.backup.dependencies import PrimaryKeyMap
+from sentry.backup.dependencies import ImportKind, PrimaryKeyMap
 from sentry.backup.findings import (
     ComparatorFinding,
     ComparatorFindingKind,
@@ -139,8 +139,8 @@ def validate(
             raise RuntimeError("all InstanceIDs used for comparisons must have their ordinal set")
 
         left = left_models[id]
-        left_pk_map.insert(id.model, left_models[id]["pk"], id.ordinal)
-        right_pk_map.insert(id.model, right["pk"], id.ordinal)
+        left_pk_map.insert(id.model, left_models[id]["pk"], id.ordinal, ImportKind.Inserted)
+        right_pk_map.insert(id.model, right["pk"], id.ordinal, ImportKind.Inserted)
 
     # We only perform custom comparisons and JSON diffs on non-duplicate entries that exist in both
     # outputs.

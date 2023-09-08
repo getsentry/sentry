@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from typing import Optional, Tuple
 
-from sentry.backup.dependencies import PrimaryKeyMap
+from sentry.backup.dependencies import ImportKind, PrimaryKeyMap
+from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope
 
 
@@ -17,9 +18,9 @@ class SanitizeUserImportsMixin:
     """
 
     def write_relocation_import(
-        self, pk_map: PrimaryKeyMap, scope: ImportScope
-    ) -> Optional[Tuple[int, int]]:
+        self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
+    ) -> Optional[Tuple[int, int, ImportKind]]:
         if scope != ImportScope.Global:
             return None
 
-        return super().write_relocation_import(pk_map, scope)  # type: ignore[misc]
+        return super().write_relocation_import(pk_map, scope, flags)  # type: ignore[misc]

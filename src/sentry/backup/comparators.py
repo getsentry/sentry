@@ -263,8 +263,8 @@ class ForeignKeyComparator(JSONScrubbingComparator):
             if self.left_pk_map is None or self.right_pk_map is None:
                 raise RuntimeError("must call `set_primary_key_maps` before comparing")
 
-            left_fk_as_ordinal = self.left_pk_map.get(field_model_name, left["fields"][f])
-            right_fk_as_ordinal = self.right_pk_map.get(field_model_name, right["fields"][f])
+            left_fk_as_ordinal = self.left_pk_map.get_pk(field_model_name, left["fields"][f])
+            right_fk_as_ordinal = self.right_pk_map.get_pk(field_model_name, right["fields"][f])
             if left_fk_as_ordinal is None or right_fk_as_ordinal is None:
                 if left_fk_as_ordinal is None:
                     findings.append(
