@@ -8,9 +8,8 @@ from freezegun import freeze_time
 
 from sentry.api.endpoints.organization_metrics_estimation_stats import (
     CountResult,
-    discover_to_metrics_function_call,
+    _should_scale,
     estimate_volume,
-    to_metrics_columns,
 )
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.testutils.cases import APITestCase, BaseMetricsLayerTestCase
@@ -143,8 +142,8 @@ class OrganizationMetricsEstimationStatsEndpointTest(APITestCase, BaseMetricsLay
         """
         Tests that the apdex calculation works as expected.
 
-        This test adds some data to the Db (both transactions and metrics) and then
-        manually calculates the expected apdex that should be returned by the endpoint.
+        This test adds some indexed data to the Db.
+        Since apdex cannot be extrapolated only indexed data is used.
         """
 
         # --- Create test data ---
@@ -153,41 +152,18 @@ class OrganizationMetricsEstimationStatsEndpointTest(APITestCase, BaseMetricsLay
         transactions_long = [1, 2, 3, 4]
         transactions_short = [2, 4, 5, 6]
 
-        # the number of transaction metrics recorded in the last 4 minutes
-        # we set the satisfaction tag in order to calculate metrics apdex
-        satisfied_transactions = [10, 20, 10, 20]
-        tolerated_transactions = [10, 11, 12, 13]
-        frustrated_transactions = [14, 15, 16, 17]
-        metrics = {
-            "satisfied": satisfied_transactions,
-            "tolerated": tolerated_transactions,
-            "frustrated": frustrated_transactions,
-        }
         num_minutes = len(transactions_long)
 
         # create the transactions and the metrics in Snuba
         for idx in range(num_minutes):
             # put the transactions in the middle of the minute
             seconds_before = (num_minutes - idx - 1) * MINUTE + SECOND * 30
-            # put the metric at the beginning of the minute (utility only takes minutes)
-            minutes_before = num_minutes - idx - 1
             # short transactions
             for _ in range(transactions_short[idx]):
                 self.create_transaction(self.now - seconds_before, 10)
             # long transactions
             for _ in range(transactions_long[idx]):
                 self.create_transaction(self.now - seconds_before, 100)
-            # transaction metrics
-            for satisfaction, transactions in metrics.items():
-                for _ in range(transactions[idx]):
-                    self.store_performance_metric(
-                        name=TransactionMRI.DURATION.value,
-                        tags={"transaction": "t1", "satisfaction": satisfaction},
-                        minutes_before_now=minutes_before,
-                        value=3.14,
-                        project_id=self.project.id,
-                        org_id=self.organization.id,
-                    )
 
         # --- call the endpoint ---
         response = self.get_response(
@@ -195,38 +171,13 @@ class OrganizationMetricsEstimationStatsEndpointTest(APITestCase, BaseMetricsLay
             interval="1m",
             yAxis="apdex(50)",
             statsPeriod="4m",
-            query="transaction.duration:<50 event.type:transaction",
+            query="transaction.duration:>0.09 event.type:transaction",
         )
 
         assert response.status_code == 200, response.content
 
-        # --- calculate the expected results ---
-        # calculate apdex for metrics
-        metrics_apdex = []
-        for idx in range(num_minutes):
-            satisfied = satisfied_transactions[idx]
-            tolerated = tolerated_transactions[idx]
-            frustrated = frustrated_transactions[idx]
-            metrics_apdex.append((satisfied + tolerated / 2) / (satisfied + tolerated + frustrated))
-
-        # calculate the base transaction apdex (using all transactions)
-        base_apdex = []
-        for idx in range(num_minutes):
-            base_apdex.append(
-                (transactions_short[idx] + 0.5 * transactions_long[idx])
-                / (transactions_short[idx] + transactions_long[idx])
-            )
-
-        # calculate the full transaction apdex
-        # since we only take transactions under 50 all are short so the apdex is 1
-        full_apdex = [1, 1, 1, 1]
-
-        expected_apdex_estimation = []
-        for idx in range(num_minutes):
-            # we expect to get the indexed_result * base_metrics / base_indexed
-            expected_apdex_estimation.append(
-                full_apdex[idx] * (metrics_apdex[idx] / base_apdex[idx])
-            )
+        def apdex(satisfactory, tolerable):
+            return (satisfactory + 0.5 * tolerable) / (satisfactory + tolerable)
 
         # --- check the results ---
         timestamp = self.now.timestamp()
@@ -240,7 +191,9 @@ class OrganizationMetricsEstimationStatsEndpointTest(APITestCase, BaseMetricsLay
             assert current[0] == current_timestamp
             actual = current[1][0]["count"]
 
-            expected = expected_apdex_estimation[idx]
+            # calculate the expected apdex, short transactions are satisfactory,
+            # long transactions are tolerable
+            expected = apdex(transactions_short[idx], transactions_long[idx])
             assert pytest.approx(actual, 0.001) == expected
 
 
@@ -270,35 +223,19 @@ def test_estimate_volume(indexed, base_indexed, metrics, expected):
 
 
 @pytest.mark.parametrize(
-    "raw, converted",
+    "metric, should_scale",
     [
-        ["apdex()", "apdex()"],
-        ["apdex(300)", "apdex()"],
-        ["percentile(75)", "percentile(75)"],
-        ["max()", "max()"],
-        ["p100()", "p100()"],
-        ["epm()", "epm()"],
-        ["last_seen()", "last_seen()"],
+        ("count()", True),
+        ("p95(transaction.duration)", False),
+        ("apdex(300)", False),
+        ("failure_rate()", False),
+        ("percentile(measurements.lcp,0.55)", False),  # Largest Contentful Paint
+        ("p95(measurements.fid)", False),  # First Input Delay
+        ("avg(measurements.cls)", False),  # First Input Delay
     ],
 )
-def test_discover_to_metrics_function_call(raw: str, converted: str):
+def test_should_scale(metric: str, should_scale: bool):
     """
-    Tests the conversion from a discover function call to a metrics function call
+    Tests the _should_scale function
     """
-    actual = discover_to_metrics_function_call(raw)
-    assert actual == converted
-
-
-@pytest.mark.parametrize(
-    "discover, expected_metrics",
-    [
-        [["apdex()"], ["apdex()"]],
-        [["epm()", "apdex(300)", "max()"], ["epm()", "apdex()", "max()"]],
-    ],
-)
-def test_to_metrics_column(discover, expected_metrics):
-    """
-    Tests that it converts discover columns to metrics columns
-    """
-    actual_metrics = to_metrics_columns(discover)
-    assert actual_metrics == expected_metrics
+    assert _should_scale(metric) == should_scale
