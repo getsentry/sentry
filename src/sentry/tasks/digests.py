@@ -1,5 +1,6 @@
 import logging
 import time
+from typing import Optional
 
 from sentry.digests import get_option_key
 from sentry.digests.backends.base import InvalidState
@@ -42,7 +43,7 @@ def schedule_digests():
     queue="digests.delivery",
     silo_mode=SiloMode.REGION,
 )
-def deliver_digest(key, schedule_timestamp=None):
+def deliver_digest(key, schedule_timestamp=None, notification_uuid: Optional[str] = None):
     from sentry import digests
     from sentry.mail import mail_adapter
 
@@ -61,6 +62,11 @@ def deliver_digest(key, schedule_timestamp=None):
         try:
             with digests.digest(key, minimum_delay=minimum_delay) as records:
                 digest, logs = build_digest(project, records)
+
+                for record in records:
+                    notification_uuid = record.value.notification_uuid
+                    if notification_uuid:  # Take the first existing notification_uuid
+                        break
         except InvalidState as error:
             logger.info(f"Skipped digest delivery: {error}", exc_info=True)
             return
@@ -72,6 +78,7 @@ def deliver_digest(key, schedule_timestamp=None):
                 target_type,
                 target_identifier,
                 fallthrough_choice=fallthrough_choice,
+                notification_uuid=notification_uuid,
             )
         else:
             logger.info(

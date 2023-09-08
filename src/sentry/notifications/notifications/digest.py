@@ -102,7 +102,11 @@ class DigestNotification(ProjectNotification):
     def get_context(self) -> MutableMapping[str, Any]:
         rule_details = get_rules(list(self.digest.keys()), self.project.organization, self.project)
         context = DigestNotification.build_context(
-            self.digest, self.project, self.project.organization, rule_details
+            self.digest,
+            self.project,
+            self.project.organization,
+            rule_details,
+            notification_uuid=self.notification_uuid,
         )
 
         sentry_query_params = self.get_sentry_query_params(ExternalProviders.EMAIL)
@@ -125,6 +129,7 @@ class DigestNotification(ProjectNotification):
         organization: Organization,
         rule_details: Sequence[NotificationRuleDetails],
         alert_timestamp: int | None = None,
+        notification_uuid: str | None = None,
     ) -> MutableMapping[str, Any]:
         has_session_replay = features.has("organizations:session-replay", organization)
         show_replay_link = features.has("organizations:session-replay-issue-emails", organization)
@@ -135,7 +140,11 @@ class DigestNotification(ProjectNotification):
             "slack_link": get_integration_link(organization, "slack"),
             "rules_details": {rule.id: rule for rule in rule_details},
             "link_params_for_rule": get_email_link_extra_params(
-                "digest_email", None, rule_details, alert_timestamp
+                "digest_email",
+                None,
+                rule_details,
+                alert_timestamp,
+                notification_uuid=notification_uuid,
             ),
             "show_replay_links": has_session_replay and show_replay_link,
         }
