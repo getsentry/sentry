@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import datetime
+from typing import Any, Dict
 
 from rest_framework import serializers
 from rest_framework.request import Request
@@ -43,7 +44,7 @@ class FeedbackValidator(serializers.Serializer):
     request = serializers.JSONField(required=False)
 
     def validate(self, data):
-        ret = {}
+        ret: Dict[str, Any] = {}
         ret["data"] = {
             "contexts": data["contexts"],
             "tags": data["tags"],
@@ -60,7 +61,7 @@ class FeedbackValidator(serializers.Serializer):
         ret["date_added"] = datetime.datetime.fromtimestamp(data["timestamp"])
         ret["feedback_id"] = data["event_id"]
         ret["url"] = ""
-        ret["project_id"] = self.context.get("project").id
+        ret["project_id"] = self.context["project"].id
         ret["replay_id"] = ""
         ret["message"] = ""
 
@@ -77,7 +78,7 @@ class ProjectMonitorPermission(ProjectPermission):
 
 
 @region_silo_endpoint
-class OrganizationFeedbackIndexEndpoint(Endpoint):
+class FeedbackIngestEndpoint(Endpoint):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
         "POST": ApiPublishStatus.EXPERIMENTAL,
@@ -104,7 +105,7 @@ class OrganizationFeedbackIndexEndpoint(Endpoint):
 
         # When using DSN auth we're able to infer the organization slug
         if not organization_slug and using_dsn_auth:
-            organization_slug = request.auth.project.organization.slug
+            organization_slug = request.auth.project.organization.slug  # type: ignore
 
         if organization_slug:
             try:
@@ -114,12 +115,12 @@ class OrganizationFeedbackIndexEndpoint(Endpoint):
             except (Organization.DoesNotExist):
                 pass
 
-        project = request.auth.project
+        project = request.auth.project  # type: ignore
 
         if project.status != ObjectStatus.ACTIVE:
             raise ResourceDoesNotExist
 
-        if using_dsn_auth and project.id != request.auth.project_id:
+        if using_dsn_auth and project.id != request.auth.project_id:  # type: ignore
             raise ResourceDoesNotExist
 
         if organization_slug and project.organization.slug != organization_slug:
@@ -133,7 +134,7 @@ class OrganizationFeedbackIndexEndpoint(Endpoint):
 
         bind_organization_context(project.organization)
 
-        request._request.organization = project.organization
+        request._request.organization = project.organization  # type: ignore
 
         kwargs["organization"] = organization
         kwargs["project"] = project

@@ -32,16 +32,16 @@ test_data = {
 }
 
 
-class OrganizationFeedbackIndexTest(MonitorIngestTestCase):
-    endpoint = "sentry-api-0-organization-feedback"
+class FeedbackIngestTest(MonitorIngestTestCase):
+    endpoint = "sentry-api-0-feedback-ingest"
 
     def test_save_with_feedback(self):
-        path = reverse(self.endpoint, args=[self.organization.slug])
+        path = reverse(self.endpoint)
         response = self.client.post(path, data=test_data, **self.dsn_auth_headers)
         assert response.status_code == 201, response.content
 
     def test_get_feedback_list(self):
-        path = reverse(self.endpoint, args=[self.organization.slug])
+        path = reverse(self.endpoint)
         response = self.client.post(
             path,
             data=test_data,

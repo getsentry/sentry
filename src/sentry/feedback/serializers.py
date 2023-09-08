@@ -17,7 +17,7 @@ class FeedbackResponseType(TypedDict):
 @register(Feedback)
 class FeedbackSerializer(Serializer):
     def serialize(self, obj, attrs, user, **kwargs) -> FeedbackResponseType:
-        res = {
+        res: FeedbackResponseType = {
             "date_added": obj.date_added,
             "replay_id": obj.replay_id,
             "url": obj.url,
