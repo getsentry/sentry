@@ -27,6 +27,7 @@ import {
   IconSupport,
   IconTelescope,
   IconTimer,
+  IconUser,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -277,6 +278,19 @@ function Sidebar({location, organization}: Props) {
     />
   );
 
+  const feedback = hasOrganization && (
+    <Feature features={['user-feedback-ui']} organization={organization}>
+      <SidebarItem
+        {...sidebarItemProps}
+        icon={<IconUser />}
+        label={t('Feedback')}
+        to={`/organizations/${organization.slug}/feedback/`}
+        id="feedback"
+        isAlpha
+      />
+    </Feature>
+  );
+
   const alerts = hasOrganization && (
     <SidebarItem
       {...sidebarItemProps}
@@ -408,6 +422,7 @@ function Sidebar({location, organization}: Props) {
                 {dashboards}
                 {releases}
                 {userFeedback}
+                {feedback}
               </SidebarSection>
 
               <SidebarSection>

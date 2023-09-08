@@ -2041,10 +2041,6 @@ def _get_severity_score(event: Event) -> float | None:
     if error_type:
         message = error_type if not error_msg else f"{error_type}: {error_msg}"
 
-    logger.info(
-        "event_manager.get_severity_score", extra={"message": message, "event_id": event.event_id}
-    )
-
     if message:
         with metrics.timer("event_manager._get_severity_score"):
             with sentry_sdk.start_span(op="event_manager._get_severity_score"):
