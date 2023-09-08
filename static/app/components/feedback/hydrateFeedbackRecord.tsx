@@ -1,11 +1,8 @@
-import {
-  FeedbackRecordResponse,
-  HydratedFeedbackRecord,
-} from 'sentry/utils/feedback/types';
+import {FeedbackItemResponse, HydratedFeedbackItem} from 'sentry/utils/feedback/types';
 
 export default function hydrateFeedbackRecord(
-  data: FeedbackRecordResponse
-): HydratedFeedbackRecord {
+  data: FeedbackItemResponse
+): HydratedFeedbackItem {
   return {
     ...data,
     timestamp: new Date(data.timestamp),

@@ -51,12 +51,12 @@ export type HydratedFeedbackItem = Overwrite<FeedbackItemResponse, {timestamp: D
 export type HydratedFeedbackList = HydratedFeedbackItem[];
 
 export interface FeedbackListQueryParams {
-  // cursor?: string; // TODO: see if this is supported
+  cursor?: string;
   end?: string;
   environment?: string[];
   field?: string[];
   offset?: string;
-  per_page?: string; // TODO: check this, should it be limit?
+  per_page?: string;
   project?: string[];
   query?: string;
   queryReferrer?: string;
