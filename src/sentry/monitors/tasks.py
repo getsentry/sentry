@@ -217,7 +217,9 @@ def check_missing_environment(monitor_environment_id: int):
             "monitor.missed-checkin", extra={"monitor_environment_id": monitor_environment_id}
         )
 
-        monitor_environment = MonitorEnvironment.objects.get(id=monitor_environment_id)
+        monitor_environment = MonitorEnvironment.objects.select_related("monitor").get(
+            id=monitor_environment_id
+        )
         monitor = monitor_environment.monitor
         expected_time = monitor_environment.next_checkin
 
