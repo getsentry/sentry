@@ -2,115 +2,23 @@ import threading
 import time
 import zlib
 from threading import Event, Lock, Thread
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Generic,
-    List,
-    Literal,
-    Mapping,
-    NamedTuple,
-    Optional,
-    Set,
-    Tuple,
-    TypedDict,
-    TypeVar,
-    Union,
+from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
+
+from minimetrics.transport import MetricEnvelopeTransport, RelayStatsdEncoder
+from minimetrics.types import (
+    BucketKey,
+    ExtractedMetric,
+    Metric,
+    MetricTagsExternal,
+    MetricTagsInternal,
+    MetricType,
+    MetricUnit,
+    MetricValue,
 )
-
-from typing_extensions import NotRequired
-
 from sentry.utils import metrics
 
 # The thread local instance must be initialized globally in order to correctly use the state.
 thread_local = threading.local()
-
-
-T = TypeVar("T")
-
-# Unit of the metrics.
-MetricUnit = Literal[
-    None,
-    "nanosecond",
-    "microsecond",
-    "millisecond",
-    "second",
-    "minute",
-    "hour",
-    "day",
-    "week",
-    "bit",
-    "byte",
-    "kilobyte",
-    "kibibyte",
-    "mebibyte",
-    "gigabyte",
-    "terabyte",
-    "tebibyte",
-    "petabyte",
-    "pebibyte",
-    "exabyte",
-    "exbibyte",
-    "ratio",
-    "percent",
-]
-# Type of the metric.
-MetricType = Literal["d", "s", "g", "c"]
-# Value of the metric.
-MetricValue = Union[int, float, str]
-# Tag key of a metric.
-MetricTagKey = str
-
-# Internal representation of tags as a tuple of tuples (this is done in order to allow for the same key to exist
-# multiple times).
-MetricTagValueInternal = str
-MetricTagsInternal = Tuple[Tuple[MetricTagKey, MetricTagValueInternal], ...]
-
-# External representation of tags as a dictionary.
-MetricTagValueExternal = Union[str, List[str], Tuple[str, ...]]
-MetricTagsExternal = Mapping[MetricTagKey, MetricTagValueExternal]
-
-# Value of a metric that was extracted after bucketing.
-ExtractedMetricValue = Union[int, float, List[Union[int, float]]]
-
-
-class ExtractedMetric(TypedDict):
-    """
-    Metric extracted from a bucket.
-    """
-
-    type: MetricType
-    name: str
-    value: ExtractedMetricValue
-    timestamp: int
-    width: int
-    unit: NotRequired[MetricUnit]
-    tags: NotRequired[MetricTagsInternal]
-
-
-class BucketKey(NamedTuple):
-    """
-    Key of the bucket.
-    """
-
-    timestamp: int
-    metric_type: MetricType
-    metric_key: str
-    metric_unit: MetricUnit
-    metric_tags: MetricTagsInternal
-
-
-class Metric(Generic[T]):
-    @property
-    def weight(self) -> int:
-        return 1
-
-    def add(self, value: T) -> None:
-        raise NotImplementedError()
-
-    def serialize_value(self) -> Any:
-        raise NotImplementedError()
 
 
 class CounterMetric(Metric[float]):
@@ -216,10 +124,15 @@ class Aggregator:
     MAX_WEIGHT = 100000
 
     def __init__(self) -> None:
+        # Buckets holding the grouped metrics.
         self.buckets: Dict[BucketKey, Metric[Any]] = {}
         # Stores the total weight of the in-memory buckets. Weight is determined on a per metric type basis and
         # represents how much weight is there to represent the metric (e.g., counter = 1, distribution = n).
         self._buckets_total_weight: int = 0
+        # Transport layer used to send metrics.
+        self._transport: MetricEnvelopeTransport[ExtractedMetric] = MetricEnvelopeTransport(
+            RelayStatsdEncoder()
+        )
         # Lock protecting concurrent access to variables by the flusher and the calling threads that call add or stop.
         self._lock: Lock = Lock()
         # Signals whether the loop of the flusher is running.
@@ -328,27 +241,14 @@ class Aggregator:
             self._force_flush = True
             self._flush_event.set()
 
-    @classmethod
-    def _to_internal_metric_tags(cls, tags: Optional[MetricTagsExternal]) -> MetricTagsInternal:
-        rv = []
-        for key, value in (tags or {}).items():
-            # If the value is a collection, we want to flatten it.
-            if isinstance(value, (list, tuple)):
-                for inner_value in value:
-                    rv.append((key, inner_value))
-            else:
-                rv.append((key, value))
-
-        # It's very important to sort the tags in order to obtain the same bucket key.
-        return tuple(sorted(rv))
-
-    @classmethod
-    def _emit(cls, extracted_metrics: List[Tuple[BucketKey, Metric]], force_flush: bool) -> Any:
+    def _emit(self, extracted_metrics: List[Tuple[BucketKey, Metric]], force_flush: bool) -> Any:
         # We obtain the counts for each metric type of how many buckets we have and how much weight is in each
         # bucket.
         stats_by_type: Dict[MetricType, Tuple[int, int]] = {}
 
         for bucket_key, metric in extracted_metrics:
+            self._transport.send(self._to_extracted_metric(bucket_key, metric))
+
             (prev_buckets_count, prev_buckets_weight) = stats_by_type.get(
                 bucket_key.metric_type, (0, 0)
             )
@@ -359,16 +259,33 @@ class Aggregator:
 
         for metric_type, (buckets_count, buckets_weight) in stats_by_type.items():
             # We want to emit a metric on how many buckets and weight there was for a metric type.
-            cls._safe_emit_distribution_metric(
+            self._safe_emit_distribution_metric(
                 key="minimetrics.flushed_buckets",
                 value=buckets_count,
                 tags={"metric_type": metric_type, "force_flush": force_flush},
             )
-            cls._safe_emit_distribution_metric(
+            self._safe_emit_distribution_metric(
                 key="minimetrics.flushed_buckets_weight",
                 value=buckets_weight,
                 tags={"metric_type": metric_type, "force_flush": force_flush},
             )
+
+    def _to_extracted_metric(self, bucket_key: BucketKey, metric: Metric) -> ExtractedMetric:
+        extracted_metric = {
+            "type": bucket_key.metric_type,
+            "name": bucket_key.metric_key,
+            "value": metric.serialize_value(),
+            "timestamp": bucket_key.timestamp,
+            "width": int(self.ROLLUP_IN_SECONDS),
+        }
+        if bucket_key.metric_unit:
+            extracted_metric["unit"] = bucket_key.metric_unit
+        if bucket_key.metric_tags:
+            # We need to be careful here, since we have a list of tuples where the first element of tuples
+            # can be duplicated, thus converting to a dict will end up compressing and losing data.
+            extracted_metric["tags"] = bucket_key.metric_tags
+
+        return extracted_metric
 
     @classmethod
     def _safe_emit_count_metric(cls, key: str, amount: int, tags: Optional[Dict[str, Any]] = None):
@@ -388,6 +305,20 @@ class Aggregator:
         thread_local.in_minimetrics = True
         block()
         thread_local.in_minimetrics = False
+
+    @classmethod
+    def _to_internal_metric_tags(cls, tags: Optional[MetricTagsExternal]) -> MetricTagsInternal:
+        rv = []
+        for key, value in (tags or {}).items():
+            # If the value is a collection, we want to flatten it.
+            if isinstance(value, (list, tuple)):
+                for inner_value in value:
+                    rv.append((key, inner_value))
+            else:
+                rv.append((key, value))
+
+        # It's very important to sort the tags in order to obtain the same bucket key.
+        return tuple(sorted(rv))
 
 
 class MiniMetricsClient:
@@ -427,7 +358,7 @@ class MiniMetricsClient:
         self,
         key: str,
         value: Union[str, int],
-        unit: MetricUnit = None,
+        unit: MetricUnit = "none",
         tags: Optional[MetricTagsExternal] = None,
         timestamp: Optional[float] = None,
     ) -> None:

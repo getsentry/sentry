@@ -107,7 +107,7 @@ def test_client_set(_emit):
         timestamp=1693994400,
         metric_type="s",
         metric_key="user",
-        metric_unit=None,
+        metric_unit="none",
         metric_tags=(
             ("browser", "Chrome"),
             ("browser.version", "1.0"),
