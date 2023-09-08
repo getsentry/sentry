@@ -1,17 +1,41 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {StepTitle} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 
-import {GettingStartedWithRemix, steps} from './remix';
+import {GettingStartedWithRemix, nextSteps, steps} from './remix';
 
-describe('GettingStartedWithSvelteKit', function () {
-  it('renders doc correctly', function () {
-    const {container} = render(<GettingStartedWithSvelteKit dsn="test-dsn" />);
+describe('GettingStartedWithRemix', function () {
+  it('all products are selected', function () {
+    const {container} = render(
+      <GettingStartedWithRemix
+        dsn="test-dsn"
+        activeProductSelection={[
+          ProductSolution.PERFORMANCE_MONITORING,
+          ProductSolution.SESSION_REPLAY,
+        ]}
+      />
+    );
 
     // Steps
     for (const step of steps()) {
       expect(
         screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
+      ).toBeInTheDocument();
+    }
+
+    // Next Steps
+    const filteredNextStepsLinks = nextSteps.filter(
+      nextStep =>
+        ![
+          ProductSolution.PERFORMANCE_MONITORING,
+          ProductSolution.SESSION_REPLAY,
+        ].includes(nextStep.id as ProductSolution)
+    );
+
+    for (const filteredNextStepsLink of filteredNextStepsLinks) {
+      expect(
+        screen.getByRole('link', {name: filteredNextStepsLink.name})
       ).toBeInTheDocument();
     }
 
