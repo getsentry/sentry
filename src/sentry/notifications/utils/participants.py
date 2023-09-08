@@ -206,12 +206,6 @@ def get_participants_for_release(
     # Get all the involved users' settings for deploy-emails (including
     # users' organization-independent settings.)
     if features.has("organizations:notification-settings-v2", organization):
-        """
-        1. get users with deploy setting enabled  (layered)
-        2. get deploy setting providers for users (layered)
-        3. generate participant map (MutableMapping[ExternalProviders, MutableMapping[RpcActor, int]])
-        """
-
         notification_settings_by_recipient = (
             notifications_service.get_enabled_notification_settings_by_recipients(
                 type=NotificationSettingEnum.DEPLOY,
