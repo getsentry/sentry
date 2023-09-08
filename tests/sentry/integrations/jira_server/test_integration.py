@@ -409,9 +409,10 @@ class JiraServerIntegrationTest(APITestCase):
             }
 
     @responses.activate
-    def test_get_create_issue_config_with_default_project_not_available(self):
-        """Test that if you have a default project set that's not in the list of available jira projects
-        we try again with another project"""
+    def test_get_create_issue_config_with_default_project_issue_types_erroring(self):
+        """Test that if you have a default project set that's returning an error when
+        we try to get the issue types we re-fetch the projects list w/o caching and try again
+        """
         event = self.store_event(
             data={"message": "oh no", "timestamp": self.min_ago}, project_id=self.project.id
         )
@@ -420,8 +421,26 @@ class JiraServerIntegrationTest(APITestCase):
         assert self.installation.org_integration is not None
         self.installation.org_integration = integration_service.update_organization_integration(
             org_integration_id=self.installation.org_integration.id,
-            config={"project_issue_defaults": {str(group.project_id): {"project": "9999"}}},
+            config={"project_issue_defaults": {str(group.project_id): {"project": "10000"}}},
         )
+        responses.add(
+            responses.GET,
+            "https://jira.example.org/rest/api/2/project",
+            content_type="json",
+            body="""[
+                {"id": "10000", "key": "SAAH"},
+                {"id": "10001", "key": "SAMP"},
+                {"id": "10002", "key": "SAHM"}
+            ]""",
+        )
+        responses.add(
+            responses.GET,
+            "https://jira.example.org/rest/api/2/issue/createmeta/10000/issuetypes",
+            content_type="json",
+            status=400,
+            body="",
+        )
+        # get that projects list fresh (w/o caching)
         responses.add(
             responses.GET,
             "https://jira.example.org/rest/api/2/project",
@@ -494,7 +513,7 @@ class JiraServerIntegrationTest(APITestCase):
             fields = self.installation.get_create_issue_config(group, self.user)
             project_field = [field for field in fields if field["name"] == "project"][0]
             assert project_field == {
-                "default": "10000",  # a new default is set from actually available projects
+                "default": "10004",
                 "choices": [("10000", "EX"), ("10001", "ABC")],
                 "type": "select",
                 "name": "project",

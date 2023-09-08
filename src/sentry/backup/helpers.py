@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from enum import Enum
 from functools import lru_cache
-from typing import Type
+from typing import NamedTuple, Type
 
 from django.db import models
 
@@ -61,3 +61,13 @@ class Filter:
         self.model = model
         self.field = field
         self.values = values if values is not None else set()
+
+
+class ImportFlags(NamedTuple):
+    """
+    Flags that affect how importing a relocation JSON file proceeds.
+    """
+
+    # If a username already exists, should we re-use that user, or create a new one with a randomly
+    # suffixed username (ex: "some-user" would become "some-user-ad21")
+    merge_users: bool = False

@@ -8,7 +8,8 @@ from django.db import models
 from django.forms import model_to_dict
 from django.utils import timezone
 
-from sentry.backup.dependencies import PrimaryKeyMap
+from sentry.backup.dependencies import ImportKind, PrimaryKeyMap
+from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, control_silo_only_model, sane_repr
 from sentry.models.user import User
@@ -45,9 +46,13 @@ class UserIP(Model):
             cache.set(cache_key, 1, 300)
 
     def _normalize_before_relocation_import(
-        self, pk_map: PrimaryKeyMap, scope: ImportScope
+        self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
     ) -> Optional[int]:
-        old_pk = super()._normalize_before_relocation_import(pk_map, scope)
+        # If we are merging users, ignore this import and use the merged user's data.
+        if pk_map.get_kind("sentry.User", self.user_id) == ImportKind.Existing:
+            return None
+
+        old_pk = super()._normalize_before_relocation_import(pk_map, scope, flags)
         if old_pk is None:
             return None
 
@@ -63,9 +68,9 @@ class UserIP(Model):
         return old_pk
 
     def write_relocation_import(
-        self, pk_map: PrimaryKeyMap, scope: ImportScope
-    ) -> Optional[Tuple[int, int]]:
-        old_pk = self._normalize_before_relocation_import(pk_map, scope)
+        self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
+    ) -> Optional[Tuple[int, int, ImportKind]]:
+        old_pk = self._normalize_before_relocation_import(pk_map, scope, flags)
         if old_pk is None:
             return None
 
@@ -76,10 +81,12 @@ class UserIP(Model):
         # Update country/region codes as necessary by using the `log()` method.
         overwriting = model_to_dict(self)
         del overwriting["user"]
-        (userip, _) = self.__class__.objects.get_or_create(user=self.user, defaults=overwriting)
+        (userip, created) = self.__class__.objects.get_or_create(
+            user=self.user, defaults=overwriting
+        )
         userip.log(self.user, self.ip_address)
 
-        return (old_pk, userip.pk)
+        return (old_pk, userip.pk, ImportKind.Inserted if created else ImportKind.Existing)
 
 
 def _perform_log(user: User | RpcUser, ip_address: str):
