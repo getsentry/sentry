@@ -151,7 +151,7 @@ function ArchiveActions({
         menuTitle={
           <MenuWrapper>
             {t('Archive')}
-            <StyledExternalLink href="https://sentry-docs-git-update-beta-test-archiving.sentry.dev/product/issues/states-triage/escalating-issues/">
+            <StyledExternalLink href="https://docs.sentry.io/product/issues/states-triage/escalating-issues/">
               {t('Read the docs')}
             </StyledExternalLink>
           </MenuWrapper>
