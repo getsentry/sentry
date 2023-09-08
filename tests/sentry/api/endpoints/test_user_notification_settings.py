@@ -166,6 +166,19 @@ class UserNotificationSettingsUpdateTest(UserNotificationSettingsTestBase):
         assert NotificationSettingProvider.objects.filter(**query_args, provider="slack")
         assert not NotificationSettingProvider.objects.filter(**query_args, provider="msteams")
 
+        # now set email to default and slack to never
+        self.get_success_response(
+            "me",
+            deploy={"user": {"me": {"email": "default", "slack": "never"}}},
+            status_code=status.HTTP_204_NO_CONTENT,
+        )
+        # check the provider option for email is deleted and slack is never
+        del query_args["value"]
+        assert not NotificationSettingProvider.objects.filter(**query_args, provider="email")
+        assert NotificationSettingProvider.objects.filter(
+            **query_args, value="never", provider="slack"
+        )
+
     def test_empty_payload(self):
         self.get_error_response("me", status_code=status.HTTP_400_BAD_REQUEST)
 

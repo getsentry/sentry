@@ -37,6 +37,7 @@ from sentry.notifications.types import (
     NOTIFICATION_SETTING_OPTION_VALUES,
     NOTIFICATION_SETTING_TYPES,
     VALID_VALUES_FOR_KEY,
+    VALID_VALUES_FOR_KEY_V2,
     NotificationScopeEnum,
     NotificationScopeType,
     NotificationSettingOptionValues,
@@ -46,7 +47,11 @@ from sentry.notifications.types import (
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.services.hybrid_cloud.user.model import RpcUser
-from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
+from sentry.types.integrations import (
+    EXTERNAL_PROVIDERS,
+    PERSONAL_NOTIFICATION_PROVIDERS,
+    ExternalProviders,
+)
 from sentry.utils.sdk import configure_scope
 
 if TYPE_CHECKING:
@@ -485,15 +490,35 @@ class NotificationsManager(BaseManager["NotificationSetting"]):  # noqa: F821
             provider = setting.provider
             type = setting.type
             if setting.value == NotificationSettingOptionValues.NEVER.value:
-                if provider not in enabled_providers_by_type[type]:
-                    disabled_providers_by_type[type].add(provider)
+                disabled_providers_by_type[type].add(provider)
             else:
                 # if the value is not never, it's explicitly enabled
                 enabled_providers_by_type[type].add(provider)
-                # because the provider is specifially enabled for one sub-entity
-                # we know it shouldn't be disabled at the user/team level
-                if provider in disabled_providers_by_type[type]:
-                    disabled_providers_by_type[type].remove(provider)
+
+        for provider in PERSONAL_NOTIFICATION_PROVIDERS:
+            # iterate throuch each type of notification setting
+            for type in VALID_VALUES_FOR_KEY_V2.keys():
+                query_args = {
+                    "provider": provider,
+                    "user_id": user_id,
+                    "team_id": team_id,
+                    "type": NOTIFICATION_SETTING_TYPES[type],
+                    "scope_type": parent_scope_type.value,
+                    "scope_identifier": parent_scope_identifier,
+                }
+                if provider in enabled_providers_by_type[type]:
+                    NotificationSettingProvider.objects.create_or_update(
+                        **query_args,
+                        values={"value": NotificationSettingsOptionEnum.ALWAYS.value},
+                    )
+                elif provider in disabled_providers_by_type[type]:
+                    NotificationSettingProvider.objects.create_or_update(
+                        **query_args,
+                        values={"value": NotificationSettingsOptionEnum.NEVER.value},
+                    )
+                    # if not explicitly enabled or disable, we should delete the row
+                else:
+                    NotificationSettingProvider.objects.filter(**query_args).delete()
 
         # Update the NotificationSettingProvider values
         for type, providers in enabled_providers_by_type.items():
