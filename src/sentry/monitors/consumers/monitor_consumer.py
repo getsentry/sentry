@@ -307,39 +307,41 @@ def _process_message(ts: datetime, wrapper: CheckinMessage | ClockPulseMessage) 
         lock = locks.get(f"checkin-creation:{guid.hex}", duration=2, name="checkin_creation")
         try:
             with lock.acquire(), transaction.atomic(router.db_for_write(Monitor)):
+                monitor_config = params.pop("monitor_config", None)
+
+                params["duration"] = (
+                    # Duration is specified in seconds from the client, it is
+                    # stored in the checkin model as milliseconds
+                    int(params["duration"] * 1000)
+                    if params.get("duration") is not None
+                    else None
+                )
+
+                validator = MonitorCheckInValidator(
+                    data=params,
+                    partial=True,
+                    context={
+                        "project": project,
+                    },
+                )
+
+                if not validator.is_valid():
+                    metrics.incr(
+                        "monitors.checkin.result",
+                        tags={**metric_kwargs, "status": "failed_checkin_validation"},
+                    )
+                    txn.set_tag("result", "failed_checkin_validation")
+                    logger.info(
+                        "monitors.consumer.checkin_validation_failed",
+                        extra={"guid": guid.hex, **params},
+                    )
+                    return
+
+                validated_params = validator.validated_data
+
+                # 01
+                # Retrieve or upsert monitor for this check-in
                 try:
-                    monitor_config = params.pop("monitor_config", None)
-
-                    params["duration"] = (
-                        # Duration is specified in seconds from the client, it is
-                        # stored in the checkin model as milliseconds
-                        int(params["duration"] * 1000)
-                        if params.get("duration") is not None
-                        else None
-                    )
-
-                    validator = MonitorCheckInValidator(
-                        data=params,
-                        partial=True,
-                        context={
-                            "project": project,
-                        },
-                    )
-
-                    if not validator.is_valid():
-                        metrics.incr(
-                            "monitors.checkin.result",
-                            tags={**metric_kwargs, "status": "failed_checkin_validation"},
-                        )
-                        txn.set_tag("result", "failed_checkin_validation")
-                        logger.info(
-                            "monitors.consumer.checkin_validation_failed",
-                            extra={"guid": guid.hex, **params},
-                        )
-                        return
-
-                    validated_params = validator.validated_data
-
                     monitor = _ensure_monitor_with_config(
                         project,
                         monitor_slug,
@@ -370,6 +372,8 @@ def _process_message(ts: datetime, wrapper: CheckinMessage | ClockPulseMessage) 
                     )
                     return
 
+                # 02
+                # Retrieve monitor environment for this check-in
                 try:
                     monitor_environment = MonitorEnvironment.objects.ensure_environment(
                         project, monitor, environment
@@ -410,6 +414,8 @@ def _process_message(ts: datetime, wrapper: CheckinMessage | ClockPulseMessage) 
                 status = getattr(CheckInStatus, validated_params["status"].upper())
                 trace_id = validated_params.get("contexts", {}).get("trace", {}).get("trace_id")
 
+                # 03-A
+                # Retrieve existing check-in for update
                 try:
                     if use_latest_checkin:
                         check_in = (
@@ -450,6 +456,8 @@ def _process_message(ts: datetime, wrapper: CheckinMessage | ClockPulseMessage) 
                         check_in, status, validated_params["duration"], start_time
                     )
 
+                # 03-B
+                # Create a brand new check-in object
                 except MonitorCheckIn.DoesNotExist:
                     # Infer the original start time of the check-in from the duration.
                     # Note that the clock of this worker may be off from what Relay is reporting.
@@ -461,6 +469,9 @@ def _process_message(ts: datetime, wrapper: CheckinMessage | ClockPulseMessage) 
                     # When was this check-in expected to have happened?
                     expected_time = monitor_environment.next_checkin
 
+                    # denormalize the monitor configration into the check-in.
+                    # Useful to show details about the configuration of the
+                    # monitor at the time of the check-in
                     monitor_config = monitor.get_validated_config()
                     timeout_at = get_timeout_at(monitor_config, status, date_added)
 
@@ -480,6 +491,13 @@ def _process_message(ts: datetime, wrapper: CheckinMessage | ClockPulseMessage) 
                         monitor_environment=monitor_environment,
                         guid=guid,
                     )
+
+                    # Race condition. The check-in was created (such as an
+                    # in_progress) while this check-in was being processed.
+                    # Create a new one now.
+                    #
+                    # XXX(epurkhiser): Is this needed since wer'e already
+                    # locking this entire process?
                     if not created:
                         txn.set_tag("outcome", "process_existing_checkin_race_condition")
                         update_existing_check_in(check_in, status, duration, start_time)
