@@ -1,4 +1,6 @@
-from django.http import HttpResponse
+from typing import Union
+
+from django.http import Http404, HttpResponse
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -11,6 +13,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.environment import EnvironmentField
 from sentry.api.serializers.rest_framework.project import ProjectField
 from sentry.models import Project
+from sentry.models.environment import Environment
 from sentry.models.release_threshold.constants import (
     THRESHOLD_TYPE_STR_TO_INT,
     TRIGGER_TYPE_STRING_TO_INT,
@@ -20,7 +23,7 @@ from sentry.models.release_threshold.constants import (
 from sentry.models.release_threshold.releasethreshold import ReleaseThreshold
 
 
-class ReleaseThresholdSerializer(serializers.Serializer):
+class ReleaseThresholdPOSTSerializer(serializers.Serializer):
     threshold_type = serializers.ChoiceField(choices=ReleaseThresholdType.as_str_choices())
     trigger_type = serializers.ChoiceField(choices=TriggerType.as_str_choices())
     value = serializers.IntegerField()
@@ -35,16 +38,21 @@ class ReleaseThresholdSerializer(serializers.Serializer):
         return TRIGGER_TYPE_STRING_TO_INT[threshold_type]
 
 
+class ReleaseThresholdGETSerializer(serializers.Serializer):
+    project = ProjectField()
+
+
 @region_silo_endpoint
 class ReleaseThresholdEndpoint(ProjectEndpoint):
     owner: ApiOwner = ApiOwner.ENTERPRISE
     publish_status = {
+        "GET": ApiPublishStatus.PRIVATE,
         "POST": ApiPublishStatus.PRIVATE,
     }
 
     def post(self, request: Request, project: Project) -> HttpResponse:
         request.data["project"] = project.slug
-        serializer = ReleaseThresholdSerializer(
+        serializer = ReleaseThresholdPOSTSerializer(
             data=request.data,
             context={
                 "organization": project.organization,
@@ -64,3 +72,30 @@ class ReleaseThresholdEndpoint(ProjectEndpoint):
             environment=result.get("environment"),
         )
         return Response(serialize(release_threshold, request.user), status=201)
+
+    def get(self, request: Request, project: Project) -> HttpResponse:
+        request.data["project"] = project.slug
+        serializer = ReleaseThresholdGETSerializer(
+            data=request.data,
+            context={
+                "organization": project.organization,
+                "access": request.access,
+            },
+        )
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
+        environment_name: Union[str, None] = request.GET.get("environment")
+        if not environment_name:
+            release_thresholds = ReleaseThreshold.objects.filter(project=project)
+            return Response(serialize(list(release_thresholds), request.user), status=200)
+        else:
+            try:
+                environment = Environment.objects.get(
+                    name=environment_name, organization_id=project.organization_id
+                )
+            except Environment.DoesNotExist:
+                raise Http404
+            release_thresholds = ReleaseThreshold.objects.filter(
+                project=project, environment=environment
+            )
+        return Response(serialize(list(release_thresholds), request.user), status=200)
