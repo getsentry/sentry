@@ -183,6 +183,7 @@ class SlackLinkTeamView(BaseView):
             notification_type=NotificationSettingTypes.ISSUE_ALERTS,
             setting_option=NotificationSettingOptionValues.ALWAYS,
             actor=RpcActor(id=team.id, actor_type=ActorType.TEAM),
+            organization_id_for_team=team.organization_id,
         )
         message = SUCCESS_LINKED_MESSAGE.format(slug=team.slug, channel_name=channel_name)
         integration_service.send_message(
