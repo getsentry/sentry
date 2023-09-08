@@ -82,7 +82,7 @@ export const steps = (): LayoutProps['steps'] => [
 
 // Configuration End
 
-export function GettingStartedWithNextJs({dsn, ...props}: ModuleProps) {
+export function GettingStartedWithNextJs({...props}: ModuleProps) {
   return <Layout steps={steps()} {...props} />;
 }
 

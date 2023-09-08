@@ -77,7 +77,7 @@ export const steps = (): LayoutProps['steps'] => [
 
 // Configuration End
 
-export function GettingStartedWithSvelteKit({dsn, ...props}: ModuleProps) {
+export function GettingStartedWithSvelteKit({...props}: ModuleProps) {
   return <Layout steps={steps()} {...props} />;
 }
 
