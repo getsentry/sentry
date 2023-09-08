@@ -8,7 +8,7 @@ from django.db.models import Q, QuerySet
 from sentry.api.serializers.base import Serializer
 from sentry.api.serializers.models.notification_setting import NotificationSettingsSerializer
 from sentry.models import NotificationSetting, User
-from sentry.notifications.helpers import get_scope_type
+from sentry.notifications.helpers import get_scope_type, is_double_write_enabled
 from sentry.notifications.types import (
     NotificationScopeType,
     NotificationSettingOptionValues,
@@ -48,6 +48,8 @@ class DatabaseBackedNotificationsService(NotificationsService):
         actor: RpcActor,
         project_id: Optional[int] = None,
         organization_id: Optional[int] = None,
+        skip_provider_updates: bool = False,
+        organization_id_for_team: Optional[int] = None,
     ) -> None:
         NotificationSetting.objects.update_settings(
             provider=external_provider,
@@ -56,6 +58,8 @@ class DatabaseBackedNotificationsService(NotificationsService):
             project=project_id,
             organization=organization_id,
             actor=actor,
+            skip_provider_updates=skip_provider_updates,
+            organization_id_for_team=organization_id_for_team,
         )
 
     def bulk_update_settings(
@@ -74,7 +78,11 @@ class DatabaseBackedNotificationsService(NotificationsService):
                     actor=RpcActor(id=user_id, actor_type=ActorType.USER),
                     notification_type=notification_type,
                     setting_option=setting_option,
+                    skip_provider_updates=True,
                 )
+            # update the providers at the end
+            if is_double_write_enabled(user_id=user_id):
+                NotificationSetting.objects.update_provider_settings(user_id, None)
 
     def get_settings_for_users(
         self,

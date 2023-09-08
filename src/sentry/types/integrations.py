@@ -49,6 +49,13 @@ EXTERNAL_PROVIDERS = {
     ExternalProviders.CUSTOM: ExternalProviderEnum.CUSTOM.value,
 }
 
+# the list of providers allowed for personal notifications
+PERSONAL_NOTIFICATION_PROVIDERS = [
+    ExternalProviderEnum.EMAIL.value,
+    ExternalProviderEnum.SLACK.value,
+    ExternalProviderEnum.MSTEAMS.value,
+]
+
 
 def get_provider_name(value: int) -> Optional[str]:
     return EXTERNAL_PROVIDERS.get(ExternalProviders(value))

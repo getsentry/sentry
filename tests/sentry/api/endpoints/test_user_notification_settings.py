@@ -1,8 +1,11 @@
 from rest_framework import status
 
 from sentry.models import NotificationSetting
+from sentry.models.notificationsettingoption import NotificationSettingOption
+from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import control_silo_test
 from sentry.types.integrations import ExternalProviders
 
@@ -54,8 +57,6 @@ class UserNotificationSettingsGetTest(UserNotificationSettingsTestBase):
         assert response.data["workflow"]["user"][self.user.id]["slack"] == "subscribe_only"
 
     def test_notification_settings_empty(self):
-        _ = self.organization  # HACK to force creation.
-
         response = self.get_success_response("me")
 
         # Defaults are handled on the FE
@@ -100,7 +101,34 @@ class UserNotificationSettingsUpdateTest(UserNotificationSettingsTestBase):
     method = "put"
 
     def test_simple(self):
-        _ = self.project  # HACK to force creation.
+        assert (
+            NotificationSetting.objects.get_settings(
+                provider=ExternalProviders.SLACK,
+                type=NotificationSettingTypes.DEPLOY,
+                user_id=self.user.id,
+            )
+            == NotificationSettingOptionValues.DEFAULT
+        )
+
+        self.get_success_response(
+            "me",
+            deploy={"user": {"me": {"email": "always", "slack": "always"}}},
+            status_code=status.HTTP_204_NO_CONTENT,
+        )
+
+        assert (
+            NotificationSetting.objects.get_settings(
+                provider=ExternalProviders.SLACK,
+                type=NotificationSettingTypes.DEPLOY,
+                user_id=self.user.id,
+            )
+            == NotificationSettingOptionValues.ALWAYS
+        )
+
+    @with_feature("organizations:notifications-double-write")
+    def test_double_write(self):
+        org = self.create_organization()
+        self.create_member(user=self.user, organization=org)
 
         assert (
             NotificationSetting.objects.get_settings(
@@ -124,6 +152,32 @@ class UserNotificationSettingsUpdateTest(UserNotificationSettingsTestBase):
                 user_id=self.user.id,
             )
             == NotificationSettingOptionValues.ALWAYS
+        )
+
+        query_args = {
+            "user_id": self.user.id,
+            "team_id": None,
+            "value": "always",
+            "scope_type": "user",
+            "scope_identifier": self.user.id,
+            "type": "deploy",
+        }
+        assert NotificationSettingOption.objects.filter(**query_args).exists()
+        assert NotificationSettingProvider.objects.filter(**query_args, provider="email")
+        assert NotificationSettingProvider.objects.filter(**query_args, provider="slack")
+        assert not NotificationSettingProvider.objects.filter(**query_args, provider="msteams")
+
+        # now set email to default and slack to never
+        self.get_success_response(
+            "me",
+            deploy={"user": {"me": {"email": "default", "slack": "never"}}},
+            status_code=status.HTTP_204_NO_CONTENT,
+        )
+        # check the provider option for email is deleted and slack is never
+        del query_args["value"]
+        assert not NotificationSettingProvider.objects.filter(**query_args, provider="email")
+        assert NotificationSettingProvider.objects.filter(
+            **query_args, value="never", provider="slack"
         )
 
     def test_empty_payload(self):

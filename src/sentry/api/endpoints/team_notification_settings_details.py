@@ -73,6 +73,8 @@ class TeamNotificationSettingsDetailsEndpoint(TeamEndpoint):
         """
 
         notification_settings = validate(request.data)
-        NotificationSetting.objects.update_settings_bulk(notification_settings, team=team)
+        NotificationSetting.objects.update_settings_bulk(
+            notification_settings, team=team, organization_id_for_team=team.organization_id
+        )
 
         return Response(status=status.HTTP_204_NO_CONTENT)

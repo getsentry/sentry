@@ -14,10 +14,8 @@ from sentry.models import User
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.notifications.serializers import NotificationSettingsProviderSerializer
 from sentry.notifications.types import NotificationSettingsOptionEnum
-from sentry.notifications.validators import (
-    UserNotificationSettingsProvidersDetailsSerializer,
-    allowed_providers,
-)
+from sentry.notifications.validators import UserNotificationSettingsProvidersDetailsSerializer
+from sentry.types.integrations import PERSONAL_NOTIFICATION_PROVIDERS
 
 
 @control_silo_endpoint
@@ -67,7 +65,7 @@ class UserNotificationSettingsProvidersEndpoint(UserEndpoint):
         data = serializer.validated_data
         new_rows = []
         with transaction.atomic(router.db_for_write(NotificationSettingProvider)):
-            for provider in allowed_providers:
+            for provider in PERSONAL_NOTIFICATION_PROVIDERS:
                 value = (
                     NotificationSettingsOptionEnum.ALWAYS.value
                     if provider in data["providers"]

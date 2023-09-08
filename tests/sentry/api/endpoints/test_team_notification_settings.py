@@ -26,6 +26,7 @@ class TeamNotificationSettingsGetTest(TeamNotificationSettingsTestBase):
             NotificationSettingOptionValues.ALWAYS,
             team_id=self.team.id,
             project=self.project,
+            organization_id_for_team=self.organization.id,
         )
         NotificationSetting.objects.update_settings(
             ExternalProviders.EMAIL,
@@ -33,6 +34,7 @@ class TeamNotificationSettingsGetTest(TeamNotificationSettingsTestBase):
             NotificationSettingOptionValues.NEVER,
             team_id=self.team.id,
             organization=self.organization,
+            organization_id_for_team=self.organization.id,
         )
         NotificationSetting.objects.update_settings(
             ExternalProviders.SLACK,
@@ -40,6 +42,7 @@ class TeamNotificationSettingsGetTest(TeamNotificationSettingsTestBase):
             NotificationSettingOptionValues.DEFAULT,
             team_id=self.team.id,
             project=self.project,
+            organization_id_for_team=self.organization.id,
         )
 
         response = self.get_success_response(
@@ -57,12 +60,14 @@ class TeamNotificationSettingsGetTest(TeamNotificationSettingsTestBase):
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.ALWAYS,
             team_id=self.team.id,
+            organization_id_for_team=self.organization.id,
         )
         NotificationSetting.objects.update_settings(
             ExternalProviders.SLACK,
             NotificationSettingTypes.WORKFLOW,
             NotificationSettingOptionValues.ALWAYS,
             team_id=self.team.id,
+            organization_id_for_team=self.organization.id,
         )
         response = self.get_success_response(
             self.organization.slug,

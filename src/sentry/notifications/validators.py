@@ -8,13 +8,7 @@ from sentry.api.validators.notifications import (
     validate_value_v2,
 )
 from sentry.notifications.types import NOTIFICATION_SETTING_V2_CHOICES, NotificationScopeEnum
-from sentry.types.integrations import ExternalProviderEnum
-
-allowed_providers = [
-    ExternalProviderEnum.EMAIL.value,
-    ExternalProviderEnum.SLACK.value,
-    ExternalProviderEnum.MSTEAMS.value,
-]
+from sentry.types.integrations import PERSONAL_NOTIFICATION_PROVIDERS
 
 
 class UserNotificationSettingsOptionsDetailsSerializer(CamelSnakeSerializer):
@@ -63,7 +57,7 @@ class UserNotificationSettingsProvidersDetailsSerializer(
 
     def validate_providers(self, value):
         for provider in value:
-            if provider not in allowed_providers:
+            if provider not in PERSONAL_NOTIFICATION_PROVIDERS:
                 raise serializers.ValidationError("Invalid provider")
         return value
 

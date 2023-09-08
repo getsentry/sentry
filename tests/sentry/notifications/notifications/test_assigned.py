@@ -78,6 +78,7 @@ class AssignedNotificationAPITest(APITestCase):
             NotificationSettingTypes.WORKFLOW,
             NotificationSettingOptionValues.ALWAYS,
             team_id=self.team.id,
+            organization_id_for_team=self.organization.id,
         )
 
         url = f"/api/0/issues/{self.group.id}/"
