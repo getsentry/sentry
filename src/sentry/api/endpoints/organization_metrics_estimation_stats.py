@@ -38,6 +38,9 @@ class OrganizationMetricsEstimationStatsEndpoint(OrganizationEventsV2EndpointBas
 
         measurement = request.GET.get("yAxis")
 
+        if measurement is None:
+            return Response({"detail": "missing required parameter yAxis"}, status=400)
+
         with sentry_sdk.start_span(
             op="discover.metrics.endpoint", description="get_full_metrics"
         ) as span:
