@@ -27,7 +27,6 @@ def load_fixture(name):
         return f.read()
 
 
-@pytest.mark.django_db(transaction=True)
 @django_db_all(transaction=True)
 class TestExample(RelayStoreHelper):
     @pytest.fixture(autouse=True)
