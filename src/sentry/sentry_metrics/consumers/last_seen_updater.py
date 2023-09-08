@@ -123,8 +123,12 @@ class LastSeenUpdaterStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
     def __should_accept(self, message: Message[KafkaPayload]) -> bool:
         should_accept = not self.__prefilter.should_drop(message)
 
-        parsed_message = json.loads(message.payload.value.decode("utf-8"), use_rapid_json=True)
-        org_id = parsed_message["org_id"]
+        try:
+            parsed_message = json.loads(message.payload.value.decode("utf-8"), use_rapid_json=True)
+            org_id = parsed_message["org_id"]
+        except rapidjson.JSONDecodeError:
+            logger.error("last_seen_updater.invalid_json", exc_info=True)
+            return False
 
         if not should_accept:
             if org_id in settings.LAST_SEEN_UPDATER_REINDEXED_ORGS:
