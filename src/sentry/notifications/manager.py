@@ -482,8 +482,8 @@ class NotificationsManager(BaseManager["NotificationSetting"]):  # noqa: F821
             ],
         )
         # Initialize a dictionary to store the new NotificationSettingProvider values
-        enabled_providers_by_type: Mapping[str, Set[ExternalProviders]] = defaultdict(set)
-        disabled_providers_by_type = defaultdict(set)
+        enabled_providers_by_type: Mapping[str, Set[str]] = defaultdict(set)
+        disabled_providers_by_type: Mapping[str, Set[str]] = defaultdict(set)
 
         # Iterate through all the stored NotificationSetting rows
         for setting in notification_settings:
