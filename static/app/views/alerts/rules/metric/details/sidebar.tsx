@@ -258,12 +258,15 @@ function FilterKeyValueTableRow({
       keyName={
         <KeyWrapper>
           {isOnDemandSearchKey(keyName) && (
-            <OnDemandWarningIcon
-              msg={t(
-                'We don’t routinely collect metrics from this property. As such, historical data may be limited.'
-              )}
-            />
+            <span>
+              <OnDemandWarningIcon
+                msg={t(
+                  'We don’t routinely collect metrics from this property. As such, historical data may be limited.'
+                )}
+              />
+            </span>
           )}
+
           {keyName}
         </KeyWrapper>
       }
