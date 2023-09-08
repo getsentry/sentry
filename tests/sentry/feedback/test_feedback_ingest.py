@@ -1,4 +1,5 @@
 from django.urls import reverse
+from rest_framework.exceptions import ErrorDetail
 
 from sentry.feedback.models import Feedback
 from sentry.testutils.cases import MonitorIngestTestCase
@@ -31,67 +32,6 @@ test_data = {
             "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36"
         },
     },
-}
-
-test_data_missing_optional_fields = {
-    "timestamp": 1694039635.9195,
-    "message": "This website is great!",
-    "transaction": "/replays/",
-    "type": "transaction",
-    "transaction_info": {"source": "route"},
-    "platform": "javascript",
-    "event_id": "b51647a3c56f4a939984bb1147a6c3e5",
-    "request": {
-        "url": "https://sentry.sentry.io/replays/?project=11276&statsPeriod=7d",
-        "headers": {
-            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36"
-        },
-    },
-}
-
-wrong_test_data = {
-    "contexts33": {},
-    "tags!": {
-        "sentry_version": "23.9.0.dev0",
-    },
-    "platform_bad": "javascript",
-    "event_id": "b51647a3c56f4a939984bb1147a6c3e5",
-}
-
-missing_event_id_test_data = {
-    "contexts": {},
-    "tags": {
-        "sentry_version": "23.9.0.dev0",
-    },
-    "timestamp": 1694039635.9195,
-    "message": "This website is great!",
-    "transaction": "/replays/",
-    "type": "transaction",
-    "transaction_info": {"source": "route"},
-    "platform": "javascript",
-    "environment": "prod",
-    "release": "frontend@40f88cd929122ac73749cc48f0ddb9aa223449ff",
-    "sdk": {"name": "sentry.javascript.react", "version": "7.66.0-alpha.0"},
-    "user": {
-        "ip_address": "72.164.175.154",
-        "email": "josh.ferge@sentry.io",
-        "id": 880461,
-        "isStaff": False,
-        "name": "Josh Ferge",
-    },
-    "request": {
-        "url": "https://sentry.sentry.io/replays/?project=11276&statsPeriod=7d",
-        "headers": {
-            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36"
-        },
-    },
-}
-
-wrong_type_test_data = {
-    "timestamp": "1694039635.9195",
-    "message": 24,
-    "event_id": "b51647a3c56f4a939984bb1147a6c3e5",
-    "transaction": {},
 }
 
 
@@ -142,26 +82,81 @@ class FeedbackIngestTest(MonitorIngestTestCase):
 
     def test_wrong_input(self):
         # Wrong inputs should lead to failed validation
+        wrong_test_data = {
+            "contexts33": {},
+            "tags!": {
+                "sentry_version": "23.9.0.dev0",
+            },
+            "platform_bad": "javascript",
+            "event_id": "b51647a3c56f4a939984bb1147a6c3e5",
+        }
+
         with self.feature({"organizations:user-feedback-ingest": True}):
             path = reverse(self.endpoint)
             response = self.client.post(path, data=wrong_test_data, **self.dsn_auth_headers)
             assert response.status_code == 400
+            assert response.data == {
+                "non_field_errors": [
+                    ErrorDetail(string="Input has wrong field name or type", code="invalid")
+                ]
+            }
 
     def test_no_event_id(self):
         # Event ID is required for a successful post
+        missing_event_id_test_data = {
+            "contexts": {},
+            "tags": {
+                "sentry_version": "23.9.0.dev0",
+            },
+            "timestamp": 1694039635.9195,
+            "message": "This website is great!",
+            "transaction": "/replays/",
+            "type": "transaction",
+            "transaction_info": {"source": "route"},
+            "platform": "javascript",
+            "environment": "prod",
+            "release": "frontend@40f88cd929122ac73749cc48f0ddb9aa223449ff",
+            "sdk": {"name": "sentry.javascript.react", "version": "7.66.0-alpha.0"},
+            "user": {
+                "ip_address": "72.164.175.154",
+                "email": "josh.ferge@sentry.io",
+                "id": 880461,
+                "isStaff": False,
+                "name": "Josh Ferge",
+            },
+            "request": {
+                "url": "https://sentry.sentry.io/replays/?project=11276&statsPeriod=7d",
+                "headers": {
+                    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36"
+                },
+            },
+        }
+
         with self.feature({"organizations:user-feedback-ingest": True}):
             path = reverse(self.endpoint)
             response = self.client.post(
                 path, data=missing_event_id_test_data, **self.dsn_auth_headers
             )
             assert response.status_code == 400
+            assert response.data == {
+                "event_id": [ErrorDetail(string="This field is required.", code="required")]
+            }
 
     def test_wrong_type(self):
         # Fields should be correct type
+        wrong_type_test_data = {
+            "message": 24,
+            "event_id": "b51647a3c56f4a939984bb1147a6c3e5",
+            "transaction": {},
+        }
+
         with self.feature({"organizations:user-feedback-ingest": True}):
             path = reverse(self.endpoint)
             response = self.client.post(path, data=wrong_type_test_data, **self.dsn_auth_headers)
             assert response.status_code == 400
+            assert response.data == {
+                "transaction": [ErrorDetail(string="Not a valid string.", code="invalid")]
+            }
 
     def test_bad_slug_path(self):
         # Bad slug in path should lead to unsuccessful save
@@ -172,6 +167,22 @@ class FeedbackIngestTest(MonitorIngestTestCase):
 
     def test_missing_optional_fields(self):
         # Optional fields missing should still result in successful save
+        test_data_missing_optional_fields = {
+            "timestamp": 1694039635.9195,
+            "message": "This website is great!",
+            "transaction": "/replays/",
+            "type": "transaction",
+            "transaction_info": {"source": "route"},
+            "platform": "javascript",
+            "event_id": "b51647a3c56f4a939984bb1147a6c3e5",
+            "request": {
+                "url": "https://sentry.sentry.io/replays/?project=11276&statsPeriod=7d",
+                "headers": {
+                    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36"
+                },
+            },
+        }
+
         with self.feature({"organizations:user-feedback-ingest": True}):
             path = reverse(self.endpoint)
             response = self.client.post(
