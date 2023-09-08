@@ -188,6 +188,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         assert msg.subject == "[Sentry] BAR-1 - Hello world"
         assert isinstance(msg.alternatives[0][0], str)
         assert "my rule" in msg.alternatives[0][0]
+        assert "notification_uuid" in msg.body
 
     def test_simple_snooze(self):
         """Test that notification for alert snoozed by user is not send to that user."""
@@ -384,6 +385,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             assert (
                 checked_value in msg.alternatives[0][0]
             ), f"{checked_value} not present in message"
+        assert "notification_uuid" in msg.body
 
     @mock.patch("sentry.interfaces.stacktrace.Stacktrace.get_title")
     @mock.patch("sentry.interfaces.stacktrace.Stacktrace.to_email_html")
@@ -689,6 +691,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             f"/settings/{organization.slug}/integrations/slack/?referrer=alert_email"
             in msg.alternatives[0][0]
         )
+        assert "notification_uuid" in msg.body
 
     def test_slack_link_with_integration(self):
         project = self.project
@@ -712,6 +715,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             f"/settings/{organization.slug}/integrations/slack/?referrer=alert_email"
             not in msg.alternatives[0][0]
         )
+        assert "notification_uuid" in msg.body
 
     def test_slack_link_with_plugin(self):
         project = self.project
@@ -1527,6 +1531,19 @@ class MailAdapterRuleNotifyTest(BaseMailAdapterTest):
         self.adapter.rule_notify(event, futures, ActionTargetType.ISSUE_OWNERS)
         assert digests.add.call_count == 1
 
+    def test_notify_includes_uuid(self):
+        event = self.store_event(data={}, project_id=self.project.id)
+        rule = Rule.objects.create(project=self.project, label="my rule")
+        futures = [RuleFuture(rule, {})]
+        notification_uuid = str(uuid.uuid4())
+        with mock.patch.object(self.adapter, "notify") as notify:
+            self.adapter.rule_notify(
+                event, futures, ActionTargetType.ISSUE_OWNERS, notification_uuid=notification_uuid
+            )
+            notify.assert_called_once_with(
+                mock.ANY, ActionTargetType.ISSUE_OWNERS, None, None, notification_uuid
+            )
+
 
 class MailAdapterNotifyAboutActivityTest(BaseMailAdapterTest):
     def test_assignment(self):
@@ -1553,6 +1570,7 @@ class MailAdapterNotifyAboutActivityTest(BaseMailAdapterTest):
 
         assert msg.subject == "Re: [Sentry] BAR-1 - こんにちは"
         assert msg.to == [self.user.email]
+        assert "notification_uuid" in msg.body
 
     def test_assignment_team(self):
         NotificationSetting.objects.update_settings(
@@ -1579,6 +1597,7 @@ class MailAdapterNotifyAboutActivityTest(BaseMailAdapterTest):
 
         assert msg.subject == "Re: [Sentry] BAR-1 - こんにちは"
         assert msg.to == [self.user.email]
+        assert "notification_uuid" in msg.body
 
     def test_note(self):
         user_foo = self.create_user("foo@example.com")
@@ -1608,6 +1627,7 @@ class MailAdapterNotifyAboutActivityTest(BaseMailAdapterTest):
 
         assert msg.subject == "Re: [Sentry] BAR-1 - こんにちは"
         assert msg.to == [self.user.email]
+        assert "notification_uuid" in msg.body
 
 
 class MailAdapterHandleSignalTest(BaseMailAdapterTest):
@@ -1651,6 +1671,7 @@ class MailAdapterHandleSignalTest(BaseMailAdapterTest):
             == f"[Sentry] {self.group.qualified_short_id} - New Feedback from Homer Simpson"
         )
         assert msg.to == [self.user.email]
+        assert "notification_uuid" in msg.body
 
     def test_user_feedback__enhanced_privacy(self):
         self.organization.update(flags=F("flags").bitor(Organization.flags.enhanced_privacy))
@@ -1684,3 +1705,4 @@ class MailAdapterHandleSignalTest(BaseMailAdapterTest):
             == f"[Sentry] {self.group.qualified_short_id} - New Feedback from Homer Simpson"
         )
         assert msg.to == [self.user.email]
+        assert "notification_uuid" in msg.body

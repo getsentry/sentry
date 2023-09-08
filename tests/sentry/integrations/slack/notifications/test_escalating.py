@@ -62,8 +62,8 @@ class SlackRegressionNotificationTest(SlackActivityNotificationTest, Performance
         assert text == "Issue marked as escalating"
         assert attachment["title"] == "N+1 Query"
         assert (
-            attachment["title_link"]
-            == f"http://testserver/organizations/{self.organization.slug}/issues/{event.group.id}/?referrer=escalating_activity-slack"
+            f"http://testserver/organizations/{self.organization.slug}/issues/{event.group.id}/?referrer=escalating_activity-slack&notification_uuid="
+            in attachment["title_link"]
         )
         assert (
             attachment["text"]
@@ -97,8 +97,8 @@ class SlackRegressionNotificationTest(SlackActivityNotificationTest, Performance
         assert text == "Issue marked as escalating"
         assert attachment["title"] == TEST_ISSUE_OCCURRENCE.issue_title
         assert (
-            attachment["title_link"]
-            == f"http://testserver/organizations/{self.organization.slug}/issues/{group_event.group.id}/?referrer=escalating_activity-slack"
+            f"http://testserver/organizations/{self.organization.slug}/issues/{group_event.group.id}/?referrer=escalating_activity-slack&notification_uuid="
+            in attachment["title_link"]
         )
         assert (
             attachment["text"]

@@ -39,8 +39,8 @@ class MSTeamsRegressionNotificationTest(MSTeamsActivityNotificationTest):
 
         assert "Issue marked as regression" == body[0]["text"]
         assert (
-            f"[{self.group.title}](http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=regression\\_activity-msteams)"
-            == body[1]["text"]
+            f"[{self.group.title}](http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=regression\\_activity-msteams&amp;notification\\_uuid="
+            in body[1]["text"]
         )
         assert (
             f"{self.project.slug} | [Notification Settings](http://testserver/settings/account/notifications/workflow/?referrer=regression\\_activity-msteams-user)"

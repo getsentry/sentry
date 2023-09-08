@@ -54,17 +54,20 @@ class UserReportNotification(ProjectNotification):
 
     def get_context(self) -> MutableMapping[str, Any]:
         organization = self.organization
+        link_query = f"project={self.project.id}"
+        if hasattr(self, "notification_uuid"):
+            link_query += f"&amp;notification_uuid={self.notification_uuid}"
         return {
             "enhanced_privacy": organization.flags.enhanced_privacy,
             "group": self.group,
             "issue_link": organization.absolute_url(
                 f"/organizations/{organization.slug}/issues/{self.group.id}/",
-                query=f"project={self.project.id}",
+                query=link_query,
             ),
             # TODO(dcramer): we don't have permalinks to feedback yet
             "link": organization.absolute_url(
                 f"/organizations/{organization.slug}/issues/{self.group.id}/feedback/",
-                query=f"project={self.project.id}",
+                query=link_query,
             ),
             "project": self.project,
             "project_link": organization.absolute_url(

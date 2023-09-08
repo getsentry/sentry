@@ -1,3 +1,4 @@
+import uuid
 from unittest.mock import MagicMock, Mock, patch
 
 from sentry.models import Rule
@@ -36,8 +37,12 @@ class MSTeamsIssueAlertNotificationTest(MSTeamsActivityNotificationTest):
             },
         )
 
+        notification_uuid = str(uuid.uuid4())
         notification = AlertRuleNotification(
-            Notification(event=event, rule=rule), ActionTargetType.MEMBER, self.user.id
+            Notification(event=event, rule=rule),
+            ActionTargetType.MEMBER,
+            self.user.id,
+            notification_uuid=notification_uuid,
         )
 
         with self.tasks():
@@ -57,7 +62,7 @@ class MSTeamsIssueAlertNotificationTest(MSTeamsActivityNotificationTest):
             == body[0]["text"]
         )
         assert (
-            f"[{event.title}](http://testserver/organizations/{self.organization.slug}/issues/{event.group_id}/?referrer=issue\\_alert-msteams)"
+            f"[{event.title}](http://testserver/organizations/{self.organization.slug}/issues/{event.group_id}/?referrer=issue\\_alert-msteams&amp;notification\\_uuid={notification_uuid})"
             == body[1]["text"]
         )
         assert (
@@ -84,8 +89,12 @@ class MSTeamsIssueAlertNotificationTest(MSTeamsActivityNotificationTest):
         )
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
 
+        notification_uuid = str(uuid.uuid4())
         notification = AlertRuleNotification(
-            Notification(event=event, rule=rule), ActionTargetType.ISSUE_OWNERS, self.user.id
+            Notification(event=event, rule=rule),
+            ActionTargetType.ISSUE_OWNERS,
+            self.user.id,
+            notification_uuid=notification_uuid,
         )
 
         with self.tasks():
@@ -105,7 +114,7 @@ class MSTeamsIssueAlertNotificationTest(MSTeamsActivityNotificationTest):
             == body[0]["text"]
         )
         assert (
-            f"[{event.title}](http://testserver/organizations/{self.organization.slug}/issues/{event.group_id}/?referrer=issue\\_alert-msteams)"
+            f"[{event.title}](http://testserver/organizations/{self.organization.slug}/issues/{event.group_id}/?referrer=issue\\_alert-msteams&amp;notification\\_uuid={notification_uuid})"
             == body[1]["text"]
         )
         assert (

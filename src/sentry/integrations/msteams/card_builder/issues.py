@@ -70,10 +70,12 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
             }
         }
 
-    def build_group_title(self) -> TextBlock:
+    def build_group_title(self, notification_uuid: str | None = None) -> TextBlock:
         text = build_attachment_title(self.group)
-
-        link = self.group.get_absolute_url(params={"referrer": "msteams"})
+        params = {"referrer": "msteams"}
+        if notification_uuid:
+            params.update({"notification_uuid": notification_uuid})
+        link = self.group.get_absolute_url(params=params)
 
         title_text = f"[{text}]({link})"
         return create_text_block(
@@ -267,9 +269,7 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
 
         return None
 
-    def build_group_card(
-        self,
-    ) -> AdaptiveCard:
+    def build_group_card(self, notification_uuid: str | None = None) -> AdaptiveCard:
         """
         The issue (group) card has the following components stacked vertically,
         1. The issue title which links to the issue.
@@ -291,6 +291,6 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
         ]
 
         return super().build(
-            title=self.build_group_title(),
+            title=self.build_group_title(notification_uuid=notification_uuid),
             fields=fields,
         )
