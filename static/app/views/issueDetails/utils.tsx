@@ -31,19 +31,16 @@ export function markEventSeen(
 }
 
 export function fetchGroupUserReports(
-  organizationSlug: string,
+  orgSlug: string,
   groupId: string,
   query: Record<string, string>
 ) {
   const api = new Client();
 
-  return api.requestPromise(
-    `/organizations/${organizationSlug}/issues/${groupId}/user-reports/`,
-    {
-      includeAllArgs: true,
-      query,
-    }
-  );
+  return api.requestPromise(`/organizations/${orgSlug}/issues/${groupId}/user-reports/`, {
+    includeAllArgs: true,
+    query,
+  });
 }
 
 export function useDefaultIssueEvent() {
@@ -155,11 +152,11 @@ export function getGroupReprocessingStatus(
 export const useFetchIssueTagsForDetailsPage = (
   {
     groupId,
-    organizationSlug,
+    orgSlug,
     environment = [],
   }: {
     environment: string[];
-    organizationSlug: string;
+    orgSlug: string;
     groupId?: string;
   },
   {enabled = true}: {enabled?: boolean} = {}
@@ -167,7 +164,7 @@ export const useFetchIssueTagsForDetailsPage = (
   return useFetchIssueTags(
     {
       groupId,
-      organizationSlug,
+      orgSlug,
       environment,
       readable: true,
       limit: 4,
