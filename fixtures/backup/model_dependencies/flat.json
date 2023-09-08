@@ -1,4 +1,5 @@
 {
+  "feedback.Feedback": [],
   "nodestore.Node": [],
   "replays.ReplayRecordingSegment": [],
   "sentry.Activity": [
@@ -332,7 +333,6 @@
   "sentry.GroupSubscription": [
     "sentry.Group",
     "sentry.Project",
-    "sentry.Team",
     "sentry.User"
   ],
   "sentry.GroupTombstone": [
