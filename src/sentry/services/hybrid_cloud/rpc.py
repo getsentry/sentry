@@ -608,13 +608,12 @@ class _RemoteSiloCall:
             )
 
             if response.status_code == 200:
-                response_json = response.json()
                 metrics.gauge(
                     "hybrid_cloud.dispatch_rpc.response_size",
-                    len(response_json),
+                    len(response.content),
                     tags=self._metrics_tags(),
                 )
-                return response_json
+                return response.json()
             self._raise_from_response_status_error(response)
 
     @contextmanager
