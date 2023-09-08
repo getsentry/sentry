@@ -11,6 +11,8 @@ from sentry.backup.comparators import (
     HashObfuscatingComparator,
     IgnoredComparator,
     ScrubbedData,
+    SecretHexComparator,
+    UUID4Comparator,
 )
 from sentry.backup.dependencies import PrimaryKeyMap, dependencies
 from sentry.backup.findings import ComparatorFindingKind, InstanceID
@@ -914,3 +916,206 @@ def test_good_ignored_comparator_scrubbed():
     assert right["scrubbed"]
     assert right["scrubbed"]["IgnoredComparator::ignored_field"] is ScrubbedData()
     assert right["scrubbed"].get("IgnoredComparator::other_field") is None
+
+
+def test_good_secret_hex_comparator():
+    cmp = SecretHexComparator(8, "equal", "unequal")
+    id = InstanceID("test", 0)
+    left: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "equal": "3e04f551c7219550",
+            "unequal": "3e04f551c7219550",
+        },
+    }
+    right: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "equal": "3e04f551c7219550",
+            "unequal": "50a7e2c7e3ca35fc",
+        },
+    }
+    assert not cmp.compare(id, left, right)
+
+
+def test_bad_secret_hex_comparator():
+    cmp = SecretHexComparator(8, "same", "invalid_left", "invalid_right")
+    id = InstanceID("test", 0)
+    left: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "same": "3e04f551c7219550",
+            "invalid_left": "foo",
+            "invalid_right": "50a7e2c7e3ca35fc",
+        },
+    }
+    right: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "same": "3e04f551c7219550",
+            "invalid_left": "50a7e2c7e3ca35fc",
+            "invalid_right": "bar",
+        },
+    }
+    res = cmp.compare(id, left, right)
+    assert res
+    assert len(res) == 2
+
+    assert res[0]
+    assert res[0].kind == ComparatorFindingKind.SecretHexComparator
+    assert res[0].on == id
+    assert res[0].left_pk == 1
+    assert res[0].right_pk == 1
+    assert "`invalid_left`" in res[0].reason
+    assert "left" in res[0].reason
+    assert "regex" in res[0].reason
+    assert "foo" in res[0].reason
+
+    assert res[1]
+    assert res[1].kind == ComparatorFindingKind.SecretHexComparator
+    assert res[1].on == id
+    assert res[1].left_pk == 1
+    assert res[1].right_pk == 1
+    assert "`invalid_right`" in res[1].reason
+    assert "right" in res[1].reason
+    assert "regex" in res[1].reason
+    assert "bar" in res[1].reason
+
+
+def test_good_secret_hex_comparator_scrubbed():
+    cmp = SecretHexComparator(8, "secret_hex_field")
+    left: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "secret_hex_field": "3e04f551c7219550",
+        },
+    }
+    right: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "secret_hex_field": "3e04f551c7219550",
+        },
+    }
+    cmp.scrub(left, right)
+    assert left["scrubbed"]
+    assert left["scrubbed"]["SecretHexComparator::secret_hex_field"] is ScrubbedData()
+
+    assert right["scrubbed"]
+    assert right["scrubbed"]["SecretHexComparator::secret_hex_field"] is ScrubbedData()
+
+
+def test_good_uuid4_comparator():
+    cmp = UUID4Comparator("guid_field")
+    id = InstanceID("test", 0)
+    left: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "guid_field": "4c79eea3-8a71-4b99-b291-1f6a906fbb47",
+        },
+    }
+    right: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "guid_field": "bb41a040-b413-4b89-aa03-179470d9ee05",
+        },
+    }
+    assert not cmp.compare(id, left, right)
+
+
+def test_bad_uuid4_comparator():
+    cmp = UUID4Comparator("same", "invalid_left", "invalid_right")
+    id = InstanceID("test", 0)
+    left: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "same": "4c79eea3-8a71-4b99-b291-1f6a906fbb47",
+            "invalid_left": "foo",
+            "invalid_right": "bb41a040-b413-4b89-aa03-179470d9ee05",
+        },
+    }
+    right: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "same": "4c79eea3-8a71-4b99-b291-1f6a906fbb47",
+            "invalid_left": "bb41a040-b413-4b89-aa03-179470d9ee05",
+            "invalid_right": "bar",
+        },
+    }
+    res = cmp.compare(id, left, right)
+    assert res
+    assert len(res) == 3
+
+    assert res[0]
+    assert res[0].kind == ComparatorFindingKind.UUID4Comparator
+    assert res[0].on == id
+    assert res[0].left_pk == 1
+    assert res[0].right_pk == 1
+    assert "`same`" in res[0].reason
+    assert "equal" in res[0].reason
+    assert "4c79eea3-8a71-4b99-b291-1f6a906fbb47" in res[0].reason
+
+    assert res[1]
+    assert res[1].kind == ComparatorFindingKind.UUID4Comparator
+    assert res[1].on == id
+    assert res[1].left_pk == 1
+    assert res[1].right_pk == 1
+    assert "`invalid_left`" in res[1].reason
+    assert "left" in res[1].reason
+    assert "regex" in res[1].reason
+    assert "foo" in res[1].reason
+
+    assert res[2]
+    assert res[2].kind == ComparatorFindingKind.UUID4Comparator
+    assert res[2].on == id
+    assert res[2].left_pk == 1
+    assert res[2].right_pk == 1
+    assert "`invalid_right`" in res[2].reason
+    assert "right" in res[2].reason
+    assert "regex" in res[2].reason
+    assert "bar" in res[2].reason
+
+
+def test_good_uuid4_comparator_scrubbed():
+    cmp = UUID4Comparator("guid_field")
+    left: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "guid_field": "4c79eea3-8a71-4b99-b291-1f6a906fbb47",
+        },
+    }
+    right: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "guid_field": "4c79eea3-8a71-4b99-b291-1f6a906fbb47",
+        },
+    }
+    cmp.scrub(left, right)
+    assert left["scrubbed"]
+    assert left["scrubbed"]["UUID4Comparator::guid_field"] is ScrubbedData()
+
+    assert right["scrubbed"]
+    assert right["scrubbed"]["UUID4Comparator::guid_field"] is ScrubbedData()
