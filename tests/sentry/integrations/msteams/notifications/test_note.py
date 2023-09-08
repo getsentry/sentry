@@ -39,8 +39,8 @@ class MSTeamsNoteNotificationTest(MSTeamsActivityNotificationTest):
 
         assert f"New comment by {self.user.get_display_name()}" == body[0]["text"]
         assert (
-            f"[{self.group.title}](http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=note\\_activity-msteams)"
-            == body[1]["text"]
+            f"[{self.group.title}](http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=note\\_activity-msteams&amp;notification\\_uuid="
+            in body[1]["text"]
         )
         assert notification.activity.data["text"] == body[2]["text"]
         assert (

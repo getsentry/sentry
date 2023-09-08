@@ -53,7 +53,7 @@ class DiscordNotifyServiceAction(IntegrationEventAction):
 
             client = DiscordClient(integration_id=integration.id)
             try:
-                client.send_message(channel_id, message)
+                client.send_message(channel_id, message, notification_uuid=notification_uuid)
             except ApiError as e:
                 self.logger.error(
                     "rule.fail.discord_post",

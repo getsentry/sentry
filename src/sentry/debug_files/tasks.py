@@ -13,3 +13,13 @@ def backfill_artifact_index_updates():
     hit_batch_size = do_backfill()
     if hit_batch_size:
         backfill_artifact_index_updates.delay()
+
+
+@instrumented_task(
+    name="sentry.debug_files.tasks.refresh_artifact_bundles_in_use",
+    queue="assemble",
+)
+def refresh_artifact_bundles_in_use():
+    from .artifact_bundles import refresh_artifact_bundles_in_use as do_refresh
+
+    do_refresh()
