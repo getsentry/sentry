@@ -114,6 +114,7 @@ BACKEND = [
     "python-pyramid",
     "python-tornado",
     "python-rq",
+    "python-pymongo",
     "ruby",
     "ruby-rails",
     "ruby-rack",
@@ -253,6 +254,7 @@ RELEASE_HEALTH = [
     "python-pyramid",
     "python-tornado",
     "python-rq",
+    "python-pymongo",
     "rust",
     # serverless
     # desktop
