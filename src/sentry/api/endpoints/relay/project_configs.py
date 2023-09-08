@@ -59,7 +59,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
         version = request.GET.get("version") or "1"
         set_tag("relay_protocol_version", version)
 
-        if version in ["3"] and request.relay_request_data.get("global"):
+        if version == "3" and request.relay_request_data.get("global"):
             response["global"] = get_global_config()
 
         if self._should_post_or_schedule(version, request):
