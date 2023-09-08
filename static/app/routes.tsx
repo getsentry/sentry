@@ -1775,6 +1775,38 @@ function buildRoutes() {
     </Fragment>
   );
 
+  const feedbackChildRoutes = (
+    <Fragment>
+      <IndexRoute component={make(() => import('sentry/views/feedback/list'))} />
+      <Route
+        path=":feedbackId/"
+        component={make(() => import('sentry/views/feedback/details'))}
+      />
+    </Fragment>
+  );
+  const feedbackv2Routes = (
+    <Fragment>
+      {usingCustomerDomain && (
+        <Route
+          path="/feedback/"
+          component={withDomainRequired(
+            make(() => import('sentry/views/feedback/index'))
+          )}
+          key="orgless-feedback-list-route"
+        >
+          {feedbackChildRoutes}
+        </Route>
+      )}
+      <Route
+        path="/organizations/:orgId/feedback/"
+        component={withDomainRedirect(make(() => import('sentry/views/feedback/index')))}
+        key="org-feedback-list-route"
+      >
+        {feedbackChildRoutes}
+      </Route>
+    </Fragment>
+  );
+
   const issueListRoutes = (
     <Fragment>
       {usingCustomerDomain && (
@@ -2162,6 +2194,7 @@ function buildRoutes() {
       {projectsRoutes}
       {dashboardRoutes}
       {userFeedbackRoutes}
+      {feedbackv2Routes}
       {issueListRoutes}
       {issueDetailsRoutes}
       {alertRoutes}
