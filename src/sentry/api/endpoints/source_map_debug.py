@@ -1,3 +1,5 @@
+import ipdb
+
 from typing import List, Union
 
 from drf_spectacular.utils import extend_schema
@@ -19,6 +21,7 @@ from sentry.models.artifactbundle import (
     ArtifactBundle,
     DebugIdArtifactBundle,
     ReleaseArtifactBundle,
+    SourceFileType,
 )
 from sentry.models.project import Project
 from sentry.models.release import Release
@@ -111,12 +114,26 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
             artifact_bundle__projectartifactbundle__project_id=project.id,
         ).exists()
 
+        debug_ids = get_debug_ids_from_event_data(event_data)
+        debug_id_artifact_bundles = DebugIdArtifactBundle.objects.filter(
+            artifact_bundle__projectartifactbundle__project_id=project.id,
+            debug_id__in=debug_ids,
+        )
+        debug_ids_with_uploaded_source_file = set()
+        debug_ids_with_uploaded_source_map = set()
+
+        for debug_id_artifact_bundle in debug_id_artifact_bundles:
+            if SourceFileType(debug_id_artifact_bundle.source_file_type) == SourceFileType.SOURCE or SourceFileType(debug_id_artifact_bundle.source_file_type) == SourceFileType.MINIFIED_SOURCE:
+                debug_ids_with_uploaded_source_file.add(str(debug_id_artifact_bundle.debug_id))
+            elif SourceFileType(debug_id_artifact_bundle.source_file_type) == SourceFileType.SOURCE_MAP:
+                debug_ids_with_uploaded_source_map.add(str(debug_id_artifact_bundle.debug_id))
+
         return Response(
             {
                 "dist": event.dist,
                 "release": event.release,
                 "exceptions": [
-                    get_data_from_exception_value(exception_value, event_data)
+                    get_data_from_exception_value(exception_value, event_data, debug_ids_with_uploaded_source_file, debug_ids_with_uploaded_source_map)
                     for exception_value in exception_values
                 ]
                 if exception_values is not None
@@ -132,24 +149,29 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
         )
 
 
-def get_data_from_exception_value(exception, event_data):
+def get_data_from_exception_value(exception, event_data, debug_ids_with_uploaded_source_file, debug_ids_with_uploaded_source_map):
     frames = get_path(exception, "raw_stacktrace", "frames")
     return {
-        "frames": [get_data_from_stack_frame(frame, event_data) for frame in frames]
+        "frames": [get_data_from_stack_frame(frame, event_data, debug_ids_with_uploaded_source_file, debug_ids_with_uploaded_source_map) for frame in frames]
         if frames is not None
         else [],
     }
 
 
-def get_data_from_stack_frame(frame, event_data):
+def get_data_from_stack_frame(frame, event_data, debug_ids_with_uploaded_source_file, debug_ids_with_uploaded_source_map):
     return {
-        "debug_id_process": get_debug_id_process_data_for_stack_frame(frame, event_data),
+        "debug_id_process": get_debug_id_process_data_for_stack_frame(frame, event_data, debug_ids_with_uploaded_source_file, debug_ids_with_uploaded_source_map),
         "release_process": get_release_process_data_for_stack_frame(frame),
         "scraping_process": get_scraping_process_data_for_stack_frame(frame),
     }
 
 
-def get_debug_id_process_data_for_stack_frame(frame, event_data):
+def get_debug_ids_from_event_data(event_data):
+    debug_images = get_path(event_data, "debug_meta", "images")
+    return [debug_image["debug_id"] for debug_image in debug_images if debug_image["type"] == "sourcemap"][0:100]
+
+
+def get_debug_id_process_data_for_stack_frame(frame, event_data, debug_ids_with_uploaded_source_file, debug_ids_with_uploaded_source_map):
     abs_path = get_path(frame, "abs_path")
     debug_images = get_path(event_data, "debug_meta", "images")
 
@@ -159,10 +181,17 @@ def get_debug_id_process_data_for_stack_frame(frame, event_data):
             debug_id = debug_image["debug_id"]
             break
 
+    uploaded_source_file_with_correct_debug_id = False
+    uploaded_source_map_with_correct_debug_id = False
+
+    if debug_id is not None:
+        uploaded_source_file_with_correct_debug_id = debug_id in debug_ids_with_uploaded_source_file
+        uploaded_source_map_with_correct_debug_id = debug_id in debug_ids_with_uploaded_source_map
+
     return {
         "debug_id": debug_id,
-        "uploaded_source_file_with_correct_debug_id": "TODO",
-        "uploaded_source_map_with_correct_debug_id": "TODO",
+        "uploaded_source_file_with_correct_debug_id": uploaded_source_file_with_correct_debug_id,
+        "uploaded_source_map_with_correct_debug_id": uploaded_source_map_with_correct_debug_id,
     }
 
 
