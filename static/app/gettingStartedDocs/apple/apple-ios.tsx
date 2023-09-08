@@ -86,7 +86,7 @@ export const steps = ({
                 'Alternatively, you can also [manualSetupLink:set up the SDK manually]. You can skip the steps below when using the wizard.',
                 {
                   manualSetupLink: (
-                    <ExternalLink href="https://docs.sentry.io/platforms/android/manual-setup/" />
+                    <ExternalLink href="https://docs.sentry.io/platforms/apple/guides/ios/manual-setup/" />
                   ),
                 }
               )}
