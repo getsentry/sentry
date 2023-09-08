@@ -140,8 +140,8 @@ class ActivityNotificationTest(APITestCase):
         assert text == f"New comment by {self.name}"
         assert attachment["title"] == f"{self.group.title}"
         assert (
-            attachment["title_link"]
-            == f"http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=note_activity-slack"
+            f"http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=note_activity-slack&notification_uuid="
+            in attachment["title_link"]
         )
         assert attachment["text"] == "blah blah"
         assert (
