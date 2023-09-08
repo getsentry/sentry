@@ -1,7 +1,6 @@
-import ipdb
-
 from typing import List, Union
 
+import ipdb
 from drf_spectacular.utils import extend_schema
 from packaging.version import Version
 from rest_framework.exceptions import NotFound
@@ -78,7 +77,9 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
         Return a list of source map errors for a given event.
         """
 
-        if not features.has("organizations:source-maps-debugger", project.organization, actor=request.user):
+        if not features.has(
+            "organizations:source-maps-debugger", project.organization, actor=request.user
+        ):
             raise NotFound(
                 detail="Endpoint not available without 'organizations:source-maps-debugger' feature flag"
             )
@@ -88,12 +89,11 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
             raise NotFound(detail="Event not found")
 
         event_data = event.data
-        exception_values = get_path(event_data, "exception", "values")
 
+        # get general information about what has been uploaded
         project_has_some_artifact_bundle = ArtifactBundle.objects.filter(
             projectartifactbundle__project_id=project.id,
         ).exists()
-
         has_uploaded_release_bundle_with_release = False
         has_uploaded_artifact_bundle_with_release = False
         if event.release is not None:
@@ -109,35 +109,89 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
             has_uploaded_artifact_bundle_with_release = ReleaseArtifactBundle.objects.filter(
                 organization_id=project.organization_id, release_name=event.release
             ).exists()
-
         has_uploaded_some_artifact_with_a_debug_id = DebugIdArtifactBundle.objects.filter(
             artifact_bundle__projectartifactbundle__project_id=project.id,
         ).exists()
 
-        debug_ids = get_debug_ids_from_event_data(event_data)
+        debug_images = get_path(event_data, "debug_meta", "images")
+        debug_images = debug_images if debug_images is not None else []
+
+        # get information about which debug ids on the event have uploaded artifacts
+        debug_ids = [
+            debug_image["debug_id"]
+            for debug_image in debug_images
+            if debug_image["type"] == "sourcemap"
+        ][0:100]
         debug_id_artifact_bundles = DebugIdArtifactBundle.objects.filter(
             artifact_bundle__projectartifactbundle__project_id=project.id,
             debug_id__in=debug_ids,
         )
         debug_ids_with_uploaded_source_file = set()
         debug_ids_with_uploaded_source_map = set()
-
         for debug_id_artifact_bundle in debug_id_artifact_bundles:
-            if SourceFileType(debug_id_artifact_bundle.source_file_type) == SourceFileType.SOURCE or SourceFileType(debug_id_artifact_bundle.source_file_type) == SourceFileType.MINIFIED_SOURCE:
+            if (
+                SourceFileType(debug_id_artifact_bundle.source_file_type) == SourceFileType.SOURCE
+                or SourceFileType(debug_id_artifact_bundle.source_file_type)
+                == SourceFileType.MINIFIED_SOURCE
+            ):
                 debug_ids_with_uploaded_source_file.add(str(debug_id_artifact_bundle.debug_id))
-            elif SourceFileType(debug_id_artifact_bundle.source_file_type) == SourceFileType.SOURCE_MAP:
+            elif (
+                SourceFileType(debug_id_artifact_bundle.source_file_type)
+                == SourceFileType.SOURCE_MAP
+            ):
                 debug_ids_with_uploaded_source_map.add(str(debug_id_artifact_bundle.debug_id))
+
+        # build information about individual exceptions and their stack traces
+        processed_exceptions = []
+        exception_values = get_path(event_data, "exception", "values")
+        if exception_values is not None:
+            for exception_value in exception_values:
+                processed_frames = []
+                frames = get_path(exception_value, "raw_stacktrace", "frames")
+                if frames is not None:
+                    for frame in frames:
+                        abs_path = get_path(frame, "abs_path")
+
+                        # debug id process data
+                        debug_id = next(
+                            (
+                                debug_image["debug_id"]
+                                for debug_image in debug_images
+                                if debug_image["type"] == "sourcemap"
+                                and abs_path == debug_image["code_file"]
+                            ),
+                            None,
+                        )
+
+                        processed_frames.append(
+                            {
+                                "debug_id_process": {
+                                    "debug_id": debug_id,
+                                    "uploaded_source_file_with_correct_debug_id": debug_id
+                                    in debug_ids_with_uploaded_source_file,
+                                    "uploaded_source_map_with_correct_debug_id": debug_id
+                                    in debug_ids_with_uploaded_source_map,
+                                },
+                                "release_process": {
+                                    "matching_artifact_name": "TODO",
+                                    "source_map_reference": "TODO",
+                                    "source_file_lookup_result": "TODO",
+                                    "source_map_lookup_result": "TODO",
+                                    "path": "TODO",
+                                },
+                                "scraping_process": {
+                                    "source_file_scraping_status": "TODO",
+                                    "source_map_scraping_status": "TODO",
+                                },
+                            }
+                        )
+                processed_exceptions.append({"frames": processed_frames})
 
         return Response(
             {
                 "dist": event.dist,
                 "release": event.release,
-                "exceptions": [
-                    get_data_from_exception_value(exception_value, event_data, debug_ids_with_uploaded_source_file, debug_ids_with_uploaded_source_map)
-                    for exception_value in exception_values
-                ]
-                if exception_values is not None
-                else [],
+                "exceptions": processed_exceptions,
                 "has_debug_ids": event_has_debug_ids(event_data),
                 "sdk_version": get_path(event_data, "sdk", "version"),
                 "project_has_some_artifact_bundle": project_has_some_artifact_bundle,
@@ -147,69 +201,6 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
                 "sdk_debug_id_support": get_sdk_debug_id_support(event_data),
             }
         )
-
-
-def get_data_from_exception_value(exception, event_data, debug_ids_with_uploaded_source_file, debug_ids_with_uploaded_source_map):
-    frames = get_path(exception, "raw_stacktrace", "frames")
-    return {
-        "frames": [get_data_from_stack_frame(frame, event_data, debug_ids_with_uploaded_source_file, debug_ids_with_uploaded_source_map) for frame in frames]
-        if frames is not None
-        else [],
-    }
-
-
-def get_data_from_stack_frame(frame, event_data, debug_ids_with_uploaded_source_file, debug_ids_with_uploaded_source_map):
-    return {
-        "debug_id_process": get_debug_id_process_data_for_stack_frame(frame, event_data, debug_ids_with_uploaded_source_file, debug_ids_with_uploaded_source_map),
-        "release_process": get_release_process_data_for_stack_frame(frame),
-        "scraping_process": get_scraping_process_data_for_stack_frame(frame),
-    }
-
-
-def get_debug_ids_from_event_data(event_data):
-    debug_images = get_path(event_data, "debug_meta", "images")
-    return [debug_image["debug_id"] for debug_image in debug_images if debug_image["type"] == "sourcemap"][0:100]
-
-
-def get_debug_id_process_data_for_stack_frame(frame, event_data, debug_ids_with_uploaded_source_file, debug_ids_with_uploaded_source_map):
-    abs_path = get_path(frame, "abs_path")
-    debug_images = get_path(event_data, "debug_meta", "images")
-
-    debug_id = None
-    for debug_image in debug_images:
-        if debug_image["type"] == "sourcemap" and abs_path == debug_image["code_file"]:
-            debug_id = debug_image["debug_id"]
-            break
-
-    uploaded_source_file_with_correct_debug_id = False
-    uploaded_source_map_with_correct_debug_id = False
-
-    if debug_id is not None:
-        uploaded_source_file_with_correct_debug_id = debug_id in debug_ids_with_uploaded_source_file
-        uploaded_source_map_with_correct_debug_id = debug_id in debug_ids_with_uploaded_source_map
-
-    return {
-        "debug_id": debug_id,
-        "uploaded_source_file_with_correct_debug_id": uploaded_source_file_with_correct_debug_id,
-        "uploaded_source_map_with_correct_debug_id": uploaded_source_map_with_correct_debug_id,
-    }
-
-
-def get_release_process_data_for_stack_frame(frame):
-    return {
-        "matching_artifact_name": "TODO",
-        "source_map_reference": "TODO",
-        "source_file_lookup_result": "TODO",
-        "source_map_lookup_result": "TODO",
-        "path": "TODO",
-    }
-
-
-def get_scraping_process_data_for_stack_frame(frame):
-    return {
-        "source_file_scraping_status": "TODO",
-        "source_map_scraping_status": "TODO",
-    }
 
 
 def event_has_debug_ids(event_data):
