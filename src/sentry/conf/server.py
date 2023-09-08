@@ -1730,6 +1730,8 @@ SENTRY_FEATURES = {
     "organizations:notification-settings-v2": False,
     # Enable new release UI
     "organizations:release-ui-v2": False,
+    # Enable source maps debugger
+    "organizations:source-maps-debugger": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
