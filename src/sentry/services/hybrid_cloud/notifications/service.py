@@ -8,6 +8,7 @@ from typing import List, Mapping, MutableMapping, Optional, Sequence, cast
 
 from sentry.notifications.types import (
     NotificationScopeEnum,
+    NotificationSettingEnum,
     NotificationSettingOptionValues,
     NotificationSettingsOptionEnum,
     NotificationSettingTypes,
@@ -43,6 +44,15 @@ class NotificationsService(RpcService):
         type: NotificationSettingTypes,
         parent_id: int,
         recipients: Sequence[RpcActor],
+    ) -> List[RpcNotificationSetting]:
+        pass
+
+    @rpc_method
+    @abstractmethod
+    def get_notification_settings_by_recipients(
+        self,
+        *,
+        type: NotificationSettingEnum,
     ) -> List[RpcNotificationSetting]:
         pass
 

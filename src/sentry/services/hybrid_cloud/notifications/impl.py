@@ -8,9 +8,15 @@ from django.db.models import Q, QuerySet
 from sentry.api.serializers.base import Serializer
 from sentry.api.serializers.models.notification_setting import NotificationSettingsSerializer
 from sentry.models.notificationsetting import NotificationSetting
+from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.models.team import Team
 from sentry.models.user import User
-from sentry.notifications.helpers import get_scope_type, get_setting_providers_for_projects
+from sentry.notifications.helpers import (
+    get_notification_settings_by_recipients,
+    get_scope_type,
+    get_setting_providers_for_projects,
+)
 from sentry.notifications.types import (
     NotificationScopeEnum,
     NotificationScopeType,
@@ -125,28 +131,16 @@ class DatabaseBackedNotificationsService(NotificationsService):
 
         return [serialize_notification_setting(s) for s in notification_settings]
 
-    def get_settings_for_recipient_by_parent_v2(
-        self, *, type: NotificationSettingTypes, parent_id: int, recipients: Sequence[RpcActor]
+    def get_notification_settings_by_recipients(
+        self,
+        *,
+        type: NotificationSettingEnum,
+        recipients: Iterable[RpcActor | Team | User],
+        project: Project | None = None,
+        organization: Organization | None = None,
     ) -> List[RpcNotificationSetting]:
-        team_ids = [r.id for r in recipients if r.actor_type == ActorType.TEAM]
-        user_ids = [r.id for r in recipients if r.actor_type == ActorType.USER]
-
-        parent_specific_scope_type = get_scope_type(type)
-        notification_settings = NotificationSetting.objects.filter(
-            Q(
-                scope_type=parent_specific_scope_type.value,
-                scope_identifier=parent_id,
-            )
-            | Q(
-                scope_type=NotificationScopeType.USER.value,
-                scope_identifier__in=user_ids,
-            )
-            | Q(
-                scope_type=NotificationScopeType.TEAM.value,
-                scope_identifier__in=team_ids,
-            ),
-            (Q(team_id__in=team_ids) | Q(user_id__in=user_ids)),
-            type=type.value,
+        notification_settings = get_notification_settings_by_recipients(
+            recipients=recipients, project=project, organization=organization, type=type
         )
 
         return [serialize_notification_setting(s) for s in notification_settings]

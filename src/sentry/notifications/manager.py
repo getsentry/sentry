@@ -355,6 +355,8 @@ class NotificationsManager(BaseManager["NotificationSetting"]):  # noqa: F821
             type=type_.value,
         )
 
+    # TODO(snigdha): This can be cleaned up with the notification-settings-v2 work.
+    # It is replaced by filter_to_accepting_recipients in `src/sentry/notifications/helpers.py`
     def filter_to_accepting_recipients(
         self,
         parent: Union[Organization, Project],

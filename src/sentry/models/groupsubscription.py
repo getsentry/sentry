@@ -6,6 +6,7 @@ from django.conf import settings
 from django.db import IntegrityError, models, router, transaction
 from django.utils import timezone
 
+from sentry import features
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BaseManager,
@@ -127,17 +128,29 @@ class GroupSubscriptionManager(BaseManager):
             group=group, user_id__in=[u.id for u in all_possible_users]
         )
 
-        notification_settings = notifications_service.get_settings_for_recipient_by_parent(
-            type=NotificationSettingTypes.WORKFLOW,
-            recipients=all_possible_users,
-            parent_id=group.project_id,
-        )
+        notification_settings_by_recipient = None
+        if features.has("organizations:notification-settings-v2", group.project.organization):
+            notification_settings_by_recipient = (
+                notifications_service.get_notification_settings_by_recipients(
+                    type=NotificationSettingTypes.WORKFLOW,
+                    recipients=all_possible_users,
+                    project=group.project,
+                )
+            )
+        else:
+            notification_settings = notifications_service.get_settings_for_recipient_by_parent(
+                type=NotificationSettingTypes.WORKFLOW,
+                recipients=all_possible_users,
+                parent_id=group.project_id,
+            )
+
+            notification_settings_by_recipient = transform_to_notification_settings_by_recipient(
+                notification_settings, all_possible_users
+            )
+
         subscriptions_by_user_id = {
             subscription.user_id: subscription for subscription in active_and_disabled_subscriptions
         }
-        notification_settings_by_recipient = transform_to_notification_settings_by_recipient(
-            notification_settings, all_possible_users
-        )
 
         result = ParticipantMap()
         for user in all_possible_users:
