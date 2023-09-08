@@ -5,7 +5,8 @@ import {IssueDiff} from 'sentry/components/issueDiff';
 jest.mock('sentry/api');
 
 describe('IssueDiff', function () {
-  const entries = TestStubs.Entries();
+  const entries123Target = TestStubs.Entries123Target();
+  const entries123Base = TestStubs.Entries123Base();
   const api = new MockApiClient();
   const project = TestStubs.Project();
 
@@ -25,7 +26,7 @@ describe('IssueDiff', function () {
     MockApiClient.addMockResponse({
       url: `/projects/org-slug/${project.slug}/events/123target/`,
       body: {
-        entries: entries[0],
+        entries: entries123Target,
       },
     });
 
@@ -33,7 +34,7 @@ describe('IssueDiff', function () {
       url: `/projects/org-slug/${project.slug}/events/123base/`,
       body: {
         platform: 'javascript',
-        entries: entries[1],
+        entries: entries123Base,
       },
     });
   });
