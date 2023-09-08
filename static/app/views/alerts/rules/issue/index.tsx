@@ -973,7 +973,7 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
 
   renderDuplicateErrorAlert() {
     const {organization} = this.props;
-    const {detailedError} = this.state;
+    const {detailedError, project} = this.state;
     const duplicateName = isExactDuplicateExp.exec(detailedError?.name?.[0] ?? '')?.[1];
     const duplicateRuleId = detailedError?.ruleId?.[0] ?? '';
 
@@ -984,7 +984,7 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
         priority="error"
         icon={<IconNot color="red300" />}
         href={normalizeUrl(
-          `/organization/${organization.slug}/alerts/rules/app-frontend/${duplicateRuleId}/details/`
+          `/organizations/${organization.slug}/alerts/rules/${project.slug}/${duplicateRuleId}/details/`
         )}
       >
         {t(
