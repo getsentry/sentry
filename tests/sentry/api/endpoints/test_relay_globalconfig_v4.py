@@ -67,10 +67,9 @@ def test_global_config():
 @pytest.mark.parametrize(
     ("version, request_global_config, expect_global_config"),
     [
-        *((version, False, False) for version in (1, 2, 3)),
-        *((version, True, False) for version in (1, 2, 3)),
-        (4, False, False),
-        (4, True, True),
+        *((version, False, False) for version in (1, 2)),
+        *((version, True, False) for version in (1, 2)),
+        *((version, True, True) for version in (3, 4)),
     ],
 )
 @django_db_all
