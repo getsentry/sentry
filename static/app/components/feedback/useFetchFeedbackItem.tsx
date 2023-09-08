@@ -23,11 +23,14 @@ export default function useFetchFeedbackItem(
   });
 
   useEffect(() => {
-    setState({
-      isLoading: false,
-      isError: false,
-      data: exampleItemResponse,
-    });
+    const timeout = setTimeout(() => {
+      setState({
+        isLoading: false,
+        isError: false,
+        data: exampleItemResponse,
+      });
+    }, Math.random() * 1000);
+    return () => clearTimeout(timeout);
   }, []);
 
   return {

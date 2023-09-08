@@ -27,11 +27,14 @@ export default function useFetchFeedbackList(
   });
 
   useEffect(() => {
-    setState({
-      isLoading: false,
-      isError: false,
-      data: exampleListResponse,
-    });
+    const timeout = setTimeout(() => {
+      setState({
+        isLoading: false,
+        isError: false,
+        data: exampleListResponse,
+      });
+    }, Math.random() * 1000);
+    return () => clearTimeout(timeout);
   }, []);
 
   return {
