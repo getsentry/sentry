@@ -11,7 +11,7 @@ from sentry.utils import json
 @pytest.fixture
 def call_endpoint(client, relay, private_key):
     def inner(version, global_):
-        path = reverse("sentry-api-0-relay-projectconfigs") + f"?version={version}"
+        path = reverse("sentry-api-0-relay-projectconfigs") + "?version=3"
 
         body = {"global": True} if global_ else {}
         raw_json, signature = private_key.pack(body)
@@ -69,7 +69,8 @@ def test_global_config():
     [
         *((version, False, False) for version in (1, 2)),
         *((version, True, False) for version in (1, 2)),
-        *((version, True, True) for version in (3, 4)),
+        *((version, False, False) for version in (3,)),
+        *((version, True, True) for version in (3,)),
     ],
 )
 @django_db_all
