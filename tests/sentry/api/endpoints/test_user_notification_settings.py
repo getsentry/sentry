@@ -160,6 +160,7 @@ class UserNotificationSettingsUpdateTest(UserNotificationSettingsTestBase):
             "value": "always",
             "scope_type": "user",
             "scope_identifier": self.user.id,
+            "type": "deploy",
         }
         assert NotificationSettingOption.objects.filter(**query_args).exists()
         assert NotificationSettingProvider.objects.filter(**query_args, provider="email")

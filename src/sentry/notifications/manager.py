@@ -487,7 +487,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):  # noqa: F821
 
         # Iterate through all the stored NotificationSetting rows
         for setting in notification_settings:
-            provider = setting.provider
+            provider = EXTERNAL_PROVIDERS[setting.provider]
             type = setting.type
             if setting.value == NotificationSettingOptionValues.NEVER.value:
                 disabled_providers_by_type[type].add(provider)
@@ -495,16 +495,21 @@ class NotificationsManager(BaseManager["NotificationSetting"]):  # noqa: F821
                 # if the value is not never, it's explicitly enabled
                 enabled_providers_by_type[type].add(provider)
 
+        # This is a bad N+1 query but we don't have a better way to do this
         for provider in PERSONAL_NOTIFICATION_PROVIDERS:
+            types_to_delete = []
             # iterate throuch each type of notification setting
+            base_query = {
+                "provider": provider,
+                "user_id": user_id,
+                "team_id": team_id,
+                "scope_type": parent_scope_type.value,
+                "scope_identifier": parent_scope_identifier,
+            }
             for type in VALID_VALUES_FOR_KEY_V2.keys():
                 query_args = {
-                    "provider": provider,
-                    "user_id": user_id,
-                    "team_id": team_id,
+                    **base_query,
                     "type": NOTIFICATION_SETTING_TYPES[type],
-                    "scope_type": parent_scope_type.value,
-                    "scope_identifier": parent_scope_identifier,
                 }
                 if provider in enabled_providers_by_type[type]:
                     NotificationSettingProvider.objects.create_or_update(
@@ -518,32 +523,12 @@ class NotificationsManager(BaseManager["NotificationSetting"]):  # noqa: F821
                     )
                     # if not explicitly enabled or disable, we should delete the row
                 else:
-                    NotificationSettingProvider.objects.filter(**query_args).delete()
-
-        # Update the NotificationSettingProvider values
-        for type, providers in enabled_providers_by_type.items():
-            for provider in list(providers):
-                NotificationSettingProvider.objects.create_or_update(
-                    provider=EXTERNAL_PROVIDERS[provider],
-                    user_id=user_id,
-                    team_id=team_id,
-                    type=NOTIFICATION_SETTING_TYPES[type],
-                    scope_type=parent_scope_type.value,
-                    scope_identifier=parent_scope_identifier,
-                    values={"value": NotificationSettingsOptionEnum.ALWAYS.value},
-                )
-
-        for type, providers in disabled_providers_by_type.items():
-            for provider in list(providers):
-                NotificationSettingProvider.objects.create_or_update(
-                    provider=EXTERNAL_PROVIDERS[provider],
-                    user_id=user_id,
-                    team_id=team_id,
-                    type=NOTIFICATION_SETTING_TYPES[type],
-                    scope_type=parent_scope_type.value,
-                    scope_identifier=parent_scope_identifier,
-                    values={"value": NotificationSettingsOptionEnum.NEVER.value},
-                )
+                    types_to_delete.append(type)
+            # delete the rows that are not explicitly enabled or disabled
+            NotificationSettingProvider.objects.filter(
+                **base_query,
+                type__in=[NOTIFICATION_SETTING_TYPES[type] for type in types_to_delete],
+            ).delete()
 
     def update_settings_bulk(
         self,
