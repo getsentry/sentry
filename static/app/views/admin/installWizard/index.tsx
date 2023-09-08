@@ -17,16 +17,16 @@ export type InstallWizardProps = DeprecatedAsyncView['props'] & {
   onConfigured: () => void;
 };
 
-type Data = Record<
+export type InstallWizardOptions = Record<
   string,
   {
     field: Field;
-    value: unknown;
+    value?: unknown;
   }
 >;
 
 type State = DeprecatedAsyncView['state'] & {
-  data: null | Data;
+  data: null | InstallWizardOptions;
 };
 
 export default class InstallWizard extends DeprecatedAsyncView<
