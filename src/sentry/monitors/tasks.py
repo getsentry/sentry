@@ -37,6 +37,9 @@ CHECKINS_LIMIT = 10_000
 # This key is used to store the last timestamp that the tasks were triggered.
 MONITOR_TASKS_LAST_TRIGGERED_KEY = "sentry.monitors.last_tasks_ts"
 
+# Size of the chunk to use for the check_missing_environment task
+MISSING_CHUNK_SIZE = 10
+
 
 def _get_monitor_checkin_producer() -> KafkaProducer:
     cluster_name = get_topic_definition(settings.KAFKA_INGEST_MONITORS)["cluster"]
@@ -204,8 +207,7 @@ def check_missing(current_datetime: datetime):
         )[:MONITOR_LIMIT]
     )
     metrics.gauge("sentry.monitors.tasks.check_missing.count", qs.count(), sample_rate=1.0)
-    for monitor_environment in qs:
-        check_missing_environment.delay(monitor_environment.id)
+    check_missing_environment.chunks(qs.values_list("id", flat=True), MISSING_CHUNK_SIZE).delay()
 
 
 @instrumented_task(

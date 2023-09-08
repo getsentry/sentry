@@ -81,10 +81,10 @@ class MonitorTaskCheckMissingTest(TestCase):
         check_missing(task_run_ts)
 
         # assert that task is called for the specific environment
-        assert check_missing_environment_mock.delay.call_count == 1
-        assert check_missing_environment_mock.delay.mock_calls[0] == mock.call(
+        assert check_missing_environment_mock.chunks.call_count == 1
+        assert set(check_missing_environment_mock.chunks.call_args[0][0]) == {
             monitor_environment.id
-        )
+        }
 
         check_missing_environment(monitor_environment.id)
 
@@ -144,7 +144,8 @@ class MonitorTaskCheckMissingTest(TestCase):
         check_missing(task_run_ts)
 
         # assert that task is not called for the specific environment
-        assert check_missing_environment_mock.delay.call_count == 0
+        assert check_missing_environment_mock.chunks.call_count == 1
+        assert set(check_missing_environment_mock.chunks.call_args[0][0]) == set()
 
         assert not MonitorEnvironment.objects.filter(
             id=monitor_environment.id, status=MonitorStatus.MISSED_CHECKIN
@@ -157,10 +158,10 @@ class MonitorTaskCheckMissingTest(TestCase):
         check_missing(task_run_ts + timedelta(minutes=4))
 
         # assert that task is called for the specific environment
-        assert check_missing_environment_mock.delay.call_count == 1
-        assert check_missing_environment_mock.delay.mock_calls[0] == mock.call(
+        assert check_missing_environment_mock.chunks.call_count == 2
+        assert set(check_missing_environment_mock.chunks.call_args[0][0]) == {
             monitor_environment.id
-        )
+        }
 
         check_missing_environment(monitor_environment.id)
 
@@ -209,7 +210,7 @@ class MonitorTaskCheckMissingTest(TestCase):
             config={"schedule": "* * * * *"},
             status=state,
         )
-        # Exepcted checkin was a full minute ago, if this monitor wasn't in the
+        # Expected checkin was a full minute ago, if this monitor wasn't in the
         # `state` the monitor would usually end up marked as timed out
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
@@ -335,10 +336,14 @@ class MonitorTaskCheckMissingTest(TestCase):
         check_missing(task_run_ts)
 
         # assert that task is called for the specific environments
-        assert check_missing_environment_mock.delay.call_count == 2
+        assert check_missing_environment_mock.chunks.call_count == 1
+        assert set(check_missing_environment_mock.chunks.call_args[0][0]) == {
+            successful_monitor_environment.id,
+            failing_monitor_environment.id,
+        }
 
-        for monitor_environment in [failing_monitor_environment, successful_monitor_environment]:
-            check_missing_environment(monitor_environment.id)
+        for monitor_environment_id in check_missing_environment_mock.chunks.call_args[0][0]:
+            check_missing_environment(monitor_environment_id)
 
         # Logged the exception
         assert logger.exception.call_count == 1
