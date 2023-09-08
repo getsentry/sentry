@@ -9,30 +9,30 @@ import {
 } from 'sentry/views/performance/browser/useBrowserFilters';
 
 /**
- * Gets a list of pages on the selected project(s)
+ * Gets a list of all interactionElements on the selected project(s)
  */
-export const usePagesQuery = () => {
+export const useInteractionElementQuery = () => {
   const location = useLocation();
   const pageFilters = usePageFilters();
   const {slug: orgSlug} = useOrganization();
   const browserFilters = useBrowserModuleFilters();
 
-  const fields = ['transaction', 'p75(transaction.duration)', 'tpm()'];
+  const fields = ['interactionElement', 'count()'];
   const queryConditions = [
-    'event.type:transaction',
-    browserFilters.component ? `interactionElement:"${browserFilters.component}"` : '',
+    'has:interactionElement',
+    browserFilters.page ? `transaction:"${browserFilters.page}"` : '',
     browserFilters['transaction.op']
       ? `transaction.op:"${browserFilters[BrowserStarfishFields.TRANSACTION_OP]}"`
       : '',
-  ]; // TODO: We will need to consider other ops
+  ];
 
   const eventView = EventView.fromNewQueryWithPageFilters(
     {
-      fields, // for some reason we need a function, otherwise the query fails
+      fields,
       name: 'Interaction module - page selector',
       version: 2,
       query: queryConditions.join(' '),
-      orderby: 'transaction',
+      orderby: 'interactionElement',
     },
     pageFilters.selection
   );
@@ -44,6 +44,7 @@ export const usePagesQuery = () => {
     limit: 100,
   });
 
-  const pages = result?.data?.data.map(row => row.transaction.toString()) || [];
-  return {...result, data: pages};
+  const interactionElements =
+    result?.data?.data.map(row => row.interactionElement.toString()) || [];
+  return {...result, data: interactionElements};
 };
