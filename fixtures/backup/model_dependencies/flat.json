@@ -333,7 +333,6 @@
   "sentry.GroupSubscription": [
     "sentry.Group",
     "sentry.Project",
-    "sentry.Team",
     "sentry.User"
   ],
   "sentry.GroupTombstone": [
