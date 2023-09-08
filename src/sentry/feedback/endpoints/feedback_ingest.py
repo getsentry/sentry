@@ -80,7 +80,6 @@ class FeedbackIngestPermission(ProjectPermission):
 @region_silo_endpoint
 class FeedbackIngestEndpoint(Endpoint):
     publish_status = {
-        "GET": ApiPublishStatus.EXPERIMENTAL,
         "POST": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.FEEDBACK
@@ -113,7 +112,7 @@ class FeedbackIngestEndpoint(Endpoint):
                 # Try lookup by slug first. This requires organization context since
                 # slugs are unique only to the organization
             except (Organization.DoesNotExist):
-                pass
+                raise ResourceDoesNotExist
 
         project = request.auth.project  # type: ignore
 
