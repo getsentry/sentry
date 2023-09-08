@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 
 class EventLinkKafkaMessage(TypedDict):
     type: str
-    start_time: str
+    start_time: int
     replay_id: str
     project_id: int
     segment_id: None
