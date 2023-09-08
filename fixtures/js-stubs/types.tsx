@@ -54,6 +54,8 @@ type TestStubFixtures = {
   DiscoverSavedQuery: OverridableStub;
   DocIntegration: OverridableStub;
   Entries: SimpleStub;
+  Entries123Base: OverridableStub;
+  Entries123Target: OverridableStub;
   Environments: SimpleStub;
   Event: OverridableStub;
   EventAttachment: OverridableStub;
