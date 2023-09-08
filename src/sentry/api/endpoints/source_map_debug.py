@@ -51,8 +51,8 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
-    # TODO: Set owner to JS SDK team
-    owner = ApiOwner.ISSUES
+
+    owner = ApiOwner.WEB_FRONTEND_SDKS
 
     @extend_schema(
         operation_id="Get Debug Information Related to Source Maps for a Given Event",
