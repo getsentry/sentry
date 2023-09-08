@@ -15,7 +15,7 @@ from sentry.models.user import User
 from sentry.notifications.helpers import (
     get_notification_settings_by_recipients,
     get_scope_type,
-    get_setting_providers_for_projects,
+    get_setting_provider_values_for_projects,
 )
 from sentry.notifications.types import (
     NotificationScopeEnum,
@@ -185,7 +185,7 @@ class DatabaseBackedNotificationsService(NotificationsService):
         Returns a a mapping of project scopes settings, with projects IDs
         mapped to a map of provider to notifications setting values.
         """
-        providers = get_setting_providers_for_projects(
+        providers = get_setting_provider_values_for_projects(
             [user_id],
             projects=projects,
             organization=projects[0].organization,  # type:ignore
