@@ -205,18 +205,19 @@ def check_missing(current_datetime: datetime):
     )
     metrics.gauge("sentry.monitors.tasks.check_missing.count", qs.count(), sample_rate=1.0)
     for monitor_environment in qs:
-        check_missing_environment.delay(monitor_environment)
+        check_missing_environment.delay(monitor_environment.id)
 
 
 @instrumented_task(
     name="sentry.monitors.tasks.check_missing_environment",
 )
-def check_missing_environment(monitor_environment: MonitorEnvironment):
+def check_missing_environment(monitor_environment_id: int):
     try:
         logger.info(
-            "monitor.missed-checkin", extra={"monitor_environment_id": monitor_environment.id}
+            "monitor.missed-checkin", extra={"monitor_environment_id": monitor_environment_id}
         )
 
+        monitor_environment = MonitorEnvironment.objects.get(id=monitor_environment_id)
         monitor = monitor_environment.monitor
         expected_time = monitor_environment.next_checkin
 
