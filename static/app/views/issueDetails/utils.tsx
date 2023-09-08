@@ -30,13 +30,20 @@ export function markEventSeen(
   );
 }
 
-export function fetchGroupUserReports(groupId: string, query: Record<string, string>) {
+export function fetchGroupUserReports(
+  organizationSlug: string,
+  groupId: string,
+  query: Record<string, string>
+) {
   const api = new Client();
 
-  return api.requestPromise(`/issues/${groupId}/user-reports/`, {
-    includeAllArgs: true,
-    query,
-  });
+  return api.requestPromise(
+    `/organizations/${organizationSlug}/issues/${groupId}/user-reports/`,
+    {
+      includeAllArgs: true,
+      query,
+    }
+  );
 }
 
 export function useDefaultIssueEvent() {
