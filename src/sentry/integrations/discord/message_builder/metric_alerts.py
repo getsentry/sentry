@@ -2,8 +2,7 @@ from __future__ import annotations
 
 import time
 from datetime import datetime
-
-from pyparsing import Optional
+from typing import Optional
 
 from sentry.incidents.models import AlertRule, Incident, IncidentStatus
 from sentry.integrations.discord.message_builder import INCIDENT_COLOR_MAPPING, LEVEL_TO_COLOR
