@@ -6,6 +6,14 @@ from minimetrics import MiniMetricsClient
 from minimetrics.core import BucketKey, CounterMetric, DistributionMetric, GaugeMetric, SetMetric
 
 
+def test_simple():
+    client = MiniMetricsClient()
+    client.incr("button_clicked", 1.0)
+    client.aggregator.stop()
+
+    assert len(client.aggregator.buckets) == 0
+
+
 @freeze_time("2023-09-06 10:00:00")
 @patch("minimetrics.core.Aggregator._emit")
 def test_client_incr(_emit):

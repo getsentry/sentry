@@ -239,9 +239,6 @@ class Aggregator:
             self._flush_event.wait(2.0)
 
     def _flush(self):
-        # We want to emit a metric to track if the flusher is actually running.
-        self._safe_emit_count_metric("minimetrics.flusher.loop", amount=1)
-
         with self._lock:
             cutoff = time.time() - self.ROLLUP_IN_SECONDS
             weight_to_remove = 0
@@ -266,6 +263,10 @@ class Aggregator:
             self._buckets_total_weight -= weight_to_remove
 
         if extracted_metrics:
+            # You should emit metrics to `metrics` only inside this method, since we know that if we received metrics
+            # the `sentry.utils.metrics` file was initialized. If we do it before, it will likely cause a circular
+            # dependency since the methods in the `sentry.utils.metrics` depend on the backend initialization, thus
+            # if you emit metrics when a backend is initialized Python will throw an error.
             self._emit(extracted_metrics, force_flush)
 
     def add(
