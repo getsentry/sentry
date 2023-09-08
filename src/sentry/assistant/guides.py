@@ -28,7 +28,6 @@ GUIDES = {
     "explain_archive_button_issue_details": 29,
     "explain_archive_tab_issue_stream": 30,
     "explain_new_default_event_issue_detail": 31,
-    "explain_empty_on_demand_alert": 32,
 }
 
 # demo mode has different guides
