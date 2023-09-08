@@ -2,20 +2,21 @@ from typing import FrozenSet
 
 from django.db import models
 
-from sentry.backup.mixins import SanitizeUserImportsMixin
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, control_silo_only_model, sane_repr
 
 
 @control_silo_only_model
-class UserPermission(SanitizeUserImportsMixin, Model):
+class UserPermission(Model):
     """
     Permissions are applied to administrative users and control explicit scope-like permissions within the API.
 
     Generally speaking, they should only apply to active superuser sessions.
     """
 
-    __relocation_scope__ = RelocationScope.User
+    # It only makes sense to import/export this data when doing a full global backup/restore, so it
+    # lives in the `Global` scope, even though it only depends on the `User` model.
+    __relocation_scope__ = RelocationScope.Global
 
     user = FlexibleForeignKey("sentry.User")
     # permissions should be in the form of 'service-name.permission-name'

@@ -3,7 +3,6 @@ from typing import FrozenSet
 from django.conf import settings
 from django.db import models
 
-from sentry.backup.mixins import SanitizeUserImportsMixin
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import ArrayField, DefaultFieldsModel, control_silo_only_model, sane_repr
 from sentry.db.models.fields.foreignkey import FlexibleForeignKey
@@ -12,12 +11,14 @@ from sentry.silo import SiloMode
 
 
 @control_silo_only_model
-class UserRole(SanitizeUserImportsMixin, DefaultFieldsModel):
+class UserRole(DefaultFieldsModel):
     """
     Roles are applied to administrative users and apply a set of `UserPermission`.
     """
 
-    __relocation_scope__ = RelocationScope.User
+    # It only makes sense to import/export this data when doing a full global backup/restore, so it
+    # lives in the `Global` scope, even though it only depends on the `User` model.
+    __relocation_scope__ = RelocationScope.Global
 
     name = models.CharField(max_length=32, unique=True)
     permissions = ArrayField()
@@ -42,8 +43,10 @@ class UserRole(SanitizeUserImportsMixin, DefaultFieldsModel):
 
 
 @control_silo_only_model
-class UserRoleUser(SanitizeUserImportsMixin, DefaultFieldsModel):
-    __relocation_scope__ = RelocationScope.User
+class UserRoleUser(DefaultFieldsModel):
+    # It only makes sense to import/export this data when doing a full global backup/restore, so it
+    # lives in the `Global` scope, even though it only depends on the `User` model.
+    __relocation_scope__ = RelocationScope.Global
 
     user = FlexibleForeignKey("sentry.User")
     role = FlexibleForeignKey("sentry.UserRole")
