@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 from unittest import mock
 
 import msgpack
+import pytest
 from arroyo.backends.kafka import KafkaPayload
 from django.test import override_settings
 from django.utils import timezone
@@ -291,9 +292,8 @@ class MonitorTaskCheckMissingTest(TestCase):
             monitor_environment=monitor_environment.id, status=CheckInStatus.MISSED
         ).exists()
 
-    @mock.patch("sentry.monitors.tasks.logger")
     @mock.patch("sentry.monitors.tasks.check_missing_environment")
-    def test_missed_exception_handling(self, check_missing_environment_mock, logger):
+    def test_missed_exception_handling(self, check_missing_environment_mock):
         org = self.create_organization()
         project = self.create_project(organization=org)
 
@@ -337,11 +337,12 @@ class MonitorTaskCheckMissingTest(TestCase):
         # assert that task is called for the specific environments
         assert check_missing_environment_mock.delay.call_count == 2
 
-        for monitor_environment in [failing_monitor_environment, successful_monitor_environment]:
-            check_missing_environment(monitor_environment.id)
+        # assert failing monitor raises an error
+        with pytest.raises(ValueError):
+            check_missing_environment(failing_monitor_environment.id)
 
-        # Logged the exception
-        assert logger.exception.call_count == 1
+        # assert regular monitor works
+        check_missing_environment(successful_monitor_environment.id)
 
         # We still marked a monitor as missed
         assert MonitorEnvironment.objects.filter(
