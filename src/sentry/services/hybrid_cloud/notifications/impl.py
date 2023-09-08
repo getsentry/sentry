@@ -13,7 +13,7 @@ from sentry.models.project import Project
 from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.notifications.helpers import (
-    get_notification_settings_by_recipients,
+    get_enabled_notification_settings_by_recipients,
     get_scope_type,
     get_setting_provider_values_for_projects,
 )
@@ -131,7 +131,7 @@ class DatabaseBackedNotificationsService(NotificationsService):
 
         return [serialize_notification_setting(s) for s in notification_settings]
 
-    def get_notification_settings_by_recipients(
+    def get_enabled_notification_settings_by_recipients(
         self,
         *,
         type: NotificationSettingEnum,
@@ -139,7 +139,7 @@ class DatabaseBackedNotificationsService(NotificationsService):
         project: Project | None = None,
         organization: Organization | None = None,
     ) -> List[RpcNotificationSetting]:
-        notification_settings = get_notification_settings_by_recipients(
+        notification_settings = get_enabled_notification_settings_by_recipients(
             recipients=recipients, project=project, organization=organization, type=type
         )
 

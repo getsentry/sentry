@@ -44,6 +44,7 @@ from sentry.notifications.types import (
     ActionTargetType,
     FallthroughChoiceType,
     GroupSubscriptionReason,
+    NotificationSettingEnum,
     NotificationSettingOptionValues,
     NotificationSettingTypes,
 )
@@ -212,38 +213,50 @@ def get_participants_for_release(
         """
 
         notification_settings_by_recipient = (
-            notifications_service.get_notification_settings_by_recipients(
-                type=NotificationSettingTypes.DEPLOY,
+            notifications_service.get_enabled_notification_settings_by_recipients(
+                type=NotificationSettingEnum.DEPLOY,
                 recipients=actors,
                 organization=organization,
             )
-        )
-    else:
-        notification_settings = notifications_service.get_settings_for_recipient_by_parent(
-            type=NotificationSettingTypes.DEPLOY,
-            recipients=actors,
-            parent_id=organization.id,
-        )
-        notification_settings_by_recipient = transform_to_notification_settings_by_recipient(
-            notification_settings, actors
         )
 
         # Map users to their setting value. Prioritize user/org specific, then
         # user default, then product default.
         users_to_reasons_by_provider = ParticipantMap()
         for actor in actors:
-            notification_settings_by_scope = notification_settings_by_recipient.get(actor, {})
-            values_by_provider = get_values_by_provider_by_type(
-                notification_settings_by_scope,
-                notification_providers(),
-                NotificationSettingTypes.DEPLOY,
-                actor,
-            )
-            for provider, value in values_by_provider.items():
+            setting = notification_settings_by_recipient[actor][NotificationSettingEnum.DEPLOY]
+            for provider, value in setting.items():
+                # TODO(snigdha): this check doesn't use the new NotificationSettingEnum
                 reason_option = get_reason(actor, value, commited_user_ids)
                 if reason_option:
                     users_to_reasons_by_provider.add(provider, actor, reason_option)
         return users_to_reasons_by_provider
+
+    notification_settings = notifications_service.get_settings_for_recipient_by_parent(
+        type=NotificationSettingTypes.DEPLOY,
+        recipients=actors,
+        parent_id=organization.id,
+    )
+    notification_settings_by_recipient = transform_to_notification_settings_by_recipient(
+        notification_settings, actors
+    )
+
+    # Map users to their setting value. Prioritize user/org specific, then
+    # user default, then product default.
+    users_to_reasons_by_provider = ParticipantMap()
+    for actor in actors:
+        notification_settings_by_scope = notification_settings_by_recipient.get(actor, {})
+        values_by_provider = get_values_by_provider_by_type(
+            notification_settings_by_scope,
+            notification_providers(),
+            NotificationSettingTypes.DEPLOY,
+            actor,
+        )
+        for provider, value in values_by_provider.items():
+            reason_option = get_reason(actor, value, commited_user_ids)
+            if reason_option:
+                users_to_reasons_by_provider.add(provider, actor, reason_option)
+    return users_to_reasons_by_provider
 
 
 def get_owners(

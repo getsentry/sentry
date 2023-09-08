@@ -49,7 +49,7 @@ class NotificationsService(RpcService):
 
     @rpc_method
     @abstractmethod
-    def get_notification_settings_by_recipients(
+    def get_enabled_notification_settings_by_recipients(
         self,
         *,
         type: NotificationSettingEnum,
