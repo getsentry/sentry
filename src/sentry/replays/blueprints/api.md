@@ -26,7 +26,7 @@ This document is structured by resource with each resource having actions that c
     Members: + s + m + h + d + w
   - start (optional, string) - ISO 8601 format (`YYYY-MM-DDTHH:mm:ss.sssZ`)
   - end (optional, string) - ISO 8601 format. Required if `start` is set.
-  - limit (optional, number)
+  - per_page (optional, number)
     Default: 10
   - offset (optional, number)
     Default: 0
@@ -260,7 +260,7 @@ Deletes a replay instance.
     - w
   - start (optional, string) - ISO 8601 format (`YYYY-MM-DDTHH:mm:ss.sssZ`)
   - end (optional, string) - ISO 8601 format. Required if `start` is set.
-  - limit (optional, number)
+  - per_page (optional, number)
     Default: 10
   - offset (optional, number)
     Default: 0
@@ -433,7 +433,7 @@ Parameters:
 
 | Parameter | Type   | Default | Description                                  |
 | --------- | ------ | ------- | -------------------------------------------- |
-| limit     | number | 100     |                                              |
+| per_page  | number | 100     |                                              |
 | offset    | number | 0       |                                              |
 | query     | string | 0       | Space-separated string of field, value pairs |
 

@@ -116,7 +116,11 @@ class ArtifactBundle(Model):
 def delete_file_for_artifact_bundle(instance, **kwargs):
     from sentry.tasks.assemble import AssembleTask, delete_assemble_status
 
-    if instance.organization_id is not None and instance.file.checksum is not None:
+    if (
+        instance.organization_id is not None
+        and instance.file is not None
+        and instance.file.checksum is not None
+    ):
         delete_assemble_status(
             AssembleTask.ARTIFACT_BUNDLE,
             instance.organization_id,
@@ -155,10 +159,6 @@ class ArtifactBundleFlatFileIndex(Model):
     dist_name = models.CharField(max_length=64, default=NULL_STRING)
     date_added = models.DateTimeField(default=timezone.now)
 
-    # TODO: This column is in the process of being removed.
-    # For now, it still exists only to facilitate deleting all existing files.
-    flat_file_index = FlexibleForeignKey("sentry.File", null=True)
-
     class Meta:
         app_label = "sentry"
         db_table = "sentry_artifactbundleflatfileindex"
@@ -190,7 +190,9 @@ class FlatFileIndexState(Model):
 
     flat_file_index = FlexibleForeignKey("sentry.ArtifactBundleFlatFileIndex")
     artifact_bundle = FlexibleForeignKey("sentry.ArtifactBundle")
-    indexing_state = models.IntegerField(choices=ArtifactBundleIndexingState.choices())
+    indexing_state = models.IntegerField(
+        choices=ArtifactBundleIndexingState.choices(), db_index=True
+    )
     date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:

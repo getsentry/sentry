@@ -32,7 +32,4 @@ class RpcOrganizationMappingUpdate(TypedDict, total=False):
     status: OrganizationStatus
     slug: str
     region_name: str
-
-
-class RpcOrganizationMappingBillingCustomerUpdate(TypedDict):
     customer_id: Optional[str]

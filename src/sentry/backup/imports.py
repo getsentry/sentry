@@ -6,7 +6,9 @@ from typing import NamedTuple
 import click
 from django.apps import apps
 from django.core import management, serializers
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import IntegrityError, connection, transaction
+from rest_framework.serializers import ValidationError as DjangoRestFrameworkValidationError
 
 from sentry.backup.dependencies import PrimaryKeyMap, normalize_model_name
 from sentry.backup.helpers import EXCLUDED_APPS, Filter
@@ -165,6 +167,14 @@ def _import(
             err=True,
         )
         raise (e)
+
+    # Calls to `write_relocation_import` may fail validation and throw either a
+    # `DjangoValidationError` when a call to `.full_clean()` failed, or a
+    # `DjangoRestFrameworkValidationError` when a call to a custom DRF serializer failed. This
+    # exception catcher converts instances of the former to the latter.
+    except DjangoValidationError as e:
+        errs = {field: error for field, error in e.message_dict.items()}
+        raise DjangoRestFrameworkValidationError(errs) from e
 
     sequence_reset_sql = StringIO()
 

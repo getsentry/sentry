@@ -132,5 +132,20 @@ class UserService(RpcService):
     ) -> Optional[RpcUser]:
         pass
 
+    @rpc_method
+    @abstractmethod
+    def get_first_superuser(self) -> Optional[RpcUser]:
+        pass
+
+    @rpc_method
+    @abstractmethod
+    def get_or_create_user_by_email(self, *, email: str) -> RpcUser:
+        pass
+
+    @rpc_method
+    @abstractmethod
+    def verify_any_email(self, *, email: str) -> bool:
+        pass
+
 
 user_service: UserService = cast(UserService, UserService.create_delegation())

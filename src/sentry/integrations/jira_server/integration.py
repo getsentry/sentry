@@ -705,11 +705,12 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
         project_id = params.get("project", defaults.get("project"))
         jira_projects = self.get_projects()
 
-        if not project_id:
+        if not project_id or project_id not in {proj["id"] for proj in jira_projects}:
             project_id = jira_projects[0]["id"]
 
         client = self.get_client()
         issue_type_choices = client.get_issue_types(project_id)
+
         issue_type_choices_formatted = [
             (choice["id"], choice["name"]) for choice in issue_type_choices["values"]
         ]

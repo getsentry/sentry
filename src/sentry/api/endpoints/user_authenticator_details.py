@@ -175,6 +175,8 @@ class UserAuthenticatorDetailsEndpoint(UserEndpoint):
                     status=status.HTTP_403_FORBIDDEN,
                 )
 
+        interfaces = Authenticator.objects.all_interfaces_for_user(user)
+
         with transaction.atomic(using=router.db_for_write(Authenticator)):
             authenticator.delete()
 
@@ -182,7 +184,6 @@ class UserAuthenticatorDetailsEndpoint(UserEndpoint):
             # remains are backup interfaces, then we kill them in the
             # process.
             if not interface.is_backup_interface:
-                interfaces = Authenticator.objects.all_interfaces_for_user(user)
                 backup_interfaces = [x for x in interfaces if x.is_backup_interface]
                 if len(backup_interfaces) == len(interfaces):
                     for iface in backup_interfaces:
