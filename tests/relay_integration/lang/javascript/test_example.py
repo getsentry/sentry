@@ -28,7 +28,6 @@ def load_fixture(name):
 
 
 @pytest.mark.django_db(transaction=True)
-@region_silo_test(stable=True)
 class TestExample(RelayStoreHelper):
     @pytest.fixture(autouse=True)
     def initialize(
@@ -44,6 +43,7 @@ class TestExample(RelayStoreHelper):
 
     @requires_symbolicator
     @pytest.mark.symbolicator
+    @region_silo_test(stable=True)
     def test_sourcemap_expansion(self):
         release = Release.objects.create(
             organization_id=self.project.organization_id, version="abc"
