@@ -1,4 +1,6 @@
-export function TeamResolutionTime() {
+import type {TimeToResolution} from 'sentry/views/organizationStats/teamInsights/teamResolutionTime';
+
+export function TeamResolutionTime(): TimeToResolution {
   return {
     '2021-08-20T00:00:00Z': {avg: 300000, count: 1},
     '2021-08-21T00:00:00Z': {avg: 200000, count: 1},
