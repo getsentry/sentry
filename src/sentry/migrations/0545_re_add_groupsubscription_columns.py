@@ -32,12 +32,27 @@ class Migration(CheckedMigration):
                 null=True, on_delete=django.db.models.deletion.CASCADE, to="sentry.team"
             ),
         ),
-        migrations.AlterField(
-            model_name="groupsubscription",
-            name="user_id",
-            field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                "sentry.User", db_index=True, null=True, on_delete="CASCADE"
-            ),
+        migrations.SeparateDatabaseAndState(
+            state_operations=[
+                migrations.AlterField(
+                    model_name="groupsubscription",
+                    name="user_id",
+                    field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
+                        "sentry.User", db_index=True, null=True, on_delete="CASCADE"
+                    ),
+                ),
+            ],
+            database_operations=[
+                migrations.RunSQL(
+                    reverse_sql="""
+                    ALTER TABLE "sentry_groupsubscription" ALTER COLUMN "user_id" SET NOT NULL;
+                    """,
+                    sql="""
+                    ALTER TABLE "sentry_groupsubscription" ALTER COLUMN "user_id" DROP NOT NULL;
+                    """,
+                    hints={"tables": ["sentry_groupsubscription"]},
+                )
+            ],
         ),
         migrations.AlterUniqueTogether(
             name="groupsubscription",
