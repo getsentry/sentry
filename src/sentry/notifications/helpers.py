@@ -1075,7 +1075,7 @@ def get_notification_recipients(project: Project) -> Mapping[ExternalProviderEnu
     user_ids = project.member_set.values_list("user_id", flat=True)
     users = list(User.objects.filter(id__in=user_ids))
 
-    options = get_setting_option_values(users, project=project)
+    options = get_setting_option_values(users, [project])
     providers = _get_setting_provider_values_for_recipients(users, project=project)
 
     enabled_providers: Mapping[

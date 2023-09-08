@@ -317,12 +317,12 @@ class NotificationSettingV2HelpersTest(TestCase):
         self.setting_providers = [setting_provider_1, setting_provider_2, setting_provider_3]
 
     def test_get_all_setting_options(self):
-        options = list(get_all_setting_options([self.user], self.project, self.organization))
+        options = list(get_all_setting_options([self.user], [self.project], self.organization))
         assert options == self.setting_options
 
     def test_get_all_setting_providers(self):
         assert (
-            list(get_all_setting_providers([self.user], self.project, self.organization))
+            list(get_all_setting_providers([self.user], [self.project], self.organization))
             == self.setting_providers
         )
 
@@ -341,7 +341,9 @@ class NotificationSettingV2HelpersTest(TestCase):
             user_id=new_user.id,
         )
 
-        options = get_setting_option_values([self.user, new_user], self.project, self.organization)
+        options = get_setting_option_values(
+            [self.user, new_user], [self.project], self.organization
+        )
         assert (
             options[new_user][NotificationSettingEnum.ISSUE_ALERTS].value == setting_option_1.value
         )
@@ -356,7 +358,7 @@ class NotificationSettingV2HelpersTest(TestCase):
     def test_get_setting_option_values_for_recipients_with_additional_filters(self):
         options = get_setting_option_values(
             [self.user],
-            self.project,
+            [self.project],
             self.organization,
             additional_filters=Q(type=NotificationSettingEnum.ISSUE_ALERTS.value),
         )
