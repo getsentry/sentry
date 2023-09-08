@@ -29,7 +29,7 @@ class SlackIntegrationNotificationSent(analytics.Event):
         analytics.Attribute("actor_id"),
         analytics.Attribute("user_id", required=False),
         analytics.Attribute("group_id", required=False),
-        analytics.Attribute("notification_uuid", required=False),
+        analytics.Attribute("notification_uuid"),
     )
 
 

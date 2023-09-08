@@ -14,7 +14,7 @@ class EmailNotificationSent(analytics.Event):
         analytics.Attribute("group_id", required=False),
         analytics.Attribute("id"),
         analytics.Attribute("actor_type"),
-        analytics.Attribute("notification_uuid", required=False),
+        analytics.Attribute("notification_uuid"),
     )
 
 
