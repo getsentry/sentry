@@ -408,6 +408,38 @@ class SignalingTests(ImportTestCase):
         assert ProjectOption.objects.filter(key="sentry:relay-rev-lastchange").exists()
         assert ProjectOption.objects.filter(key="sentry:option-epoch").exists()
 
+    def test_import_colliding_project_key(self):
+        owner = self.create_exhaustive_user("owner")
+        invited = self.create_exhaustive_user("invited")
+        member = self.create_exhaustive_user("member")
+        self.create_exhaustive_organization("some-org", owner, invited, [member])
+
+        # Take note of the `ProjectKey` that was created by the exhaustive organization - this is
+        # the one we'll be importing.
+        colliding = ProjectKey.objects.filter().first()
+        colliding_public_key = colliding.public_key
+        colliding_secret_key = colliding.secret_key
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
+
+            # After exporting and clearing the database, insert a copy of the same `ProjectKey` as
+            # the one found in the import.
+            project = self.create_project()
+            ProjectKey.objects.create(
+                project=project,
+                label="Test",
+                public_key=colliding_public_key,
+                secret_key=colliding_secret_key,
+            )
+
+            with open(tmp_path) as tmp_file:
+                import_in_organization_scope(tmp_file, printer=NOOP_PRINTER)
+
+        assert ProjectKey.objects.count() == 4
+        assert ProjectKey.objects.filter(public_key=colliding_public_key).count() == 1
+        assert ProjectKey.objects.filter(secret_key=colliding_secret_key).count() == 1
+
 
 @run_backup_tests_only_on_single_db
 class ScopingTests(ImportTestCase):
