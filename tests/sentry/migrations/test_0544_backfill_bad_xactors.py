@@ -3,8 +3,8 @@ from sentry.testutils.cases import TestMigrations
 
 
 class BackfillTombstones(TestMigrations):
-    migrate_from = "0543_add_last_verified_auth_ident_replica"
-    migrate_to = "0544_backfill_fix_bad_xactors"
+    migrate_from = "0545_add_last_verified_auth_ident_replica"
+    migrate_to = "0546_backfill_fix_bad_xactors"
 
     def setup_initial_state(self):
         self.xu = xu = self.create_external_user()
