@@ -64,7 +64,6 @@ export default function Format({onExpand, expandPaths, args}: FormatProps) {
   const len = args.length;
   const pieces: any[] = [];
 
-  // @ts-expect-error ts does not like that this can return an integer (e.g. for `%d`)
   const str = String(f).replace(formatRegExp, function (x) {
     if (x === '%%') {
       return '%';
@@ -74,7 +73,12 @@ export default function Format({onExpand, expandPaths, args}: FormatProps) {
     }
     switch (x) {
       case '%s':
-        return String(args[i++]);
+        const val = args[i++];
+        try {
+          return String(val);
+        } catch {
+          return 'toString' in val ? val.toString : JSON.stringify(val);
+        }
       case '%d':
         return Number(args[i++]);
       case '%j':
