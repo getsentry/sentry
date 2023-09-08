@@ -5,7 +5,6 @@ import pytest
 from sentry.models import File, Release, ReleaseFile
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.relay import RelayStoreHelper
-from sentry.testutils.skips import requires_symbolicator
 
 # IMPORTANT:
 #
@@ -15,6 +14,8 @@ from sentry.testutils.skips import requires_symbolicator
 # If you are using a local instance of Symbolicator, you need to either change `system.url-prefix`
 # to `system.internal-url-prefix` inside `initialize` method below, or add `127.0.0.1 host.docker.internal`
 # entry to your `/etc/hosts`
+from sentry.testutils.silo import region_silo_test
+from sentry.testutils.skips import requires_symbolicator
 
 
 def get_fixture_path(name):
@@ -27,6 +28,7 @@ def load_fixture(name):
 
 
 @pytest.mark.django_db(transaction=True)
+@region_silo_test(stable=True)
 class TestExample(RelayStoreHelper):
     @pytest.fixture(autouse=True)
     def initialize(
