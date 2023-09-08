@@ -74,15 +74,19 @@ class GroupSubscriptionManager(BaseManager):
     def bulk_subscribe(
         self,
         group: Group,
-        user_ids: Iterable[int],
+        user_ids: Iterable[int] | None,
+        teams: Iterable[Team] | None,
         reason: int = GroupSubscriptionReason.unknown,
     ) -> bool:
         """
-        Subscribe a list of user ids to an issue, but only if the users are not explicitly
+        Subscribe a list of user ids and/or teams to an issue, but only if the users/teams are not explicitly
         unsubscribed.
         """
         # Unique the IDs.
         user_ids = set(user_ids)
+
+        # Unique the teams.
+        teams = set(teams)
 
         # 5 retries for race conditions where
         # concurrent subscription attempts cause integrity errors
@@ -105,6 +109,26 @@ class GroupSubscriptionManager(BaseManager):
                 for user_id in user_ids
                 if user_id not in existing_subscriptions
             ]
+
+            existing_team_subscriptions = set(
+                GroupSubscription.objects.filter(
+                    team__in=teams, group=group, project=group.project
+                ).values_list("team", flat=True)
+            )
+
+            subscriptions.extend(
+                [
+                    GroupSubscription(
+                        team=team,
+                        group=group,
+                        project=group.project,
+                        is_active=True,
+                        reason=reason,
+                    )
+                    for team in teams
+                    if team not in existing_team_subscriptions
+                ]
+            )
 
             try:
                 with transaction.atomic(router.db_for_write(GroupSubscription)):
