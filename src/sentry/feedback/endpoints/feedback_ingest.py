@@ -28,7 +28,6 @@ from sentry.utils.sdk import bind_organization_context, configure_scope
 
 class FeedbackValidator(serializers.Serializer):
     contexts = serializers.JSONField(required=False)
-    start_timestamp = serializers.FloatField(required=False)
     tags = serializers.JSONField(required=False)
     timestamp = serializers.FloatField(required=False)
     transaction = serializers.CharField(required=False)
@@ -47,24 +46,24 @@ class FeedbackValidator(serializers.Serializer):
         try:
             ret: Dict[str, Any] = {}
             ret["data"] = {
-                "contexts": data["contexts"],
-                "tags": data["tags"],
-                "transaction": data["transaction"],
-                "type": data["type"],
-                "transaction_info": data["transaction_info"],
-                "platform": data["platform"],
-                "environment": data["environment"],
-                "release": data["release"],
-                "sdk": data["sdk"],
-                "user": data["user"],
-                "request": data["request"],
+                "contexts": data.get("contexts"),
+                "tags": data.get("tags"),
+                "transaction": data.get("transactions"),
+                "type": data.get("type"),
+                "transaction_info": data.get("transaction_info"),
+                "platform": data.get("platform"),
+                "environment": data.get("environment"),
+                "release": data.get("release"),
+                "sdk": data.get("sdk"),
+                "user": data.get("user"),
+                "request": data.get("request"),
             }
             ret["date_added"] = datetime.datetime.fromtimestamp(data["timestamp"])
             ret["feedback_id"] = data["event_id"]
             ret["url"] = ""
             ret["project_id"] = self.context["project"].id
             ret["replay_id"] = ""
-            ret["message"] = data["message"]
+            ret["message"] = data.get("message")
 
             return ret
         except KeyError:

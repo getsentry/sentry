@@ -33,6 +33,22 @@ test_data = {
     },
 }
 
+test_data_missing_optional_fields = {
+    "timestamp": 1694039635.9195,
+    "message": "This website is great!",
+    "transaction": "/replays/",
+    "type": "transaction",
+    "transaction_info": {"source": "route"},
+    "platform": "javascript",
+    "event_id": "b51647a3c56f4a939984bb1147a6c3e5",
+    "request": {
+        "url": "https://sentry.sentry.io/replays/?project=11276&statsPeriod=7d",
+        "headers": {
+            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36"
+        },
+    },
+}
+
 wrong_test_data = {
     "contexts33": {},
     "tags!": {
@@ -75,6 +91,7 @@ wrong_type_test_data = {
     "timestamp": "1694039635.9195",
     "message": 24,
     "event_id": "b51647a3c56f4a939984bb1147a6c3e5",
+    "transaction": {},
 }
 
 
@@ -152,3 +169,12 @@ class FeedbackIngestTest(MonitorIngestTestCase):
             path = reverse(self.endpoint)
             response = self.client.post(path + "bad_slug", data=test_data, **self.dsn_auth_headers)
             assert response.status_code == 404
+
+    def test_missing_optional_fields(self):
+        # Optional fields missing should still result in successful save
+        with self.feature({"organizations:user-feedback-ingest": True}):
+            path = reverse(self.endpoint)
+            response = self.client.post(
+                path, data=test_data_missing_optional_fields, **self.dsn_auth_headers
+            )
+            assert response.status_code == 201
