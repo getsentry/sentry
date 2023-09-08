@@ -17,6 +17,7 @@ from sentry.incidents.models import (
 from sentry.models.actor import ACTOR_TYPES, Actor, actor_type_to_string
 from sentry.models.rule import Rule
 from sentry.models.rulesnooze import RuleSnooze
+from sentry.models.user import User
 from sentry.services.hybrid_cloud.app import app_service
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
@@ -128,7 +129,11 @@ class AlertRuleSerializer(Serializer):
             ):
                 user_from_id = None
                 if user:
-                    user_by_user_id.get(user.get("id"))
+                    # sometimes it's a User instance and sometimes a dict - should standardize
+                    if isinstance(user, (User, RpcUser)):
+                        user_by_user_id.get(user.id)
+                    else:
+                        user_by_user_id.get(user.get("id"))
 
                 incident_map[incident.alert_rule_id] = serialize(incident, user=user_from_id)
             for alert_rule in alert_rules.values():

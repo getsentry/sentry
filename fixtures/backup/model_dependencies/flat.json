@@ -1,4 +1,5 @@
 {
+  "feedback.Feedback": [],
   "nodestore.Node": [],
   "replays.ReplayRecordingSegment": [],
   "sentry.Activity": [

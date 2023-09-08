@@ -11,7 +11,9 @@ from packaging.version import parse as parse_version
 
 from sentry import options
 from sentry.loader.dynamic_sdk_options import get_default_loader_data
-from sentry.models import Organization, OrganizationMember, Project, ProjectKey, Team, User
+from sentry.models import Organization, OrganizationMember, Project, ProjectKey, Team
+from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.services.hybrid_cloud.util import region_silo_function
 from sentry.signals import post_upgrade, project_created
 from sentry.silo import SiloMode
 
@@ -53,14 +55,12 @@ def create_default_projects(**kwds):
         )
 
 
+@region_silo_function
 def create_default_project(id, name, slug, verbosity=2, **kwargs):
     if Project.objects.filter(id=id).exists():
         return
 
-    try:
-        user = User.objects.filter(is_superuser=True)[0]
-    except IndexError:
-        user = None
+    user = user_service.get_first_superuser()
 
     org, _ = Organization.objects.get_or_create(slug="sentry", defaults={"name": "Sentry"})
 

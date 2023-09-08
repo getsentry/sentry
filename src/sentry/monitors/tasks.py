@@ -153,8 +153,8 @@ def clock_pulse(current_datetime=None):
 
 @instrumented_task(
     name="sentry.monitors.tasks.check_missing",
-    time_limit=15,
-    soft_time_limit=10,
+    time_limit=30,
+    soft_time_limit=25,
     silo_mode=SiloMode.REGION,
 )
 def check_missing(current_datetime: datetime):
@@ -203,7 +203,7 @@ def check_missing(current_datetime: datetime):
             ]
         )[:MONITOR_LIMIT]
     )
-    metrics.gauge("sentry.monitors.tasks.check_missing.count", qs.count())
+    metrics.gauge("sentry.monitors.tasks.check_missing.count", qs.count(), sample_rate=1.0)
     for monitor_environment in qs:
         try:
             logger.info(
@@ -252,7 +252,7 @@ def check_timeout(current_datetime: datetime):
     qs = MonitorCheckIn.objects.filter(
         status=CheckInStatus.IN_PROGRESS, timeout_at__lte=current_datetime
     ).select_related("monitor", "monitor_environment")[:CHECKINS_LIMIT]
-    metrics.gauge("sentry.monitors.tasks.check_timeout.count", qs.count())
+    metrics.gauge("sentry.monitors.tasks.check_timeout.count", qs.count(), sample_rate=1)
     # check for any monitors which are still running and have exceeded their maximum runtime
     for checkin in qs:
         try:

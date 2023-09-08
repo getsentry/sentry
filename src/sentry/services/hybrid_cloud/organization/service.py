@@ -217,7 +217,7 @@ class OrganizationService(RpcService):
     def add_team_member(self, *, team_id: int, organization_member: RpcOrganizationMember) -> None:
         pass
 
-    @regional_rpc_method(resolve=UnimplementedRegionResolution())
+    @regional_rpc_method(resolve=UnimplementedRegionResolution("organization", "get_team_members"))
     @abstractmethod
     def get_team_members(self, *, team_id: int) -> Iterable[RpcOrganizationMember]:
         pass
