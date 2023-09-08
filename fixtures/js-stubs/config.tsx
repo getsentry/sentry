@@ -61,7 +61,6 @@ export function Config(params: Partial<ConfigType> = {}): ConfigType {
       regionUrl: 'https://us.sentry.io',
     },
     regions: [{name: 'us', url: 'https://sentry.io'}],
-    availableRegions: [{name: 'us', url: 'https://sentry.io'}],
     ...params,
   };
 }

@@ -83,7 +83,8 @@ function App({children, params}: Props) {
         });
         OrganizationsStore.load(data);
       } else {
-        // Get the current user's organizations from each region the user has membership on
+        // Get the current user's organizations from each multi-tenant region. Will
+        // include single-tenants if the user has membership on those.
         const results = await Promise.all(
           regions.map(region =>
             api.requestPromise(`/organizations/`, {

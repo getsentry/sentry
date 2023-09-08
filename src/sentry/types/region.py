@@ -287,3 +287,11 @@ def find_regions_for_user(user_id: int) -> Set[str]:
 
 def find_all_region_names() -> Iterable[str]:
     return load_global_regions().by_name.keys()
+
+
+def find_all_multitenant_region_names() -> Iterable[str]:
+    return [
+        region.name
+        for region in load_global_regions().regions
+        if region.category == RegionCategory.MULTI_TENANT
+    ]

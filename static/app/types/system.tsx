@@ -125,8 +125,6 @@ interface CustomerDomain {
 }
 export interface Config {
   apmSampling: number;
-  // The regions available for new orgs in this sentry instance.
-  availableRegions: Region[];
   csrfCookieName: string;
   customerDomain: CustomerDomain | null;
   demoMode: boolean;

@@ -15,6 +15,7 @@ from sentry.app import env
 from sentry.middleware.auth import AuthenticationMiddleware
 from sentry.middleware.placeholder import placeholder_get_response
 from sentry.models import AuthIdentity, AuthProvider, Organization
+from sentry.models.organizationmapping import OrganizationMapping
 from sentry.silo import SiloMode
 from sentry.testutils.factories import Factories
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -28,6 +29,7 @@ RequestFactory = Callable[[], Optional[Tuple[HttpRequest, User]]]
 region_data = [
     Region("us", 1, "http://us.testserver", RegionCategory.MULTI_TENANT),
     Region("eu", 2, "http://eu.testserver", RegionCategory.MULTI_TENANT),
+    Region("acme", 3, "http://acme.testserver", RegionCategory.SINGLE_TENANT),
 ]
 
 
@@ -165,11 +167,6 @@ def test_client_config_empty_region_data():
     assert regions[0]["name"] == settings.SENTRY_MONOLITH_REGION
     assert regions[0]["url"] == options.get("system.url-prefix")
 
-    assert len(result["availableRegions"]) == 1
-    regions = result["availableRegions"]
-    assert regions[0]["name"] == settings.SENTRY_MONOLITH_REGION
-    assert regions[0]["url"] == options.get("system.url-prefix")
-
 
 @django_db_all
 @override_regions(regions=region_data)
@@ -179,11 +176,24 @@ def test_client_config_with_region_data():
     request.user = user
     result = get_client_config(request)
 
-    assert len(result["regions"]) == 1
+    assert len(result["regions"]) == 2
     regions = result["regions"]
-    assert regions[0]["name"] == "us"
-    assert regions[0]["url"] == region_data[0].address
-
-    assert len(result["availableRegions"]) == 2
-    regions = result["availableRegions"]
     assert {r["name"] for r in regions} == {"eu", "us"}
+
+
+@django_db_all
+@override_regions(regions=region_data)
+@override_settings(SILO_MODE=SiloMode.CONTROL)
+def test_client_config_with_single_tenant_membership():
+    request, user = make_user_request_from_org()
+    request.user = user
+
+    Factories.create_organization(slug="acme-co", owner=user)
+    mapping = OrganizationMapping.objects.get(slug="acme-co")
+    mapping.update(region_name="acme")
+
+    result = get_client_config(request)
+
+    assert len(result["regions"]) == 3
+    regions = result["regions"]
+    assert {r["name"] for r in regions} == {"eu", "us", "acme"}

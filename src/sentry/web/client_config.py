@@ -20,7 +20,7 @@ from sentry.services.hybrid_cloud.project_key import ProjectKeyRole, project_key
 from sentry.services.hybrid_cloud.user import UserSerializeType
 from sentry.services.hybrid_cloud.user.serial import serialize_generic_user
 from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.types.region import RegionCategory, find_all_region_names, get_region_by_name
+from sentry.types.region import find_all_multitenant_region_names, get_region_by_name
 from sentry.utils import auth, json
 from sentry.utils.assets import get_frontend_dist_prefix
 from sentry.utils.email import is_smtp_enabled
@@ -254,34 +254,27 @@ class _ClientConfig:
 
     @property
     def regions(self) -> List[Mapping[str, Any]]:
-        """The regions the current user has presence in"""
+        """
+        The regions available to the current user.
+
+        This will include *all* multi-tenant regions, and if the customer
+        has membership on any single-tenant regions those will also be included.
+        """
         user = self.user
-        region_names = find_all_region_names()
-        if not region_names or not user or not user.id:
-            return self.available_regions
-
-        memberships = user_service.get_organizations(user_id=user.id)
-        unique_regions = {membership.region_name for membership in memberships}
-        return [
-            get_region_by_name(name).api_serialize()
-            for name in region_names
-            if name in unique_regions
-        ]
-
-    @property
-    def available_regions(self) -> List[Mapping[str, Any]]:
-        """The regions available to this sentry instance"""
-        region_names = find_all_region_names()
+        region_names = find_all_multitenant_region_names()
         if not region_names:
-            # we have no regions. Generate one to keep frontend logic happy
             return [{"name": "default", "url": options.get("system.url-prefix")}]
-        regions = [get_region_by_name(name) for name in region_names]
 
-        return [
-            region.api_serialize()
-            for region in regions
-            if region.category == RegionCategory.MULTI_TENANT
-        ]
+        # No logged in user.
+        if not user or not user.id:
+            return [get_region_by_name(region).api_serialize() for region in region_names]
+
+        # Ensure all regions the current user is in are included as there
+        # could be single tenants as well.
+        memberships = user_service.get_organizations(user_id=user.id)
+        unique_regions = set(region_names) | {membership.region_name for membership in memberships}
+
+        return [get_region_by_name(name).api_serialize() for name in unique_regions]
 
     def get_context(self) -> Mapping[str, Any]:
         return {
@@ -327,7 +320,6 @@ class _ClientConfig:
                 "allowUrls": self.allow_list,
                 "tracePropagationTargets": settings.SENTRY_FRONTEND_TRACE_PROPAGATION_TARGETS or [],
             },
-            "availableRegions": self.available_regions,
             "regions": self.regions,
             "demoMode": settings.DEMO_MODE,
             "enableAnalytics": settings.ENABLE_ANALYTICS,
