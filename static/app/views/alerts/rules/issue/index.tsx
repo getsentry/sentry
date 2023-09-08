@@ -921,6 +921,8 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
     const {rule, detailedError} = this.state;
     const {name} = rule || {};
 
+    // Duplicate errors display on the "name" field but we're showing them in a banner
+    // Remove them from the name detailed error
     const filteredDetailedError =
       detailedError?.name?.filter(str => !isExactDuplicateExp.test(str)) ?? [];
 
