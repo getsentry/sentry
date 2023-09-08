@@ -50,7 +50,7 @@ class WebhookTest(APITestCase):
             data=PUSH_EVENT_EXAMPLE_INSTALLATION,
             content_type="application/json",
             HTTP_X_GITHUB_EVENT="push",
-            HTTP_X_HUB_SIGNATURE="sha1=f834c327e17e6ef77f7882f948022747b379a1e3",
+            HTTP_X_HUB_SIGNATURE="sha1=33521abeaaf9a57c2abf486e0ccd54d23cf36fec",
             HTTP_X_GITHUB_DELIVERY=str(uuid4()),
         )
 
