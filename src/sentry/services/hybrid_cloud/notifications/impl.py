@@ -10,7 +10,11 @@ from sentry.api.serializers.models.notification_setting import NotificationSetti
 from sentry.models.notificationsetting import NotificationSetting
 from sentry.models.project import Project
 from sentry.models.user import User
-from sentry.notifications.helpers import get_scope_type, get_setting_providers_for_projects, is_double_write_enabled
+from sentry.notifications.helpers import (
+    get_scope_type,
+    get_setting_providers_for_projects,
+    is_double_write_enabled,
+)
 from sentry.notifications.types import (
     NotificationScopeEnum,
     NotificationScopeType,

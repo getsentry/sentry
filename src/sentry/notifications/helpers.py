@@ -9,9 +9,9 @@ from django.db.models import Q
 from sentry import features
 from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
-from sentry.models.user import User
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
+from sentry.models.user import User
 from sentry.notifications.defaults import (
     NOTIFICATION_SETTING_DEFAULTS,
     NOTIFICATION_SETTINGS_ALL_SOMETIMES,
