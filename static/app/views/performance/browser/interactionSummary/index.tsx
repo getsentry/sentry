@@ -30,7 +30,7 @@ function InteractionSummary() {
               {
                 label: 'Interactions',
                 to: normalizeUrl(
-                  `/organizations/${organization.slug}/performance/interactions/`
+                  `/organizations/${organization.slug}/performance/browser/interactions/`
                 ),
                 preservePageFilters: true,
               },
