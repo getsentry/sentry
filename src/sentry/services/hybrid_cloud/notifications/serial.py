@@ -1,5 +1,4 @@
 from sentry.models.notificationsetting import NotificationSetting
-from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.services.hybrid_cloud.notifications import RpcNotificationSetting
 
 
