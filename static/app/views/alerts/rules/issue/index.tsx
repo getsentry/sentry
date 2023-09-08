@@ -964,11 +964,12 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
         priority="error"
         icon={<IconNot color="red300" />}
         href={normalizeUrl(
-          `${window.location.hostname}/organization/${organization.slug}/alerts/rules/app-frontend/${duplicateRuleId}/details/`
+          `/organization/${organization.slug}/alerts/rules/app-frontend/${duplicateRuleId}/details/`
         )}
       >
         {t(
-          "This rule is an exact duplicate of '%s' in this project and may not be created.",
+          'This rule fully duplicates "%s" and cannot be saved. Click to view "%s"',
+          duplicateName,
           duplicateName
         )}
       </AlertLink>
