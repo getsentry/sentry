@@ -1,7 +1,10 @@
-import {Event} from './event';
+import {EntryType} from 'sentry/types';
 
-const exception = {
-  type: 'exception',
+import {Event} from './event';
+import {EventEntry} from './eventEntry';
+
+const exception = EventEntry({
+  type: EntryType.EXCEPTION,
   data: {
     values: [
       {
@@ -29,7 +32,7 @@ const exception = {
       },
     ],
   },
-};
+});
 
 const message = {
   type: 'message',
