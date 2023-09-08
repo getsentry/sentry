@@ -94,7 +94,7 @@ function IssueListHeader({
     : tabs.filter(([tab]) => tab !== Query.REPROCESSING);
   const tabValues = new Set(visibleTabs.map(([val]) => val));
   // Remove cursor and page when switching tabs
-  const {cursor: _, page: __, ...queryParms} = router?.location?.query ?? {};
+  const {cursor: _cursor, page: _page, ...queryParms} = router?.location?.query ?? {};
   const sortParam =
     queryParms.sort === IssueSortOptions.INBOX ? undefined : queryParms.sort;
 
@@ -134,45 +134,43 @@ function IssueListHeader({
       <StyledGlobalEventProcessingAlert projects={selectedProjects} />
       <StyledTabs value={tabValues.has(query) ? query : CUSTOM_TAB_VALUE}>
         <TabList hideBorder>
-          {[
-            ...visibleTabs.map(
-              ([tabQuery, {name: queryName, tooltipTitle, tooltipHoverable, hidden}]) => {
-                const to = normalizeUrl({
-                  query: {
-                    ...queryParms,
-                    query: tabQuery,
-                    sort: FOR_REVIEW_QUERIES.includes(tabQuery || '')
-                      ? IssueSortOptions.INBOX
-                      : sortParam,
-                  },
-                  pathname: `/organizations/${organization.slug}/issues/`,
-                });
+          {visibleTabs.map(
+            ([tabQuery, {name: queryName, tooltipTitle, tooltipHoverable, hidden}]) => {
+              const to = normalizeUrl({
+                query: {
+                  ...queryParms,
+                  query: tabQuery,
+                  sort: FOR_REVIEW_QUERIES.includes(tabQuery || '')
+                    ? IssueSortOptions.INBOX
+                    : sortParam,
+                },
+                pathname: `/organizations/${organization.slug}/issues/`,
+              });
 
-                return (
-                  <TabList.Item
-                    key={tabQuery}
-                    to={to}
-                    textValue={queryName}
-                    hidden={hidden}
+              return (
+                <TabList.Item
+                  key={tabQuery}
+                  to={to}
+                  textValue={queryName}
+                  hidden={hidden}
+                >
+                  <GuideAnchor
+                    disabled={tabQuery !== Query.ARCHIVED}
+                    target="issue_stream_archive_tab"
+                    position="bottom"
                   >
-                    <GuideAnchor
-                      disabled={tabQuery !== Query.ARCHIVED}
-                      target="issue_stream_archive_tab"
-                      position="bottom"
-                    >
-                      <IssueListHeaderTabContent
-                        tooltipTitle={tooltipTitle}
-                        tooltipHoverable={tooltipHoverable}
-                        name={queryName}
-                        count={queryCounts[tabQuery]?.count}
-                        hasMore={queryCounts[tabQuery]?.hasMore}
-                      />
-                    </GuideAnchor>
-                  </TabList.Item>
-                );
-              }
-            ),
-          ]}
+                    <IssueListHeaderTabContent
+                      tooltipTitle={tooltipTitle}
+                      tooltipHoverable={tooltipHoverable}
+                      name={queryName}
+                      count={queryCounts[tabQuery]?.count}
+                      hasMore={queryCounts[tabQuery]?.hasMore}
+                    />
+                  </GuideAnchor>
+                </TabList.Item>
+              );
+            }
+          )}
         </TabList>
       </StyledTabs>
     </Layout.Header>

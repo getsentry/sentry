@@ -19,7 +19,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0544_add_commitfilechange_language_col"),
+        ("sentry", "0543_add_team_id_to_groupsubscription"),
     ]
 
     operations = [
