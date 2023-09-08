@@ -9,6 +9,7 @@ import momentTimezone from 'moment-timezone';
 
 import {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
+import {OnDemandMetricAlert} from 'sentry/components/alerts/onDemandMetricAlert';
 import {Button} from 'sentry/components/button';
 import {AreaChart, AreaChartSeries} from 'sentry/components/charts/areaChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
@@ -44,7 +45,6 @@ import {ReactEchartsRef, Series} from 'sentry/types/echarts';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {getDuration} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import {OnDemandMetricAlert} from 'sentry/utils/onDemandMetrics';
 import {MINUTES_THRESHOLD_TO_DISPLAY_SECONDS} from 'sentry/utils/sessions';
 import theme from 'sentry/utils/theme';
 import toArray from 'sentry/utils/toArray';
@@ -88,7 +88,7 @@ type Props = WithRouterProps & {
   rule: MetricRule;
   timePeriod: TimePeriodType;
   incidents?: Incident[];
-  onDemandMetricAlert?: boolean;
+  isOnDemandAlert?: boolean;
   selectedIncident?: Incident | null;
 };
 
@@ -315,7 +315,7 @@ class MetricChart extends PureComponent<Props, State> {
       rule,
       incidents,
       selectedIncident,
-      isOnDemandMetricAlert: this.props.onDemandMetricAlert,
+      isOnDemandMetricAlert: this.props.isOnDemandAlert,
       handleIncidentClick,
     });
 
@@ -497,7 +497,7 @@ class MetricChart extends PureComponent<Props, State> {
   }
 
   renderEmptyOnDemandAlert(timeseriesData: Series[] = [], loading?: boolean) {
-    if (loading || !this.props.onDemandMetricAlert || !isEmptySeries(timeseriesData[0])) {
+    if (loading || !this.props.isOnDemandAlert || !isEmptySeries(timeseriesData[0])) {
       return null;
     }
 
@@ -531,7 +531,7 @@ class MetricChart extends PureComponent<Props, State> {
       interval,
       query,
       location,
-      onDemandMetricAlert,
+      isOnDemandAlert,
     } = this.props;
     const {aggregate, timeWindow, environment, dataset} = rule;
 
@@ -606,7 +606,7 @@ class MetricChart extends PureComponent<Props, State> {
         partial={false}
         queryExtras={queryExtras}
         referrer="api.alerts.alert-rule-chart"
-        useOnDemandMetrics={onDemandMetricAlert}
+        useOnDemandMetrics={isOnDemandAlert}
       >
         {({loading, timeseriesData, comparisonTimeseriesData}) => (
           <Fragment>

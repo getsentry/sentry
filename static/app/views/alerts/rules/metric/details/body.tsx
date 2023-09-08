@@ -139,7 +139,7 @@ export default function MetricDetailsBody({
   const isSnoozed = rule.snooze;
   const ruleActionCategory = getAlertRuleActionCategory(rule);
 
-  const onDemandMetricAlert = isOnDemandMetricAlert(dataset, query);
+  const isOnDemandAlert = isOnDemandMetricAlert(dataset, query);
 
   return (
     <Fragment>
@@ -191,7 +191,7 @@ export default function MetricDetailsBody({
             interval={getPeriodInterval()}
             query={isCrashFreeAlert(dataset) ? query : queryWithTypeFilter}
             filter={getFilter()}
-            onDemandMetricAlert={onDemandMetricAlert}
+            isOnDemandAlert={isOnDemandAlert}
           />
           <DetailWrapper>
             <ActivityWrapper>

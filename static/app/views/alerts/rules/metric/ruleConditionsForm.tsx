@@ -7,6 +7,10 @@ import pick from 'lodash/pick';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
+import {
+  OnDemandMetricAlert,
+  OnDemandWarningIcon,
+} from 'sentry/components/alerts/onDemandMetricAlert';
 import SearchBar from 'sentry/components/events/searchBar';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import SelectField from 'sentry/components/forms/fields/selectField';
@@ -25,8 +29,6 @@ import {
   getOnDemandKeys,
   hasOnDemandMetricAlertFeature,
   isOnDemandQueryString,
-  OnDemandMetricAlert,
-  OnDemandWarningIcon,
 } from 'sentry/utils/onDemandMetrics';
 import withApi from 'sentry/utils/withApi';
 import withProjects from 'sentry/utils/withProjects';
