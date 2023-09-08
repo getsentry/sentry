@@ -16,6 +16,8 @@ class MetricEnvelopeEncoder(Generic[IN, OUT]):
         raise NotImplementedError()
 
 
+# TODO: implement input sanitization.
+# You can't use the following chars : @ , # |
 class RelayStatsdEncoder(MetricEnvelopeEncoder[ExtractedMetric, str]):
     MULTI_VALUE_SEPARATOR = ":"
     TAG_SEPARATOR = ","
@@ -28,6 +30,10 @@ class RelayStatsdEncoder(MetricEnvelopeEncoder[ExtractedMetric, str]):
         metric_tags = self._get_tags(value.get("tags"))
 
         return f"{metric_name}{metric_unit}:{metric_value}|{metric_type}{metric_tags}"
+
+    @classmethod
+    def _sanitize_str(cls, value: str) -> str:
+        return value
 
     @classmethod
     def _get_metric_unit(cls, unit: Optional[MetricUnit]) -> str:
