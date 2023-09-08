@@ -421,24 +421,37 @@ class OutboxBase(Model):
     @classmethod
     def prepare_next_from_shard(cls, row: Mapping[str, Any]) -> Self | None:
         using = router.db_for_write(cls)
-        with transaction.atomic(using=using, savepoint=False):
-            next_outbox: OutboxBase | None
-            next_outbox = (
-                cls(**row).selected_messages_in_shard().order_by("id").select_for_update().first()
-            )
-            if not next_outbox:
+        try:
+            with transaction.atomic(using=using, savepoint=False):
+                next_outbox: OutboxBase | None
+                next_outbox = (
+                    cls(**row)
+                    .selected_messages_in_shard()
+                    .order_by("id")
+                    .select_for_update(nowait=True)
+                    .first()
+                )
+                if not next_outbox:
+                    return None
+
+                # We rely on 'proof of failure by remaining' to handle retries -- basically, by scheduling this shard, we
+                # expect all objects to be drained before the next schedule comes around, or else we will run again.
+                # Note that the system does not strongly protect against concurrent processing -- this is expected in the
+                # case of drains, for instance.
+                now = timezone.now()
+                next_outbox.selected_messages_in_shard().update(
+                    scheduled_for=next_outbox.next_schedule(now), scheduled_from=now
+                )
+
+                return next_outbox
+
+        except OperationalError as e:
+            # If concurrent locking is happening on the table, gracefully pass and allow
+            # that work to process.
+            if "LockNotAvailable" in str(e):
                 return None
-
-            # We rely on 'proof of failure by remaining' to handle retries -- basically, by scheduling this shard, we
-            # expect all objects to be drained before the next schedule comes around, or else we will run again.
-            # Note that the system does not strongly protect against concurrent processing -- this is expected in the
-            # case of drains, for instance.
-            now = timezone.now()
-            next_outbox.selected_messages_in_shard().update(
-                scheduled_for=next_outbox.next_schedule(now), scheduled_from=now
-            )
-
-            return next_outbox
+            else:
+                raise
 
     def key_from(self, attrs: Iterable[str]) -> Mapping[str, Any]:
         return {k: _ensure_not_null(k, getattr(self, k)) for k in attrs}
