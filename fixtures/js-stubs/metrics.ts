@@ -151,6 +151,8 @@ export function MetricsField(
 
 export function MetricsTotalCountByReleaseIn24h(): MetricsApiResponse {
   return {
+    start: '2021-12-01T16:15:00Z',
+    end: '2021-12-02T16:15:00Z',
     query:
       'release:7a82c130be9143361f20bc77252df783cf91e4fc OR release:e102abb2c46e7fe8686441091005c12aed90da99',
     intervals: [
@@ -181,7 +183,7 @@ export function MetricsTotalCountByReleaseIn24h(): MetricsApiResponse {
     ],
     groups: [
       {
-        by: {project: 123, release: '7a82c130be9143361f20bc77252df783cf91e4fc'},
+        by: {project: '123', release: '7a82c130be9143361f20bc77252df783cf91e4fc'},
         totals: {'sum(session)': 219826},
         series: {
           'sum(session)': [
@@ -191,7 +193,7 @@ export function MetricsTotalCountByReleaseIn24h(): MetricsApiResponse {
         },
       },
       {
-        by: {release: 'e102abb2c46e7fe8686441091005c12aed90da99', project: 123},
+        by: {release: 'e102abb2c46e7fe8686441091005c12aed90da99', project: '123'},
         totals: {'sum(session)': 6320},
         series: {
           'sum(session)': [
