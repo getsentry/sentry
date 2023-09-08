@@ -41,6 +41,7 @@ class MailAdapter:
         target_identifier: Optional[int] = None,
         fallthrough_choice: Optional[FallthroughChoiceType] = None,
         skip_digests: bool = False,
+        notification_uuid: Optional[str] = None,
     ) -> None:
         metrics.incr("mail_adapter.rule_notify")
         rules = []
@@ -87,7 +88,9 @@ class MailAdapter:
 
         else:
             notification = Notification(event=event, rules=rules)
-            self.notify(notification, target_type, target_identifier, fallthrough_choice)
+            self.notify(
+                notification, target_type, target_identifier, fallthrough_choice, notification_uuid
+            )
 
         logger.info("mail.adapter.notification.%s" % log_event, extra=extra)
 
@@ -123,10 +126,19 @@ class MailAdapter:
 
     @staticmethod
     def notify(
-        notification, target_type, target_identifier=None, fallthrough_choice=None, **kwargs
+        notification,
+        target_type,
+        target_identifier=None,
+        fallthrough_choice=None,
+        notification_uuid: Optional[str] = None,
+        **kwargs,
     ):
         AlertRuleNotification(
-            notification, target_type, target_identifier, fallthrough_choice
+            notification,
+            target_type,
+            target_identifier,
+            fallthrough_choice,
+            notification_uuid=notification_uuid,
         ).send()
 
     @staticmethod
@@ -136,10 +148,16 @@ class MailAdapter:
         target_type: ActionTargetType,
         target_identifier: Optional[int] = None,
         fallthrough_choice: Optional[FallthroughChoiceType] = None,
+        notification_uuid: Optional[str] = None,
     ) -> None:
         metrics.incr("mail_adapter.notify_digest")
         return DigestNotification(
-            project, digest, target_type, target_identifier, fallthrough_choice
+            project,
+            digest,
+            target_type,
+            target_identifier,
+            fallthrough_choice,
+            notification_uuid=notification_uuid,
         ).send()
 
     @staticmethod

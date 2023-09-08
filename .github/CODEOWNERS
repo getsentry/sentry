@@ -139,6 +139,9 @@ yarn.lock                                                @getsentry/owners-js-de
 /src/sentry/middleware/subdomain.py                      @getsentry/hybrid-cloud
 /src/sentry/middleware/integration/                      @getsentry/hybrid-cloud
 /src/sentry/api/endpoints/rpc.py                         @getsentry/hybrid-cloud
+/src/sentry/models/outbox.py                             @getsentry/hybrid-cloud
+/src/sentry/tasks/deliver_from_outbox.py                 @getsentry/hybrid-cloud
+/src/sentry/tasks/deletion/hybrid_cloud.py               @getsentry/hybrid-cloud
 ## End of Hybrid Cloud
 
 ## Workflow
@@ -287,6 +290,15 @@ yarn.lock                                                @getsentry/owners-js-de
 /src/sentry/replays/              @getsentry/replay-backend
 /tests/sentry/replays/            @getsentry/replay-backend
 ## End of Replays
+
+
+## Feedback v2
+/static/app/components/feedback/   @getsentry/feedback-frontend
+/static/app/utils/feedback/        @getsentry/feedback-frontend
+/static/app/views/feedback/        @getsentry/feedback-frontend
+/src/sentry/feedback/              @getsentry/feedback-backend
+/tests/sentry/feedback/            @getsentry/feedback-backend
+## End of Feedback v2
 
 
 ## Integrations

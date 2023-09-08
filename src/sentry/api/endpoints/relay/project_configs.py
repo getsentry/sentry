@@ -8,6 +8,7 @@ from rest_framework.response import Response
 from sentry_sdk import Hub, set_tag, start_span, start_transaction
 
 from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import RelayAuthentication
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.permissions import RelayPermission
@@ -31,6 +32,9 @@ def _sample_apm():
 
 @region_silo_endpoint
 class RelayProjectConfigsEndpoint(Endpoint):
+    publish_status = {
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     owner = ApiOwner.OWNERS_INGEST
     authentication_classes = (RelayAuthentication,)
     permission_classes = (RelayPermission,)
@@ -55,7 +59,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
         version = request.GET.get("version") or "1"
         set_tag("relay_protocol_version", version)
 
-        if version == "4" and request.relay_request_data.get("global"):
+        if version in ["3", "4"] and request.relay_request_data.get("global"):
             response["global"] = get_global_config()
 
         if self._should_post_or_schedule(version, request):

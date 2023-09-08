@@ -10,6 +10,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import ratelimits
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.serializers import serialize
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
@@ -18,6 +19,7 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
 from sentry.models import Project, ProjectKey
 from sentry.monitors.logic.mark_failed import mark_failed
+from sentry.monitors.logic.mark_ok import mark_ok
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
@@ -43,7 +45,9 @@ CHECKIN_QUOTA_WINDOW = 60
 @region_silo_endpoint
 @extend_schema(tags=["Crons"])
 class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
-    public = {"POST"}
+    publish_status = {
+        "POST": ApiPublishStatus.PUBLIC,
+    }
 
     rate_limits = RateLimitConfig(
         limit_overrides={
@@ -190,9 +194,7 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
             if duration is not None:
                 date_added -= timedelta(milliseconds=duration)
 
-            expected_time = None
-            if monitor_environment.last_checkin:
-                expected_time = monitor.get_next_expected_checkin(monitor_environment.last_checkin)
+            expected_time = monitor_environment.next_checkin
 
             status = getattr(CheckInStatus, result["status"].upper())
             monitor_config = monitor.get_validated_config()
@@ -220,7 +222,7 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
                         return self.respond(status=200)
                     return self.respond(serialize(checkin, request.user), status=200)
             else:
-                monitor_environment.mark_ok(checkin, checkin.date_added)
+                mark_ok(checkin, checkin.date_added)
 
         if isinstance(request.auth, ProjectKey):
             return self.respond({"id": str(checkin.guid)}, status=201)

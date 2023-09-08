@@ -54,6 +54,8 @@ type TestStubFixtures = {
   DiscoverSavedQuery: OverridableStub;
   DocIntegration: OverridableStub;
   Entries: SimpleStub;
+  Entries123Base: OverridableStub;
+  Entries123Target: OverridableStub;
   Environments: SimpleStub;
   Event: OverridableStub;
   EventAttachment: OverridableStub;
@@ -98,6 +100,8 @@ type TestStubFixtures = {
   MetricsTotalCountByReleaseIn24h: SimpleStub;
   MissingMembers: OverridableStubList;
   NotificationDefaults: SimpleStub;
+  OpsgenieIntegration: OverridableStub;
+  OpsgenieIntegrationProvider: OverridableStub;
   OrgOwnedApps: SimpleStub;
   OrgRoleList: OverridableStub;
   Organization: OverridableStub;

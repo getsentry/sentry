@@ -11,7 +11,7 @@ from sentry.types.integrations import ExternalProviders
 from sentry.utils.http import absolute_uri
 from sentry.utils.signing import sign, unsign
 from sentry.web.decorators import transaction_start
-from sentry.web.frontend.base import BaseView
+from sentry.web.frontend.base import BaseView, control_silo_view
 from sentry.web.helpers import render_to_response
 
 from .card_builder.identity import build_linked_card
@@ -32,6 +32,7 @@ def build_linking_url(integration, organization, teams_user_id, team_id, tenant_
     )
 
 
+@control_silo_view
 class MsTeamsLinkIdentityView(BaseView):
     @transaction_start("MsTeamsLinkIdentityView")
     @method_decorator(never_cache)

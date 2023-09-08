@@ -1,3 +1,4 @@
+import uuid
 from unittest import mock
 from unittest.mock import patch
 from urllib.parse import parse_qs
@@ -63,9 +64,12 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         event = self.store_event(
             data={"message": "Hello world", "level": "error"}, project_id=self.project.id
         )
-
+        notification_uuid = str(uuid.uuid4())
         notification = AlertRuleNotification(
-            Notification(event=event, rule=self.rule), ActionTargetType.MEMBER, self.user.id
+            Notification(event=event, rule=self.rule),
+            ActionTargetType.MEMBER,
+            self.user.id,
+            notification_uuid=notification_uuid,
         )
 
         with self.tasks():
@@ -77,6 +81,11 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         assert (
             attachment["footer"]
             == f"{self.project.slug} | <http://testserver/settings/account/notifications/alerts/?referrer=issue_alert-slack-user|Notification Settings>"
+        )
+        assert event.group
+        assert (
+            attachment["title_link"]
+            == f"http://testserver/organizations/{self.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&alert_rule_id={self.rule.id}&alert_type=issue"
         )
 
     @responses.activate
@@ -185,6 +194,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             attachment["footer"]
             == f"{self.project.slug} | <http://testserver/settings/account/notifications/alerts/?referrer=issue_alert-slack-user|Notification Settings>"
         )
+        assert "notification_uuid=" in attachment["title_link"]
 
     @responses.activate
     @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
@@ -211,7 +221,8 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         )
         # update the team's notification settings
         ExternalActor.objects.create(
-            actor=self.team.actor,
+            actor_id=self.team.actor_id,
+            team_id=self.team.id,
             organization=self.organization,
             integration_id=self.integration.id,
             provider=ExternalProviders.SLACK.value,
@@ -223,6 +234,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.ALWAYS,
             team_id=self.team.id,
+            organization_id_for_team=self.organization.id,
         )
 
         rule = GrammarRule(Matcher("path", "*"), [Owner("team", self.team.slug)])
@@ -282,7 +294,8 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
 
         # update the team's notification settings
         ExternalActor.objects.create(
-            actor=self.team.actor,
+            actor_id=self.team.actor_id,
+            team_id=self.team.id,
             organization=self.organization,
             integration_id=self.integration.id,
             provider=ExternalProviders.SLACK.value,
@@ -294,6 +307,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.ALWAYS,
             team_id=self.team.id,
+            organization_id_for_team=self.organization.id,
         )
 
         OrganizationIntegration.objects.filter(integration=self.integration).update(
@@ -378,7 +392,8 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         )
         # update the team's notification settings
         ExternalActor.objects.create(
-            actor=self.team.actor,
+            actor_id=self.team.actor_id,
+            team_id=self.team.id,
             organization=self.organization,
             integration_id=self.integration.id,
             provider=ExternalProviders.SLACK.value,
@@ -390,6 +405,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.ALWAYS,
             team_id=self.team.id,
+            organization_id_for_team=self.organization.id,
         )
 
         g_rule = GrammarRule(Matcher("path", "*"), [Owner("team", self.team.slug)])
@@ -470,7 +486,8 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         )
         # update the team's notification settings
         ExternalActor.objects.create(
-            actor=self.team.actor,
+            actor_id=self.team.actor_id,
+            team_id=self.team.id,
             organization=self.organization,
             integration_id=self.integration.id,
             provider=ExternalProviders.SLACK.value,
@@ -482,6 +499,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.ALWAYS,
             team_id=self.team.id,
+            organization_id_for_team=self.organization.id,
         )
 
         event = self.store_event(
@@ -546,7 +564,8 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         )
         # update the team's notification settings
         ExternalActor.objects.create(
-            actor=self.team.actor,
+            actor_id=self.team.actor_id,
+            team_id=self.team.id,
             organization=self.organization,
             integration_id=self.integration.id,
             provider=ExternalProviders.SLACK.value,
@@ -558,6 +577,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.ALWAYS,
             team_id=self.team.id,
+            organization_id_for_team=self.organization.id,
         )
         # add a new project
         project2 = self.create_project(
@@ -608,7 +628,8 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
 
         # create the team's notification settings
         ExternalActor.objects.create(
-            actor=self.team.actor,
+            actor_id=self.team.actor_id,
+            team_id=self.team.id,
             organization=self.organization,
             integration_id=self.integration.id,
             provider=ExternalProviders.SLACK.value,
@@ -620,6 +641,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.ALWAYS,
             team_id=self.team.id,
+            organization_id_for_team=self.organization.id,
         )
         # remove the project from the team
         self.project.remove_team(self.team)

@@ -139,6 +139,8 @@ export default function MetricDetailsBody({
   const isSnoozed = rule.snooze;
   const ruleActionCategory = getAlertRuleActionCategory(rule);
 
+  const isOnDemandAlert = isOnDemandMetricAlert(dataset, query);
+
   return (
     <Fragment>
       {selectedIncident?.alertRule.status === AlertRuleStatus.SNAPSHOT && (
@@ -189,7 +191,7 @@ export default function MetricDetailsBody({
             interval={getPeriodInterval()}
             query={isCrashFreeAlert(dataset) ? query : queryWithTypeFilter}
             filter={getFilter()}
-            isOnDemandMetricAlert={isOnDemandMetricAlert(dataset, query)}
+            isOnDemandAlert={isOnDemandAlert}
           />
           <DetailWrapper>
             <ActivityWrapper>
@@ -223,7 +225,10 @@ export default function MetricDetailsBody({
           </DetailWrapper>
         </Layout.Main>
         <Layout.Side>
-          <MetricDetailsSidebar rule={rule} />
+          <MetricDetailsSidebar
+            rule={rule}
+            isOnDemandMetricAlert={isOnDemandMetricAlert(dataset, query)}
+          />
         </Layout.Side>
       </Layout.Body>
     </Fragment>
