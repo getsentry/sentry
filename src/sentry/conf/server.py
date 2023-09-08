@@ -371,7 +371,7 @@ SENTRY_OUTBOX_MODELS: Mapping[str, list[str]] = {
 }
 
 # Do not modify reordering
-# The applications isted first in INSTALLED_APPS have precedence
+# The applications listed first in INSTALLED_APPS have precedence
 INSTALLED_APPS: tuple[str, ...] = (
     "django.contrib.auth",
     "django.contrib.contenttypes",

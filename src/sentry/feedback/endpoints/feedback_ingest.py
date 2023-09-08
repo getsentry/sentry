@@ -7,6 +7,7 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import (
@@ -18,10 +19,8 @@ from sentry.api.authentication import (
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.bases.project import ProjectPermission
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.api.serializers.base import serialize
 from sentry.constants import ObjectStatus
 from sentry.feedback.models import Feedback
-from sentry.feedback.serializers import FeedbackSerializer
 from sentry.models import Organization, ProjectKey
 from sentry.models.project import Project
 from sentry.utils.sdk import bind_organization_context, configure_scope
@@ -42,6 +41,7 @@ class FeedbackValidator(serializers.Serializer):
     sdk = serializers.JSONField(required=False)
     user = serializers.JSONField(required=False)
     request = serializers.JSONField(required=False)
+    message = serializers.CharField(required=False)
 
     def validate(self, data):
         ret: Dict[str, Any] = {}
@@ -63,12 +63,12 @@ class FeedbackValidator(serializers.Serializer):
         ret["url"] = ""
         ret["project_id"] = self.context["project"].id
         ret["replay_id"] = ""
-        ret["message"] = ""
+        ret["message"] = data["message"]
 
         return ret
 
 
-class ProjectMonitorPermission(ProjectPermission):
+class FeedbackIngestPermission(ProjectPermission):
     scope_map = {
         "GET": ["project:read", "project:write", "project:admin"],
         "POST": ["project:read", "project:write", "project:admin"],
@@ -92,7 +92,7 @@ class FeedbackIngestEndpoint(Endpoint):
         ApiKeyAuthentication,
     )
 
-    permission_classes = (ProjectMonitorPermission,)
+    permission_classes = (FeedbackIngestPermission,)
 
     def convert_args(
         self,
@@ -140,11 +140,12 @@ class FeedbackIngestEndpoint(Endpoint):
         kwargs["project"] = project
         return args, kwargs
 
-    def get(self, request: Request, organization: Organization, project: Project) -> Response:
-        feedback_list = Feedback.objects.filter(project_id=project.id)
-        return Response(serialize(list(feedback_list), request.user, FeedbackSerializer()))
-
     def post(self, request: Request, organization: Organization, project: Project) -> Response:
+        if not features.has(
+            "organizations:user-feedback-ingest", project.organization, actor=request.user
+        ):
+            return Response(status=404)
+
         feedback_validator = FeedbackValidator(data=request.data, context={"project": project})
         if not feedback_validator.is_valid():
             return self.respond(feedback_validator.errors, status=400)

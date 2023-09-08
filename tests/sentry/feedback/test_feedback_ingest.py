@@ -1,5 +1,6 @@
 from django.urls import reverse
 
+from sentry.feedback.models import Feedback
 from sentry.testutils.cases import MonitorIngestTestCase
 
 test_data = {
@@ -8,6 +9,7 @@ test_data = {
         "sentry_version": "23.9.0.dev0",
     },
     "timestamp": 1694039635.9195,
+    "message": "This website is great!",
     "transaction": "/replays/",
     "type": "transaction",
     "transaction_info": {"source": "route"},
@@ -36,18 +38,17 @@ class FeedbackIngestTest(MonitorIngestTestCase):
     endpoint = "sentry-api-0-feedback-ingest"
 
     def test_save_with_feedback(self):
-        path = reverse(self.endpoint)
-        response = self.client.post(path, data=test_data, **self.dsn_auth_headers)
-        assert response.status_code == 201, response.content
+        # Feature enabled, successful save
+        with self.feature({"organizations:user-feedback-ingest": True}):
+            path = reverse(self.endpoint)
+            response = self.client.post(path, data=test_data, **self.dsn_auth_headers)
+            assert response.status_code == 201, response.content
+            feedback_list = Feedback.objects.all()
+            assert len(feedback_list) == 1
+            assert feedback_list[0].data["type"] == "transaction"
 
-    def test_get_feedback_list(self):
-        path = reverse(self.endpoint)
-        response = self.client.post(
-            path,
-            data=test_data,
-            **self.dsn_auth_headers,
-        )
-        response = self.client.get(path, **self.dsn_auth_headers)
-        assert response.status_code == 200, response.content
-        assert len(response.data) == 1
-        assert response.data[0]["data"]["type"] == "transaction"
+        # Feature disabled
+        with self.feature({"organizations:user-feedback-ingest": False}):
+            path = reverse(self.endpoint)
+            response = self.client.post(path, data=test_data, **self.dsn_auth_headers)
+            assert response.status_code == 404, response.content
