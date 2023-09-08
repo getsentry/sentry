@@ -1,4 +1,12 @@
 {
+  "feedback.Feedback": {
+    "foreign_keys": {},
+    "model": "feedback.Feedback",
+    "relocation_scope": "Excluded",
+    "silos": [
+      "Region"
+    ]
+  },
   "nodestore.Node": {
     "foreign_keys": {},
     "model": "nodestore.Node",
@@ -1462,10 +1470,6 @@
       "project": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.Project"
-      },
-      "team": {
-        "kind": "FlexibleForeignKey",
-        "model": "sentry.Team"
       },
       "user_id": {
         "kind": "HybridCloudForeignKey",

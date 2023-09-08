@@ -210,7 +210,6 @@ class GroupSubscription(Model):
     project = FlexibleForeignKey("sentry.Project", related_name="subscription_set")
     group = FlexibleForeignKey("sentry.Group", related_name="subscription_set")
     user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="CASCADE")
-    team = FlexibleForeignKey("sentry.Team", null=True, db_index=True, on_delete=models.CASCADE)
     is_active = models.BooleanField(default=True)
     reason = BoundedPositiveIntegerField(default=GroupSubscriptionReason.unknown)
     date_added = models.DateTimeField(default=timezone.now, null=True)
@@ -220,13 +219,6 @@ class GroupSubscription(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_groupsubscription"
-        unique_together = (("group", "user_id"), ("group", "team"))
-        constraints = [
-            models.CheckConstraint(
-                check=models.Q(team_id__isnull=False, user_id__isnull=True)
-                | models.Q(team_id__isnull=True, user_id__isnull=False),
-                name="subscription_team_or_user_check",
-            )
-        ]
+        unique_together = (("group", "user_id"),)
 
     __repr__ = sane_repr("project_id", "group_id", "user_id")
