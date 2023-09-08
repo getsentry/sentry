@@ -28,7 +28,7 @@ export const steps = ({
     description: (
       <p>
         {tct(
-          'Add Sentry automatically to your app with the [wizardLink:Sentry wizard] (call this in your project directory).',
+          'Add Sentry automatically to your app with the [wizardLink:Sentry wizard] (call this inside your project directory).',
           {
             wizardLink: (
               <ExternalLink href="https://docs.sentry.io/platforms/android/#install" />
