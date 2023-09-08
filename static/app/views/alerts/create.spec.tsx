@@ -678,4 +678,31 @@ describe('ProjectAlertsCreate', function () {
       expect.anything()
     );
   });
+
+  it('displays duplicate error banner with link', async function () {
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/rules/',
+      method: 'POST',
+      statusCode: 400,
+      body: {
+        name: [
+          "This rule is an exact duplicate of 'test alert' in this project and may not be created.",
+        ],
+        ruleId: [1337],
+      },
+    });
+
+    createWrapper();
+
+    await userEvent.click(screen.getByText('Save Rule'));
+
+    const bannerLink = await screen.findByRole('link', {
+      name: /rule fully duplicates "test alert"/,
+    });
+    expect(bannerLink).toBeInTheDocument();
+    expect(bannerLink).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/alerts/rules/project-slug/1337/details/'
+    );
+  });
 });
