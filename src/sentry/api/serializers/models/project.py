@@ -48,6 +48,7 @@ from sentry.models import (
     ProjectOption,
     ProjectPlatform,
     Release,
+    Rule,
     Team,
     User,
     UserReport,
@@ -649,6 +650,10 @@ class OrganizationProjectResponse(
     hasUserReports: bool
     environments: List[str]
     latestRelease: Optional[LatestReleaseDict]
+
+
+class ProjectRulesResponse(ProjectSerializerBaseResponse):
+    rules: List[Rule]
 
 
 class ProjectSummarySerializer(ProjectWithTeamSerializer):
