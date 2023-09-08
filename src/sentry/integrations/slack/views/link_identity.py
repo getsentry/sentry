@@ -11,7 +11,7 @@ from sentry.notifications.notifications.integration_nudge import IntegrationNudg
 from sentry.types.integrations import ExternalProviderEnum, ExternalProviders
 from sentry.utils.signing import unsign
 from sentry.web.decorators import transaction_start
-from sentry.web.frontend.base import BaseView
+from sentry.web.frontend.base import BaseView, control_silo_view
 from sentry.web.helpers import render_to_response
 
 from ..utils import send_slack_response
@@ -35,6 +35,7 @@ def build_linking_url(
     )
 
 
+@control_silo_view
 class SlackLinkIdentityView(BaseView):
     """
     Django view for linking user to slack account. Creates an entry on Identity table.

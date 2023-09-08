@@ -1,5 +1,6 @@
 from sentry.utils import json
 from sentry.utils.signing import unsign
+from sentry.web.frontend.base import control_silo_view
 from sentry.web.frontend.integration_extension_configuration import (
     IntegrationExtensionConfigurationView,
 )
@@ -8,6 +9,7 @@ from sentry.web.frontend.integration_extension_configuration import (
 INSTALL_EXPIRATION_TIME = 60 * 60 * 24
 
 
+@control_silo_view
 class JiraExtensionConfigurationView(IntegrationExtensionConfigurationView):
     """
     Handle the UI for adding the Jira integration to a Sentry org.

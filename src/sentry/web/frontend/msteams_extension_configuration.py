@@ -1,4 +1,5 @@
 from sentry.utils.signing import unsign
+from sentry.web.frontend.base import control_silo_view
 
 from .integration_extension_configuration import IntegrationExtensionConfigurationView
 
@@ -6,6 +7,7 @@ from .integration_extension_configuration import IntegrationExtensionConfigurati
 INSTALL_EXPIRATION_TIME = 60 * 60 * 24
 
 
+@control_silo_view
 class MsTeamsExtensionConfigurationView(IntegrationExtensionConfigurationView):
     provider = "msteams"
     external_provider_key = "msteams"

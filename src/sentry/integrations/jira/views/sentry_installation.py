@@ -7,10 +7,12 @@ from sentry.utils import json
 from sentry.utils.assets import get_asset_url
 from sentry.utils.http import absolute_uri
 from sentry.utils.signing import sign
+from sentry.web.frontend.base import control_silo_view
 
 from . import UNABLE_TO_VERIFY_INSTALLATION, JiraSentryUIBaseView
 
 
+@control_silo_view
 class JiraSentryInstallationView(JiraSentryUIBaseView):
     """
     Handles requests (from the Sentry integration in Jira) for HTML to display when

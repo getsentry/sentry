@@ -11,7 +11,7 @@ from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.utils.signing import unsign
 from sentry.web.decorators import transaction_start
-from sentry.web.frontend.base import BaseView
+from sentry.web.frontend.base import BaseView, region_silo_view
 from sentry.web.helpers import render_to_response
 
 from . import build_linking_url as base_build_linking_url
@@ -37,6 +37,7 @@ def build_team_unlinking_url(
     )
 
 
+@region_silo_view
 class SlackUnlinkTeamView(BaseView):
     """
     Django view for unlinking team from slack channel. Deletes from ExternalActor table.
