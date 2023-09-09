@@ -2,6 +2,8 @@ from rest_framework import status
 
 from sentry.models import NotificationSetting
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
+from sentry.services.hybrid_cloud.actor import RpcActor
+from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
@@ -21,31 +23,30 @@ class TeamNotificationSettingsGetTest(TeamNotificationSettingsTestBase):
     def test_simple(self):
         _ = self.project  # HACK to force creation.
 
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            NotificationSetting.objects.update_settings(
-                ExternalProviders.EMAIL,
-                NotificationSettingTypes.ISSUE_ALERTS,
-                NotificationSettingOptionValues.ALWAYS,
-                team_id=self.team.id,
-                project=self.project,
-                organization_id_for_team=self.organization.id,
-            )
-            NotificationSetting.objects.update_settings(
-                ExternalProviders.EMAIL,
-                NotificationSettingTypes.DEPLOY,
-                NotificationSettingOptionValues.NEVER,
-                team_id=self.team.id,
-                organization=self.organization,
-                organization_id_for_team=self.organization.id,
-            )
-            NotificationSetting.objects.update_settings(
-                ExternalProviders.SLACK,
-                NotificationSettingTypes.WORKFLOW,
-                NotificationSettingOptionValues.DEFAULT,
-                team_id=self.team.id,
-                project=self.project,
-                organization_id_for_team=self.organization.id,
-            )
+        notifications_service.update_settings(
+            external_provider=ExternalProviders.EMAIL,
+            notification_type=NotificationSettingTypes.ISSUE_ALERTS,
+            setting_option=NotificationSettingOptionValues.ALWAYS,
+            actor=RpcActor.from_object(self.team),
+            project_id=self.project.id,
+            organization_id_for_team=self.organization.id,
+        )
+        notifications_service.update_settings(
+            external_provider=ExternalProviders.EMAIL,
+            notification_type=NotificationSettingTypes.DEPLOY,
+            setting_option=NotificationSettingOptionValues.NEVER,
+            actor=RpcActor.from_object(self.team),
+            organization_id=self.organization.id,
+            organization_id_for_team=self.organization.id,
+        )
+        notifications_service.update_settings(
+            external_provider=ExternalProviders.SLACK,
+            notification_type=NotificationSettingTypes.WORKFLOW,
+            setting_option=NotificationSettingOptionValues.DEFAULT,
+            actor=RpcActor.from_object(self.team),
+            project_id=self.project.id,
+            organization_id_for_team=self.organization.id,
+        )
 
         response = self.get_success_response(
             self.organization.slug, self.team.slug, v2="serializer"
@@ -57,21 +58,20 @@ class TeamNotificationSettingsGetTest(TeamNotificationSettingsTestBase):
         assert not response.data["workflow"]
 
     def test_type_querystring(self):
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            NotificationSetting.objects.update_settings(
-                ExternalProviders.EMAIL,
-                NotificationSettingTypes.ISSUE_ALERTS,
-                NotificationSettingOptionValues.ALWAYS,
-                team_id=self.team.id,
-                organization_id_for_team=self.organization.id,
-            )
-            NotificationSetting.objects.update_settings(
-                ExternalProviders.SLACK,
-                NotificationSettingTypes.WORKFLOW,
-                NotificationSettingOptionValues.ALWAYS,
-                team_id=self.team.id,
-                organization_id_for_team=self.organization.id,
-            )
+        notifications_service.update_settings(
+            external_provider=ExternalProviders.EMAIL,
+            notification_type=NotificationSettingTypes.ISSUE_ALERTS,
+            setting_option=NotificationSettingOptionValues.ALWAYS,
+            actor=RpcActor.from_object(self.team),
+            organization_id_for_team=self.organization.id,
+        )
+        notifications_service.update_settings(
+            external_provider=ExternalProviders.SLACK,
+            notification_type=NotificationSettingTypes.WORKFLOW,
+            setting_option=NotificationSettingOptionValues.ALWAYS,
+            actor=RpcActor.from_object(self.team),
+            organization_id_for_team=self.organization.id,
+        )
         response = self.get_success_response(
             self.organization.slug,
             self.team.slug,
