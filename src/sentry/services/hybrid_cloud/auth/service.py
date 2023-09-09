@@ -96,5 +96,26 @@ class AuthService(RpcService):
     def get_organization_key(self, *, key: str) -> Optional[RpcApiKey]:
         pass
 
+    @rpc_method
+    @abc.abstractmethod
+    def enable_partner_sso(
+        self, *, organization_id: int, provider_key: str, provider_config: Mapping[str, Any]
+    ) -> None:
+        pass
+
+    @rpc_method
+    @abc.abstractmethod
+    def create_auth_identity(
+        self, *, provider: str, config: Mapping[str, Any], user_id: int, ident: str
+    ) -> None:
+        pass
+
+    @rpc_method
+    @abc.abstractmethod
+    def get_auth_provider_with_config(
+        self, *, provider: str, config: Mapping[str, Any]
+    ) -> Optional[RpcAuthProvider]:
+        pass
+
 
 auth_service: AuthService = cast(AuthService, AuthService.create_delegation())

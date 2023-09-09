@@ -1,6 +1,6 @@
 import logging
 import warnings
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 from django.contrib.auth.models import AbstractBaseUser
 from django.contrib.auth.models import UserManager as DjangoUserManager
@@ -9,13 +9,15 @@ from django.db import IntegrityError, models, router, transaction
 from django.db.models import Count, Subquery
 from django.db.models.query import QuerySet
 from django.dispatch import receiver
+from django.forms import model_to_dict
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from bitfield import TypedClassBitField
 from sentry.auth.authenticators import available_authenticators
-from sentry.backup.dependencies import PrimaryKeyMap
+from sentry.backup.dependencies import ImportKind, PrimaryKeyMap
+from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import (
     BaseManager,
@@ -24,6 +26,8 @@ from sentry.db.models import (
     control_silo_only_model,
     sane_repr,
 )
+from sentry.db.models.utils import unique_db_instance
+from sentry.locks import locks
 from sentry.models.authenticator import Authenticator
 from sentry.models.avatars import UserAvatar
 from sentry.models.lostpasswordhash import LostPasswordHash
@@ -33,8 +37,11 @@ from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.types.region import find_regions_for_user
 from sentry.utils.http import absolute_uri
+from sentry.utils.retries import TimedRetryPolicy
 
 audit_logger = logging.getLogger("sentry.audit.user")
+
+MAX_USERNAME_LENGTH = 128
 
 
 class UserManager(BaseManager, DjangoUserManager):
@@ -73,7 +80,7 @@ class User(BaseModel, AbstractBaseUser):
     __relocation_scope__ = RelocationScope.User
 
     id = BoundedBigAutoField(primary_key=True)
-    username = models.CharField(_("username"), max_length=128, unique=True)
+    username = models.CharField(_("username"), max_length=MAX_USERNAME_LENGTH, unique=True)
     # this column is called first_name for legacy reasons, but it is the entire
     # display name
     name = models.CharField(_("name"), max_length=200, blank=True, db_column="first_name")
@@ -374,9 +381,9 @@ class User(BaseModel, AbstractBaseUser):
         LostPasswordHash.objects.filter(user=self).delete()
 
     def _normalize_before_relocation_import(
-        self, pk_map: PrimaryKeyMap, scope: ImportScope
+        self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
     ) -> Optional[int]:
-        old_pk = super()._normalize_before_relocation_import(pk_map, scope)
+        old_pk = super()._normalize_before_relocation_import(pk_map, scope, flags)
         if old_pk is None:
             return None
 
@@ -384,11 +391,49 @@ class User(BaseModel, AbstractBaseUser):
             self.is_staff = False
             self.is_superuser = False
 
-        # TODO(getsentry/team-ospo#181): Handle usernames that already exist. This will involve
-        # marking the user "unclaimed", wiping their password, and adding a random suffix to their
-        # username.
+        lock = locks.get(f"user:username:{self.id}", duration=5, name="username")
+        with TimedRetryPolicy(10)(lock.acquire):
+            unique_db_instance(
+                self,
+                self.username,
+                max_length=MAX_USERNAME_LENGTH,
+                field_name="username",
+            )
+
+        # TODO(getsentry/team-ospo#181): Create unclaimed users: set the (to be created) unclaimed
+        # flag, and wipe the password.
 
         return old_pk
+
+    def write_relocation_import(
+        self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
+    ) -> Optional[Tuple[int, int, ImportKind]]:
+        from sentry.api.endpoints.user_details import (
+            BaseUserSerializer,
+            SuperuserUserSerializer,
+            UserSerializer,
+        )
+
+        if flags.merge_users:
+            existing = User.objects.filter(username=self.username).first()
+            if existing:
+                return (self.pk, existing.pk, ImportKind.Existing)
+
+        old_pk = self._normalize_before_relocation_import(pk_map, scope, flags)
+        if old_pk is None:
+            return None
+
+        serializer_cls = BaseUserSerializer
+        if scope != ImportScope.Global:
+            serializer_cls = UserSerializer
+        else:
+            serializer_cls = SuperuserUserSerializer
+
+        serializer_user = serializer_cls(instance=self, data=model_to_dict(self), partial=True)
+        serializer_user.is_valid(raise_exception=True)
+
+        self.save(force_insert=True)
+        return (old_pk, self.pk, ImportKind.Inserted)
 
 
 # HACK(dcramer): last_login needs nullable for Django 1.8

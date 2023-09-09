@@ -7,7 +7,10 @@ from django.contrib.auth.models import AnonymousUser
 from django.db import router, transaction
 from django.db.models import Count, F
 
+from sentry import audit_log, roles
+from sentry.auth.access import get_permissions_for_user
 from sentry.auth.system import SystemToken
+from sentry.db.postgres.transactions import enforce_constraints
 from sentry.middleware.auth import RequestAuthenticationMiddleware
 from sentry.middleware.placeholder import placeholder_get_response
 from sentry.models import (
@@ -19,6 +22,7 @@ from sentry.models import (
     User,
     outbox_context,
 )
+from sentry.models.auditlogentry import AuditLogEntry
 from sentry.services.hybrid_cloud.auth import (
     AuthenticatedToken,
     AuthenticationContext,
@@ -47,6 +51,49 @@ class DatabaseBackedAuthService(AuthService):
             return serialize_api_key(ApiKey.objects.get(key=key))
         except ApiKey.DoesNotExist:
             return None
+
+    def enable_partner_sso(
+        self, *, organization_id: int, provider_key: str, provider_config: Mapping[str, Any]
+    ) -> None:
+        with enforce_constraints(transaction.atomic(router.db_for_write(AuthProvider))):
+            auth_provider = AuthProvider.objects.create(
+                organization_id=organization_id, provider=provider_key, config=provider_config
+            )
+
+            AuditLogEntry.objects.create(
+                organization_id=organization_id,
+                actor_label=f"partner_provisioning_api:{provider_key}",
+                target_object=auth_provider.id,
+                event=audit_log.get_event_id("SSO_ENABLE"),
+                data=auth_provider.get_audit_log_data(),
+            )
+
+    def create_auth_identity(
+        self, *, provider: str, config: Mapping[str, Any], user_id: int, ident: str
+    ) -> None:
+        with enforce_constraints(transaction.atomic(router.db_for_write(AuthIdentity))):
+            auth_provider = AuthProvider.objects.filter(provider=provider, config=config).first()
+            if auth_provider is None:
+                return
+            # Add Auth identity for partner's SSO if it doesn't exist
+            auth_id_filter = AuthIdentity.objects.filter(
+                auth_provider=auth_provider, user_id=user_id
+            )
+            if not auth_id_filter.exists():
+                AuthIdentity.objects.create(
+                    auth_provider=auth_provider,
+                    user_id=user_id,
+                    ident=ident,
+                    data={},
+                )
+
+    def get_auth_provider_with_config(
+        self, *, provider: str, config: Mapping[str, Any]
+    ) -> Optional[RpcAuthProvider]:
+        existing_provider = AuthProvider.objects.filter(provider=provider, config=config).first()
+        if existing_provider is None:
+            return None
+        return serialize_auth_provider(existing_provider)
 
     def get_org_auth_config(
         self, *, organization_ids: List[int]

@@ -148,10 +148,16 @@ def get_available_derived_metrics(
 
 def get_metrics_meta(projects: Sequence[Project], use_case_id: UseCaseID) -> Sequence[MetricMeta]:
     metas = []
-    unique_mris = set(get_known_mris(use_case_id) + get_stored_mris(projects, use_case_id))
+
+    stored_mris = get_stored_mris(projects, use_case_id) if projects else []
+    unique_mris = set(get_known_mris(use_case_id) + stored_mris)
 
     for mri in sorted(unique_mris):
         parsed_mri = parse_mri(mri)
+
+        # TODO(ogi): check how is this possible
+        if parsed_mri is None:
+            continue
 
         ops = get_available_operations(parsed_mri)
 
@@ -183,9 +189,13 @@ def get_stored_mris(projects: Sequence[Project], use_case_id: UseCaseID) -> List
             use_case_id=use_case_id,
         )
 
+    logger.debug("stored_metrics: %s", stored_metrics)
+
     mris = bulk_reverse_resolve(
         use_case_id, org_id, [row["metric_id"] for row in stored_metrics]
     ).values()
+
+    logger.debug("mris: %s", mris)
 
     return list(mris)
 

@@ -77,6 +77,7 @@ default_manager.add("organizations:dashboards-import", OrganizationFeature, Feat
 default_manager.add("organizations:discover", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:discover-events-rate-limit", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:enterprise-data-secrecy", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
+default_manager.add("organizations:frontend-domainsplit", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:grouping-stacktrace-ui", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:grouping-title-ui", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:grouping-tree-ui", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
@@ -211,6 +212,8 @@ default_manager.add("organizations:transaction-name-mark-scrubbed-as-sanitized",
 default_manager.add("organizations:transaction-name-sanitization", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:transaction-metrics-extraction", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:use-metrics-layer", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+default_manager.add("organizations:user-feedback-ingest", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
+default_manager.add("organizations:user-feedback-ui", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:widget-viewer-modal-minimap", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:u2f-superuser-form", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 # NOTE: Don't add features down here! Add them to their specific group and sort
@@ -275,8 +278,10 @@ default_manager.add("organizations:sourcemaps-upload-release-as-artifact-bundle"
 default_manager.add("organizations:recap-server", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:notification-settings-v2", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:on-demand-metrics-prefill", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
+default_manager.add("organizations:notifications-double-write", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:custom-metrics", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:release-ui-v2", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+default_manager.add("organizations:projconfig-exclude-measurements", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 
 # Project scoped features
 default_manager.add("projects:alert-filters", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
