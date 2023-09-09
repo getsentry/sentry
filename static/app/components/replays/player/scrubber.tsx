@@ -149,11 +149,32 @@ export const PlayerScrubber = styled(Scrubber)`
   ${PlaybackTimeValue} {
     background: ${p => p.theme.purple200};
     border-radius: ${p => p.theme.borderRadius};
+
+    /**
+     * Draw the circle (appears on hover) to mark the currentTime of the video
+     * "---------o-------------------- duration = 1:00"
+     *           ^
+     *           PlaybackTimeValue @ 20s
+     */
+    :after {
+      background: ${p => p.theme.purple300};
+    }
   }
 
   ${MouseTrackingValue} {
     background: ${p => p.theme.translucentBorder};
     border-radius: ${p => p.theme.borderRadius};
+
+    /**
+     * Draw a square so users can see their mouse position when it is left or right of the currentTime
+     * "----□----o--------------------- duration = 1:00"
+     *      ^    ^
+     *      |    PlaybackTimeValue @ 20s
+     *      MouseTrackingValue @ 10s
+     */
+    :after {
+      background: ${p => p.theme.gray300};
+    }
   }
 
   ${PlaybackTimeValue}:after,
@@ -171,26 +192,5 @@ export const PlayerScrubber = styled(Scrubber)`
     top: -${space(1)}; /* Half of the height */
     right: -${space(1.5)}; /* Half of (width + borderWidth) */
     z-index: ${p => p.theme.zIndex.initial};
-  }
-
-  /**
-   * Draw the circle (appears on hover) to mark the currentTime of the video
-   * "---------o-------------------- duration = 1:00"
-   *           ^
-   *           PlaybackTimeValue @ 20s
-   */
-  ${PlaybackTimeValue}:after {
-    background: ${p => p.theme.purple300};
-  }
-
-  /*
-   * Draw a square so users can see their mouse position when it is left or right of the currentTime
-   * "----□----o--------------------- duration = 1:00"
-   *      ^    ^
-   *      |    PlaybackTimeValue @ 20s
-   *      MouseTrackingValue @ 10s
-   */
-  ${MouseTrackingValue}:after {
-    background: ${p => p.theme.gray300};
   }
 `;
