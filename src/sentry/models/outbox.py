@@ -407,15 +407,19 @@ class OutboxBase(Model):
                 return cursor.fetchone()[0]
 
     @classmethod
-    def find_scheduled_shards(cls) -> Iterable[Mapping[str, Any]]:
-        return (
-            cls.objects.values(*cls.sharding_columns)
-            .annotate(
+    def find_scheduled_shards(cls, low: int = 0, hi: int | None = None) -> List[Mapping[str, Any]]:
+        q = cls.objects.values(*cls.sharding_columns).filter(
+            scheduled_for__lte=timezone.now(), id__gte=low
+        )
+        if hi is not None:
+            q = q.filter(id__lt=hi)
+
+        return list(
+            {k: row[k] for k in cls.sharding_columns}
+            for row in q.annotate(
                 scheduled_for=Min("scheduled_for"),
-                id=Max("id"),
-            )
-            .filter(scheduled_for__lte=timezone.now())
-            .order_by("scheduled_for", "id")
+                max_id=Max("id"),
+            ).order_by("scheduled_for", "max_id")
         )
 
     @classmethod
