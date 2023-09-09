@@ -15,7 +15,7 @@ import {t, tct} from 'sentry/locale';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {useTeams} from 'sentry/utils/useTeams';
+import {useTeamsV2} from 'sentry/utils/useTeamsV2';
 
 type Props = {
   children: React.ReactNode;
@@ -26,7 +26,7 @@ function TeamDetails({children}: Props) {
   const params = useParams();
   const orgSlug = useOrganization().slug;
   const [requesting, setRequesting] = useState(false);
-  const {teams, initiallyLoaded} = useTeams({slugs: [params.teamId]});
+  const {teams, isLoading} = useTeamsV2({slugs: [params.teamId]});
   const team = teams.find(({slug}) => slug === params.teamId);
 
   function handleRequestAccess(teamSlug: string) {
@@ -75,7 +75,7 @@ function TeamDetails({children}: Props) {
     </ListLink>,
   ];
 
-  if (!initiallyLoaded) {
+  if (isLoading) {
     return <LoadingIndicator />;
   }
 

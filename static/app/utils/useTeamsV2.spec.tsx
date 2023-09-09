@@ -1,0 +1,113 @@
+import {reactHooks} from 'sentry-test/reactTestingLibrary';
+
+import OrganizationStore from 'sentry/stores/organizationStore';
+import TeamStore from 'sentry/stores/teamStore';
+import {QueryClient, QueryClientProvider} from 'sentry/utils/queryClient';
+
+import {useTeamsV2 as useTeams} from './useTeamsV2';
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: false,
+    },
+  },
+});
+
+describe('useTeams', function () {
+  const org = TestStubs.Organization();
+
+  const mockTeams = [TestStubs.Team()];
+  const wrapper = ({children}: {children?: any}) => (
+    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+  );
+
+  beforeEach(function () {
+    TeamStore.reset();
+    OrganizationStore.onUpdate(org, {replace: true});
+  });
+
+  it('provides teams from the team store', function () {
+    TeamStore.loadInitialData(mockTeams);
+
+    const {result} = reactHooks.renderHook(useTeams, {wrapper});
+    const {teams} = result.current;
+
+    expect(teams).toEqual(mockTeams);
+  });
+
+  it('provides only the specified slugs', async function () {
+    TeamStore.loadInitialData(mockTeams);
+    const teamFoo = TestStubs.Team({id: '49', slug: 'foo'});
+    const mockRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/teams/`,
+      method: 'GET',
+      body: [teamFoo],
+    });
+
+    const {result, waitFor} = reactHooks.renderHook(useTeams, {
+      initialProps: {slugs: ['foo']},
+      wrapper,
+    });
+
+    expect(result.current.isLoading).toBe(true);
+    expect(mockRequest).toHaveBeenCalled();
+
+    await waitFor(() => {
+      expect(result.current.teams.length).toBe(1);
+    });
+
+    const {teams} = result.current;
+    expect(teams).toEqual(expect.arrayContaining([teamFoo]));
+  });
+
+  it('only loads slugs when needed', function () {
+    TeamStore.loadInitialData(mockTeams);
+
+    const {result} = reactHooks.renderHook(useTeams, {
+      initialProps: {slugs: [mockTeams[0].slug]},
+      wrapper,
+    });
+
+    const {teams, isLoading} = result.current;
+    expect(isLoading).toBe(false);
+    expect(teams).toEqual(expect.arrayContaining(mockTeams));
+  });
+
+  it('can load teams by id', async function () {
+    const requestedTeams = [TestStubs.Team({id: '2', slug: 'requested-team'})];
+    const mockRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/teams/`,
+      method: 'GET',
+      body: requestedTeams,
+    });
+
+    TeamStore.loadInitialData(mockTeams);
+
+    const {result, waitFor} = reactHooks.renderHook(useTeams, {
+      initialProps: {ids: ['2']},
+      wrapper,
+    });
+
+    expect(result.current.isLoading).toBe(true);
+    expect(mockRequest).toHaveBeenCalled();
+
+    await waitFor(() => expect(result.current.teams.length).toBe(1));
+
+    const {teams} = result.current;
+    expect(teams).toEqual(expect.arrayContaining(requestedTeams));
+  });
+
+  it('only loads ids when needed', function () {
+    TeamStore.loadInitialData(mockTeams);
+
+    const {result} = reactHooks.renderHook(useTeams, {
+      initialProps: {ids: [mockTeams[0].id]},
+      wrapper,
+    });
+
+    const {teams, isLoading} = result.current;
+    expect(isLoading).toBe(false);
+    expect(teams).toEqual(expect.arrayContaining(mockTeams));
+  });
+});
