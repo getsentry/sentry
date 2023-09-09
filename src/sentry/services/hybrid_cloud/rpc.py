@@ -577,6 +577,14 @@ class _RemoteSiloCall:
             else service.deserialize_rpc_response(self.method_name, return_value)
         )
 
+    def _metrics_tags(self, **additional_tags: str | int) -> Mapping[str, str | int | None]:
+        return dict(
+            region=self.region.name if self.region else None,
+            service=self.service_name,
+            method=self.method_name,
+            **additional_tags,
+        )
+
     def _send_to_remote_silo(self, use_test_client: bool) -> Any:
         request_body = {
             "meta": {},  # reserved for future use
@@ -595,19 +603,22 @@ class _RemoteSiloCall:
             else:
                 response = self._fire_request(headers, data)
             metrics.incr(
-                "hybrid_cloud.dispatch_rpc.response_code", tags={"status": response.status_code}
+                "hybrid_cloud.dispatch_rpc.response_code",
+                tags=self._metrics_tags(status=response.status_code),
             )
 
             if response.status_code == 200:
+                metrics.gauge(
+                    "hybrid_cloud.dispatch_rpc.response_size",
+                    len(response.content),
+                    tags=self._metrics_tags(),
+                )
                 return response.json()
             self._raise_from_response_status_error(response)
 
     @contextmanager
     def _open_request_context(self):
-        timer = metrics.timer(
-            "hybrid_cloud.dispatch_rpc.duration",
-            tags={"service": self.service_name, "method": self.method_name},
-        )
+        timer = metrics.timer("hybrid_cloud.dispatch_rpc.duration", tags=self._metrics_tags())
         span = sentry_sdk.start_span(
             op="hybrid_cloud.dispatch_rpc",
             description=f"rpc to {self.service_name}.{self.method_name}",

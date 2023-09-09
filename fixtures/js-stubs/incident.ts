@@ -1,6 +1,9 @@
+import type {Incident as TIncident} from 'sentry/views/alerts/types';
+import {IncidentStatus, IncidentStatusMethod} from 'sentry/views/alerts/types';
+
 import {MetricRule} from './metricRule';
 
-export function Incident(params = {}) {
+export function Incident(params: Partial<TIncident> = {}): TIncident {
   return {
     id: '321',
     identifier: '123',
@@ -10,7 +13,7 @@ export function Incident(params = {}) {
     dateDetected: '2016-04-05T19:44:05.963Z',
     dateCreated: '2016-04-05T19:44:05.963Z',
     title: 'Too many Chrome errors',
-    status: 0,
+    status: IncidentStatus.CLOSED,
     projects: [],
     isSubscribed: true,
     alertRule: MetricRule(params.alertRule),
@@ -56,6 +59,11 @@ export function Incident(params = {}) {
         dateCreated: '2022-03-26T12:00:00Z',
       },
     ],
+    discoverQuery: '',
+    groups: [],
+    hasSeen: false,
+    seenBy: [],
+    statusMethod: IncidentStatusMethod.MANUAL,
     ...params,
   };
 }
