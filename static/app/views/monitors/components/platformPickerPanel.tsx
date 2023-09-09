@@ -36,7 +36,10 @@ export function PlatformPickerPanel() {
       <Actions>
         {CRON_SDK_PLATFORMS.map(({platform, label}) => (
           <PlatformOption key={platform}>
-            <PlatformButton priority="default">
+            <PlatformButton
+              priority="default"
+              aria-label={t('Create %s Monitor', platform)}
+            >
               <PlatformIcon platform={platform} format="lg" size="100%" />
             </PlatformButton>
             <div>{label}</div>
@@ -60,8 +63,7 @@ const OnboardingTitle = styled('h3')`
   margin-bottom: ${space(1)};
 `;
 
-const SectionTitle = styled('div')`
-  font-weight: bold;
+const SectionTitle = styled('h5')`
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.subText};
   text-transform: uppercase;
