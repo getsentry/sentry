@@ -14,6 +14,7 @@ import {stringify} from 'query-string';
 // eslint-disable-next-line jest/no-mocks-import
 import type {Client} from 'sentry/__mocks__/api';
 import ConfigStore from 'sentry/stores/configStore';
+import {MockConfig} from 'sentry/types/__fixtures__/MockConfig';
 import * as performanceForSentry from 'sentry/utils/performanceForSentry';
 
 import {makeLazyFixtures} from './sentry-test/loadFixtures';
@@ -224,7 +225,7 @@ const routerFixtures = {
 const jsFixturesDirectory = path.resolve(__dirname, '../../fixtures/js-stubs/');
 const fixtures = makeLazyFixtures(jsFixturesDirectory, routerFixtures);
 
-ConfigStore.loadInitialData(fixtures.Config());
+ConfigStore.loadInitialData(MockConfig());
 
 /**
  * Test Globals
