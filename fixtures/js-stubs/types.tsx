@@ -44,7 +44,6 @@ type TestStubFixtures = {
   CodeOwner: OverridableStub;
   Commit: OverridableStub;
   CommitAuthor: OverridableStub;
-  Config: OverridableStub;
   Dashboard: OverridableVariadicStub;
   DataScrubbingRelayPiiConfig: SimpleStub;
   DebugFile: OverridableStub;
