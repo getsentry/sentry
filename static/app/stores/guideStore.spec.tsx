@@ -1,5 +1,6 @@
 import ConfigStore from 'sentry/stores/configStore';
 import GuideStore from 'sentry/stores/guideStore';
+import {MockConfig} from 'sentry/types/__fixtures__/MockConfig';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
 jest.mock('sentry/utils/analytics');
@@ -9,7 +10,7 @@ describe('GuideStore', function () {
 
   beforeEach(function () {
     jest.clearAllMocks();
-    ConfigStore.config = TestStubs.Config({
+    ConfigStore.config = MockConfig({
       user: TestStubs.User({
         id: '5',
         isSuperuser: false,

@@ -154,9 +154,9 @@ describe('OrganizationContextContainer', function () {
   });
 
   it('opens sudo modal for superusers on 403s', async function () {
-    jest
-      .mocked(ConfigStore.get)
-      .mockImplementation(() => TestStubs.Config({isSuperuser: true}));
+    jest.mocked(ConfigStore.get).mockImplementation(() => {
+      return MockConfig({isSuperuser: true});
+    });
     getOrgMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/',
       statusCode: 403,

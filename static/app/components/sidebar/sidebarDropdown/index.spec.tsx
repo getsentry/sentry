@@ -2,10 +2,11 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import SidebarDropdown from 'sentry/components/sidebar/sidebarDropdown';
 import ConfigStore from 'sentry/stores/configStore';
+import {MockConfig} from 'sentry/types/__fixtures__/MockConfig';
 
 function renderDropdown(props: any = {}) {
   const user = TestStubs.User();
-  const config = TestStubs.Config();
+  const config = MockConfig();
   const organization = TestStubs.Organization({orgRole: 'member'});
   const routerContext = TestStubs.routerContext([
     {
@@ -35,7 +36,7 @@ describe('SidebarDropdown', function () {
     expect(container).toSnapshot();
   });
   it('renders open sidebar', async function () {
-    const config = TestStubs.Config({
+    const config = MockConfig({
       singleOrganization: false,
     });
     renderDropdown({collapsed: false, config});
@@ -44,7 +45,7 @@ describe('SidebarDropdown', function () {
   });
   it('sandbox/demo mode render open sidebar', async function () {
     ConfigStore.set('demoMode', true);
-    const config = TestStubs.Config({singleOrganization: false});
+    const config = MockConfig({singleOrganization: false});
     renderDropdown({collapsed: false, config});
     await userEvent.click(screen.getByTestId('sidebar-dropdown'));
     expect(screen.queryByText('Switch organization')).not.toBeInTheDocument();

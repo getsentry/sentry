@@ -2,6 +2,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import DateTime from 'sentry/components/dateTime';
 import ConfigStore from 'sentry/stores/configStore';
+import {MockConfig} from 'sentry/types/__fixtures__/MockConfig';
 
 describe('DateTime', () => {
   const user = TestStubs.User({
@@ -12,7 +13,7 @@ describe('DateTime', () => {
   });
 
   beforeAll(() => {
-    ConfigStore.loadInitialData(TestStubs.Config({user}));
+    ConfigStore.loadInitialData(MockConfig({user}));
   });
 
   it('renders a date', () => {

@@ -8,6 +8,7 @@ import OrganizationsStore from 'sentry/stores/organizationsStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {MockConfig} from 'sentry/types/__fixtures__/MockConfig';
 import localStorage from 'sentry/utils/localStorage';
 
 const changeQuery = (routerContext, query) => ({
@@ -557,7 +558,7 @@ describe('PageFiltersContainer', function () {
     it('selects a project if user is superuser and belongs to no projects', function () {
       ConfigStore.init();
       ConfigStore.loadInitialData(
-        TestStubs.Config({
+        MockConfig({
           user: TestStubs.User({isSuperuser: true}),
         })
       );

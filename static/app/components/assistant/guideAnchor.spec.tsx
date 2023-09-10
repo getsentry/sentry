@@ -3,6 +3,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import ConfigStore from 'sentry/stores/configStore';
 import GuideStore from 'sentry/stores/guideStore';
+import {MockConfig} from 'sentry/types/__fixtures__/MockConfig';
 
 describe('GuideAnchor', function () {
   const serverGuide = [
@@ -13,7 +14,7 @@ describe('GuideAnchor', function () {
   ];
 
   beforeEach(function () {
-    ConfigStore.config = TestStubs.Config({
+    ConfigStore.config = MockConfig({
       user: TestStubs.User({
         isSuperuser: false,
         dateJoined: new Date(2020, 0, 1),

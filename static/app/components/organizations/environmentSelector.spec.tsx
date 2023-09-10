@@ -3,6 +3,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import EnvironmentSelector from 'sentry/components/organizations/environmentSelector';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import ConfigStore from 'sentry/stores/configStore';
+import {MockConfig} from 'sentry/types/__fixtures__/MockConfig';
 
 describe('EnvironmentSelector', function () {
   const onUpdate = jest.fn();
@@ -35,7 +36,7 @@ describe('EnvironmentSelector', function () {
 
   beforeEach(function () {
     ConfigStore.init();
-    ConfigStore.loadInitialData(TestStubs.Config());
+    ConfigStore.loadInitialData(MockConfig());
     onUpdate.mockReset();
   });
 

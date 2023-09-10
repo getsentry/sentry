@@ -3,6 +3,7 @@ import {browserHistory} from 'react-router';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {logout} from 'sentry/actionCreators/account';
+import {MockConfig} from 'sentry/types/__fixtures__/MockConfig';
 import AcceptOrganizationInvite from 'sentry/views/acceptOrganizationInvite';
 
 jest.mock('sentry/actionCreators/account');
@@ -59,7 +60,7 @@ describe('AcceptOrganizationInvite', function () {
   });
 
   it('can accept invitation on customer-domains', async function () {
-    window.__initialData = TestStubs.Config({
+    window.__initialData = MockConfig({
       customerDomain: {
         subdomain: 'org-slug',
         organizationUrl: 'https://org-slug.sentry.io',

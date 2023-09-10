@@ -7,6 +7,7 @@ import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {Environment, Group, IssueCategory} from 'sentry/types';
+import {MockConfig} from 'sentry/types/__fixtures__/MockConfig';
 import GroupDetails from 'sentry/views/issueDetails';
 
 jest.unmock('sentry/utils/recreateRoute');
@@ -316,7 +317,7 @@ describe('groupDetails', () => {
   });
 
   it('uses /latest endpoint when default is set to latest', async function () {
-    ConfigStore.loadInitialData(TestStubs.Config({user: latestUser}));
+    ConfigStore.loadInitialData(MockConfig({user: latestUser}));
     const latestMock = MockApiClient.addMockResponse({
       url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/events/latest/`,
       statusCode: 200,
@@ -335,7 +336,7 @@ describe('groupDetails', () => {
   });
 
   it('uses /oldest endpoint when default is set to oldest', async function () {
-    ConfigStore.loadInitialData(TestStubs.Config({user: oldestUser}));
+    ConfigStore.loadInitialData(MockConfig({user: oldestUser}));
     const oldestMock = MockApiClient.addMockResponse({
       url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/events/oldest/`,
       statusCode: 200,
@@ -354,7 +355,7 @@ describe('groupDetails', () => {
   });
 
   it('uses /helpful endpoint when default is set to recommended', async function () {
-    ConfigStore.loadInitialData(TestStubs.Config({user: recommendedUser}));
+    ConfigStore.loadInitialData(MockConfig({user: recommendedUser}));
     const recommendedMock = MockApiClient.addMockResponse({
       url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/events/helpful/`,
       statusCode: 200,

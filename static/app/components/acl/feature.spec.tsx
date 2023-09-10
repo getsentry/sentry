@@ -3,6 +3,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import Feature from 'sentry/components/acl/feature';
 import ConfigStore from 'sentry/stores/configStore';
 import HookStore from 'sentry/stores/hookStore';
+import {MockConfig} from 'sentry/types/__fixtures__/MockConfig';
 
 describe('Feature', function () {
   const organization = TestStubs.Organization({
@@ -172,7 +173,7 @@ describe('Feature', function () {
     });
 
     it('checks ConfigStore.config.features (e.g. `organizations:create`)', function () {
-      ConfigStore.config = TestStubs.Config({
+      ConfigStore.config = MockConfig({
         features: new Set(['organizations:create']),
       });
 

@@ -3,6 +3,9 @@ import {fireEvent, render, screen, userEvent} from 'sentry-test/reactTestingLibr
 
 import {TimeRangeSelector} from 'sentry/components/timeRangeSelector';
 import ConfigStore from 'sentry/stores/configStore';
+import {MockConfig} from 'sentry/types/__fixtures__/MockConfig';
+
+const {User: MockUser} = TestStubs;
 
 const {organization, routerContext} = initializeOrg({
   organization: {features: ['global-views', 'open-membership']},
@@ -34,8 +37,10 @@ describe('TimeRangeSelector', function () {
 
   beforeEach(function () {
     ConfigStore.loadInitialData(
-      TestStubs.Config({
-        user: {options: {timezone: 'America/New_York'}},
+      MockConfig({
+        user: MockUser({
+          options: {timezone: 'America/New_York'},
+        }),
       })
     );
     onChange.mockReset();

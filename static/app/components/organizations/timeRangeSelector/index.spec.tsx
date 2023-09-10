@@ -4,6 +4,7 @@ import TimeRangeSelector, {
   TimeRangeSelectorProps,
 } from 'sentry/components/organizations/timeRangeSelector';
 import ConfigStore from 'sentry/stores/configStore';
+import {MockConfig} from 'sentry/types/__fixtures__/MockConfig';
 
 describe('TimeRangeSelector', function () {
   const onChange = jest.fn();
@@ -32,7 +33,7 @@ describe('TimeRangeSelector', function () {
   }
 
   beforeEach(function () {
-    const config = TestStubs.Config();
+    const config = MockConfig();
     config.user.options.timezone = 'America/New_York';
     ConfigStore.loadInitialData(config);
     onChange.mockReset();

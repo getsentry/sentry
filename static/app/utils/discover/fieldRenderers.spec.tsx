@@ -3,6 +3,7 @@ import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {MockConfig} from 'sentry/types/__fixtures__/MockConfig';
 import EventView from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {SPAN_OP_RELATIVE_BREAKDOWN_FIELD} from 'sentry/utils/discover/fields';
@@ -104,7 +105,7 @@ describe('getFieldRenderer', function () {
   describe('date', function () {
     beforeEach(function () {
       ConfigStore.loadInitialData(
-        TestStubs.Config({
+        MockConfig({
           user: TestStubs.User({
             options: {
               ...TestStubs.User().options,
@@ -145,7 +146,7 @@ describe('getFieldRenderer', function () {
   it('can render timestamp.to_day', function () {
     // Set timezone
     ConfigStore.loadInitialData(
-      TestStubs.Config({
+      MockConfig({
         user: TestStubs.User({
           options: {
             ...TestStubs.User().options,
