@@ -4,7 +4,7 @@ from sentry.models.environment import Environment
 from sentry.testutils.cases import APITestCase
 
 
-class ReleaseThresholdCreateTest(APITestCase):
+class ReleaseThresholdTest(APITestCase):
     def setUp(self):
         super().setUp()
         self.user = self.create_user(is_staff=True, is_superuser=True)
