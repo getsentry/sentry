@@ -1,11 +1,8 @@
-import pytest
-
 from sentry.constants import ObjectStatus
 from sentry.models import Rule
 from sentry.testutils.cases import TestMigrations
 
 
-@pytest.mark.skip("Migration is no longer runnable. Retain until migration is removed.")
 class MigrateNoActionDupleIssueAlerts(TestMigrations):
     migrate_from = "0548_add_is_unclaimed_boolean_to_user"
     migrate_to = "0549_migrate_no_action_dupe_issue_alerts"
@@ -25,7 +22,7 @@ class MigrateNoActionDupleIssueAlerts(TestMigrations):
                 "targetType": "IssueOwners",
                 "fallthroughType": "ActiveMembers",
                 "id": "sentry.mail.actions.NotifyEmailAction",
-                "targetIdentifier": "",
+                "targetIdentifier": None,
             }
         ]
         self.non_migrated_rule = Rule.objects.create(
@@ -39,11 +36,11 @@ class MigrateNoActionDupleIssueAlerts(TestMigrations):
         )
 
     def test(self):
-        assert self.no_action_rule == ObjectStatus.ACTIVE
+        assert self.no_action_rule.status == ObjectStatus.ACTIVE
         assert self.duplicate_rule.status == ObjectStatus.ACTIVE
-        assert self.non_migrated_rule == ObjectStatus.ACTIVE
-        self.self.no_action_rule.refresh_from_db()
+        assert self.non_migrated_rule.status == ObjectStatus.ACTIVE
+        self.no_action_rule.refresh_from_db()
         self.duplicate_rule.refresh_from_db()
-        assert self.no_action_rule == ObjectStatus.DISABLED
+        assert self.no_action_rule.status == ObjectStatus.DISABLED
         assert self.duplicate_rule.status == ObjectStatus.DISABLED
-        assert self.non_migrated_rule == ObjectStatus.ACTIVE
+        assert self.non_migrated_rule.status == ObjectStatus.ACTIVE
