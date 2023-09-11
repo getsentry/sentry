@@ -84,8 +84,7 @@ class FeedbackIngestTest(MonitorIngestTestCase):
     def test_wrong_input(self):
         # Wrong inputs should lead to failed validation
         wrong_test_data = {
-            "dist3": "abc123",
-            "environment": "production",
+            "environment4": "production",
             "feedback": {
                 "contact_email": "colton.allen@sentry.io",
                 "message": "I really like this user-feedback feature!",
@@ -103,7 +102,7 @@ class FeedbackIngestTest(MonitorIngestTestCase):
             response = self.client.post(path, data=wrong_test_data, **self.dsn_auth_headers)
             assert response.status_code == 400
             assert response.data == {
-                "dist": [ErrorDetail(string="This field is required.", code="required")]
+                "environment": [ErrorDetail(string="This field is required.", code="required")]
             }
 
     def test_no_environment(self):
@@ -141,14 +140,13 @@ class FeedbackIngestTest(MonitorIngestTestCase):
     def test_wrong_type(self):
         # Fields should be correct type
         wrong_type_test_data = {
-            "dist": {},
             "feedback": {
                 "contact_email": "colton.allen@sentry.io",
                 "message": "I really like this user-feedback feature!",
                 "replay_id": "ec3b4dc8b79f417596f7a1aa4fcca5d2",
                 "url": "https://docs.sentry.io/platforms/javascript/",
             },
-            "environment": "prod",
+            "environment": {},
             "platform": "javascript",
             "release": "1",
             "sdk": {"name": "sentry.javascript.react", "version": "6.18.1"},
@@ -160,7 +158,7 @@ class FeedbackIngestTest(MonitorIngestTestCase):
             response = self.client.post(path, data=wrong_type_test_data, **self.dsn_auth_headers)
             assert response.status_code == 400
             assert response.data == {
-                "dist": [ErrorDetail(string="Not a valid string.", code="invalid")]
+                "environment": [ErrorDetail(string="Not a valid string.", code="invalid")]
             }
 
     def test_bad_slug_path(self):
@@ -173,7 +171,6 @@ class FeedbackIngestTest(MonitorIngestTestCase):
     def test_missing_optional_fields(self):
         # Optional fields missing should still result in successful save
         test_data_missing_optional_fields = {
-            "dist": "abc123",
             "environment": "production",
             "feedback": {
                 "contact_email": "colton.allen@sentry.io",
