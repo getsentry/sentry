@@ -128,7 +128,7 @@ export default function MetricDetailsBody({
     );
   }
 
-  const {query, dataset} = rule;
+  const {dataset, aggregate, query} = rule;
 
   const queryWithTypeFilter = `${query} ${extractEventTypeFilterFromRule(rule)}`.trim();
   const relativeOptions = {
@@ -139,7 +139,7 @@ export default function MetricDetailsBody({
   const isSnoozed = rule.snooze;
   const ruleActionCategory = getAlertRuleActionCategory(rule);
 
-  const isOnDemandAlert = isOnDemandMetricAlert(dataset, query);
+  const isOnDemandAlert = isOnDemandMetricAlert(dataset, aggregate, query);
 
   return (
     <Fragment>
@@ -227,7 +227,7 @@ export default function MetricDetailsBody({
         <Layout.Side>
           <MetricDetailsSidebar
             rule={rule}
-            isOnDemandMetricAlert={isOnDemandMetricAlert(dataset, query)}
+            isOnDemandMetricAlert={isOnDemandMetricAlert(dataset, aggregate, query)}
           />
         </Layout.Side>
       </Layout.Body>
