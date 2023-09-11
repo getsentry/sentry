@@ -84,12 +84,13 @@ class FeedbackIngestTest(MonitorIngestTestCase):
     def test_wrong_input(self):
         # Wrong inputs should lead to failed validation
         wrong_test_data = {
-            "environment4": "production",
+            "dist!": "abc",
+            "environment": "production",
             "feedback": {
                 "contact_email": "colton.allen@sentry.io",
                 "message": "I really like this user-feedback feature!",
                 "replay_id": "ec3b4dc8b79f417596f7a1aa4fcca5d2",
-                "url": "https://docs.sentry.io/platforms/javascript/",
+                "url123": "https://docs.sentry.io/platforms/javascript/",
             },
             "platform": "javascript",
             "release": "version@1.3",
@@ -102,7 +103,9 @@ class FeedbackIngestTest(MonitorIngestTestCase):
             response = self.client.post(path, data=wrong_test_data, **self.dsn_auth_headers)
             assert response.status_code == 400
             assert response.data == {
-                "environment": [ErrorDetail(string="This field is required.", code="required")]
+                "non_field_errors": [
+                    ErrorDetail(string="Input has wrong field name or type", code="invalid")
+                ]
             }
 
     def test_no_environment(self):
