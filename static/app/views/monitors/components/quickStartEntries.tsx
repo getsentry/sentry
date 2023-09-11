@@ -303,3 +303,52 @@ def init_sentry(**kwargs):
     </Fragment>
   );
 }
+
+export function PHPUpsertPlatformGuide() {
+  const scheduleCode = `// Create a crontab schedule object (every 10 minutes)
+$monitorSchedule = \Sentry\MonitorSchedule::crontab('*/10 * * * *');
+
+// Or create an interval schedule object (every 10 minutes)
+$monitorSchedule = \Sentry\MonitorSchedule::interval(10, MonitorScheduleUnit::minute());`;
+
+  const upsertCode = `// Create a config object
+$monitorConfig = new \Sentry\MonitorConfig(
+    $monitorSchedule,
+    checkinMargin: 5, // Optional check-in margin in minutes
+    maxRuntime: 15, // Optional max runtime in minutes
+    timezone: 'Europe/Vienna', // Optional timezone
+);
+
+// 🟡 Notify Sentry your job is running:
+$checkInId = \Sentry\captureCheckIn(
+    slug: '<monitor-slug>',
+    status: CheckInStatus::inProgress(),
+    monitorConfig: $monitorConfig,
+);
+
+// Execute your scheduled task here...
+
+// 🟢 Notify Sentry your job has completed successfully:
+\Sentry\captureCheckIn(
+    slug: '<monitor-slug>',
+    status: CheckInStatus::inProgress(),
+    checkInId: $checkInId,
+);`;
+
+  return (
+    <Fragment>
+      <div>
+        {tct(
+          'You can use the [additionalDocs: PHP SDK] to create and update your Monitors programmatically with code rather than creating them manually.',
+          {
+            additionalDocs: (
+              <ExternalLink href="https://docs.sentry.io/platforms/php/crons/#upserting-cron-monitors" />
+            ),
+          }
+        )}
+      </div>
+      <CodeSnippet language="php">{scheduleCode}</CodeSnippet>
+      <CodeSnippet language="php">{upsertCode}</CodeSnippet>
+    </Fragment>
+  );
+}
