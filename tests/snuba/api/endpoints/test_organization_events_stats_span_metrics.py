@@ -162,6 +162,36 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(MetricsEnhancedPerformance
             for test in zip(event_counts, rows):
                 assert test[1][1][0]["count"] == test[0] / 60.0
 
+    def test_top_events(self):
+        # Each of these denotes how many events to create in each minute
+        for transaction in ["foo", "bar"]:
+            self.store_span_metric(
+                2, timestamp=self.day_ago + timedelta(minutes=1), tags={"transaction": transaction}
+            )
+        self.store_span_metric(
+            1, timestamp=self.day_ago + timedelta(minutes=1), tags={"transaction": "baz"}
+        )
+
+        response = self.do_request(
+            data={
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(minutes=6)),
+                "interval": "1m",
+                "yAxis": "count()",
+                "field": ["transaction", "sum(span.self_time)"],
+                "orderby": ["-sum_span_self_time"],
+                "project": self.project.id,
+                "dataset": "spansMetrics",
+                "excludeOther": 0,
+                "topEvents": 2,
+            },
+        )
+        assert response.status_code == 200, response.content
+        assert "Other" in response.data
+        assert "foo" in response.data
+        assert "bar" in response.data
+        assert response.data["Other"]["meta"]["dataset"] == "spansMetrics"
+
 
 class OrganizationEventsStatsSpansMetricsEndpointTestWithMetricLayer(
     OrganizationEventsStatsSpansMetricsEndpointTest

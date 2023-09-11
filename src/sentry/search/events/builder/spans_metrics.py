@@ -21,7 +21,9 @@ class SpansMetricsQueryBuilder(MetricsQueryBuilder):
         *args: Any,
         **kwargs: Any,
     ):
-        config = kwargs.pop("config", QueryBuilderConfig())
+        config = kwargs.pop("config", None)
+        if config is None:
+            config = QueryBuilderConfig()
         parser_config_overrides = (
             config.parser_config_overrides if config.parser_config_overrides else {}
         )
