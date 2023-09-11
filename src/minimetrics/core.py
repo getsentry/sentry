@@ -299,7 +299,9 @@ class Aggregator:
             try:
                 # We want to have a kill-switch for enabling/disabling envelope forwarding.
                 if options.get("delightful_metrics.enable_envelope_forwarding") == 1.0:
-                    self._transport.send(self._to_extracted_metric(bucket_key, metric))
+                    # For now gauges will not be forwarded since they are not supported by snuba.
+                    if bucket_key.metric_type != "g":
+                        self._transport.send(self._to_extracted_metric(bucket_key, metric))
             except Exception as e:
                 sentry_sdk.capture_exception(e)
 
