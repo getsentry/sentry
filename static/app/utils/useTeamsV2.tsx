@@ -7,10 +7,17 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Team} from 'sentry/types';
 import {ApiQueryKey, useApiQuery} from 'sentry/utils/queryClient';
 
-interface UseTeamOptions {
-  ids?: string[];
-  slugs?: string[];
+interface UseTeamsById {
+  ids: string[];
 }
+
+interface UseTeamsBySlug {
+  slugs: string[];
+}
+
+interface UseAllTeams {}
+
+type UseTeamOptions = UseTeamsById | UseTeamsBySlug | UseAllTeams;
 
 interface UseTeamsResult {
   isError: boolean | null;
@@ -35,12 +42,17 @@ function buildTeamsQueryKey(
 }
 
 /**
- * Does not search
+ * example usage:
+ * ```ts
+ * const {teams, isLoading, isError} = useTeamsV2({slugs: ['project-slug']});
+ * ```
  */
-export function useTeamsV2({ids = [], slugs = []}: UseTeamOptions = {}): UseTeamsResult {
+export function useTeamsV2(options: UseTeamOptions = {}): UseTeamsResult {
   const {organization} = useLegacyStore(OrganizationStore);
   const storeState = useLegacyStore(TeamStore);
 
+  const ids = 'ids' in options ? options.ids : [];
+  const slugs = 'slugs' in options ? options.slugs : [];
   const idsToFetch = ids.filter(id => !storeState.teams.find(team => team.id === id));
   const slugsToFetch = slugs.filter(
     slug => !storeState.teams.find(team => team.slug === slug)

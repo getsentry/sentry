@@ -25,6 +25,7 @@ describe('useTeamsV2', function () {
   beforeEach(function () {
     TeamStore.reset();
     OrganizationStore.onUpdate(org, {replace: true});
+    queryClient.clear();
   });
 
   it('provides teams from the team store', function () {
