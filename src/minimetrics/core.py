@@ -307,6 +307,9 @@ class Aggregator:
             # Given the new weight we consider whether we want to force flush.
             self.consider_force_flush()
 
+        # We want to track how many times metrics are being added, so that we know the actual count of adds.
+        self._safe_emit_count_metric(key="minimetrics.add", amount=1, tags={"metric_type": ty})
+
     def stop(self):
         if self._flusher is None:
             return
