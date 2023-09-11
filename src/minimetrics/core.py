@@ -367,9 +367,19 @@ class Aggregator:
                 value=buckets_count,
                 tags={"metric_type": metric_type, "force_flush": force_flush},
             )
+            cls._safe_emit_count_metric(
+                key="minimetrics.flushed_buckets_counter",
+                amount=buckets_count,
+                tags={"metric_type": metric_type, "force_flush": force_flush},
+            )
             cls._safe_emit_distribution_metric(
                 key="minimetrics.flushed_buckets_weight",
                 value=buckets_weight,
+                tags={"metric_type": metric_type, "force_flush": force_flush},
+            )
+            cls._safe_emit_count_metric(
+                key="minimetrics.flushed_buckets_weight_counter",
+                amount=buckets_weight,
                 tags={"metric_type": metric_type, "force_flush": force_flush},
             )
 
