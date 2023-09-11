@@ -12,6 +12,7 @@ from sentry.backup.comparators import (
     IgnoredComparator,
     ScrubbedData,
     SecretHexComparator,
+    UserPasswordObfuscatingComparator,
     UUID4Comparator,
 )
 from sentry.backup.dependencies import ImportKind, PrimaryKeyMap, dependencies
@@ -1119,3 +1120,321 @@ def test_good_uuid4_comparator_scrubbed():
 
     assert right["scrubbed"]
     assert right["scrubbed"]["UUID4Comparator::guid_field"] is ScrubbedData()
+
+
+def test_good_user_password_obfuscating_comparator_claimed_user():
+    cmp = UserPasswordObfuscatingComparator()
+    id = InstanceID("test", 0)
+    model: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "is_unclaimed": False,
+            "password": "pbkdf2_sha256$260000$3v4Cyy3TAhp14YCB8Zh7Gq$SjB35BELrwwfOCaiz8O/SdbvhXq+l02BRpKtwxOCTiw=",
+        },
+    }
+    assert not cmp.compare(id, model, model)
+
+
+def test_good_user_password_obfuscating_comparator_newly_unclaimed_user():
+    cmp = UserPasswordObfuscatingComparator()
+    id = InstanceID("test", 0)
+    left: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "is_unclaimed": False,
+            "password": "pbkdf2_sha256$260000$3v4Cyy3TAhp14YCB8Zh7Gq$SjB35BELrwwfOCaiz8O/SdbvhXq+l02BRpKtwxOCTiw=",
+        },
+    }
+    right: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "is_unclaimed": True,
+            "password": "pbkdf2_sha256$260000$HabqnqSUf1q5nKLC24gRMF$tEH6ZbeBSx21Pk8DJO2w5+/NiEI77N2MS3D6QF+Qayg=",
+        },
+    }
+    assert not cmp.compare(id, left, right)
+
+
+def test_good_user_password_obfuscating_comparator_already_unclaimed_user():
+    cmp = UserPasswordObfuscatingComparator()
+    id = InstanceID("test", 0)
+    left: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "is_unclaimed": True,
+            "password": "pbkdf2_sha256$260000$3v4Cyy3TAhp14YCB8Zh7Gq$SjB35BELrwwfOCaiz8O/SdbvhXq+l02BRpKtwxOCTiw=",
+        },
+    }
+    right: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "is_unclaimed": True,
+            "password": "pbkdf2_sha256$260000$HabqnqSUf1q5nKLC24gRMF$tEH6ZbeBSx21Pk8DJO2w5+/NiEI77N2MS3D6QF+Qayg=",
+        },
+    }
+    assert not cmp.compare(id, left, right)
+
+
+def test_bad_user_password_obfuscating_comparator_claimed_user():
+    cmp = UserPasswordObfuscatingComparator()
+    id = InstanceID("test", 0)
+    left: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "is_unclaimed": False,
+            "password": "pbkdf2_sha256$260000$3v4Cyy3TAhp14YCB8Zh7Gq$SjB35BELrwwfOCaiz8O/SdbvhXq+l02BRpKtwxOCTiw=",
+        },
+    }
+    right: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            # Absence of `is_unclaimed` is treated as `False`.
+            "password": "pbkdf2_sha256$260000$HabqnqSUf1q5nKLC24gRMF$tEH6ZbeBSx21Pk8DJO2w5+/NiEI77N2MS3D6QF+Qayg=",
+        },
+    }
+    res = cmp.compare(id, left, right)
+    assert res
+    assert len(res) == 1
+
+    assert res[0]
+    assert res[0].kind == ComparatorFindingKind.UserPasswordObfuscatingComparator
+    assert res[0].on == id
+    assert res[0].left_pk == 1
+    assert res[0].right_pk == 1
+    assert "`password`" in res[0].reason
+    assert "pbkdf2_sha25...OCTiw=" in res[0].reason
+    assert "pbkdf2_sha25...+Qayg=" in res[0].reason
+
+
+def test_bad_user_password_obfuscating_comparator_newly_unclaimed_user():
+    cmp = UserPasswordObfuscatingComparator()
+    id = InstanceID("test", 0)
+    left: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            # Absence of `is_unclaimed` is treated as `False`.
+            "password": "pbkdf2_sha256$260000$3v4Cyy3TAhp14YCB8Zh7Gq$SjB35BELrwwfOCaiz8O/SdbvhXq+l02BRpKtwxOCTiw=",
+        },
+    }
+    right: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "is_unclaimed": True,
+            "password": "pbkdf2_sha256$260000$3v4Cyy3TAhp14YCB8Zh7Gq$SjB35BELrwwfOCaiz8O/SdbvhXq+l02BRpKtwxOCTiw=",
+        },
+    }
+    res = cmp.compare(id, left, right)
+    assert res
+    assert len(res) == 1
+
+    assert res[0]
+    assert res[0].kind == ComparatorFindingKind.UserPasswordObfuscatingComparator
+    assert res[0].on == id
+    assert res[0].left_pk == 1
+    assert res[0].right_pk == 1
+    assert "`password`" in res[0].reason
+    assert res[0].reason.count("pbkdf2_sha25...OCTiw=") == 2
+
+
+def test_bad_user_password_obfuscating_comparator_already_unclaimed_user():
+    cmp = UserPasswordObfuscatingComparator()
+    id = InstanceID("test", 0)
+    left: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "is_unclaimed": True,
+            "password": "pbkdf2_sha256$260000$3v4Cyy3TAhp14YCB8Zh7Gq$SjB35BELrwwfOCaiz8O/SdbvhXq+l02BRpKtwxOCTiw=",
+        },
+    }
+    right: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "is_unclaimed": True,
+            "password": "pbkdf2_sha256$260000$3v4Cyy3TAhp14YCB8Zh7Gq$SjB35BELrwwfOCaiz8O/SdbvhXq+l02BRpKtwxOCTiw=",
+        },
+    }
+    res = cmp.compare(id, left, right)
+    assert res
+    assert len(res) == 1
+
+    assert res[0]
+    assert res[0].kind == ComparatorFindingKind.UserPasswordObfuscatingComparator
+    assert res[0].on == id
+    assert res[0].left_pk == 1
+    assert res[0].right_pk == 1
+    assert "`password`" in res[0].reason
+    assert res[0].reason.count("pbkdf2_sha25...OCTiw=") == 2
+
+
+def test_bad_user_password_obfuscating_comparator_impossible_newly_claimed_user():
+    cmp = UserPasswordObfuscatingComparator()
+    id = InstanceID("test", 0)
+    left: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "is_unclaimed": True,
+            "password": "pbkdf2_sha256$260000$3v4Cyy3TAhp14YCB8Zh7Gq$SjB35BELrwwfOCaiz8O/SdbvhXq+l02BRpKtwxOCTiw=",
+        },
+    }
+    right: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "is_unclaimed": False,
+            "password": "pbkdf2_sha256$260000$3v4Cyy3TAhp14YCB8Zh7Gq$SjB35BELrwwfOCaiz8O/SdbvhXq+l02BRpKtwxOCTiw=",
+        },
+    }
+    res = cmp.compare(id, left, right)
+    assert res
+    assert len(res) == 1
+
+    assert res[0]
+    assert res[0].kind == ComparatorFindingKind.UserPasswordObfuscatingComparator
+    assert res[0].on == id
+    assert res[0].left_pk == 1
+    assert res[0].right_pk == 1
+    assert "`is_unclaimed`" in res[0].reason
+    assert "cannot claim" in res[0].reason
+
+
+def test_good_user_password_obfuscating_comparator_existence():
+    cmp = UserPasswordObfuscatingComparator()
+    id = InstanceID("test", 0)
+    present: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "password": "pbkdf2_sha256$260000$3v4Cyy3TAhp14YCB8Zh7Gq$SjB35BELrwwfOCaiz8O/SdbvhXq+l02BRpKtwxOCTiw=",
+        },
+    }
+    missing: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {},
+    }
+    res = cmp.existence(id, missing, present)
+    assert res
+    assert len(res) == 1
+
+    assert res[0]
+    assert res[0].on == id
+    assert res[0].kind == ComparatorFindingKind.UserPasswordObfuscatingComparatorExistenceCheck
+    assert res[0].left_pk == 1
+    assert res[0].right_pk == 1
+    assert "left" in res[0].reason
+    assert "password" in res[0].reason
+
+
+def test_good_user_password_obfuscating_comparator_scrubbed_long():
+    cmp = UserPasswordObfuscatingComparator()
+    left: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "is_unclaimed": False,
+            "password": "pbkdf2_sha256$260000$3v4Cyy3TAhp14YCB8Zh7Gq$SjB35BELrwwfOCaiz8O/SdbvhXq+l02BRpKtwxOCTiw=",
+        },
+    }
+    right: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "is_unclaimed": True,
+            "password": "pbkdf2_sha256$260000$HabqnqSUf1q5nKLC24gRMF$tEH6ZbeBSx21Pk8DJO2w5+/NiEI77N2MS3D6QF+Qayg=",
+        },
+    }
+    cmp.scrub(left, right)
+    assert left["scrubbed"]
+    assert left["scrubbed"]["UserPasswordObfuscatingComparator::password"] == [
+        "pbkdf2_sha25...OCTiw="
+    ]
+
+    assert right["scrubbed"]
+    assert right["scrubbed"]["UserPasswordObfuscatingComparator::password"] == [
+        "pbkdf2_sha25...+Qayg="
+    ]
+
+
+def test_good_user_password_obfuscating_comparator_scrubbed_medium():
+    cmp = UserPasswordObfuscatingComparator()
+    left: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "is_unclaimed": False,
+            "password": "sha1$abc123$a0aac0d9559f1e7f4b6931f3918e72ad8ec01c04",
+        },
+    }
+    right: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "is_unclaimed": True,
+            "password": "sha1$abc123$1e3c01a9c0b08c3579b50eaf19bf144fa4324d4d",
+        },
+    }
+    cmp.scrub(left, right)
+    assert left["scrubbed"]
+    assert left["scrubbed"]["UserPasswordObfuscatingComparator::password"] == ["sha1$a...1c04"]
+
+    assert right["scrubbed"]
+    assert right["scrubbed"]["UserPasswordObfuscatingComparator::password"] == ["sha1$a...4d4d"]
+
+
+def test_good_user_password_obfuscating_comparator_scrubbed_short():
+    cmp = UserPasswordObfuscatingComparator()
+    left: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "is_unclaimed": False,
+            "password": "md5$abc$d2315d2c3883695e40598e56792847ab",
+        },
+    }
+    right: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "is_unclaimed": True,
+            "password": "md5$abc$161b6bc86389b8b1fe6e8390e9618c9d",
+        },
+    }
+    cmp.scrub(left, right)
+    assert left["scrubbed"]
+    assert left["scrubbed"]["UserPasswordObfuscatingComparator::password"] == ["..."]
+
+    assert right["scrubbed"]
+    assert right["scrubbed"]["UserPasswordObfuscatingComparator::password"] == ["..."]
