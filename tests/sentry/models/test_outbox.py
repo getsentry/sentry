@@ -454,7 +454,7 @@ class RegionOutboxTest(TestCase):
             def raise_exception(**kwds):
                 raise ValueError("This is just a test mock exception")
 
-            def run_with_error(conccurrency=1):
+            def run_with_error(concurrency=1):
                 mock_process_region_outbox.side_effect = raise_exception
                 mock_process_region_outbox.reset_mock()
                 with self.tasks():
