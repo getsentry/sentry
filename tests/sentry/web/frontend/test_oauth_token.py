@@ -307,7 +307,7 @@ class OAuthTokenCodeTest(TestCase):
             user=self.user,
             application=self.application,
             redirect_uri="https://example.com",
-            scope_list=["email", "openid", "profile"],
+            scope_list=["openid", "profile", "email"],
         )
         with self.options({"codecov.signing_secret": "signing_secret"}):
             resp = self.client.post(
