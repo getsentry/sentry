@@ -8,5 +8,5 @@
  * @return Returns a sanitized string (replace
  */
 export function sanitizeQuerySelector(str: string) {
-  return typeof str === 'string' ? str.replace(/[ :]+/g, '-') : '';
+  return typeof str === 'string' ? str.replace(/[ :+/.]+/g, '-') : '';
 }

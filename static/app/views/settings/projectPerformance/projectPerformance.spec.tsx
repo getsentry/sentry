@@ -5,6 +5,7 @@ import {
   userEvent,
 } from 'sentry-test/reactTestingLibrary';
 
+import {IssueTitle} from 'sentry/types';
 import * as utils from 'sentry/utils/isActiveSuperuser';
 import ProjectPerformance, {
   allowedDurationValues,
@@ -192,7 +193,7 @@ describe('projectPerformance', function () {
 
   it.each([
     {
-      title: 'N+1 DB Queries',
+      title: IssueTitle.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
       threshold: DetectorConfigCustomer.N_PLUS_DB_DURATION,
       allowedValues: allowedDurationValues,
       defaultValue: 100,
@@ -200,7 +201,7 @@ describe('projectPerformance', function () {
       sliderIndex: 1,
     },
     {
-      title: 'Slow DB Queries',
+      title: IssueTitle.PERFORMANCE_SLOW_DB_QUERY,
       threshold: DetectorConfigCustomer.SLOW_DB_DURATION,
       allowedValues: allowedDurationValues.slice(5),
       defaultValue: 1000,
@@ -208,7 +209,7 @@ describe('projectPerformance', function () {
       sliderIndex: 2,
     },
     {
-      title: 'N+1 API Calls',
+      title: IssueTitle.PERFORMANCE_N_PLUS_ONE_API_CALLS,
       threshold: DetectorConfigCustomer.N_PLUS_API_CALLS_DURATION,
       allowedValues: allowedDurationValues.slice(5),
       defaultValue: 300,
@@ -216,7 +217,7 @@ describe('projectPerformance', function () {
       sliderIndex: 3,
     },
     {
-      title: 'Large Render Blocking Asset',
+      title: IssueTitle.PERFORMANCE_RENDER_BLOCKING_ASSET,
       threshold: DetectorConfigCustomer.RENDER_BLOCKING_ASSET_RATIO,
       allowedValues: allowedPercentageValues,
       defaultValue: 0.33,
@@ -224,7 +225,7 @@ describe('projectPerformance', function () {
       sliderIndex: 4,
     },
     {
-      title: 'Large HTTP Payload',
+      title: IssueTitle.PERFORMANCE_LARGE_HTTP_PAYLOAD,
       threshold: DetectorConfigCustomer.LARGE_HTT_PAYLOAD_SIZE,
       allowedValues: allowedSizeValues.slice(1),
       defaultValue: 1000000,
@@ -232,7 +233,7 @@ describe('projectPerformance', function () {
       sliderIndex: 5,
     },
     {
-      title: 'DB on Main Thread',
+      title: IssueTitle.PERFORMANCE_DB_MAIN_THREAD,
       threshold: DetectorConfigCustomer.DB_ON_MAIN_THREAD_DURATION,
       allowedValues: [10, 16, 33, 50],
       defaultValue: 16,
@@ -240,7 +241,7 @@ describe('projectPerformance', function () {
       sliderIndex: 6,
     },
     {
-      title: 'File I/O on Main Thread',
+      title: IssueTitle.PERFORMANCE_FILE_IO_MAIN_THREAD,
       threshold: DetectorConfigCustomer.FILE_IO_MAIN_THREAD_DURATION,
       allowedValues: [10, 16, 33, 50],
       defaultValue: 16,
@@ -248,7 +249,7 @@ describe('projectPerformance', function () {
       sliderIndex: 7,
     },
     {
-      title: 'Consecutive DB Queries',
+      title: IssueTitle.PERFORMANCE_CONSECUTIVE_DB_QUERIES,
       threshold: DetectorConfigCustomer.CONSECUTIVE_DB_MIN_TIME_SAVED,
       allowedValues: allowedDurationValues.slice(0, 23),
       defaultValue: 100,
@@ -256,7 +257,7 @@ describe('projectPerformance', function () {
       sliderIndex: 8,
     },
     {
-      title: 'Uncompressed Asset',
+      title: IssueTitle.PERFORMANCE_UNCOMPRESSED_ASSET,
       threshold: DetectorConfigCustomer.UNCOMPRESSED_ASSET_SIZE,
       allowedValues: allowedSizeValues.slice(1),
       defaultValue: 512000,
@@ -264,7 +265,7 @@ describe('projectPerformance', function () {
       sliderIndex: 9,
     },
     {
-      title: 'Uncompressed Asset',
+      title: IssueTitle.PERFORMANCE_UNCOMPRESSED_ASSET,
       threshold: DetectorConfigCustomer.UNCOMPRESSED_ASSET_DURATION,
       allowedValues: allowedDurationValues.slice(5),
       defaultValue: 500,
@@ -272,7 +273,7 @@ describe('projectPerformance', function () {
       sliderIndex: 10,
     },
     {
-      title: 'Consecutive HTTP',
+      title: IssueTitle.PERFORMANCE_CONSECUTIVE_HTTP,
       threshold: DetectorConfigCustomer.CONSECUTIVE_HTTP_MIN_TIME_SAVED,
       allowedValues: allowedDurationValues.slice(14),
       defaultValue: 2000,

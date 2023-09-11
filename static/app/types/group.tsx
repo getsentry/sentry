@@ -81,6 +81,21 @@ export enum IssueType {
   PROFILE_REGEX_MAIN_THREAD = 'profile_regex_main_thread',
 }
 
+export enum IssueTitle {
+  PERFORMANCE_CONSECUTIVE_DB_QUERIES = 'Consecutive DB Queries',
+  PERFORMANCE_CONSECUTIVE_HTTP = 'Consecutive HTTP',
+  PERFORMANCE_FILE_IO_MAIN_THREAD = 'File IO on Main Thread',
+  PERFORMANCE_DB_MAIN_THREAD = 'DB on Main Thread',
+  PERFORMANCE_N_PLUS_ONE_API_CALLS = 'N+1 API Call',
+  PERFORMANCE_N_PLUS_ONE_DB_QUERIES = 'N+1 Query',
+  PERFORMANCE_SLOW_DB_QUERY = 'Slow DB Query',
+  PERFORMANCE_RENDER_BLOCKING_ASSET = 'Large Render Blocking Asset',
+  PERFORMANCE_UNCOMPRESSED_ASSET = 'Uncompressed Asset',
+  PERFORMANCE_LARGE_HTTP_PAYLOAD = 'Large HTTP payload',
+  PERFORMANCE_HTTP_OVERHEAD = 'HTTP/1.1 Overhead',
+  PERFORMANCE_DURATION_REGRESSION = 'Duration Regression',
+}
+
 export const getIssueTypeFromOccurenceType = (
   typeId: number | undefined
 ): IssueType | null => {

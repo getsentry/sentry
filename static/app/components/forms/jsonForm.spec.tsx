@@ -4,6 +4,8 @@ import JsonForm from 'sentry/components/forms/jsonForm';
 import accountDetailsFields from 'sentry/data/forms/accountDetails';
 import {fields} from 'sentry/data/forms/projectGeneralSettings';
 
+import {JsonFormObject} from './types';
+
 const user = TestStubs.User();
 
 describe('JsonForm', function () {
@@ -13,6 +15,93 @@ describe('JsonForm', function () {
         <JsonForm forms={accountDetailsFields} additionalFieldProps={{user}} />
       );
       expect(container).toSnapshot();
+    });
+
+    it('initiallyCollapsed json form prop collapses forms', function () {
+      const forms: JsonFormObject[] = [
+        {
+          title: 'Form1 title',
+          fields: [
+            {
+              name: 'name',
+              type: 'string',
+              required: true,
+              label: 'Field Label 1 ',
+              placeholder: 'e.g. John Doe',
+            },
+          ],
+        },
+        {
+          title: 'Form2 title',
+          fields: [
+            {
+              name: 'name',
+              type: 'string',
+              required: true,
+              label: 'Field Label 2',
+              placeholder: 'e.g. Abdullah Khan',
+            },
+          ],
+        },
+      ];
+      render(
+        <JsonForm
+          forms={forms}
+          additionalFieldProps={{user}}
+          collapsible
+          initiallyCollapsed
+        />
+      );
+
+      expect(screen.getByText('Form1 title')).toBeInTheDocument();
+      expect(screen.getByText('Form2 title')).toBeInTheDocument();
+
+      expect(screen.queryByText('Field Label 1')).not.toBeVisible();
+      expect(screen.queryByText('Field Label 2')).not.toBeVisible();
+    });
+
+    it('initiallyCollapsed prop from children form groups override json form initiallyCollapsed prop', function () {
+      const forms: JsonFormObject[] = [
+        {
+          title: 'Form1 title',
+          fields: [
+            {
+              name: 'name',
+              type: 'string',
+              required: true,
+              label: 'Field Label 1 ',
+              placeholder: 'e.g. John Doe',
+            },
+          ],
+        },
+        {
+          title: 'Form2 title',
+          fields: [
+            {
+              name: 'name',
+              type: 'string',
+              required: true,
+              label: 'Field Label 2',
+              placeholder: 'e.g. Abdullah Khan',
+            },
+          ],
+          initiallyCollapsed: false, // Prevents this form group from being collapsed
+        },
+      ];
+      render(
+        <JsonForm
+          forms={forms}
+          additionalFieldProps={{user}}
+          collapsible
+          initiallyCollapsed
+        />
+      );
+
+      expect(screen.getByText('Form1 title')).toBeInTheDocument();
+      expect(screen.getByText('Form2 title')).toBeInTheDocument();
+
+      expect(screen.queryByText('Field Label 1')).not.toBeVisible();
+      expect(screen.queryByText('Field Label 2')).toBeVisible();
     });
 
     it('missing additionalFieldProps required in "valid" prop', function () {
