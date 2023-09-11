@@ -1,4 +1,4 @@
-import {useCallback} from 'react';
+import {useCallback, useMemo} from 'react';
 import type {Location} from 'history';
 
 import renderSortableHeaderCell from 'sentry/components/feedback/table/renderSortableHeaderCell';
@@ -7,6 +7,7 @@ import useQueryBasedSorting from 'sentry/components/feedback/table/useQueryBased
 import GridEditable, {GridColumnOrder} from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
 import Tag from 'sentry/components/tag';
+import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
 import {Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -50,7 +51,7 @@ export default function FeedbackTable({isError, isLoading, data, location}: Prop
     location,
   });
 
-  const renderHeadCell = useCallback(
+  const renderHeadCell = useMemo(
     () =>
       renderSortableHeaderCell({
         currentSort,
@@ -70,6 +71,8 @@ export default function FeedbackTable({isError, isLoading, data, location}: Prop
           return <FeedbackDetailsLink organization={organization} value={value} />;
         case 'status':
           return <Tag type={value === 'resolved' ? 'default' : 'warning'}>{value}</Tag>;
+        case 'message':
+          return <TextOverflow>{value}</TextOverflow>;
         default:
           return renderSimpleBodyCell<HydratedFeedbackItem>(column, dataRow);
       }
