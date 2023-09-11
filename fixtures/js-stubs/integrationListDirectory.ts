@@ -1,4 +1,6 @@
-export function ProviderList() {
+import {Integration, IntegrationProvider, SentryApp} from 'sentry/types';
+
+export function ProviderList(): {providers: IntegrationProvider[]} {
   return {
     providers: [
       {
@@ -33,11 +35,11 @@ export function ProviderList() {
   };
 }
 
-export function BitbucketIntegrationConfig() {
+export function BitbucketIntegrationConfig(): Integration {
   return {
-    accountType: null,
-    configData: {},
-    configOrganization: [],
+    accountType: '',
+    gracePeriodEnd: '',
+    organizationIntegrationStatus: 'active',
     domainName: 'bitbucket.org/%7Bfb715533-bbd7-4666-aa57-01dc93dd9cc0%7D',
     icon: 'https://secure.gravatar.com/avatar/8b4cb68e40b74c90427d8262256bd1c8?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FNN-0.png',
     id: '4',
@@ -55,11 +57,11 @@ export function BitbucketIntegrationConfig() {
   };
 }
 
-export function GitHubIntegrationConfig() {
+export function GitHubIntegrationConfig(): Integration {
   return {
-    accountType: null,
-    configData: {},
-    configOrganization: [],
+    accountType: '',
+    gracePeriodEnd: '',
+    organizationIntegrationStatus: 'active',
     domainName: 'github.com',
     icon: 'https://secure.gravatar.com/avatar/8b4cb68e40b74c90427d8262256bd1c8',
     id: '5',
@@ -77,10 +79,9 @@ export function GitHubIntegrationConfig() {
   };
 }
 
-export function OrgOwnedApps() {
+export function OrgOwnedApps(): SentryApp[] {
   return [
     {
-      allowedOrigins: [],
       author: 'Sentry',
       clientId: 'a6d35972d4164ef18845b1e2ca954fe70ac196e0b20d4d1e8760a38772cf6f1c',
       clientSecret: '8f47dcef40f7486f9bacfeca257022e092a483add7cf4d619993b9ace9775a79',
@@ -98,9 +99,9 @@ export function OrgOwnedApps() {
       verifyInstall: false,
       webhookUrl: 'https://myheadbandwasher.com',
       featureData: [],
+      popularity: null,
     },
     {
-      allowedOrigins: [],
       author: 'La Croix',
       clientId: '8cc36458a0f94c93816e06dce7d808f882cbef59af6040d2b9ec4d67092c80f1',
       clientSecret: '2b2aeb743c3745ab832e03bf02a7d91851908d379646499f900cd115780e8b2b',
@@ -124,11 +125,12 @@ export function OrgOwnedApps() {
           description:
             'La Croix can **utilize the Sentry API** to pull data or update resources in Sentry (with permissions granted, of course).',
           featureGate: 'integrations-api',
+          featureId: 1,
         },
       ],
+      popularity: null,
     },
     {
-      allowedOrigins: [],
       author: 'Nisanthan',
       clientId: 'c215db1accc040919e0b0dce058e0ecf4ea062bb82174d70aee8eba62351be24',
       clientSecret: '193583e573d14d61832de96a9efc32ceb64e59a494284f58b50328a656420a55',
@@ -150,16 +152,17 @@ export function OrgOwnedApps() {
           description:
             'Clickup can **utilize the Sentry API** to pull data or update resources in Sentry (with permissions granted, of course).',
           featureGate: 'integrations-api',
+          featureId: 1,
         },
       ],
+      popularity: null,
     },
   ];
 }
 
-export function PublishedApps() {
+export function PublishedApps(): SentryApp[] {
   return [
     {
-      allowedOrigins: [],
       author: 'Nisanthan',
       clientId: 'c215db1accc040919e0b0dce058e0ecf4ea062bb82174d70aee8eba62351be24',
       clientSecret: '193583e573d14d61832de96a9efc32ceb64e59a494284f58b50328a656420a55',
@@ -182,6 +185,7 @@ export function PublishedApps() {
           description:
             'Clickup can **utilize the Sentry API** to pull data or update resources in Sentry (with permissions granted, of course).',
           featureGate: 'integrations-api',
+          featureId: 1,
         },
       ],
     },
