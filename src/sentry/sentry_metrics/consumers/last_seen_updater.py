@@ -128,7 +128,7 @@ class LastSeenUpdaterStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             org_id = parsed_message["org_id"]
         except rapidjson.JSONDecodeError:
             logger.error("last_seen_updater.invalid_json", exc_info=True)
-            return False
+            return should_accept
 
         if not should_accept:
             if org_id in settings.LAST_SEEN_UPDATER_REINDEXED_ORGS:
