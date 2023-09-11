@@ -554,6 +554,11 @@ class OutboxBase(Model):
                 datetime.datetime.now().timestamp() - first_coalesced.scheduled_from.timestamp(),
                 tags=tags,
             )
+            metrics.timing(
+                "outbox.coalesced_net_processing_time",
+                datetime.datetime.now().timestamp() - first_coalesced.date_added,
+                tags=tags,
+            )
 
     def _set_span_data_for_coalesced_message(self, span: Span, message: OutboxBase):
         tag_for_outbox = OutboxScope.get_tag_name(message.shard_scope)
