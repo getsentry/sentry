@@ -95,6 +95,19 @@ class ProjectRuleDetailsBaseTestCase(APITestCase):
             {"name": "summary", "value": "We're blasting off again."},
         ]
         self.login_as(self.user)
+        self.notify_issue_owners_action = [
+            {
+                "targetType": "IssueOwners",
+                "fallthroughType": "ActiveMembers",
+                "id": "sentry.mail.actions.NotifyEmailAction",
+                "targetIdentifier": "",
+            }
+        ]
+        self.first_seen_condition = [
+            {
+                "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
+            }
+        ]
 
 
 @region_silo_test(stable=True)
@@ -405,6 +418,29 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         )
         assert_rule_from_payload(self.rule, payload)
 
+    def test_remove_conditions(self):
+        """Test that you can edit an alert rule to have no conditions (aka fire on every event)"""
+        rule = self.create_project_rule(
+            project=self.project,
+            action_match=self.notify_issue_owners_action,
+            condition_match=self.first_seen_condition,
+            name="no conditions",
+        )
+        payload = {
+            "name": rule.label,
+            "environment": None,
+            "actionMatch": "all",
+            "filterMatch": "all",
+            "frequency": 30,
+            "conditions": [],
+            "actions": self.notify_issue_owners_action,
+        }
+
+        self.get_success_response(
+            self.organization.slug, self.project.slug, rule.id, status_code=200, **payload
+        )
+        assert_rule_from_payload(rule, payload)
+
     def test_update_duplicate_rule(self):
         """Test that if you edit a rule such that it's now the exact duplicate of another rule in the same project
         we do not allow it"""
@@ -413,16 +449,10 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
                 "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
             }
         ]
-        actions = [
-            {
-                "targetType": "IssueOwners",
-                "fallthroughType": "ActiveMembers",
-                "id": "sentry.mail.actions.NotifyEmailAction",
-                "targetIdentifier": "",
-            }
-        ]
         rule = self.create_project_rule(
-            project=self.project, action_match=actions, condition_match=conditions
+            project=self.project,
+            action_match=self.notify_issue_owners_action,
+            condition_match=conditions,
         )
         conditions.append(
             {
@@ -433,13 +463,15 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             }
         )
         rule2 = self.create_project_rule(
-            project=self.project, action_match=actions, condition_match=conditions
+            project=self.project,
+            action_match=self.notify_issue_owners_action,
+            condition_match=conditions,
         )
         conditions.pop(1)
         payload = {
             "name": "hello world",
             "actionMatch": "all",
-            "actions": actions,
+            "actions": self.notify_issue_owners_action,
             "conditions": conditions,
         }
         resp = self.get_error_response(
@@ -457,30 +489,21 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
     def test_duplicate_rule_environment(self):
         """Test that if one rule doesn't have an environment set (i.e. 'All Environments') and we compare it to a rule
         that does have one set, we consider this when determining if it's a duplicate"""
-        conditions = [
-            {
-                "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
-            }
-        ]
-        actions = [
-            {
-                "targetType": "IssueOwners",
-                "fallthroughType": "ActiveMembers",
-                "id": "sentry.mail.actions.NotifyEmailAction",
-                "targetIdentifier": "",
-            }
-        ]
         self.create_project_rule(
-            project=self.project, action_match=actions, condition_match=conditions
+            project=self.project,
+            action_match=self.notify_issue_owners_action,
+            condition_match=self.first_seen_condition,
         )
         env_rule = self.create_project_rule(
-            project=self.project, action_match=actions, condition_match=conditions
+            project=self.project,
+            action_match=self.notify_issue_owners_action,
+            condition_match=self.first_seen_condition,
         )
         payload = {
             "name": "hello world",
             "actionMatch": "all",
-            "actions": actions,
-            "conditions": conditions,
+            "actions": self.notify_issue_owners_action,
+            "conditions": self.first_seen_condition,
         }
         resp = self.get_error_response(
             self.organization.slug,
@@ -509,37 +532,24 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         when they both have the same environment set, and then that we do allow it when they have different
         environments set (slightly different than if one if set and the other is not).
         """
-        conditions = [
-            {
-                "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
-            }
-        ]
-        actions = [
-            {
-                "targetType": "IssueOwners",
-                "fallthroughType": "ActiveMembers",
-                "id": "sentry.mail.actions.NotifyEmailAction",
-                "targetIdentifier": "",
-            }
-        ]
         rule = self.create_project_rule(
             project=self.project,
-            action_match=actions,
-            condition_match=conditions,
+            action_match=self.notify_issue_owners_action,
+            condition_match=self.first_seen_condition,
             name="rule_with_env",
             environment_id=self.environment.id,
         )
         rule2 = self.create_project_rule(
             project=self.project,
-            action_match=actions,
-            condition_match=conditions,
+            action_match=self.notify_issue_owners_action,
+            condition_match=self.first_seen_condition,
             name="rule_wo_env",
         )
         payload = {
             "name": "hello world",
             "actionMatch": "all",
-            "actions": actions,
-            "conditions": conditions,
+            "actions": self.notify_issue_owners_action,
+            "conditions": self.first_seen_condition,
             "environment": self.environment.name,
         }
         resp = self.get_error_response(
@@ -569,33 +579,20 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         that does have one set, we consider this when determining if it's a duplicate"""
 
         # XXX(CEO): After we migrate old data so that no rules have no actions, this test won't be needed
-        conditions = [
-            {
-                "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
-            }
-        ]
-        actions = [
-            {
-                "targetType": "IssueOwners",
-                "fallthroughType": "ActiveMembers",
-                "id": "sentry.mail.actions.NotifyEmailAction",
-                "targetIdentifier": "",
-            }
-        ]
         Rule.objects.create(
             project=self.project,
-            data={"conditions": conditions, "action_match": "all"},
+            data={"conditions": self.first_seen_condition, "action_match": "all"},
         )
         action_rule = Rule.objects.create(
             project=self.project,
-            data={"conditions": conditions, "action_match": "all"},
+            data={"conditions": self.first_seen_condition, "action_match": "all"},
         )
 
         payload = {
             "name": "hello world",
             "actionMatch": "all",
-            "actions": actions,
-            "conditions": conditions,
+            "actions": self.notify_issue_owners_action,
+            "conditions": self.first_seen_condition,
         }
 
         self.get_success_response(
@@ -613,16 +610,10 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
                 "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
             }
         ]
-        actions = [
-            {
-                "targetType": "IssueOwners",
-                "fallthroughType": "ActiveMembers",
-                "id": "sentry.mail.actions.NotifyEmailAction",
-                "targetIdentifier": "",
-            }
-        ]
         self.create_project_rule(
-            project=self.project, action_match=actions, condition_match=conditions
+            project=self.project,
+            action_match=self.notify_issue_owners_action,
+            condition_match=conditions,
         )
         conditions.append(
             {
@@ -636,8 +627,8 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             "name": "hello world",
             "environment": self.environment.name,
             "actionMatch": "all",
-            "actions": actions,
-            "conditions": conditions,
+            "actions": self.notify_issue_owners_action,
+            "conditions": self.first_seen_condition,
         }
         self.get_success_response(
             self.organization.slug, self.project.slug, self.rule.id, status_code=200, **payload
@@ -645,24 +636,11 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
 
     def test_reenable_disabled_rule(self):
         """Test that when you edit and save a rule that was disabled, it's re-enabled as long as it passes the checks"""
-        conditions = [
-            {
-                "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
-            }
-        ]
-        actions = [
-            {
-                "targetType": "IssueOwners",
-                "fallthroughType": "ActiveMembers",
-                "id": "sentry.mail.actions.NotifyEmailAction",
-                "targetIdentifier": "",
-            }
-        ]
         rule = Rule.objects.create(
             label="hello world",
             project=self.project,
             data={
-                "conditions": conditions,
+                "conditions": self.first_seen_condition,
                 "actions": [],
                 "action_match": "all",
                 "filter_match": "all",
@@ -675,8 +653,8 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         payload = {
             "name": "hellooo world",
             "actionMatch": "all",
-            "actions": actions,
-            "conditions": conditions,
+            "actions": self.notify_issue_owners_action,
+            "conditions": self.first_seen_condition,
         }
         self.get_success_response(
             self.organization.slug, self.project.slug, rule.id, status_code=200, **payload
@@ -1008,18 +986,13 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         assert error_message in response.json().get("actions")[0]
 
     def test_edit_condition_metric(self):
-        conditions = [
-            {
-                "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
-            }
-        ]
         payload = {
             "name": "name",
             "owner": self.user.id,
             "actionMatch": "any",
             "filterMatch": "any",
             "actions": [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}],
-            "conditions": conditions,
+            "conditions": self.first_seen_condition,
         }
         self.get_success_response(
             self.organization.slug, self.project.slug, self.rule.id, status_code=200, **payload

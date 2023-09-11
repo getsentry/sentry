@@ -246,11 +246,21 @@ class BaseApiClient(TrackResponseMixin):
             try:
                 with build_session() as session:
                     finalized_request = self.finalize_request(_prepared_request)
+                    environment_settings = session.merge_environment_settings(
+                        url=finalized_request.url,
+                        proxies=None,
+                        stream=None,
+                        verify=self.verify_ssl,
+                        cert=None,
+                    )
+                    send_kwargs = {
+                        "timeout": timeout,
+                        "allow_redirects": allow_redirects,
+                        **environment_settings,
+                    }
                     resp: Response = session.send(
                         finalized_request,
-                        allow_redirects=allow_redirects,
-                        timeout=timeout,
-                        verify=self.verify_ssl,
+                        **send_kwargs,
                     )
                     if raw_response:
                         return resp

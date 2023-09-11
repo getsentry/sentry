@@ -11,7 +11,7 @@ def get_context(request):
     org = Organization(name="My Company")
     provider = DummyProvider("dummy")
 
-    return {"organization": org, "actor": request.user, "provider": provider}
+    return {"organization": org, "actor_email": request.user.email, "provider": provider}
 
 
 class DebugSsoLinkedEmailView(View):

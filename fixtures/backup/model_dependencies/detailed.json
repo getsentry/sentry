@@ -1,4 +1,12 @@
 {
+  "feedback.Feedback": {
+    "foreign_keys": {},
+    "model": "feedback.Feedback",
+    "relocation_scope": "Excluded",
+    "silos": [
+      "Region"
+    ]
+  },
   "nodestore.Node": {
     "foreign_keys": {},
     "model": "nodestore.Node",
@@ -268,10 +276,6 @@
   },
   "sentry.ArtifactBundleFlatFileIndex": {
     "foreign_keys": {
-      "flat_file_index": {
-        "kind": "FlexibleForeignKey",
-        "model": "sentry.File"
-      },
       "project_id": {
         "kind": "ImplicitForeignKey",
         "model": "sentry.Project"
@@ -355,6 +359,27 @@
       "Control"
     ]
   },
+  "sentry.AuthIdentityReplica": {
+    "foreign_keys": {
+      "auth_identity_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.AuthIdentity"
+      },
+      "auth_provider_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.AuthProvider"
+      },
+      "user_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.User"
+      }
+    },
+    "model": "sentry.AuthIdentityReplica",
+    "relocation_scope": "Excluded",
+    "silos": [
+      "Region"
+    ]
+  },
   "sentry.AuthProvider": {
     "foreign_keys": {
       "organization_id": {
@@ -385,6 +410,23 @@
       "Control"
     ]
   },
+  "sentry.AuthProviderReplica": {
+    "foreign_keys": {
+      "auth_provider_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.AuthProvider"
+      },
+      "organization": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.Organization"
+      }
+    },
+    "model": "sentry.AuthProviderReplica",
+    "relocation_scope": "Excluded",
+    "silos": [
+      "Region"
+    ]
+  },
   "sentry.Authenticator": {
     "foreign_keys": {
       "user": {
@@ -393,7 +435,7 @@
       }
     },
     "model": "sentry.Authenticator",
-    "relocation_scope": "User",
+    "relocation_scope": "Global",
     "silos": [
       "Control"
     ]
@@ -3263,7 +3305,7 @@
       }
     },
     "model": "sentry.UserPermission",
-    "relocation_scope": "User",
+    "relocation_scope": "Global",
     "silos": [
       "Control"
     ]
@@ -3296,7 +3338,7 @@
   "sentry.UserRole": {
     "foreign_keys": {},
     "model": "sentry.UserRole",
-    "relocation_scope": "User",
+    "relocation_scope": "Global",
     "silos": [
       "Control"
     ]
@@ -3313,7 +3355,7 @@
       }
     },
     "model": "sentry.UserRoleUser",
-    "relocation_scope": "User",
+    "relocation_scope": "Global",
     "silos": [
       "Control"
     ]

@@ -59,6 +59,14 @@ def redact_ids(text: str) -> str:
     return text
 
 
+def redact_notification_uuid(text: str) -> str:
+    return re.sub("uuid=[A-Za-z0-9_-]+", "uuid=x", text)
+
+
+def replace_amp(text: str) -> str:
+    return re.sub("¬", "&not", text)
+
+
 @no_silo_test(stable=True)
 class EmailTestCase(AcceptanceTestCase):
     def setUp(self):
@@ -82,7 +90,7 @@ class EmailTestCase(AcceptanceTestCase):
             text_src = elem.get_attribute("innerHTML")
 
             # Avoid relying on IDs as this can cause flakey tests
-            text_src = redact_ids(text_src)
+            text_src = redact_ids(replace_amp(text_src))
 
             fixture_src = read_txt_email_fixture(name)
-            assert fixture_src == text_src
+            assert redact_notification_uuid(fixture_src) == redact_notification_uuid(text_src)

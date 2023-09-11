@@ -241,6 +241,15 @@ class OrganizationCodeMappingsTest(APITestCase):
         response = self.make_post()
         assert response.status_code == 201, response.content
 
+    def test_basic_post_from_non_member_permissions(self):
+        # disable open membership => no project level access
+        # user2 is not in a team1 that has access to project1
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        self.login_as(user=self.user2)
+        response = self.make_post()
+        assert response.status_code == 403, response.content
+
     def test_basic_post_with_invalid_integrationId(self):
         response = self.make_post({"integrationId": 100})
         assert response.status_code == 404, response.content

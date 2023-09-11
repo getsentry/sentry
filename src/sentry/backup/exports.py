@@ -7,6 +7,7 @@ from django.core.serializers import serialize
 from django.core.serializers.json import DjangoJSONEncoder
 
 from sentry.backup.dependencies import (
+    ImportKind,
     PrimaryKeyMap,
     dependencies,
     normalize_model_name,
@@ -134,12 +135,12 @@ def _export(
                     if fk is None:
                         # Null deps are allowed.
                         continue
-                    if pk_map.get(dependency_model_name, fk) is None:
+                    if pk_map.get_pk(dependency_model_name, fk) is None:
                         # The foreign key value exists, but not found! An upstream model must have
                         # been filtered out, so we can filter this one out as well.
                         break
                 else:
-                    pk_map.insert(model_name, item.pk, item.pk)
+                    pk_map.insert(model_name, item.pk, item.pk, ImportKind.Inserted)
                     yield item
 
     def yield_objects():

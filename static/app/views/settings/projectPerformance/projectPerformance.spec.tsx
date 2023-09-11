@@ -22,7 +22,7 @@ describe('projectPerformance', function () {
       'project-performance-settings-admin',
     ],
   });
-  const project = TestStubs.ProjectDetails();
+  const project = TestStubs.Project();
   const configUrl = '/projects/org-slug/project-slug/transaction-threshold/configure/';
   let getMock, postMock, deleteMock, performanceIssuesMock;
 

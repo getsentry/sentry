@@ -5,6 +5,15 @@
     "operationId": "Retrieve an Issue",
     "parameters": [
       {
+        "name": "organization_slug",
+        "in": "path",
+        "description": "The slug of the organization the issue belongs to.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
         "name": "issue_id",
         "in": "path",
         "description": "The ID of the issue to retrieve.",
@@ -177,6 +186,15 @@
     "operationId": "Update an Issue",
     "parameters": [
       {
+        "name": "organization_slug",
+        "in": "path",
+        "description": "The slug of the organization the issue belongs to.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
         "name": "issue_id",
         "in": "path",
         "description": "The ID of the group to retrieve.",
@@ -286,6 +304,15 @@
     "description": "Removes an individual issue.",
     "operationId": "Remove an Issue",
     "parameters": [
+      {
+        "name": "organization_slug",
+        "in": "path",
+        "description": "The slug of the organization the issue belongs to.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
       {
         "name": "issue_id",
         "in": "path",
