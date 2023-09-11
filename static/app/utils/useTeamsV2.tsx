@@ -17,17 +17,15 @@ interface UseTeamsResult {
 }
 
 function buildTeamsQueryKey(
-  orgSlug: string = '',
+  orgSlug: string,
   ids: string[],
   slugs: string[]
 ): ApiQueryKey {
   const query: {query?: string} = {};
 
-  if (slugs !== undefined && slugs.length > 0) {
+  if (slugs.length > 0) {
     query.query = slugs.map(slug => `slug:${slug}`).join(' ');
-  }
-
-  if (ids !== undefined && ids.length > 0) {
+  } else if (ids.length > 0) {
     query.query = ids.map(id => `id:${id}`).join(' ');
   }
 
@@ -52,7 +50,7 @@ export function useTeamsV2({ids = [], slugs = []}: UseTeamOptions = {}): UseTeam
   const hasMissing = idsToFetch.length > 0 || slugsToFetch.length > 0;
   const queryEnabled = shouldConsiderFetching && hasMissing;
 
-  const queryKey = buildTeamsQueryKey(organization?.slug, ids, slugs);
+  const queryKey = buildTeamsQueryKey(organization?.slug ?? '', ids, slugs);
   const {data: additionalTeams = [], isLoading} = useApiQuery<Team[]>(queryKey, {
     staleTime: 0,
     enabled: queryEnabled,
