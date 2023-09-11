@@ -20,7 +20,7 @@ export function ProjectAlertRuleConfiguration(params: Partial<Config> = {}): Con
         formFields: {
           targetType: {
             type: 'choice',
-            placeholder: 'assignee',
+            placeholder: 'mailAction',
             choices: [
               ['IssueOwners', 'Issue Owners'],
               ['Team', 'Team'],
