@@ -68,7 +68,7 @@ class GroupSubscriptionManager(BaseManager):
             # subscribe the members of the team
             team_users_ids = list(actor.member_set.values_list("user_id", flat=True))
             return self.bulk_subscribe(
-                group=group, users_ids=team_users_ids, reason=reason
+                group=group, user_ids=team_users_ids, reason=reason
             )  # TODO: update this once #55825 is merged in
 
         raise NotImplementedError("Unknown actor type: %r" % type(actor))
@@ -76,8 +76,8 @@ class GroupSubscriptionManager(BaseManager):
     def bulk_subscribe(
         self,
         group: Group,
-        user_ids: Iterable[int] | None,
-        teams: Iterable[Team] | None,
+        user_ids: Iterable[int] | None = None,
+        teams: Iterable[Team] | None = None,
         reason: int = GroupSubscriptionReason.unknown,
     ) -> bool:
         """
@@ -85,10 +85,12 @@ class GroupSubscriptionManager(BaseManager):
         unsubscribed.
         """
         # Unique the IDs.
-        user_ids = set(user_ids)
+        if user_ids:
+            user_ids = set(user_ids)
 
         # Unique the teams.
-        teams = set(teams)
+        if teams:
+            teams = set(teams)
 
         # 5 retries for race conditions where
         # concurrent subscription attempts cause integrity errors

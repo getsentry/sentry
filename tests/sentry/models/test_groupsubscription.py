@@ -81,7 +81,8 @@ class SubscribeTest(TestCase):
         """
         group = self.create_group()
         team = self.create_team()
-        user = self.create_user(teams=[team])
+        user = self.create_user()
+        self.create_member(user=user, organization=self.organization, role="member", teams=[team])
 
         teams = [team]
         user_ids = [user.id]
@@ -98,7 +99,7 @@ class SubscribeTest(TestCase):
         user = self.create_user()
         team = self.create_team()
 
-        user_ids = [user]
+        user_ids = [user.id]
         teams = [team]
 
         # should not error
