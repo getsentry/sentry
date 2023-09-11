@@ -84,18 +84,16 @@ class ReleaseThresholdEndpoint(ProjectEndpoint):
         )
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
+
+        release_thresholds = ReleaseThreshold.objects.filter(project=project)
         environment_name: Union[str, None] = request.GET.get("environment")
-        if not environment_name:
-            release_thresholds = ReleaseThreshold.objects.filter(project=project)
-            return Response(serialize(list(release_thresholds), request.user), status=200)
-        else:
+
+        if environment_name:
             try:
                 environment = Environment.objects.get(
                     name=environment_name, organization_id=project.organization_id
                 )
             except Environment.DoesNotExist:
                 raise Http404
-            release_thresholds = ReleaseThreshold.objects.filter(
-                project=project, environment=environment
-            )
+            release_thresholds = release_thresholds.filter(environment=environment)
         return Response(serialize(list(release_thresholds), request.user), status=200)

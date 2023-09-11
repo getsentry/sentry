@@ -1,6 +1,7 @@
 from django.urls import reverse
 
 from sentry.models.environment import Environment
+from sentry.models.release_threshold.releasethreshold import ReleaseThreshold
 from sentry.testutils.cases import APITestCase
 
 
@@ -167,16 +168,13 @@ class ReleaseThresholdTest(APITestCase):
         response = self.client.get(self.url)
         assert response.status_code == 200
         assert len(response.data) == 0
-
-        self.client.post(
-            self.url,
-            data={
-                "threshold_type": "total_error_count",
-                "trigger_type": "absolute_over",
-                "value": 100,
-                "window_in_seconds": 1800,
-                "environment": "canary",
-            },
+        ReleaseThreshold.objects.create(
+            threshold_type=0,
+            trigger_type=2,
+            value=100,
+            window_in_seconds=1800,
+            project=self.project,
+            environment=self.canary_environment,
         )
 
         response = self.client.get(self.url)
@@ -200,26 +198,22 @@ class ReleaseThresholdTest(APITestCase):
         assert response.status_code == 200
         assert len(response.data) == 0
 
-        self.client.post(
-            self.url,
-            data={
-                "threshold_type": "total_error_count",
-                "trigger_type": "absolute_over",
-                "value": 100,
-                "window_in_seconds": 1800,
-                "environment": "canary",
-            },
+        ReleaseThreshold.objects.create(
+            threshold_type=0,
+            trigger_type=2,
+            value=100,
+            window_in_seconds=1800,
+            project=self.project,
+            environment=self.canary_environment,
         )
 
-        self.client.post(
-            self.url,
-            data={
-                "threshold_type": "total_error_count",
-                "trigger_type": "absolute_over",
-                "value": 100,
-                "window_in_seconds": 1800,
-                "environment": "production",
-            },
+        ReleaseThreshold.objects.create(
+            threshold_type=0,
+            trigger_type=2,
+            value=100,
+            window_in_seconds=1800,
+            project=self.project,
+            environment=self.production_environment,
         )
 
         response = self.client.get(self.url, data={"environment": "canary"})
