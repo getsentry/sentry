@@ -81,6 +81,10 @@ class BigtableKVStorage(KVStorage[str, bytes]):
         self.default_ttl = default_ttl
         self.compression = compression
         self.app_profile = app_profile
+        self.batcher = None
+
+        self._mutate_rows = None
+        self._mutate = None
 
         self.__table: Table
         self.__table_lock = Lock()
@@ -105,12 +109,30 @@ class BigtableKVStorage(KVStorage[str, bytes]):
                 try:
                     table = self.__table
                 except AttributeError:
-                    table = self.__table = (
-                        bigtable.Client(project=self.project, **self.client_options)
-                        .instance(self.instance)
-                        .table(self.table_name, app_profile_id=self.app_profile)
-                    )
+                    self._init_table()
+                    table = self.__table
+
             return table
+
+    def _init_table(self):
+        self.__table = (
+            bigtable.Client(project=self.project, **self.client_options)
+            .instance(self.instance)
+            .table(self.table_name, app_profile_id=self.app_profile)
+        )
+        if batcher_options := self.client_options.get("batcher"):
+            self.__batcher = self.__table.mutations_batcher(**batcher_options)
+            self._mutate_rows = self.__batcher.mutate_rows
+            self._mutate = self.__batcher.mutate
+        else:
+
+            def commit_row(row):
+                status = row.commit()
+                if status.code != 0:
+                    raise BigtableError(status.code, status.message)
+
+            self._mutate = commit_row
+            self._mutate_rows = self.__table.mutate_rows
 
     def get(self, key: str) -> Optional[bytes]:
         row = self._get_table().read_row(key)
@@ -242,9 +264,7 @@ class BigtableKVStorage(KVStorage[str, bytes]):
 
         row.set_cell(self.column_family, self.data_column, value, timestamp=ts)
 
-        status = row.commit()
-        if status.code != 0:
-            raise BigtableError(status.code, status.message)
+        self._mutate(row)
 
     def delete(self, key: str) -> None:
         # XXX: There is a type mismatch here -- ``direct_row`` expects
@@ -303,3 +323,12 @@ class BigtableKVStorage(KVStorage[str, bytes]):
             return
 
         table.delete()
+
+    # If the batcher is enabled, it'll use it, otherwise it'll call
+    # table.mutate_rows().
+    def set_many(self, rows):
+        self._mutate_rows(rows)
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        if self.batcher:
+            self.batcher.close()

@@ -2051,6 +2051,10 @@ SENTRY_INDEXSTORE_OPTIONS: dict[str, Any] = {}
 SENTRY_TAGSTORE = os.environ.get("SENTRY_TAGSTORE", "sentry.tagstore.snuba.SnubaTagStorage")
 SENTRY_TAGSTORE_OPTIONS: dict[str, Any] = {}
 
+# Node storage backend used for ArtifactBundle indexing (aka FlatFileIndex aka BundleIndex)
+SENTRY_SPANSTORE = "sentry.nodestore.django.DjangoNodeStorage"
+SENTRY_SPANSTORE_OPTIONS: dict[str, Any] = {}
+
 # Search backend
 SENTRY_SEARCH = os.environ.get(
     "SENTRY_SEARCH", "sentry.search.snuba.EventsDatasetSnubaSearchBackend"
