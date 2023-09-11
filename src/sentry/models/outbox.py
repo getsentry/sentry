@@ -537,16 +537,23 @@ class OutboxBase(Model):
     @contextlib.contextmanager
     def process_coalesced(self) -> Generator[OutboxBase | None, None, None]:
         coalesced: OutboxBase | None = self.select_coalesced_messages().last()
+        first_coalesced: OutboxBase = self.select_coalesced_messages().first() or coalesced
+        tags = {"category": "None"}
+
+        if coalesced is not None:
+            tags["category"] = OutboxCategory(self.category).name
+            metrics.timing(
+                "outbox.coalesced_net_queue_time",
+                datetime.datetime.now().timestamp() - first_coalesced.date_added,
+            )
+
         yield coalesced
 
         # If the context block didn't raise we mark messages as completed by deleting them.
         if coalesced is not None:
-            first_coalesced: OutboxBase = self.select_coalesced_messages().first() or coalesced
             deleted_count, _ = (
                 self.select_coalesced_messages().filter(id__lte=coalesced.id).delete()
             )
-
-            tags = {"category": OutboxCategory(self.category).name}
 
             metrics.incr("outbox.processed", deleted_count, tags=tags)
             metrics.timing(
