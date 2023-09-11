@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import datetime
 from typing import Any, Dict
+from uuid import uuid4
 
 from rest_framework import serializers
 from rest_framework.request import Request
@@ -27,43 +28,41 @@ from sentry.utils.sdk import bind_organization_context, configure_scope
 
 
 class FeedbackValidator(serializers.Serializer):
-    contexts = serializers.JSONField(required=False)
-    tags = serializers.JSONField(required=False)
-    timestamp = serializers.FloatField(required=False)
-    transaction = serializers.CharField(required=False)
-    type = serializers.CharField(required=False)
-    transaction_info = serializers.JSONField(required=False)
-    platform = serializers.CharField(required=False)
-    event_id = serializers.CharField(required=True)
-    environment = serializers.CharField(required=False)
-    release = serializers.CharField(required=False)
-    sdk = serializers.JSONField(required=False)
-    user = serializers.JSONField(required=False)
+    # required fields
+    dist = serializers.CharField(required=True)
+    environment = serializers.CharField(required=True)
+    feedback = serializers.JSONField(required=True)
+    platform = serializers.CharField(required=True)
+    release = serializers.CharField(required=True)
+    sdk = serializers.JSONField(required=True)
+    timestamp = serializers.FloatField(required=True)
+
+    # optional fields
+    event_id = serializers.CharField(required=False)
     request = serializers.JSONField(required=False)
-    message = serializers.CharField(required=False)
+    tags = serializers.JSONField(required=False)
+    user = serializers.JSONField(required=False)
 
     def validate(self, data):
         try:
             ret: Dict[str, Any] = {}
             ret["data"] = {
-                "contexts": data.get("contexts"),
-                "tags": data.get("tags"),
-                "transaction": data.get("transactions"),
-                "type": data.get("type"),
-                "transaction_info": data.get("transaction_info"),
-                "platform": data.get("platform"),
-                "environment": data.get("environment"),
-                "release": data.get("release"),
-                "sdk": data.get("sdk"),
-                "user": data.get("user"),
+                "dist": data["dist"],
+                "environment": data["environment"],
+                "feedback": data["feedback"],
+                "platform": data["platform"],
+                "release": data["release"],
+                "sdk": data["sdk"],
                 "request": data.get("request"),
+                "user": data.get("user"),
+                "tags": data.get("tags"),
             }
             ret["date_added"] = datetime.datetime.fromtimestamp(data["timestamp"])
-            ret["feedback_id"] = data["event_id"]
-            ret["url"] = ""
+            ret["feedback_id"] = data.get("event_id") or uuid4().hex
+            ret["url"] = data["feedback"]["url"]
+            ret["message"] = data["feedback"]["message"]
+            ret["replay_id"] = data["feedback"].get("replay_id")
             ret["project_id"] = self.context["project"].id
-            ret["replay_id"] = ""
-            ret["message"] = data.get("message")
 
             return ret
         except KeyError:
@@ -72,10 +71,7 @@ class FeedbackValidator(serializers.Serializer):
 
 class FeedbackIngestPermission(ProjectPermission):
     scope_map = {
-        "GET": ["project:read", "project:write", "project:admin"],
         "POST": ["project:read", "project:write", "project:admin"],
-        "PUT": ["project:read", "project:write", "project:admin"],
-        "DELETE": ["project:read", "project:write", "project:admin"],
     }
 
 

@@ -5,32 +5,31 @@ from sentry.feedback.models import Feedback
 from sentry.testutils.cases import MonitorIngestTestCase
 
 test_data = {
-    "contexts": {},
-    "tags": {
-        "sentry_version": "23.9.0.dev0",
+    "dist": "abc123",
+    "environment": "production",
+    "event_id": "1ffe0775ac0f4417aed9de36d9f6f8dc",
+    "feedback": {
+        "contact_email": "colton.allen@sentry.io",
+        "message": "I really like this user-feedback feature!",
+        "replay_id": "ec3b4dc8b79f417596f7a1aa4fcca5d2",
+        "url": "https://docs.sentry.io/platforms/javascript/",
     },
-    "timestamp": 1694039635.9195,
-    "message": "This website is great!",
-    "transaction": "/replays/",
-    "type": "transaction",
-    "transaction_info": {"source": "route"},
     "platform": "javascript",
-    "event_id": "b51647a3c56f4a939984bb1147a6c3e5",
-    "environment": "prod",
-    "release": "frontend@40f88cd929122ac73749cc48f0ddb9aa223449ff",
-    "sdk": {"name": "sentry.javascript.react", "version": "7.66.0-alpha.0"},
-    "user": {
-        "ip_address": "72.164.175.154",
-        "email": "josh.ferge@sentry.io",
-        "id": 880461,
-        "isStaff": False,
-        "name": "Josh Ferge",
-    },
+    "release": "version@1.3",
     "request": {
-        "url": "https://sentry.sentry.io/replays/?project=11276&statsPeriod=7d",
         "headers": {
-            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36"
-        },
+            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36"
+        }
+    },
+    "sdk": {"name": "sentry.javascript.react", "version": "6.18.1"},
+    "tags": {"key": "value"},
+    "timestamp": 1234456,
+    "user": {
+        "email": "username@example.com",
+        "id": "123",
+        "ip_address": "127.0.0.1",
+        "name": "user",
+        "username": "user2270129",
     },
 }
 
@@ -51,19 +50,21 @@ class FeedbackIngestTest(MonitorIngestTestCase):
 
             # Feedback object is what was posted
             feedback = feedback_list[0]
-            assert feedback.data["type"] == "transaction"
-            assert feedback.data["environment"] == "prod"
+            assert feedback.data["dist"] == "abc123"
+            assert feedback.data["environment"] == "production"
             assert feedback.data["sdk"]["name"] == "sentry.javascript.react"
-            assert feedback.data["transaction_info"]["source"] == "route"
-            assert feedback.data["tags"]["sentry_version"] == "23.9.0.dev0"
-            assert feedback.data["release"] == "frontend@40f88cd929122ac73749cc48f0ddb9aa223449ff"
-            assert feedback.data["user"]["name"] == "Josh Ferge"
+            assert feedback.data["feedback"]["contact_email"] == "colton.allen@sentry.io"
             assert (
-                feedback.data["request"]["url"]
-                == "https://sentry.sentry.io/replays/?project=11276&statsPeriod=7d"
+                feedback.data["feedback"]["message"] == "I really like this user-feedback feature!"
+            )
+            assert feedback.data["tags"]["key"] == "value"
+            assert feedback.data["release"] == "version@1.3"
+            assert feedback.data["user"]["name"] == "user"
+            assert (
+                feedback.data["request"]["headers"]["User-Agent"]
+                == "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36"
             )
             assert feedback.data["platform"] == "javascript"
-            assert feedback.message == "This website is great!"
 
     def test_no_feature_enabled(self):
         # Feature disabled should lead to unsuccessful save
@@ -83,12 +84,18 @@ class FeedbackIngestTest(MonitorIngestTestCase):
     def test_wrong_input(self):
         # Wrong inputs should lead to failed validation
         wrong_test_data = {
-            "contexts33": {},
-            "tags!": {
-                "sentry_version": "23.9.0.dev0",
+            "dist3": "abc123",
+            "environment": "production",
+            "feedback": {
+                "contact_email": "colton.allen@sentry.io",
+                "message": "I really like this user-feedback feature!",
+                "replay_id": "ec3b4dc8b79f417596f7a1aa4fcca5d2",
+                "url": "https://docs.sentry.io/platforms/javascript/",
             },
-            "platform_bad": "javascript",
-            "event_id": "b51647a3c56f4a939984bb1147a6c3e5",
+            "platform": "javascript",
+            "release": "version@1.3",
+            "sdk": {"name": "sentry.javascript.react", "version": "6.18.1"},
+            "timestamp": 1234456,
         }
 
         with self.feature({"organizations:user-feedback-ingest": True}):
@@ -96,58 +103,56 @@ class FeedbackIngestTest(MonitorIngestTestCase):
             response = self.client.post(path, data=wrong_test_data, **self.dsn_auth_headers)
             assert response.status_code == 400
             assert response.data == {
-                "non_field_errors": [
-                    ErrorDetail(string="Input has wrong field name or type", code="invalid")
-                ]
+                "dist": [ErrorDetail(string="This field is required.", code="required")]
             }
 
-    def test_no_event_id(self):
-        # Event ID is required for a successful post
-        missing_event_id_test_data = {
-            "contexts": {},
-            "tags": {
-                "sentry_version": "23.9.0.dev0",
+    def test_no_environment(self):
+        # Environment field is required for a successful post
+        missing_environment_test_data = {
+            "dist": "abc123",
+            "feedback": {
+                "contact_email": "colton.allen@sentry.io",
+                "message": "I really like this user-feedback feature!",
+                "replay_id": "ec3b4dc8b79f417596f7a1aa4fcca5d2",
+                "url": "https://docs.sentry.io/platforms/javascript/",
             },
-            "timestamp": 1694039635.9195,
-            "message": "This website is great!",
-            "transaction": "/replays/",
-            "type": "transaction",
-            "transaction_info": {"source": "route"},
             "platform": "javascript",
-            "environment": "prod",
-            "release": "frontend@40f88cd929122ac73749cc48f0ddb9aa223449ff",
-            "sdk": {"name": "sentry.javascript.react", "version": "7.66.0-alpha.0"},
-            "user": {
-                "ip_address": "72.164.175.154",
-                "email": "josh.ferge@sentry.io",
-                "id": 880461,
-                "isStaff": False,
-                "name": "Josh Ferge",
-            },
+            "release": "version@1.3",
             "request": {
-                "url": "https://sentry.sentry.io/replays/?project=11276&statsPeriod=7d",
                 "headers": {
-                    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36"
-                },
+                    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36"
+                }
             },
+            "sdk": {"name": "sentry.javascript.react", "version": "6.18.1"},
+            "tags": {"key": "value"},
+            "timestamp": 1234456,
         }
 
         with self.feature({"organizations:user-feedback-ingest": True}):
             path = reverse(self.endpoint)
             response = self.client.post(
-                path, data=missing_event_id_test_data, **self.dsn_auth_headers
+                path, data=missing_environment_test_data, **self.dsn_auth_headers
             )
             assert response.status_code == 400
             assert response.data == {
-                "event_id": [ErrorDetail(string="This field is required.", code="required")]
+                "environment": [ErrorDetail(string="This field is required.", code="required")]
             }
 
     def test_wrong_type(self):
         # Fields should be correct type
         wrong_type_test_data = {
-            "message": 24,
-            "event_id": "b51647a3c56f4a939984bb1147a6c3e5",
-            "transaction": {},
+            "dist": {},
+            "feedback": {
+                "contact_email": "colton.allen@sentry.io",
+                "message": "I really like this user-feedback feature!",
+                "replay_id": "ec3b4dc8b79f417596f7a1aa4fcca5d2",
+                "url": "https://docs.sentry.io/platforms/javascript/",
+            },
+            "environment": "prod",
+            "platform": "javascript",
+            "release": "1",
+            "sdk": {"name": "sentry.javascript.react", "version": "6.18.1"},
+            "timestamp": 123456,
         }
 
         with self.feature({"organizations:user-feedback-ingest": True}):
@@ -155,7 +160,7 @@ class FeedbackIngestTest(MonitorIngestTestCase):
             response = self.client.post(path, data=wrong_type_test_data, **self.dsn_auth_headers)
             assert response.status_code == 400
             assert response.data == {
-                "transaction": [ErrorDetail(string="Not a valid string.", code="invalid")]
+                "dist": [ErrorDetail(string="Not a valid string.", code="invalid")]
             }
 
     def test_bad_slug_path(self):
@@ -168,19 +173,17 @@ class FeedbackIngestTest(MonitorIngestTestCase):
     def test_missing_optional_fields(self):
         # Optional fields missing should still result in successful save
         test_data_missing_optional_fields = {
-            "timestamp": 1694039635.9195,
-            "message": "This website is great!",
-            "transaction": "/replays/",
-            "type": "transaction",
-            "transaction_info": {"source": "route"},
-            "platform": "javascript",
-            "event_id": "b51647a3c56f4a939984bb1147a6c3e5",
-            "request": {
-                "url": "https://sentry.sentry.io/replays/?project=11276&statsPeriod=7d",
-                "headers": {
-                    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36"
-                },
+            "dist": "abc123",
+            "environment": "production",
+            "feedback": {
+                "contact_email": "colton.allen@sentry.io",
+                "message": "I really like this user-feedback feature!",
+                "url": "https://docs.sentry.io/platforms/javascript/",
             },
+            "platform": "javascript",
+            "release": "version@1.3",
+            "sdk": {"name": "sentry.javascript.react", "version": "6.18.1"},
+            "timestamp": 1234456,
         }
 
         with self.feature({"organizations:user-feedback-ingest": True}):
