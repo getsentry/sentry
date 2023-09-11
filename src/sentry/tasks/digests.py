@@ -99,3 +99,4 @@ def get_notification_uuid_from_records(records: List[Record]) -> Optional[str]:
                 return notification_uuid
         except Exception:
             return None
+    return None
