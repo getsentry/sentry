@@ -8,8 +8,16 @@ import OnboardingPanel from 'sentry/components/onboardingPanel';
 import {t} from 'sentry/locale';
 
 import {NewMonitorButton} from './newMonitorButton';
+import {PlatformPickerPanel} from './platformPickerPanel';
 
 export function CronsLandingPanel() {
+  // TODO(davidenwang): This new panel will eventually be responsible for handling
+  // state and showing the correct instrumentation depending on the picked platform
+
+  return <PlatformPickerPanel />;
+}
+
+export function OldCronsLandingPanel() {
   return (
     <OnboardingPanel image={<img src={onboardingImg} />}>
       <h3>{t('Let Sentry monitor your recurring jobs')}</h3>

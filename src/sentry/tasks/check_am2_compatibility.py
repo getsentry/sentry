@@ -9,6 +9,7 @@ from django.db.models import Q
 from sentry.dynamic_sampling import get_redis_client_for_ds
 from sentry.incidents.models import AlertRule
 from sentry.models import DashboardWidgetQuery, Organization, Project
+from sentry.search.events.fields import get_function_alias
 from sentry.silo import SiloMode
 from sentry.snuba import metrics_performance
 from sentry.snuba.dataset import Dataset
@@ -19,7 +20,7 @@ from sentry.tasks.base import instrumented_task
 from sentry.utils import json
 
 # The time range over which the check script queries the data for determining the compatibility state.
-QUERY_TIME_RANGE_IN_DAYS = 1
+QUERY_TIME_RANGE_IN_DAYS = 30
 
 # List of minimum SDK versions that support Performance at Scale.
 # The list is defined here:
@@ -140,6 +141,10 @@ SUPPORTED_SDK_VERSIONS = {
     # Go
     "sentry.go": "0.16.0",
 }
+
+# List of SDKs that support performance. We will use this list as a first check for our sdks since if they don't
+# support performance we don't want to show them as incompatible with dynamic sampling in order to reduce noise.
+SDKS_SUPPORTING_PERFORMACE = set(SUPPORTED_SDK_VERSIONS.keys())
 
 TASK_SOFT_LIMIT_IN_SECONDS = 30 * 60  # 30 minutes
 ONE_MINUTE_TTL = 60  # 1 minute
@@ -297,6 +302,12 @@ class CheckAM2Compatibility:
 
         for project, found_sdks in found_sdks_per_project.items():
             for sdk_name, sdk_versions in found_sdks.items():
+                # If the SDK is not supporting performance, we don't want to try and check dynamic sampling
+                # compatibility, and we also don't return it as unsupported since it will create noise.
+                # TODO: disabled check for now, since we still have to gather the full list.
+                # if sdk_name not in SDKS_SUPPORTING_PERFORMACE:
+                #     continue
+
                 sdk_versions_set: Set[Tuple[str, Optional[str]]] = set()
                 found_supported_version = False
                 min_sdk_version = SUPPORTED_SDK_VERSIONS.get(sdk_name)
@@ -425,31 +436,50 @@ class CheckAM2Compatibility:
 
         projects = {project.id: project for project in project_objects}
 
-        count_has_txn = "count_has_transaction_name()"
+        # We want to first fetch all projects that have some transactions in the last x days.
+        count = "count()"
         count_null = "count_null_transactions()"
-        compatible_results = metrics_performance.query(
-            selected_columns=[
-                "project.id",
-                count_null,
-                count_has_txn,
-            ],
+        count_unparameterized = "count_unparameterized_transactions()"
+        results = metrics_performance.query(
+            selected_columns=["project.id", count, count_null, count_unparameterized],
             params=params,
-            query=f"{count_null}:0 AND {count_has_txn}:>0",
+            query=f"{count}:>0",
             referrer="api.organization-events",
-            functions_acl=["count_null_transactions", "count_has_transaction_name"],
+            functions_acl=[
+                "count",
+                "count_null_transactions",
+                "count_unparameterized_transactions",
+            ],
             use_aggregate_conditions=True,
         )
 
-        compatible_project_ids = {row["project.id"] for row in compatible_results["data"]}
-        incompatible_project_ids = set(projects.keys()) - compatible_project_ids
+        compatible_project_ids = set()
+        incompatible_project_ids = set()
+        for row in results.get("data"):
+            project_id = row["project.id"]
+            # If a project has at least one null or unparameterized transaction, we will mark it as incompatible.
+            if (
+                row[get_function_alias(count_null)] > 0
+                or row[get_function_alias(count_unparameterized)] > 0
+            ):
+                incompatible_project_ids.add(project_id)
+            else:
+                compatible_project_ids.add(project_id)
+
+        def get_project_slug(project_id: int) -> Optional[str]:
+            project = projects.get(project_id)
+            if project is None:
+                return None
+
+            return project.slug
 
         return {
             "compatible_projects": [
-                {"id": project_id, "slug": projects[project_id].slug}
+                {"id": project_id, "slug": get_project_slug(project_id)}
                 for project_id in compatible_project_ids
             ],
             "incompatible_projects": [
-                {"id": project_id, "slug": projects[project_id].slug}
+                {"id": project_id, "slug": get_project_slug(project_id)}
                 for project_id in incompatible_project_ids
             ],
         }
