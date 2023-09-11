@@ -69,7 +69,8 @@ def test_global_config():
     [
         *((version, False, False) for version in (1, 2)),
         *((version, True, False) for version in (1, 2)),
-        *((version, True, True) for version in (3, 4)),
+        *((version, False, False) for version in (3,)),
+        *((version, True, True) for version in (3,)),
     ],
 )
 @django_db_all
