@@ -676,17 +676,16 @@ def recipient_is_team(recipient: RpcActor | Team | RpcUser) -> bool:
 
 def get_query(
     recipients: Iterable[RpcActor | Team | RpcUser] | None = None,
-    project: Project | None = None,
+    projects: Iterable[Project] | None = None,
     organization: Organization | None = None,
 ) -> Q:
     """
     Generates a query for all settings for a project, org, user, or team.
 
     Args:
-        recipient: The recipient of the notification settings (user or team).
-        project: The project to get notification settings for.
+        recipients: The recipients of the notification settings (user or team).
+        projects: The projects to get notification settings for.
         organization: The organization to get notification settings for.
-        user_ids: The user ids to get notification settings for.
     """
     if not recipients:
         raise Exception("recipient, team_ids, or user_ids must be provided")
@@ -705,21 +704,24 @@ def get_query(
         Q(
             (Q(user_id__in=user_ids) | Q(team_id__in=team_ids)),
             scope_type=NotificationScopeEnum.PROJECT.value,
-            scope_identifier=project.id,
+            scope_identifier__in=[project.id for project in projects],
         )
-        if project
+        if projects
         else Q()
     )
 
+    org_id = (
+        organization.id
+        if organization
+        else (projects[0].organization.id if projects else None)  # type:ignore
+    )
     org_settings = (
         Q(
             (Q(user_id__in=user_ids) | Q(team_id__in=team_ids)),
             scope_type=NotificationScopeEnum.ORGANIZATION.value,
-            scope_identifier=(
-                organization.id if organization else project.organization.id if project else None
-            ),
+            scope_identifier=org_id,
         )
-        if organization or project
+        if organization or projects
         else Q()
     )
 
@@ -734,41 +736,47 @@ def get_query(
 
 def get_all_setting_providers(
     recipients: Iterable[RpcActor | Team | RpcUser] | None = None,
-    project: Project | None = None,
+    projects: Iterable[Project] | None = None,
     organization: Organization | None = None,
+    additional_filters: Q | None = None,
 ) -> Iterable[NotificationSettingProvider]:
     """
     Returns all NotificationSettingProviders for given recipients.
-    Recipients can be either a user or a team, or a list of user ids.
 
     Args:
-        recipient: The recipient of the notification settings (user or team).
-        project: The project to get notification settings for.
+        recipients: The recipients of the notification settings (user or team).
+        projects: The projects to get notification settings for.
         organization: The organization to get notification settings for.
-        user_ids: The user ids to get notification settings for.
+        additional_filters: Additional filters to apply to the query for NotificationSettingProvider.
     """
+    if not additional_filters:
+        additional_filters = Q()
 
-    query = get_query(recipients, project, organization)
-    return NotificationSettingProvider.objects.filter(query)
+    query = get_query(recipients, projects, organization)
+    return NotificationSettingProvider.objects.filter(query & additional_filters)
 
 
 def get_all_setting_options(
     recipients: Iterable[RpcActor | Team | RpcUser] | None = None,
-    project: Project | None = None,
+    projects: Iterable[Project] | None = None,
     organization: Organization | None = None,
+    additional_filters: Q | None = None,
 ) -> Iterable[NotificationSettingOption]:
     """
     Returns all NotificationSettingOption for given recipients.
-    Recipients can be either a user or a team, or a list of user ids.
+    Recipients can be either an RpcUser or a Team.
 
     Args:
-        recipient: The recipient of the notification settings (user or team).
-        project: The project to get notification settings for.
+        recipients: The recipients of the notification settings (user or team).
+        projects: The projects to get notification settings for.
         organization: The organization to get notification settings for.
-        user_ids: The user ids to get notification settings for.
+        additional_filters: Additional filters to apply to the query for NotificationSettingOption.
     """
-    query = get_query(recipients, project, organization)
-    return NotificationSettingOption.objects.filter(query)
+    if not additional_filters:
+        additional_filters = Q()
+
+    query = get_query(recipients, projects, organization)
+    return NotificationSettingOption.objects.filter(query & additional_filters)
 
 
 def get_setting_options_for_recipient(
