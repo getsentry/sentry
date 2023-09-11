@@ -3,6 +3,7 @@ import {PlatformIcon} from 'platformicons';
 
 import onboardingImg from 'sentry-images/spot/onboarding-preview.svg';
 
+import {Button} from 'sentry/components/button';
 import OnboardingPanel from 'sentry/components/onboardingPanel';
 import {PlatformKey} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
@@ -10,12 +11,19 @@ import {space} from 'sentry/styles/space';
 
 import {NewMonitorButton} from './newMonitorButton';
 
+export type SupportedPlatform =
+  | 'python-celery'
+  | 'php'
+  | 'php-laravel'
+  | 'python'
+  | 'node';
+
 interface SDKPlatformInfo {
   label: string;
-  platform: PlatformKey;
+  platform: SupportedPlatform;
 }
 
-const CRON_SDK_PLATFORMS: SDKPlatformInfo[] = [
+export const CRON_SDK_PLATFORMS: SDKPlatformInfo[] = [
   {platform: 'python-celery', label: 'Celery'},
   {platform: 'php', label: 'PHP'},
   {platform: 'php-laravel', label: 'Laravel'},
@@ -23,7 +31,11 @@ const CRON_SDK_PLATFORMS: SDKPlatformInfo[] = [
   {platform: 'node', label: 'Node'},
 ];
 
-export function PlatformPickerPanel() {
+interface Props {
+  onSelect: (platform: PlatformKey) => void;
+}
+
+export function PlatformPickerPanel({onSelect}: Props) {
   return (
     <OnboardingPanel image={<img src={onboardingImg} />}>
       <OnboardingTitle>{t('Monitor Your Cron Jobs')}</OnboardingTitle>
@@ -38,6 +50,7 @@ export function PlatformPickerPanel() {
           <PlatformOption key={platform}>
             <PlatformButton
               priority="default"
+              onClick={() => onSelect(platform)}
               aria-label={t('Create %s Monitor', platform)}
             >
               <PlatformIcon platform={platform} format="lg" size="100%" />
@@ -76,7 +89,7 @@ const Actions = styled('div')`
   gap: ${space(2)};
 `;
 
-const PlatformButton = styled(NewMonitorButton)`
+const PlatformButton = styled(Button)`
   width: 64px;
   height: 64px;
   padding: ${space(1)};
