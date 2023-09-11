@@ -163,6 +163,7 @@ Every field not marked as "optional" is considered a required field and must be 
 | request                    | optional[object] | -                                     |
 | request.headers            | optional[object] | -                                     |
 | request.headers.User-Agent | optional[string] | -                                     |
+| sdk                        | object           | -                                     |
 | sdk.name                   | string           | -                                     |
 | sdk.version                | string           | -                                     |
 | tags                       | optional[object] | -                                     |
