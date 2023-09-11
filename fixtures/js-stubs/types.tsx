@@ -155,7 +155,7 @@ type TestStubFixtures = {
   SessionUserCountByStatusByRelease: SimpleStub;
   SessionUserStatusCountByProjectInPeriod: SimpleStub;
   SessionUserStatusCountByReleaseInPeriod: SimpleStub;
-  SessionsField: OverridableStub;
+  SessionsField: (field: string) => any;
   SesssionTotalCountByReleaseIn24h: SimpleStub;
   ShortIdQueryResult: OverridableStub;
   SourceMapArchive: OverridableStub;
