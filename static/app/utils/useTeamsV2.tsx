@@ -1,3 +1,4 @@
+import {useEffect} from 'react';
 import uniqBy from 'lodash/uniqBy';
 
 import OrganizationStore from 'sentry/stores/organizationStore';
@@ -61,6 +62,16 @@ export function useTeamsV2({ids = [], slugs = []}: UseTeamOptions = {}): UseTeam
     enabled: queryEnabled,
   });
 
+  // Save additional teams to the team store
+  useEffect(() => {
+    if (additionalTeams.length > 0) {
+      // Not using the storeState to avoid depency updating this multiple times
+      const newTeams = [...additionalTeams, ...TeamStore.getState().teams];
+      const fetchedTeams = uniqBy(newTeams, team => team.id);
+      TeamStore.loadInitialData(fetchedTeams);
+    }
+  }, [additionalTeams]);
+
   const allTeams = uniqBy([...storeState.teams, ...additionalTeams], team => team.id);
   const shouldFilterTeams = ids.length > 0 || slugs.length > 0;
   const teams = shouldFilterTeams
@@ -69,7 +80,7 @@ export function useTeamsV2({ids = [], slugs = []}: UseTeamOptions = {}): UseTeam
 
   return {
     teams,
-    isLoading: queryEnabled ? isLoading : false,
+    isLoading: queryEnabled ? isLoading : storeState.loading,
     isError: queryEnabled ? isError : null,
   };
 }

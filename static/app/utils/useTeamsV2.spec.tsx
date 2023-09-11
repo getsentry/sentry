@@ -36,6 +36,23 @@ describe('useTeamsV2', function () {
     expect(teams).toEqual(mockTeams);
   });
 
+  it('waits for the teamstore to load', function () {
+    const mockRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/teams/`,
+      method: 'GET',
+      body: mockTeams,
+    });
+    // TeamStore.loadInitialData not yet called
+    expect(TeamStore.getState().loading).toBe(true);
+    const {result} = reactHooks.renderHook(useTeams, {
+      initialProps: {slugs: ['foo']},
+      wrapper,
+    });
+    const {isLoading} = result.current;
+    expect(isLoading).toBe(true);
+    expect(mockRequest).not.toHaveBeenCalled();
+  });
+
   it('provides only the specified slugs', async function () {
     TeamStore.loadInitialData(mockTeams);
     const teamFoo = TestStubs.Team({id: '49', slug: 'foo'});
@@ -59,6 +76,7 @@ describe('useTeamsV2', function () {
 
     const {teams} = result.current;
     expect(teams).toEqual(expect.arrayContaining([teamFoo]));
+    expect(TeamStore.getState().teams).toEqual(expect.arrayContaining([teamFoo]));
   });
 
   it('only loads slugs when needed', function () {
@@ -96,6 +114,7 @@ describe('useTeamsV2', function () {
 
     const {teams} = result.current;
     expect(teams).toEqual(expect.arrayContaining(requestedTeams));
+    expect(TeamStore.getState().teams).toEqual(expect.arrayContaining(requestedTeams));
   });
 
   it('only loads ids when needed', function () {
