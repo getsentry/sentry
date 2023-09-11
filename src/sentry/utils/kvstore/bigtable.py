@@ -3,7 +3,7 @@ import logging
 import struct
 from datetime import timedelta
 from threading import Lock
-from typing import Any, Callable, Iterator, Mapping, Optional, Sequence, Tuple
+from typing import Any, Iterator, Mapping, Optional, Sequence, Tuple
 
 from django.utils import timezone
 from google.api_core import exceptions, retry
@@ -83,8 +83,8 @@ class BigtableKVStorage(KVStorage[str, bytes]):
         self.app_profile = app_profile
         self.batcher = None
 
-        self._mutate_rows: Optional[Callable[Any]] = None
-        self._mutate: Optional[Callable[Any]] = None
+        self._mutate = self._commit_row
+        self._mutate_rows = self.__table.mutate_rows
 
         self.__table: Table
         self.__table_lock = Lock()
@@ -120,19 +120,16 @@ class BigtableKVStorage(KVStorage[str, bytes]):
             .instance(self.instance)
             .table(self.table_name, app_profile_id=self.app_profile)
         )
+
         if batcher_options := self.client_options.get("batcher"):
             self.__batcher = self.__table.mutations_batcher(**batcher_options)
             self._mutate_rows = self.__batcher.mutate_rows
             self._mutate = self.__batcher.mutate
-        else:
 
-            def commit_row(row):
-                status = row.commit()
-                if status.code != 0:
-                    raise BigtableError(status.code, status.message)
-
-            self._mutate = commit_row
-            self._mutate_rows = self.__table.mutate_rows
+    def _commit_row(self, row):
+        status = row.commit()
+        if status.code != 0:
+            raise BigtableError(status.code, status.message)
 
     def get(self, key: str) -> Optional[bytes]:
         row = self._get_table().read_row(key)
