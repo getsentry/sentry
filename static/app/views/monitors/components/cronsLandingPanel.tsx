@@ -1,21 +1,118 @@
+import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import onboardingImg from 'sentry-images/spot/onboarding-preview.svg';
 
-import {LinkButton} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import OnboardingPanel from 'sentry/components/onboardingPanel';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
+import {TabList, TabPanels, Tabs} from 'sentry/components/tabs';
+import {PlatformKey} from 'sentry/data/platformCategories';
+import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 
 import {NewMonitorButton} from './newMonitorButton';
-import {PlatformPickerPanel} from './platformPickerPanel';
+import {
+  CRON_SDK_PLATFORMS,
+  PlatformPickerPanel,
+  SupportedPlatform,
+} from './platformPickerPanel';
+import {QuickStartProps} from './quickStartEntries';
+
+interface PlatformGuide {
+  Guide: React.ComponentType<QuickStartProps>;
+  title: string;
+}
+
+const platformGuides: Record<SupportedPlatform, PlatformGuide[]> = {
+  'python-celery': [
+    {
+      Guide: () => null,
+      title: 'Beat Auto Discovery',
+    },
+  ],
+  php: [
+    {
+      Guide: () => null,
+      title: 'Upsert',
+    },
+  ],
+  'php-laravel': [
+    {
+      Guide: () => null,
+      title: 'Upsert',
+    },
+  ],
+  python: [],
+  node: [
+    {
+      Guide: () => null,
+      title: 'Upsert',
+    },
+  ],
+};
 
 export function CronsLandingPanel() {
-  // TODO(davidenwang): This new panel will eventually be responsible for handling
-  // state and showing the correct instrumentation depending on the picked platform
+  const [platform, setPlatform] = useState<PlatformKey | null>(null);
 
-  return <PlatformPickerPanel />;
+  if (!platform) {
+    return <PlatformPickerPanel onSelect={setPlatform} />;
+  }
+
+  const platformText = CRON_SDK_PLATFORMS.find(
+    ({platform: sdkPlatform}) => sdkPlatform === platform
+  )?.label;
+
+  const guides = platformGuides[platform];
+
+  return (
+    <Panel>
+      <BackButton
+        icon={<IconChevron size="sm" direction="left" />}
+        onClick={() => setPlatform(null)}
+        borderless
+      >
+        {t('Back to Platforms')}
+      </BackButton>
+      <PanelBody withPadding>
+        <PlatformHeader>{t('Get Started with %s', platformText)}</PlatformHeader>
+        <Tabs>
+          <TabList>
+            {[
+              ...guides.map(({title}) => (
+                <TabList.Item key={title}>{title}</TabList.Item>
+              )),
+              <TabList.Item key="manual">{t('Manual')}</TabList.Item>,
+            ]}
+          </TabList>
+          <TabPanels>
+            {[
+              ...guides.map(({title, Guide}) => (
+                <TabPanels.Item key={title}>
+                  <Guide />
+                </TabPanels.Item>
+              )),
+              <TabPanels.Item key="manual">Manual</TabPanels.Item>,
+            ]}
+          </TabPanels>
+        </Tabs>
+      </PanelBody>
+    </Panel>
+  );
 }
+
+const PlatformHeader = styled('h3')``;
+
+const BackButton = styled(Button)`
+  font-weight: normal;
+  color: ${p => p.theme.subText};
+  margin: ${space(1)} 0 0 ${space(1)};
+  padding-left: ${space(0.5)};
+  padding-right: ${space(0.5)};
+`;
 
 export function OldCronsLandingPanel() {
   return (
