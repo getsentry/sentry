@@ -143,7 +143,7 @@ SUPPORTED_SDK_VERSIONS = {
 
 # List of SDKs that support performance. We will use this list as a first check for our sdks since if they don't
 # support performance we don't want to show them as incompatible with dynamic sampling in order to reduce noise.
-SDKS_SUPPORTING_PERFORMACE = {}
+SDKS_SUPPORTING_PERFORMACE = set(SUPPORTED_SDK_VERSIONS.keys())
 
 TASK_SOFT_LIMIT_IN_SECONDS = 30 * 60  # 30 minutes
 ONE_MINUTE_TTL = 60  # 1 minute
