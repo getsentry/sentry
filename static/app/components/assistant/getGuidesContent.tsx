@@ -102,16 +102,16 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
           ),
         },
         {
-          title: t('Transactions'),
+          title: t('Events'),
           target: 'trace_view_guide_row',
           description: t(
-            `You can quickly see all the transactions in a trace alongside the project, transaction duration, and any related errors.`
+            `You can quickly see errors and transactions in a trace alongside the project, transaction duration and any errors or performance issues related to the transaction.`
           ),
         },
         {
-          title: t('Transactions Details'),
+          title: t('Event Details'),
           target: 'trace_view_guide_row_details',
-          description: t('Click on any transaction to see more details.'),
+          description: t('Click on any transaction or error row to see more details.'),
         },
       ],
     },
