@@ -69,7 +69,7 @@ class NodeStorage(local, Service):
         "set",
         "set_bytes",
         "set_subkeys",
-        "set_multi",
+        "set_many",
         "cleanup",
         "validate",
         "bootstrap",
