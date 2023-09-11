@@ -17,6 +17,7 @@ from minimetrics.types import (
     MetricUnit,
     MetricValue,
 )
+from sentry import options
 from sentry.utils import metrics
 
 # The thread local instance must be initialized globally in order to correctly use the state.
@@ -250,7 +251,9 @@ class Aggregator:
 
         for bucket_key, metric in extracted_metrics:
             try:
-                self._transport.send(self._to_extracted_metric(bucket_key, metric))
+                # We want to have a kill-switch for enabling/disabling envelope forwarding.
+                if options.get("delightful_metrics.enable_envelope_forwarding") == 1.0:
+                    self._transport.send(self._to_extracted_metric(bucket_key, metric))
             except Exception as e:
                 sentry_sdk.capture_exception(e)
 
