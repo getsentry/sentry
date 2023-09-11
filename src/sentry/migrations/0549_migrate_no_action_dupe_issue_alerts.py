@@ -6,13 +6,24 @@ from sentry.new_migrations.migrations import CheckedMigration
 from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 
 
+class ObjectStatus:
+    ACTIVE = 0
+    HIDDEN = 1
+    PENDING_DELETION = 2
+    DELETION_IN_PROGRESS = 3
+
+    DISABLED = 1
+
+
 def has_duplicate_rule(apps, rule_data, project, rule_id):
     Rule = apps.get_model("sentry", "Rule")
 
     matchers = {key for key in list(rule_data.keys()) if key not in ("name", "user_id")}
     extra_fields = ["actions", "environment"]
     matchers.update(extra_fields)
-    existing_rules = Rule.objects.exclude(id=rule_id).filter(project=project, status=0)
+    existing_rules = Rule.objects.exclude(id=rule_id).filter(
+        project=project, status=ObjectStatus.ACTIVE
+    )
     for existing_rule in existing_rules:
         keys = 0
         matches = 0
@@ -51,7 +62,7 @@ def migrate_bad_rules(apps, schema_editor):
         if not rule.data.get("actions", []) or has_duplicate_rule(
             apps, rule.data, rule.project, rule.id
         ):
-            rule.status = 1
+            rule.status = ObjectStatus.DISABLED
             rule.save(update_fields=["status"])
 
 
