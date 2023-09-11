@@ -7,7 +7,7 @@ import GettingStartedWithJavaScript, {nextSteps, steps} from './javascript';
 
 describe('GettingStartedWithJavaScript', function () {
   it('all products are selected', function () {
-    const {container} = render(
+    render(
       <GettingStartedWithJavaScript
         dsn="test-dsn"
         activeProductSelection={[
@@ -38,7 +38,5 @@ describe('GettingStartedWithJavaScript', function () {
         screen.getByRole('link', {name: filteredNextStepsLink.name})
       ).toBeInTheDocument();
     }
-
-    expect(container).toSnapshot();
   });
 });

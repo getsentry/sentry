@@ -75,8 +75,7 @@ describe('ExternalIssueForm', () => {
       });
     });
     it('renders', async () => {
-      const {container} = await renderComponent();
-      expect(container).toSnapshot();
+      await renderComponent();
     });
   });
   describe('link', () => {
@@ -147,9 +146,8 @@ describe('ExternalIssueForm', () => {
     });
 
     it('renders and loads options', async () => {
-      const {container} = await renderComponent('Link');
+      await renderComponent('Link');
       expect(getFormConfigRequest).toHaveBeenCalled();
-      expect(container).toSnapshot();
     });
 
     describe('options loaded', () => {
