@@ -757,7 +757,7 @@ class OnDemandMetricSpec:
             return count_if_rule_condition
 
         # Second step is to generate the actual Relay rule that contains all rules nested.
-        rule_condition = SearchQueryConverter(parsed_query.conditions, {}).convert()
+        rule_condition = SearchQueryConverter(parsed_query.conditions).convert()
         if not count_if_rule_condition:
             return rule_condition
 
@@ -908,10 +908,8 @@ class SearchQueryConverter:
     The converter can be used exactly once.
     """
 
-    def __init__(self, tokens: Sequence[QueryToken], variables: Variables):
+    def __init__(self, tokens: Sequence[QueryToken]):
         self._tokens = tokens
-        # TODO: decide whether we want to inject variables in `convert` or keep them instance based.
-        self._variables = variables
         self._position = 0
 
     def convert(self) -> RuleCondition:
@@ -983,7 +981,7 @@ class SearchQueryConverter:
         if filt := self._consume(SearchFilter):
             return self._filter(filt)
         elif paren := self._consume(ParenExpression):
-            return SearchQueryConverter(paren.children, self._variables).convert()
+            return SearchQueryConverter(paren.children).convert()
         elif token := self._peek():
             raise ValueError(f"Unexpected token {token}")
         else:
