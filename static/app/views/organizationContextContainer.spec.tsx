@@ -7,6 +7,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
+import {MockConfig} from 'sentry/types/__fixtures__/MockConfig';
 import useOrganization from 'sentry/utils/useOrganization';
 import {OrganizationLegacyContext} from 'sentry/views/organizationContextContainer';
 
@@ -154,9 +155,12 @@ describe('OrganizationContextContainer', function () {
   });
 
   it('opens sudo modal for superusers on 403s', async function () {
-    jest.mocked(ConfigStore.get).mockImplementation(() => {
-      return MockConfig({isSuperuser: true});
-    });
+    jest.mocked(ConfigStore.get).mockImplementation(
+      key =>
+        MockConfig({
+          user: TestStubs.User({isSuperuser: true}),
+        })[key]
+    );
     getOrgMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/',
       statusCode: 403,

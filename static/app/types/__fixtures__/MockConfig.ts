@@ -1,6 +1,6 @@
 import {Config as TConfig} from 'sentry/types';
 
-const {User: MockUser} = TestStubs;
+import {User as MockUser} from '../../../../fixtures/js-stubs/user';
 
 export function MockConfig(params: Partial<TConfig> = {}): TConfig {
   return {
