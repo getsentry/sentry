@@ -134,6 +134,8 @@ test-python-ci: create-db
 		tests/sentry_plugins \
 		tests/symbolicator \
 		--cov . --cov-report="xml:.artifacts/python.coverage.xml"
+	SENTRY_USE_MONOLITH_DBS=1 pytest tests/sentry/backup \
+		--cov . --cov-report="xml:.artifacts/python-backup-tests.coverage.xml"
 	@echo ""
 
 
