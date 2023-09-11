@@ -434,7 +434,7 @@ class Factories:
         **kwargs,
     ):
         actions = None
-        if not action_data and not allow_no_action_data:
+        if not allow_no_action_data:
             action_data = action_data or [
                 {
                     "id": "sentry.rules.actions.notify_event.NotifyEventAction",
