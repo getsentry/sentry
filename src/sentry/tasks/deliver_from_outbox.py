@@ -53,8 +53,8 @@ def schedule_batch(silo_mode: SiloMode, drain_task: Task, concurrency: int | Non
             outbox_model: Type[OutboxBase] = OutboxBase.from_outbox_name(outbox_name)
 
             lo = outbox_model.objects.all().aggregate(Min("id"))["id__min"] or 0
-            hi = outbox_model.objects.all().aggregate(Max("id"))["id__max"] or 0
-            if hi == lo:
+            hi = outbox_model.objects.all().aggregate(Max("id"))["id__max"] or -1
+            if hi < lo:
                 return
 
             batch_size = math.ceil((hi - lo + 1) / concurrency)
