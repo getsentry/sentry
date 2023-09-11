@@ -434,32 +434,47 @@ class CheckAM2Compatibility:
 
         projects = {project.id: project for project in project_objects}
 
-        count_has_txn = "count_has_transaction_name()"
+        # We want to first fetch all projects that have some transactions in the last x days.
+        count = "count()"
         count_null = "count_null_transactions()"
-        compatible_results = metrics_performance.query(
-            selected_columns=[
-                "project.id",
-                count_null,
-                count_has_txn,
-            ],
+        count_unparameterized = "count_unparameterized_transactions()"
+        results = metrics_performance.query(
+            selected_columns=["project.id", count, count_null, count_unparameterized],
             params=params,
-            # TODO: figure out a query to get all projects and how many transactions they have in the last 30 days.
-            query=f"{count_null}:>0 AND {count_has_txn}:>0",
+            query=f"{count}:>0",
             referrer="api.organization-events",
-            functions_acl=["count_null_transactions", "count_has_transaction_name"],
+            functions_acl=[
+                "count",
+                "count_null_transactions",
+                "count_unparameterized_transactions",
+            ],
             use_aggregate_conditions=True,
         )
 
-        compatible_project_ids = {row["project.id"] for row in compatible_results["data"]}
-        incompatible_project_ids = set(projects.keys()) - compatible_project_ids
+        compatible_project_ids = set()
+        incompatible_project_ids = set()
+        for row in results:
+            project_id = row["project.id"]
+            # If a project has at least one null or unparameterized transaction, we will mark it as incompatible.
+            if row[count_null] > 0 or row[count_unparameterized] > 0:
+                incompatible_project_ids.add(project_id)
+            else:
+                compatible_project_ids.add(project_id)
+
+        def get_project_slug(project_id: int) -> Optional[str]:
+            project = projects.get(project_id)
+            if project is None:
+                return None
+
+            return project.slug
 
         return {
             "compatible_projects": [
-                {"id": project_id, "slug": projects[project_id].slug}
+                {"id": project_id, "slug": get_project_slug(project_id)}
                 for project_id in compatible_project_ids
             ],
             "incompatible_projects": [
-                {"id": project_id, "slug": projects[project_id].slug}
+                {"id": project_id, "slug": get_project_slug(project_id)}
                 for project_id in incompatible_project_ids
             ],
         }
