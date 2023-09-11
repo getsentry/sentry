@@ -84,6 +84,7 @@
     "is_managed": false,
     "is_sentry_app": null,
     "is_password_expired": false,
+    "is_unclaimed": false,
     "last_password_change": "2023-06-22T22:59:57.023Z",
     "flags": "0",
     "session_nonce": null,
@@ -91,21 +92,6 @@
     "last_active": "2023-06-22T22:59:55.489Z",
     "avatar_type": 0,
     "avatar_url": null
-  }
-},
-{
-  "model": "sentry.organizationmapping",
-  "pk": 1,
-  "fields": {
-    "organization_id": 1,
-    "slug": "testing",
-    "name": "Testing",
-    "date_created": "2023-06-22T22:54:29.123Z",
-    "customer_id": null,
-    "verified": true,
-    "idempotency_key": "",
-    "region_name": "--monolith--",
-    "status": 0
   }
 },
 {

@@ -51,7 +51,6 @@ from .measurements import CUSTOM_MEASUREMENT_LIMIT, get_measurements_config
 
 #: These features will be listed in the project config
 EXPOSABLE_FEATURES = [
-    "projects:extract-standalone-spans",
     "projects:span-metrics-extraction",
     "organizations:transaction-name-mark-scrubbed-as-sanitized",
     "organizations:transaction-name-normalize",
@@ -59,6 +58,7 @@ EXPOSABLE_FEATURES = [
     "organizations:session-replay",
     "organizations:session-replay-recording-scrubbing",
     "organizations:device-class-synthesis",
+    "organizations:custom-metrics",
 ]
 
 EXTRACT_METRICS_VERSION = 1
@@ -352,8 +352,9 @@ def _get_project_config(
     # anything.
     add_experimental_config(config, "dynamicSampling", get_dynamic_sampling_config, project)
 
-    # Limit the number of custom measurements
-    add_experimental_config(config, "measurements", get_measurements_config)
+    if not features.has("organizations:projconfig-exclude-measurements", project.organization):
+        # Limit the number of custom measurements
+        add_experimental_config(config, "measurements", get_measurements_config)
 
     # Rules to replace high cardinality transaction names
     add_experimental_config(config, "txNameRules", get_transaction_names_config, project)
@@ -637,8 +638,12 @@ def get_transaction_metrics_settings(
     except Exception:
         capture_exception()
 
+    version = TRANSACTION_METRICS_EXTRACTION_VERSION
+    if features.has("organizations:projconfig-exclude-measurements", project.organization):
+        version = 2
+
     return {
-        "version": TRANSACTION_METRICS_EXTRACTION_VERSION,
+        "version": version,
         "extractCustomTags": custom_tags,
         "customMeasurements": {"limit": CUSTOM_MEASUREMENT_LIMIT},
         "acceptTransactionNames": "clientBased",

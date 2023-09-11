@@ -46,7 +46,7 @@ from sentry.services.hybrid_cloud.organization import (
     organization_service,
 )
 from sentry.signals import sso_enabled, user_signup
-from sentry.tasks.auth import email_missing_links
+from sentry.tasks.auth import email_missing_links_control
 from sentry.utils import auth, json, metrics
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.hashlib import md5_text
@@ -817,6 +817,10 @@ class AuthHelper(Pipeline):
                 auth_identity = None
 
             # Handle migration of identity keys
+            # Context - when google oauth was initially created, the auth_identity key was simply
+            # the provider email. This can cause issues if the customer changes their domain name,
+            # and now their email is different and they're locked out of their account.
+            # This logic updates their id to the provider id instead.
             if not auth_identity and isinstance(user_id, MigratingIdentityId):
                 try:
                     auth_identity = AuthIdentity.objects.select_related("user").get(
@@ -895,7 +899,7 @@ class AuthHelper(Pipeline):
             )
         )
 
-        email_missing_links.delay(self.organization.id, request.user.id, self.provider.key)
+        email_missing_links_control.delay(self.organization.id, request.user.id, self.provider.key)
 
         messages.add_message(self.request, messages.SUCCESS, OK_SETUP_SSO)
 

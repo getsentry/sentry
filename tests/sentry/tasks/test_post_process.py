@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import abc
 import time
+import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Any
 from unittest import mock
@@ -462,6 +463,42 @@ class RuleProcessorTestMixin(BasePostProgressGroupMixin):
         mock_processor.assert_called_with(
             EventMatcher(event, group=group2), True, False, True, False
         )
+
+    @patch("sentry.rules.processor.RuleProcessor")
+    def test_group_last_seen_buffer(self, mock_processor):
+        first_event_date = datetime.now(timezone.utc) - timedelta(days=90)
+        event1 = self.create_event(
+            data={"message": "testing"},
+            project_id=self.project.id,
+        )
+        group1 = event1.group
+        group1.update(last_seen=first_event_date)
+
+        event2 = self.create_event(data={"message": "testing"}, project_id=self.project.id)
+
+        # Mock set the last_seen value to the first event date
+        # To simulate the update to last_seen being buffered
+        event2.group.last_seen = first_event_date
+        event2.group.update(last_seen=first_event_date)
+        assert event2.group_id == group1.id
+
+        mock_callback = Mock()
+        mock_futures = [Mock()]
+
+        mock_processor.return_value.apply.return_value = [(mock_callback, mock_futures)]
+
+        self.call_post_process_group(
+            is_new=False,
+            is_regression=True,
+            is_new_group_environment=False,
+            event=event2,
+        )
+        mock_processor.assert_called_with(
+            EventMatcher(event2, group=group1), False, True, False, False
+        )
+        sent_group_date = mock_processor.call_args[0][0].group.last_seen
+        # Check that last_seen was updated to be at least the new event's date
+        self.assertAlmostEqual(sent_group_date, event2.datetime, delta=timedelta(seconds=10))
 
 
 class ServiceHooksTestMixin(BasePostProgressGroupMixin):
@@ -1607,6 +1644,74 @@ class SDKCrashMonitoringTestMixin(BasePostProgressGroupMixin):
         mock_sdk_crash_detection.detect_sdk_crash.assert_not_called()
 
 
+@mock.patch("sentry.utils.metrics.incr")
+class ReplayLinkageTestMixin(BasePostProgressGroupMixin):
+    def test_replay_linkage(self, incr):
+        replay_id = uuid.uuid4().hex
+        event = self.create_event(
+            data={"message": "testing", "contexts": {"replay": {"replay_id": replay_id}}},
+            project_id=self.project.id,
+        )
+
+        with self.feature({"organizations:session-replay-event-linking": True}):
+            self.call_post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=True,
+                event=event,
+            )
+            incr.assert_any_call("post_process.process_replay_link.id_sampled")
+            incr.assert_any_call("post_process.process_replay_link.id_exists")
+
+    def test_replay_linkage_with_tag(self, incr):
+        replay_id = uuid.uuid4().hex
+        event = self.create_event(
+            data={"message": "testing", "tags": {"replayId": replay_id}},
+            project_id=self.project.id,
+        )
+
+        with self.feature({"organizations:session-replay-event-linking": True}):
+            self.call_post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=True,
+                event=event,
+            )
+            incr.assert_any_call("post_process.process_replay_link.id_sampled")
+            incr.assert_any_call("post_process.process_replay_link.id_exists")
+
+    def test_no_replay(self, incr):
+        event = self.create_event(
+            data={"message": "testing"},
+            project_id=self.project.id,
+        )
+
+        with self.feature({"organizations:session-replay-event-linking": True}):
+            self.call_post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=True,
+                event=event,
+            )
+            incr.assert_called_with("post_process.process_replay_link.id_sampled")
+
+    def test_0_sample_rate_replays(self, incr):
+        event = self.create_event(
+            data={"message": "testing"},
+            project_id=self.project.id,
+        )
+
+        with self.feature({"organizations:session-replay-event-linking": False}):
+            self.call_post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=True,
+                event=event,
+            )
+            for args, _ in incr.call_args_list:
+                self.assertNotEqual(args, ("post_process.process_replay_link.id_sampled"))
+
+
 @region_silo_test
 class PostProcessGroupErrorTest(
     TestCase,
@@ -1620,6 +1725,7 @@ class PostProcessGroupErrorTest(
     ServiceHooksTestMixin,
     SnoozeTestMixin,
     SDKCrashMonitoringTestMixin,
+    ReplayLinkageTestMixin,
 ):
     def create_event(self, data, project_id, assert_no_errors=True):
         return self.store_event(data=data, project_id=project_id, assert_no_errors=assert_no_errors)

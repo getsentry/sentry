@@ -20,6 +20,8 @@ from sentry import ratelimits
 from sentry.constants import ObjectStatus
 from sentry.killswitches import killswitch_matches_context
 from sentry.models import Project
+from sentry.monitors.logic.mark_failed import mark_failed
+from sentry.monitors.logic.mark_ok import mark_ok
 from sentry.monitors.models import (
     MAX_SLUG_LENGTH,
     CheckInStatus,
@@ -456,11 +458,8 @@ def _process_message(ts: datetime, wrapper: CheckinMessage | ClockPulseMessage) 
                     if duration is not None:
                         date_added -= timedelta(milliseconds=duration)
 
-                    expected_time = None
-                    if monitor_environment.last_checkin:
-                        expected_time = monitor.get_next_expected_checkin(
-                            monitor_environment.last_checkin
-                        )
+                    # When was this check-in expected to have happened?
+                    expected_time = monitor_environment.next_checkin
 
                     monitor_config = monitor.get_validated_config()
                     timeout_at = get_timeout_at(monitor_config, status, date_added)
@@ -489,11 +488,13 @@ def _process_message(ts: datetime, wrapper: CheckinMessage | ClockPulseMessage) 
                         signal_first_checkin(project, monitor)
 
                 if check_in.status == CheckInStatus.ERROR:
-                    monitor_environment.mark_failed(
-                        start_time, occurrence_context={"trace_id": trace_id}
+                    mark_failed(
+                        monitor_environment,
+                        start_time,
+                        occurrence_context={"trace_id": trace_id},
                     )
                 else:
-                    monitor_environment.mark_ok(check_in, start_time)
+                    mark_ok(check_in, start_time)
 
                 metrics.incr(
                     "monitors.checkin.result",

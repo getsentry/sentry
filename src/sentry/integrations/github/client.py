@@ -164,8 +164,15 @@ class GithubProxyClient(IntegrationProxyClient):
 
         return prepared_request
 
+    def is_error_fatal(self, error: Exception) -> bool:
+        if hasattr(error.response, "text") and error.response.text:
+            if "suspended" in error.response.text:
+                return True
+        return super().is_error_fatal(error)
+
 
 class GitHubClientMixin(GithubProxyClient):
+
     allow_redirects = True
 
     base_url = "https://api.github.com"
@@ -661,8 +668,13 @@ class GitHubAppsClient(GitHubClientMixin):
         logging_context: Mapping[str, Any] | None = None,
     ) -> None:
         self.integration = integration
+        kwargs = {}
+        if hasattr(self.integration, "id"):
+            kwargs["integration_id"] = integration.id
+
         super().__init__(
             org_integration_id=org_integration_id,
             verify_ssl=verify_ssl,
             logging_context=logging_context,
+            **kwargs,
         )

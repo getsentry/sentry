@@ -26,9 +26,16 @@ function getField(role, name) {
 
 describe('projectGeneralSettings', function () {
   const org = TestStubs.Organization();
-  const project = TestStubs.ProjectDetails();
+  const project = TestStubs.Project({
+    subjectPrefix: '[my-org]',
+    resolveAge: 48,
+    allowedDomains: ['example.com', 'https://example.com'],
+    scrapeJavaScript: true,
+    securityToken: 'security-token',
+    securityTokenHeader: 'x-security-header',
+    verifySSL: true,
+  });
   const groupingConfigs = TestStubs.GroupingConfigs();
-  const groupingEnhancements = TestStubs.GroupingEnhancements();
   let routerContext;
   let putMock;
 
@@ -58,11 +65,6 @@ describe('projectGeneralSettings', function () {
       url: '/grouping-configs/',
       method: 'GET',
       body: groupingConfigs,
-    });
-    MockApiClient.addMockResponse({
-      url: '/grouping-enhancements/',
-      method: 'GET',
-      body: groupingEnhancements,
     });
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/`,

@@ -132,11 +132,12 @@ class EndpointTest(APITestCase):
         assert "Access-Control-Allow-Credentials" not in response
 
     @override_options({"system.base-hostname": "example.com"})
-    def test_allow_credentials(self):
+    def test_allow_credentials_subdomain(self):
         org = self.create_organization()
         apikey = ApiKey.objects.create(organization_id=org.id, allowed_origins="*")
 
         request = self.make_request(method="GET")
+        # Origin is a subdomain of base-hostname, and is cors allowed
         request.META["HTTP_ORIGIN"] = "http://acme.example.com"
         request.META["HTTP_AUTHORIZATION"] = self.create_basic_auth_header(apikey.key)
 
@@ -145,6 +146,30 @@ class EndpointTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert response["Access-Control-Allow-Origin"] == "http://acme.example.com"
+        assert response["Access-Control-Allow-Headers"] == (
+            "X-Sentry-Auth, X-Requested-With, Origin, Accept, "
+            "Content-Type, Authentication, Authorization, Content-Encoding, "
+            "sentry-trace, baggage, X-CSRFToken"
+        )
+        assert response["Access-Control-Expose-Headers"] == "X-Sentry-Error, Retry-After"
+        assert response["Access-Control-Allow-Methods"] == "GET, HEAD, OPTIONS"
+        assert response["Access-Control-Allow-Credentials"] == "true"
+
+    @override_options({"system.base-hostname": "example.com"})
+    def test_allow_credentials_root_domain(self):
+        org = self.create_organization()
+        apikey = ApiKey.objects.create(organization_id=org.id, allowed_origins="*")
+
+        request = self.make_request(method="GET")
+        # Origin is base-hostname, and is cors allowed
+        request.META["HTTP_ORIGIN"] = "http://example.com"
+        request.META["HTTP_AUTHORIZATION"] = self.create_basic_auth_header(apikey.key)
+
+        response = _dummy_endpoint(request)
+        response.render()
+
+        assert response.status_code == 200, response.content
+        assert response["Access-Control-Allow-Origin"] == "http://example.com"
         assert response["Access-Control-Allow-Headers"] == (
             "X-Sentry-Auth, X-Requested-With, Origin, Accept, "
             "Content-Type, Authentication, Authorization, Content-Encoding, "
@@ -437,9 +462,9 @@ class CustomerDomainTest(APITestCase):
 
         region_config = [
             {
-                "name": "na",
+                "name": "us",
                 "snowflake_id": 1,
-                "address": "http://na.testserver",
+                "address": "http://us.testserver",
                 "category": RegionCategory.MULTI_TENANT.name,
             },
             {
@@ -450,7 +475,7 @@ class CustomerDomainTest(APITestCase):
             },
         ]
         with override_region_config(region_config):
-            assert request_with_subdomain("na") == "na"
+            assert request_with_subdomain("us") == "us"
             assert request_with_subdomain("eu") == "eu"
             assert request_with_subdomain("sentry") is None
 

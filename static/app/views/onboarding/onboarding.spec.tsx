@@ -86,7 +86,7 @@ describe('Onboarding', function () {
     });
 
     MockApiClient.addMockResponse({
-      url: 'https://release-registry.services.sentry.io/sdks',
+      url: `/organizations/${organization.slug}/sdks/`,
       body: {},
     });
 
@@ -176,7 +176,7 @@ describe('Onboarding', function () {
     });
 
     MockApiClient.addMockResponse({
-      url: 'https://release-registry.services.sentry.io/sdks',
+      url: `/organizations/${organization.slug}/sdks/`,
       body: {},
     });
 
@@ -271,7 +271,7 @@ describe('Onboarding', function () {
     });
 
     MockApiClient.addMockResponse({
-      url: 'https://release-registry.services.sentry.io/sdks',
+      url: `/organizations/${organization.slug}/sdks/`,
       body: {},
     });
 

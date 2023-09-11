@@ -139,6 +139,9 @@ yarn.lock                                                @getsentry/owners-js-de
 /src/sentry/middleware/subdomain.py                      @getsentry/hybrid-cloud
 /src/sentry/middleware/integration/                      @getsentry/hybrid-cloud
 /src/sentry/api/endpoints/rpc.py                         @getsentry/hybrid-cloud
+/src/sentry/models/outbox.py                             @getsentry/hybrid-cloud
+/src/sentry/tasks/deliver_from_outbox.py                 @getsentry/hybrid-cloud
+/src/sentry/tasks/deletion/hybrid_cloud.py               @getsentry/hybrid-cloud
 ## End of Hybrid Cloud
 
 ## Workflow
@@ -260,6 +263,7 @@ yarn.lock                                                @getsentry/owners-js-de
 /tests/snuba/api/endpoints/test_organization_events_facets_stats_performance.py     @getsentry/team-starfish
 
 /static/app/views/starfish/                                                         @getsentry/team-starfish
+/static/app/views/performance/database                                              @getsentry/team-starfish
 ## Endof Starfish
 
 
@@ -286,6 +290,15 @@ yarn.lock                                                @getsentry/owners-js-de
 /src/sentry/replays/              @getsentry/replay-backend
 /tests/sentry/replays/            @getsentry/replay-backend
 ## End of Replays
+
+
+## Feedback v2
+/static/app/components/feedback/   @getsentry/feedback-frontend
+/static/app/utils/feedback/        @getsentry/feedback-frontend
+/static/app/views/feedback/        @getsentry/feedback-frontend
+/src/sentry/feedback/              @getsentry/feedback-backend
+/tests/sentry/feedback/            @getsentry/feedback-backend
+## End of Feedback v2
 
 
 ## Integrations
@@ -412,7 +425,6 @@ yarn.lock                                                @getsentry/owners-js-de
 /src/sentry/api/endpoints/organization_metrics.py                                @getsentry/telemetry-experience
 /src/sentry/api/endpoints/organization_sessions.py                               @getsentry/telemetry-experience
 /src/sentry/api/endpoints/project_dynamic_sampling.py                            @getsentry/telemetry-experience
-/src/sentry/api/endpoints/organization_dynamic_sampling_sdk_versions.py          @getsentry/telemetry-experience
 /src/sentry/dynamic_sampling/                                                    @getsentry/telemetry-experience
 /src/sentry/release_health/metrics_sessions_v2.py                                @getsentry/telemetry-experience
 /tests/sentry/api/endpoints/test_organization_metric_data.py                     @getsentry/telemetry-experience
@@ -436,8 +448,6 @@ yarn.lock                                                @getsentry/owners-js-de
 
 
 ## Growth
-/src/sentry/api/endpoints/client_state.py                       @getsentry/growth
-/src/sentry/api/endpoints/organization_web_vitals_overview.py   @getsentry/growth
 /src/sentry/api/endpoints/organization_onboarding*              @getsentry/growth
 /src/sentry/web/frontend/auth_login.py                          @getsentry/growth
 /static/app/utils/analytics.tsx                                 @getsentry/growth

@@ -60,8 +60,7 @@ class Updater(Mediator):
             self.rule.data["filter_match"] = self.filter_match
 
     def _update_conditions(self):
-        if self.conditions:
-            self.rule.data["conditions"] = self.conditions
+        self.rule.data["conditions"] = self.conditions or []
 
     def _update_frequency(self):
         if self.frequency:

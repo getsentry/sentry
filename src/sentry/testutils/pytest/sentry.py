@@ -28,6 +28,20 @@ TEST_ROOT = os.path.normpath(
 TEST_REDIS_DB = 9
 
 
+def configure_split_db(_settings):
+    if "control" in _settings.DATABASES:
+        return
+    # Add connections for the region & control silo databases.
+    _settings.DATABASES["control"] = _settings.DATABASES["default"].copy()
+    _settings.DATABASES["control"]["NAME"] = "control"
+
+    # Use the region database in the default connection as region
+    # silo database is the 'default' elsewhere in application logic.
+    _settings.DATABASES["default"]["NAME"] = "region"
+
+    _settings.DATABASE_ROUTERS = ("sentry.db.router.SiloRouter",)
+
+
 def pytest_configure(config):
     import warnings
 
@@ -81,6 +95,8 @@ def pytest_configure(config):
             # an actual migration.
         else:
             raise RuntimeError("oops, wrong database: %r" % test_db)
+
+    configure_split_db(settings)
 
     # Ensure we can test secure ssl settings
     settings.SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
@@ -162,7 +178,6 @@ def pytest_configure(config):
             "system.organization-base-hostname": "{slug}.testserver",
             "system.organization-url-template": "http://{hostname}",
             "system.region-api-url-template": "http://{region}.testserver",
-            "system.region": "us",
             "system.secret-key": "a" * 52,
             "slack.client-id": "slack-client-id",
             "slack.client-secret": "slack-client-secret",
@@ -189,11 +204,13 @@ def pytest_configure(config):
             "aws-lambda.python.layer-version": "34",
         }
     )
-
+    settings.SENTRY_OPTIONS_COMPLAIN_ON_ERRORS = True
     settings.VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON = False
+    settings.SENTRY_REGION = "us"
+
+    # ID controls
     settings.SENTRY_USE_BIG_INTS = True
     settings.SENTRY_USE_SNOWFLAKE = True
-
     settings.SENTRY_SNOWFLAKE_EPOCH_START = datetime(1999, 12, 31, 0, 0).timestamp()
 
     # Plugin-related settings

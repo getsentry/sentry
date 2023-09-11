@@ -4,6 +4,8 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import ratelimits as ratelimiter
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.serializers.base import serialize
 from sentry.api.serializers.models.user import DetailedSelfUserSerializer
@@ -16,6 +18,10 @@ from sentry.web.frontend.base import OrganizationMixin
 
 @control_silo_endpoint
 class AuthLoginEndpoint(Endpoint, OrganizationMixin):
+    publish_status = {
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
+    owner = ApiOwner.ENTERPRISE
     # Disable authentication and permission requirements.
     permission_classes = []
 

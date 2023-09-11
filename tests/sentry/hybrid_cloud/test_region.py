@@ -79,7 +79,7 @@ class RegionResolutionTest(TestCase):
                 region_resolution.resolve({})
 
     def test_unimplemented_region_resolution(self):
-        region_resolution = UnimplementedRegionResolution()
+        region_resolution = UnimplementedRegionResolution("some_service", "some_method")
         with pytest.raises(RpcServiceUnimplementedException):
             arguments = {"team_id": 1234}
             region_resolution.resolve(arguments)

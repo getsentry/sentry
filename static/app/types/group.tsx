@@ -72,12 +72,28 @@ export enum IssueType {
   PERFORMANCE_UNCOMPRESSED_ASSET = 'performance_uncompressed_assets',
   PERFORMANCE_LARGE_HTTP_PAYLOAD = 'performance_large_http_payload',
   PERFORMANCE_HTTP_OVERHEAD = 'performance_http_overhead',
+  PERFORMANCE_DURATION_REGRESSION = 'performance_duration_regression',
 
   // Profile
   PROFILE_FILE_IO_MAIN_THREAD = 'profile_file_io_main_thread',
   PROFILE_IMAGE_DECODE_MAIN_THREAD = 'profile_image_decode_main_thread',
   PROFILE_JSON_DECODE_MAIN_THREAD = 'profile_json_decode_main_thread',
   PROFILE_REGEX_MAIN_THREAD = 'profile_regex_main_thread',
+}
+
+export enum IssueTitle {
+  PERFORMANCE_CONSECUTIVE_DB_QUERIES = 'Consecutive DB Queries',
+  PERFORMANCE_CONSECUTIVE_HTTP = 'Consecutive HTTP',
+  PERFORMANCE_FILE_IO_MAIN_THREAD = 'File IO on Main Thread',
+  PERFORMANCE_DB_MAIN_THREAD = 'DB on Main Thread',
+  PERFORMANCE_N_PLUS_ONE_API_CALLS = 'N+1 API Call',
+  PERFORMANCE_N_PLUS_ONE_DB_QUERIES = 'N+1 Query',
+  PERFORMANCE_SLOW_DB_QUERY = 'Slow DB Query',
+  PERFORMANCE_RENDER_BLOCKING_ASSET = 'Large Render Blocking Asset',
+  PERFORMANCE_UNCOMPRESSED_ASSET = 'Uncompressed Asset',
+  PERFORMANCE_LARGE_HTTP_PAYLOAD = 'Large HTTP payload',
+  PERFORMANCE_HTTP_OVERHEAD = 'HTTP/1.1 Overhead',
+  PERFORMANCE_DURATION_REGRESSION = 'Duration Regression',
 }
 
 export const getIssueTypeFromOccurenceType = (
@@ -575,7 +591,7 @@ export const enum GroupSubstatus {
 export interface BaseGroup {
   activity: GroupActivity[];
   annotations: string[];
-  assignedTo: Actor;
+  assignedTo: Actor | null;
   culprit: string;
   firstSeen: string;
   hasSeen: boolean;
@@ -587,9 +603,8 @@ export interface BaseGroup {
   issueCategory: IssueCategory;
   issueType: IssueType;
   lastSeen: string;
-  latestEvent: Event;
   level: Level;
-  logger: string;
+  logger: string | null;
   metadata: EventMetadata;
   numComments: number;
   participants: User[];
@@ -609,6 +624,7 @@ export interface BaseGroup {
   type: EventOrGroupType;
   userReportCount: number;
   inbox?: InboxDetails | null | false;
+  latestEvent?: Event;
   owners?: SuggestedOwner[] | null;
   substatus?: GroupSubstatus | null;
 }
