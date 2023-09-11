@@ -2,8 +2,14 @@ from unittest.mock import patch
 
 from freezegun import freeze_time
 
-from minimetrics import MiniMetricsClient
-from minimetrics.core import BucketKey, CounterMetric, DistributionMetric, GaugeMetric, SetMetric
+from minimetrics.core import (
+    BucketKey,
+    CounterMetric,
+    DistributionMetric,
+    GaugeMetric,
+    MiniMetricsClient,
+    SetMetric,
+)
 
 
 def test_simple():

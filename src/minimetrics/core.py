@@ -271,7 +271,7 @@ class Aggregator:
             )
 
     def _to_extracted_metric(self, bucket_key: BucketKey, metric: Metric) -> ExtractedMetric:
-        extracted_metric = {
+        extracted_metric: ExtractedMetric = {
             "type": bucket_key.metric_type,
             "name": bucket_key.metric_key,
             "value": metric.serialize_value(),

@@ -58,8 +58,10 @@ class RelayStatsdEncoder(MetricEnvelopeEncoder[ExtractedMetric, str]):
         if not tags:
             return ""
 
-        tags = cls.TAG_SEPARATOR.join([f"{tag_key}:{tag_value}" for tag_key, tag_value in tags])
-        return f"|#{tags}"
+        tags_as_string = cls.TAG_SEPARATOR.join(
+            [f"{tag_key}:{tag_value}" for tag_key, tag_value in tags]
+        )
+        return f"|#{tags_as_string}"
 
 
 class MetricEnvelopeTransport(Generic[M]):
@@ -78,9 +80,11 @@ class MetricEnvelopeTransport(Generic[M]):
             headers={"timestamp": int(time.time())},
         )
 
-        self._client.transport.capture_envelope(
-            Envelope(
-                headers=None,
-                items=[metric_item],
+        transport = self._client.transport
+        if transport is not None:
+            transport.capture_envelope(
+                Envelope(
+                    headers=None,
+                    items=[metric_item],
+                )
             )
-        )

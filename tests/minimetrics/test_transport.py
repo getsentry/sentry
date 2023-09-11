@@ -11,7 +11,7 @@ def test_relay_encoder_with_counter():
         "timestamp": 1693994400,
         "width": 10,
     }
-    result = encoder.encode(metric_1)
+    result = encoder.encode(metric_1)  # type:ignore
     assert result == "button_click:2|c"
 
     metric_2 = {
@@ -36,7 +36,7 @@ def test_relay_encoder_with_distribution():
         "timestamp": 1693994400,
         "width": 10,
     }
-    result = encoder.encode(metric_1)
+    result = encoder.encode(metric_1)  # type:ignore
     assert result == "execution_time:1.0:0.5:3.0|d"
 
     metric_2 = {
