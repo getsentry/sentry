@@ -192,8 +192,16 @@
   border: 1px solid #ECCFCC;
   background: #FEFDFD;
 }
-.sentry-error-embed .error-wrapper p:last-child {
-  margin-bottom: 0;
+.sentry-error-embed .event-uuid {
+  font-size: 13px;
+  margin-bottom: 20px;
+}
+.sentry-error-embed .event-uuid .uuid {
+  font-family: monospace;
+}
+.sentry-error-embed .event-uuid .copy-button {
+  border: 0px;
+  margin-left: 5px;
 }
 @media screen and (max-height: 570px) {
   .sentry-error-embed {
@@ -260,7 +268,12 @@
     <p>{{ subtitle }} <span>{{ subtitle2 }}</span></p>
   </header>
   <form>
-    <div class="error-wrapper"></div>
+    {% if display_event_id %}
+      <div class="event-uuid">{{ event_id_label }}:
+        <span class = "uuid">{{ event_id }}</span>
+        <span class="copy-button" onclick="navigator.clipboard.writeText('{{ event_id }}'); return false;"><svg viewBox="0 0 16 16" fill="currentColor" height="16px" width="16px"><path d="M14.24,12.49H5.58a1.75,1.75,0,0,1-1.75-1.75v-9A1.75,1.75,0,0,1,5.58,0h8.66A1.75,1.75,0,0,1,16,1.74v9A1.75,1.75,0,0,1,14.24,12.49Zm-8.66-11a.25.25,0,0,0-.25.25v9a.25.25,0,0,0,.25.25h8.66a.25.25,0,0,0,.25-.25v-9a.25.25,0,0,0-.25-.25Z"></path><path d="M10.38,16H1.72A1.75,1.75,0,0,1,0,14.26v-9A1.75,1.75,0,0,1,1.72,3.51H4.58a.75.75,0,0,1,0,1.5H1.72a.25.25,0,0,0-.25.25v9a.25.25,0,0,0,.25.25h8.66a.25.25,0,0,0,.25-.25V11.74a.75.75,0,0,1,1.5,0v2.52A1.75,1.75,0,0,1,10.38,16Z"></path></svg></span>
+      </div>
+    {% endif %}
     <div class="form-content">
       <div class="form-field clearfix">
         <label>{{ name_label }}</label>

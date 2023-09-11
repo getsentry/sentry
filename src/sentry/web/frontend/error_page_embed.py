@@ -24,6 +24,8 @@ DEFAULT_TITLE = _("It looks like we're having issues.")
 DEFAULT_SUBTITLE = _("Our team has been notified.")
 DEFAULT_SUBTITLE2 = _("If you'd like to help, tell us what happened below.")
 
+DEFAULT_EVENT_ID_LABEL = _("Sentry Event ID")
+
 DEFAULT_NAME_LABEL = _("Name")
 DEFAULT_EMAIL_LABEL = _("Email")
 DEFAULT_COMMENTS_LABEL = _("What happened?")
@@ -43,6 +45,8 @@ DEFAULT_OPTIONS = {
     "errorGeneric": GENERIC_ERROR,
     "errorFormEntry": FORM_ERROR,
     "successMessage": SENT_MESSAGE,
+    "eventIdLabel": DEFAULT_EVENT_ID_LABEL,
+    "displayEventId": False,
 }
 
 
@@ -196,6 +200,7 @@ class ErrorPageEmbedView(View):
             context={
                 "form": form,
                 "show_branding": show_branding,
+                "event_id": event_id,
                 "title": options["title"],
                 "subtitle": options["subtitle"],
                 "subtitle2": options["subtitle2"],
@@ -204,6 +209,8 @@ class ErrorPageEmbedView(View):
                 "comments_label": options["labelComments"],
                 "submit_label": options["labelSubmit"],
                 "close_label": options["labelClose"],
+                "event_id_label": options["eventIdLabel"],
+                "display_event_id": options["displayEventId"],
             },
         )
 
