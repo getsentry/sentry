@@ -429,25 +429,6 @@ class Aggregator:
                 sample_rate=cls.DEFAULT_SAMPLE_RATE,
             )
 
-    @classmethod
-    def _safe_emit_count_metric(cls, key: str, amount: int, tags: Optional[Dict[str, Any]] = None):
-        cls._safe_run(lambda: metrics.incr(key=key, amount=amount, tags=tags, sample_rate=1.0))
-
-    @classmethod
-    def _safe_emit_distribution_metric(
-        cls, key: str, value: int, tags: Optional[Dict[str, Any]] = None
-    ):
-        cls._safe_run(lambda: metrics.timing(key=key, value=value, tags=tags, sample_rate=1.0))
-
-    @classmethod
-    def _safe_run(cls, block: Callable[[], None]):
-        # In order to avoid an infinite recursion for metrics, we want to use a thread local variable that will
-        # signal the downstream calls to only propagate the metric to the primary backend, otherwise if propagated to
-        # minimetrics, it will cause unbounded recursion.
-        thread_local.in_minimetrics = True
-        block()
-        thread_local.in_minimetrics = False
-
 
 class MiniMetricsClient:
     def __init__(self) -> None:
