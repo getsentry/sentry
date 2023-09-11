@@ -1,12 +1,17 @@
+import Alert from 'sentry/components/alert';
+import useFetchFeedbackList from 'sentry/components/feedback/useFetchFeedbackList';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
+import Placeholder from 'sentry/components/placeholder';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 
 export default function List() {
   const organization = useOrganization();
+
+  const {isLoading, isError, data} = useFetchFeedbackList({}, {});
 
   return (
     <SentryDocumentTitle title={`Feedback v2 — ${organization.slug}`}>
@@ -25,7 +30,17 @@ export default function List() {
       </Layout.Header>
       <PageFiltersContainer>
         <Layout.Body>
-          <Layout.Main fullWidth>TODO List page</Layout.Main>
+          <Layout.Main fullWidth>
+            {isLoading ? (
+              <Placeholder />
+            ) : isError ? (
+              <Alert type="error" showIcon>
+                {t('An error occurred')}
+              </Alert>
+            ) : (
+              <pre>{JSON.stringify(data, null, '\t')}</pre>
+            )}
+          </Layout.Main>
         </Layout.Body>
       </PageFiltersContainer>
     </SentryDocumentTitle>
