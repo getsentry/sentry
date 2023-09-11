@@ -153,8 +153,8 @@ def clock_pulse(current_datetime=None):
 
 @instrumented_task(
     name="sentry.monitors.tasks.check_missing",
-    time_limit=30,
-    soft_time_limit=25,
+    time_limit=15,
+    soft_time_limit=10,
     silo_mode=SiloMode.REGION,
 )
 def check_missing(current_datetime: datetime):
