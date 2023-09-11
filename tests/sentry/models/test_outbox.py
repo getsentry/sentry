@@ -459,7 +459,7 @@ class RegionOutboxTest(TestCase):
                 mock_process_region_outbox.reset_mock()
                 with self.tasks():
                     with raises(OutboxFlushError):
-                        enqueue_outbox_jobs(concurrency=conccurrency)
+                        enqueue_outbox_jobs(concurrency=concurrency)
                     assert mock_process_region_outbox.call_count == 1
 
             def ensure_converged():
