@@ -20,6 +20,7 @@ export function MockConfig(params: Partial<TConfig> = {}): TConfig {
     supportEmail: 'support@sentry.io',
     invitesEnabled: false,
     privacyUrl: null,
+    regions: [],
     termsUrl: null,
     // Maintain isOnPremise key for backcompat (plugins?).
     isOnPremise: false,
