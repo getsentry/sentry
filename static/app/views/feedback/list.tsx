@@ -56,10 +56,7 @@ export default function List({location}: Props) {
               />
             </LayoutGap>
             <PaginationNoMargin
-              pageLinks={
-                pageLinks ||
-                '<https://sentry.sentry.io/api/0/organizations/sentry/replays/?field=activity&field=browser&field=count_dead_clicks&field=count_errors&field=count_rage_clicks&field=duration&field=finished_at&field=id&field=is_archived&field=os&field=project_id&field=started_at&field=urls&field=user&per_page=50&project=11276&query=&sort=-started_at&statsPeriod=24h&cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1", <https://sentry.sentry.io/api/0/organizations/sentry/replays/?field=activity&field=browser&field=count_dead_clicks&field=count_errors&field=count_rage_clicks&field=duration&field=finished_at&field=id&field=is_archived&field=os&field=project_id&field=started_at&field=urls&field=user&per_page=50&project=11276&query=&sort=-started_at&statsPeriod=24h&cursor=0:50:0>; rel="next"; results="true"; cursor="0:50:0"'
-              }
+              pageLinks={pageLinks}
               onCursor={(cursor, path, searchQuery) => {
                 browserHistory.push({
                   pathname: path,
