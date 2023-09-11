@@ -12,6 +12,7 @@ interface UseTeamOptions {
 }
 
 interface UseTeamsResult {
+  isError: boolean | null;
   isLoading: boolean;
   teams: Team[];
 }
@@ -51,7 +52,11 @@ export function useTeamsV2({ids = [], slugs = []}: UseTeamOptions = {}): UseTeam
   const queryEnabled = shouldConsiderFetching && hasMissing;
 
   const queryKey = buildTeamsQueryKey(organization?.slug ?? '', ids, slugs);
-  const {data: additionalTeams = [], isLoading} = useApiQuery<Team[]>(queryKey, {
+  const {
+    data: additionalTeams = [],
+    isLoading,
+    isError,
+  } = useApiQuery<Team[]>(queryKey, {
     staleTime: 0,
     enabled: queryEnabled,
   });
@@ -65,5 +70,6 @@ export function useTeamsV2({ids = [], slugs = []}: UseTeamOptions = {}): UseTeam
   return {
     teams,
     isLoading: queryEnabled ? isLoading : false,
+    isError: queryEnabled ? isError : null,
   };
 }

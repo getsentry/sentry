@@ -26,7 +26,7 @@ function TeamDetails({children}: Props) {
   const params = useParams();
   const orgSlug = useOrganization().slug;
   const [requesting, setRequesting] = useState(false);
-  const {teams, isLoading} = useTeamsV2({slugs: [params.teamId]});
+  const {teams, isLoading, isError} = useTeamsV2({slugs: [params.teamId]});
   const team = teams.find(({slug}) => slug === params.teamId);
 
   function handleRequestAccess(teamSlug: string) {
@@ -79,7 +79,7 @@ function TeamDetails({children}: Props) {
     return <LoadingIndicator />;
   }
 
-  if (!team) {
+  if (!team || isError) {
     return (
       <Alert type="warning">
         <div>{t('This team does not exist, or you do not have access to it.')}</div>

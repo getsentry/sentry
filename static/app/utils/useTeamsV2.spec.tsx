@@ -14,7 +14,7 @@ const queryClient = new QueryClient({
   },
 });
 
-describe('useTeams', function () {
+describe('useTeamsV2', function () {
   const org = TestStubs.Organization();
 
   const mockTeams = [TestStubs.Team()];
