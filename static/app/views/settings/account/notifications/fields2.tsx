@@ -122,6 +122,20 @@ export const NOTIFICATION_SETTING_FIELDS: Record<string, Field> = {
   },
 };
 
+export const NOTIFICATION_SETTING_FIELDS_V2: Record<string, Field> = {
+  ...NOTIFICATION_SETTING_FIELDS,
+  reports: {
+    name: 'weekly reports',
+    type: 'select',
+    label: t('Weekly Reports'),
+    help: t('A summary of the past week for an organization.'),
+    choices: [
+      ['always', t('On')],
+      ['never', t('Off')],
+    ],
+  },
+};
+
 // partial field definition for quota sub-categories
 export const QUOTA_FIELDS = [
   {
