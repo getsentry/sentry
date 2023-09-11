@@ -544,7 +544,7 @@ class OutboxBase(Model):
             tags["category"] = OutboxCategory(self.category).name
             metrics.timing(
                 "outbox.coalesced_net_queue_time",
-                datetime.datetime.now().timestamp() - first_coalesced.date_added,
+                datetime.datetime.now().timestamp() - first_coalesced.date_added.timestamp(),
             )
 
         yield coalesced
@@ -563,7 +563,7 @@ class OutboxBase(Model):
             )
             metrics.timing(
                 "outbox.coalesced_net_processing_time",
-                datetime.datetime.now().timestamp() - first_coalesced.date_added,
+                datetime.datetime.now().timestamp() - first_coalesced.date_added.timestamp(),
                 tags=tags,
             )
 
