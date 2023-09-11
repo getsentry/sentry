@@ -145,6 +145,12 @@ export const GridHeadCell = styled('th')<{isFirst: boolean; sticky?: boolean}>`
     white-space: nowrap;
     text-overflow: ellipsis;
     overflow: hidden;
+    height: 100%;
+    display: inline-grid;
+    align-content: center;
+    grid-auto-flow: column;
+    justify-content: flex-start;
+    gap: ${space(0.25)};
   }
 
   &:first-child {
