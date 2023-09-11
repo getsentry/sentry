@@ -47,6 +47,14 @@ def get_github_external_id(event: Mapping[str, Any], host: str | None = None) ->
     return f"{host}:{external_id}" if host else external_id
 
 
+def get_file_language(filename: str):
+    extension = filename.split(".")[-1]
+    language = None
+    if extension != filename:
+        language = EXTENSION_LANGUAGE_MAP.get(extension)
+    return language
+
+
 class Webhook:
     provider = "github"
 
@@ -357,7 +365,7 @@ class PushEventWebhook(Webhook):
                         date_added=parse_date(commit["timestamp"]).astimezone(timezone.utc),
                     )
                     for fname in commit["added"]:
-                        language = EXTENSION_LANGUAGE_MAP.get(fname.split(".")[-1])
+                        language = get_file_language(fname)
                         CommitFileChange.objects.create(
                             organization_id=organization.id,
                             commit=c,
@@ -366,7 +374,7 @@ class PushEventWebhook(Webhook):
                             language=language,
                         )
                     for fname in commit["removed"]:
-                        language = EXTENSION_LANGUAGE_MAP.get(fname.split(".")[-1])
+                        language = get_file_language(fname)
                         CommitFileChange.objects.create(
                             organization_id=organization.id,
                             commit=c,
@@ -375,7 +383,7 @@ class PushEventWebhook(Webhook):
                             language=language,
                         )
                     for fname in commit["modified"]:
-                        language = EXTENSION_LANGUAGE_MAP.get(fname.split(".")[-1])
+                        language = get_file_language(fname)
                         CommitFileChange.objects.create(
                             organization_id=organization.id,
                             commit=c,
