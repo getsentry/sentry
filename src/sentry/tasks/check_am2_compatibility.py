@@ -9,6 +9,7 @@ from django.db.models import Q
 from sentry.dynamic_sampling import get_redis_client_for_ds
 from sentry.incidents.models import AlertRule
 from sentry.models import DashboardWidgetQuery, Organization, Project
+from sentry.search.events.fields import get_function_alias
 from sentry.silo import SiloMode
 from sentry.snuba import metrics_performance
 from sentry.snuba.dataset import Dataset
@@ -457,7 +458,10 @@ class CheckAM2Compatibility:
         for row in results.get("data"):
             project_id = row["project.id"]
             # If a project has at least one null or unparameterized transaction, we will mark it as incompatible.
-            if row[count_null] > 0 or row[count_unparameterized] > 0:
+            if (
+                row[get_function_alias(count_null)] > 0
+                or row[get_function_alias(count_unparameterized)] > 0
+            ):
                 incompatible_project_ids.add(project_id)
             else:
                 compatible_project_ids.add(project_id)
