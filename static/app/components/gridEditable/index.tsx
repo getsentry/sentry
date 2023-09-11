@@ -65,7 +65,6 @@ type GridEditableProps<DataRow, ColumnKey> = {
   columnOrder: GridColumnOrder<ColumnKey>[];
   columnSortBy: GridColumnSortBy<ColumnKey>[];
   data: DataRow[];
-
   /**
    * GridEditable allows the parent component to determine how to display the
    * data within it. Note that this is optional.

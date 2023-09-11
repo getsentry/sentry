@@ -1,17 +1,28 @@
-import Alert from 'sentry/components/alert';
+import {browserHistory, RouteComponentProps} from 'react-router';
+import styled from '@emotion/styled';
+
+import DatePageFilter from 'sentry/components/datePageFilter';
+import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
+import FeedbackTable from 'sentry/components/feedback/table/feedbackTable';
 import useFetchFeedbackList from 'sentry/components/feedback/useFetchFeedbackList';
 import * as Layout from 'sentry/components/layouts/thirds';
+import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
-import Placeholder from 'sentry/components/placeholder';
+import Pagination from 'sentry/components/pagination';
+import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
+import type {FeedbackListQueryParams} from 'sentry/utils/feedback/types';
 import useOrganization from 'sentry/utils/useOrganization';
 
-export default function List() {
+interface Props extends RouteComponentProps<{}, {}, FeedbackListQueryParams> {}
+
+export default function List({location}: Props) {
   const organization = useOrganization();
 
-  const {isLoading, isError, data} = useFetchFeedbackList({}, {});
+  const {isLoading, isError, data, pageLinks} = useFetchFeedbackList({}, {});
 
   return (
     <SentryDocumentTitle title={`Feedback v2 — ${organization.slug}`}>
@@ -31,18 +42,43 @@ export default function List() {
       <PageFiltersContainer>
         <Layout.Body>
           <Layout.Main fullWidth>
-            {isLoading ? (
-              <Placeholder />
-            ) : isError ? (
-              <Alert type="error" showIcon>
-                {t('An error occurred')}
-              </Alert>
-            ) : (
-              <pre>{JSON.stringify(data, null, '\t')}</pre>
-            )}
+            <LayoutGap>
+              <PageFilterBar condensed>
+                <ProjectPageFilter resetParamsOnChange={['cursor']} />
+                <EnvironmentPageFilter resetParamsOnChange={['cursor']} />
+                <DatePageFilter alignDropdown="left" resetParamsOnChange={['cursor']} />
+              </PageFilterBar>
+              <FeedbackTable
+                data={data ?? []}
+                isError={isError}
+                isLoading={isLoading}
+                location={location}
+              />
+            </LayoutGap>
+            <PaginationNoMargin
+              pageLinks={
+                pageLinks ||
+                '<https://sentry.sentry.io/api/0/organizations/sentry/replays/?field=activity&field=browser&field=count_dead_clicks&field=count_errors&field=count_rage_clicks&field=duration&field=finished_at&field=id&field=is_archived&field=os&field=project_id&field=started_at&field=urls&field=user&per_page=50&project=11276&query=&sort=-started_at&statsPeriod=24h&cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1", <https://sentry.sentry.io/api/0/organizations/sentry/replays/?field=activity&field=browser&field=count_dead_clicks&field=count_errors&field=count_rage_clicks&field=duration&field=finished_at&field=id&field=is_archived&field=os&field=project_id&field=started_at&field=urls&field=user&per_page=50&project=11276&query=&sort=-started_at&statsPeriod=24h&cursor=0:50:0>; rel="next"; results="true"; cursor="0:50:0"'
+              }
+              onCursor={(cursor, path, searchQuery) => {
+                browserHistory.push({
+                  pathname: path,
+                  query: {...searchQuery, cursor},
+                });
+              }}
+            />
           </Layout.Main>
         </Layout.Body>
       </PageFiltersContainer>
     </SentryDocumentTitle>
   );
 }
+
+const LayoutGap = styled('div')`
+  display: grid;
+  gap: ${space(2)};
+`;
+
+const PaginationNoMargin = styled(Pagination)`
+  margin: 0;
+`;
