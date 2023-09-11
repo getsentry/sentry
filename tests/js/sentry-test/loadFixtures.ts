@@ -39,7 +39,9 @@ export function loadFixtures(dir: string, opts: Options = {}): TestStubFixtures 
       continue;
     }
     if (/json$/.test(file)) {
-      fixtures[file] = JSON.parse(fs.readFileSync(filePath).toString());
+      fixtures[file] = JSON.parse(
+        fs.readFileSync(filePath, {encoding: 'utf8'}).toString()
+      );
       continue;
     }
 
