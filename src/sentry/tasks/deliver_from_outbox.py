@@ -37,7 +37,7 @@ def enqueue_outbox_jobs(concurrency: int | None = None, **kwargs) -> bool:
 
 
 # The number of jobs created each turn of the scheduler to process batches of outboxes.
-# Tunning this up reduces latency but reduces throughput as well, since it means less
+# Increasing this value reduces latency but reduces throughput as well, since it means less
 # coalescing happening before processing. Tuning this down increases latency but also
 # increases throughput thanks to greater levels of latency.  There is a logarithmic
 # relationship between the id space of shard_identifiers and the amount of unique,
