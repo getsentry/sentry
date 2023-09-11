@@ -96,13 +96,13 @@ class JsonForm extends Component<Props, State> {
   }
 
   renderForm({
+    fields,
     formPanelProps,
+    title,
+    initiallyCollapsed,
   }: {
-    formPanelProps: {
-      fields: FieldObject[];
-      initiallyCollapsed?: boolean;
-      title?: React.ReactNode;
-    } & Pick<
+    fields: FieldObject[];
+    formPanelProps: Pick<
       Props,
       | 'access'
       | 'disabled'
@@ -110,10 +110,13 @@ class JsonForm extends Component<Props, State> {
       | 'additionalFieldProps'
       | 'renderFooter'
       | 'renderHeader'
+      | 'initiallyCollapsed'
     > &
       Pick<State, 'highlighted'>;
+    initiallyCollapsed?: boolean;
+    title?: React.ReactNode;
   }) {
-    const shouldDisplayForm = this.shouldDisplayForm(formPanelProps.fields);
+    const shouldDisplayForm = this.shouldDisplayForm(fields);
 
     if (
       !shouldDisplayForm &&
@@ -123,14 +126,21 @@ class JsonForm extends Component<Props, State> {
       return null;
     }
 
-    return <FormPanel {...formPanelProps} />;
+    return (
+      <FormPanel
+        title={title}
+        fields={fields}
+        {...formPanelProps}
+        initiallyCollapsed={initiallyCollapsed ?? formPanelProps.initiallyCollapsed}
+      />
+    );
   }
 
   render() {
     const {
       access,
       collapsible,
-      initiallyCollapsed,
+      initiallyCollapsed = false,
       fields,
       title,
       forms,
@@ -155,8 +165,6 @@ class JsonForm extends Component<Props, State> {
       renderHeader,
       highlighted: this.state.highlighted,
       collapsible,
-      fields: fields ?? [],
-      title,
       initiallyCollapsed,
     };
 
@@ -164,13 +172,11 @@ class JsonForm extends Component<Props, State> {
       <div {...otherProps}>
         {typeof forms !== 'undefined' &&
           forms.map((formGroup, i) => (
-            <Fragment key={i}>
-              {this.renderForm({formPanelProps: {...formPanelProps, ...formGroup}})}
-            </Fragment>
+            <Fragment key={i}>{this.renderForm({formPanelProps, ...formGroup})}</Fragment>
           ))}
         {typeof forms === 'undefined' &&
           typeof fields !== 'undefined' &&
-          this.renderForm({formPanelProps})}
+          this.renderForm({fields, formPanelProps, title})}
       </div>
     );
   }
