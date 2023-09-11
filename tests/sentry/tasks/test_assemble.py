@@ -275,6 +275,11 @@ class AssembleArtifactsTest(BaseAssembleTest):
             ReleaseArtifactBundle.objects.all().delete()
             ProjectArtifactBundle.objects.all().delete()
 
+            status, details = get_assemble_status(
+                AssembleTask.ARTIFACT_BUNDLE, self.organization.id, total_checksum
+            )
+            assert status is None
+
     @patch("sentry.tasks.assemble.ArtifactBundlePostAssembler.post_assemble")
     def test_assembled_bundle_is_deleted_if_post_assembler_error_occurs(self, post_assemble):
         post_assemble.side_effect = Exception
@@ -887,7 +892,6 @@ class ArtifactBundleIndexingTest(TestCase):
             )
 
         index_artifact_bundles_for_release.assert_not_called()
-        post_assembler.close()
 
     @patch("sentry.tasks.assemble.index_artifact_bundles_for_release")
     def test_index_if_needed_with_lower_bundles_than_threshold(
@@ -916,7 +920,6 @@ class ArtifactBundleIndexingTest(TestCase):
             )
 
         index_artifact_bundles_for_release.assert_not_called()
-        post_assembler.close()
 
     @patch("sentry.tasks.assemble.index_artifact_bundles_for_release")
     def test_index_if_needed_with_higher_bundles_than_threshold(
@@ -958,7 +961,6 @@ class ArtifactBundleIndexingTest(TestCase):
             release=release,
             dist=dist,
         )
-        post_assembler.close()
 
     @patch("sentry.tasks.assemble.index_artifact_bundles_for_release")
     def test_index_if_needed_with_bundles_already_indexed(self, index_artifact_bundles_for_release):

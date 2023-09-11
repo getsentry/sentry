@@ -6,7 +6,7 @@ from django.db.models import F
 from freezegun import freeze_time
 
 from sentry.models import Project
-from sentry.statistical_detectors.detector import TrendPayload
+from sentry.statistical_detectors.detector import DetectorPayload
 from sentry.tasks.statistical_detectors import (
     detect_function_trends,
     detect_transaction_trends,
@@ -180,7 +180,7 @@ def test_detect_transaction_trends_options(
     project,
 ):
     with override_options({"statistical_detectors.enable": enabled}):
-        detect_transaction_trends([project.id])
+        detect_transaction_trends([project.id], timestamp)
     assert query_transactions.called == enabled
 
 
@@ -214,6 +214,33 @@ def test_detect_function_trends_query_timerange(functions_query, timestamp, proj
     params = functions_query.mock_calls[0].kwargs["params"]
     assert params["start"] == datetime(2023, 8, 1, 11, 0, tzinfo=timezone.utc)
     assert params["end"] == datetime(2023, 8, 1, 11, 1, tzinfo=timezone.utc)
+
+
+@mock.patch("sentry.tasks.statistical_detectors.query_functions")
+@django_db_all
+def test_detect_function_trends(
+    query_functions,
+    timestamp,
+    project,
+):
+    timestamps = [timestamp - timedelta(hours=i) for i in range(3, 0, -1)]
+
+    query_functions.side_effect = [
+        [
+            DetectorPayload(
+                project_id=project.id,
+                group=123,
+                count=100,
+                value=100,
+                timestamp=ts,
+            ),
+        ]
+        for ts in timestamps
+    ]
+
+    with override_options({"statistical_detectors.enable": True}):
+        for ts in timestamps:
+            detect_function_trends([project.id], ts)
 
 
 @region_silo_test(stable=True)
@@ -251,13 +278,12 @@ class FunctionsQueryTest(ProfilesSnubaTestCase):
         )
 
         results = query_functions([self.project], self.now)
-        assert results == {
-            self.project.id: [
-                TrendPayload(
-                    group=self.function_fingerprint({"package": "foo", "function": "bar"}),
-                    count=100,
-                    value=pytest.approx(100),  # type: ignore[arg-type]
-                    timestamp=self.hour_ago,
-                )
-            ],
-        }
+        assert results == [
+            DetectorPayload(
+                project_id=self.project.id,
+                group=self.function_fingerprint({"package": "foo", "function": "bar"}),
+                count=100,
+                value=pytest.approx(100),  # type: ignore[arg-type]
+                timestamp=self.hour_ago,
+            )
+        ]

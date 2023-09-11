@@ -1,15 +1,16 @@
 import {CSSProperties} from 'react';
+import styled from '@emotion/styled';
 
 import {RateUnits} from 'sentry/utils/discover/fields';
 import {usePageError} from 'sentry/utils/performance/contexts/pageError';
 import {DurationCell} from 'sentry/views/starfish/components/tableCells/durationCell';
 import {ThroughputCell} from 'sentry/views/starfish/components/tableCells/throughputCell';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
-import {SpanMetricsFields} from 'sentry/views/starfish/types';
+import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/types';
 import {Block, BlockContainer} from 'sentry/views/starfish/views/spanSummaryPage/block';
 
-const {SPAN_SELF_TIME, SPAN_OP} = SpanMetricsFields;
+const {SPAN_SELF_TIME, SPAN_OP} = SpanMetricsField;
 
 type Props = {
   groupId: string;
@@ -43,22 +44,28 @@ function SampleInfo(props: Props) {
   }
 
   return (
-    <BlockContainer>
-      <Block title={getThroughputTitle(spanMetrics?.[SPAN_OP])}>
-        <ThroughputCell
-          containerProps={{style}}
-          rate={spanMetrics?.['spm()']}
-          unit={RateUnits.PER_MINUTE}
-        />
-      </Block>
-      <Block title={DataTitles.avg}>
-        <DurationCell
-          containerProps={{style}}
-          milliseconds={spanMetrics?.[`avg(${SPAN_SELF_TIME})`]}
-        />
-      </Block>
-    </BlockContainer>
+    <SampleInfoContainer>
+      <BlockContainer>
+        <Block title={getThroughputTitle(spanMetrics?.[SPAN_OP])} alignment="left">
+          <ThroughputCell
+            containerProps={{style}}
+            rate={spanMetrics?.['spm()']}
+            unit={RateUnits.PER_MINUTE}
+          />
+        </Block>
+        <Block title={DataTitles.avg} alignment="left">
+          <DurationCell
+            containerProps={{style}}
+            milliseconds={spanMetrics?.[`avg(${SPAN_SELF_TIME})`]}
+          />
+        </Block>
+      </BlockContainer>
+    </SampleInfoContainer>
   );
 }
+
+const SampleInfoContainer = styled('div')`
+  display: flex;
+`;
 
 export default SampleInfo;

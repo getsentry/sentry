@@ -34,6 +34,13 @@ class ComparatorFindingKind(IntEnum):
     # The JSON of two instances of a model, after certain fields have been scrubbed by all applicable comparators, were not byte-for-byte equivalent.
     UnequalJSON = auto()
 
+    # Failed to compare an auto suffixed field.
+    AutoSuffixComparator = auto()
+
+    # Failed to compare an auto suffixed field because one of the fields being compared was not
+    # present or `None`.
+    AutoSuffixComparatorExistenceCheck = auto()
+
     # Two datetime fields were not equal.
     DatetimeEqualityComparator = auto()
 
@@ -75,6 +82,27 @@ class ComparatorFindingKind(IntEnum):
     # Failed to compare an ignored field because one of the fields being compared was not present or
     # `None`.
     IgnoredComparatorExistenceCheck = auto()
+
+    # Secret token fields did not match their regex specification.
+    SecretHexComparator = auto()
+
+    # Failed to compare a secret token field because one of the fields being compared was not
+    # present or `None`.
+    SecretHexComparatorExistenceCheck = auto()
+
+    # UUID4 fields did not match their regex specification.
+    UUID4Comparator = auto()
+
+    # Failed to compare a UUID4 field because one of the fields being compared was not present or
+    # `None`.
+    UUID4ComparatorExistenceCheck = auto()
+
+    # Incorrect user password field.
+    UserPasswordObfuscatingComparator = auto()
+
+    # Failed to compare a user password field because one of the fields being compared was not
+    # present or `None`.
+    UserPasswordObfuscatingComparatorExistenceCheck = auto()
 
 
 class ComparatorFinding(NamedTuple):

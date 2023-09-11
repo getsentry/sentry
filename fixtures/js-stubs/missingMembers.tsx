@@ -5,27 +5,27 @@ export function MissingMembers(params = []): MissingMember[] {
     {
       commitCount: 6,
       email: 'hello@sentry.io',
-      externalId: 'hello',
+      externalId: 'github:hello',
     },
     {
       commitCount: 5,
       email: 'abcd@sentry.io',
-      externalId: 'abcd',
+      externalId: 'github:abcd',
     },
     {
       commitCount: 4,
       email: 'hola@sentry.io',
-      externalId: 'hola',
+      externalId: 'github:hola',
     },
     {
       commitCount: 3,
       email: 'test@sentry.io',
-      externalId: 'test',
+      externalId: 'github:test',
     },
     {
       commitCount: 2,
       email: 'five@sentry.io',
-      externalId: 'five',
+      externalId: 'github:five',
     },
     ...params,
   ];

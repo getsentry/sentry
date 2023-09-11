@@ -21,12 +21,10 @@ import {
   ActivityCell,
   BrowserCell,
   DeadClickCountCell,
-  DeadClickCountWithDropdownCell,
   DurationCell,
   ErrorCountCell,
   OSCell,
   RageClickCountCell,
-  RageClickCountWithDropdownCell,
   ReplayCell,
   TransactionCell,
 } from 'sentry/views/replays/replayTable/tableCell';
@@ -44,6 +42,7 @@ type Props = {
   emptyMessage?: ReactNode;
   gridRows?: string;
   saveLocation?: boolean;
+  showDropdownFilters?: boolean;
 };
 
 function ReplayTable({
@@ -55,6 +54,7 @@ function ReplayTable({
   emptyMessage,
   saveLocation,
   gridRows,
+  showDropdownFilters,
 }: Props) {
   const routes = useRoutes();
   const newLocation = useLocation();
@@ -152,41 +152,85 @@ function ReplayTable({
             {visibleColumns.map(column => {
               switch (column) {
                 case ReplayColumn.ACTIVITY:
-                  return <ActivityCell key="activity" replay={replay} />;
+                  return (
+                    <ActivityCell
+                      key="activity"
+                      replay={replay}
+                      showDropdownFilters={showDropdownFilters}
+                    />
+                  );
 
                 case ReplayColumn.BROWSER:
-                  return <BrowserCell key="browser" replay={replay} />;
+                  return (
+                    <BrowserCell
+                      key="browser"
+                      replay={replay}
+                      showDropdownFilters={showDropdownFilters}
+                    />
+                  );
 
                 case ReplayColumn.COUNT_DEAD_CLICKS:
                   return (
-                    <DeadClickCountWithDropdownCell
+                    <DeadClickCountCell
                       key="countDeadClicks"
                       replay={replay}
+                      showDropdownFilters={showDropdownFilters}
                     />
                   );
 
                 case ReplayColumn.COUNT_DEAD_CLICKS_NO_HEADER:
-                  return <DeadClickCountCell key="countDeadClicks" replay={replay} />;
+                  return (
+                    <DeadClickCountCell
+                      key="countDeadClicks"
+                      replay={replay}
+                      showDropdownFilters={false}
+                    />
+                  );
 
                 case ReplayColumn.COUNT_ERRORS:
-                  return <ErrorCountCell key="countErrors" replay={replay} />;
+                  return (
+                    <ErrorCountCell
+                      key="countErrors"
+                      replay={replay}
+                      showDropdownFilters={showDropdownFilters}
+                    />
+                  );
 
                 case ReplayColumn.COUNT_RAGE_CLICKS:
                   return (
-                    <RageClickCountWithDropdownCell
+                    <RageClickCountCell
                       key="countRageClicks"
                       replay={replay}
+                      showDropdownFilters={showDropdownFilters}
                     />
                   );
 
                 case ReplayColumn.COUNT_RAGE_CLICKS_NO_HEADER:
-                  return <RageClickCountCell key="countRageClicks" replay={replay} />;
+                  return (
+                    <RageClickCountCell
+                      key="countRageClicks"
+                      replay={replay}
+                      showDropdownFilters={false}
+                    />
+                  );
 
                 case ReplayColumn.DURATION:
-                  return <DurationCell key="duration" replay={replay} />;
+                  return (
+                    <DurationCell
+                      key="duration"
+                      replay={replay}
+                      showDropdownFilters={showDropdownFilters}
+                    />
+                  );
 
                 case ReplayColumn.OS:
-                  return <OSCell key="os" replay={replay} />;
+                  return (
+                    <OSCell
+                      key="os"
+                      replay={replay}
+                      showDropdownFilters={showDropdownFilters}
+                    />
+                  );
 
                 case ReplayColumn.REPLAY:
                   return (

@@ -1,6 +1,5 @@
 import logging
 from copy import copy
-from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 
 from django.db import IntegrityError, models, router, transaction
@@ -8,9 +7,11 @@ from django.db.models.query_utils import DeferredAttribute
 from django.urls import reverse
 from django.utils import timezone as django_timezone
 from rest_framework import serializers, status
+from typing_extensions import TypedDict
 
 from bitfield.types import BitHandler
 from sentry import audit_log, roles
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import ONE_DAY, region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.decorators import sudo_required
@@ -202,8 +203,8 @@ class OrganizationSerializer(BaseOrganizationSerializer):
 
     def _has_sso_enabled(self):
         org = self.context["organization"]
-        org_auth_providers = auth_service.get_auth_providers(organization_id=org.id)
-        return len(org_auth_providers) > 0
+        org_auth_provider = auth_service.get_auth_provider(organization_id=org.id)
+        return org_auth_provider is not None
 
     def validate_relayPiiConfig(self, value):
         organization = self.context["organization"]
@@ -476,6 +477,12 @@ from rest_framework.response import Response
 
 @region_silo_endpoint
 class OrganizationDetailsEndpoint(OrganizationEndpoint):
+    publish_status = {
+        "DELETE": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.UNKNOWN,
+        "PUT": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, organization) -> Response:
         """
         Retrieve an Organization
@@ -615,13 +622,13 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                     transaction_id=schedule.guid,
                 )
 
-                delete_confirmation_args: DeleteConfirmationArgs = dict(
-                    username=user_name,
-                    ip_address=entry.ip_address,
-                    deletion_datetime=entry.datetime,
-                    countdown=ONE_DAY,
-                    organization=updated_organization,
-                )
+                delete_confirmation_args: DeleteConfirmationArgs = {
+                    "username": user_name,
+                    "ip_address": entry.ip_address,
+                    "deletion_datetime": entry.datetime,
+                    "countdown": ONE_DAY,
+                    "organization": updated_organization,
+                }
                 send_delete_confirmation(delete_confirmation_args)
                 Organization.objects.uncache_object(updated_organization.id)
 
@@ -682,8 +689,7 @@ def update_tracked_data(model):
         model.__data = UNSAVED
 
 
-@dataclass
-class DeleteConfirmationArgs:
+class DeleteConfirmationArgs(TypedDict):
     username: str
     ip_address: str
     deletion_datetime: datetime

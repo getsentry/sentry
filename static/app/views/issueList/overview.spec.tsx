@@ -28,7 +28,7 @@ const DEFAULT_LINKS_HEADER =
   '<http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=1443575731:0:1>; rel="previous"; results="false"; cursor="1443575731:0:1", ' +
   '<http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=1443575000:0:0>; rel="next"; results="true"; cursor="1443575000:0:0"';
 
-const project = TestStubs.ProjectDetails({
+const project = TestStubs.Project({
   id: '3559',
   name: 'Foo Project',
   slug: 'project-slug',
@@ -1386,7 +1386,7 @@ describe('IssueList', function () {
       });
 
       it('for multiple projects', function () {
-        const projectBar = TestStubs.ProjectDetails({
+        const projectBar = TestStubs.Project({
           id: '3560',
           name: 'Bar Project',
           slug: 'project-slug-bar',
