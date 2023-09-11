@@ -31,7 +31,11 @@ thread_local = threading.local()
 
 @contextmanager
 def enter_minimetrics():
-    old = thread_local.in_minimetrics
+    try:
+        old = thread_local.in_minimetrics
+    except AttributeError:
+        old = False
+
     thread_local.in_minimetrics = True
     try:
         yield
