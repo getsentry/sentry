@@ -52,7 +52,7 @@ def migrate_bad_rules(apps, schema_editor):
             apps, rule.data, rule.project, rule.id
         ):
             rule.status = 1
-        rule.save(update_fields=["status"])
+            rule.save(update_fields=["status"])
 
 
 class Migration(CheckedMigration):

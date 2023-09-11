@@ -426,23 +426,27 @@ class Factories:
     def create_project_rule(
         project,
         action_data=None,
+        allow_no_action_data=False,
         condition_data=None,
         name="",
         action_match="all",
         filter_match="all",
         **kwargs,
     ):
-        action_data = action_data or [
-            {
-                "id": "sentry.rules.actions.notify_event.NotifyEventAction",
-                "name": "Send a notification (for all legacy integrations)",
-            },
-            {
-                "id": "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
-                "service": "mail",
-                "name": "Send a notification via mail",
-            },
-        ]
+        actions = None
+        if not action_data and not allow_no_action_data:
+            action_data = action_data or [
+                {
+                    "id": "sentry.rules.actions.notify_event.NotifyEventAction",
+                    "name": "Send a notification (for all legacy integrations)",
+                },
+                {
+                    "id": "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
+                    "service": "mail",
+                    "name": "Send a notification via mail",
+                },
+            ]
+            actions = action_data
         condition_data = condition_data or [
             {
                 "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
@@ -453,15 +457,18 @@ class Factories:
                 "name": "The event occurs",
             },
         ]
+        data = {
+            "conditions": condition_data,
+            "action_match": action_match,
+            "filter_match": filter_match,
+        }
+        if actions:
+            data["actions"] = actions
+
         return Rule.objects.create(
             label=name,
             project=project,
-            data={
-                "conditions": condition_data,
-                "actions": action_data,
-                "action_match": action_match,
-                "filter_match": filter_match,
-            },
+            data=data,
             **kwargs,
         )
 

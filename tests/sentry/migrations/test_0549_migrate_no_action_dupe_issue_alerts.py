@@ -1,5 +1,4 @@
 from sentry.constants import ObjectStatus
-from sentry.models import Rule
 from sentry.testutils.cases import TestMigrations
 
 
@@ -8,39 +7,19 @@ class MigrateNoActionDupleIssueAlerts(TestMigrations):
     migrate_to = "0549_migrate_no_action_dupe_issue_alerts"
 
     def setup_initial_state(self):
-        conditions = [
-            {
-                "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
-            }
-        ]
-        self.no_action_rule = Rule.objects.create(
-            project=self.project,
-            data={"conditions": conditions, "action_match": "all"},
+        self.no_action_rule = self.create_project_rule(
+            project=self.project, allow_no_action_data=True
         )
-        actions = [
-            {
-                "targetType": "IssueOwners",
-                "fallthroughType": "ActiveMembers",
-                "id": "sentry.mail.actions.NotifyEmailAction",
-                "targetIdentifier": None,
-            }
-        ]
-        self.non_migrated_rule = Rule.objects.create(
-            project=self.project,
-            data={"conditions": conditions, "actions": actions, "action_match": "all"},
-        )
-
-        self.duplicate_rule = Rule.objects.create(
-            project=self.project,
-            data={"conditions": conditions, "actions": actions, "action_match": "all"},
-        )
+        self.rule1 = self.create_project_rule(project=self.project)
+        self.rule2 = self.create_project_rule(project=self.project)
+        assert self.no_action_rule.status == ObjectStatus.ACTIVE
+        assert self.rule2.status == ObjectStatus.ACTIVE
+        assert self.rule1.status == ObjectStatus.ACTIVE
 
     def test(self):
-        assert self.no_action_rule.status == ObjectStatus.ACTIVE
-        assert self.duplicate_rule.status == ObjectStatus.ACTIVE
-        assert self.non_migrated_rule.status == ObjectStatus.ACTIVE
         self.no_action_rule.refresh_from_db()
-        self.duplicate_rule.refresh_from_db()
+        self.rule1.refresh_from_db()
+        self.rule2.refresh_from_db()
         assert self.no_action_rule.status == ObjectStatus.DISABLED
-        assert self.duplicate_rule.status == ObjectStatus.DISABLED
-        assert self.non_migrated_rule.status == ObjectStatus.ACTIVE
+        assert self.rule1.status == ObjectStatus.DISABLED
+        assert self.rule2.status == ObjectStatus.ACTIVE
