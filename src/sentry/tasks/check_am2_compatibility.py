@@ -454,7 +454,7 @@ class CheckAM2Compatibility:
 
         compatible_project_ids = set()
         incompatible_project_ids = set()
-        for row in results:
+        for row in results.get("data"):
             project_id = row["project.id"]
             # If a project has at least one null or unparameterized transaction, we will mark it as incompatible.
             if row[count_null] > 0 or row[count_unparameterized] > 0:
