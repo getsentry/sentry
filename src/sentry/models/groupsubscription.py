@@ -67,7 +67,9 @@ class GroupSubscriptionManager(BaseManager):
         if isinstance(actor, Team):
             # subscribe the members of the team
             team_users_ids = list(actor.member_set.values_list("user_id", flat=True))
-            return self.bulk_subscribe(group, team_users_ids, reason)
+            return self.bulk_subscribe(
+                group=group, users_ids=team_users_ids, reason=reason
+            )  # TODO: update this once #55825 is merged in
 
         raise NotImplementedError("Unknown actor type: %r" % type(actor))
 
