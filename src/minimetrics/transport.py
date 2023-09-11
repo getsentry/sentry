@@ -1,4 +1,3 @@
-import time
 from typing import Dict, Generic, List, Optional, TypeVar
 
 import sentry_sdk
@@ -27,9 +26,10 @@ class RelayStatsdEncoder(MetricEnvelopeEncoder[ExtractedMetric, str]):
         metric_unit = self._get_metric_unit(value.get("unit"))
         metric_value = self._get_metric_value(value["value"])
         metric_type = value["type"]
-        metric_tags = self._get_tags(value.get("tags"))
+        metric_tags = self._get_metric_tags(value.get("tags"))
+        metric_timestamp = self._get_metric_timestamp(value["timestamp"])
 
-        return f"{metric_name}{metric_unit}:{metric_value}|{metric_type}{metric_tags}"
+        return f"{metric_name}{metric_unit}:{metric_value}|{metric_type}{metric_tags}{metric_timestamp}"
 
     @classmethod
     def _sanitize_str(cls, value: str) -> str:
@@ -54,7 +54,7 @@ class RelayStatsdEncoder(MetricEnvelopeEncoder[ExtractedMetric, str]):
         raise Exception("The metric value must be either a float or a list of floats")
 
     @classmethod
-    def _get_tags(cls, tags: Optional[MetricTagsInternal]) -> str:
+    def _get_metric_tags(cls, tags: Optional[MetricTagsInternal]) -> str:
         if not tags:
             return ""
 
@@ -63,24 +63,23 @@ class RelayStatsdEncoder(MetricEnvelopeEncoder[ExtractedMetric, str]):
         )
         return f"|#{tags_as_string}"
 
+    @classmethod
+    def _get_metric_timestamp(cls, timestamp: int) -> str:
+        return f"|T{timestamp}"
+
 
 class MetricEnvelopeTransport(Generic[M]):
     def __init__(self, encoder: MetricEnvelopeEncoder[M, str]):
-        self._client = sentry_sdk.Hub.current.client
         self._encoder = encoder
 
     def send(self, metric: M):
-        if self._client is None:
+        client = sentry_sdk.Hub.current.client
+        if client is None:
             return
 
-        metric_item = Item(
-            payload=self._encoder.encode(metric),
-            type="statsd",
-            content_type="text",
-            headers={"timestamp": int(time.time())},
-        )
+        metric_item = Item(payload=self._encoder.encode(metric), type="statsd")
 
-        transport = self._client.transport
+        transport = client.transport
         if transport is not None:
             transport.capture_envelope(
                 Envelope(

@@ -4,6 +4,8 @@ import zlib
 from threading import Event, Lock, Thread
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
 
+import sentry_sdk
+
 from minimetrics.transport import MetricEnvelopeTransport, RelayStatsdEncoder
 from minimetrics.types import (
     BucketKey,
@@ -247,7 +249,10 @@ class Aggregator:
         stats_by_type: Dict[MetricType, Tuple[int, int]] = {}
 
         for bucket_key, metric in extracted_metrics:
-            self._transport.send(self._to_extracted_metric(bucket_key, metric))
+            try:
+                self._transport.send(self._to_extracted_metric(bucket_key, metric))
+            except Exception as e:
+                sentry_sdk.capture_exception(e)
 
             (prev_buckets_count, prev_buckets_weight) = stats_by_type.get(
                 bucket_key.metric_type, (0, 0)
