@@ -185,9 +185,7 @@ describe('WidgetBuilder', function () {
     MockApiClient.addMockResponse({
       method: 'GET',
       url: '/organizations/org-slug/sessions/',
-      body: TestStubs.SessionsField({
-        field: `sum(session)`,
-      }),
+      body: TestStubs.SessionsField(`sum(session)`),
     });
 
     MockApiClient.addMockResponse({
