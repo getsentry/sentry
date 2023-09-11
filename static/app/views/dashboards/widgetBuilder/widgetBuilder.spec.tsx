@@ -214,9 +214,7 @@ describe('WidgetBuilder', function () {
     MockApiClient.addMockResponse({
       method: 'GET',
       url: '/organizations/org-slug/metrics/data/',
-      body: TestStubs.MetricsField({
-        field: 'sum(sentry.sessions.session)',
-      }),
+      body: TestStubs.MetricsField('sum(sentry.sessions.session)'),
     });
 
     tagsMock = MockApiClient.addMockResponse({

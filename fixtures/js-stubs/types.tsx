@@ -93,7 +93,7 @@ type TestStubFixtures = {
   Member: OverridableStub;
   Members: OverridableStubList;
   MetricRule: OverridableStub;
-  MetricsField: OverridableStub;
+  MetricsField: (field: string, params?: Partial<any>) => any;
   MetricsMeta: OverridableStub;
   MetricsSessionUserCountByStatusByRelease: SimpleStub;
   MetricsTotalCountByReleaseIn24h: SimpleStub;
