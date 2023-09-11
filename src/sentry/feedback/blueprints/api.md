@@ -60,7 +60,7 @@ Retrieve a collection of user-feedback items.
 | device.family     | optional[string] | -                                                   |
 | device.model      | optional[string] | -                                                   |
 | device.name       | optional[string] | -                                                   |
-| dist              | string           |                                                     |
+| dist              | optional[string] |                                                     |
 | environment       | string           |                                                     |
 | id                | string           |                                                     |
 | locale            | object           | Browser locale information.                         |
@@ -150,7 +150,7 @@ Every field not marked as "optional" is considered a required field and must be 
 
 | Column                     | Type             | Description                           |
 | -------------------------- | ---------------- | ------------------------------------- |
-| dist                       | string           | -                                     |
+| dist                       | optional[string] | -                                     |
 | environment                | string           | -                                     |
 | event_id                   | optional[string] | Omitted IDs are internally generated. |
 | feedback                   | object           | -                                     |
@@ -167,7 +167,7 @@ Every field not marked as "optional" is considered a required field and must be 
 | sdk.name                   | string           | -                                     |
 | sdk.version                | string           | -                                     |
 | tags                       | optional[object] | -                                     |
-| timestamp                  | string           | ISO-8061 formatted date string.       |
+| timestamp                  | number           | UTC timestamp.                        |
 | user                       | optional[object] | -                                     |
 | user.email                 | optional[string] | -                                     |
 | user.id                    | optional[string] | -                                     |
@@ -202,7 +202,7 @@ Every field not marked as "optional" is considered a required field and must be 
     "tags": {
       "key": "value"
     },
-    "timestamp": "2023-08-31T14:10:34.954048",
+    "timestamp": 146990235.23,
     "user": {
       "email": "username@example.com",
       "id": "123",
