@@ -1553,6 +1553,8 @@ SENTRY_FEATURES = {
     "organizations:mobile-cpu-memory-in-transactions": False,
     # Enable new page filter UI
     "organizations:new-page-filter": False,
+    # Display warning banner for every event issue alerts
+    "organizations:noisy-alert-warning": False,
     # Prefix host with organization ID when giving users DSNs (can be
     # customized with SENTRY_ORG_SUBDOMAIN_TEMPLATE)
     "organizations:org-subdomains": False,
