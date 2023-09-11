@@ -275,35 +275,36 @@ class Aggregator:
             self._flush_event.wait(2.0)
 
     def _flush(self):
-        with self._lock, enter_minimetrics():
-            cutoff = time.time() - self.ROLLUP_IN_SECONDS
-            weight_to_remove = 0
-            buckets = self.buckets
-            force_flush = self._force_flush
-            flushed_buckets = set()
-            extracted_metrics = []
+        with enter_minimetrics():
+            with self._lock:
+                cutoff = time.time() - self.ROLLUP_IN_SECONDS
+                weight_to_remove = 0
+                buckets = self.buckets
+                force_flush = self._force_flush
+                flushed_buckets = set()
+                extracted_metrics = []
 
-            for bucket_key, metric in buckets.items():
-                if not force_flush and bucket_key.timestamp > cutoff:
-                    continue
+                for bucket_key, metric in buckets.items():
+                    if not force_flush and bucket_key.timestamp > cutoff:
+                        continue
 
-                extracted_metrics.append((bucket_key, metric))
-                flushed_buckets.add(bucket_key)
-                weight_to_remove += metric.weight
+                    extracted_metrics.append((bucket_key, metric))
+                    flushed_buckets.add(bucket_key)
+                    weight_to_remove += metric.weight
 
-            # We remove all flushed buckets, in order to avoid memory leaks.
-            for bucket_key in flushed_buckets:
-                buckets.pop(bucket_key)
+                # We remove all flushed buckets, in order to avoid memory leaks.
+                for bucket_key in flushed_buckets:
+                    buckets.pop(bucket_key)
 
-            self._force_flush = False
-            self._buckets_total_weight -= weight_to_remove
+                self._force_flush = False
+                self._buckets_total_weight -= weight_to_remove
 
-        if extracted_metrics:
-            # You should emit metrics to `metrics` only inside this method, since we know that if we received metrics
-            # the `sentry.utils.metrics` file was initialized. If we do it before, it will likely cause a circular
-            # dependency since the methods in the `sentry.utils.metrics` depend on the backend initialization, thus
-            # if you emit metrics when a backend is initialized Python will throw an error.
-            self._emit(extracted_metrics, force_flush)
+            if extracted_metrics:
+                # You should emit metrics to `metrics` only inside this method, since we know that if we received
+                # metrics the `sentry.utils.metrics` file was initialized. If we do it before, it will likely cause a
+                # circular dependency since the methods in the `sentry.utils.metrics` depend on the backend
+                # initialization, thus if you emit metrics when a backend is initialized Python will throw an error.
+                self._emit(extracted_metrics, force_flush)
 
     @minimetrics_noop
     def add(
