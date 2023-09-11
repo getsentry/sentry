@@ -39,3 +39,4 @@ class ExtractUserIdsFromMentionsTest(TestCase):
         )
         assert result["users"] == {member_user.id}
         assert result["team_users"] == {self.user.id}
+        assert result["teams"] == self.team
