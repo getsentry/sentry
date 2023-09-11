@@ -78,7 +78,7 @@ export function CronsLandingPanel() {
         {t('Back to Platforms')}
       </BackButton>
       <PanelBody withPadding>
-        <PlatformHeader>{t('Get Started with %s', platformText)}</PlatformHeader>
+        <h3>{t('Get Started with %s', platformText)}</h3>
         <Tabs>
           <TabList>
             {[
@@ -103,8 +103,6 @@ export function CronsLandingPanel() {
     </Panel>
   );
 }
-
-const PlatformHeader = styled('h3')``;
 
 const BackButton = styled(Button)`
   font-weight: normal;
