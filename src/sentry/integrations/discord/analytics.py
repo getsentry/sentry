@@ -9,6 +9,7 @@ class DiscordIntegrationNotificationSent(analytics.Event):
         analytics.Attribute("project_id"),
         analytics.Attribute("group_id"),
         analytics.Attribute("notification_uuid"),
+        analytics.Attribute("alert_id", required=False),
     )
 
 

@@ -11,6 +11,7 @@ class MSTeamsIntegrationNotificationSent(analytics.Event):
         analytics.Attribute("actor_id"),
         analytics.Attribute("user_id", required=False),
         analytics.Attribute("notification_uuid"),
+        analytics.Attribute("alert_id", required=False),
     )
 
 
