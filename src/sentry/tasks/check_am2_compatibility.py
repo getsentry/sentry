@@ -19,7 +19,7 @@ from sentry.tasks.base import instrumented_task
 from sentry.utils import json
 
 # The time range over which the check script queries the data for determining the compatibility state.
-QUERY_TIME_RANGE_IN_DAYS = 1
+QUERY_TIME_RANGE_IN_DAYS = 30
 
 # List of minimum SDK versions that support Performance at Scale.
 # The list is defined here:
