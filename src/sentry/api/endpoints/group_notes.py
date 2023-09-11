@@ -5,6 +5,7 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.group import GroupEndpoint
@@ -74,11 +75,20 @@ class GroupNotesEndpoint(GroupEndpoint):
             group=group, user_ids=mentioned_users["users"], reason=GroupSubscriptionReason.mentioned
         )
 
-        GroupSubscription.objects.bulk_subscribe(
-            group=group,
-            user_ids=mentioned_users["team_users"],
-            reason=GroupSubscriptionReason.team_mentioned,
-        )
+        if features.has(
+            "organizations:team-workflow-notifications", group.organization, request.user
+        ):
+            GroupSubscription.objects.bulk_subscribe(
+                group=group,
+                teams=mentioned_users["teams"],
+                reason=GroupSubscriptionReason.mentioned,
+            )
+        else:
+            GroupSubscription.objects.bulk_subscribe(
+                group=group,
+                user_ids=mentioned_users["team_users"],
+                reason=GroupSubscriptionReason.team_mentioned,
+            )
 
         activity = Activity.objects.create_group_activity(
             group, ActivityType.NOTE, user_id=request.user.id, data=data

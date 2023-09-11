@@ -5,6 +5,7 @@ from sentry.notifications.types import GroupSubscriptionReason
 from sentry.silo import SiloMode
 from sentry.tasks.merge import merge_groups
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.types.activity import ActivityType
 
@@ -261,3 +262,34 @@ class GroupNoteCreateTest(APITestCase):
                 assert activity.user_id == self.user.id
                 assert activity.group == group
                 assert activity.data == {"text": comment, "external_id": "123456789"}
+
+    @with_feature("organizations:team-workflow-notifications")
+    def test_team_mentions_v2(self):
+        user = self.create_user(email="grunt@teamgalactic.com")
+
+        self.org = self.create_organization(name="Galactic Org", owner=None)
+        self.team = self.create_team(organization=self.org, name="Team Galactic", members=[user])
+        self.create_member(user=self.user, organization=self.org, role="member", teams=[self.team])
+
+        group = self.group
+
+        self.login_as(user=self.user)
+
+        url = f"/api/0/issues/{group.id}/comments/"
+
+        # mentioning a team in the project returns 201
+        response = self.client.post(
+            url,
+            format="json",
+            data={
+                "text": "hey **team-galactic** check out this bug",
+                "mentions": ["team:%s" % self.team.id],
+            },
+        )
+        assert response.status_code == 201, response.content
+
+        # should subscribe the team and not the user with the team_mentioned reason
+        assert GroupSubscription.objects.filter(
+            group=group, team=self.team, reason=GroupSubscriptionReason.team_mentioned
+        ).exists()
+        assert not GroupSubscription.objects.filter(group=group, user_id=user.id)
