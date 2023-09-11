@@ -26,7 +26,7 @@ from sentry.services.hybrid_cloud.filter_query import (
     FilterQueryDatabaseImpl,
     OpaqueSerializedResponse,
 )
-from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
+from sentry.services.hybrid_cloud.organization_mapping.model import RpcOrganizationMapping
 from sentry.services.hybrid_cloud.organization_mapping.serial import serialize_organization_mapping
 from sentry.services.hybrid_cloud.user import (
     RpcUser,
@@ -110,7 +110,7 @@ class DatabaseBackedUserService(UserService):
         *,
         user_id: int,
         only_visible: bool = False,
-    ) -> List[RpcOrganizationSummary]:
+    ) -> List[RpcOrganizationMapping]:
         if user_id is None:
             # This is impossible if type hints are followed or Pydantic enforces
             # type-checking on serialization, but is still possible if we make a call
