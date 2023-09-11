@@ -20,7 +20,7 @@ import {
 } from 'sentry/views/settings/account/notifications/constants';
 import {ACCOUNT_NOTIFICATION_FIELDS} from 'sentry/views/settings/account/notifications/fields';
 import {
-  NOTIFICATION_SETTING_FIELDS,
+  NOTIFICATION_SETTING_FIELDS_V2,
   QUOTA_FIELDS,
 } from 'sentry/views/settings/account/notifications/fields2';
 import NotificationSettingsByEntity from 'sentry/views/settings/account/notifications/notificationSettingsByEntity';
@@ -186,7 +186,7 @@ class NotificationSettingsByTypeV2 extends DeprecatedAsyncComponent<Props, State
     } else {
       const defaultField: Field = Object.assign(
         {},
-        NOTIFICATION_SETTING_FIELDS[notificationType],
+        NOTIFICATION_SETTING_FIELDS_V2[notificationType],
         {
           help,
           defaultValue: 'always',
@@ -211,7 +211,7 @@ class NotificationSettingsByTypeV2 extends DeprecatedAsyncComponent<Props, State
     const {organizationIntegrations} = this.state;
     // get the choices but only the ones that are available to the user
     const choices = (
-      NOTIFICATION_SETTING_FIELDS.provider.choices as [string, string][]
+      NOTIFICATION_SETTING_FIELDS_V2.provider.choices as [string, string][]
     ).filter(([providerSlug]) => {
       if (providerSlug === 'email') {
         return true;
@@ -221,7 +221,7 @@ class NotificationSettingsByTypeV2 extends DeprecatedAsyncComponent<Props, State
       );
     });
 
-    const defaultField = Object.assign({}, NOTIFICATION_SETTING_FIELDS.provider, {
+    const defaultField = Object.assign({}, NOTIFICATION_SETTING_FIELDS_V2.provider, {
       choices,
       getData: data => {
         return {
