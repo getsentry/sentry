@@ -74,14 +74,15 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
     def test_send_sso_link_email(self):
         organization = self.create_organization()
         member = OrganizationMember(id=1, organization=organization, email="foo@example.com")
+        provider = manager.get("dummy")
         with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
-            member.send_invite_email()
+            member.send_sso_link_email("sender@example.com", provider)
 
         assert len(mail.outbox) == 1
 
         msg = mail.outbox[0]
-
         assert msg.to == ["foo@example.com"]
+        assert msg.subject == f"Action Required for {organization.name}"
 
     @patch("sentry.utils.email.MessageBuilder")
     def test_send_sso_unlink_email(self, builder):

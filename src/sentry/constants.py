@@ -64,7 +64,6 @@ STATUS_IGNORED = 2
 # accuracy provided.
 MINUTE_NORMALIZATION = 15
 
-MAX_TAG_KEY_LENGTH = 32
 MAX_TAG_VALUE_LENGTH = 200
 MAX_CULPRIT_LENGTH = 200
 MAX_EMAIL_FIELD_LENGTH = 75
@@ -273,6 +272,7 @@ _SENTRY_RULES = (
     "sentry.rules.filters.assigned_to.AssignedToFilter",
     "sentry.rules.filters.latest_release.LatestReleaseFilter",
     "sentry.rules.filters.issue_category.IssueCategoryFilter",
+    "sentry.rules.filters.issue_severity.IssueSeverityFilter",
     # The following filters are duplicates of their respective conditions and are conditionally shown if the user has issue alert-filters
     "sentry.rules.filters.event_attribute.EventAttributeFilter",
     "sentry.rules.filters.tagged_event.TaggedEventFilter",
@@ -460,12 +460,11 @@ def get_integration_id_for_event(
 
 
 class ObjectStatus:
-    VISIBLE = 0
+    ACTIVE = 0
     HIDDEN = 1
     PENDING_DELETION = 2
     DELETION_IN_PROGRESS = 3
 
-    ACTIVE = 0
     DISABLED = 1
 
     @classmethod

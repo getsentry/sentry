@@ -5,21 +5,18 @@ import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {Hovercard} from 'sentry/components/hovercard';
 import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
 import Placeholder from 'sentry/components/placeholder';
 import QuickTrace from 'sentry/components/quickTrace';
-import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
-import {t, tct, tn} from 'sentry/locale';
-import {AvatarProject, OrganizationSummary} from 'sentry/types';
+import {t} from 'sentry/locale';
+import {AvatarProject} from 'sentry/types';
 import {Event} from 'sentry/types/event';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import {getConfigureTracingDocsLink} from 'sentry/utils/docs';
-import {getShortEventId} from 'sentry/utils/events';
 import {
   QuickTraceQueryChildrenProps,
   TraceMeta,
 } from 'sentry/utils/performance/quickTrace/types';
 import useOrganization from 'sentry/utils/useOrganization';
+import {TraceLink} from 'sentry/views/issueDetails/quickTrace/traceLink';
 
 import {MetaData} from './styles';
 
@@ -31,13 +28,6 @@ interface Props
   quickTrace: QuickTraceQueryChildrenProps | null;
   traceMeta: TraceMeta | null;
   project?: AvatarProject;
-}
-
-function handleTraceLink(organization: OrganizationSummary) {
-  trackAnalytics('quick_trace.trace_id.clicked', {
-    organization: organization.id,
-    source: 'events',
-  });
 }
 
 export default function QuickTraceMeta({
@@ -58,8 +48,6 @@ export default function QuickTraceMeta({
   const docsLink = getConfigureTracingDocsLink(project);
 
   const traceId = event.contexts?.trace?.trace_id ?? null;
-  const traceTarget = generateTraceTarget(event, organization);
-
   let body: React.ReactNode;
   let footer: React.ReactNode;
 
@@ -99,14 +87,12 @@ export default function QuickTraceMeta({
     }
 
     footer = (
-      <Link to={traceTarget} onClick={() => handleTraceLink(organization)}>
-        {tct('View Full Trace: [id][events]', {
-          id: getShortEventId(traceId ?? ''),
-          events: traceMeta
-            ? tn(' (%s event)', ' (%s events)', traceMeta.transactions + traceMeta.errors)
-            : '',
-        })}
-      </Link>
+      <TraceLink
+        quickTrace={quickTrace}
+        event={event}
+        traceMeta={traceMeta}
+        source="events"
+      />
     );
   }
 

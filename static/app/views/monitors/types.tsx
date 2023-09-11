@@ -40,6 +40,8 @@ interface BaseConfig {
   max_runtime: number;
   timezone: string;
   alert_rule_id?: number;
+  failure_issue_threshold?: number | null;
+  recovery_threshold?: number | null;
 }
 
 /**
@@ -71,9 +73,9 @@ export type MonitorConfig = CrontabConfig | IntervalConfig;
 
 export interface MonitorEnvironment {
   dateCreated: string;
-  lastCheckIn: string;
+  lastCheckIn: string | null;
   name: string;
-  nextCheckIn: string;
+  nextCheckIn: string | null;
   status: MonitorStatus;
 }
 

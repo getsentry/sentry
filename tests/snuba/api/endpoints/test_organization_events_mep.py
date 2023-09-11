@@ -2492,22 +2492,6 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
         super().setUp()
         self.features["organizations:use-metrics-layer"] = True
 
-    @pytest.mark.xfail(reason="Having not supported")
-    def test_custom_measurement_duration_filtering(self):
-        super().test_custom_measurement_size_filtering()
-
-    @pytest.mark.xfail(reason="Having not supported")
-    def test_having_condition_not_selected(self):
-        super().test_having_condition_not_selected()
-
-    @pytest.mark.xfail(reason="Having not supported")
-    def test_custom_measurement_size_filtering(self):
-        super().test_custom_measurement_size_filtering()
-
-    @pytest.mark.xfail(reason="Having not supported")
-    def test_having_condition(self):
-        super().test_having_condition()
-
     @pytest.mark.xfail(reason="Not supported")
     def test_time_spent(self):
         super().test_time_spent()

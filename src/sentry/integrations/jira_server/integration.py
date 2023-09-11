@@ -650,11 +650,11 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
         fkwargs["type"] = fieldtype
         return fkwargs
 
-    def get_projects(self):
+    def get_projects(self, cached=True):
         client = self.get_client()
         no_projects_error_message = "Could not fetch project list from Jira Server. Ensure that Jira Server is available and your account is still active."
         try:
-            jira_projects = client.get_projects_list()
+            jira_projects = client.get_projects_list(cached)
         except ApiError as e:
             logger.info(
                 "jira_server.get_projects.error",
@@ -709,7 +709,14 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
             project_id = jira_projects[0]["id"]
 
         client = self.get_client()
-        issue_type_choices = client.get_issue_types(project_id)
+        try:
+            issue_type_choices = client.get_issue_types(project_id)
+        except ApiError:
+            # re-fetch projects list w/o caching and try again
+            jira_projects = self.get_projects(False)
+            project_id = jira_projects[0]["id"]
+            issue_type_choices = client.get_issue_types(project_id)
+
         issue_type_choices_formatted = [
             (choice["id"], choice["name"]) for choice in issue_type_choices["values"]
         ]

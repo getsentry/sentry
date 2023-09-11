@@ -11,7 +11,8 @@ import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {ModulePageProviders} from 'sentry/views/performance/database/modulePageProviders';
-import {ModuleName, SpanMetricsFields} from 'sentry/views/starfish/types';
+import {ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
+import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {ActionSelector} from 'sentry/views/starfish/views/spans/selectors/actionSelector';
 import {DomainSelector} from 'sentry/views/starfish/views/spans/selectors/domainSelector';
 import SpansTable from 'sentry/views/starfish/views/spans/spansTable';
@@ -24,7 +25,7 @@ function DatabaseLandingPage() {
   const moduleName = ModuleName.DB;
 
   const moduleFilters = useModuleFilters();
-  const sort = useModuleSort();
+  const sort = useModuleSort(QueryParameterNames.SPANS_SORT);
 
   return (
     <ModulePageProviders title={[t('Performance'), t('Database')].join(' — ')}>
@@ -64,12 +65,12 @@ function DatabaseLandingPage() {
           <FilterOptionsContainer>
             <ActionSelector
               moduleName={moduleName}
-              value={moduleFilters[SpanMetricsFields.SPAN_ACTION] || ''}
+              value={moduleFilters[SpanMetricsField.SPAN_ACTION] || ''}
             />
 
             <DomainSelector
               moduleName={moduleName}
-              value={moduleFilters[SpanMetricsFields.SPAN_DOMAIN] || ''}
+              value={moduleFilters[SpanMetricsField.SPAN_DOMAIN] || ''}
             />
           </FilterOptionsContainer>
 

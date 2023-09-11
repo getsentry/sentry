@@ -2,6 +2,7 @@ from django.core.signing import BadSignature, SignatureExpired
 from django.db import IntegrityError
 from django.http import Http404, HttpResponse
 from django.urls import reverse
+from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
 from rest_framework.request import Request
 
@@ -14,7 +15,7 @@ from sentry.types.integrations import ExternalProviders
 from sentry.utils.http import absolute_uri
 from sentry.utils.signing import sign, unsign
 from sentry.web.decorators import transaction_start
-from sentry.web.frontend.base import BaseView
+from sentry.web.frontend.base import BaseView, control_silo_view
 from sentry.web.helpers import render_to_response
 
 from ..utils import logger
@@ -29,13 +30,14 @@ def build_unlinking_url(integration: RpcIntegration, discord_id: str) -> str:
     return absolute_uri(reverse(endpoint, kwargs={"signed_params": sign(**kwargs)}))
 
 
+@control_silo_view
 class DiscordUnlinkIdentityView(BaseView):
     """
     Django view for unlinking user from Discord account.
     """
 
     @transaction_start("DiscordUnlinkIdentityView")
-    @never_cache
+    @method_decorator(never_cache)
     def handle(self, request: Request, signed_params: str) -> HttpResponse:
         try:
             params = unsign(signed_params)

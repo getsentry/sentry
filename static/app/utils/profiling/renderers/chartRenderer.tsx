@@ -146,7 +146,9 @@ export class FlamegraphChartRenderer {
     }
 
     this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
-    this.context.font = `bold 14px ${this.theme.FONTS.FRAME_FONT}`;
+    this.context.font = `bold ${
+      this.theme.SIZES.METRICS_FONT_SIZE * window.devicePixelRatio
+    }px ${this.theme.FONTS.FRAME_FONT}`;
 
     this.context.beginPath();
     this.context.stroke();
@@ -216,19 +218,26 @@ export class FlamegraphChartRenderer {
     }
 
     // Draw interval ticks
-    this.context.strokeStyle = this.theme.COLORS.CPU_CHART_LABEL_COLOR;
-    this.context.fillStyle = this.theme.COLORS.CPU_CHART_LABEL_COLOR;
+    this.context.strokeStyle = this.theme.COLORS.CHART_LABEL_COLOR;
+    this.context.fillStyle = this.theme.COLORS.CHART_LABEL_COLOR;
+    let lastIntervalTxt: string | undefined = undefined;
     for (let i = 0; i < intervals.length; i++) {
       const interval = vec3.fromValues(configView.left, intervals[i], 1);
-      vec3.transformMat3(interval, interval, configViewToPhysicalSpace);
-      const textOffset = 2 * window.devicePixelRatio;
       const text = this.chart.formatter(intervals[i]);
+
+      if (text === lastIntervalTxt) {
+        continue;
+      }
+
+      lastIntervalTxt = text;
+
+      vec3.transformMat3(interval, interval, configViewToPhysicalSpace);
 
       if (i === 0) {
         this.context.textAlign = 'left';
-        this.context.fillText(text, left + textOffsetLeft, interval[1] - textOffset);
+        this.context.fillText(text, left + textOffsetLeft, interval[1]);
         this.context.textAlign = 'end';
-        this.context.fillText(text, right - textOffsetLeft, interval[1] - textOffset);
+        this.context.fillText(text, right - textOffsetLeft, interval[1]);
         continue;
       }
 
@@ -238,7 +247,7 @@ export class FlamegraphChartRenderer {
       this.context.lineTo(left + TICK_WIDTH, interval[1]);
       this.context.stroke();
 
-      this.context.fillText(text, left + textOffsetLeft, interval[1] - textOffset);
+      this.context.fillText(text, left + textOffsetLeft, interval[1]);
 
       this.context.textAlign = 'end';
       this.context.beginPath();
@@ -246,7 +255,7 @@ export class FlamegraphChartRenderer {
       this.context.lineTo(right - TICK_WIDTH, interval[1]);
       this.context.stroke();
 
-      this.context.fillText(text, right - textOffsetLeft, interval[1] - textOffset);
+      this.context.fillText(text, right - textOffsetLeft, interval[1]);
     }
 
     if (configSpaceCursorRef.current) {

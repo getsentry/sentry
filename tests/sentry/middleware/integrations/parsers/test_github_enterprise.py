@@ -19,7 +19,7 @@ class GithubEnterpriseRequestParserTest(TestCase):
     get_response = MagicMock(return_value=HttpResponse(content=b"no-error", status=200))
     factory = RequestFactory()
     path = reverse("sentry-integration-github-enterprise-webhook")
-    region = Region("na", 1, "https://na.testserver", RegionCategory.MULTI_TENANT)
+    region = Region("us", 1, "https://us.testserver", RegionCategory.MULTI_TENANT)
     external_host = "12.345.678.901"
     external_identifier = "github_enterprise:1"
     external_id = f"{external_host}:{external_identifier}"

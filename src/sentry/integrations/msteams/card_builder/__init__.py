@@ -36,8 +36,15 @@ def build_incident_attachment(
     incident: Incident,
     new_status: IncidentStatus,
     metric_value: int | None = None,
+    notification_uuid: str | None = None,
 ) -> Dict[str, Any]:
-    data = incident_attachment_info(incident, new_status, metric_value)
+    data = incident_attachment_info(
+        incident,
+        new_status,
+        metric_value,
+        notification_uuid=notification_uuid,
+        referrer="metric_alert_msteams",
+    )
 
     colors = {"Resolved": "good", "Warning": "warning", "Critical": "attention"}
 
