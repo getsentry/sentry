@@ -1,8 +1,8 @@
 import logging
 import time
-from typing import Optional
+from typing import List, Optional
 
-from sentry.digests import get_option_key
+from sentry.digests import Record, get_option_key
 from sentry.digests.backends.base import InvalidState
 from sentry.digests.notifications import build_digest, split_key
 from sentry.models import Project, ProjectOption
@@ -63,10 +63,8 @@ def deliver_digest(key, schedule_timestamp=None, notification_uuid: Optional[str
             with digests.digest(key, minimum_delay=minimum_delay) as records:
                 digest, logs = build_digest(project, records)
 
-                for record in records:
-                    notification_uuid = record.value.notification_uuid
-                    if notification_uuid:  # Take the first existing notification_uuid
-                        break
+                if not notification_uuid:
+                    notification_uuid = get_notification_uuid_from_records(records)
         except InvalidState as error:
             logger.info(f"Skipped digest delivery: {error}", exc_info=True)
             return
@@ -91,3 +89,13 @@ def deliver_digest(key, schedule_timestamp=None, notification_uuid: Optional[str
                     "fallthrough_choice": fallthrough_choice.value if fallthrough_choice else None,
                 },
             )
+
+
+def get_notification_uuid_from_records(records: List[Record]) -> Optional[str]:
+    for record in records:
+        try:
+            notification_uuid = record.value.notification_uuid
+            if notification_uuid:  # Take the first existing notification_uuid
+                return notification_uuid
+        except Exception:
+            return None
