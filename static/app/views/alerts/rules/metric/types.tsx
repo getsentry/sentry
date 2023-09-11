@@ -73,7 +73,7 @@ export type ThresholdControlValue = {
   thresholdType: AlertRuleThresholdType;
 };
 
-type SavedTrigger = Omit<UnsavedTrigger, 'actions'> & {
+export type SavedTrigger = Omit<UnsavedTrigger, 'actions'> & {
   actions: Action[];
   dateCreated: string;
   id: string;

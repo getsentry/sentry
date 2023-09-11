@@ -7,7 +7,6 @@ from sentry.incidents.action_handlers import OpsgenieActionHandler
 from sentry.incidents.logic import update_incident_status
 from sentry.incidents.models import AlertRuleTriggerAction, IncidentStatus, IncidentStatusMethod
 from sentry.models import Integration, OrganizationIntegration
-from sentry.testutils.cases import TestCase
 from sentry.utils import json
 
 from . import FireTest
@@ -20,7 +19,7 @@ METADATA = {
 
 
 @freeze_time()
-class OpsgenieActionHandlerTest(FireTest, TestCase):
+class OpsgenieActionHandlerTest(FireTest):
     @responses.activate
     def setUp(self):
         self.og_team = {"id": "123-id", "team": "cool-team", "integration_key": "1234-5678"}
@@ -88,7 +87,7 @@ class OpsgenieActionHandlerTest(FireTest, TestCase):
         assert data["priority"] == "P1"
         assert (
             data["details"]["URL"]
-            == f"http://testserver/organizations/baz/alerts/rules/details/{alert_rule.id}/?alert={incident.identifier}"
+            == f"http://testserver/organizations/baz/alerts/rules/details/{alert_rule.id}/?alert={incident.identifier}&referrer=metric_alert_opsgenie"
         )
 
     @responses.activate
@@ -198,4 +197,18 @@ class OpsgenieActionHandlerTest(FireTest, TestCase):
         assert (
             mock_logger.info.call_args.args[0]
             == "Opsgenie team removed, but the rule is still active."
+        )
+
+    @patch("sentry.analytics.record")
+    def test_alert_sent_recorded(self, mock_record):
+        self.run_fire_test()
+        mock_record.assert_called_with(
+            "alert.sent",
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            provider="opsgenie",
+            alert_id=self.alert_rule.id,
+            alert_type="metric_alert",
+            external_id=str(self.action.target_identifier),
+            notification_uuid="",
         )

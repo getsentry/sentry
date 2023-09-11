@@ -12,7 +12,9 @@ from .assistant import *  # NOQA
 from .auditlogentry import *  # NOQA
 from .authenticator import *  # NOQA
 from .authidentity import *  # NOQA
+from .authidentityreplica import *  # NOQA
 from .authprovider import *  # NOQA
+from .authproviderreplica import *  # NOQA
 from .avatars import *  # NOQA
 from .broadcast import *  # NOQA
 from .commit import *  # NOQA
@@ -63,6 +65,8 @@ from .latestappconnectbuildscheck import *  # NOQA
 from .latestreporeleaseenvironment import *  # NOQA
 from .lostpasswordhash import *  # NOQA
 from .notificationsetting import *  # NOQA
+from .notificationsettingoption import *  # NOQA
+from .notificationsettingprovider import *  # NOQA
 from .options import *  # NOQA
 from .organization import *  # NOQA
 from .organizationaccessrequest import *  # NOQA
@@ -89,6 +93,8 @@ from .rawevent import *  # NOQA
 from .recentsearch import *  # NOQA
 from .relay import *  # NOQA
 from .release import *  # NOQA
+from .release_threshold.constants import *  # NOQA
+from .release_threshold.releasethreshold import *  # NOQA
 from .releaseactivity import *  # NOQA
 from .releasecommit import *  # NOQA
 from .releaseenvironment import *  # NOQA

@@ -3,6 +3,7 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases import SentryAppInstallationsBaseEndpoint
 from sentry.api.paginator import OffsetPaginator
@@ -32,6 +33,11 @@ class SentryAppInstallationsSerializer(serializers.Serializer):
 
 @control_silo_endpoint
 class SentryAppInstallationsEndpoint(SentryAppInstallationsBaseEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, organization) -> Response:
         queryset = SentryAppInstallation.objects.filter(organization_id=organization.id)
 

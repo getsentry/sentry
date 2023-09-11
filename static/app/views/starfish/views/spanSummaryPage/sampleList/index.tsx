@@ -1,7 +1,12 @@
-import {useCallback, useState} from 'react';
+import {useCallback, useMemo, useState} from 'react';
+import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import omit from 'lodash/omit';
+import * as qs from 'query-string';
 
+import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
+import Link from 'sentry/components/links/link';
+import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {
   PageErrorAlert,
@@ -9,6 +14,7 @@ import {
 } from 'sentry/utils/performance/contexts/pageError';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
 import DurationChart from 'sentry/views/starfish/views/spanSummaryPage/sampleList/durationChart';
@@ -41,12 +47,28 @@ export function SampleList({groupId, transactionName, transactionMethod}: Props)
 
   const organization = useOrganization();
   const {query} = useLocation();
+  const {projects} = useProjects();
+
+  const project = useMemo(
+    () => projects.find(p => p.id === String(query.project)),
+    [projects, query.project]
+  );
 
   const onOpenDetailPanel = useCallback(() => {
     if (query.transaction) {
       trackAnalytics('starfish.panel.open', {organization});
     }
   }, [organization, query.transaction]);
+
+  const label =
+    transactionMethod && !transactionName.startsWith(transactionMethod)
+      ? `${transactionMethod} ${transactionName}`
+      : transactionName;
+
+  const link = `/performance/summary/?${qs.stringify({
+    project: query.project,
+    transaction: transactionName,
+  })}`;
 
   return (
     <PageErrorProvider>
@@ -60,8 +82,20 @@ export function SampleList({groupId, transactionName, transactionMethod}: Props)
         }}
         onOpen={onOpenDetailPanel}
       >
-        <h3>{`${transactionMethod} ${transactionName}`}</h3>
+        {project && (
+          <SpanSummaryProjectAvatar
+            project={project}
+            direction="left"
+            size={40}
+            hasTooltip
+            tooltip={project.slug}
+          />
+        )}
+        <h3>
+          <Link to={link}>{label}</Link>
+        </h3>
         <PageErrorAlert />
+
         <SampleInfo
           groupId={groupId}
           transactionName={transactionName}
@@ -94,3 +128,8 @@ export function SampleList({groupId, transactionName, transactionMethod}: Props)
     </PageErrorProvider>
   );
 }
+
+const SpanSummaryProjectAvatar = styled(ProjectAvatar)`
+  padding-top: ${space(1)};
+  padding-bottom: ${space(2)};
+`;

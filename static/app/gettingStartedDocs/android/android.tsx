@@ -2,14 +2,23 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
 import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import {t, tct} from 'sentry/locale';
+
+interface StepProps {
+  dsn: string;
+  hasPerformance: boolean;
+  hasProfiling: boolean;
+  sourcePackageRegistries?: ModuleProps['sourcePackageRegistries'];
+}
 
 // Configuration Start
 export const steps = ({
   dsn,
-}: {
-  dsn?: string;
-} = {}): LayoutProps['steps'] => [
+  sourcePackageRegistries,
+  hasPerformance,
+  hasProfiling,
+}: StepProps): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
     description: (
@@ -28,10 +37,16 @@ export const steps = ({
     configurations: [
       {
         language: 'groovy',
+        partialLoading: sourcePackageRegistries?.isLoading,
         code: `
 plugins {
   id "com.android.application" // should be in the same module
-  id "io.sentry.android.gradle" version "3.11.1"
+  id "io.sentry.android.gradle" version "${
+    sourcePackageRegistries?.isLoading
+      ? t('\u2026loading')
+      : sourcePackageRegistries?.data?.['sentry.java.android.gradle-plugin']?.version ??
+        '3.12.0'
+  }"
 }
         `,
       },
@@ -69,12 +84,20 @@ plugins {
   <!-- enable screenshot for crashes -->
   <meta-data android:name="io.sentry.attach-screenshot" android:value="true" />
   <!-- enable view hierarchy for crashes -->
-  <meta-data android:name="io.sentry.attach-view-hierarchy" android:value="true" />
+  <meta-data android:name="io.sentry.attach-view-hierarchy" android:value="true" />${
+    hasPerformance
+      ? `
 
   <!-- enable the performance API by setting a sample-rate, adjust in production env -->
-  <meta-data android:name="io.sentry.traces.sample-rate" android:value="1.0" />
+  <meta-data android:name="io.sentry.traces.sample-rate" android:value="1.0" />`
+      : ''
+  }${
+          hasProfiling
+            ? `
   <!-- enable profiling when starting transactions, adjust in production env -->
-  <meta-data android:name="io.sentry.traces.profiling.sample-rate" android:value="1.0" />
+  <meta-data android:name="io.sentry.traces.profiling.sample-rate" android:value="1.0" />`
+            : ''
+        }
 </application>
         `,
       },
@@ -139,8 +162,23 @@ export const nextSteps = [
 ];
 // Configuration End
 
-export function GettingStartedWithAndroid({dsn, ...props}: ModuleProps) {
-  return <Layout steps={steps({dsn})} nextSteps={nextSteps} {...props} />;
+export function GettingStartedWithAndroid({
+  dsn,
+  sourcePackageRegistries,
+  activeProductSelection = [],
+  ...props
+}: ModuleProps) {
+  const hasPerformance = activeProductSelection.includes(
+    ProductSolution.PERFORMANCE_MONITORING
+  );
+  const hasProfiling = activeProductSelection.includes(ProductSolution.PROFILING);
+  return (
+    <Layout
+      steps={steps({dsn, sourcePackageRegistries, hasPerformance, hasProfiling})}
+      nextSteps={nextSteps}
+      {...props}
+    />
+  );
 }
 
 export default GettingStartedWithAndroid;

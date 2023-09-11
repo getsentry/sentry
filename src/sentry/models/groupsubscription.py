@@ -6,6 +6,7 @@ from django.conf import settings
 from django.db import IntegrityError, models, router, transaction
 from django.utils import timezone
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BaseManager,
     BoundedPositiveIntegerField,
@@ -173,11 +174,11 @@ class GroupSubscription(Model):
     Identifies a subscription relationship between a user and an issue.
     """
 
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     project = FlexibleForeignKey("sentry.Project", related_name="subscription_set")
     group = FlexibleForeignKey("sentry.Group", related_name="subscription_set")
-    user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, on_delete="CASCADE")
+    user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="CASCADE")
     is_active = models.BooleanField(default=True)
     reason = BoundedPositiveIntegerField(default=GroupSubscriptionReason.unknown)
     date_added = models.DateTimeField(default=timezone.now, null=True)

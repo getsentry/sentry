@@ -269,6 +269,13 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+register(
+    "api.prevent-numeric-slugs",
+    default=False,
+    type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Beacon
 register("beacon.anonymous", type=Bool, flags=FLAG_REQUIRED)
 
@@ -578,6 +585,13 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Percentage of events that generate a random `worker_id` for symbolicator load balancing
+register(
+    "symbolicator.worker-id-randomization-sample-rate",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Normalization after processors
 register("store.normalize-after-processing", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)  # unused
 register(
@@ -693,6 +707,13 @@ register(
 # Option to enable dart deobfuscation on ingest
 register(
     "processing.view-hierarchies-dart-deobfuscation", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
+)
+
+# Enable calling the severity modeling API on group creation
+register(
+    "processing.calculate-severity-on-group-creation",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 
@@ -983,6 +1004,11 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "sentry-metrics.writes-limiter.limits.custom.per-org",
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "sentry-metrics.writes-limiter.limits.generic-metrics.per-org",
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -1010,6 +1036,11 @@ register(
 )
 register(
     "sentry-metrics.writes-limiter.limits.releasehealth.global",
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "sentry-metrics.writes-limiter.limits.custom.global",
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
@@ -1060,6 +1091,11 @@ register(
 )
 register(
     "sentry-metrics.cardinality-limiter.limits.spans.per-org",
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "sentry-metrics.cardinality-limiter.limits.custom.per-org",
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
@@ -1426,7 +1462,7 @@ register("dynamic-sampling.tasks.collect_orgs", default=False, flags=FLAG_MODIFI
 # Sets the timeout for webhooks
 register(
     "sentry-apps.webhook.timeout.sec",
-    default=5.0,
+    default=1.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -1455,6 +1491,12 @@ register(
     default=[],
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "statistical_detectors.query.batch_size",
+    type=Int,
+    default=100,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 register(
     "options_automator_slack_webhook_enabled",
@@ -1463,7 +1505,19 @@ register(
 )
 
 register(
-    "monitors.use_consumer_clock_task_triggers",
-    default=False,
+    "on_demand.max_alert_specs",
+    default=50,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "on_demand.max_widget_specs",
+    default=100,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "delightful_metrics.minimetrics_sample_rate",
+    default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

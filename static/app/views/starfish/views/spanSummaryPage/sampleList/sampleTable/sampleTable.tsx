@@ -13,9 +13,9 @@ import {SpanSamplesTable} from 'sentry/views/starfish/components/samplesTable/sp
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
 import {SpanSample, useSpanSamples} from 'sentry/views/starfish/queries/useSpanSamples';
 import {useTransactions} from 'sentry/views/starfish/queries/useTransactions';
-import {SpanMetricsFields} from 'sentry/views/starfish/types';
+import {SpanMetricsField} from 'sentry/views/starfish/types';
 
-const {SPAN_SELF_TIME, SPAN_OP} = SpanMetricsFields;
+const {SPAN_SELF_TIME, SPAN_OP} = SpanMetricsField;
 
 const SpanSamplesTableContainer = styled('div')`
   padding-bottom: ${space(2)};

@@ -6,6 +6,7 @@ from random import random
 from time import time
 from typing import Any, Optional, Set
 
+from django.conf import settings
 from django.db.utils import OperationalError, ProgrammingError
 from django.utils import timezone
 
@@ -187,7 +188,9 @@ class OptionsStore:
         except (self.model.DoesNotExist, ProgrammingError, OperationalError):
             value = None
         except Exception:
-            if not silent:
+            if settings.SENTRY_OPTIONS_COMPLAIN_ON_ERRORS:
+                raise
+            elif not silent:
                 logger.exception("option.failed-lookup", extra={"key": key.name})
             value = None
         else:

@@ -5,6 +5,7 @@ from copy import deepcopy
 from dataclasses import replace
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, Union
+from uuid import uuid4
 
 from django.db import router, transaction
 from django.db.models.signals import post_save
@@ -35,8 +36,9 @@ from sentry.incidents.models import (
     IncidentTrigger,
     TriggerStatus,
 )
-from sentry.models import Actor, Integration, PagerDutyService, Project
+from sentry.models import Actor, Integration, OrganizationIntegration, Project
 from sentry.models.notificationaction import ActionService, ActionTarget
+from sentry.relay.config.metric_extraction import on_demand_metrics_feature_flags
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.fields import resolve_field
 from sentry.services.hybrid_cloud.app import RpcSentryAppInstallation, app_service
@@ -50,7 +52,7 @@ from sentry.snuba.entity_subscription import (
     get_entity_key_from_query_builder,
     get_entity_subscription_from_snuba_query,
 )
-from sentry.snuba.metrics.extraction import is_on_demand_snuba_query
+from sentry.snuba.metrics.extraction import should_use_on_demand_metrics
 from sentry.snuba.models import SnubaQuery
 from sentry.snuba.subscriptions import (
     bulk_create_snuba_subscriptions,
@@ -252,6 +254,7 @@ def create_incident_activity(
         value=value,
         previous_value=previous_value,
         comment=comment,
+        notification_uuid=uuid4(),
         **kwargs,
     )
 
@@ -1415,7 +1418,7 @@ def get_pagerduty_services(organization_id, integration_id) -> List[Tuple[int, s
     )
     if org_int is None:
         return []
-    services = PagerDutyService.services_in(org_int.config)
+    services = OrganizationIntegration.services_in(org_int.config)
     return [(s["id"], s["service_name"]) for s in services]
 
 
@@ -1568,12 +1571,19 @@ def get_filtered_actions(
 
 
 def schedule_update_project_config(alert_rule: AlertRule, projects: Sequence[Project]):
-    if not projects or not features.has(
-        "organizations:on-demand-metrics-extraction", alert_rule.organization
+    enabled_features = on_demand_metrics_feature_flags(alert_rule.organization)
+    prefilling = "organizations:on-demand-metrics-prefill" in enabled_features
+
+    if not projects or not (
+        "organizations:on-demand-metrics-extraction" in enabled_features or prefilling
     ):
         return
 
-    if is_on_demand_snuba_query(alert_rule.snuba_query):
+    alert_snuba_query = alert_rule.snuba_query
+    should_use_on_demand = should_use_on_demand_metrics(
+        alert_snuba_query.dataset, alert_snuba_query.aggregate, alert_snuba_query.query, prefilling
+    )
+    if should_use_on_demand:
         for project in projects:
             schedule_invalidate_project_config(
                 trigger="alerts:create-on-demand-metric", project_id=project.id

@@ -620,6 +620,7 @@ async function doOnDemandMetricsRequest(
 
     const response = await doEventsRequest<false>(api, {
       ...requestData,
+      useOnDemandMetrics: true,
       dataset: 'metricsEnhanced',
       generatePathname: isEditing ? fetchEstimatedStats : undefined,
     });

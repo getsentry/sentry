@@ -1,11 +1,18 @@
 from typing import Any, Dict, List, Literal, Mapping, Set, Tuple, TypedDict
 
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.apidocs.api_ownership_allowlist_dont_modify import API_OWNERSHIP_ALLOWLIST_DONT_MODIFY
+from sentry.apidocs.api_publish_status_allowlist_dont_modify import (
+    API_PUBLISH_STATUS_ALLOWLIST_DONT_MODIFY,
+)
 from sentry.apidocs.build import OPENAPI_TAGS
 from sentry.apidocs.utils import SentryApiBuildError
 
-HTTP_METHODS_SET = Set[
-    Literal["GET", "POST", "PUT", "OPTIONS", "HEAD", "DELETE", "TRACE", "CONNECT", "PATCH"]
+HTTP_METHOD_NAME = Literal[
+    "GET", "POST", "PUT", "OPTIONS", "HEAD", "DELETE", "TRACE", "CONNECT", "PATCH"
 ]
+HTTP_METHODS_SET = Set[HTTP_METHOD_NAME]
 
 
 class EndpointRegistryType(TypedDict):
@@ -20,7 +27,11 @@ _DEFINED_TAG_SET = {t["name"] for t in OPENAPI_TAGS}
 # path prefixes to exclude
 # this is useful if we're duplicating an endpoint for legacy purposes
 # but do not want to document it
-EXCLUSION_PATH_PREFIXES = ["/api/0/monitors/"]
+EXCLUSION_PATH_PREFIXES = [
+    "/api/0/monitors/",
+    # Issue URLS have an expression of group|issue that resolves to `var`
+    "/api/0/{var}/{issue_id}/",
+]
 
 
 def __get_explicit_endpoints() -> List[Tuple[str, str, str, Any]]:
@@ -68,16 +79,39 @@ def __get_explicit_endpoints() -> List[Tuple[str, str, str, Any]]:
 
 
 def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, rename
-
     filtered = []
     for (path, path_regex, method, callback) in endpoints:
+
+        # Fail if endpoint is unowned
+        if callback.view_class.owner == ApiOwner.UNOWNED:
+            if path not in API_OWNERSHIP_ALLOWLIST_DONT_MODIFY:
+                raise SentryApiBuildError(
+                    f"Endpoint {callback.view_class} is missing the attribute owner: ApiOwner. \n"
+                    + "If you can't find your team in ApiOwners feel free to add the associated github group. ",
+                )
+
+        # Fail if method is not included in publish_status or has unknown status
+        if (
+            method not in callback.view_class.publish_status
+            or callback.view_class.publish_status[method] is ApiPublishStatus.UNKNOWN
+        ):
+            if (
+                path not in API_PUBLISH_STATUS_ALLOWLIST_DONT_MODIFY
+                or method not in API_PUBLISH_STATUS_ALLOWLIST_DONT_MODIFY[path]
+            ):
+                raise SentryApiBuildError(
+                    f"All methods must have a known publish_status. Please add a valid publish status for Endpoint {callback.view_class} {method} method.",
+                )
 
         if any(path.startswith(p) for p in EXCLUSION_PATH_PREFIXES):
             pass
 
-        elif callback.view_class.public:
+        elif callback.view_class.publish_status:
             # endpoints that are documented via tooling
-            if method in callback.view_class.public:
+            if (
+                method in callback.view_class.publish_status
+                and callback.view_class.publish_status[method] is ApiPublishStatus.PUBLIC
+            ):
                 # only pass declared public methods of the endpoint
                 # to the rest of the OpenAPI build pipeline
                 filtered.append((path, path_regex, method, callback))
@@ -86,9 +120,8 @@ def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, 
             # if an endpoint doesn't have any registered public methods, don't check it.
             pass
 
-    # Register explicit ednpoints
+    # Register explicit endpoints
     filtered.extend(__get_explicit_endpoints())
-
     return filtered
 
 

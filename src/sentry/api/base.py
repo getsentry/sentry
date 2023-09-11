@@ -3,7 +3,7 @@ from __future__ import annotations
 import functools
 import logging
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Callable, Iterable, List, Mapping, Optional, Tuple, Type
 from urllib.parse import quote as urlquote
 
@@ -11,9 +11,9 @@ import sentry_sdk
 from django.conf import settings
 from django.http import HttpResponse
 from django.http.request import HttpRequest
+from django.utils.translation import gettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
-from pytz import utc
-from rest_framework import status
+from rest_framework import serializers, status
 from rest_framework.authentication import BaseAuthentication, SessionAuthentication
 from rest_framework.exceptions import ParseError
 from rest_framework.permissions import BasePermission
@@ -23,7 +23,9 @@ from rest_framework.views import APIView
 from sentry_sdk import Scope
 
 from sentry import analytics, options, tsdb
-from sentry.apidocs.hooks import HTTP_METHODS_SET
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.apidocs.hooks import HTTP_METHOD_NAME
 from sentry.auth import access
 from sentry.models import Environment
 from sentry.ratelimits.config import DEFAULT_RATE_LIMIT_CONFIG, RateLimitConfig
@@ -55,6 +57,7 @@ __all__ = [
     "pending_silo_endpoint",
 ]
 
+from ..services.hybrid_cloud import rpcmetrics
 from ..services.hybrid_cloud.auth import RpcAuthentication, RpcAuthenticatorType
 from ..utils.pagination_factory import (
     annotate_span_with_pagination_args,
@@ -82,6 +85,13 @@ DEFAULT_AUTHENTICATION = (
 logger = logging.getLogger(__name__)
 audit_logger = logging.getLogger("sentry.audit.api")
 api_access_logger = logging.getLogger("sentry.access.api")
+
+DEFAULT_SLUG_PATTERN = r"^[a-z0-9_\-]+$"
+NON_NUMERIC_SLUG_PATTERN = r"^(?![0-9]+$)[a-z0-9_\-]+$"
+DEFAULT_SLUG_ERROR_MESSAGE = _(
+    "Enter a valid slug consisting of lowercase letters, numbers, underscores or hyphens. "
+    "It cannot be entirely numeric."
+)
 
 
 def allow_cors_options(func):
@@ -115,7 +125,8 @@ def allow_cors_options(func):
         response["Access-Control-Expose-Headers"] = "X-Sentry-Error, Retry-After"
 
         if request.META.get("HTTP_ORIGIN") == "null":
-            origin = "null"  # if ORIGIN header is explicitly specified as 'null' leave it alone
+            # if ORIGIN header is explicitly specified as 'null' leave it alone
+            origin: str | None = "null"
         else:
             origin = origin_from_request(request)
 
@@ -144,8 +155,8 @@ class Endpoint(APIView):
 
     cursor_name = "cursor"
 
-    public: Optional[HTTP_METHODS_SET] = None
-
+    owner: ApiOwner = ApiOwner.UNOWNED
+    publish_status: dict[HTTP_METHOD_NAME, ApiPublishStatus] = {}
     rate_limits: RateLimitConfig | dict[
         str, dict[RateLimitCategory, RateLimit]
     ] = DEFAULT_RATE_LIMIT_CONFIG
@@ -184,7 +195,6 @@ class Endpoint(APIView):
         return f'<{uri}>; rel="{rel}">'
 
     def build_cursor_link(self, request: Request, name: str, cursor: Cursor):
-        querystring = None
         if request.GET.get("cursor") is None:
             querystring = request.GET.urlencode()
         else:
@@ -199,10 +209,10 @@ class Endpoint(APIView):
         )
         base_url = absolute_uri(urlquote(request.path), url_prefix=url_prefix)
 
-        if querystring is not None:
+        if querystring:
             base_url = f"{base_url}?{querystring}"
         else:
-            base_url = base_url + "?"
+            base_url = f"{base_url}?"
 
         return CURSOR_LINK_HEADER.format(
             uri=base_url,
@@ -214,7 +224,7 @@ class Endpoint(APIView):
     def convert_args(self, request: Request, *args, **kwargs):
         return (args, kwargs)
 
-    def handle_exception(
+    def handle_exception(  # type: ignore[override]
         self,
         request: Request,
         exc: Exception,
@@ -281,7 +291,7 @@ class Endpoint(APIView):
         except json.JSONDecodeError:
             return
 
-    def initialize_request(self, request: Request, *args, **kwargs):
+    def initialize_request(self, request: HttpRequest, *args: Any, **kwargs: Any) -> Request:
         # XXX: Since DRF 3.x, when the request is passed into
         # `initialize_request` it's set as an internal variable on the returned
         # request. Then when we call `rv.auth` it attempts to authenticate,
@@ -359,8 +369,9 @@ class Endpoint(APIView):
             with sentry_sdk.start_span(
                 op="base.dispatch.execute",
                 description=f"{type(self).__name__}.{handler.__name__}",
-            ):
-                response = handler(request, *args, **kwargs)
+            ) as span:
+                with rpcmetrics.wrap_sdk_span(span):
+                    response = handler(request, *args, **kwargs)
 
         except Exception as exc:
             response = self.handle_exception(request, exc)
@@ -528,24 +539,24 @@ class StatsMixin:
             resolution = request.GET.get("resolution")
             if resolution:
                 resolution = self._parse_resolution(resolution)
-                if restrict_rollups and resolution not in tsdb.get_rollups():
+                if restrict_rollups and resolution not in tsdb.backend.get_rollups():
                     raise ValueError
         except ValueError:
             raise ParseError(detail="Invalid resolution")
 
         try:
-            end = request.GET.get("until")
-            if end:
-                end = to_datetime(float(end))
+            end_s = request.GET.get("until")
+            if end_s:
+                end = to_datetime(float(end_s))
             else:
-                end = datetime.utcnow().replace(tzinfo=utc)
+                end = datetime.utcnow().replace(tzinfo=timezone.utc)
         except ValueError:
             raise ParseError(detail="until must be a numeric timestamp.")
 
         try:
-            start = request.GET.get("since")
-            if start:
-                start = to_datetime(float(start))
+            start_s = request.GET.get("since")
+            if start_s:
+                start = to_datetime(float(start_s))
                 assert start <= end
             else:
                 start = end - timedelta(days=1, seconds=-1)
@@ -555,7 +566,7 @@ class StatsMixin:
             raise ParseError(detail="start must be before or equal to end")
 
         if not resolution:
-            resolution = tsdb.get_optimal_rollup(start, end)
+            resolution = tsdb.backend.get_optimal_rollup(start, end)
 
         return {
             "start": start,
@@ -586,6 +597,17 @@ class ReleaseAnalyticsMixin:
             project_ids=project_ids,
             user_agent=request.META.get("HTTP_USER_AGENT", ""),
         )
+
+
+class PreventNumericSlugMixin:
+    def validate_slug(self, slug: str) -> str:
+        """
+        Validates that the slug is not entirely numeric. Requires a feature flag
+        to be turned on.
+        """
+        if options.get("api.prevent-numeric-slugs") and slug.isnumeric():
+            raise serializers.ValidationError(DEFAULT_SLUG_ERROR_MESSAGE)
+        return slug
 
 
 def resolve_region(request: HttpRequest) -> Optional[str]:

@@ -4,14 +4,16 @@ from sentry.models import (
     File,
     ProjectArtifactBundle,
     ReleaseArtifactBundle,
-    ScheduledDeletion,
     SourceFileType,
 )
-from sentry.tasks.deletion.scheduled import run_deletion
+from sentry.tasks.deletion.scheduled import run_scheduled_deletions
 from sentry.testutils.cases import TransactionTestCase
+from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
+from sentry.testutils.silo import region_silo_test
 
 
-class DeleteArtifactBundleTest(TransactionTestCase):
+@region_silo_test(stable=True)
+class DeleteArtifactBundleTest(TransactionTestCase, HybridCloudTestMixin):
     def test_simple(self):
         org = self.create_organization()
         project = self.create_project(organization=org)
@@ -34,11 +36,10 @@ class DeleteArtifactBundleTest(TransactionTestCase):
             organization_id=org.id, project_id=project.id, artifact_bundle=artifact_bundle
         )
 
-        deletion = ScheduledDeletion.schedule(artifact_bundle, days=0)
-        deletion.update(in_progress=True)
+        self.ScheduledDeletion.schedule(instance=artifact_bundle, days=0)
 
         with self.tasks():
-            run_deletion(deletion.id)
+            run_scheduled_deletions()
 
         assert not ArtifactBundle.objects.filter(id=artifact_bundle.id).exists()
         assert not ReleaseArtifactBundle.objects.filter(artifact_bundle=artifact_bundle).exists()

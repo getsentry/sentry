@@ -1597,7 +1597,7 @@ class DiscoverDatasetConfig(DatasetConfig):
         return filter_aliases.semver_build_filter_converter(self.builder, search_filter)
 
     def _issue_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
-        if self.builder.skip_issue_validation:
+        if self.builder.builder_config.skip_issue_validation:
             return None
 
         operator = search_filter.operator
@@ -1672,7 +1672,7 @@ class DiscoverDatasetConfig(DatasetConfig):
                 1,
             )
         else:
-            return self.builder.get_default_converter()(search_filter)
+            return self.builder.default_filter_converter(search_filter)
 
     def _transaction_status_filter_converter(
         self, search_filter: SearchFilter

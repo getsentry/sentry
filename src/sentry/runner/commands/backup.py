@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import click
 
-from sentry.backup.exports import OldExportConfig, exports
-from sentry.backup.imports import imports
+from sentry.backup.exports import OldExportConfig, _export
+from sentry.backup.imports import OldImportConfig, _import
+from sentry.backup.scopes import ExportScope, ImportScope
 from sentry.runner.decorators import configuration
 
 
@@ -14,7 +15,15 @@ from sentry.runner.decorators import configuration
 def import_(src, silent):
     """Imports core data for a Sentry installation."""
 
-    imports(src, (lambda *args, **kwargs: None) if silent else click.echo)
+    _import(
+        src,
+        ImportScope.Global,
+        OldImportConfig(
+            use_update_instead_of_create=True,
+            use_natural_foreign_keys=True,
+        ),
+        printer=(lambda *args, **kwargs: None) if silent else click.echo,
+    )
 
 
 @click.command()
@@ -33,12 +42,14 @@ def export(dest, silent, indent, exclude):
     else:
         exclude = exclude.lower().split(",")
 
-    exports(
+    _export(
         dest,
+        ExportScope.Global,
         OldExportConfig(
             include_non_sentry_models=True,
             excluded_models=set(exclude),
+            use_natural_foreign_keys=True,
         ),
-        indent,
-        (lambda *args, **kwargs: None) if silent else click.echo,
+        indent=indent,
+        printer=(lambda *args, **kwargs: None) if silent else click.echo,
     )

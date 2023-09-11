@@ -18,27 +18,39 @@ from django.db.models import Q, QuerySet
 
 from sentry import analytics
 from sentry.db.models.manager import BaseManager
-from sentry.models.actor import get_actor_id_for_user
+from sentry.models.notificationsettingoption import NotificationSettingOption
+from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.notifications.defaults import NOTIFICATION_SETTINGS_ALL_SOMETIMES
 from sentry.notifications.helpers import (
     get_scope,
     get_scope_type,
+    is_double_write_enabled,
     transform_to_notification_settings_by_recipient,
     validate,
     where_should_recipient_be_notified,
 )
 from sentry.notifications.types import (
+    NOTIFICATION_SCOPE_TYPE,
+    NOTIFICATION_SETTING_OPTION_VALUES,
+    NOTIFICATION_SETTING_TYPES,
     VALID_VALUES_FOR_KEY,
+    VALID_VALUES_FOR_KEY_V2,
+    NotificationScopeEnum,
     NotificationScopeType,
     NotificationSettingOptionValues,
+    NotificationSettingsOptionEnum,
     NotificationSettingTypes,
 )
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.services.hybrid_cloud.user.model import RpcUser
-from sentry.types.integrations import ExternalProviders
+from sentry.types.integrations import (
+    EXTERNAL_PROVIDERS,
+    PERSONAL_NOTIFICATION_PROVIDERS,
+    ExternalProviders,
+)
 from sentry.utils.sdk import configure_scope
 
 if TYPE_CHECKING:
@@ -129,6 +141,8 @@ class NotificationsManager(BaseManager["NotificationSetting"]):  # noqa: F821
         project: Project | int | None = None,
         organization: Organization | int | None = None,
         actor: RpcActor | None = None,
+        skip_provider_updates: bool = False,
+        organization_id_for_team: Optional[int] = None,
     ) -> None:
         """
         Save a target's notification preferences.
@@ -161,32 +175,58 @@ class NotificationsManager(BaseManager["NotificationSetting"]):  # noqa: F821
             id=actor_id,
         )
 
+        scope_type, scope_identifier = get_scope(
+            team=team_id, user=user_id, project=project, organization=organization
+        )
         # A missing DB row is equivalent to DEFAULT.
         if value == NotificationSettingOptionValues.DEFAULT:
-            return self.remove_settings(
+            self.remove_settings(
                 provider,
                 type,
                 user_id=user_id,
                 team_id=team_id,
                 project=project,
                 organization=organization,
+                organization_id_for_team=organization_id_for_team,
+            )
+        else:
+            if not validate(type, value):
+                raise Exception(f"value '{value}' is not valid for type '{type}'")
+
+            id_key = "user_id" if actor_type == ActorType.USER else "team_id"
+            self._update_settings(
+                provider=provider,
+                type=type,
+                value=value,
+                scope_type=scope_type,
+                scope_identifier=scope_identifier,
+                **{id_key: actor_id},
             )
 
-        if not validate(type, value):
-            raise Exception(f"value '{value}' is not valid for type '{type}'")
+        if not is_double_write_enabled(
+            user_id=user_id, organization_id_for_team=organization_id_for_team
+        ):
+            return
 
-        scope_type, scope_identifier = get_scope(
-            team=team_id, user=user_id, project=project, organization=organization
-        )
-        id_key = "user_id" if actor_type == ActorType.USER else "team_id"
-        self._update_settings(
-            provider=provider,
-            type=type,
-            value=value,
-            scope_type=scope_type,
-            scope_identifier=scope_identifier,
-            **{id_key: actor_id},
-        )
+        # implement the double write now
+        query_args = {
+            "type": NOTIFICATION_SETTING_TYPES[type],
+            "scope_type": NOTIFICATION_SCOPE_TYPE[scope_type],
+            "scope_identifier": scope_identifier,
+            "user_id": user_id,
+            "team_id": team_id,
+        }
+        # if default, delete the row
+        if value == NotificationSettingOptionValues.DEFAULT:
+            NotificationSettingOption.objects.filter(**query_args).delete()
+
+        else:
+            NotificationSettingOption.objects.create_or_update(
+                **query_args,
+                values={"value": NOTIFICATION_SETTING_OPTION_VALUES[value]},
+            )
+        if not skip_provider_updates:
+            self.update_provider_settings(user_id, team_id)
 
     def remove_settings(
         self,
@@ -197,6 +237,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):  # noqa: F821
         team_id: int | None = None,
         project: Project | int | None = None,
         organization: Organization | int | None = None,
+        organization_id_for_team: Optional[int] = None,
     ) -> None:
         """
         We don't anticipate this function will be used by the API but is useful
@@ -205,6 +246,25 @@ class NotificationsManager(BaseManager["NotificationSetting"]):  # noqa: F821
         """
         if user:
             user_id = user.id
+
+        # get the actor type and actor id
+        use_double_write = is_double_write_enabled(
+            user_id=user_id, organization_id_for_team=organization_id_for_team
+        )
+        if use_double_write:
+            scope_type, scope_identifier = get_scope(
+                team=team_id, user=user_id, project=project, organization=organization
+            )
+            scope_type_str = NOTIFICATION_SCOPE_TYPE[scope_type]
+            # remove the option setting
+            NotificationSettingOption.objects.filter(
+                scope_type=scope_type_str,
+                scope_identifier=scope_identifier,
+                team_id=team_id,
+                user_id=user_id,
+                type=type,
+            ).delete()
+            # the provider setting is updated elsewhere
 
         self.find_settings(
             provider,
@@ -260,12 +320,12 @@ class NotificationsManager(BaseManager["NotificationSetting"]):  # noqa: F821
         self._filter(team_ids=[team.id], provider=provider, type=type).delete()
 
     def remove_for_project(
-        self, project: Project, type: NotificationSettingTypes | None = None
+        self, project_id: int, type: NotificationSettingTypes | None = None
     ) -> None:
         """Bulk delete all Notification Settings for a PROJECT, optionally by type."""
         self._filter(
             scope_type=NotificationScopeType.PROJECT,
-            scope_identifier=project.id,
+            scope_identifier=project_id,
             type=type,
         ).delete()
 
@@ -400,6 +460,75 @@ class NotificationsManager(BaseManager["NotificationSetting"]):  # noqa: F821
             project, {RpcUser(id=user_id) for user_id in user_ids}
         )
 
+    def update_provider_settings(self, user_id: int | None, team_id: int | None):
+        """
+        Find all settings for a team/user, determine the provider settings and map it to the parent scope
+        """
+        assert team_id or user_id, "Cannot update settings if user or team is not passed"
+
+        parent_scope_type = (
+            NotificationScopeEnum.TEAM if team_id is not None else NotificationScopeEnum.USER
+        )
+        parent_scope_identifier = team_id if team_id is not None else user_id
+
+        # Get all the NotificationSetting rows for the user or team at the top level scope
+        notification_settings = self.filter(
+            user_id=user_id,
+            team_id=team_id,
+            scope_type__in=[
+                NotificationScopeType.USER.value,
+                NotificationScopeType.TEAM.value,
+            ],
+        )
+        # Initialize a dictionary to store the new NotificationSettingProvider values
+        enabled_providers_by_type: Mapping[str, Set[str]] = defaultdict(set)
+        disabled_providers_by_type: Mapping[str, Set[str]] = defaultdict(set)
+
+        # Iterate through all the stored NotificationSetting rows
+        for setting in notification_settings:
+            provider = EXTERNAL_PROVIDERS[setting.provider]
+            type = setting.type
+            if setting.value == NotificationSettingOptionValues.NEVER.value:
+                disabled_providers_by_type[type].add(provider)
+            else:
+                # if the value is not never, it's explicitly enabled
+                enabled_providers_by_type[type].add(provider)
+
+        # This is a bad N+1 query but we don't have a better way to do this
+        for provider in PERSONAL_NOTIFICATION_PROVIDERS:
+            types_to_delete = []
+            # iterate throuch each type of notification setting
+            base_query = {
+                "provider": provider,
+                "user_id": user_id,
+                "team_id": team_id,
+                "scope_type": parent_scope_type.value,
+                "scope_identifier": parent_scope_identifier,
+            }
+            for type in VALID_VALUES_FOR_KEY_V2.keys():
+                query_args = {
+                    **base_query,
+                    "type": NOTIFICATION_SETTING_TYPES[type],
+                }
+                if provider in enabled_providers_by_type[type]:
+                    NotificationSettingProvider.objects.create_or_update(
+                        **query_args,
+                        values={"value": NotificationSettingsOptionEnum.ALWAYS.value},
+                    )
+                elif provider in disabled_providers_by_type[type]:
+                    NotificationSettingProvider.objects.create_or_update(
+                        **query_args,
+                        values={"value": NotificationSettingsOptionEnum.NEVER.value},
+                    )
+                    # if not explicitly enabled or disable, we should delete the row
+                else:
+                    types_to_delete.append(type)
+            # delete the rows that are not explicitly enabled or disabled
+            NotificationSettingProvider.objects.filter(
+                **base_query,
+                type__in=[NOTIFICATION_SETTING_TYPES[type] for type in types_to_delete],
+            ).delete()
+
     def update_settings_bulk(
         self,
         notification_settings: Sequence[
@@ -413,9 +542,9 @@ class NotificationsManager(BaseManager["NotificationSetting"]):  # noqa: F821
         ],
         team: Team | None = None,
         user: User | None = None,
+        organization_id_for_team: Optional[int] = None,
     ) -> None:
         assert user or team, "Cannot update settings if user or team is not passed"
-
         """
         Given a list of _valid_ notification settings as tuples of column
         values, save them to the DB. This does not execute as a transaction.
@@ -459,6 +588,34 @@ class NotificationsManager(BaseManager["NotificationSetting"]):  # noqa: F821
             id=id,
         )
 
+        user_id = user.id if user else None
+        team_id = team.id if team else None
+        if not is_double_write_enabled(
+            user_id=user_id, organization_id_for_team=organization_id_for_team
+        ):
+            return
+
+        # first update the NotificationSettingOption based on what's passed in
+        for (provider, type, scope_type, scope_identifier, value) in notification_settings:
+            query_args = {
+                "type": NOTIFICATION_SETTING_TYPES[type],
+                "scope_type": NOTIFICATION_SCOPE_TYPE[scope_type],
+                "scope_identifier": scope_identifier,
+                "user_id": user_id,
+                "team_id": team_id,
+            }
+            # if default, delete the row
+            if value == NotificationSettingOptionValues.DEFAULT:
+                NotificationSettingOption.objects.filter(**query_args).delete()
+            else:
+                NotificationSettingOption.objects.create_or_update(
+                    **query_args,
+                    values={"value": NOTIFICATION_SETTING_OPTION_VALUES[value]},
+                )
+
+        # update the provider settings after we update the NotificationSettingOption
+        self.update_provider_settings(user_id, team_id)
+
     def remove_parent_settings_for_organization(
         self, organization_id: int, project_ids: List[int], provider: ExternalProviders
     ) -> None:
@@ -491,7 +648,6 @@ class NotificationsManager(BaseManager["NotificationSetting"]):  # noqa: F821
                     type=type.value,
                     scope_type=NotificationScopeType.USER.value,
                     scope_identifier=user.id,
-                    target_id=get_actor_id_for_user(user),
                     user_id=user.id,
                     defaults={"value": NotificationSettingOptionValues.NEVER.value},
                 )

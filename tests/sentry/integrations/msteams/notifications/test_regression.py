@@ -1,7 +1,7 @@
 from unittest.mock import MagicMock, Mock, patch
 
 from sentry.models import Activity
-from sentry.notifications.notifications.activity import RegressionActivityNotification
+from sentry.notifications.notifications.activity.regression import RegressionActivityNotification
 from sentry.testutils.cases import MSTeamsActivityNotificationTest
 from sentry.types.activity import ActivityType
 
@@ -39,8 +39,8 @@ class MSTeamsRegressionNotificationTest(MSTeamsActivityNotificationTest):
 
         assert "Issue marked as regression" == body[0]["text"]
         assert (
-            f"[{self.group.title}](http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=regression\\_activity-msteams)"
-            == body[1]["text"]
+            f"[{self.group.title}](http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=regression\\_activity-msteams&amp;notification\\_uuid="
+            in body[1]["text"]
         )
         assert (
             f"{self.project.slug} | [Notification Settings](http://testserver/settings/account/notifications/workflow/?referrer=regression\\_activity-msteams-user)"

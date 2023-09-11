@@ -1,8 +1,8 @@
 from unittest.mock import MagicMock, Mock, patch
 
 from sentry.models import Activity
-from sentry.notifications.notifications.activity import (
-    ResolvedActivityNotification,
+from sentry.notifications.notifications.activity.resolved import ResolvedActivityNotification
+from sentry.notifications.notifications.activity.resolved_in_release import (
     ResolvedInReleaseActivityNotification,
 )
 from sentry.testutils.cases import MSTeamsActivityNotificationTest
@@ -45,8 +45,8 @@ class MSTeamsResolvedNotificationTest(MSTeamsActivityNotificationTest):
             == body[0]["text"]
         )
         assert (
-            f"[{self.group.title}](http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=resolved\\_activity-msteams)"
-            == body[1]["text"]
+            f"[{self.group.title}](http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=resolved\\_activity-msteams&amp;notification\\_uuid="
+            in body[1]["text"]
         )
         assert (
             f"{self.project.slug} | [Notification Settings](http://testserver/settings/account/notifications/workflow/?referrer=resolved\\_activity-msteams-user)"
@@ -84,8 +84,8 @@ class MSTeamsResolvedNotificationTest(MSTeamsActivityNotificationTest):
             == body[0]["text"]
         )
         assert (
-            f"[{self.group.title}](http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=resolved\\_in\\_release\\_activity-msteams)"
-            == body[1]["text"]
+            f"[{self.group.title}](http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=resolved\\_in\\_release\\_activity-msteams&amp;notification\\_uuid="
+            in body[1]["text"]
         )
         assert (
             f"{self.project.slug} | [Notification Settings](http://testserver/settings/account/notifications/workflow/?referrer=resolved\\_in\\_release\\_activity-msteams-user)"

@@ -2,9 +2,8 @@ from __future__ import annotations
 
 import contextlib
 import functools
-import os
 import threading
-from typing import Any, Callable, Iterator, List, Set, TypedDict
+from typing import Any, Callable, Iterator, List, Set, Type, TypedDict
 
 from django.db import connections, transaction
 from django.db.backends.base.base import BaseDatabaseWrapper
@@ -12,11 +11,16 @@ from django.db.backends.base.base import BaseDatabaseWrapper
 from sentry.db.postgres.transactions import in_test_transaction_enforcement
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
+from sentry.models.scheduledeletion import BaseScheduledDeletion, get_regional_scheduled_deletion
 from sentry.silo import SiloMode
 from sentry.testutils.silo import assume_test_silo_mode
 
 
 class HybridCloudTestMixin:
+    @property
+    def ScheduledDeletion(self) -> Type[BaseScheduledDeletion]:
+        return get_regional_scheduled_deletion(SiloMode.get_current_mode())
+
     @assume_test_silo_mode(SiloMode.CONTROL)
     def assert_org_member_mapping(self, org_member: OrganizationMember, expected=None):
         org_member.refresh_from_db()
@@ -242,4 +246,5 @@ def simulate_on_commit(request: Any):
 
 
 def use_split_dbs() -> bool:
-    return bool(os.environ.get("SENTRY_USE_SPLIT_DBS"))
+    # TODO: refactor out use_split_dbs() in any and all tests once split database is permanently set in stone.
+    return True

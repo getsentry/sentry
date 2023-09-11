@@ -6,6 +6,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log, features, projectoptions
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectSettingPermission
 from sentry.api.permissions import SuperuserPermission
@@ -167,6 +168,11 @@ def get_disabled_threshold_options(payload, current_settings):
 
 @region_silo_endpoint
 class ProjectPerformanceIssueSettingsEndpoint(ProjectEndpoint):
+    publish_status = {
+        "DELETE": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.UNKNOWN,
+        "PUT": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (ProjectOwnerOrSuperUserPermissions,)
 
     def has_feature(self, project, request) -> bool:
@@ -205,14 +211,21 @@ class ProjectPerformanceIssueSettingsEndpoint(ProjectEndpoint):
         )
         if body_has_invalid_options:
             return Response(
-                {"detail": "Invalid settings option"},
+                {
+                    "detail": "Invalid settings option",
+                },
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
         body_has_admin_options = any([option in request.data for option in internal_only_settings])
         if body_has_admin_options and not is_active_superuser(request):
             return Response(
-                {"detail": "Passed options are only modifiable internally"},
+                {
+                    "detail": {
+                        "message": "Passed options are only modifiable internally",
+                        "code": "superuser-required",
+                    },
+                },
                 status=status.HTTP_403_FORBIDDEN,
             )
 

@@ -1,9 +1,13 @@
 import {useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
+import * as qs from 'query-string';
 
+import {openInviteMissingMembersModal} from 'sentry/actionCreators/modal';
 import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
 import {Button} from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
 import Card from 'sentry/components/card';
+import Carousel from 'sentry/components/carousel';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -11,18 +15,27 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconCommit, IconEllipsis, IconGithub, IconMail} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {MissingMember, Organization} from 'sentry/types';
+import {MissingMember, Organization, OrgRole} from 'sentry/types';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
 import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
 import withOrganization from 'sentry/utils/withOrganization';
 
 type Props = {
+  allowedRoles: OrgRole[];
   missingMembers: {integration: string; users: MissingMember[]};
+  onModalClose: () => void;
   onSendInvite: (email: string) => void;
   organization: Organization;
 };
 
-export function InviteBanner({missingMembers, onSendInvite, organization}: Props) {
+export function InviteBanner({
+  missingMembers,
+  onSendInvite,
+  organization,
+  allowedRoles,
+  onModalClose,
+}: Props) {
   // NOTE: this is currently used for Github only
 
   const hideBanner =
@@ -36,6 +49,7 @@ export function InviteBanner({missingMembers, onSendInvite, organization}: Props
   const api = useApi();
   const integrationName = missingMembers?.integration;
   const promptsFeature = `${integrationName}_missing_members`;
+  const location = useLocation();
 
   const snoozePrompt = useCallback(async () => {
     setShowBanner(false);
@@ -45,6 +59,15 @@ export function InviteBanner({missingMembers, onSendInvite, organization}: Props
       status: 'snoozed',
     });
   }, [api, organization, promptsFeature]);
+
+  const openInviteModal = useCallback(() => {
+    openInviteMissingMembersModal({
+      allowedRoles,
+      missingMembers,
+      organization,
+      onClose: onModalClose,
+    });
+  }, [allowedRoles, missingMembers, organization, onModalClose]);
 
   useEffect(() => {
     if (hideBanner) {
@@ -57,6 +80,14 @@ export function InviteBanner({missingMembers, onSendInvite, organization}: Props
       setShowBanner(!promptIsDismissed(prompt));
     });
   }, [api, organization, promptsFeature, hideBanner]);
+
+  useEffect(() => {
+    const {inviteMissingMembers} = qs.parse(location.search);
+
+    if (!hideBanner && inviteMissingMembers) {
+      openInviteModal();
+    }
+  }, [openInviteModal, location, hideBanner]);
 
   if (hideBanner || !showBanner) {
     return null;
@@ -87,34 +118,46 @@ export function InviteBanner({missingMembers, onSendInvite, organization}: Props
 
   const users = missingMembers.users;
 
-  const cards = users.slice(0, 5).map(member => (
-    <MemberCard key={member.externalId} data-test-id={`member-card-${member.externalId}`}>
-      <MemberCardContent>
-        <MemberCardContentRow>
-          <IconGithub size="sm" />
-          {/* TODO: create mapping from integration to lambda external link function */}
-          <StyledExternalLink href={`http://github.com/${member.externalId}`}>
-            {tct('@[externalId]', {externalId: member.externalId})}
-          </StyledExternalLink>
-        </MemberCardContentRow>
-        <MemberCardContentRow>
-          <IconCommit size="xs" />
-          {tct('[commitCount] Recent Commits', {commitCount: member.commitCount})}
-        </MemberCardContentRow>
-        <Subtitle>{member.email}</Subtitle>
-      </MemberCardContent>
-      <Button
-        size="sm"
-        onClick={() => handleSendInvite(member.email)}
-        data-test-id="invite-missing-member"
-        icon={<IconMail />}
+  const cards = users.slice(0, 5).map(member => {
+    const username = member.externalId.split(':').pop();
+    return (
+      <MemberCard
+        key={member.externalId}
+        data-test-id={`member-card-${member.externalId}`}
       >
-        {t('Invite')}
-      </Button>
-    </MemberCard>
-  ));
+        <MemberCardContent>
+          <MemberCardContentRow>
+            <IconGithub size="sm" />
+            {/* TODO(cathy): create mapping from integration to lambda external link function */}
+            <StyledExternalLink href={`https://github.com/${username}`}>
+              @{username}
+            </StyledExternalLink>
+          </MemberCardContentRow>
+          <MemberCardContentRow>
+            <IconCommit size="xs" />
+            {tct('[commitCount] Recent Commits', {commitCount: member.commitCount})}
+          </MemberCardContentRow>
+          <Subtitle>{member.email}</Subtitle>
+        </MemberCardContent>
+        <Button
+          size="sm"
+          onClick={() => handleSendInvite(member.email)}
+          data-test-id="invite-missing-member"
+          icon={<IconMail />}
+        >
+          {t('Invite')}
+        </Button>
+      </MemberCard>
+    );
+  });
 
-  cards.push(<SeeMoreCard key="see-more" missingUsers={users} />);
+  cards.push(
+    <SeeMoreCard
+      key="see-more"
+      missingMembers={missingMembers}
+      openInviteModal={openInviteModal}
+    />
+  );
 
   return (
     <StyledCard>
@@ -122,21 +165,19 @@ export function InviteBanner({missingMembers, onSendInvite, organization}: Props
         <CardTitleContent>
           <CardTitle>{t('Bring your full GitHub team on board in Sentry')}</CardTitle>
           <Subtitle>
-            {tct('[missingMemberCount] missing members that are active in your GitHub', {
+            {tct('[missingMemberCount] missing members', {
               missingMemberCount: users.length,
             })}
             <QuestionTooltip
-              title={t('Based on the last 30 days of commit data')}
+              title={t(
+                "Based on the last 30 days of GitHub commit data, there are team members committing code to Sentry projects that aren't in your Sentry organization"
+              )}
               size="xs"
             />
           </Subtitle>
         </CardTitleContent>
-        <ButtonContainer>
-          <Button
-            priority="primary"
-            size="xs"
-            // TODO(cathy): open up invite modal
-          >
+        <ButtonBar gap={1}>
+          <Button priority="primary" size="xs" onClick={openInviteModal}>
             {t('View All')}
           </Button>
           <DropdownMenu
@@ -148,9 +189,9 @@ export function InviteBanner({missingMembers, onSendInvite, organization}: Props
               'aria-label': t('Actions'),
             }}
           />
-        </ButtonContainer>
+        </ButtonBar>
       </CardTitleContainer>
-      <MemberCardsContainer>{cards}</MemberCardsContainer>
+      <Carousel>{cards}</Carousel>
     </StyledCard>
   );
 }
@@ -158,31 +199,30 @@ export function InviteBanner({missingMembers, onSendInvite, organization}: Props
 export default withOrganization(InviteBanner);
 
 type SeeMoreCardProps = {
-  missingUsers: MissingMember[];
+  missingMembers: {integration: string; users: MissingMember[]};
+  openInviteModal: () => void;
 };
 
-function SeeMoreCard({missingUsers}: SeeMoreCardProps) {
+function SeeMoreCard({missingMembers, openInviteModal}: SeeMoreCardProps) {
+  const {users} = missingMembers;
+
   return (
     <MemberCard data-test-id="see-more-card">
       <MemberCardContent>
         <MemberCardContentRow>
           <SeeMore>
             {tct('See all [missingMembersCount] missing members', {
-              missingMembersCount: missingUsers.length,
+              missingMembersCount: users.length,
             })}
           </SeeMore>
         </MemberCardContentRow>
         <Subtitle>
           {tct('Accounting for [totalCommits] recent commits', {
-            totalCommits: missingUsers.reduce((acc, curr) => acc + curr.commitCount, 0),
+            totalCommits: users.reduce((acc, curr) => acc + curr.commitCount, 0),
           })}
         </Subtitle>
       </MemberCardContent>
-      <Button
-        size="sm"
-        priority="primary"
-        // TODO(cathy): open up invite modal
-      >
+      <Button size="sm" priority="primary" onClick={openInviteModal}>
         {t('View All')}
       </Button>
     </MemberCard>
@@ -192,6 +232,7 @@ function SeeMoreCard({missingUsers}: SeeMoreCardProps) {
 const StyledCard = styled(Card)`
   display: flex;
   padding: ${space(2)};
+  padding-bottom: ${space(1.5)};
   overflow: hidden;
 `;
 
@@ -212,23 +253,13 @@ const CardTitle = styled('h6')`
   color: ${p => p.theme.gray400};
 `;
 
-const Subtitle = styled('div')`
+export const Subtitle = styled('div')`
   display: flex;
   align-items: center;
   font-size: ${p => p.theme.fontSizeSmall};
   font-weight: 400;
   color: ${p => p.theme.gray300};
-  & > *:first-child {
-    margin-left: ${space(0.5)};
-    display: flex;
-    align-items: center;
-  }
-`;
-
-const ButtonContainer = styled('div')`
-  display: grid;
-  grid-auto-flow: column;
-  grid-column-gap: ${space(1)};
+  gap: ${space(0.5)};
 `;
 
 const MemberCard = styled(Card)`
@@ -240,12 +271,6 @@ const MemberCard = styled(Card)`
   padding: ${space(2)} 18px;
   justify-content: center;
   align-items: center;
-`;
-
-const MemberCardsContainer = styled('div')`
-  position: relative;
-  display: flex;
-  overflow-x: scroll;
 `;
 
 const MemberCardContent = styled('div')`
@@ -260,12 +285,10 @@ const MemberCardContentRow = styled('div')`
   align-items: center;
   margin-bottom: ${space(0.25)};
   font-size: ${p => p.theme.fontSizeSmall};
-  & > *:first-child {
-    margin-right: ${space(0.75)};
-  }
+  gap: ${space(0.75)};
 `;
 
-const StyledExternalLink = styled(ExternalLink)`
+export const StyledExternalLink = styled(ExternalLink)`
   font-size: ${p => p.theme.fontSizeMedium};
 `;
 

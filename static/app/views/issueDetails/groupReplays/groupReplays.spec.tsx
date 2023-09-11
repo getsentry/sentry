@@ -110,6 +110,7 @@ describe('GroupReplays', () => {
           expect.objectContaining({
             query: {
               returnIds: true,
+              data_source: 'discover',
               query: `issue.id:[${mockGroup.id}]`,
               statsPeriod: '14d',
               project: -1,
@@ -125,7 +126,9 @@ describe('GroupReplays', () => {
               field: [
                 'activity',
                 'browser',
+                'count_dead_clicks',
                 'count_errors',
+                'count_rage_clicks',
                 'duration',
                 'finished_at',
                 'id',

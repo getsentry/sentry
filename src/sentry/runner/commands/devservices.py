@@ -387,7 +387,7 @@ def _start_service(
         pass
 
     if container is not None:
-        if not recreate:
+        if not recreate and container.status == "running":
             click.secho(
                 f"> Container '{options['name']}' is already running, doing nothing", fg="yellow"
             )
@@ -449,7 +449,7 @@ def down(project: str, service: list[str]) -> None:
                 continue
             containers.append(container)
 
-        with ThreadPoolExecutor(max_workers=len(containers)) as executor:
+        with ThreadPoolExecutor(max_workers=len(containers) or 1) as executor:
             futures = []
             for container in containers:
                 futures.append(executor.submit(_down, container))

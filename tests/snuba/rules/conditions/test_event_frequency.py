@@ -1,10 +1,9 @@
 import time
 from copy import deepcopy
-from datetime import timedelta
+from datetime import timedelta, timezone
 from unittest.mock import patch
 from uuid import uuid4
 
-import pytz
 from django.utils.timezone import now
 from freezegun import freeze_time
 
@@ -82,8 +81,8 @@ class PerfIssuePlatformEventMixin(PerformanceIssueTestCase):
         )
         event_data = load_data(
             "transaction-n-plus-one",
-            timestamp=timestamp.replace(tzinfo=pytz.utc),
-            start_timestamp=timestamp.replace(tzinfo=pytz.utc),
+            timestamp=timestamp.replace(tzinfo=timezone.utc),
+            start_timestamp=timestamp.replace(tzinfo=timezone.utc),
             fingerprint=[fingerprint],
         )
         event_data["user"] = {"id": uuid4().hex}

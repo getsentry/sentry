@@ -1,5 +1,5 @@
 import unittest
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from functools import cached_property
 from random import randint
 from unittest import mock
@@ -7,8 +7,7 @@ from unittest.mock import Mock, call, patch
 from uuid import uuid4
 
 import pytest
-import pytz
-from django.utils import timezone
+from django.utils import timezone as django_timezone
 from freezegun import freeze_time
 
 from sentry.incidents.logic import (
@@ -24,6 +23,7 @@ from sentry.incidents.models import (
     AlertRuleTrigger,
     AlertRuleTriggerAction,
     Incident,
+    IncidentActivity,
     IncidentStatus,
     IncidentTrigger,
     IncidentType,
@@ -142,6 +142,10 @@ class ProcessUpdateBaseClass(TestCase, SnubaTestCase):
         assert incidents
         return incidents[0]
 
+    @property
+    def sub(self):
+        raise NotImplementedError
+
     def active_incident_exists(self, rule, subscription=None):
         if subscription is None:
             subscription = self.sub
@@ -160,6 +164,9 @@ class ProcessUpdateBaseClass(TestCase, SnubaTestCase):
         )[1:]
         assert alert_stats[trigger.id] == alert_triggers
         assert resolve_stats[trigger.id] == resolve_triggers
+
+    def latest_activity(self, incident):
+        return IncidentActivity.objects.filter(incident=incident).order_by("-id").first()
 
 
 @freeze_time()
@@ -237,10 +244,10 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
 
     def build_subscription_update(self, subscription, time_delta=None, value=EMPTY):
         if time_delta is not None:
-            timestamp = timezone.now() + time_delta
+            timestamp = django_timezone.now() + time_delta
         else:
-            timestamp = timezone.now()
-        timestamp = timestamp.replace(tzinfo=pytz.utc, microsecond=0)
+            timestamp = django_timezone.now()
+        timestamp = timestamp.replace(tzinfo=timezone.utc, microsecond=0)
 
         data = {}
 
@@ -350,11 +357,16 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.assert_trigger_counts(processor, self.trigger, 0, 0)
         incident = self.assert_active_incident(rule)
         assert incident.date_started == (
-            timezone.now().replace(microsecond=0) - timedelta(seconds=rule.snuba_query.time_window)
+            django_timezone.now().replace(microsecond=0)
+            - timedelta(seconds=rule.snuba_query.time_window)
         )
         self.assert_trigger_exists_with_status(incident, self.trigger, TriggerStatus.ACTIVE)
+        latest_activity = self.latest_activity(incident)
+        uuid = str(latest_activity.notification_uuid)
         self.assert_actions_fired_for_incident(
-            incident, [self.action], [(trigger.alert_threshold + 1, IncidentStatus.CRITICAL)]
+            incident,
+            [self.action],
+            [(trigger.alert_threshold + 1, IncidentStatus.CRITICAL, uuid)],
         )
 
     def test_alert_dedupe(self):
@@ -382,11 +394,14 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.assert_trigger_counts(processor, self.trigger, 0, 0)
         incident = self.assert_active_incident(rule)
         assert incident.date_started == (
-            timezone.now().replace(microsecond=0) - timedelta(seconds=rule.snuba_query.time_window)
+            django_timezone.now().replace(microsecond=0)
+            - timedelta(seconds=rule.snuba_query.time_window)
         )
         self.assert_trigger_exists_with_status(incident, self.trigger, TriggerStatus.ACTIVE)
         self.assert_actions_fired_for_incident(
-            incident, [w_action], [(c_trigger.alert_threshold + 1, IncidentStatus.CRITICAL)]
+            incident,
+            [w_action],
+            [(c_trigger.alert_threshold + 1, IncidentStatus.CRITICAL, mock.ANY)],
         )
 
     def test_alert_nullable(self):
@@ -415,7 +430,9 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         incident = self.assert_active_incident(rule)
         self.assert_trigger_exists_with_status(incident, self.trigger, TriggerStatus.ACTIVE)
         self.assert_actions_fired_for_incident(
-            incident, [self.action], [(trigger.alert_threshold + 1, IncidentStatus.CRITICAL)]
+            incident,
+            [self.action],
+            [(trigger.alert_threshold + 1, IncidentStatus.CRITICAL, mock.ANY)],
         )
 
     def test_alert_multiple_triggers_non_consecutive(self):
@@ -464,7 +481,9 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         incident = self.assert_active_incident(rule)
         self.assert_trigger_exists_with_status(incident, self.trigger, TriggerStatus.ACTIVE)
         self.assert_actions_fired_for_incident(
-            incident, [self.action], [(trigger.alert_threshold + 1, IncidentStatus.CRITICAL)]
+            incident,
+            [self.action],
+            [(trigger.alert_threshold + 1, IncidentStatus.CRITICAL, mock.ANY)],
         )
 
         processor = self.send_update(rule, rule.resolve_threshold - 1, timedelta(minutes=-1))
@@ -472,7 +491,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.assert_no_active_incident(rule)
         self.assert_trigger_exists_with_status(incident, self.trigger, TriggerStatus.RESOLVED)
         self.assert_actions_resolved_for_incident(
-            incident, [self.action], [(rule.resolve_threshold - 1, IncidentStatus.CLOSED)]
+            incident, [self.action], [(rule.resolve_threshold - 1, IncidentStatus.CLOSED, mock.ANY)]
         )
 
     def test_resolve_multiple_threshold_periods(self):
@@ -486,7 +505,9 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         incident = self.assert_active_incident(rule)
         self.assert_trigger_exists_with_status(incident, self.trigger, TriggerStatus.ACTIVE)
         self.assert_actions_fired_for_incident(
-            incident, [self.action], [(trigger.alert_threshold + 1, IncidentStatus.CRITICAL)]
+            incident,
+            [self.action],
+            [(trigger.alert_threshold + 1, IncidentStatus.CRITICAL, mock.ANY)],
         )
 
         rule.update(threshold_period=2)
@@ -501,7 +522,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.assert_no_active_incident(rule)
         self.assert_trigger_exists_with_status(incident, self.trigger, TriggerStatus.RESOLVED)
         self.assert_actions_resolved_for_incident(
-            incident, [self.action], [(rule.resolve_threshold - 1, IncidentStatus.CLOSED)]
+            incident, [self.action], [(rule.resolve_threshold - 1, IncidentStatus.CLOSED, mock.ANY)]
         )
 
     def test_resolve_multiple_threshold_periods_non_consecutive(self):
@@ -516,7 +537,9 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         incident = self.assert_active_incident(rule)
         self.assert_trigger_exists_with_status(incident, self.trigger, TriggerStatus.ACTIVE)
         self.assert_actions_fired_for_incident(
-            incident, [self.action], [(trigger.alert_threshold + 1, IncidentStatus.CRITICAL)]
+            incident,
+            [self.action],
+            [(trigger.alert_threshold + 1, IncidentStatus.CRITICAL, mock.ANY)],
         )
 
         rule.update(threshold_period=2)
@@ -549,7 +572,9 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         incident = self.assert_active_incident(rule)
         self.assert_trigger_exists_with_status(incident, self.trigger, TriggerStatus.ACTIVE)
         self.assert_actions_fired_for_incident(
-            incident, [self.action], [(trigger.alert_threshold + 1, IncidentStatus.CRITICAL)]
+            incident,
+            [self.action],
+            [(trigger.alert_threshold + 1, IncidentStatus.CRITICAL, mock.ANY)],
         )
 
         processor = self.send_update(rule, trigger.alert_threshold - 1, timedelta(minutes=-1))
@@ -557,7 +582,9 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.assert_no_active_incident(rule)
         self.assert_trigger_exists_with_status(incident, self.trigger, TriggerStatus.RESOLVED)
         self.assert_actions_resolved_for_incident(
-            incident, [self.action], [(trigger.alert_threshold - 1, IncidentStatus.CLOSED)]
+            incident,
+            [self.action],
+            [(trigger.alert_threshold - 1, IncidentStatus.CLOSED, mock.ANY)],
         )
 
     def test_auto_resolve_percent_boundary(self):
@@ -572,7 +599,9 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         incident = self.assert_active_incident(rule)
         self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.ACTIVE)
         self.assert_actions_fired_for_incident(
-            incident, [self.action], [(trigger.alert_threshold + 0.1, IncidentStatus.CRITICAL)]
+            incident,
+            [self.action],
+            [(trigger.alert_threshold + 0.1, IncidentStatus.CRITICAL, mock.ANY)],
         )
 
         processor = self.send_update(rule, trigger.alert_threshold, timedelta(minutes=-1))
@@ -580,7 +609,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.assert_no_active_incident(rule)
         self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.RESOLVED)
         self.assert_actions_resolved_for_incident(
-            incident, [self.action], [(trigger.alert_threshold, IncidentStatus.CLOSED)]
+            incident, [self.action], [(trigger.alert_threshold, IncidentStatus.CLOSED, mock.ANY)]
         )
 
     def test_auto_resolve_boundary(self):
@@ -594,7 +623,9 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         incident = self.assert_active_incident(rule)
         self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.ACTIVE)
         self.assert_actions_fired_for_incident(
-            incident, [self.action], [(trigger.alert_threshold + 1, IncidentStatus.CRITICAL)]
+            incident,
+            [self.action],
+            [(trigger.alert_threshold + 1, IncidentStatus.CRITICAL, mock.ANY)],
         )
 
         processor = self.send_update(rule, trigger.alert_threshold, timedelta(minutes=-1))
@@ -602,7 +633,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.assert_no_active_incident(rule)
         self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.RESOLVED)
         self.assert_actions_resolved_for_incident(
-            incident, [self.action], [(trigger.alert_threshold, IncidentStatus.CLOSED)]
+            incident, [self.action], [(trigger.alert_threshold, IncidentStatus.CLOSED, mock.ANY)]
         )
 
     def test_auto_resolve_reversed(self):
@@ -615,7 +646,9 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         incident = self.assert_active_incident(rule)
         self.assert_trigger_exists_with_status(incident, self.trigger, TriggerStatus.ACTIVE)
         self.assert_actions_fired_for_incident(
-            incident, [self.action], [(trigger.alert_threshold - 1, IncidentStatus.CRITICAL)]
+            incident,
+            [self.action],
+            [(trigger.alert_threshold - 1, IncidentStatus.CRITICAL, mock.ANY)],
         )
 
         processor = self.send_update(rule, trigger.alert_threshold + 1, timedelta(minutes=-1))
@@ -623,7 +656,9 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.assert_no_active_incident(rule)
         self.assert_trigger_exists_with_status(incident, self.trigger, TriggerStatus.RESOLVED)
         self.assert_actions_resolved_for_incident(
-            incident, [self.action], [(trigger.alert_threshold + 1, IncidentStatus.CLOSED)]
+            incident,
+            [self.action],
+            [(trigger.alert_threshold + 1, IncidentStatus.CLOSED, mock.ANY)],
         )
 
     def test_auto_resolve_multiple_trigger(self):
@@ -646,8 +681,8 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             incident,
             [other_action, self.action],
             [
-                (trigger.alert_threshold + 1, IncidentStatus.CRITICAL),
-                (trigger.alert_threshold + 1, IncidentStatus.CRITICAL),
+                (trigger.alert_threshold + 1, IncidentStatus.CRITICAL, mock.ANY),
+                (trigger.alert_threshold + 1, IncidentStatus.CRITICAL, mock.ANY),
             ],
         )
 
@@ -660,8 +695,8 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             incident,
             [other_action, self.action],
             [
-                (other_trigger.alert_threshold - 1, IncidentStatus.CLOSED),
-                (other_trigger.alert_threshold - 1, IncidentStatus.CLOSED),
+                (other_trigger.alert_threshold - 1, IncidentStatus.CLOSED, mock.ANY),
+                (other_trigger.alert_threshold - 1, IncidentStatus.CLOSED, mock.ANY),
             ],
         )
 
@@ -682,7 +717,9 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         incident = self.assert_active_incident(rule)
         self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.ACTIVE)
         self.assert_actions_fired_for_incident(
-            incident, [self.action], [(trigger.alert_threshold - 1, IncidentStatus.CRITICAL)]
+            incident,
+            [self.action],
+            [(trigger.alert_threshold - 1, IncidentStatus.CRITICAL, mock.ANY)],
         )
 
     def test_reversed_threshold_resolve(self):
@@ -697,7 +734,9 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         incident = self.assert_active_incident(rule)
         self.assert_trigger_exists_with_status(incident, self.trigger, TriggerStatus.ACTIVE)
         self.assert_actions_fired_for_incident(
-            incident, [self.action], [(trigger.alert_threshold - 1, IncidentStatus.CRITICAL)]
+            incident,
+            [self.action],
+            [(trigger.alert_threshold - 1, IncidentStatus.CRITICAL, mock.ANY)],
         )
 
         processor = self.send_update(rule, rule.resolve_threshold - 1, timedelta(minutes=-2))
@@ -711,7 +750,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.assert_no_active_incident(rule)
         self.assert_trigger_exists_with_status(incident, self.trigger, TriggerStatus.RESOLVED)
         self.assert_actions_resolved_for_incident(
-            incident, [self.action], [(rule.resolve_threshold + 1, IncidentStatus.CLOSED)]
+            incident, [self.action], [(rule.resolve_threshold + 1, IncidentStatus.CLOSED, mock.ANY)]
         )
 
     def test_multiple_subscriptions_do_not_conflict(self):
@@ -751,7 +790,9 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         incident = self.assert_active_incident(rule, self.sub)
         self.assert_trigger_exists_with_status(incident, self.trigger, TriggerStatus.ACTIVE)
         self.assert_actions_fired_for_incident(
-            incident, [self.action], [(trigger.alert_threshold + 1, IncidentStatus.CRITICAL)]
+            incident,
+            [self.action],
+            [(trigger.alert_threshold + 1, IncidentStatus.CRITICAL, mock.ANY)],
         )
         self.assert_no_active_incident(rule, self.other_sub)
         self.assert_trigger_does_not_exist(self.trigger, [incident])
@@ -770,7 +811,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.assert_actions_fired_for_incident(
             other_incident,
             [self.action],
-            [(trigger.alert_threshold + 1, IncidentStatus.CRITICAL)],
+            [(trigger.alert_threshold + 1, IncidentStatus.CRITICAL, mock.ANY)],
             self.other_project,
         )
 
@@ -811,7 +852,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.assert_actions_resolved_for_incident(
             other_incident,
             [self.action],
-            [(rule.resolve_threshold - 1, IncidentStatus.CLOSED)],
+            [(rule.resolve_threshold - 1, IncidentStatus.CLOSED, mock.ANY)],
             self.other_project,
         )
 
@@ -823,7 +864,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.assert_no_active_incident(rule, self.sub)
         self.assert_trigger_exists_with_status(incident, self.trigger, TriggerStatus.RESOLVED)
         self.assert_actions_resolved_for_incident(
-            incident, [self.action], [(rule.resolve_threshold - 1, IncidentStatus.CLOSED)]
+            incident, [self.action], [(rule.resolve_threshold - 1, IncidentStatus.CLOSED, mock.ANY)]
         )
         self.assert_no_active_incident(rule, self.other_sub)
         self.assert_trigger_exists_with_status(other_incident, self.trigger, TriggerStatus.RESOLVED)
@@ -853,7 +894,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.assert_actions_fired_for_incident(
             incident,
             [warning_action],
-            [(warning_trigger.alert_threshold + 1, IncidentStatus.WARNING)],
+            [(warning_trigger.alert_threshold + 1, IncidentStatus.WARNING, mock.ANY)],
         )
 
         processor = self.send_update(
@@ -865,7 +906,9 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.assert_trigger_exists_with_status(incident, warning_trigger, TriggerStatus.ACTIVE)
         self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.ACTIVE)
         self.assert_actions_fired_for_incident(
-            incident, [warning_action], [(trigger.alert_threshold + 1, IncidentStatus.CRITICAL)]
+            incident,
+            [warning_action],
+            [(trigger.alert_threshold + 1, IncidentStatus.CRITICAL, mock.ANY)],
         )
 
         processor = self.send_update(
@@ -877,7 +920,9 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.RESOLVED)
         self.assert_trigger_exists_with_status(incident, warning_trigger, TriggerStatus.ACTIVE)
         self.assert_actions_resolved_for_incident(
-            incident, [warning_action], [(trigger.alert_threshold - 1, IncidentStatus.WARNING)]
+            incident,
+            [warning_action],
+            [(trigger.alert_threshold - 1, IncidentStatus.WARNING, mock.ANY)],
         )
 
         processor = self.send_update(
@@ -889,7 +934,9 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.RESOLVED)
         self.assert_trigger_exists_with_status(incident, warning_trigger, TriggerStatus.RESOLVED)
         self.assert_actions_resolved_for_incident(
-            incident, [warning_action], [(rule.resolve_threshold - 1, IncidentStatus.CLOSED)]
+            incident,
+            [warning_action],
+            [(rule.resolve_threshold - 1, IncidentStatus.CLOSED, mock.ANY)],
         )
 
     def test_multiple_triggers_no_warning_action(self):
@@ -918,7 +965,9 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.assert_trigger_exists_with_status(incident, warning_trigger, TriggerStatus.ACTIVE)
         self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.ACTIVE)
         self.assert_actions_fired_for_incident(
-            incident, [self.action], [(trigger.alert_threshold + 1, IncidentStatus.CRITICAL)]
+            incident,
+            [self.action],
+            [(trigger.alert_threshold + 1, IncidentStatus.CRITICAL, mock.ANY)],
         )
 
         processor = self.send_update(
@@ -930,7 +979,9 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.RESOLVED)
         self.assert_trigger_exists_with_status(incident, warning_trigger, TriggerStatus.ACTIVE)
         self.assert_actions_resolved_for_incident(
-            incident, [self.action], [(trigger.alert_threshold - 1, IncidentStatus.WARNING)]
+            incident,
+            [self.action],
+            [(trigger.alert_threshold - 1, IncidentStatus.WARNING, mock.ANY)],
         )
 
         processor = self.send_update(
@@ -942,7 +993,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.RESOLVED)
         self.assert_trigger_exists_with_status(incident, warning_trigger, TriggerStatus.RESOLVED)
         self.assert_actions_resolved_for_incident(
-            incident, [self.action], [(rule.resolve_threshold - 1, IncidentStatus.CLOSED)]
+            incident, [self.action], [(rule.resolve_threshold - 1, IncidentStatus.CLOSED, mock.ANY)]
         )
 
     def test_multiple_triggers_threshold_period(self):
@@ -975,7 +1026,9 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.assert_trigger_does_not_exist(trigger)
         self.assert_trigger_exists_with_status(incident, other_trigger, TriggerStatus.ACTIVE)
         self.assert_actions_fired_for_incident(
-            incident, [other_action], [(trigger.alert_threshold + 1, IncidentStatus.WARNING)]
+            incident,
+            [other_action],
+            [(trigger.alert_threshold + 1, IncidentStatus.WARNING, mock.ANY)],
         )
 
         # Now only `trigger` should increment and fire.
@@ -991,8 +1044,8 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             incident,
             [other_action, self.action],
             [
-                (trigger.alert_threshold + 1, IncidentStatus.CRITICAL),
-                (trigger.alert_threshold + 1, IncidentStatus.CRITICAL),
+                (trigger.alert_threshold + 1, IncidentStatus.CRITICAL, mock.ANY),
+                (trigger.alert_threshold + 1, IncidentStatus.CRITICAL, mock.ANY),
             ],
         )
 
@@ -1020,8 +1073,8 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             incident,
             [other_action, self.action],
             [
-                (rule.resolve_threshold - 1, IncidentStatus.CLOSED),
-                (rule.resolve_threshold - 1, IncidentStatus.CLOSED),
+                (rule.resolve_threshold - 1, IncidentStatus.CLOSED, mock.ANY),
+                (rule.resolve_threshold - 1, IncidentStatus.CLOSED, mock.ANY),
             ],
         )
 
@@ -1068,7 +1121,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             incident,
             [warning_action],
             [
-                (warning_trigger.alert_threshold + 1, IncidentStatus.WARNING),
+                (warning_trigger.alert_threshold + 1, IncidentStatus.WARNING, mock.ANY),
             ],
         )
 
@@ -1082,7 +1135,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             incident,
             [warning_action],
             [
-                (warning_trigger.alert_threshold - 1, IncidentStatus.CLOSED),
+                (warning_trigger.alert_threshold - 1, IncidentStatus.CLOSED, mock.ANY),
             ],
         )
 
@@ -1108,8 +1161,8 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             incident,
             [warning_action, critical_action],
             [
-                (critical_trigger.alert_threshold + 1, IncidentStatus.CRITICAL),
-                (critical_trigger.alert_threshold + 1, IncidentStatus.CRITICAL),
+                (critical_trigger.alert_threshold + 1, IncidentStatus.CRITICAL, mock.ANY),
+                (critical_trigger.alert_threshold + 1, IncidentStatus.CRITICAL, mock.ANY),
             ],
         )
 
@@ -1123,8 +1176,8 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             incident,
             [warning_action, critical_action],
             [
-                (warning_trigger.alert_threshold - 1, IncidentStatus.CLOSED),
-                (warning_trigger.alert_threshold - 1, IncidentStatus.CLOSED),
+                (warning_trigger.alert_threshold - 1, IncidentStatus.CLOSED, mock.ANY),
+                (warning_trigger.alert_threshold - 1, IncidentStatus.CLOSED, mock.ANY),
             ],
         )
 
@@ -1147,7 +1200,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             incident,
             [warning_action],
             [
-                (warning_trigger.alert_threshold + 1, IncidentStatus.WARNING),
+                (warning_trigger.alert_threshold + 1, IncidentStatus.WARNING, mock.ANY),
             ],
         )
 
@@ -1164,8 +1217,8 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             incident,
             [warning_action, critical_action],
             [
-                (critical_trigger.alert_threshold + 1, IncidentStatus.CRITICAL),
-                (critical_trigger.alert_threshold + 1, IncidentStatus.CRITICAL),
+                (critical_trigger.alert_threshold + 1, IncidentStatus.CRITICAL, mock.ANY),
+                (critical_trigger.alert_threshold + 1, IncidentStatus.CRITICAL, mock.ANY),
             ],
         )
 
@@ -1179,8 +1232,8 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             incident,
             [warning_action, critical_action],
             [
-                (warning_trigger.alert_threshold - 1, IncidentStatus.CLOSED),
-                (warning_trigger.alert_threshold - 1, IncidentStatus.CLOSED),
+                (warning_trigger.alert_threshold - 1, IncidentStatus.CLOSED, mock.ANY),
+                (warning_trigger.alert_threshold - 1, IncidentStatus.CLOSED, mock.ANY),
             ],
         )
 
@@ -1206,8 +1259,8 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             incident,
             [warning_action, critical_action],
             [
-                (critical_trigger.alert_threshold + 1, IncidentStatus.CRITICAL),
-                (critical_trigger.alert_threshold + 1, IncidentStatus.CRITICAL),
+                (critical_trigger.alert_threshold + 1, IncidentStatus.CRITICAL, mock.ANY),
+                (critical_trigger.alert_threshold + 1, IncidentStatus.CRITICAL, mock.ANY),
             ],
         )
 
@@ -1224,8 +1277,8 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             incident,
             [warning_action, critical_action],
             [
-                (critical_trigger.alert_threshold - 1, IncidentStatus.WARNING),
-                (critical_trigger.alert_threshold - 1, IncidentStatus.WARNING),
+                (critical_trigger.alert_threshold - 1, IncidentStatus.WARNING, mock.ANY),
+                (critical_trigger.alert_threshold - 1, IncidentStatus.WARNING, mock.ANY),
             ],
         )
 
@@ -1239,8 +1292,8 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             incident,
             [warning_action, critical_action],
             [
-                (warning_trigger.alert_threshold - 1, IncidentStatus.CLOSED),
-                (warning_trigger.alert_threshold - 1, IncidentStatus.CLOSED),
+                (warning_trigger.alert_threshold - 1, IncidentStatus.CLOSED, mock.ANY),
+                (warning_trigger.alert_threshold - 1, IncidentStatus.CLOSED, mock.ANY),
             ],
         )
 
@@ -1286,7 +1339,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             incident,
             [warning_action],
             [
-                (warning_trigger.alert_threshold + 1, IncidentStatus.WARNING),
+                (warning_trigger.alert_threshold + 1, IncidentStatus.WARNING, mock.ANY),
             ],
         )
 
@@ -1300,7 +1353,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             incident,
             [warning_action],
             [
-                (warning_trigger.alert_threshold - 1, IncidentStatus.CLOSED),
+                (warning_trigger.alert_threshold - 1, IncidentStatus.CLOSED, mock.ANY),
             ],
         )
 
@@ -1326,7 +1379,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             incident,
             [warning_action],
             [
-                (critical_trigger.alert_threshold + 1, IncidentStatus.CRITICAL),
+                (critical_trigger.alert_threshold + 1, IncidentStatus.CRITICAL, mock.ANY),
             ],
         )
 
@@ -1340,7 +1393,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             incident,
             [warning_action],
             [
-                (warning_trigger.alert_threshold - 1, IncidentStatus.CLOSED),
+                (warning_trigger.alert_threshold - 1, IncidentStatus.CLOSED, mock.ANY),
             ],
         )
 
@@ -1363,7 +1416,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             incident,
             [warning_action],
             [
-                (warning_trigger.alert_threshold + 1, IncidentStatus.WARNING),
+                (warning_trigger.alert_threshold + 1, IncidentStatus.WARNING, mock.ANY),
             ],
         )
 
@@ -1380,7 +1433,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             incident,
             [warning_action],
             [
-                (critical_trigger.alert_threshold + 1, IncidentStatus.CRITICAL),
+                (critical_trigger.alert_threshold + 1, IncidentStatus.CRITICAL, mock.ANY),
             ],
         )
 
@@ -1394,7 +1447,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             incident,
             [warning_action],
             [
-                (warning_trigger.alert_threshold - 1, IncidentStatus.CLOSED),
+                (warning_trigger.alert_threshold - 1, IncidentStatus.CLOSED, mock.ANY),
             ],
         )
 
@@ -1420,7 +1473,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             incident,
             [warning_action],
             [
-                (critical_trigger.alert_threshold + 1, IncidentStatus.CRITICAL),
+                (critical_trigger.alert_threshold + 1, IncidentStatus.CRITICAL, mock.ANY),
             ],
         )
 
@@ -1437,7 +1490,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             incident,
             [warning_action],
             [
-                (critical_trigger.alert_threshold - 1, IncidentStatus.WARNING),
+                (critical_trigger.alert_threshold - 1, IncidentStatus.WARNING, mock.ANY),
             ],
         )
 
@@ -1451,7 +1504,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             incident,
             [warning_action],
             [
-                (warning_trigger.alert_threshold - 1, IncidentStatus.CLOSED),
+                (warning_trigger.alert_threshold - 1, IncidentStatus.CLOSED, mock.ANY),
             ],
         )
 
@@ -1712,8 +1765,8 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
                 self.action,
             ],
             [
-                (trigger.alert_threshold + 1, IncidentStatus.CRITICAL),
-                (trigger.alert_threshold + 1, IncidentStatus.CRITICAL),
+                (trigger.alert_threshold + 1, IncidentStatus.CRITICAL, mock.ANY),
+                (trigger.alert_threshold + 1, IncidentStatus.CRITICAL, mock.ANY),
             ],
         )
 
@@ -1729,8 +1782,8 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             incident,
             [other_action, self.action],
             [
-                (rule.resolve_threshold - 1, IncidentStatus.CLOSED),
-                (rule.resolve_threshold - 1, IncidentStatus.CLOSED),
+                (rule.resolve_threshold - 1, IncidentStatus.CLOSED, mock.ANY),
+                (rule.resolve_threshold - 1, IncidentStatus.CLOSED, mock.ANY),
             ],
         )
 
@@ -1763,7 +1816,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
                 other_action,
             ],
             [
-                (trigger.alert_threshold + 1, IncidentStatus.CRITICAL),
+                (trigger.alert_threshold + 1, IncidentStatus.CRITICAL, mock.ANY),
             ],
         )
 
@@ -1779,7 +1832,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             incident,
             [other_action],
             [
-                (rule.resolve_threshold - 1, IncidentStatus.CLOSED),
+                (rule.resolve_threshold - 1, IncidentStatus.CLOSED, mock.ANY),
             ],
         )
 
@@ -1806,8 +1859,8 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             incident,
             [other_action, self.action],
             [
-                (trigger.alert_threshold + 1, IncidentStatus.CRITICAL),
-                (trigger.alert_threshold + 1, IncidentStatus.CRITICAL),
+                (trigger.alert_threshold + 1, IncidentStatus.CRITICAL, mock.ANY),
+                (trigger.alert_threshold + 1, IncidentStatus.CRITICAL, mock.ANY),
             ],
         )
 
@@ -1823,8 +1876,8 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             incident,
             [other_action, self.action],
             [
-                (trigger.alert_threshold - 1, IncidentStatus.WARNING),
-                (trigger.alert_threshold - 1, IncidentStatus.WARNING),
+                (trigger.alert_threshold - 1, IncidentStatus.WARNING, mock.ANY),
+                (trigger.alert_threshold - 1, IncidentStatus.WARNING, mock.ANY),
             ],
         )
 
@@ -1840,8 +1893,8 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             incident,
             [other_action, self.action],
             [
-                (rule.resolve_threshold - 1, IncidentStatus.CLOSED),
-                (rule.resolve_threshold - 1, IncidentStatus.CLOSED),
+                (rule.resolve_threshold - 1, IncidentStatus.CLOSED, mock.ANY),
+                (rule.resolve_threshold - 1, IncidentStatus.CLOSED, mock.ANY),
             ],
         )
 
@@ -1863,7 +1916,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
                 call("incidents.alert_rules.skipping_update_invalid_aggregation_value"),
             ]
         )
-        comparison_date = timezone.now() - comparison_delta
+        comparison_date = django_timezone.now() - comparison_delta
 
         for i in range(4):
             self.store_event(
@@ -1901,7 +1954,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         incident = self.assert_active_incident(rule)
         self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.ACTIVE)
         self.assert_actions_fired_for_incident(
-            incident, [self.action], [(175.0, IncidentStatus.CRITICAL)]
+            incident, [self.action], [(175.0, IncidentStatus.CRITICAL, mock.ANY)]
         )
 
         # Check we successfully resolve
@@ -1910,7 +1963,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.assert_no_active_incident(rule)
         self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.RESOLVED)
         self.assert_actions_resolved_for_incident(
-            incident, [self.action], [(150, IncidentStatus.CLOSED)]
+            incident, [self.action], [(150, IncidentStatus.CLOSED, mock.ANY)]
         )
 
     def test_comparison_alert_below(self):
@@ -1931,7 +1984,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
                 call("incidents.alert_rules.skipping_update_invalid_aggregation_value"),
             ]
         )
-        comparison_date = timezone.now() - comparison_delta
+        comparison_date = django_timezone.now() - comparison_delta
 
         for i in range(4):
             self.store_event(
@@ -1970,7 +2023,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         incident = self.assert_active_incident(rule)
         self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.ACTIVE)
         self.assert_actions_fired_for_incident(
-            incident, [self.action], [(25.0, IncidentStatus.CRITICAL)]
+            incident, [self.action], [(25.0, IncidentStatus.CRITICAL, mock.ANY)]
         )
 
         # Check we successfully resolve
@@ -1979,7 +2032,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.assert_no_active_incident(rule)
         self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.RESOLVED)
         self.assert_actions_resolved_for_incident(
-            incident, [self.action], [(50.0, IncidentStatus.CLOSED)]
+            incident, [self.action], [(50.0, IncidentStatus.CLOSED, mock.ANY)]
         )
 
     def test_comparison_alert_different_aggregate(self):
@@ -2001,7 +2054,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
                 call("incidents.alert_rules.skipping_update_invalid_aggregation_value"),
             ]
         )
-        comparison_date = timezone.now() - comparison_delta
+        comparison_date = django_timezone.now() - comparison_delta
 
         for i in range(4):
             self.store_event(
@@ -2042,7 +2095,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         incident = self.assert_active_incident(rule)
         self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.ACTIVE)
         self.assert_actions_fired_for_incident(
-            incident, [self.action], [(175.0, IncidentStatus.CRITICAL)]
+            incident, [self.action], [(175.0, IncidentStatus.CRITICAL, mock.ANY)]
         )
 
         # Check we successfully resolve
@@ -2051,7 +2104,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.assert_no_active_incident(rule)
         self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.RESOLVED)
         self.assert_actions_resolved_for_incident(
-            incident, [self.action], [(150.0, IncidentStatus.CLOSED)]
+            incident, [self.action], [(150.0, IncidentStatus.CLOSED, mock.ANY)]
         )
 
 
@@ -2129,10 +2182,10 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
         processor = SubscriptionProcessor(subscription)
 
         if time_delta is not None:
-            timestamp = timezone.now() + time_delta
+            timestamp = django_timezone.now() + time_delta
         else:
-            timestamp = timezone.now()
-        timestamp = timestamp.replace(tzinfo=pytz.utc, microsecond=0)
+            timestamp = django_timezone.now()
+        timestamp = timestamp.replace(tzinfo=timezone.utc, microsecond=0)
 
         with self.feature(
             ["organizations:incidents", "organizations:performance-view"]
@@ -2147,6 +2200,7 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
                     numerator = int(value * denominator)
             processor.process_update(
                 {
+                    "entity": "entity",
                     "subscription_id": subscription.subscription_id
                     if subscription
                     else uuid4().hex,
@@ -2160,9 +2214,6 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
                         ]
                     },
                     "timestamp": timestamp,
-                    "interval": 1,
-                    "partition": 1,
-                    "offset": 1,
                 }
             )
         return processor
@@ -2187,7 +2238,7 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
         )
         incident = self.assert_active_incident(rule)
         self.assert_actions_fired_for_incident(
-            incident, [action_critical], [(75.0, IncidentStatus.CRITICAL)]
+            incident, [action_critical], [(75.0, IncidentStatus.CRITICAL, mock.ANY)]
         )
         self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.ACTIVE)
 
@@ -2200,7 +2251,7 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
         )
         self.assert_no_active_incident(rule)
         self.assert_actions_resolved_for_incident(
-            incident, [action_critical], [(85.0, IncidentStatus.CLOSED)]
+            incident, [action_critical], [(85.0, IncidentStatus.CLOSED, mock.ANY)]
         )
 
     def test_crash_rate_alert_for_sessions_with_auto_resolve_warning(self):
@@ -2224,7 +2275,7 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
 
         incident = self.assert_active_incident(rule)
         self.assert_actions_fired_for_incident(
-            incident, [action_warning], [(85.0, IncidentStatus.WARNING)]
+            incident, [action_warning], [(85.0, IncidentStatus.WARNING, mock.ANY)]
         )
         self.assert_trigger_exists_with_status(incident, trigger_warning, TriggerStatus.ACTIVE)
 
@@ -2236,7 +2287,7 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
             subscription=rule.snuba_query.subscriptions.filter(project=self.project).get(),
         )
         self.assert_actions_resolved_for_incident(
-            incident, [action_warning], [(95.0, IncidentStatus.CLOSED)]
+            incident, [action_warning], [(95.0, IncidentStatus.CLOSED, mock.ANY)]
         )
         self.assert_no_active_incident(rule)
 
@@ -2261,7 +2312,7 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
         )
         incident = self.assert_active_incident(rule)
         self.assert_actions_fired_for_incident(
-            incident, [action_warning], [(75.0, IncidentStatus.CRITICAL)]
+            incident, [action_warning], [(75.0, IncidentStatus.CRITICAL, mock.ANY)]
         )
         self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.ACTIVE)
 
@@ -2276,7 +2327,7 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
 
         incident = self.assert_active_incident(rule)
         self.assert_actions_resolved_for_incident(
-            incident, [action_warning], [(85.0, IncidentStatus.WARNING)]
+            incident, [action_warning], [(85.0, IncidentStatus.WARNING, mock.ANY)]
         )
         self.assert_trigger_exists_with_status(incident, trigger_warning, TriggerStatus.ACTIVE)
 
@@ -2289,7 +2340,7 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
             subscription=rule.snuba_query.subscriptions.filter(project=self.project).get(),
         )
         self.assert_actions_resolved_for_incident(
-            incident, [action_warning], [(95.0, IncidentStatus.CLOSED)]
+            incident, [action_warning], [(95.0, IncidentStatus.CLOSED, mock.ANY)]
         )
         self.assert_no_active_incident(rule)
 
@@ -2318,7 +2369,7 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
         )
         incident = self.assert_active_incident(rule)
         self.assert_actions_fired_for_incident(
-            incident, [action_warning], [(75.0, IncidentStatus.CRITICAL)]
+            incident, [action_warning], [(75.0, IncidentStatus.CRITICAL, mock.ANY)]
         )
         self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.ACTIVE)
 
@@ -2333,7 +2384,7 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
 
         incident = self.assert_active_incident(rule)
         self.assert_actions_resolved_for_incident(
-            incident, [action_warning], [(85.0, IncidentStatus.WARNING)]
+            incident, [action_warning], [(85.0, IncidentStatus.WARNING, mock.ANY)]
         )
         self.assert_trigger_exists_with_status(incident, trigger_warning, TriggerStatus.ACTIVE)
 
@@ -2498,7 +2549,9 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
         incident = self.assert_active_incident(rule)
         self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.ACTIVE)
         self.assert_actions_fired_for_incident(
-            incident, [action_critical], [(75.0, IncidentStatus.CRITICAL)]
+            incident,
+            [action_critical],
+            [(75.0, IncidentStatus.CRITICAL, mock.ANY)],
         )
 
         # Send a resolve update to increment the resolve count to 1
@@ -2594,6 +2647,7 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
         processor = SubscriptionProcessor(subscription)
         processor.process_update(
             {
+                "entity": "entity",
                 "subscription_id": subscription.subscription_id,
                 "values": {
                     # 1001 is a random int that doesn't map to anything in the indexer
@@ -2605,10 +2659,7 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
                         }
                     ]
                 },
-                "timestamp": timezone.now(),
-                "interval": 1,
-                "partition": 1,
-                "offset": 1,
+                "timestamp": django_timezone.now(),
             }
         )
         self.assert_no_active_incident(rule)
@@ -2640,10 +2691,10 @@ class MetricsCrashRateAlertProcessUpdateV1Test(MetricsCrashRateAlertProcessUpdat
         processor = SubscriptionProcessor(subscription)
 
         if time_delta is not None:
-            timestamp = timezone.now() + time_delta
+            timestamp = django_timezone.now() + time_delta
         else:
-            timestamp = timezone.now()
-        timestamp = timestamp.replace(tzinfo=pytz.utc, microsecond=0)
+            timestamp = django_timezone.now()
+        timestamp = timestamp.replace(tzinfo=timezone.utc, microsecond=0)
 
         with self.feature(
             ["organizations:incidents", "organizations:performance-view"]
@@ -2661,6 +2712,7 @@ class MetricsCrashRateAlertProcessUpdateV1Test(MetricsCrashRateAlertProcessUpdat
             tag_value_crashed = resolve_tag_value(UseCaseKey.RELEASE_HEALTH, org_id, "crashed")
             processor.process_update(
                 {
+                    "entity": "entity",
                     "subscription_id": subscription.subscription_id
                     if subscription
                     else uuid4().hex,
@@ -2675,9 +2727,6 @@ class MetricsCrashRateAlertProcessUpdateV1Test(MetricsCrashRateAlertProcessUpdat
                         ]
                     },
                     "timestamp": timestamp,
-                    "interval": 1,
-                    "partition": 1,
-                    "offset": 1,
                 }
             )
         return processor
@@ -2727,7 +2776,7 @@ class TestGetAlertRuleStats(TestCase):
         triggers = [AlertRuleTrigger(id=3), AlertRuleTrigger(id=4)]
         client = get_redis_client()
         pipeline = client.pipeline()
-        timestamp = datetime.now().replace(tzinfo=pytz.utc, microsecond=0)
+        timestamp = datetime.now().replace(tzinfo=timezone.utc, microsecond=0)
         pipeline.set("{alert_rule:1:project:2}:last_update", int(to_timestamp(timestamp)))
         pipeline.set("{alert_rule:1:project:2}:resolve_triggered", 20)
         for key, value in [
@@ -2749,7 +2798,7 @@ class TestUpdateAlertRuleStats(TestCase):
     def test(self):
         alert_rule = AlertRule(id=1)
         sub = QuerySubscription(project_id=2)
-        date = datetime.utcnow().replace(tzinfo=pytz.utc)
+        date = datetime.utcnow().replace(tzinfo=timezone.utc)
         update_alert_rule_stats(alert_rule, sub, date, {3: 20, 4: 3}, {3: 10, 4: 15})
         client = get_redis_client()
         results = list(

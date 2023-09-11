@@ -6,7 +6,7 @@ import uuid
 from abc import ABC, abstractmethod
 from datetime import datetime
 from os import path
-from typing import IO, List, NamedTuple, Optional, Tuple
+from typing import IO, Generic, List, NamedTuple, Optional, Protocol, Tuple, TypeVar
 
 import sentry_sdk
 from django.db import IntegrityError, router
@@ -17,7 +17,7 @@ from sentry import analytics, features, options
 from sentry.api.serializers import serialize
 from sentry.cache import default_cache
 from sentry.debug_files.artifact_bundle_indexing import (
-    BundleMeta,
+    BundleManifest,
     mark_bundle_for_flat_file_indexing,
     update_artifact_bundle_index,
 )
@@ -192,6 +192,14 @@ def set_assemble_status(task, scope, checksum, state, detail=None):
     default_cache.set(cache_key, (state, detail), 600)
 
 
+def delete_assemble_status(task, scope, checksum):
+    """
+    Deletes the status of an assembling task.
+    """
+    cache_key = _get_cache_key(task, scope, checksum)
+    default_cache.delete(cache_key)
+
+
 @instrumented_task(
     name="sentry.tasks.assemble.assemble_dif",
     queue="assemble",
@@ -280,7 +288,18 @@ class AssembleArtifactsError(Exception):
     pass
 
 
-class PostAssembler(ABC):
+class HasClose(Protocol):
+    @abstractmethod
+    def close(self):
+        pass
+
+
+TArchive = TypeVar("TArchive", bound=HasClose)
+
+
+class PostAssembler(Generic[TArchive], ABC):
+    archive: TArchive
+
     def __init__(self, assemble_result: AssembleResult):
         self.assemble_result = assemble_result
         self._validate_bundle_guarded()
@@ -292,11 +311,11 @@ class PostAssembler(ABC):
         # In case any exception happens in the `with` block, we will capture it, and we want to delete the actual `File`
         # object created in the database, to avoid orphan entries.
         if exc_type is not None:
-            self._delete_bundle_file_object()
+            self.delete_bundle_file_object()
 
-        self.close()
+        self.archive.close()
 
-    def _delete_bundle_file_object(self):
+    def delete_bundle_file_object(self):
         self.assemble_result.delete_bundle()
 
     def _validate_bundle_guarded(self):
@@ -306,7 +325,7 @@ class PostAssembler(ABC):
             metrics.incr("tasks.assemble.invalid_bundle")
             # In case the bundle is invalid, we want to delete the actual `File` object created in the database, to
             # avoid orphan entries.
-            self._delete_bundle_file_object()
+            self.delete_bundle_file_object()
             raise AssembleArtifactsError("the bundle is invalid")
 
     @abstractmethod
@@ -314,15 +333,11 @@ class PostAssembler(ABC):
         pass
 
     @abstractmethod
-    def close(self):
-        pass
-
-    @abstractmethod
     def post_assemble(self):
         pass
 
 
-class ReleaseBundlePostAssembler(PostAssembler):
+class ReleaseBundlePostAssembler(PostAssembler[ReleaseArchive]):
     def __init__(self, assemble_result: AssembleResult, organization: Organization, version: str):
         super().__init__(assemble_result)
         self.organization = organization
@@ -334,10 +349,11 @@ class ReleaseBundlePostAssembler(PostAssembler):
             "tasks.assemble.release_bundle.artifact_count", amount=self.archive.artifact_count
         )
 
-    def close(self):
-        self.archive.close()
-
     def post_assemble(self):
+        if self.archive.artifact_count == 0:
+            metrics.incr("tasks.assemble.release_bundle.discarded_empty_bundle")
+            self.delete_bundle_file_object()
+            return
         with metrics.timer("tasks.assemble.release_bundle"):
             self._create_release_file()
 
@@ -364,10 +380,10 @@ class ReleaseBundlePostAssembler(PostAssembler):
         min_artifact_count = options.get("processing.release-archive-min-files")
         saved_as_archive = False
 
-        artifact_count = self.archive.artifact_count
-
-        if artifact_count >= min_artifact_count:
+        if self.archive.artifact_count >= min_artifact_count:
             try:
+                # NOTE: `update_artifact_index` also creates a `ReleaseFile` entry
+                # for this bundle.
                 update_artifact_index(
                     release,
                     dist,
@@ -379,7 +395,7 @@ class ReleaseBundlePostAssembler(PostAssembler):
             except Exception as exc:
                 logger.error("Unable to update artifact index", exc_info=exc)
 
-        if not saved_as_archive and artifact_count > 0:
+        if not saved_as_archive:
             meta = {
                 "organization_id": self.organization.id,
                 "release_id": release.id,
@@ -387,6 +403,9 @@ class ReleaseBundlePostAssembler(PostAssembler):
             }
             metrics.incr("sourcemaps.upload.release_file")
             self._store_single_files(meta)
+            # we just extracted the archive and stored it as individual files.
+            # there is no reason to keep the file around now anymore.
+            self.delete_bundle_file_object()
 
     @sentry_sdk.tracing.trace
     def _store_single_files(self, meta: dict):
@@ -456,7 +475,7 @@ class ReleaseBundlePostAssembler(PostAssembler):
         return True
 
 
-class ArtifactBundlePostAssembler(PostAssembler):
+class ArtifactBundlePostAssembler(PostAssembler[ArtifactBundleArchive]):
     def __init__(
         self,
         assemble_result: AssembleResult,
@@ -477,10 +496,11 @@ class ArtifactBundlePostAssembler(PostAssembler):
             "tasks.assemble.artifact_bundle.artifact_count", amount=self.archive.artifact_count
         )
 
-    def close(self):
-        self.archive.close()
-
     def post_assemble(self):
+        if self.archive.artifact_count == 0:
+            metrics.incr("tasks.assemble.artifact_bundle.discarded_empty_bundle")
+            self.delete_bundle_file_object()
+            return
         with metrics.timer("tasks.assemble.artifact_bundle"):
             self._create_artifact_bundle()
 
@@ -592,11 +612,6 @@ class ArtifactBundlePostAssembler(PostAssembler):
                 ).update(date_added=date_snapshot)
 
         metrics.incr("sourcemaps.upload.artifact_bundle")
-
-        # When uploading a zero-artifact bundle, there is no need to index anything
-        # FIXME: we might even want to early-return *a lot* earlier in this case?
-        if self.archive.artifact_count == 0:
-            return
 
         # If we don't have a release set, we don't want to run indexing, since we need at least the release for
         # fast indexing performance. We might though run indexing if a customer has debug ids in the manifest, since
@@ -760,18 +775,20 @@ class ArtifactBundlePostAssembler(PostAssembler):
     @sentry_sdk.tracing.trace
     def _index_bundle_into_flat_file(self, artifact_bundle: ArtifactBundle):
         identifiers = mark_bundle_for_flat_file_indexing(
-            artifact_bundle, self.project_ids, self.release, self.dist
+            artifact_bundle, self.archive.has_debug_ids(), self.project_ids, self.release, self.dist
         )
 
-        bundle_meta = BundleMeta(
-            id=artifact_bundle.id,
-            # We give priority to the date last modified for total ordering.
-            timestamp=(artifact_bundle.date_last_modified or artifact_bundle.date_uploaded),
-        )
+        bundles_to_add = [BundleManifest.from_artifact_bundle(artifact_bundle, self.archive)]
 
         for identifier in identifiers:
             try:
-                update_artifact_bundle_index(bundle_meta, self.archive, identifier)
+                was_indexed = update_artifact_bundle_index(
+                    identifier, bundles_to_add=bundles_to_add
+                )
+                if not was_indexed:
+                    metrics.incr("artifact_bundle_flat_file_indexing.indexing.would_block")
+                    # NOTE: the `backfill_artifact_index_updates` will pick this up automatically,
+                    # no need to explicitly spawn any backfill task for this
             except Exception as e:
                 metrics.incr("artifact_bundle_flat_file_indexing.error_when_indexing")
                 sentry_sdk.capture_exception(e)

@@ -36,7 +36,7 @@ from sentry.api.utils import InvalidParams, get_date_range_from_params
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import Project
 from sentry.search.events.builder import UnresolvedQuery
-from sentry.search.events.types import WhereType
+from sentry.search.events.types import QueryBuilderConfig, WhereType
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import (
     STRING_NOT_FOUND,
@@ -150,7 +150,7 @@ def transform_null_transaction_to_unparameterized(use_case_id, org_id, alias=Non
 # These are only allowed because the parser in metrics_sessions_v2
 # generates them. Long term we should not allow any functions, but rather
 # a limited expression language with only AND, OR, IN and NOT IN
-FUNCTION_ALLOWLIST = ("and", "or", "equals", "in", "tuple", "has", "match")
+FUNCTION_ALLOWLIST = ("and", "or", "equals", "in", "tuple", "has", "match", "team_key_transaction")
 
 
 def resolve_tags(
@@ -417,8 +417,9 @@ def parse_query(query_string: str, projects: Sequence[Project]) -> Sequence[Cond
                 "project_id": [project.id for project in projects],
                 "organization_id": org_id_from_projects(projects) if projects else None,
             },
+            config=QueryBuilderConfig(use_aggregate_conditions=True),
         )
-        where, _ = query_builder.resolve_conditions(query_string, use_aggregate_conditions=True)
+        where, _ = query_builder.resolve_conditions(query_string)
     except InvalidSearchQuery as e:
         raise InvalidParams(f"Failed to parse query: {e}")
 
@@ -440,10 +441,9 @@ class ReleaseHealthQueryBuilder(UnresolvedQuery):
     def resolve_conditions(
         self,
         query: Optional[str],
-        use_aggregate_conditions: bool,
     ) -> Tuple[List[WhereType], List[WhereType]]:
         if not self._contains_wildcard_in_query(query):
-            return super().resolve_conditions(query, use_aggregate_conditions)
+            return super().resolve_conditions(query)
 
         raise InvalidSearchQuery("Release Health Queries don't support wildcards")
 
@@ -925,6 +925,37 @@ class SnubaQueryBuilder:
 
         return orderby_fields
 
+    def _build_having(self) -> List[Union[BooleanCondition, Condition]]:
+        """
+        This function makes a lot of assumptions about what the HAVING clause allows, mostly
+        because HAVING is not a fully supported function of metrics.
+
+        It is assumed that the having clause is a list of simple conditions, where the LHS is an aggregated
+        metric e.g. p50(duration) and the RHS is a literal value being compared too.
+        """
+        resolved_having = []
+        if not self._metrics_query.having:
+            return []
+
+        for condition in self._metrics_query.having:
+            lhs_expression = condition.lhs
+            if isinstance(lhs_expression, Function):
+                metric = lhs_expression.parameters[0]
+                assert isinstance(metric, Column)
+                metrics_field_obj = metric_object_factory(lhs_expression.function, metric.name)
+
+                resolved_lhs = metrics_field_obj.generate_select_statements(
+                    projects=self._projects,
+                    use_case_id=self._use_case_id,
+                    alias=lhs_expression.alias,
+                    params=None,
+                )
+                resolved_having.append(Condition(resolved_lhs[0], condition.op, condition.rhs))
+            else:
+                resolved_having.append(condition)
+
+        return resolved_having
+
     def __build_totals_and_series_queries(
         self,
         entity,
@@ -1098,13 +1129,14 @@ class SnubaQueryBuilder:
                 ),
             ]
             orderby = self._build_orderby()
+            having = self._build_having()
 
             # Functionally [] and None will be the same and the same applies for Offset(0) and None.
             queries_dict[entity] = self.__build_totals_and_series_queries(
                 entity=entity,
                 select=select,
                 where=where + where_for_entity,
-                having=self._metrics_query.having,
+                having=having,
                 groupby=groupby,  # Empty group by is set to None.
                 orderby=orderby,  # Empty order by is set to None.
                 limit=self._metrics_query.limit,

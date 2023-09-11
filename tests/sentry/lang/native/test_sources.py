@@ -18,9 +18,8 @@ def _mock_flat_file_index(
         project_id=project_id,
         release_name=release or "",
         dist_name=dist or "",
-        flat_file_index=None,
     )
-    index.update_flat_file_index(file_contents="{}")
+    index.update_flat_file_index("{}")
 
     return index
 

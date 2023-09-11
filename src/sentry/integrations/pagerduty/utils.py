@@ -1,13 +1,16 @@
 from __future__ import annotations
 
 import logging
+from typing import Any
 
 from django.http import Http404
 
 from sentry.incidents.models import AlertRuleTriggerAction, Incident, IncidentStatus
 from sentry.integrations.metric_alerts import incident_attachment_info
-from sentry.models import PagerDutyService
-from sentry.models.integrations.pagerduty_service import PagerDutyServiceDict
+from sentry.models.integrations.organization_integration import (
+    OrganizationIntegration,
+    PagerDutyServiceDict,
+)
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.client.proxy import infer_org_integration
 from sentry.shared_integrations.exceptions import ApiError
@@ -18,9 +21,15 @@ logger = logging.getLogger("sentry.integrations.pagerduty")
 
 
 def build_incident_attachment(
-    incident, integration_key, new_status: IncidentStatus, metric_value=None
-):
-    data = incident_attachment_info(incident, new_status, metric_value)
+    incident,
+    integration_key,
+    new_status: IncidentStatus,
+    metric_value: int | None = None,
+    notfiication_uuid: str | None = None,
+) -> dict[str, Any]:
+    data = incident_attachment_info(
+        incident, new_status, metric_value, notfiication_uuid, referrer="metric_alert_pagerduty"
+    )
     severity = "info"
     if new_status == IncidentStatus.CRITICAL:
         severity = "critical"
@@ -52,7 +61,8 @@ def send_incident_alert_notification(
     incident: Incident,
     metric_value: int,
     new_status: IncidentStatus,
-) -> None:
+    notification_uuid: str | None = None,
+) -> bool:
     integration_id = action.integration_id
     organization_id = incident.organization_id
 
@@ -72,7 +82,9 @@ def send_incident_alert_notification(
         org_integration_id = org_integration.id
 
     if org_integration and action.target_identifier:
-        service = PagerDutyService.find_service(org_integration.config, action.target_identifier)
+        service = OrganizationIntegration.find_service(
+            org_integration.config, action.target_identifier
+        )
 
     if service is None:
         # service has been removed after rule creation
@@ -90,9 +102,12 @@ def send_incident_alert_notification(
     client = PagerDutyProxyClient(
         org_integration_id=org_integration_id, integration_key=integration_key
     )
-    attachment = build_incident_attachment(incident, integration_key, new_status, metric_value)
+    attachment = build_incident_attachment(
+        incident, integration_key, new_status, metric_value, notification_uuid
+    )
     try:
         client.send_trigger(attachment)
+        return True
     except ApiError as e:
         logger.info(
             "rule.fail.pagerduty_metric_alert",

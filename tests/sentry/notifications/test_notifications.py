@@ -5,6 +5,7 @@ from unittest.mock import patch
 from urllib.parse import parse_qs
 
 import responses
+from django.conf import settings
 from django.core import mail
 from django.core.mail.message import EmailMultiAlternatives
 from django.utils import timezone
@@ -106,6 +107,9 @@ class ActivityNotificationTest(APITestCase):
             status=200,
             content_type="application/json",
         )
+        responses.add_passthru(
+            settings.SENTRY_SNUBA + "/tests/entities/generic_metrics_counters/insert",
+        )
         self.name = self.user.get_display_name()
         self.short_id = self.group.qualified_short_id
 
@@ -136,8 +140,8 @@ class ActivityNotificationTest(APITestCase):
         assert text == f"New comment by {self.name}"
         assert attachment["title"] == f"{self.group.title}"
         assert (
-            attachment["title_link"]
-            == f"http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=note_activity-slack"
+            f"http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=note_activity-slack&notification_uuid="
+            in attachment["title_link"]
         )
         assert attachment["text"] == "blah blah"
         assert (

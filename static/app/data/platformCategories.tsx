@@ -112,6 +112,12 @@ export const backend = [
   'python-starlette',
   'python-sanic',
   'python-celery',
+  'python-aiohttp',
+  'python-chalice',
+  'python-falcon',
+  'python-quart',
+  'python-tryton',
+  'python-wsgi',
   'python-bottle',
   'python-pylons',
   'python-pyramid',
@@ -129,6 +135,7 @@ export const serverless = [
   'python-awslambda',
   'python-azurefunctions',
   'python-gcpfunctions',
+  'python-serverless',
   'node-awslambda',
   'node-azurefunctions',
   'node-gcpfunctions',
@@ -165,6 +172,8 @@ const categoryList = [
   {id: 'desktop', name: t('Desktop'), platforms: desktop},
   {id: 'serverless', name: t('Serverless'), platforms: serverless},
 ] as const;
+
+export const deprecatedPlatforms = new Set(['node-serverlesscloud']);
 
 export const sourceMaps: PlatformKey[] = [
   ...frontend,
@@ -248,6 +257,13 @@ export const profiling: PlatformKey[] = [
   'python-pyramid',
   'python-tornado',
   'python-rq',
+  'python-aiohttp',
+  'python-chalice',
+  'python-falcon',
+  'python-quart',
+  'python-tryton',
+  'python-wsgi',
+  'python-serverless',
   // rust
   'rust',
   // php
@@ -312,9 +328,13 @@ export const releaseHealth: PlatformKey[] = [
 ];
 
 export const replayPlatforms: readonly PlatformKey[] = [
+  'capacitor',
+  'electron',
   'javascript-angular',
   // 'javascript-angularjs', // Unsupported, angularjs requires the v6.x core SDK
   'javascript-backbone',
+  'javascript-capacitor',
+  'javascript-electron',
   'javascript-ember',
   'javascript-gatsby',
   'javascript-nextjs',
@@ -333,9 +353,13 @@ export const replayPlatforms: readonly PlatformKey[] = [
  * See: https://github.com/getsentry/sentry-docs/tree/master/src/wizard/javascript/replay-onboarding
  */
 export const replayOnboardingPlatforms: readonly PlatformKey[] = [
+  'capacitor',
+  'electron',
   'javascript-angular',
   // 'javascript-angularjs', // Unsupported, angularjs requires the v6.x core SDK
   // 'javascript-backbone', // No docs yet
+  'javascript-capacitor',
+  'javascript-electron',
   'javascript-ember',
   'javascript-gatsby',
   'javascript-nextjs',

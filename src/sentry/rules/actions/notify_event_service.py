@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Generator, Mapping, Sequence
+from typing import Any, Generator, Optional, Sequence
 
 from django import forms
 
@@ -21,24 +21,25 @@ from sentry.services.hybrid_cloud.app import RpcSentryAppService, app_service
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.organization.serial import serialize_rpc_organization
 from sentry.tasks.sentry_apps import notify_sentry_app
-from sentry.utils import metrics
+from sentry.utils import json, metrics
 from sentry.utils.safe import safe_execute
 
 logger = logging.getLogger("sentry.integrations.sentry_app")
-PLUGINS_WITH_FIRST_PARTY_EQUIVALENTS = ["PagerDuty", "Slack"]
+PLUGINS_WITH_FIRST_PARTY_EQUIVALENTS = ["PagerDuty", "Slack", "Opsgenie"]
 
 
 def build_incident_attachment(
     incident: Incident,
     new_status: IncidentStatus,
-    metric_value: str | None = None,
-) -> Mapping[str, str]:
+    metric_value: int | None = None,
+    notification_uuid: str | None = None,
+) -> dict[str, str]:
     from sentry.api.serializers.rest_framework.base import (
         camel_to_snake_case,
         convert_dict_key_case,
     )
 
-    data = incident_attachment_info(incident, new_status, metric_value)
+    data = incident_attachment_info(incident, new_status, metric_value, notification_uuid)
     return {
         "metric_alert": convert_dict_key_case(
             serialize(incident, serializer=IncidentSerializer()), camel_to_snake_case
@@ -54,7 +55,8 @@ def send_incident_alert_notification(
     incident: Incident,
     new_status: IncidentStatus,
     metric_value: str | None = None,
-) -> None:
+    notification_uuid: str | None = None,
+) -> bool:
     """
     When a metric alert is triggered, send incident data to the SentryApp's webhook.
     :param action: The triggered `AlertRuleTriggerAction`.
@@ -64,17 +66,20 @@ def send_incident_alert_notification(
     :return:
     """
     organization = serialize_rpc_organization(incident.organization)
-    incident_attachment = build_incident_attachment(incident, new_status, metric_value)
+    incident_attachment = build_incident_attachment(
+        incident, new_status, metric_value, notification_uuid
+    )
 
-    integration_service.send_incident_alert_notification(
+    success = integration_service.send_incident_alert_notification(
         sentry_app_id=action.sentry_app_id,
         action_id=action.id,
         incident_id=incident.id,
         organization=organization,
         new_status=new_status.value,
-        incident_attachment=incident_attachment,
+        incident_attachment_json=json.dumps(incident_attachment),
         metric_value=metric_value,
     )
+    return success
 
 
 def find_alert_rule_action_ui_component(app_platform_event: AppPlatformEvent) -> bool:
@@ -133,7 +138,9 @@ class NotifyEventServiceAction(EventAction):
             return f"(Legacy) {title}"
         return title
 
-    def after(self, event: GroupEvent, state: EventState) -> Generator[CallbackFuture, None, None]:
+    def after(
+        self, event: GroupEvent, state: EventState, notification_uuid: Optional[str] = None
+    ) -> Generator[CallbackFuture, None, None]:
         service = self.get_option("service")
 
         extra = {"event_id": event.event_id}

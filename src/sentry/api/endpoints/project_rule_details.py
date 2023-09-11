@@ -1,13 +1,14 @@
 from __future__ import annotations
 
-from django.db.models import Q
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.rule import RuleEndpoint
+from sentry.api.endpoints.project_rules import find_duplicate_rule
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.rule import RuleSerializer
 from sentry.api.serializers.rest_framework.rule import RuleSerializer as DrfRuleSerializer
@@ -26,17 +27,20 @@ from sentry.models.integrations.sentry_app_installation import (
     SentryAppInstallation,
     prepare_ui_component,
 )
-from sentry.models.rulesnooze import RuleSnooze
 from sentry.rules.actions import trigger_sentry_app_action_creators_for_issues
-from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.signals import alert_rule_edited
 from sentry.tasks.integrations.slack import find_channel_id_for_rule
-from sentry.utils import metrics
 from sentry.web.decorators import transaction_start
 
 
 @region_silo_endpoint
 class ProjectRuleDetailsEndpoint(RuleEndpoint):
+    publish_status = {
+        "DELETE": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.UNKNOWN,
+        "PUT": ApiPublishStatus.UNKNOWN,
+    }
+
     @transaction_start("ProjectRuleDetailsEndpoint")
     def get(self, request: Request, project, rule) -> Response:
         """
@@ -91,22 +95,6 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
         if len(errors):
             serialized_rule["errors"] = errors
 
-        rule_snooze = RuleSnooze.objects.filter(
-            Q(user_id=request.user.id) | Q(user_id=None), rule=rule
-        )
-        if rule_snooze.exists():
-            serialized_rule["snooze"] = True
-            snooze = rule_snooze[0]
-            if request.user.id == snooze.owner_id:
-                created_by = "You"
-            else:
-                creator_name = user_service.get_user(snooze.owner_id).get_display_name()
-                created_by = creator_name
-            serialized_rule["snoozeCreatedBy"] = created_by
-            serialized_rule["snoozeForEveryone"] = snooze.user_id is None
-        else:
-            serialized_rule["snooze"] = False
-
         return Response(serialized_rule)
 
     @transaction_start("ProjectRuleDetailsEndpoint")
@@ -136,6 +124,16 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
         if serializer.is_valid():
             data = serializer.validated_data
 
+            if not data.get("actions", []):
+                return Response(
+                    {
+                        "actions": [
+                            "You must add an action for this alert to fire.",
+                        ]
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
             # combine filters and conditions into one conditions criteria for the rule object
             conditions = data.get("conditions", [])
             if "filters" in data:
@@ -151,6 +149,18 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
                 "actions": data["actions"],
                 "frequency": data.get("frequency"),
             }
+            duplicate_rule = find_duplicate_rule(kwargs, project, rule.id)
+            if duplicate_rule:
+                return Response(
+                    {
+                        "name": [
+                            f"This rule is an exact duplicate of '{duplicate_rule.label}' in this project and may not be created.",
+                        ],
+                        "ruleId": [duplicate_rule.id],
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
             owner = data.get("owner")
             if owner:
                 try:
@@ -160,6 +170,10 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
                         "Could not resolve owner",
                         status=status.HTTP_400_BAD_REQUEST,
                     )
+
+            if rule.status == ObjectStatus.DISABLED:
+                rule.status = ObjectStatus.ACTIVE
+                rule.save()
 
             if data.get("pending_save"):
                 client = RedisRuleStatus()
@@ -171,8 +185,6 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
 
             trigger_sentry_app_action_creators_for_issues(actions=kwargs.get("actions"))
 
-            if rule.data["conditions"] != kwargs["conditions"]:
-                metrics.incr("sentry.issue_alert.conditions.edited", sample_rate=1.0)
             updated_rule = project_rules.Updater.run(rule=rule, request=request, **kwargs)
 
             RuleActivity.objects.create(

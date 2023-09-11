@@ -9,7 +9,7 @@ from responses import matchers
 
 from sentry.api.serializers import ExternalEventSerializer, serialize
 from sentry.integrations.pagerduty.client import PagerDutyProxyClient
-from sentry.models import Integration, PagerDutyService
+from sentry.models import Integration
 from sentry.silo.base import SiloMode
 from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
 from sentry.testutils.cases import APITestCase
@@ -45,19 +45,17 @@ class PagerDutyProxyClientTest(APITestCase):
             metadata={"services": SERVICES},
         )
         self.integration.add_organization(self.organization, self.user)
-        self.service = PagerDutyService.objects.create(
+        self.service = self.integration.organizationintegration_set.first().add_pagerduty_service(
             service_name=SERVICES[0]["service_name"],
             integration_key=SERVICES[0]["integration_key"],
-            organization_integration_id=self.integration.organizationintegration_set.first().id,
-            organization_id=self.organization.id,
-            integration_id=self.integration.id,
         )
+
         self.installation = self.integration.get_installation(self.organization.id)
         self.min_ago = iso_format(before_now(minutes=1))
 
     @responses.activate
     def test_send_trigger(self):
-        integration_key = self.service.integration_key
+        integration_key = self.service["integration_key"]
 
         event = self.store_event(
             data={
@@ -69,6 +67,7 @@ class PagerDutyProxyClientTest(APITestCase):
             project_id=self.project.id,
         )
         custom_details = serialize(event, None, ExternalEventSerializer())
+        assert event.group is not None
         group = event.group
         expected_data = {
             "routing_key": integration_key,
@@ -147,12 +146,9 @@ class PagerDutyProxyApiClientTest(APITestCase):
             metadata={"services": SERVICES},
         )
         self.integration.add_organization(self.organization, self.user)
-        self.service = PagerDutyService.objects.create(
+        self.service = self.integration.organizationintegration_set.first().add_pagerduty_service(
             service_name=SERVICES[0]["service_name"],
             integration_key=SERVICES[0]["integration_key"],
-            organization_integration_id=self.integration.organizationintegration_set.first().id,
-            organization_id=self.organization.id,
-            integration_id=self.integration.id,
         )
         self.installation = self.integration.get_installation(self.organization.id)
         self.min_ago = iso_format(before_now(minutes=1))
@@ -202,7 +198,7 @@ class PagerDutyProxyApiClientTest(APITestCase):
         with override_settings(SILO_MODE=SiloMode.MONOLITH):
             client = PagerDutyProxyApiTestClient(
                 org_integration_id=self.installation.org_integration.id,
-                integration_key=self.service.integration_key,
+                integration_key=self.service["integration_key"],
             )
             client.send_trigger(event)
 
@@ -216,7 +212,7 @@ class PagerDutyProxyApiClientTest(APITestCase):
         with override_settings(SILO_MODE=SiloMode.CONTROL):
             client = PagerDutyProxyApiTestClient(
                 org_integration_id=self.installation.org_integration.id,
-                integration_key=self.service.integration_key,
+                integration_key=self.service["integration_key"],
             )
             client.send_trigger(event)
 
@@ -230,7 +226,7 @@ class PagerDutyProxyApiClientTest(APITestCase):
         with override_settings(SILO_MODE=SiloMode.REGION):
             client = PagerDutyProxyApiTestClient(
                 org_integration_id=self.installation.org_integration.id,
-                integration_key=self.service.integration_key,
+                integration_key=self.service["integration_key"],
             )
             client.send_trigger(event)
 

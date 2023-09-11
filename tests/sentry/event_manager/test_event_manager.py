@@ -12,6 +12,8 @@ from django.test.utils import override_settings
 from django.utils import timezone
 from freezegun import freeze_time
 from rest_framework.status import HTTP_404_NOT_FOUND
+from urllib3 import HTTPResponse
+from urllib3.exceptions import MaxRetryError
 
 from fixtures.github import (
     COMPARE_COMMITS_EXAMPLE_WITH_INTERMEDIATE,
@@ -34,10 +36,12 @@ from sentry.event_manager import (
     EventManager,
     HashDiscarded,
     _get_event_instance,
+    _get_severity_score,
     _save_grouphash_and_group,
     get_event_type,
     has_pending_commit_resolution,
     materialize_metadata,
+    severity_connection_pool,
 )
 from sentry.eventstore.models import Event
 from sentry.grouping.utils import hash_from_values
@@ -64,7 +68,6 @@ from sentry.models import (
     GroupStatus,
     GroupTombstone,
     Integration,
-    OrganizationIntegration,
     Project,
     PullRequest,
     PullRequestCommit,
@@ -77,6 +80,7 @@ from sentry.models import (
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.eventuser import EventUser
 from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG, LEGACY_GROUPING_CONFIG
+from sentry.silo import SiloMode
 from sentry.spans.grouping.utils import hash_values
 from sentry.testutils.asserts import assert_mock_called_once_with_partial
 from sentry.testutils.cases import (
@@ -87,8 +91,9 @@ from sentry.testutils.cases import (
 )
 from sentry.testutils.helpers import apply_feature_flag_on_cls, override_options
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.performance_issues.event_generators import get_event
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.tsdb.base import TSDBModel
 from sentry.types.activity import ActivityType
 from sentry.utils import json
@@ -117,7 +122,7 @@ class EventManagerTestMixin:
         return event
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, PerformanceIssueTestCase):
     def test_similar_message_prefix_doesnt_group(self):
         # we had a regression which caused the default hash to just be
@@ -737,18 +742,20 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
 
         org = group.organization
 
-        integration = Integration.objects.create(provider="example", name="Example")
-        integration.add_organization(org, self.user)
-        OrganizationIntegration.objects.filter(
-            integration_id=integration.id, organization_id=group.organization.id
-        ).update(
-            config={
-                "sync_comments": True,
-                "sync_status_outbound": True,
-                "sync_status_inbound": True,
-                "sync_assignee_outbound": True,
-                "sync_assignee_inbound": True,
-            }
+        integration = self.create_integration(
+            organization=org,
+            external_id="example",
+            oi_params={
+                "config": {
+                    "sync_comments": True,
+                    "sync_status_outbound": True,
+                    "sync_status_inbound": True,
+                    "sync_assignee_outbound": True,
+                    "sync_assignee_inbound": True,
+                }
+            },
+            provider="example",
+            name="Example",
         )
 
         external_issue = ExternalIssue.objects.get_or_create(
@@ -2189,14 +2196,16 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
                 project=self.project,
             )
             manager.normalize()
-            manager.save(self.project.id)
+            with outbox_runner():
+                manager.save(self.project.id)
 
             # This should have moved us back to the default grouping
             project = Project.objects.get(id=self.project.id)
             assert project.get_option("sentry:grouping_config") == DEFAULT_GROUPING_CONFIG
 
             # and we should see an audit log record.
-            record = AuditLogEntry.objects.first()
+            with assume_test_silo_mode(SiloMode.CONTROL):
+                record = AuditLogEntry.objects.first()
             assert record.event == audit_log.get_event_id("PROJECT_EDIT")
             assert record.data["sentry:grouping_config"] == DEFAULT_GROUPING_CONFIG
             assert record.data["slug"] == self.project.slug
@@ -2461,6 +2470,149 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             },
         )
 
+    def test_new_group_metrics_logging_with_frame_mix(self) -> None:
+        with patch("sentry.event_manager.metrics.incr") as mock_metrics_incr:
+            manager = EventManager(make_event(platform="javascript"))
+            manager.normalize()
+            # IRL, `normalize_stacktraces_for_grouping` adds frame mix metadata to the event, but we
+            # can't mock that because it's imported inside its calling function to avoid circular imports
+            manager._data["metadata"] = {"in_app_frame_mix": "in-app-only"}
+            manager.save(self.project.id)
+
+            mock_metrics_incr.assert_any_call(
+                "grouping.in_app_frame_mix",
+                sample_rate=1.0,
+                tags={
+                    "platform": "javascript",
+                    "frame_mix": "in-app-only",
+                },
+            )
+
+    def test_new_group_metrics_logging_without_frame_mix(self) -> None:
+        with patch("sentry.event_manager.metrics.incr") as mock_metrics_incr:
+            manager = EventManager(make_event(platform="javascript"))
+            event = manager.save(self.project.id)
+
+            assert event.get_event_metadata().get("in_app_frame_mix") is None
+
+            metrics_logged = [call.args[0] for call in mock_metrics_incr.mock_calls]
+            assert "grouping.in_app_frame_mix" not in metrics_logged
+
+    @patch(
+        "sentry.event_manager.severity_connection_pool.urlopen",
+        return_value=HTTPResponse(body=json.dumps({"severity": 0.1231})),
+    )
+    def test_get_severity_score_simple(self, mock_urlopen: MagicMock) -> None:
+        manager = EventManager(
+            make_event(exception={"values": [{"type": "NopeError", "value": "Nopey McNopeface"}]})
+        )
+        event = manager.save(self.project.id)
+
+        severity = _get_severity_score(event)
+
+        mock_urlopen.assert_called_with(
+            "POST",
+            "/issues/severity-score",
+            body='{"message":"NopeError: Nopey McNopeface"}',
+            headers={"content-type": "application/json;charset=utf-8"},
+        )
+        assert severity == 0.1231
+
+    @patch(
+        "sentry.event_manager.severity_connection_pool.urlopen",
+        return_value=HTTPResponse(body=json.dumps({"severity": 0.1231})),
+    )
+    def test_get_severity_score_no_message(self, mock_urlopen: MagicMock) -> None:
+        manager = EventManager(make_event())
+        event = manager.save(self.project.id)
+
+        severity = _get_severity_score(event)
+
+        mock_urlopen.assert_not_called()
+        assert severity is None
+
+    @patch(
+        "sentry.event_manager.severity_connection_pool.urlopen",
+        side_effect=MaxRetryError(
+            severity_connection_pool, "/issues/severity-score", Exception("It broke")
+        ),
+    )
+    @patch("sentry.event_manager.logger.warning")
+    def test_get_severity_score_max_retry_exception(
+        self,
+        mock_logger_warning: MagicMock,
+        _mock_urlopen: MagicMock,
+    ) -> None:
+        manager = EventManager(
+            make_event(exception={"values": [{"type": "NopeError", "value": "Nopey McNopeface"}]})
+        )
+        event = manager.save(self.project.id)
+
+        severity = _get_severity_score(event)
+
+        warning_call_args = mock_logger_warning.call_args.args
+        warning_call_kwargs = mock_logger_warning.call_args.kwargs
+
+        assert warning_call_args == (
+            "Unable to get severity score from microservice after 1 retry. Got MaxRetryError caused by: Exception('It broke').",
+        )
+        assert warning_call_kwargs["extra"]["event_id"] == event.event_id
+        assert repr(warning_call_kwargs["extra"]["reason"]) == repr(Exception("It broke"))
+        assert severity is None
+
+    @patch(
+        "sentry.event_manager.severity_connection_pool.urlopen",
+        side_effect=Exception("It broke"),
+    )
+    @patch("sentry.event_manager.logger.warning")
+    def test_get_severity_score_other_exception(
+        self,
+        mock_logger_warning: MagicMock,
+        _mock_urlopen: MagicMock,
+    ) -> None:
+        manager = EventManager(
+            make_event(exception={"values": [{"type": "NopeError", "value": "Nopey McNopeface"}]})
+        )
+        event = manager.save(self.project.id)
+
+        severity = _get_severity_score(event)
+
+        warning_call_args = mock_logger_warning.call_args.args
+        warning_call_kwargs = mock_logger_warning.call_args.kwargs
+
+        assert warning_call_args == (
+            "Unable to get severity score from microservice. Got: Exception('It broke').",
+        )
+        assert warning_call_kwargs["extra"]["event_id"] == event.event_id
+        assert repr(warning_call_kwargs["extra"]["reason"]) == repr(Exception("It broke"))
+        assert severity is None
+
+    @patch("sentry.event_manager._get_severity_score", return_value=0.1121)
+    def test_severity_score_flag_on(self, mock_get_severity_score: MagicMock):
+        with self.feature({"projects:first-event-severity-calculation": True}):
+            manager = EventManager(
+                make_event(
+                    exception={"values": [{"type": "NopeError", "value": "Nopey McNopeface"}]}
+                )
+            )
+            event = manager.save(self.project.id)
+
+            mock_get_severity_score.assert_called()
+            assert event.group and event.group.get_event_metadata()["severity"] == 0.1121
+
+    @patch("sentry.event_manager._get_severity_score", return_value=0.1121)
+    def test_severity_score_flag_off(self, mock_get_severity_score: MagicMock):
+        with self.feature({"projects:first-event-severity-calculation": False}):
+            manager = EventManager(
+                make_event(
+                    exception={"values": [{"type": "NopeError", "value": "Nopey McNopeface"}]}
+                )
+            )
+            event = manager.save(self.project.id)
+
+            mock_get_severity_score.assert_not_called()
+            assert event.group and event.group.get_event_metadata().get("severity") is None
+
 
 class AutoAssociateCommitTest(TestCase, EventManagerTestMixin):
     def setUp(self):
@@ -2722,7 +2874,7 @@ class AutoAssociateCommitTest(TestCase, EventManagerTestMixin):
             assert commit_list[1].key == LATER_COMMIT_SHA
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ReleaseIssueTest(TestCase):
     def setUp(self):
         self.project = self.create_project()
@@ -2854,7 +3006,7 @@ class ReleaseIssueTest(TestCase):
         )
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 @apply_feature_flag_on_cls("organizations:dynamic-sampling")
 class DSLatestReleaseBoostTest(TestCase):
     def setUp(self):

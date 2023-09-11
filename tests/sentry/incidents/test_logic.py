@@ -66,7 +66,7 @@ from sentry.incidents.models import (
     IncidentType,
     TriggerStatus,
 )
-from sentry.models import ActorTuple, Integration, OrganizationIntegration, PagerDutyService
+from sentry.models import ActorTuple, Integration, OrganizationIntegration
 from sentry.models.actor import get_actor_id_for_user
 from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError
 from sentry.snuba.dataset import Dataset
@@ -1384,16 +1384,13 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
             metadata={"services": services},
         )
         integration.add_organization(self.organization, self.user)
-        service = PagerDutyService.objects.create(
+        service = integration.organizationintegration_set.first().add_pagerduty_service(
             service_name=services[0]["service_name"],
             integration_key=services[0]["integration_key"],
-            organization_integration_id=integration.organizationintegration_set.first().id,
-            organization_id=self.organization.id,
-            integration_id=integration.id,
         )
         type = AlertRuleTriggerAction.Type.PAGERDUTY
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
-        target_identifier = service.id
+        target_identifier = service["id"]
         action = create_alert_rule_trigger_action(
             self.trigger,
             type,
@@ -1615,16 +1612,13 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
             metadata={"services": services},
         )
         integration.add_organization(self.organization, self.user)
-        service = PagerDutyService.objects.create(
+        service = integration.organizationintegration_set.first().add_pagerduty_service(
             service_name=services[0]["service_name"],
             integration_key=services[0]["integration_key"],
-            organization_integration_id=integration.organizationintegration_set.first().id,
-            organization_id=self.organization.id,
-            integration_id=integration.id,
         )
         type = AlertRuleTriggerAction.Type.PAGERDUTY
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
-        target_identifier = service.id
+        target_identifier = service["id"]
         action = update_alert_rule_trigger_action(
             self.action,
             type,
@@ -2031,33 +2025,40 @@ class TestDeduplicateTriggerActions(TestCase):
 
 
 class TestCustomMetricAlertRule(TestCase):
-    @patch("sentry.incidents.logic.features.has", return_value=True)
     @patch("sentry.incidents.logic.schedule_invalidate_project_config")
-    def test_create_alert_rule(self, mocked_schedule_invalidate_project_config, mocked_feature_has):
+    def test_create_alert_rule(self, mocked_schedule_invalidate_project_config):
         self.create_alert_rule()
 
         mocked_schedule_invalidate_project_config.assert_not_called()
 
-    @patch("sentry.incidents.logic.features.has", return_value=True)
     @patch("sentry.incidents.logic.schedule_invalidate_project_config")
-    def test_create_custom_metric_alert_rule(
-        self, mocked_schedule_invalidate_project_config, mocked_feature_has
-    ):
-        self.create_alert_rule(
-            projects=[self.project],
-            dataset=Dataset.PerformanceMetrics,
-            query="transaction.duration:>=100",
-        )
+    def test_create_custom_metric_alert_rule(self, mocked_schedule_invalidate_project_config):
+        with self.feature({"organizations:on-demand-metrics-extraction": True}):
+            self.create_alert_rule(
+                projects=[self.project],
+                dataset=Dataset.PerformanceMetrics,
+                query="transaction.duration:>=100",
+            )
 
-        mocked_schedule_invalidate_project_config.assert_called_once_with(
-            trigger="alerts:create-on-demand-metric", project_id=self.project.id
-        )
+            mocked_schedule_invalidate_project_config.assert_called_once_with(
+                trigger="alerts:create-on-demand-metric", project_id=self.project.id
+            )
 
-    @patch("sentry.incidents.logic.features.has", return_value=False)
+        mocked_schedule_invalidate_project_config.reset_mock()
+
+        with self.feature({"organizations:on-demand-metrics-prefill": True}):
+            self.create_alert_rule(
+                projects=[self.project],
+                dataset=Dataset.PerformanceMetrics,
+                query="transaction.duration:>=50",
+            )
+
+            mocked_schedule_invalidate_project_config.assert_called_once_with(
+                trigger="alerts:create-on-demand-metric", project_id=self.project.id
+            )
+
     @patch("sentry.incidents.logic.schedule_invalidate_project_config")
-    def test_create_custom_metric_turned_off(
-        self, mocked_schedule_invalidate_project_config, mocked_feature_has
-    ):
+    def test_create_custom_metric_turned_off(self, mocked_schedule_invalidate_project_config):
         self.create_alert_rule(
             projects=[self.project],
             dataset=Dataset.PerformanceMetrics,

@@ -67,6 +67,7 @@ class StatusActionTest(APITestCase):
             data={"message": "oh no"},
             project_id=self.project1.id,
         )
+        assert self.event1.group is not None
         self.group1 = self.event1.group
 
     def post_webhook(
@@ -150,6 +151,14 @@ class StatusActionTest(APITestCase):
         )
 
         resp = self.post_webhook(user_id="s4ur0n", tenant_id="7h3_gr347")
+        # assert sign is called with the right arguments
+        assert sign.call_args.kwargs == {
+            "integration_id": self.integration.id,
+            "organization_id": self.org.id,
+            "teams_user_id": "s4ur0n",
+            "team_id": "f3ll0wsh1p",
+            "tenant_id": "7h3_gr347",
+        }
 
         linking_url = build_linking_url(
             self.integration, self.org, "s4ur0n", "f3ll0wsh1p", "7h3_gr347"

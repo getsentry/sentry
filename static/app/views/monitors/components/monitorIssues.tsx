@@ -43,7 +43,7 @@ function MonitorIssues({orgSlug, monitor, monitorEnvs}: Props) {
 
   return (
     <GroupList
-      orgId={orgSlug}
+      orgSlug={orgSlug}
       endpointPath={`/organizations/${orgSlug}/issues/`}
       queryParams={{
         query: `monitor.slug:"${monitor.slug}" environment:[${monitorEnvs

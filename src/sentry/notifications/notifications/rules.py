@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from datetime import timezone
 from typing import Any, Iterable, Mapping, MutableMapping
 from urllib.parse import urlencode
 
@@ -67,11 +68,12 @@ class AlertRuleNotification(ProjectNotification):
         target_type: ActionTargetType,
         target_identifier: int | None = None,
         fallthrough_choice: FallthroughChoiceType | None = None,
+        notification_uuid: str | None = None,
     ) -> None:
         event = notification.event
         group = event.group
         project = group.project
-        super().__init__(project)
+        super().__init__(project, notification_uuid)
         self.group = group
         self.event = event
         self.target_type = target_type
@@ -115,17 +117,16 @@ class AlertRuleNotification(ProjectNotification):
     def get_recipient_context(
         self, recipient: RpcActor, extra_context: Mapping[str, Any]
     ) -> MutableMapping[str, Any]:
-        timezone = pytz.timezone("UTC")
-
+        tz = timezone.utc
         if recipient.actor_type == ActorType.USER:
             user_tz = UserOption.objects.get_value(user=recipient, key="timezone", default="UTC")
             try:
-                timezone = pytz.timezone(user_tz)
+                tz = pytz.timezone(user_tz)
             except pytz.UnknownTimeZoneError:
                 pass
         return {
             **super().get_recipient_context(recipient, extra_context),
-            "timezone": timezone,
+            "timezone": tz,
         }
 
     def get_context(self) -> MutableMapping[str, Any]:
@@ -146,13 +147,19 @@ class AlertRuleNotification(ProjectNotification):
         fallback_params: MutableMapping[str, str] = {}
         group_header = get_group_substatus_text(self.group)
 
+        notification_uuid = self.notification_uuid if hasattr(self, "notification_uuid") else None
         context = {
             "project_label": self.project.get_full_name(),
             "group": self.group,
             "group_header": group_header,
             "event": self.event,
             "link": get_group_settings_link(
-                self.group, environment, rule_details, None, **fallback_params
+                self.group,
+                environment,
+                rule_details,
+                None,
+                notification_uuid=notification_uuid,
+                **fallback_params,
             ),
             "rules": rule_details,
             "has_integrations": has_integrations(self.organization, self.project),

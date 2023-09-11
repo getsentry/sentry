@@ -122,4 +122,40 @@ describe('TraceLiteQuery', function () {
 
     expect(await screen.findByTestId('type')).toHaveTextContent('full');
   });
+
+  it('uses trace full response with tracing without performance enabled', async function () {
+    traceLiteMock = MockApiClient.addMockResponse({
+      url: `/organizations/test-org/events-trace-light/0${traceId}/`,
+      body: [],
+      match: [MockApiClient.matchQuery({event_id: eventId})],
+    });
+    traceFullMock = MockApiClient.addMockResponse({
+      url: `/organizations/test-org/events-trace/0${traceId}/`,
+      body: {
+        transactions: [{event_id: eventId, children: []}],
+        orphan_errors: [],
+      },
+    });
+    traceMetaMock = MockApiClient.addMockResponse({
+      url: `/organizations/test-org/events-trace-meta/0${traceId}/`,
+      body: {
+        projects: 4,
+        transactions: 5,
+        errors: 2,
+      },
+    });
+    event.contexts.trace.trace_id = `0${traceId}`;
+
+    const organization = TestStubs.Organization();
+    organization.features = ['performance-tracing-without-performance'];
+
+    render(
+      <QuickTraceQuery event={event} location={location} orgSlug="test-org">
+        {renderQuickTrace}
+      </QuickTraceQuery>,
+      {organization}
+    );
+
+    expect(await screen.findByTestId('type')).toHaveTextContent('full');
+  });
 });

@@ -70,6 +70,8 @@ class NotificationsService(RpcService):
         actor: RpcActor,
         project_id: Optional[int] = None,
         organization_id: Optional[int] = None,
+        skip_provider_updates: bool = False,
+        organization_id_for_team: Optional[int] = None,
     ) -> None:
         pass
 
@@ -128,6 +130,11 @@ class NotificationsService(RpcService):
     @rpc_method
     @abstractmethod
     def remove_notification_settings_for_organization(self, *, organization_id: int) -> None:
+        pass
+
+    @rpc_method
+    @abstractmethod
+    def remove_notification_settings_for_project(self, *, project_id: int) -> None:
         pass
 
 

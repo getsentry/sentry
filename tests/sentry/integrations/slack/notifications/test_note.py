@@ -3,7 +3,7 @@ from unittest import mock
 import responses
 
 from sentry.models import Activity
-from sentry.notifications.notifications.activity import NoteActivityNotification
+from sentry.notifications.notifications.activity.note import NoteActivityNotification
 from sentry.testutils.cases import PerformanceIssueTestCase, SlackActivityNotificationTest
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
 from sentry.testutils.helpers.slack import get_attachment, send_notification
@@ -37,8 +37,8 @@ class SlackNoteNotificationTest(SlackActivityNotificationTest, PerformanceIssueT
         assert text == f"New comment by {self.name}"
         assert attachment["title"] == f"{self.group.title}"
         assert (
-            attachment["title_link"]
-            == f"http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=note_activity-slack"
+            f"http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=note_activity-slack&notification_uuid="
+            in attachment["title_link"]
         )
         assert attachment["text"] == notification.activity.data["text"]
         assert (
@@ -62,8 +62,8 @@ class SlackNoteNotificationTest(SlackActivityNotificationTest, PerformanceIssueT
         assert text == f"New comment by {self.name}"
         assert attachment["title"] == "N+1 Query"
         assert (
-            attachment["title_link"]
-            == f"http://testserver/organizations/{self.organization.slug}/issues/{event.group.id}/?referrer=note_activity-slack"
+            f"http://testserver/organizations/{self.organization.slug}/issues/{event.group.id}/?referrer=note_activity-slack&notification_uuid="
+            in attachment["title_link"]
         )
         assert attachment["text"] == notification.activity.data["text"]
         assert (
@@ -85,8 +85,8 @@ class SlackNoteNotificationTest(SlackActivityNotificationTest, PerformanceIssueT
         event = self.store_event(
             data={"message": "Hellboy's world", "level": "error"}, project_id=self.project.id
         )
-        event = event.for_group(event.groups[0])
-        notification = self.create_notification(event.group)
+        group_event = event.for_group(event.groups[0])
+        notification = self.create_notification(group_event.group)
 
         with self.tasks():
             notification.send()

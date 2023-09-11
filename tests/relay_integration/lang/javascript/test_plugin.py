@@ -8,9 +8,11 @@ from uuid import uuid4
 
 import pytest
 import responses
+from django.conf import settings
 from django.core.files.base import ContentFile
 from django.utils import timezone
 
+from sentry.debug_files.artifact_bundles import refresh_artifact_bundles_in_use
 from sentry.models import (
     ArtifactBundle,
     DebugIdArtifactBundle,
@@ -1308,6 +1310,9 @@ class TestJavascriptIntegration(RelayStoreHelper):
             body=load_fixture("node_app.min.js.map"),
             content_type="application/javascript; charset=utf-8",
         )
+        responses.add_passthru(
+            settings.SENTRY_SNUBA + "/tests/entities/generic_metrics_counters/insert",
+        )
 
         data = {
             "timestamp": self.min_ago,
@@ -1383,6 +1388,10 @@ class TestJavascriptIntegration(RelayStoreHelper):
                 "<!doctype html><html><head></head><body><script>/*legit case*/</script></body></html>"
             ),
         )
+        responses.add_passthru(
+            settings.SENTRY_SNUBA + "/tests/entities/generic_metrics_counters/insert",
+        )
+
         data = {
             "timestamp": self.min_ago,
             "message": "hello",
@@ -2503,6 +2512,10 @@ class TestJavascriptIntegration(RelayStoreHelper):
 
         assert frame.data["resolved_with"] == "index"
         assert frame.data["symbolicated"]
+
+        # explicitly trigger the task that is refreshing bundles, usually this
+        # happens on a schedule:
+        refresh_artifact_bundles_in_use()
 
         artifact_bundles = ArtifactBundle.objects.filter(
             organization_id=self.organization.id,

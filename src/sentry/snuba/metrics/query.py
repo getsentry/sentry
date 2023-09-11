@@ -375,8 +375,14 @@ class MetricsQuery(MetricsQueryValidationRunner):
         if ONE_DAY % self.granularity.granularity != 0:
             raise InvalidParams("The interval should divide one day without a remainder.")
 
+        # see what's our effective interval (either the one passed in or the one from the granularity)
+        if self.interval is None:
+            interval = self.granularity.granularity
+        else:
+            interval = self.interval
+
         if self.start and self.end and self.include_series:
-            if (self.end - self.start).total_seconds() / self.granularity.granularity > MAX_POINTS:
+            if (self.end - self.start).total_seconds() / interval > MAX_POINTS:
                 raise InvalidParams(
                     "Your interval and date range would create too many results. "
                     "Use a larger interval, or a smaller date range."

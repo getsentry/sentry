@@ -20,6 +20,7 @@ from sentry.services.hybrid_cloud.project_key import ProjectKeyRole, project_key
 from sentry.services.hybrid_cloud.user import UserSerializeType
 from sentry.services.hybrid_cloud.user.serial import serialize_generic_user
 from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.types.region import find_all_multitenant_region_names, get_region_by_name
 from sentry.utils import auth, json
 from sentry.utils.assets import get_frontend_dist_prefix
 from sentry.utils.email import is_smtp_enabled
@@ -210,11 +211,7 @@ class _ClientConfig:
         #
         # This is needed in the case where you access a different org and get denied, but the UI
         # can open the sudo dialog if you are an "inactive" superuser
-        return (
-            self.request is not None
-            and self.request.user is not None
-            and self.request.user.is_superuser
-        )
+        return self.request is not None and self.user is not None and self.user.is_superuser
 
     @property
     def links(self) -> Iterable[Tuple[str, str]]:
@@ -242,7 +239,7 @@ class _ClientConfig:
             serializer=UserSerializeType.SELF_DETAILED,
             auth_context=AuthenticationContext(
                 auth=AuthenticatedToken.from_token(getattr(self.request, "auth", None)),
-                user=serialize_generic_user(self.request.user),
+                user=serialize_generic_user(self.user),
             ),
         )
         if not query_result:
@@ -252,8 +249,32 @@ class _ClientConfig:
         (user_details,) = query_result
         user_details = json.loads(json.dumps(user_details))
         if self._is_superuser():
-            user_details["isSuperuser"] = self.request.user.is_superuser
+            user_details["isSuperuser"] = self.user.is_superuser
         return user_details
+
+    @property
+    def regions(self) -> List[Mapping[str, Any]]:
+        """
+        The regions available to the current user.
+
+        This will include *all* multi-tenant regions, and if the customer
+        has membership on any single-tenant regions those will also be included.
+        """
+        user = self.user
+        region_names = find_all_multitenant_region_names()
+        if not region_names:
+            return [{"name": "default", "url": options.get("system.url-prefix")}]
+
+        # No logged in user.
+        if not user or not user.id:
+            return [get_region_by_name(region).api_serialize() for region in region_names]
+
+        # Ensure all regions the current user is in are included as there
+        # could be single tenants as well.
+        memberships = user_service.get_organizations(user_id=user.id)
+        unique_regions = set(region_names) | {membership.region_name for membership in memberships}
+
+        return [get_region_by_name(name).api_serialize() for name in unique_regions]
 
     def get_context(self) -> Mapping[str, Any]:
         return {
@@ -299,6 +320,7 @@ class _ClientConfig:
                 "allowUrls": self.allow_list,
                 "tracePropagationTargets": settings.SENTRY_FRONTEND_TRACE_PROPAGATION_TARGETS or [],
             },
+            "regions": self.regions,
             "demoMode": settings.DEMO_MODE,
             "enableAnalytics": settings.ENABLE_ANALYTICS,
             "validateSUForm": getattr(

@@ -1,6 +1,8 @@
 from sentry.models import NotificationSetting, UserEmail, UserOption
+from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import control_silo_test
 from sentry.types.integrations import ExternalProviders
 
@@ -60,7 +62,9 @@ class UserNotificationFineTuningTest(UserNotificationFineTuningTestBase):
     method = "put"
 
     def test_update_invalid_project(self):
-        self.get_error_response("me", "alerts", status_code=403, **{"123": 1})
+        # We do not validate project / organization ids!  Due to the silo split we accept these at face value rather than fan out
+        # across all silos to validate them.
+        self.get_response("me", "alerts", **{"123": 1})
 
     def test_invalid_id_value(self):
         self.get_error_response("me", "alerts", status_code=400, **{"nope": 1})
@@ -145,6 +149,77 @@ class UserNotificationFineTuningTest(UserNotificationFineTuningTestBase):
 
         assert value1 == NotificationSettingOptionValues.DEFAULT
         assert value2 == NotificationSettingOptionValues.NEVER
+
+    @with_feature("organizations:notifications-double-write")
+    def test_double_write(self):
+        data = {str(self.project.id): 1, str(self.project2.id): 2}
+        self.get_success_response("me", "workflow", status_code=204, **data)
+
+        value = NotificationSetting.objects.get_settings(
+            provider=ExternalProviders.EMAIL,
+            type=NotificationSettingTypes.WORKFLOW,
+            user_id=self.user.id,
+            project=self.project,
+        )
+        value2 = NotificationSetting.objects.get_settings(
+            provider=ExternalProviders.EMAIL,
+            type=NotificationSettingTypes.WORKFLOW,
+            user_id=self.user.id,
+            project=self.project2,
+        )
+
+        assert value == NotificationSettingOptionValues.SUBSCRIBE_ONLY
+        assert value2 == NotificationSettingOptionValues.NEVER
+
+        query_args = {
+            "user_id": self.user.id,
+            "team_id": None,
+        }
+
+        assert NotificationSettingOption.objects.filter(
+            **query_args,
+            scope_type="project",
+            scope_identifier=self.project.id,
+            value="subscribe_only",
+        ).exists()
+        assert NotificationSettingOption.objects.filter(
+            **query_args,
+            scope_type="project",
+            scope_identifier=self.project2.id,
+            value="never",
+        ).exists()
+
+        # Can return to default
+        data = {str(self.project.id): -1}
+        self.get_success_response("me", "workflow", status_code=204, **data)
+
+        value1 = NotificationSetting.objects.get_settings(
+            provider=ExternalProviders.EMAIL,
+            type=NotificationSettingTypes.WORKFLOW,
+            user_id=self.user.id,
+            project=self.project,
+        )
+        value2 = NotificationSetting.objects.get_settings(
+            provider=ExternalProviders.EMAIL,
+            type=NotificationSettingTypes.WORKFLOW,
+            user_id=self.user.id,
+            project=self.project2,
+        )
+
+        assert value1 == NotificationSettingOptionValues.DEFAULT
+        assert value2 == NotificationSettingOptionValues.NEVER
+
+        query_args = {
+            "user_id": self.user.id,
+            "team_id": None,
+        }
+
+        assert NotificationSettingOption.objects.filter(
+            **query_args,
+            scope_type="project",
+            scope_identifier=self.project2.id,
+            value="never",
+        ).exists()
 
     def test_saves_and_returns_email_routing(self):
         UserEmail.objects.create(user=self.user, email="alias@example.com", is_verified=True).save()
@@ -270,9 +345,6 @@ class UserNotificationFineTuningTest(UserNotificationFineTuningTestBase):
         assert not UserOption.objects.filter(
             user=self.user, organization_id=new_org.id, key="reports"
         ).exists()
-
-        data = {str(new_project.id): 1}
-        self.get_error_response("me", "alerts", status_code=403, **data)
 
         value = NotificationSetting.objects.get_settings(
             ExternalProviders.EMAIL,

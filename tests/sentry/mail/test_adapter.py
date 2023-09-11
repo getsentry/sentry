@@ -1,6 +1,6 @@
 import uuid
 from collections import Counter
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from functools import cached_property
 from typing import Mapping, Sequence
 from unittest import mock
@@ -10,7 +10,7 @@ from django.contrib.auth.models import AnonymousUser
 from django.core import mail
 from django.core.mail.message import EmailMultiAlternatives
 from django.db.models import F
-from django.utils import timezone
+from django.utils import timezone as django_timezone
 
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.userreport import UserReportWithGroupSerializer
@@ -188,6 +188,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         assert msg.subject == "[Sentry] BAR-1 - Hello world"
         assert isinstance(msg.alternatives[0][0], str)
         assert "my rule" in msg.alternatives[0][0]
+        assert "notification_uuid" in msg.body
 
     def test_simple_snooze(self):
         """Test that notification for alert snoozed by user is not send to that user."""
@@ -384,6 +385,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             assert (
                 checked_value in msg.alternatives[0][0]
             ), f"{checked_value} not present in message"
+        assert "notification_uuid" in msg.body
 
     @mock.patch("sentry.interfaces.stacktrace.Stacktrace.get_title")
     @mock.patch("sentry.interfaces.stacktrace.Stacktrace.to_email_html")
@@ -550,8 +552,8 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         """
         from django.template.defaultfilters import date
 
-        timestamp = datetime.now(tz=pytz.utc)
-        local_timestamp_s = timezone.localtime(timestamp, pytz.timezone("Europe/Vienna"))
+        timestamp = datetime.now(tz=timezone.utc)
+        local_timestamp_s = django_timezone.localtime(timestamp, pytz.timezone("Europe/Vienna"))
         local_timestamp = date(local_timestamp_s, "N j, Y, g:i:s a e")
 
         UserOption.objects.create(user=self.user, key="timezone", value="Europe/Vienna")
@@ -689,6 +691,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             f"/settings/{organization.slug}/integrations/slack/?referrer=alert_email"
             in msg.alternatives[0][0]
         )
+        assert "notification_uuid" in msg.body
 
     def test_slack_link_with_integration(self):
         project = self.project
@@ -712,6 +715,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             f"/settings/{organization.slug}/integrations/slack/?referrer=alert_email"
             not in msg.alternatives[0][0]
         )
+        assert "notification_uuid" in msg.body
 
     def test_slack_link_with_plugin(self):
         project = self.project
@@ -785,8 +789,8 @@ class MailAdapterNotifyIssueOwnersTest(BaseMailAdapterTest):
         )
         self.create_member(user=user2, organization=organization, teams=[team])
         self.group = self.create_group(
-            first_seen=timezone.now(),
-            last_seen=timezone.now(),
+            first_seen=django_timezone.now(),
+            last_seen=django_timezone.now(),
             project=project,
             message="hello  world",
             logger="root",
@@ -1183,7 +1187,7 @@ class MailAdapterGetDigestSubjectTest(BaseMailAdapterTest):
             get_digest_subject(
                 mock.Mock(qualified_short_id="BAR-1"),
                 Counter({mock.sentinel.group: 3}),
-                datetime(2016, 9, 19, 1, 2, 3, tzinfo=pytz.utc),
+                datetime(2016, 9, 19, 1, 2, 3, tzinfo=timezone.utc),
             )
             == "BAR-1 - 1 new alert since Sept. 19, 2016, 1:02 a.m. UTC"
         )
@@ -1527,6 +1531,19 @@ class MailAdapterRuleNotifyTest(BaseMailAdapterTest):
         self.adapter.rule_notify(event, futures, ActionTargetType.ISSUE_OWNERS)
         assert digests.add.call_count == 1
 
+    def test_notify_includes_uuid(self):
+        event = self.store_event(data={}, project_id=self.project.id)
+        rule = Rule.objects.create(project=self.project, label="my rule")
+        futures = [RuleFuture(rule, {})]
+        notification_uuid = str(uuid.uuid4())
+        with mock.patch.object(self.adapter, "notify") as notify:
+            self.adapter.rule_notify(
+                event, futures, ActionTargetType.ISSUE_OWNERS, notification_uuid=notification_uuid
+            )
+            notify.assert_called_once_with(
+                mock.ANY, ActionTargetType.ISSUE_OWNERS, None, None, notification_uuid
+            )
+
 
 class MailAdapterNotifyAboutActivityTest(BaseMailAdapterTest):
     def test_assignment(self):
@@ -1553,6 +1570,7 @@ class MailAdapterNotifyAboutActivityTest(BaseMailAdapterTest):
 
         assert msg.subject == "Re: [Sentry] BAR-1 - こんにちは"
         assert msg.to == [self.user.email]
+        assert "notification_uuid" in msg.body
 
     def test_assignment_team(self):
         NotificationSetting.objects.update_settings(
@@ -1579,6 +1597,7 @@ class MailAdapterNotifyAboutActivityTest(BaseMailAdapterTest):
 
         assert msg.subject == "Re: [Sentry] BAR-1 - こんにちは"
         assert msg.to == [self.user.email]
+        assert "notification_uuid" in msg.body
 
     def test_note(self):
         user_foo = self.create_user("foo@example.com")
@@ -1608,6 +1627,7 @@ class MailAdapterNotifyAboutActivityTest(BaseMailAdapterTest):
 
         assert msg.subject == "Re: [Sentry] BAR-1 - こんにちは"
         assert msg.to == [self.user.email]
+        assert "notification_uuid" in msg.body
 
 
 class MailAdapterHandleSignalTest(BaseMailAdapterTest):
@@ -1651,6 +1671,7 @@ class MailAdapterHandleSignalTest(BaseMailAdapterTest):
             == f"[Sentry] {self.group.qualified_short_id} - New Feedback from Homer Simpson"
         )
         assert msg.to == [self.user.email]
+        assert "notification_uuid" in msg.body
 
     def test_user_feedback__enhanced_privacy(self):
         self.organization.update(flags=F("flags").bitor(Organization.flags.enhanced_privacy))
@@ -1684,3 +1705,4 @@ class MailAdapterHandleSignalTest(BaseMailAdapterTest):
             == f"[Sentry] {self.group.qualified_short_id} - New Feedback from Homer Simpson"
         )
         assert msg.to == [self.user.email]
+        assert "notification_uuid" in msg.body

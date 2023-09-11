@@ -46,7 +46,7 @@ from sentry.services.hybrid_cloud.organization import (
     organization_service,
 )
 from sentry.signals import sso_enabled, user_signup
-from sentry.tasks.auth import email_missing_links
+from sentry.tasks.auth import email_missing_links_control
 from sentry.utils import auth, json, metrics
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.hashlib import md5_text
@@ -459,6 +459,27 @@ class AuthIdentityHandler:
     def _has_usable_password(self) -> bool:
         return bool(self._app_user and self._app_user.has_usable_password())
 
+    @cached_property
+    def _login_form(self) -> AuthenticationForm:
+        return AuthenticationForm(
+            self.request,
+            self.request.POST if self.request.POST.get("op") == "login" else None,
+            initial={"username": self._app_user and self._app_user.username},
+        )
+
+    def _build_confirmation_response(self, is_new_account):
+        existing_user, template = self._dispatch_to_confirmation(is_new_account)
+        context = {
+            "identity": self.identity,
+            "provider": self.provider_name,
+            "identity_display_name": self.identity.get("name") or self.identity.get("email"),
+            "identity_identifier": self.identity.get("email") or self.identity.get("id"),
+            "existing_user": existing_user,
+        }
+        if not self._logged_in_user:
+            context["login_form"] = self._login_form
+        return self._respond(f"sentry/{template}.html", context)
+
     def handle_unknown_identity(
         self,
         state: AuthHelperSessionStore,
@@ -479,15 +500,7 @@ class AuthIdentityHandler:
         - Should I create a new user based on this identity?
         """
         op = self.request.POST.get("op")
-        login_form = (
-            None
-            if self._logged_in_user
-            else AuthenticationForm(
-                self.request,
-                self.request.POST if self.request.POST.get("op") == "login" else None,
-                initial={"username": self._app_user and self._app_user.username},
-            )
-        )
+
         # we don't trust all IDP email verification, so users can also confirm via one time email link
         is_account_verified = False
         if self.request.session.get("confirm_account_verification_key"):
@@ -527,16 +540,13 @@ class AuthIdentityHandler:
         elif not self._has_usable_password():
             is_new_account = True
 
-        auth_identity = None
         if op == "confirm" and self.user.is_authenticated or is_account_verified:
             auth_identity = self.handle_attach_identity()
         elif op == "newuser":
             auth_identity = self.handle_new_user()
         elif op == "login" and not self._logged_in_user:
             # confirm authentication, login
-            assert login_form is not None
-            op = None
-            if login_form.is_valid():
+            if self._login_form.is_valid():
                 # This flow is special.  If we are going through a 2FA
                 # flow here (login returns False) we want to instruct the
                 # system to return upon completion of the 2fa flow to the
@@ -545,29 +555,15 @@ class AuthIdentityHandler:
                 # If there is no 2fa we don't need to do this and can just
                 # go on.
                 try:
-                    self._login(login_form.get_user())
+                    self._login(self._login_form.get_user())
                 except self._NotCompletedSecurityChecks:
                     return self._post_login_redirect()
             else:
                 auth.log_auth_failure(self.request, self.request.POST.get("username"))
+            return self._build_confirmation_response(is_new_account)
         else:
-            op = None
+            return self._build_confirmation_response(is_new_account)
 
-        if not op:
-            existing_user, template = self._dispatch_to_confirmation(is_new_account)
-
-            context = {
-                "identity": self.identity,
-                "provider": self.provider_name,
-                "identity_display_name": self.identity.get("name") or self.identity.get("email"),
-                "identity_identifier": self.identity.get("email") or self.identity.get("id"),
-                "existing_user": existing_user,
-            }
-            if login_form:
-                context["login_form"] = login_form
-            return self._respond(f"sentry/{template}.html", context)
-
-        assert auth_identity is not None
         user = auth_identity.user
         user.backend = settings.AUTHENTICATION_BACKENDS[0]
 
@@ -821,6 +817,10 @@ class AuthHelper(Pipeline):
                 auth_identity = None
 
             # Handle migration of identity keys
+            # Context - when google oauth was initially created, the auth_identity key was simply
+            # the provider email. This can cause issues if the customer changes their domain name,
+            # and now their email is different and they're locked out of their account.
+            # This logic updates their id to the provider id instead.
             if not auth_identity and isinstance(user_id, MigratingIdentityId):
                 try:
                     auth_identity = AuthIdentity.objects.select_related("user").get(
@@ -899,7 +899,7 @@ class AuthHelper(Pipeline):
             )
         )
 
-        email_missing_links.delay(self.organization.id, request.user.id, self.provider.key)
+        email_missing_links_control.delay(self.organization.id, request.user.id, self.provider.key)
 
         messages.add_message(self.request, messages.SUCCESS, OK_SETUP_SSO)
 

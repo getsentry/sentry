@@ -6,6 +6,8 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 
 # from sentry.api.bases.organization import OrganizationEndpoint
@@ -21,6 +23,8 @@ from sentry.profiles.utils import parse_profile_filters, proxy_profiling_service
 
 
 class OrganizationProfilingBaseEndpoint(OrganizationEventsV2EndpointBase):
+    owner = ApiOwner.PROFILING
+
     def get_profiling_params(self, request: Request, organization: Organization) -> Dict[str, Any]:
         try:
             params: Dict[str, Any] = parse_profile_filters(request.query_params.get("query", ""))
@@ -34,6 +38,10 @@ class OrganizationProfilingBaseEndpoint(OrganizationEventsV2EndpointBase):
 
 @region_silo_endpoint
 class OrganizationProfilingFiltersEndpoint(OrganizationProfilingBaseEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, organization: Organization) -> HttpResponse:
         if not features.has("organizations:profiling", organization, actor=request.user):
             return Response(status=404)
@@ -50,6 +58,10 @@ class OrganizationProfilingFiltersEndpoint(OrganizationProfilingBaseEndpoint):
 
 @region_silo_endpoint
 class OrganizationProfilingFlamegraphEndpoint(OrganizationProfilingBaseEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, organization: Organization) -> HttpResponse:
         if not features.has("organizations:profiling", organization, actor=request.user):
             return Response(status=404)
