@@ -67,10 +67,6 @@ class KVStorage(ABC, Generic[K, V]):
             self.delete(key)
 
     @abstractmethod
-    def set_many(self, items: Tuple[K, V]) -> None:
-        raise NotImplementedError
-
-    @abstractmethod
     def bootstrap(self) -> None:
         """
         Allocate the resources (create tables, etc.) required by the store to

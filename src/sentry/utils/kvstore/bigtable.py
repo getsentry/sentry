@@ -3,7 +3,7 @@ import logging
 import struct
 from datetime import timedelta
 from threading import Lock
-from typing import Any, Iterator, Mapping, Optional, Sequence, Tuple
+from typing import Any, Callable, Iterator, Mapping, Optional, Sequence, Tuple
 
 from django.utils import timezone
 from google.api_core import exceptions, retry
@@ -83,8 +83,8 @@ class BigtableKVStorage(KVStorage[str, bytes]):
         self.app_profile = app_profile
         self.batcher = None
 
-        self._mutate_rows = None
-        self._mutate = None
+        self._mutate_rows: Optional[Callable[Any]] = None
+        self._mutate: Optional[Callable[Any]] = None
 
         self.__table: Table
         self.__table_lock = Lock()
@@ -324,11 +324,6 @@ class BigtableKVStorage(KVStorage[str, bytes]):
 
         table.delete()
 
-    # If the batcher is enabled, it'll use it, otherwise it'll call
-    # table.mutate_rows().
-    def set_many(self, rows):
-        self._mutate_rows(rows)
-
     def __exit__(self, exc_type, exc_value, traceback):
-        if self.batcher:
-            self.batcher.close()
+        if self.__batcher:
+            self.__batcher.close()

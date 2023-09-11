@@ -69,9 +69,6 @@ class BigtableNodeStorage(NodeStorage):
     def _set_bytes(self, id, data, ttl=None):
         self.store.set(id, data, ttl)
 
-    def _set_many(self, data):
-        self.store.set_many(data)
-
     def delete(self, id):
         if self.skip_deletes:
             return

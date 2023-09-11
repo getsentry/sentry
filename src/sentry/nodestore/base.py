@@ -69,7 +69,6 @@ class NodeStorage(local, Service):
         "set",
         "set_bytes",
         "set_subkeys",
-        "set_many",
         "cleanup",
         "validate",
         "bootstrap",
@@ -225,9 +224,6 @@ class NodeStorage(local, Service):
     def _set_bytes(self, id, data, ttl=None):
         raise NotImplementedError
 
-    def _set_many(self, data):
-        raise NotImplementedError
-
     def set(self, id, data, ttl=None):
         """
         Set value for `id`. Note that this deletes existing subkeys for `id` as
@@ -260,10 +256,6 @@ class NodeStorage(local, Service):
             self._set_bytes(id, bytes_data, ttl=ttl)
             # set cache only after encoding and write to nodestore has succeeded
             self._set_cache_item(id, cache_item)
-
-    def set_many(self, items):
-        self._set_many(items)
-        self._set_cache_items(items)
 
     def cleanup(self, cutoff_timestamp):
         raise NotImplementedError
