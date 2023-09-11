@@ -131,7 +131,7 @@ def compute_configs(organization_id=None, project_id=None, public_key=None):
                     # If we find the config in the cache it means it was active.  As such we want to
                     # recalculate it.  If the config was not there at all, we leave it and avoid the
                     # cost of re-computation.
-                    if projectconfig_cache.backend.get(key.public_key) is not None:
+                    if True or projectconfig_cache.backend.get(key.public_key) is not None:
                         configs[key.public_key] = compute_projectkey_config(key)
                         action = "recompute"
                     else:
@@ -147,7 +147,7 @@ def compute_configs(organization_id=None, project_id=None, public_key=None):
                 # If we find the config in the cache it means it was active.  As such we want to
                 # recalculate it.  If the config was not there at all, we leave it and avoid the
                 # cost of re-computation.
-                if projectconfig_cache.backend.get(key.public_key) is not None:
+                if True or projectconfig_cache.backend.get(key.public_key) is not None:
                     configs[key.public_key] = compute_projectkey_config(key)
                     action = "recompute"
                 else:

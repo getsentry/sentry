@@ -26,7 +26,8 @@ from sentry.testutils.pytest.fixtures import django_db_all
             "transaction.duration:>1",
             True,
         ),  # transaction.duration not supported by standard metrics
-        ("failure_rate()", "transaction.duration:>1", True),  # supported by on demand,
+        ("failure_rate()", "transaction.duration:>1", True),  # supported by on demand,\
+        ("apdex(10)", "", True),  # every apdex query is on-demand
         ("apdex(10)", "transaction.duration:>10", True),  # supported by on demand
         (
             "count_if(transaction.duration,equals,0)",
@@ -90,7 +91,6 @@ class TestCreatesOndemandMetricSpec:
             ("p95(measurements.lcp)", ""),
             ("avg(spans.http)", ""),
             ("failure_rate()", "release:bar"),
-            ("apdex(10)", "release:foo"),
         ],
     )
     def test_does_not_create_on_demand_spec(self, aggregate, query):

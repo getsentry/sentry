@@ -307,8 +307,8 @@ def _get_function_support(function: str) -> SupportedBy:
 
 def _get_args_support(function: str, args: Sequence[str]) -> SupportedBy:
     # apdex can have two variations, either apdex() or apdex(value).
-    if function == "apdex" and len(args) < 2:
-        return SupportedBy.both()
+    if function == "apdex":
+        return SupportedBy(on_demand_metrics=True, standard_metrics=False)
 
     if len(args) == 0:
         return SupportedBy.both()
@@ -751,7 +751,7 @@ class OnDemandMetricSpec:
         parsed_query = self._parse_query(self.query)
         # An on demand metric must have at least a condition, otherwise we can just use a classic metric.
         if parsed_query is None or len(parsed_query.conditions) == 0:
-            if count_if_rule_condition is None:
+            if count_if_rule_condition is None and parsed_field.function != "apdex":
                 raise Exception("This query should not use on demand metrics")
 
             return count_if_rule_condition
