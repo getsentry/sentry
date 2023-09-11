@@ -303,8 +303,9 @@ class CheckAM2Compatibility:
             for sdk_name, sdk_versions in found_sdks.items():
                 # If the SDK is not supporting performance, we don't want to try and check dynamic sampling
                 # compatibility, and we also don't return it as unsupported since it will create noise.
-                if sdk_name not in SDKS_SUPPORTING_PERFORMACE:
-                    continue
+                # TODO: disabled check for now, since we still have to gather the full list.
+                # if sdk_name not in SDKS_SUPPORTING_PERFORMACE:
+                #     continue
 
                 sdk_versions_set: Set[Tuple[str, Optional[str]]] = set()
                 found_supported_version = False
