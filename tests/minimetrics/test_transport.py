@@ -111,3 +111,22 @@ def test_relay_encoder_with_gauge():
         result
         == "startup_time@second:10.0:1.0:20.0:50.0:5|g|#browser:Chrome,browser.version:1.0|T1693994400"
     )
+
+
+def test_relay_encoder_with_invalid_chars():
+    encoder = RelayStatsdEncoder()
+
+    metric_1 = {
+        "type": "c",
+        "name": "@button_click",
+        "value": 2,
+        "timestamp": 1693994400,
+        "width": 10,
+        "unit": "second",
+        "tags": (
+            ("browser:name", "Chrome"),
+            ("browser|version", "1.0"),
+        ),
+    }
+    result = encoder.encode(metric_1)  # type:ignore
+    assert result == "button_click@second:2|c|#browsername:Chrome,browserversion:1.0|T1693994400"
