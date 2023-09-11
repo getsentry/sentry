@@ -441,6 +441,11 @@ class ModelBackupTests(TransactionTestCase):
 
     @targets(mark(Rule, RuleActivity, RuleSnooze))
     def test_rule(self):
+        from django.db import router
+
+        # breakpoint()
+        router.routers[0].use_simulated(True)
+
         rule = self.create_project_rule(project=self.project)
         RuleActivity.objects.create(rule=rule, type=RuleActivityType.CREATED.value)
         self.snooze_rule(user_id=self.user.id, owner_id=self.user.id, rule=rule)

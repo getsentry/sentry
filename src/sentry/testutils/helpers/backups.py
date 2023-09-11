@@ -124,29 +124,57 @@ def clear_database(*, reset_pks: bool = False):
     """Deletes all models we care about from the database, in a sequence that ensures we get no
     foreign key errors."""
 
-    with unguarded_write(using="default"):
-        if reset_pks:
-            call_command("flush", verbosity=0, interactive=False)
-            return
+    databases = dict()
 
-        with transaction.atomic(using="default"):
-            reversed = reversed_dependencies()
+    reversed = reversed_dependencies()
+    for model in reversed:
+        db = router.db_for_write(model)
+        if db not in databases:
+            databases[db] = []
+        databases[db].append(model)
+
+    names_databases = databases.keys()
+
+    if reset_pks:
+        for name in names_databases:
+            with unguarded_write(using=name):
+                call_command("flush", verbosity=0, interactive=False)
+        return
+
+    for using in names_databases:
+        with unguarded_write(using=using), transaction.atomic(using=using):
+            reversed = databases[using]
             for model in reversed:
                 # For some reason, the tables for `SentryApp*` models don't get deleted properly
                 # here when using `model.objects.all().delete()`, so we have to call out to Postgres
                 # manually.
-                connection = connections[router.db_for_write(SentryApp)]
+                connection = connections[router.db_for_write(model)]
                 with connection.cursor() as cursor:
                     table = model._meta.db_table
                     cursor.execute(f"DELETE FROM {table:s};")
-
             # Clear remaining tables that are not explicitly in Sentry's own model dependency graph.
             for model in set(apps.get_models()) - set(reversed):
                 model.objects.all().delete()
 
+    # with unguarded_write(using="default"):
+    #     with transaction.atomic(using="default"):
+    #         reversed = reversed_dependencies()
+    #         for model in reversed:
+    #             # For some reason, the tables for `SentryApp*` models don't get deleted properly
+    #             # here when using `model.objects.all().delete()`, so we have to call out to Postgres
+    #             # manually.
+    #             connection = connections[router.db_for_write(model)]
+    #             with connection.cursor() as cursor:
+    #                 table = model._meta.db_table
+    #                 cursor.execute(f"DELETE FROM {table:s};")
+
+    #         # Clear remaining tables that are not explicitly in Sentry's own model dependency graph.
+    #         for model in set(apps.get_models()) - set(reversed):
+    #             model.objects.all().delete()
+
 
 def import_export_then_validate(method_name: str, *, reset_pks: bool = True) -> JSONData:
-    """Test helper that validates that dat imported from an export of the current state of the test
+    """Test helper that validates that the imported data from an export of the current state of the test
     database correctly matches the actual outputted export data."""
 
     with tempfile.TemporaryDirectory() as tmpdir:

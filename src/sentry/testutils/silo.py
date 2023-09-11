@@ -341,6 +341,12 @@ def validate_protected_queries(queries: Sequence[Dict[str, str]]) -> None:
     fence_depth = 0
     start_fence_index = 0
 
+    from django.conf import settings
+
+    ENFORCE_MONOTONIC_TRANSACTIONS = getattr(settings, "ENFORCE_MONOTONIC_TRANSACTIONS", True)
+    if ENFORCE_MONOTONIC_TRANSACTIONS is False:
+        return
+
     for index, query in enumerate(queries):
         sql = query["sql"]
         # The real type of queries is Iterable[Dict[str, str | None]], due to some weird bugs in django which can result

@@ -107,4 +107,7 @@ def run_backup_tests_only_on_single_db(test_case: Type | Callable[..., Any]):
     # TODO(getsentry/team-ospo#185)
 
     delegate = override_settings(ENFORCE_MONOTONIC_TRANSACTIONS=False)
+    # from sentry.testutils.hybrid_cloud import use_split_dbs
+
+    # delegate = pytest.mark.skipif(False, reason="backup is currently supported only for single DB")
     return delegate(test_case)
