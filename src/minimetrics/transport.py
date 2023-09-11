@@ -4,6 +4,7 @@ import sentry_sdk
 from sentry_sdk.envelope import Envelope, Item
 
 from minimetrics.types import ExtractedMetric, ExtractedMetricValue, MetricTagsInternal, MetricUnit
+from sentry.utils import json, metrics
 
 IN = TypeVar("IN")
 OUT = TypeVar("OUT")
@@ -78,12 +79,18 @@ class MetricEnvelopeTransport(Generic[M]):
             return
 
         metric_item = Item(payload=self._encoder.encode(metric), type="statsd")
+        envelope = Envelope(
+            headers=None,
+            items=[metric_item],
+        )
+        self._track_envelope_size(envelope)
 
         transport = client.transport
         if transport is not None:
-            transport.capture_envelope(
-                Envelope(
-                    headers=None,
-                    items=[metric_item],
-                )
-            )
+            transport.capture_envelope(envelope)
+
+    @staticmethod
+    def _track_envelope_size(envelope: Envelope):
+        json_envelope = json.dumps(envelope)
+        envelope_size = len(json_envelope.encode("utf-8"))
+        metrics.timing(key="minimetrics.envelope_size", value=envelope_size, sample_rate=1.0)
