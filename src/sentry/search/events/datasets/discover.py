@@ -1672,7 +1672,7 @@ class DiscoverDatasetConfig(DatasetConfig):
                 1,
             )
         else:
-            return self.builder.get_default_converter()(search_filter)
+            return self.builder.default_filter_converter(search_filter)
 
     def _transaction_status_filter_converter(
         self, search_filter: SearchFilter
