@@ -124,7 +124,14 @@ def setup_simulate_on_commit(request):
 
 @pytest.fixture(autouse=True)
 def setup_enforce_monotonic_transactions(request):
+    from django.conf import settings
+
     from sentry.testutils.hybrid_cloud import enforce_no_cross_transaction_interactions
+
+    ENFORCE_MONOTONIC_TRANSACTIONS = getattr(settings, "ENFORCE_MONOTONIC_TRANSACTIONS", True)
+    if ENFORCE_MONOTONIC_TRANSACTIONS is False:
+        yield
+        return
 
     with enforce_no_cross_transaction_interactions():
         yield

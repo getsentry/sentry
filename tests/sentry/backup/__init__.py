@@ -2,11 +2,10 @@ from __future__ import annotations
 
 from typing import Any, Callable, Type
 
-import pytest
 from django.db import models
+from django.test import override_settings
 
 from sentry.backup.exports import DatetimeSafeDjangoJSONEncoder
-from sentry.testutils.hybrid_cloud import use_split_dbs
 
 
 def targets(expected_models: list[Type]):
@@ -107,7 +106,5 @@ def run_backup_tests_only_on_single_db(test_case: Type | Callable[..., Any]):
     """
     # TODO(getsentry/team-ospo#185)
 
-    delegate = pytest.mark.skipif(
-        use_split_dbs(), reason="backup is currently supported only for single DB"
-    )
+    delegate = override_settings(ENFORCE_MONOTONIC_TRANSACTIONS=False)
     return delegate(test_case)
