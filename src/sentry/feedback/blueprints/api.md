@@ -152,12 +152,12 @@ Every field not marked as "optional" is considered a required field and must be 
 | -------------------------- | ---------------- | ------------------------------------- |
 | dist                       | string           | -                                     |
 | environment                | string           | -                                     |
+| event_id                   | optional[string] | Omitted IDs are internally generated. |
 | feedback                   | object           | -                                     |
 | feedback.contact_email     | string           | -                                     |
 | feedback.message           | string           | -                                     |
 | feedback.replay_id         | optional[string] | -                                     |
 | feedback.url               | string           | -                                     |
-| id                         | optional[string] | Missing IDs are internally generated. |
 | platform                   | string           | -                                     |
 | release                    | string           | -                                     |
 | request                    | optional[object] | -                                     |
@@ -178,38 +178,36 @@ Every field not marked as "optional" is considered a required field and must be 
 
   ```json
   {
-    "data": {
-      "dist": "abc123",
-      "environment": "production",
-      "feedback": {
-        "contact_email": "colton.allen@sentry.io",
-        "message": "I really like this user-feedback feature!",
-        "replay_id": "ec3b4dc8b79f417596f7a1aa4fcca5d2",
-        "url": "https://docs.sentry.io/platforms/javascript/"
-      },
-      "id": "1ffe0775ac0f4417aed9de36d9f6f8dc",
-      "platform": "javascript",
-      "release": "version@1.3",
-      "request": {
-        "headers": {
-          "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36"
-        }
-      },
-      "sdk": {
-        "name": "sentry.javascript.react",
-        "version": "6.18.1"
-      },
-      "tags": {
-        "key": "value"
-      },
-      "timestamp": "2023-08-31T14:10:34.954048",
-      "user": {
-        "email": "username@example.com",
-        "id": "123",
-        "ip_address": "127.0.0.1",
-        "name": "user",
-        "username": "user2270129"
+    "dist": "abc123",
+    "environment": "production",
+    "event_id": "1ffe0775ac0f4417aed9de36d9f6f8dc",
+    "feedback": {
+      "contact_email": "colton.allen@sentry.io",
+      "message": "I really like this user-feedback feature!",
+      "replay_id": "ec3b4dc8b79f417596f7a1aa4fcca5d2",
+      "url": "https://docs.sentry.io/platforms/javascript/"
+    },
+    "platform": "javascript",
+    "release": "version@1.3",
+    "request": {
+      "headers": {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36"
       }
+    },
+    "sdk": {
+      "name": "sentry.javascript.react",
+      "version": "6.18.1"
+    },
+    "tags": {
+      "key": "value"
+    },
+    "timestamp": "2023-08-31T14:10:34.954048",
+    "user": {
+      "email": "username@example.com",
+      "id": "123",
+      "ip_address": "127.0.0.1",
+      "name": "user",
+      "username": "user2270129"
     }
   }
   ```
