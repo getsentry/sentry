@@ -146,6 +146,34 @@ Retrieve a collection of user-feedback items.
 
 Create a new user-feedback item. This method is a subset of the Event protocol with an additional "feedback" object added. Within the feedback object are feedback related event metadata.
 
+Every field not marked as "optional" is considered a required field and must be present in the request body.
+
+| Column                     | Type             | Description                           |
+| -------------------------- | ---------------- | ------------------------------------- |
+| dist                       | string           | -                                     |
+| environment                | string           | -                                     |
+| feedback                   | object           | -                                     |
+| feedback.contact_email     | string           | -                                     |
+| feedback.message           | string           | -                                     |
+| feedback.replay_id         | optional[string] | -                                     |
+| feedback.url               | string           | -                                     |
+| id                         | optional[string] | Missing IDs are internally generated. |
+| platform                   | string           | -                                     |
+| release                    | string           | -                                     |
+| request                    | optional[object] | -                                     |
+| request.headers            | optional[object] | -                                     |
+| request.headers.User-Agent | optional[string] | -                                     |
+| sdk.name                   | string           | -                                     |
+| sdk.version                | string           | -                                     |
+| tags                       | optional[object] | -                                     |
+| timestamp                  | string           | ISO-8061 formatted date string.       |
+| user                       | optional[object] | -                                     |
+| user.email                 | optional[string] | -                                     |
+| user.id                    | optional[string] | -                                     |
+| user.ip_address            | optional[string] | -                                     |
+| user.name                  | optional[string] | -                                     |
+| user.username              | optional[string] | -                                     |
+
 - Request
 
   ```json
