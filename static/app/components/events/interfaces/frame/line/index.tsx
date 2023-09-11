@@ -4,7 +4,11 @@ import classNames from 'classnames';
 
 import ListItem from 'sentry/components/list/listItem';
 import StrictClick from 'sentry/components/strictClick';
-import {PlatformType, SentryAppComponent} from 'sentry/types';
+import {
+  PlatformType,
+  SentryAppComponent,
+  SentryAppSchemaStacktraceLink,
+} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import withSentryAppComponents from 'sentry/utils/withSentryAppComponents';
 
@@ -32,7 +36,7 @@ type Props = Omit<
     React.ComponentProps<typeof Default>,
     'onToggleContext' | 'isExpandable' | 'leadsToApp' | 'hasGroupingBadge'
   > & {
-    components: Array<SentryAppComponent>;
+    components: SentryAppComponent<SentryAppSchemaStacktraceLink>[];
     event: Event;
     registers: Record<string, string>;
     emptySourceNotation?: boolean;

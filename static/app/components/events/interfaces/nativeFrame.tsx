@@ -26,7 +26,12 @@ import {IconWarning} from 'sentry/icons/iconWarning';
 import {t, tn} from 'sentry/locale';
 import DebugMetaStore from 'sentry/stores/debugMetaStore';
 import {space} from 'sentry/styles/space';
-import {Frame, PlatformType, SentryAppComponent} from 'sentry/types';
+import {
+  Frame,
+  PlatformType,
+  SentryAppComponent,
+  SentryAppSchemaStacktraceLink,
+} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -38,7 +43,7 @@ import Context from './frame/context';
 import {SymbolicatorStatus} from './types';
 
 type Props = {
-  components: Array<SentryAppComponent>;
+  components: SentryAppComponent<SentryAppSchemaStacktraceLink>[];
   event: Event;
   frame: Frame;
   isUsedForGrouping: boolean;

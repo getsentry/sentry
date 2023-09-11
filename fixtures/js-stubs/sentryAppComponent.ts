@@ -1,9 +1,18 @@
-export function SentryAppComponent(params = {}) {
+import {
+  SentryAppComponent as TSentryAppComponent,
+  SentryAppSchemaElement,
+} from 'sentry/types';
+
+export function SentryAppComponent(
+  params = {}
+): TSentryAppComponent<SentryAppSchemaElement> {
   return {
     uuid: 'ed517da4-a324-44c0-aeea-1894cd9923fb',
     type: 'issue-link',
     schema: {
+      type: 'issue-link',
       create: {
+        uri: '',
         required_fields: [
           {
             type: 'text',
@@ -29,6 +38,7 @@ export function SentryAppComponent(params = {}) {
         ],
       },
       link: {
+        uri: '',
         required_fields: [
           {
             type: 'text',
@@ -42,16 +52,21 @@ export function SentryAppComponent(params = {}) {
       uuid: 'b468fed3-afba-4917-80d6-bdac99c1ec05',
       slug: 'foo',
       name: 'Foo',
+      avatars: [],
     },
     ...params,
   };
 }
-export function SentryAppComponentAsync(params = {}) {
+export function SentryAppComponentAsync(
+  params = {}
+): TSentryAppComponent<SentryAppSchemaElement> {
   return {
     uuid: 'ed517da4-a324-44c0-aeea-1894cd9923fb',
     type: 'issue-link',
     schema: {
+      type: 'issue-link',
       create: {
+        uri: '',
         required_fields: [
           {
             type: 'select',
@@ -64,6 +79,7 @@ export function SentryAppComponentAsync(params = {}) {
         ],
       },
       link: {
+        uri: '',
         required_fields: [
           {
             type: 'text',
@@ -77,16 +93,20 @@ export function SentryAppComponentAsync(params = {}) {
       uuid: 'b468fed3-afba-4917-80d6-bdac99c1ec05',
       slug: 'foo',
       name: 'Foo',
+      avatars: [],
     },
     ...params,
   };
 }
 
-export function SentryAppComponentDependent(params = {}) {
+export function SentryAppComponentDependent(
+  params = {}
+): TSentryAppComponent<SentryAppSchemaElement> {
   return {
     type: 'issue-link',
     uuid: 'ed517da4-a324-44c0-aeea-1894cd9923fb',
     schema: {
+      type: 'issue-link',
       link: {
         required_fields: [
           {
@@ -146,12 +166,12 @@ export function SentryAppComponentDependent(params = {}) {
         ],
         uri: '/integrations/sentry/issues/create',
       },
-      type: 'issue-link',
     },
     sentryApp: {
       uuid: 'b468fed3-afba-4917-80d6-bdac99c1ec05',
       slug: 'foo',
       name: 'Foo',
+      avatars: [],
     },
     ...params,
   };
