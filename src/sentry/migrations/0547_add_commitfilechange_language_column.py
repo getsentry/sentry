@@ -19,7 +19,7 @@ class Migration(CheckedMigration):
     is_dangerous = True
 
     dependencies = [
-        ("sentry", "0544_remove_groupsubscription_columns"),
+        ("sentry", "0546_backfill_fix_bad_xactors"),
     ]
 
     operations = [
