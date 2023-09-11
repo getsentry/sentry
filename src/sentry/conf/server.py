@@ -1403,6 +1403,8 @@ SENTRY_FEATURES = {
     "organizations:escalating-issues-v2": False,
     # Enable emiting escalating data to the metrics backend
     "organizations:escalating-metrics-backend": False,
+    # Enable the frontend to request from region & control silo domains.
+    "organizations:frontend-domainsplit": False,
     # Allows an org to have a larger set of project ownership rules per project
     "organizations:higher-ownership-limit": False,
     # Enable Monitors (Crons) view
@@ -1752,6 +1754,8 @@ SENTRY_FEATURES = {
     "organizations:sourcemaps-upload-release-as-artifact-bundle": False,
     # Signals that the organization supports the on demand metrics prefill.
     "organizations:on-demand-metrics-prefill": False,
+    # Enable writing to the new notification system when updating the old system
+    "organizations:notifications-double-write": False,
     # Excludes measurement config from project config builds.
     "organizations:projconfig-exclude-measurements": False,
     # Enable data forwarding functionality for projects.
@@ -3573,9 +3577,10 @@ SENTRY_ISSUE_PLATFORM_FUTURES_MAX_LIMIT = 10000
 
 SENTRY_GROUP_ATTRIBUTES_FUTURES_MAX_LIMIT = 10000
 
+
 # USE_SPLIT_DBS is leveraged in tests as we validate db splits further.
 # Split databases are also required for the USE_SILOS devserver flow.
-if USE_SILOS or env("SENTRY_USE_SPLIT_DBS", default=False):
+if USE_SILOS:
     # Add connections for the region & control silo databases.
     DATABASES["control"] = DATABASES["default"].copy()
     DATABASES["control"]["NAME"] = "control"
