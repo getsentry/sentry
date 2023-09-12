@@ -42,6 +42,7 @@ from sentry.notifications.utils import (
     get_rules,
 )
 from sentry.services.hybrid_cloud.organization_mapping.serial import serialize_organization_mapping
+from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.testutils.cases import TestCase
 from sentry.types.integrations import ExternalProviderEnum, ExternalProviders
 
@@ -390,6 +391,7 @@ class NotificationSettingV2HelpersTest(TestCase):
         )
 
         self.setting_providers = [setting_provider_1, setting_provider_2, setting_provider_3]
+        self.rpc_user = RpcUser(id=self.user.id)
 
     def test_get_all_setting_options(self):
         options = list(get_all_setting_options([self.user], [self.project], self.organization))
@@ -404,8 +406,10 @@ class NotificationSettingV2HelpersTest(TestCase):
     def test_get_layered_setting_options(self):
         options = get_layered_setting_options([self.user], [self.project], self.organization)
 
-        assert options[self.user][NotificationSettingEnum.DEPLOY] == self.setting_options[0]
-        assert options[self.user][NotificationSettingEnum.ISSUE_ALERTS] == self.setting_options[1]
+        assert options[self.rpc_user][NotificationSettingEnum.DEPLOY] == self.setting_options[0]
+        assert (
+            options[self.rpc_user][NotificationSettingEnum.ISSUE_ALERTS] == self.setting_options[1]
+        )
 
         options = get_layered_setting_options(
             [self.user],
@@ -414,7 +418,9 @@ class NotificationSettingV2HelpersTest(TestCase):
             additional_filters=Q(type=NotificationSettingEnum.ISSUE_ALERTS.value),
         )
 
-        assert options[self.user][NotificationSettingEnum.ISSUE_ALERTS] == self.setting_options[1]
+        assert (
+            options[self.rpc_user][NotificationSettingEnum.ISSUE_ALERTS] == self.setting_options[1]
+        )
 
     def test_get_setting_options_with_defaults(self):
         new_user = self.create_user()
@@ -425,15 +431,17 @@ class NotificationSettingV2HelpersTest(TestCase):
             value=NotificationSettingsOptionEnum.NEVER.value,
             user_id=new_user.id,
         )
+        rpc_new_user = RpcUser(id=new_user.id)
 
         options = get_setting_options_with_defaults(
             [self.user, new_user], [self.project], self.organization
         )
         assert (
-            options[new_user][NotificationSettingEnum.ISSUE_ALERTS].value == setting_option_1.value
+            options[rpc_new_user][NotificationSettingEnum.ISSUE_ALERTS].value
+            == setting_option_1.value
         )
 
-        user_options = options[self.user]
+        user_options = options[self.rpc_user]
         assert (
             user_options[NotificationSettingEnum.ISSUE_ALERTS].value
             == self.setting_options[1].value
@@ -454,15 +462,18 @@ class NotificationSettingV2HelpersTest(TestCase):
             value=NotificationSettingsOptionEnum.NEVER.value,
             user_id=new_user.id,
         )
+        rpc_new_user = RpcUser(id=new_user.id)
 
         options = get_layered_setting_providers(
             [self.user, new_user], [self.project], self.organization
         )
         assert (
-            options[new_user][NotificationSettingEnum.ISSUE_ALERTS][ExternalProviderEnum.MSTEAMS]
+            options[rpc_new_user][NotificationSettingEnum.ISSUE_ALERTS][
+                ExternalProviderEnum.MSTEAMS
+            ]
             == setting_provider_1
         )
-        user_options = options[self.user]
+        user_options = options[self.rpc_user]
         assert (
             user_options[NotificationSettingEnum.ISSUE_ALERTS][ExternalProviderEnum.MSTEAMS]
             == self.setting_providers[1]
@@ -486,18 +497,19 @@ class NotificationSettingV2HelpersTest(TestCase):
             value=NotificationSettingsOptionEnum.NEVER.value,
             user_id=new_user.id,
         )
+        rpc_new_user = RpcUser(id=new_user.id)
 
         options = get_setting_providers_with_defaults(
             [self.user, new_user], [self.project], self.organization
         )
         assert (
-            options[new_user][NotificationSettingEnum.ISSUE_ALERTS][
+            options[rpc_new_user][NotificationSettingEnum.ISSUE_ALERTS][
                 ExternalProviderEnum.MSTEAMS
             ].value
             == setting_provider_1.value
         )
 
-        user_options = options[self.user]
+        user_options = options[self.rpc_user]
         assert (
             user_options[NotificationSettingEnum.ISSUE_ALERTS][ExternalProviderEnum.MSTEAMS].value
             == self.setting_providers[1].value
@@ -513,6 +525,7 @@ class NotificationSettingV2HelpersTest(TestCase):
 
     def test_get_notification_recipients(self):
         new_user = self.create_user()
+        rpc_new_user = RpcUser(id=new_user.id)
         self.create_member(
             organization=self.organization, user=new_user, role="member", teams=[self.team]
         )
@@ -534,9 +547,9 @@ class NotificationSettingV2HelpersTest(TestCase):
         )
 
         recipients = get_notification_recipients(self.project)
-        assert recipients[ExternalProviderEnum.SLACK] == {self.user, new_user}
-        assert recipients[ExternalProviderEnum.EMAIL] == {self.user, new_user}
-        assert recipients[ExternalProviderEnum.MSTEAMS] == {new_user}
+        assert recipients[ExternalProviderEnum.SLACK] == {self.rpc_user, rpc_new_user}
+        assert recipients[ExternalProviderEnum.EMAIL] == {self.rpc_user, rpc_new_user}
+        assert recipients[ExternalProviderEnum.MSTEAMS] == {rpc_new_user}
 
     def test_user_has_any_provider_settings(self):
         assert user_has_any_provider_settings(self.user, provider=ExternalProviderEnum.SLACK)
