@@ -66,7 +66,7 @@ type Options = {
   /**
    * When provided, fetches specified teams by id if necessary and only provides those teams.
    *
-   * @deprecated use `useTeams({ids: []})`
+   * @deprecated use `useTeamsById({ids: []})`
    */
   ids?: string[];
   /**
@@ -83,7 +83,7 @@ type Options = {
   /**
    * When provided, fetches specified teams by slug if necessary and only provides those teams.
    *
-   * @deprecated use `useTeams({slugs: []})`
+   * @deprecated use `useTeamsById({slugs: []})`
    */
   slugs?: string[];
 };
