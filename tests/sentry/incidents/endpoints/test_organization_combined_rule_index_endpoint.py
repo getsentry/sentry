@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 import requests
 from freezegun import freeze_time
 
+from sentry.constants import ObjectStatus
 from sentry.incidents.models import AlertRuleThresholdType, IncidentTrigger, TriggerStatus
 from sentry.models import Rule
 from sentry.models.rule import RuleSource
@@ -876,3 +877,18 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             run_deletion(deletion.id)
 
         self.get_success_response(org.slug)
+
+    def test_active_and_disabled_rules(self):
+        """Test that we return both active and disabled rules"""
+        self.setup_project_and_rules()
+        disabled_alert = self.create_project_rule(name="disabled rule")
+        disabled_alert.status = ObjectStatus.DISABLED
+        disabled_alert.save()
+        request_data = {"per_page": "10"}
+        response = self.client.get(
+            path=self.combined_rules_url, data=request_data, content_type="application/json"
+        )
+        assert len(response.data) == 5
+        for data in response.data:
+            if data["name"] == disabled_alert.label:
+                assert data["status"] == "disabled"
