@@ -10,7 +10,7 @@ from unittest.mock import patch
 import pytest
 from rest_framework.serializers import ValidationError
 
-from sentry.backup.helpers import get_exportable_sentry_models
+from sentry.backup.helpers import ImportFlags, get_exportable_sentry_models
 from sentry.backup.imports import (
     import_in_global_scope,
     import_in_organization_scope,
@@ -97,6 +97,7 @@ class SanitizationTests(ImportTestCase):
         superadmin_user = self.copy_user(min_user, "superadmin_user")
         for model in superadmin_user:
             if model["model"] == "sentry.user":
+                model["fields"]["is_managed"] = True
                 model["fields"]["is_staff"] = True
                 model["fields"]["is_superuser"] = True
 
@@ -112,7 +113,9 @@ class SanitizationTests(ImportTestCase):
                 import_in_user_scope(tmp_file, printer=NOOP_PRINTER)
 
         assert User.objects.count() == 4
-        assert User.objects.filter(is_staff=False, is_superuser=False).count() == 4
+        assert (
+            User.objects.filter(is_managed=False, is_staff=False, is_superuser=False).count() == 4
+        )
 
         # Every user except `max_user` shares an email.
         assert Email.objects.count() == 2
@@ -126,6 +129,8 @@ class SanitizationTests(ImportTestCase):
             == 0
         )
 
+        assert User.objects.filter(is_unclaimed=True).count() == 4
+        assert User.objects.filter(is_managed=True).count() == 0
         assert User.objects.filter(is_staff=True).count() == 0
         assert User.objects.filter(is_superuser=True).count() == 0
         assert Authenticator.objects.count() == 0
@@ -141,7 +146,9 @@ class SanitizationTests(ImportTestCase):
                 import_in_organization_scope(tmp_file, printer=NOOP_PRINTER)
 
         assert User.objects.count() == 4
-        assert User.objects.filter(is_staff=False, is_superuser=False).count() == 4
+        assert (
+            User.objects.filter(is_managed=False, is_staff=False, is_superuser=False).count() == 4
+        )
 
         # Every user except `max_user` shares an email.
         assert Email.objects.count() == 2
@@ -155,6 +162,8 @@ class SanitizationTests(ImportTestCase):
             == 0
         )
 
+        assert User.objects.filter(is_unclaimed=True).count() == 4
+        assert User.objects.filter(is_managed=True).count() == 0
         assert User.objects.filter(is_staff=True).count() == 0
         assert User.objects.filter(is_superuser=True).count() == 0
         assert Authenticator.objects.count() == 0
@@ -170,9 +179,13 @@ class SanitizationTests(ImportTestCase):
                 import_in_global_scope(tmp_file, printer=NOOP_PRINTER)
 
         assert User.objects.count() == 4
+        assert User.objects.filter(is_unclaimed=True).count() == 4
+        assert User.objects.filter(is_managed=True).count() == 1
         assert User.objects.filter(is_staff=True).count() == 2
         assert User.objects.filter(is_superuser=True).count() == 2
-        assert User.objects.filter(is_staff=False, is_superuser=False).count() == 2
+        assert (
+            User.objects.filter(is_managed=False, is_staff=False, is_superuser=False).count() == 2
+        )
         assert Authenticator.objects.count() == 4
         assert UserEmail.objects.count() == 4
 
@@ -602,3 +615,203 @@ class FilterTests(ImportTestCase):
         assert UserIP.objects.count() == 0
         assert UserEmail.objects.count() == 0
         assert Email.objects.count() == 0
+
+
+@run_backup_tests_only_on_single_db
+class CollisionTests(ImportTestCase):
+    """
+    Ensure that collisions are properly handled in different flag modes.
+    """
+
+    def test_colliding_project_key(self):
+        owner = self.create_exhaustive_user("owner")
+        invited = self.create_exhaustive_user("invited")
+        member = self.create_exhaustive_user("member")
+        self.create_exhaustive_organization("some-org", owner, invited, [member])
+
+        # Take note of the `ProjectKey` that was created by the exhaustive organization - this is
+        # the one we'll be importing.
+        colliding = ProjectKey.objects.filter().first()
+        colliding_public_key = colliding.public_key
+        colliding_secret_key = colliding.secret_key
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
+
+            # After exporting and clearing the database, insert a copy of the same `ProjectKey` as
+            # the one found in the import.
+            project = self.create_project()
+            ProjectKey.objects.create(
+                project=project,
+                label="Test",
+                public_key=colliding_public_key,
+                secret_key=colliding_secret_key,
+            )
+
+            with open(tmp_path) as tmp_file:
+                import_in_organization_scope(tmp_file, printer=NOOP_PRINTER)
+
+        assert ProjectKey.objects.count() == 4
+        assert ProjectKey.objects.filter(public_key=colliding_public_key).count() == 1
+        assert ProjectKey.objects.filter(secret_key=colliding_secret_key).count() == 1
+
+    def test_colliding_user_with_merging_enabled_in_user_scope(self):
+        self.create_exhaustive_user(username="owner", email="owner@example.com")
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
+            with open(tmp_path) as tmp_file:
+                self.create_exhaustive_user(username="owner", email="owner@example.com")
+                import_in_user_scope(
+                    tmp_file,
+                    flags=ImportFlags(merge_users=True),
+                    printer=NOOP_PRINTER,
+                )
+
+        assert User.objects.count() == 1
+        assert UserIP.objects.count() == 1
+        assert UserEmail.objects.count() == 1
+        assert Authenticator.objects.count() == 1
+        assert Email.objects.count() == 1
+
+        assert User.objects.filter(username__iexact="owner").exists()
+        assert not User.objects.filter(username__iexact="owner-").exists()
+
+        assert User.objects.filter(is_unclaimed=True).count() == 0
+        assert User.objects.filter(is_unclaimed=False).count() == 1
+
+    def test_colliding_user_with_merging_disabled_in_user_scope(self):
+        self.create_exhaustive_user(username="owner", email="owner@example.com")
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
+            with open(tmp_path) as tmp_file:
+                self.create_exhaustive_user(username="owner", email="owner@example.com")
+                import_in_user_scope(
+                    tmp_file,
+                    flags=ImportFlags(merge_users=False),
+                    printer=NOOP_PRINTER,
+                )
+
+        assert User.objects.count() == 2
+        assert UserIP.objects.count() == 2
+        assert UserEmail.objects.count() == 2
+        assert Authenticator.objects.count() == 1  # Only imported in global scope
+        assert Email.objects.count() == 1  # The two users still share the same email
+
+        assert User.objects.filter(username__iexact="owner").exists()
+        assert User.objects.filter(username__icontains="owner-").exists()
+
+        assert User.objects.filter(is_unclaimed=True).count() == 1
+        assert User.objects.filter(is_unclaimed=False).count() == 1
+
+    def test_colliding_user_with_merging_enabled_in_organization_scope(self):
+        owner = self.create_exhaustive_user(username="owner", email="owner@example.com")
+        self.create_organization("some-org", owner=owner)
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
+            with open(tmp_path) as tmp_file:
+                owner = self.create_exhaustive_user(username="owner", email="owner@example.com")
+                self.create_organization("some-org", owner=owner)
+                import_in_organization_scope(
+                    tmp_file,
+                    flags=ImportFlags(merge_users=True),
+                    printer=NOOP_PRINTER,
+                )
+
+        assert User.objects.count() == 1
+        assert UserIP.objects.count() == 1
+        assert UserEmail.objects.count() == 1
+        assert Authenticator.objects.count() == 1  # Only imported in global scope
+        assert Email.objects.count() == 1  # Same email
+
+        assert User.objects.filter(username__iexact="owner").exists()
+        assert not User.objects.filter(username__icontains="owner-").exists()
+
+        assert User.objects.filter(is_unclaimed=True).count() == 0
+        assert User.objects.filter(is_unclaimed=False).count() == 1
+
+        assert Organization.objects.count() == 2
+        assert OrganizationMapping.objects.count() == 2
+        assert OrganizationMember.objects.count() == 2  # Same user in both orgs
+        assert OrganizationMemberMapping.objects.count() == 2  # Same user in both orgs
+
+        user = User.objects.get(username="owner")
+        existing = Organization.objects.get(slug="some-org")
+        imported = Organization.objects.filter(slug__icontains="some-org-").first()
+        assert (
+            OrganizationMember.objects.filter(user_id=user.id, organization=existing).count() == 1
+        )
+        assert (
+            OrganizationMember.objects.filter(user_id=user.id, organization=imported).count() == 1
+        )
+        assert (
+            OrganizationMemberMapping.objects.filter(user=user, organization_id=existing.id).count()
+            == 1
+        )
+        assert (
+            OrganizationMemberMapping.objects.filter(user=user, organization_id=imported.id).count()
+            == 1
+        )
+
+    def test_colliding_user_with_merging_disabled_in_organization_scope(self):
+        owner = self.create_exhaustive_user(username="owner", email="owner@example.com")
+        self.create_organization("some-org", owner=owner)
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
+            with open(tmp_path) as tmp_file:
+                owner = self.create_exhaustive_user(username="owner", email="owner@example.com")
+                self.create_organization("some-org", owner=owner)
+                import_in_organization_scope(
+                    tmp_file,
+                    flags=ImportFlags(merge_users=False),
+                    printer=NOOP_PRINTER,
+                )
+
+        assert User.objects.count() == 2
+        assert UserIP.objects.count() == 2
+        assert UserEmail.objects.count() == 2
+        assert Authenticator.objects.count() == 1  # Only imported in global scope
+        assert Email.objects.count() == 1  # Same email
+
+        assert User.objects.filter(username__iexact="owner").exists()
+        assert User.objects.filter(username__icontains="owner-").exists()
+
+        assert User.objects.filter(is_unclaimed=True).count() == 1
+        assert User.objects.filter(is_unclaimed=False).count() == 1
+
+        assert Organization.objects.count() == 2
+        assert OrganizationMapping.objects.count() == 2
+        assert OrganizationMember.objects.count() == 2
+        assert OrganizationMemberMapping.objects.count() == 2
+
+        existing_user = User.objects.get(username="owner")
+        imported_user = User.objects.get(username__icontains="owner-")
+        existing_org = Organization.objects.get(slug="some-org")
+        imported_org = Organization.objects.filter(slug__icontains="some-org-").first()
+        assert (
+            OrganizationMember.objects.filter(
+                user_id=existing_user.id, organization=existing_org
+            ).count()
+            == 1
+        )
+        assert (
+            OrganizationMember.objects.filter(
+                user_id=imported_user.id, organization=imported_org
+            ).count()
+            == 1
+        )
+        assert (
+            OrganizationMemberMapping.objects.filter(
+                user=existing_user, organization_id=existing_org.id
+            ).count()
+            == 1
+        )
+        assert (
+            OrganizationMemberMapping.objects.filter(
+                user=imported_user, organization_id=imported_org.id
+            ).count()
+            == 1
+        )

@@ -27,7 +27,11 @@ _DEFINED_TAG_SET = {t["name"] for t in OPENAPI_TAGS}
 # path prefixes to exclude
 # this is useful if we're duplicating an endpoint for legacy purposes
 # but do not want to document it
-EXCLUSION_PATH_PREFIXES = ["/api/0/monitors/"]
+EXCLUSION_PATH_PREFIXES = [
+    "/api/0/monitors/",
+    # Issue URLS have an expression of group|issue that resolves to `var`
+    "/api/0/{var}/{issue_id}/",
+]
 
 
 def __get_explicit_endpoints() -> List[Tuple[str, str, str, Any]]:
@@ -116,7 +120,7 @@ def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, 
             # if an endpoint doesn't have any registered public methods, don't check it.
             pass
 
-    # Register explicit ednpoints
+    # Register explicit endpoints
     filtered.extend(__get_explicit_endpoints())
     return filtered
 

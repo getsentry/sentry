@@ -814,7 +814,7 @@ function GroupDetails(props: GroupDetailsProps) {
   const {data} = useFetchIssueTagsForDetailsPage(
     {
       groupId: router.params.groupId,
-      organizationSlug: organization.slug,
+      orgSlug: organization.slug,
       environment: environments,
     },
     // Don't want this query to take precedence over the main requests

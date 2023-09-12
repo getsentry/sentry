@@ -1,4 +1,12 @@
 {
+  "feedback.Feedback": {
+    "foreign_keys": {},
+    "model": "feedback.Feedback",
+    "relocation_scope": "Excluded",
+    "silos": [
+      "Region"
+    ]
+  },
   "nodestore.Node": {
     "foreign_keys": {},
     "model": "nodestore.Node",
@@ -427,7 +435,7 @@
       }
     },
     "model": "sentry.Authenticator",
-    "relocation_scope": "User",
+    "relocation_scope": "Global",
     "silos": [
       "Control"
     ]
@@ -3301,7 +3309,7 @@
       }
     },
     "model": "sentry.UserPermission",
-    "relocation_scope": "User",
+    "relocation_scope": "Global",
     "silos": [
       "Control"
     ]
@@ -3334,7 +3342,7 @@
   "sentry.UserRole": {
     "foreign_keys": {},
     "model": "sentry.UserRole",
-    "relocation_scope": "User",
+    "relocation_scope": "Global",
     "silos": [
       "Control"
     ]
@@ -3351,7 +3359,7 @@
       }
     },
     "model": "sentry.UserRoleUser",
-    "relocation_scope": "User",
+    "relocation_scope": "Global",
     "silos": [
       "Control"
     ]

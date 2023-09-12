@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import capitalize from 'lodash/capitalize';
 
 import AlertBadge from 'sentry/components/alertBadge';
+import {OnDemandWarningIcon} from 'sentry/components/alerts/onDemandMetricAlert';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import DateTime from 'sentry/components/dateTime';
@@ -14,11 +15,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Actor} from 'sentry/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import {
-  getSearchFilters,
-  isOnDemandSearchKey,
-  OnDemandWarningIcon,
-} from 'sentry/utils/onDemandMetrics/index';
+import {getSearchFilters, isOnDemandSearchKey} from 'sentry/utils/onDemandMetrics/index';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constants';
 import {
   Action,
@@ -261,12 +258,15 @@ function FilterKeyValueTableRow({
       keyName={
         <KeyWrapper>
           {isOnDemandSearchKey(keyName) && (
-            <OnDemandWarningIcon
-              msg={t(
-                'We don’t routinely collect metrics from this property. As such, historical data may be limited.'
-              )}
-            />
+            <span>
+              <OnDemandWarningIcon
+                msg={t(
+                  'We don’t routinely collect metrics from this property. As such, historical data may be limited.'
+                )}
+              />
+            </span>
           )}
+
           {keyName}
         </KeyWrapper>
       }

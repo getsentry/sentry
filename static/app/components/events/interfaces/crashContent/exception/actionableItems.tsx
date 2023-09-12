@@ -118,7 +118,7 @@ function getErrorMessage(
           meta: metaData,
         },
       ];
-    case JavascriptProcessingErrors.JS_MISSING_SOURCES_CONTEXT:
+    case JavascriptProcessingErrors.JS_MISSING_SOURCES_CONTENT:
       return [
         {
           title: t('Missing Sources Context'),
@@ -433,10 +433,11 @@ export function ActionableItems({event, project, isShare}: ActionableItemsProps)
     });
   };
 
-  const hasErrorAlert = Object.keys(errorMessages).some(error =>
-    ActionableItemWarning.includes(
-      error as ProguardProcessingErrors | NativeProcessingErrors | GenericSchemaErrors
-    )
+  const hasErrorAlert = Object.keys(errorMessages).some(
+    error =>
+      !ActionableItemWarning.includes(
+        error as ProguardProcessingErrors | NativeProcessingErrors | GenericSchemaErrors
+      )
   );
 
   for (const errorKey in Object.keys(errorMessages)) {

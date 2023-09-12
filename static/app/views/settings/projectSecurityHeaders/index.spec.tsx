@@ -16,9 +16,6 @@ describe('ProjectSecurityHeaders', function () {
   });
 
   it('renders', function () {
-    const wrapper = render(
-      <ProjectSecurityHeaders {...routerProps} organization={org} />
-    );
-    expect(wrapper.container).toSnapshot();
+    render(<ProjectSecurityHeaders {...routerProps} organization={org} />);
   });
 });

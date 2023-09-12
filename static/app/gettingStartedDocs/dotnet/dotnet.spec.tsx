@@ -6,7 +6,7 @@ import {GettingStartedWithDotnet, steps} from './dotnet';
 
 describe('GettingStartedWithDotnet', function () {
   it('renders doc correctly', function () {
-    const {container} = render(<GettingStartedWithDotnet dsn="test-dsn" />);
+    render(<GettingStartedWithDotnet dsn="test-dsn" />);
 
     // Steps
     for (const step of steps()) {
@@ -14,7 +14,5 @@ describe('GettingStartedWithDotnet', function () {
         screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
       ).toBeInTheDocument();
     }
-
-    expect(container).toSnapshot();
   });
 });

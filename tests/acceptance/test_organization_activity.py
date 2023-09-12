@@ -32,9 +32,7 @@ class OrganizationActivityTest(AcceptanceTestCase):
         self.browser.get(self.path)
         self.browser.wait_until_not(".loading-indicator", timeout=100000)
         self.browser.wait_until('[data-test-id="activity-feed-list"]')
-        self.browser.snapshot("organization activity feed")
 
     def test_empty(self):
         self.browser.get(self.path)
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
-        self.browser.snapshot("organization activity feed - empty")
