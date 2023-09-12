@@ -4,7 +4,7 @@ import zlib
 from contextlib import contextmanager
 from functools import wraps
 from threading import Event, Lock, Thread
-from typing import Any, Callable, Dict, Generator, List, Optional, Set, Tuple, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, Set, Tuple, Union
 
 import sentry_sdk
 
@@ -73,7 +73,7 @@ class CounterMetric(Metric[float]):
     def add(self, value: float) -> None:
         self.value += value
 
-    def serialize_value(self) -> Generator[FlushedMetricValue, None, None]:
+    def serialize_value(self) -> Iterable[FlushedMetricValue]:
         yield self.value
 
 
@@ -105,7 +105,7 @@ class GaugeMetric(Metric[float]):
         self.sum += value
         self.count += 1
 
-    def serialize_value(self) -> Generator[FlushedMetricValue, None, None]:
+    def serialize_value(self) -> Iterable[FlushedMetricValue]:
         yield self.last
         yield self.min
         yield self.max
@@ -126,8 +126,8 @@ class DistributionMetric(Metric[float]):
     def add(self, value: float) -> None:
         self.value.append(float(value))
 
-    def serialize_value(self) -> Generator[FlushedMetricValue, None, None]:
-        yield from self.value
+    def serialize_value(self) -> Iterable[FlushedMetricValue]:
+        return self.value
 
 
 class SetMetric(Metric[Union[str, int]]):
@@ -143,14 +143,13 @@ class SetMetric(Metric[Union[str, int]]):
     def add(self, value: Union[str, int]) -> None:
         self.value.add(value)
 
-    def serialize_value(self) -> Generator[FlushedMetricValue, None, None]:
+    def serialize_value(self) -> Iterable[FlushedMetricValue]:
         def _hash(x: Any) -> int:
             if isinstance(x, str):
                 return zlib.crc32(x.encode("utf-8")) & 0xFFFFFFFF
             return int(x)
 
-        for value in self.value:
-            yield _hash(value)
+        return (_hash(value) for value in self.value)
 
 
 METRIC_TYPES: Dict[str, Callable[[Any], Metric[Any]]] = {

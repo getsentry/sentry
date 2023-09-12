@@ -1,6 +1,6 @@
 import re
 import sys
-from typing import Generator, Optional, Sequence
+from typing import Iterable, Optional, Sequence
 
 import sentry_sdk
 from sentry_sdk.envelope import Envelope, Item
@@ -56,7 +56,7 @@ class RelayStatsdEncoder:
     def _get_metric_unit(self, unit: MetricUnit) -> str:
         return f"@{unit}"
 
-    def _get_metric_values(self, value: Generator[FlushedMetricValue, None, None]) -> str:
+    def _get_metric_values(self, value: Iterable[FlushedMetricValue]) -> str:
         return self.MULTI_VALUE_SEPARATOR.join(str(v) for v in value)
 
     def _get_metric_tags(self, tags: Optional[MetricTagsInternal]) -> str:

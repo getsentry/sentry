@@ -1,4 +1,4 @@
-from typing import Generator, Generic, List, Literal, Mapping, NamedTuple, Tuple, TypeVar, Union
+from typing import Generic, Iterable, List, Literal, Mapping, NamedTuple, Tuple, TypeVar, Union
 
 # Unit of the metrics.
 MetricUnit = Literal[
@@ -72,7 +72,7 @@ class Metric(Generic[T]):
     def add(self, value: T) -> None:
         raise NotImplementedError()
 
-    def serialize_value(self) -> Generator[FlushedMetricValue, None, None]:
+    def serialize_value(self) -> Iterable[FlushedMetricValue]:
         raise NotImplementedError()
 
 

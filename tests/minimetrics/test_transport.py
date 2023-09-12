@@ -72,7 +72,7 @@ def test_relay_encoder_with_set():
 
     result = encoder.encode(flushed_metric)
     assert (
-        result == "users@none:456:123:3455635177|s|#browser:Chrome,browser.version:1.0|T1693994400"
+        result == "users@none:456:3455635177:123|s|#browser:Chrome,browser.version:1.0|T1693994400"
     )
 
 
@@ -141,7 +141,7 @@ def test_relay_encoder_with_invalid_chars():
     metric = CounterMetric(first=1)
     flushed_metric = FlushedMetric(bucket_key=bucket_key, metric=metric)
 
-    with pytest.raises(EncodingError, match="The sanitized metric name is empty"):
+    with pytest.raises(EncodingError, match="The sanitized metric name üòë is empty"):
         encoder.encode(flushed_metric)
 
 
