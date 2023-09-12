@@ -28,6 +28,7 @@ import {
 import {
   CeleryBeatAutoDiscovery,
   LaravelUpsertPlatformGuide,
+  NodeJsUpsertPlatformGuide,
   PHPUpsertPlatformGuide,
   QuickStartProps,
 } from './quickStartEntries';
@@ -59,7 +60,7 @@ const platformGuides: Record<SupportedPlatform, PlatformGuide[]> = {
   python: [],
   node: [
     {
-      Guide: () => null,
+      Guide: NodeJsUpsertPlatformGuide,
       title: 'Upsert',
     },
   ],
