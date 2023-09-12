@@ -11,9 +11,10 @@ from sentry.tasks.statistical_detectors import (
     detect_function_trends,
     detect_transaction_trends,
     query_functions,
+    query_transactions,
     run_detection,
 )
-from sentry.testutils.cases import ProfilesSnubaTestCase
+from sentry.testutils.cases import ProfilesSnubaTestCase, TestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now
@@ -287,3 +288,23 @@ class FunctionsQueryTest(ProfilesSnubaTestCase):
                 timestamp=self.hour_ago,
             )
         ]
+
+
+@region_silo_test(stable=True)
+@pytest.mark.sentry_metrics
+class TransactionsQueryTest(TestCase):
+    def setUp(self):
+        super().setUp()
+
+        self.now = before_now(minutes=10)
+        self.hour_ago = (self.now - timedelta(hours=1)).replace(
+            minute=0, second=0, microsecond=0, tzinfo=timezone.utc
+        )
+
+    def test_get_top_transaction_names(self):
+        from sentry.tasks.statistical_detectors import get_top_transaction_names_for_projects
+
+        get_top_transaction_names_for_projects([1], [1], self.now - timedelta(days=1))
+
+    def test_transactions_query(self) -> None:
+        query_transactions([self.project], self.now)
