@@ -1,6 +1,6 @@
 from typing import List, Union
 
-import ipdb
+from django.utils.encoding import force_bytes, force_str
 from drf_spectacular.utils import extend_schema
 from packaging.version import Version
 from rest_framework.exceptions import NotFound
@@ -18,6 +18,7 @@ from sentry.apidocs.parameters import EventParams, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.artifactbundle import (
     ArtifactBundle,
+    ArtifactBundleArchive,
     DebugIdArtifactBundle,
     ReleaseArtifactBundle,
     SourceFileType,
@@ -26,6 +27,7 @@ from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.models.releasefile import ReleaseFile
 from sentry.utils.safe import get_path
+from sentry.utils.javascript import find_sourcemap
 
 MIN_JS_SDK_VERSION_FOR_DEBUG_IDS = "7.56.0"
 
@@ -90,26 +92,30 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
 
         event_data = event.data
 
+        release = None
+        if event.release is not None:
+            try:
+                release = Release.objects.get(
+                    organization=project.organization, version=event.release
+                )
+            except Release.DoesNotExist:
+                pass
+
         # get general information about what has been uploaded
         project_has_some_artifact_bundle = ArtifactBundle.objects.filter(
             projectartifactbundle__project_id=project.id,
         ).exists()
         has_uploaded_release_bundle_with_release = False
         has_uploaded_artifact_bundle_with_release = False
-        if event.release is not None:
-            try:
-                release = Release.objects.get(
-                    organization=project.organization, version=event.release
-                )
-                has_uploaded_release_bundle_with_release = ReleaseFile.objects.filter(
-                    release_id=release.id
-                ).exists()
-            except Release.DoesNotExist:
-                pass
+        if release is not None:
+            has_uploaded_release_bundle_with_release = ReleaseFile.objects.filter(
+                release_id=release.id
+            ).exists()
             has_uploaded_artifact_bundle_with_release = ReleaseArtifactBundle.objects.filter(
-                organization_id=project.organization_id, release_name=event.release
+                organization_id=project.organization_id, release_name=release.version
             ).exists()
         has_uploaded_some_artifact_with_a_debug_id = DebugIdArtifactBundle.objects.filter(
+            organization_id=project.organization_id,
             artifact_bundle__projectartifactbundle__project_id=project.id,
         ).exists()
 
@@ -141,6 +147,14 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
             ):
                 debug_ids_with_uploaded_source_map.add(str(debug_id_artifact_bundle.debug_id))
 
+        # Get all abs paths and query for their existence so that we can match release artifacts
+        release_process_abs_path_data = {}
+        if release is not None:
+            abs_paths = get_abs_paths_in_event(event_data)
+            for abs_path in abs_paths:
+                path_data = get_source_file_data(abs_path, project, release, event)
+                release_process_abs_path_data[abs_path] = path_data
+
         # build information about individual exceptions and their stack traces
         processed_exceptions = []
         exception_values = get_path(event_data, "exception", "values")
@@ -148,11 +162,10 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
             for exception_value in exception_values:
                 processed_frames = []
                 frames = get_path(exception_value, "raw_stacktrace", "frames")
+                frames = frames or get_path(exception_value, "stacktrace", "frames")
                 if frames is not None:
                     for frame in frames:
                         abs_path = get_path(frame, "abs_path")
-
-                        # debug id process data
                         debug_id = next(
                             (
                                 debug_image["debug_id"]
@@ -162,7 +175,6 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
                             ),
                             None,
                         )
-
                         processed_frames.append(
                             {
                                 "debug_id_process": {
@@ -172,17 +184,7 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
                                     "uploaded_source_map_with_correct_debug_id": debug_id
                                     in debug_ids_with_uploaded_source_map,
                                 },
-                                "release_process": {
-                                    "matching_artifact_name": "TODO",
-                                    "source_map_reference": "TODO",
-                                    "source_file_lookup_result": "TODO",
-                                    "source_map_lookup_result": "TODO",
-                                    "path": "TODO",
-                                },
-                                "scraping_process": {
-                                    "source_file_scraping_status": "TODO",
-                                    "source_map_scraping_status": "TODO",
-                                },
+                                "release_process": release_process_abs_path_data[abs_path],
                             }
                         )
                 processed_exceptions.append({"frames": processed_frames})
@@ -201,6 +203,85 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
                 "sdk_debug_id_support": get_sdk_debug_id_support(event_data),
             }
         )
+
+
+def get_source_file_data(abs_path, project, release, event):
+    filenme_choices = ReleaseFile.normalize(abs_path)
+
+    path_data = {
+        "matching_source_file_names": filenme_choices,
+        "source_map_reference": None,
+        "source_file_lookup_result": "unsuccessful",
+    }
+
+    possible_release_files = ReleaseFile.objects.filter(
+        organization_id=project.organization_id,
+        release_id=release.id,
+        name__in=filenme_choices,
+    ).exclude(artifact_count=0).select_related("file")
+    if len(possible_release_files) > 0:
+        path_data["source_file_lookup_result"] = "wrong-dist"
+    for possible_release_file in possible_release_files:
+        if possible_release_file.ident == ReleaseFile.get_ident(possible_release_file.name, event.dist):
+            path_data["source_file_lookup_result"] = "found"
+            source_map_reference = None
+            if possible_release_file.file.headers:
+                headers = ArtifactBundleArchive.normalize_headers(possible_release_file.file.headers)
+                sourcemap_header = headers.get("sourcemap", headers.get("x-sourcemap"))
+                sourcemap_header = force_bytes(sourcemap_header) if sourcemap_header is not None else None
+                try:
+                    source_map_reference = find_sourcemap(sourcemap_header, possible_release_file.file.getfile().read())
+                except AssertionError:
+                    pass
+                source_map_reference = force_str(source_map_reference) if source_map_reference is not None else None
+
+                # TODO: look up source map if sourcemapreference is not none
+
+            return {
+                "matching_source_file_names": filenme_choices,
+                "source_map_reference": source_map_reference,
+                "source_file_lookup_result": "found",
+            }
+
+    possible_release_artifact_bundles = ReleaseArtifactBundle.objects.filter(
+        organization_id=project.organization.id,
+        release_name=release.version,
+        artifact_bundle__projectartifactbundle__project_id=project.id,
+        artifact_bundle__artifactbundleindex__organization_id=project.organization.id,
+        artifact_bundle__artifactbundleindex__url__in=filenme_choices,
+    )
+    if len(possible_release_artifact_bundles) > 0:
+        path_data["source_file_lookup_result"] = "wrong-dist" if path_data["source_file_lookup_result"] == "unsuccessful" else path_data["source_file_lookup_result"]
+    for possible_release_artifact_bundle in possible_release_artifact_bundles:
+        if possible_release_artifact_bundle.dist_name == (event.dist or ""):
+            source_map_reference = None
+            headers = None
+            with ArtifactBundleArchive(possible_release_artifact_bundle.artifact_bundle.file.getfile()) as archive:
+                matching_file = None
+                sourcemap_header = None
+                for filename_choice in filenme_choices:
+                    try:
+                        matching_file, headers = archive.get_file_by_url(filename_choice)
+                        sourcemap_header = headers.get("sourcemap", headers.get("x-sourcemap"))
+                        sourcemap_header = force_bytes(sourcemap_header) if sourcemap_header is not None else None
+                        break
+                    except Exception:
+                        continue
+                if matching_file is not None:
+                    source_map_reference = find_sourcemap(sourcemap_header, matching_file.read())
+
+            # TODO: look up source map if sourcemapreference is not none
+
+            return {
+                "matching_source_file_names": filenme_choices,
+                "source_file_lookup_result": "found",
+                "source_map_reference": source_map_reference,
+            }
+
+    # TODO: get source map references
+    # TODO: get source map lookup result
+
+    return path_data
 
 
 def event_has_debug_ids(event_data):
@@ -226,7 +307,21 @@ def get_sdk_debug_id_support(event_data):
     if sdk_version is None:
         return "unofficial-sdk"
 
-    return Version(sdk_version) >= Version(MIN_JS_SDK_VERSION_FOR_DEBUG_IDS)
+    return "full" if Version(sdk_version) >= Version(MIN_JS_SDK_VERSION_FOR_DEBUG_IDS) else "needs-upgrade"
+
+
+def get_abs_paths_in_event(event_data):
+    abs_paths = set()
+    exception_values = get_path(event_data, "exception", "values")
+    if exception_values is not None:
+        for exception_value in exception_values:
+            frames = get_path(exception_value, "raw_stacktrace", "frames")
+            if frames is not None:
+                for frame in frames:
+                    abs_path = get_path(frame, "abs_path")
+                    if (abs_path):
+                        abs_paths.add(abs_path)
+    return abs_paths
 
 
 # ipdb.set_trace()
