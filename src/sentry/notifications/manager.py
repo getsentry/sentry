@@ -18,7 +18,6 @@ from django.db.models import Q, QuerySet
 
 from sentry import analytics
 from sentry.db.models.manager import BaseManager
-from sentry.models.actor import get_actor_id_for_user
 from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.team import Team
@@ -649,7 +648,6 @@ class NotificationsManager(BaseManager["NotificationSetting"]):  # noqa: F821
                     type=type.value,
                     scope_type=NotificationScopeType.USER.value,
                     scope_identifier=user.id,
-                    target_id=get_actor_id_for_user(user),
                     user_id=user.id,
                     defaults={"value": NotificationSettingOptionValues.NEVER.value},
                 )

@@ -1,6 +1,8 @@
 import threading
 import time
 import zlib
+from contextlib import contextmanager
+from functools import wraps
 from threading import Event, Lock, Thread
 from typing import (
     Any,
@@ -25,6 +27,39 @@ from sentry.utils import metrics
 
 # The thread local instance must be initialized globally in order to correctly use the state.
 thread_local = threading.local()
+
+
+@contextmanager
+def enter_minimetrics():
+    try:
+        old = thread_local.in_minimetrics
+    except AttributeError:
+        old = False
+
+    thread_local.in_minimetrics = True
+    try:
+        yield
+    finally:
+        thread_local.in_minimetrics = old
+
+
+def is_in_minimetrics():
+    try:
+        return thread_local.in_minimetrics
+    except AttributeError:
+        return False
+
+
+def minimetrics_noop(f):
+    @wraps(f)
+    def new_function(*args, **kwargs):
+        if is_in_minimetrics():
+            return None
+
+        with enter_minimetrics():
+            return f(*args, **kwargs)
+
+    return new_function
 
 
 T = TypeVar("T")
@@ -214,6 +249,7 @@ METRIC_TYPES: Dict[str, Callable[[Any], Metric[Any]]] = {
 class Aggregator:
     ROLLUP_IN_SECONDS = 10.0
     MAX_WEIGHT = 100000
+    DEFAULT_SAMPLE_RATE = 1.0
 
     def __init__(self) -> None:
         self.buckets: Dict[BucketKey, Metric[Any]] = {}
@@ -239,36 +275,38 @@ class Aggregator:
             self._flush_event.wait(2.0)
 
     def _flush(self):
-        with self._lock:
-            cutoff = time.time() - self.ROLLUP_IN_SECONDS
-            weight_to_remove = 0
-            buckets = self.buckets
-            force_flush = self._force_flush
-            flushed_buckets = set()
-            extracted_metrics = []
+        with enter_minimetrics():
+            with self._lock:
+                cutoff = time.time() - self.ROLLUP_IN_SECONDS
+                weight_to_remove = 0
+                buckets = self.buckets
+                force_flush = self._force_flush
+                flushed_buckets = set()
+                extracted_metrics = []
 
-            for bucket_key, metric in buckets.items():
-                if not force_flush and bucket_key.timestamp > cutoff:
-                    continue
+                for bucket_key, metric in buckets.items():
+                    if not force_flush and bucket_key.timestamp > cutoff:
+                        continue
 
-                extracted_metrics.append((bucket_key, metric))
-                flushed_buckets.add(bucket_key)
-                weight_to_remove += metric.weight
+                    extracted_metrics.append((bucket_key, metric))
+                    flushed_buckets.add(bucket_key)
+                    weight_to_remove += metric.weight
 
-            # We remove all flushed buckets, in order to avoid memory leaks.
-            for bucket_key in flushed_buckets:
-                buckets.pop(bucket_key)
+                # We remove all flushed buckets, in order to avoid memory leaks.
+                for bucket_key in flushed_buckets:
+                    buckets.pop(bucket_key)
 
-            self._force_flush = False
-            self._buckets_total_weight -= weight_to_remove
+                self._force_flush = False
+                self._buckets_total_weight -= weight_to_remove
 
-        if extracted_metrics:
-            # You should emit metrics to `metrics` only inside this method, since we know that if we received metrics
-            # the `sentry.utils.metrics` file was initialized. If we do it before, it will likely cause a circular
-            # dependency since the methods in the `sentry.utils.metrics` depend on the backend initialization, thus
-            # if you emit metrics when a backend is initialized Python will throw an error.
-            self._emit(extracted_metrics, force_flush)
+            if extracted_metrics:
+                # You should emit metrics to `metrics` only inside this method, since we know that if we received
+                # metrics the `sentry.utils.metrics` file was initialized. If we do it before, it will likely cause a
+                # circular dependency since the methods in the `sentry.utils.metrics` depend on the backend
+                # initialization, thus if you emit metrics when a backend is initialized Python will throw an error.
+                self._emit(extracted_metrics, force_flush)
 
+    @minimetrics_noop
     def add(
         self,
         ty: MetricType,
@@ -308,7 +346,12 @@ class Aggregator:
             self.consider_force_flush()
 
         # We want to track how many times metrics are being added, so that we know the actual count of adds.
-        self._safe_emit_count_metric(key="minimetrics.add", amount=1, tags={"metric_type": ty})
+        metrics.incr(
+            key="minimetrics.add",
+            amount=1,
+            tags={"metric_type": ty},
+            sample_rate=self.DEFAULT_SAMPLE_RATE,
+        )
 
     def stop(self):
         if self._flusher is None:
@@ -362,57 +405,35 @@ class Aggregator:
 
         for metric_type, (buckets_count, buckets_weight) in stats_by_type.items():
             # We want to emit a metric on how many buckets and weight there was for a metric type.
-            cls._safe_emit_distribution_metric(
+            metrics.timing(
                 key="minimetrics.flushed_buckets",
                 value=buckets_count,
                 tags={"metric_type": metric_type, "force_flush": force_flush},
+                sample_rate=cls.DEFAULT_SAMPLE_RATE,
             )
-            cls._safe_emit_count_metric(
+            metrics.incr(
                 key="minimetrics.flushed_buckets_counter",
                 amount=buckets_count,
                 tags={"metric_type": metric_type, "force_flush": force_flush},
+                sample_rate=cls.DEFAULT_SAMPLE_RATE,
             )
-            cls._safe_emit_distribution_metric(
+            metrics.timing(
                 key="minimetrics.flushed_buckets_weight",
                 value=buckets_weight,
                 tags={"metric_type": metric_type, "force_flush": force_flush},
+                sample_rate=cls.DEFAULT_SAMPLE_RATE,
             )
-            cls._safe_emit_count_metric(
+            metrics.incr(
                 key="minimetrics.flushed_buckets_weight_counter",
                 amount=buckets_weight,
                 tags={"metric_type": metric_type, "force_flush": force_flush},
+                sample_rate=cls.DEFAULT_SAMPLE_RATE,
             )
-
-    @classmethod
-    def _safe_emit_count_metric(cls, key: str, amount: int, tags: Optional[Dict[str, Any]] = None):
-        cls._safe_run(lambda: metrics.incr(key, amount=amount, tags=tags))
-
-    @classmethod
-    def _safe_emit_distribution_metric(
-        cls, key: str, value: int, tags: Optional[Dict[str, Any]] = None
-    ):
-        cls._safe_run(lambda: metrics.timing(key, value=value, tags=tags))
-
-    @classmethod
-    def _safe_run(cls, block: Callable[[], None]):
-        # In order to avoid an infinite recursion for metrics, we want to use a thread local variable that will
-        # signal the downstream calls to only propagate the metric to the primary backend, otherwise if propagated to
-        # minimetrics, it will cause unbounded recursion.
-        thread_local.in_minimetrics = True
-        block()
-        thread_local.in_minimetrics = False
 
 
 class MiniMetricsClient:
     def __init__(self) -> None:
         self.aggregator = Aggregator()
-
-    @staticmethod
-    def _is_in_minimetrics():
-        try:
-            return thread_local.in_minimetrics
-        except AttributeError:
-            return False
 
     def incr(
         self,
@@ -422,8 +443,7 @@ class MiniMetricsClient:
         tags: Optional[MetricTagsExternal] = None,
         timestamp: Optional[float] = None,
     ) -> None:
-        if not self._is_in_minimetrics():
-            self.aggregator.add("c", key, value, unit, tags, timestamp)
+        self.aggregator.add("c", key, value, unit, tags, timestamp)
 
     def timing(
         self,
@@ -433,8 +453,7 @@ class MiniMetricsClient:
         tags: Optional[MetricTagsExternal] = None,
         timestamp: Optional[float] = None,
     ) -> None:
-        if not self._is_in_minimetrics():
-            self.aggregator.add("d", key, value, unit, tags, timestamp)
+        self.aggregator.add("d", key, value, unit, tags, timestamp)
 
     def set(
         self,
@@ -444,8 +463,7 @@ class MiniMetricsClient:
         tags: Optional[MetricTagsExternal] = None,
         timestamp: Optional[float] = None,
     ) -> None:
-        if not self._is_in_minimetrics():
-            self.aggregator.add("s", key, value, unit, tags, timestamp)
+        self.aggregator.add("s", key, value, unit, tags, timestamp)
 
     def gauge(
         self,
@@ -455,5 +473,4 @@ class MiniMetricsClient:
         tags: Optional[MetricTagsExternal] = None,
         timestamp: Optional[float] = None,
     ) -> None:
-        if not self._is_in_minimetrics():
-            self.aggregator.add("g", key, value, unit, tags, timestamp)
+        self.aggregator.add("g", key, value, unit, tags, timestamp)

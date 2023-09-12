@@ -370,6 +370,8 @@ SENTRY_OUTBOX_MODELS: Mapping[str, list[str]] = {
     "REGION": ["sentry.RegionOutbox"],
 }
 
+# Do not modify reordering
+# The applications listed first in INSTALLED_APPS have precedence
 INSTALLED_APPS: tuple[str, ...] = (
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -1553,6 +1555,8 @@ SENTRY_FEATURES = {
     "organizations:mobile-cpu-memory-in-transactions": False,
     # Enable new page filter UI
     "organizations:new-page-filter": False,
+    # Display warning banner for every event issue alerts
+    "organizations:noisy-alert-warning": False,
     # Prefix host with organization ID when giving users DSNs (can be
     # customized with SENTRY_ORG_SUBDOMAIN_TEMPLATE)
     "organizations:org-subdomains": False,
@@ -1783,6 +1787,9 @@ SENTRY_FEATURES = {
     "projects:span-metrics-extraction": False,
     # Metrics: Enable ingestion, storage, and rendering of custom metrics
     "organizations:custom-metrics": False,
+    # Metrics: Enable creation of investigation dynamic sampling rules (rules that
+    # temporary boost the sample rate of particular transactions)
+    "organizations:investigation-bias": False,
     # Don't add feature defaults down here! Please add them in their associated
     # group sorted alphabetically.
 }

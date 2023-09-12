@@ -1,4 +1,15 @@
-export function ProjectAlertRuleConfiguration(params = {}) {
+import {
+  IssueAlertRuleActionTemplate,
+  IssueAlertRuleConditionTemplate,
+} from 'sentry/types/alerts';
+
+type Config = {
+  actions: IssueAlertRuleActionTemplate[];
+  conditions: IssueAlertRuleConditionTemplate[];
+  filters: IssueAlertRuleConditionTemplate[];
+};
+
+export function ProjectAlertRuleConfiguration(params: Partial<Config> = {}): Config {
   return {
     actions: [
       {
@@ -8,7 +19,8 @@ export function ProjectAlertRuleConfiguration(params = {}) {
         prompt: 'Send a notification',
         formFields: {
           targetType: {
-            type: 'mailAction',
+            type: 'choice',
+            placeholder: 'mailAction',
             choices: [
               ['IssueOwners', 'Issue Owners'],
               ['Team', 'Team'],
@@ -30,7 +42,7 @@ export function ProjectAlertRuleConfiguration(params = {}) {
         enabled: true,
         prompt: 'Send a Slack notification',
         formFields: {
-          workspace: {type: 'choice', choices: [[123, 'Sentry']]},
+          workspace: {type: 'choice', choices: [['123', 'Sentry']]},
           channel: {type: 'string', placeholder: 'i.e #critical, Jane Schmidt'},
           channel_id: {type: 'string', placeholder: 'i.e. CA2FRA079 or UA1J9RTE1'},
           tags: {type: 'string', placeholder: 'i.e environment,user,my_tag'},
@@ -166,7 +178,8 @@ export function ProjectAlertRuleConfiguration(params = {}) {
         prompt: 'The issue is assigned to {no one/team/member}',
         formFields: {
           targetType: {
-            type: 'assignee',
+            type: 'choice',
+            placeholder: 'assignee',
             choices: [
               ['Unassigned', 'Unassigned'],
               ['Team', 'Team'],
