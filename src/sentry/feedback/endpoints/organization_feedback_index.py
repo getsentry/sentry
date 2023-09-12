@@ -15,6 +15,7 @@ from sentry.api.authentication import (
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.bases.project import ProjectPermission
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers.base import serialize
 from sentry.constants import ObjectStatus
 from sentry.feedback.models import Feedback
@@ -99,5 +100,10 @@ class OrganizationFeedbackIndexEndpoint(Endpoint):
         ):
             return Response(status=404)
 
-        feedback_list = Feedback.objects.filter(project_id=project.id)  # should this filter?
-        return Response(serialize(list(feedback_list), request.user, FeedbackSerializer()))
+        feedback_list = Feedback.objects.filter(project_id=project.id)
+        return self.paginate(
+            request=request,
+            queryset=feedback_list,
+            on_results=lambda x: serialize(x, request.user, FeedbackSerializer()),
+            paginator_cls=OffsetPaginator,
+        )

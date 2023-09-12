@@ -81,29 +81,24 @@ class OrganizationFeedbackIndexTest(MonitorIngestTestCase):
             assert len(get_response.data) == 2
             # Test first item
             feedback = get_response.data[0]
-            assert feedback["data"]["dist"] == "abc123"
-            assert (
-                feedback["data"]["feedback"]["url"]
-                == "https://docs.sentry.io/platforms/javascript/"
-            )
+            assert feedback["dist"] == "abc123"
+            assert feedback["url"] == "https://docs.sentry.io/platforms/javascript/"
             assert feedback["message"] == "I really like this user-feedback feature!"
-            assert feedback["feedback_id"] == uuid.UUID("1ffe0775ac0f4417aed9de36d9f6f8dc")
-            assert feedback["data"]["platform"] == "javascript"
-            assert feedback["data"]["sdk"]["name"] == "sentry.javascript.react"
-            assert feedback["data"]["tags"]["key"] == "value"
-            assert feedback["data"]["user"]["email"] == "username@example.com"
+            assert feedback["id"] == uuid.UUID("1ffe0775ac0f4417aed9de36d9f6f8dc")
+            assert feedback["platform"] == "javascript"
+            assert feedback["sdk"]["name"] == "sentry.javascript.react"
+            assert feedback["tags"]["key"] == "value"
+            assert feedback["contact_email"] == "colton.allen@sentry.io"
 
             # Test second item
             feedback = get_response.data[1]
-            assert feedback["data"]["environment"] == "prod"
-            assert (
-                feedback["data"]["feedback"]["url"] == "https://docs.sentry.io/platforms/electron/"
-            )
+            assert feedback["environment"] == "prod"
+            assert feedback["url"] == "https://docs.sentry.io/platforms/electron/"
             assert feedback["message"] == "I also really like this user-feedback feature!"
-            assert feedback["feedback_id"] == uuid.UUID("2ffe0775ac0f4417aed9de36d9f6f8ab")
-            assert feedback["data"]["platform"] == "electron"
-            assert feedback["data"]["sdk"]["name"] == "sentry.javascript.react"
-            assert feedback["data"]["sdk"]["version"] == "5.18.1"
+            assert feedback["id"] == uuid.UUID("2ffe0775ac0f4417aed9de36d9f6f8ab")
+            assert feedback["platform"] == "electron"
+            assert feedback["sdk"]["name"] == "sentry.javascript.react"
+            assert feedback["sdk"]["version"] == "5.18.1"
 
     def test_no_feature_enabled(self):
         # Unsuccessful GET
@@ -148,5 +143,27 @@ class OrganizationFeedbackIndexTest(MonitorIngestTestCase):
                 "detail": ErrorDetail(string="The requested resource does not exist", code="error")
             }
 
-
-# TODO: test request parameters (e.g. sort, query)
+    def test_parameters(self):
+        # Testing GET parameters
+        # For now, only testing per_page; others (such as sort, query) are not well-defined or not necessary for MVP
+        with self.feature({"organizations:user-feedback-ingest": True}):
+            get_path = reverse(self.get_endpoint, args=[self.organization.slug])
+            post_path = reverse(self.post_endpoint)
+            self.client.post(
+                post_path,
+                data=post_data_1,
+                **self.dsn_auth_headers,
+            )
+            self.client.post(
+                post_path,
+                data=post_data_2,
+                **self.dsn_auth_headers,
+            )
+            get_response = self.client.get(
+                path=get_path,
+                data={"per_page": 1},
+                content_type="application/json",
+                **self.dsn_auth_headers,
+            )
+            assert get_response.status_code == 200
+            assert len(get_response.data) == 1

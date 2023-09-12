@@ -5,25 +5,50 @@ from sentry.feedback.models import Feedback
 
 
 class FeedbackResponseType(TypedDict):
-    date_added: str
+    browser: Optional[Any]
+    locale: Optional[Any]
+    tags: Optional[Any]
+    device: Optional[Any]
+    os: Optional[Any]
+    user: Optional[Any]
     replay_id: Optional[str]
-    project_id: str
     url: Optional[str]
+    dist: Optional[str]
+    sdk: Any
+    contact_email: str
+    environment: str
+    id: str
     message: str
-    data: Optional[Any]
-    feedback_id: str
+    platform: str
+    project_id: str
+    release: str
+    status: str
+    timestamp: str
+    url: str
 
 
 @register(Feedback)
 class FeedbackSerializer(Serializer):
     def serialize(self, obj, attrs, user, **kwargs) -> FeedbackResponseType:
         res: FeedbackResponseType = {
-            "date_added": obj.date_added,
+            "browser": obj.data.get("browser") or {},
+            "locale": obj.data.get("locale") or {},
+            "tags": obj.data.get("tags") or {},
+            "device": obj.data.get("device") or {},
+            "os": obj.data.get("os") or {},
+            "user": obj.data.get("user") or {},
             "replay_id": obj.replay_id,
-            "url": obj.url,
+            "dist": obj.data.get("dist"),
+            "sdk": obj.data.get("sdk"),
+            "contact_email": obj.data.get("feedback").get("contact_email"),
+            "environment": obj.data.get("environment"),
+            "id": obj.feedback_id,
             "message": obj.message,
-            "data": obj.data,
-            "feedback_id": obj.feedback_id,
+            "platform": obj.data.get("platform"),
             "project_id": obj.project_id,
+            "release": obj.data.get("release"),
+            "status": "unresolved",
+            "timestamp": obj.date_added,
+            "url": obj.url,
         }
         return res

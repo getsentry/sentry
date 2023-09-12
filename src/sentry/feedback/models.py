@@ -16,8 +16,9 @@ class Feedback(Model):
     message = models.TextField()
     feedback_id = UUIDField(unique=True)
     date_added = models.DateTimeField(default=timezone.now)
+    organization_id = BoundedBigIntegerField(db_index=True)
 
-    # This is the data coming from the Sentry event and includes things like contexts
+    # This "data" field is the data coming from the Sentry event and includes things like contexts
     # As we develop the product more, we will add more specific columns and rely on this JSON field less and less
     data = models.JSONField(null=True)
 
