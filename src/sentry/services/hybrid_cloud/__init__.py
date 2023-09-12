@@ -135,7 +135,7 @@ class DelegatedBySiloMode(Generic[ServiceInterface]):
     _lock: threading.RLock
 
     def __init__(self, mapping: Mapping[SiloMode, Callable[[], ServiceInterface]]):
-        self._constructors = mapping
+        self._constructors = get_delegated_constructors(mapping)
         self._singleton = {}
         self._lock = threading.RLock()
 
@@ -218,7 +218,7 @@ def silo_mode_delegation(
     In split database mode, it will also inject DelegatedByOpenTransaction in for the monolith mode implementation.
     """
 
-    return cast(ServiceInterface, DelegatedBySiloMode(get_delegated_constructors(mapping)))
+    return cast(ServiceInterface, DelegatedBySiloMode(mapping))
 
 
 def get_delegated_constructors(
