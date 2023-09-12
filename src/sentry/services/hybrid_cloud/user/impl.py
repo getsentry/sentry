@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from typing import Any, Callable, List, MutableMapping, Optional
 from uuid import uuid4
 
@@ -36,6 +37,8 @@ from sentry.services.hybrid_cloud.user import (
 )
 from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
 from sentry.services.hybrid_cloud.user.service import UserService
+
+logger = logging.getLogger("user:provisioning")
 
 
 class DatabaseBackedUserService(UserService):
@@ -171,7 +174,7 @@ class DatabaseBackedUserService(UserService):
 
     def get_or_create_user_by_email(self, *, email: str) -> RpcUser:
         with transaction.atomic(router.db_for_write(User)):
-            user_query = User.objects.filter(email=email)
+            user_query = User.objects.filter(email__iexact=email)
             # Create User if it doesn't exist
             if not user_query.exists():
                 user = User.objects.create(
@@ -180,11 +183,15 @@ class DatabaseBackedUserService(UserService):
                     name=email,
                 )
             else:
-                user = User.objects.get(email=email)
+                # Users are not supposed to have the same email but right now our auth pipeline let this happen
+                # So let's not break the user experience
+                if user_query.count() > 1:
+                    logger.error(f"email {email} has more than 1 user")
+                user = user_query[0]
             return serialize_rpc_user(user)
 
     def verify_any_email(self, *, email: str) -> bool:
-        user_email = UserEmail.objects.filter(email=email).first()
+        user_email = UserEmail.objects.filter(email__iexact=email).first()
         if user_email is None:
             return False
         if not user_email.is_verified:
