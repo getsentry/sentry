@@ -613,7 +613,6 @@ class FieldParsingResult:
     function: str
     arguments: List[str]
     alias: str
-    op: Optional[MetricOperationType]
 
 
 @dataclass(frozen=True)
@@ -828,7 +827,7 @@ class OnDemandMetricSpec:
     def _parse_field(value: str) -> Optional[FieldParsingResult]:
         try:
             function, arguments, alias = fields.parse_function(value)
-            return FieldParsingResult(function=function, arguments=arguments, alias=alias, op=None)
+            return FieldParsingResult(function=function, arguments=arguments, alias=alias)
         except InvalidSearchQuery:
             return None
 
