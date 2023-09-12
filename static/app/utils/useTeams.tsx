@@ -47,7 +47,7 @@ function buildTeamsQueryKey(
  * const {teams, isLoading, isError} = useTeamsV2({slugs: ['project-slug']});
  * ```
  */
-export function useTeamsV2(options: UseTeamOptions = {}): UseTeamsResult {
+export function useTeams(options: UseTeamOptions = {}): UseTeamsResult {
   const {organization} = useLegacyStore(OrganizationStore);
   const storeState = useLegacyStore(TeamStore);
 

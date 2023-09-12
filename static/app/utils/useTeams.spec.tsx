@@ -4,7 +4,7 @@ import OrganizationStore from 'sentry/stores/organizationStore';
 import TeamStore from 'sentry/stores/teamStore';
 import {QueryClient, QueryClientProvider} from 'sentry/utils/queryClient';
 
-import {useTeamsV2 as useTeams} from './useTeamsV2';
+import {useTeams as useTeams} from './useTeams';
 
 const queryClient = new QueryClient({
   defaultOptions: {
