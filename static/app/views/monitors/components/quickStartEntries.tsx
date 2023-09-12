@@ -265,3 +265,41 @@ Sentry.captureCheckIn({
     </Fragment>
   );
 }
+
+export function CeleryBeatAutoDiscovery(props: QuickStartProps) {
+  const {dsnKey} = props;
+
+  const code = `# tasks.py
+from celery import signals
+
+import sentry_sdk
+from sentry_sdk.integrations.celery import CeleryIntegration
+
+
+@signals.celeryd_init.connect
+def init_sentry(**kwargs):
+    sentry_sdk.init(
+        dsn='${dsnKey ?? '<PROJECT DSN>'}',
+        integrations=[CeleryIntegration(monitor_beat_tasks=True)],  # 👈
+        environment="local.dev.grace",
+        release="v1.0",
+    )
+  `;
+
+  return (
+    <Fragment>
+      <div>
+        {tct(
+          'Use the [additionalDocs: Celery integration] to monitor your Celery periodic tasks. Initialize Sentry in the celeryd_init or beat_init signal.',
+          {
+            additionalDocs: (
+              <ExternalLink href="https://docs.sentry.io/platforms/python/guides/celery/crons/#celery-beat-auto-discovery" />
+            ),
+          }
+        )}
+      </div>
+      <div>{t('Make sure to set monitor_beat_tasks=True in CeleryIntegration:')}</div>
+      <CodeSnippet language="python">{code}</CodeSnippet>
+    </Fragment>
+  );
+}
