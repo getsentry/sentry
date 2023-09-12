@@ -18,29 +18,44 @@ def _to_minimetrics_external_metric_tags(tags: Optional[Tags]) -> Optional[Metri
     return cast(Optional[MetricTagsExternal], casted_tags)
 
 
+# This is needed to pass data between the sdk patcher and the
+# minimetrics backend.  This is not super clean but it allows us to
+# initialize these things in arbitrary order.
+minimetrics_client = None
+
+
+def patch_sentry_sdk(self):
+    client = sentry_sdk.Hub.main.client
+    if client is None:
+        return
+
+    old_flush = client.flush
+
+    def new_flush(*args, **kwargs):
+        client = minimetrics_client
+        if client is not None:
+            client.aggregator.consider_force_flush()
+        return old_flush(*args, **kwargs)
+
+    client.flush = new_flush  # type:ignore
+
+    old_close = client.close
+
+    def new_close(*args, **kwargs):
+        client = minimetrics_client
+        if client is not None:
+            client.aggregator.stop()
+        return old_close(*args, **kwargs)
+
+    client.close = new_close  # type:ignore
+
+
 class MiniMetricsMetricsBackend(MetricsBackend):
     def __init__(self, prefix: Optional[str] = None):
         super().__init__(prefix=prefix)
+        global minimetrics_client
         self.client = MiniMetricsClient()
-
-    def _patch_sdk(self):
-        client = sentry_sdk.Hub.main.client
-        if client is not None:
-            old_flush = client.flush
-
-            def new_flush(*args, **kwargs):
-                self.client.aggregator.consider_force_flush()
-                return old_flush(*args, **kwargs)
-
-            client.flush = new_flush  # type:ignore
-
-            old_close = client.close
-
-            def new_close(*args, **kwargs):
-                self.client.aggregator.stop()
-                return old_close(*args, **kwargs)
-
-            client.close = new_close  # type:ignore
+        minimetrics_client = self.client
 
     @staticmethod
     def _keep_metric(sample_rate: float) -> bool:
