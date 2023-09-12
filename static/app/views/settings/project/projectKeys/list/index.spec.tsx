@@ -1,4 +1,4 @@
-import { initializeOrg } from 'sentry-test/initializeOrg';
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
   renderGlobalModal,
@@ -10,7 +10,7 @@ import {
 import ProjectKeys from 'sentry/views/settings/project/projectKeys/list';
 
 describe('ProjectKeys', function () {
-  const { organization, project, routerProps } = initializeOrg();
+  const {organization, project, routerProps} = initializeOrg();
   const projectKeys = TestStubs.ProjectKeys();
   let deleteMock: jest.Mock;
 
@@ -39,7 +39,7 @@ describe('ProjectKeys', function () {
       <ProjectKeys
         {...routerProps}
         project={project}
-        params={{ projectId: project.slug }}
+        params={{projectId: project.slug}}
         organization={organization}
       />
     );
@@ -54,12 +54,12 @@ describe('ProjectKeys', function () {
       <ProjectKeys
         {...routerProps}
         organization={organization}
-        params={{ projectId: project.slug }}
+        params={{projectId: project.slug}}
         project={TestStubs.Project()}
       />
     );
 
-    const expandButton = screen.getByRole('button', { name: 'Expand' });
+    const expandButton = screen.getByRole('button', {name: 'Expand'});
     await userEvent.click(expandButton);
 
     expect(expandButton).not.toBeInTheDocument();
@@ -70,21 +70,21 @@ describe('ProjectKeys', function () {
       <ProjectKeys
         {...routerProps}
         organization={organization}
-        params={{ projectId: project.slug }}
-        project={TestStubs.Project({ platform: 'other' })}
+        params={{projectId: project.slug}}
+        project={TestStubs.Project({platform: 'other'})}
       />
     );
 
-    const allDsn = screen.getAllByRole('textbox', { name: 'DSN URL' });
+    const allDsn = screen.getAllByRole('textbox', {name: 'DSN URL'});
     expect(allDsn.length).toBe(1);
 
-    const expandButton = screen.getByRole('button', { name: 'Expand' });
-    const dsn = screen.getByRole('textbox', { name: 'DSN URL' });
+    const expandButton = screen.getByRole('button', {name: 'Expand'});
+    const dsn = screen.getByRole('textbox', {name: 'DSN URL'});
     const minidumpEndpoint = screen.queryByRole('textbox', {
       name: 'Minidump Endpoint URL',
     });
     const unrealEndpoint = screen.queryByRole('textbox', {
-      name: 'Unreal Engine Endpoint URL',
+      name: 'Unreal Engine 4 Endpoint URL',
     });
     const securityHeaderEndpoint = screen.queryByRole('textbox', {
       name: 'Security Header Endpoint URL',
@@ -103,18 +103,18 @@ describe('ProjectKeys', function () {
       <ProjectKeys
         {...routerProps}
         organization={organization}
-        params={{ projectId: project.slug }}
-        project={TestStubs.Project({ platform: 'javascript' })}
+        params={{projectId: project.slug}}
+        project={TestStubs.Project({platform: 'javascript'})}
       />
     );
 
-    const expandButton = screen.queryByRole('button', { name: 'Expand' });
-    const dsn = screen.getByRole('textbox', { name: 'DSN URL' });
+    const expandButton = screen.queryByRole('button', {name: 'Expand'});
+    const dsn = screen.getByRole('textbox', {name: 'DSN URL'});
     const minidumpEndpoint = screen.queryByRole('textbox', {
       name: 'Minidump Endpoint URL',
     });
     const unrealEndpoint = screen.queryByRole('textbox', {
-      name: 'Unreal Engine Endpoint URL',
+      name: 'Unreal Engine 4 Endpoint URL',
     });
     const securityHeaderEndpoint = screen.queryByRole('textbox', {
       name: 'Security Header Endpoint URL',
@@ -141,18 +141,18 @@ describe('ProjectKeys', function () {
       <ProjectKeys
         {...routerProps}
         organization={organization}
-        params={{ projectId: project.slug }}
-        project={TestStubs.Project({ platform: 'javascript-react' })}
+        params={{projectId: project.slug}}
+        project={TestStubs.Project({platform: 'javascript-react'})}
       />
     );
 
-    const expandButton = screen.queryByRole('button', { name: 'Expand' });
-    const dsn = screen.getByRole('textbox', { name: 'DSN URL' });
+    const expandButton = screen.queryByRole('button', {name: 'Expand'});
+    const dsn = screen.getByRole('textbox', {name: 'DSN URL'});
     const minidumpEndpoint = screen.queryByRole('textbox', {
       name: 'Minidump Endpoint URL',
     });
     const unrealEndpoint = screen.queryByRole('textbox', {
-      name: 'Unreal Engine Endpoint URL',
+      name: 'Unreal Engine 4 Endpoint URL',
     });
     const securityHeaderEndpoint = screen.queryByRole('textbox', {
       name: 'Security Header Endpoint URL',
@@ -216,12 +216,12 @@ describe('ProjectKeys', function () {
       <ProjectKeys
         {...routerProps}
         organization={organization}
-        params={{ projectId: project.slug }}
-        project={TestStubs.Project({ platform: 'other' })}
+        params={{projectId: project.slug}}
+        project={TestStubs.Project({platform: 'other'})}
       />
     );
 
-    const allDsn = screen.getAllByRole('textbox', { name: 'DSN URL' });
+    const allDsn = screen.getAllByRole('textbox', {name: 'DSN URL'});
     expect(allDsn.length).toBe(2);
   });
 
@@ -230,12 +230,12 @@ describe('ProjectKeys', function () {
       <ProjectKeys
         {...routerProps}
         organization={organization}
-        params={{ projectId: project.slug }}
+        params={{projectId: project.slug}}
         project={TestStubs.Project()}
       />
     );
 
-    await userEvent.click(screen.getByRole('button', { name: 'Delete' }));
+    await userEvent.click(screen.getByRole('button', {name: 'Delete'}));
     renderGlobalModal();
     await userEvent.click(screen.getByTestId('confirm-button'));
 
@@ -247,7 +247,7 @@ describe('ProjectKeys', function () {
       <ProjectKeys
         {...routerProps}
         organization={organization}
-        params={{ projectId: project.slug }}
+        params={{projectId: project.slug}}
         project={TestStubs.Project()}
       />
     );
@@ -259,7 +259,7 @@ describe('ProjectKeys', function () {
 
     renderGlobalModal();
 
-    await userEvent.click(screen.getByRole('button', { name: 'Disable' }));
+    await userEvent.click(screen.getByRole('button', {name: 'Disable'}));
     await userEvent.click(screen.getByTestId('confirm-button'));
 
     await waitFor(() => {
@@ -269,17 +269,17 @@ describe('ProjectKeys', function () {
     expect(enableMock).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
-        data: { isActive: false },
+        data: {isActive: false},
       })
     );
 
-    await userEvent.click(screen.getByRole('button', { name: 'Enable' }));
+    await userEvent.click(screen.getByRole('button', {name: 'Enable'}));
     await userEvent.click(screen.getByTestId('confirm-button'));
 
     expect(enableMock).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
-        data: { isActive: true },
+        data: {isActive: true},
       })
     );
   });
