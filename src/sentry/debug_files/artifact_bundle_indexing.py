@@ -26,7 +26,7 @@ from sentry.utils.db import atomic_transaction
 logger = logging.getLogger(__name__)
 
 # The number of indexes to update with one execution of `backfill_artifact_index_updates`.
-BACKFILL_BATCH_SIZE = 10
+BACKFILL_BATCH_SIZE = 20
 
 # The TTL of the cache containing information about a specific flat file index. The TTL is set to 1 hour, since
 # we know that the cache will be invalidated in case of flat file index updates, thus it is mostly to keep the
