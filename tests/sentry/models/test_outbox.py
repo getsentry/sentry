@@ -560,7 +560,7 @@ class RegionOutboxTest(TestCase):
             assert future_scheduled_outbox.scheduled_for > start_time
             assert RegionOutbox.objects.count() == 1
 
-            assert len(RegionOutbox.find_scheduled_shards()) == 0  # type: ignore
+            assert len(RegionOutbox.find_scheduled_shards()) == 0
 
             with outbox_runner():
                 pass
@@ -585,7 +585,7 @@ class RegionOutboxTest(TestCase):
             assert past_scheduled_outbox.scheduled_for < start_time
             assert RegionOutbox.objects.count() == 2
 
-            assert len(RegionOutbox.find_scheduled_shards()) == 1  # type: ignore
+            assert len(RegionOutbox.find_scheduled_shards()) == 1
 
             with outbox_runner():
                 pass
