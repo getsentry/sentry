@@ -10,7 +10,7 @@ Host: https://sentry.io/api/0
 
 This document is structured by resource with each resource having actions that can be performed against it. Every action that either accepts a request or returns a response _will_ document the full interchange format. Clients may opt to restrict response data or provide a subset of the request data. The API may or may not accept partial payloads.
 
-## User Feedback Index [/organizations/<organization_slug>/user-feedback/]
+## User Feedback Index [/organizations/<organization_slug>/feedback/]
 
 - Parameters
 
