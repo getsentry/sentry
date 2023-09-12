@@ -97,6 +97,7 @@ class SanitizationTests(ImportTestCase):
         superadmin_user = self.copy_user(min_user, "superadmin_user")
         for model in superadmin_user:
             if model["model"] == "sentry.user":
+                model["fields"]["is_managed"] = True
                 model["fields"]["is_staff"] = True
                 model["fields"]["is_superuser"] = True
 
@@ -112,7 +113,9 @@ class SanitizationTests(ImportTestCase):
                 import_in_user_scope(tmp_file, printer=NOOP_PRINTER)
 
         assert User.objects.count() == 4
-        assert User.objects.filter(is_staff=False, is_superuser=False).count() == 4
+        assert (
+            User.objects.filter(is_managed=False, is_staff=False, is_superuser=False).count() == 4
+        )
 
         # Every user except `max_user` shares an email.
         assert Email.objects.count() == 2
@@ -126,6 +129,8 @@ class SanitizationTests(ImportTestCase):
             == 0
         )
 
+        assert User.objects.filter(is_unclaimed=True).count() == 4
+        assert User.objects.filter(is_managed=True).count() == 0
         assert User.objects.filter(is_staff=True).count() == 0
         assert User.objects.filter(is_superuser=True).count() == 0
         assert Authenticator.objects.count() == 0
@@ -141,7 +146,9 @@ class SanitizationTests(ImportTestCase):
                 import_in_organization_scope(tmp_file, printer=NOOP_PRINTER)
 
         assert User.objects.count() == 4
-        assert User.objects.filter(is_staff=False, is_superuser=False).count() == 4
+        assert (
+            User.objects.filter(is_managed=False, is_staff=False, is_superuser=False).count() == 4
+        )
 
         # Every user except `max_user` shares an email.
         assert Email.objects.count() == 2
@@ -155,6 +162,8 @@ class SanitizationTests(ImportTestCase):
             == 0
         )
 
+        assert User.objects.filter(is_unclaimed=True).count() == 4
+        assert User.objects.filter(is_managed=True).count() == 0
         assert User.objects.filter(is_staff=True).count() == 0
         assert User.objects.filter(is_superuser=True).count() == 0
         assert Authenticator.objects.count() == 0
@@ -170,9 +179,13 @@ class SanitizationTests(ImportTestCase):
                 import_in_global_scope(tmp_file, printer=NOOP_PRINTER)
 
         assert User.objects.count() == 4
+        assert User.objects.filter(is_unclaimed=True).count() == 4
+        assert User.objects.filter(is_managed=True).count() == 1
         assert User.objects.filter(is_staff=True).count() == 2
         assert User.objects.filter(is_superuser=True).count() == 2
-        assert User.objects.filter(is_staff=False, is_superuser=False).count() == 2
+        assert (
+            User.objects.filter(is_managed=False, is_staff=False, is_superuser=False).count() == 2
+        )
         assert Authenticator.objects.count() == 4
         assert UserEmail.objects.count() == 4
 
@@ -664,6 +677,9 @@ class CollisionTests(ImportTestCase):
         assert User.objects.filter(username__iexact="owner").exists()
         assert not User.objects.filter(username__iexact="owner-").exists()
 
+        assert User.objects.filter(is_unclaimed=True).count() == 0
+        assert User.objects.filter(is_unclaimed=False).count() == 1
+
     def test_colliding_user_with_merging_disabled_in_user_scope(self):
         self.create_exhaustive_user(username="owner", email="owner@example.com")
 
@@ -685,6 +701,9 @@ class CollisionTests(ImportTestCase):
 
         assert User.objects.filter(username__iexact="owner").exists()
         assert User.objects.filter(username__icontains="owner-").exists()
+
+        assert User.objects.filter(is_unclaimed=True).count() == 1
+        assert User.objects.filter(is_unclaimed=False).count() == 1
 
     def test_colliding_user_with_merging_enabled_in_organization_scope(self):
         owner = self.create_exhaustive_user(username="owner", email="owner@example.com")
@@ -709,6 +728,9 @@ class CollisionTests(ImportTestCase):
 
         assert User.objects.filter(username__iexact="owner").exists()
         assert not User.objects.filter(username__icontains="owner-").exists()
+
+        assert User.objects.filter(is_unclaimed=True).count() == 0
+        assert User.objects.filter(is_unclaimed=False).count() == 1
 
         assert Organization.objects.count() == 2
         assert OrganizationMapping.objects.count() == 2
@@ -756,6 +778,9 @@ class CollisionTests(ImportTestCase):
 
         assert User.objects.filter(username__iexact="owner").exists()
         assert User.objects.filter(username__icontains="owner-").exists()
+
+        assert User.objects.filter(is_unclaimed=True).count() == 1
+        assert User.objects.filter(is_unclaimed=False).count() == 1
 
         assert Organization.objects.count() == 2
         assert OrganizationMapping.objects.count() == 2
