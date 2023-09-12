@@ -87,7 +87,7 @@ def _build_snuba_span(relay_span: Mapping[str, Any]) -> MutableMapping[str, Any]
                 else:
                     try:
                         # Test if the value is valid hexadecimal.
-                        group = int(tag_value, 16)
+                        _ = int(tag_value, 16)
                         # If valid, set the raw value to the tag.
                         sentry_tags["group"] = tag_value
                     except ValueError:
@@ -112,7 +112,7 @@ def _build_snuba_span(relay_span: Mapping[str, Any]) -> MutableMapping[str, Any]
     grouping_config = load_span_grouping_config()
 
     if snuba_span["is_segment"]:
-        group = grouping_config.strategy.get_transaction_span_group(
+        group_raw = grouping_config.strategy.get_transaction_span_group(
             {"transaction": span_data.get("transaction", "")},
         )
     else:
@@ -130,9 +130,14 @@ def _build_snuba_span(relay_span: Mapping[str, Any]) -> MutableMapping[str, Any]
             data=None,
             same_process_as_parent=True,
         )
-        group = grouping_config.strategy.get_span_group(span)
+        group_raw = grouping_config.strategy.get_span_group(span)
 
-    snuba_span["group_raw"] = group or "0"
+    try:
+        _ = int(group_raw, 16)
+        snuba_span["group_raw"] = group_raw
+    except ValueError:
+        snuba_span["group_raw"] = "0"
+
     snuba_span["span_grouping_config"] = {"id": grouping_config.id}
 
     return snuba_span
