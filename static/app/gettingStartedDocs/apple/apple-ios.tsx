@@ -23,7 +23,7 @@ export const steps = ({
   hasProfiling,
 }: StepProps): LayoutProps['steps'] => [
   {
-    type: StepType.INSTALL,
+    title: t('Auto-Install'),
     description: (
       <p>
         {tct(
@@ -83,11 +83,12 @@ export const steps = ({
             </List>
             <p>
               {tct(
-                'Alternatively, you can also [manualSetupLink:set up the SDK manually]. You can skip the steps below when using the wizard.',
+                'Alternatively, you can also [manualSetupLink:set up the SDK manually]. [stepsBelow: You can skip the steps below when using the wizard].',
                 {
                   manualSetupLink: (
                     <ExternalLink href="https://docs.sentry.io/platforms/apple/guides/ios/manual-setup/" />
                   ),
+                  stepsBelow: <strong />,
                 }
               )}
             </p>
@@ -97,7 +98,7 @@ export const steps = ({
     ],
   },
   {
-    type: StepType.CONFIGURE,
+    title: t('Or Manually Install and Configure'),
     description: (
       <Fragment>
         <strong>{t('Install the Sentry SDK:')}</strong>
