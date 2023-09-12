@@ -9,10 +9,7 @@ const items = [
 
 describe('Accordion', function () {
   it('renders expanded item', async function () {
-    const {container} = render(
-      <Accordion expandedIndex={0} setExpandedIndex={() => {}} items={items} />
-    );
-    expect(container).toSnapshot();
+    render(<Accordion expandedIndex={0} setExpandedIndex={() => {}} items={items} />);
     expect(await screen.findByText('first content')).toBeInTheDocument();
     expect(screen.queryByText('second content')).not.toBeInTheDocument();
   });

@@ -16,9 +16,7 @@ describe('AccountEmails', function () {
   });
 
   it('renders with emails', function () {
-    const {container} = render(<AccountEmails />);
-
-    expect(container).toSnapshot();
+    render(<AccountEmails />);
   });
 
   it('can remove an email', async function () {

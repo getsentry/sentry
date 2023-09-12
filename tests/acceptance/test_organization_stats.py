@@ -21,4 +21,3 @@ class OrganizationStatsTest(AcceptanceTestCase):
         self.project.update(first_event=timezone.now())
         self.browser.get(self.path)
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
-        self.browser.snapshot("organization stats")

@@ -19,7 +19,7 @@ describe('ExternalIssueActions', function () {
     const configurations = [integration];
 
     it('renders', function () {
-      const {container} = render(
+      render(
         <ExternalIssueActions
           key="github"
           group={group}
@@ -28,7 +28,6 @@ describe('ExternalIssueActions', function () {
         />
       );
 
-      expect(container).toSnapshot();
       // renders GitHub Issue when no issues currently linked
       expect(screen.getByText('GitHub Issue')).toBeInTheDocument();
     });

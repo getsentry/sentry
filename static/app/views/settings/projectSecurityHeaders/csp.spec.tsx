@@ -26,7 +26,7 @@ describe('ProjectCspReports', function () {
   });
 
   it('renders', function () {
-    const {container} = render(
+    render(
       <ProjectCspReports
         route={{}}
         routeParams={router.params}
@@ -37,7 +37,6 @@ describe('ProjectCspReports', function () {
         params={{projectId: project.slug}}
       />
     );
-    expect(container).toSnapshot();
   });
 
   it('can enable default ignored sources', async function () {

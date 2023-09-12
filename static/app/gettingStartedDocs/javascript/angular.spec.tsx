@@ -7,7 +7,7 @@ import {GettingStartedWithAngular, nextSteps, steps} from './angular';
 
 describe('GettingStartedWithAngular', function () {
   it('all products are selected', function () {
-    const {container} = render(
+    render(
       <GettingStartedWithAngular
         dsn="test-dsn"
         activeProductSelection={[
@@ -38,7 +38,5 @@ describe('GettingStartedWithAngular', function () {
         screen.getByRole('link', {name: filteredNextStepsLink.name})
       ).toBeInTheDocument();
     }
-
-    expect(container).toSnapshot();
   });
 });

@@ -84,23 +84,19 @@ describe('LetterAvatar', function () {
 
   describe('color', function () {
     it('should return a color based on email', function () {
-      const {container} = render(<LetterAvatar {...USER_1} />);
-      expect(container).toSnapshot();
+      render(<LetterAvatar {...USER_1} />);
     });
 
     it('should return a color based on username', function () {
-      const {container} = render(<LetterAvatar {...USER_3} />);
-      expect(container).toSnapshot();
+      render(<LetterAvatar {...USER_3} />);
     });
 
     it('should return a color based on id', function () {
-      const {container} = render(<LetterAvatar {...USER_4} />);
-      expect(container).toSnapshot();
+      render(<LetterAvatar {...USER_4} />);
     });
 
     it('should return a color based on ip address', function () {
-      const {container} = render(<LetterAvatar {...USER_5} />);
-      expect(container).toSnapshot();
+      render(<LetterAvatar {...USER_5} />);
     });
   });
 });

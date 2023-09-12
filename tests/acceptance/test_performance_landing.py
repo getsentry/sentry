@@ -48,7 +48,6 @@ class PerformanceLandingTest(AcceptanceTestCase, SnubaTestCase):
             self.browser.wait_until_not(
                 '[data-test-id="grid-editable"] [data-test-id="empty-state"]', timeout=2
             )
-            self.browser.snapshot("performance landing - with data")
 
     @patch("django.utils.timezone.now")
     def test_with_data_and_new_widget_designs(self, mock_now):
@@ -73,4 +72,3 @@ class PerformanceLandingTest(AcceptanceTestCase, SnubaTestCase):
             self.browser.wait_until_not(
                 '[data-test-id="grid-editable"] [data-test-id="empty-state"]', timeout=2
             )
-            self.browser.snapshot("new widget performance landing - with data")

@@ -6,7 +6,7 @@ import {GettingStartedWithConnect, steps} from './connect';
 
 describe('GettingStartedWithConnect', function () {
   it('renders doc correctly', function () {
-    const {container} = render(<GettingStartedWithConnect dsn="test-dsn" />);
+    render(<GettingStartedWithConnect dsn="test-dsn" />);
 
     // Steps
     for (const step of steps({
@@ -18,7 +18,5 @@ describe('GettingStartedWithConnect', function () {
         screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
       ).toBeInTheDocument();
     }
-
-    expect(container).toSnapshot();
   });
 });

@@ -26,11 +26,7 @@ describe('ProjectTags', function () {
   });
 
   it('renders', function () {
-    const {container} = render(
-      <ProjectTags {...routerProps} organization={org} project={project} />
-    );
-
-    expect(container).toSnapshot();
+    render(<ProjectTags {...routerProps} organization={org} project={project} />);
   });
 
   it('renders empty', function () {

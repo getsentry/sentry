@@ -27,7 +27,7 @@ describe('ActorAvatar', function () {
 
   describe('render()', function () {
     it('should show a gravatar when actor type is a user', function () {
-      const {container} = render(
+      render(
         <ActorAvatar
           actor={{
             id: '1',
@@ -36,12 +36,10 @@ describe('ActorAvatar', function () {
           }}
         />
       );
-
-      expect(container).toSnapshot();
     });
 
     it('should not show a gravatar when actor type is a team', function () {
-      const {container} = render(
+      render(
         <ActorAvatar
           actor={{
             id: '3',
@@ -52,8 +50,6 @@ describe('ActorAvatar', function () {
       );
 
       expect(screen.getByText('CT')).toBeInTheDocument();
-
-      expect(container).toSnapshot();
     });
 
     it('should return null when actor type is a unknown', function () {

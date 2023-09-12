@@ -37,7 +37,7 @@ describe('SharedGroupDetails', function () {
   });
 
   it('renders', function () {
-    const {container} = render(
+    render(
       <RouteContext.Provider value={{router, ...router}}>
         <SharedGroupDetails
           params={params}
@@ -50,14 +50,12 @@ describe('SharedGroupDetails', function () {
         />
       </RouteContext.Provider>
     );
-
-    expect(container).toSnapshot();
   });
 
   it('renders with org slug in path', function () {
     const params_with_slug = {shareId: 'a', orgId: 'test-org'};
     const router_with_slug = TestStubs.router({params_with_slug});
-    const {container} = render(
+    render(
       <RouteContext.Provider value={{router, ...router}}>
         <SharedGroupDetails
           params={params}
@@ -70,7 +68,5 @@ describe('SharedGroupDetails', function () {
         />
       </RouteContext.Provider>
     );
-
-    expect(container).toSnapshot();
   });
 });

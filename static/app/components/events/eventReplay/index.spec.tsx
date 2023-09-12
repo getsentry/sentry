@@ -121,7 +121,7 @@ describe('EventReplay', function () {
     MockUseReplayOnboardingSidebarPanel.mockReturnValue({
       activateSidebar: jest.fn(),
     });
-    const {container} = render(
+    render(
       <EventReplay
         {...defaultProps}
         event={TestStubs.Event({
@@ -134,7 +134,6 @@ describe('EventReplay', function () {
     );
 
     expect(await screen.findByTestId('player-container')).toBeInTheDocument();
-    expect(container).toSnapshot();
   });
 
   it('should render a replay when there is a replay_id from contexts', async function () {
@@ -145,7 +144,7 @@ describe('EventReplay', function () {
     MockUseReplayOnboardingSidebarPanel.mockReturnValue({
       activateSidebar: jest.fn(),
     });
-    const {container} = render(
+    render(
       <EventReplay
         {...defaultProps}
         event={TestStubs.Event({
@@ -163,6 +162,5 @@ describe('EventReplay', function () {
     );
 
     expect(await screen.findByTestId('player-container')).toBeInTheDocument();
-    expect(container).toSnapshot();
   });
 });

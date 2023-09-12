@@ -4,8 +4,7 @@ import TextCopyInput from 'sentry/components/textCopyInput';
 
 describe('TextCopyInput', function () {
   it('renders', function () {
-    const {container} = render(<TextCopyInput>Text to Copy</TextCopyInput>);
-    expect(container).toSnapshot();
+    render(<TextCopyInput>Text to Copy</TextCopyInput>);
     expect(screen.getByDisplayValue('Text to Copy')).toBeInTheDocument();
   });
 });

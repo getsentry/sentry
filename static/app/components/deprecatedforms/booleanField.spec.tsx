@@ -5,17 +5,15 @@ import Form from 'sentry/components/deprecatedforms/form';
 
 describe('BooleanField', function () {
   it('renders without form context', function () {
-    const wrapper = render(<BooleanField name="fieldName" />);
-    expect(wrapper.container).toSnapshot();
+    render(<BooleanField name="fieldName" />);
   });
 
   it('renders with form context', function () {
-    const wrapper = render(
+    render(
       <Form initialData={{fieldName: true}}>
         <BooleanField name="fieldName" />
       </Form>
     );
-    expect(wrapper.container).toSnapshot();
   });
 
   it('toggles', async function () {

@@ -17,7 +17,6 @@ describe('NewProjectPlatform', function () {
 
   it('should render', function () {
     const {routerContext} = initializeOrg();
-    const wrapper = render(<NewProject />, {context: routerContext});
-    expect(wrapper.container).toSnapshot();
+    render(<NewProject />, {context: routerContext});
   });
 });

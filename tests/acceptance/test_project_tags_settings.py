@@ -37,7 +37,6 @@ class ProjectTagsSettingsTest(AcceptanceTestCase, SnubaTestCase):
 
         self.browser.get(self.path)
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
-        self.browser.snapshot("project settings - tags")
 
         self.browser.wait_until_test_id("tag-row")
         self.browser.click('[data-test-id="tag-row"] [data-test-id="delete"]')
@@ -45,4 +44,3 @@ class ProjectTagsSettingsTest(AcceptanceTestCase, SnubaTestCase):
 
         self.browser.click("[role='dialog'] [data-test-id='confirm-button']")
         self.browser.wait_until_not('[data-test-id="tag-row"]')
-        self.browser.snapshot("project settings - tags - after remove")

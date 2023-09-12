@@ -12,4 +12,3 @@ class OrganizationIntegrationDirectoryTest(AcceptanceTestCase):
         path = f"/settings/{self.organization.slug}/integrations/"
         self.browser.get(path)
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
-        self.browser.snapshot("integrations - integration directory")

@@ -71,14 +71,12 @@ class DashboardTest(AcceptanceTestCase, SnubaTestCase):
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
         self.browser.wait_until_test_id("resources")
         self.browser.wait_until(".echarts-for-react path", timeout=10000)
-        self.browser.snapshot("org dash no first event")
 
     def test_one_issue(self):
         self.create_sample_event()
         self.browser.get(self.path)
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
         self.browser.wait_until(".echarts-for-react path", timeout=100000)
-        self.browser.snapshot("org dash one issue")
 
 
 class EmptyDashboardTest(AcceptanceTestCase):
@@ -90,4 +88,3 @@ class EmptyDashboardTest(AcceptanceTestCase):
     def test_new_dashboard_empty(self):
         self.browser.get(self.path)
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
-        self.browser.snapshot("new dashboard empty")

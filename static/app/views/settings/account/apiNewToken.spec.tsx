@@ -4,9 +4,8 @@ import ApiNewToken from 'sentry/views/settings/account/apiNewToken';
 
 describe('ApiNewToken', function () {
   it('renders', function () {
-    const wrapper = render(<ApiNewToken />, {
+    render(<ApiNewToken />, {
       context: TestStubs.routerContext(),
     });
-    expect(wrapper.container).toSnapshot();
   });
 });

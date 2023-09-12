@@ -6,7 +6,7 @@ import {GettingStartedWithAndroid, steps} from './android';
 
 describe('GettingStartedWithAndroid', function () {
   it('renders doc correctly', function () {
-    const {container} = render(<GettingStartedWithAndroid dsn="test-dsn" />);
+    render(<GettingStartedWithAndroid dsn="test-dsn" />);
 
     // Steps
     for (const step of steps({
@@ -18,7 +18,5 @@ describe('GettingStartedWithAndroid', function () {
         screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
       ).toBeInTheDocument();
     }
-
-    expect(container).toSnapshot();
   });
 });

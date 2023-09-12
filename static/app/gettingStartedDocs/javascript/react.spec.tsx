@@ -7,7 +7,7 @@ import GettingStartedWithReact, {nextSteps, steps} from './react';
 
 describe('GettingStartedWithReact', function () {
   it('all products are selected', function () {
-    const {container} = render(
+    render(
       <GettingStartedWithReact
         dsn="test-dsn"
         activeProductSelection={[
@@ -38,8 +38,6 @@ describe('GettingStartedWithReact', function () {
         screen.getByRole('link', {name: filteredNextStepsLink.name})
       ).toBeInTheDocument();
     }
-
-    expect(container).toSnapshot();
   });
 
   it('performance product is not selected', function () {

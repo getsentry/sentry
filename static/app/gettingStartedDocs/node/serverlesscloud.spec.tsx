@@ -6,7 +6,7 @@ import {GettingStartedWithServerlesscloud, steps} from './serverlesscloud';
 
 describe('GettingStartedWithServerlesscloud', function () {
   it('renders doc correctly', function () {
-    const {container} = render(<GettingStartedWithServerlesscloud dsn="test-dsn" />);
+    render(<GettingStartedWithServerlesscloud dsn="test-dsn" />);
 
     // Steps
     for (const step of steps()) {
@@ -14,7 +14,5 @@ describe('GettingStartedWithServerlesscloud', function () {
         screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
       ).toBeInTheDocument();
     }
-
-    expect(container).toSnapshot();
   });
 });

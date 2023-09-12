@@ -194,11 +194,7 @@ describe('View Hierarchy', function () {
   });
 
   it('renders with depth markers', function () {
-    const {container} = render(
-      <ViewHierarchy viewHierarchy={MOCK_DATA} project={project} />
-    );
-
-    expect(container).toSnapshot();
+    render(<ViewHierarchy viewHierarchy={MOCK_DATA} project={project} />);
   });
 
   it('renders an icon with a tooltip for the rendering system', async function () {

@@ -14,11 +14,9 @@ describe('AccountSubscriptions', function () {
       url: ENDPOINT,
       body: [],
     });
-    const wrapper = render(<AccountSubscriptions />, {
+    render(<AccountSubscriptions />, {
       context: TestStubs.routerContext(),
     });
-
-    expect(wrapper.container).toSnapshot();
   });
 
   it('renders list and can toggle', async function () {

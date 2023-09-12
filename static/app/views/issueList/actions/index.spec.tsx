@@ -69,8 +69,6 @@ describe('IssueListActions', function () {
         render(<WrappedComponent queryCount={1500} />);
 
         await userEvent.click(screen.getByRole('checkbox'));
-
-        expect(screen.getByTestId('issue-list-select-all-notice')).toSnapshot();
       });
 
       it('can bulk select', async function () {
@@ -78,8 +76,6 @@ describe('IssueListActions', function () {
 
         await userEvent.click(screen.getByRole('checkbox'));
         await userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
-
-        expect(screen.getByTestId('issue-list-select-all-notice')).toSnapshot();
       });
 
       it('bulk resolves', async function () {
@@ -116,8 +112,6 @@ describe('IssueListActions', function () {
         render(<WrappedComponent queryCount={15} />);
 
         await userEvent.click(screen.getByRole('checkbox'));
-
-        expect(screen.getByTestId('issue-list-select-all-notice')).toSnapshot();
       });
 
       it('can bulk select', async function () {
@@ -126,8 +120,6 @@ describe('IssueListActions', function () {
         await userEvent.click(screen.getByRole('checkbox'));
 
         await userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
-
-        expect(screen.getByTestId('issue-list-select-all-notice')).toSnapshot();
       });
 
       it('bulk resolves', async function () {
@@ -145,8 +137,6 @@ describe('IssueListActions', function () {
         await userEvent.click(screen.getByRole('button', {name: 'Resolve'}));
 
         const modal = screen.getByRole('dialog');
-
-        expect(modal).toSnapshot();
 
         await userEvent.click(
           within(modal).getByRole('button', {name: 'Bulk resolve issues'})

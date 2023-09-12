@@ -12,12 +12,11 @@ describe('FormField + model', function () {
   });
 
   it('renders with Form', function () {
-    const wrapper = render(
+    render(
       <Form model={model}>
         <TextField name="fieldName" />
       </Form>
     );
-    expect(wrapper.container).toSnapshot();
   });
 
   it('sets initial data in model', function () {

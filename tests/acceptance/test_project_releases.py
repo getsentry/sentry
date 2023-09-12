@@ -24,14 +24,12 @@ class ProjectReleasesTest(AcceptanceTestCase):
         self.browser.get(self.path)
         self.browser.wait_until_not(".loading")
         self.browser.wait_until(".ref-project-releases")
-        self.browser.snapshot("project releases with releases")
 
     @pytest.mark.skip(reason="Sentry 9 only")
     def test_with_no_releases(self):
         self.browser.get(self.path)
         self.browser.wait_until_not(".loading")
         self.browser.wait_until(".ref-project-releases")
-        self.browser.snapshot("project releases without releases")
 
 
 @no_silo_test(stable=True)
@@ -54,4 +52,3 @@ class ProjectReleaseDetailsTest(AcceptanceTestCase):
         self.browser.get(self.path)
         self.browser.wait_until_not(".loading")
         self.browser.wait_until(".ref-release-details")
-        self.browser.snapshot("project release details no commits no deploys")

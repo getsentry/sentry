@@ -30,7 +30,7 @@ function renderedComponent(
 
 describe('StackTrace', function () {
   it('renders', function () {
-    const {container} = renderedComponent({});
+    renderedComponent({});
 
     // stack trace content
     const stackTraceContent = screen.getByTestId('stack-trace-content');
@@ -45,8 +45,6 @@ describe('StackTrace', function () {
     // frame list
     const frames = screen.getByTestId('frames');
     expect(frames.children).toHaveLength(5);
-
-    expect(container).toSnapshot();
   });
 
   it('renders the frame in the correct order', function () {

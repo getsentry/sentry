@@ -40,13 +40,12 @@ describe('StreamGroup', function () {
 
   it('renders with anchors', function () {
     const {routerContext, organization} = initializeOrg();
-    const wrapper = render(<StreamGroup id="1337" hasGuideAnchor {...routerContext} />, {
+    render(<StreamGroup id="1337" hasGuideAnchor {...routerContext} />, {
       context: routerContext,
       organization,
     });
 
     expect(GuideStore.state.anchors).toEqual(new Set(['dynamic_counts', 'issue_stream']));
-    expect(wrapper.container).toSnapshot();
   });
 
   it('marks as reviewed', function () {

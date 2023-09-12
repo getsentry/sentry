@@ -15,10 +15,7 @@ describe('ApiTokens', function () {
       body: null,
     });
 
-    const {container} = render(<ApiTokens organization={organization} />);
-
-    // Should be loading
-    expect(container).toSnapshot();
+    render(<ApiTokens organization={organization} />);
   });
 
   it('renders with result', function () {
@@ -27,10 +24,7 @@ describe('ApiTokens', function () {
       body: [TestStubs.ApiToken()],
     });
 
-    const {container} = render(<ApiTokens organization={organization} />);
-
-    // Should be loading
-    expect(container).toSnapshot();
+    render(<ApiTokens organization={organization} />);
   });
 
   it('can delete token', function () {

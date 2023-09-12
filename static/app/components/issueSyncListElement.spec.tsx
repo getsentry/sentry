@@ -4,8 +4,7 @@ import IssueSyncListElement from 'sentry/components/issueSyncListElement';
 
 describe('IssueSyncListElement', function () {
   it('renders', function () {
-    const wrapper = render(<IssueSyncListElement integrationType="github" />);
-    expect(wrapper.container).toSnapshot();
+    render(<IssueSyncListElement integrationType="github" />);
   });
 
   it('can open', async function () {

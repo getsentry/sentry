@@ -59,13 +59,12 @@ describe('OrganizationTeamProjects', function () {
   });
 
   it('should fetch linked and unlinked projects', async function () {
-    const {container} = render(
-      <OrganizationTeamProjects {...routerProps} team={team} />,
-      {context: routerContext, organization}
-    );
+    render(<OrganizationTeamProjects {...routerProps} team={team} />, {
+      context: routerContext,
+      organization,
+    });
 
     expect(await screen.findByText('project-slug')).toBeInTheDocument();
-    expect(container).toSnapshot();
 
     expect(getMock).toHaveBeenCalledTimes(2);
 

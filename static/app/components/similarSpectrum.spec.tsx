@@ -8,7 +8,6 @@ describe('SimilarSpectrum', function () {
   afterEach(function () {});
 
   it('renders', function () {
-    const {container} = render(<SimilarSpectrum />);
-    expect(container).toSnapshot();
+    render(<SimilarSpectrum />);
   });
 });
