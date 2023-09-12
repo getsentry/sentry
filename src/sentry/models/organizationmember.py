@@ -479,7 +479,7 @@ class OrganizationMember(Model):
                 user = user_service.get_user(user_id=self.user_id)
             if user and user.email:
                 return user.email
-        return self.email
+        return self.email or ""
 
     def get_avatar_type(self):
         if self.user_id:
