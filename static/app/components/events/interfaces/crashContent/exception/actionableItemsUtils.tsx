@@ -64,7 +64,7 @@ interface NativeBadDSYMError extends BaseActionableItem {
 }
 
 interface JSMissingSourcesContentError extends BaseActionableItem {
-  type: JavascriptProcessingErrors.JS_MISSING_SOURCES_CONTEXT;
+  type: JavascriptProcessingErrors.JS_MISSING_SOURCES_CONTENT;
 }
 
 interface FetchGenericError extends BaseActionableItem {
