@@ -500,6 +500,14 @@ def unmerge(*posargs, **kwargs):
         referrer="unmerge",
         tenant_ids={"organization_id": source.project.organization_id},
     )
+    # Log info related to this unmerge
+    logger.info(
+        "unmerge.check",
+        extra={
+            "source_id": source.id,
+            "num_events": len(events),
+        },
+    )
 
     # If there are no more events to process, we're done with the migration.
     if not events:
@@ -530,6 +538,15 @@ def unmerge(*posargs, **kwargs):
             source.update(**get_group_backfill_attributes(caches, source, source_events))
 
     destinations = dict(args.destinations)
+    # Log info related to this unmerge
+    logger.info(
+        "unmerge.destinations",
+        extra={
+            "source_id": source.id,
+            "source_events": len(source_events),
+            "destination_events": len(destination_events),
+        },
+    )
 
     # XXX: This is only actually able to create a destination group and migrate
     # the group hashes if there are events that can be migrated. How do we
