@@ -454,12 +454,12 @@ class RegionOutboxTest(TestCase):
             def raise_exception(**kwds):
                 raise ValueError("This is just a test mock exception")
 
-            def run_with_error():
+            def run_with_error(concurrency=1):
                 mock_process_region_outbox.side_effect = raise_exception
                 mock_process_region_outbox.reset_mock()
                 with self.tasks():
                     with raises(OutboxFlushError):
-                        enqueue_outbox_jobs()
+                        enqueue_outbox_jobs(concurrency=concurrency)
                     assert mock_process_region_outbox.call_count == 1
 
             def ensure_converged():
@@ -560,7 +560,7 @@ class RegionOutboxTest(TestCase):
             assert future_scheduled_outbox.scheduled_for > start_time
             assert RegionOutbox.objects.count() == 1
 
-            assert RegionOutbox.find_scheduled_shards().count() == 0  # type: ignore
+            assert len(RegionOutbox.find_scheduled_shards()) == 0
 
             with outbox_runner():
                 pass
@@ -585,7 +585,7 @@ class RegionOutboxTest(TestCase):
             assert past_scheduled_outbox.scheduled_for < start_time
             assert RegionOutbox.objects.count() == 2
 
-            assert RegionOutbox.find_scheduled_shards().count() == 1  # type: ignore
+            assert len(RegionOutbox.find_scheduled_shards()) == 1
 
             with outbox_runner():
                 pass
