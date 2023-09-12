@@ -162,7 +162,8 @@ class ReleaseThresholdTest(APITestCase):
 
     def test_get_invalid_environment(self):
         response = self.client.get(self.url, data={"environment": "The Hovitos are near"})
-        assert response.status_code == 404
+        assert response.status_code == 200
+        assert len(response.data) == 0
 
     def test_get_valid_no_environment(self):
         response = self.client.get(self.url)
