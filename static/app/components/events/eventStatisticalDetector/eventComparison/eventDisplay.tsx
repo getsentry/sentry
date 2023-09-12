@@ -2,6 +2,7 @@ import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {CompactSelect} from 'sentry/components/compactSelect';
+import DateTime from 'sentry/components/dateTime';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {EventTags} from 'sentry/components/events/eventTags';
 import {MINIMAP_HEIGHT} from 'sentry/components/events/interfaces/spans/constants';
@@ -66,7 +67,7 @@ function useFetchSampleEvents({
     dataset: DiscoverDatasets.DISCOVER,
     start: new Date(start * 1000).toISOString(),
     end: new Date(end * 1000).toISOString(),
-    fields: [{field: 'id'}],
+    fields: [{field: 'id'}, {field: 'timestamp'}],
     query: getSampleEventQuery({transaction, durationBaseline}),
 
     createdBy: undefined,
@@ -159,13 +160,20 @@ function EventDisplay({
           <CompactSelect
             size="sm"
             disabled={false}
-            options={eventIds.map(id => ({value: id, label: id}))}
+            options={eventIds.map(id => ({
+              value: id,
+              label: id,
+              details: <DateTime date={data?.data.find(d => d.id === id)?.timestamp} />,
+            }))}
             value={selectedEventId}
             onChange={({value}) => setSelectedEventId(value)}
             triggerLabel={
               <ButtonLabelWrapper>
                 <TextOverflow>
-                  {eventSelectLabel}: {getShortEventId(selectedEventId)}
+                  {eventSelectLabel}:{' '}
+                  <SelectionTextWrapper>
+                    {getShortEventId(selectedEventId)}
+                  </SelectionTextWrapper>
                 </TextOverflow>
               </ButtonLabelWrapper>
             }
@@ -252,4 +260,8 @@ const EmptyStateWrapper = styled('div')`
   display: flex;
   justify-content: center;
   align-items: center;
+`;
+
+const SelectionTextWrapper = styled('span')`
+  font-weight: normal;
 `;
