@@ -86,6 +86,7 @@ class SCIMMemberRoleUpdateTests(SCIMTestCase):
         )
         self.owner.refresh_from_db()
         assert self.owner.role == "owner"
+        assert self.owner.flags["idp:provisioned"]
 
     def test_owner_blank_role(self):
         """A PUT request with a blank role should go through"""
@@ -100,6 +101,7 @@ class SCIMMemberRoleUpdateTests(SCIMTestCase):
         )
         self.owner.refresh_from_db()
         assert self.owner.role == "owner"
+        assert self.owner.flags["idp:provisioned"]
 
         # if the owner is somehow idp:role-restricted, unset it
         self.owner.flags["idp:role-restricted"] = True
@@ -113,6 +115,7 @@ class SCIMMemberRoleUpdateTests(SCIMTestCase):
         self.owner.refresh_from_db()
         assert self.owner.role == "owner"
         assert not self.owner.flags["idp:role-restricted"]
+        assert self.owner.flags["idp:provisioned"]
 
     def test_invalid_role(self):
         self.get_error_response(

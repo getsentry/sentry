@@ -308,6 +308,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
         # Do not allow modifications on members with the highest priority role
         if member.role == organization_roles.get_top_dog().id:
             member.flags["idp:role-restricted"] = False
+            member.flags["idp:provisioned"] = True
             member.save()
 
             context = serialize(
@@ -354,6 +355,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
         if member.role != organization_roles.get_top_dog().id:
             member.role = requested_role
         member.flags["idp:role-restricted"] = idp_role_restricted
+        member.flags["idp:provisioned"] = True
         member.save()
 
         # only update metric if the role changed
