@@ -692,7 +692,7 @@ describe('Grouping Store', function () {
         MockApiClient.clearMockResponses();
         MockApiClient.addMockResponse({
           method: 'DELETE',
-          url: '/issues/groupId/hashes/',
+          url: '/organizations/org-slug/issues/groupId/hashes/',
           statusCode: 500,
           body: {},
         });
