@@ -120,7 +120,7 @@ def test_relay_encoder_with_invalid_chars():
 
     metric_1 = {
         "type": "c",
-        "name": "button_click",
+        "name": "büttòn_click",
         "value": 2,
         "timestamp": 1693994400,
         "width": 10,
@@ -129,14 +129,21 @@ def test_relay_encoder_with_invalid_chars():
             # Invalid tag key.
             ("browser\nname", "Chrome"),
             # Invalid tag value.
-            ("browser.version", "\t1.\n0"),
+            ("browser.version", "\t1.\n0ô"),
             # Valid tag key and value.
             ("platform", "Android"),
+            # Totally invalid tag key.
+            ("\nöś", "Windows"),
+            # Totally invalid tag value.
+            ("version", "\n\t"),
         ),
     }
     result = encoder.encode(metric_1)  # type:ignore
-    assert result == "button_click@second:2|c|#browser.version:1.0,platform:Android|T1693994400"
+    assert (
+        result
+        == "bttn_click@second:2|c|#browsername:Chrome,browser.version:1.0,platform:Android,version:|T1693994400"
+    )
 
-    metric_2 = {"type": "c", "name": "büttòn", "value": 2, "timestamp": 1693994400, "width": 10}
-    with pytest.raises(EncodingError, match="The metric name is not valid"):
+    metric_2 = {"type": "c", "name": "üòë", "value": 2, "timestamp": 1693994400, "width": 10}
+    with pytest.raises(EncodingError, match="The sanitized metric name is empty"):
         encoder.encode(metric_2)  # type:ignore

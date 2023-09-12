@@ -5,12 +5,13 @@ import sentry_sdk
 from sentry_sdk.envelope import Envelope, Item
 
 from minimetrics.types import ExtractedMetric, ExtractedMetricValue, MetricTagsInternal, MetricUnit
-from minimetrics.utils import is_ascii_control
 from sentry.utils import metrics
 
 IN = TypeVar("IN")
 OUT = TypeVar("OUT")
 M = TypeVar("M")
+
+sanitization_re = re.compile(r"[^a-zA-Z0-9_/.]+")
 
 
 class EncodingError(Exception):
@@ -27,9 +28,9 @@ class RelayStatsdEncoder(MetricEnvelopeEncoder[ExtractedMetric, str]):
     TAG_SEPARATOR = ","
 
     def encode(self, value: ExtractedMetric) -> str:
-        metric_name = value["name"]
-        if not self._validate_metric_name(metric_name):
-            raise EncodingError("The metric name is not valid")
+        metric_name = self._sanitize_value(value["name"])
+        if not metric_name:
+            raise EncodingError("The sanitized metric name is empty")
         metric_unit = self._get_metric_unit(value.get("unit"))
         metric_value = self._get_metric_value(value["value"])
         metric_type = value["type"]
@@ -38,32 +39,10 @@ class RelayStatsdEncoder(MetricEnvelopeEncoder[ExtractedMetric, str]):
 
         return f"{metric_name}{metric_unit}:{metric_value}|{metric_type}{metric_tags}{metric_timestamp}"
 
-    @classmethod
-    def _validate_metric_name(cls, metric_name: str) -> bool:
-        # Metric names cannot be empty
-        if not metric_name:
-            return False
-
-        # Metric names must begin with a letter
-        if not metric_name[0].isalpha():
-            return False
-
-        # Metric names can consist of ASCII alphanumerics, underscores, slashes, and periods
-        pattern = r"^[a-zA-Z0-9_/\.]+$"
-        return bool(re.match(pattern, metric_name))
-
-    @classmethod
-    def _validate_tag_key(cls, tag_key: str):
-        # Check if the tag key contains any ASCII control characters.
-        if any(is_ascii_control(char) for char in tag_key):
-            return False
-
-        return True
-
-    @classmethod
-    def _validate_tag_value(cls, tag_key: str) -> str:
-        # Remove control characters from the tag key
-        return "".join(char for char in tag_key if not is_ascii_control(char))
+    @staticmethod
+    def _sanitize_value(value: str) -> str:
+        # Remove all non-alphanumerical chars which are different from _ / .
+        return sanitization_re.sub("", value)
 
     @classmethod
     def _get_metric_unit(cls, unit: Optional[MetricUnit]) -> str:
@@ -88,16 +67,16 @@ class RelayStatsdEncoder(MetricEnvelopeEncoder[ExtractedMetric, str]):
         if not tags:
             return ""
 
-        # We first filter all tags that have an invalid key. Out of the valid keys, we sanitize the tag values by
-        # removing unwanted chars.
+        # We first filter all tags whose sanitized tag key is empty and we also sanitize all tag values. Note that empty
+        # tag values are possible.
         filtered_tags = (
-            (tag_key, cls._validate_tag_value(tag_value))
+            (cls._sanitize_value(tag_key), cls._sanitize_value(tag_value))
             for tag_key, tag_value in tags
-            if cls._validate_tag_key(tag_key)
+            if cls._sanitize_value(tag_key)
         )
         # We then convert all tag values that are not empty into the string protocol representation.
         tags_as_string = cls.TAG_SEPARATOR.join(
-            [f"{tag_key}:{tag_value}" for tag_key, tag_value in filtered_tags if tag_value]
+            [f"{tag_key}:{tag_value}" for tag_key, tag_value in filtered_tags]
         )
         return f"|#{tags_as_string}"
 
@@ -115,7 +94,12 @@ class MetricEnvelopeTransport(Generic[M]):
         if client is None:
             return
 
-        metric_item = Item(payload=self._encoder.encode(metric), type="statsd")
+        try:
+            encoded_metric = self._encoder.encode(metric)
+        except EncodingError:
+            return
+
+        metric_item = Item(payload=encoded_metric, type="statsd")
         envelope = Envelope(
             headers=None,
             items=[metric_item],
