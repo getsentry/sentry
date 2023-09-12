@@ -24,7 +24,7 @@ def _to_minimetrics_external_metric_tags(tags: Optional[Tags]) -> Optional[Metri
 minimetrics_client = None
 
 
-def patch_sentry_sdk(self):
+def patch_sentry_sdk():
     client = sentry_sdk.Hub.main.client
     if client is None:
         return
