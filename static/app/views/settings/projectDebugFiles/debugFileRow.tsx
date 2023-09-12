@@ -110,7 +110,7 @@ function DebugFileRow({
               </Tooltip>
             )}
           </Role>
-          <Access access={['project:write']} project={project}>
+          <Access access={['project:write']}>
             {({hasAccess}) => (
               <Tooltip
                 disabled={hasAccess}
