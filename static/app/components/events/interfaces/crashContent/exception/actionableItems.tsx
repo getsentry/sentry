@@ -234,10 +234,6 @@ function ExpandableErrorList({handleExpandClick, errorList}: ExpandableErrorList
   const cleanedData = useMemo(() => {
     const cleaned = errorDataList.map(errorData => {
       const data = {...errorData};
-      // The name is rendered as path in front of the message
-      if (typeof data.name === 'string') {
-        delete data.name;
-      }
 
       if (data.message === 'None') {
         // Python ensures a message string, but "None" doesn't make sense here
