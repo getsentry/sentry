@@ -9,6 +9,7 @@ import {noFilter} from 'sentry/components/events/interfaces/spans/filter';
 import {ActualMinimap} from 'sentry/components/events/interfaces/spans/header';
 import WaterfallModel from 'sentry/components/events/interfaces/spans/waterfallModel';
 import OpsBreakdown from 'sentry/components/events/opsBreakdown';
+import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import TextOverflow from 'sentry/components/textOverflow';
 import {t} from 'sentry/locale';
@@ -18,6 +19,7 @@ import {defined} from 'sentry/utils';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {eventDetailsRoute, generateEventSlug} from 'sentry/utils/discover/urls';
 import {getShortEventId} from 'sentry/utils/events';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -173,22 +175,29 @@ function EventDisplay({
           <GroupEventActions event={eventData} group={group} projectSlug={project.slug} />
         </StyledEventSelectorControlBar>
         <ComparisonContentWrapper>
-          <MinimapContainer>
-            <MinimapPositioningContainer>
-              <ActualMinimap
-                spans={waterfallModel.getWaterfall({
-                  viewStart: 0,
-                  viewEnd: 1,
-                })}
-                generateBounds={waterfallModel.generateBounds({
-                  viewStart: 0,
-                  viewEnd: 1,
-                })}
-                dividerPosition={0}
-                rootSpan={waterfallModel.rootSpan.span}
-              />
-            </MinimapPositioningContainer>
-          </MinimapContainer>
+          <Link
+            to={eventDetailsRoute({
+              eventSlug: generateEventSlug({project: project.slug, id: selectedEventId}),
+              orgSlug: organization.slug,
+            })}
+          >
+            <MinimapContainer>
+              <MinimapPositioningContainer>
+                <ActualMinimap
+                  spans={waterfallModel.getWaterfall({
+                    viewStart: 0,
+                    viewEnd: 1,
+                  })}
+                  generateBounds={waterfallModel.generateBounds({
+                    viewStart: 0,
+                    viewEnd: 1,
+                  })}
+                  dividerPosition={0}
+                  rootSpan={waterfallModel.rootSpan.span}
+                />
+              </MinimapPositioningContainer>
+            </MinimapContainer>
+          </Link>
 
           <OpsBreakdown event={eventData} operationNameFilters={noFilter} hideHeader />
         </ComparisonContentWrapper>
