@@ -12,6 +12,7 @@ from minimetrics.transport import MetricEnvelopeTransport, RelayStatsdEncoder
 from minimetrics.types import (
     BucketKey,
     FlushedMetric,
+    FlushedMetricValue,
     Metric,
     MetricTagsExternal,
     MetricTagsInternal,
@@ -72,7 +73,7 @@ class CounterMetric(Metric[float]):
     def add(self, value: float) -> None:
         self.value += value
 
-    def serialize_value(self) -> Generator[float]:
+    def serialize_value(self) -> Generator[FlushedMetricValue, None, None]:
         yield self.value
 
 
@@ -104,7 +105,7 @@ class GaugeMetric(Metric[float]):
         self.sum += value
         self.count += 1
 
-    def serialize_value(self) -> Generator[Union[int, float]]:
+    def serialize_value(self) -> Generator[FlushedMetricValue, None, None]:
         yield self.last
         yield self.min
         yield self.max
@@ -125,7 +126,7 @@ class DistributionMetric(Metric[float]):
     def add(self, value: float) -> None:
         self.value.append(float(value))
 
-    def serialize_value(self) -> Generator[float]:
+    def serialize_value(self) -> Generator[FlushedMetricValue, None, None]:
         yield from self.value
 
 
@@ -142,7 +143,7 @@ class SetMetric(Metric[Union[str, int]]):
     def add(self, value: Union[str, int]) -> None:
         self.value.add(value)
 
-    def serialize_value(self) -> Generator[int]:
+    def serialize_value(self) -> Generator[FlushedMetricValue, None, None]:
         def _hash(x: Any) -> int:
             if isinstance(x, str):
                 return zlib.crc32(x.encode("utf-8")) & 0xFFFFFFFF
@@ -240,7 +241,7 @@ class Aggregator:
         bucket_key = BucketKey(
             timestamp=int((timestamp // self.ROLLUP_IN_SECONDS) * self.ROLLUP_IN_SECONDS),
             metric_type=ty,
-            metric_key=key,
+            metric_name=key,
             metric_unit=unit,
             # We have to convert tags into our own internal format, since we don't support lists as
             # tag values.

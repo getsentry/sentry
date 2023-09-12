@@ -56,7 +56,7 @@ class BucketKey(NamedTuple):
 
     timestamp: int
     metric_type: MetricType
-    metric_key: str
+    metric_name: str
     metric_unit: MetricUnit
     metric_tags: MetricTagsInternal
 
@@ -72,7 +72,7 @@ class Metric(Generic[T]):
     def add(self, value: T) -> None:
         raise NotImplementedError()
 
-    def serialize_value(self) -> Generator[FlushedMetricValue]:
+    def serialize_value(self) -> Generator[FlushedMetricValue, None, None]:
         raise NotImplementedError()
 
 

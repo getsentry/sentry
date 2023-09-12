@@ -20,7 +20,7 @@ class RelayStatsdEncoder:
     TAG_SEPARATOR = ","
 
     def encode(self, value: FlushedMetric) -> str:
-        metric_name = self._sanitize_value(value.bucket_key.metric_key)
+        metric_name = self._sanitize_value(value.bucket_key.metric_name)
         if not metric_name:
             raise EncodingError("The sanitized metric name is empty")
         metric_unit = self._get_metric_unit(value.bucket_key.metric_unit)
@@ -49,7 +49,7 @@ class RelayStatsdEncoder:
     def _get_metric_unit(self, unit: MetricUnit) -> str:
         return f"@{unit}"
 
-    def _get_metric_values(self, value: Generator[FlushedMetricValue]) -> str:
+    def _get_metric_values(self, value: Generator[FlushedMetricValue, None, None]) -> str:
         return self.MULTI_VALUE_SEPARATOR.join(str(v) for v in value)
 
     def _get_metric_tags(self, tags: Optional[MetricTagsInternal]) -> str:
