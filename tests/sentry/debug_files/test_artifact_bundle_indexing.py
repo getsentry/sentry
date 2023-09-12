@@ -4,6 +4,7 @@ from io import BytesIO
 from typing import Any, Dict
 from unittest.mock import patch
 
+import pytest
 from django.core.files.base import ContentFile
 from django.utils import timezone
 from freezegun import freeze_time
@@ -616,12 +617,11 @@ class FlatFileIndexTest(FlatFileTestCase):
             "files_by_debug_id": {},
         }
 
+    # The first "bundle limit" test needs 2 minutes to run, the complete test
+    # does not finish at all in reasonable time.
+    # I'm just losing my mind how python / pytest can be *this* slow?
+    @pytest.mark.skip(reason="does not complete in a reasonable amount of time")
     def test_flat_file_index_enforces_limits(self):
-        # The first "bundle limit" test needs 2 minutes to run, the complete test
-        # does not finish at all in reasonable time.
-        # I'm just losing my mind how python / pytest can be *this* slow?
-        return
-
         # bundle limit
         flat_file_index = FlatFileIndex()
 
