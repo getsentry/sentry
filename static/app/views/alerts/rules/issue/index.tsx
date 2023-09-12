@@ -812,26 +812,15 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
   };
 
   handleDeleteRow = (type: ConditionOrActionProperty, idx: number) => {
-    this.setState(
-      prevState => {
-        const clonedState = cloneDeep(prevState);
+    this.setState(prevState => {
+      const clonedState = cloneDeep(prevState);
 
-        const newTypeList = prevState.rule ? [...prevState.rule[type]] : [];
-        newTypeList.splice(idx, 1);
+      const newTypeList = prevState.rule ? [...prevState.rule[type]] : [];
+      newTypeList.splice(idx, 1);
 
-        set(clonedState, `rule[${type}]`, newTypeList);
-        return clonedState;
-      },
-      () => {
-        // After the row has been removed, check if warning is shown
-        if (this.displayNoConditionsWarning() && !this.trackNoisyWarningViewed) {
-          this.trackNoisyWarningViewed = true;
-          trackAnalytics('alert_builder.noisy_warning_viewed', {
-            organization: this.props.organization,
-          });
-        }
-      }
-    );
+      set(clonedState, `rule[${type}]`, newTypeList);
+      return clonedState;
+    });
   };
 
   handleAddCondition = (template: IssueAlertRuleActionTemplate) =>
@@ -1021,6 +1010,14 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
 
   renderAcknowledgeNoConditions(disabled: boolean) {
     const {detailedError, acceptedNoisyAlert} = this.state;
+
+    // Bit goofy to do in render but should only track onceish
+    if (!this.trackNoisyWarningViewed) {
+      this.trackNoisyWarningViewed = true;
+      trackAnalytics('alert_builder.noisy_warning_viewed', {
+        organization: this.props.organization,
+      });
+    }
 
     return (
       <Alert type="warning" showIcon>
