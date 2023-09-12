@@ -469,7 +469,9 @@ export function ActionableItems({event, project, isShare}: ActionableItemsProps)
         </Fragment>
       }
     >
-      {t("There are problems you'll need to fix for future events")}
+      {hasErrorAlert
+        ? t('Sentry has identified the following problems for you to fix')
+        : t('Sentry has identified the following problems for you to monitor')}
     </StyledAlert>
   );
 }
