@@ -1,5 +1,4 @@
 import re
-import sys
 from typing import Iterable, Optional, Sequence
 
 import sentry_sdk
@@ -92,15 +91,13 @@ class MetricEnvelopeTransport:
             return
 
         encoded_metrics = self._encoder.encode_multiple(flushed_metrics)
+        metrics.timing(
+            key="minimetrics.encoded_metrics_size", value=len(encoded_metrics), sample_rate=1.0
+        )
+
         metric_item = Item(payload=encoded_metrics, type="statsd")
         envelope = Envelope(
             headers=None,
             items=[metric_item],
         )
-
-        self._track_envelope_size(envelope)
         transport.capture_envelope(envelope)
-
-    def _track_envelope_size(self, envelope: Envelope):
-        envelope_size = sys.getsizeof(envelope)
-        metrics.timing(key="minimetrics.envelope_size", value=envelope_size, sample_rate=1.0)
