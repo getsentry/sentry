@@ -89,7 +89,7 @@ all_service_healthchecks = {
 }
 
 
-def run_with_retries(cmd: Callable[[], None], retries: int, timeout: int) -> None:
+def run_with_retries(cmd: Callable[[], object], retries: int, timeout: int) -> None:
     for retry in range(1, retries + 1):
         try:
             cmd()
