@@ -1,3 +1,7 @@
+"""
+Generate a mapping from file extensions to language for languages that are part of platforms supported by Sentry.
+"""
+
 import requests
 import yaml
 
