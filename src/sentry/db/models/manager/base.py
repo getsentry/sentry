@@ -279,7 +279,7 @@ class BaseManager(DjangoBaseManager.from_queryset(BaseQuerySet), Generic[M]):  #
         local_cache = self._get_local_cache()
 
         def validate_result(inst: Any) -> M:
-            if isinstance(inst, self.model) and (key != pk_name or int(value) != inst.pk):
+            if isinstance(inst, self.model) and (key != pk_name or int(value) == inst.pk):
                 return inst
 
             if settings.DEBUG:
