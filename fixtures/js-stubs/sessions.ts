@@ -1,5 +1,9 @@
-export function SessionsField({field} = {}) {
+import type {SessionApiResponse} from 'sentry/types';
+
+export function SessionsField(field: string): SessionApiResponse {
   return {
+    start: '',
+    end: '',
     query: '',
     intervals: [
       '2021-03-05T00:00:00Z',
@@ -31,8 +35,10 @@ export function SessionsField({field} = {}) {
   };
 }
 
-export function SessionUserCountByStatus() {
+export function SessionUserCountByStatus(): SessionApiResponse {
   return {
+    start: '',
+    end: '',
     query: '',
     intervals: [
       '2021-03-05T00:00:00Z',
@@ -117,8 +123,10 @@ export function SessionUserCountByStatus() {
 
 // this one is higher than the first one
 // first one can be used as "This Release" and the second one works nicely as "All Releases"
-export function SessionUserCountByStatus2() {
+export function SessionUserCountByStatus2(): SessionApiResponse {
   return {
+    start: '',
+    end: '',
     query: '',
     intervals: [
       '2021-03-05T00:00:00Z',
@@ -201,8 +209,10 @@ export function SessionUserCountByStatus2() {
   };
 }
 
-export function SessionStatusCountByReleaseInPeriod() {
+export function SessionStatusCountByReleaseInPeriod(): SessionApiResponse {
   return {
+    start: '',
+    end: '',
     query:
       'release:7a82c130be9143361f20bc77252df783cf91e4fc OR release:e102abb2c46e7fe8686441091005c12aed90da99',
     intervals: [
@@ -298,8 +308,10 @@ export function SessionStatusCountByReleaseInPeriod() {
   };
 }
 
-export function SessionStatusCountByProjectInPeriod() {
+export function SessionStatusCountByProjectInPeriod(): SessionApiResponse {
   return {
+    start: '',
+    end: '',
     query: '',
     intervals: [
       '2021-03-05T00:00:00Z',
@@ -354,8 +366,10 @@ export function SessionStatusCountByProjectInPeriod() {
   };
 }
 
-export function SesssionTotalCountByReleaseIn24h() {
+export function SesssionTotalCountByReleaseIn24h(): SessionApiResponse {
   return {
+    start: '',
+    end: '',
     query:
       'release:7a82c130be9143361f20bc77252df783cf91e4fc OR release:e102abb2c46e7fe8686441091005c12aed90da99',
     intervals: [
@@ -409,8 +423,10 @@ export function SesssionTotalCountByReleaseIn24h() {
   };
 }
 
-export function SessionTotalCountByProjectIn24h() {
+export function SessionTotalCountByProjectIn24h(): SessionApiResponse {
   return {
+    start: '',
+    end: '',
     query: '',
     intervals: [
       '2021-03-17T10:00:00Z',
@@ -454,8 +470,10 @@ export function SessionTotalCountByProjectIn24h() {
   };
 }
 
-export function SessionUserStatusCountByReleaseInPeriod() {
+export function SessionUserStatusCountByReleaseInPeriod(): SessionApiResponse {
   return {
+    start: '',
+    end: '',
     query:
       'release:7a82c130be9143361f20bc77252df783cf91e4fc OR release:e102abb2c46e7fe8686441091005c12aed90da99',
     intervals: [
@@ -575,8 +593,10 @@ export function SessionUserStatusCountByReleaseInPeriod() {
   };
 }
 
-export function SessionUserStatusCountByProjectInPeriod() {
+export function SessionUserStatusCountByProjectInPeriod(): SessionApiResponse {
   return {
+    start: '',
+    end: '',
     query: '',
     intervals: [
       '2021-03-05T00:00:00Z',
@@ -643,8 +663,10 @@ export function SessionUserStatusCountByProjectInPeriod() {
   };
 }
 
-export function UserTotalCountByReleaseIn24h() {
+export function UserTotalCountByReleaseIn24h(): SessionApiResponse {
   return {
+    start: '',
+    end: '',
     query:
       'release:7a82c130be9143361f20bc77252df783cf91e4fc OR release:e102abb2c46e7fe8686441091005c12aed90da99',
     intervals: [
@@ -697,8 +719,10 @@ export function UserTotalCountByReleaseIn24h() {
   };
 }
 
-export function UserTotalCountByProjectIn24h() {
+export function UserTotalCountByProjectIn24h(): SessionApiResponse {
   return {
+    start: '',
+    end: '',
     query: '',
     intervals: [
       '2021-03-17T10:00:00Z',
@@ -741,7 +765,7 @@ export function UserTotalCountByProjectIn24h() {
   };
 }
 
-export function SessionUserCountByStatusByRelease() {
+export function SessionUserCountByStatusByRelease(): SessionApiResponse {
   return {
     start: '2022-01-15T00:00:00Z',
     end: '2022-01-29T00:00:00Z',
@@ -831,7 +855,7 @@ export function SessionUserCountByStatusByRelease() {
   };
 }
 
-export function SessionEmptyGroupedResponse() {
+export function SessionEmptyGroupedResponse(): SessionApiResponse {
   return {
     start: '2022-01-15T00:00:00Z',
     end: '2022-01-29T00:00:00Z',

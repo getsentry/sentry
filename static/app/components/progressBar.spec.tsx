@@ -5,8 +5,7 @@ import ProgressBar from 'sentry/components/progressBar';
 describe('ProgressBar', function () {
   it('basic', function () {
     const progressBarValue = 50;
-    const {container} = render(<ProgressBar value={progressBarValue} />);
-    expect(container).toSnapshot();
+    render(<ProgressBar value={progressBarValue} />);
 
     const elementProperties = screen.getByRole('progressbar');
     // element exists

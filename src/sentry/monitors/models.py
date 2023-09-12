@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any, Dict, Optional
+from uuid import uuid4
 
 import jsonschema
 import pytz
@@ -14,7 +15,9 @@ from django.db.models.signals import pre_save
 from django.dispatch import receiver
 from django.utils import timezone
 
-from sentry.backup.scopes import RelocationScope
+from sentry.backup.dependencies import PrimaryKeyMap
+from sentry.backup.helpers import ImportFlags
+from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.constants import ObjectStatus
 from sentry.db.models import (
     BaseManager,
@@ -356,6 +359,17 @@ class Monitor(Model):
             return alert_rule_data
 
         return None
+
+    def _normalize_before_relocation_import(
+        self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
+    ) -> Optional[int]:
+        old_pk = super()._normalize_before_relocation_import(pk_map, scope, flags)
+        if old_pk is None:
+            return None
+
+        # Generate a new UUID.
+        self.guid = uuid4()
+        return old_pk
 
 
 @receiver(pre_save, sender=Monitor)

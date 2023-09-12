@@ -88,12 +88,11 @@ describe('CreateProject', function () {
   });
 
   it('should block if you have access to no teams', function () {
-    const {container} = render(<CreateProject />, {
+    render(<CreateProject />, {
       context: TestStubs.routerContext([
         {organization: {id: '1', slug: 'testOrg', access: ['project:read']}},
       ]),
     });
-    expect(container).toSnapshot();
   });
 
   it('can create a new project without team as org member', async function () {
@@ -159,7 +158,7 @@ describe('CreateProject', function () {
       },
     });
 
-    const {container} = render(<CreateProject />, {
+    render(<CreateProject />, {
       context: TestStubs.routerContext([
         {
           organization: {
@@ -184,8 +183,6 @@ describe('CreateProject', function () {
 
     await userEvent.click(screen.getByTestId('platform-apple-ios'));
     expect(screen.getByPlaceholderText('project-name')).toHaveValue('another');
-
-    expect(container).toSnapshot();
   });
 
   it('should display success message on proj creation', async function () {

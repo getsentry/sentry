@@ -370,6 +370,8 @@ SENTRY_OUTBOX_MODELS: Mapping[str, list[str]] = {
     "REGION": ["sentry.RegionOutbox"],
 }
 
+# Do not modify reordering
+# The applications listed first in INSTALLED_APPS have precedence
 INSTALLED_APPS: tuple[str, ...] = (
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -1429,6 +1431,8 @@ SENTRY_FEATURES = {
     "organizations:profiling-memory-chart": False,
     # Enable profiling battery usage chart
     "organizations:profiling-battery-usage-chart": False,
+    # Enable profiling summary redesign view
+    "organizations:profiling-summary-redesign": False,
     # Enable disabling github integrations when broken is detected
     "organizations:github-disable-on-broken": False,
     # Enable disabling gitlab integrations when broken is detected
@@ -1553,6 +1557,8 @@ SENTRY_FEATURES = {
     "organizations:mobile-cpu-memory-in-transactions": False,
     # Enable new page filter UI
     "organizations:new-page-filter": False,
+    # Display warning banner for every event issue alerts
+    "organizations:noisy-alert-warning": False,
     # Prefix host with organization ID when giving users DSNs (can be
     # customized with SENTRY_ORG_SUBDOMAIN_TEMPLATE)
     "organizations:org-subdomains": False,
@@ -1752,6 +1758,8 @@ SENTRY_FEATURES = {
     "organizations:sourcemaps-upload-release-as-artifact-bundle": False,
     # Signals that the organization supports the on demand metrics prefill.
     "organizations:on-demand-metrics-prefill": False,
+    # Enable writing to the new notification system when updating the old system
+    "organizations:notifications-double-write": False,
     # Excludes measurement config from project config builds.
     "organizations:projconfig-exclude-measurements": False,
     # Enable data forwarding functionality for projects.
@@ -1781,6 +1789,9 @@ SENTRY_FEATURES = {
     "projects:span-metrics-extraction": False,
     # Metrics: Enable ingestion, storage, and rendering of custom metrics
     "organizations:custom-metrics": False,
+    # Metrics: Enable creation of investigation dynamic sampling rules (rules that
+    # temporary boost the sample rate of particular transactions)
+    "organizations:investigation-bias": False,
     # Don't add feature defaults down here! Please add them in their associated
     # group sorted alphabetically.
 }
@@ -2815,10 +2826,6 @@ SENTRY_SDK_CONFIG = {
     "debug": True,
     "send_default_pii": True,
     "auto_enabling_integrations": False,
-    "_experiments": {
-        "custom_measurements": True,
-        "enable_backpressure_handling": True,
-    },
 }
 
 SENTRY_DEV_DSN = os.environ.get("SENTRY_DEV_DSN")
@@ -3573,9 +3580,10 @@ SENTRY_ISSUE_PLATFORM_FUTURES_MAX_LIMIT = 10000
 
 SENTRY_GROUP_ATTRIBUTES_FUTURES_MAX_LIMIT = 10000
 
+
 # USE_SPLIT_DBS is leveraged in tests as we validate db splits further.
 # Split databases are also required for the USE_SILOS devserver flow.
-if USE_SILOS or env("SENTRY_USE_SPLIT_DBS", default=False):
+if USE_SILOS:
     # Add connections for the region & control silo databases.
     DATABASES["control"] = DATABASES["default"].copy()
     DATABASES["control"]["NAME"] = "control"

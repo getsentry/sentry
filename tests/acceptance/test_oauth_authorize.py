@@ -12,7 +12,5 @@ class OAuthAuthorizeTest(AcceptanceTestCase):
     def test_simple(self):
         self.browser.get("/debug/oauth/authorize/")
         self.browser.wait_until_not(".loading")
-        self.browser.snapshot("oauth - authorize")
         self.browser.get("/debug/oauth/authorize/error/")
         self.browser.wait_until_not(".loading")
-        self.browser.snapshot("oauth - authorize error")

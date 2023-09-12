@@ -40,6 +40,8 @@ interface BaseConfig {
   max_runtime: number;
   timezone: string;
   alert_rule_id?: number;
+  failure_issue_threshold?: number | null;
+  recovery_threshold?: number | null;
 }
 
 /**

@@ -2042,7 +2042,8 @@ def _get_severity_score(event: Event) -> float | None:
         message = error_type if not error_msg else f"{error_type}: {error_msg}"
 
     logger.info(
-        "event_manager.get_severity_score", extra={"message": message, "event_id": event.event_id}
+        "event_manager.get_severity_score",
+        extra={"event_message": message, "event_id": event.event_id},
     )
 
     if message:
