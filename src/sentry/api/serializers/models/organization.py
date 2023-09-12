@@ -442,6 +442,7 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     aiSuggestedSolution: bool
     githubPRBot: bool
     githubOpenPRBot: bool
+    githubNudgeInvite: bool
     isDynamicallySampled: bool
 
 
@@ -553,6 +554,9 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 ),
                 "githubOpenPRBot": bool(
                     obj.get_option("sentry:github_open_pr_bot", GITHUB_COMMENT_BOT_DEFAULT)
+                ),
+                "githubNudgeInvite": bool(
+                    obj.get_option("sentry:github_nudge_invite", GITHUB_COMMENT_BOT_DEFAULT)
                 ),
             }
         )

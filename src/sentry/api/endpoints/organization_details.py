@@ -142,6 +142,12 @@ ORG_OPTIONS = (
         bool,
         org_serializers.GITHUB_COMMENT_BOT_DEFAULT,
     ),
+    (
+        "githubNudgeInvite",
+        "sentry:github_nudge_invite",
+        bool,
+        org_serializers.GITHUB_COMMENT_BOT_DEFAULT,
+    ),
 )
 
 DELETION_STATUSES = frozenset(
@@ -186,6 +192,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     aiSuggestedSolution = serializers.BooleanField(required=False)
     codecovAccess = serializers.BooleanField(required=False)
     githubOpenPRBot = serializers.BooleanField(required=False)
+    githubNudgeInvite = serializers.BooleanField(required=False)
     githubPRBot = serializers.BooleanField(required=False)
     require2FA = serializers.BooleanField(required=False)
     requireEmailVerification = serializers.BooleanField(required=False)
