@@ -17,6 +17,8 @@ from sentry.web.helpers import render_to_response
 from . import build_linking_url as base_build_linking_url
 from . import never_cache, render_error_page
 
+ALLOWED_METHODS = ["GET", "POST"]
+
 
 def build_team_unlinking_url(
     integration: Integration,
@@ -46,6 +48,9 @@ class SlackUnlinkTeamView(BaseView):
     @transaction_start("SlackUnlinkIdentityView")
     @method_decorator(never_cache)
     def handle(self, request: Request, signed_params: str) -> HttpResponse:
+        if request.method not in ALLOWED_METHODS:
+            return render_error_page(request, body_text="HTTP 405: Method not allowed")
+
         try:
             params = unsign(signed_params)
         except (SignatureExpired, BadSignature):
@@ -88,7 +93,7 @@ class SlackUnlinkTeamView(BaseView):
 
         team = external_teams[0].team
 
-        if request.method != "POST":
+        if request.method == "GET":
             return render_to_response(
                 "sentry/integrations/slack/unlink-team.html",
                 request=request,
