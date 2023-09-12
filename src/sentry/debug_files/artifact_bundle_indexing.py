@@ -403,7 +403,13 @@ def update_artifact_bundle_index(
         for bundle_id in bundles_to_remove or []:
             index.remove(bundle_id)
 
-        index.enforce_size_limits()
+        bundles_removed = index.enforce_size_limits()
+        if bundles_removed > 0:
+            metrics.incr(
+                "artifact_bundle_flat_file_indexing.bundles_removed",
+                amount=bundles_removed,
+                tags={"reason": "size_limits"},
+            )
 
         # Store the updated index file
         new_json_index = index.to_json()
@@ -489,13 +495,14 @@ class FlatFileIndex:
 
         return json.dumps(json_idx)
 
-    def enforce_size_limits(self):
+    def enforce_size_limits(self) -> int:
         """
         This enforced reasonable limits on the data we put into the `FlatFileIndex` by removing
         the oldest bundle from the index until the limits are met.
         """
         bundles_by_timestamp = [bundle for bundle in self._bundles]
         bundles_by_timestamp.sort(reverse=True, key=lambda bundle: (bundle.timestamp, bundle.id))
+        bundles_removed = 0
 
         while (
             len(self._bundles) > MAX_BUNDLES_PER_INDEX
@@ -505,6 +512,9 @@ class FlatFileIndex:
             bundle_to_remove = bundles_by_timestamp.pop()
             self.remove(bundle_to_remove.id)
             self._is_complete = False
+            bundles_removed += 1
+
+        return bundles_removed
 
     def merge_urls(self, bundle_meta: BundleMeta, urls: List[str]):
         bundle_index = self._add_or_update_bundle(bundle_meta)
