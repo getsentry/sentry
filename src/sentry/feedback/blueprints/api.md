@@ -1,4 +1,4 @@
-# User Feedback API
+# Feedback API
 
 Host: https://sentry.io/api/0
 
@@ -10,7 +10,7 @@ Host: https://sentry.io/api/0
 
 This document is structured by resource with each resource having actions that can be performed against it. Every action that either accepts a request or returns a response _will_ document the full interchange format. Clients may opt to restrict response data or provide a subset of the request data. The API may or may not accept partial payloads.
 
-## User Feedback Index [/organizations/<organization_slug>/feedback/]
+## Feedback Index [/organizations/<organization_slug>/feedback/]
 
 - Parameters
 
@@ -43,9 +43,9 @@ This document is structured by resource with each resource having actions that c
   - query (optional, string) - Search query with space-separated field/value pairs. ie: `?query=count_errors:>2`.
   - queryReferrer(optional, string) - Specify the page which this query is being made from. Used for cross project query on issue replays page. Pass `queryReferrer=replayUserFeedback` for this query.
 
-### Browse User Feedback [GET]
+### Browse Feedback [GET]
 
-Retrieve a collection of user-feedback items.
+Retrieve a collection of feedback items.
 
 **Attributes**
 
@@ -79,7 +79,7 @@ Retrieve a collection of user-feedback items.
 | status            | string           | One of: resolved, unresolved.                       |
 | tags              | object           | Mapping of key, value pairs.                        |
 | timestamp         | string           | ISO-8061 formatted UTC datetime.                    |
-| url               | string           | The page the user-feedback was triggered on.        |
+| url               | string           | The page the feedback was triggered on.             |
 | user              | object           | The authorized user's information.                  |
 | user.display_name | optional[string] | -                                                   |
 | user.email        | optional[string] | -                                                   |
@@ -111,7 +111,7 @@ Retrieve a collection of user-feedback items.
           "lang": "en",
           "timezone": "UTC+1"
         },
-        "message": "I really like this user-feedback feature!",
+        "message": "I really like this feedback feature!",
         "os": {
           "name": "iOS",
           "version": "16.2"
@@ -142,9 +142,100 @@ Retrieve a collection of user-feedback items.
   }
   ```
 
-### Create User Feedback [POST]
+## Feedback [/projects/<organization_slug>/<project_slug>/feedback/<feedback_id>/]
 
-Create a new user-feedback item. This method is a subset of the Event protocol with an additional "feedback" object added. Within the feedback object are feedback related event metadata.
+- Model
+
+  - Body
+
+    ```json
+    {
+      "data": {
+        "browser": {
+          "name": "Chome",
+          "version": "103.0.38"
+        },
+        "contact_email": "colton.allen@sentry.io",
+        "device": {
+          "brand": "Apple",
+          "family": "iPhone",
+          "model": "11",
+          "name": "iPhone 11"
+        },
+        "dist": "abc123",
+        "environment": "production",
+        "id": "1ffe0775ac0f4417aed9de36d9f6f8dc",
+        "locale": {
+          "lang": "en",
+          "timezone": "UTC+1"
+        },
+        "message": "I really like this feedback feature!",
+        "os": {
+          "name": "iOS",
+          "version": "16.2"
+        },
+        "platform": "javascript",
+        "release": "version@1.3",
+        "replay_id": "ec3b4dc8b79f417596f7a1aa4fcca5d2",
+        "sdk": {
+          "name": "sentry.javascript.react",
+          "version": "6.18.1"
+        },
+        "status": "unresolved",
+        "tags": {
+          "hello": "is",
+          "it": ["me", "you're", "looking", "for"]
+        },
+        "timestamp": "2023-08-31T14:10:34.954048",
+        "url": "https://docs.sentry.io/platforms/javascript/",
+        "user": {
+          "display_name": "John Doe",
+          "email": "john.doe@example.com",
+          "id": "30246326",
+          "ip": "213.164.1.114",
+          "username": "John Doe"
+        }
+      }
+    }
+    ```
+
+### Fetch Feedback [GET]
+
+Retrieve a single feedback item.
+
+- Response 200
+
+  [UserFeedback]
+
+### Update Feedback [PATCH]
+
+Partially update a feedback item.
+
+- Request
+
+  ```json
+  {
+    "data": {
+      "status": "resolved"
+    }
+  }
+  ```
+
+- Response 202
+
+  [UserFeedback]
+
+### Delete Feedback [DELETE]
+
+Delete a feedback item.
+
+- Response 204
+
+## Feedback Ingest [/feedback/]
+
+### Create Feedback [POST]
+
+Create a new feedback item. This method is a subset of the Event protocol with an additional "feedback" object added. Within the feedback object are feedback related event metadata.
 
 Every field not marked as "optional" is considered a required field and must be present in the request body.
 
@@ -184,7 +275,7 @@ Every field not marked as "optional" is considered a required field and must be 
     "event_id": "1ffe0775ac0f4417aed9de36d9f6f8dc",
     "feedback": {
       "contact_email": "colton.allen@sentry.io",
-      "message": "I really like this user-feedback feature!",
+      "message": "I really like this feedback feature!",
       "replay_id": "ec3b4dc8b79f417596f7a1aa4fcca5d2",
       "url": "https://docs.sentry.io/platforms/javascript/"
     },
@@ -212,92 +303,3 @@ Every field not marked as "optional" is considered a required field and must be 
     }
   }
   ```
-
-## User Feedback [/projects/<organization_slug>/<project_slug>/user-feedback/<user_feedback_id>/]
-
-- Model
-
-  - Body
-
-    ```json
-    {
-      "data": {
-        "browser": {
-          "name": "Chome",
-          "version": "103.0.38"
-        },
-        "contact_email": "colton.allen@sentry.io",
-        "device": {
-          "brand": "Apple",
-          "family": "iPhone",
-          "model": "11",
-          "name": "iPhone 11"
-        },
-        "dist": "abc123",
-        "environment": "production",
-        "id": "1ffe0775ac0f4417aed9de36d9f6f8dc",
-        "locale": {
-          "lang": "en",
-          "timezone": "UTC+1"
-        },
-        "message": "I really like this user-feedback feature!",
-        "os": {
-          "name": "iOS",
-          "version": "16.2"
-        },
-        "platform": "javascript",
-        "release": "version@1.3",
-        "replay_id": "ec3b4dc8b79f417596f7a1aa4fcca5d2",
-        "sdk": {
-          "name": "sentry.javascript.react",
-          "version": "6.18.1"
-        },
-        "status": "unresolved",
-        "tags": {
-          "hello": "is",
-          "it": ["me", "you're", "looking", "for"]
-        },
-        "timestamp": "2023-08-31T14:10:34.954048",
-        "url": "https://docs.sentry.io/platforms/javascript/",
-        "user": {
-          "display_name": "John Doe",
-          "email": "john.doe@example.com",
-          "id": "30246326",
-          "ip": "213.164.1.114",
-          "username": "John Doe"
-        }
-      }
-    }
-    ```
-
-### Fetch User Feedback [GET]
-
-Retrieve a single user-feedback item.
-
-- Response 200
-
-  [UserFeedback]
-
-### Update User Feedback [PATCH]
-
-Partially update a user-feedback item.
-
-- Request
-
-  ```json
-  {
-    "data": {
-      "status": "resolved"
-    }
-  }
-  ```
-
-- Response 202
-
-  [UserFeedback]
-
-### Delete User Feedback [DELETE]
-
-Delete a user-feedback item.
-
-- Response 204
