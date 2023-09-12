@@ -2,61 +2,80 @@ import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
 import OrganizationStore from 'sentry/stores/organizationStore';
 import TeamStore from 'sentry/stores/teamStore';
-import {QueryClient, QueryClientProvider} from 'sentry/utils/queryClient';
+import {useTeams} from 'sentry/utils/useTeams';
 
-import {useTeams as useTeams} from './useTeams';
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: false,
-    },
-  },
-});
-
-describe('useTeamsV2', function () {
+describe('useTeams', function () {
   const org = TestStubs.Organization();
 
   const mockTeams = [TestStubs.Team()];
-  const wrapper = ({children}: {children?: any}) => (
-    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-  );
 
   beforeEach(function () {
     TeamStore.reset();
     OrganizationStore.onUpdate(org, {replace: true});
-    queryClient.clear();
   });
 
   it('provides teams from the team store', function () {
     TeamStore.loadInitialData(mockTeams);
 
-    const {result} = reactHooks.renderHook(useTeams, {wrapper});
+    const {result} = reactHooks.renderHook(useTeams);
     const {teams} = result.current;
 
     expect(teams).toEqual(mockTeams);
   });
 
-  it('waits for the teamstore to load', function () {
+  it('loads more teams when using onSearch', async function () {
+    TeamStore.loadInitialData(mockTeams);
+    const newTeam2 = TestStubs.Team({id: '2', slug: 'test-team2'});
+    const newTeam3 = TestStubs.Team({id: '3', slug: 'test-team3'});
+
     const mockRequest = MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/teams/`,
       method: 'GET',
-      body: mockTeams,
+      body: [newTeam2, newTeam3],
     });
-    // TeamStore.loadInitialData not yet called
-    expect(TeamStore.getState().loading).toBe(true);
+
+    const {result, waitFor} = reactHooks.renderHook(useTeams);
+    const {onSearch} = result.current;
+
+    // Works with append
+    const onSearchPromise = reactHooks.act(() => onSearch('test'));
+
+    expect(result.current.fetching).toBe(true);
+    await onSearchPromise;
+    expect(result.current.fetching).toBe(false);
+
+    // Wait for state to be reflected from the store
+    await waitFor(() => result.current.teams.length === 3);
+
+    expect(mockRequest).toHaveBeenCalled();
+    expect(result.current.teams).toEqual([...mockTeams, newTeam2, newTeam3]);
+
+    // de-duplicates items in the query results
+    mockRequest.mockClear();
+    await reactHooks.act(() => onSearch('test'));
+
+    // No new items have been added
+    expect(mockRequest).toHaveBeenCalled();
+    expect(result.current.teams).toEqual([...mockTeams, newTeam2, newTeam3]);
+  });
+
+  it('provides only the users teams', function () {
+    const userTeams = [TestStubs.Team({id: '1', isMember: true})];
+    const nonUserTeams = [TestStubs.Team({id: '2', isMember: false})];
+    TeamStore.loadInitialData([...userTeams, ...nonUserTeams], false, null);
+
     const {result} = reactHooks.renderHook(useTeams, {
-      initialProps: {slugs: ['foo']},
-      wrapper,
+      initialProps: {provideUserTeams: true},
     });
-    const {isLoading} = result.current;
-    expect(isLoading).toBe(true);
-    expect(mockRequest).not.toHaveBeenCalled();
+    const {teams} = result.current;
+
+    expect(teams.length).toBe(1);
+    expect(teams).toEqual(expect.arrayContaining(userTeams));
   });
 
   it('provides only the specified slugs', async function () {
     TeamStore.loadInitialData(mockTeams);
-    const teamFoo = TestStubs.Team({id: '49', slug: 'foo'});
+    const teamFoo = TestStubs.Team({slug: 'foo'});
     const mockRequest = MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/teams/`,
       method: 'GET',
@@ -65,19 +84,15 @@ describe('useTeamsV2', function () {
 
     const {result, waitFor} = reactHooks.renderHook(useTeams, {
       initialProps: {slugs: ['foo']},
-      wrapper,
     });
 
-    expect(result.current.isLoading).toBe(true);
+    expect(result.current.initiallyLoaded).toBe(false);
     expect(mockRequest).toHaveBeenCalled();
 
-    await waitFor(() => {
-      expect(result.current.teams.length).toBe(1);
-    });
+    await waitFor(() => expect(result.current.teams.length).toBe(1));
 
     const {teams} = result.current;
     expect(teams).toEqual(expect.arrayContaining([teamFoo]));
-    expect(TeamStore.getState().teams).toEqual(expect.arrayContaining([teamFoo]));
   });
 
   it('only loads slugs when needed', function () {
@@ -85,11 +100,10 @@ describe('useTeamsV2', function () {
 
     const {result} = reactHooks.renderHook(useTeams, {
       initialProps: {slugs: [mockTeams[0].slug]},
-      wrapper,
     });
 
-    const {teams, isLoading} = result.current;
-    expect(isLoading).toBe(false);
+    const {teams, initiallyLoaded} = result.current;
+    expect(initiallyLoaded).toBe(true);
     expect(teams).toEqual(expect.arrayContaining(mockTeams));
   });
 
@@ -105,17 +119,15 @@ describe('useTeamsV2', function () {
 
     const {result, waitFor} = reactHooks.renderHook(useTeams, {
       initialProps: {ids: ['2']},
-      wrapper,
     });
 
-    expect(result.current.isLoading).toBe(true);
+    expect(result.current.initiallyLoaded).toBe(false);
     expect(mockRequest).toHaveBeenCalled();
 
     await waitFor(() => expect(result.current.teams.length).toBe(1));
 
     const {teams} = result.current;
     expect(teams).toEqual(expect.arrayContaining(requestedTeams));
-    expect(TeamStore.getState().teams).toEqual(expect.arrayContaining(requestedTeams));
   });
 
   it('only loads ids when needed', function () {
@@ -123,11 +135,23 @@ describe('useTeamsV2', function () {
 
     const {result} = reactHooks.renderHook(useTeams, {
       initialProps: {ids: [mockTeams[0].id]},
-      wrapper,
     });
 
-    const {teams, isLoading} = result.current;
-    expect(isLoading).toBe(false);
+    const {teams, initiallyLoaded} = result.current;
+    expect(initiallyLoaded).toBe(true);
     expect(teams).toEqual(expect.arrayContaining(mockTeams));
+  });
+
+  it('correctly returns hasMore before and after store update', async function () {
+    const {result, waitFor} = reactHooks.renderHook(useTeams);
+
+    const {teams, hasMore} = result.current;
+    expect(hasMore).toBe(null);
+    expect(teams).toEqual(expect.arrayContaining([]));
+
+    reactHooks.act(() => TeamStore.loadInitialData(mockTeams, false, null));
+    await waitFor(() => expect(result.current.teams.length).toBe(1));
+
+    expect(result.current.hasMore).toBe(false);
   });
 });

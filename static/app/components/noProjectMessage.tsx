@@ -11,7 +11,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import useProjects from 'sentry/utils/useProjects';
-import {useTeams} from 'sentry/utils/useTeamsSearch';
+import {useTeams} from 'sentry/utils/useTeams';
 
 type Props = {
   organization: Organization;

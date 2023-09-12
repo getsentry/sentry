@@ -29,7 +29,7 @@ import slugify from 'sentry/utils/slugify';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useTeams} from 'sentry/utils/useTeamsSearch';
+import {useTeams} from 'sentry/utils/useTeams';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import IssueAlertOptions, {
   MetricValues,

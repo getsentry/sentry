@@ -3,7 +3,7 @@ import {useProjectCreationAccess} from 'sentry/components/projects/useProjectCre
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useTeams} from 'sentry/utils/useTeamsSearch';
+import {useTeams} from 'sentry/utils/useTeams';
 
 export default function CreateProjectButton() {
   const organization = useOrganization();
