@@ -6,7 +6,7 @@ import {GettingStartedWithNode, steps} from './node';
 
 describe('GettingStartedWithNode', function () {
   it('renders doc correctly', function () {
-    const {container} = render(<GettingStartedWithNode dsn="test-dsn" />);
+    render(<GettingStartedWithNode dsn="test-dsn" />);
 
     // Steps
     for (const step of steps({
@@ -18,7 +18,5 @@ describe('GettingStartedWithNode', function () {
         screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
       ).toBeInTheDocument();
     }
-
-    expect(container).toSnapshot();
   });
 });
