@@ -2,6 +2,8 @@
 Generate a mapping from file extensions to language for languages that are part of platforms supported by Sentry.
 """
 
+from typing import Dict
+
 import requests
 import yaml
 
@@ -52,7 +54,7 @@ languages = [
     "hcl",
 ]
 
-EXTENSION_LANGUAGE_MAP = {}
+EXTENSION_LANGUAGE_MAP: Dict[str, str] = {}
 
 yaml_languages = languages_dict.keys()
 
