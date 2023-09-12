@@ -2280,7 +2280,7 @@ class Migration(migrations.Migration):
             options={
                 "db_table": "sentry_project",
             },
-            bases=(models.Model, sentry.db.mixin.PendingDeletionMixin),
+            bases=(models.Model, sentry.db.mixin.PendingDeletionMixin),  # type: ignore  # django-stubs#1708
         ),
         migrations.CreateModel(
             name="ProjectAvatar",
@@ -3077,7 +3077,7 @@ class Migration(migrations.Migration):
             options={
                 "db_table": "sentry_repository",
             },
-            bases=(models.Model, sentry.db.mixin.PendingDeletionMixin),
+            bases=(models.Model, sentry.db.mixin.PendingDeletionMixin),  # type: ignore  # django-stubs#1708
         ),
         migrations.CreateModel(
             name="ReprocessingReport",
