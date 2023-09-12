@@ -355,8 +355,7 @@ class Aggregator:
 
         return extracted_metric
 
-    @classmethod
-    def _to_internal_metric_tags(cls, tags: Optional[MetricTagsExternal]) -> MetricTagsInternal:
+    def _to_internal_metric_tags(self, tags: Optional[MetricTagsExternal]) -> MetricTagsInternal:
         rv = []
         for key, value in (tags or {}).items():
             # If the value is a collection, we want to flatten it.
