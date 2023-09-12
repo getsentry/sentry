@@ -123,7 +123,7 @@ def test_tags_with_spaces():
 
 def test_tags_out_of_bounds():
     data = validate_and_normalize(
-        {"message": "foo", "tags": {"f" * 33: "value", "foo": "v" * 201, "bar": "value"}}
+        {"message": "foo", "tags": {"f" * 201: "value", "foo": "v" * 201, "bar": "value"}}
     )
     assert data["tags"] == [["bar", "value"], [None, "value"], ["foo", None]]
     assert len(data["errors"]) == 2
