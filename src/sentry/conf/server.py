@@ -1787,6 +1787,9 @@ SENTRY_FEATURES = {
     "projects:span-metrics-extraction": False,
     # Metrics: Enable ingestion, storage, and rendering of custom metrics
     "organizations:custom-metrics": False,
+    # Metrics: Enable creation of investigation dynamic sampling rules (rules that
+    # temporary boost the sample rate of particular transactions)
+    "organizations:investigation-bias": False,
     # Don't add feature defaults down here! Please add them in their associated
     # group sorted alphabetically.
 }

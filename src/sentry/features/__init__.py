@@ -88,6 +88,7 @@ default_manager.add("organizations:integrations-discord", OrganizationFeature, F
 default_manager.add("organizations:integrations-discord-notifications", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:integrations-opsgenie-migration", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:integrations-open-pr-comment", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+default_manager.add("organizations:investigation-bias", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:issue-alert-fallback-targeting", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:issue-details-replay-event", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:issue-details-most-helpful-event", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
