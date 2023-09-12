@@ -45,7 +45,7 @@ class GroupSubscriptionManager(BaseManager):
 
         try:
             with transaction.atomic(router.db_for_write(GroupSubscription)):
-                if isinstance(subscriber, User) or isinstance(subscriber, RpcUser):
+                if isinstance(subscriber, (User, RpcUser)):
                     self.create(
                         user_id=subscriber.id,
                         group=group,
@@ -74,12 +74,10 @@ class GroupSubscriptionManager(BaseManager):
         from sentry import features
         from sentry.models import Team, User
 
-        if isinstance(actor, RpcUser) or isinstance(actor, User):
+        if isinstance(actor, (RpcUser, User)):
             return self.subscribe(group, actor, reason)
         if isinstance(actor, Team):
-            if features.has(
-                "organizations:team-workflow-notifications", group.organization, actor=actor
-            ):
+            if features.has("organizations:team-workflow-notifications", group.organization):
                 return self.subscribe(group, actor, reason)
             else:
                 # subscribe the members of the team
