@@ -279,7 +279,7 @@ class ActivityNotificationTest(APITestCase):
             == f"Release {version_parsed} was deployed to {self.environment.name} for this project"
         )
         assert attachment["actions"][0]["url"].startswith(
-            f"http://testserver/organizations/{self.organization.slug}/releases/{release.version}/?project={self.project.id}&unselectedSeries=Healthy"
+            f"http://testserver/organizations/{self.organization.slug}/releases/{release.version}/?project={self.project.id}&unselectedSeries=Healthy&referrer=release_activity"
         )
         assert (
             attachment["footer"]
