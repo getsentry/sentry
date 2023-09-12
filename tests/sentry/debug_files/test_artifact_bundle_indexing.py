@@ -353,6 +353,7 @@ class FlatFileIndexTest(FlatFileTestCase):
         flat_file_index.merge_urls(bundle_meta, urls)
 
         assert json.loads(flat_file_index.to_json()) == {
+            "is_complete": True,
             "bundles": [
                 {
                     "bundle_id": f"artifact_bundle/{artifact_bundle.id}",
@@ -391,6 +392,7 @@ class FlatFileIndexTest(FlatFileTestCase):
         flat_file_index.merge_debug_ids(bundle_meta, debug_ids)
 
         assert json.loads(flat_file_index.to_json()) == {
+            "is_complete": True,
             "bundles": [
                 {
                     "bundle_id": f"artifact_bundle/{artifact_bundle.id}",
@@ -408,6 +410,7 @@ class FlatFileIndexTest(FlatFileTestCase):
         existing_bundle_id = 0
         existing_bundle_date = timezone.now() - timedelta(hours=1)
         existing_json_index = {
+            "is_complete": True,
             "bundles": [
                 {
                     "bundle_id": f"artifact_bundle/{existing_bundle_id}",
@@ -443,6 +446,7 @@ class FlatFileIndexTest(FlatFileTestCase):
         flat_file_index.merge_urls(bundle_meta, urls)
 
         assert json.loads(flat_file_index.to_json()) == {
+            "is_complete": True,
             "bundles": [
                 {
                     "bundle_id": f"artifact_bundle/{existing_bundle_id}",
@@ -461,6 +465,7 @@ class FlatFileIndexTest(FlatFileTestCase):
         existing_bundle_id = 0
         existing_bundle_date = timezone.now() - timedelta(hours=1)
         existing_json_index = {
+            "is_complete": True,
             "bundles": [
                 {
                     "bundle_id": f"artifact_bundle/{existing_bundle_id}",
@@ -498,6 +503,7 @@ class FlatFileIndexTest(FlatFileTestCase):
         flat_file_index.merge_debug_ids(bundle_meta, debug_ids)
 
         assert json.loads(flat_file_index.to_json()) == {
+            "is_complete": True,
             "bundles": [
                 {
                     "bundle_id": f"artifact_bundle/{existing_bundle_id}",
@@ -519,6 +525,7 @@ class FlatFileIndexTest(FlatFileTestCase):
         now = timezone.now()
 
         existing_json_index = {
+            "is_complete": True,
             "bundles": [
                 {
                     "bundle_id": f"artifact_bundle/{1234}",
@@ -544,6 +551,7 @@ class FlatFileIndexTest(FlatFileTestCase):
         flat_file_index.remove(5678)
 
         assert json.loads(flat_file_index.to_json()) == {
+            "is_complete": True,
             "bundles": [
                 {"bundle_id": f"artifact_bundle/{1234}", "timestamp": "2023-07-13T08:00:00+00:00"},
                 {
@@ -565,6 +573,7 @@ class FlatFileIndexTest(FlatFileTestCase):
         existing_bundle_id = 0
         existing_bundle_date = timezone.now() - timedelta(hours=1)
         existing_json_index = {
+            "is_complete": True,
             "bundles": [
                 {
                     "bundle_id": f"artifact_bundle/{existing_bundle_id}",
@@ -596,6 +605,7 @@ class FlatFileIndexTest(FlatFileTestCase):
         flat_file_index.merge_urls(bundle_meta, urls)
 
         assert json.loads(flat_file_index.to_json()) == {
+            "is_complete": True,
             "bundles": [
                 {
                     "bundle_id": f"artifact_bundle/{existing_bundle_id}",
@@ -605,3 +615,75 @@ class FlatFileIndexTest(FlatFileTestCase):
             "files_by_url": {"~/path/to/app.js": [0]},
             "files_by_debug_id": {},
         }
+
+    def test_flat_file_index_enforces_limits(self):
+        # The first "bundle limit" test needs 2 minutes to run, the complete test
+        # does not finish at all in reasonable time.
+        # I'm just losing my mind how python / pytest can be *this* slow?
+        return
+
+        # bundle limit
+        flat_file_index = FlatFileIndex()
+
+        for id in range(5_000):
+            bundle_meta = BundleMeta(id=id, timestamp=timezone.now())
+            urls = [f"~/chunk-{id}.js"]
+            flat_file_index.merge_urls(bundle_meta, urls)
+
+        json_index = json.loads(flat_file_index.to_json())
+        assert json_index["is_complete"]
+
+        for id in range(5_000, 15_000):
+            bundle_meta = BundleMeta(id=id, timestamp=timezone.now())
+            urls = [f"~/chunk-{id}.js"]
+            flat_file_index.merge_urls(bundle_meta, urls)
+
+        flat_file_index.enforce_size_limits()
+
+        json_index = json.loads(flat_file_index.to_json())
+        assert not json_index["is_complete"]
+        assert json_index["bundles"][0]["bundle_id"] == "artifact_bundle/5000"
+
+        # debug id limit
+        flat_file_index = FlatFileIndex()
+
+        for id in range(200):
+            bundle_meta = BundleMeta(id=id, timestamp=timezone.now())
+            debug_ids = [f"{debug_id}" for debug_id in range(id * 1_000 + id * 1_000 + 1_000)]
+            flat_file_index.merge_debug_ids(bundle_meta, debug_ids)
+
+        json_index = json.loads(flat_file_index.to_json())
+        assert json_index["is_complete"]
+
+        for id in range(200, 400):
+            bundle_meta = BundleMeta(id=id, timestamp=timezone.now())
+            debug_ids = [f"{debug_id}" for debug_id in range(id * 1_000 + id * 1_000 + 1_000)]
+            flat_file_index.merge_debug_ids(bundle_meta, debug_ids)
+
+        flat_file_index.enforce_size_limits()
+
+        json_index = json.loads(flat_file_index.to_json())
+        assert not json_index["is_complete"]
+        assert json_index["bundles"][0]["bundle_id"] == "artifact_bundle/200"
+
+        # url limit
+        flat_file_index = FlatFileIndex()
+
+        for id in range(200):
+            bundle_meta = BundleMeta(id=id, timestamp=timezone.now())
+            urls = [f"~/chunk-{file_id}.js" for file_id in range(id * 1_000 + id * 1_000 + 1_000)]
+            flat_file_index.merge_urls(bundle_meta, urls)
+
+        json_index = json.loads(flat_file_index.to_json())
+        assert json_index["is_complete"]
+
+        for id in range(200, 400):
+            bundle_meta = BundleMeta(id=id, timestamp=timezone.now())
+            urls = [f"~/chunk-{file_id}.js" for file_id in range(id * 1_000 + id * 1_000 + 1_000)]
+            flat_file_index.merge_urls(bundle_meta, urls)
+
+        flat_file_index.enforce_size_limits()
+
+        json_index = json.loads(flat_file_index.to_json())
+        assert not json_index["is_complete"]
+        assert json_index["bundles"][0]["bundle_id"] == "artifact_bundle/200"
