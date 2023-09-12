@@ -11,7 +11,7 @@ from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.utils.signing import unsign
 from sentry.web.decorators import transaction_start
-from sentry.web.frontend.base import BaseView
+from sentry.web.frontend.base import BaseView, region_silo_view
 from sentry.web.helpers import render_to_response
 
 from . import build_linking_url as base_build_linking_url
@@ -37,6 +37,7 @@ def build_team_unlinking_url(
     )
 
 
+@region_silo_view
 class SlackUnlinkTeamView(BaseView):
     """
     Django view for unlinking team from slack channel. Deletes from ExternalActor table.
@@ -82,7 +83,10 @@ class SlackUnlinkTeamView(BaseView):
         if len(external_teams) == 0:
             return render_error_page(request, body_text="HTTP 404: Team not found")
 
-        team = external_teams[0].actor.resolve()
+        if external_teams[0].team_id is None:
+            return render_error_page(request, body_text="HTTP 404: Team not found")
+
+        team = external_teams[0].team
 
         if request.method != "POST":
             return render_to_response(

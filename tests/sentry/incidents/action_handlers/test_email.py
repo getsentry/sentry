@@ -60,6 +60,20 @@ class EmailActionHandlerTest(FireTest):
     def test_resolve_metric_alert(self):
         self.run_fire_test("resolve")
 
+    @patch("sentry.analytics.record")
+    def test_alert_sent_recorded(self, mock_record):
+        self.run_fire_test()
+        mock_record.assert_called_with(
+            "alert.sent",
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            provider="email",
+            alert_id=self.alert_rule.id,
+            alert_type="metric_alert",
+            external_id=str(self.user.id),
+            notification_uuid="",
+        )
+
 
 class EmailActionHandlerGetTargetsTest(TestCase):
     @cached_property
@@ -230,7 +244,7 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
                     "incident_id": incident.identifier,
                 },
             ),
-            query="referrer=alert_email",
+            query="referrer=metric_alert_email",
         )
         expected = {
             "link": alert_link,

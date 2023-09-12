@@ -10,6 +10,9 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from sentry.app import env
+from sentry.backup.dependencies import ImportKind, PrimaryKeyMap
+from sentry.backup.helpers import ImportFlags
+from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.constants import ObjectStatus
 from sentry.db.models import (
     BaseManager,
@@ -156,7 +159,7 @@ class Team(Model, SnowflakeIdMixin):
     A team represents a group of individuals which maintain ownership of projects.
     """
 
-    __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Organization
 
     organization = FlexibleForeignKey("sentry.Organization")
     slug = models.SlugField()
@@ -312,20 +315,15 @@ class Team(Model, SnowflakeIdMixin):
         ).delete()
 
         if new_team != self:
-            # Delete the old team
-            cursor = connections[router.db_for_write(Team)].cursor()
-            # we use a cursor here to avoid automatic cascading of relations
-            # in Django
-            try:
-                with outbox_context(transaction.atomic(router.db_for_write(Team)), flush=False):
-                    cursor.execute("DELETE FROM sentry_team WHERE id = %s", [self.id])
-                    self.outbox_for_update().save()
-                    cursor.execute("DELETE FROM sentry_actor WHERE team_id = %s", [new_team.id])
-            finally:
-                cursor.close()
+            with outbox_context(
+                transaction.atomic(router.db_for_write(Team)), flush=False
+            ), connections[router.db_for_write(Team)].cursor() as cursor:
+                # we use a cursor here to avoid automatic cascading of relations
+                # in Django
+                cursor.execute("DELETE FROM sentry_team WHERE id = %s", [self.id])
+                self.outbox_for_update().save()
+                cursor.execute("DELETE FROM sentry_actor WHERE team_id = %s", [new_team.id])
 
-            # Change whatever new_team's actor is to the one from the old team.
-            with transaction.atomic(router.db_for_write(Team)):
                 Actor.objects.filter(id=self.actor_id).update(team_id=new_team.id)
                 new_team.actor_id = self.actor_id
                 new_team.save()
@@ -355,11 +353,8 @@ class Team(Model, SnowflakeIdMixin):
     def delete(self, **kwargs):
         from sentry.models import ExternalActor
 
-        # There is no foreign key relationship so we have to manually delete the ExternalActors
         with outbox_context(transaction.atomic(router.db_for_write(ExternalActor))):
-            ExternalActor.objects.filter(actor_id=self.actor_id).delete()
             self.outbox_for_update().save()
-
             return super().delete(**kwargs)
 
     def get_member_actor_ids(self):
@@ -371,3 +366,28 @@ class Team(Model, SnowflakeIdMixin):
         ).values_list("id", flat=True)
 
         return owner_ids
+
+    # TODO(hybrid-cloud): actor refactor. Remove this method when done.
+    def write_relocation_import(
+        self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
+    ) -> Optional[Tuple[int, int, ImportKind]]:
+        written = super().write_relocation_import(pk_map, scope, flags)
+        if written is not None:
+            (_, new_pk, _) = written
+
+            # `Actor` and `Team` have a direct circular dependency between them for the time being
+            # due to an ongoing refactor (that is, `Actor` foreign keys directly into `Team`, and
+            # `Team` foreign keys directly into `Actor`). If we use `INSERT` database calls naively,
+            # they will always fail, because one half of the cycle will always be missing.
+            #
+            # Because `Actor` ends up first in the dependency sorting (see:
+            # fixtures/backup/model_dependencies/sorted.json), a viable solution here is to always
+            # null out the `team_id` field of the `Actor` when we import it, and then make sure to
+            # circle back and update the relevant `Actor` after we create the `Team` models, which
+            # is exactly what this method override does.
+            if self.actor_id is not None:
+                actor = Actor.objects.get(pk=self.actor_id)
+                actor.team_id = new_pk
+                actor.save()
+
+        return written

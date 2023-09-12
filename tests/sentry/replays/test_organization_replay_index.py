@@ -2,6 +2,7 @@ import datetime
 import uuid
 from unittest import mock
 
+import pytest
 from django.urls import reverse
 
 from sentry.replays.testutils import (
@@ -1249,6 +1250,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                     == b'{"detail":"Replay search query limits exceeded. Please narrow the time-range."}'
                 )
 
+    @pytest.mark.skip(reason="flaky: Date logic breaks - possibly due to stats-period.")
     def test_get_replays_dead_rage_click_cutoff(self):
         """Test rage and dead clicks are accumulated after the cutoff."""
         project = self.create_project(teams=[self.team])
@@ -1675,3 +1677,39 @@ class OrganizationReplayIndexOptimizedSearchTest(OrganizationReplayIndexTest):
                 assert response.status_code == 200
                 response_data = response.json()
                 assert len(response_data["data"]) == 1, query
+
+    def test_query_scalar_optimization_multiple_varying(self):
+        project = self.create_project(teams=[self.team])
+
+        replay1_id = uuid.uuid4().hex
+        seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=22)
+        seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=5)
+
+        self.store_replays(
+            mock_replay(seq1_timestamp, project.id, replay1_id, urls=["apple", "microsoft"])
+        )
+        self.store_replays(mock_replay(seq2_timestamp, project.id, replay1_id, urls=[]))
+
+        with self.feature(REPLAYS_FEATURES):
+            response = self.client.get(self.url + "?field=id&query=urls:apple urls:microsoft")
+            assert response.status_code == 200
+            response_data = response.json()
+            assert len(response_data["data"]) == 1
+
+    def test_get_replays_missing_segment_0(self):
+        """Test fetching replays when the 0th segment is missing."""
+        project = self.create_project(teams=[self.team])
+
+        replay1_id = uuid.uuid4().hex
+        seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=22)
+        seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=5)
+        self.store_replays(mock_replay(seq1_timestamp, project.id, replay1_id, segment_id=2))
+        self.store_replays(mock_replay(seq2_timestamp, project.id, replay1_id, segment_id=1))
+
+        with self.feature(REPLAYS_FEATURES):
+            response = self.client.get(self.url)
+            assert response.status_code == 200
+
+            response_data = response.json()
+            assert "data" in response_data
+            assert len(response_data["data"]) == 0

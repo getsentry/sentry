@@ -1,10 +1,12 @@
 import os
+from datetime import timedelta
 from io import BytesIO
 from unittest.mock import patch
 
 import pytest
 from django.core.files.base import ContentFile
 from django.db import DatabaseError
+from django.utils import timezone
 
 from sentry.models import File, FileBlob, FileBlobIndex
 from sentry.testutils.cases import TestCase
@@ -64,6 +66,9 @@ class FileTest(TestCase):
         fileobj = ContentFile(b"foo bar")
         baz_file = File.objects.create(name="baz.js", type="default", size=7)
         baz_file.putfile(fileobj, 3)
+
+        # make sure blobs are "old" and eligible for deletion
+        baz_file.blobs.all().update(timestamp=timezone.now() - timedelta(days=3))
 
         baz_id = baz_file.id
         with self.tasks(), self.capture_on_commit_callbacks(execute=True):

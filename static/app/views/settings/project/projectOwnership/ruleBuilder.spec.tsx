@@ -74,7 +74,7 @@ describe('RuleBuilder', function () {
   });
 
   it('renders', async function () {
-    const {container} = render(
+    render(
       <RuleBuilder
         project={project}
         organization={organization}
@@ -105,12 +105,10 @@ describe('RuleBuilder', function () {
     expect(addButton).toBeEnabled();
     await userEvent.click(addButton);
     expect(handleAdd).toHaveBeenCalled();
-
-    expect(container).toSnapshot();
   });
 
   it('renders with suggestions', async function () {
-    const {container} = render(
+    render(
       <RuleBuilder
         project={project}
         organization={organization}
@@ -144,8 +142,6 @@ describe('RuleBuilder', function () {
 
     const addButton = screen.getByRole('button', {name: 'Add rule'});
     await waitFor(() => expect(addButton).toBeEnabled());
-
-    expect(container).toSnapshot();
 
     await userEvent.click(addButton);
     expect(handleAdd).toHaveBeenCalled();

@@ -14,10 +14,14 @@ from sentry.api.endpoints.organization_events_root_cause_analysis import (
     OrganizationEventsRootCauseAnalysisEndpoint,
 )
 from sentry.api.endpoints.organization_events_starfish import OrganizationEventsStarfishEndpoint
+from sentry.api.endpoints.organization_integration_migrate_opsgenie import (
+    OrganizationIntegrationMigrateOpsgenieEndpoint,
+)
 from sentry.api.endpoints.organization_missing_org_members import OrganizationMissingMembersEndpoint
 from sentry.api.endpoints.organization_projects_experiment import (
     OrganizationProjectsExperimentEndpoint,
 )
+from sentry.api.endpoints.release_threshold import ReleaseThresholdEndpoint
 from sentry.api.utils import method_dispatch
 from sentry.data_export.endpoints.data_export import DataExportEndpoint
 from sentry.data_export.endpoints.data_export_details import DataExportDetailsEndpoint
@@ -31,6 +35,7 @@ from sentry.discover.endpoints.discover_saved_query_detail import (
     DiscoverSavedQueryDetailEndpoint,
     DiscoverSavedQueryVisitEndpoint,
 )
+from sentry.feedback.endpoints.feedback_ingest import FeedbackIngestEndpoint
 from sentry.incidents.endpoints.organization_alert_rule_available_action_index import (
     OrganizationAlertRuleAvailableActionIndexEndpoint,
 )
@@ -477,6 +482,7 @@ from .endpoints.project_repo_path_parsing import ProjectRepoPathParsingEndpoint
 from .endpoints.project_reprocessing import ProjectReprocessingEndpoint
 from .endpoints.project_rule_actions import ProjectRuleActionsEndpoint
 from .endpoints.project_rule_details import ProjectRuleDetailsEndpoint
+from .endpoints.project_rule_enable import ProjectRuleEnableEndpoint
 from .endpoints.project_rule_preview import ProjectRulePreviewEndpoint
 from .endpoints.project_rule_task_details import ProjectRuleTaskDetailsEndpoint
 from .endpoints.project_rules import ProjectRulesEndpoint
@@ -1381,6 +1387,11 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-integration-issues",
     ),
     re_path(
+        r"^(?P<organization_slug>[^\/]+)/integrations/(?P<integration_id>[^\/]+)/migrate-opsgenie/$",
+        OrganizationIntegrationMigrateOpsgenieEndpoint.as_view(),
+        name="sentry-api-0-organization-integration-migrate-opsgenie",
+    ),
+    re_path(
         r"^(?P<organization_slug>[^\/]+)/integrations/(?P<integration_id>[^\/]+)/serverless-functions/$",
         OrganizationIntegrationServerlessFunctionsEndpoint.as_view(),
         name="sentry-api-0-organization-integration-serverless-functions",
@@ -2092,6 +2103,11 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-project-releases",
     ),
     re_path(
+        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/thresholds/$",
+        ReleaseThresholdEndpoint.as_view(),
+        name="sentry-api-0-project-release-thresholds",
+    ),
+    re_path(
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/commits/$",
         ProjectCommitsEndpoint.as_view(),
         name="sentry-api-0-project-commits",
@@ -2190,6 +2206,11 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/rules/(?P<rule_id>\d+)/$",
         ProjectRuleDetailsEndpoint.as_view(),
         name="sentry-api-0-project-rule-details",
+    ),
+    re_path(
+        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/rules/(?P<rule_id>[^\/]+)/enable/$",
+        ProjectRuleEnableEndpoint.as_view(),
+        name="sentry-api-0-project-rule-enable",
     ),
     re_path(
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/rules/(?P<rule_id>[^\/]+)/snooze/$",
@@ -2894,6 +2915,12 @@ urlpatterns = [
         r"^wizard/(?P<wizard_hash>[^\/]+)/$",
         SetupWizard.as_view(),
         name="sentry-api-0-project-wizard",
+    ),
+    # Feedback
+    re_path(
+        r"^feedback/$",
+        FeedbackIngestEndpoint.as_view(),
+        name="sentry-api-0-feedback-ingest",
     ),
     # Internal
     re_path(

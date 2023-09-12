@@ -1,5 +1,6 @@
 from django.db import models
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import control_silo_only_model, sane_repr
 
 from .notificationsettingbase import NotificationSettingBase
@@ -7,7 +8,7 @@ from .notificationsettingbase import NotificationSettingBase
 
 @control_silo_only_model
 class NotificationSettingProvider(NotificationSettingBase):
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     provider = models.CharField(max_length=32, null=False)
 
@@ -33,11 +34,11 @@ class NotificationSettingProvider(NotificationSettingBase):
         ]
 
     __repr__ = sane_repr(
-        "scope_str",
+        "scope_type",
         "scope_identifier",
         "user_id",
         "team_id",
-        "provider_str",
-        "type_str",
-        "value_str",
+        "provider",
+        "type",
+        "value",
     )

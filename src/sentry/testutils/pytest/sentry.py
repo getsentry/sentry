@@ -28,7 +28,21 @@ TEST_ROOT = os.path.normpath(
 TEST_REDIS_DB = 9
 
 
-def pytest_configure(config):
+def configure_split_db() -> None:
+    if "control" in settings.DATABASES:
+        return
+    # Add connections for the region & control silo databases.
+    settings.DATABASES["control"] = settings.DATABASES["default"].copy()
+    settings.DATABASES["control"]["NAME"] = "control"
+
+    # Use the region database in the default connection as region
+    # silo database is the 'default' elsewhere in application logic.
+    settings.DATABASES["default"]["NAME"] = "region"
+
+    settings.DATABASE_ROUTERS = ("sentry.db.router.SiloRouter",)
+
+
+def pytest_configure(config: pytest.Config) -> None:
     import warnings
 
     # This is just to filter out an obvious warning before the pytest session starts.
@@ -81,6 +95,8 @@ def pytest_configure(config):
             # an actual migration.
         else:
             raise RuntimeError("oops, wrong database: %r" % test_db)
+
+    configure_split_db()
 
     # Ensure we can test secure ssl settings
     settings.SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
@@ -162,7 +178,6 @@ def pytest_configure(config):
             "system.organization-base-hostname": "{slug}.testserver",
             "system.organization-url-template": "http://{hostname}",
             "system.region-api-url-template": "http://{region}.testserver",
-            "system.region": "us",
             "system.secret-key": "a" * 52,
             "slack.client-id": "slack-client-id",
             "slack.client-secret": "slack-client-secret",
@@ -189,11 +204,13 @@ def pytest_configure(config):
             "aws-lambda.python.layer-version": "34",
         }
     )
-
+    settings.SENTRY_OPTIONS_COMPLAIN_ON_ERRORS = True
     settings.VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON = False
+    settings.SENTRY_REGION = "us"
+
+    # ID controls
     settings.SENTRY_USE_BIG_INTS = True
     settings.SENTRY_USE_SNOWFLAKE = True
-
     settings.SENTRY_SNOWFLAKE_EPOCH_START = datetime(1999, 12, 31, 0, 0).timestamp()
 
     # Plugin-related settings
@@ -257,7 +274,7 @@ def pytest_configure(config):
     freezegun.configure(extend_ignore_list=["sentry.utils.retries"])  # type: ignore[attr-defined]
 
 
-def register_extensions():
+def register_extensions() -> None:
     from sentry.plugins.base import plugins
     from sentry.plugins.utils import TestIssuePlugin2
 
@@ -288,14 +305,14 @@ def register_extensions():
     )
 
 
-def pytest_runtest_setup(item):
+def pytest_runtest_setup(item: pytest.Item) -> None:
     if not settings.MIGRATIONS_TEST_MIGRATE and any(
         mark for mark in item.iter_markers(name="migrations")
     ):
         pytest.skip("migrations are not enabled, run with MIGRATIONS_TEST_MIGRATE=1 pytest ...")
 
 
-def pytest_runtest_teardown(item):
+def pytest_runtest_teardown(item: pytest.Item) -> None:
     # XXX(dcramer): only works with DummyNewsletter
     from sentry import newsletter
 
@@ -361,7 +378,7 @@ def _shuffle(items: list[pytest.Item]) -> None:
     items[:] = new_items
 
 
-def pytest_collection_modifyitems(config, items):
+def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
     """After collection, we need to select tests based on group and group strategy"""
 
     total_groups = int(os.environ.get("TOTAL_TEST_GROUPS", 1))
@@ -397,6 +414,6 @@ def pytest_collection_modifyitems(config, items):
         config.hook.pytest_deselected(items=discard)
 
 
-def pytest_xdist_setupnodes():
+def pytest_xdist_setupnodes() -> None:
     # prevent out-of-order django initialization
     os.environ.pop("DJANGO_SETTINGS_MODULE", None)

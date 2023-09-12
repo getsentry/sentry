@@ -15,15 +15,11 @@ import type ReplayReader from 'sentry/utils/replays/replayReader';
 import DomFilters from 'sentry/views/replays/detail/domMutations/domFilters';
 import DomMutationRow from 'sentry/views/replays/detail/domMutations/domMutationRow';
 import useDomFilters from 'sentry/views/replays/detail/domMutations/useDomFilters';
+import FilterLoadingIndicator from 'sentry/views/replays/detail/filterLoadingIndicator';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import NoRowRenderer from 'sentry/views/replays/detail/noRowRenderer';
 import TabItemContainer from 'sentry/views/replays/detail/tabItemContainer';
 import useVirtualizedList from 'sentry/views/replays/detail/useVirtualizedList';
-
-type Props = {
-  replay: null | ReplayReader;
-  startTimestampMs: number;
-};
 
 // Ensure this object is created once as it is an input to
 // `useVirtualizedList`'s memoization
@@ -40,10 +36,12 @@ function useExtractedDomNodes({replay}: {replay: null | ReplayReader}) {
   });
 }
 
-function DomMutations({replay, startTimestampMs}: Props) {
-  const {data: actions, isLoading} = useExtractedDomNodes({replay});
-  const {currentTime, currentHoverTime} = useReplayContext();
+function DomMutations() {
+  const {currentTime, currentHoverTime, replay} = useReplayContext();
+  const {data: actions, isFetching} = useExtractedDomNodes({replay});
   const {onMouseEnter, onMouseLeave, onClickTimestamp} = useCrumbHandlers();
+
+  const startTimestampMs = replay?.getReplay()?.started_at?.getTime() ?? 0;
 
   const filterProps = useDomFilters({actions: actions || []});
   const {items, setSearchTerm} = filterProps;
@@ -85,9 +83,11 @@ function DomMutations({replay, startTimestampMs}: Props) {
 
   return (
     <FluidHeight>
-      <DomFilters actions={actions} {...filterProps} />
+      <FilterLoadingIndicator isLoading={isFetching}>
+        <DomFilters actions={actions} {...filterProps} />
+      </FilterLoadingIndicator>
       <TabItemContainer data-test-id="replay-details-dom-events-tab">
-        {isLoading || !actions ? (
+        {isFetching || !actions ? (
           <Placeholder height="100%" />
         ) : (
           <AutoSizer onResize={updateList}>

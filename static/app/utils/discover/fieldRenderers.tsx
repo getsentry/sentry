@@ -50,7 +50,7 @@ import {
 } from 'sentry/views/performance/transactionSummary/filter';
 import {PercentChangeCell} from 'sentry/views/starfish/components/tableCells/percentChangeCell';
 import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
-import {SpanMetricsFields} from 'sentry/views/starfish/types';
+import {SpanMetricsField} from 'sentry/views/starfish/types';
 
 import {decodeScalar} from '../queryString';
 
@@ -769,7 +769,7 @@ const SPECIAL_FUNCTIONS: SpecialFunctions = {
     return (
       <TimeSpentCell
         percentage={data[fieldName]}
-        total={data[`sum(${SpanMetricsFields.SPAN_SELF_TIME})`]}
+        total={data[`sum(${SpanMetricsField.SPAN_SELF_TIME})`]}
       />
     );
   },

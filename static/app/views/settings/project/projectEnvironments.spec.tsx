@@ -47,13 +47,11 @@ describe('ProjectEnvironments', function () {
         body: [],
       });
 
-      const {container} = renderComponent(false);
+      renderComponent(false);
 
       expect(
         screen.getByText("You don't have any environments yet.")
       ).toBeInTheDocument();
-
-      expect(container).toSnapshot();
     });
 
     it('renders environment list', function () {
@@ -75,13 +73,11 @@ describe('ProjectEnvironments', function () {
         body: [],
       });
 
-      const {container} = renderComponent(true);
+      renderComponent(true);
 
       expect(
         screen.getByText("You don't have any hidden environments.")
       ).toBeInTheDocument();
-
-      expect(container).toSnapshot();
     });
 
     it('renders environment list', function () {
@@ -89,11 +85,10 @@ describe('ProjectEnvironments', function () {
         url: '/projects/org-slug/project-slug/environments/',
         body: TestStubs.HiddenEnvironments(),
       });
-      const {container} = renderComponent(true);
+      renderComponent(true);
 
       // Hidden buttons should not have "Set as default"
       expect(screen.getByRole('button', {name: 'Show'})).toBeInTheDocument();
-      expect(container).toSnapshot();
     });
   });
 

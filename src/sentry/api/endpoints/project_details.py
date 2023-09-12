@@ -12,7 +12,13 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log, features
-from sentry.api.base import region_silo_endpoint
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import (
+    DEFAULT_SLUG_ERROR_MESSAGE,
+    DEFAULT_SLUG_PATTERN,
+    PreventNumericSlugMixin,
+    region_silo_endpoint,
+)
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.decorators import sudo_required
 from sentry.api.fields.empty_integer import EmptyIntegerField
@@ -92,9 +98,13 @@ class ProjectMemberSerializer(serializers.Serializer):
     isSubscribed = serializers.BooleanField()
 
 
-class ProjectAdminSerializer(ProjectMemberSerializer):
+class ProjectAdminSerializer(ProjectMemberSerializer, PreventNumericSlugMixin):
     name = serializers.CharField(max_length=200)
-    slug = serializers.RegexField(r"^[a-z0-9_\-]+$", max_length=50)
+    slug = serializers.RegexField(
+        DEFAULT_SLUG_PATTERN,
+        max_length=50,
+        error_messages={"invalid": DEFAULT_SLUG_ERROR_MESSAGE},
+    )
     team = serializers.RegexField(r"^[a-z0-9_\-]+$", max_length=50)
     digestsMinDelay = serializers.IntegerField(min_value=60, max_value=3600)
     digestsMaxDelay = serializers.IntegerField(min_value=60, max_value=3600)
@@ -167,7 +177,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
             )
         return value
 
-    def validate_slug(self, slug):
+    def validate_slug(self, slug: str) -> str:
         if slug in RESERVED_PROJECT_SLUGS:
             raise serializers.ValidationError(f'The slug "{slug}" is reserved and not allowed.')
         project = self.context["project"]
@@ -180,6 +190,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
             raise serializers.ValidationError(
                 "Another project (%s) is already using that slug" % other.name
             )
+        slug = super().validate_slug(slug)
         return slug
 
     def validate_relayPiiConfig(self, value):
@@ -372,7 +383,11 @@ class RelaxedProjectPermission(ProjectPermission):
 @extend_schema(tags=["Projects"])
 @region_silo_endpoint
 class ProjectDetailsEndpoint(ProjectEndpoint):
-    public = {"GET", "PUT", "DELETE"}
+    publish_status = {
+        "DELETE": ApiPublishStatus.PUBLIC,
+        "GET": ApiPublishStatus.PUBLIC,
+        "PUT": ApiPublishStatus.PUBLIC,
+    }
     permission_classes = [RelaxedProjectPermission]
 
     def _get_unresolved_count(self, project):

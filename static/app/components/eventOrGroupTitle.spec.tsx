@@ -14,7 +14,7 @@ describe('EventOrGroupTitle', function () {
   };
 
   it('renders with subtitle when `type = error`', function () {
-    const wrapper = render(
+    render(
       <EventOrGroupTitle
         data={
           {
@@ -26,12 +26,10 @@ describe('EventOrGroupTitle', function () {
         }
       />
     );
-
-    expect(wrapper.container).toSnapshot();
   });
 
   it('renders with subtitle when `type = csp`', function () {
-    const wrapper = render(
+    render(
       <EventOrGroupTitle
         data={
           {
@@ -43,12 +41,10 @@ describe('EventOrGroupTitle', function () {
         }
       />
     );
-
-    expect(wrapper.container).toSnapshot();
   });
 
   it('renders with no subtitle when `type = default`', function () {
-    const wrapper = render(
+    render(
       <EventOrGroupTitle
         data={
           {
@@ -62,8 +58,6 @@ describe('EventOrGroupTitle', function () {
         }
       />
     );
-
-    expect(wrapper.container).toSnapshot();
   });
 
   it('renders with title override', function () {

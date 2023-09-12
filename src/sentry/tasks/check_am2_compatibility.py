@@ -9,15 +9,18 @@ from django.db.models import Q
 from sentry.dynamic_sampling import get_redis_client_for_ds
 from sentry.incidents.models import AlertRule
 from sentry.models import DashboardWidgetQuery, Organization, Project
+from sentry.search.events.fields import get_function_alias
 from sentry.silo import SiloMode
 from sentry.snuba import metrics_performance
+from sentry.snuba.dataset import Dataset
 from sentry.snuba.discover import query as discover_query
+from sentry.snuba.metrics.extraction import should_use_on_demand_metrics
 from sentry.snuba.metrics_enhanced_performance import query as performance_query
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json
 
 # The time range over which the check script queries the data for determining the compatibility state.
-QUERY_TIME_RANGE_IN_DAYS = 1
+QUERY_TIME_RANGE_IN_DAYS = 30
 
 # List of minimum SDK versions that support Performance at Scale.
 # The list is defined here:
@@ -137,6 +140,109 @@ SUPPORTED_SDK_VERSIONS = {
     "sentry.java.android.unity": "0.24.0",
     # Go
     "sentry.go": "0.16.0",
+}
+
+# List of SDKs that support performance. We will use this list as a first check for our sdks since if they don't
+# support performance we don't want to show them as incompatible with dynamic sampling in order to reduce noise.
+SDKS_SUPPORTING_PERFORMACE = {
+    "sentry.aspnetcore",
+    "sentry.aspnetcore",
+    "sentry.dotnet",
+    "sentry.dotnet.android",
+    "sentry.dotnet.aspnet",
+    "sentry.dotnet.aspnetcore",
+    "sentry.dotnet.aspnetcore.grpc",
+    "sentry.dotnet.atlasproper",
+    "sentry.dotnet.cocoa",
+    "sentry.dotnet.ef",
+    "sentry.dotnet.extensions.logging",
+    "sentry.dotnet.google-cloud-function",
+    "sentry.dotnet.log4net",
+    "sentry.dotnet.maui",
+    "sentry.dotnet.nlog",
+    "sentry.dotnet.serilog",
+    "sentry.dotnet.xamarin",
+    "sentry.dotnet.xamarin-forms",
+    "Sentry.Extensions.Logging",
+    "Sentry.NET",
+    "Sentry.UWP",
+    "SentryDotNet",
+    "SentryDotNet.AspNetCore",
+    "sentry-android",
+    "sentry.java.android.timber",
+    "sentry.java.android",
+    "sentry.java.android.timber",
+    "sentry.native.android",
+    "sentry-cocoa",
+    "sentry-objc",
+    "sentry-swift",
+    "sentry.cocoa",
+    "sentry.swift",
+    "SentrySwift",
+    "sentry.dart",
+    "sentry.dart.logging",
+    "sentry.cocoa.flutter",
+    "sentry.dart.flutter",
+    "sentry.java.android.flutter",
+    "sentry.native.android.flutter",
+    "sentry.dart.browser",
+    "sentry-electron",
+    "sentry.javascript.electron",
+    "sentry.go",
+    "sentry-java",
+    "sentry.java",
+    "sentry.java.jul",
+    "sentry.java.log4j2",
+    "sentry.java.logback",
+    "sentry.java.spring",
+    "sentry.java.spring-boot",
+    "sentry.java.spring-boot.jakarta",
+    "sentry-browser",
+    "sentry.javascript.angular",
+    "sentry.javascript.browser",
+    "sentry.javascript.ember",
+    "sentry.javascript.gatsby",
+    "sentry.javascript.nextjs",
+    "sentry.javascript.react",
+    "sentry.javascript.remix",
+    "sentry.javascript.serverless",
+    "sentry.javascript.svelte",
+    "sentry.javascript.vue",
+    "sentry-laravel",
+    "sentry.php.laravel",
+    "sentry.javascript.node",
+    "sentry-php",
+    "sentry.php",
+    "sentry-python",
+    "sentry.python.tornado",
+    "sentry.python.starlette",
+    "sentry.python.flask",
+    "sentry.python.fastapi",
+    "sentry.python.falcon",
+    "sentry.python.django",
+    "sentry.python.bottle",
+    "sentry.python.aws_lambda",
+    "sentry.python.aiohttp",
+    "sentry.python",
+    "sentry-react-native",
+    "sentry.cocoa.react-native",
+    "sentry.java.android.react-native",
+    "sentry.javascript.react-native",
+    "sentry.native.android.react-native",
+    "sentry-ruby",
+    "sentry.ruby",
+    "sentry.ruby.delayed_job",
+    "sentry.ruby.rails",
+    "sentry.ruby.resque",
+    "sentry.ruby.sidekiq",
+    "sentry-rust",
+    "sentry.rust",
+    "sentry-symfony",
+    "sentry.php.symfony",
+    "Symphony.SentryClient",
+    "sentry.cocoa.unity",
+    "sentry.dotnet.unity",
+    "sentry.java.android.unity",
 }
 
 TASK_SOFT_LIMIT_IN_SECONDS = 30 * 60  # 30 minutes
@@ -295,6 +401,11 @@ class CheckAM2Compatibility:
 
         for project, found_sdks in found_sdks_per_project.items():
             for sdk_name, sdk_versions in found_sdks.items():
+                # If the SDK is not supporting performance, we don't want to try and check dynamic sampling
+                # compatibility, and we also don't return it as unsupported since it will create noise.
+                if sdk_name not in SDKS_SUPPORTING_PERFORMACE:
+                    continue
+
                 sdk_versions_set: Set[Tuple[str, Optional[str]]] = set()
                 found_supported_version = False
                 min_sdk_version = SUPPORTED_SDK_VERSIONS.get(sdk_name)
@@ -372,6 +483,10 @@ class CheckAM2Compatibility:
             return None
 
     @classmethod
+    def is_on_demand_metrics_data(cls, aggregate, query):
+        return should_use_on_demand_metrics(Dataset.Transactions.value, aggregate, query, True)
+
+    @classmethod
     def get_excluded_conditions(cls):
         # We want an empty condition as identity for the AND chaining.
         qs = Q()
@@ -402,7 +517,7 @@ class CheckAM2Compatibility:
         return (
             AlertRule.objects.filter(
                 organization_id=organization_id,
-                snuba_query__dataset__in=["transactions", "discover"],
+                snuba_query__dataset=[Dataset.Transactions.value],
             )
             .select_related("snuba_query")
             .values_list("id", "snuba_query__aggregate", "snuba_query__query")
@@ -419,31 +534,50 @@ class CheckAM2Compatibility:
 
         projects = {project.id: project for project in project_objects}
 
-        count_has_txn = "count_has_transaction_name()"
+        # We want to first fetch all projects that have some transactions in the last x days.
+        count = "count()"
         count_null = "count_null_transactions()"
-        compatible_results = metrics_performance.query(
-            selected_columns=[
-                "project.id",
-                count_null,
-                count_has_txn,
-            ],
+        count_unparameterized = "count_unparameterized_transactions()"
+        results = metrics_performance.query(
+            selected_columns=["project.id", count, count_null, count_unparameterized],
             params=params,
-            query=f"{count_null}:0 AND {count_has_txn}:>0",
+            query=f"{count}:>0",
             referrer="api.organization-events",
-            functions_acl=["count_null_transactions", "count_has_transaction_name"],
+            functions_acl=[
+                "count",
+                "count_null_transactions",
+                "count_unparameterized_transactions",
+            ],
             use_aggregate_conditions=True,
         )
 
-        compatible_project_ids = {row["project.id"] for row in compatible_results["data"]}
-        incompatible_project_ids = set(projects.keys()) - compatible_project_ids
+        compatible_project_ids = set()
+        incompatible_project_ids = set()
+        for row in results.get("data"):
+            project_id = row["project.id"]
+            # If a project has at least one null or unparameterized transaction, we will mark it as incompatible.
+            if (
+                row[get_function_alias(count_null)] > 0
+                or row[get_function_alias(count_unparameterized)] > 0
+            ):
+                incompatible_project_ids.add(project_id)
+            else:
+                compatible_project_ids.add(project_id)
+
+        def get_project_slug(project_id: int) -> Optional[str]:
+            project = projects.get(project_id)
+            if project is None:
+                return None
+
+            return project.slug
 
         return {
             "compatible_projects": [
-                {"id": project_id, "slug": projects[project_id].slug}
+                {"id": project_id, "slug": get_project_slug(project_id)}
                 for project_id in compatible_project_ids
             ],
             "incompatible_projects": [
-                {"id": project_id, "slug": projects[project_id].slug}
+                {"id": project_id, "slug": get_project_slug(project_id)}
                 for project_id in incompatible_project_ids
             ],
         }
@@ -486,7 +620,9 @@ class CheckAM2Compatibility:
 
         unsupported_alerts = []
         for alert_id, aggregate, query in cls.get_all_alerts_of_organization(organization.id):
-            supports_metrics = cls.is_metrics_data(organization.id, all_projects, query)
+            supports_metrics = cls.is_on_demand_metrics_data(
+                aggregate, query
+            ) or cls.is_metrics_data(organization.id, all_projects, query)
             if supports_metrics is None:
                 with sentry_sdk.push_scope() as scope:
                     scope.set_tag("org_id", organization.id)

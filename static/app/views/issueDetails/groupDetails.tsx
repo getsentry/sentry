@@ -260,7 +260,7 @@ function useEventApiQuery({
 
   const endpointEventId = eventIdUrl === 'recommended' ? 'helpful' : eventIdUrl;
   const queryKey: ApiQueryKey = [
-    `/issues/${groupId}/events/${endpointEventId}/`,
+    `/organizations/${organization.slug}/issues/${groupId}/events/${endpointEventId}/`,
     {
       query: getGroupEventDetailsQueryData({
         environments,
@@ -324,13 +324,18 @@ function useEventApiQuery({
 type FetchGroupQueryParameters = {
   environments: string[];
   groupId: string;
+  organizationSlug: string;
 };
 
 function makeFetchGroupQueryKey({
   groupId,
+  organizationSlug,
   environments,
 }: FetchGroupQueryParameters): ApiQueryKey {
-  return [`/issues/${groupId}/`, {query: getGroupDetailsQueryData({environments})}];
+  return [
+    `/organizations/${organizationSlug}/issues/${groupId}/`,
+    {query: getGroupDetailsQueryData({environments})},
+  ];
 }
 
 /**
@@ -341,6 +346,7 @@ function makeFetchGroupQueryKey({
  */
 function useSyncGroupStore(incomingEnvs: string[]) {
   const queryClient = useQueryClient();
+  const organization = useOrganization();
 
   const environmentsRef = useRef<string[]>(incomingEnvs);
   environmentsRef.current = incomingEnvs;
@@ -353,7 +359,11 @@ function useSyncGroupStore(incomingEnvs: string[]) {
       if (defined(storeGroup)) {
         setApiQueryData(
           queryClient,
-          makeFetchGroupQueryKey({groupId: storeGroup.id, environments}),
+          makeFetchGroupQueryKey({
+            groupId: storeGroup.id,
+            organizationSlug: organization.slug,
+            environments,
+          }),
           storeGroup
         );
       }
@@ -397,11 +407,14 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
     isError: isGroupError,
     error: groupError,
     refetch: refetchGroupCall,
-  } = useApiQuery<Group>(makeFetchGroupQueryKey({groupId, environments}), {
-    staleTime: 30000,
-    cacheTime: 30000,
-    retry: false,
-  });
+  } = useApiQuery<Group>(
+    makeFetchGroupQueryKey({organizationSlug: organization.slug, groupId, environments}),
+    {
+      staleTime: 30000,
+      cacheTime: 30000,
+      retry: false,
+    }
+  );
 
   const group = groupData ?? null;
 
@@ -801,6 +814,7 @@ function GroupDetails(props: GroupDetailsProps) {
   const {data} = useFetchIssueTagsForDetailsPage(
     {
       groupId: router.params.groupId,
+      orgSlug: organization.slug,
       environment: environments,
     },
     // Don't want this query to take precedence over the main requests

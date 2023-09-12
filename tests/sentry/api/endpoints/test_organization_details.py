@@ -38,6 +38,7 @@ from sentry.models.organizationmapping import OrganizationMapping
 from sentry.signals import project_created
 from sentry.silo import SiloMode, unguarded_write
 from sentry.testutils.cases import APITestCase, TwoFactorAPITestCase
+from sentry.testutils.helpers import override_options
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.utils import json
@@ -352,6 +353,8 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         self.get_error_response(self.organization.slug, slug="canada-", status_code=400)
         self.get_error_response(self.organization.slug, slug="-canada", status_code=400)
         self.get_error_response(self.organization.slug, slug="----", status_code=400)
+        with override_options({"api.prevent-numeric-slugs": True}):
+            self.get_error_response(self.organization.slug, slug="1234", status_code=400)
 
     def test_upload_avatar(self):
         data = {
@@ -388,6 +391,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             "codecovAccess": True,
             "aiSuggestedSolution": False,
             "githubOpenPRBot": False,
+            "githubNudgeInvite": False,
             "githubPRBot": False,
             "allowSharedIssues": False,
             "enhancedPrivacy": True,
@@ -463,6 +467,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert "to {}".format(data["aiSuggestedSolution"]) in log.data["aiSuggestedSolution"]
         assert "to {}".format(data["githubPRBot"]) in log.data["githubPRBot"]
         assert "to {}".format(data["githubOpenPRBot"]) in log.data["githubOpenPRBot"]
+        assert "to {}".format(data["githubNudgeInvite"]) in log.data["githubNudgeInvite"]
 
     @responses.activate
     @patch(

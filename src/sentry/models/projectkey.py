@@ -2,18 +2,22 @@ from __future__ import annotations
 
 import re
 import secrets
-from typing import Any
+from typing import Any, Optional, Tuple
 from urllib.parse import urlparse
 
 import petname
 from django.conf import settings
 from django.db import ProgrammingError, models
+from django.forms import model_to_dict
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from bitfield import TypedClassBitField
 from sentry import features, options
+from sentry.backup.dependencies import ImportKind, PrimaryKeyMap
+from sentry.backup.helpers import ImportFlags
+from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import (
     BaseManager,
     BoundedPositiveIntegerField,
@@ -49,7 +53,7 @@ class ProjectKeyManager(BaseManager):
 
 @region_silo_only_model
 class ProjectKey(Model):
-    __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Organization
 
     project = FlexibleForeignKey("sentry.Project", related_name="key_set")
     label = models.CharField(max_length=64, blank=True, null=True)
@@ -275,3 +279,30 @@ class ProjectKey(Model):
 
     def get_scopes(self):
         return self.scopes
+
+    def write_relocation_import(
+        self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
+    ) -> Optional[Tuple[int, int, ImportKind]]:
+        old_pk = super()._normalize_before_relocation_import(pk_map, scope, flags)
+        if old_pk is None:
+            return None
+
+        # If there is a key collision, generate new keys.
+        #
+        # TODO(getsentry/team-ospo#190): Is this the right behavior? Another option is to just
+        # update the SQL schema to no longer require uniqueness.
+        matching_public_key = self.__class__.objects.filter(public_key=self.public_key).first()
+        if not self.public_key or matching_public_key:
+            self.public_key = self.generate_api_key()
+        matching_secret_key = self.__class__.objects.filter(secret_key=self.secret_key).first()
+        if not self.secret_key or matching_secret_key:
+            self.secret_key = self.generate_api_key()
+
+        (key, created) = ProjectKey.objects.get_or_create(
+            project=self.project, defaults=model_to_dict(self)
+        )
+        if key:
+            self.pk = key.pk
+            self.save()
+
+        return (old_pk, self.pk, ImportKind.Inserted if created else ImportKind.Existing)
