@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import ReplayRageClickSdkVersionBanner from 'sentry/components/replays/replayRageClickSdkVersionBanner';
 import {space} from 'sentry/styles/space';
 import {useHaveSelectedProjectsSentAnyReplayEvents} from 'sentry/utils/replays/hooks/useReplayOnboarding';
+import {MIN_DEAD_RAGE_CLICK_SDK} from 'sentry/utils/replays/sdkVersions';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjectSdkNeedsUpdate from 'sentry/utils/useProjectSdkNeedsUpdate';
@@ -12,8 +13,6 @@ import ReplayOnboardingPanel from 'sentry/views/replays/list/replayOnboardingPan
 import ReplaysErroneousDeadRageCards from 'sentry/views/replays/list/replaysErroneousDeadRageCards';
 import ReplaysList from 'sentry/views/replays/list/replaysList';
 import ReplaysSearch from 'sentry/views/replays/list/search';
-
-export const MIN_DEAD_RAGE_CLICK_SDK = '7.60.1';
 
 export default function ListContent() {
   const organization = useOrganization();

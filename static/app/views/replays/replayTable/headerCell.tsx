@@ -1,7 +1,7 @@
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import type {Sort} from 'sentry/utils/discover/fields';
-import {MIN_DEAD_RAGE_CLICK_SDK} from 'sentry/views/replays/replayTable';
+import {MIN_DEAD_RAGE_CLICK_SDK} from 'sentry/utils/replays/sdkVersions';
 import SortableHeader from 'sentry/views/replays/replayTable/sortableHeader';
 import {ReplayColumn} from 'sentry/views/replays/replayTable/types';
 
