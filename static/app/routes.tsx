@@ -1784,7 +1784,9 @@ function buildRoutes() {
 
   const feedbackChildRoutes = (
     <Fragment>
-      <IndexRoute component={make(() => import('sentry/views/feedback/list'))} />
+      <IndexRoute
+        component={make(() => import('sentry/views/feedback/feedbackListPage'))}
+      />
       <Route
         path=":feedbackId/"
         component={make(() => import('sentry/views/feedback/details'))}
