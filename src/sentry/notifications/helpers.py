@@ -829,12 +829,6 @@ def get_layered_setting_options(
                     ns_dict[setting_type] = ns
     return user_to_setting
 
-    # setting_options: list[RpcNotificationSettingOption] = []
-    # for settings in user_to_setting.values():
-    #     setting_options.extend([serialize_notification_option(v) for v in settings.values()])
-
-    # return setting_options
-
 
 # Todo: get actor from user id / team id
 def get_layered_setting_providers(
@@ -875,39 +869,34 @@ def get_layered_setting_providers(
         ns_dict = user_to_setting[ns.user]
         setting_type = NotificationSettingEnum(ns.type)
         provider = ExternalProviderEnum(ns.provider)
+        if setting_type not in ns_dict:
+            ns_dict[setting_type] = {}
+
         if ns.scope_type == NotificationScopeEnum.PROJECT.value:
             # Project settings take precedence, so we can overwrite any existing settings.
-            ns_dict[setting_type][provider] = ns
+            ns_dict[setting_type].update({provider: ns})
         if ns.scope_type == NotificationScopeEnum.ORGANIZATION.value:
-            if provider not in ns_dict[setting_type]:
-                ns_dict[setting_type][provider] = ns
+            if setting_type not in ns_dict or provider not in ns_dict[setting_type]:
+                ns_dict[setting_type].update({provider: ns})
             else:
                 # Organization settings do not override project settings
                 if (
                     ns_dict[setting_type][provider].scope_type
                     != NotificationScopeEnum.PROJECT.value
                 ):
-                    ns_dict[setting_type][provider] = ns
+                    ns_dict[setting_type].update({provider: ns})
         if ns.scope_type == NotificationScopeEnum.USER.value:
-            if provider not in ns_dict[setting_type]:
-                ns_dict[setting_type][provider] = ns
+            if setting_type not in ns_dict or provider not in ns_dict[setting_type].keys():
+                ns_dict[setting_type].update({provider: ns})
             else:
                 # User settings do not override project or organization settings
                 if ns_dict[setting_type][provider].scope_type not in [
                     NotificationScopeEnum.PROJECT.value,
                     NotificationScopeEnum.ORGANIZATION.value,
                 ]:
-                    ns_dict[setting_type][provider] = ns
+                    ns_dict[setting_type].update({provider: ns})
 
     return user_to_setting
-    # setting_providers: list[RpcNotificationSettingProvider] = []
-    # for setting_type_map in user_to_setting.values():
-    #     for provider_map in setting_type_map.values():
-    #         setting_providers.extend(
-    #             [serialize_notification_provider(v) for v in provider_map.values()]
-    #         )
-
-    # return setting_providers
 
 
 def get_setting_options_with_defaults(
@@ -927,10 +916,10 @@ def get_setting_options_with_defaults(
         RpcActor, MutableMapping[NotificationSettingEnum, NotificationSettingsOptionEnum]
     ] = {
         user: {
-            setting_type: NotificationSettingsOptionEnum(ns.value)
-            for setting_type, ns in setting.items()
+            setting_type: NotificationSettingsOptionEnum(setting.value)
+            for setting_type, setting in setting_o.items()
         }
-        for user, setting in setting_options.items()
+        for user, setting_o in setting_options.items()
     }
 
     # Fill in the setting defaults if they are missing
@@ -967,18 +956,23 @@ def get_setting_providers_with_defaults(
         ],
     ] = defaultdict(dict)
     for user, settings_p in setting_providers.items():
+        result[user] = {}
         for type, providers in settings_p.items():
-            result[user] = {
-                type: {provider: NotificationSettingsOptionEnum(value)}
-                for provider, value in providers.items()
+            res = {
+                type: {provider: NotificationSettingsOptionEnum(setting.value)}
+                for provider, setting in providers.items()
             }
+            result[user].update(res)
 
     provider_defaults = get_provider_defaults()
-    for _, settings in result.items():
+    for user, settings in result.items():
         for type in NotificationSettingEnum:
-            for provider in ExternalProviderEnum:
-                if provider not in settings[type] and provider in provider_defaults:
-                    settings[type][provider] = NotificationSettingsOptionEnum.ALWAYS
+            for provider in provider_defaults:
+                if type not in settings:
+                    result[user][type] = {provider: NotificationSettingsOptionEnum.ALWAYS}
+
+                if provider not in settings[type]:
+                    result[user][type].update({provider: NotificationSettingsOptionEnum.ALWAYS})
     return result
 
 
@@ -991,7 +985,7 @@ def get_notification_recipients(project: Project) -> Mapping[ExternalProviderEnu
         project: The project to get notification settings for.
     """
     user_ids = list(project.member_set.values_list("user_id", flat=True))
-    users = user_service.get_many(user_ids)
+    users = user_service.get_many(filter={"user_ids": user_ids})
     options = get_setting_options_with_defaults(recipients=users, projects=[project])
     providers = get_setting_providers_with_defaults(recipients=users, projects=[project])
 
