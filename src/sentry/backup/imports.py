@@ -120,15 +120,24 @@ def _import(
             for obj in serializers.deserialize("json", src, stream=True, use_natural_keys=False):
                 o = obj.object
                 if o._meta.app_label not in EXCLUDED_APPS or o:
-                    if o.get_relocation_scope() in allowed_relocation_scopes:
+                    if o.get_possible_relocation_scopes() & allowed_relocation_scopes:
                         o = obj.object
                         model_name = normalize_model_name(o)
                         for f in filters:
                             if f.model == type(o) and getattr(o, f.field, None) not in f.values:
                                 break
                         else:
+                            # We can only be sure `get_relocation_scope()` will be correct if it is
+                            # fired AFTER normalization, as some `get_relocation_scope()` methods
+                            # rely on being able to correctly resolve foreign keys, which is only
+                            # possible after normalization.
                             old_pk = o.normalize_before_relocation_import(pk_map, scope, flags)
                             if old_pk is None:
+                                continue
+
+                            # Now that the model has been normalized, we can ensure that this
+                            # particular instance has a `RelocationScope` that permits importing.
+                            if not o.get_relocation_scope() in allowed_relocation_scopes:
                                 continue
 
                             written = o.write_relocation_import(scope, flags)
