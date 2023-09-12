@@ -1,7 +1,9 @@
+from unittest.mock import patch
+
 import pytest
 
 from minimetrics.core import CounterMetric, DistributionMetric, GaugeMetric, SetMetric
-from minimetrics.transport import EncodingError, RelayStatsdEncoder
+from minimetrics.transport import EncodingError, MetricEnvelopeTransport, RelayStatsdEncoder
 from minimetrics.types import BucketKey, FlushedMetric
 
 
@@ -196,3 +198,28 @@ def test_relay_encoder_with_multiple_metrics():
         + "\n"
         + "button_click@none:1|c|#browser:Chrome,browser.version:1.0|T1693994400"
     )
+
+
+@patch("minimetrics.transport.sentry_sdk")
+def test_send(sentry_sdk):
+    flushed_metric = FlushedMetric(
+        bucket_key=BucketKey(
+            timestamp=1693994400,
+            metric_type="c",
+            metric_name="button_click",
+            metric_unit="none",
+            metric_tags=(
+                ("browser", "Chrome"),
+                ("browser.version", "1.0"),
+            ),
+        ),
+        metric=CounterMetric(first=1),
+    )
+
+    transport = MetricEnvelopeTransport(RelayStatsdEncoder())
+    transport.send([flushed_metric])
+
+    args = sentry_sdk.Hub.current.client.transport.capture_envelope.call_args.args
+    assert len(args) == 1
+    arg = args[0]
+    assert arg.items[0].type == "statsd"
