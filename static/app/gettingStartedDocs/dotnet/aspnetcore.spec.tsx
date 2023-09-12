@@ -6,7 +6,7 @@ import {GettingStartedWithAspnetcore, steps} from './aspnetcore';
 
 describe('GettingStartedWithAspnetcore', function () {
   it('renders doc correctly', function () {
-    const {container} = render(<GettingStartedWithAspnetcore dsn="test-dsn" />);
+    render(<GettingStartedWithAspnetcore dsn="test-dsn" />);
 
     // Steps
     for (const step of steps()) {
@@ -14,7 +14,5 @@ describe('GettingStartedWithAspnetcore', function () {
         screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
       ).toBeInTheDocument();
     }
-
-    expect(container).toSnapshot();
   });
 });

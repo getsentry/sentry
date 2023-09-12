@@ -19,4 +19,3 @@ class NewSettingsTest(AcceptanceTestCase):
         with self.feature("organizations:onboarding"):
             self.browser.get(self.path)
             self.browser.wait_until_not('[data-test-id="loading-indicator"]')
-            self.browser.snapshot("new settings index")

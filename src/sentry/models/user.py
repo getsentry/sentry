@@ -1,5 +1,7 @@
 import logging
+import secrets
 import warnings
+from string import ascii_letters, digits
 from typing import List, Optional, Tuple
 
 from django.contrib.auth.models import AbstractBaseUser
@@ -42,6 +44,8 @@ from sentry.utils.retries import TimedRetryPolicy
 audit_logger = logging.getLogger("sentry.audit.user")
 
 MAX_USERNAME_LENGTH = 128
+RANDOM_PASSWORD_ALPHABET = ascii_letters + digits
+RANDOM_PASSWORD_LENGTH = 32
 
 
 class UserManager(BaseManager, DjangoUserManager):
@@ -96,6 +100,16 @@ class User(BaseModel, AbstractBaseUser):
         help_text=_(
             "Designates whether this user should be treated as "
             "active. Unselect this instead of deleting accounts."
+        ),
+    )
+    is_unclaimed = models.BooleanField(
+        _("unclaimed"),
+        default=False,
+        help_text=_(
+            "Designates that this user was imported via the relocation tool, but has not yet been "
+            "claimed by the owner of the associated email. Users in this state have randomized "
+            "passwords - when email owners claim the account, they are prompted to reset their "
+            "password and do a one-time update to their username."
         ),
     )
     is_superuser = models.BooleanField(
@@ -387,9 +401,22 @@ class User(BaseModel, AbstractBaseUser):
         if old_pk is None:
             return None
 
+        # New users are always unclaimed.
+        self.is_unclaimed = True
+
+        # Give the user a cryptographically secure random password. The purpose here is to have a
+        # password that NO ONE knows - the only way to log into this account is to use the "claim
+        # your account" flow to create a new password (or to click "lost password" and end up there
+        # anyway), at which point we'll detect the user's `is_unclaimed`` status and prompt them to
+        # change their `username` as well.
+        self.set_password(
+            "".join(secrets.choice(RANDOM_PASSWORD_ALPHABET) for _ in range(RANDOM_PASSWORD_LENGTH))
+        )
+
         if scope != ImportScope.Global:
             self.is_staff = False
             self.is_superuser = False
+            self.is_managed = False
 
         lock = locks.get(f"user:username:{self.id}", duration=5, name="username")
         with TimedRetryPolicy(10)(lock.acquire):
@@ -399,9 +426,6 @@ class User(BaseModel, AbstractBaseUser):
                 max_length=MAX_USERNAME_LENGTH,
                 field_name="username",
             )
-
-        # TODO(getsentry/team-ospo#181): Create unclaimed users: set the (to be created) unclaimed
-        # flag, and wipe the password.
 
         return old_pk
 
@@ -413,6 +437,7 @@ class User(BaseModel, AbstractBaseUser):
             SuperuserUserSerializer,
             UserSerializer,
         )
+        from sentry.services.hybrid_cloud.lost_password_hash import lost_password_hash_service
 
         if flags.merge_users:
             existing = User.objects.filter(username=self.username).first()
@@ -433,6 +458,15 @@ class User(BaseModel, AbstractBaseUser):
         serializer_user.is_valid(raise_exception=True)
 
         self.save(force_insert=True)
+
+        # TODO(getsentry/team-ospo#190): the following is an RPC call which could fail for transient
+        # reasons (network etc). How do we handle that?
+        lost_password_hash_service.get_or_create(user_id=self.id)
+
+        # TODO(getsentry/team-ospo#191): we need to send an email informing the user of their new
+        # account with a resettable password - we'll need to figure out where in the process that
+        # actually goes, and how to prevent it from happening during the validation pass.
+
         return (old_pk, self.pk, ImportKind.Inserted)
 
 

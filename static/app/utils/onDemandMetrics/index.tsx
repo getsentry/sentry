@@ -7,7 +7,7 @@ import {
   TokenResult,
 } from 'sentry/components/searchSyntax/parser';
 import {Organization} from 'sentry/types';
-import {FieldKey, getFieldDefinition} from 'sentry/utils/fields';
+import {AggregationKey, FieldKey, getFieldDefinition} from 'sentry/utils/fields';
 import {
   ON_DEMAND_METRICS_UNSUPPORTED_TAGS,
   STANDARD_SEARCH_FIELD_KEYS,
@@ -36,6 +36,10 @@ export function createOnDemandFilterWarning(warning: React.ReactNode) {
     }
     return null;
   };
+}
+
+export function isOnDemandAggregate(aggregate: string): boolean {
+  return aggregate.includes(AggregationKey.APDEX);
 }
 
 export function isOnDemandQueryString(query: string): boolean {

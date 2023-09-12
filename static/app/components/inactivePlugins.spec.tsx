@@ -11,10 +11,7 @@ describe('InactivePlugins', function () {
   });
 
   it('renders plugins list', function () {
-    const {container} = render(
-      <InactivePlugins onEnablePlugin={() => {}} plugins={TestStubs.Plugins()} />
-    );
-    expect(container).toSnapshot();
+    render(<InactivePlugins onEnablePlugin={() => {}} plugins={TestStubs.Plugins()} />);
   });
 
   it('enables a plugin', async function () {

@@ -118,7 +118,7 @@ function getErrorMessage(
           meta: metaData,
         },
       ];
-    case JavascriptProcessingErrors.JS_MISSING_SOURCES_CONTEXT:
+    case JavascriptProcessingErrors.JS_MISSING_SOURCES_CONTENT:
       return [
         {
           title: t('Missing Sources Context'),
