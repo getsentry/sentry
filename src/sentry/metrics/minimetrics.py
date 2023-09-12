@@ -21,7 +21,7 @@ def _to_minimetrics_external_metric_tags(tags: Optional[Tags]) -> Optional[Metri
 # This is needed to pass data between the sdk patcher and the
 # minimetrics backend.  This is not super clean but it allows us to
 # initialize these things in arbitrary order.
-minimetrics_client = None
+minimetrics_client: Optional[MiniMetricsClient] = None
 
 
 def patch_sentry_sdk():
