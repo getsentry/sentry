@@ -370,43 +370,45 @@ SENTRY_OUTBOX_MODELS: Mapping[str, list[str]] = {
     "REGION": ["sentry.RegionOutbox"],
 }
 
+# Do not modify reordering
+# The applications listed first in INSTALLED_APPS have precedence
 INSTALLED_APPS: tuple[str, ...] = (
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.messages",
     "django.contrib.sessions",
     "django.contrib.sites",
-    "django.contrib.staticfiles",
     "drf_spectacular",
     "crispy_forms",
     "rest_framework",
     "sentry",
     "sentry.analytics",
-    "sentry.analytics.events",
-    "sentry.auth.providers.google.apps.Config",
-    "sentry.auth.providers.fly.apps.Config",
-    "sentry.discover",
-    "sentry.eventstream",
     "sentry.incidents.apps.Config",
-    "sentry.issues.apps.Config",
-    "sentry.lang.java.apps.Config",
-    "sentry.lang.javascript.apps.Config",
-    "sentry.monitors",
+    "sentry.discover",
+    "sentry.analytics.events",
     "sentry.nodestore",
-    "sentry.plugins.sentry_interface_types.apps.Config",
-    "sentry.plugins.sentry_urls.apps.Config",
-    "sentry.plugins.sentry_useragents.apps.Config",
-    "sentry.plugins.sentry_webhooks.apps.Config",
+    "sentry.monitors",
     "sentry.replays",
     "sentry.release_health",
     "sentry.search",
     "sentry.sentry_metrics.indexer.postgres.apps.Config",
     "sentry.snuba",
-    "sentry.feedback",
+    "sentry.lang.java.apps.Config",
+    "sentry.lang.javascript.apps.Config",
+    "sentry.plugins.sentry_interface_types.apps.Config",
+    "sentry.plugins.sentry_urls.apps.Config",
+    "sentry.plugins.sentry_useragents.apps.Config",
+    "sentry.plugins.sentry_webhooks.apps.Config",
     "sentry.utils.suspect_resolutions.apps.Config",
     "sentry.utils.suspect_resolutions_releases.apps.Config",
     "social_auth",
     "sudo",
+    "sentry.eventstream",
+    "sentry.auth.providers.google.apps.Config",
+    "sentry.auth.providers.fly.apps.Config",
+    "django.contrib.staticfiles",
+    "sentry.issues.apps.Config",
+    "sentry.feedback",
 )
 
 # Silence internal hints from Django's system checks
@@ -1401,6 +1403,8 @@ SENTRY_FEATURES = {
     "organizations:escalating-issues-v2": False,
     # Enable emiting escalating data to the metrics backend
     "organizations:escalating-metrics-backend": False,
+    # Enable the frontend to request from region & control silo domains.
+    "organizations:frontend-domainsplit": False,
     # Allows an org to have a larger set of project ownership rules per project
     "organizations:higher-ownership-limit": False,
     # Enable Monitors (Crons) view
@@ -1551,6 +1555,8 @@ SENTRY_FEATURES = {
     "organizations:mobile-cpu-memory-in-transactions": False,
     # Enable new page filter UI
     "organizations:new-page-filter": False,
+    # Display warning banner for every event issue alerts
+    "organizations:noisy-alert-warning": False,
     # Prefix host with organization ID when giving users DSNs (can be
     # customized with SENTRY_ORG_SUBDOMAIN_TEMPLATE)
     "organizations:org-subdomains": False,
@@ -1750,6 +1756,8 @@ SENTRY_FEATURES = {
     "organizations:sourcemaps-upload-release-as-artifact-bundle": False,
     # Signals that the organization supports the on demand metrics prefill.
     "organizations:on-demand-metrics-prefill": False,
+    # Enable writing to the new notification system when updating the old system
+    "organizations:notifications-double-write": False,
     # Excludes measurement config from project config builds.
     "organizations:projconfig-exclude-measurements": False,
     # Enable data forwarding functionality for projects.
@@ -1779,6 +1787,9 @@ SENTRY_FEATURES = {
     "projects:span-metrics-extraction": False,
     # Metrics: Enable ingestion, storage, and rendering of custom metrics
     "organizations:custom-metrics": False,
+    # Metrics: Enable creation of investigation dynamic sampling rules (rules that
+    # temporary boost the sample rate of particular transactions)
+    "organizations:investigation-bias": False,
     # Don't add feature defaults down here! Please add them in their associated
     # group sorted alphabetically.
 }
@@ -3571,9 +3582,10 @@ SENTRY_ISSUE_PLATFORM_FUTURES_MAX_LIMIT = 10000
 
 SENTRY_GROUP_ATTRIBUTES_FUTURES_MAX_LIMIT = 10000
 
+
 # USE_SPLIT_DBS is leveraged in tests as we validate db splits further.
 # Split databases are also required for the USE_SILOS devserver flow.
-if USE_SILOS or env("SENTRY_USE_SPLIT_DBS", default=False):
+if USE_SILOS:
     # Add connections for the region & control silo databases.
     DATABASES["control"] = DATABASES["default"].copy()
     DATABASES["control"]["NAME"] = "control"

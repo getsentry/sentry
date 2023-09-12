@@ -35,6 +35,7 @@ from sentry.discover.endpoints.discover_saved_query_detail import (
     DiscoverSavedQueryDetailEndpoint,
     DiscoverSavedQueryVisitEndpoint,
 )
+from sentry.feedback.endpoints.feedback_ingest import FeedbackIngestEndpoint
 from sentry.incidents.endpoints.organization_alert_rule_available_action_index import (
     OrganizationAlertRuleAvailableActionIndexEndpoint,
 )
@@ -2914,6 +2915,12 @@ urlpatterns = [
         r"^wizard/(?P<wizard_hash>[^\/]+)/$",
         SetupWizard.as_view(),
         name="sentry-api-0-project-wizard",
+    ),
+    # Feedback
+    re_path(
+        r"^feedback/$",
+        FeedbackIngestEndpoint.as_view(),
+        name="sentry-api-0-feedback-ingest",
     ),
     # Internal
     re_path(

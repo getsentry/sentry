@@ -17,6 +17,7 @@ import {
 import {updateOnboardingTask} from 'sentry/actionCreators/onboardingTasks';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {Alert} from 'sentry/components/alert';
+import AlertLink from 'sentry/components/alertLink';
 import {Button} from 'sentry/components/button';
 import Checkbox from 'sentry/components/checkbox';
 import Confirm from 'sentry/components/confirm';
@@ -39,7 +40,7 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import TeamSelector from 'sentry/components/teamSelector';
 import {Tooltip} from 'sentry/components/tooltip';
 import {ALL_ENVIRONMENTS_KEY} from 'sentry/constants';
-import {IconChevron} from 'sentry/icons';
+import {IconChevron, IconNot} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';
@@ -177,6 +178,11 @@ type State = DeprecatedAsyncView['state'] & {
 function isSavedAlertRule(rule: State['rule']): rule is IssueAlertRule {
   return rule?.hasOwnProperty('id') ?? false;
 }
+
+/**
+ * Expecting "This rule is an exact duplicate of '{duplicate_rule.label}' in this project and may not be created."
+ */
+const isExactDuplicateExp = /duplicate of '(.*)'/;
 
 class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
   pollingTimeout: number | undefined = undefined;
@@ -915,11 +921,16 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
     const {rule, detailedError} = this.state;
     const {name} = rule || {};
 
+    // Duplicate errors display on the "name" field but we're showing them in a banner
+    // Remove them from the name detailed error
+    const filteredDetailedError =
+      detailedError?.name?.filter(str => !isExactDuplicateExp.test(str)) ?? [];
+
     return (
       <StyledField
         label={null}
         help={null}
-        error={detailedError?.name?.[0]}
+        error={filteredDetailedError[0]}
         disabled={disabled}
         required
         stacked
@@ -959,6 +970,33 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
           disabled={disabled}
         />
       </StyledField>
+    );
+  }
+
+  renderDuplicateErrorAlert() {
+    const {organization} = this.props;
+    const {detailedError, project} = this.state;
+    const duplicateName = isExactDuplicateExp.exec(detailedError?.name?.[0] ?? '')?.[1];
+    const duplicateRuleId = detailedError?.ruleId?.[0] ?? '';
+
+    // We want this to open in a new tab to not lose the current state of the rule editor
+    return (
+      <AlertLink
+        openInNewTab
+        priority="error"
+        icon={<IconNot color="red300" />}
+        href={normalizeUrl(
+          `/organizations/${organization.slug}/alerts/rules/${project.slug}/${duplicateRuleId}/details/`
+        )}
+      >
+        {tct(
+          'This rule fully duplicates "[alertName]" in the project [projectName] and cannot be saved. Click to view "[alertName]"',
+          {
+            alertName: duplicateName,
+            projectName: project.name,
+          }
+        )}
+      </AlertLink>
     );
   }
 
@@ -1240,6 +1278,8 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
 
     const canCreateAlert = hasEveryAccess(['alerts:write'], {organization, project});
     const disabled = loading || !(canCreateAlert || isActiveSuperuser());
+    const displayDuplicateError =
+      detailedError?.name?.some(str => isExactDuplicateExp.test(str)) ?? false;
 
     // Note `key` on `<Form>` below is so that on initial load, we show
     // the form with a loading mask on top of it, but force a re-render by using
@@ -1543,6 +1583,7 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
                 {this.renderRuleName(disabled)}
                 {this.renderTeamSelect(disabled)}
               </StyledFieldWrapper>
+              {displayDuplicateError && this.renderDuplicateErrorAlert()}
               {this.displayNoConditionsWarning() &&
                 this.renderAcknowledgeNoConditions(disabled)}
             </ContentIndent>
