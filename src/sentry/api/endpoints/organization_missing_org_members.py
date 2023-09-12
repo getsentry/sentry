@@ -4,11 +4,10 @@ from collections import defaultdict
 from datetime import timedelta
 from email.headerregistry import Address
 from functools import reduce
-from typing import Dict, Sequence
+from typing import TYPE_CHECKING, Dict, Sequence
 
 from django.db.models import Count, Q, QuerySet
 from django.utils import timezone
-from django_stubs_ext import WithAnnotations
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -25,6 +24,9 @@ from sentry.models.commitauthor import CommitAuthor
 from sentry.models.organization import Organization
 from sentry.search.utils import tokenize_query
 from sentry.services.hybrid_cloud.integration import integration_service
+
+if TYPE_CHECKING:
+    from django_stubs_ext import WithAnnotations
 
 
 class MissingOrgMemberSerializer(Serializer):
