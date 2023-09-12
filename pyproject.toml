@@ -551,8 +551,6 @@ module = [
     "sentry.migrations.0001_squashed_0200_release_indices",
     "sentry.migrations.0223_semver_backfill_2",
     "sentry.migrations.0232_backfill_missed_semver_releases",
-    "sentry.migrations.0233_recreate_subscriptions_in_snuba",
-    "sentry.migrations.0237_recreate_subscriptions_in_snuba",
     "sentry.migrations.0292_migrate_sessions_subs_user_counts",
     "sentry.migrations.0293_restore_metrics_based_alerts",
     "sentry.migrations.0314_bit_int_for_org_and_project_id",
