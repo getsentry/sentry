@@ -1,4 +1,5 @@
-from datetime import datetime
+from datetime import datetime, timedelta
+from typing import cast
 
 from rest_framework import serializers
 from rest_framework.request import Request
@@ -110,8 +111,9 @@ class CustomRulesEndpoint(OrganizationEndpoint):
             converter = SearchQueryConverter(tokens)
             condition = converter.convert()
 
-            timedelta = parse_stats_period(period)
-            expiration = (datetime.utcnow() + timedelta).timestamp()
+            # the parsing must succeed (it passed validation)
+            delta = cast(timedelta, parse_stats_period(period))
+            expiration = (datetime.utcnow() + delta).timestamp()
 
             rule = SerializedRule(
                 condition=condition,

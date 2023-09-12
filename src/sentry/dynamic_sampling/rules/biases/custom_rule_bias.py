@@ -3,9 +3,10 @@ Bias for custom rules (i.e. user-defined rules).
 """
 import hashlib
 from datetime import datetime
-from typing import Any, Dict, List, Mapping, TypedDict
+from typing import Any, List, Mapping, TypedDict
 
 from sentry.dynamic_sampling import get_redis_client_for_ds
+from sentry.snuba.metrics.extraction import RuleCondition
 from sentry.utils import json
 
 
@@ -20,7 +21,7 @@ class SerializedRule(TypedDict, total=True):
 
     """
 
-    condition: Dict[str, Any]  # the rule condition parsed from the query
+    condition: RuleCondition  # the rule condition parsed from the query
     expiration: float  # the timestamp of the rule's expiration (UNIX timestamp)
     project_ids: List[int]  # list of project ids applicable to this rule
     org_id: int  # the organization id
