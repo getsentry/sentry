@@ -250,12 +250,12 @@ class Aggregator:
         with self._lock:
             metric = self.buckets.get(bucket_key)
             if metric is not None:
+                previous_weight = metric.weight
                 metric.add(value)
             else:
                 metric = self.buckets[bucket_key] = METRIC_TYPES[ty](value)
+                previous_weight = 0
 
-            # We first change the weight by taking the old one and the new one.
-            previous_weight = metric.weight
             self._buckets_total_weight += metric.weight - previous_weight
             # Given the new weight we consider whether we want to force flush.
             self.consider_force_flush()

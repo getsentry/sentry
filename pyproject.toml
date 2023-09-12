@@ -555,7 +555,6 @@ module = [
     "sentry.migrations.0237_recreate_subscriptions_in_snuba",
     "sentry.migrations.0292_migrate_sessions_subs_user_counts",
     "sentry.migrations.0293_restore_metrics_based_alerts",
-    "sentry.migrations.0311_backfill_slack_settings",
     "sentry.migrations.0314_bit_int_for_org_and_project_id",
     "sentry.migrations.0407_recreate_perf_alert_subscriptions",
     "sentry.migrations.0418_add_actor_constraints",

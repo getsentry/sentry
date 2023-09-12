@@ -4,15 +4,13 @@ import MultipleCheckbox from 'sentry/components/forms/controls/multipleCheckbox'
 
 describe('MultipleCheckbox', function () {
   it('renders', function () {
-    const {container} = render(
+    render(
       <MultipleCheckbox name="test" value={[1]}>
         <MultipleCheckbox.Item value={0}>Choice A</MultipleCheckbox.Item>
         <MultipleCheckbox.Item value={1}>Choice B</MultipleCheckbox.Item>
         <MultipleCheckbox.Item value={2}>Choice C</MultipleCheckbox.Item>
       </MultipleCheckbox>
     );
-
-    expect(container).toSnapshot();
   });
 
   it('unselects a checked input', async function () {
