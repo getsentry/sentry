@@ -17,7 +17,7 @@ interface Props {
 
 export default function FeedbackHeader({feedback, organization}: Props) {
   const {projects} = useProjects();
-  const project = projects.find(p => p.id === feedback?.project);
+  const project = projects.find(p => p.id === feedback?.project_id);
 
   const labelTitle = feedback ? (
     <Fragment>{getShortEventId(feedback?.id)}</Fragment>

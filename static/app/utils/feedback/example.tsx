@@ -25,7 +25,7 @@ export const exampleItemResponse: FeedbackItemResponse = {
     version: '16.2',
   },
   platform: 'javascript',
-  project: '11276',
+  project_id: '11276',
   release: 'version@1.3',
   replay_id: 'ec3b4dc8b79f417596f7a1aa4fcca5d2',
   sdk: {
