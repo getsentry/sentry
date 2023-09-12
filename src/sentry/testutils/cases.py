@@ -40,7 +40,7 @@ from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
 from snuba_sdk import Granularity, Limit, Offset
 from snuba_sdk.conditions import BooleanCondition, Condition, ConditionGroup
 
-from sentry import auth, eventstore
+from sentry import auth, eventstore, options
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.auth.provider import Provider
 from sentry.auth.providers.dummy import DummyProvider
@@ -445,6 +445,10 @@ class TestCase(BaseTestCase, DjangoTestCase):
     # We need Django to flush all databases.
     databases: set[str] | str = "__all__"
 
+    def setUp(self) -> None:
+        super().setUp()
+        options.default_store.flush_local_cache()
+
     # Ensure that testcases that ask for DB setup actually make use of the
     # DB. If they don't, they're wasting CI time.
     if DETECT_TESTCASE_MISUSE:
@@ -604,6 +608,10 @@ class APITestCase(BaseTestCase, BaseAPITestCase):
     @property
     def endpoint(self):
         raise NotImplementedError(f"implement for {type(self).__module__}.{type(self).__name__}")
+
+    def setUp(self) -> None:
+        super().setUp()
+        options.default_store.flush_local_cache()
 
     def get_response(self, *args, **params):
         """
