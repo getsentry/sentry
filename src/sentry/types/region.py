@@ -68,7 +68,12 @@ class Region:
         REGION_ID.validate(self.snowflake_id)
 
     def to_url(self, path: str) -> str:
-        """Resolve a path into a customer facing URL on this region's silo."""
+        """Resolve a path into a customer facing URL on this region's silo.
+
+        In monolith mode, there is likely only the historical simulated
+        region. The public URL of the simulated region is the same
+        as the application base URL.
+        """
         from sentry.api.utils import generate_region_url
 
         if SiloMode.get_current_mode() == SiloMode.MONOLITH:
