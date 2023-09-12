@@ -286,23 +286,39 @@ def backfill_artifact_index_updates() -> bool:
             index_not_fully_updated = True
 
         bundles_to_add = []
-        for artifact_bundle in artifact_bundles:
-            with ArtifactBundleArchive(artifact_bundle.file.getfile()) as archive:
-                bundles_to_add.append(BundleManifest.from_artifact_bundle(artifact_bundle, archive))
+        try:
+            for artifact_bundle in artifact_bundles:
+                with ArtifactBundleArchive(artifact_bundle.file.getfile()) as archive:
+                    bundles_to_add.append(
+                        BundleManifest.from_artifact_bundle(artifact_bundle, archive)
+                    )
+        except Exception as e:
+            metrics.incr("artifact_bundle_flat_file_indexing.error_when_backfilling")
+            sentry_sdk.capture_exception(e)
+            continue
 
         deletion_key = get_deletion_key(index.id)
         redis_client.srem(get_all_deletions_key(), index.id)
         bundles_to_remove = [int(bundle_id) for bundle_id in redis_client.smembers(deletion_key)]
 
         if bundles_to_add or bundles_to_remove:
-            update_artifact_bundle_index(
-                identifier,
-                blocking=True,
-                bundles_to_add=bundles_to_add,
-                bundles_to_remove=bundles_to_remove,
-            )
-            if bundles_to_remove:
-                redis_client.srem(deletion_key, *bundles_to_remove)
+            try:
+                update_artifact_bundle_index(
+                    identifier,
+                    blocking=True,
+                    bundles_to_add=bundles_to_add,
+                    bundles_to_remove=bundles_to_remove,
+                )
+                if bundles_to_remove:
+                    redis_client.srem(deletion_key, *bundles_to_remove)
+            except Exception as e:
+                metrics.incr("artifact_bundle_flat_file_indexing.error_when_backfilling")
+                sentry_sdk.capture_exception(e)
+
+                if bundles_to_remove:
+                    # If this failed, it means we didn't remove bundles scheduled for
+                    # removal. we want to re-schedule that to do that work later.
+                    redis_client.sadd(get_all_deletions_key(), index.id)
 
     # Then, we process any pending removals marked in redis.
     # NOTE on the usage of redis sets:
@@ -333,11 +349,15 @@ def backfill_artifact_index_updates() -> bool:
         deletion_key = get_deletion_key(idx_id)
         bundles_to_remove = [int(bundle_id) for bundle_id in redis_client.smembers(deletion_key)]
         if bundles_to_remove:
-            update_artifact_bundle_index(
-                identifier, blocking=True, bundles_to_remove=bundles_to_remove
-            )
+            try:
+                update_artifact_bundle_index(
+                    identifier, blocking=True, bundles_to_remove=bundles_to_remove
+                )
 
-            redis_client.srem(deletion_key, *bundles_to_remove)
+                redis_client.srem(deletion_key, *bundles_to_remove)
+            except Exception as e:
+                metrics.incr("artifact_bundle_flat_file_indexing.error_when_backfilling")
+                sentry_sdk.capture_exception(e)
 
     return (
         len(indexes_needing_update) >= BACKFILL_BATCH_SIZE
