@@ -26,8 +26,8 @@ from sentry.models.artifactbundle import (
 from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.models.releasefile import ReleaseFile
-from sentry.utils.safe import get_path
 from sentry.utils.javascript import find_sourcemap
+from sentry.utils.safe import get_path
 from sentry.utils.urls import non_standard_url_join
 
 MIN_JS_SDK_VERSION_FOR_DEBUG_IDS = "7.56.0"
@@ -214,29 +214,43 @@ def get_source_file_data(abs_path, project, release, event):
         "matching_source_map_name": None,
         "source_map_reference": None,
         "source_file_lookup_result": "unsuccessful",
-        "source_map_lookup_result": "unsuccessful"
+        "source_map_lookup_result": "unsuccessful",
     }
 
-    possible_release_files = ReleaseFile.objects.filter(
-        organization_id=project.organization_id,
-        release_id=release.id,
-        name__in=filenme_choices,
-    ).exclude(artifact_count=0).select_related("file")
+    possible_release_files = (
+        ReleaseFile.objects.filter(
+            organization_id=project.organization_id,
+            release_id=release.id,
+            name__in=filenme_choices,
+        )
+        .exclude(artifact_count=0)
+        .select_related("file")
+    )
     if len(possible_release_files) > 0:
         path_data["source_file_lookup_result"] = "wrong-dist"
     for possible_release_file in possible_release_files:
-        if possible_release_file.ident == ReleaseFile.get_ident(possible_release_file.name, event.dist):
+        if possible_release_file.ident == ReleaseFile.get_ident(
+            possible_release_file.name, event.dist
+        ):
             path_data["source_file_lookup_result"] = "found"
             source_map_reference = None
             if possible_release_file.file.headers:
-                headers = ArtifactBundleArchive.normalize_headers(possible_release_file.file.headers)
+                headers = ArtifactBundleArchive.normalize_headers(
+                    possible_release_file.file.headers
+                )
                 sourcemap_header = headers.get("sourcemap", headers.get("x-sourcemap"))
-                sourcemap_header = force_bytes(sourcemap_header) if sourcemap_header is not None else None
+                sourcemap_header = (
+                    force_bytes(sourcemap_header) if sourcemap_header is not None else None
+                )
                 try:
-                    source_map_reference = find_sourcemap(sourcemap_header, possible_release_file.file.getfile().read())
+                    source_map_reference = find_sourcemap(
+                        sourcemap_header, possible_release_file.file.getfile().read()
+                    )
                 except AssertionError:
                     pass
-                source_map_reference = force_str(source_map_reference) if source_map_reference is not None else None
+                source_map_reference = (
+                    force_str(source_map_reference) if source_map_reference is not None else None
+                )
 
             matching_source_map_name = None
             if source_map_reference is not None:
@@ -244,17 +258,21 @@ def get_source_file_data(abs_path, project, release, event):
                     source_map_reference = "Inline Sourcemap"
                     path_data["source_map_lookup_result"] = "found"
                 else:
-                    matching_source_map_name = get_matching_source_map_location(possible_release_file.name, source_map_reference)
+                    matching_source_map_name = get_matching_source_map_location(
+                        possible_release_file.name, source_map_reference
+                    )
 
             if matching_source_map_name is not None:
-                path_data["source_map_lookup_result"] = get_release_files_status_by_url(event, project, release, [matching_source_map_name])
+                path_data["source_map_lookup_result"] = get_release_files_status_by_url(
+                    event, project, release, [matching_source_map_name]
+                )
 
             return {
                 "matching_source_file_names": filenme_choices,
                 "matching_source_map_name": matching_source_map_name,
                 "source_map_reference": source_map_reference,
                 "source_file_lookup_result": "found",
-                "source_map_lookup_result": path_data["source_map_lookup_result"]
+                "source_map_lookup_result": path_data["source_map_lookup_result"],
             }
 
     possible_release_artifact_bundles = ReleaseArtifactBundle.objects.filter(
@@ -265,30 +283,44 @@ def get_source_file_data(abs_path, project, release, event):
         artifact_bundle__artifactbundleindex__url__in=filenme_choices,
     )
     if len(possible_release_artifact_bundles) > 0:
-        path_data["source_file_lookup_result"] = "wrong-dist" if path_data["source_file_lookup_result"] == "unsuccessful" else path_data["source_file_lookup_result"]
+        path_data["source_file_lookup_result"] = (
+            "wrong-dist"
+            if path_data["source_file_lookup_result"] == "unsuccessful"
+            else path_data["source_file_lookup_result"]
+        )
     for possible_release_artifact_bundle in possible_release_artifact_bundles:
         if possible_release_artifact_bundle.dist_name == (event.dist or ""):
             found_source_file_path = None
             source_map_reference = None
             headers = None
-            with ArtifactBundleArchive(possible_release_artifact_bundle.artifact_bundle.file.getfile()) as archive:
+            with ArtifactBundleArchive(
+                possible_release_artifact_bundle.artifact_bundle.file.getfile()
+            ) as archive:
                 matching_file = None
                 sourcemap_header = None
                 for filename_choice in filenme_choices:
                     try:
                         matching_file, headers = archive.get_file_by_url(filename_choice)
                         sourcemap_header = headers.get("sourcemap", headers.get("x-sourcemap"))
-                        sourcemap_header = force_bytes(sourcemap_header) if sourcemap_header is not None else None
+                        sourcemap_header = (
+                            force_bytes(sourcemap_header) if sourcemap_header is not None else None
+                        )
                         found_source_file_path = filename_choice
                         break
                     except Exception:
                         continue
                 if matching_file is not None:
                     try:
-                        source_map_reference = find_sourcemap(sourcemap_header, matching_file.read())
+                        source_map_reference = find_sourcemap(
+                            sourcemap_header, matching_file.read()
+                        )
                     except AssertionError:
                         pass
-                    source_map_reference = force_str(source_map_reference) if source_map_reference is not None else None
+                    source_map_reference = (
+                        force_str(source_map_reference)
+                        if source_map_reference is not None
+                        else None
+                    )
 
             matching_source_map_name = None
             if source_map_reference is not None:
@@ -296,17 +328,21 @@ def get_source_file_data(abs_path, project, release, event):
                     source_map_reference = "Inline Sourcemap"
                     path_data["source_map_lookup_result"] = "found"
                 elif found_source_file_path is not None:
-                    matching_source_map_name = get_matching_source_map_location(found_source_file_path, source_map_reference)
+                    matching_source_map_name = get_matching_source_map_location(
+                        found_source_file_path, source_map_reference
+                    )
 
             if matching_source_map_name is not None:
-                path_data["source_map_lookup_result"] = get_artifact_bundle_file_status_by_url(event, project, release, [matching_source_map_name])
+                path_data["source_map_lookup_result"] = get_artifact_bundle_file_status_by_url(
+                    event, project, release, [matching_source_map_name]
+                )
 
             return {
                 "matching_source_file_names": filenme_choices,
                 "matching_source_map_name": matching_source_map_name,
                 "source_file_lookup_result": "found",
                 "source_map_reference": source_map_reference,
-                "source_map_lookup_result": path_data["source_map_lookup_result"]
+                "source_map_lookup_result": path_data["source_map_lookup_result"],
             }
 
     return path_data
@@ -322,7 +358,9 @@ def get_release_files_status_by_url(event, project, release, possible_urls):
     if len(possible_release_files) > 0:
         result = "wrong-dist"
     for possible_release_file in possible_release_files:
-        if possible_release_file.ident == ReleaseFile.get_ident(possible_release_file.name, event.dist):
+        if possible_release_file.ident == ReleaseFile.get_ident(
+            possible_release_file.name, event.dist
+        ):
             return "found"
     return result
 
@@ -371,7 +409,11 @@ def get_sdk_debug_id_support(event_data):
     if sdk_version is None:
         return "unofficial-sdk"
 
-    return "full" if Version(sdk_version) >= Version(MIN_JS_SDK_VERSION_FOR_DEBUG_IDS) else "needs-upgrade"
+    return (
+        "full"
+        if Version(sdk_version) >= Version(MIN_JS_SDK_VERSION_FOR_DEBUG_IDS)
+        else "needs-upgrade"
+    )
 
 
 def get_abs_paths_in_event(event_data):
@@ -383,6 +425,6 @@ def get_abs_paths_in_event(event_data):
             if frames is not None:
                 for frame in frames:
                     abs_path = get_path(frame, "abs_path")
-                    if (abs_path):
+                    if abs_path:
                         abs_paths.add(abs_path)
     return abs_paths
