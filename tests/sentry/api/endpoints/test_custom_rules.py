@@ -13,6 +13,7 @@ from sentry.dynamic_sampling.rules.biases.custom_rule_bias import (
     hash_value,
     rule_from_json,
 )
+from sentry.snuba.metrics.extraction import ComparingRuleCondition
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import Feature
 from sentry.testutils.silo import region_silo_test
@@ -64,7 +65,7 @@ def test_save_expired_rule():
     org_id = 1
 
     rule = SerializedRule(
-        condition={"x": "abc"},
+        condition={"op": "eq", "name": "event.type", "value": "transaction"},
         expiration=(datetime.utcnow() - timedelta(minutes=1)).timestamp(),
         project_ids=[1, 2, 3],
         org_id=org_id,
@@ -89,7 +90,7 @@ def test_save_expired_rule():
 @pytest.mark.parametrize("should_override", [True, False])
 def test_save_rule(old_exists, should_override):
 
-    condition = {"x": "abc"}
+    condition: ComparingRuleCondition = {"op": "eq", "name": "event.type", "value": "transaction"}
     org_id = 1
 
     new_rule = SerializedRule(
@@ -106,8 +107,10 @@ def test_save_rule(old_exists, should_override):
         org_id=org_id,
     )
 
+    other_condition: ComparingRuleCondition = {"op": "eq", "name": "event.type", "value": "event"}
+
     some_other_rule = SerializedRule(
-        condition={"w": "xyz"},  # something that should not be overridden
+        condition=other_condition,  # something that should not be overridden
         expiration=(datetime.utcnow() + timedelta(minutes=30)).timestamp(),
         project_ids=[],
         org_id=org_id,
@@ -155,7 +158,7 @@ def test_clean_expired_rules():
     Test that rules that are expired are cleaned up from redis
     """
     org_id = 1
-    condition = {"x": "abc"}
+    condition: ComparingRuleCondition = {"op": "eq", "name": "event.type", "value": "transaction"}
 
     with freeze_time("2023-09-11T10:00:00Z") as frozen_time:
         old_rule = SerializedRule(
@@ -165,8 +168,9 @@ def test_clean_expired_rules():
             org_id=org_id,
         )
 
+        new_condition: ComparingRuleCondition = {"op": "eq", "name": "event.type", "value": "event"}
         new_rule = SerializedRule(
-            condition={"w": "xyz"},  # something that should not be overridden
+            condition=new_condition,  # something that should not be overridden
             expiration=(datetime.utcnow() + timedelta(minutes=30)).timestamp(),
             project_ids=[],
             org_id=org_id,
