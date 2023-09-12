@@ -6,7 +6,10 @@ import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {EventTags} from 'sentry/components/events/eventTags';
 import {MINIMAP_HEIGHT} from 'sentry/components/events/interfaces/spans/constants';
 import {noFilter} from 'sentry/components/events/interfaces/spans/filter';
-import {ActualMinimap} from 'sentry/components/events/interfaces/spans/header';
+import {
+  ActualMinimap,
+  MinimapBackground,
+} from 'sentry/components/events/interfaces/spans/header';
 import WaterfallModel from 'sentry/components/events/interfaces/spans/waterfallModel';
 import OpsBreakdown from 'sentry/components/events/opsBreakdown';
 import Link from 'sentry/components/links/link';
@@ -240,6 +243,10 @@ const MinimapPositioningContainer = styled('div')`
   position: absolute;
   top: 0;
   width: 100%;
+
+  ${MinimapBackground} {
+    overflow-y: scroll;
+  }
 `;
 
 const MinimapContainer = styled('div')`
