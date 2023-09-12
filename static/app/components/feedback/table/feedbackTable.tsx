@@ -9,14 +9,19 @@ import Link from 'sentry/components/links/link';
 import Tag from 'sentry/components/tag';
 import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
+import {Tooltip} from 'sentry/components/tooltip';
+import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {getShortEventId} from 'sentry/utils/events';
 import type {
   FeedbackListQueryParams,
   HydratedFeedbackItem,
   HydratedFeedbackList,
 } from 'sentry/utils/feedback/types';
+import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useRoutes} from 'sentry/utils/useRoutes';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 interface UrlState {
@@ -35,10 +40,12 @@ const BASE_COLUMNS: GridColumnOrder<string>[] = [
   {key: 'status', name: 'status'},
   {key: 'contact_email', name: 'contact_email'},
   {key: 'message', name: 'message'},
+  {key: 'replay_id', name: 'Replay'},
   {key: 'timestamp', name: 'timestamp'},
 ];
 
 export default function FeedbackTable({isError, isLoading, data, location}: Props) {
+  const routes = useRoutes();
   const organization = useOrganization();
 
   const {currentSort, makeSortLinkGenerator} = useQueryBasedSorting({
@@ -73,11 +80,28 @@ export default function FeedbackTable({isError, isLoading, data, location}: Prop
           return <Tag type={value === 'resolved' ? 'default' : 'warning'}>{value}</Tag>;
         case 'message':
           return <TextOverflow>{value}</TextOverflow>;
+        case 'replay_id': {
+          const referrer = getRouteStringFromRoutes(routes);
+          return (
+            <Tooltip title={t('View Replay')}>
+              <Link
+                to={{
+                  pathname: normalizeUrl(
+                    `/organizations/${organization.slug}/replays/${value}/`
+                  ),
+                  query: {referrer},
+                }}
+              >
+                {getShortEventId(value)}
+              </Link>
+            </Tooltip>
+          );
+        }
         default:
           return renderSimpleBodyCell<HydratedFeedbackItem>(column, dataRow);
       }
     },
-    [organization]
+    [organization, routes]
   );
 
   return (
@@ -115,7 +139,7 @@ function FeedbackDetailsLink({
         trackAnalytics('feedback_list.details_link.click', {organization});
       }}
     >
-      {value}
+      {getShortEventId(value)}
     </Link>
   );
 }

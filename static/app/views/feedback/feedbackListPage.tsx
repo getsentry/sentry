@@ -19,7 +19,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 interface Props extends RouteComponentProps<{}, {}, FeedbackListQueryParams> {}
 
-export default function List({location}: Props) {
+export default function FeedbackListPage({location}: Props) {
   const organization = useOrganization();
 
   const {isLoading, isError, data, pageLinks} = useFetchFeedbackList({}, {});
