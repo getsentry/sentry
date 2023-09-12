@@ -107,7 +107,7 @@ describe('Group > AssignedTo', () => {
     };
     const assignMock = MockApiClient.addMockResponse({
       method: 'PUT',
-      url: `/issues/${GROUP_1.id}/`,
+      url: `/organizations/org-slug/issues/${GROUP_1.id}/`,
       body: assignedGroup,
     });
     const {rerender} = render(
@@ -124,7 +124,7 @@ describe('Group > AssignedTo', () => {
 
     await waitFor(() =>
       expect(assignMock).toHaveBeenCalledWith(
-        '/issues/1337/',
+        '/organizations/org-slug/issues/1337/',
         expect.objectContaining({
           data: {assignedTo: 'team:3', assignedBy: 'assignee_selector'},
         })
@@ -146,7 +146,7 @@ describe('Group > AssignedTo', () => {
     };
     const assignMock = MockApiClient.addMockResponse({
       method: 'PUT',
-      url: `/issues/${GROUP_1.id}/`,
+      url: `/organizations/org-slug/issues/${GROUP_1.id}/`,
       body: assignedGroup,
     });
 
@@ -163,7 +163,7 @@ describe('Group > AssignedTo', () => {
 
     await waitFor(() =>
       expect(assignMock).toHaveBeenCalledWith(
-        '/issues/1337/',
+        '/organizations/org-slug/issues/1337/',
         expect.objectContaining({
           data: {assignedTo: 'team:3', assignedBy: 'assignee_selector'},
         })
@@ -178,7 +178,7 @@ describe('Group > AssignedTo', () => {
     // api was called with empty string, clearing assignment
     await waitFor(() =>
       expect(assignMock).toHaveBeenLastCalledWith(
-        '/issues/1337/',
+        '/organizations/org-slug/issues/1337/',
         expect.objectContaining({
           data: {assignedTo: '', assignedBy: 'assignee_selector'},
         })
@@ -213,7 +213,7 @@ describe('Group > AssignedTo', () => {
     };
     const assignMock = MockApiClient.addMockResponse({
       method: 'PUT',
-      url: `/issues/${GROUP_1.id}/`,
+      url: `/organizations/org-slug/issues/${GROUP_1.id}/`,
       body: assignedGroup,
     });
 
@@ -232,7 +232,7 @@ describe('Group > AssignedTo', () => {
 
     await waitFor(() =>
       expect(assignMock).toHaveBeenLastCalledWith(
-        '/issues/1337/',
+        '/organizations/org-slug/issues/1337/',
         expect.objectContaining({
           data: {assignedTo: 'user:2', assignedBy: 'assignee_selector'},
         })
