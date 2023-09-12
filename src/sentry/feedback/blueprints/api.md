@@ -71,7 +71,7 @@ Retrieve a collection of feedback items.
 | os.name           | optional[string] | -                                                   |
 | os.version        | optional[string] | -                                                   |
 | platform          | string           |                                                     |
-| project           | number           |                                                     |
+| project_id        | number           |                                                     |
 | release           | string           |                                                     |
 | replay_id         | optional[string] | The id of a running replay.                         |
 | sdk               | object           | SDK information.                                    |
@@ -118,7 +118,7 @@ Retrieve a collection of feedback items.
           "version": "16.2"
         },
         "platform": "javascript",
-        "project": 11276,
+        "project_id": 11276,
         "release": "version@1.3",
         "replay_id": "ec3b4dc8b79f417596f7a1aa4fcca5d2",
         "sdk": {
@@ -177,7 +177,7 @@ Retrieve a collection of feedback items.
           "version": "16.2"
         },
         "platform": "javascript",
-        "project": 11276,
+        "project_id": 11276,
         "release": "version@1.3",
         "replay_id": "ec3b4dc8b79f417596f7a1aa4fcca5d2",
         "sdk": {
