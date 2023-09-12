@@ -109,7 +109,7 @@ def handle_status_update(
         if not is_bulk:
             if acting_user:
                 GroupSubscription.objects.subscribe(
-                    subscriber=acting_user,
+                    user=acting_user,
                     group=group,
                     reason=GroupSubscriptionReason.status_change,
                 )

@@ -34,33 +34,22 @@ class GroupSubscriptionManager(BaseManager):
     def subscribe(
         self,
         group: Group,
-        subscriber: User | RpcUser | Team,
+        user: User | RpcUser,
         reason: int = GroupSubscriptionReason.unknown,
     ) -> bool:
         """
-        Subscribe a user or team to an issue, but only if that user or team has not explicitly
+        Subscribe a user to an issue, but only if the user has not explicitly
         unsubscribed.
         """
-        from sentry.models import Team, User
-
         try:
             with transaction.atomic(router.db_for_write(GroupSubscription)):
-                if isinstance(subscriber, User) or isinstance(subscriber, RpcUser):
-                    self.create(
-                        user_id=subscriber.id,
-                        group=group,
-                        project=group.project,
-                        is_active=True,
-                        reason=reason,
-                    )
-                elif isinstance(subscriber, Team):
-                    self.create(
-                        team=subscriber,
-                        group=group,
-                        project=group.project,
-                        is_active=True,
-                        reason=reason,
-                    )
+                self.create(
+                    user_id=user.id,
+                    group=group,
+                    project=group.project,
+                    is_active=True,
+                    reason=reason,
+                )
         except IntegrityError:
             pass
         return True
@@ -71,18 +60,14 @@ class GroupSubscriptionManager(BaseManager):
         actor: Union[Team, User, RpcUser],
         reason: int = GroupSubscriptionReason.unknown,
     ) -> Optional[bool]:
-        from sentry import features
         from sentry.models import Team, User
 
         if isinstance(actor, RpcUser) or isinstance(actor, User):
             return self.subscribe(group, actor, reason)
         if isinstance(actor, Team):
-            if features.has("organizations:team-workflow-notifications", group.organization, actor):
-                return self.subscribe(group, actor, reason)
-            else:
-                # subscribe the members of the team
-                team_users_ids = list(actor.member_set.values_list("user_id", flat=True))
-                return self.bulk_subscribe(group, team_users_ids, reason)
+            # subscribe the members of the team
+            team_users_ids = list(actor.member_set.values_list("user_id", flat=True))
+            return self.bulk_subscribe(group, team_users_ids, reason)
 
         raise NotImplementedError("Unknown actor type: %r" % type(actor))
 
