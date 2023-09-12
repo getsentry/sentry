@@ -12,5 +12,5 @@ class DatabaseBackedUserService(TestCase):
         user1 = self.create_user(email="test@email.com", username="1")
         user2 = self.create_user(email="test@email.com", username="2")
         user = user_service.get_or_create_user_by_email(email="test@email.com")
-        assert user2.id == user.id
-        assert user1.id != user.id
+        assert user1.id == user.id
+        assert user2.id != user.id

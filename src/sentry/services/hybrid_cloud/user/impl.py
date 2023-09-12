@@ -38,6 +38,8 @@ from sentry.services.hybrid_cloud.user import (
 from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
 from sentry.services.hybrid_cloud.user.service import UserService
 
+logger = logging.getLogger("user:provisioning")
+
 
 class DatabaseBackedUserService(UserService):
     def serialize_many(
@@ -184,7 +186,6 @@ class DatabaseBackedUserService(UserService):
                 # Users are not supposed to have the same email but right now our auth pipeline let this happen
                 # So let's not break the user experience
                 if user_query.count() > 1:
-                    logger = logging.getLogger("user:provisioning")
                     logger.error(f"email {email} has more than 1 user")
                 user = user_query[0]
             return serialize_rpc_user(user)
