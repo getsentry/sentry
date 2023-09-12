@@ -227,7 +227,7 @@ export default function MetricDetailsBody({
         <Layout.Side>
           <MetricDetailsSidebar
             rule={rule}
-            isOnDemandMetricAlert={isOnDemandMetricAlert(dataset, aggregate, query)}
+            isOnDemandMetricAlert={isOnDemandAlert}
           />
         </Layout.Side>
       </Layout.Body>
