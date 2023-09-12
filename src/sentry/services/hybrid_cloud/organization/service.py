@@ -331,5 +331,5 @@ def _get_nonlocal_class() -> Type[RpcService]:
 
 
 organization_service = cast(
-    OrganizationService, OrganizationService.create_delegation(nonlocal_class=_get_nonlocal_class())
+    OrganizationService, OrganizationService.create_delegation(nonlocal_class=_get_nonlocal_class)
 )

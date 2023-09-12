@@ -43,7 +43,7 @@ def _get_nonlocal_class() -> Type[RpcService]:
 # An asynchronous service which can delegate to an outbox implementation, essentially enqueueing
 # updates of tokens for future processing.
 orgauthtoken_service: OrgAuthTokenService = cast(
-    OrgAuthTokenService, OrgAuthTokenService.create_delegation(nonlocal_class=_get_nonlocal_class())
+    OrgAuthTokenService, OrgAuthTokenService.create_delegation(nonlocal_class=_get_nonlocal_class)
 )
 
 

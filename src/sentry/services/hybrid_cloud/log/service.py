@@ -53,7 +53,7 @@ def _get_nonlocal_class() -> Type[RpcService]:
 # An asynchronous service which can delegate to an outbox implementation, essentially enqueueing
 # delivery of log entries for future processing.
 log_service: LogService = cast(
-    LogService, LogService.create_delegation(nonlocal_class=_get_nonlocal_class())
+    LogService, LogService.create_delegation(nonlocal_class=_get_nonlocal_class)
 )
 
 # A synchronous service which can delegate to a remote rpc endpoint.  Used by the outbox receiver
