@@ -321,7 +321,7 @@ class BaseManager(DjangoBaseManager.from_queryset(BaseQuerySet), Generic[M]):  #
         return retval
 
     def _get_cacheable_kv_from_kwargs(self, kwargs: Mapping[str, Any]):
-        if not kwargs:
+        if not kwargs or len(kwargs) > 1:
             raise ValueError("We cannot cache this query. Just hit the database.")
 
         key, value = next(iter(kwargs.items()))
