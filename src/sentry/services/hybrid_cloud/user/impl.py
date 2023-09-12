@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from typing import Any, Callable, List, MutableMapping, Optional
 from uuid import uuid4
 
@@ -180,7 +181,13 @@ class DatabaseBackedUserService(UserService):
                     name=email,
                 )
             else:
-                user = User.objects.get(email=email)
+                user_query = User.objects.filter(email=email)
+                # Users are not supposed to have the same email but right now our auth pipeline let this happen
+                # So let's not break the user experience
+                if user_query.count() > 1:
+                    logger = logging.getLogger("user:provisioning")
+                    logger.error(f"email {email} has more than 1 user")
+                user = user_query.latest("date_joined")
             return serialize_rpc_user(user)
 
     def verify_any_email(self, *, email: str) -> bool:
