@@ -100,7 +100,7 @@ class ReleaseThresholdTest(APITestCase):
             },
         )
         assert response.status_code == 400
-        assert response.data["environment"][0].code == "invalid"
+        assert response.data["environment"][0].code == "incorrect_type"
 
     def test_post_valid_no_environment(self):
         response = self.client.post(

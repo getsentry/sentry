@@ -28,6 +28,10 @@ class ReleaseThresholdPOSTSerializer(serializers.Serializer):
     window_in_seconds = serializers.IntegerField()
     environment = EnvironmentField(required=False, allow_null=True)
 
+    class Meta:
+        model = ReleaseThreshold
+        fields = "__all__"
+
     def validate_threshold_type(self, threshold_type: str):
         return THRESHOLD_TYPE_STR_TO_INT[threshold_type]
 
