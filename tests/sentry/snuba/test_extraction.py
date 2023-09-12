@@ -296,6 +296,20 @@ def test_spec_apdex(_get_apdex_project_transaction_threshold, default_project):
     ]
 
 
+@django_db_all
+@patch("sentry.snuba.metrics.extraction._get_apdex_project_transaction_threshold")
+def test_spec_apdex_without_condition(_get_apdex_project_transaction_threshold, default_project):
+    _get_apdex_project_transaction_threshold.return_value = 100, "transaction.duration"
+
+    spec = OnDemandMetricSpec("apdex(10)", "")
+
+    assert spec._metric_type == "c"
+    assert spec.field_to_extract is None
+    assert spec.op == "on_demand_apdex"
+    assert spec.condition is None
+    assert len(spec.tags_conditions(default_project)) == 3
+
+
 def test_spec_custom_tag():
     custom_tag_spec = OnDemandMetricSpec("count()", "foo:bar")
 

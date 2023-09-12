@@ -153,7 +153,7 @@ _STANDARD_METRIC_FIELDS = [
     "browser.name",
     "os.name",
     "geo.country_code",
-    # These fields are skipped during on demand spec generation and will not be converted to metric extraction conditions
+    # These are skipped during on demand spec generation and will not be converted to metric extraction conditions
     "event.type",
     "project",
 ]
@@ -489,8 +489,8 @@ def cleanup_query(tokens: Sequence[QueryToken]) -> Sequence[QueryToken]:
     For example removing the on demand filters from "transaction.duration:>=1s OR browser.version:1 AND environment:dev"
     would result in "OR AND environment:dev" which is not a valid query this should be cleaned to "environment:dev.
 
-    "release:internal and browser.version:1 or os.name:android" => "release:internal or and os.name:android" which would be
-    cleaned to "release:internal or os.name:android"
+    "release:internal and browser.version:1 or os.name:android" => "release:internal or and os.name:android" which
+    would be cleaned to "release:internal or os.name:android"
     """
     tokens = list(tokens)
 
@@ -608,7 +608,10 @@ _DERIVED_METRICS: Dict[MetricOperationType, TagsSpecsGenerator] = {
 }
 
 
-def is_derived_metric(op: MetricOperationType) -> bool:
+def is_derived_metric(op: Optional[MetricOperationType]) -> bool:
+    if op is None:
+        return False
+
     return op in _DERIVED_METRICS
 
 
@@ -617,6 +620,7 @@ class FieldParsingResult:
     function: str
     arguments: List[str]
     alias: str
+    op: Optional[MetricOperationType]
 
 
 @dataclass(frozen=True)
@@ -698,7 +702,7 @@ class OnDemandMetricSpec:
         return str(_deep_sorted(self.condition))
 
     @cached_property
-    def condition(self) -> RuleCondition:
+    def condition(self) -> Optional[RuleCondition]:
         """Returns a parent condition containing a list of other conditions which determine whether of not the metric
         is extracted."""
         return self._process_query()
@@ -717,13 +721,18 @@ class OnDemandMetricSpec:
         extended_tags_conditions = self.tags_conditions(project).copy()
         extended_tags_conditions.append({"key": QUERY_HASH_KEY, "value": self.query_hash})
 
-        return {
+        metric_spec: MetricSpec = {
             "category": DataCategory.TRANSACTION.api_name(),
             "mri": self.mri,
             "field": self.field_to_extract,
-            "condition": self.condition,
             "tags": extended_tags_conditions,
         }
+
+        condition = self.condition
+        if condition is not None:
+            metric_spec["condition"] = condition
+
+        return metric_spec
 
     def _process_field(self) -> Tuple[MetricOperationType, str, Optional[str]]:
         parsed_field = self._parse_field(self.field)
@@ -735,7 +744,7 @@ class OnDemandMetricSpec:
 
         return op, metric_type, self._parse_argument(op, metric_type, parsed_field)
 
-    def _process_query(self) -> RuleCondition:
+    def _process_query(self) -> Optional[RuleCondition]:
         parsed_field = self._parse_field(self.field)
         if parsed_field is None:
             raise Exception(f"Unable to parse the field {self.field}")
@@ -817,7 +826,7 @@ class OnDemandMetricSpec:
     def _parse_field(value: str) -> Optional[FieldParsingResult]:
         try:
             function, arguments, alias = fields.parse_function(value)
-            return FieldParsingResult(function=function, arguments=arguments, alias=alias)
+            return FieldParsingResult(function=function, arguments=arguments, alias=alias, op=None)
         except InvalidSearchQuery:
             return None
 
