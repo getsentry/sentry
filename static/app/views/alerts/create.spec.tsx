@@ -655,6 +655,10 @@ describe('ProjectAlertsCreate', function () {
     createWrapper({organization: {features: ['noisy-alert-warning']}});
     await userEvent.click((await screen.findAllByLabelText('Delete Node'))[0]);
 
+    await selectEvent.select(screen.getByText('Add action...'), [
+      'Issue Owners, Team, or Member',
+    ]);
+
     expect(
       screen.getByText(/Alerts without conditions can fire too frequently/)
     ).toBeInTheDocument();
@@ -677,6 +681,27 @@ describe('ProjectAlertsCreate', function () {
       'alert_builder.noisy_warning_agreed',
       expect.anything()
     );
+  });
+
+  it('does not display noisy alert banner for legacy integrations', async function () {
+    createWrapper({organization: {features: ['noisy-alert-warning']}});
+    await userEvent.click((await screen.findAllByLabelText('Delete Node'))[0]);
+
+    await selectEvent.select(screen.getByText('Add action...'), [
+      'Send a notification to all legacy integrations',
+    ]);
+
+    expect(
+      screen.queryByText(/Alerts without conditions can fire too frequently/)
+    ).not.toBeInTheDocument();
+
+    await selectEvent.select(screen.getByText('Add action...'), [
+      'Issue Owners, Team, or Member',
+    ]);
+
+    expect(
+      screen.getByText(/Alerts without conditions can fire too frequently/)
+    ).toBeInTheDocument();
   });
 
   it('displays duplicate error banner with link', async function () {
