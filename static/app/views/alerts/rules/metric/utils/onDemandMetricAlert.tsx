@@ -7,12 +7,12 @@ export function isValidOnDemandMetricAlert(
   aggregate: string,
   query: string
 ): boolean {
-  // On demand metric alerts do not support generic percentile aggregations
-  if (aggregate.includes(AggregationKey.PERCENTILE)) {
-    return false;
+  if (!isOnDemandMetricAlert(dataset, aggregate, query)) {
+    return true;
   }
 
-  return isOnDemandMetricAlert(dataset, aggregate, query);
+  // On demand metric alerts do not support generic percentile aggregations
+  return !aggregate.includes(AggregationKey.PERCENTILE);
 }
 
 /**
