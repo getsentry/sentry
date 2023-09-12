@@ -1,4 +1,4 @@
-import type {Mirror} from '@sentry-internal/rrweb';
+import type {Mirror} from '@sentry-internal/rrweb-snapshot';
 import {Replayer} from '@sentry-internal/rrweb';
 
 import type {RecordingFrame, ReplayFrame} from 'sentry/utils/replays/types';
