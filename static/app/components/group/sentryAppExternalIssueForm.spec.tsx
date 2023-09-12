@@ -75,6 +75,7 @@ describe('SentryAppExternalIssueForm', () => {
             groupId: '1',
             numbers: 'number_1',
             title: 'ApiError: Broken',
+            uri: '',
           },
           method: 'POST',
         })
@@ -134,6 +135,7 @@ describe('SentryAppExternalIssueForm', () => {
             action: 'link',
             groupId: '1',
             issue: 'my issue',
+            uri: '',
           },
           method: 'POST',
         })

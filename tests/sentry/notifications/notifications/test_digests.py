@@ -1,6 +1,6 @@
 import uuid
 from unittest import mock
-from unittest.mock import patch
+from unittest.mock import ANY, patch
 from urllib.parse import parse_qs
 
 import responses
@@ -95,7 +95,8 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
                 teams=[self.team],
             )
 
-    def test_sends_digest_to_every_member(self):
+    @patch("sentry.analytics.record")
+    def test_sends_digest_to_every_member(self, mock_record):
         """Test that each member of the project the events are created in receive a digest email notification"""
         event_count = 4
         self.run_test(event_count=event_count, performance_issues=True, generic_issues=True)
@@ -107,6 +108,21 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
         assert isinstance(message, EmailMultiAlternatives)
         assert isinstance(message.alternatives[0][0], str)
         assert "notification_uuid" in message.alternatives[0][0]
+        mock_record.assert_called_with(
+            "integrations.email.notification_sent",
+            category="digest",
+            notification_uuid=ANY,
+            target_type="IssueOwners",
+            target_identifier=None,
+            alert_id=self.rule.id,
+            project_id=self.project.id,
+            organization_id=self.organization.id,
+            actor_id=ANY,
+            id=ANY,
+            actor_type="User",
+            group_id=None,
+            user_id=ANY,
+        )
 
     def test_sends_alert_rule_notification_to_each_member(self):
         """Test that if there is only one event it is sent as a regular alert rule notification"""

@@ -26,7 +26,7 @@ from sentry.utils.db import atomic_transaction
 logger = logging.getLogger(__name__)
 
 # The number of indexes to update with one execution of `backfill_artifact_index_updates`.
-BACKFILL_BATCH_SIZE = 10
+BACKFILL_BATCH_SIZE = 20
 
 # The TTL of the cache containing information about a specific flat file index. The TTL is set to 1 hour, since
 # we know that the cache will be invalidated in case of flat file index updates, thus it is mostly to keep the
@@ -286,23 +286,39 @@ def backfill_artifact_index_updates() -> bool:
             index_not_fully_updated = True
 
         bundles_to_add = []
-        for artifact_bundle in artifact_bundles:
-            with ArtifactBundleArchive(artifact_bundle.file.getfile()) as archive:
-                bundles_to_add.append(BundleManifest.from_artifact_bundle(artifact_bundle, archive))
+        try:
+            for artifact_bundle in artifact_bundles:
+                with ArtifactBundleArchive(artifact_bundle.file.getfile()) as archive:
+                    bundles_to_add.append(
+                        BundleManifest.from_artifact_bundle(artifact_bundle, archive)
+                    )
+        except Exception as e:
+            metrics.incr("artifact_bundle_flat_file_indexing.error_when_backfilling")
+            sentry_sdk.capture_exception(e)
+            continue
 
         deletion_key = get_deletion_key(index.id)
         redis_client.srem(get_all_deletions_key(), index.id)
         bundles_to_remove = [int(bundle_id) for bundle_id in redis_client.smembers(deletion_key)]
 
         if bundles_to_add or bundles_to_remove:
-            update_artifact_bundle_index(
-                identifier,
-                blocking=True,
-                bundles_to_add=bundles_to_add,
-                bundles_to_remove=bundles_to_remove,
-            )
-            if bundles_to_remove:
-                redis_client.srem(deletion_key, *bundles_to_remove)
+            try:
+                update_artifact_bundle_index(
+                    identifier,
+                    blocking=True,
+                    bundles_to_add=bundles_to_add,
+                    bundles_to_remove=bundles_to_remove,
+                )
+                if bundles_to_remove:
+                    redis_client.srem(deletion_key, *bundles_to_remove)
+            except Exception as e:
+                metrics.incr("artifact_bundle_flat_file_indexing.error_when_backfilling")
+                sentry_sdk.capture_exception(e)
+
+                if bundles_to_remove:
+                    # If this failed, it means we didn't remove bundles scheduled for
+                    # removal. we want to re-schedule that to do that work later.
+                    redis_client.sadd(get_all_deletions_key(), index.id)
 
     # Then, we process any pending removals marked in redis.
     # NOTE on the usage of redis sets:
@@ -333,11 +349,15 @@ def backfill_artifact_index_updates() -> bool:
         deletion_key = get_deletion_key(idx_id)
         bundles_to_remove = [int(bundle_id) for bundle_id in redis_client.smembers(deletion_key)]
         if bundles_to_remove:
-            update_artifact_bundle_index(
-                identifier, blocking=True, bundles_to_remove=bundles_to_remove
-            )
+            try:
+                update_artifact_bundle_index(
+                    identifier, blocking=True, bundles_to_remove=bundles_to_remove
+                )
 
-            redis_client.srem(deletion_key, *bundles_to_remove)
+                redis_client.srem(deletion_key, *bundles_to_remove)
+            except Exception as e:
+                metrics.incr("artifact_bundle_flat_file_indexing.error_when_backfilling")
+                sentry_sdk.capture_exception(e)
 
     return (
         len(indexes_needing_update) >= BACKFILL_BATCH_SIZE
@@ -403,6 +423,14 @@ def update_artifact_bundle_index(
         for bundle_id in bundles_to_remove or []:
             index.remove(bundle_id)
 
+        bundles_removed = index.enforce_size_limits()
+        if bundles_removed > 0:
+            metrics.incr(
+                "artifact_bundle_flat_file_indexing.bundles_removed",
+                amount=bundles_removed,
+                tags={"reason": "size_limits"},
+            )
+
         # Store the updated index file
         new_json_index = index.to_json()
         flat_file_index.update_flat_file_index(new_json_index)
@@ -426,6 +454,15 @@ def update_artifact_bundle_index(
         return True
 
 
+# We have seen customers with up to 5_000 bundles per *release*.
+MAX_BUNDLES_PER_INDEX = 10_000
+# Older `sentry-cli` used to generate fully random DebugIds, and uploads can end up
+# having over 400_000 unique ids that do not have mutual sharing among them.
+MAX_DEBUGIDS_PER_INDEX = 200_000
+# We have seen uploads with over 25_000 unique files.
+MAX_URLS_PER_INDEX = 200_000
+
+
 Bundles = List[BundleMeta]
 FilesByUrl = Dict[str, List[int]]
 FilesByDebugID = Dict[str, List[int]]
@@ -437,6 +474,7 @@ T = TypeVar("T")
 class FlatFileIndex:
     def __init__(self):
         # By default, a flat file index is empty.
+        self._is_complete: bool = True
         self._bundles: Bundles = []
         self._files_by_url: FilesByUrl = {}
         self._files_by_debug_id: FilesByDebugID = {}
@@ -444,6 +482,7 @@ class FlatFileIndex:
     def from_json(self, raw_json: str | bytes) -> None:
         json_idx = json.loads(raw_json, use_rapid_json=True)
 
+        self._is_complete = json_idx.get("is_complete", True)
         bundles = json_idx.get("bundles", [])
         self._bundles = [
             BundleMeta(
@@ -468,12 +507,34 @@ class FlatFileIndex:
             for bundle in self._bundles
         ]
         json_idx: Dict[str, Any] = {
+            "is_complete": self._is_complete,
             "bundles": bundles,
             "files_by_url": self._files_by_url,
             "files_by_debug_id": self._files_by_debug_id,
         }
 
         return json.dumps(json_idx)
+
+    def enforce_size_limits(self) -> int:
+        """
+        This enforced reasonable limits on the data we put into the `FlatFileIndex` by removing
+        the oldest bundle from the index until the limits are met.
+        """
+        bundles_by_timestamp = [bundle for bundle in self._bundles]
+        bundles_by_timestamp.sort(reverse=True, key=lambda bundle: (bundle.timestamp, bundle.id))
+        bundles_removed = 0
+
+        while (
+            len(self._bundles) > MAX_BUNDLES_PER_INDEX
+            or len(self._files_by_debug_id) > MAX_DEBUGIDS_PER_INDEX
+            or len(self._files_by_url) > MAX_URLS_PER_INDEX
+        ):
+            bundle_to_remove = bundles_by_timestamp.pop()
+            self.remove(bundle_to_remove.id)
+            self._is_complete = False
+            bundles_removed += 1
+
+        return bundles_removed
 
     def merge_urls(self, bundle_meta: BundleMeta, urls: List[str]):
         bundle_index = self._add_or_update_bundle(bundle_meta)

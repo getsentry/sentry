@@ -225,3 +225,16 @@ class DigestNotification(ProjectNotification):
                         participants_to_remove.add(participant)
                 participants -= participants_to_remove
             notify(provider, self, participants, shared_context, extra_context)
+
+    def get_log_params(self, recipient: RpcActor) -> Mapping[str, Any]:
+        try:
+            alert_id = list(self.digest.keys())[0].id
+        except Exception:
+            alert_id = None
+
+        return {
+            "target_type": self.target_type.value,
+            "target_identifier": self.target_identifier,
+            "alert_id": alert_id,
+            **super().get_log_params(recipient),
+        }
