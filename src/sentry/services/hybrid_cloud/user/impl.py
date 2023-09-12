@@ -191,7 +191,7 @@ class DatabaseBackedUserService(UserService):
             return serialize_rpc_user(user)
 
     def verify_any_email(self, *, email: str) -> bool:
-        user_email = UserEmail.objects.filter(email=email).first()
+        user_email = UserEmail.objects.filter(email__iexact=email).first()
         if user_email is None:
             return False
         if not user_email.is_verified:
