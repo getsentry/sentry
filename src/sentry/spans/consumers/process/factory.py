@@ -3,14 +3,15 @@ from __future__ import annotations
 import random
 import uuid
 from datetime import datetime
-from typing import Any, Mapping, MutableMapping, Optional
+from typing import Any, Mapping, MutableMapping
 
 import msgpack
 import sentry_sdk
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
+from arroyo.dlq import InvalidMessage
 from arroyo.processing.strategies import CommitOffsets, Produce
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
-from arroyo.types import Commit, Message, Partition, Topic
+from arroyo.types import BrokerValue, Commit, Message, Partition, Topic
 from django.conf import settings
 
 from sentry import quotas
@@ -147,14 +148,18 @@ def _process_message(message: Message[KafkaPayload]) -> KafkaPayload:
     return KafkaPayload(key=None, value=snuba_payload, headers=[])
 
 
-def process_message(message: Message[KafkaPayload]) -> Optional[KafkaPayload]:
+def process_message(message: Message[KafkaPayload]) -> KafkaPayload:
     try:
         return _process_message(message)
     except Exception as e:
         metrics.incr("spans.consumer.message_processing_error")
         if random.random() < 0.05:
             sentry_sdk.capture_exception(e)
-    return None
+        assert isinstance(message.value, BrokerValue)
+        raise InvalidMessage(
+            partition=message.value.partition,
+            offset=message.value.offset,
+        )
 
 
 class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
