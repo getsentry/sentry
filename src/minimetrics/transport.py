@@ -39,49 +39,44 @@ class RelayStatsdEncoder(MetricEnvelopeEncoder[ExtractedMetric, str]):
 
         return f"{metric_name}{metric_unit}:{metric_value}|{metric_type}{metric_tags}{metric_timestamp}"
 
-    @staticmethod
-    def _sanitize_value(value: str) -> str:
+    def _sanitize_value(self, value: str) -> str:
         # Remove all non-alphanumerical chars which are different from _ / .
         return sanitization_re.sub("", value)
 
-    @classmethod
-    def _get_metric_unit(cls, unit: Optional[MetricUnit]) -> str:
+    def _get_metric_unit(self, unit: Optional[MetricUnit]) -> str:
         if unit is None:
             return ""
 
         return f"@{unit}"
 
-    @classmethod
-    def _get_metric_value(cls, value: ExtractedMetricValue) -> str:
+    def _get_metric_value(self, value: ExtractedMetricValue) -> str:
         if isinstance(value, (int, float)):
             return str(value)
         elif isinstance(value, List):
-            return cls.MULTI_VALUE_SEPARATOR.join([str(v) for v in value])
+            return self.MULTI_VALUE_SEPARATOR.join([str(v) for v in value])
         elif isinstance(value, Dict):
-            return cls.MULTI_VALUE_SEPARATOR.join([str(v) for v in value.values()])
+            return self.MULTI_VALUE_SEPARATOR.join([str(v) for v in value.values()])
 
         raise Exception("The metric value must be either a float or a list of floats")
 
-    @classmethod
-    def _get_metric_tags(cls, tags: Optional[MetricTagsInternal]) -> str:
+    def _get_metric_tags(self, tags: Optional[MetricTagsInternal]) -> str:
         if not tags:
             return ""
 
         # We first filter all tags whose sanitized tag key is empty and we also sanitize all tag values. Note that empty
         # tag values are possible.
         filtered_tags = (
-            (cls._sanitize_value(tag_key), cls._sanitize_value(tag_value))
+            (self._sanitize_value(tag_key), self._sanitize_value(tag_value))
             for tag_key, tag_value in tags
-            if cls._sanitize_value(tag_key)
+            if self._sanitize_value(tag_key)
         )
         # We then convert all tag values that are not empty into the string protocol representation.
-        tags_as_string = cls.TAG_SEPARATOR.join(
+        tags_as_string = self.TAG_SEPARATOR.join(
             [f"{tag_key}:{tag_value}" for tag_key, tag_value in filtered_tags]
         )
         return f"|#{tags_as_string}"
 
-    @classmethod
-    def _get_metric_timestamp(cls, timestamp: int) -> str:
+    def _get_metric_timestamp(self, timestamp: int) -> str:
         return f"|T{timestamp}"
 
 
@@ -110,7 +105,6 @@ class MetricEnvelopeTransport(Generic[M]):
         if transport is not None:
             transport.capture_envelope(envelope)
 
-    @staticmethod
-    def _track_envelope_size(envelope: Envelope):
+    def _track_envelope_size(self, envelope: Envelope):
         envelope_size = len(envelope.serialize())
         metrics.timing(key="minimetrics.envelope_size", value=envelope_size, sample_rate=1.0)
