@@ -52,6 +52,10 @@ def get_file_language(filename: str):
     language = None
     if extension != filename:
         language = EXTENSION_LANGUAGE_MAP.get(extension)
+
+        if language is None:
+            logger.info("github.unaccounted_file_lang", extra={"extension": extension})
+
     return language
 
 
