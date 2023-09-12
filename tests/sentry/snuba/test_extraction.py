@@ -61,6 +61,7 @@ class TestCreatesOndemandMetricSpec:
             ("p75(measurements.fp)", "transaction.duration:>0"),
             ("p75(transaction.duration)", "transaction.duration:>0"),
             ("count_if(transaction.duration,equals,0)", "transaction.duration:>0"),
+            ("count_if(transaction.duration,notEquals,0)", "transaction.duration:>0"),
             (
                 "count()",
                 "project:a-1 route.action:CloseBatch level:info",
@@ -70,6 +71,7 @@ class TestCreatesOndemandMetricSpec:
             ("count()", "foo:bar"),
             ("failure_rate()", "transaction.duration:>100"),
             ("apdex(10)", "transaction.duration:>100"),
+            ("apdex(10)", ""),
         ],
     )
     def test_creates_on_demand_spec(self, aggregate, query):
