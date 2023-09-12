@@ -94,7 +94,10 @@ def _build_snuba_span(relay_span: Mapping[str, Any]) -> MutableMapping[str, Any]
         sentry_tags["status"] = status
 
     if "status_code" in sentry_tags:
-        sentry_tags["status_code"] = int(sentry_tags["status_code"])
+        try:
+            sentry_tags["status_code"] = int(sentry_tags["status_code"])
+        except ValueError:
+            pass
 
     snuba_span["sentry_tags"] = sentry_tags
 
