@@ -225,10 +225,7 @@ export default function MetricDetailsBody({
           </DetailWrapper>
         </Layout.Main>
         <Layout.Side>
-          <MetricDetailsSidebar
-            rule={rule}
-            isOnDemandMetricAlert={isOnDemandAlert}
-          />
+          <MetricDetailsSidebar rule={rule} isOnDemandMetricAlert={isOnDemandAlert} />
         </Layout.Side>
       </Layout.Body>
     </Fragment>
