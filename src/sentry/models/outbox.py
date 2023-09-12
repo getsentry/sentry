@@ -101,6 +101,8 @@ class OutboxCategory(IntEnum):
     AUTH_PROVIDER_UPDATE = 24
     AUTH_IDENTITY_UPDATE = 25
 
+    PARTNER_ACCOUNT_UPDATE = 26
+
     @classmethod
     def as_choices(cls):
         return [(i.value, i.value) for i in cls]
@@ -172,7 +174,6 @@ class OutboxCategory(IntEnum):
         object_identifier: int | None = None,
         outbox: Type[RegionOutboxBase] | None = None,
     ) -> RegionOutboxBase:
-
         scope = self.get_scope()
 
         shard_identifier, object_identifier = self.infer_identifiers(
@@ -198,7 +199,6 @@ class OutboxCategory(IntEnum):
         object_identifier: int | None = None,
         outbox: Type[ControlOutboxBase] | None = None,
     ) -> List[ControlOutboxBase]:
-
         scope = self.get_scope()
 
         shard_identifier, object_identifier = self.infer_identifiers(
