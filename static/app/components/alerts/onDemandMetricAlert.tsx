@@ -47,7 +47,7 @@ export function OnDemandMetricAlert({
 }) {
   const {dismiss, isDismissed} = useDismissAlert({key: LOCAL_STORAGE_KEY});
 
-  if (isDismissed) {
+  if (dismissable && isDismissed) {
     return null;
   }
 

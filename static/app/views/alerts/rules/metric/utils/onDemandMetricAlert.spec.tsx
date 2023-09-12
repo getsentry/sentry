@@ -5,23 +5,37 @@ describe('isOnDemandMetricAlert', () => {
   it('should return true for an alert that contains non standard fields', () => {
     const dataset = Dataset.GENERIC_METRICS;
 
-    expect(isOnDemandMetricAlert(dataset, 'transaction.duration:>1')).toBeTruthy();
-    expect(isOnDemandMetricAlert(dataset, 'device.name:foo')).toBeTruthy();
-    expect(isOnDemandMetricAlert(dataset, 'geo.region:>US')).toBeTruthy();
+    expect(
+      isOnDemandMetricAlert(dataset, 'count()', 'transaction.duration:>1')
+    ).toBeTruthy();
+    expect(isOnDemandMetricAlert(dataset, 'count()', 'device.name:foo')).toBeTruthy();
+    expect(isOnDemandMetricAlert(dataset, 'count()', 'geo.region:>US')).toBeTruthy();
   });
 
   it('should return false for an alert that has only standard fields', () => {
     const dataset = Dataset.GENERIC_METRICS;
 
-    expect(isOnDemandMetricAlert(dataset, 'release:1.0')).toBeFalsy();
-    expect(isOnDemandMetricAlert(dataset, 'browser.name:chrome')).toBeFalsy();
+    expect(isOnDemandMetricAlert(dataset, 'count()', 'release:1.0')).toBeFalsy();
+    expect(isOnDemandMetricAlert(dataset, 'count()', 'browser.name:chrome')).toBeFalsy();
   });
 
   it('should return false if dataset is not generic_metrics', () => {
     const dataset = Dataset.TRANSACTIONS;
 
-    expect(isOnDemandMetricAlert(dataset, 'transaction.duration:>1')).toBeFalsy();
-    expect(isOnDemandMetricAlert(dataset, 'device.name:foo')).toBeFalsy();
-    expect(isOnDemandMetricAlert(dataset, 'geo.region:>US')).toBeFalsy();
+    expect(
+      isOnDemandMetricAlert(dataset, 'count()', 'transaction.duration:>1')
+    ).toBeFalsy();
+    expect(isOnDemandMetricAlert(dataset, 'count()', 'device.name:foo')).toBeFalsy();
+    expect(isOnDemandMetricAlert(dataset, 'count()', 'geo.region:>US')).toBeFalsy();
+  });
+
+  it('should return true if aggregate is apdex', () => {
+    const dataset = Dataset.GENERIC_METRICS;
+
+    expect(isOnDemandMetricAlert(dataset, 'apdex(300)', '')).toBeTruthy();
+    expect(
+      isOnDemandMetricAlert(dataset, 'apdex(300)', 'transaction.duration:>1')
+    ).toBeTruthy();
+    expect(isOnDemandMetricAlert(dataset, 'apdex(300)', 'device.name:foo')).toBeTruthy();
   });
 });

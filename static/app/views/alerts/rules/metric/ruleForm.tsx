@@ -790,7 +790,9 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     const {isExtrapolatedData} = data ?? {};
 
     this.setState({isExtrapolatedChartData: Boolean(isExtrapolatedData)});
-    if (!isOnDemandMetricAlert(this.state.dataset, this.state.query)) {
+
+    const {dataset, aggregate, query} = this.state;
+    if (!isOnDemandMetricAlert(dataset, aggregate, query)) {
       this.handleMEPAlertDataset(data);
     }
   };
@@ -832,8 +834,6 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       location,
     } = this.state;
 
-    const onDemandMetricsAlert = isOnDemandMetricAlert(dataset, query);
-
     const chartProps = {
       organization,
       projects: [project],
@@ -850,7 +850,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       comparisonDelta,
       comparisonType,
       isQueryValid,
-      isOnDemandMetricAlert: onDemandMetricsAlert,
+      isOnDemandMetricAlert: isOnDemandMetricAlert(dataset, aggregate, query),
       onDataLoaded: this.handleTimeSeriesDataFetched,
     };
 
