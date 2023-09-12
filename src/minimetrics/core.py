@@ -281,7 +281,6 @@ class Aggregator:
                 weight_to_remove = 0
                 buckets = self.buckets
                 force_flush = self._force_flush
-                flushed_buckets = set()
                 extracted_metrics = []
 
                 for bucket_key, metric in buckets.items():
@@ -289,11 +288,10 @@ class Aggregator:
                         continue
 
                     extracted_metrics.append((bucket_key, metric))
-                    flushed_buckets.add(bucket_key)
                     weight_to_remove += metric.weight
 
                 # We remove all flushed buckets, in order to avoid memory leaks.
-                for bucket_key in flushed_buckets:
+                for bucket_key, _ in extracted_metrics:
                     buckets.pop(bucket_key)
 
                 self._force_flush = False
@@ -374,8 +372,7 @@ class Aggregator:
             self._force_flush = True
             self._flush_event.set()
 
-    @classmethod
-    def _to_internal_metric_tags(cls, tags: Optional[MetricTagsExternal]) -> MetricTagsInternal:
+    def _to_internal_metric_tags(self, tags: Optional[MetricTagsExternal]) -> MetricTagsInternal:
         rv = []
         for key, value in (tags or {}).items():
             # If the value is a collection, we want to flatten it.
@@ -388,8 +385,7 @@ class Aggregator:
         # It's very important to sort the tags in order to obtain the same bucket key.
         return tuple(sorted(rv))
 
-    @classmethod
-    def _emit(cls, extracted_metrics: List[Tuple[BucketKey, Metric]], force_flush: bool) -> Any:
+    def _emit(self, extracted_metrics: List[Tuple[BucketKey, Metric]], force_flush: bool) -> Any:
         # We obtain the counts for each metric type of how many buckets we have and how much weight is in each
         # bucket.
         stats_by_type: Dict[MetricType, Tuple[int, int]] = {}
@@ -409,25 +405,25 @@ class Aggregator:
                 key="minimetrics.flushed_buckets",
                 value=buckets_count,
                 tags={"metric_type": metric_type, "force_flush": force_flush},
-                sample_rate=cls.DEFAULT_SAMPLE_RATE,
+                sample_rate=self.DEFAULT_SAMPLE_RATE,
             )
             metrics.incr(
                 key="minimetrics.flushed_buckets_counter",
                 amount=buckets_count,
                 tags={"metric_type": metric_type, "force_flush": force_flush},
-                sample_rate=cls.DEFAULT_SAMPLE_RATE,
+                sample_rate=self.DEFAULT_SAMPLE_RATE,
             )
             metrics.timing(
                 key="minimetrics.flushed_buckets_weight",
                 value=buckets_weight,
                 tags={"metric_type": metric_type, "force_flush": force_flush},
-                sample_rate=cls.DEFAULT_SAMPLE_RATE,
+                sample_rate=self.DEFAULT_SAMPLE_RATE,
             )
             metrics.incr(
                 key="minimetrics.flushed_buckets_weight_counter",
                 amount=buckets_weight,
                 tags={"metric_type": metric_type, "force_flush": force_flush},
-                sample_rate=cls.DEFAULT_SAMPLE_RATE,
+                sample_rate=self.DEFAULT_SAMPLE_RATE,
             )
 
 
