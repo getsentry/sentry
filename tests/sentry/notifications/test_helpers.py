@@ -403,6 +403,65 @@ class NotificationSettingV2HelpersTest(TestCase):
             == self.setting_providers
         )
 
+    def test_layering(self):
+        NotificationSettingProvider.objects.all().delete()
+        top_level_provider = add_notification_setting_provider(
+            scope_type=NotificationScopeEnum.PROJECT.value,
+            scope_identifier=self.project.id,
+            provider=ExternalProviderEnum.EMAIL.value,
+            type=NotificationSettingEnum.REPORTS.value,
+            value=NotificationSettingsOptionEnum.NEVER.value,
+            user_id=self.user.id,
+        )
+        add_notification_setting_provider(
+            scope_type=NotificationScopeEnum.USER.value,
+            scope_identifier=self.user.id,
+            provider=ExternalProviderEnum.EMAIL.value,
+            type=NotificationSettingEnum.REPORTS.value,
+            value=NotificationSettingsOptionEnum.ALWAYS.value,
+            user_id=self.user.id,
+        )
+        add_notification_setting_provider(
+            scope_type=NotificationScopeEnum.ORGANIZATION.value,
+            scope_identifier=self.organization.id,
+            provider=ExternalProviderEnum.EMAIL.value,
+            type=NotificationSettingEnum.REPORTS.value,
+            value=NotificationSettingsOptionEnum.SUBSCRIBE_ONLY.value,
+            user_id=self.user.id,
+        )
+
+        providers = get_layered_setting_providers([self.user], [self.project], self.organization)
+        assert (
+            providers[self.rpc_user][NotificationSettingEnum.REPORTS][ExternalProviderEnum.EMAIL]
+            == top_level_provider
+        )
+
+        NotificationSettingOption.objects.all().delete()
+        top_level_option = add_notification_setting_option(
+            scope_type=NotificationScopeEnum.PROJECT.value,
+            scope_identifier=self.project.id,
+            type=NotificationSettingEnum.REPORTS.value,
+            value=NotificationSettingsOptionEnum.NEVER.value,
+            user_id=self.user.id,
+        )
+        add_notification_setting_option(
+            scope_type=NotificationScopeEnum.USER.value,
+            scope_identifier=self.user.id,
+            type=NotificationSettingEnum.REPORTS.value,
+            value=NotificationSettingsOptionEnum.ALWAYS.value,
+            user_id=self.user.id,
+        )
+        add_notification_setting_option(
+            scope_type=NotificationScopeEnum.ORGANIZATION.value,
+            scope_identifier=self.organization.id,
+            type=NotificationSettingEnum.REPORTS.value,
+            value=NotificationSettingsOptionEnum.SUBSCRIBE_ONLY.value,
+            user_id=self.user.id,
+        )
+
+        options = get_layered_setting_options([self.user], [self.project], self.organization)
+        assert options[self.rpc_user][NotificationSettingEnum.REPORTS] == top_level_option
+
     def test_get_layered_setting_options(self):
         options = get_layered_setting_options([self.user], [self.project], self.organization)
 
@@ -453,26 +512,7 @@ class NotificationSettingV2HelpersTest(TestCase):
         )
 
     def test_get_layered_setting_providers(self):
-        new_user = self.create_user()
-        setting_provider_1 = add_notification_setting_provider(
-            scope_type=NotificationScopeEnum.ORGANIZATION.value,
-            scope_identifier=self.organization.id,
-            provider=ExternalProviderEnum.MSTEAMS.value,
-            type=NotificationSettingEnum.ISSUE_ALERTS.value,
-            value=NotificationSettingsOptionEnum.NEVER.value,
-            user_id=new_user.id,
-        )
-        rpc_new_user = RpcUser(id=new_user.id)
-
-        options = get_layered_setting_providers(
-            [self.user, new_user], [self.project], self.organization
-        )
-        assert (
-            options[rpc_new_user][NotificationSettingEnum.ISSUE_ALERTS][
-                ExternalProviderEnum.MSTEAMS
-            ]
-            == setting_provider_1
-        )
+        options = get_layered_setting_providers([self.user], [self.project], self.organization)
         user_options = options[self.rpc_user]
         assert (
             user_options[NotificationSettingEnum.ISSUE_ALERTS][ExternalProviderEnum.MSTEAMS]

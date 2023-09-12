@@ -819,6 +819,7 @@ def get_layered_setting_options(
         recipient = get_recipient_from_team_or_user(ns.user_id, ns.team_id)
         ns_dict = user_to_setting[recipient]
         setting_type = NotificationSettingEnum(ns.type)
+
         if ns.scope_type == NotificationScopeEnum.PROJECT.value:
             # Project settings take precedence, so we can overwrite any existing settings.
             ns_dict[setting_type] = ns
