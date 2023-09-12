@@ -84,7 +84,7 @@ class CustomRulesEndpoint(OrganizationEndpoint):
     owner = ApiOwner.TELEMETRY_EXPERIENCE
 
     publish_status = {
-        "POST": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.EXPERIMENTAL,
     }
 
     def post(self, request: Request, organization: Organization) -> Response:
