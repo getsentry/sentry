@@ -990,7 +990,7 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
         )}
       >
         {tct(
-          'This rule fully duplicates "[alertName]" in the project [projectName] and cannot be saved. Click to view "[alertName]"',
+          'This rule fully duplicates "[alertName]" in the project [projectName] and cannot be saved.',
           {
             alertName: duplicateName,
             projectName: project.name,
