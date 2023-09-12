@@ -137,6 +137,7 @@ def _build_snuba_span(relay_span: Mapping[str, Any]) -> MutableMapping[str, Any]
         snuba_span["group_raw"] = group_raw
     except ValueError:
         snuba_span["group_raw"] = "0"
+        metrics.incr("spans.invalid_group_raw")
 
     snuba_span["span_grouping_config"] = {"id": grouping_config.id}
 
