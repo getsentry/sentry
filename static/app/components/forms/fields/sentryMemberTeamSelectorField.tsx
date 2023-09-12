@@ -4,7 +4,7 @@ import Avatar from 'sentry/components/avatar';
 import {t} from 'sentry/locale';
 import {Project} from 'sentry/types';
 import {useMembers} from 'sentry/utils/useMembers';
-import {useTeams} from 'sentry/utils/useTeams';
+import {useTeams} from 'sentry/utils/useTeamsSearch';
 
 import FormContext from '../formContext';
 

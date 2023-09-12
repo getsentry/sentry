@@ -20,7 +20,7 @@ import {useReplayOnboardingSidebarPanel} from 'sentry/utils/replays/hooks/useRep
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import {useTeams} from 'sentry/utils/useTeams';
+import {useTeams} from 'sentry/utils/useTeamsSearch';
 
 type Breakpoints = {
   large: string;

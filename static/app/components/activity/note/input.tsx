@@ -13,7 +13,7 @@ import {NoteType} from 'sentry/types/alerts';
 import domId from 'sentry/utils/domId';
 import marked from 'sentry/utils/marked';
 import {useMembers} from 'sentry/utils/useMembers';
-import {useTeams} from 'sentry/utils/useTeams';
+import {useTeams} from 'sentry/utils/useTeamsSearch';
 
 import {mentionStyle} from './mentionStyle';
 import {CreateError, MentionChangeEvent, Mentioned} from './types';

@@ -7,7 +7,7 @@ import {t, tn} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
-import {useTeams} from 'sentry/utils/useTeams';
+import {useTeams} from 'sentry/utils/useTeamsSearch';
 import withProjects from 'sentry/utils/withProjects';
 
 type BaseProps = {
