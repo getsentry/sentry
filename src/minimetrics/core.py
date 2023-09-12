@@ -197,7 +197,6 @@ class Aggregator:
                 weight_to_remove = 0
                 buckets = self.buckets
                 force_flush = self._force_flush
-                flushed_buckets = set()
                 extracted_metrics = []
 
                 for bucket_key, metric in buckets.items():
@@ -205,11 +204,10 @@ class Aggregator:
                         continue
 
                     extracted_metrics.append((bucket_key, metric))
-                    flushed_buckets.add(bucket_key)
                     weight_to_remove += metric.weight
 
                 # We remove all flushed buckets, in order to avoid memory leaks.
-                for bucket_key in flushed_buckets:
+                for bucket_key, _ in extracted_metrics:
                     buckets.pop(bucket_key)
 
                 self._force_flush = False
