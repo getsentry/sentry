@@ -25,6 +25,7 @@ export interface FeedbackItemResponse {
     version: null | string;
   };
   platform: string;
+  project: string;
   release: string;
   replay_id: null | string;
   sdk: {

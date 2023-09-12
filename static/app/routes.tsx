@@ -1789,7 +1789,7 @@ function buildRoutes() {
       />
       <Route
         path=":feedbackId/"
-        component={make(() => import('sentry/views/feedback/details'))}
+        component={make(() => import('sentry/views/feedback/feedbackDetailsPage'))}
       />
     </Fragment>
   );
