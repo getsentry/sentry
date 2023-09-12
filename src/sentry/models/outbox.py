@@ -541,21 +541,38 @@ class OutboxBase(Model):
     @contextlib.contextmanager
     def process_coalesced(self) -> Generator[OutboxBase | None, None, None]:
         coalesced: OutboxBase | None = self.select_coalesced_messages().last()
+        first_coalesced: OutboxBase | None = self.select_coalesced_messages().first() or coalesced
+        tags = {"category": "None"}
+
+        if coalesced is not None:
+            tags["category"] = OutboxCategory(self.category).name
+            assert first_coalesced, "first_coalesced incorrectly set for non-empty coalesce group"
+            metrics.timing(
+                "outbox.coalesced_net_queue_time",
+                datetime.datetime.now(tz=datetime.timezone.utc).timestamp()
+                - first_coalesced.date_added.timestamp(),
+            )
+
         yield coalesced
 
         # If the context block didn't raise we mark messages as completed by deleting them.
         if coalesced is not None:
-            first_coalesced: OutboxBase = self.select_coalesced_messages().first() or coalesced
+            assert first_coalesced, "first_coalesced incorrectly set for non-empty coalesce group"
             deleted_count, _ = (
                 self.select_coalesced_messages().filter(id__lte=coalesced.id).delete()
             )
 
-            tags = {"category": OutboxCategory(self.category).name}
-
             metrics.incr("outbox.processed", deleted_count, tags=tags)
             metrics.timing(
                 "outbox.processing_lag",
-                datetime.datetime.now().timestamp() - first_coalesced.scheduled_from.timestamp(),
+                datetime.datetime.now(tz=datetime.timezone.utc).timestamp()
+                - first_coalesced.scheduled_from.timestamp(),
+                tags=tags,
+            )
+            metrics.timing(
+                "outbox.coalesced_net_processing_time",
+                datetime.datetime.now(tz=datetime.timezone.utc).timestamp()
+                - first_coalesced.date_added.timestamp(),
                 tags=tags,
             )
 
