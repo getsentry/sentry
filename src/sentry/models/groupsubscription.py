@@ -77,7 +77,9 @@ class GroupSubscriptionManager(BaseManager):
         if isinstance(actor, RpcUser) or isinstance(actor, User):
             return self.subscribe(group, actor, reason)
         if isinstance(actor, Team):
-            if features.has("organizations:team-workflow-notifications", group.organization, actor):
+            if features.has(
+                "organizations:team-workflow-notifications", group.organization, actor=actor
+            ):
                 return self.subscribe(group, actor, reason)
             else:
                 # subscribe the members of the team
