@@ -3,8 +3,8 @@ from sentry.testutils.cases import TestMigrations
 
 
 class MigrateNoActionDupleIssueAlerts(TestMigrations):
-    migrate_from = "0548_add_is_unclaimed_boolean_to_user"
-    migrate_to = "0549_migrate_no_action_dupe_issue_alerts"
+    migrate_from = "0549_re_add_groupsubscription_columns"
+    migrate_to = "0550_migrate_no_action_dupe_issue_alerts"
 
     def setup_initial_state(self):
         self.no_action_rule = self.create_project_rule(
