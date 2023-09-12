@@ -1431,6 +1431,8 @@ SENTRY_FEATURES = {
     "organizations:profiling-memory-chart": False,
     # Enable profiling battery usage chart
     "organizations:profiling-battery-usage-chart": False,
+    # Enable profiling summary redesign view
+    "organizations:profiling-summary-redesign": False,
     # Enable disabling github integrations when broken is detected
     "organizations:github-disable-on-broken": False,
     # Enable disabling gitlab integrations when broken is detected
