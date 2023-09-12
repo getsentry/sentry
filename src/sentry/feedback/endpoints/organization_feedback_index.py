@@ -99,5 +99,5 @@ class OrganizationFeedbackIndexEndpoint(Endpoint):
         ):
             return Response(status=404)
 
-        feedback_list = Feedback.objects.filter(project_id=project.id)
+        feedback_list = Feedback.objects.filter(project_id=project.id)  # should this filter?
         return Response(serialize(list(feedback_list), request.user, FeedbackSerializer()))
