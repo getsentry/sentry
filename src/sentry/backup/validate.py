@@ -173,7 +173,7 @@ def validate(
                 cmp.scrub(left, right)
 
         # Finally, perform a diff on the remaining JSON.
-        diff = list(unified_diff(json_lines(left["fields"]), json_lines(right["fields"]), n=3))
+        diff = list(unified_diff(json_lines(left["fields"]), json_lines(right["fields"]), n=15))
         if diff:
             findings.append(
                 ComparatorFinding(
