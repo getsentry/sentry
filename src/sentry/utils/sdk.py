@@ -490,6 +490,10 @@ def configure_sdk():
         **sdk_options,
     )
 
+    from sentry.metrics.minimetrics import patch_sentry_sdk
+
+    patch_sentry_sdk()
+
 
 class RavenShim:
     """Wrapper around sentry-sdk in case people are writing their own
