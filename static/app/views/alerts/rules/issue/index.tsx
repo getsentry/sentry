@@ -1002,12 +1002,20 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
 
   displayNoConditionsWarning(): boolean {
     const {rule} = this.state;
+    const acceptedNoisyActionIds = [
+      // Webhooks
+      'sentry.rules.actions.notify_event_service.NotifyEventServiceAction',
+      // Legacy integrations
+      'sentry.rules.actions.notify_event.NotifyEventAction',
+    ];
+
     return (
       this.props.organization.features.includes('noisy-alert-warning') &&
       !!rule &&
       !isSavedAlertRule(rule) &&
       rule.conditions.length === 0 &&
-      rule.filters.length === 0
+      rule.filters.length === 0 &&
+      !rule.actions.every(action => acceptedNoisyActionIds.includes(action.id))
     );
   }
 
@@ -1033,7 +1041,7 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
         >
           <AcknowledgeLabel>
             <Checkbox
-              size="md"
+              size="sm"
               name="acceptedNoisyAlert"
               checked={acceptedNoisyAlert}
               onChange={() => {
