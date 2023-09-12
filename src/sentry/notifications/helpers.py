@@ -779,7 +779,7 @@ def get_all_setting_providers(
     return NotificationSettingProvider.objects.filter(query & additional_filters)
 
 
-# Todo: get actor from user id / team id
+# TODO(snigdha): update to handle teams
 def get_layered_setting_options(
     recipients: Iterable[RpcActor | Team | RpcUser],
     projects: Iterable[Project] | None = None,
@@ -830,7 +830,7 @@ def get_layered_setting_options(
     return user_to_setting
 
 
-# Todo: get actor from user id / team id
+# TODO(snigdha): update to handle teams
 def get_layered_setting_providers(
     recipients: Iterable[RpcActor | Team | RpcUser],
     projects: Iterable[Project] | None = None,
@@ -976,7 +976,6 @@ def get_setting_providers_with_defaults(
     return result
 
 
-# todo: verify logic
 def get_notification_recipients(project: Project) -> Mapping[ExternalProviderEnum, set[RpcActor]]:
     """
     Returns the recipients that should be notified for each provider.
