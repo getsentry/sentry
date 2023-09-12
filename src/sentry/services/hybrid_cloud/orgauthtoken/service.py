@@ -21,12 +21,6 @@ class OrgAuthTokenService(RpcService):
 
         return DatabaseBackedOrgAuthTokenService()
 
-    @classmethod
-    def get_nonlocal_class(cls) -> Type[RpcService]:
-        from .impl import OutboxBackedOrgAuthTokenService
-
-        return OutboxBackedOrgAuthTokenService
-
     @rpc_method
     @abstractmethod
     def update_orgauthtoken(
@@ -40,14 +34,19 @@ class OrgAuthTokenService(RpcService):
         pass
 
 
+def _get_nonlocal_class() -> Type[RpcService]:
+    from .impl import OutboxBackedOrgAuthTokenService
+
+    return OutboxBackedOrgAuthTokenService
+
+
 # An asynchronous service which can delegate to an outbox implementation, essentially enqueueing
 # updates of tokens for future processing.
 orgauthtoken_service: OrgAuthTokenService = cast(
-    OrgAuthTokenService, OrgAuthTokenService.create_delegation()
+    OrgAuthTokenService, OrgAuthTokenService.create_delegation(nonlocal_class=_get_nonlocal_class())
 )
 
 
 orgauthtoken_rpc_service: OrgAuthTokenService = cast(
-    OrgAuthTokenService,
-    OrgAuthTokenService.create_delegation(force_remote=True),
+    OrgAuthTokenService, OrgAuthTokenService.create_delegation()
 )

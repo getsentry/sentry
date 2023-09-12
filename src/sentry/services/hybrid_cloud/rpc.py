@@ -356,19 +356,6 @@ class RpcService(abc.ABC):
         raise NotImplementedError
 
     @classmethod
-    def get_nonlocal_class(cls) -> Type[RpcService] | None:
-        """Return a service object that runs on a silo other than the local one.
-
-        A base service class may override this class method to return an instance
-        that writes to an outbox or reads replicated data. That instance may be a
-        partial implementation, overriding a subset of the base class's abstract
-        methods that can be implemented without making an RPC. Any remaining RPC
-        methods will automatically receive remote implementations.
-        """
-
-        return None
-
-    @classmethod
     def _create_signatures(cls) -> Mapping[str, RpcMethodSignature]:
         model_table = {}
         for base_method in cls._get_all_rpc_methods():
@@ -422,7 +409,9 @@ class RpcService(abc.ABC):
         return impl
 
     @classmethod
-    def _create_remote_implementation(cls, use_test_client: bool, force_remote: bool) -> RpcService:
+    def _create_remote_implementation(
+        cls, use_test_client: bool, nonlocal_class: Type[RpcService] | None = None
+    ) -> RpcService:
         """Create a service object that makes remote calls to another silo.
 
         The service object will implement each abstract method with an RPC method
@@ -431,10 +420,8 @@ class RpcService(abc.ABC):
         (but are still available as part of the RPC interface for external clients).
         """
 
-        nonlocal_class = cls.get_nonlocal_class()
-
         def should_generate_remote_method(service_method: Callable[..., Any]) -> bool:
-            if nonlocal_class is None or force_remote:
+            if nonlocal_class is None:
                 return True
             nonlocal_method = getattr(nonlocal_class, service_method.__name__)
             return _is_abstract_method(nonlocal_method)
@@ -478,15 +465,24 @@ class RpcService(abc.ABC):
 
     @classmethod
     def create_delegation(
-        cls, use_test_client: bool | None = None, force_remote: bool = False
+        cls, use_test_client: bool | None = None, nonlocal_class: Type[RpcService] | None = None
     ) -> DelegatingRpcService:
-        """Instantiate a base service class for the current mode."""
+        """Instantiate a base service class for the current mode.
+
+        The `nonlocal_class` parameter may be a partial implementation of the base
+        service class, overriding a subset of the base class's abstract methods that
+        can be implemented without making an RPC. For example, it may write to an
+        outbox or read replicated data. Any remaining RPC methods will automatically
+        receive remote implementations if the service is not in its local silo. If
+        `nonlocal_class` is None, all RPC methods automatically receive remote
+        implementations.
+        """
 
         if use_test_client is None:
             use_test_client = in_test_environment()
 
         def create_remote_implementation():
-            return cls._create_remote_implementation(use_test_client, force_remote)
+            return cls._create_remote_implementation(use_test_client, nonlocal_class)
 
         constructors = {
             mode: (

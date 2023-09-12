@@ -44,12 +44,6 @@ class OrganizationService(RpcService):
 
         return DatabaseBackedOrganizationService()
 
-    @classmethod
-    def get_nonlocal_class(cls) -> Type[RpcService]:
-        from sentry.services.hybrid_cloud.organization.impl import OutboxBackedOrganizationService
-
-        return OutboxBackedOrganizationService
-
     def get(self, id: int) -> Optional[RpcOrganization]:
         org_context = self.get_organization_by_id(id=id)
         return org_context.organization if org_context else None
@@ -330,4 +324,12 @@ class OrganizationService(RpcService):
         pass
 
 
-organization_service = cast(OrganizationService, OrganizationService.create_delegation())
+def _get_nonlocal_class() -> Type[RpcService]:
+    from sentry.services.hybrid_cloud.organization.impl import OutboxBackedOrganizationService
+
+    return OutboxBackedOrganizationService
+
+
+organization_service = cast(
+    OrganizationService, OrganizationService.create_delegation(nonlocal_class=_get_nonlocal_class())
+)
