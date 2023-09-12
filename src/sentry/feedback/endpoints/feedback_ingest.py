@@ -43,6 +43,8 @@ class FeedbackValidator(serializers.Serializer):
     tags = serializers.JSONField(required=False)
     user = serializers.JSONField(required=False)
     contexts = serializers.JSONField(required=False)
+    BrowserContext = serializers.JSONField(required=False)
+    DeviceContext = serializers.JSONField(required=False)
 
     def validate(self, data):
         try:
@@ -58,6 +60,8 @@ class FeedbackValidator(serializers.Serializer):
                 "tags": data.get("tags"),
                 "dist": data.get("dist"),
                 "contexts": data.get("contexts"),
+                "browser": data.get("BrowserContext"),
+                "device": data.get("DeviceContext"),
             }
             ret["date_added"] = datetime.datetime.fromtimestamp(data["timestamp"])
             ret["feedback_id"] = data.get("event_id") or uuid4().hex

@@ -11,7 +11,7 @@ class Feedback(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
     project_id = BoundedBigIntegerField(db_index=True)
-    replay_id = models.CharField(max_length=32, null=True, db_index=True)
+    replay_id = models.CharField(max_length=100, null=True, db_index=True)
     url = models.CharField(max_length=1000, null=True)
     message = models.TextField()
     feedback_id = UUIDField(unique=True)
