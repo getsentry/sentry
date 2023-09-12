@@ -52,10 +52,13 @@ class OpsgenieClient(IntegrationProxyClient):
             rule_urls.append(organization.absolute_url(path))
         return rule_urls
 
-    def _get_issue_alert_payload(self, data, rules, event: Event | GroupEvent, group: Group | None):
+    def _get_issue_alert_payload(
+        self, data, rules, priority, event: Event | GroupEvent, group: Group | None
+    ):
         payload = {
             "message": event.message or event.title,
             "source": "Sentry",
+            "priority": priority,
             "details": {
                 "Triggering Rules": ", ".join([rule.label for rule in rules]),
                 "Release": data.release,
@@ -80,12 +83,12 @@ class OpsgenieClient(IntegrationProxyClient):
             }
         return payload
 
-    def send_notification(self, data, rules=None):
+    def send_notification(self, data, priority=None, rules=None):
         headers = {"Authorization": "GenieKey " + self.integration_key}
         if isinstance(data, (Event, GroupEvent)):
             group = data.group
             event = data
-            payload = self._get_issue_alert_payload(data, rules, event, group)
+            payload = self._get_issue_alert_payload(data, rules, priority, event, group)
         else:
             # if we're acknowledging the alert—meaning that the Sentry alert was resolved
             if data.get("identifier"):
