@@ -155,6 +155,7 @@ from .endpoints.codeowners import (
     ProjectCodeOwnersDetailsEndpoint,
     ProjectCodeOwnersEndpoint,
 )
+from .endpoints.custom_rules import CustomRulesEndpoint
 from .endpoints.data_scrubbing_selector_suggestions import DataScrubbingSelectorSuggestionsEndpoint
 from .endpoints.debug_files import (
     AssociateDSymFilesEndpoint,
@@ -1487,7 +1488,8 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-monitor-check-in-details",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/monitors/(?P<monitor_slug>[^\/]+)/checkins/(?P<checkin_id>[^\/]+)/attachment/$",
+        r"^(?P<organization_slug>[^\/]+)/monitors/(?P<monitor_slug>[^\/]+)/checkins/(?P<checkin_id>["
+        r"^\/]+)/attachment/$",
         method_dispatch(
             GET=OrganizationMonitorCheckInAttachmentEndpoint.as_view(),
             POST=MonitorIngestCheckinAttachmentEndpoint.as_view(),  # Legacy ingest endpoint
@@ -1871,6 +1873,18 @@ ORGANIZATION_URLS = [
             ],
         ),
     ),
+    re_path(
+        r"^(?P<organization_slug>[^/]+)/dynamic-sampling/",
+        include(
+            [
+                re_path(
+                    r"^custom-rules/$",
+                    CustomRulesEndpoint.as_view(),
+                    name="sentry-api-0-organization-dynamic_sampling-custom_rules",
+                ),
+            ],
+        ),
+    ),
 ]
 
 PROJECT_URLS: list[URLPattern | URLResolver] = [
@@ -1980,7 +1994,8 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-event-attachments",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/events/(?P<event_id>[\w-]+)/attachments/(?P<attachment_id>[\w-]+)/$",
+        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/events/(?P<event_id>[\w-]+)/attachments/("
+        r"?P<attachment_id>[\w-]+)/$",
         EventAttachmentDetailsEndpoint.as_view(),
         name="sentry-api-0-event-attachment-details",
     ),
@@ -2153,7 +2168,8 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-project-artifact-bundle-files",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/artifact-bundles/(?P<bundle_id>[^/]+)/files/(?P<file_id>[^/]+)/$",
+        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/artifact-bundles/(?P<bundle_id>[^/]+)/files/("
+        r"?P<file_id>[^/]+)/$",
         ProjectArtifactBundleFileDetailsEndpoint.as_view(),
         name="sentry-api-0-project-artifact-bundle-file-details",
     ),
@@ -2163,7 +2179,8 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-project-release-files",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/(?P<version>[^/]+)/files/(?P<file_id>[^/]+)/$",
+        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/(?P<version>[^/]+)/files/(?P<file_id>["
+        r"^/]+)/$",
         ProjectReleaseFileDetailsEndpoint.as_view(),
         name="sentry-api-0-project-release-file-details",
     ),
@@ -2193,7 +2210,8 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-project-replay-recording-segment-index",
     ),
     re_path(
-        r"^(?P<organization_slug>[^/]+)/(?P<project_slug>[^\/]+)/replays/(?P<replay_id>[\w-]+)/recording-segments/(?P<segment_id>\d+)/$",
+        r"^(?P<organization_slug>[^/]+)/(?P<project_slug>[^\/]+)/replays/(?P<replay_id>[\w-]+)/recording-segments/("
+        r"?P<segment_id>\d+)/$",
         ProjectReplayRecordingSegmentDetailsEndpoint.as_view(),
         name="sentry-api-0-project-replay-recording-segment-details",
     ),
@@ -2425,12 +2443,14 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-project-profiling-functions",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/profiling/profiles/(?P<profile_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
+        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/profiling/profiles/(?P<profile_id>(?:\d+|["
+        r"A-Fa-f0-9-]{32,36}))/$",
         ProjectProfilingProfileEndpoint.as_view(),
         name="sentry-api-0-project-profiling-profile",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/profiling/raw_profiles/(?P<profile_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
+        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/profiling/raw_profiles/(?P<profile_id>(?:\d+|["
+        r"A-Fa-f0-9-]{32,36}))/$",
         ProjectProfilingRawProfileEndpoint.as_view(),
         name="sentry-api-0-project-profiling-raw-profile",
     ),
@@ -2440,7 +2460,8 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-project-profiling-flamegraph",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/profiling/transactions/(?P<transaction_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
+        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/profiling/transactions/(?P<transaction_id>(?:\d+|["
+        r"A-Fa-f0-9-]{32,36}))/$",
         ProjectProfilingTransactionIDProfileIDEndpoint.as_view(),
         name="sentry-api-0-project-profiling-transactions",
     ),
