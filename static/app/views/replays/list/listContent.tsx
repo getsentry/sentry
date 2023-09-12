@@ -1,5 +1,7 @@
 import {Fragment} from 'react';
+import styled from '@emotion/styled';
 
+import {space} from 'sentry/styles/space';
 import {useHaveSelectedProjectsSentAnyReplayEvents} from 'sentry/utils/replays/hooks/useReplayOnboarding';
 import useOrganization from 'sentry/utils/useOrganization';
 import ReplaysFilters from 'sentry/views/replays/list/filters';
@@ -17,9 +19,10 @@ export default function ListContent() {
 
   return fetching ? null : showOnboarding ? (
     <Fragment>
-      <ReplaysFilters>
+      <FiltersContainer>
+        <ReplaysFilters />
         <ReplaysSearch />
-      </ReplaysFilters>
+      </FiltersContainer>
       <ReplayOnboardingPanel />
     </Fragment>
   ) : (
@@ -31,3 +34,9 @@ export default function ListContent() {
     </Fragment>
   );
 }
+
+const FiltersContainer = styled('div')`
+  display: flex;
+  flex-direction: row;
+  gap: ${space(2)};
+`;
