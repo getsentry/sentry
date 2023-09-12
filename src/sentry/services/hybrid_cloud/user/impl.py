@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 from typing import Any, Callable, List, MutableMapping, Optional
+from uuid import uuid4
 
+from django.db import router, transaction
 from django.db.models import Q, QuerySet
+from django.utils.text import slugify
 
 from sentry.api.serializers import (
     DetailedSelfUserSerializer,
@@ -23,7 +26,7 @@ from sentry.services.hybrid_cloud.filter_query import (
     FilterQueryDatabaseImpl,
     OpaqueSerializedResponse,
 )
-from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
+from sentry.services.hybrid_cloud.organization_mapping.model import RpcOrganizationMapping
 from sentry.services.hybrid_cloud.organization_mapping.serial import serialize_organization_mapping
 from sentry.services.hybrid_cloud.user import (
     RpcUser,
@@ -107,7 +110,7 @@ class DatabaseBackedUserService(UserService):
         *,
         user_id: int,
         only_visible: bool = False,
-    ) -> List[RpcOrganizationSummary]:
+    ) -> List[RpcOrganizationMapping]:
         if user_id is None:
             # This is impossible if type hints are followed or Pydantic enforces
             # type-checking on serialization, but is still possible if we make a call
@@ -159,6 +162,35 @@ class DatabaseBackedUserService(UserService):
         if user is None:
             return None
         return serialize_rpc_user(user)
+
+    def get_first_superuser(self) -> Optional[RpcUser]:
+        user = User.objects.filter(is_superuser=True).first()
+        if user is None:
+            return None
+        return serialize_rpc_user(user)
+
+    def get_or_create_user_by_email(self, *, email: str) -> RpcUser:
+        with transaction.atomic(router.db_for_write(User)):
+            user_query = User.objects.filter(email=email)
+            # Create User if it doesn't exist
+            if not user_query.exists():
+                user = User.objects.create(
+                    username=f"{slugify(str.split(email, '@')[0])}-{uuid4().hex}",
+                    email=email,
+                    name=email,
+                )
+            else:
+                user = User.objects.get(email=email)
+            return serialize_rpc_user(user)
+
+    def verify_any_email(self, *, email: str) -> bool:
+        user_email = UserEmail.objects.filter(email=email).first()
+        if user_email is None:
+            return False
+        if not user_email.is_verified:
+            user_email.update(is_verified=True)
+            return True
+        return False
 
     class _UserFilterQuery(
         FilterQueryDatabaseImpl[User, UserFilterArgs, RpcUser, UserSerializeType],

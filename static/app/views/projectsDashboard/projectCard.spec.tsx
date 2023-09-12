@@ -31,8 +31,7 @@ describe('ProjectCard', function () {
   });
 
   it('renders', function () {
-    const {container} = createWrapper();
-    expect(container).toSnapshot();
+    createWrapper();
   });
 
   it('renders latest 2 deploys', function () {

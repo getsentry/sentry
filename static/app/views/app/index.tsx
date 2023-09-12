@@ -74,8 +74,19 @@ function App({children, params}: Props) {
    * Loads the users organization list into the OrganizationsStore
    */
   const loadOrganizations = useCallback(async () => {
+    const regions = ConfigStore.get('regions');
     try {
-      const data = await api.requestPromise('/organizations/', {query: {member: '1'}});
+      // Get the current user's organizations from each multi-tenant region. Will
+      // include single-tenants if the user has membership on those.
+      const results = await Promise.all(
+        regions.map(region =>
+          api.requestPromise(`/organizations/`, {
+            query: {member: '1'},
+            host: region.url,
+          })
+        )
+      );
+      const data = results.reduce((acc, response) => acc.concat(response), []);
       OrganizationsStore.load(data);
     } catch {
       // TODO: do something?
