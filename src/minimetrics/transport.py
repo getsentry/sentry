@@ -1,15 +1,12 @@
 import re
-from typing import Dict, Generic, List, Optional, TypeVar
+import sys
+from typing import Generator, Optional, Sequence
 
 import sentry_sdk
 from sentry_sdk.envelope import Envelope, Item
 
-from minimetrics.types import ExtractedMetric, ExtractedMetricValue, MetricTagsInternal, MetricUnit
+from minimetrics.types import FlushedMetric, FlushedMetricValue, MetricTagsInternal, MetricUnit
 from sentry.utils import metrics
-
-IN = TypeVar("IN")
-OUT = TypeVar("OUT")
-M = TypeVar("M")
 
 sanitization_re = re.compile(r"[^a-zA-Z0-9_/.]+")
 
@@ -18,61 +15,55 @@ class EncodingError(Exception):
     pass
 
 
-class MetricEnvelopeEncoder(Generic[IN, OUT]):
-    def encode(self, value: IN) -> OUT:
-        raise NotImplementedError()
-
-
-class RelayStatsdEncoder(MetricEnvelopeEncoder[ExtractedMetric, str]):
+class RelayStatsdEncoder:
     MULTI_VALUE_SEPARATOR = ":"
     TAG_SEPARATOR = ","
 
-    def encode(self, value: ExtractedMetric) -> str:
-        metric_name = self._sanitize_value(value["name"])
+    def encode(self, value: FlushedMetric) -> str:
+        metric_name = self._sanitize_value(value.bucket_key.metric_key)
         if not metric_name:
             raise EncodingError("The sanitized metric name is empty")
-        metric_unit = self._get_metric_unit(value.get("unit"))
-        metric_value = self._get_metric_value(value["value"])
-        metric_type = value["type"]
-        metric_tags = self._get_metric_tags(value.get("tags"))
-        metric_timestamp = self._get_metric_timestamp(value["timestamp"])
+        metric_unit = self._get_metric_unit(value.bucket_key.metric_unit)
+        metric_values = self._get_metric_values(value.metric.serialize_value())
+        metric_type = value.bucket_key.metric_type
+        metric_tags = self._get_metric_tags(value.bucket_key.metric_tags)
+        metric_timestamp = self._get_metric_timestamp(value.bucket_key.timestamp)
 
-        return f"{metric_name}{metric_unit}:{metric_value}|{metric_type}{metric_tags}{metric_timestamp}"
+        return f"{metric_name}{metric_unit}:{metric_values}|{metric_type}{metric_tags}{metric_timestamp}"
+
+    def encode_multiple(self, values: Sequence[FlushedMetric]) -> str:
+        encoded_values = []
+
+        for value in values:
+            try:
+                encoded_values.append(self.encode(value))
+            except EncodingError:
+                pass
+
+        return "\n".join(encoded_values)
 
     def _sanitize_value(self, value: str) -> str:
         # Remove all non-alphanumerical chars which are different from _ / .
         return sanitization_re.sub("", value)
 
-    def _get_metric_unit(self, unit: Optional[MetricUnit]) -> str:
-        if unit is None:
-            return ""
-
+    def _get_metric_unit(self, unit: MetricUnit) -> str:
         return f"@{unit}"
 
-    def _get_metric_value(self, value: ExtractedMetricValue) -> str:
-        if isinstance(value, (int, float)):
-            return str(value)
-        elif isinstance(value, List):
-            return self.MULTI_VALUE_SEPARATOR.join([str(v) for v in value])
-        elif isinstance(value, Dict):
-            return self.MULTI_VALUE_SEPARATOR.join([str(v) for v in value.values()])
-
-        raise Exception("The metric value must be either a float or a list of floats")
+    def _get_metric_values(self, value: Generator[FlushedMetricValue]) -> str:
+        return self.MULTI_VALUE_SEPARATOR.join(str(v) for v in value)
 
     def _get_metric_tags(self, tags: Optional[MetricTagsInternal]) -> str:
         if not tags:
             return ""
 
-        # We first filter all tags whose sanitized tag key is empty and we also sanitize all tag values. Note that empty
-        # tag values are possible.
-        filtered_tags = (
+        # We sanitize all the tag keys and tag values.
+        sanitized_tags = (
             (self._sanitize_value(tag_key), self._sanitize_value(tag_value))
             for tag_key, tag_value in tags
-            if self._sanitize_value(tag_key)
         )
-        # We then convert all tag values that are not empty into the string protocol representation.
+        # We then convert all tags whose tag key is not empty to the string representation.
         tags_as_string = self.TAG_SEPARATOR.join(
-            [f"{tag_key}:{tag_value}" for tag_key, tag_value in filtered_tags]
+            f"{tag_key}:{tag_value}" for tag_key, tag_value in sanitized_tags if tag_key
         )
         return f"|#{tags_as_string}"
 
@@ -80,31 +71,29 @@ class RelayStatsdEncoder(MetricEnvelopeEncoder[ExtractedMetric, str]):
         return f"|T{timestamp}"
 
 
-class MetricEnvelopeTransport(Generic[M]):
-    def __init__(self, encoder: MetricEnvelopeEncoder[M, str]):
+class MetricEnvelopeTransport:
+    def __init__(self, encoder: RelayStatsdEncoder):
         self._encoder = encoder
 
-    def send(self, metric: M):
+    def send(self, flushed_metrics: Sequence[FlushedMetric]):
         client = sentry_sdk.Hub.current.client
         if client is None:
             return
 
-        try:
-            encoded_metric = self._encoder.encode(metric)
-        except EncodingError:
+        transport = client.transport
+        if transport is None:
             return
 
-        metric_item = Item(payload=encoded_metric, type="statsd")
+        encoded_metrics = self._encoder.encode_multiple(flushed_metrics)
+        metric_item = Item(payload=encoded_metrics, type="statsd")
         envelope = Envelope(
             headers=None,
             items=[metric_item],
         )
-        self._track_envelope_size(envelope)
 
-        transport = client.transport
-        if transport is not None:
-            transport.capture_envelope(envelope)
+        self._track_envelope_size(envelope)
+        transport.capture_envelope(envelope)
 
     def _track_envelope_size(self, envelope: Envelope):
-        envelope_size = len(envelope.serialize())
+        envelope_size = sys.getsizeof(envelope)
         metrics.timing(key="minimetrics.envelope_size", value=envelope_size, sample_rate=1.0)

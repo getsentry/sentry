@@ -4,14 +4,14 @@ import zlib
 from contextlib import contextmanager
 from functools import wraps
 from threading import Event, Lock, Thread
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
+from typing import Any, Callable, Dict, Generator, List, Optional, Set, Tuple, Union
 
 import sentry_sdk
 
 from minimetrics.transport import MetricEnvelopeTransport, RelayStatsdEncoder
 from minimetrics.types import (
     BucketKey,
-    ExtractedMetric,
+    FlushedMetric,
     Metric,
     MetricTagsExternal,
     MetricTagsInternal,
@@ -65,11 +65,15 @@ class CounterMetric(Metric[float]):
     def __init__(self, first: float) -> None:
         self.value = first
 
+    @property
+    def weight(self) -> int:
+        return 1
+
     def add(self, value: float) -> None:
         self.value += value
 
-    def serialize_value(self) -> Any:
-        return self.value
+    def serialize_value(self) -> Generator[float]:
+        yield self.value
 
 
 class GaugeMetric(Metric[float]):
@@ -100,14 +104,12 @@ class GaugeMetric(Metric[float]):
         self.sum += value
         self.count += 1
 
-    def serialize_value(self) -> Any:
-        return {
-            "last": self.last,
-            "min": self.min,
-            "max": self.max,
-            "sum": self.sum,
-            "count": self.count,
-        }
+    def serialize_value(self) -> Generator[Union[int, float]]:
+        yield self.last
+        yield self.min
+        yield self.max
+        yield self.sum
+        yield self.count
 
 
 class DistributionMetric(Metric[float]):
@@ -123,8 +125,8 @@ class DistributionMetric(Metric[float]):
     def add(self, value: float) -> None:
         self.value.append(float(value))
 
-    def serialize_value(self) -> Any:
-        return self.value
+    def serialize_value(self) -> Generator[float]:
+        yield from self.value
 
 
 class SetMetric(Metric[Union[str, int]]):
@@ -140,13 +142,14 @@ class SetMetric(Metric[Union[str, int]]):
     def add(self, value: Union[str, int]) -> None:
         self.value.add(value)
 
-    def serialize_value(self) -> Any:
+    def serialize_value(self) -> Generator[int]:
         def _hash(x: Any) -> int:
             if isinstance(x, str):
                 return zlib.crc32(x.encode("utf-8")) & 0xFFFFFFFF
             return int(x)
 
-        return [_hash(x) for x in self.value]
+        for value in self.value:
+            yield _hash(value)
 
 
 METRIC_TYPES: Dict[str, Callable[[Any], Metric[Any]]] = {
@@ -169,9 +172,7 @@ class Aggregator:
         # represents how much weight is there to represent the metric (e.g., counter = 1, distribution = n).
         self._buckets_total_weight: int = 0
         # Transport layer used to send metrics.
-        self._transport: MetricEnvelopeTransport[ExtractedMetric] = MetricEnvelopeTransport(
-            RelayStatsdEncoder()
-        )
+        self._transport: MetricEnvelopeTransport = MetricEnvelopeTransport(RelayStatsdEncoder())
         # Lock protecting concurrent access to variables by the flusher and the calling threads that call add or stop.
         self._lock: Lock = Lock()
         # Signals whether the loop of the flusher is running.
@@ -197,28 +198,28 @@ class Aggregator:
                 weight_to_remove = 0
                 buckets = self.buckets
                 force_flush = self._force_flush
-                extracted_metrics = []
+                flushed_metrics = []
 
                 for bucket_key, metric in buckets.items():
                     if not force_flush and bucket_key.timestamp > cutoff:
                         continue
 
-                    extracted_metrics.append((bucket_key, metric))
+                    flushed_metrics.append(FlushedMetric(bucket_key=bucket_key, metric=metric))
                     weight_to_remove += metric.weight
 
                 # We remove all flushed buckets, in order to avoid memory leaks.
-                for bucket_key, _ in extracted_metrics:
+                for bucket_key, _ in flushed_metrics:
                     buckets.pop(bucket_key)
 
                 self._force_flush = False
                 self._buckets_total_weight -= weight_to_remove
 
-            if extracted_metrics:
+            if flushed_metrics:
                 # You should emit metrics to `metrics` only inside this method, since we know that if we received
                 # metrics the `sentry.utils.metrics` file was initialized. If we do it before, it will likely cause a
                 # circular dependency since the methods in the `sentry.utils.metrics` depend on the backend
                 # initialization, thus if you emit metrics when a backend is initialized Python will throw an error.
-                self._emit(extracted_metrics, force_flush)
+                self._emit(flushed_metrics, force_flush)
 
     @minimetrics_noop
     def add(
@@ -288,19 +289,17 @@ class Aggregator:
             self._force_flush = True
             self._flush_event.set()
 
-    def _emit(self, extracted_metrics: List[Tuple[BucketKey, Metric]], force_flush: bool) -> Any:
-        # We obtain the counts for each metric type of how many buckets we have and how much weight is in each
-        # bucket.
-        stats_by_type: Dict[MetricType, Tuple[int, int]] = {}
-
-        for bucket_key, metric in extracted_metrics:
+    def _emit(self, flushed_metrics: List[FlushedMetric], force_flush: bool) -> Any:
+        if options.get("delightful_metrics.enable_envelope_forwarding") == 1.0:
             try:
-                # We want to have a kill-switch for enabling/disabling envelope forwarding.
-                if options.get("delightful_metrics.enable_envelope_forwarding") == 1.0:
-                    self._transport.send(self._to_extracted_metric(bucket_key, metric))
+                self._transport.send(flushed_metrics)
             except Exception as e:
                 sentry_sdk.capture_exception(e)
 
+        # We obtain the counts for each metric type of how many buckets we have and how much weight is in each
+        # bucket.
+        stats_by_type: Dict[MetricType, Tuple[int, int]] = {}
+        for bucket_key, metric in flushed_metrics:
             (prev_buckets_count, prev_buckets_weight) = stats_by_type.get(
                 bucket_key.metric_type, (0, 0)
             )
@@ -335,23 +334,6 @@ class Aggregator:
                 tags={"metric_type": metric_type, "force_flush": force_flush},
                 sample_rate=self.DEFAULT_SAMPLE_RATE,
             )
-
-    def _to_extracted_metric(self, bucket_key: BucketKey, metric: Metric) -> ExtractedMetric:
-        extracted_metric: ExtractedMetric = {
-            "type": bucket_key.metric_type,
-            "name": bucket_key.metric_key,
-            "value": metric.serialize_value(),
-            "timestamp": bucket_key.timestamp,
-            "width": int(self.ROLLUP_IN_SECONDS),
-        }
-        if bucket_key.metric_unit:
-            extracted_metric["unit"] = bucket_key.metric_unit
-        if bucket_key.metric_tags:
-            # We need to be careful here, since we have a list of tuples where the first element of tuples
-            # can be duplicated, thus converting to a dict will end up compressing and losing data.
-            extracted_metric["tags"] = bucket_key.metric_tags
-
-        return extracted_metric
 
     def _to_internal_metric_tags(self, tags: Optional[MetricTagsExternal]) -> MetricTagsInternal:
         rv = []
