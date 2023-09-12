@@ -141,7 +141,7 @@ def resolved_in_commit(instance, created, **kwargs):
                     # subscribe every user
                     for user in user_list:
                         GroupSubscription.objects.subscribe(
-                            subscriber=user,
+                            user=user,
                             group=group,
                             reason=GroupSubscriptionReason.status_change,
                         )

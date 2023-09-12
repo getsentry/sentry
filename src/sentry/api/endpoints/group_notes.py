@@ -66,7 +66,7 @@ class GroupNotesEndpoint(GroupEndpoint):
             )
 
         GroupSubscription.objects.subscribe(
-            group=group, subscriber=request.user, reason=GroupSubscriptionReason.comment
+            group=group, user=request.user, reason=GroupSubscriptionReason.comment
         )
 
         mentioned_users = extract_user_ids_from_mentions(group.organization.id, mentions)
