@@ -1,14 +1,14 @@
-import {Fragment, useState} from 'react';
+import { Fragment, useState } from 'react';
 import styled from '@emotion/styled';
 
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import TextCopyInput from 'sentry/components/textCopyInput';
-import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
+import { t, tct } from 'sentry/locale';
+import { space } from 'sentry/styles/space';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import {ProjectKey} from 'sentry/views/settings/project/projectKeys/types';
+import { ProjectKey } from 'sentry/views/settings/project/projectKeys/types';
 
 type Props = {
   data: ProjectKey;
@@ -146,12 +146,12 @@ function ProjectKeyCredentials({
 
       {showUnreal && (
         <FieldGroup
-          label={t('Unreal Engine 4 Endpoint')}
-          help={t('Use this endpoint to configure your UE4 Crash Reporter.')}
+          label={t('Unreal Engine Endpoint')}
+          help={t('Use this endpoint to configure your UE Crash Reporter.')}
           inline={false}
           flexibleControlStateSize
         >
-          <TextCopyInput aria-label={t('Unreal Engine 4 Endpoint URL')}>
+          <TextCopyInput aria-label={t('Unreal Engine Endpoint URL')}>
             {getDynamicText({
               value: data.dsn.unreal || '',
               fixed: '__UNREAL_ENDPOINT__',
