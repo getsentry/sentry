@@ -1,6 +1,5 @@
-from __future__ import annotations
-
-from typing import Any, cast
+from abc import abstractmethod
+from typing import Any, Optional, cast
 from unittest import mock
 
 import pytest
@@ -10,18 +9,16 @@ from django.test import override_settings
 
 from sentry.models import OrganizationMapping
 from sentry.services.hybrid_cloud.auth import AuthService
-from sentry.services.hybrid_cloud.organization import (
-    OrganizationService,
-    RpcOrganizationMemberFlags,
-    RpcUserOrganizationContext,
-)
+from sentry.services.hybrid_cloud.organization import RpcUserOrganizationContext
 from sentry.services.hybrid_cloud.organization.serial import serialize_rpc_organization
+from sentry.services.hybrid_cloud.region import ByOrganizationId, ByOrganizationSlug
 from sentry.services.hybrid_cloud.rpc import (
     RpcAuthenticationSetupException,
+    RpcService,
     dispatch_remote_call,
     dispatch_to_local_service,
+    regional_rpc_method,
 )
-from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
 from sentry.silo import SiloMode, unguarded_write
 from sentry.testutils.cases import TestCase
@@ -37,11 +34,35 @@ _REGIONS = [
 
 
 class RpcServiceTest(TestCase):
+    class ImaginaryService(RpcService):
+        key = "imaginary"
+        local_mode = SiloMode.REGION
+
+        @classmethod
+        def get_local_implementation(cls) -> RpcService:
+            return RpcServiceTest.ImaginaryServiceLocalImpl()
+
+        @regional_rpc_method(resolve=ByOrganizationId())
+        @abstractmethod
+        def set_organization_thing(self, *, organization_id: int, thing: int) -> int:
+            pass
+
+        @regional_rpc_method(resolve=ByOrganizationSlug(), return_none_if_mapping_not_found=True)
+        @abstractmethod
+        def look_something_up_by_slug(self, *, slug: str) -> Optional[str]:
+            pass
+
+    class ImaginaryServiceLocalImpl(ImaginaryService):
+        def set_organization_thing(self, *, organization_id: int, thing: int) -> int:
+            return 2
+
+        def look_something_up_by_slug(self, *, slug: str) -> Optional[str]:
+            return "here it is"
+
     @mock.patch("sentry.services.hybrid_cloud.rpc.dispatch_remote_call")
     def test_remote_service(self, mock_dispatch_remote_call):
         target_region = _REGIONS[0]
 
-        user = self.create_user()
         organization = self.create_organization()
         with unguarded_write(using=router.db_for_write(OrganizationMapping)):
             OrganizationMapping.objects.update_or_create(
@@ -53,18 +74,9 @@ class RpcServiceTest(TestCase):
                 },
             )
 
-        serial_user = RpcUser(id=user.id)
-        serial_org = serialize_rpc_organization(organization)
-
-        service = OrganizationService.create_delegation()
+        service = RpcServiceTest.ImaginaryService.create_delegation()
         with override_regions(_REGIONS), override_settings(SILO_MODE=SiloMode.CONTROL):
-            service.add_organization_member(
-                organization_id=serial_org.id,
-                default_org_role=serial_org.default_role,
-                user=serial_user,
-                flags=RpcOrganizationMemberFlags(),
-                role=None,
-            )
+            service.set_organization_thing(organization_id=organization.id, thing=3)
 
         assert mock_dispatch_remote_call.called
         (
@@ -74,36 +86,21 @@ class RpcServiceTest(TestCase):
             serial_arguments,
         ) = mock_dispatch_remote_call.call_args.args
         assert region == target_region
-        assert service_name == OrganizationService.key
-        assert method_name == "add_organization_member"
-        assert serial_arguments.keys() == {
-            "organization_id",
-            "default_org_role",
-            "user_id",
-            "email",
-            "flags",
-            "role",
-            "inviter_id",
-            "invite_status",
-        }
+        assert service_name == RpcServiceTest.ImaginaryService.key
+        assert method_name == "set_organization_thing"
+        assert serial_arguments.keys() == {"organization_id", "thing"}
         assert serial_arguments["organization_id"] == organization.id
+        assert serial_arguments["thing"] == 3
 
     def test_dispatch_to_local_service(self):
-        user = self.create_user()
-        organization = self.create_organization()
-
-        serial_org = serialize_rpc_organization(organization)
-        serial_arguments = dict(
-            organization_id=serial_org.id,
-            default_org_role=serial_org.default_role,
-            user_id=user.id,
-            flags=RpcOrganizationMemberFlags().dict(),
-            role=None,
-        )
+        serial_arguments = dict(organization_id=4, thing=5)
 
         with assume_test_silo_mode(SiloMode.REGION):
-            service = OrganizationService.create_delegation()
-            dispatch_to_local_service(service.key, "add_organization_member", serial_arguments)
+            service = RpcServiceTest.ImaginaryService.create_delegation()
+            result = dispatch_to_local_service(
+                service.key, "set_organization_thing", serial_arguments
+            )
+        assert result["value"] == 2
 
     def test_dispatch_to_local_service_list_result(self):
         organization = self.create_organization()
@@ -132,7 +129,9 @@ class DispatchRemoteCallTest(TestCase):
             dispatch_remote_call(None, "user", "get_user", {"user_id": 0})
 
     @staticmethod
-    def _set_up_mock_response(service_name: str, response_value: Any, address: str | None = None):
+    def _set_up_mock_response(
+        service_name: str, response_value: Any, address: Optional[str] = None
+    ):
         address = address or control_address
         responses.add(
             responses.POST,
@@ -205,8 +204,9 @@ class DispatchRemoteCallTest(TestCase):
     @override_settings(SILO_MODE=SiloMode.CONTROL, DEV_HYBRID_CLOUD_RPC_SENDER={"is_allowed": True})
     def test_early_halt_from_null_region_resolution(self):
         with override_settings(SILO_MODE=SiloMode.CONTROL):
-            org_service_delgn = cast(
-                OrganizationService, OrganizationService.create_delegation(use_test_client=False)
+            service_delgn = cast(
+                RpcServiceTest.ImaginaryService,
+                RpcServiceTest.ImaginaryService.create_delegation(use_test_client=False),
             )
-        result = org_service_delgn.get_org_by_slug(slug="this_is_not_a_valid_slug")
+        result = service_delgn.look_something_up_by_slug(slug="this_is_not_a_valid_slug")
         assert result is None
