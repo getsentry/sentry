@@ -1524,6 +1524,6 @@ register(
 
 register(
     "delightful_metrics.enable_envelope_forwarding",
-    default=0.0,
+    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

@@ -291,7 +291,7 @@ class Aggregator:
             self._flush_event.set()
 
     def _emit(self, flushed_metrics: List[FlushedMetric], force_flush: bool) -> Any:
-        if options.get("delightful_metrics.enable_envelope_forwarding") == 1.0:
+        if options.get("delightful_metrics.enable_envelope_forwarding"):
             try:
                 self._transport.send(flushed_metrics)
             except Exception as e:
