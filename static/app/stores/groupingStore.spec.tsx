@@ -590,7 +590,7 @@ describe('Grouping Store', function () {
         MockApiClient.clearMockResponses();
         MockApiClient.addMockResponse({
           method: 'DELETE',
-          url: '/issues/groupId/hashes/',
+          url: '/organizations/org-slug/issues/groupId/hashes/',
         });
       });
 
@@ -603,6 +603,7 @@ describe('Grouping Store', function () {
         expect(trigger).not.toHaveBeenCalled();
 
         GroupingStore.onUnmerge({
+          orgSlug: 'org-slug',
           groupId: 'groupId',
         });
 
@@ -630,6 +631,7 @@ describe('Grouping Store', function () {
         });
 
         const promise = GroupingStore.onUnmerge({
+          orgSlug: 'org-slug',
           groupId: 'groupId',
         });
 
@@ -663,6 +665,7 @@ describe('Grouping Store', function () {
 
         const promise = GroupingStore.onUnmerge({
           groupId: 'groupId',
+          orgSlug: 'org-slug',
         });
 
         unmergeState.set('2', {checked: false, busy: true});
@@ -689,7 +692,7 @@ describe('Grouping Store', function () {
         MockApiClient.clearMockResponses();
         MockApiClient.addMockResponse({
           method: 'DELETE',
-          url: '/issues/groupId/hashes/',
+          url: '/organizations/org-slug/issues/groupId/hashes/',
           statusCode: 500,
           body: {},
         });
@@ -699,6 +702,7 @@ describe('Grouping Store', function () {
 
         const promise = GroupingStore.onUnmerge({
           groupId: 'groupId',
+          orgSlug: 'org-slug',
         });
 
         unmergeState.set('2', {checked: false, busy: true});

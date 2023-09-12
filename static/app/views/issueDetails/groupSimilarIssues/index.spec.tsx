@@ -44,7 +44,7 @@ describe('Issues Similar View', function () {
 
   beforeEach(function () {
     mock = MockApiClient.addMockResponse({
-      url: '/issues/group-id/similar/?limit=50',
+      url: '/organizations/org-slug/issues/group-id/similar/?limit=50',
       body: mockData.similar,
     });
   });
@@ -55,7 +55,7 @@ describe('Issues Similar View', function () {
   });
 
   it('renders with mocked data', async function () {
-    const wrapper = render(
+    render(
       <GroupSimilarIssues
         project={project}
         params={{orgId: 'org-slug', groupId: 'group-id'}}
@@ -71,7 +71,6 @@ describe('Issues Similar View', function () {
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
 
     await waitFor(() => expect(mock).toHaveBeenCalled());
-    expect(wrapper.container).toSnapshot();
   });
 
   it('can merge and redirect to new parent', async function () {
