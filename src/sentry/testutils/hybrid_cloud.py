@@ -88,6 +88,10 @@ class SimulatedTransactionWatermarks(threading.local):
 simulated_transaction_watermarks = SimulatedTransactionWatermarks()
 
 
+class CrossTransactionAssertionError(AssertionError):
+    pass
+
+
 class EnforceNoCrossTransactionWrapper:
     alias: str
 
@@ -109,13 +113,14 @@ class EnforceNoCrossTransactionWrapper:
         # when celery tasks fire synchronously, or other work is done in a test that would normally be separated by
         # different connections / processes.  If you believe this is the case, context the #project-hybrid-cloud channel
         # for assistance.
-        assert (
-            len(open_transactions) < 2
-        ), f"Found mixed open transactions between dbs {open_transactions}"
-        if open_transactions:
-            assert (
-                self.alias in open_transactions
-            ), f"Transaction opened for db {open_transactions}, but command running against db {self.alias}"
+        if len(open_transactions) >= 2:
+            raise CrossTransactionAssertionError(
+                f"Found mixed open transactions between dbs {open_transactions}"
+            )
+        if open_transactions and not (self.alias in open_transactions):
+            raise CrossTransactionAssertionError(
+                f"Transaction opened for db {open_transactions}, but command running against db {self.alias}"
+            )
 
         return execute(*params)
 
