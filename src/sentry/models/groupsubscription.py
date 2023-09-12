@@ -82,7 +82,7 @@ class GroupSubscriptionManager(BaseManager):
             else:
                 # subscribe the members of the team
                 team_users_ids = list(actor.member_set.values_list("user_id", flat=True))
-                return self.bulk_subscribe(group, user_ids=team_users_ids, reason)
+                return self.bulk_subscribe(group=group, user_ids=team_users_ids, reason=reason)
 
         raise NotImplementedError("Unknown actor type: %r" % type(actor))
 
@@ -100,10 +100,14 @@ class GroupSubscriptionManager(BaseManager):
         # Unique the IDs.
         if user_ids:
             user_ids = set(user_ids)
+        else:
+            user_ids = set()
 
         # Unique the teams.
         if teams:
             teams = set(teams)
+        else:
+            teams = set()
 
         # 5 retries for race conditions where
         # concurrent subscription attempts cause integrity errors
@@ -143,7 +147,7 @@ class GroupSubscriptionManager(BaseManager):
                         reason=reason,
                     )
                     for team in teams
-                    if team not in existing_team_subscriptions
+                    if team.id not in existing_team_subscriptions
                 ]
             )
 
