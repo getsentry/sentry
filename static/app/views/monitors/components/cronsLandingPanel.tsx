@@ -20,7 +20,12 @@ import {
   PlatformPickerPanel,
   SupportedPlatform,
 } from './platformPickerPanel';
-import {QuickStartProps} from './quickStartEntries';
+import {
+  CeleryBeatAutoDiscovery,
+  LaravelUpsertPlatformGuide,
+  PHPUpsertPlatformGuide,
+  QuickStartProps,
+} from './quickStartEntries';
 
 interface PlatformGuide {
   Guide: React.ComponentType<QuickStartProps>;
@@ -30,19 +35,19 @@ interface PlatformGuide {
 const platformGuides: Record<SupportedPlatform, PlatformGuide[]> = {
   'python-celery': [
     {
-      Guide: () => null,
+      Guide: CeleryBeatAutoDiscovery,
       title: 'Beat Auto Discovery',
     },
   ],
   php: [
     {
-      Guide: () => null,
+      Guide: PHPUpsertPlatformGuide,
       title: 'Upsert',
     },
   ],
   'php-laravel': [
     {
-      Guide: () => null,
+      Guide: LaravelUpsertPlatformGuide,
       title: 'Upsert',
     },
   ],
@@ -92,7 +97,9 @@ export function CronsLandingPanel() {
             {[
               ...guides.map(({title, Guide}) => (
                 <TabPanels.Item key={title}>
-                  <Guide />
+                  <GuideContainer>
+                    <Guide />
+                  </GuideContainer>
                 </TabPanels.Item>
               )),
               <TabPanels.Item key="manual">Manual</TabPanels.Item>,
@@ -110,6 +117,13 @@ const BackButton = styled(Button)`
   margin: ${space(1)} 0 0 ${space(1)};
   padding-left: ${space(0.5)};
   padding-right: ${space(0.5)};
+`;
+
+const GuideContainer = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(2)};
+  padding-top: ${space(2)};
 `;
 
 export function OldCronsLandingPanel() {
