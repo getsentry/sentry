@@ -13,6 +13,7 @@ type MockState = {
   data: undefined | FeedbackListResponse;
   isError: false;
   isLoading: boolean;
+  pageLinks: null;
 };
 
 export default function useFetchFeedbackList(
@@ -24,6 +25,7 @@ export default function useFetchFeedbackList(
     isLoading: true,
     isError: false,
     data: undefined,
+    pageLinks: null,
   });
 
   useEffect(() => {
@@ -32,6 +34,7 @@ export default function useFetchFeedbackList(
         isLoading: false,
         isError: false,
         data: exampleListResponse,
+        pageLinks: null,
       });
     }, Math.random() * 1000);
     return () => clearTimeout(timeout);
@@ -40,5 +43,6 @@ export default function useFetchFeedbackList(
   return {
     ...state,
     data: state.data?.map(hydrateFeedbackRecord),
+    pageLinks: null,
   };
 }
