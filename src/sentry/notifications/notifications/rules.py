@@ -291,5 +291,6 @@ class AlertRuleNotification(ProjectNotification):
         return {
             "target_type": self.target_type,
             "target_identifier": self.target_identifier,
+            "alert_id": self.rules[0].id if self.rules else None,
             **super().get_log_params(recipient),
         }
