@@ -12,6 +12,7 @@ from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.silo import SiloMode
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.types.integrations import ExternalProviders
 
@@ -21,13 +22,21 @@ class SubscribeTest(TestCase):
     def test_simple(self):
         group = self.create_group()
         user = self.create_user()
+        team = self.create_team()
 
-        GroupSubscription.objects.subscribe(group=group, user=user)
+        GroupSubscription.objects.subscribe(group=group, subscriber=user)
 
         assert GroupSubscription.objects.filter(group=group, user_id=user.id).exists()
 
         # should not error
-        GroupSubscription.objects.subscribe(group=group, user=user)
+        GroupSubscription.objects.subscribe(group=group, subscriber=user)
+
+        GroupSubscription.objects.subscribe(group=group, subscriber=team)
+
+        assert GroupSubscription.objects.filter(group=group, team=team).exists()
+
+        # should not error
+        GroupSubscription.objects.subscribe(group=group, subscriber=team)
 
     def test_bulk(self):
         group = self.create_group()
@@ -84,6 +93,23 @@ class SubscribeTest(TestCase):
         GroupSubscription.objects.subscribe_actor(group=group, actor=team)
 
         assert GroupSubscription.objects.filter(group=group, user_id=user.id).exists()
+
+        # should not error
+        GroupSubscription.objects.subscribe_actor(group=group, actor=team)
+
+    @with_feature("organizations:team-workflow-notifications")
+    def test_subscribe_team(self):
+        org = self.create_organization()
+        group = self.create_group()
+        user = self.create_user(email="foo@example.com")
+        team = self.create_team(organization=org)
+        self.create_member(user=user, organization=org, role="owner", teams=[team])
+
+        GroupSubscription.objects.subscribe_actor(group=group, actor=team)
+
+        assert not GroupSubscription.objects.filter(group=group, user_id=user.id).exists()
+
+        assert GroupSubscription.objects.filter(group=group, team=team).exists()
 
         # should not error
         GroupSubscription.objects.subscribe_actor(group=group, actor=team)
