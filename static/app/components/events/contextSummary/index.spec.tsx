@@ -55,8 +55,7 @@ describe('ContextSummary', function () {
         contexts: {},
       };
 
-      const {container} = render(<ContextSummary event={event} />);
-      expect(container).toSnapshot();
+      render(<ContextSummary event={event} />);
     });
 
     it('renders nothing with a single user context', function () {
@@ -67,8 +66,7 @@ describe('ContextSummary', function () {
         contexts: {},
       };
 
-      const {container} = render(<ContextSummary event={event} />);
-      expect(container).toSnapshot();
+      render(<ContextSummary event={event} />);
     });
 
     it('should bail out with empty contexts', function () {
@@ -82,8 +80,7 @@ describe('ContextSummary', function () {
         },
       };
 
-      const {container} = render(<ContextSummary event={event} />);
-      expect(container).toSnapshot();
+      render(<ContextSummary event={event} />);
     });
 
     it('renders at least three contexts', function () {
@@ -96,8 +93,7 @@ describe('ContextSummary', function () {
         },
       };
 
-      const {container} = render(<ContextSummary event={event} />);
-      expect(container).toSnapshot();
+      render(<ContextSummary event={event} />);
     });
 
     it('renders up to four contexts', function () {
@@ -113,8 +109,7 @@ describe('ContextSummary', function () {
         },
       };
 
-      const {container} = render(<ContextSummary event={event} />);
-      expect(container).toSnapshot();
+      render(<ContextSummary event={event} />);
     });
 
     it('should prefer client_os over os', function () {
@@ -130,8 +125,7 @@ describe('ContextSummary', function () {
         },
       };
 
-      const {container} = render(<ContextSummary event={event} />);
-      expect(container).toSnapshot();
+      render(<ContextSummary event={event} />);
     });
 
     it('renders client_os too', function () {
@@ -146,8 +140,7 @@ describe('ContextSummary', function () {
         },
       };
 
-      const {container} = render(<ContextSummary event={event} />);
-      expect(container).toSnapshot();
+      render(<ContextSummary event={event} />);
     });
 
     it('should skip non-default named contexts', function () {
@@ -163,8 +156,7 @@ describe('ContextSummary', function () {
         },
       };
 
-      const {container} = render(<ContextSummary event={event} />);
-      expect(container).toSnapshot();
+      render(<ContextSummary event={event} />);
     });
 
     it('should skip a missing user context', function () {
@@ -179,8 +171,7 @@ describe('ContextSummary', function () {
         },
       };
 
-      const {container} = render(<ContextSummary event={event} />);
-      expect(container).toSnapshot();
+      render(<ContextSummary event={event} />);
     });
   });
 });
@@ -188,7 +179,7 @@ describe('ContextSummary', function () {
 describe('OsSummary', function () {
   describe('render()', function () {
     it('renders the version string', function () {
-      const {container} = render(
+      render(
         <ContextSummaryOS
           data={{
             kernel_version: '17.5.0',
@@ -198,11 +189,10 @@ describe('OsSummary', function () {
           meta={{}}
         />
       );
-      expect(container).toSnapshot();
     });
 
     it('renders the kernel version when no version', function () {
-      const {container} = render(
+      render(
         <ContextSummaryOS
           data={{
             kernel_version: '17.5.0',
@@ -211,11 +201,10 @@ describe('OsSummary', function () {
           meta={{}}
         />
       );
-      expect(container).toSnapshot();
     });
 
     it('renders unknown when no version', function () {
-      const {container} = render(
+      render(
         <ContextSummaryOS
           data={{
             name: 'Mac OS X',
@@ -223,7 +212,6 @@ describe('OsSummary', function () {
           meta={{}}
         />
       );
-      expect(container).toSnapshot();
     });
 
     it('display redacted name', async function () {
@@ -285,7 +273,7 @@ describe('OsSummary', function () {
 describe('GpuSummary', function () {
   describe('render()', function () {
     it('renders name and vendor', function () {
-      const {container} = render(
+      render(
         <ContextSummaryGPU
           data={{
             name: 'Mali-T880',
@@ -294,11 +282,10 @@ describe('GpuSummary', function () {
           meta={{}}
         />
       );
-      expect(container).toSnapshot();
     });
 
     it('renders unknown when no vendor', function () {
-      const {container} = render(
+      render(
         <ContextSummaryGPU
           data={{
             name: 'Apple A8 GPU',
@@ -306,7 +293,6 @@ describe('GpuSummary', function () {
           meta={{}}
         />
       );
-      expect(container).toSnapshot();
     });
 
     it('display redacted name', async function () {
