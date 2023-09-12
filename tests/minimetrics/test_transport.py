@@ -1,4 +1,6 @@
-from minimetrics.transport import RelayStatsdEncoder
+import pytest
+
+from minimetrics.transport import EncodingError, RelayStatsdEncoder
 
 
 def test_relay_encoder_with_counter():
@@ -118,15 +120,23 @@ def test_relay_encoder_with_invalid_chars():
 
     metric_1 = {
         "type": "c",
-        "name": "@button_click",
+        "name": "button_click",
         "value": 2,
         "timestamp": 1693994400,
         "width": 10,
         "unit": "second",
         "tags": (
-            ("browser:name", "Chrome"),
-            ("browser|version", "1.0"),
+            # Invalid tag key.
+            ("browser\nname", "Chrome"),
+            # Invalid tag value.
+            ("browser.version", "\t1.\n0"),
+            # Valid tag key and value.
+            ("platform", "Android"),
         ),
     }
     result = encoder.encode(metric_1)  # type:ignore
-    assert result == "button_click@second:2|c|#browsername:Chrome,browserversion:1.0|T1693994400"
+    assert result == "button_click@second:2|c|#browser.version:1.0,platform:Android|T1693994400"
+
+    metric_2 = {"type": "c", "name": "büttòn", "value": 2, "timestamp": 1693994400, "width": 10}
+    with pytest.raises(EncodingError, match="The metric name is not valid"):
+        encoder.encode(metric_2)  # type:ignore
