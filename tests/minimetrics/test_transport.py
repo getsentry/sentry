@@ -174,7 +174,22 @@ def test_relay_encoder_with_multiple_metrics():
         metric=CounterMetric(first=1),
     )
 
-    result = encoder.encode_multiple([flushed_metric_1, flushed_metric_2])
+    flushed_metric_3 = FlushedMetric(
+        bucket_key=BucketKey(
+            timestamp=1693994400,
+            metric_type="c",
+            # This name will be completely scraped, resulting in no emission of the metric.
+            metric_name="öüâ",
+            metric_unit="none",
+            metric_tags=(
+                ("browser", "Chrome"),
+                ("browser.version", "1.0"),
+            ),
+        ),
+        metric=CounterMetric(first=1),
+    )
+
+    result = encoder.encode_multiple([flushed_metric_1, flushed_metric_2, flushed_metric_3])
 
     assert result == (
         "startup_time@second:10.0:10.0:10.0:10.0:1|g|#browser:Chrome,browser.version:1.0|T1693994400"

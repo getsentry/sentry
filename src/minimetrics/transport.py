@@ -22,7 +22,9 @@ class RelayStatsdEncoder:
     def encode(self, value: FlushedMetric) -> str:
         metric_name = self._sanitize_value(value.bucket_key.metric_name)
         if not metric_name:
-            raise EncodingError("The sanitized metric name is empty")
+            raise EncodingError(
+                f"The sanitized metric name {value.bucket_key.metric_name} is empty"
+            )
         metric_unit = self._get_metric_unit(value.bucket_key.metric_unit)
         metric_values = self._get_metric_values(value.metric.serialize_value())
         metric_type = value.bucket_key.metric_type
@@ -32,15 +34,16 @@ class RelayStatsdEncoder:
         return f"{metric_name}{metric_unit}:{metric_values}|{metric_type}{metric_tags}{metric_timestamp}"
 
     def encode_multiple(self, values: Sequence[FlushedMetric]) -> str:
-        encoded_values = []
-
-        for value in values:
+        def _safe_encode(value: FlushedMetric) -> Optional[str]:
             try:
-                encoded_values.append(self.encode(value))
+                return self.encode(value)
             except EncodingError:
-                pass
+                sentry_sdk.capture_exception()
+                return None
 
-        return "\n".join(encoded_values)
+        return "\n".join(
+            encoded_value for value in values if (encoded_value := _safe_encode(value))
+        )
 
     def _sanitize_value(self, value: str) -> str:
         # Remove all non-alphanumerical chars which are different from _ / .
