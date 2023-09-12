@@ -169,13 +169,13 @@ class ProjectDebugSymbols extends DeprecatedAsyncView<Props, State> {
 
         {organization.features.includes('symbol-sources') && (
           <Fragment>
-            <PermissionAlert />
+            <PermissionAlert project={project} />
 
             <Sources
               api={this.api}
               location={location}
               router={router}
-              projSlug={project.slug}
+              project={project}
               organization={organization}
               customRepositories={
                 (project.symbolSources
