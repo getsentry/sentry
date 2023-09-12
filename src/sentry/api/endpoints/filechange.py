@@ -50,10 +50,20 @@ class CommitFileChangeEndpoint(OrganizationReleasesBaseEndpoint):
             )
         )
 
+        repo_id = request.query_params.get("repo_id")
         repo_name = request.query_params.get("repo_name")
 
-        # TODO: use id instead of name
-        if repo_name:
+        # prefer repo external ID to name
+        if repo_id:
+            try:
+                repo = Repository.objects.get(
+                    organization_id=organization.id, external_id=repo_id, status=ObjectStatus.ACTIVE
+                )
+                queryset = queryset.filter(commit__repository_id=repo.id)
+            except Repository.DoesNotExist:
+                raise ResourceDoesNotExist
+
+        elif repo_name:
             try:
                 repo = Repository.objects.get(
                     organization_id=organization.id, name=repo_name, status=ObjectStatus.ACTIVE

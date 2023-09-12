@@ -18,11 +18,12 @@ class CommitFileChangeTest(APITestCase):
         )
         self.release.add_project(self.project)
         self.repo = Repository.objects.create(
-            organization_id=self.project.organization_id, name=self.project.name
+            organization_id=self.project.organization_id, name=self.project.name, external_id=123
         )
         Repository.objects.create(
             organization_id=self.project.organization_id,
             name=self.project.name,
+            external_id=123,
             status=ObjectStatus.HIDDEN,
         )
         commit = Commit.objects.create(
@@ -70,6 +71,16 @@ class CommitFileChangeTest(APITestCase):
             self.project.organization.slug,
             self.release.version,
             qs_params={"repo_name": self.repo.name},
+        )
+
+        assert response.data[0]["filename"] == ".gitignore"
+        assert response.data[1]["filename"] == "/static/js/widget.js"
+
+    def test_query_external_id(self):
+        response = self.get_success_response(
+            self.project.organization.slug,
+            self.release.version,
+            qs_params={"repo_id": self.repo.external_id},
         )
 
         assert response.data[0]["filename"] == ".gitignore"
