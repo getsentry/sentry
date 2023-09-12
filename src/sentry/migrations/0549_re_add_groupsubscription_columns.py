@@ -21,7 +21,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0545_add_last_verified_auth_ident_replica"),
+        ("sentry", "0548_add_is_unclaimed_boolean_to_user"),
     ]
 
     operations = [
