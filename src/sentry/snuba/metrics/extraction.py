@@ -608,13 +608,6 @@ _DERIVED_METRICS: Dict[MetricOperationType, TagsSpecsGenerator] = {
 }
 
 
-def is_derived_metric(op: Optional[MetricOperationType]) -> bool:
-    if op is None:
-        return False
-
-    return op in _DERIVED_METRICS
-
-
 @dataclass(frozen=True)
 class FieldParsingResult:
     function: str
@@ -749,34 +742,43 @@ class OnDemandMetricSpec:
         if parsed_field is None:
             raise Exception(f"Unable to parse the field {self.field}")
 
-        # We have to handle the special case for the "count_if" function, however it may be better to build some
-        # better abstracted code to handle third-party rule conditions injection.
-        count_if_rule_condition = None
-        if parsed_field.function == "count_if":
-            key, op, value = parsed_field.arguments
-            count_if_rule_condition = _convert_countif_filter(key, op, value)
-
         # First step is to parse the query string into our internal AST format.
         parsed_query = self._parse_query(self.query)
+        # Second step is to extract the conditions that might be present in the aggregate function.
+        aggregate_conditions = self._aggregate_conditions(parsed_field)
+
         # An on demand metric must have at least a condition, otherwise we can just use a classic metric.
         if parsed_query is None or len(parsed_query.conditions) == 0:
-            if count_if_rule_condition is None and parsed_field.function != "apdex":
+            if aggregate_conditions is None:
+                # derived metrics have their conditions injected in the tags
+                if self._get_op(parsed_field.function) in _DERIVED_METRICS:
+                    return None
                 raise Exception("This query should not use on demand metrics")
 
-            return count_if_rule_condition
+            return aggregate_conditions
 
-        # Second step is to generate the actual Relay rule that contains all rules nested.
+        # Third step is to generate the actual Relay rule that contains all rules nested.
         rule_condition = SearchQueryConverter(parsed_query.conditions).convert()
-        if not count_if_rule_condition:
+        if not aggregate_conditions:
             return rule_condition
 
         # In case we have a top level rule which is not an "and" we have to wrap it.
         if rule_condition["op"] != "and":
-            return {"op": "and", "inner": [rule_condition, count_if_rule_condition]}
+            return {"op": "and", "inner": [rule_condition, aggregate_conditions]}
 
         # In the other case, we can just flatten the conditions.
-        rule_condition["inner"].append(count_if_rule_condition)
+        rule_condition["inner"].append(aggregate_conditions)
         return rule_condition
+
+    @staticmethod
+    def _aggregate_conditions(parsed_field) -> Optional[RuleCondition]:
+        # We have to handle the special case for the "count_if" function, however it may be better to build some
+        # better abstracted code to handle third-party rule conditions injection.
+        if parsed_field.function == "count_if":
+            key, op, value = parsed_field.arguments
+            return _convert_countif_filter(key, op, value)
+
+        return None
 
     @staticmethod
     def _parse_argument(

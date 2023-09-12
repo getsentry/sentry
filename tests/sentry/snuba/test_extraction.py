@@ -93,6 +93,7 @@ class TestCreatesOndemandMetricSpec:
             ("p95(measurements.lcp)", ""),
             ("avg(spans.http)", ""),
             ("failure_rate()", "release:bar"),
+            ("failure_rate()", ""),
         ],
     )
     def test_does_not_create_on_demand_spec(self, aggregate, query):
