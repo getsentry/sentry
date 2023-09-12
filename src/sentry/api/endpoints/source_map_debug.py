@@ -1,4 +1,4 @@
-from typing import List, Union
+from typing import List, Literal, Optional
 
 from django.utils.encoding import force_bytes, force_str
 from drf_spectacular.utils import extend_schema
@@ -40,14 +40,39 @@ NO_DEBUG_ID_SDKS = {
 }
 
 
-class SourceMapProcessingIssueResponse(TypedDict):
-    type: str
-    message: str
-    data: Union[dict, None]
+class SourceMapDebugIdProcessResult(TypedDict):
+    debug_id: Optional[str]
+    uploaded_source_file_with_correct_debug_id: bool
+    uploaded_source_map_with_correct_debug_id: bool
 
 
-class SourceMapProcessingResponse(TypedDict):
-    errors: List[SourceMapProcessingIssueResponse]
+class SourceMapReleaseProcessResult(TypedDict):
+    matching_source_file_names: List[str]
+    matching_source_map_name: Optional[str]
+    source_map_reference: Optional[str]
+    source_file_lookup_result: Literal["found", "wrong-dist", "unsuccessful"]
+    source_map_lookup_result: Literal["found", "wrong-dist", "unsuccessful"]
+
+
+class SourceMapDebugFrame(TypedDict):
+    debug_id_process: SourceMapDebugIdProcessResult
+    release_process: str
+
+
+class SourceMapDebugException(TypedDict):
+    frames: List[SourceMapDebugFrame]
+
+
+class SourceMapDebugResponse(TypedDict):
+    dist: Optional[str]
+    release: Optional[str]
+    exceptions: List[SourceMapDebugException]
+    has_debug_ids: bool
+    sdk_version: Optional[str]
+    project_has_some_artifact_bundle: bool
+    release_has_some_artifact: bool
+    has_uploaded_some_artifact_with_a_debug_id: bool
+    sdk_debug_id_support: Literal["not-supported", "unofficial-sdk", "needs-upgrade", "full"]
 
 
 @region_silo_endpoint
@@ -68,8 +93,7 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
         ],
         request=None,
         responses={
-            # TODO change serializer
-            200: inline_sentry_response_serializer("SourceMapDebug", SourceMapProcessingResponse),
+            200: inline_sentry_response_serializer("SourceMapDebug", SourceMapDebugResponse),
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
