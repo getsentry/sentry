@@ -23,7 +23,6 @@ from sentry.notifications.helpers import (
 from sentry.notifications.types import GroupSubscriptionReason, NotificationSettingTypes
 from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.services.hybrid_cloud.notifications import notifications_service
-from sentry.services.hybrid_cloud.organization.model import RpcTeam
 from sentry.services.hybrid_cloud.user import RpcUser
 
 if TYPE_CHECKING:
@@ -35,7 +34,7 @@ class GroupSubscriptionManager(BaseManager):
     def subscribe(
         self,
         group: Group,
-        subscriber: User | RpcUser | Team | RpcTeam,
+        subscriber: User | RpcUser | Team,
         reason: int = GroupSubscriptionReason.unknown,
     ) -> bool:
         """
@@ -54,7 +53,7 @@ class GroupSubscriptionManager(BaseManager):
                         is_active=True,
                         reason=reason,
                     )
-                elif isinstance(subscriber, Team) or isinstance(subscriber, RpcTeam):
+                elif isinstance(subscriber, Team):
                     self.create(
                         team=subscriber,
                         group=group,
@@ -69,7 +68,7 @@ class GroupSubscriptionManager(BaseManager):
     def subscribe_actor(
         self,
         group: Group,
-        actor: Union[Team, User, RpcTeam, RpcUser],
+        actor: Union[Team, User, RpcUser],
         reason: int = GroupSubscriptionReason.unknown,
     ) -> Optional[bool]:
         from sentry import features
@@ -77,7 +76,7 @@ class GroupSubscriptionManager(BaseManager):
 
         if isinstance(actor, RpcUser) or isinstance(actor, User):
             return self.subscribe(group, actor, reason)
-        if isinstance(actor, Team) or isinstance(actor, RpcTeam):
+        if isinstance(actor, Team):
             if features.has("organizations:team-workflow-notifications", group.organization, actor):
                 return self.subscribe(group, actor, reason)
             else:
