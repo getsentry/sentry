@@ -63,11 +63,6 @@ class SlackUnlinkTeamView(BaseView):
         if not integration:
             raise Http404
 
-        idp = identity_service.get_provider(
-            provider_ext_id=integration.external_id,
-            provider_type=EXTERNAL_PROVIDERS[ExternalProviders.SLACK],
-        )
-
         om = OrganizationMember.objects.get_for_integration(
             integration, request.user, organization_id=params["organization_id"]
         ).first()
@@ -103,6 +98,11 @@ class SlackUnlinkTeamView(BaseView):
                     "provider": integration.get_provider(),
                 },
             )
+
+        idp = identity_service.get_provider(
+            provider_ext_id=integration.external_id,
+            provider_type=EXTERNAL_PROVIDERS[ExternalProviders.SLACK],
+        )
 
         if not idp or not identity_service.get_identity(
             filter={"provider_id": idp.id, "identity_ext_id": params["slack_id"]}
