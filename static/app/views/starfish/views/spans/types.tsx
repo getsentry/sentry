@@ -12,7 +12,9 @@ export type DataKey =
   | 'duration'
   | 'errorCount'
   | 'slowFrames'
-  | 'ttid';
+  | 'ttid'
+  | 'ttfd'
+  | 'count';
 
 export const DataTitles: Record<DataKey, string> = {
   change: t('Change'),
@@ -24,8 +26,10 @@ export const DataTitles: Record<DataKey, string> = {
   duration: t('Duration'),
   errorCount: t('5XX Responses'),
   throughput: t('Throughput'),
+  count: t('Count'),
   slowFrames: t('Slow Frames %'),
   ttid: t('Time To Initial Display'),
+  ttfd: t('Time To Full Display'),
 };
 
 export const getThroughputTitle = (spanOp?: string) => {
