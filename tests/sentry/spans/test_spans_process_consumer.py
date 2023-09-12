@@ -116,3 +116,12 @@ def test_null_tags_and_data():
 
     assert all([v is not None for v in snuba_span["sentry_tags"].values()])
     assert "description" in snuba_span["sentry_tags"]
+
+    relay_span["data"] = {
+        "status_code": "undefined",
+        "group": "[Filtered]",
+    }
+    snuba_span = _build_snuba_span(relay_span)
+
+    assert snuba_span["sentry_tags"].get("group") is None
+    assert snuba_span["sentry_tags"].get("status_code") is None

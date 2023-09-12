@@ -81,10 +81,18 @@ def _build_snuba_span(relay_span: Mapping[str, Any]) -> MutableMapping[str, Any]
     if span_data:
         for relay_tag, snuba_tag in TAG_MAPPING.items():
             tag_value = span_data.get(relay_tag)
-            if tag_value is None:
-                if snuba_tag == "group":
+            if snuba_tag == "group":
+                if tag_value is None:
                     metrics.incr("spans.missing_group")
-            else:
+                else:
+                    try:
+                        # Test if the value is valid hexadecimal.
+                        _ = int(tag_value, 16)
+                        # If valid, set the raw value to the tag.
+                        sentry_tags["group"] = tag_value
+                    except ValueError:
+                        metrics.incr("spans.invalid_group")
+            elif tag_value is not None:
                 sentry_tags[snuba_tag] = tag_value
 
     if "op" not in sentry_tags and (op := relay_span.get("op", "")) is not None:
@@ -104,7 +112,7 @@ def _build_snuba_span(relay_span: Mapping[str, Any]) -> MutableMapping[str, Any]
     grouping_config = load_span_grouping_config()
 
     if snuba_span["is_segment"]:
-        group = grouping_config.strategy.get_transaction_span_group(
+        group_raw = grouping_config.strategy.get_transaction_span_group(
             {"transaction": span_data.get("transaction", "")},
         )
     else:
@@ -122,9 +130,15 @@ def _build_snuba_span(relay_span: Mapping[str, Any]) -> MutableMapping[str, Any]
             data=None,
             same_process_as_parent=True,
         )
-        group = grouping_config.strategy.get_span_group(span)
+        group_raw = grouping_config.strategy.get_span_group(span)
 
-    snuba_span["group_raw"] = group or "0"
+    try:
+        _ = int(group_raw, 16)
+        snuba_span["group_raw"] = group_raw
+    except ValueError:
+        snuba_span["group_raw"] = "0"
+        metrics.incr("spans.invalid_group_raw")
+
     snuba_span["span_grouping_config"] = {"id": grouping_config.id}
 
     return snuba_span
