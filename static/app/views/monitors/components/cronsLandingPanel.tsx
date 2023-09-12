@@ -20,7 +20,11 @@ import {
   PlatformPickerPanel,
   SupportedPlatform,
 } from './platformPickerPanel';
-import {CeleryBeatAutoDiscovery, QuickStartProps} from './quickStartEntries';
+import {
+  CeleryBeatAutoDiscovery,
+  PHPUpsertPlatformGuide,
+  QuickStartProps,
+} from './quickStartEntries';
 
 interface PlatformGuide {
   Guide: React.ComponentType<QuickStartProps>;
@@ -36,7 +40,7 @@ const platformGuides: Record<SupportedPlatform, PlatformGuide[]> = {
   ],
   php: [
     {
-      Guide: () => null,
+      Guide: PHPUpsertPlatformGuide,
       title: 'Upsert',
     },
   ],
