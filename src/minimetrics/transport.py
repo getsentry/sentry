@@ -12,6 +12,10 @@ sanitization_re = re.compile(r"[^a-zA-Z0-9_/.]+")
 
 
 class EncodingError(Exception):
+    """
+    Raised when the encoding of a flushed metric encounters an error.
+    """
+
     pass
 
 
