@@ -166,7 +166,6 @@ class Migration(CheckedMigration):
         ("sentry", "0308_remove_alert_type_column"),
         ("sentry", "0309_fix_many_to_many_field"),
         ("sentry", "0310_sentry_functions_add_webhooks"),
-        ("sentry", "0311_backfill_slack_settings"),
         ("sentry", "0312_has_profiles_flag"),
         ("sentry", "0313_sentry_functions_env_variables"),
         ("sentry", "0314_bit_int_for_org_and_project_id"),
