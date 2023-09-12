@@ -8,7 +8,11 @@ Host: https://sentry.io/api/0
 
 **How to read this document.**
 
-This document is structured by resource with each resource having actions that can be performed against it. Every action that either accepts a request or returns a response _will_ document the full interchange format. Clients may opt to restrict response data or provide a subset of the request data. The API may or may not accept partial payloads.
+This document is structured by resource with each resource having actions that
+can be performed against it. Every action that either accepts a request or
+returns a response _will_ document the full interchange format. Clients may opt
+to restrict response data or provide a subset of the request data. The API may
+or may not accept partial payloads.
 
 ## Feedback Index [/organizations/<organization_slug>/feedback/]
 
@@ -17,16 +21,13 @@ This document is structured by resource with each resource having actions that c
   - field (optional, string)
   - environment (optional, string)
   - project (optional, string)
-  - sort (optional, string)
-    Default: -timestamp
-    Members
+  - sort (optional, string) Default: -timestamp Members
     - projectId
     - -projectId
     - timestamp
     - -timestamp
-  - statsPeriod (optional, string) - A positive integer suffixed with a unit type.
-    Default: 7d
-    Members
+  - statsPeriod (optional, string) - A positive integer suffixed with a unit
+    type. Default: 7d Members
     - s
     - m
     - h
@@ -36,12 +37,13 @@ This document is structured by resource with each resource having actions that c
   - end (optional, string) - ISO 8601 format. Required if `start` is set.
   - utc (optiona, 'true') - Whether start/end should use the UTC timezone
   - cursor (optional, str)
-  - per_page (optional, number)
-    Default: 10
-  - offset (optional, number)
-    Default: 0
-  - query (optional, string) - Search query with space-separated field/value pairs. ie: `?query=browser:Firefox`.
-  - queryReferrer(optional, string) - Specify the page which this query is being made from. Used for cross project query on issue replays page. Pass `queryReferrer=replayUserFeedback` for this query.
+  - per_page (optional, number) Default: 10
+  - offset (optional, number) Default: 0
+  - query (optional, string) - Search query with space-separated field/value
+    pairs. ie: `?query=browser:Firefox`.
+  - queryReferrer(optional, string) - Specify the page which this query is being
+    made from. Used for cross project query on issue replays page. Pass
+    `queryReferrer=replayUserFeedback` for this query.
 
 ### Browse Feedback [GET]
 
@@ -238,9 +240,14 @@ Delete a feedback item.
 
 ### Create Feedback [POST]
 
-Create a new feedback item. This method is a subset of the Event protocol with an additional "feedback" object added. Within the feedback object are feedback related event metadata.
+Create a new feedback item. This method is a subset of the Event protocol with
+an additional "feedback" object added. Within the feedback object are feedback
+related event metadata.
 
-Every field not marked as "optional" is considered a required field and must be present in the request body.
+Every field not marked as "optional" is considered a required field and must be
+present in the request body.
+
+See https://develop.sentry.dev/sdk/event-payloads/types/ for more information
 
 | Column                     | Type             | Description                           |
 | -------------------------- | ---------------- | ------------------------------------- |
@@ -268,6 +275,15 @@ Every field not marked as "optional" is considered a required field and must be 
 | user.ip_address            | optional[string] | -                                     |
 | user.name                  | optional[string] | -                                     |
 | user.username              | optional[string] | -                                     |
+| contexts                   | optional[object] | -                                     |
+| BrowserContext             | optional[object] | -                                     |
+| name                       | optional[string] | -                                     |
+| version                    | optional[string] | -                                     |
+| DeviceContext              | optional[object] | -                                     |
+| name                       | optional[string] | -                                     |
+| model                      | optional[string] | -                                     |
+| type                       | optional[string] | -                                     |
+| family                     | optional[string] | -                                     |
 
 - Request
 
@@ -303,6 +319,18 @@ Every field not marked as "optional" is considered a required field and must be 
       "ip_address": "127.0.0.1",
       "name": "user",
       "username": "user2270129"
+    },
+    "contexts": {
+      "BrowserContext": {
+        "name": "Chrome",
+        "version": "116.0.0"
+      },
+      "DeviceContext": {
+        "family": "Mac",
+        "model": "Mac",
+        "brand": "Apple",
+        "type": "device"
+      }
     }
   }
   ```
