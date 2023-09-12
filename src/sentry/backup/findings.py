@@ -83,6 +83,27 @@ class ComparatorFindingKind(IntEnum):
     # `None`.
     IgnoredComparatorExistenceCheck = auto()
 
+    # Secret token fields did not match their regex specification.
+    SecretHexComparator = auto()
+
+    # Failed to compare a secret token field because one of the fields being compared was not
+    # present or `None`.
+    SecretHexComparatorExistenceCheck = auto()
+
+    # UUID4 fields did not match their regex specification.
+    UUID4Comparator = auto()
+
+    # Failed to compare a UUID4 field because one of the fields being compared was not present or
+    # `None`.
+    UUID4ComparatorExistenceCheck = auto()
+
+    # Incorrect user password field.
+    UserPasswordObfuscatingComparator = auto()
+
+    # Failed to compare a user password field because one of the fields being compared was not
+    # present or `None`.
+    UserPasswordObfuscatingComparatorExistenceCheck = auto()
+
 
 class ComparatorFinding(NamedTuple):
     """Store all information about a single failed matching between expected and actual output."""

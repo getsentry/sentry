@@ -33,7 +33,6 @@ body:
         - 'Issues - Suggested Fix'
         - 'Projects - Project Creation'
         - 'Projects - Project Details'
-        - 'APIs'
         - 'Performance'
         - 'Starfish'
         - 'Starfish - API'
@@ -64,6 +63,8 @@ body:
         - 'Help'
         - "What's New"
         - 'Footer'
+        - 'APIs'
+        - 'Org Relocation'
         - 'Other'
         # end product areas
     validations:
