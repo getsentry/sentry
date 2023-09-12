@@ -40,7 +40,7 @@ This document is structured by resource with each resource having actions that c
     Default: 10
   - offset (optional, number)
     Default: 0
-  - query (optional, string) - Search query with space-separated field/value pairs. ie: `?query=count_errors:>2`.
+  - query (optional, string) - Search query with space-separated field/value pairs. ie: `?query=browser:Firefox`.
   - queryReferrer(optional, string) - Specify the page which this query is being made from. Used for cross project query on issue replays page. Pass `queryReferrer=replayUserFeedback` for this query.
 
 ### Browse Feedback [GET]
