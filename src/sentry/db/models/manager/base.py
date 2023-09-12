@@ -284,7 +284,7 @@ class BaseManager(DjangoBaseManager.from_queryset(BaseQuerySet), Generic[M]):  #
 
             if settings.DEBUG:
                 raise ValueError("Unexpected value type returned from cache")
-            logger.error("Cache response returned invalid value %r", inst)
+            logger.error("Cache response returned invalid value", extra={"instance": inst})
             if local_cache is not None and cache_key in local_cache:
                 del local_cache[cache_key]
             cache.delete(cache_key, version=self.cache_version)
