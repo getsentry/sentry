@@ -352,3 +352,53 @@ $checkInId = \Sentry\captureCheckIn(
     </Fragment>
   );
 }
+
+export function LaravelUpsertPlatformGuide() {
+  const basicConfigCode = `protected function schedule(Schedule $schedule)
+{
+    $schedule->command('emails:send')
+        ->everyHour()
+        ->sentryMonitor(); // add this line
+}`;
+
+  const advancedConfigCode = `protected function schedule(Schedule $schedule)
+{
+    $schedule->command('emails:send')
+        ->everyHour()
+        ->sentryMonitor(
+            // Specify the slug of the job monitor in case of duplicate commands or if the monitor was created in the UI
+            monitorSlug: null,
+            // Check-in margin in minutes
+            checkInMargin: 5,
+            // Max runtime in minutes
+            maxRuntime: 15,
+            // In case you want to configure the job monitor exclusively in the UI, you can turn off sending the monitor config with the check-in.
+            // Passing a monitor-slug is required in this case.
+            updateMonitorConfig: false,
+        )
+}`;
+
+  return (
+    <Fragment>
+      <div>
+        {tct('Use the [additionalDocs: Laravel SDK] to monitor your scheduled task.', {
+          additionalDocs: (
+            <ExternalLink href="https://docs.sentry.io/platforms/php/guides/laravel/crons/#job-monitoring" />
+          ),
+        })}
+      </div>
+      <div>
+        {t(
+          'To set up, add the "sentryMonitor()" macro to your scheduled tasks defined in your "app/Console/Kernel.php" file:'
+        )}
+      </div>
+      <CodeSnippet language="php">{basicConfigCode}</CodeSnippet>
+      <div>
+        {t(
+          'By default, the Laravel SDK will infer various parameters of your scheduled task. For greater control, we expose some optional parameters on the sentryMonitor() macro.'
+        )}
+      </div>
+      <CodeSnippet language="php">{advancedConfigCode}</CodeSnippet>
+    </Fragment>
+  );
+}

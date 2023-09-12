@@ -22,6 +22,7 @@ import {
 } from './platformPickerPanel';
 import {
   CeleryBeatAutoDiscovery,
+  LaravelUpsertPlatformGuide,
   PHPUpsertPlatformGuide,
   QuickStartProps,
 } from './quickStartEntries';
@@ -46,7 +47,7 @@ const platformGuides: Record<SupportedPlatform, PlatformGuide[]> = {
   ],
   'php-laravel': [
     {
-      Guide: () => null,
+      Guide: LaravelUpsertPlatformGuide,
       title: 'Upsert',
     },
   ],
