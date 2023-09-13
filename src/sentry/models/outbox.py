@@ -552,6 +552,7 @@ class OutboxBase(Model):
                 "outbox.coalesced_net_queue_time",
                 datetime.datetime.now(tz=datetime.timezone.utc).timestamp()
                 - first_coalesced.date_added.timestamp(),
+                tags=tags,
             )
 
         yield coalesced
