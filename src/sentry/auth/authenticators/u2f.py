@@ -36,6 +36,10 @@ def create_credential_object(registeredKey):
     )
 
 
+def _get_url_prefix() -> str:
+    return options.get("system.url-prefix")
+
+
 class U2fInterface(AuthenticatorInterface):
     type = 3
     interface_id = "u2f"
@@ -51,7 +55,7 @@ class U2fInterface(AuthenticatorInterface):
     allow_multi_enrollment = True
     # rp is a relying party for webauthn, this would be sentry.io for SAAS
     # and the prefix for self-hosted / dev environments
-    rp_id = urlparse(options.get("system.url-prefix")).hostname
+    rp_id = urlparse(_get_url_prefix()).hostname
     rp = PublicKeyCredentialRpEntity(rp_id, "Sentry")
     webauthn_registration_server = Fido2Server(rp)
 
@@ -71,12 +75,12 @@ class U2fInterface(AuthenticatorInterface):
     def u2f_facets(cls):
         facets = options.get("u2f.facets")
         if not facets:
-            return [options.get("system.url-prefix")]
+            return [_get_url_prefix()]
         return [x.rstrip("/") for x in facets]
 
     @classproperty
     def is_available(cls):
-        url_prefix = options.get("system.url-prefix")
+        url_prefix = _get_url_prefix()
         return url_prefix and url_prefix.startswith("https://")
 
     def _get_kept_devices(self, key):
