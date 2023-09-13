@@ -1,7 +1,15 @@
-from django.core.files.base import ContentFile
 from rest_framework import status
 
-from sentry.models import Distribution, File, Release, ReleaseFile
+from sentry.models.artifactbundle import (
+    ArtifactBundle,
+    DebugIdArtifactBundle,
+    ProjectArtifactBundle,
+    SourceFileType,
+)
+from sentry.models.distribution import Distribution
+from sentry.models.file import File
+from sentry.models.release import Release
+from sentry.models.releasefile import ReleaseFile
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 
@@ -13,11 +21,12 @@ def create_exception_with_frame(frame):
     }
 
 
-def create_event(exceptions=None, debug_meta_images=None, sdk=None, release=None):
+def create_event(exceptions=None, debug_meta_images=None, sdk=None, release=None, dist=None):
     exceptions = [] if exceptions is None else exceptions
     return {
         "event_id": "a" * 32,
         "release": release,
+        "dist": dist,
         "exception": {"values": exceptions},
         "debug_meta": None if debug_meta_images is None else {"images": debug_meta_images},
         "sdk": sdk,
@@ -170,85 +179,711 @@ class SourceMapDebugBlueThunderEditionEndpointTestCase(APITestCase):
             assert resp.data["sdk_debug_id_support"] == "unofficial-sdk"
 
     def test_release_has_some_artifact_positive(self):
-        # TODO
-        return
+        with self.feature("organizations:source-maps-debugger-blue-thunder-edition"):
+            event = self.store_event(
+                data=create_event(release="some-release"),
+                project_id=self.project.id,
+            )
+
+            release = Release.objects.get(organization=self.organization, version=event.release)
+
+            ReleaseFile.objects.create(
+                organization_id=self.organization.id,
+                release_id=release.id,
+                file=File.objects.create(name="bundle.js", type="release.file"),
+                name="~/bundle.js",
+            )
+
+            resp = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                event.event_id,
+            )
+
+            assert resp.data["release_has_some_artifact"]
 
     def test_release_has_some_artifact_negative(self):
-        # TODO
-        return
+        with self.feature("organizations:source-maps-debugger-blue-thunder-edition"):
+            event = self.store_event(
+                data=create_event(release="some-release"),
+                project_id=self.project.id,
+            )
+
+            resp = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                event.event_id,
+            )
+
+            assert not resp.data["release_has_some_artifact"]
 
     def test_project_has_some_artifact_bundle_positive(self):
-        # TODO
-        return
+        with self.feature("organizations:source-maps-debugger-blue-thunder-edition"):
+            artifact_bundle = ArtifactBundle.objects.create(
+                organization_id=self.organization.id,
+                file=File.objects.create(name="artifact-bundle.zip", type="dummy.file"),
+                artifact_count=1,
+            )
+
+            ProjectArtifactBundle.objects.create(
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                artifact_bundle=artifact_bundle,
+            )
+
+            event = self.store_event(
+                data=create_event(),
+                project_id=self.project.id,
+            )
+
+            resp = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                event.event_id,
+            )
+
+            assert resp.data["project_has_some_artifact_bundle"]
 
     def test_project_has_some_artifact_bundle_negative(self):
-        # TODO
-        return
+        with self.feature("organizations:source-maps-debugger-blue-thunder-edition"):
+            event = self.store_event(
+                data=create_event(),
+                project_id=self.project.id,
+            )
+
+            resp = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                event.event_id,
+            )
+
+            assert not resp.data["project_has_some_artifact_bundle"]
 
     def test_project_has_some_artifact_bundle_with_a_debug_id_positive(self):
-        # TODO
-        return
+        with self.feature("organizations:source-maps-debugger-blue-thunder-edition"):
+            artifact_bundle = ArtifactBundle.objects.create(
+                organization_id=self.organization.id,
+                file=File.objects.create(name="artifact-bundle.zip", type="dummy.file"),
+                artifact_count=1,
+            )
+
+            DebugIdArtifactBundle.objects.create(
+                organization_id=self.organization.id,
+                debug_id="00000000-00000000-00000000-00000000",
+                artifact_bundle=artifact_bundle,
+                source_file_type=SourceFileType.SOURCE_MAP.value,
+            )
+
+            ProjectArtifactBundle.objects.create(
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                artifact_bundle=artifact_bundle,
+            )
+
+            event = self.store_event(
+                data=create_event(),
+                project_id=self.project.id,
+            )
+
+            resp = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                event.event_id,
+            )
+
+            assert resp.data["has_uploaded_some_artifact_with_a_debug_id"]
 
     def test_project_has_some_artifact_bundle_with_a_debug_id_negative(self):
-        # TODO
-        return
+        with self.feature("organizations:source-maps-debugger-blue-thunder-edition"):
+            event = self.store_event(
+                data=create_event(),
+                project_id=self.project.id,
+            )
+
+            resp = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                event.event_id,
+            )
+
+            assert not resp.data["has_uploaded_some_artifact_with_a_debug_id"]
 
     def test_multiple_exceptions(self):
-        # TODO
-        return
+        with self.feature("organizations:source-maps-debugger-blue-thunder-edition"):
+            event = self.store_event(
+                data=create_event(
+                    exceptions=[
+                        create_exception_with_frame({"abs_path": "/some/path/to/file.js"}),
+                        create_exception_with_frame(
+                            {"abs_path": "/some/path/to/some/other/file.js"}
+                        ),
+                    ],
+                ),
+                project_id=self.project.id,
+            )
+            resp = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                event.event_id,
+            )
+            assert len(resp.data["exceptions"]) == 2
 
     def test_frame_debug_id_no_debug_id(self):
-        # TODO
-        return
+        with self.feature("organizations:source-maps-debugger-blue-thunder-edition"):
+            event = self.store_event(
+                data=create_event(
+                    exceptions=[create_exception_with_frame({"abs_path": "/some/path/to/file.js"})],
+                    debug_meta_images=[
+                        {
+                            "type": "sourcemap",
+                            "code_file": "/some/path/to/file/that/doesnt/match.js",
+                            "debug_id": "8d65dbd3-bb6c-5632-9049-7751111284ed",
+                        }
+                    ],
+                ),
+                project_id=self.project.id,
+            )
+
+            resp = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                event.event_id,
+            )
+
+            debug_id_process_result = resp.data["exceptions"][0]["frames"][0]["debug_id_process"]
+
+            assert debug_id_process_result["debug_id"] is None
+            assert not debug_id_process_result["uploaded_source_file_with_correct_debug_id"]
+            assert not debug_id_process_result["uploaded_source_map_with_correct_debug_id"]
 
     def test_frame_debug_id_no_uploaded_source_no_uploaded_source_map(self):
-        # TODO
-        return
+        with self.feature("organizations:source-maps-debugger-blue-thunder-edition"):
+            event = self.store_event(
+                data=create_event(
+                    exceptions=[create_exception_with_frame({"abs_path": "/some/path/to/file.js"})],
+                    debug_meta_images=[
+                        {
+                            "type": "sourcemap",
+                            "code_file": "/some/path/to/file.js",
+                            "debug_id": "a5764857-ae35-34dc-8f25-a9c9e73aa898",
+                        }
+                    ],
+                ),
+                project_id=self.project.id,
+            )
+
+            resp = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                event.event_id,
+            )
+
+            debug_id_process_result = resp.data["exceptions"][0]["frames"][0]["debug_id_process"]
+
+            assert debug_id_process_result["debug_id"] == "a5764857-ae35-34dc-8f25-a9c9e73aa898"
+            assert not debug_id_process_result["uploaded_source_file_with_correct_debug_id"]
+            assert not debug_id_process_result["uploaded_source_map_with_correct_debug_id"]
 
     def test_frame_debug_id_uploaded_source_no_uploaded_source_map(self):
-        # TODO
-        return
+        with self.feature("organizations:source-maps-debugger-blue-thunder-edition"):
+            artifact_bundle = ArtifactBundle.objects.create(
+                organization_id=self.organization.id,
+                file=File.objects.create(name="artifact-bundle.zip", type="test.file"),
+                artifact_count=1,
+            )
+
+            DebugIdArtifactBundle.objects.create(
+                organization_id=self.organization.id,
+                debug_id="a5764857-ae35-34dc-8f25-a9c9e73aa898",
+                artifact_bundle=artifact_bundle,
+                source_file_type=SourceFileType.MINIFIED_SOURCE.value,
+            )
+
+            ProjectArtifactBundle.objects.create(
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                artifact_bundle=artifact_bundle,
+            )
+
+            event = self.store_event(
+                data=create_event(
+                    exceptions=[create_exception_with_frame({"abs_path": "/some/path/to/file.js"})],
+                    debug_meta_images=[
+                        {
+                            "type": "sourcemap",
+                            "code_file": "/some/path/to/file.js",
+                            "debug_id": "a5764857-ae35-34dc-8f25-a9c9e73aa898",
+                        }
+                    ],
+                ),
+                project_id=self.project.id,
+            )
+
+            resp = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                event.event_id,
+            )
+
+            debug_id_process_result = resp.data["exceptions"][0]["frames"][0]["debug_id_process"]
+
+            assert debug_id_process_result["debug_id"] == "a5764857-ae35-34dc-8f25-a9c9e73aa898"
+            assert debug_id_process_result["uploaded_source_file_with_correct_debug_id"]
+            assert not debug_id_process_result["uploaded_source_map_with_correct_debug_id"]
 
     def test_frame_debug_id_no_uploaded_source_uploaded_source_map(self):
-        # TODO
-        return
+        with self.feature("organizations:source-maps-debugger-blue-thunder-edition"):
+            artifact_bundle = ArtifactBundle.objects.create(
+                organization_id=self.organization.id,
+                file=File.objects.create(name="artifact-bundle.zip", type="test.file"),
+                artifact_count=1,
+            )
+
+            DebugIdArtifactBundle.objects.create(
+                organization_id=self.organization.id,
+                debug_id="a5764857-ae35-34dc-8f25-a9c9e73aa898",
+                artifact_bundle=artifact_bundle,
+                source_file_type=SourceFileType.SOURCE_MAP.value,
+            )
+
+            ProjectArtifactBundle.objects.create(
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                artifact_bundle=artifact_bundle,
+            )
+
+            event = self.store_event(
+                data=create_event(
+                    exceptions=[create_exception_with_frame({"abs_path": "/some/path/to/file.js"})],
+                    debug_meta_images=[
+                        {
+                            "type": "sourcemap",
+                            "code_file": "/some/path/to/file.js",
+                            "debug_id": "a5764857-ae35-34dc-8f25-a9c9e73aa898",
+                        }
+                    ],
+                ),
+                project_id=self.project.id,
+            )
+
+            resp = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                event.event_id,
+            )
+
+            debug_id_process_result = resp.data["exceptions"][0]["frames"][0]["debug_id_process"]
+
+            assert debug_id_process_result["debug_id"] == "a5764857-ae35-34dc-8f25-a9c9e73aa898"
+            assert not debug_id_process_result["uploaded_source_file_with_correct_debug_id"]
+            assert debug_id_process_result["uploaded_source_map_with_correct_debug_id"]
 
     def test_frame_debug_id_uploaded_source_uploaded_source_map(self):
+        with self.feature("organizations:source-maps-debugger-blue-thunder-edition"):
+            artifact_bundle = ArtifactBundle.objects.create(
+                organization_id=self.organization.id,
+                file=File.objects.create(name="artifact-bundle.zip", type="test.file"),
+                artifact_count=1,
+            )
+
+            DebugIdArtifactBundle.objects.create(
+                organization_id=self.organization.id,
+                debug_id="a5764857-ae35-34dc-8f25-a9c9e73aa898",
+                artifact_bundle=artifact_bundle,
+                source_file_type=SourceFileType.SOURCE.value,
+            )
+
+            DebugIdArtifactBundle.objects.create(
+                organization_id=self.organization.id,
+                debug_id="a5764857-ae35-34dc-8f25-a9c9e73aa898",
+                artifact_bundle=artifact_bundle,
+                source_file_type=SourceFileType.SOURCE_MAP.value,
+            )
+
+            ProjectArtifactBundle.objects.create(
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                artifact_bundle=artifact_bundle,
+            )
+
+            event = self.store_event(
+                data=create_event(
+                    exceptions=[create_exception_with_frame({"abs_path": "/some/path/to/file.js"})],
+                    debug_meta_images=[
+                        {
+                            "type": "sourcemap",
+                            "code_file": "/some/path/to/file.js",
+                            "debug_id": "a5764857-ae35-34dc-8f25-a9c9e73aa898",
+                        }
+                    ],
+                ),
+                project_id=self.project.id,
+            )
+
+            resp = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                event.event_id,
+            )
+
+            debug_id_process_result = resp.data["exceptions"][0]["frames"][0]["debug_id_process"]
+
+            assert debug_id_process_result["debug_id"] == "a5764857-ae35-34dc-8f25-a9c9e73aa898"
+            assert debug_id_process_result["uploaded_source_file_with_correct_debug_id"]
+            assert debug_id_process_result["uploaded_source_map_with_correct_debug_id"]
+
+    def test_frame_release_process_release_file_matching_source_file_names(self):
+        with self.feature("organizations:source-maps-debugger-blue-thunder-edition"):
+            event = self.store_event(
+                data=create_event(
+                    exceptions=[
+                        create_exception_with_frame({"abs_path": "http://example.com/bundle.js"})
+                    ],
+                    release="some-release",
+                ),
+                project_id=self.project.id,
+            )
+
+            resp = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                event.event_id,
+            )
+
+            release_process_result = resp.data["exceptions"][0]["frames"][0]["release_process"]
+
+            assert release_process_result["matching_source_file_names"] == [
+                "http://example.com/bundle.js",
+                "~/bundle.js",
+            ]
+
+    def test_frame_release_process_release_file_source_map_reference(self):
+        with self.feature("organizations:source-maps-debugger-blue-thunder-edition"):
+            event = self.store_event(
+                data=create_event(
+                    exceptions=[
+                        create_exception_with_frame({"abs_path": "http://example.com/bundle.js"})
+                    ],
+                    release="some-release",
+                ),
+                project_id=self.project.id,
+            )
+
+            release = Release.objects.get(organization=self.organization, version=event.release)
+
+            file = File.objects.create(
+                name="bundle.js", type="release.file", headers={"Sourcemap": "bundle.js.map"}
+            )
+
+            ReleaseFile.objects.create(
+                organization_id=self.organization.id,
+                release_id=release.id,
+                file=file,
+                name="~/bundle.js",
+            )
+
+            resp = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                event.event_id,
+            )
+
+            release_process_result = resp.data["exceptions"][0]["frames"][0]["release_process"]
+
+            assert release_process_result["matching_source_map_name"] == "~/bundle.js.map"
+            assert release_process_result["source_map_reference"] == "bundle.js.map"
+
+    def test_frame_release_process_release_file_data_protocol_source_map_reference(self):
+        with self.feature("organizations:source-maps-debugger-blue-thunder-edition"):
+            event = self.store_event(
+                data=create_event(
+                    exceptions=[
+                        create_exception_with_frame({"abs_path": "http://example.com/bundle.js"})
+                    ],
+                    release="some-release",
+                ),
+                project_id=self.project.id,
+            )
+
+            release = Release.objects.get(organization=self.organization, version=event.release)
+
+            file = File.objects.create(
+                name="bundle.js",
+                type="release.file",
+                headers={
+                    "Sourcemap": "data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoibWFpbi5qcy"
+                },
+            )
+
+            ReleaseFile.objects.create(
+                organization_id=self.organization.id,
+                release_id=release.id,
+                file=file,
+                name="~/bundle.js",
+            )
+
+            resp = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                event.event_id,
+            )
+
+            release_process_result = resp.data["exceptions"][0]["frames"][0]["release_process"]
+
+            assert release_process_result["source_map_lookup_result"] == "found"
+            assert release_process_result["source_map_reference"] == "Inline Sourcemap"
+            assert release_process_result["matching_source_map_name"] is None
+
+    def test_frame_release_process_release_file_source_file_not_found(self):
+        with self.feature("organizations:source-maps-debugger-blue-thunder-edition"):
+            event = self.store_event(
+                data=create_event(
+                    exceptions=[
+                        create_exception_with_frame({"abs_path": "http://example.com/bundle.js"})
+                    ],
+                    release="some-release",
+                ),
+                project_id=self.project.id,
+            )
+
+            resp = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                event.event_id,
+            )
+
+            release_process_result = resp.data["exceptions"][0]["frames"][0]["release_process"]
+
+            assert release_process_result["source_file_lookup_result"] == "unsuccessful"
+            assert release_process_result["source_map_lookup_result"] == "unsuccessful"
+            assert release_process_result["source_map_reference"] is None
+            assert release_process_result["matching_source_map_name"] is None
+
+    def test_frame_release_process_release_file_source_file_wrong_dist(self):
+        with self.feature("organizations:source-maps-debugger-blue-thunder-edition"):
+            event = self.store_event(
+                data=create_event(
+                    exceptions=[
+                        create_exception_with_frame({"abs_path": "http://example.com/bundle.js"})
+                    ],
+                    release="some-release",
+                    dist="some-dist",
+                ),
+                project_id=self.project.id,
+            )
+
+            release = Release.objects.get(organization=self.organization, version=event.release)
+
+            file = File.objects.create(
+                name="bundle.js", type="release.file", headers={"Sourcemap": "bundle.js.map"}
+            )
+
+            ReleaseFile.objects.create(
+                organization_id=self.organization.id,
+                release_id=release.id,
+                file=file,
+                name="~/bundle.js",
+            )
+
+            resp = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                event.event_id,
+            )
+
+            release_process_result = resp.data["exceptions"][0]["frames"][0]["release_process"]
+
+            assert release_process_result["source_file_lookup_result"] == "wrong-dist"
+            assert release_process_result["source_map_lookup_result"] == "unsuccessful"
+            assert release_process_result["source_map_reference"] is None
+            assert release_process_result["matching_source_map_name"] is None
+
+    def test_frame_release_process_release_file_source_file_successful(self):
+        with self.feature("organizations:source-maps-debugger-blue-thunder-edition"):
+            event = self.store_event(
+                data=create_event(
+                    exceptions=[
+                        create_exception_with_frame({"abs_path": "http://example.com/bundle.js"})
+                    ],
+                    release="some-release",
+                ),
+                project_id=self.project.id,
+            )
+
+            release = Release.objects.get(organization=self.organization, version=event.release)
+
+            file = File.objects.create(
+                name="bundle.js", type="release.file", headers={"Sourcemap": "bundle.js.map"}
+            )
+
+            ReleaseFile.objects.create(
+                organization_id=self.organization.id,
+                release_id=release.id,
+                file=file,
+                name="~/bundle.js",
+            )
+
+            resp = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                event.event_id,
+            )
+
+            release_process_result = resp.data["exceptions"][0]["frames"][0]["release_process"]
+
+            assert release_process_result["source_file_lookup_result"] == "found"
+            assert release_process_result["source_map_lookup_result"] == "unsuccessful"
+            assert release_process_result["source_map_reference"] == "bundle.js.map"
+            assert release_process_result["matching_source_map_name"] == "~/bundle.js.map"
+
+    def test_frame_release_process_release_file_source_map_wrong_dist(self):
+        with self.feature("organizations:source-maps-debugger-blue-thunder-edition"):
+            event = self.store_event(
+                data=create_event(
+                    exceptions=[
+                        create_exception_with_frame({"abs_path": "http://example.com/bundle.js"})
+                    ],
+                    release="some-release",
+                    dist="some-dist",
+                ),
+                project_id=self.project.id,
+            )
+
+            release = Release.objects.get(organization=self.organization, version=event.release)
+
+            source_file = File.objects.create(
+                name="bundle.js", type="release.file", headers={"Sourcemap": "bundle.js.map"}
+            )
+
+            source_map_file = File.objects.create(
+                name="bundle.js.map",
+                type="release.file",
+            )
+
+            dist = Distribution.objects.get(name="some-dist", release=release)
+
+            ReleaseFile.objects.create(
+                organization_id=self.organization.id,
+                release_id=release.id,
+                file=source_file,
+                name="~/bundle.js",
+                ident=ReleaseFile.get_ident("~/bundle.js", dist.name),
+                dist_id=dist.id,
+            )
+
+            ReleaseFile.objects.create(
+                organization_id=self.organization.id,
+                release_id=release.id,
+                file=source_map_file,
+                name="~/bundle.js.map",
+            )
+
+            resp = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                event.event_id,
+            )
+
+            release_process_result = resp.data["exceptions"][0]["frames"][0]["release_process"]
+
+            assert release_process_result["source_file_lookup_result"] == "found"
+            assert release_process_result["source_map_lookup_result"] == "wrong-dist"
+            assert release_process_result["source_map_reference"] == "bundle.js.map"
+            assert release_process_result["matching_source_map_name"] == "~/bundle.js.map"
+
+    def test_frame_release_process_release_file_source_map_successful(self):
+        with self.feature("organizations:source-maps-debugger-blue-thunder-edition"):
+            event = self.store_event(
+                data=create_event(
+                    exceptions=[
+                        create_exception_with_frame(
+                            {"abs_path": "http://example.com/static/bundle.js"}
+                        )
+                    ],
+                    release="some-release",
+                    dist="some-dist",
+                ),
+                project_id=self.project.id,
+            )
+
+            release = Release.objects.get(organization=self.organization, version=event.release)
+
+            source_file = File.objects.create(
+                name="static/bundle.js",
+                type="release.file",
+                headers={"Sourcemap": "../bundle.js.map"},
+            )
+
+            source_map_file = File.objects.create(
+                name="bundle.js.map",
+                type="release.file",
+            )
+
+            dist = Distribution.objects.get(name="some-dist", release=release)
+
+            ReleaseFile.objects.create(
+                organization_id=self.organization.id,
+                release_id=release.id,
+                file=source_file,
+                name="~/static/bundle.js",
+                ident=ReleaseFile.get_ident("~/static/bundle.js", dist.name),
+                dist_id=dist.id,
+            )
+
+            ReleaseFile.objects.create(
+                organization_id=self.organization.id,
+                release_id=release.id,
+                file=source_map_file,
+                name="~/bundle.js.map",
+                ident=ReleaseFile.get_ident("~/bundle.js.map", dist.name),
+                dist_id=dist.id,
+            )
+
+            resp = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                event.event_id,
+            )
+
+            release_process_result = resp.data["exceptions"][0]["frames"][0]["release_process"]
+
+            assert release_process_result["source_file_lookup_result"] == "found"
+            assert release_process_result["source_map_lookup_result"] == "found"
+            assert release_process_result["source_map_reference"] == "../bundle.js.map"
+            assert release_process_result["matching_source_map_name"] == "~/bundle.js.map"
+
+    def test_frame_release_process_artifact_bundle_matching_source_file_names(self):
         # TODO
         return
 
-    def test_frame_release_matching_source_file_names(self):
+    def test_frame_release_process_artifact_bundle_source_map_reference(self):
         # TODO
         return
 
-    def test_frame_release_source_map_reference(self):
+    def test_frame_release_process_artifact_bundle_data_protocol_source_map_reference(self):
         # TODO
         return
 
-    def test_frame_release_data_protocol_source_map_reference(self):
+    def test_frame_release_process_artifact_bundle_source_file_not_found(self):
         # TODO
         return
 
-    def test_frame_release_source_file_not_found(self):
+    def test_frame_release_process_artifact_bundle_source_file_wrong_dist(self):
         # TODO
         return
 
-    def test_frame_release_source_file_wrong_dist(self):
+    def test_frame_release_process_artifact_bundle_source_file_successful(self):
         # TODO
         return
 
-    def test_frame_release_source_file_successful(self):
+    def test_frame_release_process_artifact_bundle_source_map_not_found(self):
         # TODO
         return
 
-    def test_frame_release_source_map_not_found(self):
+    def test_frame_release_process_artifact_bundle_source_map_wrong_dist(self):
         # TODO
         return
 
-    def test_frame_release_source_map_wrong_dist(self):
-        # TODO
-        return
-
-    def test_frame_release_source_map_successful(self):
+    def test_frame_release_process_artifact_bundle_source_map_successful(self):
         # TODO
         return

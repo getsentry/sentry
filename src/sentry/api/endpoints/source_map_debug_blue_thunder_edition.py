@@ -482,7 +482,10 @@ def get_abs_paths_in_event(event_data):
     exception_values = get_path(event_data, "exception", "values")
     if exception_values is not None:
         for exception_value in exception_values:
-            frames = get_path(exception_value, "raw_stacktrace", "frames")
+            stacktrace = get_path(exception_value, "raw_stacktrace") or get_path(
+                exception_value, "stacktrace"
+            )
+            frames = get_path(stacktrace, "frames")
             if frames is not None:
                 for frame in frames:
                     abs_path = get_path(frame, "abs_path")
