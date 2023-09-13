@@ -52,7 +52,7 @@ export function InviteBanner({
   const location = useLocation();
 
   const snoozePrompt = useCallback(async () => {
-    trackAnalytics('github_invite_banner.snooze', {
+    trackAnalytics('github_invite_banner.snoozed', {
       organization,
     });
     setShowBanner(false);
@@ -92,6 +92,11 @@ export function InviteBanner({
     }
   }, [openInviteModal, location, isEligibleForBanner]);
 
+  if (!isEligibleForBanner && showBanner) {
+    trackAnalytics('github_invite_banner.viewed', {
+      organization,
+    });
+  }
   if (!isEligibleForBanner || !showBanner) {
     return null;
   }
