@@ -18,6 +18,7 @@ class Migration(CheckedMigration):
     #   have ops run this and not block the deploy. Note that while adding an index is a schema
     #   change, it's completely safe to run the operation after the code has deployed.
     is_dangerous = False
+    checked = False
 
     dependencies = [
         ("feedback", "0001_feedback"),
