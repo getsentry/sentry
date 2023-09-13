@@ -93,13 +93,16 @@ class OrganizationDeriveCodeMappingsEndpoint(OrganizationEndpoint):
         stack_root = request.data.get("stackRoot")
         source_root = request.data.get("sourceRoot")
         branch = request.data.get("defaultBranch")
+        external_id = request.data.get("externalId")
+        provider = request.data.get("provider")
         if not repo_name or not stack_root or not source_root or not branch:
             return self.respond("Missing required parameters", status=status.HTTP_400_BAD_REQUEST)
 
+        # TODO: require external_id and provider
         code_mapping = CodeMapping(
             stacktrace_root=stack_root,
             source_path=source_root,
-            repo=Repo(name=repo_name, branch=branch),
+            repo=Repo(name=repo_name, branch=branch, external_id=external_id, provider=provider),
         )
         new_code_mapping = create_code_mapping(organization_integration, project, code_mapping)
         return self.respond(
