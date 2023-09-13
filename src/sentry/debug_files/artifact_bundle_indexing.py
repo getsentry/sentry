@@ -576,9 +576,9 @@ class FlatFileIndex:
     def _add_sorted_entry(self, collection: Dict[T, List[int]], key: T, bundle_index: int):
         entries = collection.get(key, [])
         # Remove duplicates by doing a roundtrip through `set`.
-        entries = set(entries[-MAX_BUNDLES_PER_ENTRY:])
-        entries.add(bundle_index)
-        entries = list(entries)
+        entries_set = set(entries[-MAX_BUNDLES_PER_ENTRY:])
+        entries_set.add(bundle_index)
+        entries = list(entries_set)
         # Symbolicator will consider the newest element the last element of the list.
         entries.sort(key=lambda index: (self._bundles[index].timestamp, self._bundles[index].id))
         collection[key] = entries
