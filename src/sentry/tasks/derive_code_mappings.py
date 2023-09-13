@@ -203,15 +203,30 @@ def set_project_codemappings(
     """
     organization_id = organization_integration.organization_id
     for code_mapping in code_mappings:
-        repository, _ = Repository.objects.get_or_create(
-            name=code_mapping.repo.name,
-            organization_id=organization_id,
-            defaults={
-                "name": code_mapping.repo.name,
-                "organization_id": organization_id,
-                "integration_id": organization_integration.integration_id,
-            },
-        )
+        external_id = code_mapping.repo.external_id
+        provider = code_mapping.repo.provider
+
+        if external_id and provider:
+            repository, _ = Repository.objects.get_or_create(
+                external_id=code_mapping.repo.external_id,
+                provider=code_mapping.repo.provider,
+                organization_id=organization_id,
+                defaults={
+                    "name": code_mapping.repo.name,
+                    "organization_id": organization_id,
+                    "integration_id": organization_integration.integration_id,
+                },
+            )
+        else:
+            repository, _ = Repository.objects.get_or_create(
+                name=code_mapping.repo.name,
+                organization_id=organization_id,
+                defaults={
+                    "name": code_mapping.repo.name,
+                    "organization_id": organization_id,
+                    "integration_id": organization_integration.integration_id,
+                },
+            )
 
         cm, created = RepositoryProjectPathConfig.objects.get_or_create(
             project=project,

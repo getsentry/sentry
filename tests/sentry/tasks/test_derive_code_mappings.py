@@ -149,7 +149,7 @@ class TestJavascriptDeriveCodeMappings(BaseDeriveCodeMappings):
         ) as mock_get_trees_for_org:
             mock_get_trees_for_org.return_value = {
                 repo_name: RepoTree(
-                    Repo(repo_name, "master"),
+                    Repo(repo_name, "master", "123", "github"),
                     ["static/app/utils/handleXhrErrorResponse.tsx"],
                 )
             }
@@ -168,7 +168,7 @@ class TestJavascriptDeriveCodeMappings(BaseDeriveCodeMappings):
         ) as mock_get_trees_for_org:
             mock_get_trees_for_org.return_value = {
                 repo_name: RepoTree(
-                    Repo(repo_name, "master"),
+                    Repo(repo_name, "master", "123", "github"),
                     ["app/utils/handleXhrErrorResponse.tsx"],
                 )
             }
@@ -186,7 +186,9 @@ class TestJavascriptDeriveCodeMappings(BaseDeriveCodeMappings):
             "sentry.integrations.github.client.GitHubClientMixin.get_trees_for_org"
         ) as mock_get_trees_for_org:
             mock_get_trees_for_org.return_value = {
-                repo_name: RepoTree(Repo(repo_name, "master"), ["some/path/Test.tsx"])
+                repo_name: RepoTree(
+                    Repo(repo_name, "master", "123", "github"), ["some/path/Test.tsx"]
+                )
             }
             derive_code_mappings(self.project.id, self.event_data)
             code_mapping = RepositoryProjectPathConfig.objects.all()[0]
@@ -224,7 +226,9 @@ class TestRubyDeriveCodeMappings(BaseDeriveCodeMappings):
             "sentry.integrations.github.client.GitHubClientMixin.get_trees_for_org"
         ) as mock_get_trees_for_org:
             mock_get_trees_for_org.return_value = {
-                repo_name: RepoTree(Repo(repo_name, "master"), ["some/path/test.rb"])
+                repo_name: RepoTree(
+                    Repo(repo_name, "master", "123", "github"), ["some/path/test.rb"]
+                )
             }
             derive_code_mappings(self.project.id, self.event_data)
             code_mapping = RepositoryProjectPathConfig.objects.all()[0]
@@ -239,7 +243,9 @@ class TestRubyDeriveCodeMappings(BaseDeriveCodeMappings):
             "sentry.integrations.github.client.GitHubClientMixin.get_trees_for_org"
         ) as mock_get_trees_for_org:
             mock_get_trees_for_org.return_value = {
-                repo_name: RepoTree(Repo(repo_name, "master"), ["lib/tasks/crontask.rake"])
+                repo_name: RepoTree(
+                    Repo(repo_name, "master", "123", "github"), ["lib/tasks/crontask.rake"]
+                )
             }
             derive_code_mappings(self.project.id, self.event_data)
             code_mapping = RepositoryProjectPathConfig.objects.all()[0]
@@ -284,7 +290,7 @@ class TestNodeDeriveCodeMappings(BaseDeriveCodeMappings):
             "sentry.integrations.github.client.GitHubClientMixin.get_trees_for_org"
         ) as mock_get_trees_for_org:
             mock_get_trees_for_org.return_value = {
-                repo_name: RepoTree(Repo(repo_name, "master"), ["utils/errors.js"])
+                repo_name: RepoTree(Repo(repo_name, "master", "123", "github"), ["utils/errors.js"])
             }
             derive_code_mappings(self.project.id, self.event_data)
             code_mapping = RepositoryProjectPathConfig.objects.all()[0]
@@ -299,7 +305,9 @@ class TestNodeDeriveCodeMappings(BaseDeriveCodeMappings):
             "sentry.integrations.github.client.GitHubClientMixin.get_trees_for_org"
         ) as mock_get_trees_for_org:
             mock_get_trees_for_org.return_value = {
-                repo_name: RepoTree(Repo(repo_name, "master"), ["packages/api/src/response.ts"])
+                repo_name: RepoTree(
+                    Repo(repo_name, "master", "123", "github"), ["packages/api/src/response.ts"]
+                )
             }
             derive_code_mappings(self.project.id, self.event_data)
             code_mapping = RepositoryProjectPathConfig.objects.all()[0]
@@ -315,7 +323,8 @@ class TestNodeDeriveCodeMappings(BaseDeriveCodeMappings):
         ) as mock_get_trees_for_org:
             mock_get_trees_for_org.return_value = {
                 repo_name: RepoTree(
-                    Repo(repo_name, "master"), ["services/event/EventLifecycle/index.js"]
+                    Repo(repo_name, "master", "123", "github"),
+                    ["services/event/EventLifecycle/index.js"],
                 )
             }
             derive_code_mappings(self.project.id, self.event_data)
@@ -380,7 +389,7 @@ class TestPythonDeriveCodeMappings(BaseDeriveCodeMappings):
         "sentry.integrations.utils.code_mapping.CodeMappingTreesHelper.generate_code_mappings",
         return_value=[
             CodeMapping(
-                repo=Repo(name="repo", branch="master"),
+                repo=Repo(name="repo", branch="master", external_id="123", provider="github"),
                 stacktrace_root="sentry/models",
                 source_path="src/sentry/models",
             )
@@ -416,7 +425,7 @@ class TestPythonDeriveCodeMappings(BaseDeriveCodeMappings):
         "sentry.integrations.utils.code_mapping.CodeMappingTreesHelper.generate_code_mappings",
         return_value=[
             CodeMapping(
-                repo=Repo(name="repo", branch="master"),
+                repo=Repo(name="repo", branch="master", external_id="123", provider="github"),
                 stacktrace_root="sentry/models",
                 source_path="src/sentry/models",
             )
@@ -468,7 +477,9 @@ class TestPythonDeriveCodeMappings(BaseDeriveCodeMappings):
             "sentry.integrations.github.client.GitHubClientMixin.get_trees_for_org"
         ) as mock_get_trees_for_org:
             mock_get_trees_for_org.return_value = {
-                repo_name: RepoTree(Repo(repo_name, "master"), ["src/sentry/models/release.py"])
+                repo_name: RepoTree(
+                    Repo(repo_name, "master", "123", "github"), ["src/sentry/models/release.py"]
+                )
             }
             derive_code_mappings(self.project.id, self.test_data)
             code_mapping = RepositoryProjectPathConfig.objects.all().first()
@@ -483,7 +494,9 @@ class TestPythonDeriveCodeMappings(BaseDeriveCodeMappings):
             "sentry.integrations.github.client.GitHubClientMixin.get_trees_for_org"
         ) as mock_get_trees_for_org:
             mock_get_trees_for_org.return_value = {
-                repo_name: RepoTree(Repo(repo_name, "master"), ["sentry/models/release.py"])
+                repo_name: RepoTree(
+                    Repo(repo_name, "master", "123", "github"), ["sentry/models/release.py"]
+                )
             }
             derive_code_mappings(self.project.id, self.test_data)
             code_mapping = RepositoryProjectPathConfig.objects.all().first()
