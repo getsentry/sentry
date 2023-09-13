@@ -2250,8 +2250,6 @@ class TestMigrations(TransactionTestCase):
         self.migrate_to = [(self.app, self.migrate_to)]
 
         connection = connections[self.connection]
-        with connection.cursor() as cursor:
-            cursor.execute("SET ROLE 'postgres'")
 
         self.setup_initial_state()
 
