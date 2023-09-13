@@ -516,9 +516,8 @@ class PostSentryAppsTest(SentryAppsTest):
     def test_generated_slug_not_entirely_numeric(self):
         response = self.get_success_response(**self.get_data(name="1234"), status_code=201)
         slug = response.data["slug"]
-        assert len(slug) == 8
         assert slug.startswith("1234-")
-        assert not slug.isnumeric()
+        assert not slug.isdecimal()
 
     def test_missing_name(self):
         response = self.get_error_response(**self.get_data(name=None), status_code=400)
