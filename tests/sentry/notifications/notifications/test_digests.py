@@ -103,7 +103,7 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
         assert "N+1 Query" in mail.outbox[0].body
         assert "oh no" in mail.outbox[0].body
         assert self.build_occurrence_data()["issue_title"] in mail.outbox[0].body
-        mock_record.assert_called_with(
+        mock_record.assert_any_call(
             "integrations.email.notification_sent",
             category="digest",
             notification_uuid=ANY,
@@ -117,6 +117,16 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
             actor_type="User",
             group_id=None,
             user_id=ANY,
+        )
+        mock_record.assert_called_with(
+            "alert.sent",
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            provider="email",
+            alert_id=self.rule.id,
+            alert_type="issue_alert",
+            external_id=ANY,
+            notification_uuid=ANY,
         )
 
     def test_sends_alert_rule_notification_to_each_member(self):
