@@ -690,19 +690,25 @@ class GitHubIntegrationTest(IntegrationTestCase):
         result = {}
         # bar and baz are defined to fail, thus, do not show up in the default case
         list = repo_info_list or [
-            ("xyz", "master", ["src/xyz.py"]),
-            ("foo", "master", ["src/sentry/api/endpoints/auth_login.py"]),
+            ("xyz", "master", ["src/xyz.py"], None),
+            ("foo", "master", ["src/sentry/api/endpoints/auth_login.py"], 1296269),
         ]
-        for repo, branch, files in list:
-            result[f"{self.gh_org}/{repo}"] = RepoTree(Repo(f"{self.gh_org}/{repo}", branch), files)
+        for repo, branch, files, external_id in list:
+            result[f"{self.gh_org}/{repo}"] = RepoTree(
+                Repo(f"{self.gh_org}/{repo}", branch, external_id, "github"), files
+            )
         return result
 
     def _expected_cached_repos(self):
         return [
-            {"full_name": f"{self.gh_org}/xyz", "default_branch": "master"},
-            {"full_name": f"{self.gh_org}/foo", "default_branch": "master"},
-            {"full_name": f"{self.gh_org}/bar", "default_branch": "main"},
-            {"full_name": f"{self.gh_org}/baz", "default_branch": "master"},
+            {"full_name": f"{self.gh_org}/xyz", "default_branch": "master", "external_id": None},
+            {"full_name": f"{self.gh_org}/foo", "default_branch": "master", "external_id": 1296269},
+            {
+                "full_name": f"{self.gh_org}/bar",
+                "default_branch": "main",
+                "external_id": 9876574,
+            },
+            {"full_name": f"{self.gh_org}/baz", "default_branch": "master", "external_id": 1276555},
         ]
 
     @responses.activate
@@ -736,11 +742,11 @@ class GitHubIntegrationTest(IntegrationTestCase):
         installation = self.get_installation_helper()
         expected_trees = self._expected_trees(
             [
-                ("xyz", "master", ["src/xyz.py"]),
+                ("xyz", "master", ["src/xyz.py"], None),
                 # foo will have no files because we will hit the minimum remaining requests floor
-                ("foo", "master", []),
-                ("bar", "main", []),
-                ("baz", "master", []),
+                ("foo", "master", [], 1296269),
+                ("bar", "main", [], 9876574),
+                ("baz", "master", [], 1276555),
             ]
         )
 
@@ -763,9 +769,9 @@ class GitHubIntegrationTest(IntegrationTestCase):
             trees = installation.get_trees_for_org()
             assert trees == self._expected_trees(
                 [
-                    ("xyz", "master", ["src/xyz.py"]),
+                    ("xyz", "master", ["src/xyz.py"], None),
                     # Now that the rate limit is reset we should get files for foo
-                    ("foo", "master", ["src/sentry/api/endpoints/auth_login.py"]),
+                    ("foo", "master", ["src/sentry/api/endpoints/auth_login.py"], 1296269),
                 ]
             )
 
@@ -782,10 +788,10 @@ class GitHubIntegrationTest(IntegrationTestCase):
         trees = installation.get_trees_for_org()
         assert trees == self._expected_trees(
             [
-                ("xyz", "master", []),
-                ("foo", "master", []),
-                ("bar", "main", []),
-                ("baz", "master", []),
+                ("xyz", "master", [], None),
+                ("foo", "master", [], 1296269),
+                ("bar", "main", [], 9876574),
+                ("baz", "master", [], 1276555),
             ]
         )
 
@@ -794,8 +800,8 @@ class GitHubIntegrationTest(IntegrationTestCase):
         trees = installation.get_trees_for_org()
         assert trees == self._expected_trees(
             [
-                ("xyz", "master", ["src/xyz.py"]),
-                ("foo", "master", ["src/sentry/api/endpoints/auth_login.py"]),
+                ("xyz", "master", ["src/xyz.py"], None),
+                ("foo", "master", ["src/sentry/api/endpoints/auth_login.py"], 1296269),
             ]
         )
 
@@ -804,10 +810,10 @@ class GitHubIntegrationTest(IntegrationTestCase):
         trees = installation.get_trees_for_org()
         assert trees == self._expected_trees(
             [
-                ("xyz", "master", ["src/xyz.py"]),
-                ("foo", "master", ["src/sentry/api/endpoints/auth_login.py"]),
-                ("bar", "main", []),
-                ("baz", "master", []),
+                ("xyz", "master", ["src/xyz.py"], None),
+                ("foo", "master", ["src/sentry/api/endpoints/auth_login.py"], 1296269),
+                ("bar", "main", [], 9876574),
+                ("baz", "master", [], 1276555),
             ]
         )
 
@@ -842,7 +848,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
                 [
                     # xyz is missing because its request errors
                     # foo has data because its API request is made in spite of xyz's error
-                    ("foo", "master", ["src/sentry/api/endpoints/auth_login.py"]),
+                    ("foo", "master", ["src/sentry/api/endpoints/auth_login.py"], 1296269),
                     # bar and baz are missing because their API requests throw errors for
                     # other reasons in the default mock responses
                 ]
@@ -877,9 +883,9 @@ class GitHubIntegrationTest(IntegrationTestCase):
                     # xyz isn't here because the request errors out.
                     # foo, bar, and baz are here but have no files, because xyz's error
                     # caused us to pull from the empty cache
-                    ("foo", "master", []),
-                    ("bar", "main", []),
-                    ("baz", "master", []),
+                    ("foo", "master", [], 1296269),
+                    ("bar", "main", [], 9876574),
+                    ("baz", "master", [], 1276555),
                 ]
             )
 

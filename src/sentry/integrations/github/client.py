@@ -331,7 +331,11 @@ class GitHubClientMixin(GithubProxyClient):
         if not repositories:
             # Remove unnecessary fields from the response
             repositories = [
-                {"full_name": repo["full_name"], "default_branch": repo["default_branch"]}
+                {
+                    "full_name": repo["full_name"],
+                    "default_branch": repo["default_branch"],
+                    "external_id": repo.get("id"),
+                }
                 for repo in self.get_repositories(fetch_max_pages=True)
             ]
             if not repositories:
@@ -451,10 +455,11 @@ class GitHubClientMixin(GithubProxyClient):
     ) -> RepoTree:
         full_name = repo_info["full_name"]
         branch = repo_info["default_branch"]
+        external_id = repo_info["external_id"]
         repo_files = self.get_cached_repo_files(
             full_name, branch, only_use_cache=only_use_cache, cache_seconds=cache_seconds
         )
-        return RepoTree(Repo(full_name, branch), repo_files)
+        return RepoTree(Repo(full_name, branch, external_id, "github"), repo_files)
 
     def get_repositories(self, fetch_max_pages: bool = False) -> Sequence[JSONData]:
         """
