@@ -60,6 +60,7 @@ from sentry.notifications.helpers import (
     get_groups_for_query,
     get_subscription_from_attributes,
     get_user_subscriptions_for_groups,
+    get_user_subscriptions_for_groups_v2,
     should_use_notifications_v2,
     transform_to_notification_settings_by_scope,
 )
@@ -577,11 +578,11 @@ class GroupSerializerBase(Serializer, ABC):
             return {}
 
         notification_settings, query_groups = None, None
+        groups_by_project = collect_groups_by_project(groups)
         if should_use_notifications_v2(groups[0].project.organization):
-            project_ids = {group.project_id for group in groups}
             notification_settings = notifications_service.get_setting_options_for_user(
                 user_id=user.id,
-                project_ids=project_ids,
+                project_ids=list(groups_by_project.keys()),
                 type=NotificationSettingTypes.WORKFLOW,
             )
             query_groups = {
@@ -593,7 +594,6 @@ class GroupSerializerBase(Serializer, ABC):
                 )
             }
         else:
-            groups_by_project = collect_groups_by_project(groups)
             notification_settings_by_scope = transform_to_notification_settings_by_scope(
                 notifications_service.get_settings_for_user_by_projects(
                     type=NotificationSettingTypes.WORKFLOW,
@@ -604,17 +604,25 @@ class GroupSerializerBase(Serializer, ABC):
             query_groups = get_groups_for_query(
                 groups_by_project, notification_settings_by_scope, user
             )
+
         subscriptions = GroupSubscription.objects.filter(group__in=query_groups, user_id=user.id)
         subscriptions_by_group_id = {
             subscription.group_id: subscription for subscription in subscriptions
         }
 
-        return get_user_subscriptions_for_groups(
-            groups_by_project,
-            notification_settings_by_scope,
-            subscriptions_by_group_id,
-            user,
-        )
+        if should_use_notifications_v2(groups[0].project.organization):
+            return get_user_subscriptions_for_groups_v2(
+                groups_by_project,
+                notification_settings,
+                subscriptions_by_group_id,
+            )
+        else:
+            return get_user_subscriptions_for_groups(
+                groups_by_project,
+                notification_settings_by_scope,
+                subscriptions_by_group_id,
+                user,
+            )
 
     @staticmethod
     def _resolve_resolutions(

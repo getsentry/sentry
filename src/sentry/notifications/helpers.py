@@ -406,6 +406,32 @@ def collect_groups_by_project(groups: Iterable[Group]) -> Mapping[int, set[Group
     return projects
 
 
+def get_user_subscriptions_for_groups_v2(
+    groups_by_project: Mapping[int, set[Group]],
+    notification_settings: Mapping[ExternalProviders, NotificationSettingsOptionEnum],
+    subscriptions_by_group_id: Mapping[int, GroupSubscription],
+) -> Mapping[int, tuple[bool, bool, GroupSubscription | None]]:
+    """
+    For each group, use the combination of GroupSubscription and
+    NotificationSetting rows to determine if the user is explicitly or
+    implicitly subscribed (or if they can subscribe at all.)
+    """
+    results = {}
+    for _, groups in groups_by_project.items():
+        notification_settings_by_provider = {
+            p: v
+            for p, v in notification_settings.items()
+            if v != NotificationSettingsOptionEnum.NEVER
+        }
+        for group in groups:
+            results[group.id] = _get_subscription_values_v2(
+                group,
+                subscriptions_by_group_id,
+                notification_settings_by_provider,
+            )
+    return results
+
+
 def get_user_subscriptions_for_groups(
     groups_by_project: Mapping[int, set[Group]],
     notification_settings_by_scope: Mapping[
@@ -457,6 +483,36 @@ def _get_subscription_values(
         else:
             # Since there is no subscription, it is only active if the value is ALWAYS.
             is_active = value == NotificationSettingOptionValues.ALWAYS
+
+    return is_disabled, is_active, subscription
+
+
+def _get_subscription_values_v2(
+    group: Group,
+    subscriptions_by_group_id: Mapping[int, GroupSubscription],
+    notification_settings_by_provider: Mapping[ExternalProviders, NotificationSettingsOptionEnum],
+) -> tuple[bool, bool, GroupSubscription | None]:
+    is_disabled = False
+    subscription = subscriptions_by_group_id.get(group.id)
+    if subscription:
+        # Having a GroupSubscription overrides NotificationSettings.
+        is_active = subscription.is_active
+    else:
+        disabled_notifications = all(
+            value == NotificationSettingsOptionEnum.NEVER
+            for value in notification_settings_by_provider.values()
+        )
+
+        if disabled_notifications:
+            # The user has disabled notifications in all cases.
+            is_disabled = True
+            is_active = False
+        else:
+            # Since there is no subscription, it is only active if the value is ALWAYS.
+            is_active = any(
+                value == NotificationSettingsOptionEnum.ALWAYS
+                for value in notification_settings_by_provider.values()
+            )
 
     return is_disabled, is_active, subscription
 
