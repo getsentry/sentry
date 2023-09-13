@@ -50,7 +50,7 @@ class SlackUnlinkTeamView(BaseView):
     @method_decorator(never_cache)
     def handle(self, request: Request, signed_params: str) -> HttpResponse:
         if request.method not in ALLOWED_METHODS:
-            return render_error_page(request, body_text="HTTP 405: Method not allowed")
+            return HttpResponse(status=405)
 
         try:
             params = unsign(signed_params)

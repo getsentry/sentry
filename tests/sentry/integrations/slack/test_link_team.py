@@ -312,3 +312,9 @@ class SlackIntegrationUnlinkTeamTest(SlackIntegrationLinkTeamTestBase):
                 organization=team.organization, team_ids=[team.id]
             )
             assert len(external_actors) == 0
+
+    @responses.activate
+    def test_unlink_team_invalid_method(self):
+        """Test for an invalid method response"""
+        response = self.client.put(self.url, content_type="application/x-www-form-urlencoded")
+        assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
