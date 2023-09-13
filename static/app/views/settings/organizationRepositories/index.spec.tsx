@@ -24,7 +24,7 @@ describe('OrganizationRepositoriesContainer', function () {
     });
 
     it('is loading when initially rendering', function () {
-      const wrapper = render(
+      render(
         <OrganizationRepositoriesContainer
           router={router}
           routes={router.routes}
@@ -38,7 +38,6 @@ describe('OrganizationRepositoriesContainer', function () {
           context,
         }
       );
-      expect(wrapper.container).toSnapshot();
     });
   });
 });

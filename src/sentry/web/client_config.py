@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from functools import cached_property
-from typing import Any, Iterable, List, Mapping, Tuple
+from typing import Any, Iterable, List, Mapping, MutableMapping, Tuple
 
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
@@ -333,7 +333,7 @@ class _ClientConfig:
         }
 
 
-def get_client_config(request=None) -> Mapping[str, Any]:
+def get_client_config(request=None) -> MutableMapping[str, Any]:
     """
     Provides initial bootstrap data needed to boot the frontend application.
     """

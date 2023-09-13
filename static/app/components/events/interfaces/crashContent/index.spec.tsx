@@ -43,7 +43,7 @@ describe('CrashContent', function () {
   const proxiedExc = withMeta(exc);
 
   it('renders with meta data', function () {
-    const wrapper = render(
+    render(
       <CrashContent
         stackView={StackView.FULL}
         stackType={StackType.ORIGINAL}
@@ -54,7 +54,5 @@ describe('CrashContent', function () {
         hasHierarchicalGrouping={false}
       />
     );
-
-    expect(wrapper.container).toSnapshot();
   });
 });

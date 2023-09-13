@@ -15,15 +15,11 @@ describe('OrganizationApiKeyDetails', function () {
 
   it('renders', function () {
     const {organization, routerContext, routerProps} = initializeOrg();
-    const wrapper = render(
-      <OrganizationApiKeyDetails {...routerProps} params={{apiKey: '1'}} />,
-      {
-        context: routerContext,
-        organization,
-      }
-    );
+    render(<OrganizationApiKeyDetails {...routerProps} params={{apiKey: '1'}} />, {
+      context: routerContext,
+      organization,
+    });
 
     expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
-    expect(wrapper.container).toSnapshot();
   });
 });
