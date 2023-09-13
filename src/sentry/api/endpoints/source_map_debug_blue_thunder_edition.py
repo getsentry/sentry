@@ -1,5 +1,6 @@
 from typing import List, Literal, Optional
 
+import sentry_sdk
 from django.utils.encoding import force_bytes, force_str
 from drf_spectacular.utils import extend_schema
 from packaging.version import Version
@@ -26,12 +27,10 @@ from sentry.models.artifactbundle import (
 from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.models.releasefile import ReleaseFile
+from sentry.sdk_updates import get_sdk_index
 from sentry.utils.javascript import find_sourcemap
 from sentry.utils.safe import get_path
 from sentry.utils.urls import non_standard_url_join
-
-from sentry.sdk_updates import get_sdk_index
-import sentry_sdk
 
 MIN_JS_SDK_VERSION_FOR_DEBUG_IDS = "7.56.0"
 
@@ -110,7 +109,9 @@ class SourceMapDebugBlueThunderEditionEndpoint(ProjectEndpoint):
         """
 
         if not features.has(
-            "organizations:source-maps-debugger-blue-thunder-edition", project.organization, actor=request.user
+            "organizations:source-maps-debugger-blue-thunder-edition",
+            project.organization,
+            actor=request.user,
         ):
             raise NotFound(
                 detail="Endpoint not available without 'organizations:source-maps-debugger-blue-thunder-edition' feature flag"
@@ -432,7 +433,9 @@ def get_sdk_debug_id_support(event_data):
     official_sdks = None
     try:
         sdk_release_registry = get_sdk_index()
-        official_sdks = [sdk.startswith("sentry.javascript.") for sdk in sdk_release_registry.keys()]
+        official_sdks = [
+            sdk.startswith("sentry.javascript.") for sdk in sdk_release_registry.keys()
+        ]
     except Exception as e:
         sentry_sdk.capture_exception(e)
         pass
@@ -455,7 +458,7 @@ def get_sdk_debug_id_support(event_data):
             "sentry.javascript.remix",
             "sentry.javascript.svelte",
             "sentry.javascript.sveltekit",
-            "sentry.javascript.vue"
+            "sentry.javascript.vue",
         ]
 
     if sdk_name not in official_sdks:

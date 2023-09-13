@@ -9,9 +9,7 @@ from sentry.testutils.silo import region_silo_test
 def create_exception_with_frame(frame):
     return {
         "type": "Error",
-        "stacktrace": {
-            "frames": [frame]
-        },
+        "stacktrace": {"frames": [frame]},
     }
 
 
@@ -20,13 +18,9 @@ def create_event(exceptions=None, debug_meta_images=None, sdk=None, release=None
     return {
         "event_id": "a" * 32,
         "release": release,
-        "exception": {
-            "values": exceptions
-        },
-        "debug_meta": None if debug_meta_images is None else {
-            "images": debug_meta_images
-        },
-        "sdk": sdk
+        "exception": {"values": exceptions},
+        "debug_meta": None if debug_meta_images is None else {"images": debug_meta_images},
+        "sdk": sdk,
     }
 
 
@@ -39,7 +33,7 @@ class SourceMapDebugBlueThunderEditionEndpointTestCase(APITestCase):
         return super().setUp()
 
     def test_missing_event(self):
-        with self.feature('organizations:source-maps-debugger-blue-thunder-edition'):
+        with self.feature("organizations:source-maps-debugger-blue-thunder-edition"):
             resp = self.get_error_response(
                 self.organization.slug,
                 self.project.slug,
@@ -51,10 +45,8 @@ class SourceMapDebugBlueThunderEditionEndpointTestCase(APITestCase):
             assert resp.data["detail"] == "Event not found"
 
     def test_empty_exceptions_array(self):
-        with self.feature('organizations:source-maps-debugger-blue-thunder-edition'):
-            event = self.store_event(
-                data=create_event([]), project_id=self.project.id
-            )
+        with self.feature("organizations:source-maps-debugger-blue-thunder-edition"):
+            event = self.store_event(data=create_event([]), project_id=self.project.id)
             resp = self.get_success_response(
                 self.organization.slug,
                 self.project.slug,
@@ -63,18 +55,19 @@ class SourceMapDebugBlueThunderEditionEndpointTestCase(APITestCase):
             assert resp.data["exceptions"] == []
 
     def test_has_debug_ids_true(self):
-        with self.feature('organizations:source-maps-debugger-blue-thunder-edition'):
+        with self.feature("organizations:source-maps-debugger-blue-thunder-edition"):
             event = self.store_event(
                 data=create_event(
-                    exceptions=[create_exception_with_frame({
-                        "abs_path": "/some/path/to/file.js"
-                    })],
-                    debug_meta_images=[{
-                        "type": "sourcemap",
-                        "code_file": "/some/path/to/file.js",
-                        "debug_id": "8d65dbd3-bb6c-5632-9049-7751111284ed"
-                    }]
-                ), project_id=self.project.id
+                    exceptions=[create_exception_with_frame({"abs_path": "/some/path/to/file.js"})],
+                    debug_meta_images=[
+                        {
+                            "type": "sourcemap",
+                            "code_file": "/some/path/to/file.js",
+                            "debug_id": "8d65dbd3-bb6c-5632-9049-7751111284ed",
+                        }
+                    ],
+                ),
+                project_id=self.project.id,
             )
             resp = self.get_success_response(
                 self.organization.slug,
@@ -84,14 +77,13 @@ class SourceMapDebugBlueThunderEditionEndpointTestCase(APITestCase):
             assert resp.data["has_debug_ids"]
 
     def test_has_debug_ids_false(self):
-        with self.feature('organizations:source-maps-debugger-blue-thunder-edition'):
+        with self.feature("organizations:source-maps-debugger-blue-thunder-edition"):
             event = self.store_event(
                 data=create_event(
-                    exceptions=[create_exception_with_frame({
-                        "abs_path": "/some/path/to/file.js"
-                    })],
-                    debug_meta_images=None
-                ), project_id=self.project.id
+                    exceptions=[create_exception_with_frame({"abs_path": "/some/path/to/file.js"})],
+                    debug_meta_images=None,
+                ),
+                project_id=self.project.id,
             )
             resp = self.get_success_response(
                 self.organization.slug,
@@ -101,14 +93,10 @@ class SourceMapDebugBlueThunderEditionEndpointTestCase(APITestCase):
             assert not resp.data["has_debug_ids"]
 
     def test_sdk_version(self):
-        with self.feature('organizations:source-maps-debugger-blue-thunder-edition'):
+        with self.feature("organizations:source-maps-debugger-blue-thunder-edition"):
             event = self.store_event(
-                data=create_event(
-                    sdk={
-                        "name": "sentry.javascript.react",
-                        "version": "7.66.0"
-                    }
-                ), project_id=self.project.id
+                data=create_event(sdk={"name": "sentry.javascript.react", "version": "7.66.0"}),
+                project_id=self.project.id,
             )
             resp = self.get_success_response(
                 self.organization.slug,
@@ -118,10 +106,8 @@ class SourceMapDebugBlueThunderEditionEndpointTestCase(APITestCase):
             assert resp.data["sdk_version"] == "7.66.0"
 
     def test_no_sdk_version(self):
-        with self.feature('organizations:source-maps-debugger-blue-thunder-edition'):
-            event = self.store_event(
-                data=create_event(), project_id=self.project.id
-            )
+        with self.feature("organizations:source-maps-debugger-blue-thunder-edition"):
+            event = self.store_event(data=create_event(), project_id=self.project.id)
             resp = self.get_success_response(
                 self.organization.slug,
                 self.project.slug,
@@ -130,14 +116,10 @@ class SourceMapDebugBlueThunderEditionEndpointTestCase(APITestCase):
             assert resp.data["sdk_version"] is None
 
     def test_sdk_debug_id_support_full(self):
-        with self.feature('organizations:source-maps-debugger-blue-thunder-edition'):
+        with self.feature("organizations:source-maps-debugger-blue-thunder-edition"):
             event = self.store_event(
-                data=create_event(
-                    sdk={
-                        "name": "sentry.javascript.react",
-                        "version": "7.66.0"
-                    }
-                ), project_id=self.project.id
+                data=create_event(sdk={"name": "sentry.javascript.react", "version": "7.66.0"}),
+                project_id=self.project.id,
             )
             resp = self.get_success_response(
                 self.organization.slug,
@@ -147,14 +129,10 @@ class SourceMapDebugBlueThunderEditionEndpointTestCase(APITestCase):
             assert resp.data["sdk_debug_id_support"] == "full"
 
     def test_sdk_debug_id_support_needs_upgrade(self):
-        with self.feature('organizations:source-maps-debugger-blue-thunder-edition'):
+        with self.feature("organizations:source-maps-debugger-blue-thunder-edition"):
             event = self.store_event(
-                data=create_event(
-                    sdk={
-                        "name": "sentry.javascript.react",
-                        "version": "7.47.0"
-                    }
-                ), project_id=self.project.id
+                data=create_event(sdk={"name": "sentry.javascript.react", "version": "7.47.0"}),
+                project_id=self.project.id,
             )
             resp = self.get_success_response(
                 self.organization.slug,
@@ -164,14 +142,10 @@ class SourceMapDebugBlueThunderEditionEndpointTestCase(APITestCase):
             assert resp.data["sdk_debug_id_support"] == "needs-upgrade"
 
     def test_sdk_debug_id_support_unsupported(self):
-        with self.feature('organizations:source-maps-debugger-blue-thunder-edition'):
+        with self.feature("organizations:source-maps-debugger-blue-thunder-edition"):
             event = self.store_event(
-                data=create_event(
-                    sdk={
-                        "name": "sentry.javascript.cordova",
-                        "version": "7.47.0"
-                    }
-                ), project_id=self.project.id
+                data=create_event(sdk={"name": "sentry.javascript.cordova", "version": "7.47.0"}),
+                project_id=self.project.id,
             )
             resp = self.get_success_response(
                 self.organization.slug,
@@ -181,14 +155,12 @@ class SourceMapDebugBlueThunderEditionEndpointTestCase(APITestCase):
             assert resp.data["sdk_debug_id_support"] == "not-supported"
 
     def test_sdk_debug_id_support_community_sdk(self):
-        with self.feature('organizations:source-maps-debugger-blue-thunder-edition'):
+        with self.feature("organizations:source-maps-debugger-blue-thunder-edition"):
             event = self.store_event(
                 data=create_event(
-                    sdk={
-                        "name": "sentry.javascript.some-custom-identifier",
-                        "version": "7.47.0"
-                    }
-                ), project_id=self.project.id
+                    sdk={"name": "sentry.javascript.some-custom-identifier", "version": "7.47.0"}
+                ),
+                project_id=self.project.id,
             )
             resp = self.get_success_response(
                 self.organization.slug,
