@@ -7,18 +7,9 @@ from django.db import OperationalError
 from django.db.models import Max
 from sentry_sdk.crons.decorator import monitor
 
-from sentry import features
 from sentry.conf.server import CELERY_ISSUE_STATES_QUEUE
-from sentry.constants import ObjectStatus
 from sentry.issues.ongoing import bulk_transition_group_to_ongoing
-from sentry.models import (
-    Group,
-    GroupHistoryStatus,
-    GroupStatus,
-    Organization,
-    OrganizationStatus,
-    Project,
-)
+from sentry.models import Group, GroupHistoryStatus, GroupStatus
 from sentry.monitoring.queues import backend
 from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task, retry
@@ -56,18 +47,6 @@ def log_error_if_queue_has_items(func):
     return inner(func)
 
 
-def get_daily_10min_bucket(now: datetime):
-    """
-    If we split a day into 10min buckets, this function
-    returns the bucket that the given datetime is in.
-    """
-    bucket = now.hour * 6 + now.minute / 10
-    if bucket == 0:
-        bucket = 144
-
-    return bucket
-
-
 @instrumented_task(
     name="sentry.tasks.schedule_auto_transition_to_ongoing",
     queue="auto_transition_issue_states",
@@ -80,44 +59,28 @@ def get_daily_10min_bucket(now: datetime):
 @monitor(monitor_slug="schedule_auto_transition_to_ongoing")
 @log_error_if_queue_has_items
 def schedule_auto_transition_to_ongoing() -> None:
-    """
-    This func will be instantiated by a cron every 10min.
-    We create 144 buckets, which comes from the 10min intervals in 24hrs.
-    We distribute all the orgs evenly in 144 buckets. For a given cron-tick's
-     10min interval, we fetch the orgs from that bucket and transition eligible Groups to ongoing
-    """
     now = datetime.now(tz=timezone.utc)
-
-    bucket = get_daily_10min_bucket(now)
 
     seven_days_ago = now - timedelta(days=TRANSITION_AFTER_DAYS)
 
-    for org in RangeQuerySetWrapper(Organization.objects.filter(status=OrganizationStatus.ACTIVE)):
-        if features.has("organizations:escalating-issues", org) and org.id % 144 == bucket:
-            project_ids = list(
-                Project.objects.filter(
-                    organization_id=org.id, status=ObjectStatus.ACTIVE
-                ).values_list("id", flat=True)
-            )
+    auto_transition_issues_new_to_ongoing.delay(
+        project_ids=[],  # TODO remove arg in next PR
+        first_seen_lte=int(seven_days_ago.timestamp()),
+        organization_id=None,  # TODO remove arg in next PR
+        expires=now + timedelta(hours=1),
+    )
 
-            auto_transition_issues_new_to_ongoing.delay(
-                project_ids=project_ids,
-                first_seen_lte=int(seven_days_ago.timestamp()),
-                organization_id=org.id,
-                expires=now + timedelta(hours=1),
-            )
+    auto_transition_issues_regressed_to_ongoing.delay(
+        project_ids=[],  # TODO(nisanthan): Remove this arg in next PR
+        date_added_lte=int(seven_days_ago.timestamp()),
+        expires=now + timedelta(hours=1),
+    )
 
-            auto_transition_issues_regressed_to_ongoing.delay(
-                project_ids=project_ids,
-                date_added_lte=int(seven_days_ago.timestamp()),
-                expires=now + timedelta(hours=1),
-            )
-
-            auto_transition_issues_escalating_to_ongoing.delay(
-                project_ids=project_ids,
-                date_added_lte=int(seven_days_ago.timestamp()),
-                expires=now + timedelta(hours=1),
-            )
+    auto_transition_issues_escalating_to_ongoing.delay(
+        project_ids=[],  # TODO(nisanthan): Remove this arg in next PR
+        date_added_lte=int(seven_days_ago.timestamp()),
+        expires=now + timedelta(hours=1),
+    )
 
 
 @instrumented_task(
@@ -133,9 +96,9 @@ def schedule_auto_transition_to_ongoing() -> None:
 @retry(on=(OperationalError,))
 @log_error_if_queue_has_items
 def auto_transition_issues_new_to_ongoing(
-    project_ids: List[int],
+    project_ids: List[int],  # TODO remove arg in next PR
     first_seen_lte: int,
-    organization_id: int,
+    organization_id: int,  # TODO remove arg in next PR
     **kwargs,
 ) -> None:
     """
@@ -153,7 +116,6 @@ def auto_transition_issues_new_to_ongoing(
     logger.info(
         "auto_transition_issues_new_to_ongoing started",
         extra={
-            "organization_id": organization_id,
             "most_recent_group_first_seen_seven_days_ago": most_recent_group_first_seen_seven_days_ago.id,
             "first_seen_lte": first_seen_lte,
         },
@@ -162,12 +124,12 @@ def auto_transition_issues_new_to_ongoing(
     for new_groups in chunked(
         RangeQuerySetWrapper(
             Group.objects.filter(
-                project_id__in=project_ids,
                 status=GroupStatus.UNRESOLVED,
                 substatus=GroupSubStatus.NEW,
-                id__lte=most_recent_group_first_seen_seven_days_ago.id,
+                id__lte=1,
             ),
             step=ITERATOR_CHUNK,
+            limit=ITERATOR_CHUNK * 50,
         ),
         ITERATOR_CHUNK,
     ):
@@ -175,7 +137,6 @@ def auto_transition_issues_new_to_ongoing(
             logger.info(
                 "auto_transition_issues_new_to_ongoing updating group",
                 extra={
-                    "organization_id": organization_id,
                     "most_recent_group_first_seen_seven_days_ago": most_recent_group_first_seen_seven_days_ago.id,
                     "group_id": group.id,
                 },
@@ -201,20 +162,15 @@ def auto_transition_issues_new_to_ongoing(
 @retry(on=(OperationalError,))
 @log_error_if_queue_has_items
 def auto_transition_issues_regressed_to_ongoing(
-    project_ids: List[int],
+    project_ids: List[int],  # TODO(nisanthan): Remove this arg in next PR
     date_added_lte: int,
     project_id: Optional[int] = None,  # TODO(nisanthan): Remove this arg in next PR
     **kwargs,
 ) -> None:
 
-    # TODO(nisanthan): Remove this conditional in next PR
-    if project_id is not None:
-        project_ids = [project_id]
-
     for groups_with_regressed_history in chunked(
         RangeQuerySetWrapper(
             Group.objects.filter(
-                project_id__in=project_ids,
                 status=GroupStatus.UNRESOLVED,
                 substatus=GroupSubStatus.REGRESSED,
                 grouphistory__status=GroupHistoryStatus.REGRESSED,
@@ -224,6 +180,7 @@ def auto_transition_issues_regressed_to_ongoing(
                 recent_regressed_history__lte=datetime.fromtimestamp(date_added_lte, timezone.utc)
             ),
             step=ITERATOR_CHUNK,
+            limit=ITERATOR_CHUNK * 50,
         ),
         ITERATOR_CHUNK,
     ):
@@ -249,19 +206,15 @@ def auto_transition_issues_regressed_to_ongoing(
 @retry(on=(OperationalError,))
 @log_error_if_queue_has_items
 def auto_transition_issues_escalating_to_ongoing(
-    project_ids: List[int],
+    project_ids: List[int],  # TODO(nisanthan): Remove this arg in next PR
     date_added_lte: int,
     project_id: Optional[int] = None,  # TODO(nisanthan): Remove this arg in next PR
     **kwargs,
 ) -> None:
-    # TODO(nisanthan): Remove this conditional in next PR
-    if project_id is not None:
-        project_ids = [project_id]
 
     for new_groups in chunked(
         RangeQuerySetWrapper(
             Group.objects.filter(
-                project_id__in=project_ids,
                 status=GroupStatus.UNRESOLVED,
                 substatus=GroupSubStatus.ESCALATING,
                 grouphistory__status=GroupHistoryStatus.ESCALATING,
@@ -271,6 +224,7 @@ def auto_transition_issues_escalating_to_ongoing(
                 recent_escalating_history__lte=datetime.fromtimestamp(date_added_lte, timezone.utc)
             ),
             step=ITERATOR_CHUNK,
+            limit=ITERATOR_CHUNK * 50,
         ),
         ITERATOR_CHUNK,
     ):
