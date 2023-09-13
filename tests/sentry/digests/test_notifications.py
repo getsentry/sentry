@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import uuid
 from collections import defaultdict
 from functools import cached_property, reduce
 from typing import Mapping, MutableMapping, MutableSequence
@@ -24,16 +23,13 @@ from sentry.testutils.silo import region_silo_test
 
 @region_silo_test(stable=True)
 class RewriteRecordTestCase(TestCase):
-    def setUp(self):
-        self.notification_uuid = str(uuid.uuid4())
-
     @cached_property
     def rule(self):
         return self.event.project.rule_set.all()[0]
 
     @cached_property
     def record(self):
-        return event_to_record(self.event, (self.rule,), self.notification_uuid)
+        return event_to_record(self.event, (self.rule,))
 
     def test_success(self):
         assert rewrite_record(
@@ -43,7 +39,7 @@ class RewriteRecordTestCase(TestCase):
             rules={self.rule.id: self.rule},
         ) == Record(
             self.record.key,
-            Notification(self.record.value.event, [self.rule], self.notification_uuid),
+            Notification(self.record.value.event, [self.rule]),
             self.record.timestamp,
         )
 
@@ -63,17 +59,12 @@ class RewriteRecordTestCase(TestCase):
             groups={self.event.group.id: self.event.group},
             rules={},
         ) == Record(
-            self.record.key,
-            Notification(self.record.value.event, [], self.notification_uuid),
-            self.record.timestamp,
+            self.record.key, Notification(self.record.value.event, []), self.record.timestamp
         )
 
 
 @region_silo_test(stable=True)
 class GroupRecordsTestCase(TestCase):
-    def setUp(self):
-        self.notification_uuid = str(uuid.uuid4())
-
     @cached_property
     def rule(self):
         return self.project.rule_set.all()[0]
@@ -85,11 +76,7 @@ class GroupRecordsTestCase(TestCase):
         ]
         group = events[0].group
         records = [
-            Record(
-                event.event_id,
-                Notification(event, [self.rule], self.notification_uuid),
-                event.datetime,
-            )
+            Record(event.event_id, Notification(event, [self.rule]), event.datetime)
             for event in events
         ]
         results: MutableMapping[str, Mapping[str, MutableSequence[Record]]] = defaultdict(
