@@ -1,24 +1,19 @@
 from __future__ import annotations
 
-import enum
-from typing import Generic, TypeVar
-
 from django import forms
 
 from sentry.models import OrganizationMemberTeam, Project
 from sentry.services.hybrid_cloud.user.service import user_service
 
-T = TypeVar("T", bound=enum.Enum)
 
-
-class MemberTeamForm(forms.Form, Generic[T]):
+class MemberTeamForm(forms.Form):
     targetType = forms.ChoiceField()
     targetIdentifier = forms.CharField(
         required=False, help_text="Only required if 'Member' or 'Team' is selected"
     )
-    teamValue: T
-    memberValue: T
-    targetTypeEnum: type[T]
+    teamValue = None
+    memberValue = None
+    targetTypeEnum = None
 
     def __init__(self, project, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -37,8 +32,7 @@ class MemberTeamForm(forms.Form, Generic[T]):
         return targetIdentifier
 
     def clean(self) -> None:
-        super().clean()
-        cleaned_data = self.cleaned_data
+        cleaned_data = super().clean()
         try:
             targetType = self.targetTypeEnum(cleaned_data.get("targetType"))
         except ValueError:
