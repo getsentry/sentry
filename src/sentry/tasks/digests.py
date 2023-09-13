@@ -1,5 +1,6 @@
 import logging
 import time
+from typing import Optional
 
 from sentry.digests import get_option_key
 from sentry.digests.backends.base import InvalidState
@@ -42,7 +43,7 @@ def schedule_digests():
     queue="digests.delivery",
     silo_mode=SiloMode.REGION,
 )
-def deliver_digest(key, schedule_timestamp=None):
+def deliver_digest(key, schedule_timestamp=None, notification_uuid: Optional[str] = None):
     from sentry import digests
     from sentry.mail import mail_adapter
 
