@@ -71,9 +71,15 @@ def test_relay_encoder_with_set():
     flushed_metric = FlushedMetric(bucket_key=bucket_key, metric=metric)
 
     result = encoder.encode(flushed_metric)
-    assert (
-        result == "users@none:456:123:3455635177|s|#browser:Chrome,browser.version:1.0|T1693994400"
-    )
+    pieces = result.split("|")
+
+    m = pieces[0].split(":")
+    assert m[0] == "users@none"
+    assert sorted(m[1:]) == sorted(["123", "456", "3455635177"])
+
+    assert pieces[1] == "s"
+    assert pieces[2] == "#browser:Chrome,browser.version:1.0"
+    assert pieces[3] == "T1693994400"
 
 
 def test_relay_encoder_with_gauge():
