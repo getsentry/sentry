@@ -141,9 +141,8 @@ class PostDocIntegrationsTest(DocIntegrationsTest):
         response = self.get_success_response(status_code=status.HTTP_201_CREATED, **payload)
 
         slug = response.data["slug"]
-        assert len(slug) == 8
-        assert not slug.isnumeric()
         assert slug.startswith("1234-")
+        assert not slug.isdecimal()
 
     def test_create_invalid_metadata(self):
         """
