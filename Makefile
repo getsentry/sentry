@@ -135,8 +135,6 @@ test-python-ci: create-db
 		--ignore tests/sentry/ingest/ingest_consumer/test_ingest_consumer_kafka.py \
 		--ignore tests/sentry/region_to_control/test_region_to_control_kafka.py \
 		--cov . --cov-report="xml:.artifacts/python.coverage.xml"
-	SENTRY_USE_MONOLITH_DBS=1 pytest tests/sentry/backup \
-		--cov . --cov-report="xml:.artifacts/python-backup-tests.coverage.xml"
 	@echo ""
 
 test-snuba: create-db
