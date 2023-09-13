@@ -51,11 +51,11 @@ def get_organization(project_id: int) -> Tuple[Organization, int]:
         )
         or DEFAULT_SPAN_RETENTION_DAYS
     )
-    return organization, retention_days
+    return organization.id, retention_days
 
 
 def _build_snuba_span(relay_span: Mapping[str, Any]) -> MutableMapping[str, Any]:
-    organization, retention_days = get_organization(
+    organization_id, retention_days = get_organization(
         relay_span["project_id"],
     )
     span_data: Mapping[str, Any] = relay_span.get("data", {})
@@ -65,7 +65,7 @@ def _build_snuba_span(relay_span: Mapping[str, Any]) -> MutableMapping[str, Any]
     snuba_span["event_id"] = relay_span["event_id"]
     snuba_span["exclusive_time_ms"] = int(relay_span.get("exclusive_time", 0))
     snuba_span["is_segment"] = relay_span.get("is_segment", False)
-    snuba_span["organization_id"] = organization.id
+    snuba_span["organization_id"] = organization_id
     snuba_span["parent_span_id"] = relay_span.get("parent_span_id", "0")
     snuba_span["project_id"] = relay_span["project_id"]
     snuba_span["retention_days"] = retention_days
