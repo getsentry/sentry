@@ -75,12 +75,10 @@ class GroupNotesEndpoint(GroupEndpoint):
             group=group, user_ids=mentioned_users["users"], reason=GroupSubscriptionReason.mentioned
         )
 
-        if features.has(
-            "organizations:team-workflow-notifications", group.organization, request.user
-        ):
+        if features.has("organizations:team-workflow-notifications", group.organization):
             GroupSubscription.objects.bulk_subscribe(
                 group=group,
-                teams=mentioned_users["teams"],
+                team_ids=mentioned_users["teams"],
                 reason=GroupSubscriptionReason.mentioned,
             )
         else:
