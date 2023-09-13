@@ -1,3 +1,4 @@
+import os
 import threading
 import time
 import zlib
@@ -182,9 +183,21 @@ class Aggregator:
         # Use to signal whether we want to flush the buckets in the next loop iteration, irrespectively of the cutoff.
         self._force_flush: bool = False
         # Thread handling the flushing loop.
-        self._flusher: Optional[Thread] = Thread(target=self._flush_loop)
-        self._flusher.daemon = True
-        self._flusher.start()
+        self._flusher: Optional[Thread] = None
+        self._flusher_pid: Optional[int] = None
+
+    def _ensure_thread(self):
+        """For forking processes we might need to restart this thread.
+        This ensures that our process actually has that thread running.
+        """
+        pid = os.getpid()
+        if self._flusher_pid == pid:
+            return
+        with self._lock:
+            self._flusher_pid = pid
+            self._flusher: Optional[Thread] = Thread(target=self._flush_loop)
+            self._flusher.daemon = True
+            self._flusher.start()
 
     def _flush_loop(self) -> None:
         while self._running or self._force_flush:
@@ -231,6 +244,8 @@ class Aggregator:
         tags: Optional[MetricTagsExternal],
         timestamp: Optional[float],
     ) -> None:
+        self._ensure_thread()
+
         if self._flusher is None:
             return
 
