@@ -167,7 +167,7 @@ class GroupNoteCreateTest(APITestCase):
 
         assert response.data == {"mentions": ["Cannot mention a non team member"]}
 
-    def test_with_team_mentions(self):
+    def test_with_team_user_mentions(self):
         user = self.create_user(email="redTeamUser@example.com")
 
         self.org = self.create_organization(name="Gnarly Org", owner=None)
@@ -264,7 +264,10 @@ class GroupNoteCreateTest(APITestCase):
                 assert activity.data == {"text": comment, "external_id": "123456789"}
 
     @with_feature("organizations:team-workflow-notifications")
-    def test_team_mentions_v2(self):
+    def test_with_team_mentions(self):
+        """
+        This test assures teams can be subscribed via mention, rather than subscribing the individual users on the team.
+        """
         user = self.create_user(email="grunt@teamgalactic.com")
 
         self.org = self.create_organization(name="Galactic Org", owner=None)
