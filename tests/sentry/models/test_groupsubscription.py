@@ -42,24 +42,24 @@ class SubscribeTest(TestCase):
         group = self.create_group()
 
         user_ids = []
-        teams = []
+        team_ids = []
         for _ in range(20):
             user = self.create_user()
             user_ids.append(user.id)
             team = self.create_team()
-            teams.append(team)
+            team_ids.append(team.id)
 
-        GroupSubscription.objects.bulk_subscribe(group=group, user_ids=user_ids, teams=teams)
+        GroupSubscription.objects.bulk_subscribe(group=group, user_ids=user_ids, team_ids=team_ids)
 
         assert len(GroupSubscription.objects.filter(group=group)) == 40
 
         one_more = self.create_user()
         user_ids.append(one_more.id)
 
-        teams.append(self.create_team())
+        team_ids.append(self.create_team().id)
 
         # should not error
-        GroupSubscription.objects.bulk_subscribe(group=group, user_ids=user_ids, teams=teams)
+        GroupSubscription.objects.bulk_subscribe(group=group, user_ids=user_ids, team_ids=team_ids)
 
         assert len(GroupSubscription.objects.filter(group=group)) == 42
 
@@ -72,13 +72,13 @@ class SubscribeTest(TestCase):
         user_ids.append(user.id)
         user_ids.append(user.id)
 
-        teams = []
+        team_ids = []
 
         team = self.create_team()
-        teams.append(team)
-        teams.append(team)
+        team_ids.append(team.id)
+        team_ids.append(team.id)
 
-        GroupSubscription.objects.bulk_subscribe(group=group, user_ids=user_ids, teams=teams)
+        GroupSubscription.objects.bulk_subscribe(group=group, user_ids=user_ids, team_ids=team_ids)
 
         assert len(GroupSubscription.objects.filter(group=group)) == 2
 
@@ -91,10 +91,10 @@ class SubscribeTest(TestCase):
         user = self.create_user()
         self.create_member(user=user, organization=self.organization, role="member", teams=[team])
 
-        teams = [team]
+        team_ids = [team.id]
         user_ids = [user.id]
 
-        GroupSubscription.objects.bulk_subscribe(group=group, user_ids=user_ids, teams=teams)
+        GroupSubscription.objects.bulk_subscribe(group=group, user_ids=user_ids, team_ids=team_ids)
 
         assert len(GroupSubscription.objects.filter(group=group)) == 2
 
@@ -107,13 +107,13 @@ class SubscribeTest(TestCase):
         team = self.create_team()
 
         user_ids = [user.id]
-        teams = [team]
+        team_ids = [team.id]
 
         # should not error
         GroupSubscription.objects.bulk_subscribe(group=group, user_ids=user_ids)
 
         # should not error
-        GroupSubscription.objects.bulk_subscribe(group=group, teams=teams)
+        GroupSubscription.objects.bulk_subscribe(group=group, team_ids=team_ids)
 
     def test_actor_user(self):
         group = self.create_group()

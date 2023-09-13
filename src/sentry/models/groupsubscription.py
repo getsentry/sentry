@@ -90,7 +90,7 @@ class GroupSubscriptionManager(BaseManager):
         self,
         group: Group,
         user_ids: Iterable[int] | None = None,
-        teams: Iterable[Team] | None = None,
+        team_ids: Iterable[int] | None = None,
         reason: int = GroupSubscriptionReason.unknown,
     ) -> bool:
         """
@@ -101,7 +101,7 @@ class GroupSubscriptionManager(BaseManager):
         user_ids = set(user_ids) if user_ids else set()
 
         # Unique the teams.
-        teams = set(teams) if teams else set()
+        team_ids = set(team_ids) if team_ids else set()
 
         # 5 retries for race conditions where
         # concurrent subscription attempts cause integrity errors
@@ -121,27 +121,25 @@ class GroupSubscriptionManager(BaseManager):
                     is_active=True,
                     reason=reason,
                 )
-                for user_id in user_ids
-                if user_id not in existing_subscriptions
+                for user_id in user_ids.difference(existing_subscriptions)
             ]
 
             existing_team_subscriptions = set(
                 GroupSubscription.objects.filter(
-                    team__in=teams, group=group, project=group.project
-                ).values_list("team", flat=True)
+                    team_id__in=team_ids, group=group, project=group.project
+                ).values_list("team_id", flat=True)
             )
 
             subscriptions.extend(
                 [
                     GroupSubscription(
-                        team=team,
+                        team_id=team_id,
                         group=group,
                         project=group.project,
                         is_active=True,
                         reason=reason,
                     )
-                    for team in teams
-                    if team.id not in existing_team_subscriptions
+                    for team_id in team_ids.difference(existing_team_subscriptions)
                 ]
             )
 
