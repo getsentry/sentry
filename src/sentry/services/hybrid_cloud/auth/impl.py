@@ -7,8 +7,7 @@ from django.contrib.auth.models import AnonymousUser
 from django.db import router, transaction
 from django.db.models import Count, F
 
-from sentry import audit_log, roles
-from sentry.auth.access import get_permissions_for_user
+from sentry import audit_log
 from sentry.auth.system import SystemToken
 from sentry.db.postgres.transactions import enforce_constraints
 from sentry.middleware.auth import RequestAuthenticationMiddleware
@@ -16,6 +15,7 @@ from sentry.middleware.placeholder import placeholder_get_response
 from sentry.models import (
     ApiKey,
     ApiToken,
+    AuthIdentity,
     AuthProvider,
     OrganizationMemberMapping,
     OrgAuthToken,
