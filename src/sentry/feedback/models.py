@@ -16,7 +16,7 @@ class Feedback(Model):
     message = models.TextField()
     feedback_id = UUIDField(unique=True)
     date_added = models.DateTimeField(default=timezone.now)
-    organization_id = BoundedBigIntegerField(db_index=True)
+    organization_id = BoundedBigIntegerField(db_index=True, default=0)
 
     # This "data" field is the data coming from the Sentry event and includes things like contexts
     # As we develop the product more, we will add more specific columns and rely on this JSON field less and less
@@ -27,4 +27,4 @@ class Feedback(Model):
         db_table = "feedback_feedback"
         index_together = [("project_id", "date_added")]
 
-    __repr__ = sane_repr("project_id", "event_id")
+    __repr__ = sane_repr("project_id", "feedback_id")
