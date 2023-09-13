@@ -78,3 +78,20 @@ class ReleaseCommitsListTest(APITestCase):
         assert len(response.data) == 2
         assert response.data[0]["id"] == self.commit2.key
         assert response.data[1]["id"] == self.commit.key
+
+    def test_query_does_not_exist(self):
+        self.get_error_response(
+            self.project.organization.slug,
+            self.project.slug,
+            self.release.version,
+            status_code=404,
+            qs_params={"repo_name": "hello"},
+        )
+
+        self.get_error_response(
+            self.project.organization.slug,
+            self.project.slug,
+            self.release.version,
+            status_code=404,
+            qs_params={"repo_id": "0"},
+        )

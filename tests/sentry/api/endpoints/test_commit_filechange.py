@@ -85,3 +85,18 @@ class CommitFileChangeTest(APITestCase):
 
         assert response.data[0]["filename"] == ".gitignore"
         assert response.data[1]["filename"] == "/static/js/widget.js"
+
+    def test_query_does_not_exist(self):
+        self.get_error_response(
+            self.project.organization.slug,
+            self.release.version,
+            status_code=404,
+            qs_params={"repo_name": "hello"},
+        )
+
+        self.get_error_response(
+            self.project.organization.slug,
+            self.release.version,
+            status_code=404,
+            qs_params={"repo_id": "0"},
+        )
