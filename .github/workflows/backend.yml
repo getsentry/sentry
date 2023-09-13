@@ -253,6 +253,8 @@ jobs:
           snuba: true
 
       - name: Run test
+        env:
+          SENTRY_FORCE_SILOED_TESTS: 1
         run: |
           make test-plugins
 
@@ -283,6 +285,8 @@ jobs:
           docker ps -a
 
       - name: Run test
+        env:
+          SENTRY_FORCE_SILOED_TESTS: 1
         run: |
           make test-relay-integration
 

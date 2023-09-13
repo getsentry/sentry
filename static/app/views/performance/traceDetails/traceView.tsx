@@ -354,7 +354,7 @@ export default function TraceView({
             isLast={isLastError}
             index={lastIndex + index + 1}
             isVisible={isVisible}
-            hasGuideAnchor
+            hasGuideAnchor={index === 0 && transactionGroups.length === 0}
             renderedChildren={[]}
           />
         </Fragment>

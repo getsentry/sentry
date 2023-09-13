@@ -64,12 +64,12 @@ class GroupActivity extends Component<Props, State> {
   };
 
   handleNoteDelete = async ({noteId, text: oldText}) => {
-    const {api, group} = this.props;
+    const {api, group, organization} = this.props;
 
-    addLoadingMessage(t('Removing comment...'));
+    addLoadingMessage(t('Removing comment\u{2026}'));
 
     try {
-      await deleteNote(api, group, noteId, oldText);
+      await deleteNote(api, organization.slug, group, noteId, oldText);
       clearIndicators();
     } catch (_err) {
       addErrorMessage(t('Failed to delete comment'));
@@ -81,16 +81,16 @@ class GroupActivity extends Component<Props, State> {
    * This can be abstracted a bit if we create more objects that can have activities
    */
   handleNoteCreate = async note => {
-    const {api, group} = this.props;
+    const {api, group, organization} = this.props;
 
     this.setState({
       createBusy: true,
     });
 
-    addLoadingMessage(t('Posting comment...'));
+    addLoadingMessage(t('Posting comment\u{2026}'));
 
     try {
-      await createNote(api, group, note);
+      await createNote(api, organization.slug, group, note);
 
       this.setState({
         createBusy: false,
@@ -111,12 +111,12 @@ class GroupActivity extends Component<Props, State> {
   };
 
   handleNoteUpdate = async (note, {noteId, text: oldText}) => {
-    const {api, group} = this.props;
+    const {api, group, organization} = this.props;
 
-    addLoadingMessage(t('Updating comment...'));
+    addLoadingMessage(t('Updating comment\u{2026}'));
 
     try {
-      await updateNote(api, group, note, noteId, oldText);
+      await updateNote(api, organization.slug, group, note, noteId, oldText);
       clearIndicators();
     } catch (error) {
       this.setState({

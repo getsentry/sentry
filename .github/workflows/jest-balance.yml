@@ -18,9 +18,6 @@ jobs:
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
-      - name: Build CSS
-        run: NODE_ENV=production yarn build-css
-
       - name: jest balancer
         env:
           GITHUB_PR_SHA: ${{ github.event.pull_request.head.sha || github.sha }}

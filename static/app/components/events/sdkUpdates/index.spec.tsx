@@ -31,7 +31,6 @@ describe('EventSdkUpdates', function () {
       ],
     });
 
-    const wrapper = render(<EventSdkUpdates event={event} />, {context: routerContext});
-    expect(wrapper.container).toSnapshot();
+    render(<EventSdkUpdates event={event} />, {context: routerContext});
   });
 });

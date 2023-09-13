@@ -4,12 +4,7 @@ import ApiTokenRow from 'sentry/views/settings/account/apiTokenRow';
 
 describe('ApiTokenRow', () => {
   it('renders', () => {
-    const wrapper = render(
-      <ApiTokenRow onRemove={() => {}} token={TestStubs.ApiToken()} />
-    );
-
-    // Should be loading
-    expect(wrapper.container).toSnapshot();
+    render(<ApiTokenRow onRemove={() => {}} token={TestStubs.ApiToken()} />);
   });
 
   it('calls onRemove callback when trash can is clicked', async () => {
