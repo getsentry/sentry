@@ -72,7 +72,7 @@ def test_relay_encoder_with_set():
 
     result = encoder.encode(flushed_metric)
     assert (
-        result == "users@none:456:3455635177:123|s|#browser:Chrome,browser.version:1.0|T1693994400"
+        result == "users@none:456:123:3455635177|s|#browser:Chrome,browser.version:1.0|T1693994400"
     )
 
 
