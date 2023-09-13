@@ -11,7 +11,6 @@ from sentry.models import EventAttachment, File
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.relay import RelayStoreHelper
-from sentry.testutils.skips import requires_symbolicator
 from sentry.utils.safe import get_path
 from tests.symbolicator import normalize_native_exception
 
@@ -33,7 +32,6 @@ def get_unreal_crash_apple_file():
     return get_fixture_path("native", "unreal_crash_apple")
 
 
-@requires_symbolicator
 class SymbolicatorUnrealIntegrationTest(RelayStoreHelper, TransactionTestCase):
     @pytest.fixture(autouse=True)
     def initialize(self, live_server):

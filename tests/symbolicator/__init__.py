@@ -1,6 +1,10 @@
 import re
 
+from sentry.testutils.skips import requires_symbolicator
 from sentry.utils.safe import get_path
+
+# TODO: Symbolicator tests also need kafka + zookeeper
+pytestmark = requires_symbolicator
 
 
 def strip_frame(frame):
