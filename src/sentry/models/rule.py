@@ -138,10 +138,11 @@ def in_fourteen_days():
 
 
 @region_silo_only_model
-class NeglectedRules(Model):
+class NeglectedRule(Model):
     __relocation_scope__ = RelocationScope.Organization
 
     rule_id = FlexibleForeignKey("sentry.Rule")
+    organization_id = FlexibleForeignKey("sentry.Organization")
     disable_date = models.DateTimeField(default=in_fourteen_days)
     opted_out = models.BooleanField(default=False)
     has_sent_initial_email = models.BooleanField(default=False)
