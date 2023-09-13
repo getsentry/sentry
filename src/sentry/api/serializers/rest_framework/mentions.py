@@ -11,10 +11,10 @@ from sentry.services.hybrid_cloud.user import RpcUser
 def extract_user_ids_from_mentions(organization_id, mentions):
     """
     Extracts user ids from a set of mentions. Mentions should be a list of
-    `ActorTuple` instances. Returns a dictionary with 'users' and 'team_users' keys.
-    'users' is the user ids for all explicitly mentioned users, and 'team_users'
+    `ActorTuple` instances. Returns a dictionary with 'users', 'team_users', and 'teams' keys.
+    'users' is the user ids for all explicitly mentioned users, 'team_users'
     is all user ids from explicitly mentioned teams, excluding any already
-    mentioned users.
+    mentioned users, and 'teams' is the team ids for all explicitly mentioned teams.
     """
     actors: Sequence[RpcUser | Team] = ActorTuple.resolve_many(mentions)
     actor_mentions = separate_resolved_actors(actors)
