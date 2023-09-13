@@ -9,7 +9,6 @@ from typing import List, Mapping, MutableMapping, Optional, Sequence, cast
 from sentry.notifications.types import (
     NotificationSettingEnum,
     NotificationSettingOptionValues,
-    NotificationSettingsOptionEnum,
     NotificationSettingTypes,
 )
 from sentry.services.hybrid_cloud.actor import RpcActor
@@ -72,7 +71,7 @@ class NotificationsService(RpcService):
         user_id: int,
         project_ids: List[int],
         type: Optional[NotificationSettingEnum] = None,
-    ) -> MutableMapping[NotificationSettingEnum, NotificationSettingsOptionEnum]:
+    ) -> MutableMapping[str, str]:  # NotificationSettingEnum, NotificationSettingsOptionEnum
         pass
 
     @rpc_method

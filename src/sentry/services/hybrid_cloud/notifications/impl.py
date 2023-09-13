@@ -17,7 +17,6 @@ from sentry.notifications.types import (
     NotificationScopeType,
     NotificationSettingEnum,
     NotificationSettingOptionValues,
-    NotificationSettingsOptionEnum,
     NotificationSettingTypes,
 )
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
@@ -165,7 +164,7 @@ class DatabaseBackedNotificationsService(NotificationsService):
         user_id: int,
         project_ids: List[int],
         type: NotificationSettingEnum | None = None,
-    ) -> MutableMapping[NotificationSettingEnum, NotificationSettingsOptionEnum]:
+    ) -> MutableMapping[str, str]:  # NotificationSettingEnum, NotificationSettingsOptionEnum
         """
         Returns the setting options for a given user, with default values accounted for.
 
