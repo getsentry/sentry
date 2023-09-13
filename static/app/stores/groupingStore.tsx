@@ -495,7 +495,8 @@ const storeConfig: GroupingStoreDefinition = {
           });
           this.unmergeList.clear();
         },
-        error: () => {
+        error: error => {
+          errorMessage = error?.responseJSON?.detail || errorMessage;
           addErrorMessage(errorMessage);
           this.setStateForId(this.unmergeState, ids, {
             checked: true,
