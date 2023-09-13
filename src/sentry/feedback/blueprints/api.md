@@ -64,7 +64,7 @@ Retrieve a collection of feedback items.
 | device.name       | optional[string] | -                                                   |
 | dist              | optional[string] |                                                     |
 | environment       | string           |                                                     |
-| id                | string           |                                                     |
+| feedback_id       | string           |                                                     |
 | locale            | object           | Browser locale information.                         |
 | locale.lang       | string           | The language preference of the user's browser.      |
 | locale.timezone   | string           | The timezone the feedback was submitted from.       |
@@ -109,7 +109,7 @@ Retrieve a collection of feedback items.
         },
         "dist": "abc123",
         "environment": "production",
-        "id": "1ffe0775ac0f4417aed9de36d9f6f8dc",
+        "feedback_id": "1ffe0775ac0f4417aed9de36d9f6f8dc",
         "locale": {
           "lang": "en",
           "timezone": "UTC+1"
@@ -168,7 +168,7 @@ Retrieve a collection of feedback items.
         },
         "dist": "abc123",
         "environment": "production",
-        "id": "1ffe0775ac0f4417aed9de36d9f6f8dc",
+        "feedback_id": "1ffe0775ac0f4417aed9de36d9f6f8dc",
         "locale": {
           "lang": "en",
           "timezone": "UTC+1"
