@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Any, Dict, Generator, List, Optional, Set, Tuple
 
@@ -115,7 +114,7 @@ def run_detection() -> None:
     max_retries=0,
 )
 def detect_transaction_trends(
-    org_ids: List[int], project_ids: List[int], start: datetime, **kwargs
+    org_ids: List[int], project_ids: List[int], start: datetime, *args, **kwargs
 ) -> None:
     if not options.get("statistical_detectors.enable"):
         return
@@ -264,6 +263,8 @@ def query_transactions(
     transactions_per_project: int,
 ) -> List[DetectorPayload]:
 
+    # both the metric and tag that we are using are hardcoded values in sentry_metrics.indexer.strings
+    # so the org_id that we are using does not actually matter here, we only need to pass in an org_id
     duration_metric_id = indexer.resolve(
         UseCaseID.TRANSACTIONS, org_ids[0], str(TransactionMRI.DURATION.value)
     )
@@ -349,9 +350,6 @@ def query_transactions(
     data = raw_snql_query(
         request, referrer=Referrer.STATISTICAL_DETECTORS_FETCH_TOP_TRANSACTION_NAMES.value
     )["data"]
-    res = defaultdict(list)
-    for row in data:
-        res[row["project_id"]].append((row["transaction_name"], row["count"], row["p95"]))
     return [
         DetectorPayload(
             project_id=row["project_id"],
