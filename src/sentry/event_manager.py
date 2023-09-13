@@ -2061,12 +2061,12 @@ def _get_severity_score(event: Event) -> float | None:
                 except MaxRetryError as e:
                     logger.warning(
                         f"Unable to get severity score from microservice after {SEVERITY_DETECTION_RETRIES} retr{'ies' if SEVERITY_DETECTION_RETRIES >1 else 'y'}. Got MaxRetryError caused by: {repr(e.reason)}.",
-                        extra={"event_id": event.data["event_id"], "reason": e.reason},
+                        extra={"event_id": event.data["event_id"]},
                     )
                 except Exception as e:
                     logger.warning(
                         f"Unable to get severity score from microservice. Got: {repr(e)}.",
-                        extra={"event_id": event.data["event_id"], "reason": e},
+                        extra={"event_id": event.data["event_id"]},
                     )
 
     return severity
