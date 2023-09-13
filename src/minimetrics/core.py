@@ -302,6 +302,12 @@ class Aggregator:
             self._flush_event.set()
 
     def _emit(self, flushed_metrics: List[FlushedMetric], force_flush: bool) -> Any:
+        metrics.incr(
+            key="minimetrics.flushed_metrics_count",
+            amount=len(flushed_metrics),
+            sample_rate=self.DEFAULT_SAMPLE_RATE,
+        )
+
         if options.get("delightful_metrics.enable_envelope_forwarding"):
             try:
                 self._transport.send(flushed_metrics)
