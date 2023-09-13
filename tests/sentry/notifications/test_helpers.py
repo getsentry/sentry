@@ -394,12 +394,14 @@ class NotificationSettingV2HelpersTest(TestCase):
         self.rpc_user = RpcUser(id=self.user.id)
 
     def test_get_all_setting_options(self):
-        options = list(get_all_setting_options([self.user], [self.project], self.organization))
+        options = list(
+            get_all_setting_options([self.user], [self.project.id], self.organization.id)
+        )
         assert options == self.setting_options
 
     def test_get_all_setting_providers(self):
         assert (
-            list(get_all_setting_providers([self.user], [self.project], self.organization))
+            list(get_all_setting_providers([self.user], [self.project.id], self.organization.id))
             == self.setting_providers
         )
 
@@ -430,7 +432,9 @@ class NotificationSettingV2HelpersTest(TestCase):
             user_id=self.user.id,
         )
 
-        providers = get_layered_setting_providers([self.user], [self.project], self.organization)
+        providers = get_layered_setting_providers(
+            [self.user], [self.project.id], self.organization.id
+        )
         assert (
             providers[self.rpc_user][NotificationSettingEnum.REPORTS][ExternalProviderEnum.EMAIL]
             == top_level_provider
@@ -459,11 +463,11 @@ class NotificationSettingV2HelpersTest(TestCase):
             user_id=self.user.id,
         )
 
-        options = get_layered_setting_options([self.user], [self.project], self.organization)
+        options = get_layered_setting_options([self.user], [self.project.id], self.organization.id)
         assert options[self.rpc_user][NotificationSettingEnum.REPORTS] == top_level_option
 
     def test_get_layered_setting_options(self):
-        options = get_layered_setting_options([self.user], [self.project], self.organization)
+        options = get_layered_setting_options([self.user], [self.project.id], self.organization.id)
 
         assert options[self.rpc_user][NotificationSettingEnum.DEPLOY] == self.setting_options[0]
         assert (
@@ -472,8 +476,8 @@ class NotificationSettingV2HelpersTest(TestCase):
 
         options = get_layered_setting_options(
             [self.user],
-            [self.project],
-            self.organization,
+            [self.project.id],
+            self.organization.id,
             additional_filters=Q(type=NotificationSettingEnum.ISSUE_ALERTS.value),
         )
 
@@ -493,7 +497,7 @@ class NotificationSettingV2HelpersTest(TestCase):
         rpc_new_user = RpcUser(id=new_user.id)
 
         options = get_setting_options_with_defaults(
-            [self.user, new_user], [self.project], self.organization
+            [self.user, new_user], [self.project.id], self.organization.id
         )
         assert (
             options[rpc_new_user][NotificationSettingEnum.ISSUE_ALERTS].value
@@ -512,7 +516,9 @@ class NotificationSettingV2HelpersTest(TestCase):
         )
 
     def test_get_layered_setting_providers(self):
-        options = get_layered_setting_providers([self.user], [self.project], self.organization)
+        options = get_layered_setting_providers(
+            [self.user], [self.project.id], self.organization.id
+        )
         user_options = options[self.rpc_user]
         assert (
             user_options[NotificationSettingEnum.ISSUE_ALERTS][ExternalProviderEnum.MSTEAMS]
@@ -540,7 +546,7 @@ class NotificationSettingV2HelpersTest(TestCase):
         rpc_new_user = RpcUser(id=new_user.id)
 
         options = get_setting_providers_with_defaults(
-            [self.user, new_user], [self.project], self.organization
+            [self.user, new_user], [self.project.id], self.organization.id
         )
         assert (
             options[rpc_new_user][NotificationSettingEnum.ISSUE_ALERTS][
