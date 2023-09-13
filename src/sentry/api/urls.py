@@ -37,6 +37,7 @@ from sentry.discover.endpoints.discover_saved_query_detail import (
 )
 from sentry.feedback.endpoints.feedback_ingest import FeedbackIngestEndpoint
 from sentry.feedback.endpoints.organization_feedback_index import OrganizationFeedbackIndexEndpoint
+from sentry.feedback.endpoints.project_feedback_details import ProjectFeedbackDetailsEndpoint
 from sentry.incidents.endpoints.organization_alert_rule_available_action_index import (
     OrganizationAlertRuleAvailableActionIndexEndpoint,
 )
@@ -2015,6 +2016,12 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/events/(?P<event_id>[\w-]+)/actionable-items/$",
         ActionableItemsEndpoint.as_view(),
         name="sentry-api-0-event-actionable-items",
+    ),
+    # Feedback
+    re_path(
+        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/feedback/(?P<feedback_id>[\w-]+)/$",
+        ProjectFeedbackDetailsEndpoint.as_view(),
+        name="sentry-api-0-project-feedback-details",
     ),
     re_path(
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/files/dsyms/$",
