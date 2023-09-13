@@ -293,3 +293,39 @@ class GroupNoteCreateTest(APITestCase):
             group=group, team=self.team, reason=GroupSubscriptionReason.team_mentioned
         ).exists()
         assert not GroupSubscription.objects.filter(group=group, user_id=user.id)
+
+    @with_feature("organizations:team-workflow-notifications")
+    def test_with_user_on_team_mentions(self):
+        """
+        This test assures that if a user is mentioned along with their team, they get subscribed both individually and as part of the team.
+        """
+        user = self.create_user(email="maxie@teammagma.com")
+
+        self.org = self.create_organization(name="Emerald Org", owner=None)
+        self.team = self.create_team(organization=self.org, name="Team Magma", members=[user])
+        self.create_member(user=self.user, organization=self.org, role="member", teams=[self.team])
+
+        group = self.group
+
+        self.login_as(user=self.user)
+
+        url = f"/api/0/issues/{group.id}/comments/"
+
+        # mentioning a team and a user in the project returns 201
+        response = self.client.post(
+            url,
+            format="json",
+            data={
+                "text": "look at this **team-galactic** **maxie@teammagma.com**",
+                "mentions": ["team:%s" % self.team.id, "%s" % user.id],
+            },
+        )
+        assert response.status_code == 201, response.content
+
+        # should subscribe the team and the user
+        assert GroupSubscription.objects.filter(
+            group=group, team=self.team, reason=GroupSubscriptionReason.team_mentioned
+        ).exists()
+        assert GroupSubscription.objects.filter(
+            group=group, user_id=user.id, reason=GroupSubscriptionReason.mentioned
+        )
