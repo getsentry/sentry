@@ -260,6 +260,13 @@ class Aggregator:
             # Given the new weight we consider whether we want to force flush.
             self.consider_force_flush()
 
+        metrics.incr(
+            key="minimetrics.add.current_buckets_count",
+            amount=len(self.buckets),
+            tags={"metric_type": ty},
+            sample_rate=self.DEFAULT_SAMPLE_RATE,
+        )
+
         # We want to track how many times metrics are being added, so that we know the actual count of adds.
         metrics.incr(
             key="minimetrics.add",
@@ -286,6 +293,11 @@ class Aggregator:
         # It's important to acquire a lock around this method, since it will touch shared data structures.
         total_weight = len(self.buckets) + self._buckets_total_weight
         if total_weight >= self.MAX_WEIGHT:
+            metrics.incr(
+                key="minimetrics.force_flush_triggered",
+                amount=1,
+                sample_rate=self.DEFAULT_SAMPLE_RATE,
+            )
             self._force_flush = True
             self._flush_event.set()
 
