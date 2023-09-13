@@ -152,8 +152,8 @@ export function InviteBanner({
           onClick={() => handleSendInvite(member.email)}
           data-test-id="invite-missing-member"
           icon={<IconMail />}
-          analyticsEventName="Github Growth: Carousel Invite"
-          analyticsEventKey="github_growth.carousel_invite"
+          analyticsEventName="Github Invite Banner: Invite"
+          analyticsEventKey="github_invite_banner.invite"
         >
           {t('Invite')}
         </Button>
@@ -191,8 +191,8 @@ export function InviteBanner({
             priority="primary"
             size="xs"
             onClick={openInviteModal}
-            analyticsEventName="Github Growth: View All"
-            analyticsEventKey="github_growth.view_all"
+            analyticsEventName="Github Invite Banner: View All"
+            analyticsEventKey="github_invite_banner.view_all"
           >
             {t('View All')}
           </Button>
@@ -242,8 +242,8 @@ function SeeMoreCard({missingMembers, openInviteModal}: SeeMoreCardProps) {
         size="sm"
         priority="primary"
         onClick={openInviteModal}
-        analyticsEventName="Github Growth: View All"
-        analyticsEventKey="github_growth.view_all"
+        analyticsEventName="Github Invite Banner: View All"
+        analyticsEventKey="github_invite_banner.view_all"
       >
         {t('View All')}
       </Button>
