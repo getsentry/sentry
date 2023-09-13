@@ -50,9 +50,7 @@ class OpsgenieNotifyTeamAction(IntegrationEventAction):
 
         team = get_team(self.get_option("team"), org_integration)
 
-        priority = self.get_option("priority")
-        if not priority:
-            priority = "P3"
+        priority = self.get_option("priority", default="P3")
 
         if not team:
             logger.error(
@@ -116,9 +114,8 @@ class OpsgenieNotifyTeamAction(IntegrationEventAction):
     def render_label(self) -> str:
         team = get_team(self.get_option("team"), self.get_organization_integration())
         team_name = team["team"] if team else "[removed]"
-        priority_raw = self.get_option("priority")
         # default to P3 for rules that were created before we implemented custom priorities
-        priority = priority_raw if priority_raw else "P3"
+        priority = self.get_option("priority", default="P3")
 
         return self.label.format(
             account=self.get_integration_name(), team=team_name, priority=priority
