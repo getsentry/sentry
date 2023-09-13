@@ -127,10 +127,16 @@ def _import(
                             if f.model == type(o) and getattr(o, f.field, None) not in f.values:
                                 break
                         else:
-                            written = o.write_relocation_import(pk_map, scope, flags)
-                            if written is not None:
-                                old_pk, new_pk, import_kind = written
-                                pk_map.insert(model_name, old_pk, new_pk, import_kind)
+                            old_pk = o.normalize_before_relocation_import(pk_map, scope, flags)
+                            if old_pk is None:
+                                continue
+
+                            written = o.write_relocation_import(scope, flags)
+                            if written is None:
+                                continue
+
+                            new_pk, import_kind = written
+                            pk_map.insert(model_name, old_pk, new_pk, import_kind)
 
     # For all database integrity errors, let's warn users to follow our
     # recommended backup/restore workflow before reraising exception. Most of
