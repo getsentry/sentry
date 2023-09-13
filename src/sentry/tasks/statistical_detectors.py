@@ -125,8 +125,7 @@ def detect_transaction_trends(
     start = start.replace(minute=0, second=0, microsecond=0)
     end = start + timedelta(hours=1)
 
-    for project_id in project_ids:
-        query_transactions(org_ids, project_id, start, end, NUM_TRANSACTIONS_PER_PROJECT)
+    query_transactions(org_ids, project_ids, start, end, NUM_TRANSACTIONS_PER_PROJECT)
 
 
 @instrumented_task(
