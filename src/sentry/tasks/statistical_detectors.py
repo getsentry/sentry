@@ -114,7 +114,6 @@ def run_detection() -> None:
     queue="performance.statistical_detector",
     max_retries=0,
 )
-
 def detect_transaction_trends(
     org_ids: List[int], project_ids: List[int], start: datetime, **kwargs
 ) -> None:
