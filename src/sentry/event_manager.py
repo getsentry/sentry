@@ -2043,11 +2043,6 @@ def _get_severity_score(event: Event) -> float | None:
     if error_type:
         message = error_type if not error_msg else f"{error_type}: {error_msg}"
 
-    logger.info(
-        "event_manager.get_severity_score",
-        extra={"event_message": message, "event_id": event.event_id},
-    )
-
     if message:
         logger_data["event_message"] = message
         with metrics.timer(op):
@@ -2070,6 +2065,17 @@ def _get_severity_score(event: Event) -> float | None:
                         f"Unable to get severity score from microservice. Got: {repr(e)}.",
                         extra=logger_data,
                     )
+                else:
+                    logger.info(
+                        f"Got severity score of {severity} for event {event.data['event_id']}",
+                        extra=logger_data,
+                    )
+    else:
+        logger_data.update({"error_type": error_type, "error_msg": error_msg})
+        logger.warning(
+            "Unable to get severity score because event has no message",
+            extra=logger_data,
+        )
 
     return severity
 
