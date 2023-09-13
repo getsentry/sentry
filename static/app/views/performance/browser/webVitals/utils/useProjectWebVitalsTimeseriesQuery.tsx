@@ -8,8 +8,13 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {calculatePerformanceScore} from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
+import {WebVitals} from 'sentry/views/performance/browser/webVitals/utils/types';
 
-export const useProjectWebVitalsTimeseriesQuery = () => {
+type Props = {
+  webVital?: WebVitals | null;
+};
+
+export const useProjectWebVitalsTimeseriesQuery = ({webVital}: Props) => {
   const pageFilters = usePageFilters();
   const location = useLocation();
   const organization = useOrganization();
@@ -59,7 +64,7 @@ export const useProjectWebVitalsTimeseriesQuery = () => {
 
   const seriesData =
     result?.data?.['p75(measurements.lcp)'].data.map((interval, index) => {
-      const {totalScore} = calculatePerformanceScore({
+      const {totalScore, ...webVitalScores} = calculatePerformanceScore({
         'p75(measurements.lcp)':
           result?.data?.['p75(measurements.lcp)'].data[index][1][0].count,
         'p75(measurements.fcp)':
@@ -69,8 +74,9 @@ export const useProjectWebVitalsTimeseriesQuery = () => {
         'p75(measurements.app_init_long_tasks)':
           result?.data?.['p75(measurements.app_init_long_tasks)'].data[index][1][0].count,
       });
+      const score = webVital ? webVitalScores[`${webVital}Score`] : totalScore;
       return {
-        value: totalScore,
+        value: score,
         name: interval[0] * 1000,
       };
     }) ?? [];

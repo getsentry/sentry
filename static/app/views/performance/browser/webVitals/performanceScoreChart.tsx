@@ -8,16 +8,19 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {ProjectScore} from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
 import {getScoreColor} from 'sentry/views/performance/browser/webVitals/utils/getScoreColor';
+import {WebVitals} from 'sentry/views/performance/browser/webVitals/utils/types';
 import {useProjectWebVitalsTimeseriesQuery} from 'sentry/views/performance/browser/webVitals/utils/useProjectWebVitalsTimeseriesQuery';
 import Chart from 'sentry/views/starfish/components/chart';
 
 type Props = {
   projectScore: ProjectScore;
+  webVital?: WebVitals | null;
 };
 
-export function PerformanceScoreChart({projectScore}: Props) {
+export function PerformanceScoreChart({projectScore, webVital}: Props) {
   const theme = useTheme();
-  const {data, isLoading} = useProjectWebVitalsTimeseriesQuery();
+  const {data, isLoading} = useProjectWebVitalsTimeseriesQuery({webVital});
+  const score = webVital ? projectScore[`${webVital}Score`] : projectScore.totalScore;
   return (
     <Flex>
       <PerformanceScoreLabelContainer>
@@ -26,8 +29,8 @@ export function PerformanceScoreChart({projectScore}: Props) {
         </PerformanceScoreLabel>
         <ProgressRingContainer>
           <ProgressRing
-            value={projectScore.totalScore}
-            text={projectScore.totalScore}
+            value={score}
+            text={score}
             size={120}
             barWidth={12}
             progressEndcaps="round"
@@ -35,7 +38,7 @@ export function PerformanceScoreChart({projectScore}: Props) {
               font-size: ${theme.fontSizeExtraLarge};
               font-weight: bold;
             `}
-            progressColor={getScoreColor(projectScore.totalScore, theme)}
+            progressColor={getScoreColor(score, theme)}
           />
         </ProgressRingContainer>
       </PerformanceScoreLabelContainer>
@@ -83,7 +86,7 @@ export function PerformanceScoreChart({projectScore}: Props) {
           ]}
           loading={isLoading}
           utc={false}
-          chartColors={[getScoreColor(projectScore.totalScore, theme)]}
+          chartColors={[getScoreColor(score, theme)]}
           isLineChart
           grid={{
             left: 20,

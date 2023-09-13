@@ -1,3 +1,5 @@
+import {useState} from 'react';
+
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import FeatureBadge from 'sentry/components/featureBadge';
@@ -11,13 +13,19 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {PagePerformanceTables} from 'sentry/views/performance/browser/webVitals/pagePerformanceTables';
 import {PerformanceScoreChart} from 'sentry/views/performance/browser/webVitals/performanceScoreChart';
 import {calculatePerformanceScore} from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
+import {WebVitals} from 'sentry/views/performance/browser/webVitals/utils/types';
 import {useProjectWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/useProjectWebVitalsQuery';
 import WebVitalMeters from 'sentry/views/performance/browser/webVitals/webVitalMeters';
+import {WebVitalsDetailPanel} from 'sentry/views/performance/browser/webVitals/webVitalsDetailPanel';
 import {ModulePageProviders} from 'sentry/views/performance/database/modulePageProviders';
 
 export default function WebVitalsLandingPage() {
   const organization = useOrganization();
   const pageFilters = usePageFilters();
+
+  const [state, setState] = useState<{webVital: WebVitals | null}>({
+    webVital: null,
+  });
 
   const {data: projectData} = useProjectWebVitalsQuery({pageFilters});
 
@@ -61,10 +69,20 @@ export default function WebVitalsLandingPage() {
             <DatePageFilter alignDropdown="left" />
           </PageFilterBar>
           <PerformanceScoreChart projectScore={projectScore} />
-          <WebVitalMeters projectData={projectData} projectScore={projectScore} />
+          <WebVitalMeters
+            projectData={projectData}
+            projectScore={projectScore}
+            onClick={webVital => setState({...state, webVital})}
+          />
           <PagePerformanceTables />
         </Layout.Main>
       </Layout.Body>
+      <WebVitalsDetailPanel
+        webVital={state.webVital}
+        onClose={() => {
+          setState({...state, webVital: null});
+        }}
+      />
     </ModulePageProviders>
   );
 }

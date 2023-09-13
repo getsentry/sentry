@@ -1,5 +1,8 @@
+import {useMemo} from 'react';
+import {Link} from 'react-router';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import qs from 'qs';
 
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
@@ -9,18 +12,15 @@ import GridEditable, {
 } from 'sentry/components/gridEditable';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
-import EventView from 'sentry/utils/discover/eventView';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
-import {calculatePerformanceScore} from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
+import useProjects from 'sentry/utils/useProjects';
 import {getScoreColor} from 'sentry/views/performance/browser/webVitals/utils/getScoreColor';
 import {Row} from 'sentry/views/performance/browser/webVitals/utils/types';
+import {useTransactionWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/useTransactionWebVitalsQuery';
 
 type RowWithScore = Row & {score: number};
 
-const MAX_ROWS = 7;
+const MAX_ROWS = 6;
 
 type Column = GridColumnHeader<keyof RowWithScore>;
 
@@ -34,59 +34,17 @@ const sort: GridColumnSortBy<keyof Row> = {key: 'count()', order: 'desc'};
 
 export function PagePerformanceTables() {
   const theme = useTheme();
-  const organization = useOrganization();
-  const pageFilters = usePageFilters();
   const location = useLocation();
-  const eventView = EventView.fromNewQueryWithPageFilters(
-    {
-      fields: [
-        'transaction',
-        'transaction.op',
-        'p75(measurements.lcp)',
-        'p75(measurements.fcp)',
-        'p75(measurements.cls)',
-        'p75(measurements.app_init_long_tasks)',
-        'count()',
-      ],
-      name: 'Web Vitals',
-      query:
-        'transaction.op:pageload (transaction:/performance* or transaction:/discover* or transaction:/dashboards*)',
-      orderby: `-count()`,
-      version: 2,
-    },
-    pageFilters.selection
-  );
-  const {data, isLoading} = useDiscoverQuery({
-    eventView,
-    limit: 50,
-    location,
-    orgSlug: organization.slug,
-    options: {
-      enabled: pageFilters.isReady,
-      refetchOnWindowFocus: false,
-    },
-  });
+  const {projects} = useProjects();
 
-  const tableData: RowWithScore[] =
-    !isLoading && data?.data.length
-      ? data.data
-          .map(row => ({
-            transaction: row.transaction?.toString(),
-            'transaction.op': row['transaction.op']?.toString(),
-            'p75(measurements.lcp)': row['p75(measurements.lcp)'] as number,
-            'p75(measurements.fcp)': row['p75(measurements.fcp)'] as number,
-            'p75(measurements.cls)': row['p75(measurements.cls)'] as number,
-            'p75(measurements.app_init_long_tasks)': row[
-              'p75(measurements.app_init_long_tasks)'
-            ] as number,
-            'count()': row['count()'] as number,
-          }))
-          .map(row => ({
-            ...row,
-            score: calculatePerformanceScore(row).totalScore,
-          }))
-          .sort((a, b) => b['count()'] - a['count()'])
-      : [];
+  const project = useMemo(
+    () => projects.find(p => p.id === String(location.query.project)),
+    [projects, location.query.project]
+  );
+
+  const {data, isLoading} = useTransactionWebVitalsQuery({});
+
+  const tableData: RowWithScore[] = data.sort((a, b) => b['count()'] - a['count()']);
 
   const good = tableData.filter(row => row.score >= 90).slice(0, MAX_ROWS);
   const needsImprovement = tableData
@@ -113,6 +71,17 @@ export function PagePerformanceTables() {
     }
     if (key === 'count()') {
       return <AlignRight>{row['count()']}</AlignRight>;
+    }
+    if (key === 'transaction') {
+      const link = `/performance/summary/?${qs.stringify({
+        project: project?.id,
+        transaction: row.transaction,
+      })}`;
+      return (
+        <NoOverflow>
+          <Link to={link}>{row.transaction}</Link>
+        </NoOverflow>
+      );
     }
     return <NoOverflow>{row[key]}</NoOverflow>;
   }
