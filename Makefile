@@ -151,7 +151,7 @@ test-snuba: create-db
 test-snuba-ci: create-db
 	@echo "--> Running snuba tests"
 	pytest tests \
-		-k snuba_ci \
+		-m snuba_ci \
 		-vv --cov . --cov-report="xml:.artifacts/snuba.coverage.xml"
 	@echo ""
 
