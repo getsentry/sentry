@@ -6,6 +6,7 @@ from unittest.mock import patch
 import pytest
 import responses
 from django.core import mail
+from django.urls import reverse
 from django.utils import timezone
 from freezegun import freeze_time
 
@@ -66,6 +67,9 @@ from sentry.incidents.models import (
     IncidentType,
     TriggerStatus,
 )
+from sentry.integrations.discord.actions.metric_alert import send_incident_alert_notification
+from sentry.integrations.discord.message_builder import LEVEL_TO_COLOR
+from sentry.integrations.discord.message_builder.base.base import DiscordMessageBuilder
 from sentry.models import ActorTuple, Integration, OrganizationIntegration
 from sentry.models.actor import get_actor_id_for_user
 from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError, IntegrationError
@@ -73,6 +77,7 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.testutils.cases import BaseIncidentsTest, BaseMetricsTestCase, SnubaTestCase, TestCase
 from sentry.utils import json
+from sentry.utils.http import absolute_uri
 
 pytestmark = [pytest.mark.sentry_metrics]
 
@@ -654,6 +659,110 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
         )
 
         mocked_schedule_update_project_config.assert_called_once_with(alert_rule, [self.project])
+
+
+class TestSendIncidentAlertNotification(TestCase):
+    @cached_property
+    def alert_rule(self):
+        return self.create_alert_rule()
+
+    @cached_property
+    def discord_info(self):
+        return {
+            "channel_id": "channel-id",
+            "guild_id": "example-discord-server",
+            "guild_name": "Server Name",
+        }
+
+    @cached_property
+    def integration(self):
+        return Integration.objects.create(
+            provider="discord",
+            name="Example Discord",
+            external_id=self.discord_info["guild_id"],
+            metadata={
+                "guild_id": self.discord_info["guild_id"],
+                "name": self.discord_info["guild_name"],
+            },
+        )
+
+    @cached_property
+    def action(self):
+        type = AlertRuleTriggerAction.Type.DISCORD
+        target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
+        return create_alert_rule_trigger_action(
+            self.trigger,
+            type,
+            target_type,
+            target_identifier=self.discord_info["channel_id"],
+            integration_id=self.integration.id,
+        )
+
+    @cached_property
+    def trigger(self):
+        return create_alert_rule_trigger(self.alert_rule, "hello", 1000)
+
+    def test_integration_inactive(self):
+        # Test when integration is inactive
+        incident = self.create_incident(alert_rule=self.alert_rule)
+        with pytest.raises(IntegrationError):
+            send_incident_alert_notification(self.action, incident, 100, IncidentStatus.CRITICAL)
+
+    @responses.activate
+    def test_send_message(self):
+        base_url: str = "https://discord.com/api/v10"
+
+        responses.add(
+            method=responses.GET,
+            url=f"{base_url}/channels/{self.discord_info['channel_id']}",
+            json={
+                "guild_id": self.discord_info["guild_id"],
+                "name": self.discord_info["guild_id"],
+            },
+        )
+
+        message = DiscordMessageBuilder()
+
+        incident = self.create_incident(self.organization, alert_rule=self.alert_rule)
+        title = f"Critical: {self.alert_rule.name}"
+        link = absolute_uri(
+            reverse(
+                "sentry-metric-alert-details",
+                kwargs={
+                    "organization_slug": self.alert_rule.organization.slug,
+                    "alert_rule_id": self.alert_rule.id,
+                },
+            )
+            + f"?alert={incident.identifier}"
+        )
+
+        responses.add(
+            method=responses.POST,
+            url=f"/channels/{self.discord_info['channel_id']}/messages",
+            json=message.build(),
+        )
+        metric_value = 100
+
+        expected_payload = {
+            "content": "",
+            "embeds": [
+                {
+                    "title": title,
+                    "description": f"<{link}|*{title}*>  \n{metric_value} events in the last 10 minutes",
+                    "url": f"{link}&referrer=discord",
+                    "color": LEVEL_TO_COLOR["fatal"],
+                }
+            ],
+            "components": [],
+        }
+
+        send_incident_alert_notification(
+            self.action, incident, metric_value, IncidentStatus.CRITICAL
+        )
+
+        request = responses.calls[1].request.body
+        payload = json.loads(request.decode("utf-8"))
+        assert payload == expected_payload
 
 
 class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
