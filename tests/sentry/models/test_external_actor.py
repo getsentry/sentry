@@ -19,7 +19,6 @@ class ExternalActorTest(TestCase):
         target_integration = integrations[len(integrations) // 2]
 
         self.external_actor = ExternalActor.objects.create(
-            actor_id=team.actor_id,
             team_id=team.id,
             organization=org,
             integration_id=target_integration.id,
