@@ -826,7 +826,7 @@ export const HeaderContainer = styled('div')<{hasProfileMeasurementsChart: boole
   border-top-right-radius: ${p => p.theme.borderRadius};
 `;
 
-const MinimapBackground = styled('div')`
+export const MinimapBackground = styled('div')`
   height: ${MINIMAP_HEIGHT}px;
   max-height: ${MINIMAP_HEIGHT}px;
   overflow: hidden;

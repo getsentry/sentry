@@ -139,7 +139,6 @@ class SlackLinkTeamView(BaseView):
             return render_error_page(request, body_text="HTTP 403: User identity does not exist")
 
         external_team, created = ExternalActor.objects.get_or_create(
-            actor_id=team.actor_id,
             team_id=team.id,
             organization=team.organization,
             integration_id=integration.id,
