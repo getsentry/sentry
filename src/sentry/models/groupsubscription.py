@@ -98,16 +98,10 @@ class GroupSubscriptionManager(BaseManager):
         unsubscribed.
         """
         # Unique the IDs.
-        if user_ids:
-            user_ids = set(user_ids)
-        else:
-            user_ids = set()
+        user_ids = set(user_ids) if user_ids else set()
 
         # Unique the teams.
-        if teams:
-            teams = set(teams)
-        else:
-            teams = set()
+        teams = set(teams) if teams else set()
 
         # 5 retries for race conditions where
         # concurrent subscription attempts cause integrity errors
