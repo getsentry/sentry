@@ -84,6 +84,9 @@ class DatabaseBackedNotificationsService(NotificationsService):
             if is_double_write_enabled(user_id=user_id):
                 NotificationSetting.objects.update_provider_settings(user_id, None)
 
+    # TODO(snigdha): this doesn't seem to be used anywhere, we can
+    # remove/replace it for notifications V2 using
+    # get_setting_options_for_users.
     def get_settings_for_users(
         self,
         *,
