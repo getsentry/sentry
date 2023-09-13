@@ -90,6 +90,24 @@ describe('SQLishFormatter', function () {
       `);
     });
 
+    it('Reflows to specified width', () => {
+      expect(
+        formatter.toString(
+          'SELECT "sentry_organization"."id", "sentry_organization"."name", "sentry_organization"."slug", "sentry_organization"."status", "sentry_organization"."date_added" FROM "sentry_organization" WHERE "sentry_organization"."id" = %s LIMIT 21',
+          {maxLineLength: 40}
+        )
+      ).toMatchInlineSnapshot(`
+        "SELECT "sentry_organization"."id",
+          "sentry_organization"."name",
+          "sentry_organization"."slug",
+          "sentry_organization"."status",
+          "sentry_organization"."date_added"
+        FROM "sentry_organization"
+        WHERE "sentry_organization"."id" = %s
+        LIMIT 21"
+      `);
+    });
+
     it('Reflows avoid unnecessary newlines', () => {
       expect(
         formatter.toString(
