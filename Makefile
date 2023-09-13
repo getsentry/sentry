@@ -148,6 +148,14 @@ test-snuba: create-db
 		-vv --cov . --cov-report="xml:.artifacts/snuba.coverage.xml"
 	@echo ""
 
+test-snuba-ci: create-db
+	@echo "--> Running snuba tests"
+	pytest tests \
+		-k snuba_ci \
+		-vv --cov . --cov-report="xml:.artifacts/snuba.coverage.xml"
+	@echo ""
+
+
 test-tools:
 	@echo "--> Running tools tests"
 	pytest -c /dev/null --confcutdir tests/tools tests/tools -vv --cov=tools --cov=tests/tools --cov-report="xml:.artifacts/tools.coverage.xml"
