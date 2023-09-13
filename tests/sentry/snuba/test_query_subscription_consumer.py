@@ -26,6 +26,7 @@ from sentry.testutils.cases import TestCase
 from sentry.utils import json
 
 
+@pytest.mark.snuba_ci
 class BaseQuerySubscriptionTest:
     @cached_property
     def topic(self):

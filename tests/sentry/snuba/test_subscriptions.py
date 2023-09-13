@@ -17,6 +17,7 @@ from sentry.testutils.cases import TestCase
 pytestmark = pytest.mark.sentry_metrics
 
 
+@pytest.mark.snuba_ci
 class CreateSnubaQueryTest(TestCase):
     def test(self):
         query_type = SnubaQuery.Type.ERROR
