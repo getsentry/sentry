@@ -363,6 +363,7 @@ def get_subscription_from_attributes(
     return is_subscribed, subscription_details
 
 
+# TODO(snigdha): cleanup after v2
 def get_groups_for_query(
     groups_by_project: Mapping[int, set[Group]],
     notification_settings_by_scope: Mapping[
@@ -588,6 +589,7 @@ def get_reason_context(extra_context: Mapping[str, Any]) -> MutableMapping[str, 
     }
 
 
+# TODO(snigdha): cleanup after v2
 def get_highest_notification_setting_value(
     notification_settings_by_provider: Mapping[ExternalProviders, NotificationSettingOptionValues],
 ) -> NotificationSettingOptionValues | None:
@@ -637,6 +639,7 @@ def _get_value_for_actor(
     ).get(recipient.id, {})
 
 
+# TODO(snigdha): cleanup after v2
 def get_most_specific_notification_setting_value(
     notification_settings_by_scope: Mapping[
         NotificationScopeType,
