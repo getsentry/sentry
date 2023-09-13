@@ -5,10 +5,9 @@ from typing import Any, List, Mapping, Optional
 
 from django.contrib.auth.models import AnonymousUser
 from django.db import router, transaction
-from django.db.models import Count, F, Q
+from django.db.models import Count, F
 
-from sentry import audit_log, roles
-from sentry.auth.access import get_permissions_for_user
+from sentry import audit_log
 from sentry.auth.system import SystemToken
 from sentry.db.postgres.transactions import enforce_constraints
 from sentry.middleware.auth import RequestAuthenticationMiddleware
@@ -33,91 +32,12 @@ from sentry.services.hybrid_cloud.auth import (
     RpcApiKey,
     RpcAuthenticatorType,
     RpcAuthProvider,
-    RpcAuthState,
-    RpcMemberSsoState,
     RpcOrganizationAuthConfig,
 )
 from sentry.services.hybrid_cloud.auth.serial import serialize_api_key, serialize_auth_provider
-from sentry.services.hybrid_cloud.organization import (
-    RpcOrganizationMemberSummary,
-    organization_service,
-)
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.silo import unguarded_write
 from sentry.utils.auth import AuthUserPasswordExpired
-
-_SSO_BYPASS = RpcMemberSsoState(is_required=False, is_valid=True)
-_SSO_NONMEMBER = RpcMemberSsoState(is_required=False, is_valid=False)
-
-
-def _query_sso_state(
-    organization_id: int | None, is_super_user: bool, member: RpcOrganizationMemberSummary | None
-) -> RpcMemberSsoState:
-    """
-    Check whether SSO is required and valid for a given member.
-    This should generally be accessed from the `request.access` object.
-    :param member:
-    :param org_member_class:
-    :return:
-    """
-    if organization_id is None:
-        return _SSO_NONMEMBER
-
-    # we special case superuser so that if they're a member of the org they must still follow SSO checks
-    # or put another way, superusers who are not members of orgs bypass SSO.
-    if member is None:
-        if is_super_user:
-            return _SSO_BYPASS
-        return _SSO_NONMEMBER
-
-    try:
-        auth_provider = AuthProvider.objects.get(organization_id=member.organization_id)
-    except AuthProvider.DoesNotExist:
-        return _SSO_BYPASS
-
-    if auth_provider.flags.allow_unlinked:
-        return _SSO_BYPASS
-    else:
-        requires_sso = True
-        try:
-            auth_identity = AuthIdentity.objects.get(
-                auth_provider=auth_provider, user=member.user_id
-            )
-        except AuthIdentity.DoesNotExist:
-            sso_is_valid = False
-            requires_sso = not _can_override_sso_as_owner(auth_provider, member)
-        else:
-            sso_is_valid = auth_identity.is_valid(member)
-
-    return RpcMemberSsoState(is_required=requires_sso, is_valid=sso_is_valid)
-
-
-def _can_override_sso_as_owner(
-    auth_provider: AuthProvider, member: RpcOrganizationMemberSummary
-) -> bool:
-    """If an owner is trying to gain access, allow bypassing SSO if there are no
-    other owners with SSO enabled.
-    """
-
-    org_roles = organization_service.get_all_org_roles(
-        member_id=member.id, organization_id=member.organization_id
-    )
-    if roles.get_top_dog().id not in org_roles:
-        return False
-
-    all_top_dogs_from_teams = organization_service.get_top_dog_team_member_ids(
-        organization_id=member.organization_id
-    )
-    user_ids = (
-        OrganizationMemberMapping.objects.filter(
-            Q(id__in=all_top_dogs_from_teams) | Q(role=roles.get_top_dog().id),
-            organization_id=member.organization_id,
-            user__is_active=True,
-        )
-        .exclude(id=member.id)
-        .values_list("user_id")
-    )
-    return not AuthIdentity.objects.filter(auth_provider=auth_provider, user__in=user_ids).exists()
 
 
 class DatabaseBackedAuthService(AuthService):
@@ -247,27 +167,6 @@ class DatabaseBackedAuthService(AuthService):
                 transaction.set_rollback(True, using=router.db_for_read(User))
 
         return result
-
-    def get_user_auth_state(
-        self,
-        *,
-        user_id: int,
-        is_superuser: bool,
-        organization_id: int | None,
-        org_member: RpcOrganizationMemberSummary | None,
-    ) -> RpcAuthState:
-        sso_state = _query_sso_state(
-            organization_id=organization_id, is_super_user=is_superuser, member=org_member
-        )
-
-        if is_superuser:
-            # "permissions" is a bit of a misnomer -- these are all admin level permissions, and the intent is that if you
-            # have them, you can only use them when you are acting, as a superuser.  This is intentional.
-            permissions = list(get_permissions_for_user(user_id))
-        else:
-            permissions = []
-
-        return RpcAuthState(sso_state=sso_state, permissions=permissions)
 
     def get_org_ids_with_scim(
         self,

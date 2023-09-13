@@ -17,6 +17,7 @@ from sentry.types.region import find_regions_for_orgs
 class AuthIdentity(ReplicatedControlModel):
     __relocation_scope__ = RelocationScope.Global
     category = OutboxCategory.AUTH_IDENTITY_UPDATE
+    replication_version = 2
 
     # NOTE: not a fk to sentry user
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL)
