@@ -1,7 +1,4 @@
-from __future__ import annotations
-
 from logging import getLogger
-from typing import ClassVar
 
 from django.db import IntegrityError, router, transaction
 from django.urls import reverse
@@ -27,7 +24,7 @@ class RepositoryProvider(ProviderMixin):
     Does not include the integrations in the sentry repository.
     """
 
-    name: ClassVar[str]
+    name = None
 
     def __init__(self, id):
         self.id = id
