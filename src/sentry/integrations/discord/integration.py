@@ -102,8 +102,8 @@ class DiscordIntegrationProvider(IntegrationProvider):
     oauth_scopes = frozenset(["applications.commands", "bot", "identify"])
 
     # https://discord.com/developers/docs/topics/permissions#permissions
-    # Permissions value that can Send Messages (0x800) and Embed Links (0x4000):
-    bot_permissions = 0x800 | 0x4000
+    # Permissions value that can Send Messages (0x800), View Channel (0x400), and Embed Links (0x4000):
+    bot_permissions = 0x800 | 0x400 | 0x4000
 
     setup_dialog_config = {"width": 600, "height": 900}
 
