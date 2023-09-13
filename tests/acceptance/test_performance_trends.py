@@ -72,4 +72,3 @@ class PerformanceTrendsTest(AcceptanceTestCase, SnubaTestCase):
             self.page.wait_until_loaded()
             trend_item = '[data-test-id="trends-list-item-regression"]'
             self.browser.wait_until(trend_item)
-            self.browser.snapshot("performance trends - with data")

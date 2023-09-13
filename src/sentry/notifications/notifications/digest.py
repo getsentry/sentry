@@ -5,7 +5,7 @@ from collections import defaultdict
 from typing import TYPE_CHECKING, Any, Mapping, MutableMapping, Sequence
 from urllib.parse import urlencode
 
-from sentry import features
+from sentry import analytics, features
 from sentry.db.models import Model
 from sentry.digests import Digest
 from sentry.digests.utils import (
@@ -216,3 +216,30 @@ class DigestNotification(ProjectNotification):
                         participants_to_remove.add(participant)
                 participants -= participants_to_remove
             notify(provider, self, participants, shared_context, extra_context)
+
+    def get_log_params(self, recipient: RpcActor) -> Mapping[str, Any]:
+        try:
+            alert_id = list(self.digest.keys())[0].id
+        except Exception:
+            alert_id = None
+
+        return {
+            "target_type": self.target_type.value,
+            "target_identifier": self.target_identifier,
+            "alert_id": alert_id,
+            **super().get_log_params(recipient),
+        }
+
+    def record_notification_sent(self, recipient: RpcActor, provider: ExternalProviders) -> None:
+        super().record_notification_sent(recipient, provider)
+        log_params = self.get_log_params(recipient)
+        analytics.record(
+            "alert.sent",
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            provider=provider.name,
+            alert_id=log_params["alert_id"] if log_params["alert_id"] else "",
+            alert_type="issue_alert",
+            external_id=str(recipient.id),
+            notification_uuid=self.notification_uuid,
+        )
