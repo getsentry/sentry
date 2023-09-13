@@ -1,7 +1,6 @@
 import {ComponentProps, Fragment, ReactNode, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
-import repeat from 'lodash/repeat';
 
 import {LinkButton} from 'sentry/components/button';
 import {IconClose, IconSearch} from 'sentry/icons';
@@ -18,6 +17,7 @@ import {ReplayColumn} from 'sentry/views/replays/replayTable/types';
 import {ReplayListLocationQuery} from 'sentry/views/replays/types';
 
 function ReplaysErroneousDeadRageCards() {
+  const organization = useOrganization();
   const location = useLocation<ReplayListLocationQuery>();
 
   const {project, environment, start, statsPeriod, utc, end} = location.query;
@@ -35,8 +35,8 @@ function ReplaysErroneousDeadRageCards() {
 
   return (
     <SplitCardContainer>
-      <DeadClickTable searchLocation={searchLocation} />
-      <RageClickTable searchLocation={searchLocation} />
+      <DeadClickTable organization={organization} searchLocation={searchLocation} />
+      <RageClickTable organization={organization} searchLocation={searchLocation} />
     </SplitCardContainer>
   );
 }
@@ -187,7 +187,7 @@ function CardTable({
         sort={undefined}
         visibleColumns={visibleColumns}
         saveLocation
-        gridRows={`auto ${repeat(' 1fr', rows)}`}
+        gridRows={`auto repeat(${rows}, 1fr)`}
         showDropdownFilters={false}
       />
       {children}
