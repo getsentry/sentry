@@ -112,21 +112,16 @@ def __write_ownership_data(ownership_data: Dict[ApiOwner, Dict]):
     index = 2
     for team in ownership_data:
         # sorting APIs list so it doesn't trigger file change on every commit
-        public_apis = list(ownership_data[team][ApiPublishStatus.PUBLIC])
-        public_apis.sort()
-        private_apis = list(ownership_data[team][ApiPublishStatus.PRIVATE])
-        private_apis.sort()
-        experimental_apis = list(ownership_data[team][ApiPublishStatus.EXPERIMENTAL])
-        experimental_apis.sort()
-        unknown_apis = list(ownership_data[team][ApiPublishStatus.EXPERIMENTAL.UNKNOWN])
-        unknown_apis.sort()
-
         processed_data[team.value] = {
             "block_start": index,
-            ApiPublishStatus.PUBLIC.value: public_apis,
-            ApiPublishStatus.PRIVATE.value: private_apis,
-            ApiPublishStatus.EXPERIMENTAL.value: experimental_apis,
-            ApiPublishStatus.UNKNOWN.value: unknown_apis,
+            ApiPublishStatus.PUBLIC.value: sorted(ownership_data[team][ApiPublishStatus.PUBLIC]),
+            ApiPublishStatus.PRIVATE.value: sorted(ownership_data[team][ApiPublishStatus.PRIVATE]),
+            ApiPublishStatus.EXPERIMENTAL.value: sorted(
+                ownership_data[team][ApiPublishStatus.EXPERIMENTAL]
+            ),
+            ApiPublishStatus.UNKNOWN.value: sorted(
+                ownership_data[team][ApiPublishStatus.EXPERIMENTAL.UNKNOWN]
+            ),
         }
         index += __get_line_count_for_team_stats(ownership_data[team])
     dir = os.path.dirname(os.path.realpath(__file__))
