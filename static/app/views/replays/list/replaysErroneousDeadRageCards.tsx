@@ -1,16 +1,16 @@
-import {Fragment, ReactNode, useMemo} from 'react';
-import {browserHistory} from 'react-router';
+import {ComponentProps, Fragment, ReactNode, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import repeat from 'lodash/repeat';
 
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import {IconClose, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import useReplayList from 'sentry/utils/replays/hooks/useReplayList';
-import {useHaveSelectedProjectsSentAnyReplayEvents} from 'sentry/utils/replays/hooks/useReplayOnboarding';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import ReplayTable from 'sentry/views/replays/replayTable';
@@ -18,7 +18,6 @@ import {ReplayColumn} from 'sentry/views/replays/replayTable/types';
 import {ReplayListLocationQuery} from 'sentry/views/replays/types';
 
 function ReplaysErroneousDeadRageCards() {
-  const organization = useOrganization();
   const location = useLocation<ReplayListLocationQuery>();
 
   const {project, environment, start, statsPeriod, utc, end} = location.query;
@@ -34,18 +33,21 @@ function ReplaysErroneousDeadRageCards() {
     };
   }, [project, environment, start, statsPeriod, utc, end]);
 
-  const hasSessionReplay = organization.features.includes('session-replay');
-  const {hasSentOneReplay, fetching} = useHaveSelectedProjectsSentAnyReplayEvents();
-
-  return hasSessionReplay && hasSentOneReplay && !fetching ? (
+  return (
     <SplitCardContainer>
       <DeadClickTable searchLocation={searchLocation} />
       <RageClickTable searchLocation={searchLocation} />
     </SplitCardContainer>
-  ) : null;
+  );
 }
 
-function DeadClickTable({searchLocation}: {searchLocation: Location}) {
+function DeadClickTable({
+  organization,
+  searchLocation,
+}: {
+  organization: Organization;
+  searchLocation: Location;
+}) {
   const eventView = useMemo(
     () =>
       EventView.fromNewQueryWithLocation(
@@ -73,6 +75,10 @@ function DeadClickTable({searchLocation}: {searchLocation: Location}) {
     [searchLocation]
   );
 
+  useEffect(() => {
+    trackAnalytics('replay.dead-click-card.rendered', {organization});
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   return (
     <CardTable
       eventView={eventView}
@@ -83,13 +89,22 @@ function DeadClickTable({searchLocation}: {searchLocation: Location}) {
       ]}
     >
       <SearchButton
+        analyticsEventKey="replay.dead-click-card.click_search"
+        analyticsEventName="Replay Dead Click Card Search Click"
+        analyticsParams={{}}
         eventView={eventView}
         label={t('Show all replays with dead clicks')}
       />
     </CardTable>
   );
 }
-function RageClickTable({searchLocation}: {searchLocation: Location}) {
+function RageClickTable({
+  organization,
+  searchLocation,
+}: {
+  organization: Organization;
+  searchLocation: Location;
+}) {
   const eventView = useMemo(
     () =>
       EventView.fromNewQueryWithLocation(
@@ -117,6 +132,10 @@ function RageClickTable({searchLocation}: {searchLocation: Location}) {
     [searchLocation]
   );
 
+  useEffect(() => {
+    trackAnalytics('replay.rage-click-card.rendered', {organization});
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   return (
     <CardTable
       eventView={eventView}
@@ -127,6 +146,9 @@ function RageClickTable({searchLocation}: {searchLocation: Location}) {
       ]}
     >
       <SearchButton
+        analyticsEventKey="replay.rage-click-card.click_search"
+        analyticsEventName="Replay Rage Click Card Search Click"
+        analyticsParams={{}}
         eventView={eventView}
         label={t('Show all replays with rage clicks')}
       />
@@ -173,23 +195,29 @@ function CardTable({
   );
 }
 
-function SearchButton({eventView, label}: {eventView: EventView; label: ReactNode}) {
+function SearchButton({
+  eventView,
+  label,
+  ...props
+}: {
+  eventView: EventView;
+  label: ReactNode;
+} & Omit<ComponentProps<typeof LinkButton>, 'size' | 'to' | 'icon'>) {
   const location = useLocation();
   const isActive = location.query.query === eventView.query;
 
   return (
     <StyledButton
+      {...props}
       size="sm"
-      onClick={() => {
-        browserHistory.push({
-          pathname: location.pathname,
-          query: {
-            ...location.query,
-            cursor: undefined,
-            query: isActive ? '' : eventView.query,
-            sort: isActive ? '' : eventView.sorts[0].field,
-          },
-        });
+      to={{
+        pathname: location.pathname,
+        query: {
+          ...location.query,
+          cursor: undefined,
+          query: isActive ? '' : eventView.query,
+          sort: isActive ? '' : eventView.sorts[0].field,
+        },
       }}
       icon={isActive ? <IconClose size="xs" /> : <IconSearch size="xs" />}
     >
@@ -207,7 +235,7 @@ const SplitCardContainer = styled('div')`
   align-items: stretch;
 `;
 
-const StyledButton = styled(Button)`
+const StyledButton = styled(LinkButton)`
   width: 100%;
   border-top: none;
   border-radius: ${p => p.theme.borderRadiusBottom};

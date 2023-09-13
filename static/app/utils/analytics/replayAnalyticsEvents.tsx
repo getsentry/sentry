@@ -3,6 +3,7 @@ import {Output} from 'sentry/views/replays/detail/network/details/getOutputType'
 import {ReferrerTableType} from 'sentry/views/replays/replayTable/tableCell';
 
 export type ReplayEventParameters = {
+  'replay.dead-click-card.rendered': {};
   'replay.details-data-loaded': {
     be_errors: number;
     fe_errors: number;
@@ -68,6 +69,7 @@ export type ReplayEventParameters = {
     play: boolean;
     user_email: string;
   };
+  'replay.rage-click-card.rendered': {};
   'replay.render-issues-group-list': {
     platform: string | undefined;
     project_id: string | undefined;
@@ -111,4 +113,6 @@ export const replayEventMap: Record<ReplayEventKey, string | null> = {
   'replay.render-player': 'Rendered ReplayPlayer',
   'replay.search': 'Searched Replay',
   'replay.toggle-fullscreen': 'Toggled Replay Fullscreen',
+  'replay.dead-click-card.rendered': 'Replay Dead Click Card Rendered',
+  'replay.rage-click-card.rendered': 'Replay Rage Click Card Rendered',
 };
