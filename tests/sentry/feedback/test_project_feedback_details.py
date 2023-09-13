@@ -102,8 +102,7 @@ class ProjectFeedbackDetailTest(APITestCase):
             )
             response = self.client.get(path)
             assert response.status_code == 200, response.content
-            assert len(response.data) == 1
-            feedback = response.data[0]
+            feedback = response.data
             assert feedback["dist"] == "abc123"
             assert feedback["url"] == "https://docs.sentry.io/platforms/javascript/"
             assert feedback["message"] == "I really like this user-feedback feature!"
@@ -124,8 +123,7 @@ class ProjectFeedbackDetailTest(APITestCase):
             )
             response = self.client.get(path)
             assert response.status_code == 200
-            assert len(response.data) == 1
-            feedback = response.data[0]
+            feedback = response.data
             assert feedback["feedback_id"] == uuid.UUID(self.feedback_id_2)
             assert feedback["contact_email"] == "michelle.zhang@sentry.io"
 

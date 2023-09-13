@@ -10,7 +10,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
-from sentry.api.paginator import OffsetPaginator
+from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers.base import serialize
 from sentry.feedback.models import Feedback
 from sentry.feedback.serializers import FeedbackSerializer
@@ -30,14 +30,9 @@ class ProjectFeedbackDetailsEndpoint(ProjectEndpoint):
         ):
             return Response(status=404)
 
-        feedback = Feedback.objects.filter(feedback_id=feedback_id)
+        try:
+            feedback = Feedback.objects.get(feedback_id=feedback_id)
+        except Feedback.DoesNotExist:
+            raise ResourceDoesNotExist
 
-        if len(feedback) == 0:
-            return Response(status=404)
-
-        return self.paginate(
-            request=request,
-            queryset=feedback,
-            on_results=lambda x: serialize(x, request.user, FeedbackSerializer()),
-            paginator_cls=OffsetPaginator,
-        )
+        return self.respond(serialize(feedback, request.user, FeedbackSerializer()))
