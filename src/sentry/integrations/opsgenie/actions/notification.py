@@ -17,7 +17,7 @@ class OpsgenieNotifyTeamAction(IntegrationEventAction):
     id = "sentry.integrations.opsgenie.notify_action.OpsgenieNotifyTeamAction"
     form_cls = OpsgenieNotifyTeamForm
     label = (
-        "Send a notification to Opsgenie account {account} and team {team} with priority {priority}"
+        "Send a notification to Opsgenie account {account} and team {team} with {priority} priority"
     )
     prompt = "Send an Opsgenie notification"
     provider = "opsgenie"

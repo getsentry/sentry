@@ -78,7 +78,7 @@ class OpsgenieNotifyTeamTest(RuleTestCase, PerformanceIssueTestCase):
 
         assert (
             rule.render_label()
-            == "Send a notification to Opsgenie account test-app and team cool-team with priority P2"
+            == "Send a notification to Opsgenie account test-app and team cool-team with P2 priority"
         )
 
     def test_render_label_without_integration(self):
@@ -92,7 +92,7 @@ class OpsgenieNotifyTeamTest(RuleTestCase, PerformanceIssueTestCase):
         label = rule.render_label()
         assert (
             label
-            == "Send a notification to Opsgenie account [removed] and team [removed] with priority P2"
+            == "Send a notification to Opsgenie account [removed] and team [removed] with P2 priority"
         )
 
     def test_render_label_no_priority(self):
@@ -100,7 +100,7 @@ class OpsgenieNotifyTeamTest(RuleTestCase, PerformanceIssueTestCase):
 
         assert (
             rule.render_label()
-            == "Send a notification to Opsgenie account test-app and team cool-team with priority P3"
+            == "Send a notification to Opsgenie account test-app and team cool-team with P3 priority"
         )
 
     def test_valid_team_options(self):
