@@ -29,7 +29,9 @@ TEST_REDIS_DB = 9
 
 
 def configure_split_db() -> None:
-    if "control" in settings.DATABASES:
+    SENTRY_USE_MONOLITH_DBS = bool(os.environ.get("SENTRY_USE_MONOLITH_DBS"))
+    already_configured = "control" in settings.DATABASES
+    if already_configured or SENTRY_USE_MONOLITH_DBS:
         return
     # Add connections for the region & control silo databases.
     settings.DATABASES["control"] = settings.DATABASES["default"].copy()
