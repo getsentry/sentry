@@ -97,6 +97,8 @@ class GroupSubscriptionManager(BaseManager):
         Subscribe a list of user ids and/or teams to an issue, but only if the users/teams are not explicitly
         unsubscribed.
         """
+        from sentry import features
+
         # Unique the IDs.
         user_ids = set(user_ids) if user_ids else set()
 
@@ -124,24 +126,25 @@ class GroupSubscriptionManager(BaseManager):
                 for user_id in user_ids.difference(existing_subscriptions)
             ]
 
-            existing_team_subscriptions = set(
-                GroupSubscription.objects.filter(
-                    team_id__in=team_ids, group=group, project=group.project
-                ).values_list("team_id", flat=True)
-            )
+            if features.has("organizations:team-workflow-notifications", group.organization):
+                existing_team_subscriptions = set(
+                    GroupSubscription.objects.filter(
+                        team_id__in=team_ids, group=group, project=group.project
+                    ).values_list("team_id", flat=True)
+                )
 
-            subscriptions.extend(
-                [
-                    GroupSubscription(
-                        team_id=team_id,
-                        group=group,
-                        project=group.project,
-                        is_active=True,
-                        reason=reason,
-                    )
-                    for team_id in team_ids.difference(existing_team_subscriptions)
-                ]
-            )
+                subscriptions.extend(
+                    [
+                        GroupSubscription(
+                            team_id=team_id,
+                            group=group,
+                            project=group.project,
+                            is_active=True,
+                            reason=reason,
+                        )
+                        for team_id in team_ids.difference(existing_team_subscriptions)
+                    ]
+                )
 
             try:
                 with transaction.atomic(router.db_for_write(GroupSubscription)):
