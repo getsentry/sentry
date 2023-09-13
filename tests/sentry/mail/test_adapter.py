@@ -191,7 +191,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         assert isinstance(msg.alternatives[0][0], str)
         assert "my rule" in msg.alternatives[0][0]
         assert "notification_uuid" in msg.body
-        mock_record.assert_called_with(
+        mock_record.assert_any_call(
             "integrations.email.notification_sent",
             category="issue_alert",
             target_type=ANY,
@@ -205,6 +205,16 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             actor_type="User",
             notification_uuid=ANY,
             alert_id=rule.id,
+        )
+        mock_record.assert_called_with(
+            "alert.sent",
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            provider="email",
+            alert_id=rule.id,
+            alert_type="issue_alert",
+            external_id=ANY,
+            notification_uuid=ANY,
         )
 
     def test_simple_snooze(self):

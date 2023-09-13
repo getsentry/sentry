@@ -36,7 +36,7 @@ type Props = {
   isLoading: boolean;
   location: Location;
   organization: Organization;
-  projSlug: Project['slug'];
+  project: Project;
   router: InjectedRouter;
 };
 
@@ -44,7 +44,7 @@ function CustomRepositories({
   api,
   organization,
   customRepositories: repositories,
-  projSlug,
+  project,
   router,
   location,
   isLoading,
@@ -115,7 +115,7 @@ function CustomRepositories({
     const symbolSources = JSON.stringify(items.map(expandKeys));
 
     const promise: Promise<any> = api.requestPromise(
-      `/projects/${orgSlug}/${projSlug}/`,
+      `/projects/${orgSlug}/${project.slug}/`,
       {
         method: 'PUT',
         data: {symbolSources},
@@ -181,7 +181,7 @@ function CustomRepositories({
   async function handleSyncRepositoryNow(repoId: CustomRepo['id']) {
     try {
       await api.requestPromise(
-        `/projects/${orgSlug}/${projSlug}/appstoreconnect/${repoId}/refresh/`,
+        `/projects/${orgSlug}/${project.slug}/appstoreconnect/${repoId}/refresh/`,
         {
           method: 'POST',
         }
@@ -199,7 +199,7 @@ function CustomRepositories({
   return (
     <Feature features={['custom-symbol-sources']} organization={organization}>
       {({hasFeature}) => (
-        <Access access={['project:write']}>
+        <Access access={['project:write']} project={project}>
           {({hasAccess}) => {
             const addRepositoryButtonDisabled = !hasAccess || isLoading;
             return (

@@ -283,6 +283,77 @@ class DebugFilesUploadTest(APITestCase):
         dsyms = response.data
         assert len(dsyms) == 20
 
+    def test_dsyms_delete_as_team_admin(self):
+        project = self.create_project(name="foo")
+        self.login_as(user=self.user)
+
+        url = reverse(
+            "sentry-api-0-dsym-files",
+            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+        )
+        response = self._upload_proguard(url, PROGUARD_UUID)
+
+        assert response.status_code == 201
+        assert len(response.data) == 1
+
+        url = reverse(
+            "sentry-api-0-associate-dsym-files",
+            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+        )
+        response = self.client.post(
+            url,
+            {
+                "checksums": ["e6d3c5185dac63eddfdc1a5edfffa32d46103b44"],
+                "platform": "android",
+                "name": "MyApp",
+                "appId": "com.example.myapp",
+                "version": "1.0",
+                "build": "1",
+            },
+            format="json",
+        )
+
+        url = reverse(
+            "sentry-api-0-dsym-files",
+            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+        )
+        response = self.client.get(url)
+        download_id = response.data[0]["id"]
+
+        assert response.status_code == 200
+
+        team_admin = self.create_user()
+        team_admin_without_access = self.create_user()
+
+        self.create_member(
+            user=team_admin,
+            organization=project.organization,
+            role="member",
+        )
+        self.create_member(
+            user=team_admin_without_access,
+            organization=project.organization,
+            role="member",
+        )
+        self.create_team_membership(user=team_admin, team=self.team, role="admin")
+        self.create_team_membership(
+            user=team_admin_without_access, team=self.create_team(), role="admin"
+        )
+
+        # Team admin without project access can't delete
+        self.login_as(team_admin_without_access)
+        response = self.client.delete(url + "?id=" + download_id)
+
+        assert response.status_code == 404, response.content
+        assert ProjectDebugFile.objects.count() == 1
+
+        # Team admin with project access can delete
+        self.login_as(team_admin)
+        response = self.client.delete(url + "?id=" + download_id)
+
+        assert response.status_code == 204, response.content
+        assert ProjectDebugFile.objects.count() == 0
+
     def test_source_maps(self):
         project = self.create_project(name="foo")
 
