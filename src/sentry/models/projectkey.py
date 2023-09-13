@@ -27,6 +27,7 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
+from sentry.silo.base import SiloMode
 from sentry.tasks.relay import schedule_invalidate_project_config
 
 _token_re = re.compile(r"^[a-f0-9]{32}$")
@@ -230,11 +231,15 @@ class ProjectKey(Model):
             )
 
     def get_endpoint(self, public=True):
+        from sentry.api.utils import generate_region_url
+
         if public:
             endpoint = settings.SENTRY_PUBLIC_ENDPOINT or settings.SENTRY_ENDPOINT
         else:
             endpoint = settings.SENTRY_ENDPOINT
 
+        if not endpoint and SiloMode.get_current_mode() == SiloMode.REGION:
+            endpoint = generate_region_url()
         if not endpoint:
             endpoint = options.get("system.url-prefix")
 
