@@ -30,10 +30,15 @@ from sentry.utils.javascript import find_sourcemap
 from sentry.utils.safe import get_path
 from sentry.utils.urls import non_standard_url_join
 
+from sentry.sdk_updates import get_sdk_index
+import sentry_sdk
+
 MIN_JS_SDK_VERSION_FOR_DEBUG_IDS = "7.56.0"
 
 NO_DEBUG_ID_SDKS = {
     "sentry.javascript.capacitor",
+    "sentry.javascript.react-native",
+    "sentry.javascript.wasm",
     "sentry.javascript.cordova",
     "sentry.javascript.nextjs",
     "sentry.javascript.sveltekit",
@@ -56,7 +61,7 @@ class SourceMapReleaseProcessResult(TypedDict):
 
 class SourceMapDebugFrame(TypedDict):
     debug_id_process: SourceMapDebugIdProcessResult
-    release_process: str
+    release_process: Optional[SourceMapReleaseProcessResult]
 
 
 class SourceMapDebugException(TypedDict):
@@ -105,10 +110,10 @@ class SourceMapDebugBlueThunderEditionEndpoint(ProjectEndpoint):
         """
 
         if not features.has(
-            "organizations:source-maps-debugger", project.organization, actor=request.user
+            "organizations:source-maps-debugger-blue-thunder-edition", project.organization, actor=request.user
         ):
             raise NotFound(
-                detail="Endpoint not available without 'organizations:source-maps-debugger' feature flag"
+                detail="Endpoint not available without 'organizations:source-maps-debugger-blue-thunder-edition' feature flag"
             )
 
         event = eventstore.backend.get_event_by_id(project.id, event_id)
@@ -209,7 +214,7 @@ class SourceMapDebugBlueThunderEditionEndpoint(ProjectEndpoint):
                                     "uploaded_source_map_with_correct_debug_id": debug_id
                                     in debug_ids_with_uploaded_source_map,
                                 },
-                                "release_process": release_process_abs_path_data[abs_path],
+                                "release_process": release_process_abs_path_data.get(abs_path),
                             }
                         )
                 processed_exceptions.append({"frames": processed_frames})
@@ -424,7 +429,36 @@ def event_has_debug_ids(event_data):
 def get_sdk_debug_id_support(event_data):
     sdk_name = get_path(event_data, "sdk", "name")
 
-    if sdk_name is None:
+    official_sdks = None
+    try:
+        sdk_release_registry = get_sdk_index()
+        official_sdks = [sdk.startswith("sentry.javascript.") for sdk in sdk_release_registry.keys()]
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
+        pass
+
+    if official_sdks is None or len(official_sdks) == 0:
+        # Fallback list if release registry is not available
+        official_sdks = [
+            "sentry.javascript.angular",
+            "sentry.javascript.angular-ivy",
+            "sentry.javascript.browser",
+            "sentry.javascript.capacitor",
+            "sentry.javascript.cordova",
+            "sentry.javascript.electron",
+            "sentry.javascript.gatsby",
+            "sentry.javascript.nextjs",
+            "sentry.javascript.node",
+            "sentry.javascript.opentelemetry-node",
+            "sentry.javascript.react",
+            "sentry.javascript.react-native",
+            "sentry.javascript.remix",
+            "sentry.javascript.svelte",
+            "sentry.javascript.sveltekit",
+            "sentry.javascript.vue"
+        ]
+
+    if sdk_name not in official_sdks:
         return "unofficial-sdk"
     elif sdk_name in NO_DEBUG_ID_SDKS:
         return "not-supported"
