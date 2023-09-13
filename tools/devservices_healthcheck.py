@@ -19,7 +19,7 @@ class HealthCheck:
         container_name: str,
         check_by_default: bool,
         check: Callable[[], object] | None = None,
-        deps: list[str] = None,
+        deps: list[str] | None = None,
         retries: int = 3,
         timeout_secs: int = 5,
     ):
