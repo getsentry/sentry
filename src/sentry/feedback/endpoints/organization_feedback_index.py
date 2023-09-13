@@ -8,18 +8,11 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
-from sentry.api.bases.project import ProjectPermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers.base import serialize
 from sentry.feedback.models import Feedback
 from sentry.feedback.serializers import FeedbackSerializer
 from sentry.models import Organization
-
-
-class OrganizationFeedbackIndexPermission(ProjectPermission):
-    scope_map = {
-        "GET": ["project:read", "project:write", "project:admin"],
-    }
 
 
 @region_silo_endpoint
