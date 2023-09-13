@@ -275,15 +275,6 @@ See https://develop.sentry.dev/sdk/event-payloads/types/ for more information
 | user.ip_address            | optional[string] | -                                     |
 | user.name                  | optional[string] | -                                     |
 | user.username              | optional[string] | -                                     |
-| contexts                   | optional[object] | -                                     |
-| BrowserContext             | optional[object] | -                                     |
-| name                       | optional[string] | -                                     |
-| version                    | optional[string] | -                                     |
-| DeviceContext              | optional[object] | -                                     |
-| name                       | optional[string] | -                                     |
-| model                      | optional[string] | -                                     |
-| type                       | optional[string] | -                                     |
-| family                     | optional[string] | -                                     |
 
 - Request
 
@@ -319,18 +310,6 @@ See https://develop.sentry.dev/sdk/event-payloads/types/ for more information
       "ip_address": "127.0.0.1",
       "name": "user",
       "username": "user2270129"
-    },
-    "contexts": {
-      "BrowserContext": {
-        "name": "Chrome",
-        "version": "116.0.0"
-      },
-      "DeviceContext": {
-        "family": "Mac",
-        "model": "Mac",
-        "brand": "Apple",
-        "type": "device"
-      }
     }
   }
   ```
