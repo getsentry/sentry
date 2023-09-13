@@ -41,7 +41,7 @@ SPAN_SCHEMA_VERSION = 1
 DEFAULT_SPAN_RETENTION_DAYS = 90
 
 
-@lru_cache(maxsize=512)
+@lru_cache(maxsize=10000)
 def get_organization(project_id: int) -> Tuple[Organization, int]:
     project = Project.objects.get_from_cache(id=project_id)
     organization = project.organization
