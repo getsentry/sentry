@@ -103,7 +103,7 @@ def __get_line_count_for_team_stats(team_stats: Mapping):
     return line_count
 
 
-def __write_ownership_data(ownership_data: Mapping):
+def __write_ownership_data(ownership_data: Dict[ApiOwner, Dict]):
     """
     Writes API ownership for all the teams in _OWNERSHIP_FILE.
     This file is used by Sentaur slack bot to inform teams on status of their APIs
@@ -131,7 +131,7 @@ def __write_ownership_data(ownership_data: Mapping):
 
 def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, rename
     filtered = []
-    ownership_data = {}
+    ownership_data: Dict[ApiOwner, Dict] = {}
     for (path, path_regex, method, callback) in endpoints:
 
         owner_team = callback.view_class.owner
