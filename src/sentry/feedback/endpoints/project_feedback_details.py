@@ -31,7 +31,7 @@ class ProjectFeedbackDetailsEndpoint(ProjectEndpoint):
             return Response(status=404)
 
         try:
-            feedback = Feedback.objects.get(feedback_id=feedback_id)
+            feedback = Feedback.objects.get(feedback_id=feedback_id, project_id=project.id)
         except Feedback.DoesNotExist:
             raise ResourceDoesNotExist
 
