@@ -21,6 +21,7 @@ from sentry.api.endpoints.organization_missing_org_members import OrganizationMi
 from sentry.api.endpoints.organization_projects_experiment import (
     OrganizationProjectsExperimentEndpoint,
 )
+from sentry.api.endpoints.release_threshold import ReleaseThresholdEndpoint
 from sentry.api.endpoints.source_map_debug_blue_thunder_edition import (
     SourceMapDebugBlueThunderEditionEndpoint,
 )
@@ -37,6 +38,7 @@ from sentry.discover.endpoints.discover_saved_query_detail import (
     DiscoverSavedQueryDetailEndpoint,
     DiscoverSavedQueryVisitEndpoint,
 )
+from sentry.feedback.endpoints.feedback_ingest import FeedbackIngestEndpoint
 from sentry.incidents.endpoints.organization_alert_rule_available_action_index import (
     OrganizationAlertRuleAvailableActionIndexEndpoint,
 )
@@ -2109,6 +2111,11 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-project-releases",
     ),
     re_path(
+        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/thresholds/$",
+        ReleaseThresholdEndpoint.as_view(),
+        name="sentry-api-0-project-release-thresholds",
+    ),
+    re_path(
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/commits/$",
         ProjectCommitsEndpoint.as_view(),
         name="sentry-api-0-project-commits",
@@ -2916,6 +2923,12 @@ urlpatterns = [
         r"^wizard/(?P<wizard_hash>[^\/]+)/$",
         SetupWizard.as_view(),
         name="sentry-api-0-project-wizard",
+    ),
+    # Feedback
+    re_path(
+        r"^feedback/$",
+        FeedbackIngestEndpoint.as_view(),
+        name="sentry-api-0-feedback-ingest",
     ),
     # Internal
     re_path(

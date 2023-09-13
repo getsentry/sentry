@@ -19,7 +19,7 @@ describe('ExternalIssueActions', function () {
     const configurations = [integration];
 
     it('renders', function () {
-      const {container} = render(
+      render(
         <ExternalIssueActions
           key="github"
           group={group}
@@ -28,7 +28,6 @@ describe('ExternalIssueActions', function () {
         />
       );
 
-      expect(container).toSnapshot();
       // renders GitHub Issue when no issues currently linked
       expect(screen.getByText('GitHub Issue')).toBeInTheDocument();
     });
@@ -50,7 +49,7 @@ describe('ExternalIssueActions', function () {
 
     it('opens modal', async function () {
       const integrationConfigMock = MockApiClient.addMockResponse({
-        url: '/groups/1/integrations/1/',
+        url: '/organizations/org-slug/issues/1/integrations/1/',
         body: {createIssueConfig: []},
       });
 
@@ -95,7 +94,7 @@ describe('ExternalIssueActions', function () {
 
     it('deletes when clicking x', async function () {
       const mockDelete = MockApiClient.addMockResponse({
-        url: '/groups/1/integrations/1/?externalIssue=100',
+        url: '/organizations/org-slug/issues/1/integrations/1/?externalIssue=100',
         method: 'DELETE',
       });
 

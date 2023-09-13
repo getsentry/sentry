@@ -4,7 +4,7 @@ import {CompositeSelect} from 'sentry/components/compactSelect/composite';
 
 describe('CompactSelect', function () {
   it('renders', async function () {
-    const {container} = render(
+    render(
       <CompositeSelect menuTitle="Menu title">
         <CompositeSelect.Region
           label="Region 1"
@@ -27,8 +27,6 @@ describe('CompactSelect', function () {
         />
       </CompositeSelect>
     );
-
-    expect(container).toSnapshot();
 
     // Trigger button
     const triggerButton = screen.getByRole('button', {expanded: false});

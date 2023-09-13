@@ -108,6 +108,7 @@ class UserNotificationDetailsEndpoint(UserEndpoint):
                     user_id=user.id,
                 )
             else:
+                # Legacy user options which does not include weekly report
                 user_option, _ = UserOption.objects.get_or_create(
                     key=USER_OPTION_SETTINGS[key]["key"],
                     user=user,

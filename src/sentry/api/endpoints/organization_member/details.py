@@ -28,7 +28,6 @@ from sentry.apidocs.examples.organization_examples import OrganizationExamples
 from sentry.apidocs.parameters import GlobalParams, OrganizationParams
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
-    AuthProvider,
     InviteStatus,
     Organization,
     OrganizationMember,
@@ -36,6 +35,7 @@ from sentry.models import (
     Project,
 )
 from sentry.roles import organization_roles, team_roles
+from sentry.services.hybrid_cloud.auth import auth_service
 from sentry.services.hybrid_cloud.user_option import user_option_service
 from sentry.utils import metrics
 
@@ -162,11 +162,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         if not serializer.is_valid():
             raise ValidationError(serializer.errors)
 
-        try:
-            auth_provider = AuthProvider.objects.get(organization_id=organization.id)
-            auth_provider = auth_provider.get_provider()
-        except AuthProvider.DoesNotExist:
-            auth_provider = None
+        auth_provider = auth_service.get_auth_provider(organization_id=organization.id)
 
         result = serializer.validated_data
 

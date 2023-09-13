@@ -370,6 +370,8 @@ SENTRY_OUTBOX_MODELS: Mapping[str, list[str]] = {
     "REGION": ["sentry.RegionOutbox"],
 }
 
+# Do not modify reordering
+# The applications listed first in INSTALLED_APPS have precedence
 INSTALLED_APPS: tuple[str, ...] = (
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -406,6 +408,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.auth.providers.fly.apps.Config",
     "django.contrib.staticfiles",
     "sentry.issues.apps.Config",
+    "sentry.feedback",
 )
 
 # Silence internal hints from Django's system checks
@@ -725,6 +728,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.files",
     "sentry.tasks.groupowner",
     "sentry.tasks.integrations",
+    "sentry.tasks.invite_missing_org_members",
     "sentry.tasks.low_priority_symbolication",
     "sentry.tasks.merge",
     "sentry.tasks.options",
@@ -890,6 +894,7 @@ CELERY_QUEUES_REGION = [
     Queue("performance.statistical_detector", routing_key="performance.statistical_detector"),
     Queue("profiling.statistical_detector", routing_key="profiling.statistical_detector"),
     CELERY_ISSUE_STATES_QUEUE,
+    Queue("nudge.invite_missing_org_members", routing_key="invite_missing_org_members"),
 ]
 
 from celery.schedules import crontab
@@ -1044,6 +1049,15 @@ CELERYBEAT_SCHEDULE_REGION = {
         ),
         "options": {"expires": 60 * 60 * 3},
     },
+    "schedule-monthly-invite-missing-org-members": {
+        "task": "sentry.tasks.invite_missing_org_members.schedule_organizations",
+        "schedule": crontab(
+            minute=0,
+            hour=7,
+            day_of_month="1",  # 00:00 PDT, 03:00 EDT, 7:00 UTC
+        ),
+        "options": {"expires": 60 * 25},
+    },
     "schedule-hybrid-cloud-foreign-key-jobs": {
         "task": "sentry.tasks.deletion.hybrid_cloud.schedule_hybrid_cloud_foreign_key_jobs",
         # Run every 15 minutes
@@ -1142,6 +1156,11 @@ CELERYBEAT_SCHEDULE_REGION = {
     },
     "backfill-artifact-bundle-index": {
         "task": "sentry.debug_files.tasks.backfill_artifact_index_updates",
+        "schedule": crontab(minute="*/1"),
+        "options": {"expires": 60},
+    },
+    "refresh-artifact-bundles-in-use": {
+        "task": "sentry.debug_files.tasks.refresh_artifact_bundles_in_use",
         "schedule": crontab(minute="*/1"),
         "options": {"expires": 60},
     },
@@ -1395,6 +1414,8 @@ SENTRY_FEATURES = {
     "organizations:escalating-issues-v2": False,
     # Enable emiting escalating data to the metrics backend
     "organizations:escalating-metrics-backend": False,
+    # Enable the frontend to request from region & control silo domains.
+    "organizations:frontend-domainsplit": False,
     # Allows an org to have a larger set of project ownership rules per project
     "organizations:higher-ownership-limit": False,
     # Enable Monitors (Crons) view
@@ -1421,6 +1442,8 @@ SENTRY_FEATURES = {
     "organizations:profiling-memory-chart": False,
     # Enable profiling battery usage chart
     "organizations:profiling-battery-usage-chart": False,
+    # Enable profiling summary redesign view
+    "organizations:profiling-summary-redesign": False,
     # Enable disabling github integrations when broken is detected
     "organizations:github-disable-on-broken": False,
     # Enable disabling gitlab integrations when broken is detected
@@ -1504,7 +1527,7 @@ SENTRY_FEATURES = {
     # Enable Discord integration notifications
     "organizations:integrations-discord-notifications": False,
     # Enable Opsgenie integration
-    "organizations:integrations-opsgenie": False,
+    "organizations:integrations-opsgenie": True,
     # Enable one-click migration from Opsgenie plugin
     "organizations:integrations-opsgenie-migration": False,
     # Limit project events endpoint to only query back a certain number of days
@@ -1545,6 +1568,8 @@ SENTRY_FEATURES = {
     "organizations:mobile-cpu-memory-in-transactions": False,
     # Enable new page filter UI
     "organizations:new-page-filter": False,
+    # Display warning banner for every event issue alerts
+    "organizations:noisy-alert-warning": False,
     # Prefix host with organization ID when giving users DSNs (can be
     # customized with SENTRY_ORG_SUBDOMAIN_TEMPLATE)
     "organizations:org-subdomains": False,
@@ -1732,6 +1757,10 @@ SENTRY_FEATURES = {
     "organizations:release-ui-v2": False,
     # Enable source maps debugger
     "organizations:source-maps-debugger": False,
+    # Enable User Feedback v2 ingest
+    "organizations:user-feedback-ingest": False,
+    # Enable User Feedback v2 UI
+    "organizations:user-feedback-ui": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
@@ -1742,6 +1771,10 @@ SENTRY_FEATURES = {
     "organizations:sourcemaps-upload-release-as-artifact-bundle": False,
     # Signals that the organization supports the on demand metrics prefill.
     "organizations:on-demand-metrics-prefill": False,
+    # Enable writing to the new notification system when updating the old system
+    "organizations:notifications-double-write": False,
+    # Excludes measurement config from project config builds.
+    "organizations:projconfig-exclude-measurements": False,
     # Enable data forwarding functionality for projects.
     "projects:data-forwarding": True,
     # Enable functionality to discard groups.
@@ -1769,6 +1802,9 @@ SENTRY_FEATURES = {
     "projects:span-metrics-extraction": False,
     # Metrics: Enable ingestion, storage, and rendering of custom metrics
     "organizations:custom-metrics": False,
+    # Metrics: Enable creation of investigation dynamic sampling rules (rules that
+    # temporary boost the sample rate of particular transactions)
+    "organizations:investigation-bias": False,
     # Don't add feature defaults down here! Please add them in their associated
     # group sorted alphabetically.
 }
@@ -2803,10 +2839,6 @@ SENTRY_SDK_CONFIG = {
     "debug": True,
     "send_default_pii": True,
     "auto_enabling_integrations": False,
-    "_experiments": {
-        "custom_measurements": True,
-        "enable_backpressure_handling": True,
-    },
 }
 
 SENTRY_DEV_DSN = os.environ.get("SENTRY_DEV_DSN")
@@ -3287,6 +3319,7 @@ MIGRATIONS_LOCKFILE_APP_WHITELIST = (
     "replays",
     "sentry",
     "social_auth",
+    "feedback",
 )
 # Where to write the lockfile to.
 MIGRATIONS_LOCKFILE_PATH = os.path.join(PROJECT_ROOT, os.path.pardir, os.path.pardir)
@@ -3560,9 +3593,10 @@ SENTRY_ISSUE_PLATFORM_FUTURES_MAX_LIMIT = 10000
 
 SENTRY_GROUP_ATTRIBUTES_FUTURES_MAX_LIMIT = 10000
 
+
 # USE_SPLIT_DBS is leveraged in tests as we validate db splits further.
 # Split databases are also required for the USE_SILOS devserver flow.
-if USE_SILOS or env("SENTRY_USE_SPLIT_DBS", default=False):
+if USE_SILOS:
     # Add connections for the region & control silo databases.
     DATABASES["control"] = DATABASES["default"].copy()
     DATABASES["control"]["NAME"] = "control"
