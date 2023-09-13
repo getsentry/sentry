@@ -14,8 +14,6 @@ from arroyo.processing.strategies.abstract import ProcessingStrategy, Processing
 from arroyo.types import BrokerValue, Commit, Message, Partition, Topic
 from django.conf import settings
 
-from sentry import quotas
-from sentry.models import Project
 from sentry.spans.grouping.api import load_span_grouping_config
 from sentry.spans.grouping.strategy.base import Span
 from sentry.utils import json, metrics
@@ -41,15 +39,6 @@ DEFAULT_SPAN_RETENTION_DAYS = 90
 
 
 def _build_snuba_span(relay_span: Mapping[str, Any]) -> MutableMapping[str, Any]:
-    project = Project.objects.get_from_cache(id=relay_span["project_id"])
-    organization = project.organization
-    retention_days = (
-        quotas.backend.get_event_retention(
-            organization=organization,
-        )
-        or DEFAULT_SPAN_RETENTION_DAYS
-    )
-
     span_data: Mapping[str, Any] = relay_span.get("data", {})
 
     snuba_span: MutableMapping[str, Any] = {}
@@ -57,10 +46,10 @@ def _build_snuba_span(relay_span: Mapping[str, Any]) -> MutableMapping[str, Any]
     snuba_span["event_id"] = relay_span["event_id"]
     snuba_span["exclusive_time_ms"] = int(relay_span.get("exclusive_time", 0))
     snuba_span["is_segment"] = relay_span.get("is_segment", False)
-    snuba_span["organization_id"] = organization.id
+    snuba_span["organization_id"] = 0
     snuba_span["parent_span_id"] = relay_span.get("parent_span_id", "0")
     snuba_span["project_id"] = relay_span["project_id"]
-    snuba_span["retention_days"] = retention_days
+    snuba_span["retention_days"] = DEFAULT_SPAN_RETENTION_DAYS
     snuba_span["segment_id"] = relay_span.get("segment_id", "0")
     snuba_span["span_id"] = relay_span.get("span_id", "0")
     snuba_span["tags"] = {
