@@ -270,8 +270,8 @@ class CodeMappingTreesHelper:
                         "filename": file,
                         "repo_name": repo_tree.repo.name,
                         "repo_branch": repo_tree.repo.branch,
-                        "repo_external_id": repo_tree.repo.external_id,
-                        "repo_provider": repo_tree.repo.provider,
+                        "repo_external_id": repo_tree.repo.external_id or "",
+                        "repo_provider": repo_tree.repo.provider or "",
                         "stacktrace_root": f"{frame_filename.root}/",
                         "source_path": self._get_code_mapping_source_path(file, frame_filename),
                     }
