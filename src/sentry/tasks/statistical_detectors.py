@@ -14,9 +14,9 @@ from sentry.snuba import functions
 from sentry.snuba.referrer import Referrer
 from sentry.statistical_detectors import redis
 from sentry.statistical_detectors.algorithm import (
-    MovingAverageCrossOverDetector,
-    MovingAverageCrossOverDetectorConfig,
-    MovingAverageCrossOverDetectorState,
+    MovingAverageDetectorState,
+    MovingAverageRelativeChangeDetector,
+    MovingAverageRelativeChangeDetectorConfig,
 )
 from sentry.statistical_detectors.detector import DetectorPayload, TrendType
 from sentry.tasks.base import instrumented_task
@@ -104,10 +104,11 @@ def detect_function_trends(project_ids: List[int], start: datetime, **kwargs) ->
     regressed_count = 0
     improved_count = 0
 
-    detector_config = MovingAverageCrossOverDetectorConfig(
+    detector_config = MovingAverageRelativeChangeDetectorConfig(
         min_data_points=6,
         short_moving_avg_factory=lambda: ExponentialMovingAverage(2 / 21),
         long_moving_avg_factory=lambda: ExponentialMovingAverage(2 / 41),
+        threshold=0.1,
     )
 
     detector_store = redis.RedisDetectorStore()
@@ -121,16 +122,16 @@ def detect_function_trends(project_ids: List[int], start: datetime, **kwargs) ->
 
         for raw_state, payload in zip(raw_states, payloads):
             try:
-                state = MovingAverageCrossOverDetectorState.from_redis_dict(raw_state)
+                state = MovingAverageDetectorState.from_redis_dict(raw_state)
             except Exception as e:
-                state = MovingAverageCrossOverDetectorState.empty()
+                state = MovingAverageDetectorState.empty()
 
                 if raw_state:
                     # empty raw state implies that there was no
                     # previous state so no need to capture an exception
                     sentry_sdk.capture_exception(e)
 
-            detector = MovingAverageCrossOverDetector(state, detector_config)
+            detector = MovingAverageRelativeChangeDetector(state, detector_config)
             trend_type = detector.update(payload)
 
             states.append(None if trend_type is None else detector.state.to_redis_dict())

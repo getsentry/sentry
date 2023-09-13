@@ -1,9 +1,14 @@
 import types
+from unittest import mock
 from urllib.parse import parse_qs, urlparse
+
+import pytest
+from django.db.models import Q
 
 from sentry.models.notificationsetting import NotificationSetting
 from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
+from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.rule import Rule
 from sentry.notifications.helpers import (
     collect_groups_by_project,
@@ -17,6 +22,7 @@ from sentry.notifications.helpers import (
     get_settings_by_provider,
     get_subscription_from_attributes,
     get_values_by_provider_by_type,
+    is_double_write_enabled,
     user_has_any_provider_settings,
     validate,
 )
@@ -34,6 +40,7 @@ from sentry.notifications.utils import (
     get_group_settings_link,
     get_rules,
 )
+from sentry.services.hybrid_cloud.organization_mapping.serial import serialize_organization_mapping
 from sentry.testutils.cases import TestCase
 from sentry.types.integrations import ExternalProviderEnum, ExternalProviders
 
@@ -78,6 +85,74 @@ def add_notification_setting_provider(
         user_id=user_id,
         team_id=team_id,
     )
+
+
+class DoubleWriteTests(TestCase):
+    @mock.patch("sentry.notifications.helpers.features.has", return_value=False)
+    def test_is_double_write_enabled_user(self, mock_has):
+        # Create dummy users and organizations
+        user1 = self.create_user()
+        user2 = self.create_user()
+        org1 = self.create_organization()
+        org2 = self.create_organization()
+        org3 = self.create_organization()
+
+        # Add users to organizations
+        self.create_member(user=user1, organization=org1)
+        self.create_member(user=user2, organization=org2)
+        self.create_member(user=user1, organization=org3)
+
+        is_double_write_enabled(user_id=user1.id)
+
+        mapped_org1 = OrganizationMapping.objects.get(organization_id=org1.id)
+        mapped_org2 = OrganizationMapping.objects.get(organization_id=org2.id)
+        mapped_org3 = OrganizationMapping.objects.get(organization_id=org3.id)
+        # Ensure mock_has is called on the right organizations
+        mock_has.assert_any_call(
+            "organizations:notifications-double-write", serialize_organization_mapping(mapped_org1)
+        )
+        mock_has.assert_any_call(
+            "organizations:notifications-double-write", serialize_organization_mapping(mapped_org3)
+        )
+        for call in mock_has.call_args_list:
+            self.assertNotEqual(
+                call[0],
+                (
+                    "organizations:notifications-double-write",
+                    serialize_organization_mapping(mapped_org2),
+                ),
+            )
+
+    @mock.patch("sentry.notifications.helpers.features.has", return_value=False)
+    def test_is_double_write_enabled_team(self, mock_has):
+        # Create dummy users and organizations
+        org1 = self.create_organization()
+        org2 = self.create_organization()
+
+        team1 = self.create_team(organization=org1)
+        self.create_team(organization=org2)
+
+        is_double_write_enabled(organization_id_for_team=team1.organization_id)
+
+        mapped_org1 = OrganizationMapping.objects.get(organization_id=org1.id)
+        mapped_org2 = OrganizationMapping.objects.get(organization_id=org2.id)
+
+        # Ensure mock_has is called on the right organizations
+        mock_has.assert_any_call(
+            "organizations:notifications-double-write", serialize_organization_mapping(mapped_org1)
+        )
+        for call in mock_has.call_args_list:
+            self.assertNotEqual(
+                call[0],
+                (
+                    "organizations:notifications-double-write",
+                    serialize_organization_mapping(mapped_org2),
+                ),
+            )
+
+    def test_test_is_double_write_invalid_input(self):
+        with pytest.raises(ValueError):
+            is_double_write_enabled()
 
 
 class NotificationHelpersTest(TestCase):
@@ -316,20 +391,18 @@ class NotificationSettingV2HelpersTest(TestCase):
         self.setting_providers = [setting_provider_1, setting_provider_2, setting_provider_3]
 
     def test_get_all_setting_options(self):
-        assert (
-            list(get_all_setting_options(self.user, self.project, self.organization))
-            == self.setting_options
-        )
+        options = list(get_all_setting_options([self.user], self.project, self.organization))
+        assert options == self.setting_options
 
     def test_get_all_setting_providers(self):
         assert (
-            list(get_all_setting_providers(self.user, self.project, self.organization))
+            list(get_all_setting_providers([self.user], self.project, self.organization))
             == self.setting_providers
         )
 
     def test_get_setting_options_for_recipient(self):
         assert (
-            list(get_all_setting_options(self.user, self.project, self.organization))
+            list(get_all_setting_options([self.user], self.project, self.organization))
             == self.setting_options
         )
         options_for_recipient = get_setting_options_for_recipient(
@@ -372,6 +445,19 @@ class NotificationSettingV2HelpersTest(TestCase):
             == self.setting_options[1].value
         )
         assert user_options[NotificationSettingEnum.DEPLOY].value == self.setting_options[0].value
+
+    def test_get_setting_options_for_user_with_additional_filters(self):
+        options = get_setting_options_for_users(
+            [self.user.id],
+            self.project,
+            self.organization,
+            additional_filters=Q(type=NotificationSettingEnum.ISSUE_ALERTS.value),
+        )
+
+        assert (
+            options[self.user][NotificationSettingEnum.ISSUE_ALERTS].value
+            == self.setting_options[1].value
+        )
 
     def test_get_setting_providers_for_user(self):
         new_user = self.create_user()

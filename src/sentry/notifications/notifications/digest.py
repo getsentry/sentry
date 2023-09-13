@@ -52,8 +52,9 @@ class DigestNotification(ProjectNotification):
         target_type: ActionTargetType,
         target_identifier: int | None = None,
         fallthrough_choice: FallthroughChoiceType | None = None,
+        notification_uuid: str | None = None,
     ) -> None:
-        super().__init__(project)
+        super().__init__(project, notification_uuid)
         self.digest = digest
         self.target_type = target_type
         self.target_identifier = target_identifier
@@ -215,3 +216,16 @@ class DigestNotification(ProjectNotification):
                         participants_to_remove.add(participant)
                 participants -= participants_to_remove
             notify(provider, self, participants, shared_context, extra_context)
+
+    def get_log_params(self, recipient: RpcActor) -> Mapping[str, Any]:
+        try:
+            alert_id = list(self.digest.keys())[0].id
+        except Exception:
+            alert_id = None
+
+        return {
+            "target_type": self.target_type.value,
+            "target_identifier": self.target_identifier,
+            "alert_id": alert_id,
+            **super().get_log_params(recipient),
+        }

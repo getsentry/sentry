@@ -26,9 +26,8 @@ import sentry_sdk
 from django import db
 from django.db import OperationalError, connections, models, router, transaction
 from django.db.models import Max, Min
-from django.db.models.signals import post_migrate
 from django.db.transaction import Atomic
-from django.dispatch import Signal, receiver
+from django.dispatch import Signal
 from django.http import HttpRequest
 from django.utils import timezone
 from sentry_sdk.tracing import Span
@@ -408,15 +407,19 @@ class OutboxBase(Model):
                 return cursor.fetchone()[0]
 
     @classmethod
-    def find_scheduled_shards(cls) -> Iterable[Mapping[str, Any]]:
-        return (
-            cls.objects.values(*cls.sharding_columns)
-            .annotate(
+    def find_scheduled_shards(cls, low: int = 0, hi: int | None = None) -> List[Mapping[str, Any]]:
+        q = cls.objects.values(*cls.sharding_columns).filter(
+            scheduled_for__lte=timezone.now(), id__gte=low
+        )
+        if hi is not None:
+            q = q.filter(id__lt=hi)
+
+        return list(
+            {k: row[k] for k in cls.sharding_columns}
+            for row in q.annotate(
                 scheduled_for=Min("scheduled_for"),
-                id=Max("id"),
-            )
-            .filter(scheduled_for__lte=timezone.now())
-            .order_by("scheduled_for", "id")
+                max_id=Max("id"),
+            ).order_by("scheduled_for", "max_id")
         )
 
     @classmethod
@@ -445,6 +448,7 @@ class OutboxBase(Model):
                 )
 
                 return next_outbox
+
         except OperationalError as e:
             # If concurrent locking is happening on the table, gracefully pass and allow
             # that work to process.
@@ -537,21 +541,38 @@ class OutboxBase(Model):
     @contextlib.contextmanager
     def process_coalesced(self) -> Generator[OutboxBase | None, None, None]:
         coalesced: OutboxBase | None = self.select_coalesced_messages().last()
+        first_coalesced: OutboxBase | None = self.select_coalesced_messages().first() or coalesced
+        tags = {"category": "None"}
+
+        if coalesced is not None:
+            tags["category"] = OutboxCategory(self.category).name
+            assert first_coalesced, "first_coalesced incorrectly set for non-empty coalesce group"
+            metrics.timing(
+                "outbox.coalesced_net_queue_time",
+                datetime.datetime.now(tz=datetime.timezone.utc).timestamp()
+                - first_coalesced.date_added.timestamp(),
+            )
+
         yield coalesced
 
         # If the context block didn't raise we mark messages as completed by deleting them.
         if coalesced is not None:
-            first_coalesced: OutboxBase = self.select_coalesced_messages().first() or coalesced
+            assert first_coalesced, "first_coalesced incorrectly set for non-empty coalesce group"
             deleted_count, _ = (
                 self.select_coalesced_messages().filter(id__lte=coalesced.id).delete()
             )
 
-            tags = {"category": OutboxCategory(self.category).name}
-
             metrics.incr("outbox.processed", deleted_count, tags=tags)
             metrics.timing(
                 "outbox.processing_lag",
-                datetime.datetime.now().timestamp() - first_coalesced.scheduled_from.timestamp(),
+                datetime.datetime.now(tz=datetime.timezone.utc).timestamp()
+                - first_coalesced.scheduled_from.timestamp(),
+                tags=tags,
+            )
+            metrics.timing(
+                "outbox.coalesced_net_processing_time",
+                datetime.datetime.now(tz=datetime.timezone.utc).timestamp()
+                - first_coalesced.date_added.timestamp(),
                 tags=tags,
             )
 
@@ -799,18 +820,19 @@ process_region_outbox = Signal()  # ["payload", "object_identifier"]
 process_control_outbox = Signal()  # ["payload", "region_name", "object_identifier"]
 
 
-@receiver(post_migrate, weak=False, dispatch_uid="schedule_backfill_outboxes")
-def schedule_backfill_outboxes(app_config, using, **kwargs):
-    from sentry.tasks.backfill_outboxes import (
-        schedule_backfill_outbox_jobs,
-        schedule_backfill_outbox_jobs_control,
-    )
-    from sentry.utils.env import in_test_environment
-
-    if in_test_environment():
-        return
-
-    if SiloMode.get_current_mode() != SiloMode.REGION:
-        schedule_backfill_outbox_jobs_control.delay()
-    if SiloMode.get_current_mode() != SiloMode.CONTROL:
-        schedule_backfill_outbox_jobs.delay()
+# Add this in after we successfully deploy, the job.
+# @receiver(post_migrate, weak=False, dispatch_uid="schedule_backfill_outboxes")
+# def schedule_backfill_outboxes(app_config, using, **kwargs):
+#     from sentry.tasks.backfill_outboxes import (
+#         schedule_backfill_outbox_jobs,
+#         schedule_backfill_outbox_jobs_control,
+#     )
+#     from sentry.utils.env import in_test_environment
+#
+#     if in_test_environment():
+#         return
+#
+#     if SiloMode.get_current_mode() != SiloMode.REGION:
+#         schedule_backfill_outbox_jobs_control.delay()
+#     if SiloMode.get_current_mode() != SiloMode.CONTROL:
+#         schedule_backfill_outbox_jobs.delay()
