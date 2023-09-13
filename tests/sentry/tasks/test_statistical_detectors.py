@@ -6,6 +6,8 @@ from django.db.models import F
 from freezegun import freeze_time
 
 from sentry.models import Project
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
+from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.statistical_detectors.detector import DetectorPayload
 from sentry.tasks.statistical_detectors import (
     detect_function_trends,
@@ -14,7 +16,7 @@ from sentry.tasks.statistical_detectors import (
     query_transactions,
     run_detection,
 )
-from sentry.testutils.cases import ProfilesSnubaTestCase, TestCase
+from sentry.testutils.cases import MetricsAPIBaseTestCase, ProfilesSnubaTestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now
@@ -292,19 +294,64 @@ class FunctionsQueryTest(ProfilesSnubaTestCase):
 
 @region_silo_test(stable=True)
 @pytest.mark.sentry_metrics
-class TransactionsQueryTest(TestCase):
+class TestTransactionsQuery(MetricsAPIBaseTestCase):
     def setUp(self):
         super().setUp()
+        self.num_projects = 2
+        self.num_transactions = 4
 
-        self.now = before_now(minutes=10)
         self.hour_ago = (self.now - timedelta(hours=1)).replace(
             minute=0, second=0, microsecond=0, tzinfo=timezone.utc
         )
+        self.hour_ago_seconds = int(self.hour_ago.timestamp())
+        self.org = self.create_organization(owner=self.user)
+        self.projects = [
+            self.create_project(organization=self.org) for _ in range(self.num_projects)
+        ]
 
-    def test_get_top_transaction_names(self):
-        from sentry.tasks.statistical_detectors import get_top_transaction_names_for_projects
+        for project in self.projects:
+            for i in range(self.num_transactions):
+                self.store_metric(
+                    self.org.id,
+                    project.id,
+                    "distribution",
+                    TransactionMRI.DURATION.value,
+                    {"transaction": f"transaction_{i}"},
+                    self.hour_ago_seconds,
+                    1.0,
+                    UseCaseID.TRANSACTIONS,
+                )
+        for project in self.projects:
+            for i in range(self.num_transactions):
+                self.store_metric(
+                    self.org.id,
+                    project.id,
+                    "distribution",
+                    TransactionMRI.DURATION.value,
+                    {"transaction": f"transaction_{i}"},
+                    self.hour_ago_seconds,
+                    9.5,
+                    UseCaseID.TRANSACTIONS,
+                )
 
-        get_top_transaction_names_for_projects([1], [1], self.now - timedelta(days=1))
+    @property
+    def now(self):
+        return MetricsAPIBaseTestCase.MOCK_DATETIME
 
     def test_transactions_query(self) -> None:
-        query_transactions([self.project], self.now)
+        res = query_transactions(
+            [self.org.id],
+            [p.id for p in self.projects],
+            self.hour_ago,
+            self.now,
+            self.num_transactions,
+        )
+        import pprint
+
+        pprint.pprint(res)
+        assert len(res) == len(self.projects)
+        for project_id, transactions in res.items():
+            for (transaction_name, count, p95) in transactions:
+                # p95 is calculated by a probabilisitic data structure so it won't be exactly 9.5
+                assert count == 2
+                assert p95 > 9

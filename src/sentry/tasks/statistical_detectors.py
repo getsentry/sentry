@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timedelta
 from collections import defaultdict
-from typing import Any, Dict, Generator, List, Set
+from datetime import datetime, timedelta
+from typing import Any, Dict, Generator, List, Set, Tuple
 
 import sentry_sdk
 from django.utils import timezone
@@ -11,7 +11,7 @@ from django.utils import timezone
 from sentry import options
 from sentry.constants import ObjectStatus
 from sentry.models.project import Project
-from sentry.snuba import functions, metrics_performance
+from sentry.snuba import functions
 from sentry.snuba.referrer import Referrer
 from sentry.statistical_detectors import redis
 from sentry.statistical_detectors.algorithm import (
@@ -185,52 +185,13 @@ def all_function_payloads(
         yield from function_payloads
 
 
-def query_transactions(projects: List[Project], start: datetime) -> Dict[int, List[TrendPayload]]:
-    # FIXME: this should use the top transaction names which were retrieved
-    start = start - timedelta(hours=1)
-    start = start.replace(minute=0, second=0, microsecond=0)
-    params = {
-        "start": start,
-        "end": start + timedelta(minutes=1),
-        "project_id": [project.id for project in projects],
-        "project_objects": projects,
-    }
-    # TODO: make this configurable
-    TRANSACTIONS_PER_PROJECT = 10
-
-    query_results = metrics_performance.query(
-        selected_columns=[
-            "project.id",
-            "transaction",
-            "count()",
-            "p95()",
-        ],
-        query="",
-        params=params,
-        orderby=["project.id", "-count()"],
-        limit=TRANSACTIONS_PER_PROJECT,
-        referrer="statistical_detectors",
-        auto_aggregations=True,
-        use_aggregate_conditions=True,
-        transform_alias_to_input_format=True,
-    )
-
-    results = defaultdict(list)
-    for row in query_results["data"]:
-        payload = TrendPayload(
-            group=row["transaction"],
-            count=row["count()"],
-            value=row["p95()"],
-            timestamp=datetime.fromisoformat(row["timestamp"]),
-        )
-        results[row["project.is"]].append(payload)
-
-    return results
-
-
-def get_top_transaction_names_for_projects(
-    org_ids: List[int], project_ids: List[int], start: datetime
-) -> Dict[int, List[str]]:
+def query_transactions(
+    org_ids: List[int],
+    project_ids: List[int],
+    start: datetime,
+    end: datetime,
+    transactions_per_project: int,
+) -> Dict[int, List[Tuple[str, float, int]]]:
     from snuba_sdk import (
         Column,
         Condition,
@@ -239,6 +200,7 @@ def get_top_transaction_names_for_projects(
         Entity,
         Function,
         Granularity,
+        Limit,
         LimitBy,
         Op,
         OrderBy,
@@ -252,8 +214,6 @@ def get_top_transaction_names_for_projects(
     from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
     from sentry.utils.snuba import raw_snql_query
 
-    TRANSACTIONS_PER_PROJECT = 10
-
     duration_metric_id = indexer.resolve(
         UseCaseID.TRANSACTIONS, org_ids[0], str(TransactionMRI.DURATION.value)
     )
@@ -262,9 +222,6 @@ def get_top_transaction_names_for_projects(
         org_ids[0],
         "transaction",
     )
-    """
-        """
-
     # TODO: Explain raw snql here
 
     query = Query(
@@ -309,28 +266,36 @@ def get_top_transaction_names_for_projects(
             Condition(Column("org_id"), Op.IN, list(org_ids)),
             Condition(Column("project_id"), Op.IN, list(project_ids)),
             Condition(Column("timestamp"), Op.GTE, start),
-            Condition(Column("timestamp"), Op.LT, datetime.utcnow()),
+            Condition(Column("timestamp"), Op.LT, end),
             Condition(Column("metric_id"), Op.EQ, duration_metric_id),
         ],
-        limitby=LimitBy([Column("project_id")], TRANSACTIONS_PER_PROJECT),
+        limitby=LimitBy([Column("project_id")], transactions_per_project),
         orderby=[
             OrderBy(Column("project_id"), Direction.DESC),
             OrderBy(Column("count"), Direction.DESC),
         ],
         granularity=Granularity(60),
+        limit=Limit(len(project_ids) * transactions_per_project),
     )
     request = Request(
         dataset=Dataset.Events.value,
-        app_id="dynamic_sampling",
+        app_id="statistical_detectors",
         query=query,
-        tenant_ids={"referrer": Referrer.STATISTICAL_DETECTORS_FETCH_TOP_TRANSACTION_NAMES.value},
+        tenant_ids={
+            "referrer": Referrer.STATISTICAL_DETECTORS_FETCH_TOP_TRANSACTION_NAMES.value,
+            # HACK: the allocation policy is going to reject this query unless there is an org_id
+            # passed in. The allocation policy will be updated to handle cross-org queries better
+            # As it is now, this query will likely be throttled (i.e be slower) by the allocation
+            # policy as soon as we start scanning more than just the sentry org
+            "organization_id": -42069,
+        },
     )
     data = raw_snql_query(
         request, referrer=Referrer.STATISTICAL_DETECTORS_FETCH_TOP_TRANSACTION_NAMES.value
     )["data"]
     res = defaultdict(list)
     for row in data:
-        res[row["project_id"]].append(row["transaction_name"])
+        res[row["project_id"]].append((row["transaction_name"], row["count"], row["p95"]))
     return res
 
 
