@@ -127,7 +127,7 @@ class ProjectDebugSymbols extends DeprecatedAsyncView<Props, State> {
 
   renderDebugFiles() {
     const {debugFiles, showDetails} = this.state;
-    const {organization, params} = this.props;
+    const {organization, params, project} = this.props;
 
     if (!debugFiles?.length) {
       return null;
@@ -145,6 +145,7 @@ class ProjectDebugSymbols extends DeprecatedAsyncView<Props, State> {
           onDelete={this.handleDelete}
           key={debugFile.id}
           orgSlug={organization.slug}
+          project={project}
         />
       );
     });
