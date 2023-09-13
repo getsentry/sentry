@@ -1588,13 +1588,6 @@ function buildRoutes() {
         />
       </Route>
       <Route path="browser/">
-        <Route
-          path="webvitals/"
-          component={make(
-            () =>
-              import('sentry/views/performance/browser/webVitals/webVitalsLandingPage')
-          )}
-        />
         <Route path="interactions/">
           <IndexRoute
             component={make(
@@ -1608,6 +1601,13 @@ function buildRoutes() {
             )}
           />
         </Route>
+        <Route
+          path="webvitals/"
+          component={make(
+            () =>
+              import('sentry/views/performance/browser/webVitals/webVitalsLandingPage')
+          )}
+        />
       </Route>
       <Route path="summary/">
         <IndexRoute
