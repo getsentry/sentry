@@ -22,7 +22,7 @@ class MonitorEnvironmentSerializerResponse(TypedDict):
 
 @register(MonitorEnvironment)
 class MonitorEnvironmentSerializer(Serializer):
-    def serialize(self, obj, attrs, user) -> MonitorEnvironmentSerializerResponse:
+    def serialize(self, obj, attrs, user, **kwargs) -> MonitorEnvironmentSerializerResponse:
         return {
             "name": obj.environment.name,
             "status": obj.get_status_display(),
@@ -102,12 +102,12 @@ class MonitorSerializer(Serializer):
 
         return attrs
 
-    def serialize(self, obj, attrs, user) -> MonitorSerializerResponse:
+    def serialize(self, obj, attrs, user, **kwargs) -> MonitorSerializerResponse:
         config = obj.config.copy()
         if "schedule_type" in config:
             config["schedule_type"] = obj.get_schedule_type_display()
 
-        result = {
+        result: MonitorSerializerResponse = {
             "id": str(obj.guid),
             "status": obj.get_status_display(),
             "type": obj.get_type_display(),
@@ -132,7 +132,7 @@ class MonitorSerializer(Serializer):
 
 
 class MonitorCheckInSerializerResponseOptional(TypedDict, total=False):
-    group_ids: List[str]
+    groups: List[str]
 
 
 class MonitorCheckInSerializerResponse(MonitorCheckInSerializerResponseOptional):
@@ -183,8 +183,8 @@ class MonitorCheckInSerializer(Serializer):
 
         return attrs
 
-    def serialize(self, obj, attrs, user) -> MonitorCheckInSerializerResponse:
-        result = {
+    def serialize(self, obj, attrs, user, **kwargs) -> MonitorCheckInSerializerResponse:
+        result: MonitorCheckInSerializerResponse = {
             "id": str(obj.guid),
             "environment": obj.monitor_environment.environment.name
             if obj.monitor_environment
