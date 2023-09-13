@@ -106,18 +106,18 @@ def detect_function_trends(project_ids: List[int], start: datetime, *args, **kwa
     )
 
     for trends in chunked(regressions, FUNCTIONS_PER_BATCH):
-        detect_function_breakpoints.delay(
+        detect_function_change_points.delay(
             [(payload.project_id, payload.group) for _, payload in trends],
             start,
         )
 
 
 @instrumented_task(
-    name="sentry.tasks.statistical_detectors.detect_function_breakpoints",
+    name="sentry.tasks.statistical_detectors.detect_function_change_points",
     queue="profiling.statistical_detector",
     max_retries=0,
 )
-def detect_function_breakpoints(
+def detect_function_change_points(
     functions: List[Tuple[int, str | int]], start: datetime, *args, **kwargs
 ) -> None:
     for project_id, function_id in functions:

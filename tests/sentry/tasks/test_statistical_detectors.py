@@ -217,10 +217,10 @@ def test_detect_function_trends_query_timerange(functions_query, timestamp, proj
 
 
 @mock.patch("sentry.tasks.statistical_detectors.query_functions")
-@mock.patch("sentry.tasks.statistical_detectors.detect_function_breakpoints")
+@mock.patch("sentry.tasks.statistical_detectors.detect_function_change_points")
 @django_db_all
 def test_detect_function_trends(
-    detect_function_breakpoints,
+    detect_function_change_points,
     query_functions,
     timestamp,
     project,
@@ -244,7 +244,7 @@ def test_detect_function_trends(
     with override_options({"statistical_detectors.enable": True}), TaskRunner():
         for ts in timestamps:
             detect_function_trends([project.id], ts)
-    assert detect_function_breakpoints.delay.called
+    assert detect_function_change_points.delay.called
 
 
 @region_silo_test(stable=True)
