@@ -1,6 +1,7 @@
 import logging
 
 from django.db import models, router, transaction
+from django.db.models import Q
 from django.db.models.signals import post_delete, post_save
 
 from sentry.backup.scopes import RelocationScope
@@ -21,7 +22,7 @@ logger = logging.getLogger(__name__)
 class ExternalActor(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Excluded
 
-    actor = FlexibleForeignKey("sentry.Actor", db_index=True, on_delete=models.CASCADE)
+    actor = FlexibleForeignKey("sentry.Actor", db_index=True, null=True, on_delete=models.CASCADE)
     team = FlexibleForeignKey("sentry.Team", null=True, db_index=True, on_delete=models.CASCADE)
     user_id = HybridCloudForeignKey("sentry.User", null=True, db_index=True, on_delete="CASCADE")
     organization = FlexibleForeignKey("sentry.Organization")
@@ -47,10 +48,16 @@ class ExternalActor(DefaultFieldsModel):
         app_label = "sentry"
         db_table = "sentry_externalactor"
         unique_together = (
-            ("organization", "provider", "external_name", "actor"),
             ("organization", "provider", "external_name", "team_id"),
             ("organization", "provider", "external_name", "user_id"),
         )
+
+        constraints = [
+            models.CheckConstraint(
+                check=Q(user_id__isnull=False) | Q(team_id__isnull=False),
+                name="external_actor_team_or_user",
+            ),
+        ]
 
     def delete(self, **kwargs):
         from sentry.services.hybrid_cloud.integration import integration_service

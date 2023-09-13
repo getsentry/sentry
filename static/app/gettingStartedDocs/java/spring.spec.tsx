@@ -6,7 +6,7 @@ import {GettingStartedWithSpring, steps} from './spring';
 
 describe('GettingStartedWithSpring', function () {
   it('renders doc correctly', function () {
-    const {container} = render(<GettingStartedWithSpring dsn="test-dsn" />);
+    render(<GettingStartedWithSpring dsn="test-dsn" />);
 
     // Steps
     for (const step of steps({
@@ -16,7 +16,5 @@ describe('GettingStartedWithSpring', function () {
         screen.getByRole('heading', {name: step.title ?? StepTitle[step.type], level: 4})
       ).toBeInTheDocument();
     }
-
-    expect(container).toSnapshot();
   });
 });

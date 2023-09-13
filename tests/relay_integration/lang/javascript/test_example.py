@@ -4,6 +4,7 @@ import pytest
 
 from sentry.models import File, Release, ReleaseFile
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.relay import RelayStoreHelper
 from sentry.testutils.skips import requires_symbolicator
 
@@ -26,7 +27,7 @@ def load_fixture(name):
         return f.read()
 
 
-@pytest.mark.django_db(transaction=True)
+@django_db_all(transaction=True)
 class TestExample(RelayStoreHelper):
     @pytest.fixture(autouse=True)
     def initialize(

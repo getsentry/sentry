@@ -1588,12 +1588,19 @@ function buildRoutes() {
         />
       </Route>
       <Route path="browser/">
-        <Route
-          path="interactions/"
-          component={make(
-            () => import('sentry/views/performance/browser/interactionsLandingPage')
-          )}
-        />
+        <Route path="interactions/">
+          <IndexRoute
+            component={make(
+              () => import('sentry/views/performance/browser/interactionsLandingPage')
+            )}
+          />
+          <Route
+            path="summary/"
+            component={make(
+              () => import('sentry/views/performance/browser/interactionSummary/index')
+            )}
+          />
+        </Route>
       </Route>
       <Route path="summary/">
         <IndexRoute
@@ -1777,7 +1784,9 @@ function buildRoutes() {
 
   const feedbackChildRoutes = (
     <Fragment>
-      <IndexRoute component={make(() => import('sentry/views/feedback/list'))} />
+      <IndexRoute
+        component={make(() => import('sentry/views/feedback/feedbackListPage'))}
+      />
       <Route
         path=":feedbackId/"
         component={make(() => import('sentry/views/feedback/details'))}

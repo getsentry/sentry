@@ -17,9 +17,6 @@ from rest_framework.request import Request
 from sentry_sdk import Scope
 
 from sentry import options
-
-# Unfortunately, this function is imported as an export of this module in several places, keep it.
-from sentry.auth.access import get_cached_organization_member  # noqa
 from sentry.auth.superuser import is_active_superuser
 from sentry.models.apikey import is_api_key_auth
 from sentry.models.apitoken import is_api_token_auth

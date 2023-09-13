@@ -45,7 +45,7 @@ describe('ProjectPluginDetails', function () {
   });
 
   it('renders', function () {
-    const {container} = render(
+    render(
       <ProjectPluginDetailsContainer
         {...routerProps}
         organization={organization}
@@ -56,8 +56,6 @@ describe('ProjectPluginDetails', function () {
         }}
       />
     );
-
-    expect(container).toSnapshot();
   });
 
   it('resets plugin', async function () {

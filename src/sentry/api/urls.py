@@ -35,6 +35,8 @@ from sentry.discover.endpoints.discover_saved_query_detail import (
     DiscoverSavedQueryDetailEndpoint,
     DiscoverSavedQueryVisitEndpoint,
 )
+from sentry.feedback.endpoints.feedback_ingest import FeedbackIngestEndpoint
+from sentry.feedback.endpoints.organization_feedback_index import OrganizationFeedbackIndexEndpoint
 from sentry.incidents.endpoints.organization_alert_rule_available_action_index import (
     OrganizationAlertRuleAvailableActionIndexEndpoint,
 )
@@ -1745,6 +1747,12 @@ ORGANIZATION_URLS = [
         OrganizationTransactionAnomalyDetectionEndpoint.as_view(),
         name="sentry-api-0-organization-transaction-anomaly-detection",
     ),
+    # Feedback
+    re_path(
+        r"^(?P<organization_slug>[^\/]+)/feedback/$",
+        OrganizationFeedbackIndexEndpoint.as_view(),
+        name="sentry-api-0-organization-feedback-index",
+    ),
     # relay usage
     re_path(
         r"^(?P<organization_slug>[^\/]+)/relay_usage/$",
@@ -2914,6 +2922,12 @@ urlpatterns = [
         r"^wizard/(?P<wizard_hash>[^\/]+)/$",
         SetupWizard.as_view(),
         name="sentry-api-0-project-wizard",
+    ),
+    # Feedback
+    re_path(
+        r"^feedback/$",
+        FeedbackIngestEndpoint.as_view(),
+        name="sentry-api-0-feedback-ingest",
     ),
     # Internal
     re_path(
