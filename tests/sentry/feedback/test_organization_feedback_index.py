@@ -9,8 +9,7 @@ from sentry.testutils.cases import APITestCase
 
 
 class OrganizationFeedbackIndexTest(APITestCase):
-    get_endpoint = "sentry-api-0-organization-feedback-index"
-    post_endpoint = "sentry-api-0-feedback-ingest"
+    endpoint = "sentry-api-0-organization-feedback-index"
 
     def setUp(self):
         super().setUp()
@@ -88,7 +87,7 @@ class OrganizationFeedbackIndexTest(APITestCase):
         )
 
         with self.feature({"organizations:user-feedback-ingest": True}):
-            path = reverse(self.get_endpoint, args=[self.organization.slug])
+            path = reverse(self.endpoint, args=[self.organization.slug])
             response = self.client.get(path)
             assert response.status_code == 200
 
@@ -128,14 +127,14 @@ class OrganizationFeedbackIndexTest(APITestCase):
     def test_no_feature_enabled(self):
         # Unsuccessful GET
         with self.feature({"organizations:user-feedback-ingest": False}):
-            path = reverse(self.get_endpoint, args=[self.organization.slug])
+            path = reverse(self.endpoint, args=[self.organization.slug])
             get_response = self.client.get(path)
             assert get_response.status_code == 404
 
     def test_bad_slug_path(self):
         # Bad slug in path should lead to unsuccessful GET
         with self.feature({"organizations:user-feedback-ingest": True}):
-            path = reverse(self.get_endpoint, args=["testslug123345"])
+            path = reverse(self.endpoint, args=["testslug123345"])
             get_response = self.client.get(path)
             assert get_response.status_code == 404
             assert get_response.data == {
