@@ -72,7 +72,7 @@ def test_relay_encoder_with_set():
 
     result = encoder.encode(flushed_metric)
     assert (
-        result == "users@none:456:3455635177:123|s|#browser:Chrome,browser.version:1.0|T1693994400"
+        result == "users@none:456:123:3455635177|s|#browser:Chrome,browser.version:1.0|T1693994400"
     )
 
 
@@ -223,3 +223,4 @@ def test_send(sentry_sdk):
     assert len(args) == 1
     arg = args[0]
     assert arg.items[0].type == "statsd"
+    assert arg.items[0].data_category == "statsd"
