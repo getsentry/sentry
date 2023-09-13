@@ -26,7 +26,7 @@ class OrganizationFeedbackIndexEndpoint(OrganizationEndpoint):
         if not features.has("organizations:user-feedback-ingest", organization, actor=request.user):
             return Response(status=404)
 
-        feedback_list = Feedback.objects.filter(project_id__in=organization.project_set.all())
+        feedback_list = Feedback.objects.filter(organization_id=organization.id)
         return self.paginate(
             request=request,
             queryset=feedback_list,
