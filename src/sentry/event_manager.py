@@ -2507,6 +2507,16 @@ def _send_occurrence_to_platform(jobs: Sequence[Job], projects: ProjectsMapping)
         event_id = event.event_id
 
         performance_problems = job["performance_problems"]
+        if features.has("organizations:issue-platform-extra-logging", project.organization):
+            logger.warning(
+                "Performance problems detected",
+                extra={
+                    "performance_problems": performance_problems,
+                    "project_id": project.id,
+                    "event_id": event_id,
+                },
+            )
+
         for problem in performance_problems:
             occurrence = IssueOccurrence(
                 id=uuid.uuid4().hex,
