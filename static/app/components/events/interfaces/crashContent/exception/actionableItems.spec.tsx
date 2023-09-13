@@ -66,7 +66,7 @@ describe('Actionable Items', () => {
     render(<ActionableItems {...defaultProps} event={eventWithErrors} />);
 
     expect(await screen.findByText('Discarded invalid value (2)')).toBeInTheDocument();
-    expect(await screen.findByText('Fix Processing Error')).toBeInTheDocument();
+    expect(await screen.findByText('Expand')).toBeInTheDocument();
   });
 
   it('does not render hidden cocoa errors', async () => {
@@ -108,7 +108,7 @@ describe('Actionable Items', () => {
     expect(
       await screen.findByText('Discarded unknown attribute (1)')
     ).toBeInTheDocument();
-    expect(await screen.findByText('Fix Processing Error')).toBeInTheDocument();
+    expect(await screen.findByText('Expand')).toBeInTheDocument();
   });
 
   it('displays missing mapping file', async () => {
@@ -149,6 +149,6 @@ describe('Actionable Items', () => {
     expect(
       await screen.findByText('A proguard mapping file was missing (1)')
     ).toBeInTheDocument();
-    expect(await screen.findByText('Fix Proguard Processing Error')).toBeInTheDocument();
+    expect(await screen.findByText('Expand')).toBeInTheDocument();
   });
 });
