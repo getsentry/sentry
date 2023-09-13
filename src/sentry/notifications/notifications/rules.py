@@ -11,7 +11,7 @@ from sentry import features
 from sentry.db.models import Model
 from sentry.eventstore.models import GroupEvent
 from sentry.issues.grouptype import GROUP_CATEGORIES_CUSTOM_EMAIL, GroupCategory
-from sentry.models import Group, UserOption
+from sentry.models import Group
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.types import (
     ActionTargetType,
@@ -35,6 +35,8 @@ from sentry.notifications.utils import (
 from sentry.notifications.utils.participants import get_owner_reason, get_send_to
 from sentry.plugins.base.structs import Notification
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
+from sentry.services.hybrid_cloud.user_option import user_option_service
+from sentry.services.hybrid_cloud.user_option.service import get_option_from_list
 from sentry.types.group import GroupSubStatus
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import metrics
@@ -119,7 +121,10 @@ class AlertRuleNotification(ProjectNotification):
     ) -> MutableMapping[str, Any]:
         tz = timezone.utc
         if recipient.actor_type == ActorType.USER:
-            user_tz = UserOption.objects.get_value(user=recipient, key="timezone", default="UTC")
+            user_options = user_option_service.get_many(
+                filter={"user_ids": [recipient.id], "keys": ["timezone"]}
+            )
+            user_tz = get_option_from_list(user_options, key="timezone", default="UTC")
             try:
                 tz = pytz.timezone(user_tz)
             except pytz.UnknownTimeZoneError:
