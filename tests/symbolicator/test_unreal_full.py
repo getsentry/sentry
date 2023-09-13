@@ -11,6 +11,7 @@ from sentry.models import EventAttachment, File
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.relay import RelayStoreHelper
+from sentry.testutils.skips import requires_symbolicator
 from sentry.utils.safe import get_path
 from tests.symbolicator import normalize_native_exception
 
@@ -22,6 +23,10 @@ from tests.symbolicator import normalize_native_exception
 # If you are using a local instance of Symbolicator, you need to
 # either change `system.url-prefix` option override inside `initialize` fixture to `system.internal-url-prefix`,
 # or add `127.0.0.1 host.docker.internal` entry to your `/etc/hosts`
+
+
+# TODO: Symbolicator tests also need kafka + zookeeper
+pytestmark = requires_symbolicator
 
 
 def get_unreal_crash_file():
