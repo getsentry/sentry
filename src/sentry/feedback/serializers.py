@@ -24,7 +24,6 @@ class FeedbackResponseType(TypedDict):
     release: str
     status: str
     timestamp: str
-    url: str
 
 
 @register(Feedback)
