@@ -406,6 +406,9 @@
     "sentry.Monitor"
   ],
   "sentry.MonitorLocation": [],
+  "sentry.NeglectedRules": [
+    "sentry.Rule"
+  ],
   "sentry.NotificationAction": [
     "sentry.Integration",
     "sentry.Organization",
