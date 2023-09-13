@@ -75,11 +75,7 @@ describe('Device', function () {
 
   describe('getInferredData', function () {
     it('renders', function () {
-      const {container} = render(
-        <DeviceEventContext data={device} event={TestStubs.Event()} />
-      );
-
-      expect(container).toSnapshot();
+      render(<DeviceEventContext data={device} event={TestStubs.Event()} />);
     });
 
     it('renders screen_resolution inferred from screen_width_pixels and screen_height_pixels', function () {

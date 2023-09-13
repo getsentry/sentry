@@ -153,6 +153,7 @@ def get_email_link_extra_params(
     environment: str | None = None,
     rule_details: Sequence[NotificationRuleDetails] | None = None,
     alert_timestamp: int | None = None,
+    notification_uuid: str | None = None,
     **kwargs: Any,
 ) -> dict[int, str]:
     alert_timestamp_str = (
@@ -167,6 +168,11 @@ def get_email_link_extra_params(
                     "alert_type": str(AlertRuleTriggerAction.Type.EMAIL.name).lower(),
                     "alert_timestamp": alert_timestamp_str,
                     "alert_rule_id": rule_detail.id,
+                    **dict(
+                        []
+                        if notification_uuid is None
+                        else [("notification_uuid", str(notification_uuid))]
+                    ),
                     **dict([] if environment is None else [("environment", environment)]),
                     **kwargs,
                 }
@@ -182,19 +188,23 @@ def get_group_settings_link(
     rule_details: Sequence[NotificationRuleDetails] | None = None,
     alert_timestamp: int | None = None,
     referrer: str = "alert_email",
+    notification_uuid: str | None = None,
     **kwargs: Any,
 ) -> str:
     alert_rule_id: int | None = rule_details[0].id if rule_details and rule_details[0].id else None
-    return str(
-        group.get_absolute_url()
-        + (
-            ""
-            if not alert_rule_id
-            else get_email_link_extra_params(
-                referrer, environment, rule_details, alert_timestamp, **kwargs
-            )[alert_rule_id]
-        )
-    )
+    extra_params = ""
+    if alert_rule_id:
+        extra_params = get_email_link_extra_params(
+            referrer,
+            environment,
+            rule_details,
+            alert_timestamp,
+            notification_uuid=notification_uuid,
+            **kwargs,
+        )[alert_rule_id]
+    elif not alert_rule_id and notification_uuid:
+        extra_params = "?" + str(urlencode({"notification_uuid": notification_uuid}))
+    return str(group.get_absolute_url() + extra_params)
 
 
 def get_integration_link(organization: Organization, integration_slug: str) -> str:

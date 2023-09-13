@@ -22,5 +22,3 @@ class TestChartRenderer(AcceptanceTestCase):
             # Ensure our chart images actually look like pngs
             assert resp.status_code == 200
             assert close_streaming_response(resp)[:4] == b"\x89PNG"
-
-        self.browser.snapshot("chart renderer debug view via chartcuterie")

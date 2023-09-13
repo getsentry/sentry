@@ -17,6 +17,7 @@ import {
 import {updateOnboardingTask} from 'sentry/actionCreators/onboardingTasks';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {Alert} from 'sentry/components/alert';
+import AlertLink from 'sentry/components/alertLink';
 import {Button} from 'sentry/components/button';
 import Checkbox from 'sentry/components/checkbox';
 import Confirm from 'sentry/components/confirm';
@@ -39,7 +40,7 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import TeamSelector from 'sentry/components/teamSelector';
 import {Tooltip} from 'sentry/components/tooltip';
 import {ALL_ENVIRONMENTS_KEY} from 'sentry/constants';
-import {IconChevron} from 'sentry/icons';
+import {IconChevron, IconNot} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';
@@ -177,6 +178,11 @@ type State = DeprecatedAsyncView['state'] & {
 function isSavedAlertRule(rule: State['rule']): rule is IssueAlertRule {
   return rule?.hasOwnProperty('id') ?? false;
 }
+
+/**
+ * Expecting "This rule is an exact duplicate of '{duplicate_rule.label}' in this project and may not be created."
+ */
+const isExactDuplicateExp = /duplicate of '(.*)'/;
 
 class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
   pollingTimeout: number | undefined = undefined;
@@ -521,7 +527,7 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
   testNotifications = () => {
     const {organization} = this.props;
     const {project, rule} = this.state;
-    this.setState({sendingNotification: true});
+    this.setState({detailedError: null, sendingNotification: true});
     const actions = rule?.actions ? rule?.actions.length : 0;
     addLoadingMessage(
       tn('Sending a test notification...', 'Sending test notifications...', actions)
@@ -540,8 +546,9 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
           success: true,
         });
       })
-      .catch(() => {
+      .catch(error => {
         addErrorMessage(tn('Notification failed', 'Notifications failed', actions));
+        this.setState({detailedError: error.responseJSON || null});
         trackAnalytics('edit_alert_rule.notification_test', {
           organization,
           success: false,
@@ -806,26 +813,15 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
   };
 
   handleDeleteRow = (type: ConditionOrActionProperty, idx: number) => {
-    this.setState(
-      prevState => {
-        const clonedState = cloneDeep(prevState);
+    this.setState(prevState => {
+      const clonedState = cloneDeep(prevState);
 
-        const newTypeList = prevState.rule ? [...prevState.rule[type]] : [];
-        newTypeList.splice(idx, 1);
+      const newTypeList = prevState.rule ? [...prevState.rule[type]] : [];
+      newTypeList.splice(idx, 1);
 
-        set(clonedState, `rule[${type}]`, newTypeList);
-        return clonedState;
-      },
-      () => {
-        // After the row has been removed, check if warning is shown
-        if (this.displayNoConditionsWarning() && !this.trackNoisyWarningViewed) {
-          this.trackNoisyWarningViewed = true;
-          trackAnalytics('alert_builder.noisy_warning_viewed', {
-            organization: this.props.organization,
-          });
-        }
-      }
-    );
+      set(clonedState, `rule[${type}]`, newTypeList);
+      return clonedState;
+    });
   };
 
   handleAddCondition = (template: IssueAlertRuleActionTemplate) =>
@@ -915,11 +911,16 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
     const {rule, detailedError} = this.state;
     const {name} = rule || {};
 
+    // Duplicate errors display on the "name" field but we're showing them in a banner
+    // Remove them from the name detailed error
+    const filteredDetailedError =
+      detailedError?.name?.filter(str => !isExactDuplicateExp.test(str)) ?? [];
+
     return (
       <StyledField
         label={null}
         help={null}
-        error={detailedError?.name?.[0]}
+        error={filteredDetailedError[0]}
         disabled={disabled}
         required
         stacked
@@ -962,19 +963,62 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
     );
   }
 
+  renderDuplicateErrorAlert() {
+    const {organization} = this.props;
+    const {detailedError, project} = this.state;
+    const duplicateName = isExactDuplicateExp.exec(detailedError?.name?.[0] ?? '')?.[1];
+    const duplicateRuleId = detailedError?.ruleId?.[0] ?? '';
+
+    // We want this to open in a new tab to not lose the current state of the rule editor
+    return (
+      <AlertLink
+        openInNewTab
+        priority="error"
+        icon={<IconNot color="red300" />}
+        href={normalizeUrl(
+          `/organizations/${organization.slug}/alerts/rules/${project.slug}/${duplicateRuleId}/details/`
+        )}
+      >
+        {tct(
+          'This rule fully duplicates "[alertName]" in the project [projectName] and cannot be saved.',
+          {
+            alertName: duplicateName,
+            projectName: project.name,
+          }
+        )}
+      </AlertLink>
+    );
+  }
+
   displayNoConditionsWarning(): boolean {
     const {rule} = this.state;
+    const acceptedNoisyActionIds = [
+      // Webhooks
+      'sentry.rules.actions.notify_event_service.NotifyEventServiceAction',
+      // Legacy integrations
+      'sentry.rules.actions.notify_event.NotifyEventAction',
+    ];
+
     return (
       this.props.organization.features.includes('noisy-alert-warning') &&
       !!rule &&
       !isSavedAlertRule(rule) &&
       rule.conditions.length === 0 &&
-      rule.filters.length === 0
+      rule.filters.length === 0 &&
+      !rule.actions.every(action => acceptedNoisyActionIds.includes(action.id))
     );
   }
 
   renderAcknowledgeNoConditions(disabled: boolean) {
     const {detailedError, acceptedNoisyAlert} = this.state;
+
+    // Bit goofy to do in render but should only track onceish
+    if (!this.trackNoisyWarningViewed) {
+      this.trackNoisyWarningViewed = true;
+      trackAnalytics('alert_builder.noisy_warning_viewed', {
+        organization: this.props.organization,
+      });
+    }
 
     return (
       <Alert type="warning" showIcon>
@@ -995,7 +1039,7 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
         >
           <AcknowledgeLabel>
             <Checkbox
-              size="md"
+              size="sm"
               name="acceptedNoisyAlert"
               checked={acceptedNoisyAlert}
               onChange={() => {
@@ -1240,6 +1284,8 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
 
     const canCreateAlert = hasEveryAccess(['alerts:write'], {organization, project});
     const disabled = loading || !(canCreateAlert || isActiveSuperuser());
+    const displayDuplicateError =
+      detailedError?.name?.some(str => isExactDuplicateExp.test(str)) ?? false;
 
     // Note `key` on `<Form>` below is so that on initial load, we show
     // the form with a loading mask on top of it, but force a re-render by using
@@ -1543,6 +1589,7 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
                 {this.renderRuleName(disabled)}
                 {this.renderTeamSelect(disabled)}
               </StyledFieldWrapper>
+              {displayDuplicateError && this.renderDuplicateErrorAlert()}
               {this.displayNoConditionsWarning() &&
                 this.renderAcknowledgeNoConditions(disabled)}
             </ContentIndent>

@@ -655,6 +655,10 @@ describe('ProjectAlertsCreate', function () {
     createWrapper({organization: {features: ['noisy-alert-warning']}});
     await userEvent.click((await screen.findAllByLabelText('Delete Node'))[0]);
 
+    await selectEvent.select(screen.getByText('Add action...'), [
+      'Issue Owners, Team, or Member',
+    ]);
+
     expect(
       screen.getByText(/Alerts without conditions can fire too frequently/)
     ).toBeInTheDocument();
@@ -676,6 +680,54 @@ describe('ProjectAlertsCreate', function () {
     expect(trackAnalytics).toHaveBeenCalledWith(
       'alert_builder.noisy_warning_agreed',
       expect.anything()
+    );
+  });
+
+  it('does not display noisy alert banner for legacy integrations', async function () {
+    createWrapper({organization: {features: ['noisy-alert-warning']}});
+    await userEvent.click((await screen.findAllByLabelText('Delete Node'))[0]);
+
+    await selectEvent.select(screen.getByText('Add action...'), [
+      'Send a notification to all legacy integrations',
+    ]);
+
+    expect(
+      screen.queryByText(/Alerts without conditions can fire too frequently/)
+    ).not.toBeInTheDocument();
+
+    await selectEvent.select(screen.getByText('Add action...'), [
+      'Issue Owners, Team, or Member',
+    ]);
+
+    expect(
+      screen.getByText(/Alerts without conditions can fire too frequently/)
+    ).toBeInTheDocument();
+  });
+
+  it('displays duplicate error banner with link', async function () {
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/rules/',
+      method: 'POST',
+      statusCode: 400,
+      body: {
+        name: [
+          "This rule is an exact duplicate of 'test alert' in this project and may not be created.",
+        ],
+        ruleId: [1337],
+      },
+    });
+
+    createWrapper();
+
+    await userEvent.click(screen.getByText('Save Rule'));
+
+    const bannerLink = await screen.findByRole('link', {
+      name: /rule fully duplicates "test alert"/,
+    });
+    expect(bannerLink).toBeInTheDocument();
+    expect(bannerLink).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/alerts/rules/project-slug/1337/details/'
     );
   });
 });

@@ -1589,18 +1589,25 @@ function buildRoutes() {
       </Route>
       <Route path="browser/">
         <Route
-          path="interactions/"
-          component={make(
-            () => import('sentry/views/performance/browser/interactionsLandingPage')
-          )}
-        />
-        <Route
           path="webvitals/"
           component={make(
             () =>
               import('sentry/views/performance/browser/webVitals/webVitalsLandingPage')
           )}
         />
+        <Route path="interactions/">
+          <IndexRoute
+            component={make(
+              () => import('sentry/views/performance/browser/interactionsLandingPage')
+            )}
+          />
+          <Route
+            path="summary/"
+            component={make(
+              () => import('sentry/views/performance/browser/interactionSummary/index')
+            )}
+          />
+        </Route>
       </Route>
       <Route path="summary/">
         <IndexRoute
@@ -1779,6 +1786,40 @@ function buildRoutes() {
         component={withDomainRedirect(make(() => import('sentry/views/userFeedback')))}
         key="org-user-feedback"
       />
+    </Fragment>
+  );
+
+  const feedbackChildRoutes = (
+    <Fragment>
+      <IndexRoute
+        component={make(() => import('sentry/views/feedback/feedbackListPage'))}
+      />
+      <Route
+        path=":feedbackId/"
+        component={make(() => import('sentry/views/feedback/details'))}
+      />
+    </Fragment>
+  );
+  const feedbackv2Routes = (
+    <Fragment>
+      {usingCustomerDomain && (
+        <Route
+          path="/feedback/"
+          component={withDomainRequired(
+            make(() => import('sentry/views/feedback/index'))
+          )}
+          key="orgless-feedback-list-route"
+        >
+          {feedbackChildRoutes}
+        </Route>
+      )}
+      <Route
+        path="/organizations/:orgId/feedback/"
+        component={withDomainRedirect(make(() => import('sentry/views/feedback/index')))}
+        key="org-feedback-list-route"
+      >
+        {feedbackChildRoutes}
+      </Route>
     </Fragment>
   );
 
@@ -2169,6 +2210,7 @@ function buildRoutes() {
       {projectsRoutes}
       {dashboardRoutes}
       {userFeedbackRoutes}
+      {feedbackv2Routes}
       {issueListRoutes}
       {issueDetailsRoutes}
       {alertRoutes}

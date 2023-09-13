@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import contextlib
-from typing import TYPE_CHECKING, Any, Collection, List, Mapping, Tuple, Type
+from typing import TYPE_CHECKING, Any, Collection, List, Mapping, Optional, Tuple, Type
 
 from django.db import router, transaction
 
@@ -27,12 +27,15 @@ class RegionOutboxProducingModel(Model):
     replication_version: int = 1
 
     @contextlib.contextmanager
-    def _maybe_prepare_outboxes(self, *, outbox_before_super: bool):
+    def prepare_outboxes(self, *, outbox_before_super: bool, flush: Optional[bool] = None):
         from sentry.models.outbox import outbox_context
+
+        if flush is None:
+            flush = self.default_flush
 
         with outbox_context(
             transaction.atomic(router.db_for_write(type(self))),
-            flush=self.default_flush,
+            flush=flush,
         ):
             if not outbox_before_super:
                 yield
@@ -41,15 +44,15 @@ class RegionOutboxProducingModel(Model):
                 yield
 
     def save(self, *args: Any, **kwds: Any) -> None:
-        with self._maybe_prepare_outboxes(outbox_before_super=False):
+        with self.prepare_outboxes(outbox_before_super=False):
             super().save(*args, **kwds)
 
     def update(self, *args: Any, **kwds: Any) -> int:
-        with self._maybe_prepare_outboxes(outbox_before_super=False):
+        with self.prepare_outboxes(outbox_before_super=False):
             return super().update(*args, **kwds)
 
     def delete(self, *args: Any, **kwds: Any) -> Tuple[int, dict[str, Any]]:
-        with self._maybe_prepare_outboxes(outbox_before_super=True):
+        with self.prepare_outboxes(outbox_before_super=True, flush=False):
             return super().delete(*args, **kwds)
 
     def outbox_for_update(self, shard_identifier: int | None = None) -> RegionOutboxBase:

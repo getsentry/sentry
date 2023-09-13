@@ -391,6 +391,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             "codecovAccess": True,
             "aiSuggestedSolution": False,
             "githubOpenPRBot": False,
+            "githubNudgeInvite": False,
             "githubPRBot": False,
             "allowSharedIssues": False,
             "enhancedPrivacy": True,
@@ -466,6 +467,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert "to {}".format(data["aiSuggestedSolution"]) in log.data["aiSuggestedSolution"]
         assert "to {}".format(data["githubPRBot"]) in log.data["githubPRBot"]
         assert "to {}".format(data["githubOpenPRBot"]) in log.data["githubOpenPRBot"]
+        assert "to {}".format(data["githubNudgeInvite"]) in log.data["githubNudgeInvite"]
 
     @responses.activate
     @patch(
@@ -874,7 +876,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
         # Ensure that the organization update has been flushed, but it collides when attempting an upsert
         with pytest.raises(OutboxFlushError):
-            Organization.outbox_for_update(org_id=self.organization.id).drain_shard()
+            self.organization.outbox_for_update().drain_shard()
 
         with assume_test_silo_mode(SiloMode.CONTROL):
             organization_mapping = OrganizationMapping.objects.get(
@@ -883,12 +885,12 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert organization_mapping.slug == previous_slug
 
         # Flush the colliding org slug change
-        Organization.outbox_for_update(org_id=org_with_colliding_slug.id).drain_shard()
+        org_with_colliding_slug.outbox_for_update().drain_shard()
         colliding_org_mapping.refresh_from_db()
         assert colliding_org_mapping.slug == "unique-slug"
 
         # Flush the desired slug change and assert the correct slug was resolved
-        Organization.outbox_for_update(org_id=self.organization.id).drain_shard()
+        self.organization.outbox_for_update().drain_shard()
         organization_mapping.refresh_from_db()
         assert organization_mapping.slug == desired_slug
 

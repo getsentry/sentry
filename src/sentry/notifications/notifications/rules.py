@@ -7,7 +7,7 @@ from urllib.parse import urlencode
 
 import pytz
 
-from sentry import features
+from sentry import analytics, features
 from sentry.db.models import Model
 from sentry.eventstore.models import GroupEvent
 from sentry.issues.grouptype import GROUP_CATEGORIES_CUSTOM_EMAIL, GroupCategory
@@ -68,11 +68,12 @@ class AlertRuleNotification(ProjectNotification):
         target_type: ActionTargetType,
         target_identifier: int | None = None,
         fallthrough_choice: FallthroughChoiceType | None = None,
+        notification_uuid: str | None = None,
     ) -> None:
         event = notification.event
         group = event.group
         project = group.project
-        super().__init__(project)
+        super().__init__(project, notification_uuid)
         self.group = group
         self.event = event
         self.target_type = target_type
@@ -146,13 +147,19 @@ class AlertRuleNotification(ProjectNotification):
         fallback_params: MutableMapping[str, str] = {}
         group_header = get_group_substatus_text(self.group)
 
+        notification_uuid = self.notification_uuid if hasattr(self, "notification_uuid") else None
         context = {
             "project_label": self.project.get_full_name(),
             "group": self.group,
             "group_header": group_header,
             "event": self.event,
             "link": get_group_settings_link(
-                self.group, environment, rule_details, None, **fallback_params
+                self.group,
+                environment,
+                rule_details,
+                None,
+                notification_uuid=notification_uuid,
+                **fallback_params,
             ),
             "rules": rule_details,
             "has_integrations": has_integrations(self.organization, self.project),
@@ -284,5 +291,20 @@ class AlertRuleNotification(ProjectNotification):
         return {
             "target_type": self.target_type,
             "target_identifier": self.target_identifier,
+            "alert_id": self.rules[0].id if self.rules else None,
             **super().get_log_params(recipient),
         }
+
+    def record_notification_sent(self, recipient: RpcActor, provider: ExternalProviders) -> None:
+        super().record_notification_sent(recipient, provider)
+        log_params = self.get_log_params(recipient)
+        analytics.record(
+            "alert.sent",
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            provider=provider.name,
+            alert_id=log_params["alert_id"] if log_params["alert_id"] else "",
+            alert_type="issue_alert",
+            external_id=str(recipient.id),
+            notification_uuid=self.notification_uuid,
+        )

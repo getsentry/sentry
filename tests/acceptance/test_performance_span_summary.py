@@ -100,4 +100,3 @@ class PerformanceSpanSummaryTest(AcceptanceTestCase, SnubaTestCase):
             self.page.wait_until_loaded()
             # Wait again for loaders inside the table
             self.page.wait_until_loaded()
-            self.browser.snapshot("performance span summary - with data")

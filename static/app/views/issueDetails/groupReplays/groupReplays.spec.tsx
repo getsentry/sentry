@@ -168,7 +168,7 @@ describe('GroupReplays', () => {
         },
       });
 
-      const {container} = render(<GroupReplays group={mockGroup} />, {
+      render(<GroupReplays group={mockGroup} />, {
         context: routerContext,
         organization,
         router,
@@ -179,7 +179,6 @@ describe('GroupReplays', () => {
       ).toBeInTheDocument();
       expect(mockReplayCountApi).toHaveBeenCalledTimes(1);
       expect(mockReplayApi).toHaveBeenCalledTimes(1);
-      expect(container).toSnapshot();
     });
 
     it('should display error message when api call fails', async () => {

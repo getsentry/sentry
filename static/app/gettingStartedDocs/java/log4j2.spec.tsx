@@ -6,7 +6,7 @@ import {GettingStartedWithLog4j2, steps} from './log4j2';
 
 describe('GettingStartedWithLog4j2', function () {
   it('renders doc correctly', function () {
-    const {container} = render(<GettingStartedWithLog4j2 dsn="test-dsn" />);
+    render(<GettingStartedWithLog4j2 dsn="test-dsn" />);
 
     // Steps
     for (const step of steps({
@@ -16,7 +16,5 @@ describe('GettingStartedWithLog4j2', function () {
         screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
       ).toBeInTheDocument();
     }
-
-    expect(container).toSnapshot();
   });
 });

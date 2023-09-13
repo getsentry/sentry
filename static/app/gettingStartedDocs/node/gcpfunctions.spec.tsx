@@ -6,7 +6,7 @@ import {GettingStartedWithGCPFunctions, steps} from './gcpfunctions';
 
 describe('GettingStartedWithGCPFunctions', function () {
   it('all products are selected', function () {
-    const {container} = render(<GettingStartedWithGCPFunctions dsn="test-dsn" />);
+    render(<GettingStartedWithGCPFunctions dsn="test-dsn" />);
 
     // Steps
     for (const step of steps({
@@ -18,7 +18,5 @@ describe('GettingStartedWithGCPFunctions', function () {
         screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
       ).toBeInTheDocument();
     }
-
-    expect(container).toSnapshot();
   });
 });
