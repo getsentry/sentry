@@ -56,6 +56,13 @@ logger = logging.getLogger(__name__)
 CHECKIN_QUOTA_LIMIT = 5
 CHECKIN_QUOTA_WINDOW = 60
 
+# lock timeout
+LOCK_TIMEOUT = 1
+# base value for lock retries
+INITIAL_LOCK_DELAY = 0.01
+# lock exponent base
+LOCK_EXP_BASE = 2.0
+
 
 def _ensure_monitor_with_config(
     project: Project,
@@ -404,9 +411,13 @@ def _process_message(ts: datetime, wrapper: CheckinMessage | ClockPulseMessage) 
             )
             return
 
-        lock = locks.get(f"checkin-creation:{guid.hex}", duration=2, name="checkin_creation")
+        lock = locks.get(
+            f"checkin-creation:{guid.hex}", duration=LOCK_TIMEOUT, name="checkin_creation"
+        )
         try:
-            with lock.acquire(), transaction.atomic(router.db_for_write(Monitor)):
+            with lock.blocking_acquire(
+                INITIAL_LOCK_DELAY, float(LOCK_TIMEOUT), exp_base=LOCK_EXP_BASE
+            ), transaction.atomic(router.db_for_write(Monitor)):
                 status = getattr(CheckInStatus, validated_params["status"].upper())
                 trace_id = validated_params.get("contexts", {}).get("trace", {}).get("trace_id")
 

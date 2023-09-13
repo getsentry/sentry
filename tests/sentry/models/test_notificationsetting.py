@@ -76,7 +76,7 @@ class NotificationSettingTest(TestCase):
             organization=self.organization,
             organization_id_for_team=self.organization.id,
         )
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.REGION), outbox_runner():
             self.organization.delete()
         assert_no_notification_settings()
 

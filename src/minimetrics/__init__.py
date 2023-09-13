@@ -1,3 +1,4 @@
-from .core import MetricTagsExternal, MiniMetricsClient
+from .core import MiniMetricsClient
+from .types import MetricTagsExternal
 
 __all__ = ["MiniMetricsClient", "MetricTagsExternal"]

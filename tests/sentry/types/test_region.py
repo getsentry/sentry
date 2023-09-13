@@ -95,7 +95,12 @@ class RegionMappingTest(TestCase):
 
     def test_region_to_url(self):
         region = Region("us", 1, "http://192.168.1.99", RegionCategory.MULTI_TENANT)
-        assert region.to_url("/avatar/abcdef/") == "http://us.testserver/avatar/abcdef/"
+        with override_settings(SILO_MODE=SiloMode.REGION, SENTRY_REGION="us"):
+            assert region.to_url("/avatar/abcdef/") == "http://us.testserver/avatar/abcdef/"
+        with override_settings(SILO_MODE=SiloMode.CONTROL, SENTRY_REGION=""):
+            assert region.to_url("/avatar/abcdef/") == "http://us.testserver/avatar/abcdef/"
+        with override_settings(SILO_MODE=SiloMode.MONOLITH, SENTRY_REGION=""):
+            assert region.to_url("/avatar/abcdef/") == "http://testserver/avatar/abcdef/"
 
     def test_json_config_injection(self):
         region_config = [
