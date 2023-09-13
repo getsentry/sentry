@@ -13,16 +13,15 @@ class HealthcheckError(Exception):
 
 
 class HealthCheck:
-    id: str
-    container_name: str
-    check_by_default: bool
-    check: Callable[[], None]
-    deps: list[str]
-    retries: int
-    timeout_secs: int
-
     def __init__(
-        self, id, container_name, check_by_default, check=None, deps=None, retries=3, timeout_secs=5
+        self,
+        id: str,
+        container_name: str,
+        check_by_default: bool,
+        check: Callable[[], object] | None = None,
+        deps: list[str] = None,
+        retries: int = 3,
+        timeout_secs: int = 5,
     ):
         self.id = id
         self.container_name = container_name
@@ -32,7 +31,7 @@ class HealthCheck:
         self.retries = retries
         self.timeout_secs = timeout_secs
 
-    def check_container(self):
+    def check_container(self) -> None:
         response = subprocess.run(
             ("docker", "container", "inspect", "-f", "'{{.State.Status}}'", self.container_name),
             capture_output=True,
@@ -58,7 +57,7 @@ def check_kafka():
     )
 
 
-def check_postgres():
+def check_postgres() -> None:
     subprocess.run(
         ("docker", "exec", "sentry_postgres", "pg_isready", "-U", "postgres"), check=True
     )
