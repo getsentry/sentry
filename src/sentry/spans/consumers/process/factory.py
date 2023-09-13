@@ -8,6 +8,7 @@ from typing import Any, Mapping, MutableMapping, Optional
 import msgpack
 import sentry_sdk
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
+from arroyo.dlq import InvalidMessage
 from arroyo.processing.strategies import CommitOffsets, Produce
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
 from arroyo.types import Commit, Message, Partition, Topic
@@ -168,7 +169,7 @@ def process_message(message: Message[KafkaPayload]) -> Optional[KafkaPayload]:
         metrics.incr("spans.consumer.message_processing_error")
         if random.random() < 0.05:
             sentry_sdk.capture_exception(e)
-    return None
+        raise InvalidMessage from e
 
 
 class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
