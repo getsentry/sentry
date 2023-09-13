@@ -161,6 +161,7 @@ class ArtifactBundleFlatFileIndex(Model):
     project_id = BoundedBigIntegerField(db_index=True)
     release_name = models.CharField(max_length=250)
     dist_name = models.CharField(max_length=64, default=NULL_STRING)
+    size = BoundedPositiveIntegerField(default=0)
     date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
@@ -174,15 +175,16 @@ class ArtifactBundleFlatFileIndex(Model):
 
     def update_flat_file_index(self, data: str):
         encoded_data = data.encode()
+        size_in_bytes = len(encoded_data)
 
         metric_name = "debug_id_index" if self.release_name == NULL_STRING else "url_index"
         metrics.timing(
             f"artifact_bundle_flat_file_indexing.{metric_name}.size_in_bytes",
-            value=len(encoded_data),
+            value=size_in_bytes,
         )
 
         indexstore.set_bytes(self._indexstore_id(), encoded_data)
-        self.update(date_added=timezone.now())
+        self.update(date_added=timezone.now(), size=size_in_bytes)
 
     def load_flat_file_index(self) -> Optional[bytes]:
         return indexstore.get_bytes(self._indexstore_id())
@@ -234,9 +236,9 @@ class ArtifactBundleIndex(Model):
     # TODO: legacy fields:
     # These will eventually be removed in a migration, as they can be joined
     # via the `{Release,}ArtifactBundle` tables.
-    release_name = models.CharField(max_length=250)
-    dist_name = models.CharField(max_length=64, default=NULL_STRING)
-    date_last_modified = models.DateTimeField(default=timezone.now)
+    release_name = models.CharField(max_length=250, null=True)
+    dist_name = models.CharField(max_length=64, null=True, default=NULL_STRING)
+    date_last_modified = models.DateTimeField(null=True, default=timezone.now)
 
     class Meta:
         app_label = "sentry"
