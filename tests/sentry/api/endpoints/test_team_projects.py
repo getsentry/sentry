@@ -83,8 +83,9 @@ class TeamProjectsCreateTest(APITestCase):
             name="1234",
             status_code=201,
         )
-
-        assert response.data["slug"].startswith("1234" + "-")
+        slug = response.data["slug"]
+        assert slug.startswith("1234-")
+        assert not slug.isdecimal()
 
     def test_invalid_platform(self):
         response = self.get_error_response(

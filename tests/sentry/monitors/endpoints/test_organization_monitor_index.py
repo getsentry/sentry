@@ -234,7 +234,9 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
         }
         response = self.get_success_response(self.organization.slug, **data, status_code=201)
 
-        assert response.data["slug"].startswith("1234" + "-")
+        slug = response.data["slug"]
+        assert slug.startswith("1234-")
+        assert not slug.isdecimal()
 
     @override_settings(MAX_MONITORS_PER_ORG=2)
     def test_monitor_organization_limit(self):

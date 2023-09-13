@@ -155,7 +155,8 @@ class OrganizationsCreateTest(OrganizationIndexTest, HybridCloudTestMixin):
 
         organization_id = response.data["id"]
         org = Organization.objects.get(id=organization_id)
-        assert org.slug.startswith("1234" + "-")
+        assert org.slug.startswith("1234-")
+        assert not org.slug.isdecimal()
 
     @patch(
         "sentry.api.endpoints.organization_member.requests.join.ratelimiter.is_limited",
