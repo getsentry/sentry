@@ -3,6 +3,7 @@ import {
   formatAbbreviatedNumber,
   formatFloat,
   formatPercentage,
+  formatRate,
   formatSecondsToClock,
   getDuration,
   getExactDuration,
@@ -213,6 +214,25 @@ describe('formatAbbreviatedNumber()', function () {
     expect(formatAbbreviatedNumber('1249.23421', 3)).toBe('1.25k');
     expect(formatAbbreviatedNumber('1239567891299', 3)).toBe('1240b');
     expect(formatAbbreviatedNumber('158.80421626984128', 3)).toBe('159');
+  });
+});
+
+describe('formatRate()', function () {
+  it('Formats 0 as "0"', () => {
+    expect(formatRate(0)).toBe('0/s');
+  });
+
+  it('Rounds the rate', () => {
+    expect(formatRate(0.3142)).toBe('0.314/s');
+    expect(formatRate(17)).toBe('17/s');
+    expect(formatRate(1023.142)).toBe('1k/s');
+  });
+
+  it('Abbreviates large numbers', () => {
+    expect(formatRate(1023.142)).toBe('1k/s');
+    expect(formatRate(1523142)).toBe('1.5m/s');
+    expect(formatRate(1020314200.132)).toBe('1b/s');
+    expect(formatRate(1023140200132.789)).toBe('1023b/s');
   });
 });
 
