@@ -2,7 +2,6 @@ import time
 from datetime import timedelta
 
 from freezegun import freeze_time
-
 from sentry.dynamic_sampling.tasks.task_context import DynamicSamplingLogState, TaskContext, Timers
 
 SECOND = timedelta(seconds=1)
@@ -80,7 +79,7 @@ def test_timer_raw():
         t.stop()
 
         # jump 1 second in the future
-        frozen_time.tick()
+        frozen_time.shift(1)
 
         # the timer is stopped so nothing should have happened
         assert t.current() == 0
@@ -96,7 +95,7 @@ def test_timer_raw():
         t.start()
 
         # another sec
-        frozen_time.tick()
+        frozen_time.shift(1)
 
         # now the timer should be at 1 sec
         assert t.current() == 1.0
@@ -111,14 +110,14 @@ def test_timer_raw():
         t.stop()
         assert t.current() == 1.0
 
-        frozen_time.tick()
+        frozen_time.shift(1)
         # check that we can accumulate multiple stops and starts
         assert t.current() == 1.0
         t.start()
         assert t.current() == 1.0
 
         # another sec
-        frozen_time.tick()
+        frozen_time.shift(1)
 
         assert t.current() == 2.0
         t.stop()
@@ -161,7 +160,7 @@ def test_named_timer_raw():
         ta.stop()
 
         # jump 1 second in the future
-        frozen_time.tick()
+        frozen_time.shift(1)
 
         # the timer is stopped for a&b so nothing should have happened
         assert ta.current() == 0
@@ -184,7 +183,7 @@ def test_named_timer_raw():
         ta.start()
 
         # another sec
-        frozen_time.tick()
+        frozen_time.shift(1)
 
         # now the timer should be at 1 sec
         assert ta.current() == 1.0
@@ -202,7 +201,7 @@ def test_named_timer_raw():
         assert tc.current() == 2.0
         tb.start()
 
-        frozen_time.tick()
+        frozen_time.shift(1)
         # check that we can accumulate multiple stops and starts
         assert ta.current() == 1.0
         assert tb.current() == 1.0
@@ -213,7 +212,7 @@ def test_named_timer_raw():
         assert tc.current() == 3.0
 
         # another sec
-        frozen_time.tick()
+        frozen_time.shift(1)
 
         assert ta.current() == 2.0
         assert tb.current() == 2.0
@@ -224,7 +223,7 @@ def test_named_timer_raw():
         assert tc.current() == 4.0
 
         # another sec
-        frozen_time.tick()
+        frozen_time.shift(1)
 
         assert ta.current() == 2.0
         assert tb.current() == 3.0
@@ -243,8 +242,8 @@ def test_timer_context_manager():
                 assert t.current("a") == i
 
                 # jump one sec
-                frozen_time.tick()
-            frozen_time.tick()
+                frozen_time.shift(1)
+            frozen_time.shift(1)
 
         # we advanced 3 seconds within the timer and 3 outside we should have only counted 3
         assert t.current("a") == 3
@@ -265,21 +264,21 @@ def test_named_timer_context_manager():
 
                 with t.get_timer("a") as ta:
                     assert ta.current() == i
-                    frozen_time.tick(delta=SECOND)
+                    frozen_time.shift(SECOND)
                 with t.get_timer("b") as tb:
                     assert tb.current() == i * 2
-                    frozen_time.tick(delta=SECOND * 2)
+                    frozen_time.shift(SECOND * 2)
                 with t.get_timer("c") as tc:
                     assert tc.current() == i * 3
-                    frozen_time.tick(delta=SECOND * 3)
+                    frozen_time.shift(SECOND * 3)
 
                 # jump one sec
-                frozen_time.tick(delta=SECOND)
+                frozen_time.shift(SECOND)
 
-            frozen_time.tick(delta=SECOND)
+            frozen_time.shift(SECOND)
 
         # outside the context manager timers should not advance
-        frozen_time.tick(delta=SECOND * 100)
+        frozen_time.shift(SECOND * 100)
 
         assert t.current("a") == 3
         assert t.current("b") == 3 * 2
@@ -292,10 +291,10 @@ def test_task_context_serialisation():
     with freeze_time("2023-07-12 10:00:00") as frozen_time:
         # a timer without state
         with task.get_timer("a"):
-            frozen_time.tick(delta=SECOND)
+            frozen_time.shift(SECOND)
         # a timer with state
         with task.get_timer("b"):
-            frozen_time.tick(delta=SECOND * 2)
+            frozen_time.shift(SECOND * 2)
             state = task.get_function_state("b")
             state.num_iterations = 1
             state.num_orgs = 2

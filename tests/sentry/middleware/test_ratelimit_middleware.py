@@ -7,11 +7,10 @@ from django.contrib.auth.models import AnonymousUser
 from django.http.request import HttpRequest
 from django.test import RequestFactory, override_settings
 from django.urls import re_path, reverse
-from freezegun import freeze_time
-from freezegun.api import FrozenDateTimeFactory
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
+from freezegun import freeze_time
 from sentry.api.base import Endpoint
 from sentry.api.endpoints.organization_group_index import OrganizationGroupIndexEndpoint
 from sentry.middleware.ratelimit import RatelimitMiddleware
@@ -110,10 +109,9 @@ class RatelimitMiddlewareTest(TestCase):
         # Requests outside the current window should not be rate limited
         default_rate_limit_mock.return_value = RateLimit(1, 1)
         with freeze_time("2000-01-01") as frozen_time:
-            assert isinstance(frozen_time, FrozenDateTimeFactory)
             self.middleware.process_view(request, self._test_endpoint, [], {})
             assert not request.will_be_rate_limited
-            frozen_time.tick(1)
+            frozen_time.shift(1)
             self.middleware.process_view(request, self._test_endpoint, [], {})
             assert not request.will_be_rate_limited
 
@@ -128,10 +126,9 @@ class RatelimitMiddlewareTest(TestCase):
 
         default_rate_limit_mock.return_value = RateLimit(1, 1)
         with freeze_time("2000-01-01") as frozen_time:
-            assert isinstance(frozen_time, FrozenDateTimeFactory)
             self.middleware.process_view(request, self._test_endpoint, [], {})
             assert not request.will_be_rate_limited
-            frozen_time.tick(1)
+            frozen_time.shift(1)
             self.middleware.process_view(request, self._test_endpoint, [], {})
             assert not request.will_be_rate_limited
 
