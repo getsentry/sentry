@@ -812,26 +812,15 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
   };
 
   handleDeleteRow = (type: ConditionOrActionProperty, idx: number) => {
-    this.setState(
-      prevState => {
-        const clonedState = cloneDeep(prevState);
+    this.setState(prevState => {
+      const clonedState = cloneDeep(prevState);
 
-        const newTypeList = prevState.rule ? [...prevState.rule[type]] : [];
-        newTypeList.splice(idx, 1);
+      const newTypeList = prevState.rule ? [...prevState.rule[type]] : [];
+      newTypeList.splice(idx, 1);
 
-        set(clonedState, `rule[${type}]`, newTypeList);
-        return clonedState;
-      },
-      () => {
-        // After the row has been removed, check if warning is shown
-        if (this.displayNoConditionsWarning() && !this.trackNoisyWarningViewed) {
-          this.trackNoisyWarningViewed = true;
-          trackAnalytics('alert_builder.noisy_warning_viewed', {
-            organization: this.props.organization,
-          });
-        }
-      }
-    );
+      set(clonedState, `rule[${type}]`, newTypeList);
+      return clonedState;
+    });
   };
 
   handleAddCondition = (template: IssueAlertRuleActionTemplate) =>
@@ -990,7 +979,7 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
         )}
       >
         {tct(
-          'This rule fully duplicates "[alertName]" in the project [projectName] and cannot be saved. Click to view "[alertName]"',
+          'This rule fully duplicates "[alertName]" in the project [projectName] and cannot be saved.',
           {
             alertName: duplicateName,
             projectName: project.name,
@@ -1002,17 +991,33 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
 
   displayNoConditionsWarning(): boolean {
     const {rule} = this.state;
+    const acceptedNoisyActionIds = [
+      // Webhooks
+      'sentry.rules.actions.notify_event_service.NotifyEventServiceAction',
+      // Legacy integrations
+      'sentry.rules.actions.notify_event.NotifyEventAction',
+    ];
+
     return (
       this.props.organization.features.includes('noisy-alert-warning') &&
       !!rule &&
       !isSavedAlertRule(rule) &&
       rule.conditions.length === 0 &&
-      rule.filters.length === 0
+      rule.filters.length === 0 &&
+      !rule.actions.every(action => acceptedNoisyActionIds.includes(action.id))
     );
   }
 
   renderAcknowledgeNoConditions(disabled: boolean) {
     const {detailedError, acceptedNoisyAlert} = this.state;
+
+    // Bit goofy to do in render but should only track onceish
+    if (!this.trackNoisyWarningViewed) {
+      this.trackNoisyWarningViewed = true;
+      trackAnalytics('alert_builder.noisy_warning_viewed', {
+        organization: this.props.organization,
+      });
+    }
 
     return (
       <Alert type="warning" showIcon>
@@ -1033,7 +1038,7 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
         >
           <AcknowledgeLabel>
             <Checkbox
-              size="md"
+              size="sm"
               name="acceptedNoisyAlert"
               checked={acceptedNoisyAlert}
               onChange={() => {

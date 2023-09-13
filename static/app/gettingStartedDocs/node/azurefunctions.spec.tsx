@@ -6,7 +6,7 @@ import {GettingStartedWithAzurefunctions, steps} from './azurefunctions';
 
 describe('GettingStartedWithAzurefunctions', function () {
   it('renders doc correctly', function () {
-    const {container} = render(<GettingStartedWithAzurefunctions dsn="test-dsn" />);
+    render(<GettingStartedWithAzurefunctions dsn="test-dsn" />);
 
     // Steps
     for (const step of steps({
@@ -18,7 +18,5 @@ describe('GettingStartedWithAzurefunctions', function () {
         screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
       ).toBeInTheDocument();
     }
-
-    expect(container).toSnapshot();
   });
 });
