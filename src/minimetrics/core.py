@@ -182,9 +182,11 @@ class Aggregator:
         self._flush_event: Event = Event()
         # Use to signal whether we want to flush the buckets in the next loop iteration, irrespectively of the cutoff.
         self._force_flush: bool = False
+
         # Thread handling the flushing loop.
         self._flusher: Optional[Thread] = None
         self._flusher_pid: Optional[int] = None
+        self._ensure_thread()
 
     def _ensure_thread(self):
         """For forking processes we might need to restart this thread.
@@ -195,7 +197,7 @@ class Aggregator:
             return
         with self._lock:
             self._flusher_pid = pid
-            self._flusher: Optional[Thread] = Thread(target=self._flush_loop)
+            self._flusher = Thread(target=self._flush_loop)
             self._flusher.daemon = True
             self._flusher.start()
 
