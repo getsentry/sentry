@@ -10,9 +10,8 @@ from typing import Tuple, Type, Union
 
 from django.apps import apps
 from django.db import router, transaction
-from django.db.models import Max
+from django.db.models import Max, Model
 
-from sentry.db.models import Model
 from sentry.db.models.outboxes import ControlOutboxProducingModel, RegionOutboxProducingModel
 from sentry.models import outbox_context
 from sentry.silo import SiloMode
@@ -89,7 +88,7 @@ def process_outbox_backfill_batch(model: Type[Model], batch_size: int) -> Backfi
 
     processing_state = _chunk_processing_batch(model, batch_size=batch_size)
     if not processing_state:
-        return
+        return None
 
     for inst in model.objects.filter(id__gt=processing_state.low, id__lte=processing_state.up):
         with outbox_context(transaction.atomic(router.db_for_write(model)), flush=False):
