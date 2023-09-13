@@ -22,6 +22,7 @@ class AlertRuleTriggerActionSerializerTest(TestCase):
         assert result["targetIdentifier"] == action.target_identifier
         assert result["integrationId"] == action.integration_id
         assert result["dateCreated"] == action.date_added
+        assert result["desc"] == action.target_display
 
     def test_simple(self):
         alert_rule = self.create_alert_rule()
