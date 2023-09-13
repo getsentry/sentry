@@ -2049,6 +2049,7 @@ def _get_severity_score(event: Event) -> float | None:
     )
 
     if message:
+        logger_data["event_message"] = message
         with metrics.timer(op):
             with sentry_sdk.start_span(op=op):
                 try:
