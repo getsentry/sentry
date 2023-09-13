@@ -141,9 +141,9 @@ class TransactionMRI(Enum):
     DIST_ON_DEMAND = "d:transactions/on_demand@none"
     SET_ON_DEMAND = "s:transactions/on_demand@none"
 
-    # Regression detection
-    TREND_DURATION = "t:transactions/duration@millisecond"
-    TREND_MEASUREMENTS_LCP = "t:transactions/measurements.lcp@millisecond"
+    # Less granular coarse metrics
+    COARSE_DURATION = "d:transactions/coarse.duration@millisecond"
+    COARSE_MEASUREMENTS_LCP = "d:transactions/coarse.measurements.lcp@millisecond"
 
 
 class SpanMRI(Enum):

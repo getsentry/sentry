@@ -87,8 +87,8 @@ TRANSACTION_METRICS_NAMES = {
     "d:transactions/alert@none": PREFIX + 133,
     "s:transactions/alert@none": PREFIX + 134,
     "g:transactions/alert@none": PREFIX + 135,
-    "d:transactions/regression.duration@millisecond": PREFIX + 136,
-    "d:transactions/ressions_measurements.lcp@millisecond": PREFIX + 137,
+    "d:transactions/coarse.duration@millisecond": PREFIX + 136,
+    "d:transactions/coarse.measurements.lcp@millisecond": PREFIX + 137,
 }
 
 # 200 - 399
