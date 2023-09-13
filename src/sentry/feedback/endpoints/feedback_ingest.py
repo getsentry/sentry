@@ -43,14 +43,8 @@ class FeedbackValidator(serializers.Serializer):
     tags = serializers.JSONField(required=False)
     user = serializers.JSONField(required=False)
     contexts = serializers.JSONField(required=False)
-    DeviceContext = serializers.JSONField(
-        required=False,
-        source="device_context",
-    )
-    BrowserContext = serializers.JSONField(
-        required=False,
-        source="browser_context",
-    )
+    BrowserContext = serializers.JSONField(required=False)
+    DeviceContext = serializers.JSONField(required=False)
 
     def validate(self, data):
         try:
