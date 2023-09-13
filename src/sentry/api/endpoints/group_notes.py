@@ -79,7 +79,7 @@ class GroupNotesEndpoint(GroupEndpoint):
             GroupSubscription.objects.bulk_subscribe(
                 group=group,
                 team_ids=mentioned_users["teams"],
-                reason=GroupSubscriptionReason.mentioned,
+                reason=GroupSubscriptionReason.team_mentioned,
             )
         else:
             GroupSubscription.objects.bulk_subscribe(
