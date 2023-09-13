@@ -44,6 +44,15 @@ export const steps = ({
       },
       {
         description: (
+          <Fragment>{t('Alternatively, you can use npx if you prefer')}</Fragment>
+        ),
+      },
+      {
+        language: 'bash',
+        code: `npx @sentry/wizard@latest -i android`,
+      },
+      {
+        description: (
           <Fragment>
             {t('The Sentry wizard will automatically patch your application:')}
             <List symbol="bullet">
