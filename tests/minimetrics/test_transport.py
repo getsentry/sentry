@@ -223,3 +223,4 @@ def test_send(sentry_sdk):
     assert len(args) == 1
     arg = args[0]
     assert arg.items[0].type == "statsd"
+    assert arg.items[0].data_category == "statsd"
