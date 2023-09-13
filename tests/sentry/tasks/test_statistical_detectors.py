@@ -109,7 +109,9 @@ def test_run_detection_options(
 
     if expected_performance_project:
         assert detect_transaction_trends.delay.called
-        detect_transaction_trends.delay.assert_has_calls([mock.call([project.id], timestamp)])
+        detect_transaction_trends.delay.assert_has_calls(
+            [mock.call([project.organization_id], [project.id], timestamp, 50)]
+        )
     else:
         assert not detect_transaction_trends.delay.called
 
@@ -346,12 +348,10 @@ class TestTransactionsQuery(MetricsAPIBaseTestCase):
             self.now,
             self.num_transactions,
         )
-        import pprint
-
-        pprint.pprint(res)
-        assert len(res) == len(self.projects)
-        for project_id, transactions in res.items():
-            for (transaction_name, count, p95) in transactions:
-                # p95 is calculated by a probabilisitic data structure so it won't be exactly 9.5
-                assert count == 2
-                assert p95 > 9
+        assert len(res) == len(self.projects) * self.num_transactions
+        for trend_payload in res:
+            assert trend_payload.count == 2
+            # p95 is  calculated by a probabilistic data structure, as such the value won't actually be 9.5 since we only have
+            # one sample at 9.5, but it should be close
+            assert trend_payload.value > 9
+            assert trend_payload.timestamp == self.hour_ago
