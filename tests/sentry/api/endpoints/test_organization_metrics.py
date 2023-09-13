@@ -107,7 +107,7 @@ class OrganizationMetricsMetaTest(OrganizationMetricMetaIntegrationTestCase):
         )
 
         assert type(response.data) == list
-        assert len(response.data) == 46
+        assert len(response.data) == 47
 
     def test_metrics_meta_invalid_use_case(self):
         response = self.get_error_response(
