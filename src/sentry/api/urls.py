@@ -21,6 +21,9 @@ from sentry.api.endpoints.organization_missing_org_members import OrganizationMi
 from sentry.api.endpoints.organization_projects_experiment import (
     OrganizationProjectsExperimentEndpoint,
 )
+from sentry.api.endpoints.source_map_debug_blue_thunder_edition import (
+    SourceMapDebugBlueThunderEditionEndpoint,
+)
 from sentry.api.utils import method_dispatch
 from sentry.data_export.endpoints.data_export import DataExportEndpoint
 from sentry.data_export.endpoints.data_export_details import DataExportDetailsEndpoint
@@ -2001,6 +2004,11 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/events/(?P<event_id>[\w-]+)/source-map-debug/$",
         SourceMapDebugEndpoint.as_view(),
         name="sentry-api-0-event-source-map-debug",
+    ),
+    re_path(
+        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/events/(?P<event_id>[\w-]+)/source-map-debug-blue-thunder-edition/$",
+        SourceMapDebugBlueThunderEditionEndpoint.as_view(),
+        name="sentry-api-0-event-source-map-debug-blue-thunder-edition",
     ),
     re_path(
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/events/(?P<event_id>[\w-]+)/actionable-items/$",
