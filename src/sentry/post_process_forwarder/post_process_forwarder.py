@@ -5,7 +5,6 @@ from abc import ABC, abstractmethod
 from enum import Enum
 from typing import Any, Literal, Mapping, Optional, Union
 
-import pytest
 from arroyo import configure_metrics
 from arroyo.backends.kafka import KafkaConsumer, KafkaPayload
 from arroyo.backends.kafka.configuration import build_kafka_consumer_configuration
@@ -34,7 +33,6 @@ class PostProcessForwarderType(str, Enum):
     ISSUE_PLATFORM = "search_issues"
 
 
-@pytest.mark.snuba_ci
 class PostProcessForwarder:
     """
     The `dispatch_function` should take a message and dispatch the post_process_group
