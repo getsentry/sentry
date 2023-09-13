@@ -12,6 +12,7 @@ from sentry.models import Commit, CommitAuthor, Integration, Organization, Repos
 from sentry.plugins.providers import IntegrationRepositoryProvider
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.utils import json
+from sentry.web.frontend.base import region_silo_view
 
 logger = logging.getLogger("sentry.webhooks")
 
@@ -101,6 +102,7 @@ class PushEventWebhook(Webhook):
                     pass
 
 
+@region_silo_view
 class BitbucketServerWebhookEndpoint(View):
     _handlers = {"repo:refs_changed": PushEventWebhook}
 

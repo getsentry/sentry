@@ -35,7 +35,9 @@ def check_auth(**kwargs):
     )
     for n in range(0, len(identity_ids_list), chunk_size):
         identity_ids_chunk = identity_ids_list[n : n + chunk_size]
-        AuthIdentity.objects.filter(id__in=identity_ids_chunk).update(last_synced=now)
+        with unguarded_write(router.db_for_write(AuthIdentity)):
+            AuthIdentity.objects.filter(id__in=identity_ids_chunk).update(last_synced=now)
+
         for identity_id in identity_ids_chunk:
             check_auth_identity.apply_async(
                 kwargs={"auth_identity_id": identity_id}, expires=AUTH_CHECK_INTERVAL

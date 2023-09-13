@@ -29,7 +29,7 @@ PROJECTS_PER_TASK = 100
 #: Estimated limit for a clusterer run per project, in seconds.
 #: NOTE: using this in a per-project basis may not be enough. Consider using
 #: this estimation for project batches instead.
-CLUSTERING_TIMEOUT_PER_PROJECT = 0.1
+CLUSTERING_TIMEOUT_PER_PROJECT = 0.15
 
 
 @instrumented_task(

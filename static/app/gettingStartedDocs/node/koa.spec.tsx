@@ -6,7 +6,7 @@ import {GettingStartedWithKoa, steps} from './koa';
 
 describe('GettingStartedWithKoa', function () {
   it('all products are selected', function () {
-    const {container} = render(<GettingStartedWithKoa dsn="test-dsn" />);
+    render(<GettingStartedWithKoa dsn="test-dsn" />);
 
     // Steps
     for (const step of steps({
@@ -19,7 +19,5 @@ describe('GettingStartedWithKoa', function () {
         screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
       ).toBeInTheDocument();
     }
-
-    expect(container).toSnapshot();
   });
 });

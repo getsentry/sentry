@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any, Iterable, List, Mapping, Optional, Set, Union, cast
 
 from django.db import IntegrityError, models, router, transaction
+from django.db.models.expressions import F
 from django.dispatch import Signal
 
 from sentry import roles
@@ -10,6 +11,8 @@ from sentry.api.serializers import serialize
 from sentry.db.postgres.transactions import enforce_constraints
 from sentry.models import (
     Activity,
+    AuthIdentityReplica,
+    AuthProviderReplica,
     ControlOutbox,
     GroupAssignee,
     GroupBookmark,
@@ -27,6 +30,7 @@ from sentry.models import (
 )
 from sentry.models.organizationmember import InviteStatus
 from sentry.services.hybrid_cloud import OptionValue, logger
+from sentry.services.hybrid_cloud.auth import RpcAuthIdentity, RpcAuthProvider
 from sentry.services.hybrid_cloud.organization import (
     OrganizationService,
     OrganizationSignalService,
@@ -291,7 +295,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
 
         with outbox_context(transaction.atomic(router.db_for_write(Organization))):
             Organization.objects.filter(id=organization_id).update(flags=updates)
-            Organization.outbox_for_update(org_id=organization_id).save()
+            Organization(id=organization_id).outbox_for_update().save()
 
     @staticmethod
     def _deserialize_member_flags(flags: RpcOrganizationMemberFlags) -> int:
@@ -511,6 +515,90 @@ class DatabaseBackedOrganizationService(OrganizationService):
     def delete_option(self, *, organization_id: int, key: str) -> None:
         orm_organization = Organization.objects.get_from_cache(id=organization_id)
         orm_organization.delete_option(key)
+
+    def send_sso_link_emails(
+        self, *, organization_id: int, sending_user_email: str, provider_key: str
+    ) -> None:
+        from sentry.auth import manager
+        from sentry.auth.exceptions import ProviderNotRegistered
+
+        try:
+            provider = manager.get(provider_key)
+        except ProviderNotRegistered as e:
+            logger.warning("Could not send SSO link emails: %s", e)
+            return
+
+        member_list = OrganizationMember.objects.filter(
+            organization_id=organization_id,
+            flags=F("flags").bitand(~OrganizationMember.flags["sso:linked"]),
+        ).select_related("organization")
+
+        provider = manager.get(provider_key)
+        for member in member_list:
+            member.send_sso_link_email(sending_user_email, provider)
+
+    def upsert_replicated_auth_provider(
+        self, *, auth_provider: RpcAuthProvider, region_name: str
+    ) -> None:
+        try:
+            with enforce_constraints(transaction.atomic(router.db_for_write(AuthProviderReplica))):
+                organization = Organization.objects.get(id=auth_provider.organization_id)
+                # Deletes do not cascade immediately -- if we removed and add a new provider
+                # we should just clear that older provider.
+                AuthProviderReplica.objects.filter(organization=organization).exclude(
+                    auth_provider_id=auth_provider.id
+                ).delete()
+                existing = AuthProviderReplica.objects.filter(
+                    auth_provider_id=auth_provider.id
+                ).first()
+                update = {
+                    "organization": organization,
+                    "provider": auth_provider.provider,
+                    "config": auth_provider.config,
+                    "default_role": auth_provider.default_role,
+                    "default_global_access": auth_provider.default_global_access,
+                    "allow_unlinked": auth_provider.flags.allow_unlinked,
+                    "scim_enabled": auth_provider.flags.scim_enabled,
+                }
+
+                if not existing:
+                    AuthProviderReplica.objects.create(auth_provider_id=auth_provider.id, **update)
+                    return
+
+                existing.update(**update)
+        except Organization.DoesNotExist:
+            return
+
+    def upsert_replicated_auth_identity(
+        self, *, auth_identity: RpcAuthIdentity, region_name: str
+    ) -> None:
+        with enforce_constraints(transaction.atomic(router.db_for_write(AuthIdentityReplica))):
+            # Since coalesced outboxes won't replicate the precise ordering of changes, these
+            # unique keys can cause a deadlock in updates.  To address this, we just delete
+            # any conflicting items and allow future outboxes to carry the updates
+            # for the auth identities that should follow (given they will share the same shard).
+            AuthIdentityReplica.objects.filter(
+                ident=auth_identity.ident,
+                auth_provider_id=auth_identity.auth_provider_id,
+            ).exclude(auth_identity_id=auth_identity.id).delete()
+            AuthIdentityReplica.objects.filter(
+                user_id=auth_identity.user_id,
+                auth_provider_id=auth_identity.auth_provider_id,
+            ).exclude(auth_identity_id=auth_identity.id).delete()
+
+            existing = AuthIdentityReplica.objects.filter(auth_identity_id=auth_identity.id).first()
+            update = {
+                "user_id": auth_identity.user_id,
+                "auth_provider_id": auth_identity.auth_provider_id,
+                "ident": auth_identity.ident,
+                "data": auth_identity.data,
+            }
+
+            if not existing:
+                AuthIdentityReplica.objects.create(auth_identity_id=auth_identity.id, **update)
+                return
+
+            existing.update(**update)
 
     def send_signal(
         self,
