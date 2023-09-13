@@ -1,7 +1,7 @@
 import logging
 from datetime import datetime, timedelta, timezone
 from functools import wraps
-from typing import List, Optional
+from typing import List
 
 from django.db import OperationalError
 from django.db.models import Max
@@ -59,25 +59,26 @@ def log_error_if_queue_has_items(func):
 @monitor(monitor_slug="schedule_auto_transition_to_ongoing")
 @log_error_if_queue_has_items
 def schedule_auto_transition_to_ongoing() -> None:
+    """
+    Triggered by cronjob every minute. This task will spawn subtasks
+    that transition Issues to Ongoing according to their specific
+    criteria.
+    """
     now = datetime.now(tz=timezone.utc)
 
     seven_days_ago = now - timedelta(days=TRANSITION_AFTER_DAYS)
 
     auto_transition_issues_new_to_ongoing.delay(
-        project_ids=[],  # TODO remove arg in next PR
         first_seen_lte=int(seven_days_ago.timestamp()),
-        organization_id=None,  # TODO remove arg in next PR
         expires=now + timedelta(hours=1),
     )
 
     auto_transition_issues_regressed_to_ongoing.delay(
-        project_ids=[],  # TODO(nisanthan): Remove this arg in next PR
         date_added_lte=int(seven_days_ago.timestamp()),
         expires=now + timedelta(hours=1),
     )
 
     auto_transition_issues_escalating_to_ongoing.delay(
-        project_ids=[],  # TODO(nisanthan): Remove this arg in next PR
         date_added_lte=int(seven_days_ago.timestamp()),
         expires=now + timedelta(hours=1),
     )
@@ -96,14 +97,15 @@ def schedule_auto_transition_to_ongoing() -> None:
 @retry(on=(OperationalError,))
 @log_error_if_queue_has_items
 def auto_transition_issues_new_to_ongoing(
-    project_ids: List[int],  # TODO remove arg in next PR
     first_seen_lte: int,
-    organization_id: int,  # TODO remove arg in next PR
     **kwargs,
 ) -> None:
     """
-    We will update all NEW Groups to ONGOING that were created before the
-    most recent Group first seen 7 days ago.
+    We will update NEW Groups to ONGOING that were created before the
+    most recent Group first seen 7 days ago. This task will trigger upto
+    50 subtasks to complete the update. We don't expect all eligible Groups
+    to be updated in a single run. However, we expect every instantiation of this task
+    to chip away at the backlog of Groups and eventually update all the eligible groups.
     """
 
     most_recent_group_first_seen_seven_days_ago = (
@@ -121,32 +123,49 @@ def auto_transition_issues_new_to_ongoing(
         },
     )
 
-    for new_groups in chunked(
+    for new_group_ids in chunked(
         RangeQuerySetWrapper(
             Group.objects.filter(
                 status=GroupStatus.UNRESOLVED,
                 substatus=GroupSubStatus.NEW,
-                id__lte=1,
-            ),
+                id__lte=most_recent_group_first_seen_seven_days_ago.id,
+            ).values_list("id", flat=True),
             step=ITERATOR_CHUNK,
             limit=ITERATOR_CHUNK * 50,
+            result_value_getter=lambda item: item,
         ),
         ITERATOR_CHUNK,
     ):
-        for group in new_groups:
-            logger.info(
-                "auto_transition_issues_new_to_ongoing updating group",
-                extra={
-                    "most_recent_group_first_seen_seven_days_ago": most_recent_group_first_seen_seven_days_ago.id,
-                    "group_id": group.id,
-                },
-            )
-        bulk_transition_group_to_ongoing(
-            GroupStatus.UNRESOLVED,
-            GroupSubStatus.NEW,
-            new_groups,
-            activity_data={"after_days": TRANSITION_AFTER_DAYS},
+        run_auto_transition_issues_new_to_ongoing.delay(
+            group_ids=new_group_ids,
         )
+
+
+@instrumented_task(
+    name="sentry.tasks.run_auto_transition_issues_new_to_ongoing",
+    queue="auto_transition_issue_states",
+    time_limit=25 * 60,
+    soft_time_limit=20 * 60,
+    max_retries=3,
+    default_retry_delay=60,
+    acks_late=True,
+    silo_mode=SiloMode.REGION,
+)
+@retry(on=(OperationalError,))
+def run_auto_transition_issues_new_to_ongoing(
+    group_ids: List[int],
+    **kwargs,
+):
+    """
+    Child task of `auto_transition_issues_new_to_ongoing`
+    to conduct the update of specified Groups to Ongoing.
+    """
+    bulk_transition_group_to_ongoing(
+        GroupStatus.UNRESOLVED,
+        GroupSubStatus.NEW,
+        group_ids,
+        activity_data={"after_days": TRANSITION_AFTER_DAYS},
+    )
 
 
 @instrumented_task(
@@ -162,13 +181,18 @@ def auto_transition_issues_new_to_ongoing(
 @retry(on=(OperationalError,))
 @log_error_if_queue_has_items
 def auto_transition_issues_regressed_to_ongoing(
-    project_ids: List[int],  # TODO(nisanthan): Remove this arg in next PR
     date_added_lte: int,
-    project_id: Optional[int] = None,  # TODO(nisanthan): Remove this arg in next PR
     **kwargs,
 ) -> None:
+    """
+    We will update REGRESSED Groups to ONGOING that were created before the
+    most recent Group first seen 7 days ago. This task will trigger upto
+    50 subtasks to complete the update. We don't expect all eligible Groups
+    to be updated in a single run. However, we expect every instantiation of this task
+    to chip away at the backlog of Groups and eventually update all the eligible groups.
+    """
 
-    for groups_with_regressed_history in chunked(
+    for group_ids_with_regressed_history in chunked(
         RangeQuerySetWrapper(
             Group.objects.filter(
                 status=GroupStatus.UNRESOLVED,
@@ -178,19 +202,44 @@ def auto_transition_issues_regressed_to_ongoing(
             .annotate(recent_regressed_history=Max("grouphistory__date_added"))
             .filter(
                 recent_regressed_history__lte=datetime.fromtimestamp(date_added_lte, timezone.utc)
-            ),
+            )
+            .values_list("id", flat=True),
             step=ITERATOR_CHUNK,
             limit=ITERATOR_CHUNK * 50,
+            result_value_getter=lambda item: item,
         ),
         ITERATOR_CHUNK,
     ):
-
-        bulk_transition_group_to_ongoing(
-            GroupStatus.UNRESOLVED,
-            GroupSubStatus.REGRESSED,
-            groups_with_regressed_history,
-            activity_data={"after_days": TRANSITION_AFTER_DAYS},
+        run_auto_transition_issues_regressed_to_ongoing.delay(
+            group_ids=group_ids_with_regressed_history,
         )
+
+
+@instrumented_task(
+    name="sentry.tasks.run_auto_transition_issues_regressed_to_ongoing",
+    queue="auto_transition_issue_states",
+    time_limit=25 * 60,
+    soft_time_limit=20 * 60,
+    max_retries=3,
+    default_retry_delay=60,
+    acks_late=True,
+    silo_mode=SiloMode.REGION,
+)
+@retry(on=(OperationalError,))
+def run_auto_transition_issues_regressed_to_ongoing(
+    group_ids: List[int],
+    **kwargs,
+) -> None:
+    """
+    Child task of `auto_transition_issues_regressed_to_ongoing`
+    to conduct the update of specified Groups to Ongoing.
+    """
+    bulk_transition_group_to_ongoing(
+        GroupStatus.UNRESOLVED,
+        GroupSubStatus.REGRESSED,
+        group_ids,
+        activity_data={"after_days": TRANSITION_AFTER_DAYS},
+    )
 
 
 @instrumented_task(
@@ -206,13 +255,17 @@ def auto_transition_issues_regressed_to_ongoing(
 @retry(on=(OperationalError,))
 @log_error_if_queue_has_items
 def auto_transition_issues_escalating_to_ongoing(
-    project_ids: List[int],  # TODO(nisanthan): Remove this arg in next PR
     date_added_lte: int,
-    project_id: Optional[int] = None,  # TODO(nisanthan): Remove this arg in next PR
     **kwargs,
 ) -> None:
-
-    for new_groups in chunked(
+    """
+    We will update ESCALATING Groups to ONGOING that were created before the
+    most recent Group first seen 7 days ago. This task will trigger upto
+    50 subtasks to complete the update. We don't expect all eligible Groups
+    to be updated in a single run. However, we expect every instantiation of this task
+    to chip away at the backlog of Groups and eventually update all the eligible groups.
+    """
+    for new_group_ids in chunked(
         RangeQuerySetWrapper(
             Group.objects.filter(
                 status=GroupStatus.UNRESOLVED,
@@ -222,15 +275,41 @@ def auto_transition_issues_escalating_to_ongoing(
             .annotate(recent_escalating_history=Max("grouphistory__date_added"))
             .filter(
                 recent_escalating_history__lte=datetime.fromtimestamp(date_added_lte, timezone.utc)
-            ),
+            )
+            .values_list("id", flat=True),
             step=ITERATOR_CHUNK,
             limit=ITERATOR_CHUNK * 50,
+            result_value_getter=lambda item: item,
         ),
         ITERATOR_CHUNK,
     ):
-        bulk_transition_group_to_ongoing(
-            GroupStatus.UNRESOLVED,
-            GroupSubStatus.ESCALATING,
-            new_groups,
-            activity_data={"after_days": TRANSITION_AFTER_DAYS},
+        run_auto_transition_issues_escalating_to_ongoing.delay(
+            group_ids=new_group_ids,
         )
+
+
+@instrumented_task(
+    name="sentry.tasks.run_auto_transition_issues_escalating_to_ongoing",
+    queue="auto_transition_issue_states",
+    time_limit=25 * 60,
+    soft_time_limit=20 * 60,
+    max_retries=3,
+    default_retry_delay=60,
+    acks_late=True,
+    silo_mode=SiloMode.REGION,
+)
+@retry(on=(OperationalError,))
+def run_auto_transition_issues_escalating_to_ongoing(
+    group_ids: List[int],
+    **kwargs,
+) -> None:
+    """
+    Child task of `auto_transition_issues_escalating_to_ongoing`
+    to conduct the update of specified Groups to Ongoing.
+    """
+    bulk_transition_group_to_ongoing(
+        GroupStatus.UNRESOLVED,
+        GroupSubStatus.ESCALATING,
+        group_ids,
+        activity_data={"after_days": TRANSITION_AFTER_DAYS},
+    )

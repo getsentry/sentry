@@ -10,12 +10,12 @@ from sentry.types.group import GroupSubStatus
 def bulk_transition_group_to_ongoing(
     from_status: int,
     from_substatus: int,
-    groups: List[Group],
+    group_ids: List[int],
     activity_data: Optional[Mapping[str, Any]] = None,
 ) -> None:
     # make sure we don't update the Group when its already updated by conditionally updating the Group
     groups_to_transistion = Group.objects.filter(
-        id__in=[group.id for group in groups], status=from_status, substatus=from_substatus
+        id__in=group_ids, status=from_status, substatus=from_substatus
     )
 
     Group.objects.update_group_status(
@@ -31,7 +31,7 @@ def bulk_transition_group_to_ongoing(
         group.status = GroupStatus.UNRESOLVED
         group.substatus = GroupSubStatus.ONGOING
 
-    bulk_remove_groups_from_inbox(groups)
+    bulk_remove_groups_from_inbox(groups_to_transistion)
 
     for group in groups_to_transistion:
         post_save.send_robust(

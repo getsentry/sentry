@@ -54,7 +54,7 @@ def update_inbox(
                 bulk_transition_group_to_ongoing(
                     group.status,
                     group.substatus,
-                    [group],
+                    [group.id],
                     activity_data={"manually": True},
                 )
 
