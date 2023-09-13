@@ -197,19 +197,6 @@ jobs:
           python-version: 3.8.16
           cache-depedency: requirements-dev-frozen.txt
           install-cmd: pip install -q --constraint requirements-dev-frozen.txt pip-tools
-      - name: check requirements
-        run: |
-          python -S -m tools.freeze_requirements
-          if ! git diff --exit-code; then
-            echo $'\n\nrun `make freeze-requirements` locally to update requirements'
-            exit 1
-          fi
-      - name: apply any requirements changes
-        if: steps.token.outcome == 'success' && github.ref != 'refs/heads/master' && always()
-        uses: getsentry/action-github-commit@748c31dd78cffe76f51bef49a0be856b6effeda7 # v1.1.0
-        with:
-          github-token: ${{ steps.token.outputs.token }}
-          message: ':snowflake: re-freeze requirements'
 
   migration:
     if: needs.files-changed.outputs.migration_lockfile == 'true'

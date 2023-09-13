@@ -71,17 +71,3 @@ jobs:
         # in running the hooks.
         run: |
           pre-commit install-hooks
-
-      - name: Run pre-commit on PR commits
-        run: |
-          jq '.[]' --raw-output <<< '${{steps.changes.outputs.all_files}}' |
-            # Run pre-commit to lint and format check files that were changed (but not deleted) compared to master.
-            xargs pre-commit run --files
-
-      - name: Apply any pre-commit fixed files
-        # note: this runs "always" or else it's skipped when pre-commit fails
-        if: env.SECRET_ACCESS == 'true' && startsWith(github.ref, 'refs/pull') && always()
-        uses: getsentry/action-github-commit@748c31dd78cffe76f51bef49a0be856b6effeda7 # v1.1.0
-        with:
-          github-token: ${{ steps.token.outputs.token }}
-          message: ':hammer_and_wrench: apply pre-commit fixes'
