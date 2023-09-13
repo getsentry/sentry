@@ -85,7 +85,7 @@ def mark_organization_as_pending_deletion_with_outbox_message(
         if not update_count:
             return None
 
-        Organization.outbox_for_update(org_id=org_id).save()
+        Organization(id=org_id).outbox_for_update().save()
 
         org = Organization.objects.get(id=org_id)
         return org
@@ -106,7 +106,7 @@ def unmark_organization_as_pending_deletion_with_outbox_message(
         if not update_count:
             return None
 
-        Organization.outbox_for_update(org_id=org_id).save()
+        Organization(id=org_id).outbox_for_update().save()
 
         org = Organization.objects.get(id=org_id)
         return org
