@@ -2033,6 +2033,7 @@ severity_connection_pool = connection_from_url(
 
 def _get_severity_score(event: Event) -> float | None:
     op = "event_manager._get_severity_score"
+    logger_data = {"event_id": event.data["event_id"], "op": op}
     severity = None
 
     metadata = event.get_event_metadata()
@@ -2061,12 +2062,12 @@ def _get_severity_score(event: Event) -> float | None:
                 except MaxRetryError as e:
                     logger.warning(
                         f"Unable to get severity score from microservice after {SEVERITY_DETECTION_RETRIES} retr{'ies' if SEVERITY_DETECTION_RETRIES >1 else 'y'}. Got MaxRetryError caused by: {repr(e.reason)}.",
-                        extra={"event_id": event.data["event_id"]},
+                        extra=logger_data,
                     )
                 except Exception as e:
                     logger.warning(
                         f"Unable to get severity score from microservice. Got: {repr(e)}.",
-                        extra={"event_id": event.data["event_id"]},
+                        extra=logger_data,
                     )
 
     return severity
