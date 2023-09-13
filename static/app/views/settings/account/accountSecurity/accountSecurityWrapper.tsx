@@ -2,6 +2,7 @@ import {cloneElement} from 'react';
 import {RouteComponentProps} from 'react-router';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {fetchOrganizations} from 'sentry/actionCreators/organizations';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import {t} from 'sentry/locale';
 import {Authenticator, OrganizationSummary, UserEmail} from 'sentry/types';
@@ -21,12 +22,30 @@ type State = {
 } & DeprecatedAsyncComponent['state'];
 
 class AccountSecurityWrapper extends DeprecatedAsyncComponent<Props, State> {
+  async fetchOrganizations() {
+    try {
+      const organizations = await fetchOrganizations(this.api);
+      this.setState({organizations});
+    } catch (e) {
+      this.setState({error: true});
+    }
+  }
+
   getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     return [
       ['authenticators', ENDPOINT],
-      ['organizations', '/organizations/'],
       ['emails', '/users/me/emails/'],
     ];
+  }
+
+  componentDidMount() {
+    super.componentDidMount();
+    this.fetchOrganizations();
+  }
+
+  reloadData() {
+    this.fetchOrganizations();
+    super.reloadData();
   }
 
   handleDisable = async (auth: Authenticator) => {
@@ -38,7 +57,7 @@ class AccountSecurityWrapper extends DeprecatedAsyncComponent<Props, State> {
 
     try {
       await this.api.requestPromise(`${ENDPOINT}${auth.authId}/`, {method: 'DELETE'});
-      this.remountComponent();
+      this.reloadData();
     } catch (_err) {
       this.setState({loading: false});
       addErrorMessage(t('Error disabling %s', auth.name));
@@ -52,7 +71,7 @@ class AccountSecurityWrapper extends DeprecatedAsyncComponent<Props, State> {
       await this.api.requestPromise(`${ENDPOINT}${this.props.params.authId}/`, {
         method: 'PUT',
       });
-      this.remountComponent();
+      this.reloadData();
     } catch (_err) {
       this.setState({loading: false});
       addErrorMessage(t('Error regenerating backup codes'));
@@ -60,7 +79,7 @@ class AccountSecurityWrapper extends DeprecatedAsyncComponent<Props, State> {
   };
 
   handleRefresh = () => {
-    this.fetchData();
+    this.reloadData();
   };
 
   renderBody() {
