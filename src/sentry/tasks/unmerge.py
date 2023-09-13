@@ -183,6 +183,14 @@ def migrate_events(
     opt_destination_id: Optional[int],
     opt_eventstream_state: Optional[Mapping[str, Any]],
 ) -> Tuple[int, Mapping[str, Any]]:
+    logger.info(
+        "migrate_events.start",
+        extra={
+            "source_id": args.source_id,
+            "opt_destination_id": opt_destination_id,
+            "migrate_args": args,
+        },
+    )
     if opt_destination_id is None:
         # XXX: There is a race condition here between the (wall clock) time
         # that the migration is started by the user and when we actually
