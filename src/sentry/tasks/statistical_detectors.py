@@ -80,11 +80,13 @@ def run_detection() -> None:
         step=100,
     ):
         if project.flags.has_transactions and project.id in enabled_performance_projects:
-            performance_projects.append((project.id, project.organization_id))
+            performance_projects.append(project)
 
             if len(performance_projects) >= PROJECTS_PER_BATCH:
                 detect_transaction_trends.delay(
-                    [p[0] for p in performance_projects], [p[1] for p in performance_projects], now
+                    [p.organization_id for p in performance_projects],
+                    [p.id for p in performance_projects],
+                    now,
                 )
                 performance_projects = []
 
@@ -97,7 +99,11 @@ def run_detection() -> None:
 
     # make sure to dispatch a task to handle the remaining projects
     if performance_projects:
-        detect_transaction_trends.delay(performance_projects, now)
+        detect_transaction_trends.delay(
+            [p.organization_id for p in performance_projects],
+            [p.id for p in performance_projects],
+            now,
+        )
     if profiling_projects:
         detect_function_trends.delay(profiling_projects, now)
 
@@ -231,7 +237,13 @@ def query_transactions(
         org_ids[0],
         "transaction",
     )
-    # TODO: Explain raw snql here
+
+    # if our time range is more than an hour, use the hourly granularity
+    granularity = 3600 if int(end.timestamp()) - int(start.timestamp()) >= 3600 else 60
+
+    # This query returns the top `transactions_per_project` transaction names by count in the specified
+    # [start, end) time period along with the p95 of each transaction in that time period
+    # this is written in raw SnQL because the metrics layer does not support the limitby clause which is necessary for this operation to work
 
     query = Query(
         match=Entity(EntityKey.GenericMetricsDistributions.value),
@@ -283,7 +295,7 @@ def query_transactions(
             OrderBy(Column("project_id"), Direction.DESC),
             OrderBy(Column("count"), Direction.DESC),
         ],
-        granularity=Granularity(60),
+        granularity=Granularity(granularity),
         limit=Limit(len(project_ids) * transactions_per_project),
     )
     request = Request(

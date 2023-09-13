@@ -110,7 +110,7 @@ def test_run_detection_options(
     if expected_performance_project:
         assert detect_transaction_trends.delay.called
         detect_transaction_trends.delay.assert_has_calls(
-            [mock.call([project.organization_id], [project.id], timestamp, 50)]
+            [mock.call([project.organization_id], [project.id], timestamp)]
         )
     else:
         assert not detect_transaction_trends.delay.called
@@ -156,8 +156,16 @@ def test_run_detection_options_multiple_batches(
     assert detect_transaction_trends.delay.called
     detect_transaction_trends.delay.assert_has_calls(
         [
-            mock.call([project.id for project in projects[:5]], timestamp),
-            mock.call([project.id for project in projects[5:]], timestamp),
+            mock.call(
+                [project.organization_id for project in projects[:5]],
+                [project.id for project in projects[:5]],
+                timestamp,
+            ),
+            mock.call(
+                [project.organization_id for project in projects[5:]],
+                [project.id for project in projects[5:]],
+                timestamp,
+            ),
         ]
     )
     assert detect_function_trends.delay.called
@@ -185,7 +193,7 @@ def test_detect_transaction_trends_options(
     project,
 ):
     with override_options({"statistical_detectors.enable": enabled}):
-        detect_transaction_trends([project.id], timestamp)
+        detect_transaction_trends([project.organization_id], [project.id], timestamp)
     assert query_transactions.called == enabled
 
 
@@ -323,8 +331,6 @@ class TestTransactionsQuery(MetricsAPIBaseTestCase):
                     1.0,
                     UseCaseID.TRANSACTIONS,
                 )
-        for project in self.projects:
-            for i in range(self.num_transactions):
                 self.store_metric(
                     self.org.id,
                     project.id,
