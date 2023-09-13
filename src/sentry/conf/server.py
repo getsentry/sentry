@@ -1666,6 +1666,8 @@ SENTRY_FEATURES = {
     "organizations:session-replay-trace-table": False,
     # Enable the AM1 trial ended banner on sentry.io
     "organizations:session-replay-trial-ended-banner": False,
+    # Enable the Replay rage and dead click selector tables in the UI
+    "organizations:session-replay-rage-dead-selectors": False,
     # Enable the new suggested assignees feature
     "organizations:streamline-targeting-context": False,
     # Enable the new experimental starfish view
