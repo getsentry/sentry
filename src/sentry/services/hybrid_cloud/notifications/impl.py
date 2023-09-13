@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Callable, Iterable, List, Mapping, MutableMapping, Optional, Sequence
+from typing import Callable, List, Mapping, MutableMapping, Optional, Sequence
 
 from django.db import router, transaction
 from django.db.models import Q, QuerySet
@@ -163,7 +163,7 @@ class DatabaseBackedNotificationsService(NotificationsService):
         self,
         *,
         user_id: int,
-        project_ids: Iterable[int],
+        project_ids: List[int],
         type: NotificationSettingEnum | None = None,
     ) -> MutableMapping[NotificationSettingEnum, NotificationSettingsOptionEnum]:
         """
@@ -184,7 +184,10 @@ class DatabaseBackedNotificationsService(NotificationsService):
         )
 
         rpc_user = RpcUser(id=user_id)
-        return settings[rpc_user] if rpc_user in settings else {}
+        if rpc_user not in settings:
+            return {}
+
+        return {type.value: value.value for type, value in settings[rpc_user].items()}
 
     def remove_notification_settings(
         self, *, team_id: Optional[int], user_id: Optional[int], provider: ExternalProviders
