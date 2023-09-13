@@ -62,6 +62,7 @@ from sentry.notifications.helpers import (
 from sentry.notifications.types import (
     NotificationSettingEnum,
     NotificationSettingOptionValues,
+    NotificationSettingsOptionEnum,
     NotificationSettingTypes,
 )
 from sentry.roles import organization_roles
@@ -318,14 +319,14 @@ class ProjectSerializer(Serializer):
                 )
 
                 if use_notifications_v2:
-                    notification_setting_options = (
-                        notifications_service.get_setting_options_for_user(
+                    notification_setting_options = {
+                        NotificationSettingEnum(key): NotificationSettingsOptionEnum(val)
+                        for key, val in notifications_service.get_setting_options_for_user(
                             user_id=user.id,
                             project_ids=project_ids,
                             type=NotificationSettingEnum.ISSUE_ALERTS,
-                        )
-                    )
-
+                        ).items()
+                    }
                 else:
                     notification_settings_by_scope = transform_to_notification_settings_by_scope(
                         notifications_service.get_settings_for_user_by_projects(

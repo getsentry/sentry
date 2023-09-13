@@ -580,11 +580,14 @@ class GroupSerializerBase(Serializer, ABC):
         notification_settings, query_groups = None, None
         groups_by_project = collect_groups_by_project(groups)
         if should_use_notifications_v2(groups[0].project.organization):
-            notification_settings = notifications_service.get_setting_options_for_user(
-                user_id=user.id,
-                project_ids=list(groups_by_project.keys()),
-                type=NotificationSettingTypes.WORKFLOW,
-            )
+            notification_settings = {
+                NotificationSettingEnum(key): NotificationSettingsOptionEnum(val)
+                for key, val in notifications_service.get_setting_options_for_user(
+                    user_id=user.id,
+                    project_ids=list(groups_by_project.keys()),
+                    type=NotificationSettingEnum.WORKFLOW,
+                ).items()
+            }
             query_groups = {
                 group
                 for group in groups
