@@ -17,6 +17,7 @@ from sentry.models import (
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.silo import SiloMode
 from sentry.testutils.cases import PerformanceIssueTestCase, TestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.types.integrations import ExternalProviders
 
@@ -137,6 +138,19 @@ class GroupSerializerTest(TestCase, PerformanceIssueTestCase):
         assert result["statusDetails"] == {"autoResolved": True}
 
     def test_subscribed(self):
+        user = self.create_user()
+        group = self.create_group()
+
+        GroupSubscription.objects.create(
+            user_id=user.id, group=group, project=group.project, is_active=True
+        )
+
+        result = serialize(group, user)
+        assert result["isSubscribed"]
+        assert result["subscriptionDetails"] == {"reason": "unknown"}
+
+    @with_feature("organizations:notification-settings-v2")
+    def test_subscribed_v2(self):
         user = self.create_user()
         group = self.create_group()
 

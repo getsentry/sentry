@@ -579,9 +579,9 @@ class GroupSerializerBase(Serializer, ABC):
         notification_settings, query_groups = None, None
         if should_use_notifications_v2(groups[0].project.organization):
             project_ids = {group.project_id for group in groups}
-            notification_settings = notification_settings.get_setting_options_for_user(
+            notification_settings = notifications_service.get_setting_options_for_user(
                 user_id=user.id,
-                projects=project_ids,
+                project_ids=project_ids,
                 type=NotificationSettingTypes.WORKFLOW,
             )
             query_groups = {

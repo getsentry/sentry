@@ -64,6 +64,8 @@ class NotificationsService(RpcService):
     ) -> List[RpcNotificationSetting]:
         pass
 
+    @rpc_method
+    @abstractmethod
     def get_setting_options_for_user(
         self,
         *,
@@ -73,6 +75,7 @@ class NotificationsService(RpcService):
     ) -> MutableMapping[NotificationSettingEnum, NotificationSettingsOptionEnum]:
         pass
 
+    @rpc_method
     @abstractmethod
     def update_settings(
         self,

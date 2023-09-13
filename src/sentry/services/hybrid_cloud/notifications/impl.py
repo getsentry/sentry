@@ -158,7 +158,7 @@ class DatabaseBackedNotificationsService(NotificationsService):
             )
         ]
 
-    # V2 alternative for notification_service.get_settings_for_user_by_projects
+    # V2 alternative for get_settings_for_user_by_projects
     def get_setting_options_for_user(
         self,
         *,
@@ -184,7 +184,7 @@ class DatabaseBackedNotificationsService(NotificationsService):
         )
 
         rpc_user = RpcUser(id=user_id)
-        return settings[rpc_user]
+        return settings[rpc_user] if rpc_user in settings else {}
 
     def remove_notification_settings(
         self, *, team_id: Optional[int], user_id: Optional[int], provider: ExternalProviders
