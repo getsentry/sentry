@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections import defaultdict
 from datetime import datetime, timedelta
-from typing import Any, Dict, Generator, List, Set
+from typing import Any, Dict, Generator, List, Optional, Set, Tuple
 
 import sentry_sdk
 from django.utils import timezone
@@ -50,6 +50,7 @@ logger = logging.getLogger("sentry.tasks.statistical_detectors")
 
 
 FUNCTIONS_PER_PROJECT = 100
+FUNCTIONS_PER_BATCH = 1_000
 PROJECTS_PER_BATCH = 1_000
 
 
@@ -113,6 +114,7 @@ def run_detection() -> None:
     queue="performance.statistical_detector",
     max_retries=0,
 )
+
 def detect_transaction_trends(
     org_ids: List[int], project_ids: List[int], start: datetime, **kwargs
 ) -> None:
@@ -133,10 +135,45 @@ def detect_transaction_trends(
     queue="profiling.statistical_detector",
     max_retries=0,
 )
-def detect_function_trends(project_ids: List[int], start: datetime, **kwargs) -> None:
+def detect_function_trends(project_ids: List[int], start: datetime, *args, **kwargs) -> None:
     if not options.get("statistical_detectors.enable"):
         return
 
+    regressions = filter(
+        lambda trend: trend[0] == TrendType.Regressed, _detect_function_trends(project_ids, start)
+    )
+
+    for trends in chunked(regressions, FUNCTIONS_PER_BATCH):
+        detect_function_change_points.delay(
+            [(payload.project_id, payload.group) for _, payload in trends],
+            start,
+        )
+
+
+@instrumented_task(
+    name="sentry.tasks.statistical_detectors.detect_function_change_points",
+    queue="profiling.statistical_detector",
+    max_retries=0,
+)
+def detect_function_change_points(
+    functions: List[Tuple[int, str | int]], start: datetime, *args, **kwargs
+) -> None:
+    for project_id, function_id in functions:
+        with sentry_sdk.push_scope() as scope:
+            scope.set_tag("project_id", project_id)
+            scope.set_tag("function_id", function_id)
+            scope.set_context(
+                "statistical_detectors",
+                {
+                    "timestamp": start.isoformat(),
+                },
+            )
+            sentry_sdk.capture_message("Potential Regression")
+
+
+def _detect_function_trends(
+    project_ids: List[int], start: datetime
+) -> Generator[Tuple[Optional[TrendType], DetectorPayload], None, None]:
     functions_count = 0
     regressed_count = 0
     improved_count = 0
@@ -178,6 +215,8 @@ def detect_function_trends(project_ids: List[int], start: datetime, **kwargs) ->
             elif trend_type == TrendType.Improved:
                 improved_count += 1
 
+            yield (trend_type, payload)
+
         detector_store.bulk_write_states(payloads, states)
 
     # This is the total number of functions examined in this iteration
@@ -200,8 +239,6 @@ def detect_function_trends(project_ids: List[int], start: datetime, **kwargs) ->
         amount=improved_count,
         sample_rate=1.0,
     )
-
-    # TODO: pass on the regressed/improved functions to the next task
 
 
 def all_function_payloads(

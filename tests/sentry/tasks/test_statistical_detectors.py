@@ -230,13 +230,16 @@ def test_detect_function_trends_query_timerange(functions_query, timestamp, proj
 
 
 @mock.patch("sentry.tasks.statistical_detectors.query_functions")
+@mock.patch("sentry.tasks.statistical_detectors.detect_function_change_points")
 @django_db_all
 def test_detect_function_trends(
+    detect_function_change_points,
     query_functions,
     timestamp,
     project,
 ):
-    timestamps = [timestamp - timedelta(hours=i) for i in range(3, 0, -1)]
+    n = 20
+    timestamps = [timestamp - timedelta(hours=n - i) for i in range(n)]
 
     query_functions.side_effect = [
         [
@@ -244,16 +247,17 @@ def test_detect_function_trends(
                 project_id=project.id,
                 group=123,
                 count=100,
-                value=100,
+                value=100 if i < n / 2 else 200,
                 timestamp=ts,
             ),
         ]
-        for ts in timestamps
+        for i, ts in enumerate(timestamps)
     ]
 
-    with override_options({"statistical_detectors.enable": True}):
+    with override_options({"statistical_detectors.enable": True}), TaskRunner():
         for ts in timestamps:
             detect_function_trends([project.id], ts)
+    assert detect_function_change_points.delay.called
 
 
 @region_silo_test(stable=True)

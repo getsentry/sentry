@@ -31,6 +31,10 @@ test_data = {
         "name": "user",
         "username": "user2270129",
     },
+    "contexts": {
+        "BrowserContext": {"name": "Chrome", "version": "116.0.0"},
+        "DeviceContext": {"family": "Mac", "model": "Mac", "brand": "Apple", "type": "device"},
+    },
 }
 
 
@@ -189,6 +193,8 @@ class FeedbackIngestTest(MonitorIngestTestCase):
         with self.feature({"organizations:user-feedback-ingest": True}):
             path = reverse(self.endpoint)
             response = self.client.post(
-                path, data=test_data_missing_optional_fields, **self.dsn_auth_headers
+                path,
+                data=test_data_missing_optional_fields,
+                **self.dsn_auth_headers,
             )
-            assert response.status_code == 201
+            assert response.status_code == 201, response.content
