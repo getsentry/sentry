@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 @instrumented_task(
-    name="sentry.tasks.integrations.migrate_opsgenie_plugin",
+    name="sentry.tasks.integrations.migrate_opsgenie_plugins",
     queue="integrations",
     default_retry_delay=60 * 5,
     max_retries=5,
