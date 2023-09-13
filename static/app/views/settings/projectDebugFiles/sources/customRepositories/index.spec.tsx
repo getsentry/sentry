@@ -69,7 +69,6 @@ function getProps(props?: Parameters<typeof initializeOrg>[0]) {
     organization,
     project,
     router,
-    projSlug: project.slug,
     isLoading: false,
     location: router.location,
     routerContext,
