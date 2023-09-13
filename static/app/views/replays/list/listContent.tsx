@@ -5,6 +5,7 @@ import ReplayRageClickSdkVersionBanner from 'sentry/components/replays/replayRag
 import {space} from 'sentry/styles/space';
 import {useHaveSelectedProjectsSentAnyReplayEvents} from 'sentry/utils/replays/hooks/useReplayOnboarding';
 import {MIN_DEAD_RAGE_CLICK_SDK} from 'sentry/utils/replays/sdkVersions';
+import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjectSdkNeedsUpdate from 'sentry/utils/useProjectSdkNeedsUpdate';
@@ -25,9 +26,15 @@ export default function ListContent() {
     selection: {projects},
   } = usePageFilters();
   const rageClicksSdkVersion = useProjectSdkNeedsUpdate({
-    minVersion: MIN_DEAD_RAGE_CLICK_SDK,
+    minVersion: MIN_DEAD_RAGE_CLICK_SDK.minVersion,
     organization,
     projectId: projects.map(String),
+  });
+
+  useRouteAnalyticsParams({
+    hasSessionReplay,
+    hasSentReplays: hasSentReplays.hasSentOneReplay,
+    hasRageClickMinSDK: !rageClicksSdkVersion.needsUpdate,
   });
 
   if (hasSentReplays.fetching || rageClicksSdkVersion.isFetching) {
