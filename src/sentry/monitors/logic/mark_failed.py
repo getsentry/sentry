@@ -59,6 +59,7 @@ def mark_failed_threshold(
     next_checkin_latest = monitor_env.monitor.get_next_expected_checkin_latest(next_checkin_base)
 
     # update monitor environment timestamps without updating status
+    # affected returns number of rows returned from the filter() call, not the number of rows that actually modify their values via update()
     affected = MonitorEnvironment.objects.filter(
         Q(last_checkin__lte=last_checkin) | Q(last_checkin__isnull=True), id=monitor_env.id
     ).update(
@@ -145,6 +146,7 @@ def mark_failed_no_threshold(
     next_checkin = monitor_env.monitor.get_next_expected_checkin(next_checkin_base)
     next_checkin_latest = monitor_env.monitor.get_next_expected_checkin_latest(next_checkin_base)
 
+    # affected returns number of rows returned from the filter() call, not the number of rows that actually modify their values via update()
     affected = MonitorEnvironment.objects.filter(
         Q(last_checkin__lte=last_checkin) | Q(last_checkin__isnull=True), id=monitor_env.id
     ).update(
