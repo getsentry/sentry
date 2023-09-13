@@ -48,7 +48,7 @@ export default function ReplayRageClickSdkVersionBanner() {
           href={MIN_DEAD_RAGE_CLICK_SDK.changelog}
           priority="primary"
         >
-          Read Changelog
+          {t('Read Changelog')}
         </LinkButton>
       }
       description={t(
