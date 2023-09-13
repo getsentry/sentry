@@ -99,7 +99,7 @@ class OrganizationFeedbackIndexTest(APITestCase):
             assert feedback["dist"] == "abc123"
             assert feedback["url"] == "https://docs.sentry.io/platforms/javascript/"
             assert feedback["message"] == "I really like this user-feedback feature!"
-            assert feedback["id"] == uuid.UUID("1ffe0775ac0f4417aed9de36d9f6f8dc")
+            assert feedback["feedback_id"] == uuid.UUID("1ffe0775ac0f4417aed9de36d9f6f8dc")
             assert feedback["platform"] == "javascript"
             assert feedback["sdk"]["name"] == "sentry.javascript.react"
             assert feedback["tags"]["key"] == "value"
@@ -110,7 +110,7 @@ class OrganizationFeedbackIndexTest(APITestCase):
             assert feedback["environment"] == "prod"
             assert feedback["url"] == "https://docs.sentry.io/platforms/electron/"
             assert feedback["message"] == "I also really like this user-feedback feature!"
-            assert feedback["id"] == uuid.UUID("2ffe0775ac0f4417aed9de36d9f6f8ab")
+            assert feedback["feedback_id"] == uuid.UUID("2ffe0775ac0f4417aed9de36d9f6f8ab")
             assert feedback["platform"] == "electron"
             assert feedback["sdk"]["name"] == "sentry.javascript.react"
             assert feedback["sdk"]["version"] == "5.18.1"
