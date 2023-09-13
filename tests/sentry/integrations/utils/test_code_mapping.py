@@ -124,8 +124,8 @@ class TestDerivedCodeMappings(TestCase):
 
     def setUp(self):
         super().setUp()
-        self.foo_repo = Repo("Test-Organization/foo", "master", "123", "github")
-        self.bar_repo = Repo("Test-Organization/bar", "main", "321", "github")
+        self.foo_repo = Repo("Test-Organization/foo", "master", "123", "integrations:github")
+        self.bar_repo = Repo("Test-Organization/bar", "main", "321", "integrations:github")
         self.code_mapping_helper = CodeMappingTreesHelper(
             {
                 self.foo_repo.name: RepoTree(self.foo_repo, files=sentry_files),
@@ -176,7 +176,7 @@ class TestDerivedCodeMappings(TestCase):
                     name="Test-Organization/foo",
                     branch="master",
                     external_id="123",
-                    provider="github",
+                    provider="integrations:github",
                 ),
                 stacktrace_root="sentry/",
                 source_path="src/sentry/",
@@ -240,6 +240,8 @@ class TestDerivedCodeMappings(TestCase):
                 "filename": "src/sentry_plugins/slack/client.py",
                 "repo_name": "Test-Organization/foo",
                 "repo_branch": "master",
+                "repo_external_id": "123",
+                "repo_provider": "integrations:github",
                 "stacktrace_root": "sentry_plugins/",
                 "source_path": "src/sentry_plugins/",
             }
@@ -254,6 +256,8 @@ class TestDerivedCodeMappings(TestCase):
                 "filename": "src/sentry/web/urls.py",
                 "repo_name": "Test-Organization/foo",
                 "repo_branch": "master",
+                "repo_external_id": "123",
+                "repo_provider": "integrations:github",
                 "stacktrace_root": "sentry/",
                 "source_path": "src/sentry/",
             },
@@ -261,6 +265,8 @@ class TestDerivedCodeMappings(TestCase):
                 "filename": "sentry/web/urls.py",
                 "repo_name": "Test-Organization/bar",
                 "repo_branch": "main",
+                "repo_external_id": "321",
+                "repo_provider": "integrations:github",
                 "stacktrace_root": "sentry/",
                 "source_path": "sentry/",
             },
