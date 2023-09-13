@@ -100,15 +100,20 @@ def filter_source_code_files(files: List[str]) -> List[str]:
 # XXX: Look at sentry.interfaces.stacktrace and maybe use that
 class FrameFilename:
     def __init__(self, frame_file_path: str) -> None:
+        if frame_file_path[0] == "/":
+            frame_file_path = frame_file_path.replace("/", "", 1)
+
+        if frame_file_path.startswith("./"):
+            frame_file_path = frame_file_path.replace("./", "", 1)
+
         # Using regexes would be better but this is easier to understand
         if (
-            not frame_file_path
-            or frame_file_path[0] in ["[", "<", "/"]
+            frame_file_path[0] in ["[", "<"]
             or frame_file_path.find(" ") > -1
             or frame_file_path.find("\\") > -1  # Windows support
             or frame_file_path.find("/") == -1
         ):
-            raise UnsupportedFrameFilename("Either garbage or will need work to support.")
+            raise UnsupportedFrameFilename("This path is not supported.")
 
         self.full_path = frame_file_path
         self.extension = get_extension(frame_file_path)
