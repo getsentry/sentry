@@ -942,6 +942,20 @@ def get_setting_options_with_defaults(
             if type not in settings and type in defaults:
                 settings[type] = defaults[type]
 
+    if not result:
+        for rec in recipients:
+            recipient = None
+            if recipient_is_user(rec):
+                recipient = get_recipient_from_team_or_user(rec.id, None)
+            elif recipient_is_team(rec):
+                recipient = get_recipient_from_team_or_user(None, rec.id)
+            if not recipient:
+                raise Exception("Unable to find user or team")
+
+            result[recipient] = {
+                type: defaults[type] for type in NotificationSettingEnum if type in defaults
+            }
+
     return result
 
 
@@ -988,6 +1002,19 @@ def get_setting_providers_with_defaults(
                     result[recipient][type].update(
                         {provider: NotificationSettingsOptionEnum.ALWAYS}
                     )
+
+    if not result:
+        for rec in recipients:
+            if recipient_is_user(rec):
+                recipient = get_recipient_from_team_or_user(rec.id, None)
+            elif recipient_is_team(rec):
+                recipient = get_recipient_from_team_or_user(None, rec.id)
+            result[recipient] = {
+                type: {provider: NotificationSettingsOptionEnum.ALWAYS}
+                for type in NotificationSettingEnum
+                if type in provider_defaults
+            }
+
     return result
 
 
