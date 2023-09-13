@@ -1,15 +1,20 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
+from sentry.constants import ObjectStatus
 from sentry.models import Release, ReleaseCommit, Repository
 
 
 @region_silo_endpoint
 class ProjectReleaseCommitsEndpoint(ProjectEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (ProjectReleasePermission,)
 
     def get(self, request: Request, project, version) -> Response:
@@ -45,9 +50,12 @@ class ProjectReleaseCommitsEndpoint(ProjectEndpoint):
 
         repo_name = request.query_params.get("repo_name")
 
+        # TODO: use id instead of name
         if repo_name:
             try:
-                repo = Repository.objects.get(organization_id=organization_id, name=repo_name)
+                repo = Repository.objects.get(
+                    organization_id=organization_id, name=repo_name, status=ObjectStatus.ACTIVE
+                )
                 queryset = queryset.filter(commit__repository_id=repo.id)
             except Repository.DoesNotExist:
                 raise ResourceDoesNotExist

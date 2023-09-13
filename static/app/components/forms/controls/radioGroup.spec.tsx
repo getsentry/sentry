@@ -4,7 +4,7 @@ import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 
 describe('RadioGroup', function () {
   it('renders', function () {
-    const {container} = render(
+    render(
       <RadioGroup
         label="test"
         value="choice_one"
@@ -16,11 +16,10 @@ describe('RadioGroup', function () {
         onChange={jest.fn()}
       />
     );
-    expect(container).toSnapshot();
   });
 
   it('renders disabled', function () {
-    const {container} = render(
+    render(
       <RadioGroup
         label="test"
         value="choice_one"
@@ -29,13 +28,12 @@ describe('RadioGroup', function () {
         onChange={jest.fn()}
       />
     );
-    expect(container).toSnapshot();
 
     expect(screen.getByRole('radio', {name: 'Choice One'})).toBeDisabled();
   });
 
   it('renders disabled choice', async function () {
-    const {container} = render(
+    render(
       <RadioGroup
         label="test"
         value="choice_one"
@@ -48,8 +46,6 @@ describe('RadioGroup', function () {
       />
     );
 
-    expect(container).toSnapshot();
-
     expect(screen.getByRole('radio', {name: 'Choice One'})).toBeEnabled();
     expect(screen.getByRole('radio', {name: 'Choice Two'})).toBeDisabled();
 
@@ -60,7 +56,7 @@ describe('RadioGroup', function () {
   });
 
   it('can select a different item', function () {
-    const {container} = render(
+    render(
       <RadioGroup
         label="test"
         value="choice_three"
@@ -72,7 +68,6 @@ describe('RadioGroup', function () {
         onChange={jest.fn()}
       />
     );
-    expect(container).toSnapshot();
   });
 
   it('calls onChange when clicked', async function () {

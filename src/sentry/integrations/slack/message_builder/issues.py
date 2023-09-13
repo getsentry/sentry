@@ -230,7 +230,7 @@ class SlackIssuesMessageBuilder(SlackMessageBuilder):
         """
         return True
 
-    def build(self) -> SlackBody:
+    def build(self, notification_uuid: str | None = None) -> SlackBody:
         # XXX(dcramer): options are limited to 100 choices, even when nested
         text = build_attachment_text(self.group, self.event) or ""
 
@@ -286,6 +286,7 @@ class SlackIssuesMessageBuilder(SlackMessageBuilder):
                 self.notification,
                 ExternalProviders.SLACK,
                 rule_id,
+                notification_uuid=notification_uuid,
             ),
             ts=get_timestamp(self.group, self.event) if not self.issue_details else None,
         )
@@ -301,6 +302,7 @@ def build_group_attachment(
     link_to_event: bool = False,
     issue_details: bool = False,
     is_unfurl: bool = False,
+    notification_uuid: str | None = None,
 ) -> SlackBody:
     """@deprecated"""
     return SlackIssuesMessageBuilder(
@@ -313,4 +315,4 @@ def build_group_attachment(
         link_to_event,
         issue_details,
         is_unfurl=is_unfurl,
-    ).build()
+    ).build(notification_uuid=notification_uuid)

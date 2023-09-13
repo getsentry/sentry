@@ -34,22 +34,33 @@ class GroupSubscriptionManager(BaseManager):
     def subscribe(
         self,
         group: Group,
-        user: User | RpcUser,
+        subscriber: User | RpcUser | Team,
         reason: int = GroupSubscriptionReason.unknown,
     ) -> bool:
         """
-        Subscribe a user to an issue, but only if the user has not explicitly
+        Subscribe a user or team to an issue, but only if that user or team has not explicitly
         unsubscribed.
         """
+        from sentry.models import Team, User
+
         try:
             with transaction.atomic(router.db_for_write(GroupSubscription)):
-                self.create(
-                    user_id=user.id,
-                    group=group,
-                    project=group.project,
-                    is_active=True,
-                    reason=reason,
-                )
+                if isinstance(subscriber, (User, RpcUser)):
+                    self.create(
+                        user_id=subscriber.id,
+                        group=group,
+                        project=group.project,
+                        is_active=True,
+                        reason=reason,
+                    )
+                elif isinstance(subscriber, Team):
+                    self.create(
+                        team=subscriber,
+                        group=group,
+                        project=group.project,
+                        is_active=True,
+                        reason=reason,
+                    )
         except IntegrityError:
             pass
         return True
@@ -60,14 +71,18 @@ class GroupSubscriptionManager(BaseManager):
         actor: Union[Team, User, RpcUser],
         reason: int = GroupSubscriptionReason.unknown,
     ) -> Optional[bool]:
+        from sentry import features
         from sentry.models import Team, User
 
-        if isinstance(actor, RpcUser) or isinstance(actor, User):
+        if isinstance(actor, (RpcUser, User)):
             return self.subscribe(group, actor, reason)
         if isinstance(actor, Team):
-            # subscribe the members of the team
-            team_users_ids = list(actor.member_set.values_list("user_id", flat=True))
-            return self.bulk_subscribe(group, team_users_ids, reason)
+            if features.has("organizations:team-workflow-notifications", group.organization):
+                return self.subscribe(group, actor, reason)
+            else:
+                # subscribe the members of the team
+                team_users_ids = list(actor.member_set.values_list("user_id", flat=True))
+                return self.bulk_subscribe(group, team_users_ids, reason)
 
         raise NotImplementedError("Unknown actor type: %r" % type(actor))
 
@@ -178,7 +193,8 @@ class GroupSubscription(Model):
 
     project = FlexibleForeignKey("sentry.Project", related_name="subscription_set")
     group = FlexibleForeignKey("sentry.Group", related_name="subscription_set")
-    user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, on_delete="CASCADE")
+    user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="CASCADE")
+    team = FlexibleForeignKey("sentry.Team", null=True, db_index=True, on_delete=models.CASCADE)
     is_active = models.BooleanField(default=True)
     reason = BoundedPositiveIntegerField(default=GroupSubscriptionReason.unknown)
     date_added = models.DateTimeField(default=timezone.now, null=True)
@@ -188,6 +204,13 @@ class GroupSubscription(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_groupsubscription"
-        unique_together = (("group", "user_id"),)
+        unique_together = (("group", "user_id"), ("group", "team"))
+        constraints = [
+            models.CheckConstraint(
+                check=models.Q(team_id__isnull=False, user_id__isnull=True)
+                | models.Q(team_id__isnull=True, user_id__isnull=False),
+                name="subscription_team_or_user_check",
+            )
+        ]
 
     __repr__ = sane_repr("project_id", "group_id", "user_id")

@@ -4,6 +4,7 @@ from rest_framework.exceptions import NotFound
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationIntegrationsPermission
 from sentry.models import RepositoryProjectPathConfig
@@ -22,6 +23,9 @@ def get_codeowner_contents(config):
 
 @region_silo_endpoint
 class OrganizationCodeMappingCodeOwnersEndpoint(OrganizationEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (OrganizationIntegrationsPermission,)
 
     def convert_args(self, request: Request, organization_slug, config_id, *args, **kwargs):

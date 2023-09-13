@@ -1,4 +1,4 @@
-from typing import Any, Generator, Sequence
+from typing import Any, Generator, Optional, Sequence
 
 from sentry import analytics, features
 from sentry.eventstore.models import GroupEvent
@@ -31,7 +31,9 @@ class DiscordNotifyServiceAction(IntegrationEventAction):
             "tags": {"type": "string", "placeholder": "e.g., environment,user,my_tag"},
         }
 
-    def after(self, event: GroupEvent, state: EventState) -> Generator[CallbackFuture, None, None]:
+    def after(
+        self, event: GroupEvent, state: EventState, notification_uuid: Optional[str] = None
+    ) -> Generator[CallbackFuture, None, None]:
         channel_id = self.get_option("channel_id")
         tags = set(self.get_tags_list())
 
@@ -51,7 +53,7 @@ class DiscordNotifyServiceAction(IntegrationEventAction):
 
             client = DiscordClient(integration_id=integration.id)
             try:
-                client.send_message(channel_id, message)
+                client.send_message(channel_id, message, notification_uuid=notification_uuid)
             except ApiError as e:
                 self.logger.error(
                     "rule.fail.discord_post",
@@ -71,6 +73,7 @@ class DiscordNotifyServiceAction(IntegrationEventAction):
             organization_id=event.organization.id,
             project_id=event.project_id,
             group_id=event.group_id,
+            notification_uuid=notification_uuid if notification_uuid else "",
         )
         metrics.incr("notifications.sent", instance="discord.notifications", skip_internal=False)
         yield self.future(send_notification, key=key)

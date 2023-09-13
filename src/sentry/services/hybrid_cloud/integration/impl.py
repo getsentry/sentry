@@ -347,7 +347,8 @@ class DatabaseBackedIntegrationService(IntegrationService):
         new_status: int,
         incident_attachment_json: str,
         metric_value: Optional[str] = None,
-    ) -> None:
+        notification_uuid: str | None = None,
+    ) -> bool:
         sentry_app = SentryApp.objects.get(id=sentry_app_id)
 
         metrics.incr("notifications.sent", instance=sentry_app.slug, skip_internal=False)
@@ -369,7 +370,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
                 },
                 exc_info=True,
             )
-            return None
+            return False
 
         app_platform_event = AppPlatformEvent(
             resource="metric_alert",
@@ -394,16 +395,19 @@ class DatabaseBackedIntegrationService(IntegrationService):
                 sentry_app_id=sentry_app.id,
                 event=f"{app_platform_event.resource}.{app_platform_event.action}",
             )
+        return alert_rule_action_ui_component
 
     def send_msteams_incident_alert_notification(
         self, *, integration_id: int, channel: str, attachment: Dict[str, Any]
-    ) -> None:
+    ) -> bool:
         integration = Integration.objects.get(id=integration_id)
         client = MsTeamsClient(integration)
         try:
             client.send_card(channel, attachment)
+            return True
         except ApiError:
             logger.info("rule.fail.msteams_post", exc_info=True)
+        return False
 
     def delete_integration(self, *, integration_id: int) -> None:
         integration = Integration.objects.filter(id=integration_id).first()

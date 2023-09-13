@@ -7,6 +7,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.exceptions import ParameterValidationError
 from sentry.api.helpers.environments import get_environments
@@ -33,7 +34,11 @@ from .base import MonitorEndpoint
 @region_silo_endpoint
 @extend_schema(tags=["Crons"])
 class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
-    public = {"GET", "PUT", "DELETE"}
+    publish_status = {
+        "DELETE": ApiPublishStatus.PUBLIC,
+        "GET": ApiPublishStatus.PUBLIC,
+        "PUT": ApiPublishStatus.PUBLIC,
+    }
 
     @extend_schema(
         operation_id="Retrieve a Monitor",

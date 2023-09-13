@@ -5,6 +5,7 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.paginator import DateTimePaginator
@@ -19,6 +20,11 @@ from sentry.types.activity import ActivityType
 
 @region_silo_endpoint
 class GroupNotesEndpoint(GroupEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, group) -> Response:
         notes = Activity.objects.filter(group=group, type=ActivityType.NOTE.value)
 
@@ -60,7 +66,7 @@ class GroupNotesEndpoint(GroupEndpoint):
             )
 
         GroupSubscription.objects.subscribe(
-            group=group, user=request.user, reason=GroupSubscriptionReason.comment
+            group=group, subscriber=request.user, reason=GroupSubscriptionReason.comment
         )
 
         mentioned_users = extract_user_ids_from_mentions(group.organization.id, mentions)

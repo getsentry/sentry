@@ -16,7 +16,9 @@ class UserRole(DefaultFieldsModel):
     Roles are applied to administrative users and apply a set of `UserPermission`.
     """
 
-    __relocation_scope__ = RelocationScope.User
+    # It only makes sense to import/export this data when doing a full global backup/restore, so it
+    # lives in the `Global` scope, even though it only depends on the `User` model.
+    __relocation_scope__ = RelocationScope.Global
 
     name = models.CharField(max_length=32, unique=True)
     permissions = ArrayField()
@@ -42,7 +44,9 @@ class UserRole(DefaultFieldsModel):
 
 @control_silo_only_model
 class UserRoleUser(DefaultFieldsModel):
-    __relocation_scope__ = RelocationScope.User
+    # It only makes sense to import/export this data when doing a full global backup/restore, so it
+    # lives in the `Global` scope, even though it only depends on the `User` model.
+    __relocation_scope__ = RelocationScope.Global
 
     user = FlexibleForeignKey("sentry.User")
     role = FlexibleForeignKey("sentry.UserRole")

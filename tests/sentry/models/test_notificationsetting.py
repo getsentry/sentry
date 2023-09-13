@@ -6,7 +6,7 @@ from sentry.notifications.types import (
     NotificationSettingTypes,
 )
 from sentry.silo import SiloMode
-from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
+from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs_control
 from sentry.testutils.cases import TestCase
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
@@ -45,26 +45,38 @@ class NotificationSettingTest(TestCase):
         assert_no_notification_settings()
 
     def test_remove_for_team(self):
-        create_setting(team_id=self.team.id, project=self.project)
+        create_setting(
+            team_id=self.team.id,
+            project=self.project,
+            organization_id_for_team=self.organization.id,
+        )
 
         # Deletion is deferred and tasks aren't run in tests.
         with assume_test_silo_mode(SiloMode.REGION), outbox_runner():
             self.team.delete()
 
         with self.tasks():
-            schedule_hybrid_cloud_foreign_key_jobs()
+            schedule_hybrid_cloud_foreign_key_jobs_control()
 
         assert_no_notification_settings()
 
     def test_remove_for_project(self):
-        create_setting(user_id=self.user.id, project=self.project)
+        create_setting(
+            user_id=self.user.id,
+            project=self.project,
+            organization_id_for_team=self.organization.id,
+        )
         with assume_test_silo_mode(SiloMode.REGION):
             self.project.delete()
         assert_no_notification_settings()
 
     def test_remove_for_organization(self):
-        create_setting(user_id=self.user.id, organization=self.organization)
-        with assume_test_silo_mode(SiloMode.REGION):
+        create_setting(
+            user_id=self.user.id,
+            organization=self.organization,
+            organization_id_for_team=self.organization.id,
+        )
+        with assume_test_silo_mode(SiloMode.REGION), outbox_runner():
             self.organization.delete()
         assert_no_notification_settings()
 
@@ -89,6 +101,7 @@ class NotificationSettingTest(TestCase):
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.ALWAYS,
             team_id=self.team.id,
+            organization_id_for_team=self.organization.id,
         )
         ns = NotificationSetting.objects.find_settings(
             provider=ExternalProviders.EMAIL,
@@ -154,6 +167,7 @@ class NotificationSettingTest(TestCase):
                 ),
             ],
             team=self.team,
+            organization_id_for_team=self.organization.id,
         )
 
         ns1 = NotificationSetting.objects.find_settings(
