@@ -1624,6 +1624,17 @@ def _save_aggregate(
 
                 group = _create_group(project, event, **kwargs)
 
+                if features.has(
+                    "projects:first-event-severity-calculation", event.project
+                ) and not group.data.get("metadata", {}).get("severity"):
+                    logger.error(
+                        "Group created without severity score",
+                        extra={
+                            "event_id": event.data["event_id"],
+                            "group_id": group.id,
+                        },
+                    )
+
                 if root_hierarchical_grouphash is not None:
                     new_hashes = [root_hierarchical_grouphash]
                 else:
@@ -2498,6 +2509,17 @@ def _save_grouphash_and_group(
         if created:
             group = _create_group(project, event, **group_kwargs)
             group_hash.update(group=group)
+
+            if features.has(
+                "projects:first-event-severity-calculation", event.project
+            ) and not group.data.get("metadata", {}).get("severity"):
+                logger.error(
+                    "Group created without severity score",
+                    extra={
+                        "event_id": event.data["event_id"],
+                        "group_id": group.id,
+                    },
+                )
 
     if group is None:
         # If we failed to create the group it means another worker beat us to
