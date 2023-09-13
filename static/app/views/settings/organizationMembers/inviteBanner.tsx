@@ -92,7 +92,7 @@ export function InviteBanner({
     }
   }, [openInviteModal, location, isEligibleForBanner]);
 
-  if (!isEligibleForBanner && showBanner) {
+  if (isEligibleForBanner && showBanner) {
     trackAnalytics('github_invite_banner.viewed', {
       organization,
     });
