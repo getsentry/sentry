@@ -17,7 +17,7 @@ from sentry.api.authentication import (
     TokenAuthentication,
 )
 from sentry.models import UserIP
-from sentry.services.hybrid_cloud.auth import auth_service, authentication_request_from
+from sentry.services.hybrid_cloud.auth import MiddlewareAuthenticationResponse
 from sentry.silo import SiloMode
 from sentry.utils.auth import AuthUserPasswordExpired, logger
 from sentry.utils.linksign import process_signature
@@ -125,7 +125,12 @@ class HybridCloudAuthenticationMiddleware(MiddlewareMixin):
     def process_request(self, request: HttpRequest) -> None:
         from sentry.web.frontend.accounts import expired
 
-        auth_result = auth_service.authenticate(request=authentication_request_from(request))
+        # auth_result = auth_service.authenticate(request=authentication_request_from(request))
+        auth_result = MiddlewareAuthenticationResponse(
+            expired=False,
+            user_from_signed_request=False,
+            accessed=[],
+        )
         request.user_from_signed_request = auth_result.user_from_signed_request
 
         # Simulate accessing attributes on the session to trigger side effects related to doing so.
