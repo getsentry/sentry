@@ -278,20 +278,21 @@ class ActivityNotificationTest(APITestCase):
             text
             == f"Release {version_parsed} was deployed to {self.environment.name} for this project"
         )
-        assert (
-            attachment["actions"][0]["url"]
-            == f"http://testserver/organizations/{self.organization.slug}/releases/{release.version}/?project={self.project.id}&unselectedSeries=Healthy"
+        assert attachment["actions"][0]["url"].startswith(
+            f"http://testserver/organizations/{self.organization.slug}/releases/{release.version}/?project={self.project.id}&unselectedSeries=Healthy&referrer=release_activity"
         )
         assert (
             attachment["footer"]
             == f"{self.project.slug} | <http://testserver/settings/account/notifications/deploy/?referrer=release_activity-slack-user|Notification Settings>"
         )
+        notification_uuid = get_notification_uuid(attachment["actions"][0]["url"])
         assert analytics_called_with_args(
             record_analytics,
             "integrations.email.notification_sent",
             user_id=self.user.id,
             organization_id=self.organization.id,
             group_id=None,
+            notification_uuid=notification_uuid,
         )
         assert analytics_called_with_args(
             record_analytics,
@@ -299,6 +300,7 @@ class ActivityNotificationTest(APITestCase):
             user_id=self.user.id,
             organization_id=self.organization.id,
             group_id=None,
+            notification_uuid=notification_uuid,
         )
 
     @responses.activate
