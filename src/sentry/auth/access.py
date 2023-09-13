@@ -37,8 +37,8 @@ from sentry.models import (
 )
 from sentry.roles import organization_roles
 from sentry.roles.manager import OrganizationRole, TeamRole
-from sentry.services.hybrid_cloud.access.service import access_service
 from sentry.services.hybrid_cloud.auth import RpcAuthState, RpcMemberSsoState
+from sentry.services.hybrid_cloud.auth.service import auth_service
 from sentry.services.hybrid_cloud.organization import (
     RpcTeamMember,
     RpcUserOrganizationContext,
@@ -635,7 +635,7 @@ class OrganizationMemberAccess(DbAccess):
         permissions: Iterable[str],
         scopes_upper_bound: Iterable[str] | None,
     ) -> None:
-        auth_state = access_service.get_user_auth_state(
+        auth_state = auth_service.get_user_auth_state(
             organization_id=member.organization_id,
             is_superuser=False,
             org_member=summarize_member(member),
@@ -952,7 +952,7 @@ def from_request_org_and_scopes(
 
     if is_superuser:
         member = rpc_user_org_context.member
-        auth_state = access_service.get_user_auth_state(
+        auth_state = auth_service.get_user_auth_state(
             user_id=request.user.id,
             organization_id=rpc_user_org_context.organization.id,
             is_superuser=is_superuser,
@@ -978,7 +978,7 @@ def from_request_org_and_scopes(
 
 def organizationless_access(user: User | RpcUser | AnonymousUser, is_superuser: bool) -> Access:
     return OrganizationlessAccess(
-        auth_state=access_service.get_user_auth_state(
+        auth_state=auth_service.get_user_auth_state(
             user_id=user.id,
             is_superuser=is_superuser,
             organization_id=None,
@@ -1039,7 +1039,7 @@ def from_request(
             )
         except OrganizationMember.DoesNotExist:
             pass
-        sso_state = access_service.get_user_auth_state(
+        sso_state = auth_service.get_user_auth_state(
             user_id=request.user.id,
             organization_id=organization.id,
             is_superuser=is_superuser,
@@ -1052,7 +1052,7 @@ def from_request(
             scopes=scopes if scopes is not None else settings.SENTRY_SCOPES,
             sso_is_valid=sso_state.is_valid,
             requires_sso=sso_state.is_required,
-            permissions=access_service.get_permissions_for_user(request.user.id),
+            permissions=auth_service.get_permissions_for_user(request.user.id),
         )
 
     if hasattr(request, "auth") and not request.user.is_authenticated:
@@ -1140,7 +1140,7 @@ def from_member(
         scope_intersection = member.get_scopes()
 
     permissions = (
-        access_service.get_permissions_for_user(member.user_id) if is_superuser else frozenset()
+        auth_service.get_permissions_for_user(member.user_id) if is_superuser else frozenset()
     )
 
     return OrganizationMemberAccess(member, scope_intersection, permissions, scopes)
@@ -1159,7 +1159,7 @@ def from_rpc_member(
         rpc_user_organization_context=rpc_user_organization_context,
         scopes_upper_bound=_wrap_scopes(scopes),
         auth_state=auth_state
-        or access_service.get_user_auth_state(
+        or auth_service.get_user_auth_state(
             user_id=rpc_user_organization_context.user_id,
             organization_id=rpc_user_organization_context.organization.id,
             is_superuser=is_superuser,
