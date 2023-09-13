@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import contextlib
 import functools
+import os
 import threading
 from typing import Any, Callable, Iterator, List, Set, Type, TypedDict
 
@@ -252,4 +253,5 @@ def simulate_on_commit(request: Any):
 
 def use_split_dbs() -> bool:
     # TODO: refactor out use_split_dbs() in any and all tests once split database is permanently set in stone.
-    return True
+    SENTRY_USE_MONOLITH_DBS = bool(os.environ.get("SENTRY_USE_MONOLITH_DBS"))
+    return not SENTRY_USE_MONOLITH_DBS

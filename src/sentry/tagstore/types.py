@@ -1,7 +1,4 @@
-from __future__ import annotations
-
 import functools
-from typing import ClassVar
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.search.utils import convert_user_tag_to_query
@@ -10,7 +7,7 @@ from sentry.tagstore.base import TagKeyStatus
 
 @functools.total_ordering
 class TagType:
-    _sort_key: ClassVar[str]
+    _sort_key = None
 
     def __repr__(self):
         return "<{}: {}>".format(

@@ -123,15 +123,15 @@ class OAuth2Callback(AuthView):
 
 
 class OAuth2Provider(Provider, abc.ABC):
+    client_id = None
+    client_secret = None
     is_partner = False
 
-    @abc.abstractmethod
     def get_client_id(self):
-        raise NotImplementedError
+        return self.client_id
 
-    @abc.abstractmethod
     def get_client_secret(self):
-        raise NotImplementedError
+        return self.client_secret
 
     def get_auth_pipeline(self):
         return [

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from datetime import timezone
-from typing import Any, ClassVar, MutableMapping
+from typing import Any, MutableMapping
 
 from dateutil.parser import parse as parse_date
 from rest_framework.request import Request
@@ -49,8 +49,8 @@ class IntegrationRepositoryProvider:
     Does not include plugins.
     """
 
-    name: ClassVar[str]
-    repo_provider: ClassVar[str]
+    name = None
+    repo_provider = None
 
     def __init__(self, id):
         self.id = id
