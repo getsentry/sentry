@@ -37,6 +37,7 @@ from sentry.models.outbox import OutboxCategory
 from sentry.models.team import Team
 from sentry.roles.manager import Role
 from sentry.services.hybrid_cloud.notifications import notifications_service
+from sentry.services.hybrid_cloud.organization_mapping import organization_mapping_service
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.types.organization import OrganizationAbsoluteUrlMixin
@@ -283,7 +284,7 @@ class Organization(
     def handle_async_deletion(
         cls, identifier: int, shard_identifier: int, payload: Mapping[str, Any] | None
     ) -> None:
-        # There is no foreign key relationship, so we have to manually cascade.
+        organization_mapping_service.delete(organization_id=identifier)
         notifications_service.remove_notification_settings_for_organization(
             organization_id=identifier
         )
