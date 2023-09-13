@@ -1,3 +1,4 @@
+import {RateUnits} from 'sentry/utils/discover/fields';
 import {
   DAY,
   formatAbbreviatedNumber,
@@ -222,17 +223,33 @@ describe('formatRate()', function () {
     expect(formatRate(0)).toBe('0/s');
   });
 
-  it('Rounds the rate', () => {
-    expect(formatRate(0.3142)).toBe('0.314/s');
-    expect(formatRate(17)).toBe('17/s');
-    expect(formatRate(1023.142)).toBe('1k/s');
+  it('Accepts a unit', () => {
+    expect(formatRate(0.3142, RateUnits.PER_MINUTE)).toBe('0.314/min');
+    expect(formatRate(0.3142, RateUnits.PER_HOUR)).toBe('0.314/hr');
   });
 
-  it('Abbreviates large numbers', () => {
-    expect(formatRate(1023.142)).toBe('1k/s');
-    expect(formatRate(1523142)).toBe('1.5m/s');
-    expect(formatRate(1020314200.132)).toBe('1b/s');
-    expect(formatRate(1023140200132.789)).toBe('1023b/s');
+  it('Formats to 3 significant digits for numbers > minimum', () => {
+    expect(formatRate(0.3142)).toBe('0.314/s');
+    expect(formatRate(17)).toBe('17.0/s');
+    expect(formatRate(1023.142)).toBe('1.02K/s');
+  });
+
+  it('Obeys a minimum value option', () => {
+    expect(formatRate(0.000003142, undefined, {minimumValue: 0.01})).toBe('<0.01/s');
+    expect(formatRate(0.0023, undefined, {minimumValue: 0.01})).toBe('<0.01/s');
+    expect(formatRate(0.02, undefined, {minimumValue: 0.01})).toBe('0.0200/s');
+    expect(formatRate(0.271, undefined, {minimumValue: 0.01})).toBe('0.271/s');
+  });
+
+  it('Obeys a significant digits option', () => {
+    expect(formatRate(7.1, undefined, {significantDigits: 4})).toBe('7.100/s');
+  });
+
+  it('Abbreviates large numbers using SI prefixes', () => {
+    expect(formatRate(1023.142)).toBe('1.02K/s');
+    expect(formatRate(1523142)).toBe('1.52M/s');
+    expect(formatRate(1020314200.132)).toBe('1.02B/s');
+    expect(formatRate(1023140200132.789)).toBe('1.02T/s');
   });
 });
 
