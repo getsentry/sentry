@@ -2032,6 +2032,7 @@ severity_connection_pool = connection_from_url(
 
 
 def _get_severity_score(event: Event) -> float | None:
+    op = "event_manager._get_severity_score"
     severity = None
 
     metadata = event.get_event_metadata()
@@ -2047,8 +2048,8 @@ def _get_severity_score(event: Event) -> float | None:
     )
 
     if message:
-        with metrics.timer("event_manager._get_severity_score"):
-            with sentry_sdk.start_span(op="event_manager._get_severity_score"):
+        with metrics.timer(op):
+            with sentry_sdk.start_span(op=op):
                 try:
                     response = severity_connection_pool.urlopen(
                         "POST",
