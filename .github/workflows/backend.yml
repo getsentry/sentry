@@ -93,6 +93,7 @@ jobs:
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
+          kafka: true
           snuba: true
           # Right now, we run so few bigtable related tests that the
           # overhead of running bigtable in all backend tests
