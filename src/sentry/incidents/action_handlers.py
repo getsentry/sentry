@@ -249,7 +249,9 @@ class MsTeamsActionHandler(DefaultActionHandler):
 )
 class DiscordActionHandler(DefaultActionHandler):
     def send_alert(self, metric_value: int | float, new_status: IncidentStatus):
-        from sentry.integrations.discord.actions import send_incident_alert_notification
+        from sentry.integrations.discord.actions.metric_alert import (
+            send_incident_alert_notification,
+        )
 
         send_incident_alert_notification(self.action, self.incident, metric_value, new_status)
 
