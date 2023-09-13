@@ -61,8 +61,8 @@ class UserIP(Model):
         self.country_code = None
         self.region_code = None
 
-        # Only preserve the submitted timing data in the global scope.
-        if scope != ImportScope.Global:
+        # Only preserve the submitted timing data in backup/restore scopes.
+        if scope not in {ImportScope.Config, ImportScope.Global}:
             self.first_seen = self.last_seen = timezone.now()
 
         return old_pk
