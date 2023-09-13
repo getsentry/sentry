@@ -92,7 +92,7 @@ def has_download_permission(request, project):
 def _has_delete_permission(access: Access, project: Project) -> bool:
     if access.has_scope("project:write"):
         return True
-    return access.has_any_project_scope(project, "project:write")
+    return access.has_project_scope(project, "project:write")
 
 
 @region_silo_endpoint
@@ -318,7 +318,6 @@ class DebugFilesEndpoint(ProjectEndpoint):
         :qparam string id: The id of the DIF to delete.
         :auth: required
         """
-
         if request.GET.get("id") and _has_delete_permission(request.access, project):
             with atomic_transaction(using=router.db_for_write(File)):
                 debug_file = (
