@@ -4,9 +4,14 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 from abc import abstractmethod
-from typing import List, Mapping, Optional, Sequence, cast
+from typing import Iterable, List, Mapping, MutableMapping, Optional, Sequence, cast
 
-from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
+from sentry.notifications.types import (
+    NotificationSettingEnum,
+    NotificationSettingOptionValues,
+    NotificationSettingsOptionEnum,
+    NotificationSettingTypes,
+)
 from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.services.hybrid_cloud.auth.model import AuthenticationContext
 from sentry.services.hybrid_cloud.filter_query import OpaqueSerializedResponse
@@ -59,7 +64,15 @@ class NotificationsService(RpcService):
     ) -> List[RpcNotificationSetting]:
         pass
 
-    @rpc_method
+    def get_setting_options_for_user(
+        self,
+        *,
+        user_id: int,
+        project_ids: Iterable[int],
+        type: Optional[NotificationSettingTypes] = None,
+    ) -> MutableMapping[NotificationSettingEnum, NotificationSettingsOptionEnum]:
+        pass
+
     @abstractmethod
     def update_settings(
         self,
