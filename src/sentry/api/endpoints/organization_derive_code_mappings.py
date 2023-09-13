@@ -98,7 +98,11 @@ class OrganizationDeriveCodeMappingsEndpoint(OrganizationEndpoint):
         if not repo_name or not stack_root or not source_root or not branch:
             return self.respond("Missing required parameters", status=status.HTTP_400_BAD_REQUEST)
 
+        if provider and not provider.startswith("integrations:"):
+            provider = "integrations:" + provider
+
         # TODO: require external_id and provider
+        # TODO: update serializer to return external_id
         code_mapping = CodeMapping(
             stacktrace_root=stack_root,
             source_path=source_root,

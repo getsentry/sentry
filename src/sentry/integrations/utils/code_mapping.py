@@ -270,6 +270,8 @@ class CodeMappingTreesHelper:
                         "filename": file,
                         "repo_name": repo_tree.repo.name,
                         "repo_branch": repo_tree.repo.branch,
+                        "repo_external_id": repo_tree.repo.external_id,
+                        "repo_provider": repo_tree.repo.provider,
                         "stacktrace_root": f"{frame_filename.root}/",
                         "source_path": self._get_code_mapping_source_path(file, frame_filename),
                     }
@@ -422,6 +424,7 @@ def create_code_mapping(
             defaults={
                 "integration_id": organization_integration.integration_id,
                 "name": code_mapping.repo.name,
+                "provider": code_mapping.repo.provider,
             },
         )
     else:

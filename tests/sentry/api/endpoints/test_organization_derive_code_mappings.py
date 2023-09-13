@@ -127,6 +127,43 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
             "defaultBranch": "master",
         }
 
+    def test_post_external_id_and_provider(self):
+        config_data = {
+            "projectId": self.project.id,
+            "stackRoot": "/stack/root",
+            "sourceRoot": "/source/root",
+            "defaultBranch": "master",
+            "repoName": "getsentry/codemap",
+            "externalId": 23,
+            "provider": "github",
+        }
+        response = self.client.post(self.url, data=config_data, format="json")
+        repo = Repository.objects.get(name="getsentry/codemap")
+        assert response.status_code == 201, response.content
+        assert response.data == {
+            "automaticallyGenerated": True,
+            "id": str(response.data["id"]),
+            "projectId": str(self.project.id),
+            "projectSlug": self.project.slug,
+            "repoId": str(repo.id),
+            "repoName": "getsentry/codemap",
+            "provider": {
+                "aspects": {},
+                "features": ["codeowners", "commits", "issue-basic", "stacktrace-link"],
+                "name": "GitHub",
+                "canDisable": False,
+                "key": "github",
+                "slug": "github",
+                "canAdd": True,
+            },
+            "integrationId": str(self.integration.id),
+            "stackRoot": "/stack/root",
+            "sourceRoot": "/source/root",
+            "defaultBranch": "master",
+        }
+        assert repo.provider == "integrations:github"
+        assert repo.external_id == str(config_data["externalId"])
+
     def test_post_no_installation(self):
         config_data = {
             "projectId": self.project.id,
