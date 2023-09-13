@@ -101,9 +101,9 @@ def detect_function_trends(project_ids: List[int], start: datetime, *args, **kwa
     if not options.get("statistical_detectors.enable"):
         return
 
-    trends = list(_detect_function_trends(project_ids, start))
-
-    regressions = filter(lambda trend: trend[0] == TrendType.Regressed, trends)
+    regressions = filter(
+        lambda trend: trend[0] == TrendType.Regressed, _detect_function_trends(project_ids, start)
+    )
 
     for trends in chunked(regressions, FUNCTIONS_PER_BATCH):
         detect_function_breakpoints.delay(
