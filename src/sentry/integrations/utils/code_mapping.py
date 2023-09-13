@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 from typing import Dict, List, NamedTuple, Tuple, Union
 
@@ -30,6 +32,8 @@ MAX_CONNECTION_ERRORS = 10
 class Repo(NamedTuple):
     name: str
     branch: str
+    external_id: str | None
+    provider: str | None
 
 
 class RepoTree(NamedTuple):
@@ -408,13 +412,27 @@ class CodeMappingTreesHelper:
 def create_code_mapping(
     organization_integration: OrganizationIntegration, project: Project, code_mapping: CodeMapping
 ) -> RepositoryProjectPathConfig:
-    repository, _ = Repository.objects.get_or_create(
-        name=code_mapping.repo.name,
-        organization_id=organization_integration.organization_id,
-        defaults={
-            "integration_id": organization_integration.integration_id,
-        },
-    )
+    external_id = code_mapping.repo.external_id
+    provider = code_mapping.repo.provider
+    if external_id and provider:
+        repository, _ = Repository.objects.get_or_create(
+            external_id=code_mapping.repo.external_id,
+            provider=code_mapping.repo.provider,
+            organization_id=organization_integration.organization_id,
+            defaults={
+                "integration_id": organization_integration.integration_id,
+                "name": code_mapping.repo.name,
+            },
+        )
+    else:
+        repository, _ = Repository.objects.get_or_create(
+            name=code_mapping.repo.name,
+            organization_id=organization_integration.organization_id,
+            defaults={
+                "integration_id": organization_integration.integration_id,
+                "name": code_mapping.repo.name,
+            },
+        )
 
     new_code_mapping, created = RepositoryProjectPathConfig.objects.update_or_create(
         project=project,
