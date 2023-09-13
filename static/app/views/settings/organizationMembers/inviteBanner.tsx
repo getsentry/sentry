@@ -87,7 +87,7 @@ export function InviteBanner({
   useEffect(() => {
     const {inviteMissingMembers} = qs.parse(location.search);
 
-    if (!isEligibleForBanner && inviteMissingMembers) {
+    if (isEligibleForBanner && inviteMissingMembers) {
       openInviteModal();
     }
   }, [openInviteModal, location, isEligibleForBanner]);
