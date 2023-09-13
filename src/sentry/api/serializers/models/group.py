@@ -60,9 +60,14 @@ from sentry.notifications.helpers import (
     get_groups_for_query,
     get_subscription_from_attributes,
     get_user_subscriptions_for_groups,
+    should_use_notifications_v2,
     transform_to_notification_settings_by_scope,
 )
-from sentry.notifications.types import NotificationSettingTypes
+from sentry.notifications.types import (
+    NotificationSettingEnum,
+    NotificationSettingsOptionEnum,
+    NotificationSettingTypes,
+)
 from sentry.reprocessing2 import get_progress
 from sentry.search.events.constants import RELEASE_STAGE_ALIAS
 from sentry.search.events.filter import convert_search_filter_to_snuba_query, format_search_filter
@@ -571,15 +576,34 @@ class GroupSerializerBase(Serializer, ABC):
         if not groups:
             return {}
 
-        groups_by_project = collect_groups_by_project(groups)
-        notification_settings_by_scope = transform_to_notification_settings_by_scope(
-            notifications_service.get_settings_for_user_by_projects(
-                type=NotificationSettingTypes.WORKFLOW,
+        notification_settings, query_groups = None, None
+        if should_use_notifications_v2(groups[0].project.organization):
+            project_ids = {group.project_id for group in groups}
+            notification_settings = notification_settings.get_setting_options_for_user(
                 user_id=user.id,
-                parent_ids=list(groups_by_project.keys()),
+                projects=project_ids,
+                type=NotificationSettingTypes.WORKFLOW,
             )
-        )
-        query_groups = get_groups_for_query(groups_by_project, notification_settings_by_scope, user)
+            query_groups = {
+                group
+                for group in groups
+                if (
+                    notification_settings[NotificationSettingEnum.WORKFLOW]
+                    != NotificationSettingsOptionEnum.NEVER
+                )
+            }
+        else:
+            groups_by_project = collect_groups_by_project(groups)
+            notification_settings_by_scope = transform_to_notification_settings_by_scope(
+                notifications_service.get_settings_for_user_by_projects(
+                    type=NotificationSettingTypes.WORKFLOW,
+                    user_id=user.id,
+                    parent_ids=list(groups_by_project.keys()),
+                )
+            )
+            query_groups = get_groups_for_query(
+                groups_by_project, notification_settings_by_scope, user
+            )
         subscriptions = GroupSubscription.objects.filter(group__in=query_groups, user_id=user.id)
         subscriptions_by_group_id = {
             subscription.group_id: subscription for subscription in subscriptions
