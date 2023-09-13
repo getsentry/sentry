@@ -284,6 +284,11 @@ export function InviteMissingMembersModal({
             aria-label={t('Send Invites')}
             onClick={sendInvites}
             disabled={!canSend || selectedCount === 0}
+            analyticsEventName="Github Invite Modal: Invite"
+            analyticsEventKey="github_invite_modal.invite"
+            analyticsParams={{
+              invited_all: memberInvites.length === selectedCount,
+            }}
           >
             {inviteButtonLabel()}
           </Button>
