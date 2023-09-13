@@ -1,6 +1,5 @@
 import logging
 from copy import copy
-from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 
 from django.db import IntegrityError, models, router, transaction
@@ -8,6 +7,7 @@ from django.db.models.query_utils import DeferredAttribute
 from django.urls import reverse
 from django.utils import timezone as django_timezone
 from rest_framework import serializers, status
+from typing_extensions import TypedDict
 
 from bitfield.types import BitHandler
 from sentry import audit_log, roles
@@ -142,6 +142,12 @@ ORG_OPTIONS = (
         bool,
         org_serializers.GITHUB_COMMENT_BOT_DEFAULT,
     ),
+    (
+        "githubNudgeInvite",
+        "sentry:github_nudge_invite",
+        bool,
+        org_serializers.GITHUB_COMMENT_BOT_DEFAULT,
+    ),
 )
 
 DELETION_STATUSES = frozenset(
@@ -186,6 +192,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     aiSuggestedSolution = serializers.BooleanField(required=False)
     codecovAccess = serializers.BooleanField(required=False)
     githubOpenPRBot = serializers.BooleanField(required=False)
+    githubNudgeInvite = serializers.BooleanField(required=False)
     githubPRBot = serializers.BooleanField(required=False)
     require2FA = serializers.BooleanField(required=False)
     requireEmailVerification = serializers.BooleanField(required=False)
@@ -622,13 +629,13 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                     transaction_id=schedule.guid,
                 )
 
-                delete_confirmation_args: DeleteConfirmationArgs = dict(
-                    username=user_name,
-                    ip_address=entry.ip_address,
-                    deletion_datetime=entry.datetime,
-                    countdown=ONE_DAY,
-                    organization=updated_organization,
-                )
+                delete_confirmation_args: DeleteConfirmationArgs = {
+                    "username": user_name,
+                    "ip_address": entry.ip_address,
+                    "deletion_datetime": entry.datetime,
+                    "countdown": ONE_DAY,
+                    "organization": updated_organization,
+                }
                 send_delete_confirmation(delete_confirmation_args)
                 Organization.objects.uncache_object(updated_organization.id)
 
@@ -689,8 +696,7 @@ def update_tracked_data(model):
         model.__data = UNSAVED
 
 
-@dataclass
-class DeleteConfirmationArgs:
+class DeleteConfirmationArgs(TypedDict):
     username: str
     ip_address: str
     deletion_datetime: datetime

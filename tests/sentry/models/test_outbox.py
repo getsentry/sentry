@@ -66,37 +66,6 @@ class ControlOutboxTest(TestCase):
     region = Region("eu", 1, "http://eu.testserver", RegionCategory.MULTI_TENANT)
     region_config = (region,)
 
-    def test_prepare_next_from_shard_no_conflict_with_processing(self):
-        with outbox_runner():
-            org = Factories.create_organization()
-            user1 = Factories.create_user()
-            Factories.create_member(organization_id=org.id, user_id=user1.id)
-
-        with outbox_context(flush=False):
-            outbox = user1.outboxes_for_update()[0]
-            outbox.save()
-            with outbox.process_shard(None) as next_shard_row:
-                assert next_shard_row is not None
-
-                def test_with_other_connection():
-                    try:
-                        assert (
-                            ControlOutbox.prepare_next_from_shard(
-                                {
-                                    k: getattr(next_shard_row, k)
-                                    for k in ControlOutbox.sharding_columns
-                                }
-                            )
-                            is None
-                        )
-                    finally:
-                        for c in connections.all():
-                            c.close()
-
-                t = threading.Thread(target=test_with_other_connection)
-                t.start()
-                t.join()
-
     def test_control_sharding_keys(self):
         request = RequestFactory().get("/extensions/slack/webhook/")
         with assume_test_silo_mode(SiloMode.REGION):
@@ -170,6 +139,37 @@ class ControlOutboxTest(TestCase):
                 "special-github-region",
             ),
         }
+
+    def test_prepare_next_from_shard_no_conflict_with_processing(self):
+        with outbox_runner():
+            org = Factories.create_organization()
+            user1 = Factories.create_user()
+            Factories.create_member(organization_id=org.id, user_id=user1.id)
+
+        with outbox_context(flush=False):
+            outbox = user1.outboxes_for_update()[0]
+            outbox.save()
+            with outbox.process_shard(None) as next_shard_row:
+                assert next_shard_row is not None
+
+                def test_with_other_connection():
+                    try:
+                        assert (
+                            ControlOutbox.prepare_next_from_shard(
+                                {
+                                    k: getattr(next_shard_row, k)
+                                    for k in ControlOutbox.sharding_columns
+                                }
+                            )
+                            is None
+                        )
+                    finally:
+                        for c in connections.all():
+                            c.close()
+
+                t = threading.Thread(target=test_with_other_connection)
+                t.start()
+                t.join()
 
     def test_control_outbox_for_webhooks(self):
         [outbox] = ControlOutbox.for_webhook_update(
@@ -454,12 +454,12 @@ class RegionOutboxTest(TestCase):
             def raise_exception(**kwds):
                 raise ValueError("This is just a test mock exception")
 
-            def run_with_error():
+            def run_with_error(concurrency=1):
                 mock_process_region_outbox.side_effect = raise_exception
                 mock_process_region_outbox.reset_mock()
                 with self.tasks():
                     with raises(OutboxFlushError):
-                        enqueue_outbox_jobs()
+                        enqueue_outbox_jobs(concurrency=concurrency)
                     assert mock_process_region_outbox.call_count == 1
 
             def ensure_converged():
@@ -560,7 +560,7 @@ class RegionOutboxTest(TestCase):
             assert future_scheduled_outbox.scheduled_for > start_time
             assert RegionOutbox.objects.count() == 1
 
-            assert RegionOutbox.find_scheduled_shards().count() == 0  # type: ignore
+            assert len(RegionOutbox.find_scheduled_shards()) == 0
 
             with outbox_runner():
                 pass
@@ -585,7 +585,7 @@ class RegionOutboxTest(TestCase):
             assert past_scheduled_outbox.scheduled_for < start_time
             assert RegionOutbox.objects.count() == 2
 
-            assert RegionOutbox.find_scheduled_shards().count() == 1  # type: ignore
+            assert len(RegionOutbox.find_scheduled_shards()) == 1
 
             with outbox_runner():
                 pass

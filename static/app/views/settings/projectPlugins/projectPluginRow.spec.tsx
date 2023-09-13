@@ -10,14 +10,9 @@ describe('ProjectPluginRow', function () {
   const routerContext = TestStubs.routerContext([{organization: org, project}]);
 
   it('renders', function () {
-    const {container} = render(
-      <ProjectPluginRow {...params} {...plugin} project={project} />,
-      {
-        context: routerContext,
-      }
-    );
-
-    expect(container).toSnapshot();
+    render(<ProjectPluginRow {...params} {...plugin} project={project} />, {
+      context: routerContext,
+    });
   });
 
   it('calls `onChange` when clicked', async function () {

@@ -79,6 +79,7 @@ class RpcSentryAppInstallation(RpcModel):
     sentry_app: RpcSentryApp = Field(default_factory=lambda: RpcSentryApp())
     date_deleted: Optional[datetime.datetime] = None
     uuid: str = ""
+    api_token: Optional[str] = None
 
 
 class RpcSentryAppComponent(RpcModel):

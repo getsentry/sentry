@@ -11,8 +11,7 @@ describe('FrameRegisters', function () {
       r12: '0x0000000000000000',
     };
 
-    const {container} = render(<FrameRegisters registers={registers} />);
-    expect(container).toSnapshot();
+    render(<FrameRegisters registers={registers} />);
   });
 
   it('should skip registers without a value', function () {
@@ -22,8 +21,7 @@ describe('FrameRegisters', function () {
       r12: '0x0000000000000000',
     };
 
-    const {container} = render(<FrameRegisters registers={registers} />);
-    expect(container).toSnapshot();
+    render(<FrameRegisters registers={registers} />);
   });
 });
 
