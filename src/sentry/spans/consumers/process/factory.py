@@ -3,14 +3,15 @@ from __future__ import annotations
 import random
 import uuid
 from datetime import datetime
-from typing import Any, Mapping, MutableMapping, Optional
+from typing import Any, Mapping, MutableMapping
 
 import msgpack
 import sentry_sdk
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
+from arroyo.dlq import InvalidMessage
 from arroyo.processing.strategies import CommitOffsets, Produce
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
-from arroyo.types import Commit, Message, Partition, Topic
+from arroyo.types import BrokerValue, Commit, Message, Partition, Topic
 from django.conf import settings
 
 from sentry import quotas
@@ -81,10 +82,18 @@ def _build_snuba_span(relay_span: Mapping[str, Any]) -> MutableMapping[str, Any]
     if span_data:
         for relay_tag, snuba_tag in TAG_MAPPING.items():
             tag_value = span_data.get(relay_tag)
-            if tag_value is None:
-                if snuba_tag == "group":
+            if snuba_tag == "group":
+                if tag_value is None:
                     metrics.incr("spans.missing_group")
-            else:
+                else:
+                    try:
+                        # Test if the value is valid hexadecimal.
+                        _ = int(tag_value, 16)
+                        # If valid, set the raw value to the tag.
+                        sentry_tags["group"] = tag_value
+                    except ValueError:
+                        metrics.incr("spans.invalid_group")
+            elif tag_value is not None:
                 sentry_tags[snuba_tag] = tag_value
 
     if "op" not in sentry_tags and (op := relay_span.get("op", "")) is not None:
@@ -94,14 +103,17 @@ def _build_snuba_span(relay_span: Mapping[str, Any]) -> MutableMapping[str, Any]
         sentry_tags["status"] = status
 
     if "status_code" in sentry_tags:
-        sentry_tags["status_code"] = int(sentry_tags["status_code"])
+        try:
+            sentry_tags["status_code"] = int(sentry_tags["status_code"])
+        except ValueError:
+            pass
 
     snuba_span["sentry_tags"] = sentry_tags
 
     grouping_config = load_span_grouping_config()
 
     if snuba_span["is_segment"]:
-        group = grouping_config.strategy.get_transaction_span_group(
+        group_raw = grouping_config.strategy.get_transaction_span_group(
             {"transaction": span_data.get("transaction", "")},
         )
     else:
@@ -119,9 +131,15 @@ def _build_snuba_span(relay_span: Mapping[str, Any]) -> MutableMapping[str, Any]
             data=None,
             same_process_as_parent=True,
         )
-        group = grouping_config.strategy.get_span_group(span)
+        group_raw = grouping_config.strategy.get_span_group(span)
 
-    snuba_span["group_raw"] = group or "0"
+    try:
+        _ = int(group_raw, 16)
+        snuba_span["group_raw"] = group_raw
+    except ValueError:
+        snuba_span["group_raw"] = "0"
+        metrics.incr("spans.invalid_group_raw")
+
     snuba_span["span_grouping_config"] = {"id": grouping_config.id}
 
     return snuba_span
@@ -144,14 +162,18 @@ def _process_message(message: Message[KafkaPayload]) -> KafkaPayload:
     return KafkaPayload(key=None, value=snuba_payload, headers=[])
 
 
-def process_message(message: Message[KafkaPayload]) -> Optional[KafkaPayload]:
+def process_message(message: Message[KafkaPayload]) -> KafkaPayload:
     try:
         return _process_message(message)
     except Exception as e:
         metrics.incr("spans.consumer.message_processing_error")
         if random.random() < 0.05:
             sentry_sdk.capture_exception(e)
-    return None
+        assert isinstance(message.value, BrokerValue)
+        raise InvalidMessage(
+            message.value.partition,
+            message.value.offset,
+        )
 
 
 class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
