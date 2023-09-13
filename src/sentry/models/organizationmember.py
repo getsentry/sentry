@@ -356,7 +356,7 @@ class OrganizationMember(Model):
     def generate_token(self):
         return secrets.token_hex(nbytes=32)
 
-    def get_invite_link(self):
+    def get_invite_link(self, referrer: str | None = None):
         if not self.is_pending or not self.invite_approved:
             return None
         path = reverse(
@@ -366,15 +366,18 @@ class OrganizationMember(Model):
                 "token": self.token or self.legacy_token,
             },
         )
-        return self.organization.absolute_url(path)
+        invite_link = self.organization.absolute_url(path)
+        if referrer:
+            invite_link += "?referrer=" + referrer
+        return invite_link
 
-    def send_invite_email(self):
+    def send_invite_email(self, referrer: str | None = None):
         from sentry.utils.email import MessageBuilder
 
         context = {
             "email": self.email,
             "organization": self.organization,
-            "url": self.get_invite_link(),
+            "url": self.get_invite_link(referrer),
         }
 
         msg = MessageBuilder(
