@@ -170,3 +170,54 @@ class ProjectFeedbackDetailTest(APITestCase):
             )
             response = self.client.get(path)
             assert response.status_code == 404
+
+    def test_other_project(self):
+        # Should not be able to query for another project's feedback
+        with self.feature({"organizations:user-feedback-ingest": True}):
+            Feedback.objects.create(
+                data={
+                    "environment": "prod",
+                    "feedback": {
+                        "contact_email": "michelle.zhang@sentry.io",
+                        "message": "I also really like this user-feedback feature!",
+                        "replay_id": "zc3b5xy8b79f417596f7a1tt4fffa5d2",
+                        "url": "https://docs.sentry.io/platforms/electron/",
+                    },
+                    "platform": "electron",
+                    "release": "version@1.3",
+                    "request": {
+                        "headers": {
+                            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36"
+                        }
+                    },
+                    "sdk": {"name": "sentry.javascript.react", "version": "5.18.1"},
+                    "tags": {"key": "value"},
+                    "user": {
+                        "email": "username@example.com",
+                        "id": "123",
+                        "ip_address": "127.0.0.1",
+                        "name": "user",
+                        "username": "user2270129",
+                    },
+                    "dist": "abc123",
+                    "contexts": {},
+                },
+                date_added=datetime.datetime.fromtimestamp(12344100333),
+                feedback_id=self.feedback_id_2,
+                url="https://docs.sentry.io/platforms/electron/",
+                message="I also really like this user-feedback feature!",
+                replay_id=self.replay_id_2,
+                project_id=self.project.id,
+                organization_id=self.organization.id,
+            )
+
+            path = reverse(
+                self.endpoint,
+                args=[
+                    self.organization.slug,
+                    "other_project",
+                    self.feedback_id_1,
+                ],
+            )
+            response = self.client.get(path)
+            assert response.status_code == 404
