@@ -143,7 +143,6 @@ class TransactionMRI(Enum):
 
     # Less granular coarse metrics
     COARSE_DURATION = "d:transactions/coarse.duration@millisecond"
-    COARSE_MEASUREMENTS_LCP = "d:transactions/coarse.measurements.lcp@millisecond"
 
 
 class SpanMRI(Enum):
