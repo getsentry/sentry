@@ -171,8 +171,8 @@ def process_message(message: Message[KafkaPayload]) -> KafkaPayload:
             sentry_sdk.capture_exception(e)
         assert isinstance(message.value, BrokerValue)
         raise InvalidMessage(
-            partition=message.value.partition,
-            offset=message.value.offset,
+            message.value.partition,
+            message.value.offset,
         )
 
 

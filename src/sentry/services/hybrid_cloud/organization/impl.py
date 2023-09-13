@@ -295,7 +295,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
 
         with outbox_context(transaction.atomic(router.db_for_write(Organization))):
             Organization.objects.filter(id=organization_id).update(flags=updates)
-            Organization.outbox_for_update(org_id=organization_id).save()
+            Organization(id=organization_id).outbox_for_update().save()
 
     @staticmethod
     def _deserialize_member_flags(flags: RpcOrganizationMemberFlags) -> int:
