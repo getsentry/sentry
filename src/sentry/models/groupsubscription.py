@@ -160,12 +160,13 @@ class GroupSubscriptionManager(BaseManager):
         Identify all users who are participating with a given issue.
         :param group: Group object
         """
+        from sentry import features
         from sentry.notifications.utils.participants import ParticipantMap
 
         all_possible_users = RpcActor.many_from_object(group.project.get_members_as_rpc_users())
         active_and_disabled_subscriptions = self.filter(
             group=group, user_id__in=[u.id for u in all_possible_users]
-        )
+        )  # TODO: how should this work for teams?
 
         notification_settings = notifications_service.get_settings_for_recipient_by_parent(
             type=NotificationSettingTypes.WORKFLOW,
@@ -195,6 +196,34 @@ class GroupSubscriptionManager(BaseManager):
                 )
                 result.add(provider, user, reason)
 
+        if features.has("organizations:team-workflow-notifications", group.organization):
+            all_possible_teams = RpcActor.many_from_object(group.project.teams)
+            active_and_disabled_team_subscriptions = self.filter(
+                group=group, team_id__in=[t.id for t in all_possible_teams]
+            )
+            subscriptions_by_team_id = {
+                subscription.team_id: subscription
+                for subscription in active_and_disabled_team_subscriptions
+            }
+            notification_settings_by_team_receipient = (
+                transform_to_notification_settings_by_recipient(
+                    notification_settings, all_possible_teams
+                )
+            )
+
+            for team in all_possible_teams:
+                subscription_option = subscriptions_by_team_id.get(team.id)
+                providers = where_should_be_participating(
+                    team, subscription_option, notification_settings_by_team_receipient
+                )
+                for provider in providers:
+                    reason = (
+                        subscription_option
+                        and subscription_option.reason
+                        or GroupSubscriptionReason.implicit
+                    )
+                    result.add(provider, user, reason)
+
         return result
 
     @staticmethod
@@ -204,6 +233,16 @@ class GroupSubscriptionManager(BaseManager):
         return list(
             GroupSubscription.objects.filter(group=group, is_active=True).values_list(
                 "user_id", flat=True
+            )
+        )
+
+    @staticmethod
+    def get_participating_team_ids(group: Group) -> Sequence[int]:
+        """Return the list of team ids participating in this issue."""
+
+        return list(
+            GroupSubscription.objects.filter(group=group, is_active=True).values_list(
+                "team_id", flat=True
             )
         )
 
