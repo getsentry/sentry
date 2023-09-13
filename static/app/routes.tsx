@@ -1594,6 +1594,13 @@ function buildRoutes() {
             () => import('sentry/views/performance/browser/interactionsLandingPage')
           )}
         />
+        <Route
+          path="webvitals/"
+          component={make(
+            () =>
+              import('sentry/views/performance/browser/webVitals/webVitalsLandingPage')
+          )}
+        />
       </Route>
       <Route path="summary/">
         <IndexRoute

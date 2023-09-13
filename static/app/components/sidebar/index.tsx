@@ -253,6 +253,13 @@ function Sidebar({location, organization}: Props) {
           id="performance-browser-interactions"
           icon={<SubitemDot collapsed={collapsed} />}
         />
+        <SidebarItem
+          {...sidebarItemProps}
+          label={<GuideAnchor target="starfish">{t('Web Vitals')}</GuideAnchor>}
+          to={`/organizations/${organization.slug}/performance/browser/webvitals`}
+          id="performance-browser-web-vitals"
+          icon={<SubitemDot collapsed={collapsed} />}
+        />
       </SidebarAccordion>
     </Feature>
   );
