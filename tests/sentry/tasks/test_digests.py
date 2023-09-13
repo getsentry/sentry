@@ -1,8 +1,6 @@
-import uuid
 from unittest import mock
 
 from django.core import mail
-from django.core.mail.message import EmailMultiAlternatives
 
 import sentry
 from sentry.digests.backends.redis import RedisBackend
@@ -32,51 +30,24 @@ class DeliverDigestTest(TestCase):
                 data={"timestamp": iso_format(before_now(days=1)), "fingerprint": ["group-2"]},
                 project_id=self.project.id,
             )
-            notification_uuid = str(uuid.uuid4())
-            backend.add(
-                key,
-                event_to_record(event, [rule], notification_uuid),
-                increment_delay=0,
-                maximum_delay=0,
-            )
-            backend.add(
-                key,
-                event_to_record(event_2, [rule], notification_uuid),
-                increment_delay=0,
-                maximum_delay=0,
-            )
+            backend.add(key, event_to_record(event, [rule]), increment_delay=0, maximum_delay=0)
+            backend.add(key, event_to_record(event_2, [rule]), increment_delay=0, maximum_delay=0)
             with self.tasks():
                 deliver_digest(key)
             assert "2 new alerts since" in mail.outbox[0].subject
 
     def test_old_key(self):
         self.run_test(f"mail:p:{self.project.id}")
-        message = mail.outbox[0]
-        assert isinstance(message, EmailMultiAlternatives)
-        assert isinstance(message.alternatives[0][0], str)
-        assert "notification_uuid" in message.alternatives[0][0]
 
     def test_new_key(self):
         self.run_test(f"mail:p:{self.project.id}:IssueOwners:")
-        message = mail.outbox[0]
-        assert isinstance(message, EmailMultiAlternatives)
-        assert isinstance(message.alternatives[0][0], str)
-        assert "notification_uuid" in message.alternatives[0][0]
 
     @with_feature("organizations:issue-alert-fallback-targeting")
     def test_fallthrough_choice_key(self):
         self.run_test(f"mail:p:{self.project.id}:IssueOwners::AllMembers")
-        message = mail.outbox[0]
-        assert isinstance(message, EmailMultiAlternatives)
-        assert isinstance(message.alternatives[0][0], str)
-        assert "notification_uuid" in message.alternatives[0][0]
 
     def test_member_key(self):
         self.run_test(f"mail:p:{self.project.id}:Member:{self.user.id}")
-        message = mail.outbox[0]
-        assert isinstance(message, EmailMultiAlternatives)
-        assert isinstance(message.alternatives[0][0], str)
-        assert "notification_uuid" in message.alternatives[0][0]
 
     def test_no_records(self):
         # This shouldn't error if no records are present
