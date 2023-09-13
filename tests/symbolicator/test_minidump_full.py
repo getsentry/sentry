@@ -13,6 +13,7 @@ from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.task_runner import BurstTaskRunner
 from sentry.testutils.relay import RelayStoreHelper
+from sentry.testutils.skips import requires_symbolicator
 from sentry.utils.safe import get_path
 from tests.symbolicator import insta_snapshot_native_stacktrace_data, redact_location
 
@@ -26,6 +27,7 @@ from tests.symbolicator import insta_snapshot_native_stacktrace_data, redact_loc
 # or add `127.0.0.1 host.docker.internal` entry to your `/etc/hosts`
 
 
+@requires_symbolicator
 @pytest.mark.snuba
 class SymbolicatorMinidumpIntegrationTest(RelayStoreHelper, TransactionTestCase):
     @pytest.fixture(autouse=True)
