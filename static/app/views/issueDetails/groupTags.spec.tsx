@@ -9,7 +9,7 @@ describe('GroupTags', function () {
   let tagsMock;
   beforeEach(function () {
     tagsMock = MockApiClient.addMockResponse({
-      url: '/issues/1/tags/',
+      url: '/organizations/org-slug/issues/1/tags/',
       body: TestStubs.Tags(),
     });
   });
@@ -26,7 +26,7 @@ describe('GroupTags', function () {
     );
 
     expect(tagsMock).toHaveBeenCalledWith(
-      '/issues/1/tags/',
+      '/organizations/org-slug/issues/1/tags/',
       expect.objectContaining({
         query: {environment: ['dev']},
       })

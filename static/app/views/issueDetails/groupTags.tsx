@@ -40,11 +40,11 @@ class GroupTags extends DeprecatedAsyncComponent<Props, State> {
   }
 
   getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
-    const {group, environments} = this.props;
+    const {group, environments, organization} = this.props;
     return [
       [
         'tagList',
-        `/issues/${group.id}/tags/`,
+        `/organizations/${organization.slug}/issues/${group.id}/tags/`,
         {
           query: {environment: environments},
         },
