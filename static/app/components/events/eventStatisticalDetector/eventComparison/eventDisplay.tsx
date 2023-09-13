@@ -253,7 +253,7 @@ const MinimapPositioningContainer = styled('div')`
   width: 100%;
 
   ${MinimapBackground} {
-    overflow-y: scroll;
+    overflow-y: auto;
   }
 `;
 
