@@ -257,37 +257,54 @@ class FunctionsQueryTest(ProfilesSnubaTestCase):
             minute=0, second=0, microsecond=0, tzinfo=timezone.utc
         )
 
+    @mock.patch("sentry.tasks.statistical_detectors.FUNCTIONS_PER_PROJECT", 1)
     def test_functions_query(self):
-        self.store_functions(
-            [
-                {
-                    "self_times_ns": [100 for _ in range(100)],
-                    "package": "foo",
-                    "function": "bar",
-                    # only in app functions should
-                    # appear in the results
-                    "in_app": True,
-                },
-                {
-                    "self_times_ns": [200 for _ in range(100)],
-                    "package": "baz",
-                    "function": "quz",
-                    # non in app functions should not
-                    # appear in the results
-                    "in_app": False,
-                },
-            ],
-            project=self.project,
-            timestamp=self.hour_ago,
-        )
+        projects = [
+            self.create_project(organization=self.organization, teams=[self.team], name="Foo"),
+            self.create_project(organization=self.organization, teams=[self.team], name="Bar"),
+        ]
 
-        results = query_functions([self.project], self.now)
+        for project in projects:
+            self.store_functions(
+                [
+                    {
+                        "self_times_ns": [100 for _ in range(100)],
+                        "package": "foo",
+                        "function": "foo",
+                        # only in app functions should
+                        # appear in the results
+                        "in_app": True,
+                    },
+                    {
+                        # this function has a lower count, so `foo` is prioritized
+                        "self_times_ns": [100 for _ in range(10)],
+                        "package": "bar",
+                        "function": "bar",
+                        # only in app functions should
+                        # appear in the results
+                        "in_app": True,
+                    },
+                    {
+                        "self_times_ns": [200 for _ in range(100)],
+                        "package": "baz",
+                        "function": "quz",
+                        # non in app functions should not
+                        # appear in the results
+                        "in_app": False,
+                    },
+                ],
+                project=project,
+                timestamp=self.hour_ago,
+            )
+
+        results = query_functions(projects, self.now)
         assert results == [
             DetectorPayload(
-                project_id=self.project.id,
-                group=self.function_fingerprint({"package": "foo", "function": "bar"}),
+                project_id=project.id,
+                group=self.function_fingerprint({"package": "foo", "function": "foo"}),
                 count=100,
                 value=pytest.approx(100),  # type: ignore[arg-type]
                 timestamp=self.hour_ago,
             )
+            for project in projects
         ]
