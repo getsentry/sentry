@@ -10,8 +10,10 @@ import {Tooltip, TooltipProps} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space, ValidSize} from 'sentry/styles/space';
 
+export type BadgeType = 'alpha' | 'beta' | 'new' | 'experimental';
+
 type BadgeProps = {
-  type: 'alpha' | 'beta' | 'new' | 'experimental';
+  type: BadgeType;
   expiresAt?: Date;
   title?: string;
   tooltipProps?: Partial<TooltipProps>;

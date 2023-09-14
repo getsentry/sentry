@@ -6,6 +6,7 @@ from sentry.models import Integration, Project, Rule
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.services.hybrid_cloud.integration.service import integration_service
 from sentry.tasks.base import instrumented_task, retry
+from sentry.utils import metrics
 
 ALERT_LEGACY_INTEGRATIONS = {"id": "sentry.rules.actions.notify_event.NotifyEventAction"}
 ALERT_LEGACY_INTEGRATIONS_WITH_NAME = {
@@ -16,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 @instrumented_task(
-    name="sentry.tasks.integrations.migrate_opsgenie_plugin",
+    name="sentry.tasks.integrations.migrate_opsgenie_plugins",
     queue="integrations",
     default_retry_delay=60 * 5,
     max_retries=5,
@@ -116,3 +117,4 @@ def migrate_opsgenie_plugin(integration_id: int, organization_id: int) -> None:
 
         # disable plugin
         plugin.reset_options(project)
+    metrics.incr("opsgenie.migration_success", skip_internal=False)

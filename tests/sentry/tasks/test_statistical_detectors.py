@@ -6,14 +6,17 @@ from django.db.models import F
 from freezegun import freeze_time
 
 from sentry.models import Project
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
+from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.statistical_detectors.detector import DetectorPayload
 from sentry.tasks.statistical_detectors import (
     detect_function_trends,
     detect_transaction_trends,
     query_functions,
+    query_transactions,
     run_detection,
 )
-from sentry.testutils.cases import ProfilesSnubaTestCase
+from sentry.testutils.cases import MetricsAPIBaseTestCase, ProfilesSnubaTestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now
@@ -106,7 +109,9 @@ def test_run_detection_options(
 
     if expected_performance_project:
         assert detect_transaction_trends.delay.called
-        detect_transaction_trends.delay.assert_has_calls([mock.call([project.id], timestamp)])
+        detect_transaction_trends.delay.assert_has_calls(
+            [mock.call([project.organization_id], [project.id], timestamp)]
+        )
     else:
         assert not detect_transaction_trends.delay.called
 
@@ -151,8 +156,16 @@ def test_run_detection_options_multiple_batches(
     assert detect_transaction_trends.delay.called
     detect_transaction_trends.delay.assert_has_calls(
         [
-            mock.call([project.id for project in projects[:5]], timestamp),
-            mock.call([project.id for project in projects[5:]], timestamp),
+            mock.call(
+                [project.organization_id for project in projects[:5]],
+                [project.id for project in projects[:5]],
+                timestamp,
+            ),
+            mock.call(
+                [project.organization_id for project in projects[5:]],
+                [project.id for project in projects[5:]],
+                timestamp,
+            ),
         ]
     )
     assert detect_function_trends.delay.called
@@ -180,7 +193,7 @@ def test_detect_transaction_trends_options(
     project,
 ):
     with override_options({"statistical_detectors.enable": enabled}):
-        detect_transaction_trends([project.id], timestamp)
+        detect_transaction_trends([project.organization_id], [project.id], timestamp)
     assert query_transactions.called == enabled
 
 
@@ -257,37 +270,115 @@ class FunctionsQueryTest(ProfilesSnubaTestCase):
             minute=0, second=0, microsecond=0, tzinfo=timezone.utc
         )
 
+    @mock.patch("sentry.tasks.statistical_detectors.FUNCTIONS_PER_PROJECT", 1)
     def test_functions_query(self):
-        self.store_functions(
-            [
-                {
-                    "self_times_ns": [100 for _ in range(100)],
-                    "package": "foo",
-                    "function": "bar",
-                    # only in app functions should
-                    # appear in the results
-                    "in_app": True,
-                },
-                {
-                    "self_times_ns": [200 for _ in range(100)],
-                    "package": "baz",
-                    "function": "quz",
-                    # non in app functions should not
-                    # appear in the results
-                    "in_app": False,
-                },
-            ],
-            project=self.project,
-            timestamp=self.hour_ago,
-        )
+        projects = [
+            self.create_project(organization=self.organization, teams=[self.team], name="Foo"),
+            self.create_project(organization=self.organization, teams=[self.team], name="Bar"),
+        ]
 
-        results = query_functions([self.project], self.now)
+        for project in projects:
+            self.store_functions(
+                [
+                    {
+                        "self_times_ns": [100 for _ in range(100)],
+                        "package": "foo",
+                        "function": "foo",
+                        # only in app functions should
+                        # appear in the results
+                        "in_app": True,
+                    },
+                    {
+                        # this function has a lower count, so `foo` is prioritized
+                        "self_times_ns": [100 for _ in range(10)],
+                        "package": "bar",
+                        "function": "bar",
+                        # only in app functions should
+                        # appear in the results
+                        "in_app": True,
+                    },
+                    {
+                        "self_times_ns": [200 for _ in range(100)],
+                        "package": "baz",
+                        "function": "quz",
+                        # non in app functions should not
+                        # appear in the results
+                        "in_app": False,
+                    },
+                ],
+                project=project,
+                timestamp=self.hour_ago,
+            )
+
+        results = query_functions(projects, self.now)
         assert results == [
             DetectorPayload(
-                project_id=self.project.id,
-                group=self.function_fingerprint({"package": "foo", "function": "bar"}),
+                project_id=project.id,
+                group=self.function_fingerprint({"package": "foo", "function": "foo"}),
                 count=100,
                 value=pytest.approx(100),  # type: ignore[arg-type]
                 timestamp=self.hour_ago,
             )
+            for project in projects
         ]
+
+
+@region_silo_test(stable=True)
+@pytest.mark.sentry_metrics
+class TestTransactionsQuery(MetricsAPIBaseTestCase):
+    def setUp(self):
+        super().setUp()
+        self.num_projects = 2
+        self.num_transactions = 4
+
+        self.hour_ago = (self.now - timedelta(hours=1)).replace(
+            minute=0, second=0, microsecond=0, tzinfo=timezone.utc
+        )
+        self.hour_ago_seconds = int(self.hour_ago.timestamp())
+        self.org = self.create_organization(owner=self.user)
+        self.projects = [
+            self.create_project(organization=self.org) for _ in range(self.num_projects)
+        ]
+
+        for project in self.projects:
+            for i in range(self.num_transactions):
+                self.store_metric(
+                    self.org.id,
+                    project.id,
+                    "distribution",
+                    TransactionMRI.DURATION.value,
+                    {"transaction": f"transaction_{i}"},
+                    self.hour_ago_seconds,
+                    1.0,
+                    UseCaseID.TRANSACTIONS,
+                )
+                self.store_metric(
+                    self.org.id,
+                    project.id,
+                    "distribution",
+                    TransactionMRI.DURATION.value,
+                    {"transaction": f"transaction_{i}"},
+                    self.hour_ago_seconds,
+                    9.5,
+                    UseCaseID.TRANSACTIONS,
+                )
+
+    @property
+    def now(self):
+        return MetricsAPIBaseTestCase.MOCK_DATETIME
+
+    def test_transactions_query(self) -> None:
+        res = query_transactions(
+            [self.org.id],
+            [p.id for p in self.projects],
+            self.hour_ago,
+            self.now,
+            self.num_transactions,
+        )
+        assert len(res) == len(self.projects) * self.num_transactions
+        for trend_payload in res:
+            assert trend_payload.count == 2
+            # p95 is  calculated by a probabilistic data structure, as such the value won't actually be 9.5 since we only have
+            # one sample at 9.5, but it should be close
+            assert trend_payload.value > 9
+            assert trend_payload.timestamp == self.hour_ago
