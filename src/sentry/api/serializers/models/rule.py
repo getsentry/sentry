@@ -9,12 +9,14 @@ from sentry.constants import ObjectStatus
 from sentry.models import (
     ACTOR_TYPES,
     Environment,
+    Organization,
     Rule,
     RuleActivity,
     RuleActivityType,
     actor_type_to_string,
 )
 from sentry.models.actor import Actor
+from sentry.models.rule import NeglectedRule
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.services.hybrid_cloud.user.service import user_service
@@ -194,5 +196,11 @@ class RuleSerializer(Serializer):
             d["snoozeForEveryone"] = snooze.user_id is None
         else:
             d["snooze"] = False
+
+        org = Organization.objects.get(id=obj.project.organization_id)
+        neglected_rule = NeglectedRule.objects.filter(rule=obj, organization=org, opted_out=False)
+        if neglected_rule.exists():
+            d["disableReason"] = "noisy"
+            d["disableDate"] = neglected_rule[0].disable_date
 
         return d
