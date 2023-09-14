@@ -829,6 +829,21 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         assert "tags" not in response.data[0]
         assert "measurements" not in response.data[0]
 
+    def test_simple_with_limit(self):
+        self.load_trace()
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                data={"project": -1, "limit": 200},
+                format="json",
+            )
+        assert response.status_code == 200, response.content
+        self.assert_trace_data(response.data[0])
+        # We shouldn't have detailed fields here
+        assert "transaction.status" not in response.data[0]
+        assert "tags" not in response.data[0]
+        assert "measurements" not in response.data[0]
+
     def test_detailed_trace(self):
         self.load_trace()
         with self.feature(self.FEATURES):
