@@ -65,6 +65,7 @@ class DatabaseBackedOrganizationProvisioningService(OrganizationProvisioningServ
                 user_id=provision_options.owning_user_id,
                 slug=provision_options.slug,
                 organization_name=provision_options.name,
+                create_default_team=provision_options.create_default_team,
             )
 
             org = org_creation_result.organization
