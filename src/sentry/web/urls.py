@@ -856,6 +856,18 @@ urlpatterns += [
                     react_page_view,
                     name="sentry-organization-event-detail",
                 ),
+                # User Feedback
+                re_path(
+                    r"^(?P<organization_slug>[\w_-]+)/user-feedback/",
+                    react_page_view,
+                    name="sentry-organization-user-feedback",
+                ),
+                # User Feedback v2
+                re_path(
+                    r"^(?P<organization_slug>[\w_-]+)/feedback/",
+                    react_page_view,
+                    name="sentry-organization-feedback",
+                ),
                 re_path(
                     r"^(?P<organization_slug>[\w_-]+)/data-export/(?P<data_export_id>\d+)/$",
                     react_page_view,
