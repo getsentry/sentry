@@ -17,7 +17,9 @@ from sentry.utils.pipeline import Pipeline
 
 logger = logging.getLogger("sentry.digests")
 
-Notification = namedtuple("Notification", "event rules notification_uuid")
+Notification = namedtuple(
+    "Notification", "event rules notification_uuid", defaults=(None, None, None)
+)
 
 
 def split_key(

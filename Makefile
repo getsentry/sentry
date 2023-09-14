@@ -127,26 +127,20 @@ test-js-ci: node-version-check
 
 test-python-ci: create-db
 	@echo "--> Running CI Python tests"
-	pytest tests/integration tests/sentry \
-		--ignore tests/sentry/eventstream/kafka \
-		--ignore tests/sentry/post_process_forwarder \
-		--ignore tests/sentry/snuba \
-		--ignore tests/sentry/search/events \
+	pytest tests/integration tests/sentry tests/sentry_plugins \
 		--ignore tests/sentry/ingest/ingest_consumer/test_ingest_consumer_kafka.py \
 		--ignore tests/sentry/region_to_control/test_region_to_control_kafka.py \
 		--cov . --cov-report="xml:.artifacts/python.coverage.xml"
 	@echo ""
 
+
 test-snuba: create-db
 	@echo "--> Running snuba tests"
-	pytest tests/snuba \
-		tests/sentry/eventstream/kafka \
-		tests/sentry/post_process_forwarder \
-		tests/sentry/snuba \
-		tests/sentry/search/events \
-		tests/sentry/event_manager \
+	pytest tests \
+		-m snuba_ci \
 		-vv --cov . --cov-report="xml:.artifacts/snuba.coverage.xml"
 	@echo ""
+
 
 test-tools:
 	@echo "--> Running tools tests"
@@ -175,11 +169,6 @@ test-acceptance: node-version-check
 	@echo "--> Building static assets"
 	@$(WEBPACK)
 	make run-acceptance
-
-test-plugins:
-	@echo "--> Running plugin tests"
-	pytest tests/sentry_plugins -vv --cov . --cov-report="xml:.artifacts/plugins.coverage.xml"
-	@echo ""
 
 test-relay-integration:
 	@echo "--> Running Relay integration tests"
