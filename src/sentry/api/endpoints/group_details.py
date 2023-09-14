@@ -266,16 +266,17 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
 
             if features.has("organizations:team-workflow-notifications", group.organization):
                 team_ids = GroupSubscriptionManager.get_participating_team_ids(group)
-                teams = []
 
-                for team_id in team_ids:
-                    team = serialize(
-                        list(Team.objects.filter(id=team_id))[0], request.user, TeamSerializer()
-                    )
-                    team["type"] = "team"
-                    teams.append(team)
+                teams = Team.objects.filter(id__in=team_ids)
 
-                participants.extend(teams)
+                serialized_teams = [
+                    serialize(team, request.user, TeamSerializer()) for team in teams
+                ]
+
+                for serialized_team in serialized_teams:
+                    serialized_team["type"] = "team"
+
+                participants.extend(serialized_teams)
 
             data.update({"participants": participants})
 
