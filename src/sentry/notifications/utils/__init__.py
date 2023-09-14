@@ -216,7 +216,7 @@ def get_integration_link(
 
     return organization.absolute_url(
         f"/settings/{organization.slug}/integrations/{integration_slug}/",
-        urlencode(query_params),
+        query=urlencode(query_params),
     )
 
 
