@@ -51,6 +51,7 @@ class SourceMapDebugIdProcessResult(TypedDict):
 
 
 class SourceMapReleaseProcessResult(TypedDict):
+    abs_path: str
     matching_source_file_names: List[str]
     matching_source_map_name: Optional[str]
     source_map_reference: Optional[str]
@@ -61,6 +62,7 @@ class SourceMapReleaseProcessResult(TypedDict):
 class SourceMapDebugFrame(TypedDict):
     debug_id_process: SourceMapDebugIdProcessResult
     release_process: Optional[SourceMapReleaseProcessResult]
+    needs_debugger: bool
 
 
 class SourceMapDebugException(TypedDict):
@@ -216,6 +218,8 @@ class SourceMapDebugBlueThunderEditionEndpoint(ProjectEndpoint):
                                     in debug_ids_with_uploaded_source_map,
                                 },
                                 "release_process": release_process_abs_path_data.get(abs_path),
+                                "needs_debugger": get_path(frame, "data", "symbolicated")
+                                is not True,
                             }
                         )
                 processed_exceptions.append({"frames": processed_frames})
@@ -240,6 +244,7 @@ def get_source_file_data(abs_path, project, release, event):
     filenme_choices = ReleaseFile.normalize(abs_path)
 
     path_data = {
+        "abs_path": abs_path,
         "matching_source_file_names": filenme_choices,
         "matching_source_map_name": None,
         "source_map_reference": None,
