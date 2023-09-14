@@ -1804,6 +1804,8 @@ SENTRY_FEATURES = {
     "projects:auto-associate-commits-to-release": False,
     # Starfish: extract metrics from the spans
     "projects:span-metrics-extraction": False,
+    "projects:span-metrics-extraction-ga-modules": False,
+    "projects:span-metrics-extraction-all-modules": False,
     # Metrics: Enable ingestion, storage, and rendering of custom metrics
     "organizations:custom-metrics": False,
     # Metrics: Enable creation of investigation dynamic sampling rules (rules that
