@@ -22,12 +22,14 @@ from sentry.api.helpers.group_index import (
 )
 from sentry.api.serializers import GroupSerializer, GroupSerializerSnuba, serialize
 from sentry.api.serializers.models.plugin import PluginSerializer, is_plugin_deprecated
+from sentry.api.serializers.models.team import TeamSerializer
 from sentry.issues.constants import get_issue_tsdb_group_model
 from sentry.issues.escalating_group_forecast import EscalatingGroupForecast
 from sentry.issues.grouptype import GroupCategory
 from sentry.models import Activity, Group, GroupSeen, GroupSubscriptionManager, UserReport
 from sentry.models.groupinbox import get_inbox_details
 from sentry.models.groupowner import get_owner_details
+from sentry.models.team import Team
 from sentry.plugins.base import plugins
 from sentry.plugins.bases.issue2 import IssueTrackingPlugin2
 from sentry.services.hybrid_cloud.user.service import user_service
@@ -259,10 +261,20 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                 as_user=request.user,
             )
 
+            for participant in participants:
+                participant["type"] = "user"
+
             if features.has("organizations:team-workflow-notifications", group.organization):
-                teams = serialize(
-                    GroupSubscriptionManager.get_participating_team_ids(group), request.user
-                )
+                team_ids = GroupSubscriptionManager.get_participating_team_ids(group)
+                teams = []
+
+                for team_id in team_ids:
+                    team = serialize(
+                        list(Team.objects.filter(id=team_id))[0], request.user, TeamSerializer()
+                    )
+                    team["type"] = "team"
+                    teams.append(team)
+
                 participants.extend(teams)
 
             data.update({"participants": participants})
