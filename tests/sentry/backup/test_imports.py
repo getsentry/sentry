@@ -32,6 +32,7 @@ from sentry.models.useremail import UserEmail
 from sentry.models.userip import UserIP
 from sentry.models.userpermission import UserPermission
 from sentry.models.userrole import UserRole, UserRoleUser
+from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.backups import (
     NOOP_PRINTER,
@@ -636,7 +637,7 @@ class CollisionTests(ImportTestCase):
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
 
-            # After exporting and clearing the database, insert a copy of the same `ProjectKey` as
+            # After exporting and clearing the database, insert a copy of the same `OrgAuthToken` as
             # the one found in the import.
             org = self.create_organization()
             colliding.organization_id = org.id
@@ -692,6 +693,53 @@ class CollisionTests(ImportTestCase):
         assert ProjectKey.objects.count() == 4
         assert ProjectKey.objects.filter(public_key=colliding.public_key).count() == 1
         assert ProjectKey.objects.filter(secret_key=colliding.secret_key).count() == 1
+
+    def test_colliding_query_subscription(self):
+        # We need a celery task running to properly test the `subscription_id` assignment, otherwise
+        # its value just defaults to `None`.
+        with self.tasks():
+            owner = self.create_exhaustive_user("owner")
+            invited = self.create_exhaustive_user("invited")
+            member = self.create_exhaustive_user("member")
+            self.create_exhaustive_organization("some-org", owner, invited, [member])
+
+            # Take note of the `QuerySubscription` that was created by the exhaustive organization -
+            # this is the one we'll be importing.
+            colliding_snuba_query = SnubaQuery.objects.all().first()
+            colliding_query_subscription = QuerySubscription.objects.filter(
+                snuba_query=colliding_snuba_query
+            ).first()
+
+            with tempfile.TemporaryDirectory() as tmp_dir:
+                tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
+
+                # After exporting and clearing the database, insert a copy of the same
+                # `QuerySubscription.subscription_id` as the one found in the import.
+                colliding_snuba_query.save()
+                colliding_query_subscription.project = self.create_project()
+                colliding_query_subscription.snuba_query = colliding_snuba_query
+                colliding_query_subscription.save()
+
+                assert SnubaQuery.objects.count() == 1
+                assert QuerySubscription.objects.count() == 1
+                assert (
+                    QuerySubscription.objects.filter(
+                        subscription_id=colliding_query_subscription.subscription_id
+                    ).count()
+                    == 1
+                )
+
+                with open(tmp_path) as tmp_file:
+                    import_in_organization_scope(tmp_file, printer=NOOP_PRINTER)
+
+            assert SnubaQuery.objects.count() > 1
+            assert QuerySubscription.objects.count() > 1
+            assert (
+                QuerySubscription.objects.filter(
+                    subscription_id=colliding_query_subscription.subscription_id
+                ).count()
+                == 1
+            )
 
     def test_colliding_user_with_merging_enabled_in_user_scope(self):
         self.create_exhaustive_user(username="owner", email="owner@example.com")
