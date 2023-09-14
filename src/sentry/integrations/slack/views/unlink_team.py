@@ -14,7 +14,7 @@ from sentry.web.decorators import transaction_start
 from sentry.web.frontend.base import BaseView, region_silo_view
 from sentry.web.helpers import render_to_response
 
-from ..utils import is_valid_role
+from ..utils import is_valid_role, logger
 from . import build_linking_url as base_build_linking_url
 from . import never_cache, render_error_page
 
@@ -71,6 +71,10 @@ class SlackUnlinkTeamView(BaseView):
         if organization is None:
             raise Http404
         if not is_valid_role(om):
+            logger.info(
+                "slack.action.invalid-role",
+                extra={"slack_id": integration.external_id, "user_id": request.user.id},
+            )
             raise Http404
 
         channel_name = params["channel_name"]
