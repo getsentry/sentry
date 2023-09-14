@@ -93,6 +93,12 @@ class SlackIntegrationLinkTeamTestBase(TestCase):
         self.create_member(organization=self.organization, user=user, teams=[admin_team])
         self.login_as(user)
 
+    def _create_user_with_member_role_through_team(self):
+        user = self.create_user(email="foo@example.com")
+        member_team = self.create_team(org_role="member")
+        self.create_member(organization=self.organization, user=user, teams=[member_team])
+        self.login_as(user)
+
 
 @region_silo_test(stable=True)
 class SlackIntegrationLinkTeamTest(SlackIntegrationLinkTeamTestBase):
@@ -229,6 +235,14 @@ class SlackIntegrationUnlinkTeamTest(SlackIntegrationLinkTeamTestBase):
         self.test_unlink_team()
 
     @responses.activate
+    def test_unlink_team_with_member_role_through_team(self):
+        """Test that a team can not be unlinked from a Slack channel with a member role"""
+        self._create_user_with_member_role_through_team()
+
+        response = self.client.get(self.url, content_type="application/x-www-form-urlencoded")
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    @responses.activate
     def test_unlink_multiple_teams(self):
         """
         Test that if you have linked multiple teams to a single channel, when
@@ -298,3 +312,9 @@ class SlackIntegrationUnlinkTeamTest(SlackIntegrationLinkTeamTestBase):
                 organization=team.organization, team_ids=[team.id]
             )
             assert len(external_actors) == 0
+
+    @responses.activate
+    def test_unlink_team_invalid_method(self):
+        """Test for an invalid method response"""
+        response = self.client.put(self.url, content_type="application/x-www-form-urlencoded")
+        assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
