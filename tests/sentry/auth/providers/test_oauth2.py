@@ -13,6 +13,12 @@ from sentry.testutils.silo import control_silo_test
 class DummyOAuth2Provider(OAuth2Provider):
     name = "dummy"
 
+    def get_client_id(self):
+        raise NotImplementedError
+
+    def get_client_secret(self):
+        raise NotImplementedError
+
     def get_refresh_token_url(self) -> str:
         raise NotImplementedError
 
