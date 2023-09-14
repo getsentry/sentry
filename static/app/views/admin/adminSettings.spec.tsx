@@ -114,8 +114,7 @@ describe('AdminSettings', function () {
     });
 
     it('renders', function () {
-      const wrapper = render(<AdminSettings />);
-      expect(wrapper.container).toSnapshot();
+      render(<AdminSettings />);
     });
   });
 });

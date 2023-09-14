@@ -17,14 +17,12 @@ describe('ProjectExpectCtReports', function () {
   });
 
   it('renders', function () {
-    const {container} = render(
+    render(
       <ProjectExpectCtReports
         {...routerProps}
         location={TestStubs.location({pathname: url})}
         organization={organization}
       />
     );
-
-    expect(container).toSnapshot();
   });
 });

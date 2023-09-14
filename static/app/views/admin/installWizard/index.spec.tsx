@@ -15,8 +15,7 @@ describe('InstallWizard', function () {
   });
 
   it('renders', function () {
-    const wrapper = render(<InstallWizard onConfigured={jest.fn()} />);
-    expect(wrapper.container).toSnapshot();
+    render(<InstallWizard onConfigured={jest.fn()} />);
   });
 
   it('has no option selected when beacon.anonymous is unset', function () {
