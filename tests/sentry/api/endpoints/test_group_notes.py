@@ -319,7 +319,7 @@ class GroupNoteCreateTest(APITestCase):
             url,
             format="json",
             data={
-                "text": "look at this **team-galactic** **maxie@teammagma.com**",
+                "text": "look at this **team-magma** **maxie@teammagma.com**",
                 "mentions": ["team:%s" % self.team.id, "%s" % user.id],
             },
         )
