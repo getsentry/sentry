@@ -18,6 +18,8 @@ from sentry.models import (
     User,
     remove_group_from_inbox,
 )
+from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.services.hybrid_cloud.user.serial import serialize_generic_user
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.signals import issue_archived
 from sentry.types.group import GroupSubStatus
@@ -81,7 +83,7 @@ def handle_ignored(
     group_list: Sequence[Group],
     status_details: Dict[str, Any],
     acting_user: User | None,
-    user: User,
+    user: User | RpcUser,
 ) -> IgnoredStatusDetails:
     """
     Handle issues that are ignored and create a snooze for them.
@@ -131,7 +133,7 @@ def handle_ignored(
             )
             with in_test_hide_transaction_boundary():
                 serialized_user = user_service.serialize_many(
-                    filter=dict(user_ids=[user.id]), as_user=user
+                    filter=dict(user_ids=[user.id]), as_user=serialize_generic_user(user)
                 )
             new_status_details = IgnoredStatusDetails(
                 ignoreCount=ignore_count,
