@@ -5,10 +5,12 @@ import dataclasses
 import functools
 from typing import Any, List
 
+from django.conf import settings
 from django.core.handlers.wsgi import WSGIRequest
 
 from sentry.models.outbox import (
     ControlOutbox,
+    OutboxBase,
     OutboxCategory,
     OutboxScope,
     WebhookProviderIdentifier,
@@ -44,9 +46,14 @@ def outbox_runner(wrapped: Any | None = None) -> Any:
 
     with TaskRunner(), assume_test_silo_mode(SiloMode.MONOLITH):
         for i in range(10):
-            if not enqueue_outbox_jobs(
-                concurrency=1, process_outbox_backfills=False
-            ) and not enqueue_outbox_jobs_control(concurrency=1, process_outbox_backfills=False):
+            enqueue_outbox_jobs(concurrency=1, process_outbox_backfills=False)
+            enqueue_outbox_jobs_control(concurrency=1, process_outbox_backfills=False)
+
+            if not any(
+                OutboxBase.from_outbox_name(outbox_name).find_scheduled_shards()
+                for outbox_names in settings.SENTRY_OUTBOX_MODELS.values()
+                for outbox_name in outbox_names
+            ):
                 break
         else:
             raise OutboxRecursionLimitError

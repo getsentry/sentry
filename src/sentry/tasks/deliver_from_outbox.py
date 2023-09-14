@@ -22,8 +22,8 @@ from sentry.utils.env import in_test_environment
 )
 def enqueue_outbox_jobs_control(
     concurrency: int | None = None, process_outbox_backfills=True, **kwargs
-) -> bool:
-    return schedule_batch(
+):
+    schedule_batch(
         silo_mode=SiloMode.CONTROL,
         drain_task=drain_outbox_shards_control,
         concurrency=concurrency,
@@ -32,10 +32,8 @@ def enqueue_outbox_jobs_control(
 
 
 @instrumented_task(name="sentry.tasks.enqueue_outbox_jobs", silo_mode=SiloMode.REGION)
-def enqueue_outbox_jobs(
-    concurrency: int | None = None, process_outbox_backfills=True, **kwargs
-) -> bool:
-    return schedule_batch(
+def enqueue_outbox_jobs(concurrency: int | None = None, process_outbox_backfills=True, **kwargs):
+    schedule_batch(
         silo_mode=SiloMode.REGION,
         drain_task=drain_outbox_shards,
         concurrency=concurrency,
@@ -57,7 +55,7 @@ def schedule_batch(
     drain_task: Task,
     concurrency: int | None = None,
     process_outbox_backfills=True,
-) -> bool:
+):
     scheduled_count = 0
 
     if not concurrency:
@@ -87,8 +85,6 @@ def schedule_batch(
     except Exception:
         capture_exception()
         raise
-
-    return scheduled_count > 0
 
 
 @instrumented_task(
@@ -146,7 +142,8 @@ def drain_outbox_shards_control(
 
 def process_outbox_batch(
     outbox_identifier_hi: int, outbox_identifier_low: int, outbox_model: Type[OutboxBase]
-):
+) -> int:
+    processed_count: int = 0
     for shard_attributes in outbox_model.find_scheduled_shards(
         outbox_identifier_low, outbox_identifier_hi
     ):
@@ -156,6 +153,7 @@ def process_outbox_batch(
         if not shard_outbox:
             continue
         try:
+            processed_count += 1
             shard_outbox.drain_shard(flush_all=True)
         except Exception:
             capture_exception()
@@ -163,3 +161,4 @@ def process_outbox_batch(
             # problems aggressively.
             if in_test_environment():
                 raise
+    return processed_count
