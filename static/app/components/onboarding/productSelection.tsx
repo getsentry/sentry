@@ -150,6 +150,7 @@ export const platformProductAvailability = {
   'python-starlette': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-tryton': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-wsgi': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'java-spring-boot': [ProductSolution.PERFORMANCE_MONITORING],
 } as Record<PlatformKey, ProductSolution[]>;
 
 type ProductProps = {
@@ -269,7 +270,6 @@ export function ProductSelection({
   platform,
   productsPerPlatform = platformProductAvailability,
   skipLazyLoader,
-  withBottomMargin,
 }: ProductSelectionProps) {
   const router = useRouter();
   const urlProducts = decodeList(router.location.query.product);
@@ -416,7 +416,6 @@ export function ProductSelection({
           })}
         </AlternativeInstallationAlert>
       )}
-      <Divider withBottomMargin={withBottomMargin} />
     </Fragment>
   );
 }
@@ -469,14 +468,6 @@ const ProductButtonInner = styled('div')`
   grid-template-columns: repeat(3, max-content);
   gap: ${space(1)};
   align-items: center;
-`;
-
-const Divider = styled('hr')<{withBottomMargin?: boolean}>`
-  height: 1px;
-  width: 100%;
-  background: ${p => p.theme.border};
-  border: none;
-  ${p => p.withBottomMargin && `margin-bottom: ${space(3)}`}
 `;
 
 const TooltipDescription = styled('div')`

@@ -148,6 +148,7 @@ export function SetupDocsLoader({
         skipLazyLoader={close}
         platform={currentPlatform}
       />
+      <Divider />
       {projectKeyUpdateError && (
         <LoadingError
           message={t('Failed to update the project key with the selected products.')}
@@ -349,4 +350,11 @@ const ToggleButton = styled(Button)`
   :hover {
     color: ${p => p.theme.gray500};
   }
+`;
+
+const Divider = styled('hr')<{withBottomMargin?: boolean}>`
+  height: 1px;
+  width: 100%;
+  background: ${p => p.theme.border};
+  border: none;
 `;
