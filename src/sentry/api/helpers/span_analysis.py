@@ -35,7 +35,7 @@ def span_analysis(data):
     removed_spans = [x for x in spans_before if x not in spans_after]
     new_spans = [x for x in spans_after if x not in spans_before]
 
-    # create two dataframes for period 0 and 1
+    # create two dataframes for period 0 and 1 and keep only the same spans in both periods
 
     span_data_p0 = [row for row in data if row['period'] == 0 and row['k'] in constant_spans]
     span_data_p1 = [row for row in data if row['period'] == 1 and row['k'] in constant_spans]
