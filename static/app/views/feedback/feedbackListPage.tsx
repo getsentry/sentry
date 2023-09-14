@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import FeedbackTable from 'sentry/components/feedback/table/feedbackTable';
+import useFeedbackListQueryParams from 'sentry/components/feedback/useFeedbackListQueryParams';
 import useFetchFeedbackList from 'sentry/components/feedback/useFetchFeedbackList';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
@@ -22,7 +23,11 @@ interface Props extends RouteComponentProps<{}, {}, FeedbackListQueryParams> {}
 export default function FeedbackListPage({location}: Props) {
   const organization = useOrganization();
 
-  const {isLoading, isError, data, pageLinks} = useFetchFeedbackList({}, {});
+  const query = useFeedbackListQueryParams({
+    location,
+    queryReferrer: 'feedback_list_page',
+  });
+  const {isLoading, isError, data, pageLinks} = useFetchFeedbackList({query}, {});
 
   return (
     <SentryDocumentTitle title={`Feedback v2 — ${organization.slug}`}>
