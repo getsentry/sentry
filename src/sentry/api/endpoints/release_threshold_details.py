@@ -1,4 +1,4 @@
-from typing import Any, Tuple
+from typing import Any
 
 from django.http import HttpResponse
 from rest_framework.request import Request
@@ -29,7 +29,7 @@ class ReleaseThresholdDetailsEndpoint(ProjectEndpoint):
         threshold_id: str,
         *args,
         **kwargs,
-    ) -> Tuple[Any, Any]:
+    ) -> Any:
         parsed_args, parsed_kwargs = super().convert_args(
             request, organization_slug, project_slug, *args, **kwargs
         )
