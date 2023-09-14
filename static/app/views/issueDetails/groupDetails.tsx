@@ -297,6 +297,11 @@ function useEventApiQuery({
           query: omit(qs.parse(window.location.search), 'query'),
         });
 
+        // 404s are expected if all events have exceeded retention
+        if (latestOrHelpfulEvent.error.status === 404) {
+          return;
+        }
+
         const scope = new Sentry.Scope();
         scope.setExtras({
           groupId,
