@@ -4,6 +4,7 @@
 import fs from 'fs';
 import path from 'path';
 
+import {WebpackReactSourcemapsPlugin} from '@acemarke/react-prod-sourcemaps';
 import CompressionPlugin from 'compression-webpack-plugin';
 import CopyPlugin from 'copy-webpack-plugin';
 import CssMinimizerPlugin from 'css-minimizer-webpack-plugin';
@@ -409,6 +410,8 @@ const appConfig: Configuration = {
           : []),
       ],
     }),
+
+    WebpackReactSourcemapsPlugin({mode: 'strict', debug: true}),
   ],
 
   resolve: {
