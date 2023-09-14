@@ -1,6 +1,6 @@
 import {browserHistory} from 'react-router';
 import {useTheme} from '@emotion/react';
-import type {LegendComponentOption} from 'echarts';
+import type {LegendComponentOption, LineSeriesOption} from 'echarts';
 
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import {LineChart, LineChartProps} from 'sentry/components/charts/lineChart';
@@ -45,6 +45,7 @@ type Props = ViewProps & {
   projects: Project[];
   statsData: TrendsStats;
   trendChangeType: TrendChangeType;
+  additionalSeries?: LineSeriesOption[];
   disableLegend?: boolean;
   disableXAxis?: boolean;
   grid?: LineChartProps['grid'];
@@ -104,6 +105,7 @@ export function Chart({
   projects,
   project,
   organization,
+  additionalSeries,
 }: Props) {
   const location = useLocation();
   const router = useRouter();
@@ -245,6 +247,7 @@ export function Chart({
                   height={height}
                   {...zoomRenderProps}
                   {...chartOptions}
+                  additionalSeries={additionalSeries}
                   onLegendSelectChanged={handleLegendSelectChanged}
                   series={series}
                   seriesOptions={{
