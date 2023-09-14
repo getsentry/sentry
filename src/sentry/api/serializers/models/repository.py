@@ -25,4 +25,5 @@ class RepositorySerializer(Serializer):
             "dateCreated": obj.date_added,
             "integrationId": integration_id,
             "externalSlug": external_slug,
+            "externalId": obj.external_id,
         }
