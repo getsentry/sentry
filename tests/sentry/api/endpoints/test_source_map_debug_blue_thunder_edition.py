@@ -1,6 +1,7 @@
 import zipfile
 from io import BytesIO
 
+from django.core.files.base import ContentFile
 from rest_framework import status
 
 from sentry.models.artifactbundle import (
@@ -577,9 +578,11 @@ class SourceMapDebugBlueThunderEditionEndpointTestCase(APITestCase):
 
             release = Release.objects.get(organization=self.organization, version=event.release)
 
-            file = File.objects.create(
-                name="bundle.js", type="release.file", headers={"Sourcemap": "bundle.js.map"}
+            file = File.objects.create(name="bundle.js", type="release.file")
+            fileobj = ContentFile(
+                b'console.log("hello world");\n//# sourceMappingURL=bundle.js.map\n'
             )
+            file.putfile(fileobj)
 
             ReleaseFile.objects.create(
                 organization_id=self.organization.id,

@@ -264,6 +264,7 @@ def get_source_file_data(abs_path, project, release, event):
         ):
             path_data["source_file_lookup_result"] = "found"
             source_map_reference = None
+            sourcemap_header = None
             if possible_release_file.file.headers:
                 headers = ArtifactBundleArchive.normalize_headers(
                     possible_release_file.file.headers
@@ -272,15 +273,15 @@ def get_source_file_data(abs_path, project, release, event):
                 sourcemap_header = (
                     force_bytes(sourcemap_header) if sourcemap_header is not None else None
                 )
-                try:
-                    source_map_reference = find_sourcemap(
-                        sourcemap_header, possible_release_file.file.getfile().read()
-                    )
-                except AssertionError:
-                    pass
-                source_map_reference = (
-                    force_str(source_map_reference) if source_map_reference is not None else None
+
+            try:
+                source_map_reference = find_sourcemap(
+                    sourcemap_header, possible_release_file.file.getfile().read()
                 )
+                if source_map_reference is not None:
+                    source_map_reference = force_str(source_map_reference)
+            except AssertionError:
+                pass
 
             matching_source_map_name = None
             if source_map_reference is not None:
