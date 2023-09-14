@@ -479,7 +479,7 @@ def digest(request):
     }
     records = []
     group_generator = make_group_generator(random, project)
-
+    notification_uuid = str(uuid.uuid4())
     for _ in range(random.randint(1, 30)):
         group = next(group_generator)
         state["groups"][group.id] = group
@@ -511,6 +511,7 @@ def digest(request):
                         random.sample(
                             list(state["rules"].keys()), random.randint(1, len(state["rules"]))
                         ),
+                        notification_uuid,
                     ),
                     to_timestamp(event.datetime),
                 )
@@ -534,6 +535,7 @@ def digest(request):
                     random.sample(
                         list(state["rules"].keys()), random.randint(1, len(state["rules"]))
                     ),
+                    notification_uuid,
                 ),
                 # this is required for acceptance tests to pass as the EventManager won't accept a timestamp in the past
                 to_timestamp(datetime(2016, 6, 22, 16, 16, 0, tzinfo=timezone.utc)),
@@ -557,6 +559,7 @@ def digest(request):
                     random.sample(
                         list(state["rules"].keys()), random.randint(1, len(state["rules"]))
                     ),
+                    notification_uuid,
                 ),
                 # this is required for acceptance tests to pass as the EventManager won't accept a timestamp in the past
                 to_timestamp(datetime(2016, 6, 22, 16, 16, 0, tzinfo=timezone.utc)),
