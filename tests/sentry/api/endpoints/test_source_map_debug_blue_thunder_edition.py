@@ -48,6 +48,19 @@ class SourceMapDebugBlueThunderEditionEndpointTestCase(APITestCase):
         self.login_as(self.user)
         return super().setUp()
 
+    def test_no_feature_flag(self):
+        event = self.store_event(data=create_event([]), project_id=self.project.id)
+        resp = self.get_error_response(
+            self.organization.slug,
+            self.project.slug,
+            event.event_id,
+            status_code=status.HTTP_404_NOT_FOUND,
+        )
+        assert (
+            resp.data["detail"]
+            == "Endpoint not available without 'organizations:source-maps-debugger-blue-thunder-edition' feature flag"
+        )
+
     def test_missing_event(self):
         with self.feature("organizations:source-maps-debugger-blue-thunder-edition"):
             resp = self.get_error_response(
