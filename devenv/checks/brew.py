@@ -1,7 +1,8 @@
 import subprocess
 from typing import Tuple
 
-from devenv.lib import brew, fs
+from devenv.lib import fs
+from devenv.lib_check import brew
 from devenv.lib_check.types import checker, fixer
 
 tags = {"deps"}
