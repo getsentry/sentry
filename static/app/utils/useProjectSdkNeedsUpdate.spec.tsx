@@ -32,22 +32,6 @@ function mockCurrentVersion(
   });
 }
 describe('useProjectSdkNeedsUpdate', () => {
-  // it('should return isFetching=true when sdk updates are not yet resolved', () => {
-  //   // mockUseProjectSdkUpdates.mockReturnValue({
-  //   //   type: 'initial',
-  //   // });
-
-  //   const {result} = reactHooks.renderHook(useProjectSdkNeedsUpdate, {
-  //     initialProps: {
-  //       minVersion: '1.0.0',
-  //       organization: MOCK_ORG,
-  //       projectId: [MOCK_PROJECT.id],
-  //     },
-  //   });
-  //   expect(result.current.isFetching).toBeTruthy();
-  //   expect(result.current.needsUpdate).toBeUndefined();
-  // });
-
   it('should not need an update if the sdk version is above the min version', async () => {
     mockCurrentVersion([
       {
