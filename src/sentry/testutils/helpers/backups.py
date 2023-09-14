@@ -262,14 +262,6 @@ class BackupTestCase(TransactionTestCase):
         )
 
         # Auth*
-        OrgAuthToken.objects.create(
-            organization_id=org.id,
-            name=f"token 1 for {slug}",
-            token_hashed=f"ABCDEF{slug}",
-            token_last_characters="xyz1",
-            scope_list=["org:ci"],
-            date_last_used=None,
-        )
         ApiKey.objects.create(key=uuid4().hex, organization_id=org.id)
         auth_provider = AuthProvider.objects.create(organization_id=org.id, provider="sentry")
         AuthIdentity.objects.create(
@@ -297,6 +289,17 @@ class BackupTestCase(TransactionTestCase):
             project=project, raw='{"hello":"hello"}', schema={"hello": "hello"}
         )
         ProjectRedirect.record(project, f"project_slug_in_{slug}")
+
+        # OrgAuthToken
+        OrgAuthToken.objects.create(
+            organization_id=org.id,
+            name=f"token 1 for {slug}",
+            token_hashed=f"ABCDEF{slug}",
+            token_last_characters="xyz1",
+            scope_list=["org:ci"],
+            date_last_used=None,
+            project_last_used_id=project.id,
+        )
 
         # Integration*
         integration = Integration.objects.create(
