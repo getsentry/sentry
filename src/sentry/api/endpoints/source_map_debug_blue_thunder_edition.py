@@ -434,7 +434,7 @@ def get_sdk_debug_id_support(event_data):
     try:
         sdk_release_registry = get_sdk_index()
         official_sdks = [
-            sdk.startswith("sentry.javascript.") for sdk in sdk_release_registry.keys()
+            sdk for sdk in sdk_release_registry.keys() if sdk.startswith("sentry.javascript.")
         ]
     except Exception as e:
         sentry_sdk.capture_exception(e)
