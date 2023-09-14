@@ -43,7 +43,7 @@ NULL_GROUP = "00"
 @region_silo_endpoint
 class OrganizationSpansAggregationEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.EXPERIMENTAL,
     }
 
     aggregated_tree = {}
