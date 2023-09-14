@@ -1,4 +1,3 @@
-from datetime import timedelta
 from enum import Enum, IntEnum
 from typing import Sequence, Tuple
 
@@ -133,18 +132,13 @@ class RuleActivity(Model):
         db_table = "sentry_ruleactivity"
 
 
-def in_fourteen_days():
-    # Do not ever ever ever move or remove this!! It's used in migrations for the NeglectedRule table
-    return timezone.now() + timedelta(days=14)
-
-
 @region_silo_only_model
 class NeglectedRule(Model):
     __relocation_scope__ = RelocationScope.Organization
 
-    rule_id = FlexibleForeignKey("sentry.Rule")
-    organization_id = FlexibleForeignKey("sentry.Organization")
-    disable_date = models.DateTimeField(default=in_fourteen_days)
+    rule = FlexibleForeignKey("sentry.Rule")
+    organization = FlexibleForeignKey("sentry.Organization")
+    disable_date = models.DateTimeField()
     opted_out = models.BooleanField(default=False)
-    has_sent_initial_email = models.BooleanField(default=False)
-    has_sent_final_email = models.BooleanField(default=False)
+    sent_initial_email = models.DateTimeField()
+    sent_final_email = models.DateTimeField()

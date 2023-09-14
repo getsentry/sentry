@@ -1804,11 +1804,11 @@
   },
   "sentry.NeglectedRule": {
     "foreign_keys": {
-      "organization_id": {
+      "organization": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.Organization"
       },
-      "rule_id": {
+      "rule": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.Rule"
       }
