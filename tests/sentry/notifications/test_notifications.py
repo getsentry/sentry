@@ -28,6 +28,7 @@ from sentry.tasks.post_process import post_process_group
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.eventprocessing import write_event_to_cache
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.utils import json
 
@@ -234,6 +235,67 @@ class ActivityNotificationTest(APITestCase):
     @responses.activate
     @patch("sentry.analytics.record")
     def test_sends_deployment_notification(self, record_analytics):
+        """
+        Test that an email AND Slack notification are sent with
+        the expected values when a release is deployed.
+        """
+
+        release = self.create_release()
+        version_parsed = self.version_parsed = parse_release(release.version)["description"]
+        with assume_test_silo_mode(SiloMode.REGION):
+            url = (
+                f"/api/0/organizations/{self.organization.slug}/releases/{release.version}/deploys/"
+            )
+            with self.tasks():
+                response = self.client.post(
+                    url, format="json", data={"environment": self.environment.name}
+                )
+            assert response.status_code == 201, response.content
+
+        msg = mail.outbox[0]
+        assert isinstance(msg, EmailMultiAlternatives)
+        # check the txt version
+        assert f"Version {version_parsed} was deployed to {self.environment.name} on" in msg.body
+        # check the html version
+        assert isinstance(msg.alternatives[0][0], str)
+        assert (
+            f"Version {version_parsed} was deployed to {self.environment.name}\n    </h2>\n"
+            in msg.alternatives[0][0]
+        )
+
+        attachment, text = get_attachment()
+
+        assert (
+            text
+            == f"Release {version_parsed} was deployed to {self.environment.name} for this project"
+        )
+        assert (
+            attachment["actions"][0]["url"]
+            == f"http://testserver/organizations/{self.organization.slug}/releases/{release.version}/?project={self.project.id}&unselectedSeries=Healthy"
+        )
+        assert (
+            attachment["footer"]
+            == f"{self.project.slug} | <http://testserver/settings/account/notifications/deploy/?referrer=release_activity-slack-user|Notification Settings>"
+        )
+        assert analytics_called_with_args(
+            record_analytics,
+            "integrations.email.notification_sent",
+            user_id=self.user.id,
+            organization_id=self.organization.id,
+            group_id=None,
+        )
+        assert analytics_called_with_args(
+            record_analytics,
+            "integrations.slack.notification_sent",
+            user_id=self.user.id,
+            organization_id=self.organization.id,
+            group_id=None,
+        )
+
+    @with_feature("organizations:notification-settings-v2")
+    @responses.activate
+    @patch("sentry.analytics.record")
+    def test_sends_deployment_notification_v2(self, record_analytics):
         """
         Test that an email AND Slack notification are sent with
         the expected values when a release is deployed.

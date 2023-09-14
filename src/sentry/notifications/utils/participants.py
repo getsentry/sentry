@@ -37,6 +37,7 @@ from sentry.models.projectownership import ProjectOwnership
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.notifications.helpers import (
     get_values_by_provider_by_type,
+    should_use_notifications_v2,
     transform_to_notification_settings_by_recipient,
 )
 from sentry.notifications.notify import notification_providers
@@ -44,7 +45,9 @@ from sentry.notifications.types import (
     ActionTargetType,
     FallthroughChoiceType,
     GroupSubscriptionReason,
+    NotificationSettingEnum,
     NotificationSettingOptionValues,
+    NotificationSettingsOptionEnum,
     NotificationSettingTypes,
 )
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
@@ -201,6 +204,33 @@ def get_participants_for_release(
     )
 
     actors = RpcActor.many_from_object(RpcUser(id=user_id) for user_id in user_ids)
+
+    if should_use_notifications_v2(organization):
+        serialized_settings = notifications_service.get_enabled_setting_providers_for_users(
+            type=NotificationSettingEnum.DEPLOY,
+            user_ids=user_ids,
+            organization_id=organization.id,
+        )
+
+        users_to_reasons_by_provider = ParticipantMap()
+        for actor in actors:
+            setting = serialized_settings[actor][NotificationSettingEnum.DEPLOY]
+            for provider, value in setting.items():
+                reason_option = None
+                # Members who opt into all deploy emails.
+                if value == NotificationSettingsOptionEnum.ALWAYS:
+                    users_to_reasons_by_provider.add(
+                        provider, actor, GroupSubscriptionReason.deploy_setting
+                    )
+                # Members which have been seen in the commit log.
+                elif (
+                    value == NotificationSettingsOptionEnum.COMMITTED_ONLY
+                    and actor.id in commited_user_ids
+                ):
+                    users_to_reasons_by_provider.add(
+                        provider, actor, GroupSubscriptionReason.committed
+                    )
+        return users_to_reasons_by_provider
 
     # Get all the involved users' settings for deploy-emails (including
     # users' organization-independent settings.)
