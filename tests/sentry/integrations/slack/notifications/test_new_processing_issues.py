@@ -1,4 +1,3 @@
-import re
 from unittest import mock
 
 import responses
@@ -37,7 +36,7 @@ class SlackNewProcessingIssuesNotificationTest(SlackActivityNotificationTest):
             notification.send()
 
         attachment, text = get_attachment()
-        notification_uuid = re.search("notification_uuid=([a-zA-Z0-9-]+)", text)[1]
+        notification_uuid = self.get_notification_uuid_regex(text)
         assert (
             text
             == f"Processing issues on <http://testserver/settings/{self.organization.slug}/projects/{self.project.slug}/processing-issues/?referrer=new_processing_issues_activity&notification_uuid={notification_uuid}|{self.project.slug}>"
@@ -71,7 +70,7 @@ class SlackNewProcessingIssuesNotificationTest(SlackActivityNotificationTest):
 
         slug = self.organization.slug
         attachment, text = get_attachment()
-        notification_uuid = re.search("notification_uuid=([a-zA-Z0-9-]+)", text)[1]
+        notification_uuid = self.get_notification_uuid_regex(text)
         assert (
             text
             == f"Processing issues on <http://{slug}.testserver/settings/projects/{self.project.slug}/processing-issues/?referrer=new_processing_issues_activity&notification_uuid={notification_uuid}|{self.project.slug}>"

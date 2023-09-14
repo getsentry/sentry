@@ -1,4 +1,3 @@
-import re
 from unittest.mock import MagicMock, Mock, patch
 
 from sentry.models import Activity
@@ -38,7 +37,7 @@ class MSTeamsAssignedNotificationTest(MSTeamsActivityNotificationTest):
         body = args[1]["body"]
         assert 4 == len(body)
 
-        notification_uuid = re.search("notification\\\\_uuid=([a-zA-Z0-9-]+)", body[1]["text"])[1]
+        notification_uuid = self.get_notification_uuid_regex(body[1]["text"])
         assert f"Issue assigned to {self.user.get_display_name()} by themselves" == body[0]["text"]
         assert (
             f"[{self.group.title}](http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=assigned\\_activity-msteams&amp;notification\\_uuid"
@@ -73,7 +72,7 @@ class MSTeamsAssignedNotificationTest(MSTeamsActivityNotificationTest):
         body = args[1]["body"]
         assert 4 == len(body)
 
-        notification_uuid = re.search("notification\\\\_uuid=([a-zA-Z0-9-]+)", body[1]["text"])[1]
+        notification_uuid = self.get_notification_uuid_regex(body[1]["text"])
         assert f"Issue automatically assigned to {self.user.get_display_name()}" == body[0]["text"]
         assert (
             f"[{self.group.title}](http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=assigned\\_activity-msteams&amp;notification\\_uuid"

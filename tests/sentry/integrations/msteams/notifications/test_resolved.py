@@ -41,7 +41,7 @@ class MSTeamsResolvedNotificationTest(MSTeamsActivityNotificationTest):
         body = args[1]["body"]
         assert 4 == len(body)
 
-        notification_uuid = re.search("notification\\\\_uuid=([a-zA-Z0-9-]+)", body[0]["text"])[1]
+        notification_uuid = self.get_notification_uuid_regex(body[0]["text"])
         assert (
             f"{self.user.get_display_name()} marked [{self.group.qualified_short_id}](http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=activity\\_notification&amp;notification\\_uuid={notification_uuid}) as resolved"
             == body[0]["text"]
