@@ -761,12 +761,12 @@ urlpatterns += [
         name="replays",
     ),
     re_path(
-        r"^replays/dead-clicks/$",
+        r"^replays/dead-clicks/",
         react_page_view,
         name="replays-dead-clicks",
     ),
     re_path(
-        r"^replays/rage-clicks/$",
+        r"^replays/rage-clicks/",
         react_page_view,
         name="replays-rage-clicks",
     ),
@@ -790,7 +790,7 @@ urlpatterns += [
     ),
     # User Feedback v2
     re_path(
-        r"^feedback/(?P<feedback_id>\d+)/$",
+        r"^feedback/(?P<feedback_id>\d+)/",
         react_page_view,
         name="feedback",
     ),
