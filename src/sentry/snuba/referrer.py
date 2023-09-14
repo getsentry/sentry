@@ -593,6 +593,9 @@ class Referrer(Enum):
     SNUBA_SESSIONS_GET_PROJECT_RELEASES_COUNT = "snuba.sessions.get_project_releases_count"
     SPIKE_PROJECTIONS = "getsentry.get_spike_projections"
     SRC_SENTRY_INGEST_TRANSACTION_CLUSTERER = "src.sentry.ingest.transaction_clusterer"
+    STATISTICAL_DETECTORS_FETCH_TOP_TRANSACTION_NAMES = (
+        "statistical_detectors.distributions.fetch_top_transaction_names"
+    )
     SUBSCRIPTION_PROCESSOR_COMPARISON_QUERY = "subscription_processor.comparison_query"
     SUBSCRIPTIONS_EXECUTOR = "subscriptions_executor"
     TAGSTORE__GET_TAG_KEY_AND_TOP_VALUES = "tagstore.__get_tag_key_and_top_values"
