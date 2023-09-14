@@ -176,6 +176,7 @@
   "sentry.ReleaseProjectEnvironment",
   "sentry.Rule",
   "sentry.RuleActivity",
+  "sentry.NeglectedRule",
   "sentry.RuleFireHistory",
   "sentry.ServiceHook",
   "sentry.UserReport",
