@@ -153,6 +153,7 @@ def main(argv: Sequence[str] | None = None) -> None:
     parser.add_argument(
         "--service",
         action="append",
+        choices=list(dict.fromkeys(all_service_healthchecks)),
         help="The services you wish to check on. Defaults to all services.",
     )
 
