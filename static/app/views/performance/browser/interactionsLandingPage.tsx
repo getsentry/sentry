@@ -20,9 +20,12 @@ import {
   BrowserStarfishFields,
   useBrowserModuleFilters,
 } from 'sentry/views/performance/browser/useBrowserFilters';
+import {useBrowserSort} from 'sentry/views/performance/browser/useBrowserSort';
+import {useInteractionElementQuery} from 'sentry/views/performance/browser/useInteractionElementQuery';
+import {usePagesQuery} from 'sentry/views/performance/browser/usePageQuery';
 import {ModulePageProviders} from 'sentry/views/performance/database/modulePageProviders';
 
-const {COMPONENT, PAGE, SPAN_ACTION} = BrowserStarfishFields;
+const {COMPONENT, PAGE, TRANSACTION_OP} = BrowserStarfishFields;
 
 type Option = {
   label: string;
@@ -32,6 +35,7 @@ type Option = {
 function InteractionsLandingPage() {
   const organization = useOrganization();
   const filters = useBrowserModuleFilters();
+  const sort = useBrowserSort();
 
   return (
     <ModulePageProviders title={[t('Performance'), t('Interactions')].join(' — ')}>
@@ -58,26 +62,22 @@ function InteractionsLandingPage() {
       </Layout.Header>
 
       <Layout.Body>
-        <Layout.Main fullWidth />
+        <Layout.Main fullWidth>
+          <PaddedContainer>
+            <PageFilterBar condensed>
+              <ProjectPageFilter />
+              <DatePageFilter alignDropdown="left" />
+            </PageFilterBar>
+          </PaddedContainer>
 
-        <PaddedContainer>
-          <PageFilterBar condensed>
-            <ProjectPageFilter />
-            <DatePageFilter alignDropdown="left" />
-          </PageFilterBar>
-        </PaddedContainer>
+          <FilterOptionsContainer>
+            <ComponentSelector value={filters[COMPONENT] || ''} />
+            <ActionSelector value={filters[TRANSACTION_OP] || ''} />
+            <PageSelector value={filters[PAGE] || ''} />
+          </FilterOptionsContainer>
 
-        <div />
-
-        <FilterOptionsContainer>
-          <ComponentSelector value={filters[COMPONENT] || ''} />
-          <ActionSelector value={filters[SPAN_ACTION] || ''} />
-          <PageSelector value={filters[PAGE] || ''} />
-        </FilterOptionsContainer>
-
-        <div />
-
-        <InteractionsTable />
+          <InteractionsTable sort={sort} />
+        </Layout.Main>
       </Layout.Body>
     </ModulePageProviders>
   );
@@ -86,11 +86,19 @@ function InteractionsLandingPage() {
 function ComponentSelector({value}: {value?: string}) {
   const location = useLocation();
 
-  const options: Option[] = [
-    {value: '', label: 'All'},
-    {value: 'downloadButton', label: '<DownloadButton/>'},
-    {value: 'closeButton', label: '<CloseButton/>'},
-  ];
+  const {data, isLoading} = useInteractionElementQuery();
+
+  const options: Option[] =
+    !isLoading && data.length
+      ? [
+          {label: 'All', value: ''},
+          ...data.map(element => ({
+            label: element,
+            value: element,
+          })),
+        ]
+      : [];
+
   return (
     <SelectControlWithProps
       inFieldLabel={`${t('Component')}:`}
@@ -114,8 +122,8 @@ function ActionSelector({value}: {value?: string}) {
 
   const options: Option[] = [
     {value: '', label: 'All'},
-    {value: 'click', label: 'Click'},
-    {value: 'change', label: 'Change'},
+    {value: 'ui.action.click', label: 'Click'},
+    {value: 'ui.action.right.click', label: 'Right Click'},
   ];
   return (
     <SelectControlWithProps
@@ -127,7 +135,7 @@ function ActionSelector({value}: {value?: string}) {
           ...location,
           query: {
             ...location.query,
-            [SPAN_ACTION]: newValue?.value,
+            [TRANSACTION_OP]: newValue?.value,
           },
         });
       }}
@@ -138,11 +146,19 @@ function ActionSelector({value}: {value?: string}) {
 function PageSelector({value}: {value?: string}) {
   const location = useLocation();
 
-  const options: Option[] = [
-    {value: '', label: 'All'},
-    {value: '/performance', label: 'page1'},
-    {value: '/page2', label: 'page2'},
-  ];
+  const {data: pages, isLoading} = usePagesQuery();
+
+  const options: Option[] =
+    !isLoading && pages.length
+      ? [
+          {label: 'All', value: ''},
+          ...pages.map(page => ({
+            value: page,
+            label: page,
+          })),
+        ]
+      : [];
+
   return (
     <SelectControlWithProps
       inFieldLabel={`${t('Page')}:`}
@@ -165,7 +181,7 @@ function SelectControlWithProps(props: ControlProps & {options: Option[]}) {
   return <SelectControl {...props} />;
 }
 
-const PaddedContainer = styled('div')`
+export const PaddedContainer = styled('div')`
   margin-bottom: ${space(2)};
 `;
 

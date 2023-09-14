@@ -102,16 +102,16 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
           ),
         },
         {
-          title: t('Transactions'),
+          title: t('Events'),
           target: 'trace_view_guide_row',
           description: t(
-            `You can quickly see all the transactions in a trace alongside the project, transaction duration, and any related errors.`
+            `You can quickly see errors and transactions in a trace alongside the project, transaction duration and any errors or performance issues related to the transaction.`
           ),
         },
         {
-          title: t('Transactions Details'),
+          title: t('Event Details'),
           target: 'trace_view_guide_row_details',
-          description: t('Click on any transaction to see more details.'),
+          description: t('Click on any transaction or error row to see more details.'),
         },
       ],
     },
@@ -482,19 +482,6 @@ function getDemoModeGuides(): GuidesContent {
           description: t(
             `Expand the spans to see span details from start date, end date to the operation. Below you can view breadcrumbs for a play-by-play of what your users
             did before encountering the performance issue.`
-          ),
-        },
-      ],
-    },
-    {
-      guide: 'explain_empty_on_demand_alert',
-      requiredTargets: ['empty_on_demand_chart'],
-      steps: [
-        {
-          title: t('Why is the chart empty?'),
-          target: 'empty_on_demand_chart',
-          description: t(
-            `This alert uses specific filters that we don't routinely collect metrics from. This means we don't have any historical data to show right now, but we'll capture all metrics that match the filters from this point on.`
           ),
         },
       ],

@@ -5,6 +5,7 @@
 
 import base64
 import contextlib
+import datetime
 from enum import IntEnum
 from typing import (
     TYPE_CHECKING,
@@ -328,6 +329,8 @@ class RpcAuthProvider(RpcModel):
     provider: str = ""
     flags: RpcAuthProviderFlags = Field(default_factory=lambda: RpcAuthProviderFlags())
     config: Mapping[str, Any]
+    default_role: int = -1
+    default_global_access: bool = False
 
     def __hash__(self) -> int:
         return hash((self.id, self.organization_id, self.provider))
@@ -349,8 +352,10 @@ class RpcAuthProvider(RpcModel):
 class RpcAuthIdentity(RpcModel):
     id: int = -1
     user_id: int = -1
-    provider_id: int = -1
+    auth_provider_id: int = -1
     ident: str = ""
+    data: Mapping[str, Any] = Field(default_factory=dict)
+    last_verified: datetime.datetime = Field(default_factory=datetime.datetime.now)
 
 
 class RpcOrganizationAuthConfig(RpcModel):

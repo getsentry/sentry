@@ -147,6 +147,7 @@ export default function TraceView({
     description: 'trace-view-content',
   });
   const hasOrphanErrors = orphanErrors && orphanErrors.length > 0;
+  const onlyOrphanErrors = hasOrphanErrors && (!traces || traces.length === 0);
 
   useEffect(() => {
     trackAnalytics('performance_views.trace_view.view', {
@@ -353,7 +354,7 @@ export default function TraceView({
             isLast={isLastError}
             index={lastIndex + index + 1}
             isVisible={isVisible}
-            hasGuideAnchor
+            hasGuideAnchor={index === 0 && transactionGroups.length === 0}
             renderedChildren={[]}
           />
         </Fragment>
@@ -440,6 +441,7 @@ export default function TraceView({
                     hasGuideAnchor={false}
                     renderedChildren={transactionGroups}
                     barColor={pickBarColor('')}
+                    onlyOrphanErrors={onlyOrphanErrors}
                     numOfOrphanErrors={orphanErrors?.length}
                   />
                   <TraceHiddenMessage

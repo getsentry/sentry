@@ -11,6 +11,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEventsV2EndpointBase
 from sentry.models import Organization
+from sentry.search.events import fields
 from sentry.snuba import discover, metrics_performance
 from sentry.snuba.metrics.extraction import to_standard_metrics_query
 from sentry.snuba.referrer import Referrer
@@ -35,6 +36,11 @@ class OrganizationMetricsEstimationStatsEndpoint(OrganizationEventsV2EndpointBas
 
     def get(self, request: Request, organization: Organization) -> Response:
 
+        measurement = request.GET.get("yAxis")
+
+        if measurement is None:
+            return Response({"detail": "missing required parameter yAxis"}, status=400)
+
         with sentry_sdk.start_span(
             op="discover.metrics.endpoint", description="get_full_metrics"
         ) as span:
@@ -47,23 +53,29 @@ class OrganizationMetricsEstimationStatsEndpoint(OrganizationEventsV2EndpointBas
                     organization,
                     get_stats_generator(use_discover=True, remove_on_demand=False),
                 )
-                # the closest we have to the stats in discover that can also be queried in metrics
-                base_discover = self.get_event_stats_data(
-                    request,
-                    organization,
-                    get_stats_generator(use_discover=True, remove_on_demand=True),
-                )
-                # the closest we have to the stats in metrics, with no on_demand metrics
-                base_metrics = self.get_event_stats_data(
-                    request,
-                    organization,
-                    get_stats_generator(use_discover=False, remove_on_demand=True),
-                )
 
-                estimated_volume = estimate_volume(
-                    discover_stats["data"], base_discover["data"], base_metrics["data"]
-                )
-                discover_stats["data"] = estimated_volume
+                if _should_scale(measurement):
+
+                    # we scale the indexed data with the ratio between indexed counts and metrics counts
+                    # in order to get an estimate of the true volume of transactions
+
+                    # the closest we have to the stats in discover that can also be queried in metrics
+                    base_discover = self.get_event_stats_data(
+                        request,
+                        organization,
+                        get_stats_generator(use_discover=True, remove_on_demand=True),
+                    )
+                    # the closest we have to the stats in metrics, with no on_demand metrics
+                    base_metrics = self.get_event_stats_data(
+                        request,
+                        organization,
+                        get_stats_generator(use_discover=False, remove_on_demand=True),
+                    )
+
+                    estimated_volume = estimate_volume(
+                        discover_stats["data"], base_discover["data"], base_metrics["data"]
+                    )
+                    discover_stats["data"] = estimated_volume
 
             except ValidationError:
                 return Response(
@@ -84,8 +96,8 @@ def get_stats_generator(use_discover: bool, remove_on_demand: bool):
         query: str,
         params: Dict[str, str],
         rollup: int,
-        zerofill_results: bool,
-        comparison_delta: Optional[datetime],
+        zerofill_results: bool,  # not used but required by get_event_stats_data
+        comparison_delta: Optional[datetime],  # not used but required by get_event_stats_data
     ) -> SnubaTSResult:
         # use discover or metrics_performance depending on the dataset
         if use_discover:
@@ -177,3 +189,18 @@ def _is_data_aligned(left: List[MetricVolumeRow], right: List[MetricVolumeRow]) 
         return True
 
     return left[0][0] == right[0][0] and left[-1][0] == right[-1][0]
+
+
+def _should_scale(metric: str) -> bool:
+    """
+    Decides if the metric should be scaled ( based on the ratio between indexed and metrics data) or not
+
+    We can only scale counters ( percentiles and ratios cannot be scaled based on the ratio
+    between indexed and metrics data)
+    """
+    if fields.is_function(metric):
+        function, params, alias = fields.parse_function(metric)
+
+        if function and function.lower() == "count":
+            return True
+    return False

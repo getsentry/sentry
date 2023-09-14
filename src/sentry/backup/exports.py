@@ -7,6 +7,7 @@ from django.core.serializers import serialize
 from django.core.serializers.json import DjangoJSONEncoder
 
 from sentry.backup.dependencies import (
+    ImportKind,
     PrimaryKeyMap,
     dependencies,
     normalize_model_name,
@@ -19,7 +20,6 @@ UTC_0 = timezone(timedelta(hours=0))
 
 __all__ = (
     "DatetimeSafeDjangoJSONEncoder",
-    "OldExportConfig",
     "export_in_user_scope",
     "export_in_organization_scope",
     "export_in_global_scope",
@@ -37,38 +37,9 @@ class DatetimeSafeDjangoJSONEncoder(DjangoJSONEncoder):
         return super().default(obj)
 
 
-class OldExportConfig:
-    """While we are migrating to the new backup system, we need to take care not to break the old
-    and relatively untested workflows. This model allows us to stub in the old configs."""
-
-    # A list of models to exclude from the export - eventually we want to deprecate and remove this
-    # option.
-    excluded_models: set[str]
-
-    # Do we include models that aren't in `sentry.*` databases, like the native Django ones (sites,
-    # sessions, etc)?
-    include_non_sentry_models: bool
-
-    # Old exports use "natural" foreign keys, which in practice only changes how foreign keys into
-    # `sentry.User` are represented.
-    use_natural_foreign_keys: bool
-
-    def __init__(
-        self,
-        *,
-        excluded_models: set[str] | None = None,
-        include_non_sentry_models: bool = False,
-        use_natural_foreign_keys: bool = False,
-    ):
-        self.excluded_models = excluded_models if excluded_models is not None else set()
-        self.include_non_sentry_models = include_non_sentry_models
-        self.use_natural_foreign_keys = use_natural_foreign_keys
-
-
 def _export(
     dest,
     scope: ExportScope,
-    old_config: OldExportConfig,
     *,
     indent: int = 2,
     filter_by: Filter | None = None,
@@ -134,56 +105,45 @@ def _export(
                     if fk is None:
                         # Null deps are allowed.
                         continue
-                    if pk_map.get(dependency_model_name, fk) is None:
+                    if pk_map.get_pk(dependency_model_name, fk) is None:
                         # The foreign key value exists, but not found! An upstream model must have
                         # been filtered out, so we can filter this one out as well.
                         break
                 else:
-                    pk_map.insert(model_name, item.pk, item.pk)
+                    pk_map.insert(model_name, item.pk, item.pk, ImportKind.Inserted)
                     yield item
 
     def yield_objects():
         # Collate the objects to be serialized.
         for model in sorted_dependencies():
-            # This is a bit confusing, but what it's saying is: any model that does not have
-            # `__relocation_scope__` set MUST be a non-Sentry model (we check this both in init-time
-            # testing and at runtime startup). We "deduce" a `RelocationScope` setting for this
-            # non-Sentry model based on the config the user passed in: if they set
-            # `old_config.include_non_sentry_models` to `True`, we set all deduced non-Sentry
-            # relocation scopes to `Global`. Otherwise, we just exclude them.
-            # print(f"Deduced rel scope for {model.__name__}: {inferred_relocation_scope.name}\n")
-            includable = old_config.include_non_sentry_models
-            if hasattr(model, "__relocation_scope__"):
-                # TODO(getsentry/team-ospo#186): This won't be sufficient once we're trying to get
-                # relocation scopes that may vary on a per-instance, rather than
-                # per-model-definition, basis. We'll probably need to make use of something like
-                # Django annotations to efficiently filter down models.
-                if getattr(model, "__relocation_scope__") in allowed_relocation_scopes:
-                    includable = True
+            includable = False
 
-            if (
-                not includable
-                or model.__name__.lower() in old_config.excluded_models
-                or model._meta.proxy
-            ):
-                printer(f">> Skipping model <{model.__name__}>", err=True)
+            # TODO(getsentry/team-ospo#186): This won't be sufficient once we're trying to get
+            # relocation scopes that may vary on a per-instance, rather than
+            # per-model-definition, basis. We'll probably need to make use of something like
+            # Django annotations to efficiently filter down models.
+            if getattr(model, "__relocation_scope__", None) in allowed_relocation_scopes:
+                includable = True
+
+            if not includable or model._meta.proxy:
                 continue
 
             queryset = model._base_manager.order_by(model._meta.pk.name)
             yield from filter_objects(queryset.iterator())
 
-    printer(">> Beginning export", err=True)
     serialize(
         "json",
         yield_objects(),
         indent=indent,
         stream=dest,
-        use_natural_foreign_keys=old_config.use_natural_foreign_keys,
+        use_natural_foreign_keys=False,
         cls=DatetimeSafeDjangoJSONEncoder,
     )
 
 
-def export_in_user_scope(src, *, user_filter: set[str] | None = None, printer=click.echo):
+def export_in_user_scope(
+    src, *, user_filter: set[str] | None = None, indent: int = 2, printer=click.echo
+):
     """
     Perform an export in the `User` scope, meaning that only models with `RelocationScope.User` will be exported from the provided `src` file.
     """
@@ -194,13 +154,15 @@ def export_in_user_scope(src, *, user_filter: set[str] | None = None, printer=cl
     return _export(
         src,
         ExportScope.User,
-        OldExportConfig(),
         filter_by=Filter(User, "username", user_filter) if user_filter is not None else None,
+        indent=indent,
         printer=printer,
     )
 
 
-def export_in_organization_scope(src, *, org_filter: set[str] | None = None, printer=click.echo):
+def export_in_organization_scope(
+    src, *, org_filter: set[str] | None = None, indent: int = 2, printer=click.echo
+):
     """
     Perform an export in the `Organization` scope, meaning that only models with `RelocationScope.User` or `RelocationScope.Organization` will be exported from the provided `src` file.
     """
@@ -211,15 +173,15 @@ def export_in_organization_scope(src, *, org_filter: set[str] | None = None, pri
     return _export(
         src,
         ExportScope.Organization,
-        OldExportConfig(),
         filter_by=Filter(Organization, "slug", org_filter) if org_filter is not None else None,
+        indent=indent,
         printer=printer,
     )
 
 
-def export_in_global_scope(src, *, printer=click.echo):
+def export_in_global_scope(src, *, indent: int = 2, printer=click.echo):
     """
     Perform an export in the `Global` scope, meaning that all models will be exported from the
     provided source file.
     """
-    return _export(src, ExportScope.Global, OldExportConfig(), printer=printer)
+    return _export(src, ExportScope.Global, indent=indent, printer=printer)

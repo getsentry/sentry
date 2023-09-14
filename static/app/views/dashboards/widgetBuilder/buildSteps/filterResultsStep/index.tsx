@@ -2,6 +2,7 @@ import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
+import {OnDemandWarningIcon} from 'sentry/components/alerts/onDemandMetricAlert';
 import {Button} from 'sentry/components/button';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
@@ -17,7 +18,6 @@ import {
   createOnDemandFilterWarning,
   hasOnDemandMetricWidgetFeature,
   isOnDemandQueryString,
-  OnDemandWarningIcon,
 } from 'sentry/utils/onDemandMetrics';
 import {decodeList} from 'sentry/utils/queryString';
 import {ReleasesProvider} from 'sentry/utils/releases/releasesProvider';

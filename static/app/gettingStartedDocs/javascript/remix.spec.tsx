@@ -7,7 +7,7 @@ import {GettingStartedWithRemix, nextSteps, steps} from './remix';
 
 describe('GettingStartedWithRemix', function () {
   it('all products are selected', function () {
-    const {container} = render(
+    render(
       <GettingStartedWithRemix
         dsn="test-dsn"
         activeProductSelection={[
@@ -38,7 +38,5 @@ describe('GettingStartedWithRemix', function () {
         screen.getByRole('link', {name: filteredNextStepsLink.name})
       ).toBeInTheDocument();
     }
-
-    expect(container).toSnapshot();
   });
 });

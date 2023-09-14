@@ -257,7 +257,7 @@ class RuleProcessor:
                 rule_id=rule.id,
             )
 
-        notification_uuid = uuid.uuid4()
+        notification_uuid = str(uuid.uuid4())
         history.record(rule, self.group, self.event.event_id, notification_uuid)
         self.activate_downstream_actions(rule, notification_uuid)
 

@@ -13,10 +13,8 @@ from sentry.services.hybrid_cloud.auth import (
     RpcApiKey,
     RpcAuthenticatorType,
     RpcAuthProvider,
-    RpcAuthState,
     RpcOrganizationAuthConfig,
 )
-from sentry.services.hybrid_cloud.organization import RpcOrganizationMemberSummary
 from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
 from sentry.silo import SiloMode
 
@@ -48,18 +46,6 @@ class AuthService(RpcService):
     def get_org_auth_config(
         self, *, organization_ids: List[int]
     ) -> List[RpcOrganizationAuthConfig]:
-        pass
-
-    @rpc_method
-    @abc.abstractmethod
-    def get_user_auth_state(
-        self,
-        *,
-        user_id: int,
-        is_superuser: bool,
-        organization_id: Optional[int],
-        org_member: Optional[RpcOrganizationMemberSummary],
-    ) -> RpcAuthState:
         pass
 
     # TODO: Denormalize this scim enabled flag onto organizations?
@@ -108,6 +94,27 @@ class AuthService(RpcService):
     @rpc_method
     @abc.abstractmethod
     def get_organization_key(self, *, key: str) -> Optional[RpcApiKey]:
+        pass
+
+    @rpc_method
+    @abc.abstractmethod
+    def enable_partner_sso(
+        self, *, organization_id: int, provider_key: str, provider_config: Mapping[str, Any]
+    ) -> None:
+        pass
+
+    @rpc_method
+    @abc.abstractmethod
+    def create_auth_identity(
+        self, *, provider: str, config: Mapping[str, Any], user_id: int, ident: str
+    ) -> None:
+        pass
+
+    @rpc_method
+    @abc.abstractmethod
+    def get_auth_provider_with_config(
+        self, *, provider: str, config: Mapping[str, Any]
+    ) -> Optional[RpcAuthProvider]:
         pass
 
 

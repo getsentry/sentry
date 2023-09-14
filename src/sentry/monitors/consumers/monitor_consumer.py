@@ -21,6 +21,7 @@ from sentry.constants import ObjectStatus
 from sentry.killswitches import killswitch_matches_context
 from sentry.models import Project
 from sentry.monitors.logic.mark_failed import mark_failed
+from sentry.monitors.logic.mark_ok import mark_ok
 from sentry.monitors.models import (
     MAX_SLUG_LENGTH,
     CheckInStatus,
@@ -54,6 +55,13 @@ logger = logging.getLogger(__name__)
 
 CHECKIN_QUOTA_LIMIT = 5
 CHECKIN_QUOTA_WINDOW = 60
+
+# lock timeout
+LOCK_TIMEOUT = 1
+# base value for lock retries
+INITIAL_LOCK_DELAY = 0.01
+# lock exponent base
+LOCK_EXP_BASE = 2.0
 
 
 def _ensure_monitor_with_config(
@@ -303,109 +311,113 @@ def _process_message(ts: datetime, wrapper: CheckinMessage | ClockPulseMessage) 
         else:
             guid = check_in_id
 
-        lock = locks.get(f"checkin-creation:{guid.hex}", duration=2, name="checkin_creation")
         try:
-            with lock.acquire(), transaction.atomic(router.db_for_write(Monitor)):
-                try:
-                    monitor_config = params.pop("monitor_config", None)
+            monitor_config = params.pop("monitor_config", None)
 
-                    params["duration"] = (
-                        # Duration is specified in seconds from the client, it is
-                        # stored in the checkin model as milliseconds
-                        int(params["duration"] * 1000)
-                        if params.get("duration") is not None
-                        else None
-                    )
+            params["duration"] = (
+                # Duration is specified in seconds from the client, it is
+                # stored in the checkin model as milliseconds
+                int(params["duration"] * 1000)
+                if params.get("duration") is not None
+                else None
+            )
 
-                    validator = MonitorCheckInValidator(
-                        data=params,
-                        partial=True,
-                        context={
-                            "project": project,
-                        },
-                    )
+            validator = MonitorCheckInValidator(
+                data=params,
+                partial=True,
+                context={
+                    "project": project,
+                },
+            )
 
-                    if not validator.is_valid():
-                        metrics.incr(
-                            "monitors.checkin.result",
-                            tags={**metric_kwargs, "status": "failed_checkin_validation"},
-                        )
-                        txn.set_tag("result", "failed_checkin_validation")
-                        logger.info(
-                            "monitors.consumer.checkin_validation_failed",
-                            extra={"guid": guid.hex, **params},
-                        )
-                        return
+            if not validator.is_valid():
+                metrics.incr(
+                    "monitors.checkin.result",
+                    tags={**metric_kwargs, "status": "failed_checkin_validation"},
+                )
+                txn.set_tag("result", "failed_checkin_validation")
+                logger.info(
+                    "monitors.consumer.checkin_validation_failed",
+                    extra={"guid": guid.hex, **params},
+                )
+                return
 
-                    validated_params = validator.validated_data
+            validated_params = validator.validated_data
 
-                    monitor = _ensure_monitor_with_config(
-                        project,
-                        monitor_slug,
-                        params["monitor_slug"],
-                        monitor_config,
-                    )
+            monitor = _ensure_monitor_with_config(
+                project,
+                monitor_slug,
+                params["monitor_slug"],
+                monitor_config,
+            )
 
-                    if not monitor:
-                        metrics.incr(
-                            "monitors.checkin.result",
-                            tags={**metric_kwargs, "status": "failed_validation"},
-                        )
-                        txn.set_tag("result", "failed_validation")
-                        logger.info(
-                            "monitors.consumer.monitor_validation_failed",
-                            extra={"guid": guid.hex, **params},
-                        )
-                        return
-                except MonitorLimitsExceeded:
-                    metrics.incr(
-                        "monitors.checkin.result",
-                        tags={**metric_kwargs, "status": "failed_monitor_limits"},
-                    )
-                    txn.set_tag("result", "failed_monitor_limits")
-                    logger.info(
-                        "monitors.consumer.monitor_limit_exceeded",
-                        extra={"guid": guid.hex, "project": project.id, "slug": monitor_slug},
-                    )
-                    return
+            if not monitor:
+                metrics.incr(
+                    "monitors.checkin.result",
+                    tags={**metric_kwargs, "status": "failed_validation"},
+                )
+                txn.set_tag("result", "failed_validation")
+                logger.info(
+                    "monitors.consumer.monitor_validation_failed",
+                    extra={"guid": guid.hex, **params},
+                )
+                return
+        except MonitorLimitsExceeded:
+            metrics.incr(
+                "monitors.checkin.result",
+                tags={**metric_kwargs, "status": "failed_monitor_limits"},
+            )
+            txn.set_tag("result", "failed_monitor_limits")
+            logger.info(
+                "monitors.consumer.monitor_limit_exceeded",
+                extra={"guid": guid.hex, "project": project.id, "slug": monitor_slug},
+            )
+            return
 
-                try:
-                    monitor_environment = MonitorEnvironment.objects.ensure_environment(
-                        project, monitor, environment
-                    )
-                except MonitorEnvironmentLimitsExceeded:
-                    metrics.incr(
-                        "monitors.checkin.result",
-                        tags={**metric_kwargs, "status": "failed_monitor_environment_limits"},
-                    )
-                    txn.set_tag("result", "failed_monitor_environment_limits")
-                    logger.info(
-                        "monitors.consumer.monitor_environment_limit_exceeded",
-                        extra={
-                            "guid": guid.hex,
-                            "project": project.id,
-                            "slug": monitor_slug,
-                            "environment": environment,
-                        },
-                    )
-                    return
-                except MonitorEnvironmentValidationFailed:
-                    metrics.incr(
-                        "monitors.checkin.result",
-                        tags={**metric_kwargs, "status": "failed_monitor_environment_name_length"},
-                    )
-                    txn.set_tag("result", "failed_monitor_environment_name_length")
-                    logger.info(
-                        "monitors.consumer.monitor_environment_validation_failed",
-                        extra={
-                            "guid": guid.hex,
-                            "project": project.id,
-                            "slug": monitor_slug,
-                            "environment": environment,
-                        },
-                    )
-                    return
+        try:
+            monitor_environment = MonitorEnvironment.objects.ensure_environment(
+                project, monitor, environment
+            )
+        except MonitorEnvironmentLimitsExceeded:
+            metrics.incr(
+                "monitors.checkin.result",
+                tags={**metric_kwargs, "status": "failed_monitor_environment_limits"},
+            )
+            txn.set_tag("result", "failed_monitor_environment_limits")
+            logger.info(
+                "monitors.consumer.monitor_environment_limit_exceeded",
+                extra={
+                    "guid": guid.hex,
+                    "project": project.id,
+                    "slug": monitor_slug,
+                    "environment": environment,
+                },
+            )
+            return
+        except MonitorEnvironmentValidationFailed:
+            metrics.incr(
+                "monitors.checkin.result",
+                tags={**metric_kwargs, "status": "failed_monitor_environment_name_length"},
+            )
+            txn.set_tag("result", "failed_monitor_environment_name_length")
+            logger.info(
+                "monitors.consumer.monitor_environment_validation_failed",
+                extra={
+                    "guid": guid.hex,
+                    "project": project.id,
+                    "slug": monitor_slug,
+                    "environment": environment,
+                },
+            )
+            return
 
+        lock = locks.get(
+            f"checkin-creation:{guid.hex}", duration=LOCK_TIMEOUT, name="checkin_creation"
+        )
+        try:
+            with lock.blocking_acquire(
+                INITIAL_LOCK_DELAY, float(LOCK_TIMEOUT), exp_base=LOCK_EXP_BASE
+            ), transaction.atomic(router.db_for_write(Monitor)):
                 status = getattr(CheckInStatus, validated_params["status"].upper())
                 trace_id = validated_params.get("contexts", {}).get("trace", {}).get("trace_id")
 
@@ -493,7 +505,7 @@ def _process_message(ts: datetime, wrapper: CheckinMessage | ClockPulseMessage) 
                         occurrence_context={"trace_id": trace_id},
                     )
                 else:
-                    monitor_environment.mark_ok(check_in, start_time)
+                    mark_ok(check_in, start_time)
 
                 metrics.incr(
                     "monitors.checkin.result",
