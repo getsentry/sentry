@@ -323,7 +323,6 @@ def get_source_file_data(abs_path, project, release, event):
         if possible_release_artifact_bundle.dist_name == (event.dist or ""):
             found_source_file_path = None
             source_map_reference = None
-            headers = None
             with ArtifactBundleArchive(
                 possible_release_artifact_bundle.artifact_bundle.file.getfile()
             ) as archive:
