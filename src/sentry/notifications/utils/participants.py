@@ -36,6 +36,7 @@ from sentry.models.commit import Commit
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.notifications.helpers import (
+    get_provider_from_enum,
     get_values_by_provider_by_type,
     should_use_notifications_v2,
     transform_to_notification_settings_by_recipient,
@@ -217,10 +218,11 @@ def get_participants_for_release(
             setting = serialized_settings[actor][NotificationSettingEnum.DEPLOY]
             for provider, value in setting.items():
                 reason_option = None
+                _provider = get_provider_from_enum(provider)
                 # Members who opt into all deploy emails.
                 if value == NotificationSettingsOptionEnum.ALWAYS:
                     users_to_reasons_by_provider.add(
-                        provider, actor, GroupSubscriptionReason.deploy_setting
+                        _provider, actor, GroupSubscriptionReason.deploy_setting
                     )
                 # Members which have been seen in the commit log.
                 elif (
@@ -228,7 +230,7 @@ def get_participants_for_release(
                     and actor.id in commited_user_ids
                 ):
                     users_to_reasons_by_provider.add(
-                        provider, actor, GroupSubscriptionReason.committed
+                        _provider, actor, GroupSubscriptionReason.committed
                     )
         return users_to_reasons_by_provider
 

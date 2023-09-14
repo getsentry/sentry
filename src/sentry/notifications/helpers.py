@@ -168,6 +168,14 @@ def should_be_participating(
     ) or (not subscription and value == NotificationSettingOptionValues.ALWAYS)
 
 
+def get_provider_from_enum(provider: ExternalProviderEnum):
+    for provider_int, provider_str in EXTERNAL_PROVIDERS.items():
+        if provider_str == provider.value:
+            return provider_int
+
+    raise ValueError(f"Invalid provider: {provider}")
+
+
 def where_should_be_participating(
     recipient: RpcActor,
     subscription: GroupSubscription | None,
