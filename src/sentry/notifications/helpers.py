@@ -759,7 +759,7 @@ def get_query(
         organization_id: The organization to get notification settings for.
     """
     if not recipients:
-        raise Exception("recipient, team_ids, or user_ids must be provided")
+        raise Exception("recipients (actor, user, or team) must be provided")
 
     user_ids, team_ids = [], []
     for recipient in recipients:

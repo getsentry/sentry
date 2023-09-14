@@ -207,7 +207,7 @@ def get_participants_for_release(
     actors = RpcActor.many_from_object(RpcUser(id=user_id) for user_id in user_ids)
 
     if should_use_notifications_v2(organization):
-        serialized_settings = notifications_service.get_enabled_setting_providers_for_users(
+        settings = notifications_service.get_enabled_setting_providers_for_users(
             type=NotificationSettingEnum.DEPLOY,
             user_ids=user_ids,
             organization_id=organization.id,
@@ -215,7 +215,7 @@ def get_participants_for_release(
 
         users_to_reasons_by_provider = ParticipantMap()
         for actor in actors:
-            setting = serialized_settings[actor][NotificationSettingEnum.DEPLOY]
+            setting = settings[actor][NotificationSettingEnum.DEPLOY]
             for provider, value in setting.items():
                 reason_option = None
                 _provider = get_provider_from_enum(provider)
