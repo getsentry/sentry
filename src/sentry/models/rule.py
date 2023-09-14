@@ -134,6 +134,7 @@ class RuleActivity(Model):
 
 
 def in_fourteen_days():
+    # Do not ever ever ever move or remove this!! It's used in migrations for the NeglectedRule table
     return timezone.now() + timedelta(days=14)
 
 
