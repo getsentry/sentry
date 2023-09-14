@@ -760,6 +760,16 @@ urlpatterns += [
         react_page_view,
         name="replays",
     ),
+    re_path(
+        r"^replays/dead-clicks",
+        react_page_view,
+        name="replays-dead-clicks",
+    ),
+    re_path(
+        r"^replays/rage-clicks",
+        react_page_view,
+        name="replays-rage-clicks",
+    ),
     # Crons
     re_path(
         r"^crons/",
@@ -934,6 +944,16 @@ urlpatterns += [
                     r"^(?P<organization_slug>[\w_-]+)/replays/(?P<replay_id>[\w_-]+)/$",
                     react_page_view,
                     name="sentry-organization-replay-details",
+                ),
+                re_path(
+                    r"^(?P<organization_slug>[\w_-]+)/replays/dead-clicks/$",
+                    react_page_view,
+                    name="sentry-organization-replay-dead-clicks",
+                ),
+                re_path(
+                    r"^(?P<organization_slug>[\w_-]+)/replays/rage-clicks/$",
+                    react_page_view,
+                    name="sentry-organization-replay-rage-clicks",
                 ),
                 re_path(
                     r"^(?P<organization_slug>[\w_-]+)/restore/$",
