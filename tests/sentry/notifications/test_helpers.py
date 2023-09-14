@@ -14,6 +14,7 @@ from sentry.notifications.helpers import (
     collect_groups_by_project,
     get_all_setting_options,
     get_all_setting_providers,
+    get_enabled_notification_settings,
     get_layered_setting_options,
     get_layered_setting_providers,
     get_notification_recipients,
@@ -568,6 +569,97 @@ class NotificationSettingV2HelpersTest(TestCase):
             user_options[NotificationSettingEnum.WORKFLOW][ExternalProviderEnum.EMAIL].value
             == self.setting_providers[2].value
         )
+
+    def test_get_enabled_notification_settings_without_type(self):
+        new_user = self.create_user()
+        rpc_new_user = RpcUser(id=new_user.id)
+        self.create_member(
+            organization=self.organization, user=new_user, role="member", teams=[self.team]
+        )
+
+        _ = add_notification_setting_option(
+            scope_type=NotificationScopeEnum.PROJECT.value,
+            scope_identifier=self.project.id,
+            type=NotificationSettingEnum.ISSUE_ALERTS.value,
+            value=NotificationSettingsOptionEnum.ALWAYS.value,
+            user_id=new_user.id,
+        )
+        _ = add_notification_setting_provider(
+            scope_type=NotificationScopeEnum.USER.value,
+            scope_identifier=new_user.id,
+            provider=ExternalProviderEnum.MSTEAMS.value,
+            type=NotificationSettingEnum.ISSUE_ALERTS.value,
+            value=NotificationSettingsOptionEnum.ALWAYS.value,
+            user_id=new_user.id,
+        )
+
+        settings = get_enabled_notification_settings(
+            recipients=[self.user, new_user],
+            project_ids=[self.project.id],
+            organization_id=self.organization.id,
+        )
+
+        default_settings = {
+            ExternalProviderEnum.EMAIL: NotificationSettingsOptionEnum.ALWAYS,
+            ExternalProviderEnum.SLACK: NotificationSettingsOptionEnum.ALWAYS,
+        }
+        settings_new_user = settings[rpc_new_user]
+        assert settings_new_user[NotificationSettingEnum.WORKFLOW] == default_settings
+        assert settings_new_user[NotificationSettingEnum.ISSUE_ALERTS] == {
+            ExternalProviderEnum.MSTEAMS: NotificationSettingsOptionEnum.ALWAYS,
+            ExternalProviderEnum.EMAIL: NotificationSettingsOptionEnum.ALWAYS,
+            ExternalProviderEnum.SLACK: NotificationSettingsOptionEnum.ALWAYS,
+        }
+        settings_user = settings[self.rpc_user]
+        assert settings_new_user[NotificationSettingEnum.DEPLOY] == default_settings
+        assert settings_user[NotificationSettingEnum.ISSUE_ALERTS] == {
+            ExternalProviderEnum.EMAIL: NotificationSettingsOptionEnum.ALWAYS,
+            ExternalProviderEnum.SLACK: NotificationSettingsOptionEnum.ALWAYS,
+        }
+
+    def test_get_enabled_notification_settings_with_type(self):
+        new_user = self.create_user()
+        rpc_new_user = RpcUser(id=new_user.id)
+        self.create_member(
+            organization=self.organization, user=new_user, role="member", teams=[self.team]
+        )
+
+        _ = add_notification_setting_option(
+            scope_type=NotificationScopeEnum.PROJECT.value,
+            scope_identifier=self.project.id,
+            type=NotificationSettingEnum.ISSUE_ALERTS.value,
+            value=NotificationSettingsOptionEnum.ALWAYS.value,
+            user_id=new_user.id,
+        )
+        _ = add_notification_setting_provider(
+            scope_type=NotificationScopeEnum.USER.value,
+            scope_identifier=new_user.id,
+            provider=ExternalProviderEnum.MSTEAMS.value,
+            type=NotificationSettingEnum.ISSUE_ALERTS.value,
+            value=NotificationSettingsOptionEnum.ALWAYS.value,
+            user_id=new_user.id,
+        )
+
+        settings = get_enabled_notification_settings(
+            recipients=[self.user, new_user],
+            project_ids=[self.project.id],
+            organization_id=self.organization.id,
+            setting_type=NotificationSettingEnum.ISSUE_ALERTS,
+        )
+
+        settings_new_user = settings[rpc_new_user]
+        assert NotificationSettingEnum.WORKFLOW not in settings_new_user
+        assert settings_new_user[NotificationSettingEnum.ISSUE_ALERTS] == {
+            ExternalProviderEnum.MSTEAMS: NotificationSettingsOptionEnum.ALWAYS,
+            ExternalProviderEnum.EMAIL: NotificationSettingsOptionEnum.ALWAYS,
+            ExternalProviderEnum.SLACK: NotificationSettingsOptionEnum.ALWAYS,
+        }
+        settings_user = settings[self.rpc_user]
+        assert NotificationSettingEnum.WORKFLOW not in settings_new_user
+        assert settings_user[NotificationSettingEnum.ISSUE_ALERTS] == {
+            ExternalProviderEnum.EMAIL: NotificationSettingsOptionEnum.ALWAYS,
+            ExternalProviderEnum.SLACK: NotificationSettingsOptionEnum.ALWAYS,
+        }
 
     def test_get_notification_recipients(self):
         new_user = self.create_user()

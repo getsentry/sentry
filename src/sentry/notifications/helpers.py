@@ -1068,13 +1068,69 @@ def get_setting_providers_with_defaults(
                 recipient = get_recipient_from_team_or_user(rec.id, None)
             elif recipient_is_team(rec):
                 recipient = get_recipient_from_team_or_user(None, rec.id)
-            result[recipient] = {
-                type: {provider: NotificationSettingsOptionEnum.ALWAYS}
-                for type in NotificationSettingEnum
-                if type in provider_defaults
-            }
 
+            for type in NotificationSettingEnum:
+                result[recipient][type] = {}
+                for provider in provider_defaults:
+                    result[recipient][type].update(
+                        {provider: NotificationSettingsOptionEnum.ALWAYS}
+                    )
     return result
+
+
+def get_enabled_notification_settings(
+    recipients: Iterable[RpcActor | Team | RpcUser],
+    project_ids: Iterable[int] | None = None,
+    organization_id: int | None = None,
+    setting_type: NotificationSettingEnum | None = None,
+) -> MutableMapping[
+    RpcUser | Team,
+    MutableMapping[
+        NotificationSettingEnum,
+        MutableMapping[ExternalProviderEnum, NotificationSettingsOptionEnum],
+    ],
+]:
+    type_filter = Q(type=setting_type.value) if setting_type else Q()
+    setting_options = get_setting_options_with_defaults(
+        recipients=recipients,
+        project_ids=project_ids,
+        organization_id=organization_id,
+        additional_filters=type_filter,
+    )
+    setting_providers = get_setting_providers_with_defaults(
+        recipients=recipients,
+        project_ids=project_ids,
+        organization_id=organization_id,
+        additional_filters=type_filter,
+    )
+
+    enabled_settings: MutableMapping[
+        RpcUser | Team,
+        MutableMapping[
+            NotificationSettingEnum,
+            MutableMapping[ExternalProviderEnum, NotificationSettingsOptionEnum],
+        ],
+    ] = defaultdict(dict)
+    for recipient, setting_option in setting_options.items():
+        for type, value in setting_option.items():
+            if setting_type and type != setting_type:
+                continue
+
+            # If the setting option is disabled, skip the providers
+            if value == NotificationSettingsOptionEnum.NEVER:
+                continue
+
+            recipient_providers = (
+                setting_providers[recipient][type] if type in setting_providers[recipient] else {}
+            )
+            enabled_settings[recipient][type] = {}
+            for provider, value in recipient_providers.items():
+                # If the provider setting is off, skip the provider
+                if value == NotificationSettingsOptionEnum.NEVER:
+                    continue
+                enabled_settings[recipient][type].update({provider: value})
+
+    return enabled_settings
 
 
 def get_notification_recipients(
