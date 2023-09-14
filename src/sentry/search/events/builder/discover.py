@@ -805,28 +805,6 @@ class BaseQueryBuilder:
             return snql_function.snql_aggregate(arguments, alias)
         return None
 
-    def resolve_division(
-        self, dividend: SelectType, divisor: SelectType, alias: str, fallback: Optional[Any] = None
-    ) -> SelectType:
-        return Function(
-            "if",
-            [
-                Function(
-                    "greater",
-                    [divisor, 0],
-                ),
-                Function(
-                    "divide",
-                    [
-                        dividend,
-                        divisor,
-                    ],
-                ),
-                fallback,
-            ],
-            alias,
-        )
-
     def resolve_equation(self, equation: Operation, alias: Optional[str] = None) -> SelectType:
         """Convert this tree of Operations to the equivalent snql functions"""
         lhs = self._resolve_equation_operand(equation.lhs)
