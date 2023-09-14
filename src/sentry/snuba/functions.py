@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 import sentry_sdk
 
@@ -28,6 +28,7 @@ def query(
     orderby: Optional[List[str]] = None,
     offset: int = 0,
     limit: int = 50,
+    limitby: Optional[Tuple[str, int]] = None,
     referrer: str = "",
     auto_fields: bool = False,
     auto_aggregations: bool = False,
@@ -50,6 +51,7 @@ def query(
         selected_columns=selected_columns,
         orderby=orderby,
         limit=limit,
+        limitby=limitby,
         offset=offset,
         config=QueryBuilderConfig(
             auto_fields=False,
