@@ -322,9 +322,9 @@ export const getPreviousSeriesName = (seriesName: string) => {
 };
 
 function formatList(items: Array<string | number | undefined>) {
-  const filteredItems = items.filter(item => !!item);
+  const filteredItems = items.filter((item): item is string | number => !!item);
 
-  return oxfordizeArray(filteredItems.filter(type => !!type));
+  return oxfordizeArray(filteredItems.map(item => item.toString()));
 }
 
 export function useEchartsAriaLabels(
