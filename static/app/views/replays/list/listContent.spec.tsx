@@ -75,6 +75,7 @@ describe('ReplayList', () => {
       hasSentOneReplay: false,
     });
     mockUseProjectSdkNeedsUpdate.mockReturnValue({
+      isError: false,
       isFetching: false,
       needsUpdate: false,
     });
@@ -96,6 +97,7 @@ describe('ReplayList', () => {
       hasSentOneReplay: true,
     });
     mockUseProjectSdkNeedsUpdate.mockReturnValue({
+      isError: false,
       isFetching: false,
       needsUpdate: false,
     });
@@ -117,6 +119,7 @@ describe('ReplayList', () => {
       hasSentOneReplay: false,
     });
     mockUseProjectSdkNeedsUpdate.mockReturnValue({
+      isError: false,
       isFetching: false,
       needsUpdate: false,
     });
@@ -138,6 +141,7 @@ describe('ReplayList', () => {
       hasSentOneReplay: true,
     });
     mockUseProjectSdkNeedsUpdate.mockReturnValue({
+      isError: false,
       isFetching: false,
       needsUpdate: true,
     });
@@ -166,6 +170,7 @@ describe('ReplayList', () => {
       hasSentOneReplay: true,
     });
     mockUseProjectSdkNeedsUpdate.mockReturnValue({
+      isError: false,
       isFetching: false,
       needsUpdate: false,
     });
