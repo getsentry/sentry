@@ -13,7 +13,7 @@ export default function DeadClickList() {
   );
   return hasDeadCicks ? (
     <SentryDocumentTitle
-      title={t('Top Selectors with Rage Clicks')}
+      title={t('Top Selectors with Dead Clicks')}
       orgSlug={organization.slug}
     >
       <Layout.Header>
