@@ -123,7 +123,11 @@ class IndexerBatch:
                 "sentry-metrics.indexer.disabled-namespaces"
             ):
                 self.skipped_offsets.add(partition_offset)
-                metrics.incr("process_messages.namespace_disabled", tags={"namespace": namespace})
+                metrics.incr(
+                    "process_messages.namespace_disabled",
+                    sample_rate=0.001,
+                    tags={"namespace": namespace},
+                )
                 continue
             try:
                 parsed_payload: ParsedMessage = json.loads(
