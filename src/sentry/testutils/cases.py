@@ -2341,7 +2341,7 @@ class ActivityTestCase(TestCase):
         return parse_qs(urlparse(url).query)["notification_uuid"][0]
 
     def get_notification_uuid_regex(self, text: str) -> str:
-        result = re.search("notification.*_uuid=([a-zA-Z0-9-]+)", text)[1]
+        result = re.search("notification.*_uuid=([a-zA-Z0-9-]+)", text)
         assert result is not None
         return result[1]
 
