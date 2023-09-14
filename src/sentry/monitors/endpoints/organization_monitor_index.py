@@ -182,7 +182,7 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
         parameters=[GlobalParams.ORG_SLUG],
         request=MonitorValidator,
         responses={
-            201: inline_sentry_response_serializer("Monitor", MonitorSerializerResponse),
+            201: MonitorSerializer,
             400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
