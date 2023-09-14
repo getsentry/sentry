@@ -160,10 +160,12 @@ class TeamDetailsEndpoint(TeamEndpoint):
         """
         suffix = uuid4().hex
         new_slug = f"{team.slug}-{suffix}"[0:50]
-        updated = Team.objects.filter(id=team.id, status=TeamStatus.ACTIVE).update(
-            slug=new_slug, status=TeamStatus.PENDING_DELETION
-        )
-        if updated:
+        try:
+            team = Team.objects.filter(id=team.id, status=TeamStatus.ACTIVE)
+            team.update(slug=new_slug, status=TeamStatus.PENDING_DELETION)
+        except Team.DoesNotExist:
+            pass
+        else:
             scheduled = RegionScheduledDeletion.schedule(team, days=0, actor=request.user)
             self.create_audit_entry(
                 request=request,

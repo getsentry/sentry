@@ -80,7 +80,7 @@ class DatabaseBackedControlReplicaService(ControlReplicaService):
             # Handle unique index -- since TEAM_UPDATEs use the Organization scope, this is safe.
             TeamReplica.objects.filter(
                 organization_id=team.organization_id, slug=team.slug
-            ).delete()
+            ).exclude(team_id=team.id).delete()
 
             TeamReplica.objects.create_or_update(
                 team_id=team.id,
