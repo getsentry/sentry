@@ -15,7 +15,7 @@ describe('GettingStartedWithExpress', function () {
       initContent: 'test-init-content',
       hasPerformanceMonitoring: true,
       sourceMapStep: {
-        title: 'source-maps',
+        title: 'Upload Source Maps',
       },
     })) {
       expect(

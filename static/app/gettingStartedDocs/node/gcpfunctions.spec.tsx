@@ -14,7 +14,7 @@ describe('GettingStartedWithGCPFunctions', function () {
       importContent: 'test-import-content',
       initContent: 'test-init-content',
       sourceMapStep: {
-        title: 'source-maps',
+        title: 'Upload Source Maps',
       },
     })) {
       expect(
