@@ -17,6 +17,7 @@ type Props = {
 
 type State = {
   emails: UserEmail[];
+  loadingOrganizations: boolean;
   authenticators?: Authenticator[] | null;
   organizations?: OrganizationSummary[];
 } & DeprecatedAsyncComponent['state'];
@@ -24,11 +25,16 @@ type State = {
 class AccountSecurityWrapper extends DeprecatedAsyncComponent<Props, State> {
   async fetchOrganizations() {
     try {
+      this.setState({loadingOrganizations: true});
       const organizations = await fetchOrganizations(this.api);
-      this.setState({organizations});
+      this.setState({organizations, loadingOrganizations: false});
     } catch (e) {
-      this.setState({error: true});
+      this.setState({error: true, loadingOrganizations: false});
     }
+  }
+
+  get shouldRenderLoading() {
+    return super.shouldRenderLoading || this.state.loadingOrganizations === true;
   }
 
   getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
