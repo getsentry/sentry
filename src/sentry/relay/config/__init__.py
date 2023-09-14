@@ -52,8 +52,7 @@ from .measurements import CUSTOM_MEASUREMENT_LIMIT, get_measurements_config
 #: These features will be listed in the project config
 EXPOSABLE_FEATURES = [
     "projects:span-metrics-extraction",
-    "projects:span-metrics-extraction-db-module",
-    "projects:span-metrics-extraction-browser-module",
+    "projects:span-metrics-extraction-ga-modules",
     "projects:span-metrics-extraction-all-modules",
     "organizations:transaction-name-mark-scrubbed-as-sanitized",
     "organizations:transaction-name-normalize",
