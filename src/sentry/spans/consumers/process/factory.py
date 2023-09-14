@@ -61,7 +61,6 @@ def _build_snuba_span(relay_span: Mapping[str, Any]) -> MutableMapping[str, Any]
     span_data: Mapping[str, Any] = relay_span.get("data", {})
 
     snuba_span: MutableMapping[str, Any] = {}
-    snuba_span["description"] = relay_span.get("description")
     snuba_span["event_id"] = relay_span["event_id"]
     snuba_span["exclusive_time_ms"] = int(relay_span.get("exclusive_time", 0))
     snuba_span["is_segment"] = relay_span.get("is_segment", False)
@@ -76,6 +75,9 @@ def _build_snuba_span(relay_span: Mapping[str, Any]) -> MutableMapping[str, Any]
     }
     snuba_span["trace_id"] = uuid.UUID(relay_span["trace_id"]).hex
     snuba_span["version"] = SPAN_SCHEMA_VERSION
+
+    if (description := relay_span.get("description")) is not None:
+        snuba_span["description"] = description
 
     start_timestamp = datetime.utcfromtimestamp(relay_span["start_timestamp"])
     snuba_span["start_timestamp_ms"] = int(start_timestamp.timestamp() * 1e3)
