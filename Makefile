@@ -127,10 +127,12 @@ test-js-ci: node-version-check
 
 test-python-ci: create-db
 	@echo "--> Running CI Python tests"
-	pytest tests/integration tests/sentry tests/sentry_plugins \
+	pytest \
+		tests/integration \
 		tests/minimetrics \
-		--ignore tests/sentry/ingest/ingest_consumer/test_ingest_consumer_kafka.py \
-		--ignore tests/sentry/region_to_control/test_region_to_control_kafka.py \
+		tests/relay_integration \
+		tests/sentry \
+		tests/sentry_plugins \
 		--cov . --cov-report="xml:.artifacts/python.coverage.xml"
 	@echo ""
 
@@ -171,6 +173,7 @@ test-acceptance: node-version-check
 	@$(WEBPACK)
 	make run-acceptance
 
+# XXX: this is called by `getsentry/relay`
 test-relay-integration:
 	@echo "--> Running Relay integration tests"
 	pytest \
