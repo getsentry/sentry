@@ -15,6 +15,7 @@ const commitHash =
 const findLoader = (loaderName: string) =>
   baseConfig.module?.rules?.find(
     rule =>
+      rule &&
       typeof rule === 'object' &&
       typeof rule.use === 'object' &&
       !Array.isArray(rule.use) &&
