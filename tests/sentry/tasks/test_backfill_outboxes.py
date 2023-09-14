@@ -1,4 +1,5 @@
 from typing import Type
+from unittest.mock import patch
 
 from django.apps import apps
 
@@ -12,7 +13,8 @@ from sentry.models import (
     outbox_context,
 )
 from sentry.silo import SiloMode
-from sentry.tasks.backfill_outboxes import (  # backfill_outboxes_for,
+from sentry.tasks.backfill_outboxes import (
+    backfill_outboxes_for,
     get_backfill_key,
     get_processing_state,
     process_outbox_backfill_batch,
@@ -22,8 +24,6 @@ from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.utils import redis
-
-# from unittest.mock import patch
 
 
 def reset_processing_state():
@@ -89,24 +89,24 @@ def test_control_processing(task_runner):
     with assume_test_silo_mode(SiloMode.REGION):
         assert AuthIdentityReplica.objects.filter(auth_provider_id=ap2.id).count() == 0
 
-    # with outbox_runner(), task_runner():
-    #     while backfill_outboxes_for(SiloMode.CONTROL, 0, 1):
-    #         pass
-    #
-    # # Does not process these new objects since we already completed all available work for this version.
-    # with assume_test_silo_mode(SiloMode.REGION):
-    #     assert AuthIdentityReplica.objects.filter(auth_provider_id=ap2.id).count() == 0
-    #     AuthIdentityReplica.objects.all().delete()
-    #
-    # with patch("sentry.models.authidentity.AuthIdentity.replication_version", new=10000):
-    #     with outbox_runner(), task_runner():
-    #         while backfill_outboxes_for(SiloMode.CONTROL, 0, 1):
-    #             pass
-    #
-    #     # Replicates it now that the version has bumped
-    #     with assume_test_silo_mode(SiloMode.REGION):
-    #         assert AuthIdentityReplica.objects.all().count() == 10
-    #         assert AuthIdentityReplica.objects.filter(auth_provider_id=ap2.id).count() == 5
-    #         assert AuthIdentityReplica.objects.filter(auth_provider_id=ap.id).count() == 5
-    #
-    #     assert get_processing_state(AuthIdentity._meta.db_table)[1] == 10001
+    with outbox_runner(), task_runner():
+        while backfill_outboxes_for(SiloMode.CONTROL, 0, 1):
+            pass
+
+    # Does not process these new objects since we already completed all available work for this version.
+    with assume_test_silo_mode(SiloMode.REGION):
+        assert AuthIdentityReplica.objects.filter(auth_provider_id=ap2.id).count() == 0
+        AuthIdentityReplica.objects.all().delete()
+
+    with patch("sentry.models.authidentity.AuthIdentity.replication_version", new=10000):
+        with outbox_runner(), task_runner():
+            while backfill_outboxes_for(SiloMode.CONTROL, 0, 1):
+                pass
+
+        # Replicates it now that the version has bumped
+        with assume_test_silo_mode(SiloMode.REGION):
+            assert AuthIdentityReplica.objects.all().count() == 10
+            assert AuthIdentityReplica.objects.filter(auth_provider_id=ap2.id).count() == 5
+            assert AuthIdentityReplica.objects.filter(auth_provider_id=ap.id).count() == 5
+
+        assert get_processing_state(AuthIdentity._meta.db_table)[1] == 10001

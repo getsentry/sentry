@@ -10,7 +10,7 @@ from typing import Tuple, Type, Union
 
 from django.apps import apps
 from django.db import router, transaction
-from django.db.models import Max, Model
+from django.db.models import Max, Min, Model
 
 from sentry.db.models.outboxes import ControlOutboxProducingModel, RegionOutboxProducingModel
 from sentry.models import outbox_context
@@ -69,6 +69,7 @@ def _chunk_processing_batch(
     if version < model.replication_version:
         lower = 0
         version = model.replication_version
+    lower = max(model.objects.aggregate(Min("id"))["id__min"] or 0, lower)
     upper = model.objects.aggregate(Max("id"))["id__max"] or 0
     batch_upper = min(upper, lower + batch_size)
 
