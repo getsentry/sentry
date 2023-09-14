@@ -246,9 +246,10 @@ class BaseApiClient(TrackResponseMixin):
             try:
                 with build_session() as session:
                     finalized_request = self.finalize_request(_prepared_request)
+                    # import pdb; pdb.set_trace()
                     environment_settings = session.merge_environment_settings(
                         url=finalized_request.url,
-                        proxies=None,
+                        proxies={},
                         stream=None,
                         verify=self.verify_ssl,
                         cert=None,
