@@ -18,6 +18,10 @@ from sentry.tasks.deliver_from_outbox import enqueue_outbox_jobs, enqueue_outbox
 from sentry.testutils.silo import assume_test_silo_mode
 
 
+class OutboxRecursionLimitError(Exception):
+    pass
+
+
 @contextlib.contextmanager
 def outbox_runner(wrapped: Any | None = None) -> Any:
     """
@@ -39,8 +43,13 @@ def outbox_runner(wrapped: Any | None = None) -> Any:
     from sentry.testutils.helpers.task_runner import TaskRunner
 
     with TaskRunner(), assume_test_silo_mode(SiloMode.MONOLITH):
-        enqueue_outbox_jobs(concurrency=1, process_outbox_backfills=False)
-        enqueue_outbox_jobs_control(concurrency=1, process_outbox_backfills=False)
+        for i in range(10):
+            if not enqueue_outbox_jobs(
+                concurrency=1, process_outbox_backfills=False
+            ) and not enqueue_outbox_jobs_control(concurrency=1, process_outbox_backfills=False):
+                break
+        else:
+            raise OutboxRecursionLimitError
 
 
 def assert_webhook_outboxes(

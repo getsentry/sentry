@@ -91,7 +91,7 @@ def process_outbox_backfill_batch(model: Type[Model], batch_size: int) -> Backfi
     if not processing_state:
         return None
 
-    for inst in model.objects.filter(id__gt=processing_state.low, id__lte=processing_state.up):
+    for inst in model.objects.filter(id__gte=processing_state.low, id__lte=processing_state.up):
         with outbox_context(transaction.atomic(router.db_for_write(model)), flush=False):
             if isinstance(inst, RegionOutboxProducingModel):
                 inst.outbox_for_update().save()
@@ -102,7 +102,9 @@ def process_outbox_backfill_batch(model: Type[Model], batch_size: int) -> Backfi
     if not processing_state.has_more:
         set_processing_state(model._meta.db_table, 0, model.replication_version + 1)
     else:
-        set_processing_state(model._meta.db_table, processing_state.up, processing_state.version)
+        set_processing_state(
+            model._meta.db_table, processing_state.up + 1, processing_state.version
+        )
 
     return processing_state
 
@@ -115,8 +117,9 @@ def backfill_outboxes_for(
 ) -> bool:
     # Maintain a steady state of outbox processing by subtracting any regularly scheduled rows
     # from an expected rate.
-    remaining_to_schedule = max_batch_rate - scheduled_count
-    if remaining_to_schedule <= 0:
+    remaining_to_backfill = max_batch_rate - scheduled_count
+    backfilled = 0
+    if remaining_to_backfill <= 0:
         return False
 
     for app, app_models in apps.all_models.items():
@@ -129,12 +132,13 @@ def backfill_outboxes_for(
                 continue
 
             # If we find some backfill work to perform, do it.
-            batch = process_outbox_backfill_batch(model, batch_size=remaining_to_schedule)
+            batch = process_outbox_backfill_batch(model, batch_size=remaining_to_backfill)
             if batch is None:
                 continue
 
-            remaining_to_schedule -= batch.count
-            if remaining_to_schedule <= 0:
+            remaining_to_backfill -= batch.count
+            backfilled += batch.count
+            if remaining_to_backfill <= 0:
                 break
 
-    return remaining_to_schedule > 0
+    return backfilled > 0

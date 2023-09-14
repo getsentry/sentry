@@ -10,8 +10,7 @@ from sentry_sdk.api import capture_exception
 
 from sentry.models import ControlOutboxBase, OutboxBase, RegionOutboxBase
 from sentry.silo.base import SiloMode
-
-# from sentry.tasks.backfill_outboxes import backfill_outboxes_for
+from sentry.tasks.backfill_outboxes import backfill_outboxes_for
 from sentry.tasks.base import instrumented_task
 from sentry.utils.env import in_test_environment
 
@@ -83,8 +82,8 @@ def schedule_batch(
                     outbox_identifier_low=lo + i * batch_size,
                     outbox_identifier_hi=lo + (i + 1) * batch_size,
                 )
-        # if process_outbox_backfills:
-        #     backfill_outboxes_for(silo_mode, scheduled_count)
+        if process_outbox_backfills:
+            backfill_outboxes_for(silo_mode, scheduled_count)
     except Exception:
         capture_exception()
         raise
