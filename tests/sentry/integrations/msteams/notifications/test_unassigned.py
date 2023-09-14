@@ -1,3 +1,4 @@
+import re
 from unittest.mock import MagicMock, Mock, patch
 
 from sentry.models import Activity
@@ -37,13 +38,14 @@ class MSTeamsUnassignedNotificationTest(MSTeamsActivityNotificationTest):
         body = args[1]["body"]
         assert 4 == len(body)
 
+        notification_uuid = re.search("notification\\\\_uuid=([a-zA-Z0-9-]+)", body[1]["text"])[1]
         assert f"Issue unassigned by {self.user.get_display_name()}" == body[0]["text"]
         assert (
             f"[{self.group.title}](http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=unassigned\\_activity-msteams&amp;notification\\_uuid="
             in body[1]["text"]
         )
         assert (
-            f"{self.project.slug} | [Notification Settings](http://testserver/settings/account/notifications/workflow/?referrer=unassigned\\_activity-msteams-user)"
+            f"{self.project.slug} | [Notification Settings](http://testserver/settings/account/notifications/workflow/?referrer=unassigned\\_activity-msteams-user&amp;notification\\_uuid={notification_uuid})"
             == body[3]["columns"][1]["items"][0]["text"]
         )
 
@@ -71,12 +73,13 @@ class MSTeamsUnassignedNotificationTest(MSTeamsActivityNotificationTest):
         body = args[1]["body"]
         assert 4 == len(body)
 
+        notification_uuid = re.search("notification\\\\_uuid=([a-zA-Z0-9-]+)", body[1]["text"])[1]
         assert "Issue unassigned by Sentry" == body[0]["text"]
         assert (
             f"[{self.group.title}](http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=unassigned\\_activity-msteams&amp;notification\\_uuid="
             in body[1]["text"]
         )
         assert (
-            f"{self.project.slug} | [Notification Settings](http://testserver/settings/account/notifications/workflow/?referrer=unassigned\\_activity-msteams-user)"
+            f"{self.project.slug} | [Notification Settings](http://testserver/settings/account/notifications/workflow/?referrer=unassigned\\_activity-msteams-user&amp;notification\\_uuid={notification_uuid})"
             == body[3]["columns"][1]["items"][0]["text"]
         )
