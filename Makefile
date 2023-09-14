@@ -128,6 +128,7 @@ test-js-ci: node-version-check
 test-python-ci: create-db
 	@echo "--> Running CI Python tests"
 	pytest tests/integration tests/sentry tests/sentry_plugins \
+		tests/minimetrics \
 		--ignore tests/sentry/ingest/ingest_consumer/test_ingest_consumer_kafka.py \
 		--ignore tests/sentry/region_to_control/test_region_to_control_kafka.py \
 		--cov . --cov-report="xml:.artifacts/python.coverage.xml"
