@@ -122,8 +122,8 @@ def detect_function_change_points(
 ) -> None:
     for project_id, function_id in functions:
         with sentry_sdk.push_scope() as scope:
-            scope.set_tag("project_id", project_id)
-            scope.set_tag("function_id", function_id)
+            scope.set_tag("regressed_project_id", project_id)
+            scope.set_tag("regressed_function_id", function_id)
             scope.set_context(
                 "statistical_detectors",
                 {
@@ -239,6 +239,7 @@ def query_functions(projects: List[Project], start: datetime) -> List[DetectorPa
         query="is_application:1",
         params=params,
         orderby=["project.id", "-count()"],
+        limitby=("project.id", FUNCTIONS_PER_PROJECT),
         limit=FUNCTIONS_PER_PROJECT * len(projects),
         referrer=Referrer.API_PROFILING_FUNCTIONS_STATISTICAL_DETECTOR.value,
         auto_aggregations=True,
