@@ -163,11 +163,6 @@ test-symbolicator: create-db
 	pytest tests/relay_integration/lang/javascript/ -vv -m symbolicator
 	@echo ""
 
-test-chartcuterie:
-	@echo "--> Running chartcuterie tests"
-	pytest tests/chartcuterie -vv --cov . --cov-report="xml:.artifacts/chartcuterie.coverage.xml"
-	@echo ""
-
 test-acceptance: node-version-check
 	@echo "--> Building static assets"
 	@$(WEBPACK)
