@@ -79,21 +79,19 @@ function MonitorCheckIns({monitor, monitorEnvs, orgSlug}: Props) {
 
   const emptyCell = <Text>{'\u2014'}</Text>;
 
+  const hasAttachments = checkInList?.some(checkIn => defined(checkIn.attachmentId));
+  const headers = [
+    ...[t('Status'), t('Started'), t('Duration'), t('Issues')],
+    ...(hasAttachments ? [t('Attachment')] : []),
+    t('Timestamp'),
+  ];
+
   return (
     <Fragment>
       <SectionHeading>{t('Recent Check-Ins')}</SectionHeading>
-      <PanelTable
-        headers={[
-          t('Status'),
-          t('Started'),
-          t('Duration'),
-          t('Issues'),
-          t('Attachment'),
-          t('Timestamp'),
-        ]}
-      >
+      <PanelTable headers={headers}>
         {isLoading
-          ? [...new Array(6)].map((_, i) => (
+          ? [...new Array(headers.length)].map((_, i) => (
               <RowPlaceholder key={i}>
                 <Placeholder height="2rem" />
               </RowPlaceholder>
@@ -167,17 +165,18 @@ function MonitorCheckIns({monitor, monitorEnvs, orgSlug}: Props) {
                 ) : (
                   emptyCell
                 )}
-                {checkIn.attachmentId ? (
-                  <Button
-                    size="xs"
-                    icon={<IconDownload size="xs" />}
-                    href={generateDownloadUrl(checkIn)}
-                  >
-                    {t('Attachment')}
-                  </Button>
-                ) : (
-                  emptyCell
-                )}
+                {hasAttachments &&
+                  (checkIn.attachmentId ? (
+                    <Button
+                      size="xs"
+                      icon={<IconDownload size="xs" />}
+                      href={generateDownloadUrl(checkIn)}
+                    >
+                      {t('Attachment')}
+                    </Button>
+                  ) : (
+                    emptyCell
+                  ))}
                 <Timestamp date={checkIn.dateCreated} />
               </Fragment>
             ))}
