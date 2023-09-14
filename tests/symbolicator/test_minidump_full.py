@@ -27,7 +27,6 @@ from tests.symbolicator import insta_snapshot_native_stacktrace_data, redact_loc
 # or add `127.0.0.1 host.docker.internal` entry to your `/etc/hosts`
 
 
-# TODO: Symbolicator tests also need zookeeper
 pytestmark = [requires_symbolicator, requires_kafka]
 
 

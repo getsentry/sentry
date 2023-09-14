@@ -43,7 +43,7 @@ from sentry.utils import json
 # to `system.internal-url-prefix` inside `initialize` method below, or add `127.0.0.1 host.docker.internal`
 # entry to your `/etc/hosts`
 
-# TODO: Symbolicator tests also need zookeeper
+
 pytestmark = [requires_symbolicator, requires_kafka]
 
 BASE64_SOURCEMAP = "data:application/json;base64," + (

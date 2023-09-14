@@ -25,7 +25,6 @@ from tests.symbolicator import normalize_native_exception
 # or add `127.0.0.1 host.docker.internal` entry to your `/etc/hosts`
 
 
-# TODO: Symbolicator tests also need zookeeper
 pytestmark = [requires_symbolicator, requires_kafka]
 
 
