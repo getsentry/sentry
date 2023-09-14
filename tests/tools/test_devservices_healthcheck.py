@@ -1,6 +1,6 @@
 import subprocess
 import time
-from typing import Generator
+from typing import Generator, List
 from unittest import mock
 
 import pytest
@@ -9,13 +9,13 @@ from tools.devservices_healthcheck import HealthcheckError, check_health, run_wi
 
 
 @pytest.fixture(autouse=True)
-def no_sleep() -> Generator:
+def no_sleep() -> Generator[None, None, None]:
     with mock.patch.object(time, "sleep"):
         yield
 
 
 @pytest.fixture
-def mock_subprocess_run() -> Generator:
+def mock_subprocess_run() -> Generator[mock.Mock, None, None]:
     with mock.patch.object(subprocess, "run", autospec=True) as mock_run:
         yield mock_run
 
@@ -86,7 +86,7 @@ def test_kafka_zookeper_running(mock_subprocess_run: mock.MagicMock) -> None:
     healthcheck = mock.Mock()
 
     def run(
-        cmd_args: list, capture_output: bool = False, text: bool = False, check: bool = False
+        cmd_args: List[str], capture_output: bool = False, text: bool = False, check: bool = False
     ) -> mock.Mock:
         if cmd_args == (
             "docker",
