@@ -256,12 +256,12 @@ class ProjectKey(Model):
             urlparts = urlparse(endpoint)
             if urlparts.scheme and urlparts.netloc:
                 endpoint = "{}://{}.{}{}".format(
-                    urlparts.scheme,
+                    str(urlparts.scheme),
                     settings.SENTRY_ORG_SUBDOMAIN_TEMPLATE.format(
                         organization_id=self.project.organization_id
                     ),
-                    urlparts.netloc,
-                    urlparts.path,
+                    str(urlparts.netloc),
+                    str(urlparts.path),
                 )
 
         return endpoint
