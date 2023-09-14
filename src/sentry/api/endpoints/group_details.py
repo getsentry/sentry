@@ -246,12 +246,6 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                 {
                     "activity": serialize(activity, request.user),
                     "seenBy": seen_by,
-                    "participants": user_service.serialize_many(
-                        filter={
-                            "user_ids": GroupSubscriptionManager.get_participating_user_ids(group)
-                        },
-                        as_user=request.user,
-                    ),
                     "pluginActions": action_list,
                     "pluginIssues": self._get_available_issue_plugins(request, group),
                     "pluginContexts": self._get_context_plugins(request, group),
@@ -259,6 +253,19 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                     "stats": {"24h": hourly_stats, "30d": daily_stats},
                 }
             )
+
+            participants = user_service.serialize_many(
+                filter={"user_ids": GroupSubscriptionManager.get_participating_user_ids(group)},
+                as_user=request.user,
+            )
+
+            if features.has("organizations:team-workflow-notifications", group.organization):
+                teams = serialize(
+                    GroupSubscriptionManager.get_participating_team_ids(group), request.user
+                )
+                participants.extend(teams)
+
+            data.update({"participants": participants})
 
             metrics.incr(
                 "group.update.http_response",
