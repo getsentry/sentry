@@ -77,16 +77,16 @@ export default function MetricDetailsBody({
     return getInterval({start: timePeriod.start, end: timePeriod.end}, 'high');
   }
 
-  function getFilter() {
+  function getFilter(): string[] | null {
     const {dataset, query} = rule ?? {};
     if (!rule) {
       return null;
     }
 
     const eventType = isCrashFreeAlert(dataset)
-      ? null
+      ? ``
       : extractEventTypeFilterFromRule(rule);
-    return [eventType, query].join(' ').split(' ');
+    return (query ? `(${eventType}) AND (${query})` : eventType).split(' ');
   }
 
   const handleTimePeriodChange = (datetime: ChangeData) => {
@@ -130,7 +130,10 @@ export default function MetricDetailsBody({
 
   const {dataset, aggregate, query} = rule;
 
-  const queryWithTypeFilter = `${query} ${extractEventTypeFilterFromRule(rule)}`.trim();
+  const eventType = extractEventTypeFilterFromRule(rule);
+  const queryWithTypeFilter = (
+    query ? `(${query}) AND (${eventType}})` : eventType
+  ).trim();
   const relativeOptions = {
     ...SELECTOR_RELATIVE_PERIODS,
     ...(rule.timeWindow > 1 ? {[TimePeriod.FOURTEEN_DAYS]: t('Last 14 days')} : {}),
@@ -204,7 +207,7 @@ export default function MetricDetailsBody({
                   timePeriod={timePeriod}
                   query={
                     dataset === Dataset.ERRORS
-                      ? queryWithTypeFilter
+                      ? query
                       : isCrashFreeAlert(dataset)
                       ? `${query} error.unhandled:true`
                       : undefined
