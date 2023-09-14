@@ -1,37 +1,39 @@
 import subprocess
+from typing import Tuple
 
-from devenv.lib import brew_packages, MetaCheck, gitroot
+from devenv.lib import brew, fs
+from devenv.lib_check.types import checker, fixer
+
+tags = {"deps"}
+name = "brew packages"
 
 
-class Check(MetaCheck):
-    tags = {"deps"}
+@checker
+def check() -> Tuple[bool, str]:
+    ok = True
+    message = ""
+    packages = brew.packages()
+    # TODO: read Brewfile
+    for p in ("docker",):
+        if p not in packages:
+            message += f"\nbrew package {p} not installed!"
+            ok = False
+    return ok, message
 
-    def __repr__(self):
-        return "brew packages"
 
-    def check(self):
-        ok = True
-        message = ""
-        packages = brew_packages()
-        # TODO: read Brewfile
-        for p in ("docker",):
-            if p not in packages:
-                message += f"\nbrew package {p} not installed!"
-                ok = False
-        return ok, message
-
-    def fix(self):
-        try:
-            subprocess.run(("brew", "bundle"), cwd=gitroot(), check=True, capture_output=True)
-        except subprocess.CalledProcessError as e:
-            return (
-                False,
-                f"""
+@fixer
+def fix() -> Tuple[bool, str]:
+    try:
+        subprocess.run(("brew", "bundle"), cwd=fs.gitroot(), check=True, capture_output=True)
+    except subprocess.CalledProcessError as e:
+        return (
+            False,
+            f"""
 `{e.cmd}` returned code {e.returncode}
 stdout:
 {e.stdout.decode()}
 stderr:
 {e.stderr.decode()}
 """,
-            )
-        return True, ""
+        )
+    return True, ""
