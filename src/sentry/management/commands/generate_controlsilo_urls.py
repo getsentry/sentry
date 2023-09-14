@@ -178,7 +178,7 @@ export default patterns;
                 if namespace and pat.namespace:
                     resolved_namespace = f"{namespace}:{pat.namespace}"
                 else:
-                    resolved_namespace = pat.namespace or namespace
+                    resolved_namespace = pat.namespace or namespace or ""
                 pattern = describe_pattern(pat)
 
                 views.extend(
