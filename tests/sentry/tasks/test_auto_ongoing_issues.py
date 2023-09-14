@@ -149,6 +149,55 @@ class ScheduleAutoNewOngoingIssuesTest(TestCase):
             ).values_list("id", flat=True)
         ) == {g.id for g in older_groups}
 
+    @freeze_time("2023-07-12 18:40:00Z")
+    @mock.patch("sentry.tasks.auto_ongoing_issues.ITERATOR_CHUNK", new=2)
+    @mock.patch("sentry.tasks.auto_ongoing_issues.backend")
+    def test_not_all_groups_get_updated(self, mock_backend):
+        now = datetime.now(tz=timezone.utc)
+        project = self.create_project()
+        groups_count = 110
+        for day, hours in [(8, 1) for _ in range(groups_count)]:
+            group = self.create_group(
+                project=project,
+                status=GroupStatus.UNRESOLVED,
+                substatus=GroupSubStatus.NEW,
+            )
+            first_seen = now - timedelta(days=day, hours=hours)
+            group.first_seen = first_seen
+            group.save()
+
+        # before
+        assert (
+            Group.objects.filter(
+                project_id=project.id, status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.NEW
+            ).count()
+            == groups_count
+        )
+
+        mock_backend.get_size.return_value = 0
+
+        with self.tasks():
+            schedule_auto_transition_to_ongoing()
+
+        # after
+
+        assert (
+            Group.objects.filter(
+                project=project,
+                status=GroupStatus.UNRESOLVED,
+                substatus=GroupSubStatus.NEW,
+            ).count()
+            == 10
+        )
+        assert (
+            Group.objects.filter(
+                project=project,
+                status=GroupStatus.UNRESOLVED,
+                substatus=GroupSubStatus.ONGOING,
+            ).count()
+            == 100
+        )
+
 
 @apply_feature_flag_on_cls("organizations:escalating-issues")
 class ScheduleAutoRegressedOngoingIssuesTest(TestCase):
