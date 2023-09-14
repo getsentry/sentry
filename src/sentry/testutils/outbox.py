@@ -39,10 +39,8 @@ def outbox_runner(wrapped: Any | None = None) -> Any:
     from sentry.testutils.helpers.task_runner import TaskRunner
 
     with TaskRunner(), assume_test_silo_mode(SiloMode.MONOLITH):
-        while enqueue_outbox_jobs(concurrency=1, process_outbox_backfills=False):
-            pass
-        while enqueue_outbox_jobs_control(concurrency=1, process_outbox_backfills=False):
-            pass
+        enqueue_outbox_jobs(concurrency=1, process_outbox_backfills=False)
+        enqueue_outbox_jobs_control(concurrency=1, process_outbox_backfills=False)
 
 
 def assert_webhook_outboxes(
