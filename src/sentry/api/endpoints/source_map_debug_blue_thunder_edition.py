@@ -461,7 +461,7 @@ def get_sdk_debug_id_support(event_data):
             "sentry.javascript.vue",
         ]
 
-    if sdk_name not in official_sdks:
+    if sdk_name not in official_sdks or sdk_name is None:
         return "unofficial-sdk"
     elif sdk_name in NO_DEBUG_ID_SDKS:
         return "not-supported"
