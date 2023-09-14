@@ -1,3 +1,4 @@
+import Alert from 'sentry/components/alert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
@@ -10,9 +11,11 @@ export default function DeadClickList() {
   const hasDeadCicks = organization.features.includes(
     'session-replay-rage-dead-selectors'
   );
-
   return hasDeadCicks ? (
-    <SentryDocumentTitle title={`Top Selectors with Dead Clicks — ${organization.slug}`}>
+    <SentryDocumentTitle
+      title={t('Top Selectors with Rage Clicks')}
+      orgSlug={organization.slug}
+    >
       <Layout.Header>
         <Layout.HeaderContent>
           <Layout.Title>
@@ -30,5 +33,9 @@ export default function DeadClickList() {
         </Layout.Body>
       </PageFiltersContainer>
     </SentryDocumentTitle>
-  ) : null;
+  ) : (
+    <Layout.Page withPadding>
+      <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+    </Layout.Page>
+  );
 }

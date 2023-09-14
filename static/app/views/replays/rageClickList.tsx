@@ -1,3 +1,4 @@
+import Alert from 'sentry/components/alert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
@@ -12,7 +13,10 @@ export default function RageClickList() {
   );
 
   return hasRageCicks ? (
-    <SentryDocumentTitle title={`Top Selectors with Rage Clicks — ${organization.slug}`}>
+    <SentryDocumentTitle
+      title={t('Top Selectors with Rage Clicks')}
+      orgSlug={organization.slug}
+    >
       <Layout.Header>
         <Layout.HeaderContent>
           <Layout.Title>
@@ -30,5 +34,9 @@ export default function RageClickList() {
         </Layout.Body>
       </PageFiltersContainer>
     </SentryDocumentTitle>
-  ) : null;
+  ) : (
+    <Layout.Page withPadding>
+      <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+    </Layout.Page>
+  );
 }
