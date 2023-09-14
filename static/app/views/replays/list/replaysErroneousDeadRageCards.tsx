@@ -10,7 +10,6 @@ import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import useReplayList from 'sentry/utils/replays/hooks/useReplayList';
-import {useHaveSelectedProjectsSentAnyReplayEvents} from 'sentry/utils/replays/hooks/useReplayOnboarding';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import ReplayTable from 'sentry/views/replays/replayTable';
@@ -97,9 +96,6 @@ function ReplaysErroneousDeadRageCards() {
     );
   }, [newLocation]);
 
-  const hasSessionReplay = organization.features.includes('session-replay');
-  const {hasSentOneReplay, fetching} = useHaveSelectedProjectsSentAnyReplayEvents();
-
   const deadCols = [
     ReplayColumn.MOST_DEAD_CLICKS,
     ReplayColumn.COUNT_DEAD_CLICKS_NO_HEADER,
@@ -110,7 +106,7 @@ function ReplaysErroneousDeadRageCards() {
     ReplayColumn.COUNT_RAGE_CLICKS_NO_HEADER,
   ];
 
-  return hasSessionReplay && hasSentOneReplay && !fetching ? (
+  return (
     <SplitCardContainer>
       <CardTable
         eventView={eventViewDead}
@@ -139,7 +135,7 @@ function ReplaysErroneousDeadRageCards() {
         buttonLabel={t('Show all replays with rage clicks')}
       />
     </SplitCardContainer>
-  ) : null;
+  );
 }
 
 function CardTable({
