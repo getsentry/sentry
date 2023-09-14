@@ -1,16 +1,15 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import pytest
 from freezegun import freeze_time
 
-from sentry.api.endpoints.custom_rules import RuleExistsError, _save_rule
+from sentry.api.endpoints.custom_rules import _save_rule
 from sentry.dynamic_sampling import get_redis_client_for_ds
 from sentry.dynamic_sampling.rules.biases.custom_rule_bias import (
-    SerializedRule,
-    clen_expired_rules,
+    SerializedCustomRule,
     custom_rules_redis_key,
-    get_rule_hash,
-    hash_value,
+    get_custom_rule_hash,
+    remove_expired_rules,
     rule_from_json,
 )
 from sentry.snuba.metrics.extraction import ComparingRuleCondition
@@ -20,43 +19,6 @@ from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 
 
-def test_same_hash_value():
-    """
-    tests that the hash value returns the same value for equivalent objects
-
-    """
-    v1 = {
-        "a": 1,
-        "b": [3, 1, 2],
-        "c": {"x": datetime(2020, 1, 1), "z": "abc", "y": ["a", "b", "c"]},
-        "d": {},
-        "e": [],
-    }
-
-    v2 = {
-        "b": [1, 3, 2],
-        "c": {"x": datetime(2020, 1, 1), "y": ["c", "a", "b"], "z": "abc"},
-        "a": 1,
-        "e": [],
-        "d": {},
-    }
-    assert hash_value(v1) == hash_value(v2)
-
-
-def test_different_hash_value():
-    """
-    tests that the hash value returns different values for different objects
-    """
-    v1 = {
-        "a": {"b": ["x", "y", "z"]},
-    }
-
-    v2 = {
-        "a": {"b": ["x", "y", "w"]},
-    }
-    assert hash_value(v1) != hash_value(v2)
-
-
 @freeze_time("2023-09-11T10:00:00Z")
 def test_save_expired_rule():
     """
@@ -64,11 +26,16 @@ def test_save_expired_rule():
     """
     org_id = 1
 
-    rule = SerializedRule(
+    now = datetime.now(tz=timezone.utc)
+
+    rule = SerializedCustomRule(
         condition={"op": "eq", "name": "event.type", "value": "transaction"},
-        expiration=(datetime.utcnow() - timedelta(minutes=1)).timestamp(),
+        start=now.timestamp(),
+        expiration=(now - timedelta(minutes=1)).timestamp(),
         project_ids=[1, 2, 3],
         org_id=org_id,
+        count=100,
+        rule_id=0,
     )
 
     redis_client = get_redis_client_for_ds()
@@ -78,42 +45,46 @@ def test_save_expired_rule():
     redis_client.delete(key)
 
     with pytest.raises(ValueError):
-        _save_rule(rule, True)
+        _save_rule(rule)
 
     # check that the rule was not saved
-    rule = redis_client.hget(key, get_rule_hash(rule))
+    rule = redis_client.hget(key, get_custom_rule_hash(rule))
     assert rule is None
 
 
 @freeze_time("2023-09-11T10:00:00Z")
 @pytest.mark.parametrize("old_exists", [True, False])
-@pytest.mark.parametrize("should_override", [True, False])
-def test_save_rule(old_exists, should_override):
-
+def test_save_rule(old_exists):
     condition: ComparingRuleCondition = {"op": "eq", "name": "event.type", "value": "transaction"}
     org_id = 1
 
-    new_rule = SerializedRule(
+    new_rule = SerializedCustomRule(
         condition=condition,
         expiration=(datetime.utcnow() + timedelta(hours=1)).timestamp(),
         project_ids=[1, 2, 3],
         org_id=org_id,
+        count=100,
+        rule_id=0,
     )
 
-    old_rule = SerializedRule(
+    old_rule = SerializedCustomRule(
         condition=condition,
         expiration=(datetime.utcnow() + timedelta(minutes=1)).timestamp(),
-        project_ids=[],
+        project_ids=[1, 2, 3],
         org_id=org_id,
+        count=100,
+        rule_id=0,
     )
 
     other_condition: ComparingRuleCondition = {"op": "eq", "name": "event.type", "value": "event"}
 
-    some_other_rule = SerializedRule(
+    some_other_rule = SerializedCustomRule(
         condition=other_condition,  # something that should not be overridden
         expiration=(datetime.utcnow() + timedelta(minutes=30)).timestamp(),
         project_ids=[],
         org_id=org_id,
+        count=100,
+        rule_id=0,
     )
 
     redis_client = get_redis_client_for_ds()
@@ -122,35 +93,28 @@ def test_save_rule(old_exists, should_override):
     # start with a clean slate
     redis_client.delete(key)
 
-    redis_client.hset(key, get_rule_hash(some_other_rule), json.dumps(some_other_rule))
+    redis_client.hset(key, get_custom_rule_hash(some_other_rule), json.dumps(some_other_rule))
     if old_exists:
-        redis_client.hset(key, get_rule_hash(old_rule), json.dumps(old_rule))
+        redis_client.hset(key, get_custom_rule_hash(old_rule), json.dumps(old_rule))
 
-    # check if the function should raise an error
-    raises_error = old_exists and not should_override
-
-    if raises_error:
-        with pytest.raises(RuleExistsError):
-            _save_rule(new_rule, should_override)
-    else:
-        _save_rule(new_rule, should_override)
+    _save_rule(new_rule)
 
     # check the function does what it should
 
     # it should not touch some other rule
-    other_rule_str = redis_client.hget(key, get_rule_hash(some_other_rule))
+    other_rule_str = redis_client.hget(key, get_custom_rule_hash(some_other_rule))
     actual_other_rule = rule_from_json(other_rule_str)
 
     # keeps other rules
     assert actual_other_rule == some_other_rule
 
-    actual_rule_str = redis_client.hget(key, get_rule_hash(new_rule))
+    actual_rule_str = redis_client.hget(key, get_custom_rule_hash(new_rule))
     actual_rule = rule_from_json(actual_rule_str)
 
-    if should_override or not old_exists:
-        assert actual_rule == new_rule
+    if old_exists:
+        assert actual_rule["expiration"] == old_rule["expiration"]
     else:
-        assert actual_rule == old_rule
+        assert actual_rule["expiration"] == new_rule["expiration"]
 
 
 def test_clean_expired_rules():
@@ -161,38 +125,40 @@ def test_clean_expired_rules():
     condition: ComparingRuleCondition = {"op": "eq", "name": "event.type", "value": "transaction"}
 
     with freeze_time("2023-09-11T10:00:00Z") as frozen_time:
-        old_rule = SerializedRule(
+        old_rule = SerializedCustomRule(
             condition=condition,
             expiration=(datetime.utcnow() + timedelta(minutes=1)).timestamp(),
             project_ids=[],
             org_id=org_id,
+            count=100,
+            rule_id=0,
         )
 
         new_condition: ComparingRuleCondition = {"op": "eq", "name": "event.type", "value": "event"}
-        new_rule = SerializedRule(
+        new_rule = SerializedCustomRule(
             condition=new_condition,  # something that should not be overridden
             expiration=(datetime.utcnow() + timedelta(minutes=30)).timestamp(),
             project_ids=[],
             org_id=org_id,
         )
 
-        _save_rule(old_rule, True)
-        _save_rule(new_rule, True)
+        _save_rule(old_rule)
+        _save_rule(new_rule)
 
         # expire the old rule go forward 2 minutes since the old rule expires in 1 minute from now
         frozen_time.tick(delta=timedelta(minutes=2))
 
-        clen_expired_rules(org_id)
+        remove_expired_rules(org_id)
 
         redis_client = get_redis_client_for_ds()
         key = custom_rules_redis_key(org_id)
 
         # the new rule should still be there
-        new_rule_str = redis_client.hget(key, get_rule_hash(new_rule))
+        new_rule_str = redis_client.hget(key, get_custom_rule_hash(new_rule))
         assert new_rule_str is not None
 
         # the old rule should be gone
-        old_rule_str = redis_client.hget(key, get_rule_hash(old_rule))
+        old_rule_str = redis_client.hget(key, get_custom_rule_hash(old_rule))
         assert old_rule_str is None
 
 
@@ -226,7 +192,7 @@ class CustomRulesEndpoint(APITestCase):
         # check we have the rule in redis
         redis_client = get_redis_client_for_ds()
         key = custom_rules_redis_key(self.organization.id)
-        rule_str = redis_client.hget(key, get_rule_hash(data))
+        rule_str = redis_client.hget(key, get_custom_rule_hash(data))
         rule = rule_from_json(rule_str)
 
         # returned rule is the same as the one in redis

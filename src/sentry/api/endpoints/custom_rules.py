@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import cast
 
 from rest_framework import serializers
@@ -13,10 +13,10 @@ from sentry.api.bases import OrganizationEndpoint
 from sentry.api.event_search import parse_search_query
 from sentry.dynamic_sampling import get_redis_client_for_ds
 from sentry.dynamic_sampling.rules.biases.custom_rule_bias import (
-    SerializedRule,
+    SerializedCustomRule,
     custom_rules_redis_key,
-    get_rule_hash,
-    rule_from_json,
+    get_custom_rule_hash,
+    get_custom_rule_id,
 )
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
@@ -27,6 +27,8 @@ from sentry.utils.dates import parse_stats_period
 MAX_RULE_PERIOD_STRING = "6h"
 MAX_RULE_PERIOD = parse_stats_period(MAX_RULE_PERIOD_STRING)
 DEFAULT_PERIOD_STRING = "1h"
+# the number of samples to collect per custom rule
+NUM_SAMPLES_PER_CUSTOM_RULE = 100
 
 
 class RuleExistsError(ValueError):
@@ -48,10 +50,6 @@ class CustomRulesInputSerializer(serializers.Serializer):
     period = serializers.CharField(required=False)
     # list of project ids to collect data from
     projects = serializers.ListField(child=serializers.IntegerField(), required=False)
-    # should this request override an existing rule if one with the same query & projects already exists ?
-    # if false and a rule exists the request will fail with a 409 (Conflict) status code
-    # if true and a rule exists the request will override the existing rule's period
-    overrideExisting = serializers.BooleanField(required=False)
 
     def validate(self, data):
         """
@@ -60,9 +58,6 @@ class CustomRulesInputSerializer(serializers.Serializer):
         """
         if data.get("projects") is None:
             data["projects"] = []
-
-        if data.get("overrideExisting") is None:
-            data["overrideExisting"] = False
 
         period = data.get("period")
         if period is None:
@@ -99,7 +94,6 @@ class CustomRulesEndpoint(OrganizationEndpoint):
 
         query = serializer.validated_data["query"]
         projects = serializer.validated_data.get("projects")
-        override_existing = serializer.validated_data.get("overrideExisting")
         period = serializer.validated_data.get("period")
 
         try:
@@ -113,45 +107,61 @@ class CustomRulesEndpoint(OrganizationEndpoint):
 
             # the parsing must succeed (it passed validation)
             delta = cast(timedelta, parse_stats_period(period))
-            expiration = (datetime.utcnow() + delta).timestamp()
+            now = datetime.now(tz=timezone.utc)
+            start = now.timestamp()
+            expiration = (now + delta).timestamp()
 
-            rule = SerializedRule(
+            rule = SerializedCustomRule(
                 condition=condition,
                 expiration=expiration,
+                start=start,
                 project_ids=projects,
                 org_id=organization.id,
+                count=NUM_SAMPLES_PER_CUSTOM_RULE,
+                rule_id=0,  # will be overriden when an id is assigned
             )
 
-            _save_rule(rule, override_existing)
+            # this may return an already saved rule
+            saved_rule = _save_rule(rule)
 
         except RuleExistsError:
-            return Response({"query": ["Rule already exists"]}, status=409)
+            return Response(
+                {
+                    "query": [
+                        "Rule already exists, set `overrideExisting:true` if you want to override"
+                    ]
+                },
+                status=409,
+            )
 
         except ValueError as e:
             return Response({"query": ["Could not convert to rule", str(e)]}, status=400)
 
-        return Response(rule, status=200)
+        return Response(saved_rule, status=200)
 
 
-def _save_rule(rule: SerializedRule, override_existing: bool):
+def _save_rule(rule: SerializedCustomRule) -> SerializedCustomRule:
     """
     Saves a custom rule in the Redis hash for the organization
     """
 
-    key = custom_rules_redis_key(rule["org_id"])
-    hash_val = get_rule_hash(rule)
-
-    redis_client = get_redis_client_for_ds()
-
     if rule["expiration"] < datetime.utcnow().timestamp():
         raise ValueError("Rule has already expired")
 
-    if not override_existing:
-        value = redis_client.hget(key, hash_val)
-        if value is not None:
-            existing_rule = rule_from_json(value)
-            if existing_rule["expiration"] > datetime.utcnow().timestamp():
-                # we have an existing rule that hasn't expired give up
-                raise RuleExistsError()
+    key = custom_rules_redis_key(rule["org_id"])
 
-    redis_client.hset(key, hash_val, json.dumps(rule))
+    redis_client = get_redis_client_for_ds()
+    rule_hash = get_custom_rule_hash(rule)
+
+    existing_rule_str = redis_client.hget(key, rule_hash)
+
+    if existing_rule_str is not None:
+        # we already have a rule for this condition no need to do anything
+        existing_rule = json.loads(existing_rule_str) if existing_rule_str is not None else None
+        return existing_rule
+
+    rule_id = get_custom_rule_id(rule["org_id"])
+    rule["rule_id"] = rule_id
+
+    redis_client.hset(key, rule_hash, json.dumps(rule))
+    return rule
