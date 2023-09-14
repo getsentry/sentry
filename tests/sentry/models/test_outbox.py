@@ -459,13 +459,13 @@ class RegionOutboxTest(TestCase):
                 mock_process_region_outbox.reset_mock()
                 with self.tasks():
                     with raises(OutboxFlushError):
-                        enqueue_outbox_jobs(concurrency=concurrency)
+                        enqueue_outbox_jobs(concurrency=concurrency, process_outbox_backfills=False)
                     assert mock_process_region_outbox.call_count == 1
 
             def ensure_converged():
                 mock_process_region_outbox.reset_mock()
                 with self.tasks():
-                    enqueue_outbox_jobs()
+                    enqueue_outbox_jobs(process_outbox_backfills=False)
                     assert mock_process_region_outbox.call_count == 0
 
             def assert_called_for_org(org):
@@ -521,7 +521,7 @@ class RegionOutboxTest(TestCase):
             last_call_count = 0
             while True:
                 with self.tasks():
-                    enqueue_outbox_jobs()
+                    enqueue_outbox_jobs(process_outbox_backfills=False)
                     if last_call_count == mock_process_region_outbox.call_count:
                         break
                     last_call_count = mock_process_region_outbox.call_count
