@@ -13,8 +13,11 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
+from sentry.api.serializers import serialize
 from sentry.api.utils import get_date_range_from_params
 from sentry.models import Release
+
+# from sentry.models.release_threshold.constants import ReleaseThresholdType, TriggerType
 from sentry.services.hybrid_cloud.organization import RpcOrganization
 
 if TYPE_CHECKING:
@@ -110,23 +113,62 @@ class ReleaseStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, EnvironmentMi
         # ========================================================================
         # TODO:
         # Determine which thresholds have succeeded/failed
+        """
+        Constructs a nested response key'd off release_id, project_id, and threshold_id
+        each threshold value will contain the full release_threshold instance as well as it's derived health status
+        health = {
+            release_id: {
+                project_id: [{
+                    ...,
+                    is_healthy: True/False
+                }],
+                ...
+            }
+        }
+        """
 
         release_threshold_health = defaultdict(list)
 
         for release in queryset:
             for project in release.projects.all():
+                project_threshold_statuses = []
                 for threshold in project.release_thresholds.all():
-                    # thresholds are per proj/env
-                    # releases can belong to multiple projects...
-                    # So - we'll need to calcualte the threshold health. index on project
-                    """
-                    health = {
-                        release_id: {
-                            project_id: [threshold1, threshold2],
-                            project_id: [threshold1, threshold2],
+                    is_healthy = self.is_threshold_healthy(threshold)
+                    project_threshold_statuses.append[
+                        {
+                            **serialize(threshold),
+                            "is_healthy": is_healthy,
                         }
-                    }
-                    """
-                    release_threshold_health[project.id].append(threshold.id)
-                    # print(threshold)
-        #             calculate_threshold_health(r, p, threshold)
+                    ]
+                release_threshold_health[release.id] = project_threshold_statuses
+
+        return Response(release_threshold_health, status=200)
+
+    def is_threshold_healthy(self, threshold) -> bool:
+        """
+        Determines whether a projects threshold has been breached or not
+        True - healthy
+        False - unhealthy
+        """
+        # TOTAL_ERROR_COUNT_STR = "total_error_count" - Can we even get a % over/under for errors?
+        # NEW_ISSUE_COUNT_STR = "new_issue_count" - What is a % over/under for new issues??
+        # UNHANDLED_ISSUE_COUNT_STR = "unhandled_issue_count" - count & % makes sense
+        # REGRESSED_ISSUE_COUNT_STR = "regressed_issue_count" - count & % makes sense
+        # FAILURE_RATE_STR = "failure_rate" - Count does not make sense
+        # CRASH_FREE_SESSION_RATE_STR = "crash_free_session_rate" - Count does not make sense
+        # CRASH_FREE_USER_RATE_STR = "crash_free_user_rate" - Count does not make sense
+        # TODO:
+        # for each threshold type - determine how to properly pull the data?
+        # PERCENT_OVER_STR = "percent_over"
+        # PERCENT_UNDER_STR = "percent_under"
+        # ABSOLUTE_OVER_STR = "absolute_over"
+        # ABSOLUTE_UNDER_STR = "absolute_under"
+
+        # threshold_type = threshold.threshold_type
+        # trigger_type = threshold.trigger_type
+        # value = threshold.value
+        # window = threshold.window_in_seconds
+        # project = threshold.project
+        # environment = threshold.environment
+
+        return True
