@@ -20,7 +20,7 @@ function useProjectSdkNeedsUpdate({
   | {isError: false; isFetching: false; needsUpdate: boolean} {
   const {data, isLoading, isError} = useApiQuery<ProjectSdkUpdates[]>(
     [`/organizations/${organization.slug}/sdk-updates/`],
-    {staleTime: 5000}
+    {staleTime: 0}
   );
 
   if (isLoading) {
