@@ -422,7 +422,6 @@ def test_project_config_with_breakdown(default_project, insta_snapshot, transact
     with Feature(
         {
             "organizations:transaction-metrics-extraction": transaction_metrics == "with_metrics",
-            "organizations:projconfig-exclude-measurements": True,
         }
     ):
         project_cfg = get_project_config(default_project, full_config=True)
