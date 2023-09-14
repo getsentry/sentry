@@ -138,7 +138,7 @@ def check_killswitch(
     monitor_slug: str,
 ):
     """
-    Enforce organization level monitor kll switch. Returns true if the
+    Enforce organization level monitor kill switch. Returns true if the
     killswitch is enforced.
     """
     is_blocked = killswitch_matches_context(
@@ -201,7 +201,7 @@ def transform_checkin_uuid(
     signals usage of "the latest" check-in.
     When the provided GUID is `0` use_latest_checkin will be True, indicating
     that we should try and update the most recent check-in instead. A new UUID
-    will still be returned for use in the scanrio where there is no latest
+    will still be returned for use in the scenario where there is no latest
     check-in.
     """
     check_in_guid: uuid.UUID | None = None
@@ -228,7 +228,7 @@ def transform_checkin_uuid(
     use_latest_checkin = check_in_guid.int == 0
 
     # If the UUID is unset (zero value) generate a new UUID
-    if check_in_guid.int == 0:
+    if use_latest_checkin:
         check_in_guid = uuid.uuid4()
 
     return check_in_guid, use_latest_checkin
