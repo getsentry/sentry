@@ -131,7 +131,7 @@ export function Setup({
     organization,
     projectId: [projectId],
   });
-  const sdkNeedsUpdate = !isFetching && needsUpdate;
+  const sdkNeedsUpdate = !isFetching && Boolean(needsUpdate);
 
   const url = item.description || 'http://example.com';
 
