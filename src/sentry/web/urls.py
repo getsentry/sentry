@@ -761,12 +761,12 @@ urlpatterns += [
         name="replays",
     ),
     re_path(
-        r"^replays/dead_clicks",
+        r"^replays/dead-clicks",
         react_page_view,
         name="replays-dead-clicks",
     ),
     re_path(
-        r"^replays/rage_clicks",
+        r"^replays/rage-clicks",
         react_page_view,
         name="replays-rage-clicks",
     ),
@@ -946,12 +946,12 @@ urlpatterns += [
                     name="sentry-organization-replay-details",
                 ),
                 re_path(
-                    r"^(?P<organization_slug>[\w_-]+)/replays/dead_clicks/$",
+                    r"^(?P<organization_slug>[\w_-]+)/replays/dead-clicks/$",
                     react_page_view,
                     name="sentry-organization-replay-dead-clicks",
                 ),
                 re_path(
-                    r"^(?P<organization_slug>[\w_-]+)/replays/rage_clicks/$",
+                    r"^(?P<organization_slug>[\w_-]+)/replays/rage-clicks/$",
                     react_page_view,
                     name="sentry-organization-replay-rage-clicks",
                 ),
