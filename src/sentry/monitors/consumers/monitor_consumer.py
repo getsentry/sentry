@@ -415,6 +415,7 @@ def _process_message(ts: datetime, wrapper: CheckinMessage | ClockPulseMessage) 
             f"checkin-creation:{guid.hex}", duration=LOCK_TIMEOUT, name="checkin_creation"
         )
         try:
+            # use lock.blocking_acquire() as default lock.acquire() fast fails if lock is in use
             with lock.blocking_acquire(
                 INITIAL_LOCK_DELAY, float(LOCK_TIMEOUT), exp_base=LOCK_EXP_BASE
             ), transaction.atomic(router.db_for_write(Monitor)):
