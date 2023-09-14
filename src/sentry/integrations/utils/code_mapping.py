@@ -305,7 +305,7 @@ class CodeMappingTreesHelper:
             return []
 
         stacktrace_root = f"{frame_filename.root}/"
-        source_path = self._get_code_mapping_source_path(matched_files[0], frame_filename)
+        source_path = _get_code_mapping_source_path(matched_files[0], frame_filename)
         if frame_filename.frame_type() != "packaged":
             stacktrace_root, source_path = self._normalized_stack_and_source_roots(
                 stacktrace_root, source_path
