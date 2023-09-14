@@ -202,7 +202,7 @@ class GroupSubscriptionManager(BaseManager):
         """Return the list of user ids participating in this issue."""
 
         return list(
-            GroupSubscription.objects.filter(group=group, is_active=True).values_list(
+            GroupSubscription.objects.filter(group=group, is_active=True, team=None).values_list(
                 "user_id", flat=True
             )
         )
@@ -212,7 +212,7 @@ class GroupSubscriptionManager(BaseManager):
         """Return the list of team ids participating in this issue."""
 
         return list(
-            GroupSubscription.objects.filter(group=group, is_active=True).values_list(
+            GroupSubscription.objects.filter(group=group, is_active=True, user_id=None).values_list(
                 "team_id", flat=True
             )
         )
