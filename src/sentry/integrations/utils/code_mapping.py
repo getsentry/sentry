@@ -267,32 +267,10 @@ class CodeMappingTreesHelper:
                         "repo_name": repo_tree.repo.name,
                         "repo_branch": repo_tree.repo.branch,
                         "stacktrace_root": f"{frame_filename.root}/",
-                        "source_path": self._get_code_mapping_source_path(file, frame_filename),
+                        "source_path": _get_code_mapping_source_path(file, frame_filename),
                     }
                 )
         return file_matches
-
-    def _get_code_mapping_source_path(self, src_file: str, frame_filename: FrameFilename) -> str:
-        """Generate the source code root for a code mapping. It always includes a last backslash"""
-        source_code_root = None
-        if frame_filename.frame_type() == "packaged":
-            if frame_filename.dir_path != "":
-                # src/sentry/identity/oauth2.py (sentry/identity/oauth2.py) -> src/sentry/
-                source_path = src_file.rsplit(frame_filename.dir_path)[0].rstrip("/")
-                source_code_root = f"{source_path}/"
-            elif frame_filename.root != "":
-                # src/sentry/wsgi.py (sentry/wsgi.py) -> src/sentry/
-                source_code_root = src_file.rsplit(frame_filename.file_name)[0]
-            else:
-                # ssl.py -> raise NotImplementedError
-                raise NotImplementedError("We do not support top level files.")
-        else:
-            # static/app/foo.tsx (./app/foo.tsx) -> static/app/
-            # static/app/foo.tsx (app/foo.tsx) -> static/app/
-            source_code_root = f"{src_file.replace(frame_filename.file_and_dir_path, remove_straight_path_prefix(frame_filename.root))}/"
-        if source_code_root:
-            assert source_code_root.endswith("/")
-        return source_code_root
 
     def _normalized_stack_and_source_roots(
         self, stacktrace_root: str, source_path: str
@@ -440,3 +418,26 @@ def create_code_mapping(
         )
 
     return new_code_mapping
+
+
+def _get_code_mapping_source_path(src_file: str, frame_filename: FrameFilename) -> str:
+    """Generate the source code root for a code mapping. It always includes a last backslash"""
+    source_code_root = None
+    if frame_filename.frame_type() == "packaged":
+        if frame_filename.dir_path != "":
+            # src/sentry/identity/oauth2.py (sentry/identity/oauth2.py) -> src/sentry/
+            source_path = src_file.rsplit(frame_filename.dir_path)[0].rstrip("/")
+            source_code_root = f"{source_path}/"
+        elif frame_filename.root != "":
+            # src/sentry/wsgi.py (sentry/wsgi.py) -> src/sentry/
+            source_code_root = src_file.rsplit(frame_filename.file_name)[0]
+        else:
+            # ssl.py -> raise NotImplementedError
+            raise NotImplementedError("We do not support top level files.")
+    else:
+        # static/app/foo.tsx (./app/foo.tsx) -> static/app/
+        # static/app/foo.tsx (app/foo.tsx) -> static/app/
+        source_code_root = f"{src_file.replace(frame_filename.file_and_dir_path, remove_straight_path_prefix(frame_filename.root))}/"
+    if source_code_root:
+        assert source_code_root.endswith("/")
+    return source_code_root
