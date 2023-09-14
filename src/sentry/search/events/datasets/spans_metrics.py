@@ -276,7 +276,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                 ),
                 fields.MetricsFunction(
                     "http_error_rate",
-                    snql_distribution=lambda args, alias: self.builder.resolve_division(
+                    snql_distribution=lambda args, alias: function_aliases.resolve_division(
                         self._resolve_http_error_count(args),
                         Function(
                             "countIf",
@@ -399,7 +399,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
         )
         metric_id = self.resolve_metric("span.self_time")
 
-        return self.builder.resolve_division(
+        return function_aliases.resolve_division(
             Function(
                 "sumIf",
                 [

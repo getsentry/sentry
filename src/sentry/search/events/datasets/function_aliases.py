@@ -1,4 +1,4 @@
-from typing import Callable, List, Mapping, Optional, Sequence, Union
+from typing import Any, Callable, List, Mapping, Optional, Sequence, Union
 
 from snuba_sdk import Column, Function
 
@@ -224,12 +224,9 @@ def resolve_percent_change(
     first_value: SelectType, second_value: SelectType, alias: Optional[str] = None
 ) -> SelectType:
     """(v2-v1)/abs(v1)"""
-    return Function(
-        "divide",
-        [
-            Function("minus", [second_value, first_value]),
-            Function("abs", [first_value]),
-        ],
+    return resolve_division(
+        Function("minus", [second_value, first_value]),
+        Function("abs", [first_value]),
         alias,
     )
 
@@ -300,4 +297,27 @@ def resolve_metrics_layer_percentile(
             ],
             alias,
         )
+    )
+
+
+def resolve_division(
+    dividend: SelectType, divisor: SelectType, alias: str, fallback: Optional[Any] = None
+) -> SelectType:
+    return Function(
+        "if",
+        [
+            Function(
+                "greater",
+                [divisor, 0],
+            ),
+            Function(
+                "divide",
+                [
+                    dividend,
+                    divisor,
+                ],
+            ),
+            fallback,
+        ],
+        alias,
     )

@@ -66,7 +66,7 @@ from sentry.search.events.constants import (
     USER_DISPLAY_ALIAS,
     VITAL_THRESHOLDS,
 )
-from sentry.search.events.datasets import field_aliases, filter_aliases
+from sentry.search.events.datasets import field_aliases, filter_aliases, function_aliases
 from sentry.search.events.datasets.base import DatasetConfig
 from sentry.search.events.fields import (
     ColumnArg,
@@ -1235,7 +1235,7 @@ class DiscoverDatasetConfig(DatasetConfig):
 
     def _resolve_aliased_division(self, dividend: str, divisor: str, alias: str) -> SelectType:
         """Given public aliases resolve division"""
-        return self.builder.resolve_division(
+        return function_aliases.resolve_division(
             self.builder.column(dividend), self.builder.column(divisor), alias
         )
 
@@ -1361,7 +1361,7 @@ class DiscoverDatasetConfig(DatasetConfig):
             "countIf", [Function("greaterOrEquals", [column, 0])]
         )
 
-        return self.builder.resolve_division(  # (satisfied + tolerable/2)/(total)
+        return function_aliases.resolve_division(  # (satisfied + tolerable/2)/(total)
             Function(
                 "plus",
                 [
