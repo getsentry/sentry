@@ -34,7 +34,7 @@ class Migration(CheckedMigration):
         ("sentry", "0313_sentry_functions_env_variables"),
     ]
 
-    operations = (
+    operations = [
         migrations.AlterField(
             model_name="auditlogentry",
             name="target_object",
@@ -190,4 +190,4 @@ class Migration(CheckedMigration):
             hints={"tables": ["sentry_dashboardproject"]},
             reverse_sql="ALTER TABLE sentry_dashboardproject ALTER COLUMN dashboard_id TYPE int",
         ),
-    )
+    ]

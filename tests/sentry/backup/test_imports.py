@@ -623,6 +623,47 @@ class CollisionTests(ImportTestCase):
     Ensure that collisions are properly handled in different flag modes.
     """
 
+    def test_colliding_org_auth_token(self):
+        owner = self.create_exhaustive_user("owner")
+        invited = self.create_exhaustive_user("invited")
+        member = self.create_exhaustive_user("member")
+        self.create_exhaustive_organization("some-org", owner, invited, [member])
+
+        # Take note of the `OrgAuthToken` that was created by the exhaustive organization - this is
+        # the one we'll be importing.
+        colliding = OrgAuthToken.objects.filter().first()
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
+
+            # After exporting and clearing the database, insert a copy of the same `ProjectKey` as
+            # the one found in the import.
+            org = self.create_organization()
+            colliding.organization_id = org.id
+            colliding.project_last_used_id = self.create_project(organization=org).id
+            colliding.save()
+
+            assert OrgAuthToken.objects.count() == 1
+            assert OrgAuthToken.objects.filter(token_hashed=colliding.token_hashed).count() == 1
+            assert (
+                OrgAuthToken.objects.filter(
+                    token_last_characters=colliding.token_last_characters
+                ).count()
+                == 1
+            )
+
+            with open(tmp_path) as tmp_file:
+                import_in_organization_scope(tmp_file, printer=NOOP_PRINTER)
+
+        assert OrgAuthToken.objects.count() == 2
+        assert OrgAuthToken.objects.filter(token_hashed=colliding.token_hashed).count() == 1
+        assert (
+            OrgAuthToken.objects.filter(
+                token_last_characters=colliding.token_last_characters
+            ).count()
+            == 1
+        )
+
     def test_colliding_project_key(self):
         owner = self.create_exhaustive_user("owner")
         invited = self.create_exhaustive_user("invited")
@@ -632,28 +673,25 @@ class CollisionTests(ImportTestCase):
         # Take note of the `ProjectKey` that was created by the exhaustive organization - this is
         # the one we'll be importing.
         colliding = ProjectKey.objects.filter().first()
-        colliding_public_key = colliding.public_key
-        colliding_secret_key = colliding.secret_key
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
 
             # After exporting and clearing the database, insert a copy of the same `ProjectKey` as
             # the one found in the import.
-            project = self.create_project()
-            ProjectKey.objects.create(
-                project=project,
-                label="Test",
-                public_key=colliding_public_key,
-                secret_key=colliding_secret_key,
-            )
+            colliding.project = self.create_project()
+            colliding.save()
+
+            assert ProjectKey.objects.count() < 4
+            assert ProjectKey.objects.filter(public_key=colliding.public_key).count() == 1
+            assert ProjectKey.objects.filter(secret_key=colliding.secret_key).count() == 1
 
             with open(tmp_path) as tmp_file:
                 import_in_organization_scope(tmp_file, printer=NOOP_PRINTER)
 
         assert ProjectKey.objects.count() == 4
-        assert ProjectKey.objects.filter(public_key=colliding_public_key).count() == 1
-        assert ProjectKey.objects.filter(secret_key=colliding_secret_key).count() == 1
+        assert ProjectKey.objects.filter(public_key=colliding.public_key).count() == 1
+        assert ProjectKey.objects.filter(secret_key=colliding.secret_key).count() == 1
 
     def test_colliding_user_with_merging_enabled_in_user_scope(self):
         self.create_exhaustive_user(username="owner", email="owner@example.com")

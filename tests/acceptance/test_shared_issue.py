@@ -28,4 +28,3 @@ class SharedIssueTest(AcceptanceTestCase):
         )
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
         self.browser.wait_until_not('[data-test-id="event-entries-loading-false"]')
-        self.browser.snapshot("shared issue python")

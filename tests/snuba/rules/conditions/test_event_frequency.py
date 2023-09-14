@@ -4,6 +4,7 @@ from datetime import timedelta, timezone
 from unittest.mock import patch
 from uuid import uuid4
 
+import pytest
 from django.utils.timezone import now
 from freezegun import freeze_time
 
@@ -20,6 +21,7 @@ from sentry.testutils.silo import region_silo_test
 from sentry.utils.samples import load_data
 
 
+@pytest.mark.snuba_ci
 class FrequencyConditionMixin:
     def increment(self, event, count, environment=None, timestamp=None):
         raise NotImplementedError

@@ -217,13 +217,16 @@ def test_detect_function_trends_query_timerange(functions_query, timestamp, proj
 
 
 @mock.patch("sentry.tasks.statistical_detectors.query_functions")
+@mock.patch("sentry.tasks.statistical_detectors.detect_function_change_points")
 @django_db_all
 def test_detect_function_trends(
+    detect_function_change_points,
     query_functions,
     timestamp,
     project,
 ):
-    timestamps = [timestamp - timedelta(hours=i) for i in range(3, 0, -1)]
+    n = 20
+    timestamps = [timestamp - timedelta(hours=n - i) for i in range(n)]
 
     query_functions.side_effect = [
         [
@@ -231,16 +234,17 @@ def test_detect_function_trends(
                 project_id=project.id,
                 group=123,
                 count=100,
-                value=100,
+                value=100 if i < n / 2 else 200,
                 timestamp=ts,
             ),
         ]
-        for ts in timestamps
+        for i, ts in enumerate(timestamps)
     ]
 
-    with override_options({"statistical_detectors.enable": True}):
+    with override_options({"statistical_detectors.enable": True}), TaskRunner():
         for ts in timestamps:
             detect_function_trends([project.id], ts)
+    assert detect_function_change_points.delay.called
 
 
 @region_silo_test(stable=True)
@@ -253,37 +257,54 @@ class FunctionsQueryTest(ProfilesSnubaTestCase):
             minute=0, second=0, microsecond=0, tzinfo=timezone.utc
         )
 
+    @mock.patch("sentry.tasks.statistical_detectors.FUNCTIONS_PER_PROJECT", 1)
     def test_functions_query(self):
-        self.store_functions(
-            [
-                {
-                    "self_times_ns": [100 for _ in range(100)],
-                    "package": "foo",
-                    "function": "bar",
-                    # only in app functions should
-                    # appear in the results
-                    "in_app": True,
-                },
-                {
-                    "self_times_ns": [200 for _ in range(100)],
-                    "package": "baz",
-                    "function": "quz",
-                    # non in app functions should not
-                    # appear in the results
-                    "in_app": False,
-                },
-            ],
-            project=self.project,
-            timestamp=self.hour_ago,
-        )
+        projects = [
+            self.create_project(organization=self.organization, teams=[self.team], name="Foo"),
+            self.create_project(organization=self.organization, teams=[self.team], name="Bar"),
+        ]
 
-        results = query_functions([self.project], self.now)
+        for project in projects:
+            self.store_functions(
+                [
+                    {
+                        "self_times_ns": [100 for _ in range(100)],
+                        "package": "foo",
+                        "function": "foo",
+                        # only in app functions should
+                        # appear in the results
+                        "in_app": True,
+                    },
+                    {
+                        # this function has a lower count, so `foo` is prioritized
+                        "self_times_ns": [100 for _ in range(10)],
+                        "package": "bar",
+                        "function": "bar",
+                        # only in app functions should
+                        # appear in the results
+                        "in_app": True,
+                    },
+                    {
+                        "self_times_ns": [200 for _ in range(100)],
+                        "package": "baz",
+                        "function": "quz",
+                        # non in app functions should not
+                        # appear in the results
+                        "in_app": False,
+                    },
+                ],
+                project=project,
+                timestamp=self.hour_ago,
+            )
+
+        results = query_functions(projects, self.now)
         assert results == [
             DetectorPayload(
-                project_id=self.project.id,
-                group=self.function_fingerprint({"package": "foo", "function": "bar"}),
+                project_id=project.id,
+                group=self.function_fingerprint({"package": "foo", "function": "foo"}),
                 count=100,
                 value=pytest.approx(100),  # type: ignore[arg-type]
                 timestamp=self.hour_ago,
             )
+            for project in projects
         ]
