@@ -145,7 +145,11 @@ export default function GroupSidebar({
           />
         </SidebarSection.Title>
         <SidebarSection.Content>
-          <StyledAvatarList users={participants} avatarSize={28} maxVisibleAvatars={13} />
+          <StyledAvatarList
+            members={participants}
+            avatarSize={28}
+            maxVisibleAvatars={13}
+          />
         </SidebarSection.Content>
       </SidebarSection.Wrap>
     );
@@ -172,7 +176,7 @@ export default function GroupSidebar({
         </SidebarSection.Title>
         <SidebarSection.Content>
           <StyledAvatarList
-            users={displayUsers}
+            members={displayUsers}
             avatarSize={28}
             maxVisibleAvatars={13}
             renderTooltip={user => (

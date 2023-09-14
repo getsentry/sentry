@@ -22,7 +22,7 @@ function FileChange({filename, authors, className}: Props) {
       </Filename>
       <div>
         <AvatarList
-          users={authors as AvatarUser[]}
+          members={authors as AvatarUser[]}
           avatarSize={25}
           typeMembers="authors"
         />

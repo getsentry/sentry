@@ -46,7 +46,7 @@ function SeenByList({
   return (
     <SeenByWrapper iconPosition={iconPosition} className={className}>
       <AvatarList
-        users={displayUsers}
+        members={displayUsers}
         avatarSize={avatarSize}
         maxVisibleAvatars={maxVisibleAvatars}
         renderTooltip={user => (

@@ -3,9 +3,9 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import AvatarList from 'sentry/components/avatar/avatarList';
 
 function renderComponent(
-  avatarUsersSixUsers: React.ComponentProps<typeof AvatarList>['users']
+  avatarUsersSixUsers: React.ComponentProps<typeof AvatarList>['members']
 ) {
-  return render(<AvatarList users={avatarUsersSixUsers} />);
+  return render(<AvatarList members={avatarUsersSixUsers} />);
 }
 
 describe('AvatarList', () => {

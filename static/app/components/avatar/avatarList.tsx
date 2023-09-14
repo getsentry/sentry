@@ -1,14 +1,16 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import TeamAvatar from 'sentry/components/avatar/teamAvatar';
 import UserAvatar from 'sentry/components/avatar/userAvatar';
 import {Tooltip} from 'sentry/components/tooltip';
 import {AvatarUser} from 'sentry/types';
+import {TeamParticipant} from 'sentry/types/group';
 
 type UserAvatarProps = React.ComponentProps<typeof UserAvatar>;
 
 type Props = {
-  users: AvatarUser[];
+  members: Array<AvatarUser | TeamParticipant>;
   avatarSize?: number;
   className?: string;
   maxVisibleAvatars?: number;
@@ -23,11 +25,11 @@ function AvatarList({
   typeMembers = 'users',
   tooltipOptions = {},
   className,
-  users,
+  members,
   renderTooltip,
 }: Props) {
-  const visibleUsers = users.slice(0, maxVisibleAvatars);
-  const numCollapsedUsers = users.length - visibleUsers.length;
+  const visibleMembers = members.slice(0, maxVisibleAvatars);
+  const numCollapsedUsers = members.length - members.length;
 
   if (!tooltipOptions.position) {
     tooltipOptions.position = 'top';
@@ -43,16 +45,23 @@ function AvatarList({
           </CollapsedUsers>
         </Tooltip>
       )}
-      {visibleUsers.map(user => (
-        <StyledAvatar
-          key={`${user.id}-${user.email}`}
-          user={user}
-          size={avatarSize}
-          renderTooltip={renderTooltip}
-          tooltipOptions={tooltipOptions}
-          hasTooltip
-        />
-      ))}
+      {visibleMembers.map(member => {
+        if (member.type && member.type === 'team') {
+          const team = member as TeamParticipant;
+          return <TeamAvatar key={`${team.id}-${team.name}`} team={team} />;
+        }
+        const user = member as AvatarUser;
+        return (
+          <StyledAvatar
+            key={`${user.id}-${user.email}`}
+            user={user}
+            size={avatarSize}
+            renderTooltip={renderTooltip}
+            tooltipOptions={tooltipOptions}
+            hasTooltip
+          />
+        );
+      })}
     </AvatarListWrapper>
   );
 }

@@ -20,6 +20,7 @@ export type AvatarUser = {
   options?: {
     avatarType: Avatar['avatarType'];
   };
+  type?: string;
 };
 
 /**
