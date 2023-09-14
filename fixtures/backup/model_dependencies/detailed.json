@@ -435,7 +435,7 @@
       }
     },
     "model": "sentry.Authenticator",
-    "relocation_scope": "User",
+    "relocation_scope": "Global",
     "silos": [
       "Control"
     ]
@@ -1470,6 +1470,10 @@
       "project": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.Project"
+      },
+      "team": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.Team"
       },
       "user_id": {
         "kind": "HybridCloudForeignKey",
@@ -3305,7 +3309,7 @@
       }
     },
     "model": "sentry.UserPermission",
-    "relocation_scope": "User",
+    "relocation_scope": "Global",
     "silos": [
       "Control"
     ]
@@ -3338,7 +3342,7 @@
   "sentry.UserRole": {
     "foreign_keys": {},
     "model": "sentry.UserRole",
-    "relocation_scope": "User",
+    "relocation_scope": "Global",
     "silos": [
       "Control"
     ]
@@ -3355,7 +3359,7 @@
       }
     },
     "model": "sentry.UserRoleUser",
-    "relocation_scope": "User",
+    "relocation_scope": "Global",
     "silos": [
       "Control"
     ]

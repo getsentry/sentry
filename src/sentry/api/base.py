@@ -57,6 +57,7 @@ __all__ = [
     "pending_silo_endpoint",
 ]
 
+from ..services.hybrid_cloud import rpcmetrics
 from ..services.hybrid_cloud.auth import RpcAuthentication, RpcAuthenticatorType
 from ..utils.pagination_factory import (
     annotate_span_with_pagination_args,
@@ -368,8 +369,9 @@ class Endpoint(APIView):
             with sentry_sdk.start_span(
                 op="base.dispatch.execute",
                 description=f"{type(self).__name__}.{handler.__name__}",
-            ):
-                response = handler(request, *args, **kwargs)
+            ) as span:
+                with rpcmetrics.wrap_sdk_span(span):
+                    response = handler(request, *args, **kwargs)
 
         except Exception as exc:
             response = self.handle_exception(request, exc)
@@ -603,7 +605,7 @@ class PreventNumericSlugMixin:
         Validates that the slug is not entirely numeric. Requires a feature flag
         to be turned on.
         """
-        if options.get("api.prevent-numeric-slugs") and slug.isnumeric():
+        if options.get("api.prevent-numeric-slugs") and slug.isdecimal():
             raise serializers.ValidationError(DEFAULT_SLUG_ERROR_MESSAGE)
         return slug
 

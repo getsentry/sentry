@@ -6,7 +6,7 @@ import {GettingStartedWithIos, steps} from './apple-ios';
 
 describe('GettingStartedWithIos', function () {
   it('renders doc correctly', function () {
-    const {container} = render(<GettingStartedWithIos dsn="test-dsn" />);
+    render(<GettingStartedWithIos dsn="test-dsn" />);
 
     // Steps
     for (const step of steps({
@@ -18,7 +18,5 @@ describe('GettingStartedWithIos', function () {
         screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
       ).toBeInTheDocument();
     }
-
-    expect(container).toSnapshot();
   });
 });

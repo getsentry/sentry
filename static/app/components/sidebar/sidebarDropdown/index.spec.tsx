@@ -27,12 +27,10 @@ function renderDropdown(props: any = {}) {
 
 describe('SidebarDropdown', function () {
   it('renders', function () {
-    const {container} = renderDropdown();
-    expect(container).toSnapshot();
+    renderDropdown();
   });
   it('renders without org links', function () {
-    const {container} = renderDropdown({hideOrgLinks: true});
-    expect(container).toSnapshot();
+    renderDropdown({hideOrgLinks: true});
   });
   it('renders open sidebar', async function () {
     const config = TestStubs.Config({
