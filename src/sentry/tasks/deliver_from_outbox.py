@@ -57,7 +57,7 @@ def schedule_batch(
     drain_task: Task,
     concurrency: int | None = None,
     process_outbox_backfills=True,
-):
+) -> bool:
     scheduled_count = 0
 
     if not concurrency:
@@ -87,6 +87,8 @@ def schedule_batch(
     except Exception:
         capture_exception()
         raise
+
+    return scheduled_count > 0
 
 
 @instrumented_task(
