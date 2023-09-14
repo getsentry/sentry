@@ -3,9 +3,14 @@ import styled from '@emotion/styled';
 import classNames from 'classnames';
 import scrollToElement from 'scroll-to-element';
 
+import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import {analyzeFrameForRootCause} from 'sentry/components/events/interfaces/analyzeFrames';
 import LeadHint from 'sentry/components/events/interfaces/frame/line/leadHint';
+import {
+  FrameSourceMapDebuggerData,
+  SourceMapsDebuggerModal,
+} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
 import {getThreadById} from 'sentry/components/events/interfaces/utils';
 import StrictClick from 'sentry/components/strictClick';
 import Tag from 'sentry/components/tag';
@@ -50,6 +55,7 @@ export interface DeprecatedLineProps {
   registers: Record<string, string>;
   emptySourceNotation?: boolean;
   frameMeta?: Record<any, any>;
+  frameSourceResolutionResults?: FrameSourceMapDebuggerData;
   hiddenFrameCount?: number;
   image?: React.ComponentProps<typeof DebugImage>['image'];
   includeSystemFrames?: boolean;
@@ -341,6 +347,23 @@ export class DeprecatedLine extends Component<Props, State> {
               </Tag>
             ) : null}
             {stacktraceChangesEnabled ? this.renderShowHideToggle() : null}
+            {this.props.frameSourceResolutionResults ? (
+              <span
+                role="button"
+                onClick={e => {
+                  e.stopPropagation();
+                  openModal(modalProps => (
+                    <SourceMapsDebuggerModal
+                      sourceResolutionResults={this.props.frameSourceResolutionResults!}
+                      {...modalProps}
+                    />
+                  ));
+                }}
+              >
+                {t('not your sauce?')}
+                {JSON.stringify(this.props.data.symbolicatorStatus)}
+              </span>
+            ) : null}
             {!data.inApp ? (
               stacktraceChangesEnabled ? null : (
                 <Tag>{t('System')}</Tag>

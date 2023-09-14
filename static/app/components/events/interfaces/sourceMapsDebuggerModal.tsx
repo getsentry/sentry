@@ -23,14 +23,17 @@ import {
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
-interface SourceResolutionResults {
-  distName: string | null;
+export interface FrameSourceMapDebuggerData {
+  dist: string | null;
   eventHasDebugIds: boolean;
-  matchingArtifactName: string;
-  projectHasUploadedArtifacts: boolean;
-  releaseName: string | null;
+  matchingSourceFileNames: string[];
+  matchingSourceMapName: string | null;
+  release: string | null;
+  releaseHasSomeArtifact: boolean;
   releaseSourceMapReference: string | null;
-  sdkDebugIdSupport: 'full' | 'needs-upgrade' | 'unofficial-sdk';
+  sdkDebugIdSupport: 'full' | 'needs-upgrade' | 'not-supported' | 'unofficial-sdk';
+  sdkVersion: string | null;
+  shouldShow: boolean;
   sourceFileReleaseNameFetchingResult: 'found' | 'wrong-dist' | 'unsuccessful';
   sourceFileScrapingStatus:
     | {status: 'found'}
@@ -43,16 +46,13 @@ interface SourceResolutionResults {
     | {status: 'none'};
   stackFrameDebugId: string | null;
   stackFramePath: string | null;
-  uploadedSomeArtifact: boolean;
-  uploadedSomeArtifactToRelease: boolean;
   uploadedSomeArtifactWithDebugId: boolean;
   uploadedSourceFileWithCorrectDebugId: boolean;
   uploadedSourceMapWithCorrectDebugId: boolean;
-  sdkVersion?: string;
 }
 
 interface SourceMapsDebuggerModalProps extends ModalRenderProps {
-  sourceResolutionResults: SourceResolutionResults;
+  sourceResolutionResults: FrameSourceMapDebuggerData;
 }
 
 export function SourceMapsDebuggerModal({
@@ -148,7 +148,10 @@ export function SourceMapsDebuggerModal({
             </TabList.Item>
             <TabList.Item
               key="fetching"
-              textValue={`${t('Hosting Publicly')} (${scrapingProgress}/4)`}
+              textValue={`${t('Hosting Publicly')} (${t(
+                'coming soon'
+              )}) (${scrapingProgress}/4)`}
+              disabled
             >
               <StyledProgressRing
                 progressColor={activeTab === 'fetching' ? theme.purple300 : theme.gray300}
@@ -157,7 +160,7 @@ export function SourceMapsDebuggerModal({
                 size={16}
                 barWidth={4}
               />
-              {t('Hosting Publicly')}
+              {`${t('Hosting Publicly')} (${t('coming soon')})`}
             </TabList.Item>
           </TabList>
           <StyledTabPanels>
@@ -213,11 +216,11 @@ export function SourceMapsDebuggerModal({
                   sourceResolutionResults={sourceResolutionResults}
                 />
                 <ReleaseHasUploadedArtifactsChecklistItem
-                  shouldValidate={sourceResolutionResults.releaseName !== null}
+                  shouldValidate={sourceResolutionResults.release !== null}
                   sourceResolutionResults={sourceResolutionResults}
                 />
                 <ReleaseSourceFileMatchingChecklistItem
-                  shouldValidate={sourceResolutionResults.uploadedSomeArtifactToRelease}
+                  shouldValidate={sourceResolutionResults.releaseHasSomeArtifact}
                   sourceResolutionResults={sourceResolutionResults}
                 />
                 <ReleaseSourceMapMatchingChecklistItem
@@ -282,7 +285,7 @@ export function SourceMapsDebuggerModal({
   );
 }
 
-function getDebugIdProgress(sourceResolutionResults: SourceResolutionResults) {
+function getDebugIdProgress(sourceResolutionResults: FrameSourceMapDebuggerData) {
   let debugIdProgress = 0;
   if (sourceResolutionResults.sdkDebugIdSupport === 'full') {
     debugIdProgress++;
@@ -299,12 +302,12 @@ function getDebugIdProgress(sourceResolutionResults: SourceResolutionResults) {
   return {debugIdProgress, debugIdProgressPercent: debugIdProgress / 4};
 }
 
-function getReleaseProgress(sourceResolutionResults: SourceResolutionResults) {
+function getReleaseProgress(sourceResolutionResults: FrameSourceMapDebuggerData) {
   let releaseProgress = 0;
-  if (sourceResolutionResults.releaseName !== null) {
+  if (sourceResolutionResults.release !== null) {
     releaseProgress++;
   }
-  if (sourceResolutionResults.uploadedSomeArtifactToRelease) {
+  if (sourceResolutionResults.releaseHasSomeArtifact) {
     releaseProgress++;
   }
   if (sourceResolutionResults.sourceFileReleaseNameFetchingResult === 'found') {
@@ -316,7 +319,7 @@ function getReleaseProgress(sourceResolutionResults: SourceResolutionResults) {
   return {releaseProgress, releaseProgressPercent: releaseProgress / 4};
 }
 
-function getScrapingProgress(sourceResolutionResults: SourceResolutionResults) {
+function getScrapingProgress(sourceResolutionResults: FrameSourceMapDebuggerData) {
   let scrapingProgress = 0;
   if (sourceResolutionResults.sourceFileScrapingStatus.status === 'found') {
     scrapingProgress++;
@@ -362,7 +365,7 @@ function InstalledSdkChecklistItem({
   setActiveTab: React.Dispatch<
     React.SetStateAction<'release' | 'debug-ids' | 'fetching'>
   >;
-  sourceResolutionResults: SourceResolutionResults;
+  sourceResolutionResults: FrameSourceMapDebuggerData;
 }) {
   const itemName = t('Installed SDK supports Debug IDs');
 
@@ -436,7 +439,7 @@ function HasDebugIdChecklistItem({
   shouldValidate,
 }: {
   shouldValidate: boolean;
-  sourceResolutionResults: SourceResolutionResults;
+  sourceResolutionResults: FrameSourceMapDebuggerData;
 }) {
   const itemName = t('Stack frame has Debug IDs');
 
@@ -513,7 +516,7 @@ function UploadedSourceFileWithCorrectDebugIdChecklistItem({
   shouldValidate,
 }: {
   shouldValidate: boolean;
-  sourceResolutionResults: SourceResolutionResults;
+  sourceResolutionResults: FrameSourceMapDebuggerData;
 }) {
   const itemName = t('Uploaded source file with a matching Debug ID');
 
@@ -551,39 +554,13 @@ function UploadedSourceFileWithCorrectDebugIdChecklistItem({
     );
   }
 
-  if (sourceResolutionResults.uploadedSomeArtifact) {
-    return (
-      <CheckListItem status="alert" title={itemName}>
-        <CheckListInstruction type="muted">
-          <h6>{t('Uploaded Artifacts Without Debug IDs')}</h6>
-          <p>
-            {t(
-              'You already uploaded artifacts for this project but none of the artifacts contain Debug IDs. Make sure you inject Debug IDs into your source files before uploading them to Sentry.'
-            )}
-          </p>
-          <p>
-            {tct(
-              'Read the [link:Sentry Source Maps Documentation] to learn how to inject Debug IDs into your build artifacts and how to upload them to Sentry.',
-              {
-                link: (
-                  <ExternalLinkWithIcon href="https://docs.sentry.io/platforms/javascript/sourcemaps/" />
-                ),
-              }
-            )}
-          </p>
-          {/* TODO: Link to Uploaded Artifacts */}
-        </CheckListInstruction>
-      </CheckListItem>
-    );
-  }
-
   return (
     <CheckListItem status="alert" title={itemName}>
       <CheckListInstruction type="muted">
-        <h6>{t('No Artifacts Uploaded')}</h6>
+        <h6>{t('No Artifacts With Debug IDs Uploaded')}</h6>
         <p>
           {tct(
-            "You didn't upload any artifacts yet. Read the [link:Sentry Source Maps Documentation] to learn how to inject Debug IDs into your build artifacts and how to upload them to Sentry.",
+            "You didn't upload any artifacts with debug IDs yet. Read the [link:Sentry Source Maps Documentation] to learn how to inject Debug IDs into your build artifacts and how to upload them to Sentry.",
             {
               link: (
                 <ExternalLinkWithIcon href="https://docs.sentry.io/platforms/javascript/sourcemaps/" />
@@ -602,7 +579,7 @@ function UploadedSourceMapWithCorrectDebugIdChecklistItem({
   shouldValidate,
 }: {
   shouldValidate: boolean;
-  sourceResolutionResults: SourceResolutionResults;
+  sourceResolutionResults: FrameSourceMapDebuggerData;
 }) {
   const itemName = t('Uploaded source map with a matching Debug ID');
 
@@ -641,40 +618,13 @@ function UploadedSourceMapWithCorrectDebugIdChecklistItem({
     );
   }
 
-  if (sourceResolutionResults.uploadedSomeArtifact) {
-    return (
-      <CheckListItem status="alert" title={itemName}>
-        <CheckListInstruction type="muted">
-          <h6>{t('Uploaded Artifacts Without Debug IDs')}</h6>
-          <p>
-            {t(
-              'You already uploaded artifacts for this project but none of the artifacts contain Debug IDs. Make sure you inject Debug IDs into your source files before uploading them to Sentry.'
-            )}
-          </p>
-          <p>
-            {tct(
-              'Read the [link:Sentry Source Maps Documentation] to learn how to inject Debug IDs into your build artifacts and how to upload them to Sentry.',
-              {
-                link: (
-                  <ExternalLinkWithIcon href="https://docs.sentry.io/platforms/javascript/sourcemaps/" />
-                ),
-              }
-            )}
-          </p>
-          {/* TODO: Link to Uploaded Artifacts */}
-        </CheckListInstruction>
-        <SourceMapStepNotRequiredNote />
-      </CheckListItem>
-    );
-  }
-
   return (
     <CheckListItem status="alert" title={itemName}>
       <CheckListInstruction type="muted">
         <h6>{t('No Artifacts Uploaded')}</h6>
         <p>
           {tct(
-            "You didn't upload any artifacts yet. Read the [link:Sentry Source Maps Documentation] to learn how to inject Debug IDs into your build artifacts and how to upload them to Sentry.",
+            "You didn't upload any artifacts with debug IDs yet. Read the [link:Sentry Source Maps Documentation] to learn how to inject Debug IDs into your build artifacts and how to upload them to Sentry.",
             {
               link: (
                 <ExternalLinkWithIcon href="https://docs.sentry.io/platforms/javascript/sourcemaps/" />
@@ -692,11 +642,11 @@ function UploadedSourceMapWithCorrectDebugIdChecklistItem({
 function EventHasReleaseNameChecklistItem({
   sourceResolutionResults,
 }: {
-  sourceResolutionResults: SourceResolutionResults;
+  sourceResolutionResults: FrameSourceMapDebuggerData;
 }) {
   const itemName = t('Event has release value');
 
-  if (sourceResolutionResults.releaseName !== null) {
+  if (sourceResolutionResults.release !== null) {
     return <CheckListItem status="checked" title={itemName} />;
   }
 
@@ -735,7 +685,7 @@ function ReleaseHasUploadedArtifactsChecklistItem({
   shouldValidate,
 }: {
   shouldValidate: boolean;
-  sourceResolutionResults: SourceResolutionResults;
+  sourceResolutionResults: FrameSourceMapDebuggerData;
 }) {
   const itemName = t('Release has uploaded artifacts');
 
@@ -743,7 +693,7 @@ function ReleaseHasUploadedArtifactsChecklistItem({
     return <CheckListItem status="none" title={itemName} />;
   }
 
-  if (sourceResolutionResults.uploadedSomeArtifactToRelease) {
+  if (sourceResolutionResults.releaseHasSomeArtifact) {
     return <CheckListItem status="checked" title={itemName} />;
   }
 
@@ -755,7 +705,7 @@ function ReleaseHasUploadedArtifactsChecklistItem({
           {t(
             "The release this event belongs to doesn't have any uploaded artifacts. Upload your build artifacts to Sentry using the release:"
           )}{' '}
-          <MonoBlock>{sourceResolutionResults.releaseName}</MonoBlock>
+          <MonoBlock>{sourceResolutionResults.release}</MonoBlock>
         </p>
         <p>
           {tct(
@@ -777,7 +727,7 @@ function ReleaseSourceFileMatchingChecklistItem({
   shouldValidate,
 }: {
   shouldValidate: boolean;
-  sourceResolutionResults: SourceResolutionResults;
+  sourceResolutionResults: FrameSourceMapDebuggerData;
 }) {
   const itemName = t('Stack frame path matches source file artifact');
 
@@ -799,11 +749,11 @@ function ReleaseSourceFileMatchingChecklistItem({
               'You uploaded a source file artifact with the right name, however the dist value on this event does not match the dist value on the artifact.'
             )}
           </p>
-          {sourceResolutionResults.distName !== null ? (
+          {sourceResolutionResults.dist !== null ? (
             <p>
               {tct(
                 'Upload your build artifacts to Sentry using the dist [dist] or adjust the dist value in your SDK options.',
-                {dist: <MonoBlock>{sourceResolutionResults.distName}</MonoBlock>}
+                {dist: <MonoBlock>{sourceResolutionResults.dist}</MonoBlock>}
               )}
             </p>
           ) : (
@@ -849,11 +799,20 @@ function ReleaseSourceFileMatchingChecklistItem({
           )}
         </p>
         <p>
-          {t(
-            'Upload a source file with exactly the same name or a protocol + hostname prefix:'
-          )}{' '}
-          <MonoBlock>{sourceResolutionResults.matchingArtifactName}</MonoBlock>
+          {tct(
+            'Upload a source file with exactly one of the following names ([tilde] acts as a wildcard for protocol and hostname):',
+            {
+              tilde: <MonoBlock>~</MonoBlock>,
+            }
+          )}
         </p>
+        <InstructionList>
+          {sourceResolutionResults.matchingSourceFileNames.map(mathingSourceFileName => (
+            <li key={mathingSourceFileName}>
+              <MonoBlock>{mathingSourceFileName}</MonoBlock>
+            </li>
+          ))}
+        </InstructionList>
         <p>
           {t(
             "Refer to the documentation of the tool you're using to upload source files to understand how to change artifact names."
@@ -879,7 +838,7 @@ function ReleaseSourceMapMatchingChecklistItem({
   shouldValidate,
 }: {
   shouldValidate: boolean;
-  sourceResolutionResults: SourceResolutionResults;
+  sourceResolutionResults: FrameSourceMapDebuggerData;
 }) {
   const itemName = t('Source map reference matches source map artifact name');
 
@@ -924,11 +883,11 @@ function ReleaseSourceMapMatchingChecklistItem({
               'You uploaded a source map artifact with the right name, however the dist value on this event does not match the dist value on the artifact.'
             )}
           </p>
-          {sourceResolutionResults.distName !== null ? (
+          {sourceResolutionResults.dist !== null ? (
             <p>
               {tct(
                 'Upload your build artifacts to Sentry using the dist [dist] or adjust the dist value in your SDK options.',
-                {dist: <MonoBlock>{sourceResolutionResults.distName}</MonoBlock>}
+                {dist: <MonoBlock>{sourceResolutionResults.dist}</MonoBlock>}
               )}
             </p>
           ) : (
@@ -946,23 +905,23 @@ function ReleaseSourceMapMatchingChecklistItem({
     );
   }
 
+  // TODO add instruction for matching source map
+
   return (
     <CheckListItem status="alert" title={itemName}>
       <CheckListInstruction type="muted">
         <h6>{t('Not Found')}</h6>
         <p>
           {tct(
-            'The source file had a source map reference [sourceMapReference], but there was no source map artifact uploaded at that location. Make sure to generate and upload all of your source maps!',
+            'The source file had a source map reference [sourceMapReference], but there was no source map artifact uploaded at that location. Make sure to generate and upload a source map named [matchingSourceMap] to symbolicate this stack frame!',
             {
               sourceMapReference: (
                 <MonoBlock>{sourceResolutionResults.releaseSourceMapReference}</MonoBlock>
               ),
+              matchingSourceMap: (
+                <MonoBlock>{sourceResolutionResults.matchingSourceMapName}</MonoBlock>
+              ),
             }
-          )}
-        </p>
-        <p>
-          {t(
-            'Note, that if the source map reference is a relative path, Sentry will look for a source map artifact relative to the source file that contains the source map reference.'
           )}
         </p>
         {/* TODO: Link to Uploaded Artifacts */}
@@ -975,7 +934,7 @@ function ReleaseSourceMapMatchingChecklistItem({
 function ScrapingSourceFileAvailableChecklistItem({
   sourceResolutionResults,
 }: {
-  sourceResolutionResults: SourceResolutionResults;
+  sourceResolutionResults: FrameSourceMapDebuggerData;
 }) {
   const itemName = t('Source file available to Sentry');
 
@@ -1021,7 +980,7 @@ function ScrapingSourceMapAvailableChecklistItem({
   shouldValidate,
 }: {
   shouldValidate: boolean;
-  sourceResolutionResults: SourceResolutionResults;
+  sourceResolutionResults: FrameSourceMapDebuggerData;
 }) {
   const itemName = t('Source map available to Sentry');
 
@@ -1213,4 +1172,12 @@ const WizardInstructionParagraph = styled('p')`
 
 const InstructionCodeSnippet = styled(CodeSnippet)`
   margin: ${space(1)} 0 ${space(2)};
+`;
+
+const InstructionList = styled('ul')`
+  margin-bottom: ${space(1.5)};
+
+  li {
+    margin-bottom: ${space(0.5)};
+  }
 `;
