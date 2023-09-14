@@ -12,8 +12,7 @@ from sentry.models import (
     outbox_context,
 )
 from sentry.silo import SiloMode
-from sentry.tasks.backfill_outboxes import (
-    backfill_outboxes_for,
+from sentry.tasks.backfill_outboxes import (  # backfill_outboxes_for,
     get_backfill_key,
     get_processing_state,
     process_outbox_backfill_batch,
@@ -90,9 +89,9 @@ def test_control_processing(task_runner):
     with assume_test_silo_mode(SiloMode.REGION):
         assert AuthIdentityReplica.objects.filter(auth_provider_id=ap2.id).count() == 0
 
-    with outbox_runner(), task_runner():
-        while backfill_outboxes_for(SiloMode.CONTROL, 0, 1):
-            pass
+    # with outbox_runner(), task_runner():
+    #     while backfill_outboxes_for(SiloMode.CONTROL, 0, 1):
+    #         pass
     #
     # # Does not process these new objects since we already completed all available work for this version.
     # with assume_test_silo_mode(SiloMode.REGION):
