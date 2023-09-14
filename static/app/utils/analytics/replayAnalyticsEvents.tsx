@@ -68,6 +68,13 @@ export type ReplayEventParameters = {
     play: boolean;
     user_email: string;
   };
+  'replay.rage-click-sdk-banner.dismissed': {
+    surface: string;
+  };
+  'replay.rage-click-sdk-banner.rendered': {
+    is_dismissed: boolean;
+    surface: string;
+  };
   'replay.render-issues-group-list': {
     platform: string | undefined;
     project_id: string | undefined;
@@ -107,6 +114,8 @@ export const replayEventMap: Record<ReplayEventKey, string | null> = {
   'replay.list-time-spent': 'Time Spent Viewing Replay List',
   'replay.list-view-setup-sidebar': 'Views Set Up Replays Sidebar',
   'replay.play-pause': 'Played/Paused Replay',
+  'replay.rage-click-sdk-banner.dismissed': 'Replay Rage Click SDK Banner Dismissed',
+  'replay.rage-click-sdk-banner.rendered': 'Replay Rage Click SDK Banner Rendered',
   'replay.render-issues-group-list': 'Render Issues Detail Replay List',
   'replay.render-player': 'Rendered ReplayPlayer',
   'replay.search': 'Searched Replay',

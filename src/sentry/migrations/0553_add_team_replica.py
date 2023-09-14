@@ -22,7 +22,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0551_drop_xactor_actor"),
+        ("sentry", "0552_create_neglectedalert_table"),
     ]
 
     operations = [

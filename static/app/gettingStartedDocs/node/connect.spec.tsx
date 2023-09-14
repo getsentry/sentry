@@ -13,6 +13,9 @@ describe('GettingStartedWithConnect', function () {
       installSnippet: 'test-install-snippet',
       importContent: 'test-import-content',
       initContent: 'test-init-content',
+      sourceMapStep: {
+        title: 'Upload Source Maps',
+      },
     })) {
       expect(
         screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})

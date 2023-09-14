@@ -1802,6 +1802,23 @@
       "Region"
     ]
   },
+  "sentry.NeglectedRule": {
+    "foreign_keys": {
+      "organization": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.Organization"
+      },
+      "rule": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.Rule"
+      }
+    },
+    "model": "sentry.NeglectedRule",
+    "relocation_scope": "Organization",
+    "silos": [
+      "Region"
+    ]
+  },
   "sentry.NotificationAction": {
     "foreign_keys": {
       "integration_id": {
