@@ -1,3 +1,4 @@
+import re
 from unittest.mock import MagicMock, Mock, patch
 
 from sentry.models import Activity
@@ -40,8 +41,11 @@ class MSTeamsResolvedNotificationTest(MSTeamsActivityNotificationTest):
         body = args[1]["body"]
         assert 4 == len(body)
 
+        notification_uuid = re.search(
+            "notification\\\\_uuid=([a-zA-Z0-9-]+)", body[0]["text"]
+        ).group(1)
         assert (
-            f"{self.user.get_display_name()} marked [{self.group.qualified_short_id}](http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=activity\\_notification) as resolved"
+            f"{self.user.get_display_name()} marked [{self.group.qualified_short_id}](http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=activity\\_notification&amp;notification\\_uuid={notification_uuid}) as resolved"
             == body[0]["text"]
         )
         assert (
@@ -49,7 +53,7 @@ class MSTeamsResolvedNotificationTest(MSTeamsActivityNotificationTest):
             in body[1]["text"]
         )
         assert (
-            f"{self.project.slug} | [Notification Settings](http://testserver/settings/account/notifications/workflow/?referrer=resolved\\_activity-msteams-user)"
+            f"{self.project.slug} | [Notification Settings](http://testserver/settings/account/notifications/workflow/?referrer=resolved\\_activity-msteams-user&amp;notification\\_uuid={notification_uuid})"
             == body[3]["columns"][1]["items"][0]["text"]
         )
 
@@ -87,7 +91,10 @@ class MSTeamsResolvedNotificationTest(MSTeamsActivityNotificationTest):
             f"[{self.group.title}](http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=resolved\\_in\\_release\\_activity-msteams&amp;notification\\_uuid="
             in body[1]["text"]
         )
+        notification_uuid = re.search(
+            "notification\\\\_uuid=([a-zA-Z0-9-]+)", body[3]["columns"][1]["items"][0]["text"]
+        ).group(1)
         assert (
-            f"{self.project.slug} | [Notification Settings](http://testserver/settings/account/notifications/workflow/?referrer=resolved\\_in\\_release\\_activity-msteams-user)"
+            f"{self.project.slug} | [Notification Settings](http://testserver/settings/account/notifications/workflow/?referrer=resolved\\_in\\_release\\_activity-msteams-user&amp;notification\\_uuid={notification_uuid})"
             == body[3]["columns"][1]["items"][0]["text"]
         )

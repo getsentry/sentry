@@ -1,3 +1,4 @@
+import re
 from unittest import mock
 
 import responses
@@ -36,9 +37,10 @@ class SlackNewProcessingIssuesNotificationTest(SlackActivityNotificationTest):
             notification.send()
 
         attachment, text = get_attachment()
+        notification_uuid = re.search("notification_uuid=([a-zA-Z0-9-]+)", text).group(1)
         assert (
             text
-            == f"Processing issues on <http://testserver/settings/{self.organization.slug}/projects/{self.project.slug}/processing-issues/|{self.project.slug}>"
+            == f"Processing issues on <http://testserver/settings/{self.organization.slug}/projects/{self.project.slug}/processing-issues/?referrer=new_processing_issues_activity&notification_uuid={notification_uuid}|{self.project.slug}>"
         )
         assert (
             attachment["text"]
@@ -46,7 +48,7 @@ class SlackNewProcessingIssuesNotificationTest(SlackActivityNotificationTest):
         )
         assert (
             attachment["footer"]
-            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=new_processing_issues_activity-slack-user|Notification Settings>"
+            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=new_processing_issues_activity-slack-user&notification_uuid={notification_uuid}|Notification Settings>"
         )
 
     @responses.activate
@@ -69,9 +71,10 @@ class SlackNewProcessingIssuesNotificationTest(SlackActivityNotificationTest):
 
         slug = self.organization.slug
         attachment, text = get_attachment()
+        notification_uuid = re.search("notification_uuid=([a-zA-Z0-9-]+)", text).group(1)
         assert (
             text
-            == f"Processing issues on <http://{slug}.testserver/settings/projects/{self.project.slug}/processing-issues/|{self.project.slug}>"
+            == f"Processing issues on <http://{slug}.testserver/settings/projects/{self.project.slug}/processing-issues/?referrer=new_processing_issues_activity&notification_uuid={notification_uuid}|{self.project.slug}>"
         )
         assert (
             attachment["text"]
@@ -79,5 +82,5 @@ class SlackNewProcessingIssuesNotificationTest(SlackActivityNotificationTest):
         )
         assert (
             attachment["footer"]
-            == f"{self.project.slug} | <http://{slug}.testserver/settings/account/notifications/workflow/?referrer=new_processing_issues_activity-slack-user|Notification Settings>"
+            == f"{self.project.slug} | <http://{slug}.testserver/settings/account/notifications/workflow/?referrer=new_processing_issues_activity-slack-user&notification_uuid={notification_uuid}|Notification Settings>"
         )
