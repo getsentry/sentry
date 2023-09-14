@@ -33,7 +33,7 @@ class ReleaseThresholdDetailsTest(APITestCase):
             kwargs={
                 "organization_slug": self.organization.slug,
                 "project_slug": self.project.slug,
-                "threshold_id": 123,
+                "release_threshold": 123,
             },
         )
         response = self.client.get(url)
@@ -46,7 +46,7 @@ class ReleaseThresholdDetailsTest(APITestCase):
             kwargs={
                 "organization_slug": self.organization.slug,
                 "project_slug": "kingdom_of_the_crystal_skull",
-                "threshold_id": self.basic_threshold.id,
+                "release_threshold": self.basic_threshold.id,
             },
         )
         response = self.client.get(url)
@@ -59,7 +59,7 @@ class ReleaseThresholdDetailsTest(APITestCase):
             kwargs={
                 "organization_slug": self.organization.slug,
                 "project_slug": self.project.slug,
-                "threshold_id": self.basic_threshold.id,
+                "release_threshold": self.basic_threshold.id,
             },
         )
         response = self.client.get(url)

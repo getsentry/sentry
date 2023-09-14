@@ -24,18 +24,13 @@ class ReleaseThresholdDetailsEndpoint(ProjectEndpoint):
     def convert_args(
         self,
         request: Request,
-        organization_slug: str,
-        project_slug: str,
-        threshold_id: str,
         *args,
         **kwargs,
     ) -> Any:
-        parsed_args, parsed_kwargs = super().convert_args(
-            request, organization_slug, project_slug, *args, **kwargs
-        )
+        parsed_args, parsed_kwargs = super().convert_args(request, *args, **kwargs)
         try:
             parsed_kwargs["release_threshold"] = ReleaseThreshold.objects.get(
-                id=threshold_id,
+                id=kwargs["release_threshold"],
                 project=parsed_kwargs["project"],
             )
         except ReleaseThreshold.DoesNotExist:
