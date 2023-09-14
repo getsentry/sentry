@@ -82,11 +82,13 @@ def test_buckets_logic():
         "app://foo.js",
         "./app/utils/handleXhrErrorResponse.tsx",
         "getsentry/billing/tax/manager.py",
+        "/cronscripts/monitoringsync.php",
     ] + UNSUPPORTED_FRAME_FILENAMES
     buckets = stacktrace_buckets(stacktraces)
     assert buckets == {
         "./app": [FrameFilename("./app/utils/handleXhrErrorResponse.tsx")],
         "app:": [FrameFilename("app://foo.js")],
+        "cronscripts": [FrameFilename("/cronscripts/monitoringsync.php")],
         "getsentry": [FrameFilename("getsentry/billing/tax/manager.py")],
     }
 

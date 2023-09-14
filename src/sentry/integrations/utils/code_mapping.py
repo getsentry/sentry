@@ -103,12 +103,10 @@ class FrameFilename:
         if frame_file_path[0] == "/":
             frame_file_path = frame_file_path.replace("/", "", 1)
 
-        if frame_file_path.startswith("./"):
-            frame_file_path = frame_file_path.replace("./", "", 1)
-
         # Using regexes would be better but this is easier to understand
         if (
-            frame_file_path[0] in ["[", "<"]
+            not frame_file_path
+            or frame_file_path[0] in ["[", "<"]
             or frame_file_path.find(" ") > -1
             or frame_file_path.find("\\") > -1  # Windows support
             or frame_file_path.find("/") == -1
@@ -179,10 +177,7 @@ def stacktrace_buckets(stacktraces: List[str]) -> Dict[str, List[FrameFilename]]
             buckets[bucket_key].append(frame_filename)
 
         except UnsupportedFrameFilename:
-            logger.info(
-                "Frame's filepath not supported.",
-                extra={"frame_file_path": stacktrace_frame_file_path},
-            )
+            logger.info(f"Frame's filepath not supported: {stacktrace_frame_file_path}")
         except Exception:
             logger.exception("Unable to split stacktrace path into buckets")
 
