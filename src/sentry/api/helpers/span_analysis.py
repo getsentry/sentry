@@ -9,26 +9,27 @@
 
 import collections
 
+
 def span_analysis(data):
     columns = list(data[0].keys())
 
     # add in two extra columns
     count_col = [row["count_v"] for row in data]
-    txn_count = [row['txn_count'] for row in data]
-    avg_col = [row['avg_v'] for row in data]
-    sum_col = [row['sum_v'] for row in data]
+    txn_count = [row["txn_count"] for row in data]
+    avg_col = [row["avg_v"] for row in data]
+    sum_col = [row["sum_v"] for row in data]
 
     relative_freq = [count_col[x] / txn_count[x] for x in range(len(count_col))]
     score_col = [relative_freq[x] * avg_col[x] for x in range(len(relative_freq))]
 
     for i in range(len(data)):
         row = data[i]
-        row['relative_freq'] = relative_freq[i]
-        row['score'] = score_col[i]
+        row["relative_freq"] = relative_freq[i]
+        row["score"] = score_col[i]
 
     # get constant, removed, and new spans
-    spans_before = [row['k'] for row in data if row['period'] == 0]
-    spans_after = [row['k'] for row in data if row['period'] == 1]
+    spans_before = [row["k"] for row in data if row["period"] == 0]
+    spans_after = [row["k"] for row in data if row["period"] == 1]
     result = collections.Counter(spans_before) & collections.Counter(spans_after)
     constant_spans = list(result.elements())
 
@@ -37,8 +38,8 @@ def span_analysis(data):
 
     # create two dataframes for period 0 and 1 and keep only the same spans in both periods
 
-    span_data_p0 = [row for row in data if row['period'] == 0 and row['k'] in constant_spans]
-    span_data_p1 = [row for row in data if row['period'] == 1 and row['k'] in constant_spans]
+    span_data_p0 = [row for row in data if row["period"] == 0 and row["k"] in constant_spans]
+    span_data_p1 = [row for row in data if row["period"] == 1 and row["k"] in constant_spans]
 
     # merge the dataframes to do span analysis
 
@@ -47,7 +48,7 @@ def span_analysis(data):
     # Perform the join operation
     for row1 in span_data_p0:
         for row2 in span_data_p1:
-            if row1['k'] == row2['k']:
+            if row1["k"] == row2["k"]:
                 # Merge the rows from df1 and df2 into a single dictionary
                 # print(row1, row2)
                 row1["score_p1"] = row2["score"]
@@ -56,11 +57,18 @@ def span_analysis(data):
                 span_analysis.append(row1)
 
     for row in span_analysis:
-        row['score_delta'] = (row["score_p1"] - row["score"]) / row["score"] if row['score'] != 0 else 0
-        row['freq_delta'] = (row['freq_p1'] - row['relative_freq']) / row['relative_freq'] if row[
-                                                                                                  'relative_freq'] != 0 else 0
-        row['duration_delta'] = (row['avg_p1'] - row['avg_v']) / row['avg_v'] if row['avg_v'] != 0 else 0
+        row["score_delta"] = (
+            (row["score_p1"] - row["score"]) / row["score"] if row["score"] != 0 else 0
+        )
+        row["freq_delta"] = (
+            (row["freq_p1"] - row["relative_freq"]) / row["relative_freq"]
+            if row["relative_freq"] != 0
+            else 0
+        )
+        row["duration_delta"] = (
+            (row["avg_p1"] - row["avg_v"]) / row["avg_v"] if row["avg_v"] != 0 else 0
+        )
 
-    span_analysis.sort(key=lambda x: x['score_delta'], reverse=True)
+    span_analysis.sort(key=lambda x: x["score_delta"], reverse=True)
 
     return span_analysis
