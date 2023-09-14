@@ -90,6 +90,13 @@ class ComparatorFindingKind(IntEnum):
     # present or `None`.
     SecretHexComparatorExistenceCheck = auto()
 
+    # Subscription ID fields did not match their regex specification.
+    SubscriptionIDComparator = auto()
+
+    # Failed to compare a subscription id field because one of the fields being compared was not
+    # present or `None`.
+    SubscriptionIDComparatorExistenceCheck = auto()
+
     # UUID4 fields did not match their regex specification.
     UUID4Comparator = auto()
 
