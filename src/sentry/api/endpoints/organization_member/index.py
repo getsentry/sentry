@@ -305,7 +305,8 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
             save_team_assignments(om, teams)
 
         if settings.SENTRY_ENABLE_INVITES and result.get("sendInvite"):
-            om.send_invite_email()
+            referrer = request.query_params.get("referrer")
+            om.send_invite_email(referrer)
             member_invited.send_robust(
                 member=om, user=request.user, sender=self, referrer=request.data.get("referrer")
             )

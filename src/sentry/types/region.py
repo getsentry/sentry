@@ -70,11 +70,13 @@ class Region:
     def to_url(self, path: str) -> str:
         """Resolve a path into a customer facing URL on this region's silo.
 
-        (This method is a placeholder. See the `address` attribute.)
+        In monolith mode, there is likely only the historical simulated
+        region. The public URL of the simulated region is the same
+        as the application base URL.
         """
         from sentry.api.utils import generate_region_url
 
-        if self.name == settings.SENTRY_MONOLITH_REGION:
+        if SiloMode.get_current_mode() == SiloMode.MONOLITH:
             base_url = options.get("system.url-prefix")
         else:
             base_url = generate_region_url(self.name)

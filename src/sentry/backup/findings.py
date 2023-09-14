@@ -97,6 +97,13 @@ class ComparatorFindingKind(IntEnum):
     # `None`.
     UUID4ComparatorExistenceCheck = auto()
 
+    # Incorrect user password field.
+    UserPasswordObfuscatingComparator = auto()
+
+    # Failed to compare a user password field because one of the fields being compared was not
+    # present or `None`.
+    UserPasswordObfuscatingComparatorExistenceCheck = auto()
+
 
 class ComparatorFinding(NamedTuple):
     """Store all information about a single failed matching between expected and actual output."""

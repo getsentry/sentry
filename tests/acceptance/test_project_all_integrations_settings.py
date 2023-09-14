@@ -18,4 +18,3 @@ class ProjectAllIntegrationsSettingsTest(AcceptanceTestCase):
         path = f"/{self.org.slug}/{self.project.slug}/settings/plugins/"
         self.browser.get(path)
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
-        self.browser.snapshot("project settings - all integrations")

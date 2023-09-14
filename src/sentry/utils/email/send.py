@@ -19,6 +19,13 @@ def send_messages(messages: Sequence[EmailMultiAlternatives], fail_silently: boo
     failed = len(messages) - sent
     if failed > 0:
         metrics.incr("email.sent", failed, skip_internal=False, tags={"success": False})
+        logger.info(
+            "mail.sent.failure",
+            extra={
+                "message_count": len(messages),
+                "sent": sent,
+            },
+        )
 
     for message in messages:
         extra = {

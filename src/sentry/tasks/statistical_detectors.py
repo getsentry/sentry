@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timedelta
-from typing import Any, Dict, Generator, List, Set
+from typing import Any, Dict, Generator, List, Optional, Set, Tuple
 
 import sentry_sdk
 from django.utils import timezone
@@ -14,9 +14,9 @@ from sentry.snuba import functions
 from sentry.snuba.referrer import Referrer
 from sentry.statistical_detectors import redis
 from sentry.statistical_detectors.algorithm import (
-    MovingAverageCrossOverDetector,
-    MovingAverageCrossOverDetectorConfig,
-    MovingAverageCrossOverDetectorState,
+    MovingAverageDetectorState,
+    MovingAverageRelativeChangeDetector,
+    MovingAverageRelativeChangeDetectorConfig,
 )
 from sentry.statistical_detectors.detector import DetectorPayload, TrendType
 from sentry.tasks.base import instrumented_task
@@ -29,6 +29,7 @@ logger = logging.getLogger("sentry.tasks.statistical_detectors")
 
 
 FUNCTIONS_PER_PROJECT = 100
+FUNCTIONS_PER_BATCH = 1_000
 PROJECTS_PER_BATCH = 1_000
 
 
@@ -83,7 +84,7 @@ def run_detection() -> None:
     queue="performance.statistical_detector",
     max_retries=0,
 )
-def detect_transaction_trends(project_ids: List[int], start: datetime, **kwargs) -> None:
+def detect_transaction_trends(project_ids: List[int], start: datetime, *args, **kwargs) -> None:
     if not options.get("statistical_detectors.enable"):
         return
 
@@ -96,18 +97,54 @@ def detect_transaction_trends(project_ids: List[int], start: datetime, **kwargs)
     queue="profiling.statistical_detector",
     max_retries=0,
 )
-def detect_function_trends(project_ids: List[int], start: datetime, **kwargs) -> None:
+def detect_function_trends(project_ids: List[int], start: datetime, *args, **kwargs) -> None:
     if not options.get("statistical_detectors.enable"):
         return
 
+    regressions = filter(
+        lambda trend: trend[0] == TrendType.Regressed, _detect_function_trends(project_ids, start)
+    )
+
+    for trends in chunked(regressions, FUNCTIONS_PER_BATCH):
+        detect_function_change_points.delay(
+            [(payload.project_id, payload.group) for _, payload in trends],
+            start,
+        )
+
+
+@instrumented_task(
+    name="sentry.tasks.statistical_detectors.detect_function_change_points",
+    queue="profiling.statistical_detector",
+    max_retries=0,
+)
+def detect_function_change_points(
+    functions: List[Tuple[int, str | int]], start: datetime, *args, **kwargs
+) -> None:
+    for project_id, function_id in functions:
+        with sentry_sdk.push_scope() as scope:
+            scope.set_tag("project_id", project_id)
+            scope.set_tag("function_id", function_id)
+            scope.set_context(
+                "statistical_detectors",
+                {
+                    "timestamp": start.isoformat(),
+                },
+            )
+            sentry_sdk.capture_message("Potential Regression")
+
+
+def _detect_function_trends(
+    project_ids: List[int], start: datetime
+) -> Generator[Tuple[Optional[TrendType], DetectorPayload], None, None]:
     functions_count = 0
     regressed_count = 0
     improved_count = 0
 
-    detector_config = MovingAverageCrossOverDetectorConfig(
+    detector_config = MovingAverageRelativeChangeDetectorConfig(
         min_data_points=6,
         short_moving_avg_factory=lambda: ExponentialMovingAverage(2 / 21),
         long_moving_avg_factory=lambda: ExponentialMovingAverage(2 / 41),
+        threshold=0.1,
     )
 
     detector_store = redis.RedisDetectorStore()
@@ -121,16 +158,16 @@ def detect_function_trends(project_ids: List[int], start: datetime, **kwargs) ->
 
         for raw_state, payload in zip(raw_states, payloads):
             try:
-                state = MovingAverageCrossOverDetectorState.from_redis_dict(raw_state)
+                state = MovingAverageDetectorState.from_redis_dict(raw_state)
             except Exception as e:
-                state = MovingAverageCrossOverDetectorState.empty()
+                state = MovingAverageDetectorState.empty()
 
                 if raw_state:
                     # empty raw state implies that there was no
                     # previous state so no need to capture an exception
                     sentry_sdk.capture_exception(e)
 
-            detector = MovingAverageCrossOverDetector(state, detector_config)
+            detector = MovingAverageRelativeChangeDetector(state, detector_config)
             trend_type = detector.update(payload)
 
             states.append(None if trend_type is None else detector.state.to_redis_dict())
@@ -139,6 +176,8 @@ def detect_function_trends(project_ids: List[int], start: datetime, **kwargs) ->
                 regressed_count += 1
             elif trend_type == TrendType.Improved:
                 improved_count += 1
+
+            yield (trend_type, payload)
 
         detector_store.bulk_write_states(payloads, states)
 
@@ -162,8 +201,6 @@ def detect_function_trends(project_ids: List[int], start: datetime, **kwargs) ->
         amount=improved_count,
         sample_rate=1.0,
     )
-
-    # TODO: pass on the regressed/improved functions to the next task
 
 
 def all_function_payloads(
