@@ -6,7 +6,7 @@ from sentry.models import File, Release, ReleaseFile
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.relay import RelayStoreHelper
-from sentry.testutils.skips import requires_symbolicator
+from sentry.testutils.skips import requires_kafka, requires_symbolicator
 
 # IMPORTANT:
 #
@@ -16,6 +16,9 @@ from sentry.testutils.skips import requires_symbolicator
 # If you are using a local instance of Symbolicator, you need to either change `system.url-prefix`
 # to `system.internal-url-prefix` inside `initialize` method below, or add `127.0.0.1 host.docker.internal`
 # entry to your `/etc/hosts`
+
+
+pytestmark = [requires_symbolicator, requires_kafka]
 
 
 def get_fixture_path(name):

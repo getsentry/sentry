@@ -1,7 +1,7 @@
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import type {Sort} from 'sentry/utils/discover/fields';
-import {MIN_DEAD_RAGE_CLICK_SDK} from 'sentry/views/replays/replayTable';
+import {MIN_DEAD_RAGE_CLICK_SDK} from 'sentry/utils/replays/sdkVersions';
 import SortableHeader from 'sentry/views/replays/replayTable/sortableHeader';
 import {ReplayColumn} from 'sentry/views/replays/replayTable/types';
 
@@ -36,7 +36,7 @@ function HeaderCell({column, sort}: Props) {
           tooltip={tct(
             'A dead click is a user click that does not result in any page activity after 7 seconds. Requires SDK version >= [minSDK]. [link:Learn more.]',
             {
-              minSDK: MIN_DEAD_RAGE_CLICK_SDK,
+              minSDK: MIN_DEAD_RAGE_CLICK_SDK.minVersion,
               link: <ExternalLink href="https://docs.sentry.io/platforms/javascript/" />,
             }
           )}
@@ -58,7 +58,7 @@ function HeaderCell({column, sort}: Props) {
           tooltip={tct(
             'A rage click is 5 or more clicks on a dead element, which exhibits no page activity after 7 seconds. Requires SDK version >= [minSDK]. [link:Learn more.]',
             {
-              minSDK: MIN_DEAD_RAGE_CLICK_SDK,
+              minSDK: MIN_DEAD_RAGE_CLICK_SDK.minVersion,
               link: <ExternalLink href="https://docs.sentry.io/platforms/javascript/" />,
             }
           )}
@@ -87,7 +87,7 @@ function HeaderCell({column, sort}: Props) {
           tooltip={tct(
             'A rage click is 5 or more clicks on a dead element, which exhibits no page activity after 7 seconds. Requires SDK version >= [minSDK]. [link:Learn more.]',
             {
-              minSDK: MIN_DEAD_RAGE_CLICK_SDK,
+              minSDK: MIN_DEAD_RAGE_CLICK_SDK.minVersion,
               link: <ExternalLink href="https://docs.sentry.io/platforms/javascript/" />,
             }
           )}
@@ -101,7 +101,7 @@ function HeaderCell({column, sort}: Props) {
           tooltip={tct(
             'A dead click is a user click that does not result in any page activity after 7 seconds. Requires SDK version >= [minSDK]. [link:Learn more.]',
             {
-              minSDK: MIN_DEAD_RAGE_CLICK_SDK,
+              minSDK: MIN_DEAD_RAGE_CLICK_SDK.minVersion,
               link: <ExternalLink href="https://docs.sentry.io/platforms/javascript/" />,
             }
           )}
