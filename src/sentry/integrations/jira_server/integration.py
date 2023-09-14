@@ -1048,6 +1048,8 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
                     "organization_id": external_issue.organization_id,
                     "integration_id": external_issue.integration_id,
                     "issue_key": external_issue.key,
+                    "transitions": transitions,
+                    "jira_status": jira_status,
                 },
             )
             return
