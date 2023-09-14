@@ -1,7 +1,7 @@
 import logging
 from datetime import datetime, timedelta, timezone
 from functools import wraps
-from typing import List
+from typing import List, Optional
 
 from django.db import OperationalError
 from django.db.models import Max
@@ -97,7 +97,9 @@ def schedule_auto_transition_to_ongoing() -> None:
 @retry(on=(OperationalError,))
 @log_error_if_queue_has_items
 def auto_transition_issues_new_to_ongoing(
+    project_ids: List[int],  # TODO(nisanthan): Remove in following PR
     first_seen_lte: int,
+    organization_id: int,  # TODO(nisanthan): Remove in following PR
     **kwargs,
 ) -> None:
     """
@@ -181,7 +183,9 @@ def run_auto_transition_issues_new_to_ongoing(
 @retry(on=(OperationalError,))
 @log_error_if_queue_has_items
 def auto_transition_issues_regressed_to_ongoing(
+    project_ids: List[int],  # TODO(nisanthan): Remove this arg in next PR
     date_added_lte: int,
+    project_id: Optional[int],  # TODO(nisanthan): Remove this arg in next PR
     **kwargs,
 ) -> None:
     """
@@ -255,7 +259,9 @@ def run_auto_transition_issues_regressed_to_ongoing(
 @retry(on=(OperationalError,))
 @log_error_if_queue_has_items
 def auto_transition_issues_escalating_to_ongoing(
+    project_ids: List[int],  # TODO(nisanthan): Remove this arg in next PR
     date_added_lte: int,
+    project_id: Optional[int],  # TODO(nisanthan): Remove this arg in next PR
     **kwargs,
 ) -> None:
     """
