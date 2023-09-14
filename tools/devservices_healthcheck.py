@@ -15,7 +15,7 @@ class HealthcheckError(Exception):
 class HealthCheck:
     def __init__(
         self,
-        id: str,
+        service_id: str,
         container_name: str,
         check_by_default: bool,
         check: Callable[[], object] | None = None,
@@ -23,7 +23,7 @@ class HealthCheck:
         retries: int = 3,
         timeout_secs: int = 5,
     ):
-        self.id = id
+        self.service_id = service_id
         self.container_name = container_name
         self.check_by_default = check_by_default
         self.check = check
@@ -33,11 +33,11 @@ class HealthCheck:
 
     def check_container(self) -> None:
         response = subprocess.run(
-            ("docker", "container", "inspect", "-f", "'{{.State.Status}}'", self.container_name),
+            ("docker", "container", "inspect", "-f", "{{.State.Status}}", self.container_name),
             capture_output=True,
             text=True,
         )
-        if response.stdout.strip() != "'running'":
+        if response.stdout.strip() != "running":
             raise HealthcheckError(f"Container '{self.container_name}' is not running.")
 
 
@@ -69,9 +69,7 @@ all_service_healthchecks = {
         "postgres",
         "sentry_postgres",
         True,
-        lambda: subprocess.run(
-            ["docker", "exec", "sentry_postgres", "pg_isready", "-U", "postgres"], check=True
-        ),
+        check_postgres,
     ),
     "kafka": HealthCheck(
         "kafka",
@@ -92,7 +90,7 @@ def run_with_retries(cmd: Callable[[], object], retries: int, timeout: int) -> N
     for retry in range(1, retries + 1):
         try:
             cmd()
-        except Exception as e:
+        except (HealthcheckError, subprocess.CalledProcessError) as e:
             if retry == retries:
                 print(f"Command failed, no more retries: {e}")
                 raise HealthcheckError(f"Command failed: {e}")
@@ -117,25 +115,25 @@ def get_services_to_check(id: str) -> list[str]:
     return checks
 
 
-def check_health(ids: list[str]) -> None:
-    checks = []
-    for id in ids:
-        s = get_services_to_check(id)
-        checks += s
+def check_health(service_ids: list[str]) -> None:
+    checks = [
+        check_id for service_id in service_ids for check_id in get_services_to_check(service_id)
+    ]
 
     # dict.fromkeys is used to remove duplicates while maintaining order
-    for name in dict.fromkeys(checks):
+    unique_checks = list(dict.fromkeys(checks))
+    for name in unique_checks:
         print(f"Checking service {name}")
         hc = all_service_healthchecks[name]
         print(f"Checking '{hc.container_name}' is running...")
-        ls = " ".join(list(set(checks)))
+        ls = " ".join(unique_checks)
         try:
             run_with_retries(hc.check_container, hc.retries, hc.timeout_secs)
         except HealthcheckError:
             raise HealthcheckError(
                 f"Container '{hc.container_name}' is not running.\n"
-                + f"    Start service: sentry devservices up {hc.id}\n"
-                + f"    Restart all services: sentry devservices down {ls} && sentry devservices up {ls}"
+                f"    Start service: sentry devservices up {hc.service_id}\n"
+                f"    Restart all services: sentry devservices down {ls} && sentry devservices up {ls}"
             )
 
         if hc.check is not None:
@@ -145,8 +143,8 @@ def check_health(ids: list[str]) -> None:
             except HealthcheckError:
                 raise HealthcheckError(
                     f"Container '{hc.container_name}' does not appear to be healthy.\n"
-                    + f"    Restart service: sentry devservices down {hc.id} && sentry devservices up {hc.id}\n"
-                    + f"    Restart all services: sentry devservices down {ls} && sentry devservices up {ls}"
+                    f"    Restart service: sentry devservices down {hc.service_id} && sentry devservices up {hc.service_id}\n"
+                    f"    Restart all services: sentry devservices down {ls} && sentry devservices up {ls}"
                 )
 
 
@@ -159,20 +157,15 @@ def main(argv: Sequence[str] | None = None) -> None:
     )
 
     args = parser.parse_args(argv)
-    services = args.service
 
-    healthchecks = services
+    healthchecks = args.service
     if healthchecks is None:
-        healthchecks = []
-        for k in all_service_healthchecks:
-            if all_service_healthchecks[k].check_by_default:
-                healthchecks.append(k)
+        healthchecks = [k for k, v in all_service_healthchecks.items() if v.check_by_default]
 
     try:
         check_health(healthchecks)
     except HealthcheckError as e:
-        print(e)
-        raise SystemExit(1)
+        raise SystemExit(e)
 
 
 if __name__ == "__main__":

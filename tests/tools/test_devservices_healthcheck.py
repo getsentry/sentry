@@ -47,12 +47,14 @@ def test_postgres_not_running(mock_subprocess_run: mock.MagicMock) -> None:
 
 def test_postgres_healthcheck_failing(mock_subprocess_run: mock.MagicMock) -> None:
     running = mock.Mock()
-    running.stdout = "'running'\n"
+    running.stdout = "running\n"
     running.code = 0
 
     mock_subprocess_run.side_effect = [
         running,
-        Exception("injected error"),
+        HealthcheckError("injected error"),
+        HealthcheckError("injected error"),
+        HealthcheckError("injected error"),
     ]
 
     with pytest.raises(HealthcheckError):
@@ -62,7 +64,7 @@ def test_postgres_healthcheck_failing(mock_subprocess_run: mock.MagicMock) -> No
 
 def test_postgres_running(mock_subprocess_run: mock.MagicMock) -> None:
     running = mock.Mock()
-    running.stdout = "'running'\n"
+    running.stdout = "running\n"
     running.code = 0
 
     healthcheck = mock.Mock()
@@ -78,7 +80,7 @@ def test_postgres_running(mock_subprocess_run: mock.MagicMock) -> None:
 
 def test_kafka_zookeper_running(mock_subprocess_run: mock.MagicMock) -> None:
     running = mock.Mock()
-    running.stdout = "'running'\n"
+    running.stdout = "running\n"
     running.code = 0
 
     healthcheck = mock.Mock()
@@ -91,7 +93,7 @@ def test_kafka_zookeper_running(mock_subprocess_run: mock.MagicMock) -> None:
             "container",
             "inspect",
             "-f",
-            "'{{.State.Status}}'",
+            "{{.State.Status}}",
             "sentry_zookeeper",
         ):
             return running
@@ -100,7 +102,7 @@ def test_kafka_zookeper_running(mock_subprocess_run: mock.MagicMock) -> None:
             "container",
             "inspect",
             "-f",
-            "'{{.State.Status}}'",
+            "{{.State.Status}}",
             "sentry_kafka",
         ):
             return running
