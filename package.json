@@ -170,6 +170,7 @@
     "zxcvbn": "^4.4.2"
   },
   "devDependencies": {
+    "@acemarke/react-prod-sourcemaps": "^0.0.5",
     "@babel/plugin-transform-react-jsx-source": "^7.19.6",
     "@pmmmwh/react-refresh-webpack-plugin": "0.5.10",
     "@sentry/jest-environment": "^4.0.0",
