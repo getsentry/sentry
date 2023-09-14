@@ -27,10 +27,11 @@ class OrganizationIntegrationAlertRulesTest(APITestCase):
         response = self.client.put(path, format="json")
         assert response.status_code == 400
 
+    @patch("sentry.api.endpoints.organization_integration_migrate_opsgenie.metrics")
     @patch(
         "sentry.integrations.opsgenie.integration.OpsgenieIntegration.schedule_migrate_opsgenie_plugin"
     )
-    def test_simple(self, mock_migrate_opsgenie_plugin):
+    def test_simple(self, mock_migrate_opsgenie_plugin, mock_metrics):
         integration = self.create_integration(
             organization=self.organization, provider="opsgenie", external_id="cool_opsgenie"
         )
@@ -38,3 +39,4 @@ class OrganizationIntegrationAlertRulesTest(APITestCase):
         response = self.client.put(path, format="json")
         assert response.status_code == 202
         assert mock_migrate_opsgenie_plugin.called
+        mock_metrics.incr.assert_any_call("opsgenie.migration_attempt", skip_internal=False)
