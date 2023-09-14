@@ -18,7 +18,7 @@ from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.signing import unsign
 from sentry.web.decorators import transaction_start
-from sentry.web.frontend.base import BaseView
+from sentry.web.frontend.base import BaseView, region_silo_view
 from sentry.web.helpers import render_to_response
 
 from ..utils import is_valid_role, logger
@@ -62,6 +62,7 @@ class SelectTeamForm(forms.Form):
         self.fields["team"].widget.choices = self.fields["team"].choices
 
 
+@region_silo_view
 class SlackLinkTeamView(BaseView):
     """
     Django view for linking team to slack channel. Creates an entry on ExternalActor table.
@@ -138,7 +139,7 @@ class SlackLinkTeamView(BaseView):
             return render_error_page(request, body_text="HTTP 403: User identity does not exist")
 
         external_team, created = ExternalActor.objects.get_or_create(
-            actor_id=team.actor_id,
+            team_id=team.id,
             organization=team.organization,
             integration_id=integration.id,
             provider=ExternalProviders.SLACK.value,
@@ -181,6 +182,7 @@ class SlackLinkTeamView(BaseView):
             notification_type=NotificationSettingTypes.ISSUE_ALERTS,
             setting_option=NotificationSettingOptionValues.ALWAYS,
             actor=RpcActor(id=team.id, actor_type=ActorType.TEAM),
+            organization_id_for_team=team.organization_id,
         )
         message = SUCCESS_LINKED_MESSAGE.format(slug=team.slug, channel_name=channel_name)
         integration_service.send_message(

@@ -4,6 +4,7 @@ from rest_framework.response import Response
 
 from sentry import analytics
 from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationSearchPermission
 from sentry.api.serializers import serialize
@@ -17,6 +18,10 @@ from sentry.models.search_common import SearchType
 
 @region_silo_endpoint
 class OrganizationSearchesEndpoint(OrganizationEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     owner = ApiOwner.ISSUES
     permission_classes = (OrganizationSearchPermission,)
 

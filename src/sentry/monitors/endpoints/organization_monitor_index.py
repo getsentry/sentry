@@ -4,6 +4,7 @@ from django.db.models import Case, DateTimeField, IntegerField, OuterRef, Q, Sub
 from drf_spectacular.utils import extend_schema
 
 from sentry import audit_log
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects
 from sentry.api.bases.organization import OrganizationEndpoint
@@ -65,7 +66,10 @@ MONITOR_ENVIRONMENT_ORDERING = Case(
 @region_silo_endpoint
 @extend_schema(tags=["Crons"])
 class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
-    public = {"GET", "POST"}
+    publish_status = {
+        "GET": ApiPublishStatus.PUBLIC,
+        "POST": ApiPublishStatus.PUBLIC,
+    }
     permission_classes = (OrganizationMonitorPermission,)
 
     @extend_schema(

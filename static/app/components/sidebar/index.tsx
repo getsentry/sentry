@@ -27,6 +27,7 @@ import {
   IconSupport,
   IconTelescope,
   IconTimer,
+  IconUser,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -246,6 +247,13 @@ function Sidebar({location, organization}: Props) {
           id="performance-database"
           icon={<SubitemDot collapsed={collapsed} />}
         />
+        <SidebarItem
+          {...sidebarItemProps}
+          label={<GuideAnchor target="starfish">{t('Interactions')}</GuideAnchor>}
+          to={`/organizations/${organization.slug}/performance/browser/interactions`}
+          id="performance-browser-interactions"
+          icon={<SubitemDot collapsed={collapsed} />}
+        />
       </SidebarAccordion>
     </Feature>
   );
@@ -268,6 +276,19 @@ function Sidebar({location, organization}: Props) {
       to={`/organizations/${organization.slug}/user-feedback/`}
       id="user-feedback"
     />
+  );
+
+  const feedback = hasOrganization && (
+    <Feature features={['user-feedback-ui']} organization={organization}>
+      <SidebarItem
+        {...sidebarItemProps}
+        icon={<IconUser />}
+        label={t('Feedback')}
+        to={`/organizations/${organization.slug}/feedback/`}
+        id="feedback"
+        isAlpha
+      />
+    </Feature>
   );
 
   const alerts = hasOrganization && (
@@ -401,6 +422,7 @@ function Sidebar({location, organization}: Props) {
                 {dashboards}
                 {releases}
                 {userFeedback}
+                {feedback}
               </SidebarSection>
 
               <SidebarSection>

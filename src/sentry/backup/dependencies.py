@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections import defaultdict
 from enum import Enum, auto, unique
 from functools import lru_cache
-from typing import NamedTuple, Type
+from typing import NamedTuple, Tuple, Type
 
 from django.db import models
 from django.db.models.fields.related import ForeignKey, OneToOneField
@@ -82,6 +82,15 @@ class DependenciesJSONEncoder(json.JSONEncoder):
         return super().default(obj)
 
 
+class ImportKind(Enum):
+    """
+    When importing a given model, we may either create a new copy of it (`Inserted`) or merely re-use an `Existing` copy that has the same already-used globally unique identifier (ex: `username` for users, `slug` for orgs, etc). This information can then be saved alongside the new `pk` for the model in the `PrimaryKeyMap`, so that models that depend on this one can know if they are dealing with a new or re-used model.
+    """
+
+    Inserted = auto()
+    Existing = auto()
+
+
 class PrimaryKeyMap:
     """
     A map between a primary key in one primary key sequence (like a database) and another (like the
@@ -94,23 +103,41 @@ class PrimaryKeyMap:
     keys are not supported!
     """
 
-    mapping: dict[str, dict[int, int]]
+    mapping: dict[str, dict[int, Tuple[int, ImportKind]]]
 
     def __init__(self):
         self.mapping = defaultdict(dict)
 
-    def get(self, model: str, old: int) -> int | None:
+    def get_pk(self, model: str, old: int) -> int | None:
         """Get the new, post-mapping primary key from an old primary key."""
 
         pk_map = self.mapping.get(model)
         if pk_map is None:
             return None
-        return pk_map.get(old)
 
-    def insert(self, model: str, old: int, new: int):
+        entry = pk_map.get(old)
+        if entry is None:
+            return None
+
+        return entry[0]
+
+    def get_kind(self, model: str, old: int) -> ImportKind | None:
+        """Is the mapped entry a newly inserted model, or an already existing one that has been merged in?"""
+
+        pk_map = self.mapping.get(model)
+        if pk_map is None:
+            return None
+
+        entry = pk_map.get(old)
+        if entry is None:
+            return None
+
+        return entry[1]
+
+    def insert(self, model: str, old: int, new: int, kind: ImportKind):
         """Create a new OLD_PK -> NEW_PK mapping for the given model."""
 
-        self.mapping[model][old] = new
+        self.mapping[model][old] = (new, kind)
 
 
 # No arguments, so we lazily cache the result after the first calculation.
@@ -134,7 +161,8 @@ def dependencies() -> dict[str, ModelRelations]:
 
     # Process the list of models, and get the list of dependencies
     model_dependencies_list: dict[str, ModelRelations] = {}
-    for app_config in apps.get_app_configs():
+    app_configs = apps.get_app_configs()
+    for app_config in app_configs:
         if app_config.label in EXCLUDED_APPS:
             continue
 
@@ -147,13 +175,12 @@ def dependencies() -> dict[str, ModelRelations]:
         for model in model_iterator:
             foreign_keys: dict[str, ForeignField] = dict()
 
-            # Now add a dependency for any FK relation with a model that defines a natural key.
+            # Now add a dependency for any FK relation visible to Django.
             for field in model._meta.get_fields():
                 rel_model = getattr(field.remote_field, "model", None)
                 if rel_model is not None and rel_model != model:
-                    # TODO(hybrid-cloud): actor refactor.
-                    # Add cludgy conditional preventing walking actor.team_id, actor.user_id
-                    # Which avoids circular imports
+                    # TODO(hybrid-cloud): actor refactor. Add kludgy conditional preventing walking
+                    # actor.team_id, which avoids circular imports
                     if model == Actor and rel_model == Team:
                         continue
 

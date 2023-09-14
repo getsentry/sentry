@@ -198,3 +198,17 @@ class OpsgenieActionHandlerTest(FireTest):
             mock_logger.info.call_args.args[0]
             == "Opsgenie team removed, but the rule is still active."
         )
+
+    @patch("sentry.analytics.record")
+    def test_alert_sent_recorded(self, mock_record):
+        self.run_fire_test()
+        mock_record.assert_called_with(
+            "alert.sent",
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            provider="opsgenie",
+            alert_id=self.alert_rule.id,
+            alert_type="metric_alert",
+            external_id=str(self.action.target_identifier),
+            notification_uuid="",
+        )

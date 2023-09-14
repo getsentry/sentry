@@ -57,13 +57,11 @@ class SlackLinkTeamTest(AcceptanceTestCase):
         self.browser.wait_until_not(".loading")
         self.browser.click('[name="team"]')
         self.browser.click(f'[value="{self.team.id}"]')
-        self.browser.snapshot(name="slack link team select team")
         self.browser.click('[type="submit"]')
         self.browser.wait_until_not(".loading")
-        self.browser.snapshot(name="slack post linked team")
 
         assert ExternalActor.objects.filter(
-            actor_id=self.team.actor_id,
+            team_id=self.team.id,
             organization=self.org,
             integration_id=self.integration.id,
             provider=ExternalProviders.SLACK.value,

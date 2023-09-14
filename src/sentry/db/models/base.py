@@ -3,13 +3,13 @@ from __future__ import annotations
 from typing import Any, Callable, Iterable, Mapping, Optional, Tuple, Type, TypeVar
 
 from django.apps.config import AppConfig
-from django.core.serializers.base import DeserializedObject
 from django.db import models
 from django.db.models import signals
 from django.utils import timezone
 
-from sentry.backup.dependencies import PrimaryKeyMap, dependencies, normalize_model_name
-from sentry.backup.scopes import RelocationScope
+from sentry.backup.dependencies import ImportKind, PrimaryKeyMap, dependencies, normalize_model_name
+from sentry.backup.helpers import ImportFlags
+from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.silo import SiloLimit, SiloMode
 
 from .fields.bounded import BoundedBigAutoField
@@ -108,13 +108,20 @@ class BaseModel(models.Model):
 
         return self.__relocation_scope__
 
-    def _normalize_before_relocation_import(self, pk_map: PrimaryKeyMap) -> int:
+    def _normalize_before_relocation_import(
+        self, pk_map: PrimaryKeyMap, _s: ImportScope, _f: ImportFlags
+    ) -> Optional[int]:
         """
-        A helper function that normalizes a deserialized model. Note that this modifies the model in place, so it should generally be done inside of the companion `write_relocation_import` method, to avoid data skew or corrupted local state.
+        A helper function that normalizes a deserialized model. Note that this modifies the model in
+        place, so it should generally be done inside of the companion `write_relocation_import`
+        method, to avoid data skew or corrupted local state.
 
-        The only reason this function is left as a standalone, rather than being folded into `write_relocation_import`, is that it is often useful to adjust just the normalization logic by itself. Overrides of this method should take care not to mutate the `pk_map`.
+        The only reason this function is left as a standalone, rather than being folded into
+        `write_relocation_import`, is that it is often useful to adjust just the normalization logic
+        by itself. Overrides of this method should take care not to mutate the `pk_map`.
 
-        The default normalization logic merely replaces foreign keys with their new values from the provided `pk_map`.
+        The default normalization logic merely replaces foreign keys with their new values from the
+        provided `pk_map`.
 
         The method returns the old `pk` that was replaced.
         """
@@ -125,9 +132,10 @@ class BaseModel(models.Model):
             field_id = field if field.endswith("_id") else f"{field}_id"
             fk = getattr(self, field_id, None)
             if fk is not None:
-                new_fk = pk_map.get(normalize_model_name(model_relation.model), fk)
-                # TODO(getsentry/team-ospo#167): Will allow missing items when we
-                # implement org-based filtering.
+                new_fk = pk_map.get_pk(normalize_model_name(model_relation.model), fk)
+                if new_fk is None:
+                    return None
+
                 setattr(self, field_id, new_fk)
 
         old_pk = self.pk
@@ -136,15 +144,22 @@ class BaseModel(models.Model):
         return old_pk
 
     def write_relocation_import(
-        self, pk_map: PrimaryKeyMap, obj: DeserializedObject
-    ) -> Optional[Tuple[int, int]]:
+        self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
+    ) -> Optional[Tuple[int, int, ImportKind]]:
         """
-        Writes a deserialized model to the database. If this write is successful, this method will return a tuple of the old and new `pk`s.
+        Writes a deserialized model to the database. If this write is successful, this method will
+        return a tuple of the old and new `pk`s.
+
+        Overrides of this method can throw either `django.core.exceptions.ValidationError` or
+        `rest_framework.serializers.ValidationError`.
         """
 
-        old_pk = self._normalize_before_relocation_import(pk_map)
-        obj.save(force_insert=True)
-        return (old_pk, self.pk)
+        old_pk = self._normalize_before_relocation_import(pk_map, scope, flags)
+        if old_pk is None:
+            return
+
+        self.save(force_insert=True)
+        return (old_pk, self.pk, ImportKind.Inserted)
 
 
 class Model(BaseModel):
@@ -188,6 +203,13 @@ def __model_class_prepared(sender: Any, **kwargs: Any) -> None:
             f"Organization, Project  and related settings. It should be False for high volume models "
             f"like Group."
         )
+
+    from .outboxes import ReplicatedControlModel, ReplicatedRegionModel
+
+    if issubclass(sender, ReplicatedControlModel):
+        sender.category.connect_control_model_updates(sender)
+    elif issubclass(sender, ReplicatedRegionModel):
+        sender.category.connect_region_model_updates(sender)
 
 
 signals.pre_save.connect(__model_pre_save)

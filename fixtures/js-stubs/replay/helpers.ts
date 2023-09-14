@@ -1,3 +1,5 @@
+import {SlowClickFrame} from 'sentry/utils/replays/types';
+
 import * as BreadcrumbFrameData from './replayBreadcrumbFrameData';
 import * as ReplayFrameEvents from './replayFrameEvents';
 import * as ReplaySpanFrameData from './replaySpanFrameData';
@@ -37,12 +39,15 @@ export function DeadClickEvent({timestamp}: {timestamp: Date}) {
         timestamp,
         message: 'nav[aria-label="Primary Navigation"] > div > a#sidebar-item-projects',
         data: {
+          node: {
+            tagName: 'a',
+          },
           nodeId: 42,
           url: '',
           timeAfterClickMs: 7000,
           endReason: 'timeout',
         },
-      }),
+      } as SlowClickFrame),
     },
   });
 }

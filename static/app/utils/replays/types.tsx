@@ -89,8 +89,19 @@ export function isConsoleFrame(frame: BreadcrumbFrame): frame is ConsoleFrame {
   return false;
 }
 
+export function isLCPFrame(frame: SpanFrame): frame is LargestContentfulPaintFrame {
+  return frame.op === 'largest-contentful-paint';
+}
+
+export function isPaintFrame(frame: SpanFrame): frame is PaintFrame {
+  return frame.op === 'paint';
+}
+
 export function isDeadClick(frame: SlowClickFrame) {
-  return frame.data.endReason === 'timeout';
+  return (
+    ['a', 'button', 'input'].includes(frame.data.node?.tagName.toLowerCase() ?? '') &&
+    frame.data.endReason === 'timeout'
+  );
 }
 
 export function isDeadRageClick(frame: SlowClickFrame) {

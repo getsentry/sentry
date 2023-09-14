@@ -10,6 +10,7 @@ from rest_framework.response import Response
 
 from sentry import features, tagstore, tsdb
 from sentry.api import client
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases import GroupEndpoint
 from sentry.api.helpers.environments import get_environments
@@ -39,6 +40,11 @@ delete_logger = logging.getLogger("sentry.deletions.api")
 
 @region_silo_endpoint
 class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
+    publish_status = {
+        "DELETE": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.UNKNOWN,
+        "PUT": ApiPublishStatus.UNKNOWN,
+    }
     enforce_rate_limit = True
     rate_limits = {
         "GET": {
@@ -153,6 +159,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         the issue (title, last seen, first seen), some overall numbers (number
         of comments, user reports) as well as the summarized event data.
 
+        :pparam string organization_slug: The slug of the organization.
         :pparam string issue_id: the ID of the issue to retrieve.
         :auth: required
         """

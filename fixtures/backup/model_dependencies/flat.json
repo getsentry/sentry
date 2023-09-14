@@ -1,4 +1,5 @@
 {
+  "feedback.Feedback": [],
   "nodestore.Node": [],
   "replays.ReplayRecordingSegment": [],
   "sentry.Activity": [
@@ -60,7 +61,6 @@
     "sentry.Organization"
   ],
   "sentry.ArtifactBundleFlatFileIndex": [
-    "sentry.File",
     "sentry.Project"
   ],
   "sentry.ArtifactBundleIndex": [
@@ -79,12 +79,21 @@
     "sentry.AuthProvider",
     "sentry.User"
   ],
+  "sentry.AuthIdentityReplica": [
+    "sentry.AuthIdentity",
+    "sentry.AuthProvider",
+    "sentry.User"
+  ],
   "sentry.AuthProvider": [
     "sentry.Organization"
   ],
   "sentry.AuthProviderDefaultTeams": [
     "sentry.AuthProvider",
     "sentry.Team"
+  ],
+  "sentry.AuthProviderReplica": [
+    "sentry.AuthProvider",
+    "sentry.Organization"
   ],
   "sentry.Authenticator": [
     "sentry.User"
@@ -324,6 +333,7 @@
   "sentry.GroupSubscription": [
     "sentry.Group",
     "sentry.Project",
+    "sentry.Team",
     "sentry.User"
   ],
   "sentry.GroupTombstone": [
@@ -396,6 +406,10 @@
     "sentry.Monitor"
   ],
   "sentry.MonitorLocation": [],
+  "sentry.NeglectedRule": [
+    "sentry.Organization",
+    "sentry.Rule"
+  ],
   "sentry.NotificationAction": [
     "sentry.Integration",
     "sentry.Organization",
@@ -615,6 +629,10 @@
     "sentry.Environment",
     "sentry.Project",
     "sentry.Release"
+  ],
+  "sentry.ReleaseThreshold": [
+    "sentry.Environment",
+    "sentry.Project"
   ],
   "sentry.Repository": [
     "sentry.Integration",

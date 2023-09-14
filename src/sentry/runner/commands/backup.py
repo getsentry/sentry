@@ -2,51 +2,198 @@ from __future__ import annotations
 
 import click
 
-from sentry.backup.exports import OldExportConfig, exports
-from sentry.backup.imports import OldImportConfig, imports
+from sentry.backup.exports import (
+    export_in_global_scope,
+    export_in_organization_scope,
+    export_in_user_scope,
+)
+from sentry.backup.helpers import ImportFlags
+from sentry.backup.imports import (
+    import_in_global_scope,
+    import_in_organization_scope,
+    import_in_user_scope,
+)
 from sentry.runner.decorators import configuration
 
+MERGE_USERS_HELP = """If this flag is set and users in the import JSON have matching usernames to
+                   those already in the database, the existing users are used instead and their
+                   associated user scope models are not updated. If this flag is not set, new users
+                   are always created in the event of a collision, with the new user receiving a
+                   random suffix to their username."""
 
-@click.command(name="import")
+
+def parse_filter_arg(filter_arg: str) -> set[str] | None:
+    filter_by = None
+    if filter_arg:
+        filter_by = set(filter_arg.split(","))
+
+    return filter_by
+
+
+@click.group(name="import")
+def import_():
+    """Performs non-destructive imports of core data for a Sentry installation."""
+
+
+@import_.command(name="users")
 @click.argument("src", type=click.File("rb"))
+@click.option(
+    "--filter_usernames",
+    default="",
+    type=str,
+    help="An optional comma-separated list of users to include. "
+    "If this option is not set, all encountered users are imported.",
+)
+@click.option(
+    "--merge_users",
+    default=False,
+    is_flag=True,
+    help=MERGE_USERS_HELP,
+)
 @click.option("--silent", "-q", default=False, is_flag=True, help="Silence all debug output.")
 @configuration
-def import_(src, silent):
-    """Imports core data for a Sentry installation."""
+def import_users(src, filter_usernames, merge_users, silent):
+    """
+    Import the Sentry users from an exported JSON file.
+    """
 
-    imports(
+    import_in_user_scope(
         src,
-        OldImportConfig(
-            use_update_instead_of_create=True,
-            use_natural_foreign_keys=True,
-        ),
-        (lambda *args, **kwargs: None) if silent else click.echo,
+        flags=ImportFlags(merge_users=merge_users),
+        user_filter=parse_filter_arg(filter_usernames),
+        printer=(lambda *args, **kwargs: None) if silent else click.echo,
     )
 
 
-@click.command()
+@import_.command(name="organizations")
+@click.argument("src", type=click.File("rb"))
+@click.option(
+    "--merge_users",
+    default=False,
+    is_flag=True,
+    help=MERGE_USERS_HELP,
+)
+@click.option(
+    "--filter_org_slugs",
+    default="",
+    type=str,
+    help="An optional comma-separated list of organization slugs to include. "
+    "If this option is not set, all encountered organizations are imported. "
+    "Users not members of at least one organization in this set will not be imported.",
+)
+@click.option("--silent", "-q", default=False, is_flag=True, help="Silence all debug output.")
+@configuration
+def import_organizations(src, filter_org_slugs, merge_users, silent):
+    """
+    Import the Sentry organizations, and all constituent Sentry users, from an exported JSON file.
+    """
+
+    import_in_organization_scope(
+        src,
+        flags=ImportFlags(merge_users=merge_users),
+        org_filter=parse_filter_arg(filter_org_slugs),
+        printer=(lambda *args, **kwargs: None) if silent else click.echo,
+    )
+
+
+@import_.command(name="global")
+@click.argument("src", type=click.File("rb"))
+@click.option("--silent", "-q", default=False, is_flag=True, help="Silence all debug output.")
+@configuration
+def import_global(src, silent):
+    """
+    Import all Sentry data from an exported JSON file.
+    """
+
+    import_in_global_scope(
+        src,
+        printer=(lambda *args, **kwargs: None) if silent else click.echo,
+    )
+
+
+@click.group(name="export")
+def export():
+    """Exports core data for the Sentry installation."""
+
+
+@export.command(name="users")
 @click.argument("dest", default="-", type=click.File("w"))
 @click.option("--silent", "-q", default=False, is_flag=True, help="Silence all debug output.")
 @click.option(
-    "--indent", default=2, help="Number of spaces to indent for the JSON output. (default: 2)"
+    "--indent",
+    default=2,
+    type=int,
+    help="Number of spaces to indent for the JSON output. (default: 2)",
 )
-@click.option("--exclude", default=None, help="Models to exclude from export.", metavar="MODELS")
+@click.option(
+    "--filter_usernames",
+    default="",
+    type=str,
+    help="An optional comma-separated list of users to include. "
+    "If this option is not set, all encountered users are imported.",
+)
 @configuration
-def export(dest, silent, indent, exclude):
-    """Exports core data for the Sentry installation."""
+def export_users(dest, silent, indent, filter_usernames):
+    """
+    Export all Sentry users in the JSON format.
+    """
 
-    if exclude is None:
-        exclude = []
-    else:
-        exclude = exclude.lower().split(",")
-
-    exports(
+    export_in_user_scope(
         dest,
-        OldExportConfig(
-            include_non_sentry_models=True,
-            excluded_models=set(exclude),
-            use_natural_foreign_keys=True,
-        ),
-        indent,
-        (lambda *args, **kwargs: None) if silent else click.echo,
+        indent=indent,
+        user_filter=parse_filter_arg(filter_usernames),
+        printer=(lambda *args, **kwargs: None) if silent else click.echo,
+    )
+
+
+@export.command(name="organizations")
+@click.argument("dest", default="-", type=click.File("w"))
+@click.option("--silent", "-q", default=False, is_flag=True, help="Silence all debug output.")
+@click.option(
+    "--indent",
+    default=2,
+    type=int,
+    help="Number of spaces to indent for the JSON output. (default: 2)",
+)
+@click.option(
+    "--filter_org_slugs",
+    default="",
+    type=str,
+    help="An optional comma-separated list of organization slugs to include. "
+    "If this option is not set, all encountered organizations are exported. "
+    "Users not members of at least one organization in this set will not be exported.",
+)
+@configuration
+def export_organizations(dest, silent, indent, filter_org_slugs):
+    """
+    Export all Sentry organizations, and their constituent users, in the JSON format.
+    """
+
+    export_in_organization_scope(
+        dest,
+        indent=indent,
+        org_filter=parse_filter_arg(filter_org_slugs),
+        printer=(lambda *args, **kwargs: None) if silent else click.echo,
+    )
+
+
+@export.command(name="global")
+@click.argument("dest", default="-", type=click.File("w"))
+@click.option("--silent", "-q", default=False, is_flag=True, help="Silence all debug output.")
+@click.option(
+    "--indent",
+    default=2,
+    type=int,
+    help="Number of spaces to indent for the JSON output. (default: 2)",
+)
+@configuration
+def export_global(dest, silent, indent):
+    """
+    Export all Sentry data in the JSON format.
+    """
+
+    export_in_global_scope(
+        dest,
+        indent=indent,
+        printer=(lambda *args, **kwargs: None) if silent else click.echo,
     )

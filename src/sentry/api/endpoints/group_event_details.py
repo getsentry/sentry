@@ -9,6 +9,7 @@ from snuba_sdk import Condition, Or
 from snuba_sdk.legacy import is_condition, parse_condition
 
 from sentry import eventstore, features
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.endpoints.project_event_details import wrap_event_response
@@ -94,6 +95,9 @@ def issue_search_query_to_conditions(
 
 @region_silo_endpoint
 class GroupEventDetailsEndpoint(GroupEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     enforce_rate_limit = True
     rate_limits = {
         "GET": {

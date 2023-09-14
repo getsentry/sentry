@@ -5,14 +5,14 @@ from collections import defaultdict
 from typing import TYPE_CHECKING, Literal, Optional, Sequence, Tuple, Union, overload
 
 from django.conf import settings
-from django.core.serializers.base import DeserializedObject
 from django.db import IntegrityError, connections, models, router, transaction
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from sentry.app import env
-from sentry.backup.dependencies import PrimaryKeyMap
-from sentry.backup.scopes import RelocationScope
+from sentry.backup.dependencies import ImportKind, PrimaryKeyMap
+from sentry.backup.helpers import ImportFlags
+from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.constants import ObjectStatus
 from sentry.db.models import (
     BaseManager,
@@ -353,11 +353,8 @@ class Team(Model, SnowflakeIdMixin):
     def delete(self, **kwargs):
         from sentry.models import ExternalActor
 
-        # There is no foreign key relationship so we have to manually delete the ExternalActors
         with outbox_context(transaction.atomic(router.db_for_write(ExternalActor))):
-            ExternalActor.objects.filter(actor_id=self.actor_id).delete()
             self.outbox_for_update().save()
-
             return super().delete(**kwargs)
 
     def get_member_actor_ids(self):
@@ -372,11 +369,11 @@ class Team(Model, SnowflakeIdMixin):
 
     # TODO(hybrid-cloud): actor refactor. Remove this method when done.
     def write_relocation_import(
-        self, pk_map: PrimaryKeyMap, obj: DeserializedObject
-    ) -> Optional[Tuple[int, int]]:
-        written = super().write_relocation_import(pk_map, obj)
+        self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
+    ) -> Optional[Tuple[int, int, ImportKind]]:
+        written = super().write_relocation_import(pk_map, scope, flags)
         if written is not None:
-            (_, new_pk) = written
+            (_, new_pk, _) = written
 
             # `Actor` and `Team` have a direct circular dependency between them for the time being
             # due to an ongoing refactor (that is, `Actor` foreign keys directly into `Team`, and

@@ -1,4 +1,12 @@
 {
+  "feedback.Feedback": {
+    "foreign_keys": {},
+    "model": "feedback.Feedback",
+    "relocation_scope": "Excluded",
+    "silos": [
+      "Region"
+    ]
+  },
   "nodestore.Node": {
     "foreign_keys": {},
     "model": "nodestore.Node",
@@ -201,7 +209,7 @@
       }
     },
     "model": "sentry.ApiGrant",
-    "relocation_scope": "Excluded",
+    "relocation_scope": "Global",
     "silos": [
       "Control"
     ]
@@ -268,10 +276,6 @@
   },
   "sentry.ArtifactBundleFlatFileIndex": {
     "foreign_keys": {
-      "flat_file_index": {
-        "kind": "FlexibleForeignKey",
-        "model": "sentry.File"
-      },
       "project_id": {
         "kind": "ImplicitForeignKey",
         "model": "sentry.Project"
@@ -350,9 +354,30 @@
       }
     },
     "model": "sentry.AuthIdentity",
-    "relocation_scope": "Organization",
+    "relocation_scope": "Global",
     "silos": [
       "Control"
+    ]
+  },
+  "sentry.AuthIdentityReplica": {
+    "foreign_keys": {
+      "auth_identity_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.AuthIdentity"
+      },
+      "auth_provider_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.AuthProvider"
+      },
+      "user_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.User"
+      }
+    },
+    "model": "sentry.AuthIdentityReplica",
+    "relocation_scope": "Excluded",
+    "silos": [
+      "Region"
     ]
   },
   "sentry.AuthProvider": {
@@ -363,7 +388,7 @@
       }
     },
     "model": "sentry.AuthProvider",
-    "relocation_scope": "Organization",
+    "relocation_scope": "Global",
     "silos": [
       "Control"
     ]
@@ -385,6 +410,23 @@
       "Control"
     ]
   },
+  "sentry.AuthProviderReplica": {
+    "foreign_keys": {
+      "auth_provider_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.AuthProvider"
+      },
+      "organization": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.Organization"
+      }
+    },
+    "model": "sentry.AuthProviderReplica",
+    "relocation_scope": "Excluded",
+    "silos": [
+      "Region"
+    ]
+  },
   "sentry.Authenticator": {
     "foreign_keys": {
       "user": {
@@ -393,7 +435,7 @@
       }
     },
     "model": "sentry.Authenticator",
-    "relocation_scope": "User",
+    "relocation_scope": "Global",
     "silos": [
       "Control"
     ]
@@ -1429,6 +1471,10 @@
         "kind": "FlexibleForeignKey",
         "model": "sentry.Project"
       },
+      "team": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.Team"
+      },
       "user_id": {
         "kind": "HybridCloudForeignKey",
         "model": "sentry.User"
@@ -1600,7 +1646,7 @@
   "sentry.Integration": {
     "foreign_keys": {},
     "model": "sentry.Integration",
-    "relocation_scope": "Excluded",
+    "relocation_scope": "Global",
     "silos": [
       "Control"
     ]
@@ -1743,7 +1789,7 @@
       }
     },
     "model": "sentry.MonitorEnvironment",
-    "relocation_scope": "Organization",
+    "relocation_scope": "Excluded",
     "silos": [
       "Region"
     ]
@@ -1751,6 +1797,23 @@
   "sentry.MonitorLocation": {
     "foreign_keys": {},
     "model": "sentry.MonitorLocation",
+    "relocation_scope": "Excluded",
+    "silos": [
+      "Region"
+    ]
+  },
+  "sentry.NeglectedRule": {
+    "foreign_keys": {
+      "organization": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.Organization"
+      },
+      "rule": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.Rule"
+      }
+    },
+    "model": "sentry.NeglectedRule",
     "relocation_scope": "Organization",
     "silos": [
       "Region"
@@ -1936,7 +1999,7 @@
       }
     },
     "model": "sentry.OrganizationIntegration",
-    "relocation_scope": "Excluded",
+    "relocation_scope": "Global",
     "silos": [
       "Control"
     ]
@@ -2242,7 +2305,7 @@
       }
     },
     "model": "sentry.ProjectIntegration",
-    "relocation_scope": "Excluded",
+    "relocation_scope": "Global",
     "silos": [
       "Region"
     ]
@@ -2723,6 +2786,23 @@
       "Region"
     ]
   },
+  "sentry.ReleaseThreshold": {
+    "foreign_keys": {
+      "environment": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.Environment"
+      },
+      "project": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.Project"
+      }
+    },
+    "model": "sentry.ReleaseThreshold",
+    "relocation_scope": "Excluded",
+    "silos": [
+      "Region"
+    ]
+  },
   "sentry.Repository": {
     "foreign_keys": {
       "integration_id": {
@@ -2735,7 +2815,7 @@
       }
     },
     "model": "sentry.Repository",
-    "relocation_scope": "Organization",
+    "relocation_scope": "Global",
     "silos": [
       "Region"
     ]
@@ -3246,7 +3326,7 @@
       }
     },
     "model": "sentry.UserPermission",
-    "relocation_scope": "User",
+    "relocation_scope": "Global",
     "silos": [
       "Control"
     ]
@@ -3279,7 +3359,7 @@
   "sentry.UserRole": {
     "foreign_keys": {},
     "model": "sentry.UserRole",
-    "relocation_scope": "User",
+    "relocation_scope": "Global",
     "silos": [
       "Control"
     ]
@@ -3296,7 +3376,7 @@
       }
     },
     "model": "sentry.UserRoleUser",
-    "relocation_scope": "User",
+    "relocation_scope": "Global",
     "silos": [
       "Control"
     ]
