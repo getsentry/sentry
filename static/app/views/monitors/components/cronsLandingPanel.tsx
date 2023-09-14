@@ -27,6 +27,7 @@ import {
 } from './platformPickerPanel';
 import {
   CeleryBeatAutoDiscovery,
+  GoUpsertPlatformGuide,
   LaravelUpsertPlatformGuide,
   NodeJsUpsertPlatformGuide,
   PHPUpsertPlatformGuide,
@@ -61,6 +62,12 @@ const platformGuides: Record<SupportedPlatform, PlatformGuide[]> = {
   node: [
     {
       Guide: NodeJsUpsertPlatformGuide,
+      title: 'Upsert',
+    },
+  ],
+  go: [
+    {
+      Guide: GoUpsertPlatformGuide,
       title: 'Upsert',
     },
   ],
