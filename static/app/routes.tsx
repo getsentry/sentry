@@ -1362,17 +1362,18 @@ function buildRoutes() {
   const replayChildRoutes = (
     <Fragment>
       <IndexRoute component={make(() => import('sentry/views/replays/list'))} />
-      <Route>
-        path=":replaySlug/" component={make(() => import('sentry/views/replays/details'))}
-        <Route
-          path="dead-clicks/"
-          component={make(() => import('sentry/views/replays/deadClickList'))}
-        />
-        <Route
-          path=":rage-clicks/"
-          component={make(() => import('sentry/views/replays/rageClickList'))}
-        />
-      </Route>
+      <Route
+        path="dead-clicks/"
+        component={make(() => import('sentry/views/replays/deadClickList'))}
+      />
+      <Route
+        path="rage-clicks/"
+        component={make(() => import('sentry/views/replays/rageClickList'))}
+      />
+      <Route
+        path=":replaySlug/"
+        component={make(() => import('sentry/views/replays/details'))}
+      />
     </Fragment>
   );
   const replayRoutes = (
