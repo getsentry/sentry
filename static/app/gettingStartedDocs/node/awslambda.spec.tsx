@@ -13,6 +13,9 @@ describe('GettingStartedWithAwsLambda', function () {
       installSnippet: 'test-install-snippet',
       importContent: 'test-import-content',
       initContent: 'test-init-content',
+      sourceMapStep: {
+        title: 'source-maps',
+      },
     })) {
       expect(
         screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})

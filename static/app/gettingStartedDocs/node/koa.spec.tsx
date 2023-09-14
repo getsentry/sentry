@@ -14,6 +14,9 @@ describe('GettingStartedWithKoa', function () {
       importContent: 'test-import-content',
       initContent: 'test-init-content',
       hasPerformanceMonitoring: true,
+      sourceMapStep: {
+        title: 'source-maps',
+      },
     })) {
       expect(
         screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
