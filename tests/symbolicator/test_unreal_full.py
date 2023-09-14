@@ -11,7 +11,7 @@ from sentry.models import EventAttachment, File
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.relay import RelayStoreHelper
-from sentry.testutils.skips import requires_symbolicator
+from sentry.testutils.skips import requires_kafka, requires_symbolicator
 from sentry.utils.safe import get_path
 from tests.symbolicator import normalize_native_exception
 
@@ -25,8 +25,7 @@ from tests.symbolicator import normalize_native_exception
 # or add `127.0.0.1 host.docker.internal` entry to your `/etc/hosts`
 
 
-# TODO: Symbolicator tests also need kafka + zookeeper
-pytestmark = requires_symbolicator
+pytestmark = [requires_symbolicator, requires_kafka]
 
 
 def get_unreal_crash_file():
