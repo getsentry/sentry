@@ -9,6 +9,7 @@ from sentry.api.serializers.base import Serializer
 from sentry.api.serializers.models.notification_setting import NotificationSettingsSerializer
 from sentry.models import NotificationSetting, User
 from sentry.notifications.helpers import (
+    get_enabled_notification_settings,
     get_scope_type,
     get_setting_options_with_defaults,
     is_double_write_enabled,
@@ -17,6 +18,7 @@ from sentry.notifications.types import (
     NotificationScopeType,
     NotificationSettingEnum,
     NotificationSettingOptionValues,
+    NotificationSettingsOptionEnum,
     NotificationSettingTypes,
 )
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
@@ -30,7 +32,7 @@ from sentry.services.hybrid_cloud.notifications.model import NotificationSetting
 from sentry.services.hybrid_cloud.notifications.serial import serialize_notification_setting
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.types.integrations import ExternalProviders
+from sentry.types.integrations import ExternalProviderEnum, ExternalProviders
 
 
 class DatabaseBackedNotificationsService(NotificationsService):
@@ -131,6 +133,36 @@ class DatabaseBackedNotificationsService(NotificationsService):
         )
 
         return [serialize_notification_setting(s) for s in notification_settings]
+
+    # V2 alternative for get_settings_for_recipient_by_parent
+    def get_enabled_setting_providers_for_users(
+        self,
+        *,
+        user_ids: List[int],
+        project_ids: Optional[List[int]] = None,
+        organization_id: Optional[int] = None,
+        type: Optional[NotificationSettingEnum] = None,
+    ) -> MutableMapping[
+        RpcActor,
+        MutableMapping[
+            NotificationSettingEnum,
+            MutableMapping[ExternalProviderEnum, NotificationSettingsOptionEnum],
+        ],
+    ]:
+        recipients = user_service.get_many(filter={"user_ids": user_ids})
+        settings = get_enabled_notification_settings(
+            recipients=recipients,
+            project_ids=project_ids,
+            organization_id=organization_id,
+            setting_type=type,
+        )
+
+        actor_settings = {}
+        for user, setting in settings.items():
+            actor = RpcActor.from_object(user)
+            actor_settings[actor] = setting
+
+        return actor_settings
 
     def get_settings_for_user_by_projects(
         self, *, type: NotificationSettingTypes, user_id: int, parent_ids: List[int]

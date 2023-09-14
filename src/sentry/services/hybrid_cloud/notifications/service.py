@@ -9,6 +9,7 @@ from typing import List, Mapping, MutableMapping, Optional, Sequence, cast
 from sentry.notifications.types import (
     NotificationSettingEnum,
     NotificationSettingOptionValues,
+    NotificationSettingsOptionEnum,
     NotificationSettingTypes,
 )
 from sentry.services.hybrid_cloud.actor import RpcActor
@@ -19,7 +20,7 @@ from sentry.services.hybrid_cloud.notifications.model import NotificationSetting
 from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.silo import SiloMode
-from sentry.types.integrations import ExternalProviders
+from sentry.types.integrations import ExternalProviderEnum, ExternalProviders
 
 
 class NotificationsService(RpcService):
@@ -61,6 +62,24 @@ class NotificationsService(RpcService):
     def get_settings_for_user_by_projects(
         self, *, type: NotificationSettingTypes, user_id: int, parent_ids: List[int]
     ) -> List[RpcNotificationSetting]:
+        pass
+
+    @rpc_method
+    @abstractmethod
+    def get_enabled_setting_providers_for_users(
+        self,
+        *,
+        user_ids: List[int],
+        project_ids: Optional[List[int]] = None,
+        organization_id: Optional[int] = None,
+        type: Optional[NotificationSettingEnum] = None,
+    ) -> MutableMapping[
+        RpcActor,
+        MutableMapping[
+            NotificationSettingEnum,
+            MutableMapping[ExternalProviderEnum, NotificationSettingsOptionEnum],
+        ],
+    ]:
         pass
 
     @rpc_method
