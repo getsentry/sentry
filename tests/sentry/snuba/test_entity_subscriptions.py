@@ -33,6 +33,7 @@ from sentry.testutils.helpers import Feature
 pytestmark = pytest.mark.sentry_metrics
 
 
+@pytest.mark.snuba_ci
 class EntitySubscriptionTestCase(TestCase):
     def setUp(self) -> None:
         super().setUp()

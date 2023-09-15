@@ -18,6 +18,7 @@ from sentry.testutils.cases import BaseMetricsLayerTestCase, TestCase
 pytestmark = pytest.mark.sentry_metrics
 
 
+@pytest.mark.snuba_ci
 @freeze_time(BaseMetricsLayerTestCase.MOCK_DATETIME)
 class ReleaseHealthMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
     @property

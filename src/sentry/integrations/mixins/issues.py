@@ -4,7 +4,7 @@ import enum
 import logging
 from collections import defaultdict
 from copy import deepcopy
-from typing import Any, Mapping, Sequence
+from typing import Any, ClassVar, Mapping, Sequence
 
 from sentry.integrations.utils import where_should_sync
 from sentry.models import ExternalIssue, GroupLink, UserOption
@@ -341,11 +341,11 @@ class IssueBasicMixin:
 
 
 class IssueSyncMixin(IssueBasicMixin):
-    comment_key = None
-    outbound_status_key = None
-    inbound_status_key = None
-    outbound_assignee_key = None
-    inbound_assignee_key = None
+    comment_key: ClassVar[str | None] = None
+    outbound_status_key: ClassVar[str | None] = None
+    inbound_status_key: ClassVar[str | None] = None
+    outbound_assignee_key: ClassVar[str | None] = None
+    inbound_assignee_key: ClassVar[str | None] = None
 
     def should_sync(self, attribute: str) -> bool:
         key = getattr(self, f"{attribute}_key", None)

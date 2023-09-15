@@ -10,6 +10,7 @@ from sentry.models.release_threshold.releasethreshold import ReleaseThreshold
 class ReleaseThresholdSerializer(Serializer):
     def serialize(self, obj, attrs, user):
         return {
+            "id": str(obj.id),
             "threshold_type": THRESHOLD_TYPE_INT_TO_STR[obj.threshold_type],
             "trigger_type": TRIGGER_TYPE_INT_TO_STR[obj.trigger_type],
             "value": obj.value,

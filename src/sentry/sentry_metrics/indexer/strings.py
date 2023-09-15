@@ -158,6 +158,8 @@ SHARED_TAG_STRINGS = {
     "has_profile": PREFIX + 260,
     "query_hash": PREFIX + 261,
     "failure": PREFIX + 262,
+    # Escalating Issues
+    "group": PREFIX + 263,
     # GENERAL/MISC (don't have a category)
     "": PREFIX + 1000,
 }
@@ -177,10 +179,16 @@ SPAN_METRICS_NAMES = {
     "d:spans/frames_slow@none": PREFIX + 408,
 }
 
+# 500-599
+ESCALATING_ISSUES_METRIC_NAMES = {
+    "c:escalating_issues/event_ingested@none": PREFIX + 500,
+}
+
 SHARED_STRINGS = {
     **SESSION_METRIC_NAMES,
     **TRANSACTION_METRICS_NAMES,
     **SPAN_METRICS_NAMES,
+    **ESCALATING_ISSUES_METRIC_NAMES,
     **SHARED_TAG_STRINGS,
 }
 REVERSE_SHARED_STRINGS = {v: k for k, v in SHARED_STRINGS.items()}

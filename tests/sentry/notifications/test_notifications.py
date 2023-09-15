@@ -11,6 +11,7 @@ from django.core.mail.message import EmailMultiAlternatives
 from django.utils import timezone
 from sentry_relay.processing import parse_release
 
+from sentry.digests.notifications import Notification
 from sentry.event_manager import EventManager
 from sentry.models import (
     Group,
@@ -504,3 +505,17 @@ class ActivityNotificationTest(APITestCase):
             group_id=event.group_id,
             notification_uuid=notification_uuid,
         )
+
+
+class NotificationTupleTest(APITestCase):
+    def test_missing_notification_uuid(self):
+        rule = self.create_project_rule()
+        group = self.create_group()
+        notification = Notification(rule, group)
+        assert notification.notification_uuid is None
+
+    def test_notification_uuid(self):
+        rule = self.create_project_rule()
+        group = self.create_group()
+        notification = Notification(rule, group, notification_uuid=str(uuid.uuid4()))
+        assert notification.notification_uuid is not None
