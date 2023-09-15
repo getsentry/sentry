@@ -33,7 +33,6 @@ export interface FrameSourceMapDebuggerData {
   releaseSourceMapReference: string | null;
   sdkDebugIdSupport: 'full' | 'needs-upgrade' | 'not-supported' | 'unofficial-sdk';
   sdkVersion: string | null;
-  shouldShow: boolean;
   sourceFileReleaseNameFetchingResult: 'found' | 'wrong-dist' | 'unsuccessful';
   sourceFileScrapingStatus:
     | {status: 'found'}
@@ -53,6 +52,20 @@ export interface FrameSourceMapDebuggerData {
 
 interface SourceMapsDebuggerModalProps extends ModalRenderProps {
   sourceResolutionResults: FrameSourceMapDebuggerData;
+}
+
+export function frameIsFullyResolvedBasedOnDebuggerData(
+  frameDebuggerData: FrameSourceMapDebuggerData
+): boolean {
+  const {debugIdProgressPercent} = getDebugIdProgress(frameDebuggerData);
+  const {releaseProgressPercent} = getReleaseProgress(frameDebuggerData);
+  const {scrapingProgressPercent} = getScrapingProgress(frameDebuggerData);
+
+  return (
+    debugIdProgressPercent === 1 ||
+    releaseProgressPercent === 1 ||
+    scrapingProgressPercent === 1
+  );
 }
 
 export function SourceMapsDebuggerModal({
@@ -148,9 +161,11 @@ export function SourceMapsDebuggerModal({
             </TabList.Item>
             <TabList.Item
               key="fetching"
+              // TODO: Remove "coming soon" when we add data crawling from symbolicator
               textValue={`${t('Hosting Publicly')} (${t(
                 'coming soon'
               )}) (${scrapingProgress}/4)`}
+              // TODO: enable when we add crawling data from symbolicator
               disabled
             >
               <StyledProgressRing
@@ -160,6 +175,7 @@ export function SourceMapsDebuggerModal({
                 size={16}
                 barWidth={4}
               />
+              {/* TODO: Remove "coming soon" when we add data crawling from symbolicator */}
               {`${t('Hosting Publicly')} (${t('coming soon')})`}
             </TabList.Item>
           </TabList>

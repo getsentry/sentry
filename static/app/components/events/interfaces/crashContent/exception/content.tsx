@@ -123,7 +123,6 @@ interface SourceMapDebugBlueThunderResponseFrame {
     uploaded_source_file_with_correct_debug_id: boolean;
     uploaded_source_map_with_correct_debug_id: boolean;
   };
-  needs_debugger: boolean;
   release_process: {
     abs_path: string;
     matching_source_file_names: string[];
@@ -175,7 +174,10 @@ export function Content({
       }/source-map-debug-blue-thunder-edition/`,
     ],
     {
-      enabled: isSdkThatShouldShowSourceMapsDebugger && organization !== null,
+      enabled:
+        isSdkThatShouldShowSourceMapsDebugger &&
+        organization !== null &&
+        organization.features.includes('source-maps-debugger-blue-thunder-edition'),
       staleTime: Infinity,
       retry: false,
       refetchOnWindowFocus: false,
@@ -223,7 +225,6 @@ export function Content({
           uploadedSourceMapWithCorrectDebugId:
             debuggerFrame.debug_id_process.uploaded_source_map_with_correct_debug_id,
           sdkVersion: sourceMapDebuggerData.sdk_version,
-          shouldShow: debuggerFrame.needs_debugger,
           matchingSourceMapName:
             debuggerFrame.release_process?.matching_source_map_name ?? null,
         } satisfies FrameSourceMapDebuggerData)

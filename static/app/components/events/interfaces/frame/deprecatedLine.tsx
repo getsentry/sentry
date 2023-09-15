@@ -8,6 +8,7 @@ import {Button} from 'sentry/components/button';
 import {analyzeFrameForRootCause} from 'sentry/components/events/interfaces/analyzeFrames';
 import LeadHint from 'sentry/components/events/interfaces/frame/line/leadHint';
 import {
+  frameIsFullyResolvedBasedOnDebuggerData,
   FrameSourceMapDebuggerData,
   SourceMapsDebuggerModal,
 } from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
@@ -15,7 +16,7 @@ import {getThreadById} from 'sentry/components/events/interfaces/utils';
 import StrictClick from 'sentry/components/strictClick';
 import Tag from 'sentry/components/tag';
 import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
-import {IconChevron, IconRefresh} from 'sentry/icons';
+import {IconChevron, IconFlag, IconRefresh} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import DebugMetaStore from 'sentry/stores/debugMetaStore';
 import {space} from 'sentry/styles/space';
@@ -347,9 +348,17 @@ export class DeprecatedLine extends Component<Props, State> {
               </Tag>
             ) : null}
             {stacktraceChangesEnabled ? this.renderShowHideToggle() : null}
-            {this.props.frameSourceResolutionResults ? (
-              <span
-                role="button"
+            {data.inApp &&
+            this.props.frameSourceResolutionResults &&
+            !frameIsFullyResolvedBasedOnDebuggerData(
+              this.props.frameSourceResolutionResults
+            ) ? (
+              <SourceMapDebuggerToggle
+                icon={<IconFlag />}
+                to=""
+                tooltipText={t(
+                  'Learn how to show the original source code for this stack frame.'
+                )}
                 onClick={e => {
                   e.stopPropagation();
                   openModal(modalProps => (
@@ -360,9 +369,10 @@ export class DeprecatedLine extends Component<Props, State> {
                   ));
                 }}
               >
-                {t('not your sauce?')}
-                {JSON.stringify(this.props.data.symbolicatorStatus)}
-              </span>
+                {hasContextSource(data)
+                  ? t('Not your source code?')
+                  : t('No source code?')}
+              </SourceMapDebuggerToggle>
             ) : null}
             {!data.inApp ? (
               stacktraceChangesEnabled ? null : (
@@ -632,5 +642,17 @@ const ToggleButton = styled(Button)`
 
   &:hover {
     color: ${p => p.theme.subText};
+  }
+`;
+
+const SourceMapDebuggerToggle = styled(Tag)`
+  cursor: pointer;
+  span {
+    color: ${p => p.theme.gray300};
+
+    &:hover {
+      text-decoration: underline;
+      text-decoration-color: ${p => p.theme.gray200};
+    }
   }
 `;
