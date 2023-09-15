@@ -71,6 +71,10 @@ export default function SelectorTable({
       switch (column.key) {
         case 'dom_element':
           return <SelectorLink organization={organization} value={value} />;
+        case 'element':
+          return <code>{value}</code>;
+        case 'aria_label':
+          return <code>{value}</code>;
         default:
           return renderSimpleBodyCell<DeadRageSelectorItem>(column, dataRow);
       }

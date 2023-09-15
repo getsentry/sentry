@@ -10,41 +10,20 @@ import PageFiltersContainer from 'sentry/components/organizations/pageFilters/co
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import Pagination from 'sentry/components/pagination';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
+import {hydratedSelectorData} from 'sentry/components/replays/utils';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useDeadRageSelectors from 'sentry/utils/replays/hooks/useDeadRageSelectors';
 import useOrganization from 'sentry/utils/useOrganization';
 import SelectorTable from 'sentry/views/replays/deadRageClick/selectorTable';
-import {
-  DeadRageSelectorItem,
-  DeadRageSelectorQueryParams,
-} from 'sentry/views/replays/types';
-
-function getAriaLabel(str: string) {
-  const pre = str.split('aria=')[1];
-  if (!pre) {
-    return '';
-  }
-  return pre.substring(0, pre.lastIndexOf(']'));
-}
-
-function mappedData(data): DeadRageSelectorItem[] {
-  return data.map(d => {
-    return {
-      count_dead_clicks: d.count_dead_clicks,
-      dom_element: d.dom_element,
-      element: d.dom_element.split(/[#.]+/)[0],
-      aria_label: getAriaLabel(d.dom_element),
-    };
-  });
-}
+import {DeadRageSelectorQueryParams} from 'sentry/views/replays/types';
 
 interface Props extends RouteComponentProps<{}, {}, DeadRageSelectorQueryParams> {}
 
 export default function DeadClickList({location}: Props) {
   const organization = useOrganization();
-  const hasDeadCicks = organization.features.includes(
+  const hasDeadClicks = organization.features.includes(
     'session-replay-rage-dead-selectors'
   );
 
@@ -53,7 +32,15 @@ export default function DeadClickList({location}: Props) {
     sort: '-count_dead_clicks',
   });
 
-  return hasDeadCicks ? (
+  if (!hasDeadClicks) {
+    return (
+      <Layout.Page withPadding>
+        <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+      </Layout.Page>
+    );
+  }
+
+  return (
     <SentryDocumentTitle
       title={t('Top Selectors with Dead Clicks')}
       orgSlug={organization.slug}
@@ -79,7 +66,7 @@ export default function DeadClickList({location}: Props) {
                 <DatePageFilter alignDropdown="left" resetParamsOnChange={['cursor']} />
               </PageFilterBar>
               <SelectorTable
-                data={mappedData(data)}
+                data={hydratedSelectorData(data, 'count_dead_clicks')}
                 isError={isError}
                 isLoading={isLoading}
                 location={location}
@@ -102,10 +89,6 @@ export default function DeadClickList({location}: Props) {
         </Layout.Body>
       </PageFiltersContainer>
     </SentryDocumentTitle>
-  ) : (
-    <Layout.Page withPadding>
-      <Alert type="warning">{t("You don't have access to this feature")}</Alert>
-    </Layout.Page>
   );
 }
 
