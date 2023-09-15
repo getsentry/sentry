@@ -534,7 +534,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
 
         detailed: bool = request.GET.get("detailed", "0") == "1"
         limit: int = (
-            min(request.GET.get("limit", MAX_TRACE_SIZE), 2000)
+            min(int(request.GET.get("limit", MAX_TRACE_SIZE)), 2000)
             if trace_view_load_more_enabled
             else MAX_TRACE_SIZE
         )
