@@ -10,6 +10,7 @@ from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.statistical_detectors.detector import DetectorPayload
 from sentry.tasks.statistical_detectors import (
+    detect_function_change_points,
     detect_function_trends,
     detect_transaction_trends,
     query_functions,
@@ -260,8 +261,31 @@ def test_detect_function_trends(
     assert detect_function_change_points.delay.called
 
 
+@mock.patch("sentry.tasks.statistical_detectors.raw_snql_query")
+@django_db_all
+def test_detect_function_change_points(mock_raw_snql_query, timestamp, project):
+    start_of_hour = timestamp.replace(minute=0, second=0, microsecond=0, tzinfo=timezone.utc)
+
+    fingerprint = 12345
+
+    mock_raw_snql_query.return_value = {
+        "data": [
+            {
+                "time": (start_of_hour - timedelta(days=day, hours=hour)).isoformat(),
+                "project.id": project.id,
+                "fingerprint": fingerprint,
+                "p95": 200 if day < 1 else 100,
+            }
+            for day in reversed(range(14))
+            for hour in reversed(range(24))
+        ]
+    }
+
+    detect_function_change_points([(project.id, fingerprint)], timestamp)
+
+
 @region_silo_test(stable=True)
-class FunctionsQueryTest(ProfilesSnubaTestCase):
+class FunctionsTasksTest(ProfilesSnubaTestCase):
     def setUp(self):
         super().setUp()
 
@@ -269,15 +293,15 @@ class FunctionsQueryTest(ProfilesSnubaTestCase):
         self.hour_ago = (self.now - timedelta(hours=1)).replace(
             minute=0, second=0, microsecond=0, tzinfo=timezone.utc
         )
-
-    @mock.patch("sentry.tasks.statistical_detectors.FUNCTIONS_PER_PROJECT", 1)
-    def test_functions_query(self):
-        projects = [
+        self.projects = [
             self.create_project(organization=self.organization, teams=[self.team], name="Foo"),
             self.create_project(organization=self.organization, teams=[self.team], name="Bar"),
         ]
 
-        for project in projects:
+    @mock.patch("sentry.tasks.statistical_detectors.FUNCTIONS_PER_PROJECT", 1)
+    def test_functions_query(self):
+
+        for project in self.projects:
             self.store_functions(
                 [
                     {
@@ -310,7 +334,7 @@ class FunctionsQueryTest(ProfilesSnubaTestCase):
                 timestamp=self.hour_ago,
             )
 
-        results = query_functions(projects, self.now)
+        results = query_functions(self.projects, self.now)
         assert results == [
             DetectorPayload(
                 project_id=project.id,
@@ -319,7 +343,7 @@ class FunctionsQueryTest(ProfilesSnubaTestCase):
                 value=pytest.approx(100),  # type: ignore[arg-type]
                 timestamp=self.hour_ago,
             )
-            for project in projects
+            for project in self.projects
         ]
 
 
