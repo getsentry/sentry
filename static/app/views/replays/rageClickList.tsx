@@ -2,8 +2,10 @@ import Alert from 'sentry/components/alert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
+import Placeholder from 'sentry/components/placeholder';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
+import useDeadRageSelectors from 'sentry/utils/replays/hooks/useDeadRageSelectors';
 import useOrganization from 'sentry/utils/useOrganization';
 
 export default function RageClickList() {
@@ -11,6 +13,10 @@ export default function RageClickList() {
   const hasRageCicks = organization.features.includes(
     'session-replay-rage-dead-selectors'
   );
+  const {isLoading, isError, data} = useDeadRageSelectors({
+    per_page: 3,
+    sort: '-count_rage_clicks',
+  });
 
   return hasRageCicks ? (
     <SentryDocumentTitle
@@ -30,7 +36,28 @@ export default function RageClickList() {
       </Layout.Header>
       <PageFiltersContainer>
         <Layout.Body>
-          <Layout.Main fullWidth>TODO</Layout.Main>
+          <Layout.Main fullWidth>
+            {isLoading ? (
+              <Placeholder />
+            ) : isError ? (
+              <Alert type="error" showIcon>
+                {t('An error occurred')}
+              </Alert>
+            ) : (
+              <pre>
+                {JSON.stringify(
+                  data.data.map(d => {
+                    return {
+                      count_rage_clicks: d.count_rage_clicks,
+                      dom_element: d.dom_element,
+                    };
+                  }),
+                  null,
+                  '\t'
+                )}
+              </pre>
+            )}
+          </Layout.Main>
         </Layout.Body>
       </PageFiltersContainer>
     </SentryDocumentTitle>
