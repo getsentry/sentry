@@ -102,9 +102,6 @@ def run_with_retries(cmd: Callable[[], object], retries: int, timeout: int) -> N
 
 
 def get_services_to_check(id: str) -> list[str]:
-    if all_service_healthchecks.get(id) is None:
-        raise HealthcheckError(f"Service '{id}' does not have a health check")
-
     checks = []
     hc = all_service_healthchecks[id]
     for dep in hc.deps:
