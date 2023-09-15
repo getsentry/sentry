@@ -977,6 +977,18 @@ const SECTIONS: TSection[] = [
         name: 'Timer',
         defaultProps: {},
       },
+      {
+        id: 'cursorArrow',
+        keywords: ['pointer', 'mouse'],
+        name: 'CursorArrow',
+        defaultProps: {},
+      },
+      {
+        id: 'keyDown',
+        keywords: ['keyboard', 'press', 'click', 'tap'],
+        name: 'KeyDown',
+        defaultProps: {},
+      },
     ],
   },
   {
