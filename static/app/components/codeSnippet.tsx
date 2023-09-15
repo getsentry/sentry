@@ -116,7 +116,7 @@ export function CodeSnippet({
             type="button"
             size="xs"
             translucentBorder
-            borderless={!!filename}
+            borderless
             onClick={handleCopy}
             title={tooltipTitle}
             tooltipProps={{delay: 0, isHoverable: false, position: 'left'}}
