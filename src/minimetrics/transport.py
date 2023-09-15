@@ -28,9 +28,9 @@ class RelayStatsdEncoder:
         metric_name = sanitize_value(metric_name) or "invalid-metric-name"
         _write(f"{metric_name}@{metric_unit}".encode())
 
-        for value in metric.serialize_value():
+        for serialized_value in metric.serialize_value():
             _write(b":")
-            _write(str(value).encode("utf-8"))
+            _write(str(serialized_value).encode("utf-8"))
 
         _write(f"|{metric_type}".encode("ascii"))
 
