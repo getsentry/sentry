@@ -142,7 +142,7 @@ class TransactionMRI(Enum):
     SET_ON_DEMAND = "s:transactions/on_demand@none"
 
     # Less granular coarse metrics
-    DURATION_COARSE = "d:transactions/duration_COA@millisecond"
+    DURATION_COARSE = "d:transactions/duration_coarse@millisecond"
 
 
 class SpanMRI(Enum):
