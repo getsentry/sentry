@@ -1,6 +1,6 @@
 import re
 from functools import partial
-from typing import Iterable, Optional
+from typing import Iterable
 
 import sentry_sdk
 from sentry_sdk.envelope import Envelope, Item
@@ -21,18 +21,18 @@ sanitize_value = partial(re.compile(r"[^a-zA-Z0-9_/.]").sub, "")
 
 
 class RelayStatsdEncoder:
-    def encode(self, value: FlushedMetric) -> Optional[str]:
+    def encode(self, value: FlushedMetric) -> str:
         (timestamp, metric_type, metric_name, metric_unit, metric_tags), metric = value
         metric_name = sanitize_value(metric_name) or "invalid-metric-name"
         metric_values = ":".join(str(v) for v in metric.serialize_value())
-        metric_tags = self._get_metric_tags(metric_tags)
-        metric_tags_prefix = metric_tags and "|#" or ""
-        return f"{metric_name}@{metric_unit}:{metric_values}|{metric_type}{metric_tags_prefix}{metric_tags}|T{timestamp}"
+        serialized_metric_tags = self._get_metric_tags(metric_tags)
+        metric_tags_prefix = serialized_metric_tags and "|#" or ""
+        return f"{metric_name}@{metric_unit}:{metric_values}|{metric_type}{metric_tags_prefix}{serialized_metric_tags}|T{timestamp}"
 
     def encode_multiple(self, values: Iterable[FlushedMetric]) -> str:
         return "\n".join(self.encode(value) for value in values)
 
-    def _get_metric_tags(self, tags: Optional[MetricTagsInternal]) -> str:
+    def _get_metric_tags(self, tags: MetricTagsInternal) -> str:
         if not tags:
             return ""
 

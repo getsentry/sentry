@@ -211,6 +211,7 @@ class Aggregator:
             with self._lock:
                 buckets = self.buckets
                 force_flush = self._force_flush
+                flushed_metrics: Optional[Iterable[FlushedMetric]] = None
 
                 if force_flush:
                     flushed_metrics = buckets.items()

@@ -1,13 +1,15 @@
+from typing import Any
 from unittest.mock import patch
 
 from minimetrics.core import CounterMetric, DistributionMetric, GaugeMetric, SetMetric
 from minimetrics.transport import MetricEnvelopeTransport, RelayStatsdEncoder
+from minimetrics.types import BucketKey
 
 
 def test_relay_encoder_with_counter():
     encoder = RelayStatsdEncoder()
 
-    bucket_key = (
+    bucket_key: BucketKey = (
         1693994400,
         "c",
         "button_click",
@@ -27,7 +29,7 @@ def test_relay_encoder_with_counter():
 def test_relay_encoder_with_distribution():
     encoder = RelayStatsdEncoder()
 
-    bucket_key = (
+    bucket_key: BucketKey = (
         1693994400,
         "d",
         "execution_time",
@@ -52,7 +54,7 @@ def test_relay_encoder_with_distribution():
 def test_relay_encoder_with_set():
     encoder = RelayStatsdEncoder()
 
-    bucket_key = (
+    bucket_key: BucketKey = (
         1693994400,
         "s",
         "users",
@@ -82,7 +84,7 @@ def test_relay_encoder_with_set():
 def test_relay_encoder_with_gauge():
     encoder = RelayStatsdEncoder()
 
-    bucket_key = (
+    bucket_key: BucketKey = (
         1693994400,
         "g",
         "startup_time",
@@ -107,7 +109,7 @@ def test_relay_encoder_with_gauge():
 def test_relay_encoder_with_invalid_chars():
     encoder = RelayStatsdEncoder()
 
-    bucket_key = (
+    bucket_key: BucketKey = (
         1693994400,
         "c",
         "büttòn_click",
@@ -193,7 +195,8 @@ def test_relay_encoder_with_multiple_metrics():
         CounterMetric(first=1),
     )
 
-    result = encoder.encode_multiple([flushed_metric_1, flushed_metric_2, flushed_metric_3])
+    metrics: Any = [flushed_metric_1, flushed_metric_2, flushed_metric_3]
+    result = encoder.encode_multiple(metrics)
 
     assert result == (
         "startup_time@second:10.0:10.0:10.0:10.0:1|g|#browser:Chrome,browser.version:1.0|T1693994400"
@@ -221,7 +224,8 @@ def test_send(sentry_sdk):
     )
 
     transport = MetricEnvelopeTransport(RelayStatsdEncoder())
-    transport.send([flushed_metric])
+    metrics: Any = [flushed_metric]
+    transport.send(metrics)
 
     args = sentry_sdk.Hub.current.client.transport.capture_envelope.call_args.args
     assert len(args) == 1
