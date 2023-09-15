@@ -97,6 +97,7 @@ export function CodeSnippet({
             <TabsWrapper>
               {tabs.map(({label, value}) => (
                 <Tab
+                  type="button"
                   isSelected={selectedTab === value}
                   onClick={() => onTabClick?.(value)}
                   key={value}
@@ -213,7 +214,7 @@ const FlexSpacer = styled('div')`
 `;
 
 const CopyButton = styled(Button)<{isAlwaysVisible: boolean}>`
-  color: ${p => p.theme.subText};
+  color: #80708f;
 
   transition: opacity 0.1s ease-out;
   opacity: 0;
@@ -222,6 +223,9 @@ const CopyButton = styled(Button)<{isAlwaysVisible: boolean}>`
   div:hover > div > &, /* if Wrapper is hovered */
   &.focus-visible {
     opacity: 1;
+  }
+  &:hover {
+    color: #e0dce5;
   }
 `;
 
