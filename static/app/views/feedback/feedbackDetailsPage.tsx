@@ -16,7 +16,7 @@ interface RouteParams {
 }
 interface Props extends RouteComponentProps<RouteParams, {}, any, {}> {}
 
-export default function Details({params: {feedbackSlug}}: Props) {
+export default function FeedbackDetailsPage({params: {feedbackSlug}}: Props) {
   const organization = useOrganization();
 
   const [projectSlug, feedbackId] = feedbackSlug.split(':');
