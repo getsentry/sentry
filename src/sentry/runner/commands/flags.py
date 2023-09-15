@@ -1,6 +1,7 @@
 import click
 
 from sentry.runner.decorators import configuration
+from sentry.utils import json
 
 
 def _get_api_owners():
@@ -18,7 +19,7 @@ def flags():
 @configuration
 @click.option(
     "--scope",
-    prompt="What is your flag scoped to? (project/organization)",
+    prompt="What is your flag scoped to?",
     type=click.Choice(["organization", "project"], case_sensitive=False),
 )
 @click.option(
@@ -28,7 +29,7 @@ def flags():
 )
 @click.option(
     "--name",
-    prompt="what's the name of your flag? (use hyphen-case)",
+    prompt="what's the name of your flag? (use snake-case)",
 )
 @click.option(
     "--strategy",
@@ -38,21 +39,32 @@ def flags():
 def create(scope, team, name, strategy):
     "Create a feature flag"
 
-    if scope == "organization":
-        class_name = "OrganizationFeature"
-    elif scope == "project":
-        class_name = "ProjectFeature"
+    # open src/sentry/features/generated_flags.json
+    # load it into a dict
+    # insert the flag information into the dict
+    # write the dict back to the file (make sure the JSON object keys are sorted alphabetically.
+    # the file should look like this:
+    #     {
+    #   "replay-backend": {
+    #     "enable-replays-stuff": {
+    #       "scope": "organization",
+    #       "strategy": "remote"
+    #     }
+    #   }
+    # }
 
-    flag_name = f"{scope}s:{team}-{name}"
+    with open("src/sentry/features/generated_flags.json") as f:
+        flags_to_generate = json.loads(f.read())
 
-    if strategy == "internal":
-        strategy_class_name = "FeatureHandlerStrategy.INTERNAL"
-    elif strategy == "remote":
-        strategy_class_name = "FeatureHandlerStrategy.REMOTE"
+    if team not in flags_to_generate:
+        flags_to_generate[team] = {}
 
-    flag_line = f'\ndefault_manager.add("{flag_name}", {class_name}, {strategy_class_name})\n'
+    if name in flags_to_generate[team]:
+        raise ValueError("Flag already exists")
 
-    print(flag_line)
-    with open("src/sentry/features/__init__.py", "r") as f:
-        lines = f.readlines()  # Read all lines into a list
-        print(lines)
+    flags_to_generate[team][name] = {"scope": scope, "strategy": strategy}
+
+    with open("src/sentry/features/generated_flags.json", "w") as f:
+        f.write(json.dumps(flags_to_generate, indent=2, sort_keys=True))
+
+    click.echo("Flag created successfully")

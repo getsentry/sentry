@@ -1,3 +1,5 @@
+from sentry.features.generate_flags import generate_flags
+
 from .base import (
     FeatureHandlerStrategy,
     OrganizationFeature,
@@ -307,6 +309,12 @@ default_manager.add("projects:suspect-resolutions", ProjectFeature, FeatureHandl
 default_manager.add("projects:span-metrics-extraction", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("projects:span-metrics-extraction-ga-modules", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("projects:span-metrics-extraction-all-modules", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
+
+
+generated_flags = generate_flags()
+
+for flag_info in generated_flags:
+    default_manager.add(flag_info)
 
 # Project plugin features
 default_manager.add("projects:plugins", ProjectPluginFeature, FeatureHandlerStrategy.INTERNAL)
