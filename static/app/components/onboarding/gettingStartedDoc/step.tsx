@@ -65,7 +65,6 @@ function TabbedCodeSnippet({
       tabs={tabs}
       selectedTab={selectedTabValue}
       onTabClick={value => setSelectedTabValue(value)}
-      filename="settings.yml"
     >
       {language === 'javascript'
         ? beautify.js(code, {
