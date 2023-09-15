@@ -19,7 +19,8 @@ export default function useRageDeadSelectors(
         `/organizations/${organization.slug}/replay-selectors/`,
         {
           query: {
-            ...query,
+            pathname: query.pathname,
+            cursor: query.cursor,
             per_page: params.per_page,
             sort: params.sort,
           },
