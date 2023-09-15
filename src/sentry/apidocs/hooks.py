@@ -1,3 +1,5 @@
+import json  # noqa: S003
+import os
 from typing import Any, Dict, List, Literal, Mapping, Set, Tuple, TypedDict
 
 from sentry.api.api_owners import ApiOwner
@@ -21,8 +23,8 @@ class EndpointRegistryType(TypedDict):
 
 PUBLIC_ENDPOINTS: Dict[str, EndpointRegistryType] = {}
 
-
 _DEFINED_TAG_SET = {t["name"] for t in OPENAPI_TAGS}
+_OWNERSHIP_FILE = "api_ownership_stats_dont_modify.json"
 
 # path prefixes to exclude
 # this is useful if we're duplicating an endpoint for legacy purposes
@@ -78,12 +80,73 @@ def __get_explicit_endpoints() -> List[Tuple[str, str, str, Any]]:
     ]
 
 
+def __get_line_count_for_team_stats(team_stats: Mapping):
+    """
+    Returns number of lines it takes to write ownership for each team.
+    For example returns 7 for:
+    enterprise: {
+        block_start: {line_number_for_enterprise},
+        public=[ExamplePublicEndpoint::GET],
+        private=[ExamplePrivateEndpoint::GET],
+        experimental=[ExampleExperimentalEndpoint::GET],
+        unknown=[ExampleUnknownEndpoint::GET]
+    }
+    """
+
+    # Add 3 lines for team name, block_start and }
+    line_count = 3
+    for group in team_stats:
+        if len(team_stats[group]) == 0:
+            line_count += 1
+        else:
+            line_count += len(team_stats[group]) + 2
+    return line_count
+
+
+def __write_ownership_data(ownership_data: Dict[ApiOwner, Dict]):
+    """
+    Writes API ownership for all the teams in _OWNERSHIP_FILE.
+    This file is used by Sentaur slack bot to inform teams on status of their APIs
+    """
+    processed_data = {}
+    index = 2
+    for team in ownership_data:
+        # sorting APIs list so it doesn't trigger file change on every commit
+        processed_data[team.value] = {
+            "block_start": index,
+            ApiPublishStatus.PUBLIC.value: sorted(ownership_data[team][ApiPublishStatus.PUBLIC]),
+            ApiPublishStatus.PRIVATE.value: sorted(ownership_data[team][ApiPublishStatus.PRIVATE]),
+            ApiPublishStatus.EXPERIMENTAL.value: sorted(
+                ownership_data[team][ApiPublishStatus.EXPERIMENTAL]
+            ),
+            ApiPublishStatus.UNKNOWN.value: sorted(
+                ownership_data[team][ApiPublishStatus.EXPERIMENTAL.UNKNOWN]
+            ),
+        }
+        index += __get_line_count_for_team_stats(ownership_data[team])
+    dir = os.path.dirname(os.path.realpath(__file__))
+    file_to_write = open(f"{dir}/{_OWNERSHIP_FILE}", "w")
+    file_to_write.writelines(json.dumps(processed_data, indent=4))
+    file_to_write.write("\n")
+    file_to_write.close()
+
+
 def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, rename
     filtered = []
+    ownership_data: Dict[ApiOwner, Dict] = {}
     for (path, path_regex, method, callback) in endpoints:
 
+        owner_team = callback.view_class.owner
+        if owner_team not in ownership_data:
+            ownership_data[owner_team] = {
+                ApiPublishStatus.UNKNOWN: set(),
+                ApiPublishStatus.PUBLIC: set(),
+                ApiPublishStatus.PRIVATE: set(),
+                ApiPublishStatus.EXPERIMENTAL: set(),
+            }
+
         # Fail if endpoint is unowned
-        if callback.view_class.owner == ApiOwner.UNOWNED:
+        if owner_team == ApiOwner.UNOWNED:
             if path not in API_OWNERSHIP_ALLOWLIST_DONT_MODIFY:
                 raise SentryApiBuildError(
                     f"Endpoint {callback.view_class} is missing the attribute owner: ApiOwner. \n"
@@ -120,7 +183,12 @@ def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, 
             # if an endpoint doesn't have any registered public methods, don't check it.
             pass
 
-    # Register explicit endpoints
+        ownership_data[owner_team][callback.view_class.publish_status[method]].add(
+            f"{callback.view_class.__name__}::{method}"
+        )
+
+    __write_ownership_data(ownership_data)
+    # Register explicit ednpoints
     filtered.extend(__get_explicit_endpoints())
     return filtered
 

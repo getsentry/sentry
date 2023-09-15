@@ -49,6 +49,16 @@ def patch_sentry_sdk():
 
     client.close = new_close  # type:ignore
 
+    old_data_category = sentry_sdk.envelope.Item.data_category.fget  # type:ignore
+
+    @property  # type:ignore
+    def data_category(self):
+        if self.headers.get("type") == "statsd":
+            return "statsd"
+        return old_data_category(self)
+
+    sentry_sdk.envelope.Item.data_category = data_category  # type:ignore
+
 
 class MiniMetricsMetricsBackend(MetricsBackend):
     def __init__(self, prefix: Optional[str] = None):

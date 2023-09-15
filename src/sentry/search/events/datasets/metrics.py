@@ -686,6 +686,34 @@ class MetricsDatasetConfig(DatasetConfig):
                     ),
                     default_result_type="duration",
                 ),
+                fields.MetricsFunction(
+                    "avg_compare",
+                    required_args=[
+                        fields.MetricArg(
+                            "column",
+                            allowed_columns=constants.METRIC_DURATION_COLUMNS,
+                            allow_custom_measurements=False,
+                        ),
+                        fields.MetricArg(
+                            "comparison_column",
+                            allowed_columns=["release"],
+                        ),
+                        fields.SnQLStringArg(
+                            "first_value", unquote=True, unescape_quotes=True, optional_unquote=True
+                        ),
+                        fields.SnQLStringArg(
+                            "second_value",
+                            unquote=True,
+                            unescape_quotes=True,
+                            optional_unquote=True,
+                        ),
+                    ],
+                    calculated_args=[resolve_metric_id],
+                    snql_distribution=lambda args, alias: function_aliases.resolve_avg_compare(
+                        self.builder.column, args, alias
+                    ),
+                    default_result_type="percent_change",
+                ),
             ]
         }
 

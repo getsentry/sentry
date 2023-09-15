@@ -17,7 +17,9 @@ from sentry.utils.pipeline import Pipeline
 
 logger = logging.getLogger("sentry.digests")
 
-Notification = namedtuple("Notification", "event rules")
+Notification = namedtuple(
+    "Notification", "event rules notification_uuid", defaults=(None, None, None)
+)
 
 
 def split_key(
@@ -57,13 +59,15 @@ def unsplit_key(
     return f"mail:p:{project.id}:{target_type.value}:{target_str}:{fallthrough}"
 
 
-def event_to_record(event: Event, rules: Sequence[Rule]) -> Record:
+def event_to_record(
+    event: Event, rules: Sequence[Rule], notification_uuid: str | None = None
+) -> Record:
     if not rules:
         logger.warning(f"Creating record for {event} that does not contain any rules!")
 
     return Record(
         event.event_id,
-        Notification(event, [rule.id for rule in rules]),
+        Notification(event, [rule.id for rule in rules], notification_uuid),
         to_timestamp(event.datetime),
     )
 
@@ -145,7 +149,11 @@ def rewrite_record(
 
     return Record(
         record.key,
-        Notification(event, [_f for _f in [rules.get(id) for id in record.value.rules] if _f]),
+        Notification(
+            event,
+            [_f for _f in [rules.get(id) for id in record.value.rules] if _f],
+            record.value.notification_uuid,
+        ),
         record.timestamp,
     )
 

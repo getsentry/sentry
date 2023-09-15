@@ -75,7 +75,7 @@ const WiderHovercard = styled(
 )`
   &.wider {
     width: auto;
-    max-width: 500px;
+    max-width: 550px;
   }
 `;
 

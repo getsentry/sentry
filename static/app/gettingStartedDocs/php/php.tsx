@@ -5,7 +5,7 @@ import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import {t, tct} from 'sentry/locale';
 
-interface StepProps {
+interface StepsParams {
   dsn: string;
   hasPerformance: boolean;
   hasProfiling: boolean;
@@ -16,7 +16,7 @@ export const steps = ({
   dsn,
   hasPerformance,
   hasProfiling,
-}: StepProps): LayoutProps['steps'] => [
+}: StepsParams): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
     configurations: [
