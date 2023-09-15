@@ -28,6 +28,8 @@ import {
   SentryAppSchemaStacktraceLink,
 } from 'sentry/types';
 import {Event} from 'sentry/types/event';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {getAnalyticsDataForEvent} from 'sentry/utils/events';
 import withOrganization from 'sentry/utils/withOrganization';
 import withSentryAppComponents from 'sentry/utils/withSentryAppComponents';
 
@@ -365,6 +367,13 @@ export class DeprecatedLine extends Component<Props, State> {
                 )}
                 onClick={e => {
                   e.stopPropagation();
+
+                  trackAnalytics('source_map_debug_blue_thunder.modal_opened', {
+                    organization: this.props.organization ?? null,
+                    project_id: this.props.event.projectID,
+                    ...getAnalyticsDataForEvent(this.props.event),
+                  });
+
                   openModal(modalProps => (
                     <SourceMapsDebuggerModal
                       sourceResolutionResults={this.props.frameSourceResolutionResults!}
