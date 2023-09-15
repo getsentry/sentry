@@ -1609,6 +1609,13 @@ function buildRoutes() {
             )}
           />
         </Route>
+        <Route
+          path="pageloads/"
+          component={make(
+            () =>
+              import('sentry/views/performance/browser/webVitals/webVitalsLandingPage')
+          )}
+        />
       </Route>
       <Route path="summary/">
         <IndexRoute
