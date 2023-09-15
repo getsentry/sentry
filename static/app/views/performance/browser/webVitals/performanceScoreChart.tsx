@@ -1,5 +1,6 @@
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import toUpper from 'lodash/toUpper';
 
 import MarkLine from 'sentry/components/charts/components/markLine';
 import ProgressRing from 'sentry/components/progressRing';
@@ -25,7 +26,8 @@ export function PerformanceScoreChart({projectScore, webVital}: Props) {
     <Flex>
       <PerformanceScoreLabelContainer>
         <PerformanceScoreLabel>
-          {t('Performance Score')} <StyledIconQuestion size="xs" />
+          {`${webVital ? `${toUpper(webVital)} Score` : t('Performance Score')}`}{' '}
+          {!webVital && <StyledIconQuestion size="xs" />}
         </PerformanceScoreLabel>
         <ProgressRingContainer>
           <ProgressRing
@@ -48,7 +50,7 @@ export function PerformanceScoreChart({projectScore, webVital}: Props) {
           data={[
             {
               data,
-              seriesName: 'Performance Score',
+              seriesName: `${webVital ? toUpper(webVital) : 'Performance'} Score`,
               markLine: MarkLine({
                 data: [
                   {

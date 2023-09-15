@@ -30,8 +30,10 @@ import {
 } from 'sentry/views/performance/browser/webVitals/utils/types';
 import {useProjectWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/useProjectWebVitalsQuery';
 import {useTransactionWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/useTransactionWebVitalsQuery';
+import {ClsDescription} from 'sentry/views/performance/browser/webVitals/webVitalsDescriptions/cls';
 import {FcpDescription} from 'sentry/views/performance/browser/webVitals/webVitalsDescriptions/fcp';
 import {LcpDescription} from 'sentry/views/performance/browser/webVitals/webVitalsDescriptions/lcp';
+import {TbtDescription} from 'sentry/views/performance/browser/webVitals/webVitalsDescriptions/tbt';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
 
 type Column = GridColumnHeader;
@@ -147,7 +149,8 @@ export function WebVitalsDetailPanel({
         )}
         {webVital === 'lcp' && <LcpDescription />}
         {webVital === 'fcp' && <FcpDescription />}
-        {/* TODO: add descriptions for tbt and cls */}
+        {webVital === 'tbt' && <TbtDescription />}
+        {webVital === 'cls' && <ClsDescription />}
         <PerformanceScoreChartContainer>
           <PerformanceScoreChart projectScore={projectScore} webVital={webVital} />
         </PerformanceScoreChartContainer>

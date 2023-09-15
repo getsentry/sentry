@@ -39,7 +39,7 @@ export default function WebVitalsLandingPage() {
   });
 
   return (
-    <ModulePageProviders title={[t('Performance'), t('Web Vitals')].join(' — ')}>
+    <ModulePageProviders title={[t('Performance'), t('Page Loads')].join(' — ')}>
       <Layout.Header>
         <Layout.HeaderContent>
           <Breadcrumbs
@@ -50,13 +50,13 @@ export default function WebVitalsLandingPage() {
                 preservePageFilters: true,
               },
               {
-                label: 'Web Vitals',
+                label: 'Page Loads',
               },
             ]}
           />
 
           <Layout.Title>
-            {t('Web Vitals')}
+            {t('Page Loads')}
             <FeatureBadge type="alpha" />
           </Layout.Title>
         </Layout.HeaderContent>
