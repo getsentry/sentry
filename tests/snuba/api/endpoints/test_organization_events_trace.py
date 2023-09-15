@@ -20,6 +20,7 @@ class OrganizationEventsTraceEndpointBase(APITestCase, SnubaTestCase):
     FEATURES = [
         "organizations:performance-view",
         "organizations:performance-file-io-main-thread-detector",
+        "organizations:trace-view-load-more",
     ]
 
     def get_start_end(self, duration):
