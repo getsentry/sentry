@@ -9,8 +9,11 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
+from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.utils.http import absolute_uri
+
+pytestmark = [requires_snuba]
 
 
 @region_silo_test(stable=True)

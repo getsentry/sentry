@@ -6,7 +6,10 @@ from django.urls import reverse
 from sentry.models import Project
 from sentry.testutils.cases import APITestCase, PermissionTestCase
 from sentry.testutils.silo import region_silo_test
+from sentry.testutils.skips import requires_snuba
 from sentry.utils.signing import sign
+
+pytestmark = [requires_snuba]
 
 
 @region_silo_test(stable=True)

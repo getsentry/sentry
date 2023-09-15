@@ -41,7 +41,10 @@ from sentry.testutils.cases import APITestCase, TwoFactorAPITestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
+
+pytestmark = [requires_snuba]
 
 # some relay keys
 _VALID_RELAY_KEYS = [

@@ -13,6 +13,9 @@ from sentry.snuba.metrics.fields.snql import complement, division_float
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.testutils.cases import APITestCase, OrganizationMetricMetaIntegrationTestCase
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.skips import requires_snuba
+
+pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
 
 MOCKED_DERIVED_METRICS = copy.deepcopy(DERIVED_METRICS)
 MOCKED_DERIVED_METRICS.update(
@@ -30,8 +33,6 @@ MOCKED_DERIVED_METRICS.update(
         )
     }
 )
-
-pytestmark = pytest.mark.sentry_metrics
 
 
 def mocked_mri_resolver(metric_names, mri_func):

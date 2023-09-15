@@ -7,7 +7,10 @@ from sentry.api.endpoints.integrations.sentry_apps.requests import INVALID_DATE_
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
+from sentry.testutils.skips import requires_snuba
 from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
+
+pytestmark = [requires_snuba]
 
 
 @region_silo_test(stable=True)
