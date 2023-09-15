@@ -254,6 +254,13 @@ function Sidebar({location, organization}: Props) {
           id="performance-browser-interactions"
           icon={<SubitemDot collapsed={collapsed} />}
         />
+        <SidebarItem
+          {...sidebarItemProps}
+          label={<GuideAnchor target="starfish">{t('Page Loads')}</GuideAnchor>}
+          to={`/organizations/${organization.slug}/performance/browser/pageloads`}
+          id="performance-browser-page-loads"
+          icon={<SubitemDot collapsed={collapsed} />}
+        />
       </SidebarAccordion>
     </Feature>
   );
