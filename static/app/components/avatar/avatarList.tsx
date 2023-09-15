@@ -48,11 +48,19 @@ function AvatarList({
       {visibleMembers.map(member => {
         if (member.type && member.type === 'team') {
           const team = member as TeamParticipant;
-          return <TeamAvatar key={`${team.id}-${team.name}`} team={team} />;
+          return (
+            <StyledTeamAvatar
+              key={`${team.id}-${team.name}`}
+              team={team}
+              size={avatarSize}
+              tooltipOptions={tooltipOptions}
+              hasTooltip
+            />
+          );
         }
         const user = member as AvatarUser;
         return (
-          <StyledAvatar
+          <StyledUserAvatar
             key={`${user.id}-${user.email}`}
             user={user}
             size={avatarSize}
@@ -74,8 +82,7 @@ export const AvatarListWrapper = styled('div')`
   flex-direction: row-reverse;
 `;
 
-const Circle = p => css`
-  border-radius: 50%;
+const AvatarStyle = p => css`
   border: 2px solid ${p.theme.background};
   margin-left: -8px;
   cursor: default;
@@ -85,9 +92,15 @@ const Circle = p => css`
   }
 `;
 
-const StyledAvatar = styled(UserAvatar)`
+const StyledUserAvatar = styled(UserAvatar)`
   overflow: hidden;
-  ${Circle};
+  border-radius: 50%;
+  ${AvatarStyle};
+`;
+
+const StyledTeamAvatar = styled(TeamAvatar)`
+  overflow: hidden;
+  ${AvatarStyle}
 `;
 
 const CollapsedUsers = styled('div')<{size: number}>`
@@ -102,7 +115,8 @@ const CollapsedUsers = styled('div')<{size: number}>`
   font-size: ${p => Math.floor(p.size / 2.3)}px;
   width: ${p => p.size}px;
   height: ${p => p.size}px;
-  ${Circle};
+  border-radius: 50%;
+  ${AvatarStyle};
 `;
 
 const Plus = styled('span')`
