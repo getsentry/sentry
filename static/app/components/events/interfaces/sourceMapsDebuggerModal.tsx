@@ -132,6 +132,12 @@ export function SourceMapsDebuggerModal({
               analyticsParams
             );
           }}
+          onSelectAndCopy={() => {
+            trackAnalytics(
+              'source_map_debug_blue_thunder.source_map_wizard_command_copied',
+              analyticsParams
+            );
+          }}
         >
           {'npx @sentry/wizard@latest -i sourcemaps'}
         </InstructionCodeSnippet>
