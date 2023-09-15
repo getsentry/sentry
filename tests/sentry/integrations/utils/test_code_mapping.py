@@ -26,15 +26,19 @@ with open(
 
 UNSUPPORTED_FRAME_FILENAMES = [
     "async https://s1.sentry-cdn.com/_static/dist/sentry/entrypoints/app.js",
+    "/gtm.js",  # Top source; starts with backslash
     "<anonymous>",
     "<frozen importlib._bootstrap>",
     "[native code]",
     "O$t",
     "async https://s1.sentry-cdn.com/_static/dist/sentry/entrypoints/app.js",
-    "foo/bar/baz",  # no extension
+    "/foo/bar/baz",  # no extension
     "README",  # no extension
+    "ssl.py",
     # XXX: The following will need to be supported
     "C:\\Users\\Donia\\AppData\\Roaming\\Adobe\\UXP\\Plugins\\External\\452f92d2_0.13.0\\main.js",
+    "initialization.dart",
+    "backburner.js",
 ]
 
 
@@ -75,9 +79,6 @@ def test_get_extension():
 
 def test_buckets_logic():
     stacktraces = [
-        "/gtm.js",
-        "initialization.dart",
-        "backburner.js",
         "app://foo.js",
         "./app/utils/handleXhrErrorResponse.tsx",
         "getsentry/billing/tax/manager.py",
@@ -85,11 +86,6 @@ def test_buckets_logic():
     ] + UNSUPPORTED_FRAME_FILENAMES
     buckets = stacktrace_buckets(stacktraces)
     assert buckets == {
-        "": [
-            FrameFilename("gtm.js"),
-            FrameFilename("initialization.dart"),
-            FrameFilename("backburner.js"),
-        ],
         "./app": [FrameFilename("./app/utils/handleXhrErrorResponse.tsx")],
         "app:": [FrameFilename("app://foo.js")],
         "cronscripts": [FrameFilename("/cronscripts/monitoringsync.php")],
@@ -112,14 +108,6 @@ class TestFrameFilename:
     def test_frame_filename_repr(self):
         path = "getsentry/billing/tax/manager.py"
         assert FrameFilename(path).__repr__() == f"FrameFilename: {path}"
-
-    def test_frame_filename_root_level(self):
-        file_name = "index.php"
-        ff = FrameFilename(file_name)
-        assert ff.file_name == file_name
-        assert ff.root == ""
-        assert ff.dir_path == ""
-        assert ff.extension == "php"
 
     def test_raises_unsupported(self):
         for filepath in UNSUPPORTED_FRAME_FILENAMES:
