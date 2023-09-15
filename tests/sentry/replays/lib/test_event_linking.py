@@ -1,6 +1,6 @@
 import uuid
 
-from sentry.replays.lib.event_linking import LEVELS, transform_event_for_linking_payload
+from sentry.replays.lib.event_linking import transform_event_for_linking_payload
 from sentry.testutils.cases import ReplaysSnubaTestCase
 
 
@@ -8,7 +8,7 @@ class TestEventLink(ReplaysSnubaTestCase):
     def test_event_link_types(self):
         replay_id = uuid.uuid4().hex
 
-        for level in LEVELS:
+        for level in ["debug", "info", "warning", "error", "fatal"]:
             event = self.store_event(
                 data={
                     "level": level,
