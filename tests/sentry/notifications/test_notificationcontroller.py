@@ -1,5 +1,3 @@
-from django.db.models import Q
-
 from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.notifications.notificationcontroller import NotificationController
@@ -123,6 +121,54 @@ class NotificationControllerTest(TestCase):
         )
         assert list(controller.get_all_setting_providers()) == self.setting_providers
 
+    def test_filter_setting_options(self):
+        controller = NotificationController(
+            recipients=[self.user],
+            project_ids=[self.project.id],
+            organization_id=self.organization.id,
+        )
+
+        filtered_options = controller._filter_options(
+            settings=self.setting_options, type=NotificationSettingEnum.DEPLOY.value
+        )
+        assert filtered_options == [self.setting_options[0]]
+
+        filtered_options = controller._filter_options(
+            settings=self.setting_options, type=NotificationSettingEnum.ISSUE_ALERTS.value
+        )
+        assert filtered_options == self.setting_options[1:]
+
+        filtered_options = controller._filter_options(
+            settings=self.setting_options,
+            type=NotificationSettingEnum.ISSUE_ALERTS.value,
+            scope_type=NotificationScopeEnum.PROJECT.value,
+        )
+        assert filtered_options == [self.setting_options[1]]
+
+    def test_filter_setting_providers(self):
+        controller = NotificationController(
+            recipients=[self.user],
+            project_ids=[self.project.id],
+            organization_id=self.organization.id,
+        )
+
+        filtered_providers = controller._filter_providers(
+            settings=self.setting_providers, type=NotificationSettingEnum.DEPLOY.value
+        )
+        assert filtered_providers == [self.setting_providers[0]]
+
+        filtered_providers = controller._filter_providers(
+            settings=self.setting_providers, value=NotificationSettingsOptionEnum.ALWAYS.value
+        )
+        assert filtered_providers == [self.setting_providers[0], self.setting_providers[2]]
+
+        filtered_providers = controller._filter_providers(
+            settings=self.setting_providers,
+            type=NotificationSettingEnum.DEPLOY.value,
+            value=NotificationSettingsOptionEnum.ALWAYS.value,
+        )
+        assert filtered_providers == [self.setting_providers[0]]
+
     def test_layering(self):
         NotificationSettingOption.objects.all().delete()
         top_level_option = add_notification_setting_option(
@@ -152,7 +198,7 @@ class NotificationControllerTest(TestCase):
             project_ids=[self.project.id],
             organization_id=self.organization.id,
         )
-        options = controller.get_layered_setting_options()
+        options = controller._get_layered_setting_options()
         scope = (NotificationScopeEnum.PROJECT, top_level_option.scope_identifier)
         assert (
             options[self.user][scope][NotificationSettingEnum.REPORTS].value
@@ -190,7 +236,7 @@ class NotificationControllerTest(TestCase):
             project_ids=[self.project.id],
             organization_id=self.organization.id,
         )
-        providers = controller.get_layered_setting_providers()
+        providers = controller._get_layered_setting_providers()
         scope = (NotificationScopeEnum.PROJECT, top_level_provider.scope_identifier)
         assert (
             providers[self.user][scope][NotificationSettingEnum.REPORTS][
@@ -215,7 +261,7 @@ class NotificationControllerTest(TestCase):
             project_ids=[self.project.id],
             organization_id=self.organization.id,
         )
-        options = controller.get_layered_setting_options()
+        options = controller._get_layered_setting_options()
 
         scope = (NotificationScopeEnum.PROJECT, self.project.id)
         assert (
@@ -227,8 +273,8 @@ class NotificationControllerTest(TestCase):
             == self.setting_options[1].value
         )
 
-        options = controller.get_layered_setting_options(
-            additional_filters=Q(type=NotificationSettingEnum.ISSUE_ALERTS.value)
+        options = controller._get_layered_setting_options(
+            type=NotificationSettingEnum.ISSUE_ALERTS.value
         )
 
         assert (
@@ -251,7 +297,7 @@ class NotificationControllerTest(TestCase):
             project_ids=[self.project.id],
             organization_id=self.organization.id,
         )
-        options = controller.get_layered_setting_options()
+        options = controller._get_layered_setting_options()
         scope = (NotificationScopeEnum.PROJECT, self.project.id)
         assert (
             options[new_user][scope][NotificationSettingEnum.ISSUE_ALERTS].value
@@ -275,7 +321,7 @@ class NotificationControllerTest(TestCase):
             project_ids=[self.project.id],
             organization_id=self.organization.id,
         )
-        options = controller.get_layered_setting_providers()
+        options = controller._get_layered_setting_providers()
         scope = (NotificationScopeEnum.PROJECT, self.project.id)
         user_options = options[self.user][scope]
         assert (
@@ -307,7 +353,7 @@ class NotificationControllerTest(TestCase):
             organization_id=self.organization.id,
         )
         scope = (NotificationScopeEnum.PROJECT, self.project.id)
-        options = controller.get_layered_setting_providers()
+        options = controller._get_layered_setting_providers()
         assert (
             options[new_user][scope][NotificationSettingEnum.ISSUE_ALERTS][
                 ExternalProviderEnum.MSTEAMS

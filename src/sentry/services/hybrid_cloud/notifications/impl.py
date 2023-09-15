@@ -199,7 +199,7 @@ class DatabaseBackedNotificationsService(NotificationsService):
     ) -> List[OpaqueSerializedResponse]:
         return self._FQ.serialize_many(filter, as_user, auth_context)
 
-    def get_subscriptions_for_groups(
+    def get_subscriptions_for_projects(
         self,
         *,
         user_id: int,

@@ -143,7 +143,7 @@ class NotificationsService(RpcService):
 
     @rpc_method
     @abstractmethod
-    def get_subscriptions_for_groups(
+    def get_subscriptions_for_projects(
         self,
         *,
         user_id: int,

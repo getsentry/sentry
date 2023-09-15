@@ -324,7 +324,7 @@ class ProjectSerializer(Serializer):
                         project_ids=project_ids,
                         type=NotificationSettingEnum.ISSUE_ALERTS,
                     )
-                    subscriptions = controller.get_subscriptions_for_groups(
+                    subscriptions = controller.get_subscriptions_status_for_projects(
                         user_id=user.id,
                         project_ids=project_ids,
                         type=NotificationSettingTypes.ISSUE_ALERTS,
