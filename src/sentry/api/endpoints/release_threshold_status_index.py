@@ -90,7 +90,7 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
             )
         if project_ids_list:
             release_query &= Q(
-                project_id__in=project_ids_list,
+                projects__id__in=project_ids_list,
             )
         if release_ids_list:
             release_query &= Q(
@@ -117,23 +117,35 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
         # TODO:
         # Determine which thresholds have succeeded/failed
         """
-        Constructs a nested response key'd off release_id, project_id, and threshold_id
-        each threshold value will contain the full release_threshold instance as well as it's derived health status
+        Constructs a nested response key'd off release_id, project_id, and lists _all_ threshold for specified project
+        Each returned threshold value will contain the full serialized release_threshold instance as well as it's derived health status
+
         health = {
             release_id: {
-                project_id: [{
-                    ...,
-                    is_healthy: True/False
-                }],
+                project_id: [
+                    {
+                        threshold_id,
+                        project,
+                        ...,
+                        is_healthy: True/False
+                    },
+                    {...},
+                ],
+                project2_id: [],
                 ...
-            }
+            },
+            ...
         }
         """
 
-        release_threshold_health = defaultdict(list)
-
+        release_threshold_health = defaultdict()
         for release in queryset:
-            for project in release.projects.all():
+            release_project = defaultdict(list)
+            if project_ids_list:
+                project_list = release.projects.filter(id__in=project_ids_list)
+            else:
+                project_list = release.projects.all()
+            for project in project_list:
                 project_threshold_statuses = []
                 for threshold in project.release_thresholds.all():
                     is_healthy = self.is_threshold_healthy(threshold)
@@ -143,7 +155,8 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
                             "is_healthy": is_healthy,
                         }
                     )
-                release_threshold_health[release.id] = project_threshold_statuses
+                release_project[project.id] = project_threshold_statuses
+            release_threshold_health[release.id] = release_project
 
         return Response(release_threshold_health, status=200)
 
