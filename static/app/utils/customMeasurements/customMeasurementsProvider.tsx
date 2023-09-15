@@ -58,42 +58,36 @@ export function CustomMeasurementsProvider({
 
   useEffect(() => {
     let shouldCancelRequest = false;
+    fetchCustomMeasurements(api, organization, selection)
+      .then(response => {
+        if (shouldCancelRequest) {
+          return;
+        }
 
-    if (
-      organization.features.includes('dashboards-mep') ||
-      organization.features.includes('mep-rollout-flag')
-    ) {
-      fetchCustomMeasurements(api, organization, selection)
-        .then(response => {
-          if (shouldCancelRequest) {
-            return;
-          }
+        const newCustomMeasurements = Object.keys(
+          response
+        ).reduce<CustomMeasurementCollection>((acc, customMeasurement) => {
+          acc[customMeasurement] = {
+            key: customMeasurement,
+            name: customMeasurement,
+            functions: response[customMeasurement].functions,
+            unit: response[customMeasurement].unit,
+            fieldType: getFieldTypeFromUnit(response[customMeasurement].unit),
+          };
+          return acc;
+        }, {});
 
-          const newCustomMeasurements = Object.keys(
-            response
-          ).reduce<CustomMeasurementCollection>((acc, customMeasurement) => {
-            acc[customMeasurement] = {
-              key: customMeasurement,
-              name: customMeasurement,
-              functions: response[customMeasurement].functions,
-              unit: response[customMeasurement].unit,
-              fieldType: getFieldTypeFromUnit(response[customMeasurement].unit),
-            };
-            return acc;
-          }, {});
+        setState({customMeasurements: newCustomMeasurements});
+      })
+      .catch((e: RequestError) => {
+        if (shouldCancelRequest) {
+          return;
+        }
 
-          setState({customMeasurements: newCustomMeasurements});
-        })
-        .catch((e: RequestError) => {
-          if (shouldCancelRequest) {
-            return;
-          }
-
-          const errorResponse = t('Unable to fetch custom performance metrics');
-          addErrorMessage(errorResponse);
-          handleXhrErrorResponse(errorResponse, e);
-        });
-    }
+        const errorResponse = t('Unable to fetch custom performance metrics');
+        addErrorMessage(errorResponse);
+        handleXhrErrorResponse(errorResponse, e);
+      });
 
     return () => {
       shouldCancelRequest = true;
