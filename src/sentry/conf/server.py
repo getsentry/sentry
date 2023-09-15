@@ -1647,6 +1647,8 @@ SENTRY_FEATURES = {
     # Enable core Session Replay SDK for recording on sentry.io
     "organizations:session-replay-sdk": False,
     # Enable core Session Replay SDK for recording onError events on sentry.io
+    "organizations:session-replay-count-query-optimize": False,
+    # Enable core Session Replay SDK for recording onError events on sentry.io
     "organizations:session-replay-sdk-errors-only": False,
     # Enable data scrubbing of replay recording payloads in Relay.
     "organizations:session-replay-recording-scrubbing": False,
