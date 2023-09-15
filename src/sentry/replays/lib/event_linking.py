@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import uuid
 from hashlib import md5
-from typing import TYPE_CHECKING, Literal, TypedDict
+from typing import TYPE_CHECKING, TypedDict, Union
 
 from sentry.utils import json
 
@@ -20,55 +20,110 @@ class EventLinkKafkaMessage(TypedDict):
     retention_days: int
 
 
-class EventLinkPayloadIds(TypedDict, total=False):
-    debug_id: str
-    info_id: str
-    warning_id: str
-    error_id: str
-    fatal_id: str
-
-
-class EventLinkPayload(EventLinkPayloadIds):
+class EventLinkPayload(TypedDict):
     type: str
     replay_id: str
     timestamp: int
     event_hash: str
 
 
+class EventLinkPayloadDebugId(EventLinkPayload):
+    debug_id: str
+
+
+class EventLinkPayloadInfoId(EventLinkPayload):
+    info_id: str
+
+
+class EventLinkPayloadWarningId(EventLinkPayload):
+    warning_id: str
+
+
+class EventLinkPayloadErrorId(EventLinkPayload):
+    error_id: str
+
+
+class EventLinkPayloadFatalId(EventLinkPayload):
+    fatal_id: str
+
+
+PayloadUnionType = Union[
+    EventLinkPayloadDebugId,
+    EventLinkPayloadInfoId,
+    EventLinkPayloadWarningId,
+    EventLinkPayloadErrorId,
+    EventLinkPayloadFatalId,
+]
+
+
 def get_level_key(
+    type: str,
+    replay_id: str,
+    event_hash: str,
+    timestamp: int,
     level: str | None,
-) -> Literal["debug_id", "info_id", "warning_id", "error_id", "fatal_id"]:
+    event_id: str,
+) -> PayloadUnionType:
 
     if level == "debug":
-        return "debug_id"
+        return EventLinkPayloadDebugId(
+            type=type,
+            replay_id=replay_id,
+            event_hash=event_hash,
+            timestamp=timestamp,
+            debug_id=event_id,
+        )
     elif level == "info":
-        return "info_id"
+        return EventLinkPayloadInfoId(
+            type=type,
+            replay_id=replay_id,
+            event_hash=event_hash,
+            timestamp=timestamp,
+            info_id=event_id,
+        )
     elif level == "warning":
-        return "warning_id"
+        return EventLinkPayloadWarningId(
+            type=type,
+            replay_id=replay_id,
+            event_hash=event_hash,
+            timestamp=timestamp,
+            warning_id=event_id,
+        )
     elif level == "error":
-        return "error_id"
+        return EventLinkPayloadErrorId(
+            type=type,
+            replay_id=replay_id,
+            event_hash=event_hash,
+            timestamp=timestamp,
+            error_id=event_id,
+        )
     elif level == "fatal":
-        return "fatal_id"
+        return EventLinkPayloadFatalId(
+            type=type,
+            replay_id=replay_id,
+            event_hash=event_hash,
+            timestamp=timestamp,
+            fatal_id=event_id,
+        )
     else:
         # note that this in theory should never happen, but we want to be careful
         raise ValueError(f"Invalid level {level}")
 
 
 def transform_event_for_linking_payload(replay_id: str, event: BaseEvent) -> EventLinkKafkaMessage:
-    def _make_json_binary_payload() -> EventLinkPayload:
+    def _make_json_binary_payload() -> PayloadUnionType:
         level: str | None = event.data.get("level")
-        level_key = get_level_key(level)
 
-        base_payload: EventLinkPayload = {
-            "type": "event_link",
-            "replay_id": replay_id,
-            "timestamp": int(event.datetime.timestamp()),
-            "event_hash": _make_event_hash(event.event_id),
-        }
+        payload_with_level = get_level_key(
+            type="event_link",
+            replay_id=replay_id,
+            event_hash=_make_event_hash(event.event_id),
+            timestamp=int(event.datetime.timestamp()),
+            level=level,
+            event_id=event.event_id,
+        )
 
-        base_payload[level_key] = event.event_id
-
-        return base_payload
+        return payload_with_level
 
     return {
         "type": "replay_event",
