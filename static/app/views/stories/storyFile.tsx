@@ -6,16 +6,15 @@ import TextOverflow from 'sentry/components/textOverflow';
 import {IconGithub} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import useStoriesLoader from 'sentry/views/stories/useStoriesLoader';
+import {ResolvedStoryModule} from 'sentry/views/stories/types';
 
 interface Props extends ComponentProps<'div'> {
   filename: string;
+  resolved: ResolvedStoryModule;
 }
 
-export default function StoryFile({filename, style}: Props) {
-  const module = useStoriesLoader({filename});
-
-  const {default: DefaultExport, ...otherExports} = module;
+export default function StoryFile({filename, resolved, style}: Props) {
+  const {default: DefaultExport, ...otherExports} = resolved;
   const otherEntries = Object.entries(otherExports);
 
   const githubViewUrl = `https://github.com/getsentry/sentry/blob/master/static/${filename}`;
