@@ -22,7 +22,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0552_create_neglectedalert_table"),
+        ("sentry", "0553_add_new_index_to_groupedmessage_table"),
     ]
 
     operations = [
