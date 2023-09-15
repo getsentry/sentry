@@ -17,6 +17,7 @@ from sentry.integrations.utils.code_mapping import (
     CodeMappingTreesHelper,
     FrameFilename,
     Repo,
+    UnsupportedFrameFilename,
     create_code_mapping,
 )
 from sentry.models import Project
@@ -54,12 +55,17 @@ class OrganizationDeriveCodeMappingsEndpoint(OrganizationEndpoint):
 
         trees = installation.get_trees_for_org()
         trees_helper = CodeMappingTreesHelper(trees)
-        frame_filename = FrameFilename(stacktrace_filename)
-        possible_code_mappings: List[Dict[str, str]] = trees_helper.list_file_matches(
-            frame_filename
-        )
-        resp_status = status.HTTP_200_OK if possible_code_mappings else status.HTTP_204_NO_CONTENT
-        return Response(serialize(possible_code_mappings), status=resp_status)
+        try:
+            frame_filename = FrameFilename(stacktrace_filename)
+            possible_code_mappings: List[Dict[str, str]] = trees_helper.list_file_matches(
+                frame_filename
+            )
+            resp_status = (
+                status.HTTP_200_OK if possible_code_mappings else status.HTTP_204_NO_CONTENT
+            )
+            return Response(serialize(possible_code_mappings), status=resp_status)
+        except UnsupportedFrameFilename:
+            return Response("We do not support this case.", status=status.HTTP_400_BAD_REQUEST)
 
     def post(self, request: Request, organization: Organization) -> Response:
         """

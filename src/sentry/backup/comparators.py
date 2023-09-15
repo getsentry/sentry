@@ -519,6 +519,39 @@ class SecretHexComparator(RegexComparator):
         super().__init__(re.compile(f"""^[0-9a-f]{{{bytes * 2}}}$"""), *fields)
 
 
+class SubscriptionIDComparator(RegexComparator):
+    """Compare the basic format of `QuerySubscription` IDs, which is basically a UUID1 with a numeric prefix. Ensure that the two values are NOT equivalent."""
+
+    def __init__(self, *fields: str):
+        super().__init__(re.compile("^\\d+/[0-9a-f]{32}$"), *fields)
+
+    def compare(self, on: InstanceID, left: JSONData, right: JSONData) -> list[ComparatorFinding]:
+        # First, ensure that the two sides are not equivalent.
+        findings = []
+        fields = sorted(self.fields)
+        for f in fields:
+            if left["fields"].get(f) is None and right["fields"].get(f) is None:
+                continue
+
+            lv = left["fields"][f]
+            rv = right["fields"][f]
+            if lv == rv:
+                findings.append(
+                    ComparatorFinding(
+                        kind=self.get_kind(),
+                        on=on,
+                        left_pk=left["pk"],
+                        right_pk=right["pk"],
+                        reason=f"""the left value ({lv}) of the subscription ID field `{f}` was
+                                equal to the right value ({rv})""",
+                    )
+                )
+
+        # Now, make sure both IDs' regex are valid.
+        findings.extend(super().compare(on, left, right))
+        return findings
+
+
 # Note: we could also use the `uuid` Python uuid module for this, but it is finicky and accepts some
 # weird syntactic variations that are not very common and may cause weird failures when they are
 # rejected elsewhere.
@@ -653,7 +686,12 @@ def get_default_comparators():
                 HashObfuscatingComparator("public_key", "secret_key"),
                 SecretHexComparator(16, "public_key", "secret_key"),
             ],
-            "sentry.querysubscription": [DateUpdatedComparator("date_updated")],
+            "sentry.querysubscription": [
+                DateUpdatedComparator("date_updated"),
+                # We regenerate subscriptions when importing them, so even though all of the
+                # particulars stay the same, the `subscription_id`s will be different.
+                SubscriptionIDComparator("subscription_id"),
+            ],
             "sentry.relay": [HashObfuscatingComparator("relay_id", "public_key")],
             "sentry.relayusage": [HashObfuscatingComparator("relay_id", "public_key")],
             "sentry.sentryapp": [

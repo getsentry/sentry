@@ -45,7 +45,7 @@ class GroupSubscriptionManager(BaseManager):
 
         try:
             with transaction.atomic(router.db_for_write(GroupSubscription)):
-                if isinstance(subscriber, User) or isinstance(subscriber, RpcUser):
+                if isinstance(subscriber, (User, RpcUser)):
                     self.create(
                         user_id=subscriber.id,
                         group=group,
@@ -74,30 +74,36 @@ class GroupSubscriptionManager(BaseManager):
         from sentry import features
         from sentry.models import Team, User
 
-        if isinstance(actor, RpcUser) or isinstance(actor, User):
+        if isinstance(actor, (RpcUser, User)):
             return self.subscribe(group, actor, reason)
         if isinstance(actor, Team):
-            if features.has("organizations:team-workflow-notifications", group.organization, actor):
+            if features.has("organizations:team-workflow-notifications", group.organization):
                 return self.subscribe(group, actor, reason)
             else:
                 # subscribe the members of the team
                 team_users_ids = list(actor.member_set.values_list("user_id", flat=True))
-                return self.bulk_subscribe(group, team_users_ids, reason)
+                return self.bulk_subscribe(group=group, user_ids=team_users_ids, reason=reason)
 
         raise NotImplementedError("Unknown actor type: %r" % type(actor))
 
     def bulk_subscribe(
         self,
         group: Group,
-        user_ids: Iterable[int],
+        user_ids: Iterable[int] | None = None,
+        team_ids: Iterable[int] | None = None,
         reason: int = GroupSubscriptionReason.unknown,
     ) -> bool:
         """
-        Subscribe a list of user ids to an issue, but only if the users are not explicitly
+        Subscribe a list of user ids and/or teams to an issue, but only if the users/teams are not explicitly
         unsubscribed.
         """
+        from sentry import features
+
         # Unique the IDs.
-        user_ids = set(user_ids)
+        user_ids = set(user_ids) if user_ids else set()
+
+        # Unique the teams.
+        team_ids = set(team_ids) if team_ids else set()
 
         # 5 retries for race conditions where
         # concurrent subscription attempts cause integrity errors
@@ -117,9 +123,28 @@ class GroupSubscriptionManager(BaseManager):
                     is_active=True,
                     reason=reason,
                 )
-                for user_id in user_ids
-                if user_id not in existing_subscriptions
+                for user_id in user_ids.difference(existing_subscriptions)
             ]
+
+            if features.has("organizations:team-workflow-notifications", group.organization):
+                existing_team_subscriptions = set(
+                    GroupSubscription.objects.filter(
+                        team_id__in=team_ids, group=group, project=group.project
+                    ).values_list("team_id", flat=True)
+                )
+
+                subscriptions.extend(
+                    [
+                        GroupSubscription(
+                            team_id=team_id,
+                            group=group,
+                            project=group.project,
+                            is_active=True,
+                            reason=reason,
+                        )
+                        for team_id in team_ids.difference(existing_team_subscriptions)
+                    ]
+                )
 
             try:
                 with transaction.atomic(router.db_for_write(GroupSubscription)):

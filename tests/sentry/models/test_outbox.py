@@ -258,8 +258,8 @@ class ControlOutboxTest(TestCase):
 @region_silo_test(stable=True)
 class OutboxDrainTest(TransactionTestCase):
     def test_drain_shard_not_flush_all__upper_bound(self):
-        outbox1 = Organization.outbox_for_update(org_id=1)
-        outbox2 = Organization.outbox_for_update(org_id=1)
+        outbox1 = Organization(id=1).outbox_for_update()
+        outbox2 = Organization(id=1).outbox_for_update()
 
         with outbox_context(flush=False):
             outbox1.save()
@@ -321,8 +321,8 @@ class OutboxDrainTest(TransactionTestCase):
         assert mock_process_region_outbox.call_count == 2
 
     def test_drain_shard_flush_all__upper_bound(self):
-        outbox1 = Organization.outbox_for_update(org_id=1)
-        outbox2 = Organization.outbox_for_update(org_id=1)
+        outbox1 = Organization(id=1).outbox_for_update()
+        outbox2 = Organization(id=1).outbox_for_update()
 
         with outbox_context(flush=False):
             outbox1.save()
@@ -393,7 +393,7 @@ class OutboxDrainTest(TransactionTestCase):
 class RegionOutboxTest(TestCase):
     def test_creating_org_outboxes(self):
         with outbox_context(flush=False):
-            Organization.outbox_for_update(10).save()
+            Organization(id=10).outbox_for_update().save()
             OrganizationMember(organization_id=12, id=15).outbox_for_update().save()
         assert RegionOutbox.objects.count() == 2
 
@@ -459,13 +459,13 @@ class RegionOutboxTest(TestCase):
                 mock_process_region_outbox.reset_mock()
                 with self.tasks():
                     with raises(OutboxFlushError):
-                        enqueue_outbox_jobs(concurrency=concurrency)
+                        enqueue_outbox_jobs(concurrency=concurrency, process_outbox_backfills=False)
                     assert mock_process_region_outbox.call_count == 1
 
             def ensure_converged():
                 mock_process_region_outbox.reset_mock()
                 with self.tasks():
-                    enqueue_outbox_jobs()
+                    enqueue_outbox_jobs(process_outbox_backfills=False)
                     assert mock_process_region_outbox.call_count == 0
 
             def assert_called_for_org(org):
@@ -478,8 +478,8 @@ class RegionOutboxTest(TestCase):
                 )
 
             with outbox_context(flush=False):
-                Organization.outbox_for_update(org_id=10001).save()
-                Organization.outbox_for_update(org_id=10002).save()
+                Organization(id=10001).outbox_for_update().save()
+                Organization(id=10002).outbox_for_update().save()
 
             start_time = datetime(2022, 10, 1, 0)
             with freeze_time(start_time):
@@ -504,7 +504,7 @@ class RegionOutboxTest(TestCase):
                 # Concurrently added items will favor a newer scheduling time,
                 # but eventually converges.
                 with outbox_context(flush=False):
-                    Organization.outbox_for_update(10002).save()
+                    Organization(id=10002).outbox_for_update().save()
                 run_with_error()
                 ensure_converged()
 
@@ -512,16 +512,16 @@ class RegionOutboxTest(TestCase):
         with patch(
             "sentry.models.outbox.process_region_outbox.send"
         ) as mock_process_region_outbox, outbox_context(flush=False):
-            Organization.outbox_for_update(10001).save()
-            Organization.outbox_for_update(10001).save()
+            Organization(id=10001).outbox_for_update().save()
+            Organization(id=10001).outbox_for_update().save()
 
-            Organization.outbox_for_update(10002).save()
-            Organization.outbox_for_update(10002).save()
+            Organization(id=10002).outbox_for_update().save()
+            Organization(id=10002).outbox_for_update().save()
 
             last_call_count = 0
             while True:
                 with self.tasks():
-                    enqueue_outbox_jobs()
+                    enqueue_outbox_jobs(process_outbox_backfills=False)
                     if last_call_count == mock_process_region_outbox.call_count:
                         break
                     last_call_count = mock_process_region_outbox.call_count
@@ -533,8 +533,8 @@ class RegionOutboxTest(TestCase):
         org2 = Factories.create_organization()
 
         with outbox_context(flush=False):
-            Organization.outbox_for_update(org1.id).save()
-            Organization.outbox_for_update(org2.id).save()
+            Organization(id=org1.id).outbox_for_update().save()
+            Organization(id=org2.id).outbox_for_update().save()
 
             OrganizationMember(organization_id=org1.id, id=1).outbox_for_update().save()
             OrganizationMember(organization_id=org2.id, id=2).outbox_for_update().save()
@@ -554,7 +554,7 @@ class RegionOutboxTest(TestCase):
 
         start_time = datetime(year=2022, month=10, day=1, second=0, tzinfo=timezone.utc)
         with freeze_time(start_time):
-            future_scheduled_outbox = Organization.outbox_for_update(org_id=10001)
+            future_scheduled_outbox = Organization(id=10001).outbox_for_update()
             future_scheduled_outbox.scheduled_for = start_time + timedelta(hours=1)
             future_scheduled_outbox.save()
             assert future_scheduled_outbox.scheduled_for > start_time
@@ -575,12 +575,12 @@ class RegionOutboxTest(TestCase):
 
         start_time = datetime(year=2022, month=10, day=1, second=0, tzinfo=timezone.utc)
         with freeze_time(start_time):
-            future_scheduled_outbox = Organization.outbox_for_update(org_id=10001)
+            future_scheduled_outbox = Organization(id=10001).outbox_for_update()
             future_scheduled_outbox.scheduled_for = start_time + timedelta(hours=1)
             future_scheduled_outbox.save()
             assert future_scheduled_outbox.scheduled_for > start_time
 
-            past_scheduled_outbox = Organization.outbox_for_update(org_id=10001)
+            past_scheduled_outbox = Organization(id=10001).outbox_for_update()
             past_scheduled_outbox.save()
             assert past_scheduled_outbox.scheduled_for < start_time
             assert RegionOutbox.objects.count() == 2

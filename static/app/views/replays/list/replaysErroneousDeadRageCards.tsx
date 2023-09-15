@@ -6,7 +6,6 @@ import {LinkButton} from 'sentry/components/button';
 import {IconClose, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import useReplayList from 'sentry/utils/replays/hooks/useReplayList';
@@ -17,7 +16,6 @@ import {ReplayColumn} from 'sentry/views/replays/replayTable/types';
 import {ReplayListLocationQuery} from 'sentry/views/replays/types';
 
 function ReplaysErroneousDeadRageCards() {
-  const organization = useOrganization();
   const location = useLocation<ReplayListLocationQuery>();
 
   const {project, environment, start, statsPeriod, utc, end} = location.query;
@@ -35,19 +33,14 @@ function ReplaysErroneousDeadRageCards() {
 
   return (
     <SplitCardContainer>
-      <DeadClickTable organization={organization} searchLocation={searchLocation} />
-      <RageClickTable organization={organization} searchLocation={searchLocation} />
+      <DeadClickTable searchLocation={searchLocation} />
+      <RageClickTable searchLocation={searchLocation} />
     </SplitCardContainer>
   );
 }
 
-function DeadClickTable({
-  organization,
-  searchLocation,
-}: {
-  organization: Organization;
-  searchLocation: Location;
-}) {
+function DeadClickTable({searchLocation}: {searchLocation: Location}) {
+  const organization = useOrganization();
   const eventView = useMemo(
     () =>
       EventView.fromNewQueryWithLocation(
@@ -98,13 +91,8 @@ function DeadClickTable({
     </CardTable>
   );
 }
-function RageClickTable({
-  organization,
-  searchLocation,
-}: {
-  organization: Organization;
-  searchLocation: Location;
-}) {
+function RageClickTable({searchLocation}: {searchLocation: Location}) {
+  const organization = useOrganization();
   const eventView = useMemo(
     () =>
       EventView.fromNewQueryWithLocation(

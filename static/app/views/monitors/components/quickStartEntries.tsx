@@ -352,3 +352,93 @@ $checkInId = \Sentry\captureCheckIn(
     </Fragment>
   );
 }
+
+export function LaravelUpsertPlatformGuide() {
+  const basicConfigCode = `protected function schedule(Schedule $schedule)
+{
+    $schedule->command('emails:send')
+        ->everyHour()
+        ->sentryMonitor(); // add this line
+}`;
+
+  const advancedConfigCode = `protected function schedule(Schedule $schedule)
+{
+    $schedule->command('emails:send')
+        ->everyHour()
+        ->sentryMonitor(
+            // Specify the slug of the job monitor in case of duplicate commands or if the monitor was created in the UI
+            monitorSlug: null,
+            // Check-in margin in minutes
+            checkInMargin: 5,
+            // Max runtime in minutes
+            maxRuntime: 15,
+            // In case you want to configure the job monitor exclusively in the UI, you can turn off sending the monitor config with the check-in.
+            // Passing a monitor-slug is required in this case.
+            updateMonitorConfig: false,
+        )
+}`;
+
+  return (
+    <Fragment>
+      <div>
+        {tct('Use the [additionalDocs: Laravel SDK] to monitor your scheduled task.', {
+          additionalDocs: (
+            <ExternalLink href="https://docs.sentry.io/platforms/php/guides/laravel/crons/#job-monitoring" />
+          ),
+        })}
+      </div>
+      <div>
+        {t(
+          'To set up, add the "sentryMonitor()" macro to your scheduled tasks defined in your "app/Console/Kernel.php" file:'
+        )}
+      </div>
+      <CodeSnippet language="php">{basicConfigCode}</CodeSnippet>
+      <div>
+        {t(
+          'By default, the Laravel SDK will infer various parameters of your scheduled task. For greater control, we expose some optional parameters on the sentryMonitor() macro.'
+        )}
+      </div>
+      <CodeSnippet language="php">{advancedConfigCode}</CodeSnippet>
+    </Fragment>
+  );
+}
+
+export function NodeJsUpsertPlatformGuide() {
+  const upsertCode = `const checkInId = Sentry.captureCheckIn(
+  {
+    monitorSlug: '<monitor-slug>',
+    status: 'in_progress',
+  },
+  {
+    schedule: { // Specify your schedule options here
+      type: 'crontab',
+      value: '* * * * *',
+    },
+    checkinMargin: 1,
+    maxRuntime: 1,
+    timezone: 'America/Los_Angeles',
+  });
+
+Sentry.captureCheckIn({
+    checkInId,
+    monitorSlug: '<monitor-slug>',
+    status: 'ok',
+  });
+  `;
+
+  return (
+    <Fragment>
+      <div>
+        {tct(
+          'Use the [additionalDocs:Node SDK] to create and update your Monitors programmatically with code rather than creating them manually.',
+          {
+            additionalDocs: (
+              <ExternalLink href="https://docs.sentry.io/platforms/node/crons/" />
+            ),
+          }
+        )}
+      </div>
+      <CodeSnippet language="javascript">{upsertCode}</CodeSnippet>
+    </Fragment>
+  );
+}

@@ -40,7 +40,7 @@ describe('ExternalIssueForm', () => {
 
   const renderComponent = async (action = 'Create') => {
     MockApiClient.addMockResponse({
-      url: `/groups/${group.id}/integrations/${integration.id}/`,
+      url: `/organizations/org-slug/issues/${group.id}/integrations/${integration.id}/`,
       body: formConfig,
       match: [MockApiClient.matchQuery({action: 'create'})],
     });
@@ -70,7 +70,7 @@ describe('ExternalIssueForm', () => {
         createIssueConfig: [],
       };
       MockApiClient.addMockResponse({
-        url: `/groups/${group.id}/integrations/${integration.id}/`,
+        url: `/organizations/org-slug/issues/${group.id}/integrations/${integration.id}/`,
         body: formConfig,
       });
     });
@@ -139,7 +139,7 @@ describe('ExternalIssueForm', () => {
         id: '5',
       };
       getFormConfigRequest = MockApiClient.addMockResponse({
-        url: `/groups/${group.id}/integrations/${integration.id}/`,
+        url: `/organizations/org-slug/issues/${group.id}/integrations/${integration.id}/`,
         body: formConfig,
         match: [MockApiClient.matchQuery({action: 'link'})],
       });
@@ -153,7 +153,7 @@ describe('ExternalIssueForm', () => {
     describe('options loaded', () => {
       beforeEach(() => {
         MockApiClient.addMockResponse({
-          url: `/groups/${group.id}/integrations/${integration.id}/?action=link`,
+          url: `/organizations/org-slug/issues/${group.id}/integrations/${integration.id}/?action=link`,
           body: formConfig,
         });
       });
