@@ -614,6 +614,7 @@ describe('OrganizationMembersList', function () {
 
       const org = TestStubs.Organization({
         features: ['integrations-gh-invite'],
+        githubNudgeInvite: true,
       });
 
       render(<OrganizationMembersList {...defaultProps} organization={org} />, {
