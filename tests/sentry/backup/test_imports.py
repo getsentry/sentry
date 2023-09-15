@@ -438,7 +438,7 @@ class ScopingTests(ImportTestCase):
                 import_in_user_scope(tmp_file, printer=NOOP_PRINTER)
                 exportable = get_exportable_sentry_models()
                 for model in exportable:
-                    if model.__relocation_scope__ != RelocationScope.User:
+                    if RelocationScope.User not in model.get_possible_relocation_scopes():
                         assert model.objects.count() == 0
 
     def test_organization_import_scoping(self):
@@ -450,10 +450,10 @@ class ScopingTests(ImportTestCase):
                 import_in_organization_scope(tmp_file, printer=NOOP_PRINTER)
                 exportable = get_exportable_sentry_models()
                 for model in exportable:
-                    if model.__relocation_scope__ not in {
+                    if {
                         RelocationScope.User,
                         RelocationScope.Organization,
-                    }:
+                    } in model.get_possible_relocation_scopes():
                         assert model.objects.count() == 0
 
 

@@ -192,7 +192,10 @@
       }
     },
     "model": "sentry.ApiAuthorization",
-    "relocation_scope": "Global",
+    "relocation_scope": [
+      "Config",
+      "Global"
+    ],
     "silos": [
       "Control"
     ]
@@ -239,7 +242,10 @@
       }
     },
     "model": "sentry.ApiToken",
-    "relocation_scope": "Global",
+    "relocation_scope": [
+      "Config",
+      "Global"
+    ],
     "silos": [
       "Control"
     ]
@@ -569,7 +575,7 @@
   "sentry.ControlOption": {
     "foreign_keys": {},
     "model": "sentry.ControlOption",
-    "relocation_scope": "Global",
+    "relocation_scope": "Config",
     "silos": [
       "Control"
     ]
@@ -1915,7 +1921,7 @@
   "sentry.Option": {
     "foreign_keys": {},
     "model": "sentry.Option",
-    "relocation_scope": "Global",
+    "relocation_scope": "Config",
     "silos": [
       "Region"
     ]
@@ -2584,7 +2590,7 @@
   "sentry.Relay": {
     "foreign_keys": {},
     "model": "sentry.Relay",
-    "relocation_scope": "Global",
+    "relocation_scope": "Config",
     "silos": [
       "Region"
     ]
@@ -2592,7 +2598,7 @@
   "sentry.RelayUsage": {
     "foreign_keys": {},
     "model": "sentry.RelayUsage",
-    "relocation_scope": "Global",
+    "relocation_scope": "Config",
     "silos": [
       "Region"
     ]
@@ -3326,7 +3332,7 @@
       }
     },
     "model": "sentry.UserPermission",
-    "relocation_scope": "Global",
+    "relocation_scope": "Config",
     "silos": [
       "Control"
     ]
@@ -3359,7 +3365,7 @@
   "sentry.UserRole": {
     "foreign_keys": {},
     "model": "sentry.UserRole",
-    "relocation_scope": "Global",
+    "relocation_scope": "Config",
     "silos": [
       "Control"
     ]
@@ -3376,7 +3382,7 @@
       }
     },
     "model": "sentry.UserRoleUser",
-    "relocation_scope": "Global",
+    "relocation_scope": "Config",
     "silos": [
       "Control"
     ]
