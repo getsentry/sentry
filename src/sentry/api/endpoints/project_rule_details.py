@@ -134,20 +134,22 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
                     neglected_rule[0].opted_out = True
                     neglected_rule[0].save()
 
-                if explicit_opt_out:
-                    analytics.record(
-                        "rule_disable_opt_out.explicit",
-                        rule_id=rule.id,
-                        user_id=request.user.id,
-                        organization_id=project.organization.id,
-                    )
-                if edit_opt_out:
-                    analytics.record(
-                        "rule_disable_opt_out.edit",
-                        rule_id=rule.id,
-                        user_id=request.user.id,
-                        organization_id=project.organization.id,
-                    )
+                    analytics_data = {
+                        "rule_id": rule.id,
+                        "user_id": request.user.id,
+                        "organization_id": project.organization.id,
+                    }
+
+                    if explicit_opt_out:
+                        analytics.record(
+                            "rule_disable_opt_out.explicit",
+                            **analytics_data,
+                        )
+                    if edit_opt_out:
+                        analytics.record(
+                            "rule_disable_opt_out.edit",
+                            **analytics_data,
+                        )
 
             if not data.get("actions", []):
                 return Response(
