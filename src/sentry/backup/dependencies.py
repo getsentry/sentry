@@ -51,7 +51,7 @@ class ModelRelations(NamedTuple):
 
     model: Type[models.base.Model]
     foreign_keys: dict[str, ForeignField]
-    relocation_scope: RelocationScope
+    relocation_scope: RelocationScope | set[RelocationScope]
     silos: list[SiloMode]
 
     def flatten(self) -> set[Type[models.base.Model]]:
@@ -75,6 +75,9 @@ class DependenciesJSONEncoder(json.JSONEncoder):
             return obj.name
         if isinstance(obj, RelocationScope):
             return obj.name
+        if isinstance(obj, set) and all(isinstance(rs, RelocationScope) for rs in obj):
+            # Order by enum value, which should correspond to `RelocationScope` breadth.
+            return sorted(list(obj), key=lambda obj: obj.value)
         if isinstance(obj, SiloMode):
             return obj.name.lower().capitalize()
         if isinstance(obj, set):

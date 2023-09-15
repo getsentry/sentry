@@ -31,7 +31,7 @@ def generate_token():
 
 @control_silo_only_model
 class ApiToken(Model, HasApiScopes):
-    __relocation_scope__ = RelocationScope.Global
+    __relocation_scope__ = {RelocationScope.Global, RelocationScope.Config}
 
     # users can generate tokens without being application-bound
     application = FlexibleForeignKey("sentry.ApiApplication", null=True)
@@ -78,6 +78,13 @@ class ApiToken(Model, HasApiScopes):
             expires_at = timezone.now() + DEFAULT_EXPIRATION
 
         self.update(token=generate_token(), refresh_token=generate_token(), expires_at=expires_at)
+
+    def get_relocation_scope(self) -> RelocationScope:
+        if self.application_id is not None:
+            # TODO(getsentry/team-ospo#188): this should be extension scope once that gets added.
+            return RelocationScope.Global
+
+        return RelocationScope.Config
 
     @property
     def organization_id(self) -> int | None:

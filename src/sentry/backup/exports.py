@@ -84,11 +84,14 @@ def _export(
         filters.append(Filter(Email, "email", set(emails)))
 
     def filter_objects(queryset_iterator):
-        # Intercept each value from the queryset iterator and ensure that all of its dependencies
-        # have already been exported. If they have, store it in the `pk_map`, and then yield it
-        # again. If they have not, we know that some upstream model was filtered out, so we ignore
-        # this one as well.
+        # Intercept each value from the queryset iterator, ensure that it has the correct relocation
+        # scope and that all of its dependencies have already been exported. If they have, store it
+        # in the `pk_map`, and then yield it again. If they have not, we know that some upstream
+        # model was filtered out, so we ignore this one as well.
         for item in queryset_iterator:
+            if not item.get_relocation_scope() in allowed_relocation_scopes:
+                continue
+
             model = type(item)
             model_name = normalize_model_name(model)
 
@@ -116,15 +119,10 @@ def _export(
     def yield_objects():
         # Collate the objects to be serialized.
         for model in sorted_dependencies():
-            includable = False
-
-            # TODO(getsentry/team-ospo#186): This won't be sufficient once we're trying to get
-            # relocation scopes that may vary on a per-instance, rather than
-            # per-model-definition, basis. We'll probably need to make use of something like
-            # Django annotations to efficiently filter down models.
-            if getattr(model, "__relocation_scope__", None) in allowed_relocation_scopes:
-                includable = True
-
+            includable = (
+                hasattr(model, "__relocation_scope__")
+                and model.get_possible_relocation_scopes() & allowed_relocation_scopes
+            )
             if not includable or model._meta.proxy:
                 continue
 

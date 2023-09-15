@@ -47,7 +47,7 @@ class BaseOption(Model):
 
 @region_silo_only_model
 class Option(BaseOption):
-    __relocation_scope__ = RelocationScope.Global
+    __relocation_scope__ = RelocationScope.Config
 
     class Meta:
         app_label = "sentry"
@@ -58,7 +58,7 @@ class Option(BaseOption):
 
 @control_silo_only_model
 class ControlOption(BaseOption):
-    __relocation_scope__ = RelocationScope.Global
+    __relocation_scope__ = RelocationScope.Config
 
     class Meta:
         app_label = "sentry"
