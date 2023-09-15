@@ -9,7 +9,7 @@ export type ProjectScore = {
   clsScore: number;
   fcpScore: number;
   lcpScore: number;
-  longTaskScore: number;
+  tbtScore: number;
   totalScore: number;
 };
 
@@ -59,7 +59,7 @@ export const calculatePerformanceScore = (
     min: 1000,
     totalScore: FCP_MAX_SCORE,
   });
-  const longTaskScore = calculate({
+  const tbtScore = calculate({
     value: longTaskDuration,
     max: 3000,
     min: 0,
@@ -74,13 +74,13 @@ export const calculatePerformanceScore = (
 
   // Roughly based off google performance score
   // Adding 10 because we don't have a way to calculate speed index right now
-  const totalScore = lcpScore + fcpScore + longTaskScore + clsScore + 10;
+  const totalScore = lcpScore + fcpScore + tbtScore + clsScore + 10;
 
   return {
     totalScore: Math.round(totalScore),
-    lcpScore,
-    fcpScore,
-    longTaskScore,
-    clsScore,
+    lcpScore: Math.round((lcpScore * 100) / LCP_MAX_SCORE),
+    fcpScore: Math.round((fcpScore * 100) / FCP_MAX_SCORE),
+    tbtScore: Math.round((tbtScore * 100) / LONG_TASK_MAX_SCORE),
+    clsScore: Math.round((clsScore * 100) / CLS_MAX_SCORE),
   };
 };

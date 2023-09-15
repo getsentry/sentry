@@ -7,3 +7,7 @@ export type Row = {
   transaction: string;
   'transaction.op': string;
 };
+
+export type RowWithScore = Row & {score: number};
+
+export type WebVitals = 'lcp' | 'fcp' | 'cls' | 'tbt';

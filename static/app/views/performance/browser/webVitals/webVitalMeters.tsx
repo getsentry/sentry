@@ -5,29 +5,26 @@ import {IconOpen, IconQuestion} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import {formatAbbreviatedNumber, getDuration} from 'sentry/utils/formatters';
 import {MeterBar} from 'sentry/views/performance/browser/webVitals/meterBar';
-import {
-  CLS_MAX_SCORE,
-  FCP_MAX_SCORE,
-  LCP_MAX_SCORE,
-  LONG_TASK_MAX_SCORE,
-  ProjectScore,
-} from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
+import {ProjectScore} from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
+import {WebVitals} from 'sentry/views/performance/browser/webVitals/utils/types';
 
 type Props = {
-  projectData: any; // TODO: type
+  projectData: any;
+  // TODO: type
   projectScore: ProjectScore;
+  onClick?: (webVital: WebVitals) => void;
 };
 
-export default function WebVitalMeters({projectData, projectScore}: Props) {
+export default function WebVitalMeters({onClick, projectData, projectScore}: Props) {
   return (
     <Container>
       <Flex>
-        <MeterBarContainer key="lcp">
+        <MeterBarContainer key="lcp" onClick={() => onClick?.('lcp')}>
           <MeterHeader>
             <Flex>
               <span>
                 LCP{' '}
-                <Tooltip title="LCP">
+                <Tooltip title="Largest Contentful Paint">
                   <StyledIconQuestion size="xs" />
                 </Tooltip>
               </span>
@@ -40,7 +37,7 @@ export default function WebVitalMeters({projectData, projectScore}: Props) {
             meterItems={['lcpScore']}
             minWidth={0.1}
             row={projectScore}
-            total={LCP_MAX_SCORE}
+            total={100}
             meterText={
               getDuration(
                 (projectData?.data[0]['p75(measurements.lcp)'] as number) / 1000
@@ -48,12 +45,12 @@ export default function WebVitalMeters({projectData, projectScore}: Props) {
             }
           />
         </MeterBarContainer>
-        <MeterBarContainer key="fcp">
+        <MeterBarContainer key="fcp" onClick={() => onClick?.('fcp')}>
           <MeterHeader>
             <Flex>
               <span>
                 FCP{' '}
-                <Tooltip title="FCP">
+                <Tooltip title="First Contentful Paint">
                   <StyledIconQuestion size="xs" />
                 </Tooltip>
               </span>
@@ -66,7 +63,7 @@ export default function WebVitalMeters({projectData, projectScore}: Props) {
             meterItems={['fcpScore']}
             minWidth={0.1}
             row={projectScore}
-            total={FCP_MAX_SCORE}
+            total={100}
             meterText={
               getDuration(
                 (projectData?.data[0]['p75(measurements.fcp)'] as number) / 1000
@@ -74,12 +71,12 @@ export default function WebVitalMeters({projectData, projectScore}: Props) {
             }
           />
         </MeterBarContainer>
-        <MeterBarContainer key="cls">
+        <MeterBarContainer key="cls" onClick={() => onClick?.('cls')}>
           <MeterHeader>
             <Flex>
               <span>
                 CLS{' '}
-                <Tooltip title="CLS">
+                <Tooltip title="Content Layout Shift">
                   <StyledIconQuestion size="xs" />
                 </Tooltip>
               </span>
@@ -92,19 +89,19 @@ export default function WebVitalMeters({projectData, projectScore}: Props) {
             meterItems={['clsScore']}
             minWidth={0.1}
             row={projectScore}
-            total={CLS_MAX_SCORE}
+            total={100}
             meterText={formatAbbreviatedNumber(
               projectData?.data[0]['p75(measurements.cls)'] as number,
               2
             )}
           />
         </MeterBarContainer>
-        <MeterBarContainer key="longtask">
+        <MeterBarContainer key="tbt" onClick={() => onClick?.('tbt')}>
           <MeterHeader>
             <Flex>
               <span>
-                Long Task{' '}
-                <Tooltip title="Long Task">
+                TBT{' '}
+                <Tooltip title="Total Blocking Time">
                   <StyledIconQuestion size="xs" />
                 </Tooltip>
               </span>
@@ -114,10 +111,10 @@ export default function WebVitalMeters({projectData, projectScore}: Props) {
             </Flex>
           </MeterHeader>
           <MeterBar
-            meterItems={['longTaskScore']}
+            meterItems={['tbtScore']}
             minWidth={0.1}
             row={projectScore}
-            total={LONG_TASK_MAX_SCORE}
+            total={100}
             meterText={
               getDuration(
                 (projectData?.data[0][

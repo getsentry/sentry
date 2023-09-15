@@ -1602,7 +1602,7 @@ function buildRoutes() {
           />
         </Route>
         <Route
-          path="webvitals/"
+          path="pageloads/"
           component={make(
             () =>
               import('sentry/views/performance/browser/webVitals/webVitalsLandingPage')
