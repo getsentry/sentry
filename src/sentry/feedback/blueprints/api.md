@@ -63,7 +63,7 @@ Retrieve a collection of feedback items.
 | device.model      | optional[string] | -                                                   |
 | device.name       | optional[string] | -                                                   |
 | dist              | optional[string] |                                                     |
-| environment       | string           |                                                     |
+| environment       | optional[string] |                                                     |
 | feedback_id       | string           |                                                     |
 | locale            | object           | Browser locale information.                         |
 | locale.lang       | string           | The language preference of the user's browser.      |
@@ -73,8 +73,8 @@ Retrieve a collection of feedback items.
 | os.name           | optional[string] | -                                                   |
 | os.version        | optional[string] | -                                                   |
 | platform          | string           |                                                     |
-| project_id        | number           |                                                     |
-| release           | string           |                                                     |
+| project_id        | string           |                                                     |
+| release           | optional[string] |                                                     |
 | replay_id         | optional[string] | The id of a running replay.                         |
 | sdk               | object           | SDK information.                                    |
 | sdk.name          | string           | -                                                   |
@@ -120,7 +120,7 @@ Retrieve a collection of feedback items.
           "version": "16.2"
         },
         "platform": "javascript",
-        "project_id": 11276,
+        "project_id": "11276",
         "release": "version@1.3",
         "replay_id": "ec3b4dc8b79f417596f7a1aa4fcca5d2",
         "sdk": {
@@ -179,7 +179,7 @@ Retrieve a collection of feedback items.
           "version": "16.2"
         },
         "platform": "javascript",
-        "project_id": 11276,
+        "project_id": "11276",
         "release": "version@1.3",
         "replay_id": "ec3b4dc8b79f417596f7a1aa4fcca5d2",
         "sdk": {
@@ -252,7 +252,7 @@ See https://develop.sentry.dev/sdk/event-payloads/types/ for more information
 | Column                     | Type             | Description                           |
 | -------------------------- | ---------------- | ------------------------------------- |
 | dist                       | optional[string] | -                                     |
-| environment                | string           | -                                     |
+| environment                | optional[string] | -                                     |
 | event_id                   | optional[string] | Omitted IDs are internally generated. |
 | feedback                   | object           | -                                     |
 | feedback.contact_email     | string           | -                                     |
@@ -260,7 +260,7 @@ See https://develop.sentry.dev/sdk/event-payloads/types/ for more information
 | feedback.replay_id         | optional[string] | -                                     |
 | feedback.url               | string           | -                                     |
 | platform                   | string           | -                                     |
-| release                    | string           | -                                     |
+| release                    | optional[string] | -                                     |
 | request                    | optional[object] | -                                     |
 | request.headers            | optional[object] | -                                     |
 | request.headers.User-Agent | optional[string] | -                                     |
