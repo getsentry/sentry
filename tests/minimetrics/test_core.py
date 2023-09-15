@@ -3,7 +3,6 @@ from unittest.mock import patch
 from freezegun import freeze_time
 
 from minimetrics.core import CounterMetric, DistributionMetric, MiniMetricsClient, SetMetric
-from minimetrics.types import BucketKey
 from sentry.testutils.pytest.fixtures import django_db_all
 
 
@@ -30,14 +29,14 @@ def test_client_incr(_emit):
     client.aggregator.stop()
 
     assert len(client.aggregator.buckets) == 0
-    extracted_metrics_arg = _emit.call_args.args[0]
+    extracted_metrics_arg = list(_emit.call_args.args[0])
     assert len(extracted_metrics_arg) == 1
-    assert extracted_metrics_arg[0][0] == BucketKey(
-        timestamp=1693994400,
-        metric_type="c",
-        metric_name="button_clicked",
-        metric_unit="nanosecond",
-        metric_tags=(
+    assert extracted_metrics_arg[0][0] == (
+        1693994400,
+        "c",
+        "button_clicked",
+        "nanosecond",
+        (
             ("browser", "Chrome"),
             ("browser.version", "1.0"),
             ("user.classes", "1"),
@@ -66,14 +65,14 @@ def test_client_timing(_emit):
     client.aggregator.stop()
 
     assert len(client.aggregator.buckets) == 0
-    extracted_metrics_arg = _emit.call_args.args[0]
+    extracted_metrics_arg = list(_emit.call_args.args[0])
     assert len(extracted_metrics_arg) == 1
-    assert extracted_metrics_arg[0][0] == BucketKey(
-        timestamp=1693994400,
-        metric_type="d",
-        metric_name="execution_time",
-        metric_unit="second",
-        metric_tags=(
+    assert extracted_metrics_arg[0][0] == (
+        1693994400,
+        "d",
+        "execution_time",
+        "second",
+        (
             ("browser", "Chrome"),
             ("browser.version", "1.0"),
             ("user.classes", "1"),
@@ -103,14 +102,14 @@ def test_client_set(_emit):
     client.aggregator.stop()
 
     assert len(client.aggregator.buckets) == 0
-    extracted_metrics_arg = _emit.call_args.args[0]
+    extracted_metrics_arg = list(_emit.call_args.args[0])
     assert len(extracted_metrics_arg) == 1
-    assert extracted_metrics_arg[0][0] == BucketKey(
-        timestamp=1693994400,
-        metric_type="s",
-        metric_name="user",
-        metric_unit="none",
-        metric_tags=(
+    assert extracted_metrics_arg[0][0] == (
+        1693994400,
+        "s",
+        "user",
+        "none",
+        (
             ("browser", "Chrome"),
             ("browser.version", "1.0"),
             ("user.classes", "1"),
@@ -140,14 +139,14 @@ def test_client_gauge_as_counter(_emit):
     client.aggregator.stop()
 
     assert len(client.aggregator.buckets) == 0
-    extracted_metrics_arg = _emit.call_args.args[0]
+    extracted_metrics_arg = list(_emit.call_args.args[0])
     assert len(extracted_metrics_arg) == 1
-    assert extracted_metrics_arg[0][0] == BucketKey(
-        timestamp=1693994400,
-        metric_type="c",
-        metric_name="frontend_time",
-        metric_unit="second",
-        metric_tags=(
+    assert extracted_metrics_arg[0][0] == (
+        1693994400,
+        "c",
+        "frontend_time",
+        "second",
+        (
             ("browser", "Chrome"),
             ("browser.version", "1.0"),
             ("user.classes", "1"),

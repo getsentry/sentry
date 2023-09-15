@@ -204,30 +204,36 @@ class Aggregator:
     def _flush_loop(self) -> None:
         while self._running or self._force_flush:
             self._flush()
-            self._flush_event.wait(2.0)
+            self._flush_event.wait(5.0)
 
     def _flush(self):
         with enter_minimetrics():
             with self._lock:
-                cutoff = time.time() - self.ROLLUP_IN_SECONDS
-                weight_to_remove = 0
                 buckets = self.buckets
                 force_flush = self._force_flush
-                flushed_metrics = []
 
-                for bucket_key, metric in buckets.items():
-                    if not force_flush and bucket_key.timestamp > cutoff:
-                        continue
+                if force_flush:
+                    flushed_metrics = buckets.items()
+                    self.buckets = {}
+                    self._buckets_total_weight = 0
+                    self._force_flush = False
 
-                    flushed_metrics.append(FlushedMetric(bucket_key=bucket_key, metric=metric))
-                    weight_to_remove += metric.weight
+                else:
+                    cutoff = time.time() - self.ROLLUP_IN_SECONDS
+                    weight_to_remove = 0
+                    flushed_metrics = []
+                    for bucket_key, metric in buckets.items():
+                        if bucket_key[0] > cutoff:
+                            continue
 
-                # We remove all flushed buckets, in order to avoid memory leaks.
-                for bucket_key, _ in flushed_metrics:
-                    buckets.pop(bucket_key)
+                        flushed_metrics.append((bucket_key, metric))
+                        weight_to_remove += metric.weight
 
-                self._force_flush = False
-                self._buckets_total_weight -= weight_to_remove
+                    # We remove all flushed buckets, in order to avoid memory leaks.
+                    for bucket_key, _ in flushed_metrics:
+                        buckets.pop(bucket_key)
+
+                    self._buckets_total_weight -= weight_to_remove
 
             if flushed_metrics:
                 # You should emit metrics to `metrics` only inside this method, since we know that if we received
@@ -254,14 +260,14 @@ class Aggregator:
         if timestamp is None:
             timestamp = time.time()
 
-        bucket_key = BucketKey(
-            timestamp=int((timestamp // self.ROLLUP_IN_SECONDS) * self.ROLLUP_IN_SECONDS),
-            metric_type=ty,
-            metric_name=key,
-            metric_unit=unit,
+        bucket_key = (
+            int((timestamp // self.ROLLUP_IN_SECONDS) * self.ROLLUP_IN_SECONDS),
+            ty,
+            key,
+            unit,
             # We have to convert tags into our own internal format, since we don't support lists as
             # tag values.
-            metric_tags=self._to_internal_metric_tags(tags),
+            self._to_internal_metric_tags(tags),
         )
 
         with self._lock:
@@ -306,7 +312,7 @@ class Aggregator:
             self._force_flush = True
             self._flush_event.set()
 
-    def _emit(self, flushed_metrics: List[FlushedMetric], force_flush: bool) -> Any:
+    def _emit(self, flushed_metrics: Iterable[FlushedMetric], force_flush: bool) -> Any:
         if options.get("delightful_metrics.enable_envelope_forwarding"):
             try:
                 self._transport.send(flushed_metrics)
@@ -317,10 +323,8 @@ class Aggregator:
         # bucket.
         stats_by_type: Dict[MetricType, Tuple[int, int]] = {}
         for bucket_key, metric in flushed_metrics:
-            (prev_buckets_count, prev_buckets_weight) = stats_by_type.get(
-                bucket_key.metric_type, (0, 0)
-            )
-            stats_by_type[bucket_key.metric_type] = (
+            (prev_buckets_count, prev_buckets_weight) = stats_by_type.get(bucket_key[1], (0, 0))
+            stats_by_type[bucket_key[1]] = (
                 prev_buckets_count + 1,
                 prev_buckets_weight + metric.weight,
             )
