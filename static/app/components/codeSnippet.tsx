@@ -215,11 +215,9 @@ const FlexSpacer = styled('div')`
 
 const CopyButton = styled(Button)<{isAlwaysVisible: boolean}>`
   color: #80708f;
-
   transition: opacity 0.1s ease-out;
   opacity: 0;
 
-  ${p => (p.isAlwaysVisible ? 'opacity: 1;' : '')}
   div:hover > div > &, /* if Wrapper is hovered */
   &.focus-visible {
     opacity: 1;
@@ -227,6 +225,7 @@ const CopyButton = styled(Button)<{isAlwaysVisible: boolean}>`
   &:hover {
     color: #e0dce5;
   }
+  ${p => (p.isAlwaysVisible ? 'opacity: 1;' : '')}
 `;
 
 const Code = styled('code')<{disableUserSelection?: boolean}>`
