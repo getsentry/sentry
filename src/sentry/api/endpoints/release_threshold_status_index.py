@@ -42,8 +42,9 @@ class ReleaseStatusIndexSerializer(serializers.Serializer):
     release_ids = serializers.ListField(required=False, allow_null=True, allow_empty=True)
 
     def validate(self, data):
-        if data.start >= data.end:
+        if data["start"] >= data["end"]:
             raise serializers.ValidationError("Start datetime must be after End")
+        return data
 
 
 @region_silo_endpoint
@@ -56,11 +57,13 @@ class ReleaseStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, EnvironmentMi
     def get(self, request: Request, organization: Organization | RpcOrganization) -> HttpResponse:
         """
         List all derived statuses of releases that fall within the provided start/end datetimes
-        limit results?
-        We can probably just copy the OrganizationReleasesStatsEndpoint
-        Maybe we can tack in the threshold health into that api? but may be overcomplicating and expanding its scope...
-        inherit?
-        helper method?
+        ``````````````````
+
+        :param start: timestamp of the beginning of the specified date range
+        :param end: timestamp of the end of the specified date range
+
+        TODO:
+        - should we limit/paginate results? (this could get really bulky)
         """
         data = request.data if len(request.GET) == 0 and hasattr(request, "data") else request.GET
         start, end = get_date_range_from_params(params=data)
@@ -134,12 +137,12 @@ class ReleaseStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, EnvironmentMi
                 project_threshold_statuses = []
                 for threshold in project.release_thresholds.all():
                     is_healthy = self.is_threshold_healthy(threshold)
-                    project_threshold_statuses.append[
+                    project_threshold_statuses.append(
                         {
                             **serialize(threshold),
                             "is_healthy": is_healthy,
                         }
-                    ]
+                    )
                 release_threshold_health[release.id] = project_threshold_statuses
 
         return Response(release_threshold_health, status=200)

@@ -24,6 +24,7 @@ from sentry.api.endpoints.organization_projects_experiment import (
 from sentry.api.endpoints.organization_spans_aggregation import OrganizationSpansAggregationEndpoint
 from sentry.api.endpoints.release_threshold import ReleaseThresholdEndpoint
 from sentry.api.endpoints.release_threshold_details import ReleaseThresholdDetailsEndpoint
+from sentry.api.endpoints.release_threshold_status_index import ReleaseStatusIndexEndpoint
 from sentry.api.endpoints.source_map_debug_blue_thunder_edition import (
     SourceMapDebugBlueThunderEditionEndpoint,
 )
@@ -1613,6 +1614,12 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_slug>[^\/]+)/releases/$",
         OrganizationReleasesEndpoint.as_view(),
         name="sentry-api-0-organization-releases",
+    ),
+    # TODO: also integrate release threshold status into the releases response?
+    re_path(
+        r"^(?P<organization_slug>[^\/]+)/release-statuses/$",
+        ReleaseStatusIndexEndpoint.as_view(),
+        name="sentry-api-0-organization-release-statuses",
     ),
     re_path(
         r"^(?P<organization_slug>[^\/]+)/releases/stats/$",
