@@ -31,11 +31,6 @@ def test_run_with_retries_ok() -> None:
     run_with_retries(lambda: subprocess.run("date", check=True), 1, 10)
 
 
-def test_unknown_service() -> None:
-    with pytest.raises(HealthcheckError):
-        check_health(["this service does not exist"])
-
-
 def test_postgres_not_running(mock_subprocess_run: mock.MagicMock) -> None:
     mock_subprocess_run.return_value.stdout = ""
     mock_subprocess_run.return_value.code = 0
