@@ -7,12 +7,10 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, cast
 
 import sentry_sdk
-from django.conf import settings
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 from snuba_sdk import Column
-from urllib3 import Retry
 
 from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -22,14 +20,14 @@ from sentry.api.paginator import GenericOffsetPaginator
 from sentry.issues.grouptype import PerformanceDurationRegressionGroupType
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.issues.producer import produce_occurrence_to_kafka
-from sentry.net.http import connection_from_url
 from sentry.search.events.constants import METRICS_GRANULARITIES
+from sentry.seer.utils import detect_breakpoints
 from sentry.snuba import metrics_performance
 from sentry.snuba.discover import create_result_key, zerofill
 from sentry.snuba.metrics_performance import query as metrics_query
 from sentry.snuba.referrer import Referrer
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
-from sentry.utils import json, metrics
+from sentry.utils import metrics
 from sentry.utils.snuba import SnubaTSResult
 
 logger = logging.getLogger(__name__)
@@ -51,26 +49,7 @@ DEFAULT_RATE_LIMIT_WINDOW = 1
 DEFAULT_CONCURRENT_RATE_LIMIT = 15
 ORGANIZATION_RATE_LIMIT = 30
 
-ads_connection_pool = connection_from_url(
-    settings.ANOMALY_DETECTION_URL,
-    retries=Retry(
-        total=5,
-        status_forcelist=[408, 429, 502, 503, 504],
-    ),
-    timeout=settings.ANOMALY_DETECTION_TIMEOUT,
-)
-
 _query_thread_pool = ThreadPoolExecutor()
-
-
-def get_trends(snuba_io):
-    response = ads_connection_pool.urlopen(
-        "POST",
-        "/trends/breakpoint-detector",
-        body=json.dumps(snuba_io),
-        headers={"content-type": "application/json;charset=utf-8"},
-    )
-    return json.loads(response.data)
 
 
 @region_silo_endpoint
@@ -296,7 +275,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                 trends_requests.append(trends_request)
 
             # send the data to microservice
-            results = list(_query_thread_pool.map(get_trends, trends_requests))
+            results = list(_query_thread_pool.map(detect_breakpoints, trends_requests))
             trend_results = []
 
             # append all the results
