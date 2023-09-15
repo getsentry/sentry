@@ -35,12 +35,6 @@ class EventLinkPayload(EventLinkPayloadIds):
     event_hash: str
 
 
-LEVELS = {"debug", "info", "warning", "error", "fatal"}
-
-
-NULL_UUID = str(uuid.UUID(int=0))
-
-
 def get_level_key(
     level: str | None,
 ) -> Literal["debug_id", "info_id", "warning_id", "error_id", "fatal_id"]:
