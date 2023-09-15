@@ -28,7 +28,11 @@ export default function FeedbackDetailsPage({params: {feedbackSlug}}: Props) {
   );
 
   return (
-    <SentryDocumentTitle title={`Feedback v2 — ${organization.slug}`}>
+    <SentryDocumentTitle
+      title={t(`Feedback v2`)}
+      orgSlug={organization.slug}
+      projectSlug={projectSlug}
+    >
       <Layout.Header>
         <Layout.HeaderContent>
           <Layout.Title>

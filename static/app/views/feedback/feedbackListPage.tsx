@@ -30,7 +30,7 @@ export default function FeedbackListPage({location}: Props) {
   const {isLoading, isError, data, pageLinks} = useFetchFeedbackList({query}, {});
 
   return (
-    <SentryDocumentTitle title={`Feedback v2 — ${organization.slug}`}>
+    <SentryDocumentTitle title={t(`Feedback v2`)} orgSlug={organization.slug}>
       <Layout.Header>
         <Layout.HeaderContent>
           <Layout.Title>

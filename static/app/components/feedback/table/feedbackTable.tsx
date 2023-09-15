@@ -78,6 +78,10 @@ export default function FeedbackTable({isError, isLoading, data, location}: Prop
       switch (column.key) {
         case 'feedback_id':
           const project = projects.find(p => p.id === String(dataRow.project_id));
+          if (!project) {
+            // TODO[feedback]: Guard against invalid test data that has no valid project.
+            return null;
+          }
           return (
             <FeedbackDetailsLink
               organization={organization}
