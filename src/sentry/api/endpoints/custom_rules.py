@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta, timezone
 from typing import cast
 
+from django.db import DatabaseError
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -11,14 +12,8 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
 from sentry.api.event_search import parse_search_query
-from sentry.dynamic_sampling import get_redis_client_for_ds
-from sentry.dynamic_sampling.rules.biases.custom_rule_bias import (
-    SerializedCustomRule,
-    custom_rules_redis_key,
-    get_custom_rule_hash,
-    get_custom_rule_id,
-)
 from sentry.exceptions import InvalidSearchQuery
+from sentry.models import CustomDynamicSamplingRule, TooManyRules
 from sentry.models.organization import Organization
 from sentry.snuba.metrics.extraction import SearchQueryConverter
 from sentry.utils import json
@@ -29,14 +24,7 @@ MAX_RULE_PERIOD = parse_stats_period(MAX_RULE_PERIOD_STRING)
 DEFAULT_PERIOD_STRING = "1h"
 # the number of samples to collect per custom rule
 NUM_SAMPLES_PER_CUSTOM_RULE = 100
-
-
-class RuleExistsError(ValueError):
-    """
-    Raised when a rule already exists and overrideExisting is False
-    """
-
-    pass
+_DATE_FORMAT = "%Y-%m-%dT%H:%M:%S,%fZ"
 
 
 class CustomRulesInputSerializer(serializers.Serializer):
@@ -108,60 +96,45 @@ class CustomRulesEndpoint(OrganizationEndpoint):
             # the parsing must succeed (it passed validation)
             delta = cast(timedelta, parse_stats_period(period))
             now = datetime.now(tz=timezone.utc)
-            start = now.timestamp()
-            expiration = (now + delta).timestamp()
+            start = now
+            end = now + delta
 
-            rule = SerializedCustomRule(
+            rule = CustomDynamicSamplingRule.update_or_create(
                 condition=condition,
-                expiration=expiration,
                 start=start,
+                end=end,
                 project_ids=projects,
-                org_id=organization.id,
-                count=NUM_SAMPLES_PER_CUSTOM_RULE,
-                rule_id=0,  # will be overriden when an id is assigned
+                organization_id=organization.id,
+                num_samples=NUM_SAMPLES_PER_CUSTOM_RULE,
+                sample_rate=1.0,
             )
 
-            # this may return an already saved rule
-            saved_rule = _save_rule(rule)
+            response_data = {
+                "ruleId": rule.external_rule_id,
+                "condition": json.loads(rule.condition),
+                "startDate": rule.start_date.strftime(_DATE_FORMAT),
+                "endDate": rule.end_date.strftime(_DATE_FORMAT),
+                "numSamples": rule.num_samples,
+                "sampleRate": rule.sample_rate,
+                "dateAdded": rule.date_added.strftime(_DATE_FORMAT),
+                "projects": [project.id for project in rule.projects.all()],
+                "orgId": rule.organization_id,
+            }
+            return Response(response_data, status=200)
 
-        except RuleExistsError:
+        except DatabaseError:
+            return Response(
+                {"projects": ["Could not save rule, probably wrong project ids"]}, status=400
+            )
+        except TooManyRules:
             return Response(
                 {
-                    "query": [
-                        "Rule already exists, set `overrideExisting:true` if you want to override"
+                    "error": [
+                        "Too many investigation rules active for this organization."
+                        "Wait until some expire or delete some rules."
                     ]
                 },
-                status=409,
+                status=429,
             )
-
         except ValueError as e:
             return Response({"query": ["Could not convert to rule", str(e)]}, status=400)
-
-        return Response(saved_rule, status=200)
-
-
-def _save_rule(rule: SerializedCustomRule) -> SerializedCustomRule:
-    """
-    Saves a custom rule in the Redis hash for the organization
-    """
-
-    if rule["expiration"] < datetime.utcnow().timestamp():
-        raise ValueError("Rule has already expired")
-
-    key = custom_rules_redis_key(rule["org_id"])
-
-    redis_client = get_redis_client_for_ds()
-    rule_hash = get_custom_rule_hash(rule)
-
-    existing_rule_str = redis_client.hget(key, rule_hash)
-
-    if existing_rule_str is not None:
-        # we already have a rule for this condition no need to do anything
-        existing_rule = json.loads(existing_rule_str) if existing_rule_str is not None else None
-        return existing_rule
-
-    rule_id = get_custom_rule_id(rule["org_id"])
-    rule["rule_id"] = rule_id
-
-    redis_client.hset(key, rule_hash, json.dumps(rule))
-    return rule
