@@ -234,8 +234,9 @@ describe('IntegrationDetailedView', function () {
     ).toBeDisabled();
   });
 
-  it('can enable github comment bots', async function () {
+  it('can enable github features', async function () {
     org.features.push('integrations-open-pr-comment');
+    org.features.push('integrations-gh-invite');
 
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/config/integrations/?provider_key=github`,
@@ -285,6 +286,19 @@ describe('IntegrationDetailedView', function () {
         ENDPOINT,
         expect.objectContaining({
           data: {githubOpenPRBot: true},
+        })
+      );
+    });
+
+    await userEvent.click(
+      screen.getByRole('checkbox', {name: /Enable Missing Member Detection/})
+    );
+
+    await waitFor(() => {
+      expect(mock).toHaveBeenCalledWith(
+        ENDPOINT,
+        expect.objectContaining({
+          data: {githubNudgeInvite: true},
         })
       );
     });
