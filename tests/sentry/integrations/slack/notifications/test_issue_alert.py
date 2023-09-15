@@ -40,7 +40,7 @@ from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, PerformanceIssueTestCase):
     def setUp(self):
         super().setUp()
