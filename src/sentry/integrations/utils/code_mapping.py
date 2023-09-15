@@ -109,7 +109,6 @@ class FrameFilename:
             or frame_file_path[0] in ["[", "<"]
             or frame_file_path.find(" ") > -1
             or frame_file_path.find("\\") > -1  # Windows support
-            or frame_file_path.find("/") == -1
         ):
             raise UnsupportedFrameFilename("This path is not supported.")
 
@@ -150,12 +149,18 @@ class FrameFilename:
 
         start_at_index = get_straight_path_prefix_end_index(frame_file_path)
         backslash_index = frame_file_path.find("/", start_at_index)
-        dir_path, self.file_name = frame_file_path.rsplit("/", 1)  # foo.tsx (both)
-        self.root = frame_file_path[0:backslash_index]  # some or .some
-        self.dir_path = dir_path.replace(self.root, "")  # some/path/ (both)
-        self.file_and_dir_path = remove_straight_path_prefix(
-            frame_file_path
-        )  # some/path/foo.tsx (both)
+        if backslash_index > -1:
+            dir_path, self.file_name = frame_file_path.rsplit("/", 1)  # foo.tsx (both)
+            self.root = frame_file_path[0:backslash_index]  # some or .some
+            self.dir_path = dir_path.replace(self.root, "")  # some/path/ (both)
+            self.file_and_dir_path = remove_straight_path_prefix(
+                frame_file_path
+            )  # some/path/foo.tsx (both)
+        else:
+            self.file_name = frame_file_path
+            self.file_and_dir_path = frame_file_path
+            self.root = ""
+            self.dir_path = ""
 
     def __repr__(self) -> str:
         return f"FrameFilename: {self.full_path}"
