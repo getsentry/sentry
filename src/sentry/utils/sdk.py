@@ -27,7 +27,7 @@ from sentry.utils.rust import RustInfoIntegration
 
 # Can't import models in utils because utils should be the bottom of the food chain
 if TYPE_CHECKING:
-    from sentry.models.organization import Organization
+    from sentry.models import Organization, OrganizationMapping
     from sentry.services.hybrid_cloud.organization import RpcOrganization
 
 
@@ -650,7 +650,9 @@ def capture_exception_with_scope_check(
     return sentry_sdk.capture_exception(error, scope=extra_scope)
 
 
-def bind_organization_context(organization: Organization | RpcOrganization) -> None:
+def bind_organization_context(
+    organization: Organization | RpcOrganization | OrganizationMapping,
+) -> None:
     # Callable to bind additional context for the Sentry SDK
     helper = settings.SENTRY_ORGANIZATION_CONTEXT_HELPER
 

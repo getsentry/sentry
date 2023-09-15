@@ -20,7 +20,7 @@ from sentry.api.utils import (
 )
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import ALL_ACCESS_PROJECTS, ALL_ACCESS_PROJECTS_SLUG, ObjectStatus
-from sentry.models import Organization, Project, ReleaseProject
+from sentry.models import Organization, OrganizationMapping, Project, ReleaseProject
 from sentry.models.apikey import is_api_key_auth
 from sentry.models.environment import Environment
 from sentry.models.orgauthtoken import is_org_auth_token_auth
@@ -30,6 +30,7 @@ from sentry.services.hybrid_cloud.organization import (
     RpcUserOrganizationContext,
     organization_service,
 )
+from sentry.silo import SiloMode
 from sentry.utils import auth
 from sentry.utils.hashlib import hash_values
 from sentry.utils.numbers import format_grouped_length
@@ -452,10 +453,7 @@ class OrganizationEndpoint(Endpoint):
         if not organization_slug:
             raise ResourceDoesNotExist
 
-        try:
-            organization = Organization.objects.get_from_cache(slug=organization_slug)
-        except Organization.DoesNotExist:
-            raise ResourceDoesNotExist
+        organization = self._look_up_organization(organization_slug)
 
         with sentry_sdk.start_span(op="check_object_permissions_on_organization"):
             self.check_object_permissions(request, organization)
@@ -473,6 +471,17 @@ class OrganizationEndpoint(Endpoint):
 
         kwargs["organization"] = organization
         return (args, kwargs)
+
+    @staticmethod
+    def _look_up_organization(organization_slug: str) -> Organization | OrganizationMapping:
+        # Special optimization to avoid an RPC
+        try:
+            if SiloMode.get_current_mode() == SiloMode.CONTROL:
+                return OrganizationMapping.objects.get(slug=organization_slug)
+            else:
+                return Organization.objects.get_from_cache(slug=organization_slug)
+        except (OrganizationMapping.DoesNotExist, Organization.DoesNotExist):
+            raise ResourceDoesNotExist
 
 
 class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
