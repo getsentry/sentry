@@ -19,7 +19,7 @@ export function MeterBar({
   meterText?: ReactNode;
 }) {
   const theme = useTheme();
-  const widths = [] as number[];
+  const widths: number[] = [];
   meterItems.reduce((acc, item, index) => {
     const width = Math.max(
       Math.min(
