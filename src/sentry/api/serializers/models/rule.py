@@ -198,9 +198,11 @@ class RuleSerializer(Serializer):
             d["snooze"] = False
 
         org = Organization.objects.get(id=obj.project.organization_id)
-        neglected_rule = NeglectedRule.objects.filter(rule=obj, organization=org, opted_out=False)
-        if neglected_rule.exists():
+        try:
+            neglected_rule = NeglectedRule.objects.get(rule=obj, organization=org, opted_out=False)
             d["disableReason"] = "noisy"
-            d["disableDate"] = neglected_rule[0].disable_date
+            d["disableDate"] = neglected_rule.disable_date
+        except (NeglectedRule.DoesNotExist, NeglectedRule.MultipleObjectsReturned):
+            pass
 
         return d
