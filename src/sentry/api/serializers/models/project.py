@@ -59,6 +59,7 @@ from sentry.notifications.helpers import (
     should_use_notifications_v2,
     transform_to_notification_settings_by_scope,
 )
+from sentry.notifications.notificationcontroller import NotificationController
 from sentry.notifications.types import (
     NotificationSettingEnum,
     NotificationSettingOptionValues,
@@ -319,14 +320,12 @@ class ProjectSerializer(Serializer):
                 )
 
                 if use_notifications_v2:
-                    notification_setting_options = {
-                        NotificationSettingEnum(key): NotificationSettingsOptionEnum(val)
-                        for key, val in notifications_service.get_setting_options_for_user(
-                            user_id=user.id,
-                            project_ids=project_ids,
-                            type=NotificationSettingEnum.ISSUE_ALERTS,
-                        ).items()
-                    }
+                    controller = NotificationController(
+                        recipients=[user],
+                        project_ids=project_ids,
+                        type=NotificationSettingEnum.ISSUE_ALERTS,
+                    )
+                    notification_setting_options = controller.get_layered_setting_options(user=user)
                 else:
                     notification_settings_by_scope = transform_to_notification_settings_by_scope(
                         notifications_service.get_settings_for_user_by_projects(
@@ -384,8 +383,16 @@ class ProjectSerializer(Serializer):
             else:
                 recipient_actor = RpcActor.from_object(user)
             for project, serialized in result.items():
+                # TODO(snigdha): why is this not included in the serializer
+                is_subscribed = False
                 if use_notifications_v2:
-                    value = notification_setting_options[NotificationSettingEnum.ISSUE_ALERTS]
+                    provider_settings = notification_setting_options[project.id][
+                        NotificationSettingEnum.ISSUE_ALERTS
+                    ]
+                    is_subscribed = any(
+                        value == NotificationSettingsOptionEnum.ALWAYS
+                        for value in provider_settings.values()
+                    )
                 else:
                     value = get_most_specific_notification_setting_value(
                         notification_settings_by_scope,
@@ -393,8 +400,8 @@ class ProjectSerializer(Serializer):
                         parent_id=project.id,
                         type=NotificationSettingTypes.ISSUE_ALERTS,
                     )
-                # TODO(snigdha): why is this not included in the serializer
-                is_subscribed = value == NotificationSettingOptionValues.ALWAYS
+                    is_subscribed = value == NotificationSettingOptionValues.ALWAYS
+
                 serialized.update(
                     {
                         "is_bookmarked": project.id in bookmarks,

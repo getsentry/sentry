@@ -60,15 +60,11 @@ from sentry.notifications.helpers import (
     get_groups_for_query,
     get_subscription_from_attributes,
     get_user_subscriptions_for_groups,
-    get_user_subscriptions_for_groups_v2,
     should_use_notifications_v2,
     transform_to_notification_settings_by_scope,
 )
-from sentry.notifications.types import (
-    NotificationSettingEnum,
-    NotificationSettingsOptionEnum,
-    NotificationSettingTypes,
-)
+from sentry.notifications.notificationcontroller import NotificationController
+from sentry.notifications.types import NotificationSettingEnum, NotificationSettingTypes
 from sentry.reprocessing2 import get_progress
 from sentry.search.events.constants import RELEASE_STAGE_ALIAS
 from sentry.search.events.filter import convert_search_filter_to_snuba_query, format_search_filter
@@ -577,55 +573,35 @@ class GroupSerializerBase(Serializer, ABC):
         if not groups:
             return {}
 
-        notification_settings, query_groups = None, None
         groups_by_project = collect_groups_by_project(groups)
+        project_ids = list(groups_by_project.keys())
         if should_use_notifications_v2(groups[0].project.organization):
-            notification_settings = {
-                NotificationSettingEnum(key): NotificationSettingsOptionEnum(val)
-                for key, val in notifications_service.get_setting_options_for_user(
-                    user_id=user.id,
-                    project_ids=list(groups_by_project.keys()),
-                    type=NotificationSettingEnum.WORKFLOW,
-                ).items()
-            }
-            query_groups = {
-                group
-                for group in groups
-                if (
-                    notification_settings[NotificationSettingEnum.WORKFLOW]
-                    != NotificationSettingsOptionEnum.NEVER
-                )
-            }
-        else:
-            notification_settings_by_scope = transform_to_notification_settings_by_scope(
-                notifications_service.get_settings_for_user_by_projects(
-                    type=NotificationSettingTypes.WORKFLOW,
-                    user_id=user.id,
-                    parent_ids=list(groups_by_project.keys()),
-                )
+            controller = NotificationController(
+                recipients=[user],
+                project_ids=project_ids,
+                type=NotificationSettingEnum.WORKFLOW,
             )
-            query_groups = get_groups_for_query(
-                groups_by_project, notification_settings_by_scope, user
-            )
+            return controller.get_subscriptions_for_groups(user=user, groups=groups)
 
+        notification_settings_by_scope = transform_to_notification_settings_by_scope(
+            notifications_service.get_settings_for_user_by_projects(
+                type=NotificationSettingTypes.WORKFLOW,
+                user_id=user.id,
+                parent_ids=project_ids,
+            )
+        )
+        query_groups = get_groups_for_query(groups_by_project, notification_settings_by_scope, user)
         subscriptions = GroupSubscription.objects.filter(group__in=query_groups, user_id=user.id)
         subscriptions_by_group_id = {
             subscription.group_id: subscription for subscription in subscriptions
         }
 
-        if should_use_notifications_v2(groups[0].project.organization):
-            return get_user_subscriptions_for_groups_v2(
-                groups_by_project,
-                notification_settings,
-                subscriptions_by_group_id,
-            )
-        else:
-            return get_user_subscriptions_for_groups(
-                groups_by_project,
-                notification_settings_by_scope,
-                subscriptions_by_group_id,
-                user,
-            )
+        return get_user_subscriptions_for_groups(
+            groups_by_project,
+            notification_settings_by_scope,
+            subscriptions_by_group_id,
+            user,
+        )
 
     @staticmethod
     def _resolve_resolutions(

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Callable, List, Mapping, MutableMapping, Optional, Sequence
+from typing import Callable, List, Mapping, Optional, Sequence
 
 from django.db import router, transaction
 from django.db.models import Q, QuerySet
@@ -8,14 +8,9 @@ from django.db.models import Q, QuerySet
 from sentry.api.serializers.base import Serializer
 from sentry.api.serializers.models.notification_setting import NotificationSettingsSerializer
 from sentry.models import NotificationSetting, User
-from sentry.notifications.helpers import (
-    get_scope_type,
-    get_setting_options_with_defaults,
-    is_double_write_enabled,
-)
+from sentry.notifications.helpers import get_scope_type, is_double_write_enabled
 from sentry.notifications.types import (
     NotificationScopeType,
-    NotificationSettingEnum,
     NotificationSettingOptionValues,
     NotificationSettingTypes,
 )
@@ -29,7 +24,6 @@ from sentry.services.hybrid_cloud.notifications import NotificationsService, Rpc
 from sentry.services.hybrid_cloud.notifications.model import NotificationSettingFilterArgs
 from sentry.services.hybrid_cloud.notifications.serial import serialize_notification_setting
 from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.types.integrations import ExternalProviders
 
 
@@ -156,37 +150,6 @@ class DatabaseBackedNotificationsService(NotificationsService):
                 user_id=user_id,
             )
         ]
-
-    # V2 alternative for get_settings_for_user_by_projects
-    def get_setting_options_for_user(
-        self,
-        *,
-        user_id: int,
-        project_ids: List[int],
-        type: NotificationSettingEnum | None = None,
-    ) -> MutableMapping[str, str]:  # NotificationSettingEnum, NotificationSettingsOptionEnum
-        """
-        Returns the setting options for a given user, with default values accounted for.
-
-        Args:
-            user_id: The user id to get notification settings for.
-            project_ids: The project ids to get notification settings for.
-            type: The type of notification settings to get.
-        """
-        user = user_service.get_user(user_id=user_id)
-        if not user:
-            return {}
-
-        type_filter = Q(type=type.value) if type else Q()
-        settings = get_setting_options_with_defaults(
-            recipients=[user], project_ids=project_ids, additional_filters=type_filter
-        )
-
-        rpc_user = RpcUser(id=user_id)
-        if rpc_user not in settings:
-            return {}
-
-        return {type.value: value.value for type, value in settings[rpc_user].items()}
 
     def remove_notification_settings(
         self, *, team_id: Optional[int], user_id: Optional[int], provider: ExternalProviders

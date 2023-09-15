@@ -1,14 +1,17 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import Iterable, Mapping, MutableMapping, Tuple, Union
+from typing import Iterable, List, Mapping, MutableMapping, Tuple, Union
 
 from django.db.models import Q
 
+from sentry.models.group import Group
+from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.team import Team
 from sentry.notifications.helpers import (
+    collect_groups_by_project,
     get_provider_defaults,
     get_type_defaults,
     recipient_is_team,
@@ -28,10 +31,8 @@ Scope = Tuple[NotificationScopeEnum, Union[int, Recipient]]
 
 
 class NotificationController:
-    _setting_options = None
-    _setting_providers = None
-    _layered_setting_options = None
-    _layered_setting_providers = None
+    _setting_options: Iterable[NotificationSettingOption] = []
+    _setting_providers: Iterable[NotificationSettingProvider] = []
 
     def __init__(
         self,
@@ -194,8 +195,7 @@ class NotificationController:
 
                     layered_setting_options[recipient][scope][type] = most_specific_setting
 
-        self._layered_setting_options = layered_setting_options
-        return self._layered_setting_options
+        return layered_setting_options
 
     def get_layered_setting_providers(
         self,
@@ -269,8 +269,7 @@ class NotificationController:
                             {provider: most_specific_setting}
                         )
 
-        self._layered_setting_providers = layered_setting_providers
-        return self._layered_setting_providers
+        return layered_setting_providers
 
     def get_notification_recipients(
         self,
@@ -296,22 +295,147 @@ class NotificationController:
             for scope, setting in setting_option.items():
                 for type, value in setting.items():
                     # Skip notifications that are off by default
-                    if (
-                        isinstance(value, NotificationSettingsOptionEnum)
-                        and value == NotificationSettingsOptionEnum.NEVER
-                    ):
+                    if value == NotificationSettingsOptionEnum.NEVER:
                         continue
 
                     recipient_providers = setting_providers[recipient][scope][type]
                     for provider, value in recipient_providers.items():
                         # skip providers that are off by default
-                        if (
-                            isinstance(value, NotificationSettingsOptionEnum)
-                            and value == NotificationSettingsOptionEnum.NEVER
-                        ):
+                        if value == NotificationSettingsOptionEnum.NEVER:
                             continue
                         recipients[provider].add(recipient)
         return recipients
+
+    def get_all_enabled_settings(
+        self,
+    ) -> MutableMapping[
+        Recipient,
+        MutableMapping[
+            Scope,
+            MutableMapping[
+                NotificationSettingEnum,
+                MutableMapping[ExternalProviderEnum, NotificationSettingsOptionEnum],
+            ],
+        ],
+    ]:
+        """
+        Returns a mapping of all enabled notification setting providers for the enabled options.
+        Note that this includes default settings for any notification types that are not set.
+        """
+
+        setting_options = self.get_layered_setting_options()
+        setting_providers = self.get_layered_setting_providers()
+
+        setting_option_and_providers: MutableMapping[
+            Recipient,
+            MutableMapping[
+                Scope,
+                MutableMapping[
+                    NotificationSettingEnum,
+                    MutableMapping[ExternalProviderEnum, NotificationSettingsOptionEnum],
+                ],
+            ],
+        ] = defaultdict(lambda: defaultdict(lambda: defaultdict(dict)))
+        for recipient, setting_option in setting_options.items():
+            for scope, setting in setting_option.items():
+                for type, option_value in setting.items():
+                    if option_value == NotificationSettingsOptionEnum.NEVER:
+                        continue
+
+                    recipient_providers = setting_providers[recipient][scope][type]
+                    for provider, provider_value in recipient_providers.items():
+                        if provider_value == NotificationSettingsOptionEnum.NEVER:
+                            continue
+
+                        setting_option_and_providers[recipient][scope][type][
+                            provider
+                        ] = provider_value
+
+        return setting_option_and_providers
+
+    def get_settings_options_for_user_by_projects(
+        self, user: Recipient
+    ) -> MutableMapping[
+        int,
+        MutableMapping[
+            NotificationSettingEnum,
+            MutableMapping[ExternalProviderEnum, NotificationSettingsOptionEnum],
+        ],
+    ]:
+        """
+        Returns a mapping of project IDs to notification settings for the given user.
+        """
+        if not self.project_ids:
+            raise Exception("Must specify project_ids")
+
+        notification_settings = self.get_all_enabled_settings()
+        user_settings = notification_settings[user]
+
+        result = {}
+        for scope, setting in user_settings.items():
+            (scope_type, scope_identifier) = scope
+            if scope_type != NotificationScopeEnum.PROJECT:
+                continue
+
+            if not isinstance(scope_identifier, int) or scope_identifier not in self.project_ids:
+                continue
+
+            result[scope_identifier] = setting
+
+        return result
+
+    def get_subscriptions_for_groups(
+        self, user: Recipient, groups: List[Group]
+    ) -> Mapping[int, tuple[bool, bool, GroupSubscription | None]]:
+        """
+        Returns whether the user is subscribed for each group, and the subscription object if it exists.
+        {group_id -> (is_disabled, is_active, subscription object)}
+        """
+        if not self.type:
+            raise Exception("Must specify type")
+
+        enabled_settings = self.get_settings_options_for_user_by_projects(user)
+        query_groups = {
+            group
+            for group in groups
+            if (
+                enabled_settings[group.project][NotificationSettingEnum.WORKFLOW]
+                != NotificationSettingsOptionEnum.NEVER
+            )
+        }
+        subscriptions_by_group_id = {
+            subscription.group_id: subscription
+            for subscription in GroupSubscription.objects.filter(
+                group__in=query_groups, user_id=user.id
+            )
+        }
+        groups_by_project = collect_groups_by_project(groups)
+        results = {}
+        for project_id, group_set in groups_by_project.items():
+            enabled_setting = enabled_settings[project_id][self.type]
+            for group in group_set:
+                is_disabled = False
+                subscription = subscriptions_by_group_id.get(group.id)
+                if subscription:
+                    # Having a GroupSubscription overrides NotificationSettings.
+                    is_active = subscription.is_active
+                else:
+                    # If all the settings are disabled, thep rovider map will be empty.
+                    disabled_notifications = enabled_setting == {}
+
+                    if disabled_notifications:
+                        # The user has disabled notifications in all cases.
+                        is_disabled = True
+                        is_active = False
+                    else:
+                        # Since there is no subscription, it is only active if the value is ALWAYS.
+                        is_active = any(
+                            value == NotificationSettingsOptionEnum.ALWAYS
+                            for value in enabled_setting.values()
+                        )
+
+                results[group.id] = (is_disabled, is_active, subscription)
+        return results
 
     def user_has_any_provider_settings(self, provider: ExternalProviderEnum | None = None) -> bool:
         """
