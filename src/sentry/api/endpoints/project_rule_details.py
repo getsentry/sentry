@@ -124,15 +124,17 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
         if serializer.is_valid():
             data = serializer.validated_data
 
+            # this is temporary for opting out of a migration of rules that haven't been
+            # interacted with by the user for x period of time
             explicit_opt_out = request.data.get("optOutExplicit")
             edit_opt_out = request.data.get("optOutEdit")
             if explicit_opt_out or edit_opt_out:
-                neglected_rule = NeglectedRule.objects.filter(
-                    rule=rule.id, organization=project.organization, opted_out=False
-                )
-                if neglected_rule:
-                    neglected_rule[0].opted_out = True
-                    neglected_rule[0].save()
+                try:
+                    neglected_rule = NeglectedRule.objects.get(
+                        rule=rule.id, organization=project.organization, opted_out=False
+                    )
+                    neglected_rule.opted_out = True
+                    neglected_rule.save()
 
                     analytics_data = {
                         "rule_id": rule.id,
@@ -150,6 +152,8 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
                             "rule_disable_opt_out.edit",
                             **analytics_data,
                         )
+                except NeglectedRule.DoesNotExist:
+                    pass
 
             if not data.get("actions", []):
                 return Response(
