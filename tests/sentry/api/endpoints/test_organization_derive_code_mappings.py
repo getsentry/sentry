@@ -77,6 +77,29 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
             assert response.data == expected_matches
 
     @patch("sentry.integrations.github.GitHubIntegration.get_trees_for_org")
+    def test_get_top_level_file(self, mock_get_trees_for_org):
+        file = "index.php"
+        frame_info = FrameFilename(file)
+        config_data = {"stacktraceFilename": file}
+        expected_matches = [
+            {
+                "filename": file,
+                "repo_name": "getsentry/codemap",
+                "repo_branch": "master",
+                "stacktrace_root": f"{frame_info.root}",
+                "source_path": _get_code_mapping_source_path(file, frame_info),
+            }
+        ]
+        with patch(
+            "sentry.integrations.utils.code_mapping.CodeMappingTreesHelper.list_file_matches",
+            return_value=expected_matches,
+        ):
+            response = self.client.get(self.url, data=config_data, format="json")
+            assert mock_get_trees_for_org.call_count == 1
+            assert response.status_code == 200, response.content
+            assert response.data == expected_matches
+
+    @patch("sentry.integrations.github.GitHubIntegration.get_trees_for_org")
     def test_get_multiple_matches(self, mock_get_trees_for_org):
         config_data = {
             "stacktraceFilename": "stack/root/file.py",
