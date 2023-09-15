@@ -20,6 +20,7 @@ from sentry.api.utils import (
 )
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import ALL_ACCESS_PROJECTS, ALL_ACCESS_PROJECTS_SLUG, ObjectStatus
+from sentry.incidents.models import AlertRule
 from sentry.models import Organization, Project, ReleaseProject
 from sentry.models.apikey import is_api_key_auth
 from sentry.models.environment import Environment
@@ -186,6 +187,26 @@ class OrganizationAlertRulePermission(OrganizationPermission):
         "PUT": ["org:write", "org:admin", "alert_rule:write", "alerts:write"],
         "DELETE": ["org:write", "org:admin", "alert_rule:write", "alerts:write"],
     }
+
+    def has_object_permission(self, request: Request, view: object, org: Any):
+        result = super().has_object_permission(request, view, org)
+
+        if not result:
+            return result
+
+        if "alert_rule_id" not in view.kwargs:
+            return True
+
+        alert_rule_id = view.kwargs["alert_rule_id"]
+        project_id_qs = AlertRule.objects.filter(id=alert_rule_id).values_list(
+            "snuba_query__subscriptions__project__id", flat=True
+        )
+        if not project_id_qs.exists():
+            return True
+
+        project_id = project_id_qs.first()
+        project = Project.objects.get(id=project_id)
+        return request.access.has_project_access(project)
 
 
 class OrgAuthTokenPermission(OrganizationPermission):

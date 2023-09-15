@@ -1194,3 +1194,27 @@ class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase, APITestCase):
         self.create_team_membership(team=self.team, member=om)
         with self.feature("organizations:incidents"):
             resp = self.get_success_response(self.organization.slug, alert_rule.id, status_code=204)
+
+    def test_no_permission(self):
+        # disable Open Membership
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        user2 = self.create_user("noteam@example.com")
+
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+        self.create_member(user=user2, organization=self.organization, role="member", teams=[])
+        self.login_as(self.user)
+        alert_rule = self.alert_rule
+        alert_rule.owner = self.team.actor
+        alert_rule.save()
+        self.login_as(user2)
+        # We need the IDs to force update instead of create, so we just get the rule using our own API. Like frontend would.
+        OrganizationMemberTeam.objects.filter(
+            organizationmember__user_id=user2.id,
+            team=self.team,
+        ).delete()
+        with self.feature("organizations:incidents"):
+            resp = self.get_response(self.organization.slug, alert_rule.id)
+        assert resp.status_code == 403
