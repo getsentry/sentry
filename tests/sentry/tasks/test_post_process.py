@@ -1685,7 +1685,7 @@ class ReplayLinkageTestMixin(BasePostProgressGroupMixin):
                 "replay_id": replay_id,
                 "error_id": event.event_id,
                 "timestamp": int(event.datetime.timestamp()),
-                "event_hash": md5((replay_id + event.event_id).encode("utf-8")).hexdigest(),
+                "event_hash": str(uuid.UUID(md5((event.event_id).encode("utf-8")).hexdigest())),
             }
 
             incr.assert_any_call("post_process.process_replay_link.id_sampled")
