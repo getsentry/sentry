@@ -315,6 +315,14 @@ export class DeprecatedLine extends Component<Props, State> {
         lockAddress
       );
 
+    const shouldShowSourceMapDebuggerToggle =
+      data.inApp &&
+      this.props.frameSourceResolutionResults &&
+      (!frameIsFullyResolvedBasedOnDebuggerData(
+        this.props.frameSourceResolutionResults
+      ) ||
+        !hasContextSource(data));
+
     return (
       <StrictClick onClick={this.isExpandable() ? this.toggleContext : undefined}>
         <DefaultLine
@@ -348,11 +356,7 @@ export class DeprecatedLine extends Component<Props, State> {
               </Tag>
             ) : null}
             {stacktraceChangesEnabled ? this.renderShowHideToggle() : null}
-            {data.inApp &&
-            this.props.frameSourceResolutionResults &&
-            !frameIsFullyResolvedBasedOnDebuggerData(
-              this.props.frameSourceResolutionResults
-            ) ? (
+            {shouldShowSourceMapDebuggerToggle ? (
               <SourceMapDebuggerToggle
                 icon={<IconFlag />}
                 to=""

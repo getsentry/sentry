@@ -144,7 +144,11 @@ export function SourceMapsDebuggerModal({
                 size={16}
                 barWidth={4}
               />
-              {t('Debug IDs (recommended)')}
+              {`${t('Debug IDs')}${
+                sourceResolutionResults.sdkDebugIdSupport !== 'not-supported'
+                  ? ' ' + t('(recommended)')
+                  : ''
+              }`}
             </TabList.Item>
             <TabList.Item
               key="release"
