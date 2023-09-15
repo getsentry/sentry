@@ -10,7 +10,7 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 
 @control_silo_only_model
 class TeamReplica(Model):
-    __relocation_scope__ = RelocationScope.Organization
+    __relocation_scope__ = RelocationScope.Excluded
 
     team_id = HybridCloudForeignKey("sentry.Team", on_delete="cascade")
     organization_id = HybridCloudForeignKey("sentry.Organization", on_delete="cascade")
