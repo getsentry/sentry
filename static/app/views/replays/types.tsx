@@ -169,11 +169,11 @@ export interface ReplayError {
 }
 
 export type DeadRageSelectorItem = {
-  ariaLabel: string;
+  aria_label: string;
+  dom_element: string;
   element: string;
-  selector: string;
-  deadClicks?: number;
-  rageClicks?: number;
+  count_dead_clicks?: number;
+  count_rage_clicks?: number;
 };
 
 export type DeadRageSelectorListResponse = {

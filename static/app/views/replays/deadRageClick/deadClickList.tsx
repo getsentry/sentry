@@ -32,10 +32,10 @@ function getAriaLabel(str: string) {
 function mappedData(data): DeadRageSelectorItem[] {
   return data.map(d => {
     return {
-      deadClicks: d.count_dead_clicks,
-      selector: d.dom_element,
+      count_dead_clicks: d.count_dead_clicks,
+      dom_element: d.dom_element,
       element: d.dom_element.split(/[#.]+/)[0],
-      ariaLabel: getAriaLabel(d.dom_element),
+      aria_label: getAriaLabel(d.dom_element),
     };
   });
 }
@@ -83,7 +83,7 @@ export default function DeadClickList({location}: Props) {
                 isLoading={isLoading}
                 location={location}
                 clickType="count_dead_clicks"
-                extraColumns={[{key: 'deadClicks', name: 'dead clicks'}]}
+                extraColumns={[{key: 'count_dead_clicks', name: 'dead clicks'}]}
               />
             </LayoutGap>
             {

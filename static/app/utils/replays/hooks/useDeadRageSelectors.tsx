@@ -6,9 +6,7 @@ import {
   DeadRageSelectorQueryParams,
 } from 'sentry/views/replays/types';
 
-export default function useRageDeadSelectors(
-  params: DeadRageSelectorQueryParams = {per_page: 10, sort: '-count_dead_clicks'}
-) {
+export default function useRageDeadSelectors(params: DeadRageSelectorQueryParams) {
   const organization = useOrganization();
   const location = useLocation();
   const {query} = location;
@@ -21,8 +19,8 @@ export default function useRageDeadSelectors(
           query: {
             pathname: query.pathname,
             cursor: query.cursor,
-            per_page: params.per_page,
-            sort: params.sort,
+            per_page: params.per_page ?? 10,
+            sort: params.sort ?? query.sort,
           },
         },
       ],

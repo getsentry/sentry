@@ -29,8 +29,8 @@ interface Props {
 
 const BASE_COLUMNS: GridColumnOrder<string>[] = [
   {key: 'element', name: 'element'},
-  {key: 'selector', name: 'selector'},
-  {key: 'ariaLabel', name: 'aria label'},
+  {key: 'dom_element', name: 'selector'},
+  {key: 'aria_label', name: 'aria label'},
 ];
 
 export default function SelectorTable({
@@ -60,16 +60,16 @@ export default function SelectorTable({
         makeSortLinkGenerator,
         onClick: () => {},
         rightAlignedColumns: [],
-        sortableColumns: columns,
+        sortableColumns: [BASE_COLUMNS[1]].concat(extraColumns),
       }),
-    [columns, currentSort, makeSortLinkGenerator]
+    [extraColumns, currentSort, makeSortLinkGenerator]
   );
 
   const renderBodyCell = useCallback(
     (column, dataRow) => {
       const value = dataRow[column.key];
       switch (column.key) {
-        case 'selector':
+        case 'dom_element':
           return <SelectorLink organization={organization} value={value} />;
         default:
           return renderSimpleBodyCell<DeadRageSelectorItem>(column, dataRow);
