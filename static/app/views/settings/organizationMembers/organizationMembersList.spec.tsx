@@ -607,7 +607,7 @@ describe('OrganizationMembersList', function () {
       });
 
       MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/members/',
+        url: '/organizations/org-slug/members/?referrer=github_nudge_invite',
         method: 'POST',
         body: newMember,
       });
