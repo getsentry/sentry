@@ -96,7 +96,7 @@ export function SourceMapsDebuggerModal({
     // Get the tab with the most progress
     return possibleTabs.reduce(
       (prev, curr) => (curr.progress > prev.progress ? curr : prev),
-      possibleTabs[0]
+      possibleTabs[sourceResolutionResults.sdkDebugIdSupport === 'not-supported' ? 1 : 0]
     ).tab;
   });
 
@@ -389,6 +389,13 @@ function InstalledSdkChecklistItem({
 }) {
   const itemName = t('Installed SDK supports Debug IDs');
 
+  if (
+    sourceResolutionResults.eventHasDebugIds ||
+    sourceResolutionResults.sdkDebugIdSupport === 'full'
+  ) {
+    return <CheckListItem status="checked" title={itemName} />;
+  }
+
   if (sourceResolutionResults.sdkDebugIdSupport === 'needs-upgrade') {
     return (
       <CheckListItem status="alert" title={itemName}>
@@ -414,7 +421,7 @@ function InstalledSdkChecklistItem({
           </p>
           <p>
             {tct(
-              'If upgrading the SDK is not an option for you, you can use the [link:Release Name] process instead.',
+              'If upgrading the SDK is not an option for you, you can use the [link:Release] process instead.',
               {
                 link: <Link to="" onClick={() => setActiveTab('release')} />,
               }
@@ -425,11 +432,22 @@ function InstalledSdkChecklistItem({
     );
   }
 
-  if (
-    sourceResolutionResults.stackFrameDebugId !== null ||
-    sourceResolutionResults.sdkDebugIdSupport === 'full'
-  ) {
-    return <CheckListItem status="checked" title={itemName} />;
+  if (sourceResolutionResults.sdkDebugIdSupport === 'not-supported') {
+    return (
+      <CheckListItem status="alert" title={itemName}>
+        <CheckListInstruction type="muted">
+          <h6>{t("SDK Doesn't Support Debug IDs")}</h6>
+          <p>
+            {tct(
+              'The SDK you are using does not support debug IDs yet. We recommend using the [link:Release] process instead.',
+              {
+                link: <Link to="" onClick={() => setActiveTab('release')} />,
+              }
+            )}
+          </p>
+        </CheckListInstruction>
+      </CheckListItem>
+    );
   }
 
   return (
