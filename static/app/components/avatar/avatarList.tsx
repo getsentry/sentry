@@ -29,7 +29,7 @@ function AvatarList({
   renderTooltip,
 }: Props) {
   const visibleMembers = members.slice(0, maxVisibleAvatars);
-  const numCollapsedUsers = members.length - members.length;
+  const numCollapsedUsers = members.length - visibleMembers.length;
 
   if (!tooltipOptions.position) {
     tooltipOptions.position = 'top';

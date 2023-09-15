@@ -10,6 +10,7 @@ function renderComponent(
 
 describe('AvatarList', () => {
   const user = TestStubs.User();
+  const team = TestStubs.Team();
 
   it('renders with user letter avatars', () => {
     const users = [
@@ -41,5 +42,17 @@ describe('AvatarList', () => {
     expect(screen.getByText(users[4].name.charAt(0))).toBeInTheDocument();
     expect(screen.queryByText(users[5].name.charAt(0))).not.toBeInTheDocument();
     expect(screen.getByTestId('avatarList-collapsedusers')).toBeInTheDocument();
+  });
+
+  it('renders with team avatars', () => {
+    const teams = [
+      {...team, id: '1', name: 'A', slug: 'A', type: 'team'},
+      {...team, id: '2', name: 'B', slug: 'B', type: 'team'},
+    ];
+
+    renderComponent(teams);
+    expect(screen.getByText('A')).toBeInTheDocument();
+    expect(screen.getByText('B')).toBeInTheDocument();
+    expect(screen.queryByTestId('avatarList-collapsedusers')).not.toBeInTheDocument();
   });
 });
