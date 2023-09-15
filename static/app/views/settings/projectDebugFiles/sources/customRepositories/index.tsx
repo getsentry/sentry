@@ -53,7 +53,7 @@ function CustomRepositories({
 
   useEffect(() => {
     openDebugFileSourceDialog();
-  }, [location.query, appStoreConnectContext]); // eslint-disable-line
+  }, [location.query, appStoreConnectContext]);
 
   const orgSlug = organization.slug;
   const appStoreConnectSourcesQuantity = repositories.filter(
