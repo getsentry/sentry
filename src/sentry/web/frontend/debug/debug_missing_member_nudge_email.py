@@ -14,26 +14,31 @@ class DebugMissingMembersNudgeView(View):
                 "email": "test@sentry.io",
                 "external_id": "test",
                 "commit_count": 5,
+                "profile_link": "https://github.com/test",
             },
             {
                 "email": "hello@sentry.io",
                 "external_id": "hello",
                 "commit_count": 4,
+                "profile_link": "https://github.com/hello",
             },
             {
                 "email": "abcd@sentry.io",
                 "external_id": "abcd",
                 "commit_count": 3,
+                "profile_link": "https://github.com/abcd",
             },
             {
                 "email": "link@sentry.io",
                 "external_id": "link",
                 "commit_count": 2,
+                "profile_link": "https://github.com/link",
             },
             {
                 "email": "hola@sentry.io",
                 "external_id": "hola",
                 "commit_count": 1,
+                "profile_link": "https://github.com/hola",
             },
         ]
 
@@ -45,5 +50,6 @@ class DebugMissingMembersNudgeView(View):
                 "missing_members": commit_authors[0:3],
                 "missing_members_count": len(commit_authors),
                 "members_list_url": "https://sentry.io/",
+                "provider": "Github",
             },
         ).render(request)
