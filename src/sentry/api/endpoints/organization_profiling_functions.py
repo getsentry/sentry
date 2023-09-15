@@ -4,9 +4,11 @@ from datetime import timedelta
 from enum import Enum
 from typing import Any
 
+from django.conf import settings
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
+from urllib3 import Retry
 
 from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -14,15 +16,25 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.exceptions import InvalidSearchQuery
+from sentry.net.http import connection_from_url
 from sentry.search.events.builder import ProfileTopFunctionsTimeseriesQueryBuilder
 from sentry.search.events.types import QueryBuilderConfig
-from sentry.seer.utils import detect_breakpoints
 from sentry.snuba import functions
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
+from sentry.utils import json
 from sentry.utils.dates import parse_stats_period, validate_interval
 from sentry.utils.sdk import set_measurement
 from sentry.utils.snuba import bulk_snql_query
+
+ads_connection_pool = connection_from_url(
+    settings.ANOMALY_DETECTION_URL,
+    retries=Retry(
+        total=5,
+        status_forcelist=[408, 429, 502, 503, 504],
+    ),
+    timeout=settings.ANOMALY_DETECTION_TIMEOUT,
+)
 
 TOP_FUNCTIONS_LIMIT = 50
 FUNCTIONS_PER_QUERY = 10
@@ -180,7 +192,7 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
                 "trendFunction": data["function"],
             }
 
-            return detect_breakpoints(trends_request)
+            return trends_query(trends_request)
 
         stats_data = self.get_event_stats_data(
             request,
@@ -308,3 +320,14 @@ def get_interval_from_range(date_range: timedelta) -> str:
         return "2h"
 
     return "1h"
+
+
+def trends_query(trends_request):
+    response = ads_connection_pool.urlopen(
+        "POST",
+        "/trends/breakpoint-detector",
+        body=json.dumps(trends_request),
+        headers={"content-type": "application/json;charset=utf-8"},
+    )
+
+    return json.loads(response.data)["data"]

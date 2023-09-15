@@ -62,8 +62,8 @@ class OrganizationProfilingFunctionTrendsEndpointTest(ProfilesSnubaTestCase):
             ]
         }
 
-    @mock.patch("sentry.api.endpoints.organization_profiling_functions.detect_breakpoints")
-    def test_min_threshold(self, mock_detect_breakpoints):
+    @mock.patch("sentry.api.endpoints.organization_profiling_functions.trends_query")
+    def test_min_threshold(self, mock_trends_query):
         n = 25
         for i in range(n):
             self.store_functions(
@@ -91,7 +91,7 @@ class OrganizationProfilingFunctionTrendsEndpointTest(ProfilesSnubaTestCase):
                 timestamp=before_now(hours=i, minutes=11),
             )
 
-        mock_detect_breakpoints.return_value = [
+        mock_trends_query.return_value = [
             {
                 "absolute_percentage_change": 0.9090909090909091,
                 "aggregate_range_1": 110000000.0,
@@ -139,8 +139,8 @@ class OrganizationProfilingFunctionTrendsEndpointTest(ProfilesSnubaTestCase):
         results = response.json()
         assert [(result["package"], result["function"]) for result in results] == [("foo", "baz")]
 
-    @mock.patch("sentry.api.endpoints.organization_profiling_functions.detect_breakpoints")
-    def test_regression(self, mock_detect_breakpoints):
+    @mock.patch("sentry.api.endpoints.organization_profiling_functions.trends_query")
+    def test_regression(self, mock_trends_query):
         n = 25
         for i in range(n):
             self.store_functions(
@@ -168,7 +168,7 @@ class OrganizationProfilingFunctionTrendsEndpointTest(ProfilesSnubaTestCase):
                 timestamp=before_now(hours=i, minutes=11),
             )
 
-        mock_detect_breakpoints.return_value = [
+        mock_trends_query.return_value = [
             {
                 "absolute_percentage_change": 5.0,
                 "aggregate_range_1": 100000000.0,
@@ -220,8 +220,8 @@ class OrganizationProfilingFunctionTrendsEndpointTest(ProfilesSnubaTestCase):
         for data in results:
             assert isinstance(data["worst"], list)
 
-    @mock.patch("sentry.api.endpoints.organization_profiling_functions.detect_breakpoints")
-    def test_improvement(self, mock_detect_breakpoints):
+    @mock.patch("sentry.api.endpoints.organization_profiling_functions.trends_query")
+    def test_improvement(self, mock_trends_query):
         n = 25
         for i in range(n):
             self.store_functions(
@@ -249,7 +249,7 @@ class OrganizationProfilingFunctionTrendsEndpointTest(ProfilesSnubaTestCase):
                 timestamp=before_now(hours=i, minutes=11),
             )
 
-        mock_detect_breakpoints.return_value = [
+        mock_trends_query.return_value = [
             {
                 "absolute_percentage_change": 0.2,
                 "aggregate_range_1": 500000000.0,
