@@ -4,7 +4,7 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import audit_log
+from sentry import analytics, audit_log
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.rule import RuleEndpoint
@@ -16,6 +16,7 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.slack.utils import RedisRuleStatus
 from sentry.mediators import project_rules
 from sentry.models import (
+    NeglectedRule,
     RegionScheduledDeletion,
     RuleActivity,
     RuleActivityType,
@@ -51,7 +52,6 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
             {method} {path}
 
         """
-
         # Serialize Rule object
         serialized_rule = serialize(
             rule, request.user, RuleSerializer(request.GET.getlist("expand", []))
@@ -123,6 +123,31 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
 
         if serializer.is_valid():
             data = serializer.validated_data
+
+            explicit_opt_out = request.data.get("optOutExplicit")
+            edit_opt_out = request.data.get("optOutEdit")
+            if explicit_opt_out or edit_opt_out:
+                neglected_rule = NeglectedRule.objects.filter(
+                    rule=rule.id, organization=project.organization, opted_out=False
+                )
+                if neglected_rule:
+                    neglected_rule[0].opted_out = True
+                    neglected_rule[0].save()
+
+                if explicit_opt_out:
+                    analytics.record(
+                        "rule_disable_opt_out.explicit",
+                        rule_id=rule.id,
+                        user_id=request.user.id,
+                        organization_id=project.organization.id,
+                    )
+                if edit_opt_out:
+                    analytics.record(
+                        "rule_disable_opt_out.edit",
+                        rule_id=rule.id,
+                        user_id=request.user.id,
+                        organization_id=project.organization.id,
+                    )
 
             if not data.get("actions", []):
                 return Response(
