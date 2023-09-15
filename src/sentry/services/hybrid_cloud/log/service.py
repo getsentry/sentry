@@ -4,8 +4,9 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 import abc
-from typing import Optional, Type, cast
+from typing import Optional, cast
 
+from sentry.services.hybrid_cloud import silo_mode_delegation
 from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
 from sentry.silo import SiloMode
 
@@ -18,9 +19,7 @@ class LogService(RpcService):
 
     @classmethod
     def get_local_implementation(cls) -> RpcService:
-        from .impl import DatabaseBackedLogService
-
-        return DatabaseBackedLogService()
+        return impl_by_db()
 
     @rpc_method
     @abc.abstractmethod
@@ -44,16 +43,26 @@ class LogService(RpcService):
         pass
 
 
-def _get_nonlocal_class() -> Type[RpcService]:
+def impl_by_db() -> LogService:
+    from .impl import DatabaseBackedLogService
+
+    return DatabaseBackedLogService()
+
+
+def impl_by_outbox() -> LogService:
     from .impl import OutboxBackedLogService
 
-    return OutboxBackedLogService
+    return OutboxBackedLogService()
 
 
 # An asynchronous service which can delegate to an outbox implementation, essentially enqueueing
 # delivery of log entries for future processing.
-log_service: LogService = cast(
-    LogService, LogService.create_delegation(nonlocal_class=_get_nonlocal_class)
+log_service: LogService = silo_mode_delegation(
+    {
+        SiloMode.REGION: impl_by_outbox,
+        SiloMode.CONTROL: impl_by_db,
+        SiloMode.MONOLITH: impl_by_db,
+    }
 )
 
 # A synchronous service which can delegate to a remote rpc endpoint.  Used by the outbox receiver
