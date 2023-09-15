@@ -88,6 +88,31 @@ function EventBreakpointChart({event}: EventBreakpointChartProps) {
     data: [],
   });
 
+  additionalSeries.push({
+    name: 'Regression Axis Line',
+    type: 'line',
+    markLine: MarkLine({
+      silent: true,
+      lineStyle: {color: 'red', type: 'solid', width: 4},
+      data: [[{coord: [breakpoint, 57]}, {coord: [requestEnd, 57]}]],
+    }),
+    data: [],
+  });
+
+  additionalSeries.push({
+    name: 'Baseline Axis Line',
+    type: 'line',
+    markLine: MarkLine({
+      silent: true,
+      label: {
+        show: false,
+      },
+      lineStyle: {color: 'green', type: 'solid', width: 4},
+      data: [{yAxis: 100}],
+    }),
+    data: [],
+  });
+
   return (
     <DataSection>
       <TrendsDiscoverQuery
