@@ -2,7 +2,7 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationIntegrationRequestTest(APITestCase):
     """Unit tests for emailing organization owners asking them to install an integration."""
 

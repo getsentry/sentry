@@ -7,12 +7,12 @@ from sentry import integrations
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization_request_change import OrganizationRequestChangeEndpoint
-from sentry.models import SentryApp
 from sentry.notifications.notifications.organization_request.integration_request import (
     IntegrationRequestNotification,
 )
 from sentry.notifications.utils.tasks import async_send_notification
 from sentry.plugins.base import plugins
+from sentry.services.hybrid_cloud.app import app_service
 
 
 def get_provider_name(provider_type: str, provider_slug: str) -> str | None:
@@ -34,7 +34,7 @@ def get_provider_name(provider_type: str, provider_slug: str) -> str | None:
         if plugins.exists(provider_slug):
             return plugins.get(provider_slug).title
     elif provider_type == "sentry_app":
-        sentry_app = SentryApp.objects.filter(slug=provider_slug).first()
+        sentry_app = app_service.get_sentry_app_by_slug(slug=provider_slug)
         if sentry_app:
             return sentry_app.name
     return None
