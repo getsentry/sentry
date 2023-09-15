@@ -268,10 +268,11 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                 team_ids = GroupSubscriptionManager.get_participating_team_ids(group)
 
                 teams = Team.objects.filter(id__in=team_ids)
+                team_serializer = TeamSerializer()
 
                 serialized_teams = []
                 for team in teams:
-                    serialized_team = serialize(team, request.user, TeamSerializer())
+                    serialized_team = serialize(team, request.user, team_serializer)
                     serialized_team["type"] = "team"
                     serialized_teams.append(serialized_team)
 
