@@ -445,6 +445,13 @@ class ModelBackupTests(TransactionTestCase):
         rule = self.create_project_rule(project=self.project)
         RuleActivity.objects.create(rule=rule, type=RuleActivityType.CREATED.value)
         self.snooze_rule(user_id=self.user.id, owner_id=self.user.id, rule=rule)
+        NeglectedRule.objects.create(
+            rule=rule,
+            organization=self.organization,
+            disable_date=datetime.now(),
+            sent_initial_email_date=datetime.now(),
+            sent_final_email_date=datetime.now(),
+        )
         return self.import_export_then_validate()
 
     @targets(mark(RecentSearch, SavedSearch))
