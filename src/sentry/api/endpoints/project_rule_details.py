@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import logging
+
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -32,6 +34,8 @@ from sentry.rules.actions import trigger_sentry_app_action_creators_for_issues
 from sentry.signals import alert_rule_edited
 from sentry.tasks.integrations.slack import find_channel_id_for_rule
 from sentry.web.decorators import transaction_start
+
+logger = logging.getLogger(__name__)
 
 
 @region_silo_endpoint
@@ -154,6 +158,15 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
                         )
                 except NeglectedRule.DoesNotExist:
                     pass
+
+                except NeglectedRule.MultipleObjectsReturned:
+                    logger.info(
+                        "rule_disable_opt_out.multiple",
+                        extra={
+                            "rule_id": rule.id,
+                            "org_id": project.organization.id,
+                        },
+                    )
 
             if not data.get("actions", []):
                 return Response(
