@@ -9,9 +9,10 @@ from requests.exceptions import HTTPError, SSLError
 from sentry import digests, features, ratelimits
 from sentry.exceptions import InvalidIdentity, PluginError
 from sentry.models import NotificationSetting
-from sentry.notifications.helpers import get_notification_recipients
+from sentry.notifications.notificationcontroller import NotificationController
 from sentry.plugins.base import Notification, Plugin
 from sentry.plugins.base.configuration import react_plugin_config
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.types.integrations import ExternalProviderEnum, ExternalProviders
 
@@ -143,7 +144,17 @@ class NotificationPlugin(Plugin):
         """
         if self.get_conf_key() == "mail":
             if features.has("organizations:notification-settings-v2", self.project.organization):
-                return get_notification_recipients(self.project)[ExternalProviderEnum.EMAIL]
+                user_ids = list(project.member_set.values_list("user_id", flat=True))
+                users = user_service.get_many(filter={"user_ids": user_ids})
+                notification_controller = NotificationController(
+                    recipients=users,
+                    project_ids=[project.id],
+                    organization_id=project.organization_id,
+                    provider=ExternalProviderEnum.EMAIL,
+                )
+                return notification_controller.get_notification_recipients()[
+                    ExternalProviders.EMAIL
+                ]
             else:
                 return NotificationSetting.objects.get_notification_recipients(project)[
                     ExternalProviders.EMAIL
