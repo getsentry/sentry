@@ -29,7 +29,6 @@ import {
 } from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {getAnalyticsDataForEvent} from 'sentry/utils/events';
 import withOrganization from 'sentry/utils/withOrganization';
 import withSentryAppComponents from 'sentry/utils/withSentryAppComponents';
 
@@ -325,6 +324,15 @@ export class DeprecatedLine extends Component<Props, State> {
       ) ||
         !hasContextSource(data));
 
+    const sourceMapDebuggerAmplitudeData = {
+      organization: this.props.organization ?? null,
+      project_id: this.props.event.projectID,
+      event_id: this.props.event.id,
+      event_platform: this.props.event.platform,
+      sdk_name: this.props.event.sdk?.name,
+      sdk_version: this.props.event.sdk?.version,
+    };
+
     return (
       <StrictClick onClick={this.isExpandable() ? this.toggleContext : undefined}>
         <DefaultLine
@@ -368,14 +376,14 @@ export class DeprecatedLine extends Component<Props, State> {
                 onClick={e => {
                   e.stopPropagation();
 
-                  trackAnalytics('source_map_debug_blue_thunder.modal_opened', {
-                    organization: this.props.organization ?? null,
-                    project_id: this.props.event.projectID,
-                    ...getAnalyticsDataForEvent(this.props.event),
-                  });
+                  trackAnalytics(
+                    'source_map_debug_blue_thunder.modal_opened',
+                    sourceMapDebuggerAmplitudeData
+                  );
 
                   openModal(modalProps => (
                     <SourceMapsDebuggerModal
+                      analyticsParams={sourceMapDebuggerAmplitudeData}
                       sourceResolutionResults={this.props.frameSourceResolutionResults!}
                       {...modalProps}
                     />

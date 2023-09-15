@@ -24,10 +24,6 @@ type SourceMapWizardParam = {
   group_id?: string;
 } & BaseEventAnalyticsParams;
 
-interface SourceMapDebugBlueThunderParam extends BaseEventAnalyticsParams {
-  project_id: string;
-}
-
 interface GroupEventParams extends CommonGroupAnalyticsData, BaseEventAnalyticsParams {}
 
 interface EventDropdownParams {
@@ -225,7 +221,6 @@ export type IssueEventParameters = {
   resolve_issue: {release: string};
   'source_map_debug.docs_link_clicked': SourceMapDebugParam;
   'source_map_debug.expand_clicked': SourceMapDebugParam;
-  'source_map_debug_blue_thunder.modal_opened': SourceMapDebugBlueThunderParam;
   'span_view.embedded_child.hide': {};
   'span_view.embedded_child.show': {};
   'tag.clicked': {
@@ -290,7 +285,6 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_group_details.tags_distribution.bar.clicked':
     'Issue Group Details: Tags distribution value bar clicked',
   'integrations.integration_reinstall_clicked': 'Integration Reinstall Button Clicked',
-  'source_map_debug_blue_thunder.modal_opened': 'Source Map Debugger Modal Opened',
 
   // Performance Issue specific events here
   'issue_details.performance.autogrouped_siblings_toggle':

@@ -22,6 +22,9 @@ import {
 } from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {SourceMapWizardBlueThunderAnalyticsParams} from 'sentry/utils/analytics/stackTraceAnalyticsEvents';
 
 export interface FrameSourceMapDebuggerData {
   dist: string | null;
@@ -51,6 +54,9 @@ export interface FrameSourceMapDebuggerData {
 }
 
 interface SourceMapsDebuggerModalProps extends ModalRenderProps {
+  analyticsParams: SourceMapWizardBlueThunderAnalyticsParams & {
+    organization: Organization | null;
+  };
   sourceResolutionResults: FrameSourceMapDebuggerData;
 }
 
@@ -73,6 +79,7 @@ export function SourceMapsDebuggerModal({
   Header,
   Footer,
   sourceResolutionResults,
+  analyticsParams,
 }: SourceMapsDebuggerModalProps) {
   const theme = useTheme();
 
@@ -116,7 +123,16 @@ export function SourceMapsDebuggerModal({
             'The easiest way to get started using source maps is running the Sentry Source Map Wizard in the terminal inside your project:'
           )}
         </WizardInstructionParagraph>
-        <InstructionCodeSnippet language="bash" dark>
+        <InstructionCodeSnippet
+          language="bash"
+          dark
+          onCopy={() => {
+            trackAnalytics(
+              'source_map_debug_blue_thunder.source_map_wizard_command_copied',
+              analyticsParams
+            );
+          }}
+        >
           {'npx @sentry/wizard@latest -i sourcemaps'}
         </InstructionCodeSnippet>
         <p>
