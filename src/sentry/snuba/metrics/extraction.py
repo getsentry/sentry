@@ -28,6 +28,7 @@ from sentry.discover.arithmetic import is_equation
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import Project, ProjectTransactionThreshold, TransactionMetric
 from sentry.search.events import fields
+from sentry.search.events.constants import NON_FAILURE_STATUS
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.utils import MetricOperationType
 from sentry.utils.snuba import is_measurement, is_span_op_breakdown, resolve_column
@@ -117,8 +118,14 @@ _SEARCH_TO_METRIC_AGGREGATES: Dict[str, MetricOperationType] = {
     # generic percentile is not supported by metrics layer.
 }
 
+# TODO: on_demand_failure_rate is not an aggregation function, it's a derived metric that
+# is not aggregated. I suggest to refactor usage sites so that there's a separate
+# listing of derived metrics. This allows us to use the _SEARCH_TO_METRIC_AGGREGATES mapping
+# in places where expect regular aggregation.
+
 # Maps plain Discover functions to derived metric functions which are understood by the metrics layer.
 _SEARCH_TO_DERIVED_METRIC_AGGREGATES: Dict[str, MetricOperationType] = {
+    "failure_count": "on_demand_failure_count",
     "failure_rate": "on_demand_failure_rate",
     "apdex": "on_demand_apdex",
 }
@@ -134,6 +141,7 @@ _AGGREGATE_TO_METRIC_TYPE = {
     "p95": "d",
     "p99": "d",
     # With on demand metrics, evaluated metrics are actually stored, thus we have to choose a concrete metric type.
+    "failure_count": "c",
     "failure_rate": "c",
     "apdex": "c",
 }
@@ -549,7 +557,8 @@ def _deep_sorted(value: Union[Any, Dict[Any, Any]]) -> Union[Any, Dict[Any, Any]
 TagsSpecsGenerator = Callable[[Project, Optional[str]], List[TagSpec]]
 
 
-def failure_rate_tag_spec(_1: Project, _2: Optional[str]) -> List[TagSpec]:
+def failure_tag_spec(_1: Project, _2: Optional[str]) -> List[TagSpec]:
+    """This specification tags transactions with a boolean saying if it failed."""
     return [
         {
             "key": "failure",
@@ -558,7 +567,7 @@ def failure_rate_tag_spec(_1: Project, _2: Optional[str]) -> List[TagSpec]:
                 "inner": {
                     "name": "event.contexts.trace.status",
                     "op": "eq",
-                    "value": ["ok", "cancelled", "unknown"],
+                    "value": list(NON_FAILURE_STATUS),
                 },
                 "op": "not",
             },
@@ -602,8 +611,10 @@ def apdex_tag_spec(project: Project, argument: Optional[str]) -> List[TagSpec]:
     ]
 
 
+# This is used to map a metric to a function which generates a specification
 _DERIVED_METRICS: Dict[MetricOperationType, TagsSpecsGenerator] = {
-    "on_demand_failure_rate": failure_rate_tag_spec,
+    "on_demand_failure_count": failure_tag_spec,
+    "on_demand_failure_rate": failure_tag_spec,
     "on_demand_apdex": apdex_tag_spec,
 }
 
@@ -637,12 +648,12 @@ class OnDemandMetricSpec:
     _metric_type: str
     _argument: Optional[str]
 
-    def __init__(self, field: str, query: str):
+    def __init__(self, field: str, query: str) -> None:
         self.field = field
         self.query = self._cleanup_query(query)
         self._eager_process()
 
-    def _eager_process(self):
+    def _eager_process(self) -> None:
         op, metric_type, argument = self._process_field()
 
         self.op = op
@@ -672,7 +683,7 @@ class OnDemandMetricSpec:
         # metrics.
         #
         # More specifically the hashing implementation will depend on the derived metric type:
-        # - failure rate -> hash the op
+        # - failure count & rate -> hash the op
         # - apdex -> hash the op + value
         #
         # The rationale for different hashing is complex to explain but the main idea is that if we hash the argument
@@ -680,7 +691,7 @@ class OnDemandMetricSpec:
         # with condition `f` and this will create a problem, since we might already have data for the `count()` and when
         # `apdex()` is created in the UI, we will use that metric but that metric didn't extract in the past the tags
         # that are used for apdex calculation, effectively causing problems with the data.
-        if self.op == "on_demand_failure_rate":
+        if self.op in ["on_demand_failure_count", "on_demand_failure_rate"]:
             return self.op
         elif self.op == "on_demand_apdex":
             return f"{self.op}:{self._argument}"

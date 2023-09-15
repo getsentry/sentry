@@ -801,6 +801,18 @@ def max_timestamp(aggregate_filter, org_id, use_case_id, alias=None):
     return timestamp_column_snql("maxIf", aggregate_filter, org_id, use_case_id, alias)
 
 
+def on_demand_failure_count_snql_factory(aggregate_filter, org_id, use_case_id, alias=None):
+    return (
+        Function(
+            "equals",
+            [
+                Column(resolve_tag_key(use_case_id, org_id, "failure")),
+                resolve_tag_value(use_case_id, org_id, "true"),
+            ],
+        ),
+    )
+
+
 def on_demand_failure_rate_snql_factory(aggregate_filter, org_id, use_case_id, alias=None):
     return Function(
         "divide",
