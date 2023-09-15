@@ -10,12 +10,12 @@ from sentry.testutils.cases import MSTeamsActivityNotificationTest
 from sentry.testutils.silo import region_silo_test
 
 
+@region_silo_test(stable=True)
 @patch(
     "sentry.integrations.msteams.MsTeamsClientMixin.get_user_conversation_id",
     Mock(return_value="some_conversation_id"),
 )
 @patch("sentry.integrations.msteams.MsTeamsClientMixin.send_card")
-@region_silo_test
 class MSTeamsIssueAlertNotificationTest(MSTeamsActivityNotificationTest):
     def test_issue_alert_user(self, mock_send_card: MagicMock):
         """Test that issue alerts are sent to a MS Teams user."""

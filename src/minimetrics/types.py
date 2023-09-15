@@ -1,4 +1,4 @@
-from typing import Generic, Iterable, List, Literal, Mapping, NamedTuple, Tuple, TypeVar, Union
+from typing import Generic, Iterable, List, Literal, Mapping, Tuple, TypeVar, Union
 
 # Unit of the metrics.
 MetricUnit = Literal[
@@ -49,22 +49,15 @@ MetricTagsExternal = Mapping[MetricTagKey, MetricTagValueExternal]
 FlushedMetricValue = Union[int, float]
 
 
-class BucketKey(NamedTuple):
-    """
-    Key of the bucket.
-    """
-
-    timestamp: int
-    metric_type: MetricType
-    metric_name: str
-    metric_unit: MetricUnit
-    metric_tags: MetricTagsInternal
+BucketKey = Tuple[int, MetricType, str, MetricUnit, MetricTagsInternal]
 
 
 T = TypeVar("T")
 
 
 class Metric(Generic[T]):
+    __slots__ = ()
+
     @property
     def weight(self) -> int:
         raise NotImplementedError()
@@ -76,10 +69,4 @@ class Metric(Generic[T]):
         raise NotImplementedError()
 
 
-class FlushedMetric(NamedTuple):
-    """
-    Metric that is flushed by the flusher.
-    """
-
-    bucket_key: BucketKey
-    metric: Metric
+FlushedMetric = Tuple[BucketKey, Metric]

@@ -8,6 +8,7 @@ from django.utils import timezone
 from sentry_relay.auth import generate_key_pair
 
 from sentry.backup.helpers import get_exportable_sentry_models
+from sentry.backup.scopes import RelocationScope
 from sentry.incidents.models import (
     AlertRule,
     AlertRuleActivity,
@@ -66,7 +67,7 @@ from sentry.models.projectteam import ProjectTeam
 from sentry.models.recentsearch import RecentSearch
 from sentry.models.relay import Relay, RelayUsage
 from sentry.models.repository import Repository
-from sentry.models.rule import Rule, RuleActivity, RuleActivityType
+from sentry.models.rule import NeglectedRule, Rule, RuleActivity, RuleActivityType
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.models.savedsearch import SavedSearch, Visibility
 from sentry.models.search_common import SearchType
@@ -439,7 +440,7 @@ class ModelBackupTests(TransactionTestCase):
         RelayUsage.objects.create(relay_id=relay_id, version="0.0.1", public_key=public_key)
         return self.import_export_then_validate()
 
-    @targets(mark(Rule, RuleActivity, RuleSnooze))
+    @targets(mark(Rule, RuleActivity, RuleSnooze, NeglectedRule))
     def test_rule(self):
         rule = self.create_project_rule(project=self.project)
         RuleActivity.objects.create(rule=rule, type=RuleActivityType.CREATED.value)
@@ -516,3 +517,32 @@ class ModelBackupTests(TransactionTestCase):
         role = UserRole.objects.create(name="test-role")
         UserRoleUser.objects.create(user=user, role=role)
         return self.import_export_then_validate()
+
+
+@run_backup_tests_only_on_single_db
+class DynamicRelocationScopeTests(TransactionTestCase):
+    """
+    For models that support different relocation scopes depending on properties of the model instance itself (ie, they have a set for their `__relocation_scope__`, rather than a single value), make sure that this dynamic deduction works correctly.
+    """
+
+    def test_api_auth_application_bound(self):
+        user = self.create_user()
+        app = ApiApplication.objects.create(name="test", owner=user)
+        auth = ApiAuthorization.objects.create(
+            application=app, user=self.create_user("example@example.com")
+        )
+        token = ApiToken.objects.create(
+            application=app, user=user, token=uuid4().hex, expires_at=None
+        )
+
+        # TODO(getsentry/team-ospo#188): this should be extension scope once that gets added.
+        assert auth.get_relocation_scope() == RelocationScope.Global
+        assert token.get_relocation_scope() == RelocationScope.Global
+
+    def test_api_auth_not_application_bound(self):
+        user = self.create_user()
+        auth = ApiAuthorization.objects.create(user=self.create_user("example@example.com"))
+        token = ApiToken.objects.create(user=user, token=uuid4().hex, expires_at=None)
+
+        assert auth.get_relocation_scope() == RelocationScope.Config
+        assert token.get_relocation_scope() == RelocationScope.Config

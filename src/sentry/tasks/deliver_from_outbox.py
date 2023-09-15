@@ -10,6 +10,7 @@ from sentry_sdk.api import capture_exception
 
 from sentry.models import ControlOutboxBase, OutboxBase, RegionOutboxBase
 from sentry.silo.base import SiloMode
+from sentry.tasks.backfill_outboxes import backfill_outboxes_for
 from sentry.tasks.base import instrumented_task
 from sentry.utils.env import in_test_environment
 
@@ -19,20 +20,24 @@ from sentry.utils.env import in_test_environment
     queue="outbox.control",
     silo_mode=SiloMode.CONTROL,
 )
-def enqueue_outbox_jobs_control(concurrency: int | None = None, **kwargs) -> bool:
-    return schedule_batch(
+def enqueue_outbox_jobs_control(
+    concurrency: int | None = None, process_outbox_backfills=True, **kwargs
+):
+    schedule_batch(
         silo_mode=SiloMode.CONTROL,
         drain_task=drain_outbox_shards_control,
         concurrency=concurrency,
+        process_outbox_backfills=process_outbox_backfills,
     )
 
 
 @instrumented_task(name="sentry.tasks.enqueue_outbox_jobs", silo_mode=SiloMode.REGION)
-def enqueue_outbox_jobs(concurrency: int | None = None, **kwargs) -> bool:
-    return schedule_batch(
+def enqueue_outbox_jobs(concurrency: int | None = None, process_outbox_backfills=True, **kwargs):
+    schedule_batch(
         silo_mode=SiloMode.REGION,
         drain_task=drain_outbox_shards,
         concurrency=concurrency,
+        process_outbox_backfills=process_outbox_backfills,
     )
 
 
@@ -45,7 +50,14 @@ def enqueue_outbox_jobs(concurrency: int | None = None, **kwargs) -> bool:
 CONCURRENCY = 5
 
 
-def schedule_batch(silo_mode: SiloMode, drain_task: Task, concurrency: int | None = None):
+def schedule_batch(
+    silo_mode: SiloMode,
+    drain_task: Task,
+    concurrency: int | None = None,
+    process_outbox_backfills=True,
+):
+    scheduled_count = 0
+
     if not concurrency:
         concurrency = CONCURRENCY
     try:
@@ -57,6 +69,7 @@ def schedule_batch(silo_mode: SiloMode, drain_task: Task, concurrency: int | Non
             if hi < lo:
                 return
 
+            scheduled_count += hi - lo + 1
             batch_size = math.ceil((hi - lo + 1) / concurrency)
 
             # Notably, when l and h are close, this will result in creating tasks that are processing future ids --
@@ -67,6 +80,8 @@ def schedule_batch(silo_mode: SiloMode, drain_task: Task, concurrency: int | Non
                     outbox_identifier_low=lo + i * batch_size,
                     outbox_identifier_hi=lo + (i + 1) * batch_size,
                 )
+        if process_outbox_backfills:
+            backfill_outboxes_for(silo_mode, scheduled_count)
     except Exception:
         capture_exception()
         raise
@@ -127,7 +142,8 @@ def drain_outbox_shards_control(
 
 def process_outbox_batch(
     outbox_identifier_hi: int, outbox_identifier_low: int, outbox_model: Type[OutboxBase]
-):
+) -> int:
+    processed_count: int = 0
     for shard_attributes in outbox_model.find_scheduled_shards(
         outbox_identifier_low, outbox_identifier_hi
     ):
@@ -137,6 +153,7 @@ def process_outbox_batch(
         if not shard_outbox:
             continue
         try:
+            processed_count += 1
             shard_outbox.drain_shard(flush_all=True)
         except Exception:
             capture_exception()
@@ -144,3 +161,4 @@ def process_outbox_batch(
             # problems aggressively.
             if in_test_environment():
                 raise
+    return processed_count
