@@ -19,7 +19,7 @@ function ReplaysErroneousDeadRageCards() {
   const location = useLocation<ReplayListLocationQuery>();
 
   const {project, environment, start, statsPeriod, utc, end} = location.query;
-  const searchLocation = useMemo(() => {
+  const searchLocation: Location<ReplayListLocationQuery> = useMemo(() => {
     return {
       pathname: '',
       search: '',
@@ -39,7 +39,11 @@ function ReplaysErroneousDeadRageCards() {
   );
 }
 
-function DeadClickTable({searchLocation}: {searchLocation: Location}) {
+function DeadClickTable({
+  searchLocation,
+}: {
+  searchLocation: Location<ReplayListLocationQuery>;
+}) {
   const organization = useOrganization();
   const eventView = useMemo(
     () =>
@@ -91,7 +95,11 @@ function DeadClickTable({searchLocation}: {searchLocation: Location}) {
     </CardTable>
   );
 }
-function RageClickTable({searchLocation}: {searchLocation: Location}) {
+function RageClickTable({
+  searchLocation,
+}: {
+  searchLocation: Location<ReplayListLocationQuery>;
+}) {
   const organization = useOrganization();
   const eventView = useMemo(
     () =>
@@ -152,7 +160,7 @@ function CardTable({
 }: {
   children: ReactNode;
   eventView: EventView;
-  location: Location;
+  location: Location<ReplayListLocationQuery>;
   visibleColumns: ReplayColumn[];
 }) {
   const organization = useOrganization();
