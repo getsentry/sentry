@@ -518,7 +518,7 @@ class MetricsQueryBuilder(QueryBuilder):
                     resolved_item = self.resolve_tag_value(item)
                     if (
                         resolved_item is None
-                        and not self.builder_config.skip_field_validation_for_entity_deletion
+                        and not self.builder_config.skip_field_validation_for_entity_subscription_deletion
                     ):
                         raise IncompatibleMetricsQuery(f"{name} value {item} in filter not found")
                     resolved_value.append(resolved_item)
