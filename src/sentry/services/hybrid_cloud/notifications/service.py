@@ -4,9 +4,13 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 from abc import abstractmethod
-from typing import List, Mapping, Optional, Sequence, cast
+from typing import List, Mapping, Optional, Sequence, Tuple, cast
 
-from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
+from sentry.notifications.types import (
+    NotificationSettingEnum,
+    NotificationSettingOptionValues,
+    NotificationSettingTypes,
+)
 from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.services.hybrid_cloud.auth.model import AuthenticationContext
 from sentry.services.hybrid_cloud.filter_query import OpaqueSerializedResponse
@@ -135,6 +139,17 @@ class NotificationsService(RpcService):
     @rpc_method
     @abstractmethod
     def remove_notification_settings_for_project(self, *, project_id: int) -> None:
+        pass
+
+    @rpc_method
+    @abstractmethod
+    def get_subscriptions_for_groups(
+        self,
+        *,
+        user_id: int,
+        project_ids: List[int],
+        type: NotificationSettingEnum,
+    ) -> Mapping[int, Tuple[bool, bool]]:
         pass
 
 

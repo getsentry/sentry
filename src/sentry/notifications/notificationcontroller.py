@@ -1,17 +1,14 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import Iterable, List, Mapping, MutableMapping, Tuple, Union
+from typing import Iterable, Mapping, MutableMapping, Tuple, Union
 
 from django.db.models import Q
 
-from sentry.models.group import Group
-from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.team import Team
 from sentry.notifications.helpers import (
-    collect_groups_by_project,
     get_provider_defaults,
     get_type_defaults,
     recipient_is_team,
@@ -167,7 +164,6 @@ class NotificationController:
         scoped_settings = [project_settings, org_settings, user_settings]
 
         defaults = get_type_defaults()
-        # {recipient: {scope: {setting_type: setting_object | default}}
         layered_setting_options: MutableMapping[
             Recipient,
             MutableMapping[
@@ -184,7 +180,7 @@ class NotificationController:
                     for setting in scoped_settings:
                         s = setting.filter(user_or_team_filter, type=type.value)
                         if s.exists():
-                            most_specific_setting = s.first().value
+                            most_specific_setting = NotificationSettingsOptionEnum(s.first().value)
                             break
 
                     if most_specific_setting is None and type in defaults:
@@ -255,7 +251,9 @@ class NotificationController:
                         for setting in scoped_settings:
                             s = setting.filter(user_or_team_filter, type=type.value)
                             if s.exists():
-                                most_specific_setting = s.first().value
+                                most_specific_setting = NotificationSettingsOptionEnum(
+                                    s.first().value
+                                )
                                 break
 
                         if most_specific_setting is None:
@@ -384,9 +382,9 @@ class NotificationController:
 
         return result
 
-    def get_subscriptions_for_groups(
-        self, user: Recipient, groups: List[Group]
-    ) -> Mapping[int, tuple[bool, bool, GroupSubscription | None]]:
+    def get_subscriptions_status_for_groups(
+        self, user: Recipient
+    ) -> Mapping[int, Tuple[bool, bool]]:
         """
         Returns whether the user is subscribed for each group, and the subscription object if it exists.
         {group_id -> (is_disabled, is_active, subscription object)}
@@ -395,47 +393,20 @@ class NotificationController:
             raise Exception("Must specify type")
 
         enabled_settings = self.get_settings_options_for_user_by_projects(user)
-        query_groups = {
-            group
-            for group in groups
-            if (
-                enabled_settings[group.project][NotificationSettingEnum.WORKFLOW]
-                != NotificationSettingsOptionEnum.NEVER
-            )
-        }
-        subscriptions_by_group_id = {
-            subscription.group_id: subscription
-            for subscription in GroupSubscription.objects.filter(
-                group__in=query_groups, user_id=user.id
-            )
-        }
-        groups_by_project = collect_groups_by_project(groups)
-        results = {}
-        for project_id, group_set in groups_by_project.items():
-            enabled_setting = enabled_settings[project_id][self.type]
-            for group in group_set:
-                is_disabled = False
-                subscription = subscriptions_by_group_id.get(group.id)
-                if subscription:
-                    # Having a GroupSubscription overrides NotificationSettings.
-                    is_active = subscription.is_active
-                else:
-                    # If all the settings are disabled, thep rovider map will be empty.
-                    disabled_notifications = enabled_setting == {}
+        subscription_status_for_projects = {}
+        for project, type_setting in enabled_settings.items():
+            for type, setting in type_setting.items():
+                if type != self.type:
+                    continue
 
-                    if disabled_notifications:
-                        # The user has disabled notifications in all cases.
-                        is_disabled = True
-                        is_active = False
-                    else:
-                        # Since there is no subscription, it is only active if the value is ALWAYS.
-                        is_active = any(
-                            value == NotificationSettingsOptionEnum.ALWAYS
-                            for value in enabled_setting.values()
-                        )
+                subscription_status_for_projects[project] = (
+                    setting == {},
+                    any(
+                        value == NotificationSettingsOptionEnum.ALWAYS for value in setting.values()
+                    ),
+                )
 
-                results[group.id] = (is_disabled, is_active, subscription)
-        return results
+        return subscription_status_for_projects
 
     def user_has_any_provider_settings(self, provider: ExternalProviderEnum | None = None) -> bool:
         """

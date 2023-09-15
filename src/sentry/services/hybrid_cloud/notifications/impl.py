@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Callable, List, Mapping, Optional, Sequence
+from typing import Callable, List, Mapping, Optional, Sequence, Tuple
 
 from django.db import router, transaction
 from django.db.models import Q, QuerySet
@@ -9,8 +9,10 @@ from sentry.api.serializers.base import Serializer
 from sentry.api.serializers.models.notification_setting import NotificationSettingsSerializer
 from sentry.models import NotificationSetting, User
 from sentry.notifications.helpers import get_scope_type, is_double_write_enabled
+from sentry.notifications.notificationcontroller import NotificationController
 from sentry.notifications.types import (
     NotificationScopeType,
+    NotificationSettingEnum,
     NotificationSettingOptionValues,
     NotificationSettingTypes,
 )
@@ -24,6 +26,7 @@ from sentry.services.hybrid_cloud.notifications import NotificationsService, Rpc
 from sentry.services.hybrid_cloud.notifications.model import NotificationSettingFilterArgs
 from sentry.services.hybrid_cloud.notifications.serial import serialize_notification_setting
 from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.types.integrations import ExternalProviders
 
 
@@ -195,6 +198,24 @@ class DatabaseBackedNotificationsService(NotificationsService):
         auth_context: Optional[AuthenticationContext] = None,
     ) -> List[OpaqueSerializedResponse]:
         return self._FQ.serialize_many(filter, as_user, auth_context)
+
+    def get_subscriptions_for_groups(
+        self,
+        *,
+        user_id: int,
+        project_ids: List[int],
+        type: NotificationSettingEnum,
+    ) -> Mapping[int, Tuple[bool, bool]]:
+        user = user_service.get_user(user_id)
+        if not user:
+            return {}
+
+        controller = NotificationController(
+            recipients=[user],
+            project_ids=project_ids,
+            type=type,
+        )
+        return controller.get_subscriptions_status_for_groups(user=user)
 
     class _NotificationSettingsQuery(
         FilterQueryDatabaseImpl[
