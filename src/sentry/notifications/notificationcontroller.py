@@ -46,11 +46,7 @@ class NotificationController:
         self.type = type
         self.provider = provider
 
-        query = self._get_query(
-            recipients=self.recipients,
-            project_ids=self.project_ids,
-            organization_id=self.organization_id,
-        )
+        query = self._get_query()
         type_filter = Q(type=self.type.value) if self.type else Q()
         provider_filter = Q(provider=self.provider.value) if self.provider else Q()
         self._setting_options = NotificationSettingOption.objects.filter(query & type_filter)
@@ -64,12 +60,7 @@ class NotificationController:
     def get_all_setting_providers(self):
         return self._setting_providers
 
-    def _get_query(
-        self,
-        recipients: Iterable[RpcActor] | Iterable[Team] | Iterable[RpcUser] | None = None,
-        project_ids: Iterable[int] | None = None,
-        organization_id: int | None = None,
-    ) -> Q:
+    def _get_query(self) -> Q:
         """
         Generates a query for all settings for a project, org, user, or team.
 
@@ -78,11 +69,11 @@ class NotificationController:
             projects_ids: The projects to get notification settings for.
             organization_id: The organization to get notification settings for.
         """
-        if not recipients:
+        if not self.recipients:
             raise Exception("recipient, team_ids, or user_ids must be provided")
 
         user_ids, team_ids = [], []
-        for recipient in recipients:
+        for recipient in self.recipients:
             if recipient_is_user(recipient):
                 user_ids.append(recipient.id)
             elif recipient_is_team(recipient):
@@ -95,9 +86,9 @@ class NotificationController:
             Q(
                 (Q(user_id__in=user_ids) | Q(team_id__in=team_ids)),
                 scope_type=NotificationScopeEnum.PROJECT.value,
-                scope_identifier__in=project_ids,
+                scope_identifier__in=self.project_ids,
             )
-            if project_ids
+            if self.project_ids
             else Q()
         )
 
@@ -105,9 +96,9 @@ class NotificationController:
             Q(
                 (Q(user_id__in=user_ids) | Q(team_id__in=team_ids)),
                 scope_type=NotificationScopeEnum.ORGANIZATION.value,
-                scope_identifier=organization_id,
+                scope_identifier=self.organization_id,
             )
-            if organization_id
+            if self.organization_id
             else Q()
         )
 
