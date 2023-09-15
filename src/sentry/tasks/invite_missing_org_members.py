@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 def schedule_organizations():
     logger.info("invite_missing_org_members.schedule_organizations")
 
+    # NOTE: currently only for github
     github_org_integrations = integration_service.get_organization_integrations(
         providers=["github"], status=ObjectStatus.ACTIVE
     )
@@ -88,7 +89,7 @@ def send_nudge_email(org_id):
         )
 
     notification = MissingMembersNudgeNotification(
-        organization=organization, commit_authors=commit_authors
+        organization=organization, commit_authors=commit_authors, provider="github"
     )
 
     logger.info(
