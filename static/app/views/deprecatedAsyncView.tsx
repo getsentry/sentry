@@ -13,7 +13,7 @@ export type AsyncViewProps = DeprecatedAsyncComponent['props'];
  */
 export default class DeprecatedAsyncView<
   P extends AsyncViewProps = AsyncViewProps,
-  S extends AsyncViewState = AsyncViewState
+  S extends AsyncViewState = AsyncViewState,
 > extends DeprecatedAsyncComponent<P, S> {
   getTitle() {
     return '';

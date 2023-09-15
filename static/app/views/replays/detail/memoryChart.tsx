@@ -80,8 +80,8 @@ function MemoryChart({
           value => `
             <div>
               <span className="tooltip-label">${value.marker}<strong>${
-            value.seriesName
-          }</strong></span>
+                value.seriesName
+              }</strong></span>
           ${formatBytesBase2(value.data[1])}
             </div>
           `

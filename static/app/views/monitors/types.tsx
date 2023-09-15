@@ -64,7 +64,7 @@ export interface IntervalConfig extends BaseConfig {
    */
   schedule: [
     value: number,
-    interval: 'year' | 'month' | 'week' | 'day' | 'hour' | 'minute'
+    interval: 'year' | 'month' | 'week' | 'day' | 'hour' | 'minute',
   ];
   schedule_type: ScheduleType.INTERVAL;
 }
