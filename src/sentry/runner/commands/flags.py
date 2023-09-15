@@ -1,7 +1,9 @@
+import json  # noqa
+from datetime import datetime
+
 import click
 
 from sentry.runner.decorators import configuration
-from sentry.utils import json
 
 
 def _get_api_owners():
@@ -62,9 +64,13 @@ def create(scope, team, name, strategy):
     if name in flags_to_generate[team]:
         raise ValueError("Flag already exists")
 
-    flags_to_generate[team][name] = {"scope": scope, "strategy": strategy}
+    flags_to_generate[team][name] = {
+        "scope": scope,
+        "strategy": strategy,
+        "created": datetime.now().date().isoformat(),
+    }
 
     with open("src/sentry/features/generated_flags.json", "w") as f:
-        f.write(json.dumps(flags_to_generate, indent=2, sort_keys=True))
+        json.dump(flags_to_generate, f, indent=4, sort_keys=True)
 
     click.echo("Flag created successfully")
