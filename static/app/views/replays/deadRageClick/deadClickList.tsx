@@ -47,6 +47,7 @@ export default function DeadClickList({location}: Props) {
   const hasDeadCicks = organization.features.includes(
     'session-replay-rage-dead-selectors'
   );
+
   const {isLoading, isError, data, pageLinks} = useDeadRageSelectors({
     per_page: 50,
     sort: '-count_dead_clicks',
@@ -83,7 +84,7 @@ export default function DeadClickList({location}: Props) {
                 isLoading={isLoading}
                 location={location}
                 clickType="count_dead_clicks"
-                extraColumns={[{key: 'count_dead_clicks', name: 'dead clicks'}]}
+                clickCountColumn={{key: 'count_dead_clicks', name: 'dead clicks'}}
               />
             </LayoutGap>
             {

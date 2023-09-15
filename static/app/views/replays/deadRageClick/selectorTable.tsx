@@ -19,9 +19,9 @@ interface UrlState {
 }
 
 interface Props {
+  clickCountColumn: {key: string; name: string};
   clickType: 'count_dead_clicks' | 'count_rage_clicks';
   data: DeadRageSelectorItem[];
-  extraColumns: {key: string; name: string}[];
   isError: boolean;
   isLoading: boolean;
   location: Location<DeadRageSelectorQueryParams & UrlState>;
@@ -35,7 +35,7 @@ const BASE_COLUMNS: GridColumnOrder<string>[] = [
 
 export default function SelectorTable({
   clickType,
-  extraColumns,
+  clickCountColumn,
   isError,
   isLoading,
   data,
@@ -49,7 +49,7 @@ export default function SelectorTable({
   });
 
   const {columns, handleResizeColumn} = useQueryBasedColumnResize({
-    columns: BASE_COLUMNS.concat(extraColumns),
+    columns: BASE_COLUMNS.concat(clickCountColumn),
     location,
   });
 
@@ -60,9 +60,9 @@ export default function SelectorTable({
         makeSortLinkGenerator,
         onClick: () => {},
         rightAlignedColumns: [],
-        sortableColumns: [BASE_COLUMNS[1]].concat(extraColumns),
+        sortableColumns: [clickCountColumn],
       }),
-    [extraColumns, currentSort, makeSortLinkGenerator]
+    [clickCountColumn, currentSort, makeSortLinkGenerator]
   );
 
   const renderBodyCell = useCallback(
