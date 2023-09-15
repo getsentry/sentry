@@ -24,7 +24,7 @@ if TYPE_CHECKING:
     from sentry.models.organization import Organization
 
 
-class ReleaseStatusIndexSerializer(serializers.Serializer):
+class ReleaseThresholdStatusIndexSerializer(serializers.Serializer):
     start = serializers.DateTimeField(
         help_text="This defines the start of the time series range as an explicit datetime, either in UTC ISO8601 or epoch seconds."
         "Use along with `end`",
@@ -48,7 +48,7 @@ class ReleaseStatusIndexSerializer(serializers.Serializer):
 
 
 @region_silo_endpoint
-class ReleaseStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, EnvironmentMixin):
+class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, EnvironmentMixin):
     owner: ApiOwner = ApiOwner.ENTERPRISE
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
@@ -71,7 +71,7 @@ class ReleaseStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, EnvironmentMi
         project_ids_list = request.GET.getlist("project")
         release_ids_list = request.GET.getlist("release_id")
 
-        serializer = ReleaseStatusIndexSerializer(
+        serializer = ReleaseThresholdStatusIndexSerializer(
             data=request.query_params,
             context={  # do we need to pass in extra context?
                 "organization": organization,
