@@ -1686,6 +1686,8 @@ SENTRY_FEATURES = {
     "organizations:performance-issues-dev": False,
     # Enable performance issues detector threshold configuration
     "organizations:project-performance-settings-admin": False,
+    # Enable feature to load more than 100 rows in performance trace view.
+    "organizations:trace-view-load-more": False,
     # Enables updated all events tab in a performance issue
     "organizations:performance-issues-all-events-tab": False,
     # Temporary flag to test search performance that's running slow in S4S
@@ -1804,6 +1806,8 @@ SENTRY_FEATURES = {
     "projects:auto-associate-commits-to-release": False,
     # Starfish: extract metrics from the spans
     "projects:span-metrics-extraction": False,
+    "projects:span-metrics-extraction-ga-modules": False,
+    "projects:span-metrics-extraction-all-modules": False,
     # Metrics: Enable ingestion, storage, and rendering of custom metrics
     "organizations:custom-metrics": False,
     # Metrics: Enable creation of investigation dynamic sampling rules (rules that

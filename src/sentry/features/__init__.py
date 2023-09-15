@@ -139,6 +139,7 @@ default_manager.add("organizations:performance-issues-render-blocking-assets-det
 default_manager.add("organizations:performance-issues-http-overhead-detector", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:performance-issues-m-n-plus-one-db-detector", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:performance-issues-dev", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+default_manager.add("organizations:trace-view-load-more", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:project-performance-settings-admin", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:performance-issues-all-events-tab", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:performance-issues-search", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
@@ -304,6 +305,8 @@ default_manager.add("projects:similarity-indexing", ProjectFeature, FeatureHandl
 default_manager.add("projects:similarity-view", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("projects:suspect-resolutions", ProjectFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("projects:span-metrics-extraction", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
+default_manager.add("projects:span-metrics-extraction-ga-modules", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
+default_manager.add("projects:span-metrics-extraction-all-modules", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
 
 # Project plugin features
 default_manager.add("projects:plugins", ProjectPluginFeature, FeatureHandlerStrategy.INTERNAL)

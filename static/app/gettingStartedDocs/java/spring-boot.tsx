@@ -24,7 +24,7 @@ export enum PackageManager {
 
 type PlaformOptionKey = 'springBootVersion' | 'packageManager';
 
-interface StepProps {
+interface StepsParams {
   dsn: string;
   hasPerformance: boolean;
   organizationSlug?: string;
@@ -86,7 +86,7 @@ export const steps = ({
   springBootVersion,
   packageManager,
   hasPerformance,
-}: StepProps): LayoutProps['steps'] => [
+}: StepsParams): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
     configurations: [
