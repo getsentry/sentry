@@ -1,15 +1,14 @@
-{% extends "sentry/emails/base.html" %}
-{% load i18n %}
 
-{% block main %}
+Bring your full {{ provider }} team on board in Sentry
+
+There are {{ missing_member_count }} users that are active in your org on {{ provider }} but are not currently in Sentry based on recent commit data*.
+
+Top Most Active Contributors
+
 {% for member in missing_members %}
-
-{% for key, value in member.items %}
-<span>{{value}}</span>
+    {{ member.external_id }} {{ member.profile_link }}
+    {{ member.commit_count }} Recent Commits
+    {{ member.email }}
 {% endfor %}
 
-{% endfor %}
-
-{{members_list_url}}
-
-{% endblock %}
+View All Missing Members {{ members_list_url }}

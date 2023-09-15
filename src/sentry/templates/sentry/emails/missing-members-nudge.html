@@ -1,15 +1,76 @@
 {% extends "sentry/emails/base.html" %}
-{% load i18n %}
+{% load sentry_assets %}
+{% load i18n static %}
+
+
+{% block head %}
+  {{ block.super }}
+  <style type="text/css" inline="false">
+    .card-container {
+        display: flex;
+        width: 100%;
+        margin-top: 16px;
+        margin-bottom: 20px;
+        padding: 0px;
+        gap: 14px;
+    }
+
+    .user-container {
+        width: 33%;
+        border: 1px solid #E0DCE5;
+        border-radius: 4px;
+        padding: 16px 18px;
+    }
+
+    .user-row {
+        display: flex;
+        align-items: center;
+        margin-bottom: 2px;
+        font-size: 14px;
+        gap: 5px;
+    }
+
+    .subtitle {
+        font-size: 12px;
+    }
+
+    .email {
+        color: #80708F;
+        font-size: 12px;
+    }
+
+    .provider-logo {
+        max-width: 16px;
+    }
+  </style>
+{% endblock %}
 
 {% block main %}
-{% for member in missing_members %}
-<p>
-{% for key, value in member.items %}
-<span>{{value}}</span>
-{% endfor %}
-</p>
-{% endfor %}
+    <h3>Bring your full {{ provider }} team on board in Sentry</h3>
 
-{{members_list_url}}
+    <p>There are {{ missing_member_count }} users that are active in your org on {{ provider }} but are not currently in Sentry based on recent commit data*.</p>
+
+    <h5>Top Most Active Contributors</h5>
+
+    <div class="card-container">
+        {% for member in missing_members %}
+        <div class="user-container">
+            <div class="user-row">
+                {% if provider == "Github" %}
+                <img src="{% static 'sentry/images/logos/logo-github.svg' %}" class="provider-logo" alt="{{ provider }}"/>
+                {% endif %}
+
+                <span><a href="{{ member.profile_link }}">{{ member.external_id }}</a></span>
+            </div>
+            <div class="subtitle user-row">
+                <img src="{% static 'sentry/images/commit-icon.svg' %}" alt="Commits"/>
+                <span>{{ member.commit_count }} Recent Commits</span>
+            </div>
+            <div class="email">{{ member.email }}</div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <p><a href="{{ members_list_url }}" class="btn">View All Missing Members</a></p>
 
 {% endblock %}
