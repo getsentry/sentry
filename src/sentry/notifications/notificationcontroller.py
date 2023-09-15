@@ -382,12 +382,12 @@ class NotificationController:
 
         return result
 
-    def get_subscriptions_status_for_groups(
+    def get_subscriptions_status_for_projects(
         self, user: Recipient
     ) -> Mapping[int, Tuple[bool, bool]]:
         """
-        Returns whether the user is subscribed for each group, and the subscription object if it exists.
-        {group_id -> (is_disabled, is_active, subscription object)}
+        Returns whether the user is subscribed for each project, and the subscription object if it exists.
+        {project_id -> (is_disabled, is_active, subscription object)}
         """
         if not self.type:
             raise Exception("Must specify type")

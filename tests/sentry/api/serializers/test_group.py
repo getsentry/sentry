@@ -162,6 +162,10 @@ class GroupSerializerTest(TestCase, PerformanceIssueTestCase):
         assert result["isSubscribed"]
         assert result["subscriptionDetails"] == {"reason": "unknown"}
 
+        group_2 = self.create_group()
+        result = serialize(group_2, user)
+        assert result["isSubscribed"]
+
     def test_explicit_unsubscribed(self):
         user = self.create_user()
         group = self.create_group()

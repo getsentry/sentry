@@ -63,7 +63,6 @@ from sentry.notifications.notificationcontroller import NotificationController
 from sentry.notifications.types import (
     NotificationSettingEnum,
     NotificationSettingOptionValues,
-    NotificationSettingsOptionEnum,
     NotificationSettingTypes,
 )
 from sentry.roles import organization_roles
@@ -325,7 +324,11 @@ class ProjectSerializer(Serializer):
                         project_ids=project_ids,
                         type=NotificationSettingEnum.ISSUE_ALERTS,
                     )
-                    notification_setting_options = controller.get_layered_setting_options(user=user)
+                    subscriptions = controller.get_subscriptions_for_groups(
+                        user_id=user.id,
+                        project_ids=project_ids,
+                        type=NotificationSettingTypes.ISSUE_ALERTS,
+                    )
                 else:
                     notification_settings_by_scope = transform_to_notification_settings_by_scope(
                         notifications_service.get_settings_for_user_by_projects(
@@ -337,7 +340,7 @@ class ProjectSerializer(Serializer):
             else:
                 bookmarks = set()
                 if use_notifications_v2:
-                    notification_setting_options = {}
+                    subscriptions = {}
                 else:
                     notification_settings_by_scope = {}
 
@@ -386,13 +389,8 @@ class ProjectSerializer(Serializer):
                 # TODO(snigdha): why is this not included in the serializer
                 is_subscribed = False
                 if use_notifications_v2:
-                    provider_settings = notification_setting_options[project.id][
-                        NotificationSettingEnum.ISSUE_ALERTS
-                    ]
-                    is_subscribed = any(
-                        value == NotificationSettingsOptionEnum.ALWAYS
-                        for value in provider_settings.values()
-                    )
+                    (_, has_enabled_subscriptions) = subscriptions[project.id]
+                    is_subscribed = has_enabled_subscriptions
                 else:
                     value = get_most_specific_notification_setting_value(
                         notification_settings_by_scope,
