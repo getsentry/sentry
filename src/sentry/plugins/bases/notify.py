@@ -6,9 +6,10 @@ from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 from django import forms
 from requests.exceptions import HTTPError, SSLError
 
-from sentry import digests, features, ratelimits
+from sentry import digests, ratelimits
 from sentry.exceptions import InvalidIdentity, PluginError
 from sentry.models import NotificationSetting
+from sentry.notifications.helpers import should_use_notifications_v2
 from sentry.notifications.notificationcontroller import NotificationController
 from sentry.plugins.base import Notification, Plugin
 from sentry.plugins.base.configuration import react_plugin_config
@@ -143,7 +144,7 @@ class NotificationPlugin(Plugin):
         notifications for the provided project.
         """
         if self.get_conf_key() == "mail":
-            if features.has("organizations:notification-settings-v2", self.project.organization):
+            if should_use_notifications_v2(self.project.organization):
                 user_ids = list(project.member_set.values_list("user_id", flat=True))
                 users = user_service.get_many(filter={"user_ids": user_ids})
                 notification_controller = NotificationController(

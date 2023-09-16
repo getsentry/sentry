@@ -369,7 +369,7 @@ class NotificationController:
         ],
     ]:
         """
-        Returns a mapping of project IDs to notification settings for the given user.
+        Returns a mapping of project IDs to enabled notification settings for the given user.
         """
         if not self.project_ids:
             raise Exception("Must specify project_ids")

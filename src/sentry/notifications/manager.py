@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections import defaultdict
 from typing import (
     TYPE_CHECKING,
@@ -27,10 +28,12 @@ from sentry.notifications.helpers import (
     get_scope,
     get_scope_type,
     is_double_write_enabled,
+    should_use_notifications_v2,
     transform_to_notification_settings_by_recipient,
     validate,
     where_should_recipient_be_notified,
 )
+from sentry.notifications.notificationcontroller import NotificationController
 from sentry.notifications.types import (
     NOTIFICATION_SCOPE_TYPE,
     NOTIFICATION_SETTING_OPTION_VALUES,
@@ -57,6 +60,7 @@ if TYPE_CHECKING:
     from sentry.models import NotificationSetting, Organization, Project  # noqa: F401
 
 REMOVE_SETTING_BATCH_SIZE = 1000
+logger = logging.getLogger(__name__)
 
 
 class NotificationsManager(BaseManager["NotificationSetting"]):  # noqa: F821
@@ -428,6 +432,22 @@ class NotificationsManager(BaseManager["NotificationSetting"]):  # noqa: F821
         """
         recipient_actors = RpcActor.many_from_object(recipients)
 
+        organization, project_ids = None, None
+        if isinstance(parent, Project):
+            organization = parent.organization
+            project_ids = [parent.id]
+        else:
+            organization = parent.id
+
+        if should_use_notifications_v2(organization):
+            controller = NotificationController(
+                recipients=recipient_actors,
+                project_ids=project_ids,
+                organization_id=organization.id,
+            )
+            logger.warning("Missing upstream implementation for get_notification_recipients in v2")
+            return controller.get_notification_recipients(type=type)
+
         notification_settings = notifications_service.get_settings_for_recipient_by_parent(
             type=type, parent_id=parent.id, recipients=recipient_actors
         )
@@ -444,6 +464,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):  # noqa: F821
                 mapping[provider].add(recipient)
         return mapping
 
+    # TODO(snigdha): This can be removed in V2.
     def get_notification_recipients(
         self, project: Project
     ) -> Mapping[ExternalProviders, Iterable[RpcActor]]:

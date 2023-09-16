@@ -37,8 +37,10 @@ from sentry.models.projectownership import ProjectOwnership
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.notifications.helpers import (
     get_values_by_provider_by_type,
+    should_use_notifications_v2,
     transform_to_notification_settings_by_recipient,
 )
+from sentry.notifications.notificationcontroller import NotificationController
 from sentry.notifications.notify import notification_providers
 from sentry.notifications.types import (
     ActionTargetType,
@@ -548,9 +550,19 @@ def get_recipients_by_provider(
     users = recipients_by_type[ActorType.USER]
 
     # First evaluate the teams.
-    teams_by_provider = NotificationSetting.objects.filter_to_accepting_recipients(
-        project, teams, notification_type
-    )
+    teams_by_provider = None
+    if should_use_notifications_v2(project.organization):
+        controller = NotificationController(
+            recipients=users,
+            organization_id=project.organization_id,
+            project_ids=[project.id],
+            type=notification_type,
+        )
+        teams_by_provider = controller.get_notification_recipients(type=notification_type)
+    else:
+        teams_by_provider = NotificationSetting.objects.filter_to_accepting_recipients(
+            project, teams, notification_type
+        )
 
     # Teams cannot receive emails so omit EMAIL settings.
     teams_by_provider = {
@@ -563,8 +575,18 @@ def get_recipients_by_provider(
     users |= set(RpcActor.many_from_object(get_users_from_team_fall_back(teams, teams_by_provider)))
 
     # Repeat for users.
-    users_by_provider = NotificationSetting.objects.filter_to_accepting_recipients(
-        project, users, notification_type
-    )
+    users_by_provider = None
+    if should_use_notifications_v2(project.organization):
+        controller = NotificationController(
+            recipients=users,
+            organization_id=project.organization_id,
+            project_ids=[project.id],
+            type=notification_type,
+        )
+        teams_by_provider = controller.get_notification_recipients(type=notification_type)
+    else:
+        users_by_provider = NotificationSetting.objects.filter_to_accepting_recipients(
+            project, users, notification_type
+        )
 
     return combine_recipients_by_provider(teams_by_provider, users_by_provider)

@@ -3,6 +3,8 @@ from __future__ import annotations
 from typing import Any, Mapping
 
 from sentry.models import Activity, NotificationSetting, Organization, Team
+from sentry.notifications.helpers import should_use_notifications_v2
+from sentry.notifications.notificationcontroller import NotificationController
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
@@ -83,11 +85,24 @@ class AssignedActivityNotification(GroupActivityNotification):
             assignee_team = _get_team_option(assignee_id, self.organization)
 
             if assignee_team:
-                teams_by_provider = NotificationSetting.objects.filter_to_accepting_recipients(
-                    parent=self.project,
-                    recipients=[assignee_team],
-                    type=self.notification_setting_type,
-                )
+                teams_by_provider = None
+                if should_use_notifications_v2(self.project.organization):
+                    controller = NotificationController(
+                        recipients=[assignee_team],
+                        organization_id=self.project.organization_id,
+                        project_ids=[self.project.id],
+                        type=self.notification_setting_type,
+                    )
+                    teams_by_provider = controller.get_notification_recipients(
+                        type=self.notification_setting_type
+                    )
+                else:
+                    teams_by_provider = NotificationSetting.objects.filter_to_accepting_recipients(
+                        parent=self.project,
+                        recipients=[assignee_team],
+                        type=self.notification_setting_type,
+                    )
+
                 actors_by_provider = ParticipantMap()
                 actors_by_provider.update(users_by_provider)
                 for provider, teams in teams_by_provider.items():
