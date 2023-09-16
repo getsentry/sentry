@@ -733,6 +733,10 @@
     "sentry.Organization",
     "sentry.ProjectTeam"
   ],
+  "sentry.TeamReplica": [
+    "sentry.Organization",
+    "sentry.Team"
+  ],
   "sentry.TimeSeriesSnapshot": [],
   "sentry.User": [],
   "sentry.UserAvatar": [

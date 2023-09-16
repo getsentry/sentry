@@ -3240,6 +3240,23 @@
       "Region"
     ]
   },
+  "sentry.TeamReplica": {
+    "foreign_keys": {
+      "organization_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.Organization"
+      },
+      "team_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.Team"
+      }
+    },
+    "model": "sentry.TeamReplica",
+    "relocation_scope": "Excluded",
+    "silos": [
+      "Control"
+    ]
+  },
   "sentry.TimeSeriesSnapshot": {
     "foreign_keys": {},
     "model": "sentry.TimeSeriesSnapshot",

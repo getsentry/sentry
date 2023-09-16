@@ -4,10 +4,6 @@ from typing import Any, Callable, List, Optional, Sequence, Tuple
 import pytest
 
 from sentry.models import (
-    AuthIdentity,
-    AuthIdentityReplica,
-    AuthProvider,
-    AuthProviderReplica,
     Organization,
     OrganizationMember,
     OrganizationMemberTeam,
@@ -15,9 +11,7 @@ from sentry.models import (
     Team,
     TeamStatus,
     User,
-    outbox_context,
 )
-from sentry.services.hybrid_cloud.auth.serial import serialize_auth_provider
 from sentry.services.hybrid_cloud.organization import (
     RpcOrganization,
     RpcOrganizationMember,
@@ -30,7 +24,6 @@ from sentry.services.hybrid_cloud.project import RpcProject
 from sentry.silo import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import Factories
-from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
 
@@ -285,119 +278,6 @@ def test_options():
     assert organization_service.get_option(organization_id=org.id, key="test") == "a string"
     assert organization_service.get_option(organization_id=org.id, key="test2") is False
     assert organization_service.get_option(organization_id=org.id, key="test3") == 5
-
-
-@django_db_all(transaction=True)
-@all_silo_test(stable=True)
-def test_replicate_auth_provider():
-    user = Factories.create_user()
-    org = Factories.create_organization(owner=user)
-
-    with assume_test_silo_mode(SiloMode.REGION):
-        assert AuthProviderReplica.objects.count() == 0
-
-    with assume_test_silo_mode(SiloMode.CONTROL):
-        auth_provider = AuthProvider.objects.create(
-            organization_id=org.id, provider="abc", config={"a": 1}
-        )
-
-    with assume_test_silo_mode(SiloMode.REGION):
-        replicated = AuthProviderReplica.objects.get(organization_id=org.id)
-
-    assert replicated.auth_provider_id == auth_provider.id
-    assert replicated.provider == auth_provider.provider
-    assert replicated.config == auth_provider.config
-    assert replicated.default_role == auth_provider.default_role
-    assert replicated.default_global_access == auth_provider.default_global_access
-    assert replicated.scim_enabled == auth_provider.flags.scim_enabled
-    assert replicated.allow_unlinked == auth_provider.flags.allow_unlinked
-
-    with assume_test_silo_mode(SiloMode.CONTROL):
-        auth_provider.provider = "new_provider"
-        auth_provider.flags.scim_enabled = not auth_provider.flags.scim_enabled
-        auth_provider.save()
-
-    with assume_test_silo_mode(SiloMode.REGION):
-        replicated = AuthProviderReplica.objects.get(organization_id=org.id)
-
-    assert replicated.auth_provider_id == auth_provider.id
-    assert replicated.provider == auth_provider.provider
-    assert replicated.scim_enabled == auth_provider.flags.scim_enabled
-
-    serialized = serialize_auth_provider(auth_provider)
-    serialized.organization_id = 99999
-
-    # Should still succeed despite non existent organization
-    organization_service.upsert_replicated_auth_provider(auth_provider=serialized, region_name="us")
-
-
-@django_db_all(transaction=True)
-@all_silo_test(stable=True)
-def test_replicate_auth_identity():
-    user = Factories.create_user()
-    user2 = Factories.create_user()
-    user3 = Factories.create_user()
-    org = Factories.create_organization(owner=user)
-
-    with assume_test_silo_mode(SiloMode.REGION):
-        assert AuthIdentityReplica.objects.count() == 0
-
-    with assume_test_silo_mode(SiloMode.CONTROL):
-        auth_provider = AuthProvider.objects.create(
-            organization_id=org.id, provider="abc", config={"a": 1}
-        )
-        auth_identity = AuthIdentity.objects.create(
-            user=user, auth_provider=auth_provider, ident="some-ident", data={"b": 2}
-        )
-
-    with assume_test_silo_mode(SiloMode.REGION):
-        replicated = AuthIdentityReplica.objects.get(
-            ident=auth_identity.ident, auth_provider_id=auth_provider.id
-        )
-
-    assert replicated.auth_identity_id == auth_identity.id
-    assert replicated.auth_provider_id == auth_identity.auth_provider_id
-    assert replicated.user_id == auth_identity.user_id
-    assert replicated.data == auth_identity.data
-    assert replicated.ident == auth_identity.ident
-
-    with assume_test_silo_mode(SiloMode.CONTROL):
-        auth_identity.data = {"v": "new data"}
-        auth_identity.save()
-
-    with assume_test_silo_mode(SiloMode.REGION):
-        replicated = AuthIdentityReplica.objects.get(
-            ident=auth_identity.ident, auth_provider_id=auth_provider.id
-        )
-
-    assert replicated.auth_identity_id == auth_identity.id
-    assert replicated.data == auth_identity.data
-
-    with assume_test_silo_mode(SiloMode.CONTROL):
-        auth_identities = [
-            auth_identity,
-            AuthIdentity.objects.create(
-                user=user2, auth_provider=auth_provider, ident="some-ident-2", data={"b": 2}
-            ),
-            AuthIdentity.objects.create(
-                user=user3, auth_provider=auth_provider, ident="some-ident-3", data={"b": 2}
-            ),
-        ]
-        auth_idents = [ai.ident for ai in auth_identities]
-        conflicting_pairs = list(zip(auth_identities, [*auth_idents[1:], auth_idents[0]]))
-
-        with outbox_runner(), outbox_context(flush=False):
-            for ai in auth_identities:
-                ai.ident += "-new"
-                ai.save()
-
-            for ai, next_ident in conflicting_pairs:
-                ai.ident = next_ident
-                ai.save()
-
-        with assume_test_silo_mode(SiloMode.REGION):
-            for ai, next_ident in zip(auth_identities, [*auth_idents[1:], auth_idents[0]]):
-                assert AuthIdentityReplica.objects.get(auth_identity_id=ai.id).ident == next_ident
 
 
 class RpcOrganizationMemberTest(TestCase):

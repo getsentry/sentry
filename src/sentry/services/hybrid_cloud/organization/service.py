@@ -9,7 +9,6 @@ from typing import Any, Iterable, List, Mapping, Optional, Union, cast
 from django.dispatch import Signal
 
 from sentry.services.hybrid_cloud import OptionValue, silo_mode_delegation
-from sentry.services.hybrid_cloud.auth import RpcAuthIdentity, RpcAuthProvider
 from sentry.services.hybrid_cloud.organization.model import (
     RpcOrganization,
     RpcOrganizationFlagsUpdate,
@@ -280,20 +279,6 @@ class OrganizationService(RpcService):
     @regional_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
     def delete_option(self, *, organization_id: int, key: str) -> None:
-        pass
-
-    @regional_rpc_method(resolve=ByRegionName())
-    @abstractmethod
-    def upsert_replicated_auth_provider(
-        self, *, auth_provider: RpcAuthProvider, region_name: str
-    ) -> None:
-        pass
-
-    @regional_rpc_method(resolve=ByRegionName())
-    @abstractmethod
-    def upsert_replicated_auth_identity(
-        self, *, auth_identity: RpcAuthIdentity, region_name: str
-    ) -> None:
         pass
 
     @regional_rpc_method(resolve=ByOrganizationId())

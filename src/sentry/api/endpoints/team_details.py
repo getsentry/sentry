@@ -1,5 +1,6 @@
 from uuid import uuid4
 
+from django.db import router, transaction
 from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -160,11 +161,11 @@ class TeamDetailsEndpoint(TeamEndpoint):
         """
         suffix = uuid4().hex
         new_slug = f"{team.slug}-{suffix}"[0:50]
-        updated = Team.objects.filter(id=team.id, status=TeamStatus.ACTIVE).update(
-            slug=new_slug, status=TeamStatus.PENDING_DELETION
-        )
-        if updated:
-            scheduled = RegionScheduledDeletion.schedule(team, days=0, actor=request.user)
+        try:
+            with transaction.atomic(router.db_for_write(Team)):
+                team = Team.objects.get(id=team.id, status=TeamStatus.ACTIVE)
+                team.update(slug=new_slug, status=TeamStatus.PENDING_DELETION)
+                scheduled = RegionScheduledDeletion.schedule(team, days=0, actor=request.user)
             self.create_audit_entry(
                 request=request,
                 organization=team.organization,
@@ -173,5 +174,7 @@ class TeamDetailsEndpoint(TeamEndpoint):
                 data=team.get_audit_log_data(),
                 transaction_id=scheduled.id,
             )
+        except Team.DoesNotExist:
+            pass
 
         return Response(status=204)
