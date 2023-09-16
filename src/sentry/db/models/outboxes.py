@@ -272,7 +272,7 @@ def run_outbox_replications_for_self_hosted(*args: Any, **kwds: Any):
         logger.info(f"Processing {outbox_name}s...")
         outbox_model: Type[OutboxBase] = OutboxBase.from_outbox_name(outbox_name)
         for shard_attrs in outbox_model.find_scheduled_shards():
-            next_outbox: OutboxBase = outbox_model.prepare_next_from_shard(shard_attrs)
+            next_outbox: OutboxBase | None = outbox_model.prepare_next_from_shard(shard_attrs)
             if next_outbox is None:
                 continue
             try:
