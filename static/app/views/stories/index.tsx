@@ -1,7 +1,6 @@
 import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import Panel from 'sentry/components/panels/panel';
 import {FilesList} from 'sentry/constants/generated-ui-stories-list';
 import {space} from 'sentry/styles/space';
 import EmptyStory from 'sentry/views/stories/emptyStory';
@@ -24,20 +23,22 @@ export default function Stories({
   return (
     <Layout>
       <StoryHeader style={{gridArea: 'head'}} />
-      <StoryList style={{gridArea: 'list'}} files={FilesList} />
+      <aside style={{gridArea: 'aside'}}>
+        <StoryList files={FilesList} />
+      </aside>
 
       {story.error ? (
-        <MessageContainer style={{gridArea: 'body'}}>
+        <VerticalScroll style={{gridArea: 'body'}}>
           <ErrorStory error={story.error} />
-        </MessageContainer>
+        </VerticalScroll>
       ) : story.resolved ? (
-        <StyledPanel style={{gridArea: 'body'}}>
+        <Main style={{gridArea: 'body'}}>
           <StoryFile filename={story.filename} resolved={story.resolved} />
-        </StyledPanel>
+        </Main>
       ) : (
-        <MessageContainer style={{gridArea: 'body'}}>
+        <VerticalScroll style={{gridArea: 'body'}}>
           <EmptyStory />
-        </MessageContainer>
+        </VerticalScroll>
       )}
     </Layout>
   );
@@ -49,7 +50,7 @@ const Layout = styled('div')`
   display: grid;
   grid-template:
     'head head' max-content
-    'list body' auto/minmax(300px, max-content) 1fr;
+    'aside body' auto/minmax(300px, max-content) 1fr;
   gap: var(--stories-grid-space);
   place-items: stretch;
 
@@ -57,20 +58,23 @@ const Layout = styled('div')`
   padding: var(--stories-grid-space);
 `;
 
-const MessageContainer = styled('div')`
-  margin: 0;
-  padding: 0;
+const VerticalScroll = styled('main')`
   overflow-x: hidden;
   overflow-y: scroll;
 `;
 
-const StyledPanel = styled(Panel)`
-  margin: 0;
+/**
+ * Avoid <Panel> here because nested panels will have a modified theme.
+ * Therefore stories will look different in prod.
+ */
+const Main = styled(VerticalScroll)`
+  background: ${p => p.theme.background};
+  border-radius: ${p => p.theme.panelBorderRadius};
+  border: 1px solid ${p => p.theme.border};
+
   padding: var(--stories-grid-space);
   overflow-x: hidden;
   overflow-y: scroll;
 
-  /* TODO: See about this */
-  /* display: flex; */
-  /* overflow: auto; */
+  position: relative;
 `;
