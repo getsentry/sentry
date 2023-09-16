@@ -2,8 +2,8 @@
 
 from django.db import migrations
 
-from sentry.new_migrations.migrations import CheckedMigration
 from sentry.models import Organization
+from sentry.new_migrations.migrations import CheckedMigration
 
 
 def backfillin(apps, schema_editor):
@@ -31,6 +31,10 @@ class Migration(CheckedMigration):
         migrations.RunPython(
             backfillin,
             migrations.RunPython.noop,
-            hints={"tables": ["sentry_rule"]},
+            hints={
+                "tables": [
+                    "sentry_notificationsetting",
+                ]
+            },
         ),
     ]
