@@ -1207,14 +1207,17 @@ export default function IconsStories() {
 
   return (
     <Fragment>
-      <p>
-        In addition to icon name, you can also search by keyword. For example, typing
-        either 'checkmark' or 'success' will return IconCheckmark.
-      </p>
-      <Input
-        placeholder="Search icons by name or keyword"
-        onChange={e => setSearchTerm(e.target.value.toLowerCase())}
-      />
+      <Sticky>
+        <p>
+          In addition to icon name, you can also search by keyword. For example, typing
+          either <kbd>checkmark</kbd> or <kbd>success</kbd> will return{' '}
+          <samp>IconCheckmark</samp>.
+        </p>
+        <Input
+          placeholder="Search icons by name or keyword"
+          onChange={e => setSearchTerm(e.target.value.toLowerCase())}
+        />
+      </Sticky>
       <Section section={otherSection} />
       {filteredSections.map(section => (
         <Section key={section.id} section={section} />
@@ -1269,6 +1272,13 @@ function formatObjAsReactStatement(name, props: Record<string, unknown>) {
     })
     .join(' ')} />`;
 }
+
+const Sticky = styled('div')`
+  position: sticky;
+  top: 0;
+  background: white;
+  z-index: 1;
+`;
 
 const SectionHeader = styled('h5')`
   margin-block: ${space(2)};
