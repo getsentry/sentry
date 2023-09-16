@@ -100,6 +100,7 @@ class OutboxCategory(IntEnum):
 
     AUTH_PROVIDER_UPDATE = 24
     AUTH_IDENTITY_UPDATE = 25
+    ORGANIZATION_MEMBER_TEAM_UPDATE = 26
 
     @classmethod
     def as_choices(cls):
@@ -286,6 +287,7 @@ class OutboxScope(IntEnum):
             OutboxCategory.TEAM_UPDATE,
             OutboxCategory.AUTH_PROVIDER_UPDATE,
             OutboxCategory.AUTH_IDENTITY_UPDATE,
+            OutboxCategory.ORGANIZATION_MEMBER_TEAM_UPDATE,
         },
     )
     USER_SCOPE = scope_categories(

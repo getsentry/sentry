@@ -12,13 +12,15 @@ from sentry.models import (
     AuthProvider,
     AuthProviderReplica,
     Organization,
+    OrganizationMemberTeam,
+    OrganizationMemberTeamReplica,
     OutboxCategory,
     Team,
     User,
 )
 from sentry.models.teamreplica import TeamReplica
 from sentry.services.hybrid_cloud.auth import RpcAuthIdentity, RpcAuthProvider
-from sentry.services.hybrid_cloud.organization import RpcTeam
+from sentry.services.hybrid_cloud.organization import RpcOrganizationMemberTeam, RpcTeam
 from sentry.services.hybrid_cloud.replica.service import ControlReplicaService, RegionReplicaService
 
 
@@ -129,6 +131,18 @@ class DatabaseBackedRegionReplicaService(RegionReplicaService):
 
 
 class DatabaseBackedControlReplicaService(ControlReplicaService):
+    def upsert_replicated_organization_member_team(self, *, omt: RpcOrganizationMemberTeam) -> None:
+        destination = OrganizationMemberTeamReplica(
+            team_id=omt.team_id,
+            role=omt.role,
+            organization_id=omt.organization_id,
+            organizationmember_id=omt.organizationmember_id,
+            organizationmemberteam_id=omt.id,
+            is_active=omt.is_active,
+        )
+
+        handle_replication(OrganizationMemberTeam, destination)
+
     def upsert_replicated_team(self, *, team: RpcTeam) -> None:
         destination = TeamReplica(
             team_id=team.id,
