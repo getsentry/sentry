@@ -1557,7 +1557,7 @@ register(
 )
 
 register(
-    "outbox_replication.sentry_organizationmember_teamsreplica.replication_version",
+    "outbox_replication.sentry_organizationmember_teams.replication_version",
     type=Int,
     default=0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
