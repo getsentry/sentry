@@ -23,6 +23,7 @@ from sentry.sentry_metrics.indexer.limiters.cardinality import (
     TimeseriesCardinalityLimiter,
     cardinality_limiter_factory,
 )
+from sentry.sentry_metrics.indexer.mock import MockIndexer, RawSimpleIndexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.utils import json
 
@@ -316,7 +317,7 @@ def __translated_payload(
 @pytest.mark.django_db
 def test_process_messages() -> None:
     message_payloads = counter_payloads + distribution_payloads + set_payloads
-    message_batch: List[Any] = [
+    message_batch = [
         Message(
             BrokerValue(
                 KafkaPayload(None, json.dumps(payload).encode("utf-8"), []),
@@ -328,28 +329,31 @@ def test_process_messages() -> None:
         for i, payload in enumerate(message_payloads)
     ]
     # the outer message uses the last message's partition, offset, and timestamp
-    last: Any = message_batch[-1]
+    last = message_batch[-1]
 
     outer_message = Message(Value(message_batch, last.committable))
 
     new_batch = MESSAGE_PROCESSOR.process_messages(outer_message=outer_message)
-    expected_new_batch = [
-        Message(
-            BrokerValue(
-                KafkaPayload(
-                    None,
-                    json.dumps(__translated_payload(message_payloads[i])).encode("utf-8"),
-                    [
-                        ("metric_type", message_payloads[i]["type"]),
-                    ],
-                ),
-                m.value.partition,
-                m.value.offset,
-                m.value.timestamp,
+    expected_new_batch = []
+    for i, m in enumerate(message_batch):
+        assert isinstance(m.value, BrokerValue)
+        expected_new_batch.append(
+            Message(
+                BrokerValue(
+                    KafkaPayload(
+                        None,
+                        json.dumps(__translated_payload(message_payloads[i])).encode("utf-8"),
+                        [
+                            ("metric_type", message_payloads[i]["type"]),
+                        ],
+                    ),
+                    m.value.partition,
+                    m.value.offset,
+                    m.value.timestamp,
+                )
             )
         )
-        for i, m in enumerate(message_batch)
-    ]
+
     compare_message_batches_ignoring_metadata(new_batch, expected_new_batch)
 
 
@@ -524,18 +528,21 @@ def test_process_messages_rate_limited(caplog, settings) -> None:
         get_ingest_config(UseCaseKey.PERFORMANCE, IndexerStorage.MOCK)
     )
     # Insert a None-value into the mock-indexer to simulate a rate-limit.
-    mock_indexer: Any = message_processor._indexer
-    rgx: Any = re.compile("^([c|s|d|g|e]):([a-zA-Z0-9_]+)/.*$").match(
-        distribution_payloads[0]["name"]
-    )
-    mock_indexer.indexer._strings[UseCaseID(rgx.group(2))][1]["rate_limited_test"] = None
+    mock_indexer = message_processor._indexer
+    assert isinstance(mock_indexer, MockIndexer)
+    raw_simple_string_indexer = mock_indexer.indexer
+    assert isinstance(raw_simple_string_indexer, RawSimpleIndexer)
+    rgx = re.compile("^([c|s|d|g|e]):([a-zA-Z0-9_]+)/.*$").match(distribution_payloads[0]["name"])
+    assert rgx is not None
+    raw_simple_string_indexer._strings[UseCaseID(rgx.group(2))][1]["rate_limited_test"] = None
 
     with caplog.at_level(logging.ERROR):
         new_batch = message_processor.process_messages(outer_message=outer_message)
 
     # we expect just the counter_payload msg to be left, as that one didn't
     # cause/depend on string writes that have been rate limited
-    expected_msg: Any = message_batch[0]
+    expected_msg = message_batch[0]
+    assert isinstance(expected_msg.value, BrokerValue)
     expected_new_batch = [
         Message(
             BrokerValue(
