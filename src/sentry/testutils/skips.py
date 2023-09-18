@@ -7,7 +7,8 @@ from urllib.parse import urlparse
 
 import pytest
 from django.conf import settings
-from runner.commands.devservices import check_health
+
+from sentry.runner.commands.devservices import check_health
 
 T = TypeVar("T", bound=Callable[..., Any])
 
