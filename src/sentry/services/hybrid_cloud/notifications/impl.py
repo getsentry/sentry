@@ -172,12 +172,9 @@ class DatabaseBackedNotificationsService(NotificationsService):
             team_ids=team_ids, user_ids=user_ids, provider=provider
         ).delete()
         # delete all options for team/user
-        NotificationSettingOption.objects.filter(
-            team_id__in=team_ids, user_id__in=user_ids
-        ).delete()
-        NotificationSettingProvider.objects.filter(
-            team_id__in=team_ids, user_id__in=user_ids
-        ).delete()
+        query_args = {"team_id": team_id, "user_id": user_id}
+        NotificationSettingOption.objects.filter(**query_args).delete()
+        NotificationSettingProvider.objects.filter(**query_args).delete()
 
     def remove_notification_settings_for_team(
         self, *, team_id: int, provider: ExternalProviders
