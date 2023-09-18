@@ -62,16 +62,6 @@ def get_notification_uuid(url: str):
     return notification_uuid
 
 
-# The analytics event `name` was called with `kwargs` being a subset of its properties
-def analytics_called_with_args(fn, name, **kwargs):
-    for call_args, call_kwargs in fn.call_args_list:
-        event_name = call_args[0]
-        if event_name == name:
-            assert all(call_kwargs.get(key, None) == val for key, val in kwargs.items())
-            return True
-    return False
-
-
 @control_silo_test(stable=True)
 class ActivityNotificationTest(APITestCase):
     """
@@ -227,7 +217,7 @@ class ActivityNotificationTest(APITestCase):
             attachment["footer"]
             == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=resolved_activity-slack-user&notification_uuid={notification_uuid}|Notification Settings>"
         )
-        assert analytics_called_with_args(
+        assert self.analytics_called_with_args(
             record_analytics,
             "integrations.email.notification_sent",
             user_id=self.user.id,
@@ -235,7 +225,7 @@ class ActivityNotificationTest(APITestCase):
             group_id=self.group.id,
             notification_uuid=notification_uuid,
         )
-        assert analytics_called_with_args(
+        assert self.analytics_called_with_args(
             record_analytics,
             "integrations.slack.notification_sent",
             user_id=self.user.id,
@@ -290,7 +280,7 @@ class ActivityNotificationTest(APITestCase):
             attachment["footer"]
             == f"{self.project.slug} | <http://testserver/settings/account/notifications/deploy/?referrer=release_activity-slack-user&notification_uuid={notification_uuid}|Notification Settings>"
         )
-        assert analytics_called_with_args(
+        assert self.analytics_called_with_args(
             record_analytics,
             "integrations.email.notification_sent",
             user_id=self.user.id,
@@ -298,7 +288,7 @@ class ActivityNotificationTest(APITestCase):
             group_id=None,
             notification_uuid=notification_uuid,
         )
-        assert analytics_called_with_args(
+        assert self.analytics_called_with_args(
             record_analytics,
             "integrations.slack.notification_sent",
             user_id=self.user.id,
@@ -353,7 +343,7 @@ class ActivityNotificationTest(APITestCase):
             attachment["footer"]
             == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=regression_activity-slack-user&notification_uuid={notification_uuid}|Notification Settings>"
         )
-        assert analytics_called_with_args(
+        assert self.analytics_called_with_args(
             record_analytics,
             "integrations.email.notification_sent",
             user_id=self.user.id,
@@ -361,7 +351,7 @@ class ActivityNotificationTest(APITestCase):
             group_id=group.id,
             notification_uuid=notification_uuid,
         )
-        assert analytics_called_with_args(
+        assert self.analytics_called_with_args(
             record_analytics,
             "integrations.slack.notification_sent",
             user_id=self.user.id,
@@ -410,7 +400,7 @@ class ActivityNotificationTest(APITestCase):
             attachment["footer"]
             == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=resolved_in_release_activity-slack-user&notification_uuid={notification_uuid}|Notification Settings>"
         )
-        assert analytics_called_with_args(
+        assert self.analytics_called_with_args(
             record_analytics,
             "integrations.email.notification_sent",
             user_id=self.user.id,
@@ -418,7 +408,7 @@ class ActivityNotificationTest(APITestCase):
             group_id=self.group.id,
             notification_uuid=notification_uuid,
         )
-        assert analytics_called_with_args(
+        assert self.analytics_called_with_args(
             record_analytics,
             "integrations.slack.notification_sent",
             user_id=self.user.id,
@@ -491,7 +481,7 @@ class ActivityNotificationTest(APITestCase):
             attachment["footer"]
             == f"{self.project.slug} | <http://testserver/settings/account/notifications/alerts/?referrer=issue_alert-slack-user&notification_uuid={notification_uuid}|Notification Settings>"
         )
-        assert analytics_called_with_args(
+        assert self.analytics_called_with_args(
             record_analytics,
             "integrations.email.notification_sent",
             user_id=self.user.id,
@@ -499,7 +489,7 @@ class ActivityNotificationTest(APITestCase):
             group_id=event.group_id,
             notification_uuid=notification_uuid,
         )
-        assert analytics_called_with_args(
+        assert self.analytics_called_with_args(
             record_analytics,
             "integrations.slack.notification_sent",
             user_id=self.user.id,

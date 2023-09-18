@@ -692,6 +692,90 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         rule = Rule.objects.get(id=rule.id)
         assert rule.status == ObjectStatus.ACTIVE
 
+    @patch("sentry.analytics.record")
+    def test_rule_disable_opt_out_explicit(self, record_analytics):
+        """Test that if a user explicitly opts out of their neglected rule being migrated
+        to being disabled (by clicking a button on the front end), that we mark it as opted out.
+        """
+        rule = Rule.objects.create(
+            label="hello world",
+            project=self.project,
+            data={
+                "conditions": self.first_seen_condition,
+                "actions": [],
+                "action_match": "all",
+                "filter_match": "all",
+            },
+        )
+        now = datetime.now().replace(tzinfo=timezone.utc)
+        NeglectedRule.objects.create(
+            rule=rule,
+            organization=self.organization,
+            opted_out=False,
+            disable_date=now + timedelta(days=14),
+        )
+        payload = {
+            "name": "hellooo world",
+            "actionMatch": "all",
+            "actions": self.notify_issue_owners_action,
+            "conditions": self.first_seen_condition,
+            "optOutExplicit": True,
+        }
+        self.get_success_response(
+            self.organization.slug, self.project.slug, rule.id, status_code=200, **payload
+        )
+        assert self.analytics_called_with_args(
+            record_analytics,
+            "rule_disable_opt_out.explicit",
+            rule_id=rule.id,
+            user_id=self.user.id,
+            organization_id=self.organization.id,
+        )
+        neglected_rule = NeglectedRule.objects.get(rule=rule)
+        assert neglected_rule.opted_out is True
+
+    @patch("sentry.analytics.record")
+    def test_rule_disable_opt_out_edit(self, record_analytics):
+        """Test that if a user passively opts out of their neglected rule being migrated
+        to being disabled (by editing the rule), that we mark it as opted out.
+        """
+        rule = Rule.objects.create(
+            label="hello world",
+            project=self.project,
+            data={
+                "conditions": self.first_seen_condition,
+                "actions": [],
+                "action_match": "all",
+                "filter_match": "all",
+            },
+        )
+        now = datetime.now().replace(tzinfo=timezone.utc)
+        NeglectedRule.objects.create(
+            rule=rule,
+            organization=self.organization,
+            opted_out=False,
+            disable_date=now + timedelta(days=14),
+        )
+        payload = {
+            "name": "hellooo world",
+            "actionMatch": "all",
+            "actions": self.notify_issue_owners_action,
+            "conditions": self.first_seen_condition,
+            "optOutEdit": True,
+        }
+        self.get_success_response(
+            self.organization.slug, self.project.slug, rule.id, status_code=200, **payload
+        )
+        assert self.analytics_called_with_args(
+            record_analytics,
+            "rule_disable_opt_out.edit",
+            rule_id=rule.id,
+            user_id=self.user.id,
+            organization_id=self.organization.id,
+        )
+        neglected_rule = NeglectedRule.objects.get(rule=rule)
+        assert neglected_rule.opted_out is True
+
     def test_with_environment(self):
         payload = {
             "name": "hello world",
