@@ -358,7 +358,7 @@ def count_performance_issues(trace_id: str, params: Mapping[str, str]) -> int:
 
 
 def query_trace_data(
-    trace_id: str, params: Mapping[str, str]
+    trace_id: str, params: Mapping[str, str], limit: int
 ) -> Tuple[Sequence[SnubaTransaction], Sequence[SnubaError]]:
     transaction_query = QueryBuilder(
         Dataset.Transactions,
@@ -380,7 +380,7 @@ def query_trace_data(
         # We want to guarantee at least getting the root, and hopefully events near it with timestamp
         # id is just for consistent results
         orderby=["-root", "timestamp", "id"],
-        limit=MAX_TRACE_SIZE,
+        limit=limit,
     )
     occurrence_query = QueryBuilder(
         Dataset.IssuePlatform,
@@ -414,7 +414,7 @@ def query_trace_data(
         ],
         # Don't add timestamp to this orderby as snuba will have to split the time range up and make multiple queries
         orderby=["id"],
-        limit=MAX_TRACE_SIZE,
+        limit=limit,
         config=QueryBuilderConfig(
             auto_fields=False,
         ),
@@ -526,7 +526,18 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
         except NoProjects:
             return Response(status=404)
 
+        trace_view_load_more_enabled = features.has(
+            "organizations:trace-view-load-more",
+            organization,
+            actor=request.user,
+        )
+
         detailed: bool = request.GET.get("detailed", "0") == "1"
+        limit: int = (
+            min(int(request.GET.get("limit", MAX_TRACE_SIZE)), 2000)
+            if trace_view_load_more_enabled
+            else MAX_TRACE_SIZE
+        )
         event_id: Optional[str] = request.GET.get("event_id")
 
         # Only need to validate event_id as trace_id is validated in the URL
@@ -539,7 +550,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
             actor=request.user,
         )
         with self.handle_query_errors():
-            transactions, errors = query_trace_data(trace_id, params)
+            transactions, errors = query_trace_data(trace_id, params, limit)
             if len(transactions) == 0 and not tracing_without_performance_enabled:
                 return Response(status=404)
             self.record_analytics(transactions, trace_id, self.request.user.id, organization.id)
@@ -562,6 +573,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
 
         return Response(
             self.serialize(
+                limit,
                 transactions,
                 errors,
                 roots,
@@ -636,6 +648,7 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
 
     def serialize(
         self,
+        limit: int,
         transactions: Sequence[SnubaTransaction],
         errors: Sequence[SnubaError],
         roots: Sequence[SnubaTransaction],
@@ -763,7 +776,7 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
 @region_silo_endpoint
 class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
     @staticmethod
-    def update_children(event: TraceEvent) -> None:
+    def update_children(event: TraceEvent, limit: int) -> None:
         """Updates the children of subtraces
 
         - Generation could be incorrect from orphans where we've had to reconnect back to an orphan event that's
@@ -772,7 +785,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
         """
         parents = [event]
         iteration = 0
-        while parents and iteration < MAX_TRACE_SIZE:
+        while parents and iteration < limit:
             iteration += 1
             parent = parents.pop()
             parent.children.sort(key=child_sort_key)
@@ -782,6 +795,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
 
     def serialize(
         self,
+        limit: int,
         transactions: Sequence[SnubaTransaction],
         errors: Sequence[SnubaError],
         roots: Sequence[SnubaTransaction],
@@ -906,7 +920,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                         to_check.append(child_event)
                 # Limit iterations just to be safe
                 iteration += 1
-                if iteration > MAX_TRACE_SIZE:
+                if iteration > limit:
                     sentry_sdk.set_tag("discover.trace-view.warning", "surpassed-trace-limit")
                     logger.warning(
                         "discover.trace-view.surpassed-trace-limit",
@@ -917,21 +931,21 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
         # We are now left with orphan errors in the error_map,
         # that we need to serialize and return with our results.
         orphan_errors: List[TraceError] = []
-        if allow_orphan_errors and iteration <= MAX_TRACE_SIZE:
+        if allow_orphan_errors and iteration <= limit:
             for errors in error_map.values():
                 for error in errors:
                     orphan_errors.append(self.serialize_error(error))
                     iteration += 1
-                    if iteration > MAX_TRACE_SIZE:
+                    if iteration > limit:
                         break
-                if iteration > MAX_TRACE_SIZE:
+                if iteration > limit:
                     break
 
         root_traces: List[TraceEvent] = []
         orphans: List[TraceEvent] = []
         for index, result in enumerate(results_map.values()):
             for subtrace in result:
-                self.update_children(subtrace)
+                self.update_children(subtrace, limit)
             if index > 0 or len(roots) == 0:
                 orphans.extend(result)
             elif len(roots) > 0:

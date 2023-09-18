@@ -62,10 +62,10 @@ class AuthProvider(ReplicatedControlModel):
 
     def handle_async_replication(self, region_name: str, shard_identifier: int) -> None:
         from sentry.services.hybrid_cloud.auth.serial import serialize_auth_provider
-        from sentry.services.hybrid_cloud.organization.service import organization_service
+        from sentry.services.hybrid_cloud.replica.service import region_replica_service
 
         serialized = serialize_auth_provider(self)
-        organization_service.upsert_replicated_auth_provider(
+        region_replica_service.upsert_replicated_auth_provider(
             auth_provider=serialized, region_name=region_name
         )
 

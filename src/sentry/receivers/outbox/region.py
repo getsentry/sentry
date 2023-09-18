@@ -12,13 +12,13 @@ from typing import Any
 from django.dispatch import receiver
 
 from sentry.models import (
+    AuthProviderReplica,
     Organization,
     OrganizationMember,
     OutboxCategory,
     Project,
     process_region_outbox,
 )
-from sentry.models.team import Team
 from sentry.receivers.outbox import maybe_process_tombstone
 from sentry.services.hybrid_cloud.auth import auth_service
 from sentry.services.hybrid_cloud.identity import identity_service
@@ -74,13 +74,6 @@ def process_organization_member_updates(
     )
 
 
-@receiver(process_region_outbox, sender=OutboxCategory.TEAM_UPDATE)
-def process_team_updates(
-    object_identifier: int, payload: Any, shard_identifier: int, **kwargs: Any
-):
-    maybe_process_tombstone(Team, object_identifier)
-
-
 @receiver(process_region_outbox, sender=OutboxCategory.PROJECT_UPDATE)
 def process_project_updates(object_identifier: int, **kwds: Any):
     if (proj := maybe_process_tombstone(Project, object_identifier)) is None:
@@ -102,5 +95,6 @@ def process_organization_mapping_customer_id_update(
 
 
 @receiver(process_region_outbox, sender=OutboxCategory.DISABLE_AUTH_PROVIDER)
-def process_disable_auth_provider(object_identifier: int, **kwds: Any):
+def process_disable_auth_provider(object_identifier: int, shard_identifier: int, **kwds: Any):
     auth_service.disable_provider(provider_id=object_identifier)
+    AuthProviderReplica.objects.filter(auth_provider_id=object_identifier).delete()

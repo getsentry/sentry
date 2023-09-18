@@ -282,6 +282,7 @@ class OutboxScope(IntEnum):
             OutboxCategory.DISABLE_AUTH_PROVIDER,
             OutboxCategory.ORGANIZATION_MAPPING_CUSTOMER_ID_UPDATE,
             OutboxCategory.AUTH_PROVIDER_UPDATE,
+            OutboxCategory.TEAM_UPDATE,
         },
     )
     USER_SCOPE = scope_categories(
@@ -315,11 +316,10 @@ class OutboxScope(IntEnum):
             OutboxCategory.SENTRY_APP_INSTALLATION_UPDATE,
         },
     )
+    # Deprecate?
     TEAM_SCOPE = scope_categories(
         7,
-        {
-            OutboxCategory.TEAM_UPDATE,
-        },
+        set(),
     )
     PROVISION_SCOPE = scope_categories(
         8,
@@ -342,8 +342,6 @@ class OutboxScope(IntEnum):
             return "organization_id"
         if scope == OutboxScope.USER_SCOPE:
             return "user_id"
-        if scope == OutboxScope.TEAM_SCOPE:
-            return "team_id"
         if scope == OutboxScope.APP_SCOPE:
             return "app_id"
 
@@ -552,6 +550,7 @@ class OutboxBase(Model):
                 "outbox.coalesced_net_queue_time",
                 datetime.datetime.now(tz=datetime.timezone.utc).timestamp()
                 - first_coalesced.date_added.timestamp(),
+                tags=tags,
             )
 
         yield coalesced

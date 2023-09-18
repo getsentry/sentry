@@ -174,7 +174,7 @@ class DatabaseBackedUserService(UserService):
 
     def get_or_create_user_by_email(self, *, email: str) -> RpcUser:
         with transaction.atomic(router.db_for_write(User)):
-            user_query = User.objects.filter(email__iexact=email)
+            user_query = User.objects.filter(email__iexact=email, is_active=True)
             # Create User if it doesn't exist
             if not user_query.exists():
                 user = User.objects.create(
@@ -186,7 +186,7 @@ class DatabaseBackedUserService(UserService):
                 # Users are not supposed to have the same email but right now our auth pipeline let this happen
                 # So let's not break the user experience
                 if user_query.count() > 1:
-                    logger.error(f"email {email} has more than 1 user")
+                    logger.warning("Email has multiple users", extra={"email": email})
                 user = user_query[0]
             return serialize_rpc_user(user)
 

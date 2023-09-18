@@ -29,7 +29,9 @@ TEST_REDIS_DB = 9
 
 
 def configure_split_db() -> None:
-    if "control" in settings.DATABASES:
+    SENTRY_USE_MONOLITH_DBS = bool(os.environ.get("SENTRY_USE_MONOLITH_DBS"))
+    already_configured = "control" in settings.DATABASES
+    if already_configured or SENTRY_USE_MONOLITH_DBS:
         return
     # Add connections for the region & control silo databases.
     settings.DATABASES["control"] = settings.DATABASES["default"].copy()
@@ -383,7 +385,7 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
 
     total_groups = int(os.environ.get("TOTAL_TEST_GROUPS", 1))
     current_group = int(os.environ.get("TEST_GROUP", 0))
-    grouping_strategy = os.environ.get("TEST_GROUP_STRATEGY", "file")
+    grouping_strategy = os.environ.get("TEST_GROUP_STRATEGY", "scope")
 
     keep, discard = [], []
 
@@ -391,8 +393,8 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
         # In the case where we group by round robin (e.g. TEST_GROUP_STRATEGY is not `file`),
         # we want to only include items in `accepted` list
         item_to_group = (
-            int(md5(str(item.location[0]).encode("utf-8")).hexdigest(), 16)
-            if grouping_strategy == "file"
+            int(md5(item.nodeid.rsplit("::", 1)[0].encode()).hexdigest(), 16)
+            if grouping_strategy == "scope"
             else index
         )
 
