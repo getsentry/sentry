@@ -1,3 +1,4 @@
+import io
 from typing import Any
 from unittest.mock import patch
 
@@ -6,9 +7,14 @@ from minimetrics.transport import MetricEnvelopeTransport, RelayStatsdEncoder
 from minimetrics.types import BucketKey
 
 
-def test_relay_encoder_with_counter():
+def encode_metric(value):
     encoder = RelayStatsdEncoder()
+    out = io.BytesIO()
+    encoder._encode(value, out)
+    return out.getvalue().decode("utf-8")
 
+
+def test_relay_encoder_with_counter():
     bucket_key: BucketKey = (
         1693994400,
         "c",
@@ -22,13 +28,11 @@ def test_relay_encoder_with_counter():
     metric = CounterMetric(first=2)
     flushed_metric = (bucket_key, metric)
 
-    result = encoder.encode(flushed_metric)
+    result = encode_metric(flushed_metric)
     assert result == "button_click@none:2|c|#browser:Chrome,browser.version:1.0|T1693994400"
 
 
 def test_relay_encoder_with_distribution():
-    encoder = RelayStatsdEncoder()
-
     bucket_key: BucketKey = (
         1693994400,
         "d",
@@ -44,7 +48,7 @@ def test_relay_encoder_with_distribution():
     metric.add(3.0)
     flushed_metric = (bucket_key, metric)
 
-    result = encoder.encode(flushed_metric)
+    result = encode_metric(flushed_metric)
     assert (
         result
         == "execution_time@second:1.0:0.5:3.0|d|#browser:Chrome,browser.version:1.0|T1693994400"
@@ -52,8 +56,6 @@ def test_relay_encoder_with_distribution():
 
 
 def test_relay_encoder_with_set():
-    encoder = RelayStatsdEncoder()
-
     bucket_key: BucketKey = (
         1693994400,
         "s",
@@ -69,7 +71,7 @@ def test_relay_encoder_with_set():
     metric.add("riccardo")
     flushed_metric = (bucket_key, metric)
 
-    result = encoder.encode(flushed_metric)
+    result = encode_metric(flushed_metric)
     pieces = result.split("|")
 
     m = pieces[0].split(":")
@@ -82,8 +84,6 @@ def test_relay_encoder_with_set():
 
 
 def test_relay_encoder_with_gauge():
-    encoder = RelayStatsdEncoder()
-
     bucket_key: BucketKey = (
         1693994400,
         "g",
@@ -99,7 +99,7 @@ def test_relay_encoder_with_gauge():
     metric.add(7.0)
     flushed_metric = (bucket_key, metric)
 
-    result = encoder.encode(flushed_metric)
+    result = encode_metric(flushed_metric)
     assert (
         result
         == "startup_time@second:7.0:5.0:10.0:22.0:3|g|#browser:Chrome,browser.version:1.0|T1693994400"
@@ -107,8 +107,6 @@ def test_relay_encoder_with_gauge():
 
 
 def test_relay_encoder_with_invalid_chars():
-    encoder = RelayStatsdEncoder()
-
     bucket_key: BucketKey = (
         1693994400,
         "c",
@@ -130,7 +128,7 @@ def test_relay_encoder_with_invalid_chars():
     metric = CounterMetric(first=1)
     flushed_metric = (bucket_key, metric)
 
-    result = encoder.encode(flushed_metric)
+    result = encode_metric(flushed_metric)
     assert (
         result
         == "bttn_click@second:1|c|#browsername:Chrome,browser.version:1.0,platform:Android,version:|T1693994400"
@@ -146,7 +144,7 @@ def test_relay_encoder_with_invalid_chars():
     metric = CounterMetric(first=1)
     flushed_metric = (bucket_key, metric)
 
-    assert encoder.encode(flushed_metric) == "invalid-metric-name@second:1|c|T1693994400"
+    assert encode_metric(flushed_metric) == "invalid-metric-name@second:1|c|T1693994400"
 
 
 def test_relay_encoder_with_multiple_metrics():
@@ -196,14 +194,12 @@ def test_relay_encoder_with_multiple_metrics():
     )
 
     metrics: Any = [flushed_metric_1, flushed_metric_2, flushed_metric_3]
-    result = encoder.encode_multiple(metrics)
+    result = encoder.encode_multiple(metrics).decode("utf-8")
 
     assert result == (
-        "startup_time@second:10.0:10.0:10.0:10.0:1|g|#browser:Chrome,browser.version:1.0|T1693994400"
-        + "\n"
-        + "button_click@none:1|c|#browser:Chrome,browser.version:1.0|T1693994400"
-        + "\n"
-        + "invalid-metric-name@none:1|c|#browser:Chrome,browser.version:1.0|T1693994400"
+        "startup_time@second:10.0:10.0:10.0:10.0:1|g|#browser:Chrome,browser.version:1.0|T1693994400\n"
+        "button_click@none:1|c|#browser:Chrome,browser.version:1.0|T1693994400\n"
+        "invalid-metric-name@none:1|c|#browser:Chrome,browser.version:1.0|T1693994400\n"
     )
 
 
