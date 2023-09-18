@@ -13,12 +13,8 @@ import useStoriesLoader from 'sentry/views/stories/useStoriesLoader';
 
 type Props = RouteComponentProps<{}, {}, any, StoriesQuery>;
 
-export default function Stories({
-  location: {
-    query: {name: filename},
-  },
-}: Props) {
-  const story = useStoriesLoader({filename});
+export default function Stories({location}: Props) {
+  const story = useStoriesLoader({filename: location.query.name});
 
   return (
     <Layout>

@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {useCallback, useEffect, useState} from 'react';
 
 import storiesContext from 'sentry/views/stories/storiesContext';
 import type {ResolvedStoryModule} from 'sentry/views/stories/types';
@@ -16,7 +16,6 @@ interface EmptyState {
 interface ResolvedState {
   error: undefined;
   filename: string;
-
   resolved: ResolvedStoryModule;
 }
 
@@ -35,27 +34,29 @@ export default function useStoriesLoader({filename}: Props) {
     resolved: undefined,
   });
 
-  useEffect(() => {
+  const asyncImportStory = useCallback(async () => {
     if (!filename) {
       return;
     }
-    storiesContext()
-      .importStory(filename)
-      .then(resolved => {
-        setMod({
-          error: undefined,
-          filename,
-          resolved,
-        });
-      })
-      .catch(error => {
-        setMod({
-          error,
-          filename,
-          resolved: undefined,
-        });
+    try {
+      const resolved = await storiesContext().importStory(filename);
+      setMod({
+        error: undefined,
+        filename,
+        resolved,
       });
+    } catch (error) {
+      setMod({
+        error,
+        filename,
+        resolved: undefined,
+      });
+    }
   }, [filename]);
+
+  useEffect(() => {
+    asyncImportStory();
+  }, [asyncImportStory]);
 
   return mod;
 }
