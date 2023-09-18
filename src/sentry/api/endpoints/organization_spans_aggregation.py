@@ -167,7 +167,6 @@ class OrganizationSpansAggregationEndpoint(OrganizationEventsEndpointBase):
             In this example, given A, B, C, D are span groups, the fingerprint of span D would be
             the md5 hash of the value A-C-D and for span E would be md5 hash of the value A-C1-E.
         """
-
         coalesced_group = span_tree["coalesced_group"]
         description = span_tree["description"]
         start_ms = span_tree["start_ms"]
@@ -203,6 +202,7 @@ class OrganizationSpansAggregationEndpoint(OrganizationEventsEndpointBase):
                 "description": description,
                 "start_ms": start_ms,
                 "avg(exclusive_time)": span_tree["exclusive_time"],
+                "avg(duration)": span_tree["duration"],
                 "is_segment": span_tree["is_segment"],
                 "avg(offset)": start_ms
                 - root_start_timestamp,  # offset of the span relative to the start timestamp of the root span
