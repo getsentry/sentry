@@ -1,9 +1,9 @@
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.models import ReleaseThreshold
 from sentry.models.release_threshold.constants import (
     THRESHOLD_TYPE_INT_TO_STR,
     TRIGGER_TYPE_INT_TO_STR,
 )
+from sentry.models.release_threshold.releasethreshold import ReleaseThreshold
 
 
 @register(ReleaseThreshold)
