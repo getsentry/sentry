@@ -157,6 +157,7 @@ class Frame(Interface):
             "vars",
             "snapshot",
             "lock",
+            "resolved_with",
         ):
             data.setdefault(key, None)
 
@@ -189,6 +190,7 @@ class Frame(Interface):
                 "colno": self.colno,
                 "lock": self.lock,
                 "source_link": self.source_link or None,
+                "resolved_with": self.resolved_with or None,
             }
         )
 
@@ -220,6 +222,7 @@ class Frame(Interface):
             "errors": self.errors,
             "lock": self.lock,
             "sourceLink": self.source_link,
+            "resolvedWith": self.resolved_with,
         }
 
         if not is_public:
@@ -284,6 +287,7 @@ class Frame(Interface):
             "errors": meta.get("errors"),
             "lock": meta.get("lock"),
             "sourceLink": meta.get("source_link"),
+            "resolvedWith": meta.get("resolved_with"),
         }
 
     def is_url(self):
