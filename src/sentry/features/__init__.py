@@ -239,6 +239,7 @@ default_manager.add("organizations:custom-symbol-sources", OrganizationFeature, 
 default_manager.add("organizations:dashboards-basic", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:dashboards-edit", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:data-forwarding", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
+default_manager.add("organizations:ddm-ui", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:discover-basic", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:discover-query", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:dynamic-sampling", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
