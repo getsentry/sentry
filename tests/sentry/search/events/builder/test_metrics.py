@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import datetime
 import math
 from datetime import timezone
@@ -1610,6 +1612,17 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
 
 
 class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
+    def _store_on_demand_counter_metric(self, tags: dict[str, str], timestamp: int) -> None:
+        """Shorthand function to store an on-demand counter metric"""
+        self.store_transaction_metric(
+            value=1,
+            metric=TransactionMetricKey.COUNT_ON_DEMAND.value,
+            internal_metric=TransactionMRI.COUNT_ON_DEMAND.value,
+            entity="metrics_counters",
+            tags=tags,
+            timestamp=timestamp,
+        )
+
     def test_get_query(self):
         query = TimeseriesMetricQueryBuilder(
             self.params,
@@ -2095,28 +2108,18 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         field = "failure_count()"
         query = "transaction.duration:>=100"
         spec = OnDemandMetricSpec(field=field, query=query)
+        expected_results = [{"time": self.start.isoformat(), "failure_count": 1}]
 
         for hour in range(0, 5):
-            # 1 per hour failed
-            self.store_transaction_metric(
-                value=1,
-                metric=TransactionMetricKey.COUNT_ON_DEMAND.value,
-                internal_metric=TransactionMRI.COUNT_ON_DEMAND.value,
-                entity="metrics_counters",
-                tags={"query_hash": spec.query_hash, "failure": "true"},
-                timestamp=self.start + datetime.timedelta(hours=hour),
+            timestamp = self.start + datetime.timedelta(hours=hour)
+            # A failed transaction
+            self._store_on_demand_counter_metric(
+                {"query_hash": spec.query_hash, "failure": "true"}, timestamp
             )
-
-            # 4 per hour successful
+            expected_results.append({"time": timestamp.isoformat(), "failure_count": 1})
+            # Four successful transactions
             for _ in range(0, 4):
-                self.store_transaction_metric(
-                    value=1,
-                    metric=TransactionMetricKey.COUNT_ON_DEMAND.value,
-                    internal_metric=TransactionMRI.COUNT_ON_DEMAND.value,
-                    entity="metrics_counters",
-                    tags={"query_hash": spec.query_hash},
-                    timestamp=self.start + datetime.timedelta(hours=hour),
-                )
+                self._store_on_demand_counter_metric({"query_hash": spec.query_hash}, timestamp)
 
         query = TimeseriesMetricQueryBuilder(
             self.params,
@@ -2124,38 +2127,16 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             interval=3600,
             query=query,
             selected_columns=[field],
-            config=QueryBuilderConfig(
-                on_demand_metrics_enabled=True,
-            ),
+            config=QueryBuilderConfig(on_demand_metrics_enabled=True),
         )
         result = query.run_query("test_query")
-        assert result["data"][:5] == [
-            {
-                "time": self.start.isoformat(),
-                "failure_rate": 0.2,
-            },
-            {
-                "time": (self.start + datetime.timedelta(hours=1)).isoformat(),
-                "failure_rate": 0.2,
-            },
-            {
-                "time": (self.start + datetime.timedelta(hours=2)).isoformat(),
-                "failure_rate": 0.2,
-            },
-            {
-                "time": (self.start + datetime.timedelta(hours=3)).isoformat(),
-                "failure_rate": 0.2,
-            },
-            {
-                "time": (self.start + datetime.timedelta(hours=4)).isoformat(),
-                "failure_rate": 0.2,
-            },
-        ]
+        assert result["data"][:5] == expected_results
+        # XXX: assertCountEquals is too loose
         self.assertCountEqual(
             result["meta"],
             [
                 {"name": "time", "type": "DateTime('Universal')"},
-                {"name": "failure_rate", "type": "Float64"},
+                {"name": "failure_count", "type": "Float64"},
             ],
         )
 

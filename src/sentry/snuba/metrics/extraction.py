@@ -118,11 +118,6 @@ _SEARCH_TO_METRIC_AGGREGATES: Dict[str, MetricOperationType] = {
     # generic percentile is not supported by metrics layer.
 }
 
-# TODO: on_demand_failure_rate is not an aggregation function, it's a derived metric that
-# is not aggregated. I suggest to refactor usage sites so that there's a separate
-# listing of derived metrics. This allows us to use the _SEARCH_TO_METRIC_AGGREGATES mapping
-# in places where expect regular aggregation.
-
 # Maps plain Discover functions to derived metric functions which are understood by the metrics layer.
 _SEARCH_TO_DERIVED_METRIC_AGGREGATES: Dict[str, MetricOperationType] = {
     "failure_count": "on_demand_failure_count",
