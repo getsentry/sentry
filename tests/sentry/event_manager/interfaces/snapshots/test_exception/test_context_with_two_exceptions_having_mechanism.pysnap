@@ -30,6 +30,7 @@ get_api_context:
         package: null
         platform: null
         rawFunction: null
+        resolvedWith: null
         sourceLink: null
         symbol: null
         symbolAddr: null
@@ -65,6 +66,7 @@ get_api_context:
         package: null
         platform: null
         rawFunction: null
+        resolvedWith: null
         sourceLink: null
         symbol: null
         symbolAddr: null
