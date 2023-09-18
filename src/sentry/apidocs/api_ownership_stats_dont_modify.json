@@ -580,7 +580,9 @@
             "OrganizationEventsEndpoint::GET"
         ],
         "private": [],
-        "experimental": [],
+        "experimental": [
+            "OrganizationSpansAggregationEndpoint::GET"
+        ],
         "unknown": [
             "KeyTransactionEndpoint::DELETE",
             "KeyTransactionEndpoint::GET",
@@ -628,7 +630,7 @@
         ]
     },
     "discover-n-dashboards": {
-        "block_start": 630,
+        "block_start": 632,
         "public": [],
         "private": [],
         "experimental": [],
@@ -643,7 +645,7 @@
         ]
     },
     "enterprise": {
-        "block_start": 645,
+        "block_start": 647,
         "public": [
             "OrganizationSCIMMemberDetails::DELETE",
             "OrganizationSCIMMemberDetails::GET",
@@ -702,7 +704,11 @@
         ]
     },
     "telemetry-experience": {
+<<<<<<< HEAD
         "block_start": 704,
+=======
+        "block_start": 706,
+>>>>>>> 9c83e9fb49 (chore(api): Change title to include "error" (#56423))
         "public": [],
         "private": [],
         "experimental": [],
@@ -719,7 +725,11 @@
         ]
     },
     "team-starfish": {
+<<<<<<< HEAD
         "block_start": 721,
+=======
+        "block_start": 723,
+>>>>>>> 9c83e9fb49 (chore(api): Change title to include "error" (#56423))
         "public": [],
         "private": [],
         "experimental": [],
@@ -729,7 +739,11 @@
         ]
     },
     "growth": {
+<<<<<<< HEAD
         "block_start": 731,
+=======
+        "block_start": 733,
+>>>>>>> 9c83e9fb49 (chore(api): Change title to include "error" (#56423))
         "public": [],
         "private": [],
         "experimental": [],
@@ -738,7 +752,11 @@
         ]
     },
     "feedback-backend": {
+<<<<<<< HEAD
         "block_start": 740,
+=======
+        "block_start": 742,
+>>>>>>> 9c83e9fb49 (chore(api): Change title to include "error" (#56423))
         "public": [],
         "private": [],
         "experimental": [
@@ -749,7 +767,11 @@
         "unknown": []
     },
     "replay-backend": {
+<<<<<<< HEAD
         "block_start": 751,
+=======
+        "block_start": 753,
+>>>>>>> 9c83e9fb49 (chore(api): Change title to include "error" (#56423))
         "public": [],
         "private": [],
         "experimental": [],
@@ -758,7 +780,11 @@
         ]
     },
     "profiling": {
+<<<<<<< HEAD
         "block_start": 760,
+=======
+        "block_start": 762,
+>>>>>>> 9c83e9fb49 (chore(api): Change title to include "error" (#56423))
         "public": [],
         "private": [],
         "experimental": [],
@@ -774,7 +800,11 @@
         ]
     },
     "team-web-sdk-frontend": {
+<<<<<<< HEAD
         "block_start": 776,
+=======
+        "block_start": 778,
+>>>>>>> 9c83e9fb49 (chore(api): Change title to include "error" (#56423))
         "public": [],
         "private": [
             "SourceMapDebugBlueThunderEditionEndpoint::GET"
@@ -783,7 +813,11 @@
         "unknown": []
     },
     "hybrid-cloud": {
+<<<<<<< HEAD
         "block_start": 785,
+=======
+        "block_start": 787,
+>>>>>>> 9c83e9fb49 (chore(api): Change title to include "error" (#56423))
         "public": [],
         "private": [],
         "experimental": [],
