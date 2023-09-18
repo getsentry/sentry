@@ -1,32 +1,22 @@
 import {Children, Fragment, ReactNode} from 'react';
 import styled from '@emotion/styled';
-import invariant from 'invariant';
 
 import SideBySide from 'sentry/components/stories/sideBySide';
 import {space} from 'sentry/styles/space';
 
 type RenderFn = () => ReactNode | ReactNode[];
-type StoryFn = ((storyRender: RenderFn) => void) &
-  ((storyName: string, storyRender: RenderFn) => void);
+type StoryFn = (storyName: string, storyRender: RenderFn) => void;
 type SetupFn = (story: StoryFn) => void;
 
 type Context = {
-  name: undefined | string;
+  name: string;
   render: RenderFn;
 };
 
 export default function storyBook(rootName: string, setup: SetupFn) {
   const contexts: Context[] = [];
 
-  const storyFn: StoryFn = (storyName: string | RenderFn, storyRender?: RenderFn) => {
-    const name = typeof storyName === 'string' ? storyName : undefined;
-    const render =
-      typeof storyRender === 'function'
-        ? storyRender
-        : typeof storyName === 'function'
-        ? storyName
-        : undefined;
-    invariant(render, 'A story must have a render function');
+  const storyFn: StoryFn = (name: string, render: RenderFn) => {
     contexts.push({name, render});
   };
 
