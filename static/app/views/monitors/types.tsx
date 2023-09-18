@@ -108,10 +108,10 @@ export interface MonitorStat {
 }
 
 export interface CheckIn {
+  attachmentId: number | null;
   dateCreated: string;
   duration: number;
   id: string;
   status: CheckInStatus;
-  attachmentId?: number;
   groups?: {id: number; shortId: string}[];
 }

@@ -30,6 +30,8 @@ import {
   Organization,
   OrganizationSummary,
   Project,
+  TeamParticipant,
+  UserParticipant,
 } from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -134,6 +136,13 @@ export default function GroupSidebar({
       return null;
     }
 
+    const userParticipants = participants.filter(
+      (p): p is UserParticipant => p.type === 'user'
+    );
+    const teamParticipants = participants.filter(
+      (p): p is TeamParticipant => p.type === 'team'
+    );
+
     return (
       <SidebarSection.Wrap>
         <SidebarSection.Title>
@@ -145,7 +154,13 @@ export default function GroupSidebar({
           />
         </SidebarSection.Title>
         <SidebarSection.Content>
-          <StyledAvatarList users={participants} avatarSize={28} maxVisibleAvatars={13} />
+          <StyledAvatarList
+            users={userParticipants}
+            teams={teamParticipants}
+            avatarSize={28}
+            maxVisibleAvatars={13}
+            typeAvatars="participants"
+          />
         </SidebarSection.Content>
       </SidebarSection.Wrap>
     );

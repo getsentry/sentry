@@ -125,22 +125,25 @@ class BaseModel(models.Model):
             else {cls.__relocation_scope__}
         )
 
-    def _normalize_before_relocation_import(
+    def normalize_before_relocation_import(
         self, pk_map: PrimaryKeyMap, _s: ImportScope, _f: ImportFlags
     ) -> Optional[int]:
         """
         A helper function that normalizes a deserialized model. Note that this modifies the model in
-        place, so it should generally be done inside of the companion `write_relocation_import`
-        method, to avoid data skew or corrupted local state.
+        place, so it should generally be done immediately prior to a companion
+        `write_relocation_import()` method, to avoid data skew or corrupted local state. The method
+        returns the old `pk` that was replaced, or `None` if normalization failed.
 
-        The only reason this function is left as a standalone, rather than being folded into
+        The primary reason this function is left as a standalone, rather than being folded into
         `write_relocation_import`, is that it is often useful to adjust just the normalization logic
-        by itself. Overrides of this method should take care not to mutate the `pk_map`.
+        by itself without affecting the writing logic.
+
+        Overrides of this method should take care NOT to mutate the `pk_map`. Overrides should also
+        take care NOT to push the updated changes to the database (ie, no calls to `.save()` or
+        `.update()`), as this functionality is delegated to the `write_relocation_import()` method.
 
         The default normalization logic merely replaces foreign keys with their new values from the
         provided `pk_map`.
-
-        The method returns the old `pk` that was replaced.
         """
 
         deps = dependencies()
@@ -161,22 +164,22 @@ class BaseModel(models.Model):
         return old_pk
 
     def write_relocation_import(
-        self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
-    ) -> Optional[Tuple[int, int, ImportKind]]:
+        self, _s: ImportScope, _f: ImportFlags
+    ) -> Optional[Tuple[int, ImportKind]]:
         """
         Writes a deserialized model to the database. If this write is successful, this method will
-        return a tuple of the old and new `pk`s.
+        return a tuple of the new `pk` and the `ImportKind` (ie, whether we created a new model or
+        re-used an existing one).
 
         Overrides of this method can throw either `django.core.exceptions.ValidationError` or
         `rest_framework.serializers.ValidationError`.
+
+        This function should only be executed after `normalize_before_relocation_import()` has fired
+        and returned a not-null `old_pk` input.
         """
 
-        old_pk = self._normalize_before_relocation_import(pk_map, scope, flags)
-        if old_pk is None:
-            return
-
         self.save(force_insert=True)
-        return (old_pk, self.pk, ImportKind.Inserted)
+        return (self.pk, ImportKind.Inserted)
 
 
 class Model(BaseModel):

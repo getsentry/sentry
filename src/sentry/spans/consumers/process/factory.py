@@ -71,7 +71,7 @@ def _build_snuba_span(relay_span: Mapping[str, Any]) -> MutableMapping[str, Any]
     snuba_span["segment_id"] = relay_span.get("segment_id", "0")
     snuba_span["span_id"] = relay_span.get("span_id", "0")
     snuba_span["tags"] = {
-        k: v for k, v in (relay_span.get("tags", {}) or {}).items() if v is not None
+        k: str(v) for k, v in (relay_span.get("tags", {}) or {}).items() if v is not None
     }
     snuba_span["trace_id"] = uuid.UUID(relay_span["trace_id"]).hex
     snuba_span["version"] = SPAN_SCHEMA_VERSION
@@ -113,14 +113,12 @@ def _build_snuba_span(relay_span: Mapping[str, Any]) -> MutableMapping[str, Any]
         sentry_tags["status"] = status
 
     if "status_code" in sentry_tags:
-        try:
-            sentry_tags["status_code"] = int(sentry_tags["status_code"])
-        except ValueError:
-            pass
+        sentry_tags["status_code"] = sentry_tags["status_code"]
 
-    snuba_span["sentry_tags"] = sentry_tags
+    snuba_span["sentry_tags"] = {k: str(v) for k, v in sentry_tags.items()}
 
     grouping_config = load_span_grouping_config()
+    snuba_span["span_grouping_config"] = {"id": grouping_config.id}
 
     if snuba_span["is_segment"]:
         group_raw = grouping_config.strategy.get_transaction_span_group(
@@ -149,8 +147,6 @@ def _build_snuba_span(relay_span: Mapping[str, Any]) -> MutableMapping[str, Any]
     except ValueError:
         snuba_span["group_raw"] = "0"
         metrics.incr("spans.invalid_group_raw")
-
-    snuba_span["span_grouping_config"] = {"id": grouping_config.id}
 
     return snuba_span
 
