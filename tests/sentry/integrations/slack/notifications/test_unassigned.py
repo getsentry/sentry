@@ -34,9 +34,10 @@ class SlackUnassignedNotificationTest(SlackActivityNotificationTest, Performance
         attachment, text = get_attachment()
         assert text == f"Issue unassigned by {self.name}"
         assert attachment["title"] == self.group.title
+        notification_uuid = self.get_notification_uuid(attachment["title_link"])
         assert (
             attachment["footer"]
-            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=unassigned_activity-slack-user|Notification Settings>"
+            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=unassigned_activity-slack-user&notification_uuid={notification_uuid}|Notification Settings>"
         )
 
     @responses.activate
