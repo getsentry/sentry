@@ -801,7 +801,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
     @staticmethod
     def nodestore_event_map(events: Sequence[SnubaTransaction]) -> Dict[str, Optional[Event]]:
         map = {}
-        with ThreadPoolExecutor(max_workers=10) as executor:
+        with ThreadPoolExecutor(max_workers=20) as executor:
             future_to_event = {
                 executor.submit(
                     eventstore.backend.get_event_by_id, event["project.id"], event["id"]
@@ -888,6 +888,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                             del parent_map[to_remove["trace.parent_span"]]
                     to_check = deque()
 
+                spans: NodeSpans = []
                 if allow_load_more:
                     previous_event_id = previous_event.event["id"]
                     spans: NodeSpans = []
@@ -897,11 +898,8 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                         previous_event._nodestore_event = nodestore_event
                         spans = nodestore_event.data.get("spans", [])
                 else:
-                    spans: NodeSpans = (
-                        previous_event.nodestore_event.data.get("spans", [])
-                        if previous_event.nodestore_event
-                        else []
-                    )
+                    if previous_event.nodestore_event:
+                        spans = previous_event.nodestore_event.data.get("spans", [])
 
                 # Need to include the transaction as a span as well
                 #
