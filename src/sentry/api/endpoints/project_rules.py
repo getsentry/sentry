@@ -14,7 +14,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectAlertRulePermission, ProjectEndpoint
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.project import ProjectRulesResponse
+from sentry.api.serializers.models.rule import RuleSerializerResponse
 from sentry.api.serializers.rest_framework.rule import RuleSerializer
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.examples.issue_alert_examples import IssueAlertExamples
@@ -86,7 +86,7 @@ def find_duplicate_rule(rule_data, project, rule_id=None):
 class ProjectRulesEndpoint(ProjectEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
-        "POST": ApiPublishStatus.PUBLIC,
+        "POST": ApiPublishStatus.UNKNOWN,
     }
     owner = ApiOwner.ISSUES
     permission_classes = (ProjectAlertRulePermission,)
@@ -94,15 +94,14 @@ class ProjectRulesEndpoint(ProjectEndpoint):
     @extend_schema(
         operation_id="List Issue Alert Rules for a Project",
         parameters=[GlobalParams.ORG_SLUG, GlobalParams.PROJECT_SLUG],
+        request=None,
         responses={
-            200: inline_sentry_response_serializer(
-                "ProjectRulesResponseDict", List[ProjectRulesResponse]
-            ),
+            200: inline_sentry_response_serializer("ListRules", List[RuleSerializerResponse]),
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
-        # TODO: example
+        examples=IssueAlertExamples.LIST_PROJECT_RULES,
     )
     @transaction_start("ProjectRulesEndpoint")
     def get(self, request: Request, project) -> Response:
@@ -121,19 +120,19 @@ class ProjectRulesEndpoint(ProjectEndpoint):
             on_results=lambda x: serialize(x, request.user),
         )
 
-    @extend_schema(
-        operation_id="Create an Issue Alert Rule for a Project",
-        parameters=[GlobalParams.ORG_SLUG, GlobalParams.PROJECT_SLUG],
-        responses={
-            200: inline_sentry_response_serializer(
-                "ProjectRulesResponseDict", List[ProjectRulesResponse]
-            ),
-            401: RESPONSE_UNAUTHORIZED,
-            403: RESPONSE_FORBIDDEN,
-            404: RESPONSE_NOT_FOUND,
-        },
-        examples=IssueAlertExamples.LIST_PROJECT_RULES,
-    )
+    # @extend_schema(
+    #     operation_id="Create an Issue Alert Rule for a Project",
+    #     parameters=[GlobalParams.ORG_SLUG, GlobalParams.PROJECT_SLUG],
+    #     responses={
+    #         200: inline_sentry_response_serializer(
+    #             "ProjectRulesResponseDict", ProjectRulesResponse
+    #         ),  # TODO: replaceß
+    #         401: RESPONSE_UNAUTHORIZED,
+    #         403: RESPONSE_FORBIDDEN,
+    #         404: RESPONSE_NOT_FOUND,
+    #     },
+    #     # TODO: example
+    # )
     @transaction_start("ProjectRulesEndpoint")
     def post(self, request: Request, project) -> Response:
         """
