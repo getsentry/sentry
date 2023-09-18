@@ -6,8 +6,9 @@ from sentry.notifications.types import (
     NotificationSettingEnum,
     NotificationSettingsOptionEnum,
 )
+from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.testutils.cases import TestCase
-from sentry.types.integrations import ExternalProviderEnum
+from sentry.types.integrations import ExternalProviderEnum, ExternalProviders
 
 
 def add_notification_setting_option(
@@ -113,6 +114,15 @@ class NotificationControllerTest(TestCase):
         )
         assert list(controller.get_all_setting_options) == self.setting_options
 
+        NotificationSettingOption.objects.all().delete()
+        assert list(controller.get_all_setting_options) == self.setting_options
+        controller = NotificationController(
+            recipients=[self.user],
+            project_ids=[self.project.id],
+            organization_id=self.organization.id,
+        )
+        assert list(controller.get_all_setting_options) == []
+
     def test_get_all_setting_providers(self):
         controller = NotificationController(
             recipients=[self.user],
@@ -120,6 +130,48 @@ class NotificationControllerTest(TestCase):
             organization_id=self.organization.id,
         )
         assert list(controller.get_all_setting_providers) == self.setting_providers
+
+    def test_without_settings(self):
+        rpc_user = RpcActor.from_object(self.user)
+        NotificationSettingOption.objects.all().delete()
+        NotificationSettingProvider.objects.all().delete()
+        controller = NotificationController(
+            recipients=[self.user],
+            project_ids=[self.project.id],
+            organization_id=self.organization.id,
+        )
+        assert controller.get_all_setting_options == []
+        assert controller.get_all_setting_providers == []
+        scope = (NotificationScopeEnum.PROJECT, self.project.id)
+        options = controller._get_layered_setting_options()
+        assert (
+            options[self.user][scope][NotificationSettingEnum.ISSUE_ALERTS]
+            == NotificationSettingsOptionEnum.ALWAYS
+        )
+        providers = controller._get_layered_setting_providers()
+        assert (
+            providers[self.user][scope][NotificationSettingEnum.ISSUE_ALERTS][
+                ExternalProviderEnum.MSTEAMS
+            ]
+            == NotificationSettingsOptionEnum.NEVER
+        )
+        assert (
+            providers[self.user][scope][NotificationSettingEnum.DEPLOY][ExternalProviderEnum.SLACK]
+            == NotificationSettingsOptionEnum.ALWAYS
+        )
+
+        enabled_settings = controller.get_all_enabled_settings()[self.user]
+        assert (
+            enabled_settings[scope][NotificationSettingEnum.ISSUE_ALERTS][
+                ExternalProviderEnum.SLACK
+            ]
+            == NotificationSettingsOptionEnum.ALWAYS
+        )
+        assert controller.get_notification_recipients(
+            type=NotificationSettingEnum.ISSUE_ALERTS
+        ) == {ExternalProviders.EMAIL: {rpc_user}, ExternalProviders.SLACK: {rpc_user}}
+        assert not controller.user_has_any_provider_settings(provider=ExternalProviderEnum.SLACK)
+        assert not controller.user_has_any_provider_settings(provider=ExternalProviderEnum.MSTEAMS)
 
     def test_filter_setting_options(self):
         controller = NotificationController(
@@ -174,21 +226,21 @@ class NotificationControllerTest(TestCase):
         top_level_option = add_notification_setting_option(
             scope_type=NotificationScopeEnum.PROJECT,
             scope_identifier=self.project.id,
-            type=NotificationSettingEnum.REPORTS,
+            type=NotificationSettingEnum.WORKFLOW,
             value=NotificationSettingsOptionEnum.NEVER,
             user_id=self.user.id,
         )
         add_notification_setting_option(
             scope_type=NotificationScopeEnum.USER,
             scope_identifier=self.user.id,
-            type=NotificationSettingEnum.REPORTS,
+            type=NotificationSettingEnum.WORKFLOW,
             value=NotificationSettingsOptionEnum.ALWAYS,
             user_id=self.user.id,
         )
         add_notification_setting_option(
             scope_type=NotificationScopeEnum.ORGANIZATION,
             scope_identifier=self.organization.id,
-            type=NotificationSettingEnum.REPORTS,
+            type=NotificationSettingEnum.WORKFLOW,
             value=NotificationSettingsOptionEnum.SUBSCRIBE_ONLY,
             user_id=self.user.id,
         )
@@ -201,7 +253,7 @@ class NotificationControllerTest(TestCase):
         options = controller._get_layered_setting_options()
         scope = (NotificationScopeEnum.PROJECT, top_level_option.scope_identifier)
         assert (
-            options[self.user][scope][NotificationSettingEnum.REPORTS].value
+            options[self.user][scope][NotificationSettingEnum.WORKFLOW].value
             == top_level_option.value
         )
 
@@ -210,7 +262,7 @@ class NotificationControllerTest(TestCase):
             scope_type=NotificationScopeEnum.PROJECT,
             scope_identifier=self.project.id,
             provider=ExternalProviderEnum.EMAIL,
-            type=NotificationSettingEnum.REPORTS,
+            type=NotificationSettingEnum.WORKFLOW,
             value=NotificationSettingsOptionEnum.SUBSCRIBE_ONLY,
             user_id=self.user.id,
         )
@@ -218,7 +270,7 @@ class NotificationControllerTest(TestCase):
             scope_type=NotificationScopeEnum.USER,
             scope_identifier=self.user.id,
             provider=ExternalProviderEnum.EMAIL,
-            type=NotificationSettingEnum.REPORTS,
+            type=NotificationSettingEnum.WORKFLOW,
             value=NotificationSettingsOptionEnum.ALWAYS,
             user_id=self.user.id,
         )
@@ -226,7 +278,7 @@ class NotificationControllerTest(TestCase):
             scope_type=NotificationScopeEnum.ORGANIZATION,
             scope_identifier=self.organization.id,
             provider=ExternalProviderEnum.EMAIL,
-            type=NotificationSettingEnum.REPORTS,
+            type=NotificationSettingEnum.WORKFLOW,
             value=NotificationSettingsOptionEnum.SUBSCRIBE_ONLY,
             user_id=self.user.id,
         )
@@ -239,7 +291,7 @@ class NotificationControllerTest(TestCase):
         providers = controller._get_layered_setting_providers()
         scope = (NotificationScopeEnum.PROJECT, top_level_provider.scope_identifier)
         assert (
-            providers[self.user][scope][NotificationSettingEnum.REPORTS][
+            providers[self.user][scope][NotificationSettingEnum.WORKFLOW][
                 ExternalProviderEnum.EMAIL
             ].value
             == top_level_provider.value
@@ -424,7 +476,9 @@ class NotificationControllerTest(TestCase):
             assert enabled_settings[new_user][scope][type] == default
 
     def test_get_notification_recipients(self):
+        rpc_user = RpcActor.from_object(self.user)
         new_user = self.create_user()
+        rpc_new_user = RpcActor.from_object(new_user)
         self.create_member(
             organization=self.organization, user=new_user, role="member", teams=[self.team]
         )
@@ -450,11 +504,12 @@ class NotificationControllerTest(TestCase):
             organization_id=self.organization.id,
         )
         recipients = controller.get_notification_recipients(
-            type=NotificationSettingEnum.ISSUE_ALERTS
+            type=NotificationSettingEnum.ISSUE_ALERTS,
+            actor_type=ActorType.USER,
         )
-        assert recipients[ExternalProviderEnum.SLACK] == {self.user, new_user}
-        assert recipients[ExternalProviderEnum.EMAIL] == {self.user, new_user}
-        assert recipients[ExternalProviderEnum.MSTEAMS] == {new_user}
+        assert recipients[ExternalProviders.SLACK] == {rpc_user, rpc_new_user}
+        assert recipients[ExternalProviders.EMAIL] == {rpc_user, rpc_new_user}
+        assert recipients[ExternalProviders.MSTEAMS] == {rpc_new_user}
 
     def test_user_has_any_provider_settings(self):
         controller = NotificationController(
