@@ -32,7 +32,7 @@ class Migration(CheckedMigration):
                     reverse_sql="""
             ALTER TABLE "sentry_organizationmapping" DROP COLUMN "require_2fa";
             """,
-                    hints={"tables": ["sentry_groupedmessage"]},
+                    hints={"tables": ["sentry_organizationmapping"]},
                 ),
             ],
             state_operations=[
