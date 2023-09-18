@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import pickle
+import re
 import time
 from copy import deepcopy
 from datetime import datetime, timezone
@@ -22,9 +23,8 @@ from sentry.sentry_metrics.indexer.limiters.cardinality import (
     TimeseriesCardinalityLimiter,
     cardinality_limiter_factory,
 )
-from sentry.sentry_metrics.indexer.mock import MockIndexer
+from sentry.sentry_metrics.indexer.mock import MockIndexer, RawSimpleIndexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
-from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.utils import json
 
 logger = logging.getLogger(__name__)
@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 pytestmark = pytest.mark.sentry_metrics
 
 MESSAGE_PROCESSOR = MessageProcessor(
-    get_ingest_config(UseCaseKey.RELEASE_HEALTH, IndexerStorage.POSTGRES)
+    get_ingest_config(UseCaseKey.PERFORMANCE, IndexerStorage.POSTGRES)
 )
 
 BROKER_TIMESTAMP = datetime.now(tz=timezone.utc)
@@ -225,73 +225,89 @@ def test_metrics_batch_builder():
 
 
 ts = int(datetime.now(tz=timezone.utc).timestamp())
-counter_payload: dict[str, Any] = {
-    "name": SessionMRI.SESSION.value,
-    "tags": {
-        "environment": "production",
-        "session.status": "init",
-    },
-    "timestamp": ts,
-    "type": b"c",
-    "value": 1.0,
-    "org_id": 1,
-    "project_id": 3,
-    "retention_days": 90,
-}
-distribution_payload: dict[str, Any] = {
-    "name": SessionMRI.RAW_DURATION.value,
-    "tags": {
-        "environment": "production",
-        "session.status": "healthy",
-    },
-    "timestamp": ts,
-    "type": b"d",
-    "value": [4, 5, 6],
-    "org_id": 1,
-    "project_id": 3,
-    "retention_days": 90,
-}
+counter_payloads: list[dict[str, Any]] = [
+    {
+        "name": f"c:{use_case.value}/alert@none",
+        "tags": {
+            "environment": "production",
+            "session.status": "init",
+        },
+        "timestamp": ts,
+        "type": b"c",
+        "value": 1.0,
+        "org_id": 1,
+        "project_id": 3,
+        "retention_days": 90,
+    }
+    for use_case in UseCaseID
+    if use_case is not UseCaseID.SESSIONS
+]
+distribution_payloads: list[dict[str, Any]] = [
+    {
+        "name": f"d:{use_case.value}/alert@none",
+        "tags": {
+            "environment": "production",
+            "session.status": "healthy",
+        },
+        "timestamp": ts,
+        "type": b"d",
+        "value": [4, 5, 6],
+        "org_id": 1,
+        "project_id": 3,
+        "retention_days": 90,
+    }
+    for use_case in UseCaseID
+    if use_case is not UseCaseID.SESSIONS
+]
 
-set_payload: dict[str, Any] = {
-    "name": SessionMRI.ERROR.value,
-    "tags": {
-        "environment": "production",
-        "session.status": "errored",
-    },
-    "timestamp": ts,
-    "type": b"s",
-    "value": [3],
-    "org_id": 1,
-    "project_id": 3,
-    "retention_days": 90,
-}
+set_payloads: list[dict[str, Any]] = [
+    {
+        "name": f"s:{use_case.value}/alert@none",
+        "tags": {
+            "environment": "production",
+            "session.status": "errored",
+        },
+        "timestamp": ts,
+        "type": b"s",
+        "value": [3],
+        "org_id": 1,
+        "project_id": 3,
+        "retention_days": 90,
+    }
+    for use_case in UseCaseID
+    if use_case is not UseCaseID.SESSIONS
+]
 
 
 def __translated_payload(
-    payload,
+    payload, indexer=None
 ) -> Dict[str, Union[str, int, List[int], MutableMapping[int, int]]]:
     """
     Translates strings to ints using the MockIndexer
     in addition to adding the retention_days
 
     """
-    indexer = MockIndexer()
+    indexer = indexer or MESSAGE_PROCESSOR._indexer
+    MRI_RE_PATTERN = re.compile("^([c|s|d|g|e]):([a-zA-Z0-9_]+)/.*$")
+
     payload = deepcopy(payload)
     org_id = payload["org_id"]
+    matched_mri = MRI_RE_PATTERN.match(payload["name"])
+    assert matched_mri is not None
+    use_case_id = UseCaseID(matched_mri.group(2))
 
     new_tags = {
-        indexer.resolve(
-            use_case_id=UseCaseKey.RELEASE_HEALTH, org_id=org_id, string=k
-        ): indexer.resolve(use_case_id=UseCaseKey.RELEASE_HEALTH, org_id=org_id, string=v)
+        indexer.resolve(use_case_id=use_case_id, org_id=org_id, string=k): v
         for k, v in payload["tags"].items()
     }
     payload["metric_id"] = indexer.resolve(
-        use_case_id=UseCaseKey.RELEASE_HEALTH, org_id=org_id, string=payload["name"]
+        use_case_id=use_case_id, org_id=org_id, string=payload["name"]
     )
     payload["retention_days"] = 90
     payload["tags"] = new_tags
-    payload["use_case_id"] = "sessions"
+    payload["use_case_id"] = use_case_id.value
     payload["sentry_received_timestamp"] = BROKER_TIMESTAMP.timestamp()
+    payload["version"] = 2
 
     payload.pop("unit", None)
     del payload["name"]
@@ -300,7 +316,7 @@ def __translated_payload(
 
 @pytest.mark.django_db
 def test_process_messages() -> None:
-    message_payloads = [counter_payload, distribution_payload, set_payload]
+    message_payloads = counter_payloads + distribution_payloads + set_payloads
     message_batch = [
         Message(
             BrokerValue(
@@ -318,32 +334,61 @@ def test_process_messages() -> None:
     outer_message = Message(Value(message_batch, last.committable))
 
     new_batch = MESSAGE_PROCESSOR.process_messages(outer_message=outer_message)
-    expected_new_batch = [
-        Message(
-            BrokerValue(
-                KafkaPayload(
-                    None,
-                    json.dumps(__translated_payload(message_payloads[i])).encode("utf-8"),
-                    [
-                        ("metric_type", message_payloads[i]["type"]),
-                    ],
-                ),
-                m.value.partition,
-                m.value.offset,
-                m.value.timestamp,
+    expected_new_batch = []
+    for i, m in enumerate(message_batch):
+        assert isinstance(m.value, BrokerValue)
+        expected_new_batch.append(
+            Message(
+                BrokerValue(
+                    KafkaPayload(
+                        None,
+                        json.dumps(__translated_payload(message_payloads[i])).encode("utf-8"),
+                        [
+                            ("metric_type", message_payloads[i]["type"]),
+                        ],
+                    ),
+                    m.value.partition,
+                    m.value.offset,
+                    m.value.timestamp,
+                )
             )
         )
-        for i, m in enumerate(message_batch)
-    ]
+
     compare_message_batches_ignoring_metadata(new_batch, expected_new_batch)
+
+
+@pytest.mark.django_db
+def test_process_messages_default_card_rollout(set_sentry_option) -> None:
+    message_payloads = counter_payloads + distribution_payloads + set_payloads
+    message_batch = [
+        Message(
+            BrokerValue(
+                KafkaPayload(None, json.dumps(payload).encode("utf-8"), []),
+                Partition(Topic("topic"), 0),
+                i + 1,
+                BROKER_TIMESTAMP,
+            )
+        )
+        for i, payload in enumerate(message_payloads)
+    ]
+    # the outer message uses the last message's partition, offset, and timestamp
+    last = message_batch[-1]
+
+    outer_message = Message(Value(message_batch, last.committable))
+
+    with set_sentry_option(
+        "sentry-metrics.cardinality-limiter.orgs-rollout-rate",
+        1.0,
+    ):
+        MESSAGE_PROCESSOR.process_messages(outer_message=outer_message)
 
 
 invalid_payloads = [
     (
         {
-            "name": SessionMRI.ERROR.value,
+            "name": "c:transactions/alert@none",
             "tags": {
-                "environment": "production" * 21,
+                "environment" * 21: "production",
                 "session.status": "errored",
             },
             "timestamp": ts,
@@ -358,7 +403,7 @@ invalid_payloads = [
     ),
     (
         {
-            "name": SessionMRI.ERROR.value * 21,
+            "name": "c:transactions/alert@none" * 21,
             "tags": {
                 "environment": "production",
                 "session.status": "errored",
@@ -406,7 +451,7 @@ def test_process_messages_invalid_messages(
     message_batch = [
         Message(
             BrokerValue(
-                KafkaPayload(None, json.dumps(counter_payload).encode("utf-8"), []),
+                KafkaPayload(None, json.dumps(counter_payloads[0]).encode("utf-8"), []),
                 Partition(Topic("topic"), 0),
                 0,
                 BROKER_TIMESTAMP,
@@ -436,7 +481,7 @@ def test_process_messages_invalid_messages(
             Value(
                 KafkaPayload(
                     None,
-                    json.dumps(__translated_payload(counter_payload)).encode("utf-8"),
+                    json.dumps(__translated_payload(counter_payloads[0])).encode("utf-8"),
                     [("metric_type", b"c")],
                 ),
                 expected_msg.committable,
@@ -454,13 +499,13 @@ def test_process_messages_rate_limited(caplog, settings) -> None:
     happens when postgres writes are being rate-limited.
     """
     settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
-    rate_limited_payload = deepcopy(distribution_payload)
-    rate_limited_payload["tags"]["custom_tag"] = "rate_limited_test"
+    rate_limited_payload = deepcopy(distribution_payloads[0])
+    rate_limited_payload["tags"]["rate_limited_test"] = "true"
 
     message_batch = [
         Message(
             BrokerValue(
-                KafkaPayload(None, json.dumps(counter_payload).encode("utf-8"), []),
+                KafkaPayload(None, json.dumps(counter_payloads[0]).encode("utf-8"), []),
                 Partition(Topic("topic"), 0),
                 0,
                 BROKER_TIMESTAMP,
@@ -480,10 +525,16 @@ def test_process_messages_rate_limited(caplog, settings) -> None:
     outer_message = Message(Value(message_batch, last.committable))
 
     message_processor = MessageProcessor(
-        get_ingest_config(UseCaseKey.RELEASE_HEALTH, IndexerStorage.MOCK)
+        get_ingest_config(UseCaseKey.PERFORMANCE, IndexerStorage.MOCK)
     )
     # Insert a None-value into the mock-indexer to simulate a rate-limit.
-    message_processor._indexer.indexer._strings[UseCaseID.SESSIONS][1]["rate_limited_test"] = None
+    mock_indexer = message_processor._indexer
+    assert isinstance(mock_indexer, MockIndexer)
+    raw_simple_string_indexer = mock_indexer.indexer
+    assert isinstance(raw_simple_string_indexer, RawSimpleIndexer)
+    rgx = re.compile("^([c|s|d|g|e]):([a-zA-Z0-9_]+)/.*$").match(distribution_payloads[0]["name"])
+    assert rgx is not None
+    raw_simple_string_indexer._strings[UseCaseID(rgx.group(2))][1]["rate_limited_test"] = None
 
     with caplog.at_level(logging.ERROR):
         new_batch = message_processor.process_messages(outer_message=outer_message)
@@ -491,12 +542,15 @@ def test_process_messages_rate_limited(caplog, settings) -> None:
     # we expect just the counter_payload msg to be left, as that one didn't
     # cause/depend on string writes that have been rate limited
     expected_msg = message_batch[0]
+    assert isinstance(expected_msg.value, BrokerValue)
     expected_new_batch = [
         Message(
             BrokerValue(
                 KafkaPayload(
                     None,
-                    json.dumps(__translated_payload(counter_payload)).encode("utf-8"),
+                    json.dumps(
+                        __translated_payload(counter_payloads[0], message_processor._indexer)
+                    ).encode("utf-8"),
                     [("metric_type", b"c")],
                 ),
                 expected_msg.value.partition,
@@ -520,9 +574,9 @@ def test_process_messages_cardinality_limited(
 
     # set any limit at all to ensure we actually use the underlying rate limiter
     with set_sentry_option(
-        "sentry-metrics.cardinality-limiter.limits.releasehealth.per-org",
+        "sentry-metrics.cardinality-limiter.limits.performance.per-org",
         [{"window_seconds": 3600, "granularity_seconds": 60, "limit": 0}],
-    ), set_sentry_option("sentry-metrics.cardinality-limiter-rh.orgs-rollout-rate", 1.0):
+    ), set_sentry_option("sentry-metrics.cardinality-limiter.orgs-rollout-rate", 1.0):
 
         class MockCardinalityLimiter(CardinalityLimiter):
             def check_within_quotas(self, requested_quotas):
@@ -534,11 +588,11 @@ def test_process_messages_cardinality_limited(
 
         monkeypatch.setitem(
             cardinality_limiter_factory.rate_limiters,
-            "releasehealth",
-            TimeseriesCardinalityLimiter("releasehealth", MockCardinalityLimiter()),
+            "performance",
+            TimeseriesCardinalityLimiter("performance", MockCardinalityLimiter()),
         )
 
-        message_payloads = [counter_payload, distribution_payload, set_payload]
+        message_payloads = counter_payloads + distribution_payloads + set_payloads
         message_batch = [
             Message(
                 BrokerValue(
