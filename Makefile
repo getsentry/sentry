@@ -154,7 +154,7 @@ test-snuba-full: create-db
 		tests/sentry/search/events \
 		tests/sentry/event_manager \
 		-vv --cov . --cov-report="xml:.artifacts/snuba.coverage.xml"
-	pytest tests -m -vv -m snuba_ci
+	pytest tests -vv -m snuba_ci
 	@echo ""
 
 test-tools:
