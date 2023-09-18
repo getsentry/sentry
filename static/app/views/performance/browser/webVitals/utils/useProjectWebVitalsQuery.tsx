@@ -17,7 +17,8 @@ export const useProjectWebVitalsQuery = ({}: Props) => {
         'p75(measurements.lcp)',
         'p75(measurements.fcp)',
         'p75(measurements.cls)',
-        'p75(measurements.app_init_long_tasks)',
+        'p75(measurements.ttfb)',
+        'p75(measurements.fid)',
       ],
       name: 'Web Vitals',
       query:

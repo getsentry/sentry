@@ -32,8 +32,9 @@ import {useProjectWebVitalsQuery} from 'sentry/views/performance/browser/webVita
 import {useTransactionWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/useTransactionWebVitalsQuery';
 import {ClsDescription} from 'sentry/views/performance/browser/webVitals/webVitalsDescriptions/cls';
 import {FcpDescription} from 'sentry/views/performance/browser/webVitals/webVitalsDescriptions/fcp';
+import {FidDescription} from 'sentry/views/performance/browser/webVitals/webVitalsDescriptions/fid';
 import {LcpDescription} from 'sentry/views/performance/browser/webVitals/webVitalsDescriptions/lcp';
-import {TbtDescription} from 'sentry/views/performance/browser/webVitals/webVitalsDescriptions/tbt';
+import {TtfbDescription} from 'sentry/views/performance/browser/webVitals/webVitalsDescriptions/ttfb';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
 
 type Column = GridColumnHeader;
@@ -94,7 +95,7 @@ export function WebVitalsDetailPanel({
     }
     if (col.key === 'webVital') {
       let value: string | number = row[mapWebVitalToColumn(webVital)];
-      if (webVital && ['lcp', 'fcp', 'tbt'].includes(webVital)) {
+      if (webVital && ['lcp', 'fcp', 'ttfb', 'fid'].includes(webVital)) {
         value = getDuration(value / 1000, 2, true);
       } else if (webVital === 'cls') {
         value = value?.toFixed(2);
@@ -121,18 +122,11 @@ export function WebVitalsDetailPanel({
   const {data: projectWebVitalsData} = useProjectWebVitalsQuery({});
 
   const projectScore = calculatePerformanceScore({
-    'p75(measurements.lcp)': projectWebVitalsData?.data[0][
-      'p75(measurements.lcp)'
-    ] as number,
-    'p75(measurements.fcp)': projectWebVitalsData?.data[0][
-      'p75(measurements.fcp)'
-    ] as number,
-    'p75(measurements.cls)': projectWebVitalsData?.data[0][
-      'p75(measurements.cls)'
-    ] as number,
-    'p75(measurements.app_init_long_tasks)': projectWebVitalsData?.data[0][
-      'p75(measurements.app_init_long_tasks)'
-    ] as number,
+    lcp: projectWebVitalsData?.data[0]['p75(measurements.lcp)'] as number,
+    fcp: projectWebVitalsData?.data[0]['p75(measurements.fcp)'] as number,
+    cls: projectWebVitalsData?.data[0]['p75(measurements.cls)'] as number,
+    ttfb: projectWebVitalsData?.data[0]['p75(measurements.ttfb)'] as number,
+    fid: projectWebVitalsData?.data[0]['p75(measurements.fid)'] as number,
   });
 
   return (
@@ -149,8 +143,10 @@ export function WebVitalsDetailPanel({
         )}
         {webVital === 'lcp' && <LcpDescription />}
         {webVital === 'fcp' && <FcpDescription />}
-        {webVital === 'tbt' && <TbtDescription />}
+        {webVital === 'ttfb' && <TtfbDescription />}
         {webVital === 'cls' && <ClsDescription />}
+        {webVital === 'fid' && <FidDescription />}
+
         <PerformanceScoreChartContainer>
           <PerformanceScoreChart projectScore={projectScore} webVital={webVital} />
         </PerformanceScoreChartContainer>
@@ -181,8 +177,10 @@ const mapWebVitalToColumn = (webVital?: WebVitals | null) => {
       return 'p75(measurements.fcp)';
     case 'cls':
       return 'p75(measurements.cls)';
-    case 'tbt':
-      return 'p75(measurements.app_init_long_tasks)';
+    case 'ttfb':
+      return 'p75(measurements.ttfb)';
+    case 'fid':
+      return 'p75(measurements.fid)';
     default:
       return 'count()';
   }

@@ -64,6 +64,13 @@ export function PerformanceScoreChart({projectScore, webVital}: Props) {
                       position: 'end',
                       color: theme.green300,
                     },
+                    emphasis: {
+                      lineStyle: {
+                        color: theme.green300,
+                        type: 'dashed',
+                        width: 1,
+                      },
+                    },
                   },
                   {
                     yAxis: 50,
@@ -75,6 +82,13 @@ export function PerformanceScoreChart({projectScore, webVital}: Props) {
                     label: {
                       position: 'end',
                       color: theme.yellow300,
+                    },
+                    emphasis: {
+                      lineStyle: {
+                        color: theme.yellow300,
+                        type: 'dashed',
+                        width: 1,
+                      },
                     },
                   },
                 ],

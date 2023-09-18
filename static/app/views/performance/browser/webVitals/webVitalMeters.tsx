@@ -96,12 +96,12 @@ export default function WebVitalMeters({onClick, projectData, projectScore}: Pro
             )}
           />
         </MeterBarContainer>
-        <MeterBarContainer key="tbt" onClick={() => onClick?.('tbt')}>
+        <MeterBarContainer key="ttfb" onClick={() => onClick?.('ttfb')}>
           <MeterHeader>
             <Flex>
               <span>
-                TBT{' '}
-                <Tooltip title="Total Blocking Time">
+                TTFB{' '}
+                <Tooltip title="Time To First Byte">
                   <StyledIconQuestion size="xs" />
                 </Tooltip>
               </span>
@@ -111,15 +111,39 @@ export default function WebVitalMeters({onClick, projectData, projectScore}: Pro
             </Flex>
           </MeterHeader>
           <MeterBar
-            meterItems={['tbtScore']}
+            meterItems={['ttfbScore']}
             minWidth={0.1}
             row={projectScore}
             total={100}
             meterText={
               getDuration(
-                (projectData?.data[0][
-                  'p75(measurements.app_init_long_tasks)'
-                ] as number) / 1000
+                (projectData?.data[0]['p75(measurements.ttfb)'] as number) / 1000
+              ) ?? ''
+            }
+          />
+        </MeterBarContainer>
+        <MeterBarContainer key="fid" onClick={() => onClick?.('fid')}>
+          <MeterHeader>
+            <Flex>
+              <span>
+                FID{' '}
+                <Tooltip title="First Input Delay">
+                  <StyledIconQuestion size="xs" />
+                </Tooltip>
+              </span>
+              <span>
+                <StyledIconOpen size="xs" />
+              </span>
+            </Flex>
+          </MeterHeader>
+          <MeterBar
+            meterItems={['fidScore']}
+            minWidth={0.1}
+            row={projectScore}
+            total={100}
+            meterText={
+              getDuration(
+                (projectData?.data[0]['p75(measurements.fid)'] as number) / 1000
               ) ?? ''
             }
           />

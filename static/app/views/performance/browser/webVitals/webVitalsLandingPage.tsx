@@ -30,12 +30,11 @@ export default function WebVitalsLandingPage() {
   const {data: projectData} = useProjectWebVitalsQuery({pageFilters});
 
   const projectScore = calculatePerformanceScore({
-    'p75(measurements.lcp)': projectData?.data[0]['p75(measurements.lcp)'] as number,
-    'p75(measurements.fcp)': projectData?.data[0]['p75(measurements.fcp)'] as number,
-    'p75(measurements.cls)': projectData?.data[0]['p75(measurements.cls)'] as number,
-    'p75(measurements.app_init_long_tasks)': projectData?.data[0][
-      'p75(measurements.app_init_long_tasks)'
-    ] as number,
+    lcp: projectData?.data[0]['p75(measurements.lcp)'] as number,
+    fcp: projectData?.data[0]['p75(measurements.fcp)'] as number,
+    cls: projectData?.data[0]['p75(measurements.cls)'] as number,
+    ttfb: projectData?.data[0]['p75(measurements.ttfb)'] as number,
+    fid: projectData?.data[0]['p75(measurements.fid)'] as number,
   });
 
   return (

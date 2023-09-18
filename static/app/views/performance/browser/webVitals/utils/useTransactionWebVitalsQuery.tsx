@@ -27,7 +27,8 @@ export const useTransactionWebVitalsQuery = ({orderBy, limit}: Props) => {
         'p75(measurements.lcp)',
         'p75(measurements.fcp)',
         'p75(measurements.cls)',
-        'p75(measurements.app_init_long_tasks)',
+        'p75(measurements.ttfb)',
+        'p75(measurements.fid)',
         'count()',
       ],
       name: 'Web Vitals',
@@ -59,21 +60,27 @@ export const useTransactionWebVitalsQuery = ({orderBy, limit}: Props) => {
             'p75(measurements.lcp)': row['p75(measurements.lcp)'] as number,
             'p75(measurements.fcp)': row['p75(measurements.fcp)'] as number,
             'p75(measurements.cls)': row['p75(measurements.cls)'] as number,
-            'p75(measurements.app_init_long_tasks)': row[
-              'p75(measurements.app_init_long_tasks)'
-            ] as number,
+            'p75(measurements.ttfb)': row['p75(measurements.ttfb)'] as number,
+            'p75(measurements.fid)': row['p75(measurements.fid)'] as number,
             'count()': row['count()'] as number,
           }))
           .map(row => {
-            const {totalScore, clsScore, fcpScore, lcpScore, tbtScore} =
-              calculatePerformanceScore(row);
+            const {totalScore, clsScore, fcpScore, lcpScore, ttfbScore, fidScore} =
+              calculatePerformanceScore({
+                lcp: row['p75(measurements.lcp)'],
+                fcp: row['p75(measurements.fcp)'],
+                cls: row['p75(measurements.cls)'],
+                ttfb: row['p75(measurements.ttfb)'],
+                fid: row['p75(measurements.fid)'],
+              });
             return {
               ...row,
               score: totalScore,
               clsScore,
               fcpScore,
               lcpScore,
-              tbtScore,
+              ttfbScore,
+              fidScore,
             };
           })
       : [];
@@ -93,8 +100,10 @@ const mapWebVitalToOrderBy = (webVital?: WebVitals | null) => {
       return '-p75_measurements_fcp';
     case 'cls':
       return '-p75_measurements_cls';
-    case 'tbt':
-      return '-p75_measurements_app_init_long_tasks';
+    case 'ttfb':
+      return '-p75_measurements_ttfb';
+    case 'fid':
+      return '-p75_measurements_fid';
     default:
       return '-count';
   }
