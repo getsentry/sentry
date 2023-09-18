@@ -22,7 +22,6 @@ from sentry.shared_integrations.response.base import BaseApiResponse
 from sentry.silo.base import SiloMode
 from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers import with_feature
 from sentry.utils.cache import cache
 
 GITHUB_CODEOWNERS = {
@@ -595,7 +594,6 @@ class GithubProxyClientTest(TestCase):
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value=ApiError)
     @responses.activate
-    @with_feature("organizations:github-disable-on-broken")
     def test_fatal_and_disable_integration(self, get_jwt):
         """
         fatal fast shut off with disable flag on, integration should be broken and disabled
@@ -621,7 +619,6 @@ class GithubProxyClientTest(TestCase):
         assert len(buffer._get_all_from_buffer()) == 0
 
     @responses.activate
-    @with_feature("organizations:github-disable-on-broken")
     def test_disable_email(self):
         with self.tasks():
             notify_disable(
@@ -698,7 +695,6 @@ class GithubProxyClientTest(TestCase):
         assert buffer.is_integration_broken() is False
 
     @responses.activate
-    @with_feature("organizations:github-disable-on-broken")
     @freeze_time("2022-01-01 03:30:00")
     def test_slow_integration_is_not_broken_or_disabled(self):
         """
