@@ -82,19 +82,22 @@ def build_test_message(
 
 @region_silo_test(stable=True)
 class BuildMetricAlertAttachmentTest(TestCase):
+    def setUp(self):
+        super().setUp()
+        self.alert_rule = self.create_alert_rule()
+
     def test_metric_alert_without_incidents(self):
-        alert_rule = self.create_alert_rule()
-        title = f"Resolved: {alert_rule.name}"
+        title = f"Resolved: {self.alert_rule.name}"
         link = absolute_uri(
             reverse(
                 "sentry-metric-alert-details",
                 kwargs={
-                    "organization_slug": alert_rule.organization.slug,
-                    "alert_rule_id": alert_rule.id,
+                    "organization_slug": self.alert_rule.organization.slug,
+                    "alert_rule_id": self.alert_rule.id,
                 },
             )
         )
-        assert DiscordMetricAlertMessageBuilder(alert_rule).build() == {
+        assert DiscordMetricAlertMessageBuilder(self.alert_rule).build() == {
             "content": "",
             "embeds": [
                 {
@@ -108,28 +111,27 @@ class BuildMetricAlertAttachmentTest(TestCase):
         }
 
     def test_metric_alert_with_selected_incident(self):
-        alert_rule = self.create_alert_rule()
         new_status = IncidentStatus.CLOSED.value
-        incident = self.create_incident(alert_rule=alert_rule, status=new_status)
-        trigger = self.create_alert_rule_trigger(alert_rule, CRITICAL_TRIGGER_LABEL, 100)
+        incident = self.create_incident(alert_rule=self.alert_rule, status=new_status)
+        trigger = self.create_alert_rule_trigger(self.alert_rule, CRITICAL_TRIGGER_LABEL, 100)
         self.create_alert_rule_trigger_action(
             alert_rule_trigger=trigger, triggered_for_incident=incident
         )
-        title = f"Resolved: {alert_rule.name}"
+        title = f"Resolved: {self.alert_rule.name}"
         link = (
             absolute_uri(
                 reverse(
                     "sentry-metric-alert-details",
                     kwargs={
-                        "organization_slug": alert_rule.organization.slug,
-                        "alert_rule_id": alert_rule.id,
+                        "organization_slug": self.alert_rule.organization.slug,
+                        "alert_rule_id": self.alert_rule.id,
                     },
                 )
             )
             + f"?alert={incident.identifier}"
         )
 
-        assert DiscordMetricAlertMessageBuilder(alert_rule, incident).build() == {
+        assert DiscordMetricAlertMessageBuilder(self.alert_rule, incident).build() == {
             "content": "",
             "embeds": [
                 {
@@ -143,24 +145,25 @@ class BuildMetricAlertAttachmentTest(TestCase):
         }
 
     def test_metric_alert_with_active_incident(self):
-        alert_rule = self.create_alert_rule()
-        incident = self.create_incident(alert_rule=alert_rule, status=IncidentStatus.CRITICAL.value)
-        trigger = self.create_alert_rule_trigger(alert_rule, CRITICAL_TRIGGER_LABEL, 100)
+        incident = self.create_incident(
+            alert_rule=self.alert_rule, status=IncidentStatus.CRITICAL.value
+        )
+        trigger = self.create_alert_rule_trigger(self.alert_rule, CRITICAL_TRIGGER_LABEL, 100)
         self.create_alert_rule_trigger_action(
             alert_rule_trigger=trigger, triggered_for_incident=incident
         )
-        title = f"Critical: {alert_rule.name}"
+        title = f"Critical: {self.alert_rule.name}"
         link = absolute_uri(
             reverse(
                 "sentry-metric-alert-details",
                 kwargs={
-                    "organization_slug": alert_rule.organization.slug,
-                    "alert_rule_id": alert_rule.id,
+                    "organization_slug": self.alert_rule.organization.slug,
+                    "alert_rule_id": self.alert_rule.id,
                 },
             )
         )
 
-        assert DiscordMetricAlertMessageBuilder(alert_rule).build() == {
+        assert DiscordMetricAlertMessageBuilder(self.alert_rule).build() == {
             "content": "",
             "embeds": [
                 {
@@ -174,13 +177,14 @@ class BuildMetricAlertAttachmentTest(TestCase):
         }
 
     def test_metric_value(self):
-        alert_rule = self.create_alert_rule()
-        incident = self.create_incident(alert_rule=alert_rule, status=IncidentStatus.CLOSED.value)
+        incident = self.create_incident(
+            alert_rule=self.alert_rule, status=IncidentStatus.CLOSED.value
+        )
 
         # This test will use the action/method and not the incident to build status
-        title = f"Critical: {alert_rule.name}"
+        title = f"Critical: {self.alert_rule.name}"
         metric_value = 5000
-        trigger = self.create_alert_rule_trigger(alert_rule, CRITICAL_TRIGGER_LABEL, 100)
+        trigger = self.create_alert_rule_trigger(self.alert_rule, CRITICAL_TRIGGER_LABEL, 100)
         self.create_alert_rule_trigger_action(
             alert_rule_trigger=trigger, triggered_for_incident=incident
         )
@@ -188,13 +192,13 @@ class BuildMetricAlertAttachmentTest(TestCase):
             reverse(
                 "sentry-metric-alert-details",
                 kwargs={
-                    "organization_slug": alert_rule.organization.slug,
-                    "alert_rule_id": alert_rule.id,
+                    "organization_slug": self.alert_rule.organization.slug,
+                    "alert_rule_id": self.alert_rule.id,
                 },
             )
         )
         assert DiscordMetricAlertMessageBuilder(
-            alert_rule, incident, IncidentStatus.CRITICAL, metric_value=metric_value
+            self.alert_rule, incident, IncidentStatus.CRITICAL, metric_value=metric_value
         ).build() == {
             "content": "",
             "embeds": [
@@ -210,21 +214,22 @@ class BuildMetricAlertAttachmentTest(TestCase):
         }
 
     def test_metric_alert_chart(self):
-        alert_rule = self.create_alert_rule()
-        title = f"Resolved: {alert_rule.name}"
+        title = f"Resolved: {self.alert_rule.name}"
         link = absolute_uri(
             reverse(
                 "sentry-metric-alert-details",
                 kwargs={
-                    "organization_slug": alert_rule.organization.slug,
-                    "alert_rule_id": alert_rule.id,
+                    "organization_slug": self.alert_rule.organization.slug,
+                    "alert_rule_id": self.alert_rule.id,
                 },
             )
         )
-        incident = self.create_incident(alert_rule=alert_rule, status=IncidentStatus.OPEN.value)
+        incident = self.create_incident(
+            alert_rule=self.alert_rule, status=IncidentStatus.OPEN.value
+        )
         new_status = IncidentStatus.CLOSED
         assert DiscordMetricAlertMessageBuilder(
-            alert_rule, incident, new_status, chart_url="chart_url"
+            self.alert_rule, incident, new_status, chart_url="chart_url"
         ).build() == {
             "content": "",
             "embeds": [
