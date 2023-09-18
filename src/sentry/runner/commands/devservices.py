@@ -9,7 +9,7 @@ import subprocess
 import sys
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import TYPE_CHECKING, Any, Generator, Literal, overload
+from typing import TYPE_CHECKING, Any, Callable, Generator, Literal, overload
 
 import click
 import requests
@@ -288,6 +288,32 @@ def up(
                     me = os.getpid()
                     os.kill(me, signal.SIGTERM)
 
+    # Check health of services. Seperate from _start_services
+    # in case there are dependencies needed for the health
+    # check (for example: kafka's healthcheck requires zookeeper)
+    with ThreadPoolExecutor(max_workers=len(selected_services)) as executor:
+        futures = []
+        for name in selected_services:
+            futures.append(
+                executor.submit(
+                    check_health,
+                    name,
+                )
+            )
+        for future in as_completed(futures):
+            # If there was an exception, reraising it here to the main thread
+            # will not terminate the whole python process. We'd like to report
+            # on this exception and stop as fast as possible, so terminate
+            # ourselves. I believe (without verification) that the OS is now
+            # free to cleanup these threads, but not sure if they'll remain running
+            # in the background. What matters most is that we regain control
+            # of the terminal.
+            e = future.exception()
+            if e:
+                click.echo(e)
+                me = os.getpid()
+                os.kill(me, signal.SIGTERM)
+
 
 def _prepare_containers(
     project: str, skip_only_if: bool = False, silent: bool = False
@@ -389,9 +415,7 @@ def _start_service(
 
     if container is not None:
         if not recreate and container.status == "running":
-            click.secho(
-                f"> Container '{options['name']}' is already running, doing nothing", fg="yellow"
-            )
+            click.secho(f"> Container '{options['name']}' is already running", fg="yellow")
             return container
 
         click.secho(f"> Stopping container '{container.name}'", fg="yellow")
@@ -553,3 +577,64 @@ Are you sure you want to continue?"""
             else:
                 click.secho("> Removing '%s' network" % network.name, err=True, fg="red")
                 network.remove()
+
+
+def check_health(service_name) -> None:
+    healthcheck = service_healthchecks.get(service_name)
+    if healthcheck is None:
+        return
+    click.secho(f"> Checking container health '{service_name}'", fg="yellow")
+    run_with_retries(healthcheck["check"])
+
+
+def run_with_retries(cmd: Callable[[], object], retries: int = 3, timeout: int = 5) -> None:
+    for retry in range(1, retries + 1):
+        try:
+            cmd()
+        except (subprocess.CalledProcessError):
+            if retry == retries:
+                raise
+            else:
+                click.secho(
+                    f"  > Health check failed, retrying in {timeout}s (attempt {retry+1} of {retries})...",
+                    fg="yellow",
+                )
+                time.sleep(timeout)
+        else:
+            return
+
+
+def check_kafka() -> None:
+    subprocess.run(
+        (
+            "docker",
+            "exec",
+            "sentry_kafka",
+            "kafka-topics",
+            "--zookeeper",
+            # TODO: sentry_zookeeper:2181 doesn't work in CI, but 127.0.0.1 doesn't work locally
+            os.environ.get("ZK_HOST", "127.0.0.1:2181"),
+            "--list",
+        ),
+        capture_output=True,
+        text=True,
+    )
+
+
+def check_postgres() -> None:
+    subprocess.run(
+        ("docker", "exec", "sentry_postgres", "pg_isready", "-U", "postgres"),
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+
+service_healthchecks = {
+    "postgres": {
+        "check": check_postgres,
+    },
+    "kafka": {
+        "check": check_kafka,
+    },
+}

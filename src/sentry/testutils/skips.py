@@ -7,6 +7,7 @@ from urllib.parse import urlparse
 
 import pytest
 from django.conf import settings
+from runner.commands.devservices import check_health
 
 T = TypeVar("T", bound=Callable[..., Any])
 
@@ -71,6 +72,11 @@ def _requires_kafka() -> None:
 
     if not _service_available("127.0.0.1", port):
         pytest.skip("requires kafka server running")
+
+    try:
+        check_health("kafka")
+    except Exception as e:
+        pytest.skip(f"kafka server is not heathy: {e}")
 
 
 @pytest.fixture(scope="session")
