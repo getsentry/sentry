@@ -2,6 +2,7 @@ import {browserHistory} from 'react-router';
 import {Theme} from '@emotion/react';
 import {Location} from 'history';
 
+import MarkArea from 'sentry/components/charts/components/markArea';
 import {LineChartSeries} from 'sentry/components/charts/lineChart';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {backend, frontend, mobile} from 'sentry/data/platformCategories';
@@ -395,7 +396,8 @@ export function getIntervalLine(
   series: Series[],
   intervalRatio: number,
   label: boolean,
-  transaction?: NormalizedTrendsTransaction
+  transaction?: NormalizedTrendsTransaction,
+  useRegressionFormat?: boolean
 ): LineChartSeries[] {
   if (!transaction || !series.length || !series[0].data || !series[0].data.length) {
     return [];
@@ -529,6 +531,58 @@ export function getIntervalLine(
   };
 
   const additionalLineSeries = [previousPeriod, currentPeriod, periodDividingLine];
+
+  // Apply new styles for statistical detector regression issue
+  if (useRegressionFormat) {
+    previousPeriod.markLine.label = {
+      ...periodLineLabel,
+      formatter: `Baseline ${getPerformanceDuration(
+        transformedTransaction.aggregate_range_1
+      )}`,
+      position: 'insideStartBottom',
+    };
+
+    periodDividingLine.markLine.lineStyle = {
+      ...periodDividingLine.markLine.lineStyle,
+      color: theme.red300,
+    };
+
+    currentPeriod.markLine.lineStyle = {
+      ...currentPeriod.markLine.lineStyle,
+      color: theme.red300,
+    };
+
+    currentPeriod.markLine.label = {
+      ...periodLineLabel,
+      formatter: `Regressed ${getPerformanceDuration(
+        transformedTransaction.aggregate_range_2
+      )}`,
+      position: 'insideEndBottom',
+      color: theme.red300,
+    };
+
+    additionalLineSeries.push({
+      seriesName: 'Regression Area',
+      markLine: {},
+      markArea: MarkArea({
+        silent: true,
+        itemStyle: {
+          color: theme.red300,
+          opacity: 0.2,
+        },
+        data: [
+          [
+            {
+              xAxis: divider,
+            },
+            {xAxis: seriesEnd},
+          ],
+        ],
+      }),
+      data: [],
+    });
+  }
+
   return additionalLineSeries;
 }
 
