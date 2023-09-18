@@ -61,7 +61,7 @@ from sentry.models.projectownership import ProjectOwnership
 from sentry.models.projectredirect import ProjectRedirect
 from sentry.models.recentsearch import RecentSearch
 from sentry.models.relay import Relay, RelayUsage
-from sentry.models.rule import RuleActivity, RuleActivityType
+from sentry.models.rule import NeglectedRule, RuleActivity, RuleActivityType
 from sentry.models.savedsearch import SavedSearch, Visibility
 from sentry.models.search_common import SearchType
 from sentry.models.user import User
@@ -262,14 +262,6 @@ class BackupTestCase(TransactionTestCase):
         )
 
         # Auth*
-        OrgAuthToken.objects.create(
-            organization_id=org.id,
-            name=f"token 1 for {slug}",
-            token_hashed=f"ABCDEF{slug}",
-            token_last_characters="xyz1",
-            scope_list=["org:ci"],
-            date_last_used=None,
-        )
         ApiKey.objects.create(key=uuid4().hex, organization_id=org.id)
         auth_provider = AuthProvider.objects.create(organization_id=org.id, provider="sentry")
         AuthIdentity.objects.create(
@@ -298,6 +290,17 @@ class BackupTestCase(TransactionTestCase):
         )
         ProjectRedirect.record(project, f"project_slug_in_{slug}")
 
+        # OrgAuthToken
+        OrgAuthToken.objects.create(
+            organization_id=org.id,
+            name=f"token 1 for {slug}",
+            token_hashed=f"ABCDEF{slug}",
+            token_last_characters="xyz1",
+            scope_list=["org:ci"],
+            date_last_used=None,
+            project_last_used_id=project.id,
+        )
+
         # Integration*
         integration = Integration.objects.create(
             provider="slack", name=f"Slack for {slug}", external_id=f"slack:{slug}"
@@ -314,6 +317,13 @@ class BackupTestCase(TransactionTestCase):
         rule = self.create_project_rule(project=project)
         RuleActivity.objects.create(rule=rule, type=RuleActivityType.CREATED.value)
         self.snooze_rule(user_id=owner_id, owner_id=owner_id, rule=rule)
+        NeglectedRule.objects.create(
+            rule=rule,
+            organization=org,
+            disable_date=datetime.now(),
+            sent_initial_email_date=datetime.now(),
+            sent_final_email_date=datetime.now(),
+        )
 
         # Environment*
         self.create_environment(project=project)

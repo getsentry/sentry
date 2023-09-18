@@ -127,7 +127,7 @@ describe('InviteMissingMembersModal', function () {
     );
 
     const createMemberMock = MockApiClient.addMockResponse({
-      url: `/organizations/${org.slug}/members/`,
+      url: `/organizations/${org.slug}/members/?referrer=github_nudge_invite`,
       method: 'POST',
       body: {},
     });
@@ -145,7 +145,7 @@ describe('InviteMissingMembersModal', function () {
     missingMembers.users.forEach((member, i) => {
       expect(createMemberMock).toHaveBeenNthCalledWith(
         i + 1,
-        `/organizations/${org.slug}/members/`,
+        `/organizations/${org.slug}/members/?referrer=github_nudge_invite`,
         expect.objectContaining({
           data: {email: member.email, role: 'member', teams: []},
         })
@@ -164,7 +164,7 @@ describe('InviteMissingMembersModal', function () {
     );
 
     const createMemberMock = MockApiClient.addMockResponse({
-      url: `/organizations/${org.slug}/members/`,
+      url: `/organizations/${org.slug}/members/?referrer=github_nudge_invite`,
       method: 'POST',
       body: {},
     });
@@ -189,7 +189,7 @@ describe('InviteMissingMembersModal', function () {
 
     expect(createMemberMock).toHaveBeenNthCalledWith(
       1,
-      `/organizations/${org.slug}/members/`,
+      `/organizations/${org.slug}/members/?referrer=github_nudge_invite`,
       expect.objectContaining({
         data: {email: 'hello@sentry.io', role: 'admin', teams: []},
       })
@@ -197,7 +197,7 @@ describe('InviteMissingMembersModal', function () {
 
     expect(createMemberMock).toHaveBeenNthCalledWith(
       2,
-      `/organizations/${org.slug}/members/`,
+      `/organizations/${org.slug}/members/?referrer=github_nudge_invite`,
       expect.objectContaining({
         data: {email: 'abcd@sentry.io', role: 'member', teams: [team.slug]},
       })

@@ -167,3 +167,22 @@ export interface ReplayError {
   timestamp: string;
   title: string;
 }
+
+export type DeadRageSelectorItem = {
+  count_dead_clicks: number;
+  count_rage_clicks: number;
+  dom_element: string;
+};
+
+export type DeadRageSelectorListResponse = {
+  data: {count_dead_clicks: number; count_rage_clicks: number; dom_element: string}[];
+};
+
+export interface DeadRageSelectorQueryParams {
+  per_page?: number;
+  sort?:
+    | 'count_dead_clicks'
+    | '-count_dead_clicks'
+    | 'count_rage_clicks'
+    | '-count_rage_clicks';
+}

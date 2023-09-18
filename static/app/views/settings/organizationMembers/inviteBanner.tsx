@@ -16,6 +16,7 @@ import {IconCommit, IconEllipsis, IconGithub, IconMail} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {MissingMember, Organization, OrgRole} from 'sentry/types';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -38,11 +39,11 @@ export function InviteBanner({
 }: Props) {
   // NOTE: this is currently used for Github only
 
-  const hideBanner =
-    !organization.features.includes('integrations-gh-invite') ||
-    !organization.access.includes('org:write') ||
-    !missingMembers?.users ||
-    missingMembers?.users.length === 0;
+  const isEligibleForBanner =
+    organization.features.includes('integrations-gh-invite') &&
+    organization.access.includes('org:write') &&
+    organization.githubNudgeInvite &&
+    missingMembers?.users?.length > 0;
   const [sendingInvite, setSendingInvite] = useState<boolean>(false);
   const [showBanner, setShowBanner] = useState<boolean>(false);
 
@@ -52,6 +53,9 @@ export function InviteBanner({
   const location = useLocation();
 
   const snoozePrompt = useCallback(async () => {
+    trackAnalytics('github_invite_banner.snoozed', {
+      organization,
+    });
     setShowBanner(false);
     await promptsUpdate(api, {
       organizationId: organization.id,
@@ -70,7 +74,7 @@ export function InviteBanner({
   }, [allowedRoles, missingMembers, organization, onModalClose]);
 
   useEffect(() => {
-    if (hideBanner) {
+    if (!isEligibleForBanner) {
       return;
     }
     promptsCheck(api, {
@@ -79,17 +83,22 @@ export function InviteBanner({
     }).then(prompt => {
       setShowBanner(!promptIsDismissed(prompt));
     });
-  }, [api, organization, promptsFeature, hideBanner]);
+  }, [api, organization, promptsFeature, isEligibleForBanner]);
 
   useEffect(() => {
     const {inviteMissingMembers} = qs.parse(location.search);
 
-    if (!hideBanner && inviteMissingMembers) {
+    if (isEligibleForBanner && inviteMissingMembers) {
       openInviteModal();
     }
-  }, [openInviteModal, location, hideBanner]);
+  }, [openInviteModal, location, isEligibleForBanner]);
 
-  if (hideBanner || !showBanner) {
+  if (isEligibleForBanner && showBanner) {
+    trackAnalytics('github_invite_banner.viewed', {
+      organization,
+    });
+  }
+  if (!isEligibleForBanner || !showBanner) {
     return null;
   }
 
@@ -144,6 +153,8 @@ export function InviteBanner({
           onClick={() => handleSendInvite(member.email)}
           data-test-id="invite-missing-member"
           icon={<IconMail />}
+          analyticsEventName="Github Invite Banner: Invite"
+          analyticsEventKey="github_invite_banner.invite"
         >
           {t('Invite')}
         </Button>
@@ -177,7 +188,13 @@ export function InviteBanner({
           </Subtitle>
         </CardTitleContent>
         <ButtonBar gap={1}>
-          <Button priority="primary" size="xs" onClick={openInviteModal}>
+          <Button
+            priority="primary"
+            size="xs"
+            onClick={openInviteModal}
+            analyticsEventName="Github Invite Banner: View All"
+            analyticsEventKey="github_invite_banner.view_all"
+          >
             {t('View All')}
           </Button>
           <DropdownMenu
@@ -222,7 +239,13 @@ function SeeMoreCard({missingMembers, openInviteModal}: SeeMoreCardProps) {
           })}
         </Subtitle>
       </MemberCardContent>
-      <Button size="sm" priority="primary" onClick={openInviteModal}>
+      <Button
+        size="sm"
+        priority="primary"
+        onClick={openInviteModal}
+        analyticsEventName="Github Invite Banner: View All"
+        analyticsEventKey="github_invite_banner.view_all"
+      >
         {t('View All')}
       </Button>
     </MemberCard>
