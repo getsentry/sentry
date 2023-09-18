@@ -62,9 +62,9 @@ class OrganizationSpansAggregationTest(APITestCase, SnubaTestCase):
                                 0,
                                 0.0,
                             ],
-                            ["B2", 0, "root_2", "B", "B", "connect", 158, 50, 50.0],
+                            ["B2", 0, "root_2", "B", "B", "connect", 158, 10, 30.0],
                             ["C2", 0, "root_2", "C", "C", "resolve_conditions", 448, 0, 40.0],
-                            ["D2", 0, "C2", "D", "D", "resolve_orderby", 429, 0, 20.0],
+                            ["D2", 0, "C2", "D", "D", "resolve_orderby", 429, 0, 10.0],
                         ],
                     },
                 ]
@@ -83,3 +83,11 @@ class OrganizationSpansAggregationTest(APITestCase, SnubaTestCase):
             assert root_fingerprint in data
             assert data[root_fingerprint]["description"] == "bind_organization_context"
             assert data[root_fingerprint]["count()"] == 2
+
+            fingerprint = hashlib.md5(b"A-B").hexdigest()[:16]
+            assert data[fingerprint]["description"] == "connect"
+            assert data[fingerprint]["avg(duration)"] == 30.0
+
+            fingerprint = hashlib.md5(b"A-C-D").hexdigest()[:16]
+            assert data[fingerprint]["description"] == "resolve_orderby"
+            assert data[fingerprint]["avg(exclusive_time)"] == 15.0

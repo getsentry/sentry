@@ -173,7 +173,7 @@ class OrganizationSpansAggregationEndpoint(OrganizationEventsEndpointBase):
         if root_prefix is None:
             prefix = coalesced_group
         else:
-            if nth_span == 0:
+            if nth_span == 1:
                 prefix = f"{root_prefix}-{coalesced_group}"
             else:
                 prefix = f"{root_prefix}-{coalesced_group}{nth_span}"
