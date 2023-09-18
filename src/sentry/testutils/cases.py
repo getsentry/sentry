@@ -10,7 +10,7 @@ from datetime import datetime, timedelta, timezone
 from io import BytesIO
 from typing import Any, Dict, List, Literal, Optional, Sequence, Union
 from unittest import mock
-from urllib.parse import parse_qs, urlencode, urlparse
+from urllib.parse import urlencode
 from uuid import uuid4
 from zlib import compress
 
@@ -2355,14 +2355,6 @@ class ActivityTestCase(TestCase):
         self.create_member(user=user, organization=self.org, teams=[team] if team else None)
 
         return user
-
-    def get_notification_uuid(self, url: str) -> str:
-        return parse_qs(urlparse(url).query)["notification_uuid"][0]
-
-    def get_notification_uuid_regex(self, text: str) -> str:
-        result = re.search("notification.*_uuid=([a-zA-Z0-9-]+)", text)
-        assert result is not None
-        return result[1]
 
     def another_commit(self, order, name, user, repository, alt_email_string=None):
         commit = Commit.objects.create(

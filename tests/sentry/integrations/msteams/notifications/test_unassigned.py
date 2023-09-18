@@ -37,7 +37,7 @@ class MSTeamsUnassignedNotificationTest(MSTeamsActivityNotificationTest):
         body = args[1]["body"]
         assert 4 == len(body)
 
-        notification_uuid = self.get_notification_uuid_regex(body[1]["text"])
+        notification_uuid = self.get_notification_uuid(body[1]["text"])
         assert f"Issue unassigned by {self.user.get_display_name()}" == body[0]["text"]
         assert (
             f"[{self.group.title}](http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=unassigned\\_activity-msteams&amp;notification\\_uuid="
@@ -72,7 +72,7 @@ class MSTeamsUnassignedNotificationTest(MSTeamsActivityNotificationTest):
         body = args[1]["body"]
         assert 4 == len(body)
 
-        notification_uuid = self.get_notification_uuid_regex(body[1]["text"])
+        notification_uuid = self.get_notification_uuid(body[1]["text"])
         assert "Issue unassigned by Sentry" == body[0]["text"]
         assert (
             f"[{self.group.title}](http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=unassigned\\_activity-msteams&amp;notification\\_uuid="
