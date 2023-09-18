@@ -4,32 +4,39 @@ import styled from '@emotion/styled';
 import TeamAvatar from 'sentry/components/avatar/teamAvatar';
 import UserAvatar from 'sentry/components/avatar/userAvatar';
 import {Tooltip} from 'sentry/components/tooltip';
-import {AvatarUser} from 'sentry/types';
-import {TeamParticipant} from 'sentry/types/group';
+import {AvatarUser, Team} from 'sentry/types';
 
 type UserAvatarProps = React.ComponentProps<typeof UserAvatar>;
 
 type Props = {
-  members: Array<AvatarUser | TeamParticipant>;
+  users: AvatarUser[];
   avatarSize?: number;
   className?: string;
   maxVisibleAvatars?: number;
   renderTooltip?: UserAvatarProps['renderTooltip'];
+  teams?: Team[];
   tooltipOptions?: UserAvatarProps['tooltipOptions'];
-  typeMembers?: string;
+  typeAvatars?: string;
 };
 
 function AvatarList({
   avatarSize = 28,
   maxVisibleAvatars = 5,
-  typeMembers = 'users',
+  typeAvatars = 'users',
   tooltipOptions = {},
   className,
-  members,
+  users,
+  teams,
   renderTooltip,
 }: Props) {
-  const visibleMembers = members.slice(0, maxVisibleAvatars);
-  const numCollapsedUsers = members.length - visibleMembers.length;
+  const numTeams = teams ? teams.length : 0;
+  // maximum number of teams/users we can show
+  const maxVisibleTeams = maxVisibleAvatars - numTeams > 0 ? numTeams : maxVisibleAvatars;
+  const maxVisibleUsers =
+    maxVisibleAvatars - maxVisibleTeams > 0 ? maxVisibleAvatars - maxVisibleTeams : 0;
+  const visibleTeamAvatars = teams?.slice(0, maxVisibleTeams);
+  const visibleUserAvatars = users.slice(0, maxVisibleUsers);
+  const numCollapsedAvatars = users.length - visibleUserAvatars.length;
 
   if (!tooltipOptions.position) {
     tooltipOptions.position = 'top';
@@ -37,39 +44,33 @@ function AvatarList({
 
   return (
     <AvatarListWrapper className={className}>
-      {!!numCollapsedUsers && (
-        <Tooltip title={`${numCollapsedUsers} other ${typeMembers}`}>
-          <CollapsedUsers size={avatarSize} data-test-id="avatarList-collapsedusers">
-            {numCollapsedUsers < 99 && <Plus>+</Plus>}
-            {numCollapsedUsers}
-          </CollapsedUsers>
+      {!!numCollapsedAvatars && (
+        <Tooltip title={`${numCollapsedAvatars} other ${typeAvatars}`}>
+          <CollapsedAvatars size={avatarSize} data-test-id="avatarList-collapsedavatars">
+            {numCollapsedAvatars < 99 && <Plus>+</Plus>}
+            {numCollapsedAvatars}
+          </CollapsedAvatars>
         </Tooltip>
       )}
-      {visibleMembers.map(member => {
-        if (member.type && member.type === 'team') {
-          const team = member as TeamParticipant;
-          return (
-            <StyledTeamAvatar
-              key={`${team.id}-${team.name}`}
-              team={team}
-              size={avatarSize}
-              tooltipOptions={tooltipOptions}
-              hasTooltip
-            />
-          );
-        }
-        const user = member as AvatarUser;
-        return (
-          <StyledUserAvatar
-            key={`${user.id}-${user.email}`}
-            user={user}
-            size={avatarSize}
-            renderTooltip={renderTooltip}
-            tooltipOptions={tooltipOptions}
-            hasTooltip
-          />
-        );
-      })}
+      {visibleTeamAvatars?.map(team => (
+        <StyledTeamAvatar
+          key={`${team.id}-${team.name}`}
+          team={team}
+          size={avatarSize}
+          tooltipOptions={tooltipOptions}
+          hasTooltip
+        />
+      ))}
+      {visibleUserAvatars.map(user => (
+        <StyledUserAvatar
+          key={`${user.id}-${user.email}`}
+          user={user}
+          size={avatarSize}
+          renderTooltip={renderTooltip}
+          tooltipOptions={tooltipOptions}
+          hasTooltip
+        />
+      ))}
     </AvatarListWrapper>
   );
 }
@@ -103,7 +104,7 @@ const StyledTeamAvatar = styled(TeamAvatar)`
   ${AvatarStyle}
 `;
 
-const CollapsedUsers = styled('div')<{size: number}>`
+const CollapsedAvatars = styled('div')<{size: number}>`
   display: flex;
   align-items: center;
   justify-content: center;

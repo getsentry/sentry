@@ -556,11 +556,11 @@ interface ReprocessingStatusDetails {
 }
 
 interface UserParticipant extends User {
-  type?: 'user';
+  type: 'user';
 }
 
-export interface TeamParticipant extends Team {
-  type?: 'team';
+interface TeamParticipant extends Team {
+  type: 'team';
 }
 
 /**

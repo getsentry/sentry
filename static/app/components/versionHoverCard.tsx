@@ -111,10 +111,10 @@ class VersionHoverCard extends Component<Props, State> {
                 {release.authors.length !== 1 ? t('authors') : t('author')}{' '}
               </h6>
               <AvatarList
-                members={release.authors}
+                users={release.authors}
                 avatarSize={25}
                 tooltipOptions={{container: 'body'} as any}
-                typeMembers="authors"
+                typeAvatars="authors"
               />
             </div>
           </div>

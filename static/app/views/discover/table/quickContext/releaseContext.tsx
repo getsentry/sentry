@@ -99,7 +99,7 @@ function ReleaseContext(props: BaseContextProps) {
             {data.commitCount === 0 ? (
               <IconNot color="gray500" size="md" />
             ) : (
-              <StyledAvatarList members={data.authors} maxVisibleAvatars={10} />
+              <StyledAvatarList users={data.authors} maxVisibleAvatars={10} />
             )}
           </ContextBody>
         </ReleaseContextContainer>
