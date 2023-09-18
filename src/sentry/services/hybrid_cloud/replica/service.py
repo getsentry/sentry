@@ -22,6 +22,13 @@ class ControlReplicaService(RpcService):
     def upsert_replicated_organization_member_team(self, *, omt: RpcOrganizationMemberTeam) -> None:
         pass
 
+    @rpc_method
+    @abc.abstractmethod
+    def remove_replicated_organization_member_team(
+        self, *, organization_id: int, organization_member_id: int
+    ) -> None:
+        pass
+
     @classmethod
     def get_local_implementation(cls) -> RpcService:
         from .impl import DatabaseBackedControlReplicaService

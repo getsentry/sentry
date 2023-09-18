@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import FrozenSet
+from typing import Any, FrozenSet, Mapping
 
 from django.db import models
 
@@ -54,6 +54,17 @@ class OrganizationMemberTeam(ReplicatedRegionModel):
 
         control_replica_service.upsert_replicated_organization_member_team(
             omt=serialize_rpc_organization_member_team(self)
+        )
+
+    @classmethod
+    def handle_async_deletion(
+        cls, identifier: int, shard_identifier: int, payload: Mapping[str, Any] | None
+    ) -> None:
+        from sentry.services.hybrid_cloud.replica.service import control_replica_service
+
+        control_replica_service.remove_replicated_organization_member_team(
+            organization_id=shard_identifier,
+            organization_member_id=identifier,
         )
 
     def get_audit_log_data(self):

@@ -292,7 +292,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                 organizationmember=member, role__in=lesser_team_roles
             ):
                 omt.role = None
-            OrganizationMemberTeam.objects.bulk_update(omts)
+            OrganizationMemberTeam.objects.bulk_update(omts, fields=["role"])
             omt_update_count = len(omts)
             member.role = role
             member.save()

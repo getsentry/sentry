@@ -1,8 +1,8 @@
-from typing import Any, Iterator, List, Mapping, Type, Union
+from typing import Any, Iterator, List, Mapping, Optional, Type, Union
 
 from django.db import router, transaction
 
-from sentry.db.models import BaseModel
+from sentry.db.models import BaseModel, FlexibleForeignKey
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.outboxes import ReplicatedControlModel, ReplicatedRegionModel
 from sentry.db.postgres.transactions import enforce_constraints
@@ -24,42 +24,66 @@ from sentry.services.hybrid_cloud.organization import RpcOrganizationMemberTeam,
 from sentry.services.hybrid_cloud.replica.service import ControlReplicaService, RegionReplicaService
 
 
-def get_foreign_key_column(
+def get_foreign_key_columns(
     destination: BaseModel,
     *source_models: Type[BaseModel],
-) -> str:
+) -> Iterator[str]:
     destination_model: Type[BaseModel] = type(destination)
+    found_one = False
     for field in destination_model._meta.get_fields():
         if isinstance(field, HybridCloudForeignKey):
             if field.foreign_model in source_models:
-                return field.name
-    raise TypeError(
-        f"replication to {destination_model} lacking required HybridCloudForeignKey to {source_models}"
-    )
+                yield field.name
+                found_one = True
+        elif isinstance(field, FlexibleForeignKey):
+            if field.related_model in source_models:
+                yield field.name
+                found_one = True
+
+    if not found_one:
+        raise TypeError(
+            f"replication to {destination_model} lacking required HybridCloudForeignKey to {source_models}"
+        )
+
+
+def get_foreign_key_column(
+    destination: BaseModel,
+    source_model: Type[BaseModel],
+) -> str:
+    return next(get_foreign_key_columns(destination, source_model))
 
 
 def get_conflicting_unique_columns(
     destination: BaseModel,
+    fk: str,
     category: OutboxCategory,
 ) -> Iterator[List[str]]:
     destination_model: Type[BaseModel] = type(destination)
 
-    if not destination_model._meta.unique_together:
+    uniques = list(destination_model._meta.unique_together) + [
+        (field.name,)
+        for field in destination_model._meta.get_fields()
+        if getattr(field, "unique", False) and not getattr(field, "primary_key", False)
+    ]
+    if not uniques:
         return
 
     scope = category.get_scope()
-    scope_controlled_column: str
+    scope_controlled_columns: List[str]
     if scope == scope.USER_SCOPE:
-        scope_controlled_column = get_foreign_key_column(destination, User)
+        scope_controlled_columns = [get_foreign_key_column(destination, User)]
     elif scope == scope.ORGANIZATION_SCOPE:
-        scope_controlled_column = get_foreign_key_column(destination, Organization, AuthProvider)
+        scope_controlled_columns = list(
+            get_foreign_key_columns(destination, Organization, AuthProvider)
+        )
     else:
         raise TypeError(
             f"replication to {destination_model} includes unique index that is not scoped by shard!"
         )
+    scope_controlled_columns.append(fk)
 
-    for columns in destination_model._meta.unique_together:
-        if scope_controlled_column not in columns:
+    for columns in uniques:
+        if not any(c in columns for c in scope_controlled_columns):
             raise TypeError(
                 f"replication to {destination_model} includes unique index that is not scoped by shard: {columns}!"
             )
@@ -69,14 +93,15 @@ def get_conflicting_unique_columns(
 def handle_replication(
     source_model: Union[Type[ReplicatedControlModel], Type[ReplicatedRegionModel]],
     destination: BaseModel,
+    fk: Optional[str] = None,
 ):
     category: OutboxCategory = source_model.category
     destination_model: Type[BaseModel] = type(destination)
-    fk = get_foreign_key_column(destination, source_model)
+    fk = fk or get_foreign_key_column(destination, source_model)
     dest_filter: Mapping[str, Any] = {fk: getattr(destination, fk)}
 
     with enforce_constraints(transaction.atomic(router.db_for_write(destination_model))):
-        for columns in get_conflicting_unique_columns(destination, category):
+        for columns in get_conflicting_unique_columns(destination, fk, category):
             destination_model.objects.filter(
                 **{c: getattr(destination, c) for c in columns}
             ).exclude(**dest_filter).delete()
@@ -131,6 +156,13 @@ class DatabaseBackedRegionReplicaService(RegionReplicaService):
 
 
 class DatabaseBackedControlReplicaService(ControlReplicaService):
+    def remove_replicated_organization_member_team(
+        self, *, organization_id: int, organization_member_id: int
+    ) -> None:
+        OrganizationMemberTeamReplica.objects.filter(
+            organization_id=organization_id, organizationmember_id=organization_member_id
+        ).delete()
+
     def upsert_replicated_organization_member_team(self, *, omt: RpcOrganizationMemberTeam) -> None:
         destination = OrganizationMemberTeamReplica(
             team_id=omt.team_id,
@@ -141,7 +173,7 @@ class DatabaseBackedControlReplicaService(ControlReplicaService):
             is_active=omt.is_active,
         )
 
-        handle_replication(OrganizationMemberTeam, destination)
+        handle_replication(OrganizationMemberTeam, destination, fk="organizationmemberteam_id")
 
     def upsert_replicated_team(self, *, team: RpcTeam) -> None:
         destination = TeamReplica(

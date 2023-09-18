@@ -53,9 +53,7 @@ class Migration(CheckedMigration):
                 ),
                 (
                     "organizationmemberteam_id",
-                    sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                        "sentry.OrganizationMemberTeam", db_index=True, on_delete="CASCADE"
-                    ),
+                    sentry.db.models.fields.bounded.BoundedBigIntegerField(db_index=True),
                 ),
                 ("is_active", models.BooleanField()),
                 ("role", models.CharField(blank=True, max_length=32, null=True)),
