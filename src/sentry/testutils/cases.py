@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import inspect
 import os.path
+import re
 import time
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
@@ -2369,6 +2370,12 @@ class ActivityTestCase(TestCase):
         )
 
         return release, deploy
+
+    def get_notification_uuid(self, text: str) -> str:
+        # Allow notification\\_uuid and notification_uuid
+        result = re.search("notification.*_uuid=([a-zA-Z0-9-]+)", text)
+        assert result is not None
+        return result[1]
 
 
 class SlackActivityNotificationTest(ActivityTestCase):
