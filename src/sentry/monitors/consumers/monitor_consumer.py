@@ -463,7 +463,7 @@ def _process_checkin(
     try:
         # use lock.blocking_acquire() as default lock.acquire() fast fails if
         # lock is in use. We absolutely want to wait to acquire this lock
-        # otherwise we will be dropping the check-in.
+        # otherwise we would drop the check-in.
         with lock.blocking_acquire(
             INITIAL_LOCK_DELAY, float(LOCK_TIMEOUT), exp_base=LOCK_EXP_BASE
         ), transaction.atomic(router.db_for_write(Monitor)):
