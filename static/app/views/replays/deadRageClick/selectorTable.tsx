@@ -6,6 +6,7 @@ import useQueryBasedColumnResize from 'sentry/components/feedback/table/useQuery
 import useQueryBasedSorting from 'sentry/components/feedback/table/useQueryBasedSorting';
 import GridEditable, {GridColumnOrder} from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
+import TextOverflow from 'sentry/components/textOverflow';
 import {Organization} from 'sentry/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -77,9 +78,12 @@ export default function SelectorTable({
         case 'dom_element':
           return <SelectorLink organization={organization} value={value} />;
         case 'element':
-          return <code>{value}</code>;
         case 'aria_label':
-          return <code>{value}</code>;
+          return (
+            <code>
+              <TextOverflow>{value}</TextOverflow>
+            </code>
+          );
         default:
           return renderSimpleBodyCell<DeadRageSelectorItem>(column, dataRow);
       }
@@ -123,11 +127,11 @@ function SelectorLink({
         pathname: normalizeUrl(`/organizations/${organization.slug}/replays/`),
       }}
     >
-      {value}
+      <TextOverflow>{value}</TextOverflow>
     </Link>
   );
 }
 
 function renderSimpleBodyCell<T>(column: GridColumnOrder<string>, dataRow: T) {
-  return dataRow[column.key];
+  return <TextOverflow>{dataRow[column.key]}</TextOverflow>;
 }
