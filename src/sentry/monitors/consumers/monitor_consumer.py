@@ -461,6 +461,7 @@ def _process_checkin(
         ), transaction.atomic(router.db_for_write(Monitor)):
             status = getattr(CheckInStatus, validated_params["status"].upper())
             trace_id = validated_params.get("contexts", {}).get("trace", {}).get("trace_id")
+            duration = validated_params["duration"]
 
             try:
                 if use_latest_checkin:
@@ -498,13 +499,12 @@ def _process_checkin(
                         return
 
                 txn.set_tag("outcome", "process_existing_checkin")
-                update_existing_check_in(check_in, status, validated_params["duration"], start_time)
+                update_existing_check_in(check_in, status, duration, start_time)
 
             except MonitorCheckIn.DoesNotExist:
                 # Infer the original start time of the check-in from the duration.
                 # Note that the clock of this worker may be off from what Relay is reporting.
                 date_added = start_time
-                duration = validated_params["duration"]
                 if duration is not None:
                     date_added -= timedelta(milliseconds=duration)
 
