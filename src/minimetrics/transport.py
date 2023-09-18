@@ -1,11 +1,12 @@
 import re
 from functools import partial
-from typing import Iterable
+from io import BytesIO
+from typing import Dict, Iterable, List, Tuple
 
 import sentry_sdk
 from sentry_sdk.envelope import Envelope, Item
 
-from minimetrics.types import FlushedMetric, MetricTagsInternal
+from minimetrics.types import FlushableBuckets, FlushableMetric, MetricType
 from sentry.utils import metrics
 
 
@@ -21,37 +22,51 @@ sanitize_value = partial(re.compile(r"[^a-zA-Z0-9_/.]").sub, "")
 
 
 class RelayStatsdEncoder:
-    def encode(self, value: FlushedMetric) -> str:
-        (timestamp, metric_type, metric_name, metric_unit, metric_tags), metric = value
+    def _encode(self, value: FlushableMetric, out: BytesIO):
+        _write = out.write
+        timestamp, (metric_type, metric_name, metric_unit, metric_tags), metric = value
         metric_name = sanitize_value(metric_name) or "invalid-metric-name"
-        metric_values = ":".join(str(v) for v in metric.serialize_value())
-        serialized_metric_tags = self._get_metric_tags(metric_tags)
-        metric_tags_prefix = serialized_metric_tags and "|#" or ""
-        return f"{metric_name}@{metric_unit}:{metric_values}|{metric_type}{metric_tags_prefix}{serialized_metric_tags}|T{timestamp}"
+        _write(f"{metric_name}@{metric_unit}".encode())
 
-    def encode_multiple(self, values: Iterable[FlushedMetric]) -> str:
-        return "\n".join(self.encode(value) for value in values)
+        for serialized_value in metric.serialize_value():
+            _write(b":")
+            _write(str(serialized_value).encode("utf-8"))
 
-    def _get_metric_tags(self, tags: MetricTagsInternal) -> str:
-        if not tags:
-            return ""
+        _write(f"|{metric_type}".encode("ascii"))
 
-        # We sanitize all the tag keys and tag values.
-        sanitized_tags = (
-            (sanitize_value(tag_key), sanitize_value(tag_value)) for tag_key, tag_value in tags
-        )
+        if metric_tags:
+            _write(b"|#")
+            first = True
+            for tag_key, tag_value in metric_tags:
+                tag_key = sanitize_value(tag_key)
+                if not tag_key:
+                    continue
+                if first:
+                    first = False
+                else:
+                    _write(b",")
+                _write(tag_key.encode("utf-8"))
+                _write(b":")
+                _write(sanitize_value(tag_value).encode("utf-8"))
 
-        # We then convert all tags whose tag key is not empty to the string representation.
-        return ",".join(
-            f"{tag_key}:{tag_value}" for tag_key, tag_value in sanitized_tags if tag_key
-        )
+        _write(f"|T{timestamp}".encode("ascii"))
+
+    def encode_multiple(self, values: Iterable[FlushableMetric]) -> bytes:
+        out = BytesIO()
+        _write = out.write
+
+        for value in values:
+            self._encode(value, out)
+            _write(b"\n")
+
+        return out.getvalue()
 
 
 class MetricEnvelopeTransport:
     def __init__(self, encoder: RelayStatsdEncoder):
         self._encoder = encoder
 
-    def send(self, flushed_metrics: Iterable[FlushedMetric]):
+    def send(self, flushable_buckets: FlushableBuckets):
         client = sentry_sdk.Hub.current.client
         if client is None:
             return
@@ -60,7 +75,47 @@ class MetricEnvelopeTransport:
         if transport is None:
             return
 
-        encoded_metrics = self._encoder.encode_multiple(flushed_metrics)
+        flushable_metrics: List[FlushableMetric] = []
+        stats_by_type: Dict[MetricType, Tuple[int, int]] = {}
+        for buckets_timestamp, buckets in flushable_buckets:
+            for bucket_key, metric in buckets.items():
+                flushable_metric: FlushableMetric = (buckets_timestamp, bucket_key, metric)
+                flushable_metrics.append(flushable_metric)
+                (prev_buckets_count, prev_buckets_weight) = stats_by_type.get(bucket_key[0], (0, 0))
+                stats_by_type[bucket_key[0]] = (
+                    prev_buckets_count + 1,
+                    prev_buckets_weight + metric.weight,
+                )
+
+        encoded_metrics = self._encoder.encode_multiple(flushable_metrics)
+
+        for metric_type, (buckets_count, buckets_weight) in stats_by_type.items():
+            # We want to emit a metric on how many buckets and weight there was for a metric type.
+            metrics.timing(
+                key="minimetrics.flushed_buckets",
+                value=buckets_count,
+                tags={"metric_type": metric_type},
+                sample_rate=1.0,
+            )
+            metrics.incr(
+                key="minimetrics.flushed_buckets_counter",
+                amount=buckets_count,
+                tags={"metric_type": metric_type},
+                sample_rate=1.0,
+            )
+            metrics.timing(
+                key="minimetrics.flushed_buckets_weight",
+                value=buckets_weight,
+                tags={"metric_type": metric_type},
+                sample_rate=1.0,
+            )
+            metrics.incr(
+                key="minimetrics.flushed_buckets_weight_counter",
+                amount=buckets_weight,
+                tags={"metric_type": metric_type},
+                sample_rate=1.0,
+            )
+
         metrics.timing(
             key="minimetrics.encoded_metrics_size", value=len(encoded_metrics), sample_rate=1.0
         )

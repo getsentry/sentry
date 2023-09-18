@@ -14,6 +14,7 @@ import {isDone} from 'sentry/components/sidebar/utils';
 import {
   IconChevron,
   IconDashboard,
+  IconGraph,
   IconIssues,
   IconLightning,
   IconPlay,
@@ -254,6 +255,13 @@ function Sidebar({location, organization}: Props) {
           id="performance-browser-interactions"
           icon={<SubitemDot collapsed={collapsed} />}
         />
+        <SidebarItem
+          {...sidebarItemProps}
+          label={<GuideAnchor target="starfish">{t('Page Loads')}</GuideAnchor>}
+          to={`/organizations/${organization.slug}/performance/browser/pageloads`}
+          id="performance-browser-page-loads"
+          icon={<SubitemDot collapsed={collapsed} />}
+        />
       </SidebarAccordion>
     </Feature>
   );
@@ -327,6 +335,22 @@ function Sidebar({location, organization}: Props) {
         label={t('Replays')}
         to={`/organizations/${organization.slug}/replays/`}
         id="replays"
+      />
+    </Feature>
+  );
+
+  const ddm = hasOrganization && (
+    <Feature
+      features={['ddm-ui', 'custom-metrics']}
+      organization={organization}
+      requireAll
+    >
+      <SidebarItem
+        {...sidebarItemProps}
+        icon={<IconGraph />}
+        label={t('DDM')}
+        to={`/organizations/${organization.slug}/ddm/`}
+        id="ddm"
       />
     </Feature>
   );
@@ -419,6 +443,7 @@ function Sidebar({location, organization}: Props) {
 
               <SidebarSection>
                 {discover2}
+                {ddm}
                 {dashboards}
                 {releases}
                 {userFeedback}

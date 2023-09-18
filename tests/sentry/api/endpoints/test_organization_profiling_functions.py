@@ -91,38 +91,42 @@ class OrganizationProfilingFunctionTrendsEndpointTest(ProfilesSnubaTestCase):
                 timestamp=before_now(hours=i, minutes=11),
             )
 
-        mock_detect_breakpoints.return_value = [
-            {
-                "absolute_percentage_change": 0.9090909090909091,
-                "aggregate_range_1": 110000000.0,
-                "aggregate_range_2": 100000000.0,
-                "breakpoint": 1688022000,
-                "change": "improvement",
-                "project": str(self.project.id),
-                "transaction": str(
-                    self.function_fingerprint({"package": "foo", "function": "bar"}) & 0xFFFFFFFF
-                ),
-                "trend_difference": -10000000.0,
-                "trend_percentage": 0.9090909090909091,
-                "unweighted_p_value": 0.0,
-                "unweighted_t_value": float("inf"),
-            },
-            {
-                "absolute_percentage_change": 0.1,
-                "aggregate_range_1": 1000000000.0,
-                "aggregate_range_2": 100000000.0,
-                "breakpoint": 1688022000,
-                "change": "improvement",
-                "project": str(self.project.id),
-                "transaction": str(
-                    self.function_fingerprint({"package": "foo", "function": "baz"}) & 0xFFFFFFFF
-                ),
-                "trend_difference": -900000000.0,
-                "trend_percentage": 0.1,
-                "unweighted_p_value": 0.0,
-                "unweighted_t_value": float("inf"),
-            },
-        ]
+        mock_detect_breakpoints.return_value = {
+            "data": [
+                {
+                    "absolute_percentage_change": 0.9090909090909091,
+                    "aggregate_range_1": 110000000.0,
+                    "aggregate_range_2": 100000000.0,
+                    "breakpoint": 1688022000,
+                    "change": "improvement",
+                    "project": str(self.project.id),
+                    "transaction": str(
+                        self.function_fingerprint({"package": "foo", "function": "bar"})
+                        & 0xFFFFFFFF
+                    ),
+                    "trend_difference": -10000000.0,
+                    "trend_percentage": 0.9090909090909091,
+                    "unweighted_p_value": 0.0,
+                    "unweighted_t_value": float("inf"),
+                },
+                {
+                    "absolute_percentage_change": 0.1,
+                    "aggregate_range_1": 1000000000.0,
+                    "aggregate_range_2": 100000000.0,
+                    "breakpoint": 1688022000,
+                    "change": "improvement",
+                    "project": str(self.project.id),
+                    "transaction": str(
+                        self.function_fingerprint({"package": "foo", "function": "baz"})
+                        & 0xFFFFFFFF
+                    ),
+                    "trend_difference": -900000000.0,
+                    "trend_percentage": 0.1,
+                    "unweighted_p_value": 0.0,
+                    "unweighted_t_value": float("inf"),
+                },
+            ]
+        }
 
         with self.feature(PROFILING_FEATURES):
             response = self.client.get(
@@ -168,38 +172,42 @@ class OrganizationProfilingFunctionTrendsEndpointTest(ProfilesSnubaTestCase):
                 timestamp=before_now(hours=i, minutes=11),
             )
 
-        mock_detect_breakpoints.return_value = [
-            {
-                "absolute_percentage_change": 5.0,
-                "aggregate_range_1": 100000000.0,
-                "aggregate_range_2": 500000000.0,
-                "breakpoint": 1687323600,
-                "change": "regression",
-                "project": str(self.project.id),
-                "transaction": str(
-                    self.function_fingerprint({"package": "foo", "function": "baz"}) & 0xFFFFFFFF
-                ),
-                "trend_difference": 400000000.0,
-                "trend_percentage": 5.0,
-                "unweighted_p_value": 0.0,
-                "unweighted_t_value": -float("inf"),
-            },
-            {
-                "absolute_percentage_change": 10.0,
-                "aggregate_range_1": 100000000.0,
-                "aggregate_range_2": 1000000000.0,
-                "breakpoint": 1687323600,
-                "change": "regression",
-                "project": str(self.project.id),
-                "transaction": str(
-                    self.function_fingerprint({"package": "foo", "function": "bar"}) & 0xFFFFFFFF
-                ),
-                "trend_difference": 900000000.0,
-                "trend_percentage": 10.0,
-                "unweighted_p_value": 0.0,
-                "unweighted_t_value": -float("inf"),
-            },
-        ]
+        mock_detect_breakpoints.return_value = {
+            "data": [
+                {
+                    "absolute_percentage_change": 5.0,
+                    "aggregate_range_1": 100000000.0,
+                    "aggregate_range_2": 500000000.0,
+                    "breakpoint": 1687323600,
+                    "change": "regression",
+                    "project": str(self.project.id),
+                    "transaction": str(
+                        self.function_fingerprint({"package": "foo", "function": "baz"})
+                        & 0xFFFFFFFF
+                    ),
+                    "trend_difference": 400000000.0,
+                    "trend_percentage": 5.0,
+                    "unweighted_p_value": 0.0,
+                    "unweighted_t_value": -float("inf"),
+                },
+                {
+                    "absolute_percentage_change": 10.0,
+                    "aggregate_range_1": 100000000.0,
+                    "aggregate_range_2": 1000000000.0,
+                    "breakpoint": 1687323600,
+                    "change": "regression",
+                    "project": str(self.project.id),
+                    "transaction": str(
+                        self.function_fingerprint({"package": "foo", "function": "bar"})
+                        & 0xFFFFFFFF
+                    ),
+                    "trend_difference": 900000000.0,
+                    "trend_percentage": 10.0,
+                    "unweighted_p_value": 0.0,
+                    "unweighted_t_value": -float("inf"),
+                },
+            ]
+        }
 
         with self.feature(PROFILING_FEATURES):
             response = self.client.get(
@@ -249,38 +257,42 @@ class OrganizationProfilingFunctionTrendsEndpointTest(ProfilesSnubaTestCase):
                 timestamp=before_now(hours=i, minutes=11),
             )
 
-        mock_detect_breakpoints.return_value = [
-            {
-                "absolute_percentage_change": 0.2,
-                "aggregate_range_1": 500000000.0,
-                "aggregate_range_2": 100000000.0,
-                "breakpoint": 1687323600,
-                "change": "improvement",
-                "project": str(self.project.id),
-                "transaction": str(
-                    self.function_fingerprint({"package": "foo", "function": "bar"}) & 0xFFFFFFFF
-                ),
-                "trend_difference": -400000000.0,
-                "trend_percentage": 0.2,
-                "unweighted_p_value": 0.0,
-                "unweighted_t_value": float("inf"),
-            },
-            {
-                "absolute_percentage_change": 0.1,
-                "aggregate_range_1": 1000000000.0,
-                "aggregate_range_2": 100000000.0,
-                "breakpoint": 1687323600,
-                "change": "improvement",
-                "project": str(self.project.id),
-                "transaction": str(
-                    self.function_fingerprint({"package": "foo", "function": "baz"}) & 0xFFFFFFFF
-                ),
-                "trend_difference": -900000000.0,
-                "trend_percentage": 0.1,
-                "unweighted_p_value": 0.0,
-                "unweighted_t_value": float("inf"),
-            },
-        ]
+        mock_detect_breakpoints.return_value = {
+            "data": [
+                {
+                    "absolute_percentage_change": 0.2,
+                    "aggregate_range_1": 500000000.0,
+                    "aggregate_range_2": 100000000.0,
+                    "breakpoint": 1687323600,
+                    "change": "improvement",
+                    "project": str(self.project.id),
+                    "transaction": str(
+                        self.function_fingerprint({"package": "foo", "function": "bar"})
+                        & 0xFFFFFFFF
+                    ),
+                    "trend_difference": -400000000.0,
+                    "trend_percentage": 0.2,
+                    "unweighted_p_value": 0.0,
+                    "unweighted_t_value": float("inf"),
+                },
+                {
+                    "absolute_percentage_change": 0.1,
+                    "aggregate_range_1": 1000000000.0,
+                    "aggregate_range_2": 100000000.0,
+                    "breakpoint": 1687323600,
+                    "change": "improvement",
+                    "project": str(self.project.id),
+                    "transaction": str(
+                        self.function_fingerprint({"package": "foo", "function": "baz"})
+                        & 0xFFFFFFFF
+                    ),
+                    "trend_difference": -900000000.0,
+                    "trend_percentage": 0.1,
+                    "unweighted_p_value": 0.0,
+                    "unweighted_t_value": float("inf"),
+                },
+            ]
+        }
 
         with self.feature(PROFILING_FEATURES):
             response = self.client.get(

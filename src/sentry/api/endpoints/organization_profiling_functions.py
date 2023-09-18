@@ -180,7 +180,7 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
                 "trendFunction": data["function"],
             }
 
-            return detect_breakpoints(trends_request)
+            return detect_breakpoints(trends_request)["data"]
 
         stats_data = self.get_event_stats_data(
             request,

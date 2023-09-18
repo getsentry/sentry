@@ -42,6 +42,7 @@ export function InviteBanner({
   const isEligibleForBanner =
     organization.features.includes('integrations-gh-invite') &&
     organization.access.includes('org:write') &&
+    organization.githubNudgeInvite &&
     missingMembers?.users?.length > 0;
   const [sendingInvite, setSendingInvite] = useState<boolean>(false);
   const [showBanner, setShowBanner] = useState<boolean>(false);
