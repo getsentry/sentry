@@ -37,9 +37,15 @@ class ReleaseThresholdStatusIndexSerializer(serializers.Serializer):
         ),
         required=True,
     )
-    environments = serializers.ListField(required=False, allow_null=True, allow_empty=True)
-    projects = serializers.ListField(required=False, allow_null=True, allow_empty=True)
-    release_ids = serializers.ListField(required=False, allow_null=True, allow_empty=True)
+    environment = serializers.ListField(
+        required=False, allow_empty=True, child=serializers.CharField()
+    )
+    project = serializers.ListField(
+        required=False, allow_empty=True, child=serializers.IntegerField()
+    )
+    release_id = serializers.ListField(
+        required=False, allow_empty=True, child=serializers.IntegerField()
+    )
 
     def validate(self, data):
         if data["start"] >= data["end"]:
@@ -67,21 +73,20 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
         """
         data = request.data if len(request.GET) == 0 and hasattr(request, "data") else request.GET
         start, end = get_date_range_from_params(params=data)
-        environments_list = request.GET.getlist("environment")
-        project_ids_list = request.GET.getlist("project")
-        release_ids_list = request.GET.getlist("release_id")
 
         serializer = ReleaseThresholdStatusIndexSerializer(
             data=request.query_params,
-            context={  # do we need to pass in extra context?
-                "organization": organization,
-                "access": request.access,
-            },
         )
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
-        release_query = Q(organization=organization)
+        environments_list = serializer.validated_data.get("environment")
+        project_ids_list = serializer.validated_data.get("project")
+        release_ids_list = serializer.validated_data.get("release_id")
+
+        # NOTE: we're only filtering on date ADDED
+        # This is not synonymous with a deploy... which may be what we actually want.
+        release_query = Q(organization=organization, date_added__gte=start, date_added__lte=end)
         environments = self.get_environments(request, organization)
         if environments:
             environments_list = [env.name for env in environments]
@@ -105,12 +110,6 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
             .order_by("-date")
             .distinct()
         )
-        # NOTE: we're only filtering on date ADDED
-        # This is not synonymous with a deploy... which may be what we actually want.
-        queryset = queryset.filter(date__gte=start, date__lte=end)
-        if release_ids_list:
-            queryset = queryset.filter(id__in=release_ids_list)
-
         queryset.prefetch_related("projects__release_thresholds")
 
         # ========================================================================
