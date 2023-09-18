@@ -83,10 +83,12 @@ export default function MetricDetailsBody({
       return null;
     }
 
-    const eventType = isCrashFreeAlert(dataset)
-      ? ``
-      : extractEventTypeFilterFromRule(rule);
-    return (query ? `(${eventType}) AND (${query})` : eventType).split(' ');
+    if (isCrashFreeAlert(dataset)) {
+      return query?.trim().split(' ') ?? null;
+    }
+
+    const eventType = extractEventTypeFilterFromRule(rule);
+    return (query ? `(${eventType}) AND (${query.trim()})` : eventType).split(' ');
   }
 
   const handleTimePeriodChange = (datetime: ChangeData) => {
