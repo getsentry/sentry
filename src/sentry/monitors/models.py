@@ -594,14 +594,18 @@ def check_monitor_environment_limits(sender, instance, **kwargs):
 
 
 @region_silo_only_model
-class MonitorEnvironment(Model):
+class MonitorIncident(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
     monitor = FlexibleForeignKey("sentry.Monitor", related_name="incidents")
     monitor_environment = FlexibleForeignKey("sentry.MonitorEnvironment", related_name="incidents")
-    opening_checkin = FlexibleForeignKey("sentry.MonitorCheckIn", related_name="created_incidents")
-    closing_checkin = FlexibleForeignKey(
+    starting_checkin = FlexibleForeignKey(
+        "sentry.MonitorCheckIn", null=True, related_name="created_incidents"
+    )
+    starting_timestamp = models.DateTimeField(null=True)
+    resolving_checkin = FlexibleForeignKey(
         "sentry.MonitorCheckIn", related_name="closed_incidents", null=True
     )
+    resolving_timestamp = models.DateTimeField(null=True)
     grouphash = models.CharField(max_length=32)
     date_added = models.DateTimeField(default=timezone.now)
