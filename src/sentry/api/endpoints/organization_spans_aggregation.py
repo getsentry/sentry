@@ -1,6 +1,6 @@
 import hashlib
 from collections import defaultdict, namedtuple
-from typing import Dict, List, TypedDict, Union
+from typing import Dict, List, TypedDict
 
 from rest_framework import status
 from rest_framework.request import Request
@@ -38,6 +38,22 @@ class EventSpans(TypedDict):
     spans: List[EventSpan]
 
 
+AggregateSpanRow = TypedDict(
+    "AggregateSpanRow",
+    {
+        "node_fingerprint": str,
+        "parent_node_fingerprint": str,
+        "group": str,
+        "description": str,
+        "start_ms": int,
+        "avg(exclusive_time)": float,
+        "avg(duration)": float,
+        "is_segment": int,
+        "avg(offset)": float,
+        "count()": int,
+    },
+)
+
 NULL_GROUP = "00"
 
 
@@ -47,7 +63,7 @@ class OrganizationSpansAggregationEndpoint(OrganizationEventsEndpointBase):
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
 
-    aggregated_tree: Dict[str, Dict[str, Union[str, int, float]]] = {}
+    aggregated_tree: Dict[str, AggregateSpanRow] = {}
 
     def get(self, request: Request, organization: Organization) -> Response:
         if not features.has("organizations:starfish-view", organization, actor=request.user):
@@ -118,12 +134,12 @@ class OrganizationSpansAggregationEndpoint(OrganizationEventsEndpointBase):
                     span_tree[span_id] = spans_dict
                     span_tree[span_id]["children"] = []
 
-            for span in span_tree.values():
-                parent_id = span["parent_span_id"]
+            for span_ in span_tree.values():
+                parent_id = span_["parent_span_id"]
                 if parent_id in span_tree:
                     parent_span = span_tree[parent_id]
                     children = parent_span["children"]
-                    children.append(span)
+                    children.append(span_)
 
             if root_span_id in span_tree:
                 root_span = span_tree[root_span_id]
