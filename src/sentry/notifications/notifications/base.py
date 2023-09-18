@@ -3,6 +3,7 @@ from __future__ import annotations
 import abc
 import uuid
 from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Optional, Sequence
+from urllib.parse import urlencode
 
 import sentry_sdk
 
@@ -187,7 +188,13 @@ class BaseNotification(abc.ABC):
         If the recipient is not necessarily a user (ex: sending to an email address associated with an account),
         The recipient may be omitted.
         """
-        return f"?referrer={self.get_referrer(provider, recipient)}"
+        query = urlencode(
+            {
+                "referrer": self.get_referrer(provider, recipient),
+                "notification_uuid": self.notification_uuid,
+            }
+        )
+        return f"?{query}"
 
     def get_settings_url(self, recipient: RpcActor, provider: ExternalProviders) -> str:
         # Settings url is dependant on the provider so we know which provider is sending them into Sentry.

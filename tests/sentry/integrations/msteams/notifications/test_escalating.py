@@ -46,7 +46,8 @@ class MSTeamsEscalatingNotificationTest(MSTeamsActivityNotificationTest):
             body[2]["text"]
             == "Sentry flagged this issue as escalating because over 100 events happened in an hour."
         )
+        notification_uuid = self.get_notification_uuid(body[3]["columns"][1]["items"][0]["text"])
         assert (
             body[3]["columns"][1]["items"][0]["text"]
-            == f"{self.project.slug} | [Notification Settings](http://testserver/settings/account/notifications/workflow/?referrer=escalating\\_activity-msteams-user)"
+            == f"{self.project.slug} | [Notification Settings](http://testserver/settings/account/notifications/workflow/?referrer=escalating\\_activity-msteams-user&amp;notification\\_uuid={notification_uuid})"
         )

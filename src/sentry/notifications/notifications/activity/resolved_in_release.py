@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from html import escape
 from typing import Any, Mapping
+from urllib.parse import urlencode
 
 from sentry_relay.processing import parse_release
 
@@ -24,7 +25,13 @@ class ResolvedInReleaseActivityNotification(GroupActivityNotification):
         if self.version:
             url = self.organization.absolute_url(
                 f"/organizations/{self.organization.slug}/releases/{self.version}/",
-                query=f"project={self.project.id}",
+                query=urlencode(
+                    {
+                        "project": self.project.id,
+                        "referrer": self.metrics_key,
+                        "notification_uuid": self.notification_uuid,
+                    }
+                ),
             )
 
             return (

@@ -35,9 +35,10 @@ class SlackRegressionNotificationTest(SlackActivityNotificationTest, Performance
         assert text == "Issue marked as regression"
         assert attachment["title"] == "こんにちは"
         assert attachment["text"] == ""
+        notification_uuid = self.get_notification_uuid(attachment["title_link"])
         assert (
             attachment["footer"]
-            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=regression_activity-slack-user|Notification Settings>"
+            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=regression_activity-slack-user&notification_uuid={notification_uuid}|Notification Settings>"
         )
 
     @responses.activate
@@ -50,15 +51,17 @@ class SlackRegressionNotificationTest(SlackActivityNotificationTest, Performance
             self.create_notification(self.group, {"version": "1.0.0"}).send()
 
         attachment, text = get_attachment()
+        notification_uuid = self.get_notification_uuid(attachment["title_link"])
         assert (
             text
-            == "Issue marked as regression in release <http://testserver/organizations/baz/releases/1.0.0/|1.0.0>"
+            == f"Issue marked as regression in release <http://testserver/organizations/baz/releases/1.0.0/?referrer=regression_activity&notification_uuid={notification_uuid}|1.0.0>"
         )
         assert attachment["title"] == "こんにちは"
         assert attachment["text"] == ""
+        notification_uuid = self.get_notification_uuid(attachment["title_link"])
         assert (
             attachment["footer"]
-            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=regression_activity-slack-user|Notification Settings>"
+            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=regression_activity-slack-user&notification_uuid={notification_uuid}|Notification Settings>"
         )
 
     @responses.activate
