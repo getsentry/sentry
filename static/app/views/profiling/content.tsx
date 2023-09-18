@@ -40,7 +40,7 @@ import useProjects from 'sentry/utils/useProjects';
 import {DEFAULT_PROFILING_DATETIME_SELECTION} from 'sentry/views/profiling/utils';
 
 import {LandingWidgetSelector} from './landing/landingWidgetSelector';
-import {ProfileCharts} from './landing/profileCharts';
+import {ProfilesChart} from './landing/profileCharts';
 import {ProfilesChartWidget} from './landing/profilesChartWidget';
 import {ProfilingSlowestTransactionsPanel} from './landing/profilingSlowestTransactionsPanel';
 import {ProfilingOnboardingPanel} from './profilingOnboardingPanel';
@@ -279,7 +279,7 @@ function ProfilingContent({location}: ProfilingContentProps) {
                   ) : (
                     <PanelsGrid>
                       <ProfilingSlowestTransactionsPanel />
-                      <ProfileCharts
+                      <ProfilesChart
                         referrer="api.profiling.landing-chart"
                         query={query}
                         selection={selection}
