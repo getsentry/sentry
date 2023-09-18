@@ -1,3 +1,5 @@
+import {RouteComponentProps} from 'react-router';
+
 import {Alert} from 'sentry/components/alert';
 import useFetchFeedbackItem from 'sentry/components/feedback/useFetchFeedbackItem';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -7,14 +9,30 @@ import Placeholder from 'sentry/components/placeholder';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
+import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
 
-export default function Details() {
+interface RouteParams {
+  feedbackSlug: string;
+}
+interface Props extends RouteComponentProps<RouteParams, {}, any, {}> {}
+
+export default function FeedbackDetailsPage({params: {feedbackSlug}}: Props) {
   const organization = useOrganization();
 
-  const {isLoading, isError, data} = useFetchFeedbackItem({}, {});
+  const [projectSlug, feedbackId] = feedbackSlug.split(':');
+  const project = useProjectFromSlug({organization, projectSlug});
+
+  const {isLoading, isError, data} = useFetchFeedbackItem(
+    {feedbackId, organization, project: project!},
+    {enabled: Boolean(project)}
+  );
 
   return (
-    <SentryDocumentTitle title={`Feedback v2 — ${organization.slug}`}>
+    <SentryDocumentTitle
+      title={t(`Feedback v2`)}
+      orgSlug={organization.slug}
+      projectSlug={projectSlug}
+    >
       <Layout.Header>
         <Layout.HeaderContent>
           <Layout.Title>
