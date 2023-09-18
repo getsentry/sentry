@@ -39,6 +39,7 @@ from sentry.incidents.models import (
 )
 from sentry.models import Actor, Integration, OrganizationIntegration, Project
 from sentry.models.notificationaction import ActionService, ActionTarget
+from sentry.models.organization import OrganizationStatus
 from sentry.relay.config.metric_extraction import on_demand_metrics_feature_flags
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.fields import resolve_field
@@ -1461,6 +1462,25 @@ def get_opsgenie_teams(organization_id, integration_id) -> list[Tuple[str, str]]
     if team_table:
         teams = [(team["id"], team["team"]) for team in team_table]
     return teams
+
+
+def get_discord_servers(organization_id, providers) -> List[RpcIntegration]:
+    return integration_service.get_integrations(
+        organization_id=organization_id,
+        status=OrganizationStatus.ACTIVE,
+        org_integration_status=OrganizationStatus.ACTIVE,
+        providers=providers,
+    )
+
+
+# def get_discord_servers(organization_id, integration_id) -> list[Tuple[str, str]]:
+#     org_int = integration_service.get_organization_integration(
+#         organization_id=organization_id, integration_id=integration_id
+#     )
+#     if org_int is None:
+#         return []
+#     servers = [(i.id, i.name) for i in org_int]
+#     return servers
 
 
 # TODO: This is temporarily needed to support back and forth translations for snuba / frontend.
