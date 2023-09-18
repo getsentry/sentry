@@ -290,8 +290,6 @@ class MetricsQuery(MetricsQueryValidationRunner):
     def validate_limit(self) -> None:
         if self.limit is None:
             return
-        if self.start is None or self.end is None:
-            raise Exception("We need start and end to be set.")
         intervals_len = get_num_intervals(
             end=self.end,
             start=self.start,
