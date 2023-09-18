@@ -145,8 +145,8 @@ def test_relay_encoder_with_multiple_metrics():
     encoder = RelayStatsdEncoder()
 
     flushed_metric_1 = (
+        1693994400,
         (
-            1693994400,
             "g",
             "startup_time",
             "second",
@@ -159,8 +159,8 @@ def test_relay_encoder_with_multiple_metrics():
     )
 
     flushed_metric_2 = (
+        1693994400,
         (
-            1693994400,
             "c",
             "button_click",
             "none",
@@ -173,8 +173,8 @@ def test_relay_encoder_with_multiple_metrics():
     )
 
     flushed_metric_3 = (
+        1693994400,
         (
-            1693994400,
             "c",
             # This name will be completely scraped, resulting in an invalid metric.
             "öüâ",
@@ -200,17 +200,18 @@ def test_relay_encoder_with_multiple_metrics():
 @patch("minimetrics.transport.sentry_sdk")
 def test_send(sentry_sdk):
     flushed_metric = (
-        (
-            1693994400,
-            "c",
-            "button_click",
-            "none",
+        1693994400,
+        {
             (
-                ("browser", "Chrome"),
-                ("browser.version", "1.0"),
-            ),
-        ),
-        CounterMetric(first=1),
+                "c",
+                "button_click",
+                "none",
+                (
+                    ("browser", "Chrome"),
+                    ("browser.version", "1.0"),
+                ),
+            ): CounterMetric(first=1),
+        },
     )
 
     transport = MetricEnvelopeTransport(RelayStatsdEncoder())
