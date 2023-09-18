@@ -7,7 +7,7 @@ from django.db import models
 from sentry import features, roles
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import BoundedAutoField, FlexibleForeignKey, region_silo_only_model, sane_repr
-from sentry.db.models.outboxes import ReplicatedRegionModel
+from sentry.db.models.outboxes import RegionOutboxProducingManager, ReplicatedRegionModel
 from sentry.models.outbox import OutboxCategory, RegionOutboxBase
 from sentry.roles import team_roles
 from sentry.roles.manager import TeamRole
@@ -18,6 +18,8 @@ class OrganizationMemberTeam(ReplicatedRegionModel):
     """
     Identifies relationships between organization members and the teams they are on.
     """
+
+    objects = RegionOutboxProducingManager["OrganizationMemberTeam"]()
 
     __relocation_scope__ = RelocationScope.Organization
     category = OutboxCategory.ORGANIZATION_MEMBER_TEAM_UPDATE

@@ -6,7 +6,6 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Collection,
-    Generic,
     Iterable,
     List,
     Mapping,
@@ -16,7 +15,7 @@ from typing import (
     TypeVar,
 )
 
-from django.db import router, transaction
+from django.db import connections, router, transaction
 from django.dispatch import receiver
 from sentry_sdk.api import capture_exception
 
@@ -27,7 +26,12 @@ from sentry.types.region import find_regions_for_orgs
 from sentry.utils.env import in_test_environment
 
 if TYPE_CHECKING:
-    from sentry.models.outbox import ControlOutboxBase, OutboxCategory, RegionOutboxBase
+    from sentry.models.outbox import (
+        ControlOutboxBase,
+        OutboxCategory,
+        RegionOutboxBase,
+        outbox_context,
+    )
 
 logger = logging.getLogger("sentry.outboxes")
 
@@ -38,6 +42,9 @@ class RegionOutboxProducingModel(Model):
     an outbox returned from outbox_for_update is saved. Furthermore, using this mixin causes get_protected_operations
     to protect any updates/deletes/inserts of this model that do not go through the model methods (such as querysets
     or raw sql).  See `get_protected_operations` for info on working around this.
+
+    Models that subclass from this or its descendents should consider using RegionOutboxProducingManager
+    to support bulk operations that respect outbox creation.
     """
 
     class Meta:
@@ -82,14 +89,48 @@ class RegionOutboxProducingModel(Model):
 _RM = TypeVar("_RM", bound=RegionOutboxProducingModel)
 
 
-class RegionOutboxProducingManager(Generic[_RM], BaseManager[_RM]):
-    def bulk_create(
-        self, objs: Iterable[_RM], batch_size: int | None = None, ignore_conflicts=False
-    ) -> Collection[_RM]:
-        pass
+class RegionOutboxProducingManager(BaseManager[_RM]):
+    """
+    Provides bulk update and delete methods that respect outbox creation.
+    """
 
-    def delete(self) -> Tuple[int, Mapping[str, int]]:
-        pass
+    def bulk_create(self, objs: Iterable[_RM], *args: Any, **kwds: Any) -> Collection[_RM]:
+        tuple_of_objs: Tuple[_RM, ...] = tuple(objs)
+        if not tuple_of_objs:
+            return super().bulk_create(tuple_of_objs, *args, **kwds)
+
+        model: Type[_RM] = type(tuple_of_objs[0])
+        using = router.db_for_write(model)
+        with outbox_context(transaction.atomic(using=using), flush=False):
+            with connections[using].cursor() as cursor:
+                cursor.execute(
+                    "SELECT nextval(%s) FROM generate_series(1,%s);",
+                    [f"{model._meta.db_table}_id_seq", len(tuple_of_objs)],
+                )
+                ids = cursor.fetchone()
+
+            outboxes: List[RegionOutboxBase] = []
+            for row_id, obj in zip(ids, objs):
+                obj.id = row_id
+                outboxes.append(obj.outbox_for_update())
+
+            type(outboxes[0]).objects.bulk_create(outboxes)
+            return super().bulk_create(tuple_of_objs, *args, **kwds)
+
+    def bulk_delete(self, objs: Iterable[_RM]) -> Tuple[int, Mapping[str, int]]:
+        tuple_of_objs: Tuple[_RM, ...] = tuple(objs)
+        if not tuple_of_objs:
+            return 0, {}
+
+        model: Type[_RM] = type(tuple_of_objs[0])
+        using = router.db_for_write(model)
+        with outbox_context(transaction.atomic(using=using), flush=False):
+            outboxes: List[RegionOutboxBase] = []
+            for obj in objs:
+                outboxes.append(obj.outbox_for_update())
+
+            type(outboxes[0]).objects.bulk_create(outboxes)
+            return self.filter(id__in={o.id for o in objs}).delete()
 
 
 class ReplicatedRegionModel(RegionOutboxProducingModel):
@@ -98,6 +139,9 @@ class ReplicatedRegionModel(RegionOutboxProducingModel):
     based on the category and outbox type configured as class variables.  It also provides a default signal handler
     that invokes either of handle_async_replication or handle_async_replication based on whether the object has
     been deleted or not.  Subclasses can and often should override these methods to configure outbox processing.
+
+    Models that subclass from this or its descendents should consider using RegionOutboxProducingManager
+    to support bulk operations that respect outbox creation.
     """
 
     category: OutboxCategory
@@ -161,6 +205,9 @@ class ControlOutboxProducingModel(Model):
     based on the category nd outbox type configured as class variables.  Furthermore, using this mixin causes get_protected_operations
     to protect any updates/deletes/inserts of this model that do not go through the model methods (such as querysets
     or raw sql).  See `get_protected_operations` for info on working around this.
+
+    Models that subclass from this or its descendents should consider using ControlOutboxProducingManager
+    to support bulk operations that respect outbox creation.
     """
 
     default_flush: bool | None = None
@@ -200,12 +247,62 @@ class ControlOutboxProducingModel(Model):
         raise NotImplementedError
 
 
+_CM = TypeVar("_CM", bound=ControlOutboxProducingModel)
+
+
+class ControlOutboxProducingManager(BaseManager[_CM]):
+    """
+    Provides bulk update and delete methods that respect outbox creation.
+    """
+
+    def bulk_create(self, objs: Iterable[_CM], *args: Any, **kwds: Any) -> Collection[_CM]:
+        tuple_of_objs: Tuple[_CM, ...] = tuple(objs)
+        if not tuple_of_objs:
+            return super().bulk_create(tuple_of_objs, *args, **kwds)
+
+        model: Type[_CM] = type(tuple_of_objs[0])
+        using = router.db_for_write(model)
+        with outbox_context(transaction.atomic(using=using), flush=False):
+            with connections[using].cursor() as cursor:
+                cursor.execute(
+                    "SELECT nextval(%s) FROM generate_series(1,%s);",
+                    [f"{model._meta.db_table}_id_seq", len(tuple_of_objs)],
+                )
+                ids = cursor.fetchone()
+
+            outboxes: List[ControlOutboxBase] = []
+            for row_id, obj in zip(ids, objs):
+                obj.id = row_id
+                outboxes.extend(obj.outboxes_for_update())
+
+            type(outboxes[0]).objects.bulk_create(outboxes)
+            return super().bulk_create(tuple_of_objs, *args, **kwds)
+
+    def bulk_delete(self, objs: Iterable[_CM]) -> Tuple[int, Mapping[str, int]]:
+        tuple_of_objs: Tuple[_CM, ...] = tuple(objs)
+        if not tuple_of_objs:
+            return 0, {}
+
+        model: Type[_CM] = type(tuple_of_objs[0])
+        using = router.db_for_write(model)
+        with outbox_context(transaction.atomic(using=using), flush=False):
+            outboxes: List[ControlOutboxBase] = []
+            for obj in objs:
+                outboxes.extend(obj.outboxes_for_update())
+
+            type(outboxes[0]).objects.bulk_create(outboxes)
+            return self.filter(id__in={o.id for o in objs}).delete()
+
+
 class ReplicatedControlModel(ControlOutboxProducingModel):
     """
     An extension of RegionOutboxProducingModel that provides a default implementation for `outboxes_for_update`
     based on the category nd outbox type configured as class variables.  It also provides a default signal handler
     that invokes either of handle_async_replication or handle_async_replication based on wether the object has
     been deleted or not.  Subclasses can and often should override these methods to configure outbox processing.
+
+    Models that subclass from this or its descendents should consider using ControlOutboxProducingManager
+    to support bulk operations that respect outbox creation.
     """
 
     category: OutboxCategory

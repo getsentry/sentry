@@ -1,8 +1,8 @@
 from typing import Any, Iterator, List, Mapping, Type, Union
 
 from django.db import router, transaction
-from django.db.models import Model
 
+from sentry.db.models import BaseModel
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.outboxes import ReplicatedControlModel, ReplicatedRegionModel
 from sentry.db.postgres.transactions import enforce_constraints
@@ -25,10 +25,10 @@ from sentry.services.hybrid_cloud.replica.service import ControlReplicaService, 
 
 
 def get_foreign_key_column(
-    destination: Model,
-    *source_models: Type[Model],
+    destination: BaseModel,
+    *source_models: Type[BaseModel],
 ) -> str:
-    destination_model: Type[Model] = type(destination)
+    destination_model: Type[BaseModel] = type(destination)
     for field in destination_model._meta.get_fields():
         if isinstance(field, HybridCloudForeignKey):
             if field.foreign_model in source_models:
@@ -39,10 +39,10 @@ def get_foreign_key_column(
 
 
 def get_conflicting_unique_columns(
-    destination: Model,
+    destination: BaseModel,
     category: OutboxCategory,
 ) -> Iterator[List[str]]:
-    destination_model: Type[Model] = type(destination)
+    destination_model: Type[BaseModel] = type(destination)
 
     if not destination_model._meta.unique_together:
         return
@@ -68,10 +68,10 @@ def get_conflicting_unique_columns(
 
 def handle_replication(
     source_model: Union[Type[ReplicatedControlModel], Type[ReplicatedRegionModel]],
-    destination: Model,
+    destination: BaseModel,
 ):
     category: OutboxCategory = source_model.category
-    destination_model: Type[Model] = type(destination)
+    destination_model: Type[BaseModel] = type(destination)
     fk = get_foreign_key_column(destination, source_model)
     dest_filter: Mapping[str, Any] = {fk: getattr(destination, fk)}
 
@@ -105,7 +105,7 @@ class DatabaseBackedRegionReplicaService(RegionReplicaService):
             auth_provider_id=auth_provider.id,
             provider=auth_provider.provider,
             organization_id=organization.id,
-            config=auth_provider.config,
+            config=auth_provider.config,  # type: ignore
             default_role=auth_provider.default_role,
             default_global_access=auth_provider.default_global_access,
             allow_unlinked=auth_provider.flags.allow_unlinked,
@@ -123,7 +123,7 @@ class DatabaseBackedRegionReplicaService(RegionReplicaService):
             user_id=auth_identity.user_id,
             auth_provider_id=auth_identity.auth_provider_id,
             ident=auth_identity.ident,
-            data=auth_identity.data,
+            data=auth_identity.data,  # type: ignore
             last_verified=auth_identity.last_verified,
         )
 
