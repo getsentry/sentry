@@ -55,8 +55,7 @@ class ValidateSchema(ProcessingStrategy[KafkaPayload]):
                     try:
                         self.__codec.decode(message.payload.value)
                     except sentry_kafka_schemas.codecs.ValidationError:
-                        # logger.warning("Invalid message received")
-                        pass
+                        logger.warning("Invalid message received")
                     self.__last_record_time = now
 
         self.__next_step.submit(message)
