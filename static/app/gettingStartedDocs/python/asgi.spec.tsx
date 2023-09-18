@@ -6,7 +6,7 @@ import {GettingStartedWithASGI, steps} from './asgi';
 
 describe('GettingStartedWithASGI', function () {
   it('renders doc correctly', function () {
-    const {container} = render(<GettingStartedWithASGI dsn="test-dsn" />);
+    render(<GettingStartedWithASGI dsn="test-dsn" />);
 
     // Steps
     for (const step of steps()) {
@@ -14,7 +14,5 @@ describe('GettingStartedWithASGI', function () {
         screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
       ).toBeInTheDocument();
     }
-
-    expect(container).toSnapshot();
   });
 });

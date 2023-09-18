@@ -221,6 +221,7 @@ yarn.lock                                                @getsentry/owners-js-de
 
 /static/app/views/performance/                                            @getsentry/performance
 /static/app/utils/performance/                                            @getsentry/performance
+/static/app/components/events/eventStatisticalDetector/                   @getsentry/performance
 /static/app/components/events/interfaces/spans/                           @getsentry/performance
 /static/app/components/performance/                                       @getsentry/performance
 /static/app/components/quickTrace/                                        @getsentry/performance
@@ -290,6 +291,15 @@ yarn.lock                                                @getsentry/owners-js-de
 /src/sentry/replays/              @getsentry/replay-backend
 /tests/sentry/replays/            @getsentry/replay-backend
 ## End of Replays
+
+
+## Feedback v2
+/static/app/components/feedback/   @getsentry/feedback-frontend
+/static/app/utils/feedback/        @getsentry/feedback-frontend
+/static/app/views/feedback/        @getsentry/feedback-frontend
+/src/sentry/feedback/              @getsentry/feedback-backend
+/tests/sentry/feedback/            @getsentry/feedback-backend
+## End of Feedback v2
 
 
 ## Integrations
@@ -408,7 +418,8 @@ yarn.lock                                                @getsentry/owners-js-de
 
 
 ## SDK
-/src/sentry/utils/sdk.py   @getsentry/team-web-sdk-backend
+/src/sentry/utils/sdk.py                                             @getsentry/team-web-sdk-backend
+/src/sentry/api/endpoints/source_map_debug_blue_thunder_edition.py   @getsentry/team-web-sdk-frontend
 ## End of SDK
 
 

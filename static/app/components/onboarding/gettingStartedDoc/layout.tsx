@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {ComponentProps, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import HookOrDefault from 'sentry/components/hookOrDefault';
@@ -6,16 +6,16 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {Step, StepProps} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {PlatformOptionsControl} from 'sentry/components/onboarding/platformOptionsControl';
 import {ProductSelection} from 'sentry/components/onboarding/productSelection';
 import {PlatformKey} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 
 const ProductSelectionAvailabilityHook = HookOrDefault({
   hookName: 'component:product-selection-availability',
+  defaultComponent: ProductSelection,
 });
 
 type NextStep = {
@@ -33,35 +33,30 @@ export type LayoutProps = {
   newOrg?: boolean;
   nextSteps?: NextStep[];
   platformKey?: PlatformKey;
+  platformOptions?: ComponentProps<typeof PlatformOptionsControl>['platformOptions'];
 };
 
 export function Layout({
   steps,
   platformKey,
-  nextSteps = [],
   newOrg,
+  nextSteps = [],
+  platformOptions,
   introduction,
 }: LayoutProps) {
   const organization = useOrganization();
-  const {isSelfHosted} = useLegacyStore(ConfigStore);
 
   return (
     <Wrapper>
-      {introduction && (
-        <Fragment>
-          <Introduction>{introduction}</Introduction>
-          <Divider />
-        </Fragment>
-      )}
-      {!isSelfHosted && newOrg && (
-        <ProductSelection platform={platformKey} withBottomMargin />
-      )}
-      {!isSelfHosted && !newOrg && (
-        <ProductSelectionAvailabilityHook
-          organization={organization}
-          platform={platformKey}
-        />
-      )}
+      {introduction && <Introduction>{introduction}</Introduction>}
+      <ProductSelectionAvailabilityHook
+        organization={organization}
+        platform={platformKey}
+      />
+      {platformOptions ? (
+        <PlatformOptionsControl platformOptions={platformOptions} />
+      ) : null}
+      <Divider withBottomMargin={newOrg} />
       <Steps>
         {steps.map(step => (
           <Step key={step.title ?? step.type} {...step} />
@@ -86,11 +81,12 @@ export function Layout({
   );
 }
 
-const Divider = styled('hr')`
+const Divider = styled('hr')<{withBottomMargin?: boolean}>`
   height: 1px;
   width: 100%;
   background: ${p => p.theme.border};
   border: none;
+  ${p => p.withBottomMargin && `margin-bottom: ${space(3)}`}
 `;
 
 const Steps = styled('div')`
@@ -103,6 +99,7 @@ const Introduction = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(1)};
+  padding-bottom: ${space(2)};
 `;
 
 const Wrapper = styled('div')`

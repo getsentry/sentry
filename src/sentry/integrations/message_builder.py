@@ -65,6 +65,7 @@ def get_title_link(
     notification: BaseNotification | None,
     provider: ExternalProviders = ExternalProviders.SLACK,
     rule_id: int | None = None,
+    notification_uuid: str | None = None,
 ) -> str:
     other_params = {}
     # add in rule id if we have it
@@ -81,7 +82,18 @@ def get_title_link(
 
     elif issue_details and notification:
         referrer = notification.get_referrer(provider)
-        url = group.get_absolute_url(params={"referrer": referrer, **other_params})
+        notification_uuid = notification.notification_uuid
+        url = group.get_absolute_url(
+            params={"referrer": referrer, "notification_uuid": notification_uuid, **other_params}
+        )
+    elif notification_uuid:
+        url = group.get_absolute_url(
+            params={
+                "referrer": EXTERNAL_PROVIDERS[provider],
+                "notification_uuid": notification_uuid,
+                **other_params,
+            }
+        )
     else:
         url = group.get_absolute_url(
             params={"referrer": EXTERNAL_PROVIDERS[provider], **other_params}

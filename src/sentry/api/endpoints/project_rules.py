@@ -203,7 +203,8 @@ class ProjectRulesEndpoint(ProjectEndpoint):
                 {
                     "name": [
                         f"This rule is an exact duplicate of '{duplicate_rule.label}' in this project and may not be created.",
-                    ]
+                    ],
+                    "ruleId": [duplicate_rule.id],
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )

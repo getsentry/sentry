@@ -1,46 +1,31 @@
 from __future__ import annotations
 
 from io import StringIO
-from typing import NamedTuple
 
 import click
 from django.apps import apps
 from django.core import management, serializers
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import IntegrityError, connection, transaction
+from rest_framework.serializers import ValidationError as DjangoRestFrameworkValidationError
 
 from sentry.backup.dependencies import PrimaryKeyMap, normalize_model_name
-from sentry.backup.helpers import EXCLUDED_APPS, Filter
+from sentry.backup.helpers import EXCLUDED_APPS, Filter, ImportFlags
 from sentry.backup.scopes import ImportScope
 from sentry.silo import unguarded_write
 
 __all__ = (
-    "OldImportConfig",
     "import_in_user_scope",
     "import_in_organization_scope",
     "import_in_global_scope",
 )
 
 
-class OldImportConfig(NamedTuple):
-    """While we are migrating to the new backup system, we need to take care not to break the old
-    and relatively untested workflows. This model allows us to stub in the old configs."""
-
-    # Do we allow users to update existing models, or force them to only insert new ones? The old
-    # behavior was to allow updates of already included models, but we want to move away from this.
-    # TODO(getsentry/team-ospo#170): This is a noop for now, but will be used as we migrate to
-    # `INSERT-only` importing logic.
-    use_update_instead_of_create: bool = False
-
-    # Old imports use "natural" foreign keys, which in practice only changes how foreign keys into
-    # `sentry.User` are represented.
-    use_natural_foreign_keys: bool = False
-
-
 def _import(
     src,
     scope: ImportScope,
-    old_config: OldImportConfig,
     *,
+    flags: ImportFlags | None = None,
     filter_by: Filter | None = None,
     printer=click.echo,
 ):
@@ -75,8 +60,6 @@ def _import(
             user_filter = Filter(model=User, field="pk")
             filters.append(user_filter)
 
-            # No need to use `OldImportConfig` here, since this codepath can only be hit by new
-            # import calls.
             for obj in serializers.deserialize("json", src, stream=True):
                 o = obj.object
                 model_name = normalize_model_name(o)
@@ -132,27 +115,22 @@ def _import(
         # service up for writing to control silo models.
         with unguarded_write(using="default"), transaction.atomic("default"):
             allowed_relocation_scopes = scope.value
+            flags = flags if flags is not None else ImportFlags()
             pk_map = PrimaryKeyMap()
-            for obj in serializers.deserialize(
-                "json", src, stream=True, use_natural_keys=old_config.use_natural_foreign_keys
-            ):
+            for obj in serializers.deserialize("json", src, stream=True, use_natural_keys=False):
                 o = obj.object
                 if o._meta.app_label not in EXCLUDED_APPS or o:
-                    # TODO(getsentry/team-ospo#183): This conditional should be removed once we want
-                    # to roll out the new API to self-hosted.
-                    if old_config.use_update_instead_of_create:
-                        obj.save()
-                    elif o.get_relocation_scope() in allowed_relocation_scopes:
+                    if o.get_relocation_scope() in allowed_relocation_scopes:
                         o = obj.object
                         model_name = normalize_model_name(o)
                         for f in filters:
                             if f.model == type(o) and getattr(o, f.field, None) not in f.values:
                                 break
                         else:
-                            written = o.write_relocation_import(pk_map, scope)
+                            written = o.write_relocation_import(pk_map, scope, flags)
                             if written is not None:
-                                old_pk, new_pk = written
-                                pk_map.insert(model_name, old_pk, new_pk)
+                                old_pk, new_pk, import_kind = written
+                                pk_map.insert(model_name, old_pk, new_pk, import_kind)
 
     # For all database integrity errors, let's warn users to follow our
     # recommended backup/restore workflow before reraising exception. Most of
@@ -166,6 +144,14 @@ def _import(
         )
         raise (e)
 
+    # Calls to `write_relocation_import` may fail validation and throw either a
+    # `DjangoValidationError` when a call to `.full_clean()` failed, or a
+    # `DjangoRestFrameworkValidationError` when a call to a custom DRF serializer failed. This
+    # exception catcher converts instances of the former to the latter.
+    except DjangoValidationError as e:
+        errs = {field: error for field, error in e.message_dict.items()}
+        raise DjangoRestFrameworkValidationError(errs) from e
+
     sequence_reset_sql = StringIO()
 
     for app in apps.get_app_configs():
@@ -177,7 +163,13 @@ def _import(
         cursor.execute(sequence_reset_sql.getvalue())
 
 
-def import_in_user_scope(src, *, user_filter: set[str] | None = None, printer=click.echo):
+def import_in_user_scope(
+    src,
+    *,
+    flags: ImportFlags | None = None,
+    user_filter: set[str] | None = None,
+    printer=click.echo,
+):
     """
     Perform an import in the `User` scope, meaning that only models with `RelocationScope.User` will be imported from the provided `src` file.
 
@@ -190,13 +182,19 @@ def import_in_user_scope(src, *, user_filter: set[str] | None = None, printer=cl
     return _import(
         src,
         ImportScope.User,
-        OldImportConfig(),
+        flags=flags,
         filter_by=Filter(User, "username", user_filter) if user_filter is not None else None,
         printer=printer,
     )
 
 
-def import_in_organization_scope(src, *, org_filter: set[str] | None = None, printer=click.echo):
+def import_in_organization_scope(
+    src,
+    *,
+    flags: ImportFlags | None = None,
+    org_filter: set[str] | None = None,
+    printer=click.echo,
+):
     """
     Perform an import in the `Organization` scope, meaning that only models with
     `RelocationScope.User` or `RelocationScope.Organization` will be imported from the provided
@@ -213,7 +211,7 @@ def import_in_organization_scope(src, *, org_filter: set[str] | None = None, pri
     return _import(
         src,
         ImportScope.Organization,
-        OldImportConfig(),
+        flags=flags,
         filter_by=Filter(Organization, "slug", org_filter) if org_filter is not None else None,
         printer=printer,
     )
@@ -227,4 +225,4 @@ def import_in_global_scope(src, *, printer=click.echo):
     superuser privileges are not sanitized.
     """
 
-    return _import(src, ImportScope.Global, OldImportConfig(), printer=printer)
+    return _import(src, ImportScope.Global, printer=printer)

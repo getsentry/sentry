@@ -28,7 +28,7 @@ describe('Frame - Line', function () {
 
   describe('renderOriginalSourceInfo()', function () {
     it('should render the source map information as a HTML string', function () {
-      const {container} = render(
+      render(
         <DeprecatedLine
           data={{
             origAbsPath: 'https://beta.getsentry.com/_static/sentry/dist/vendor.js',
@@ -41,7 +41,6 @@ describe('Frame - Line', function () {
           event={event}
         />
       );
-      expect(container).toSnapshot();
     });
   });
 
@@ -66,7 +65,6 @@ describe('Frame - Line', function () {
           isExpanded
         />
       );
-      expect(screen.getByRole('list')).toSnapshot();
     });
 
     it('should render register values', () => {

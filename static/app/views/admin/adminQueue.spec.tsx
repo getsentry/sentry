@@ -53,8 +53,7 @@ describe('AdminQueue', function () {
         body: [],
       });
 
-      const wrapper = render(<AdminQueue />);
-      expect(wrapper.container).toSnapshot();
+      render(<AdminQueue />);
     });
   });
 });

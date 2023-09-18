@@ -2041,6 +2041,11 @@ def _get_severity_score(event: Event) -> float | None:
     if error_type:
         message = error_type if not error_msg else f"{error_type}: {error_msg}"
 
+    logger.info(
+        "event_manager.get_severity_score",
+        extra={"event_message": message, "event_id": event.event_id},
+    )
+
     if message:
         with metrics.timer("event_manager._get_severity_score"):
             with sentry_sdk.start_span(op="event_manager._get_severity_score"):
@@ -2502,6 +2507,16 @@ def _send_occurrence_to_platform(jobs: Sequence[Job], projects: ProjectsMapping)
         event_id = event.event_id
 
         performance_problems = job["performance_problems"]
+        if features.has("organizations:issue-platform-extra-logging", project.organization):
+            logger.warning(
+                "Performance problems detected",
+                extra={
+                    "performance_problems": performance_problems,
+                    "project_id": project.id,
+                    "event_id": event_id,
+                },
+            )
+
         for problem in performance_problems:
             occurrence = IssueOccurrence(
                 id=uuid.uuid4().hex,

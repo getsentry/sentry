@@ -25,6 +25,7 @@ import useApi from 'sentry/utils/useApi';
 
 const ProductSelectionAvailabilityHook = HookOrDefault({
   hookName: 'component:product-selection-availability',
+  defaultComponent: ProductSelection,
 });
 
 export function SetupDocsLoader({
@@ -33,14 +34,12 @@ export function SetupDocsLoader({
   project,
   platform,
   close,
-  newOrg,
 }: {
   close: () => void;
   location: Location;
   organization: Organization;
   platform: PlatformKey | null;
   project: Project;
-  newOrg?: boolean;
 }) {
   const api = useApi();
   const currentPlatform = platform ?? project?.platform ?? 'other';
@@ -143,17 +142,13 @@ export function SetupDocsLoader({
 
   return (
     <Fragment>
-      {!newOrg ? (
-        <ProductSelectionAvailabilityHook
-          organization={organization}
-          lazyLoader
-          skipLazyLoader={close}
-          platform={currentPlatform}
-        />
-      ) : (
-        <ProductSelection lazyLoader skipLazyLoader={close} platform={currentPlatform} />
-      )}
-
+      <ProductSelectionAvailabilityHook
+        organization={organization}
+        lazyLoader
+        skipLazyLoader={close}
+        platform={currentPlatform}
+      />
+      <Divider />
       {projectKeyUpdateError && (
         <LoadingError
           message={t('Failed to update the project key with the selected products.')}
@@ -355,4 +350,11 @@ const ToggleButton = styled(Button)`
   :hover {
     color: ${p => p.theme.gray500};
   }
+`;
+
+const Divider = styled('hr')<{withBottomMargin?: boolean}>`
+  height: 1px;
+  width: 100%;
+  background: ${p => p.theme.border};
+  border: none;
 `;
