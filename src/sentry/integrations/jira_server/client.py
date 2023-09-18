@@ -126,7 +126,7 @@ class JiraServerClient(IntegrationProxyClient):
 
     def get_issue_types(self, project_id):
         # Get a list of issue types for the given project
-        return self.get_cached(self.ISSUE_TYPES_URL % (232))
+        return self.get_cached(self.ISSUE_TYPES_URL % (project_id))
 
     def get_issue_fields(self, project_id, issue_type_id):
         # Get a list of fields for the issue type and project
