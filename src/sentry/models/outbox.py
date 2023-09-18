@@ -283,6 +283,7 @@ class OutboxScope(IntEnum):
             OutboxCategory.ORGANIZATION_MAPPING_CUSTOMER_ID_UPDATE,
             OutboxCategory.AUTH_PROVIDER_UPDATE,
             OutboxCategory.TEAM_UPDATE,
+            OutboxCategory.PARTNER_ACCOUNT_UPDATE,
         },
     )
     USER_SCOPE = scope_categories(
