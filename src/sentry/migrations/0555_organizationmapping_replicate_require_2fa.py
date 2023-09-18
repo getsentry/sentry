@@ -23,9 +23,24 @@ class Migration(CheckedMigration):
     ]
 
     operations = [
-        migrations.AddField(
-            model_name="organizationmapping",
-            name="require_2fa",
-            field=models.BooleanField(default=False),
-        ),
+        migrations.SeparateDatabaseAndState(
+            database_operations=[
+                migrations.RunSQL(
+                    """
+                    ALTER TABLE "sentry_organizationmapping" ADD COLUMN "require_2fa" boolean NOT NULL DEFAULT FALSE;
+                    """,
+                    reverse_sql="""
+            ALTER TABLE "sentry_organizationmapping" DROP COLUMN "require_2fa";
+            """,
+                    hints={"tables": ["sentry_groupedmessage"]},
+                ),
+            ],
+            state_operations=[
+                migrations.AddField(
+                    model_name="organizationmapping",
+                    name="require_2fa",
+                    field=models.BooleanField(default=False),
+                ),
+            ],
+        )
     ]
