@@ -26,7 +26,8 @@ from sentry.testutils.pytest.fixtures import django_db_all
             "transaction.duration:>1",
             True,
         ),  # transaction.duration not supported by standard metrics
-        ("failure_rate()", "transaction.duration:>1", True),  # supported by on demand,
+        ("failure_rate()", "transaction.duration:>1", True),  # supported by on demand,\
+        ("apdex(10)", "", True),  # every apdex query is on-demand
         ("apdex(10)", "transaction.duration:>10", True),  # supported by on demand
         (
             "count_if(transaction.duration,equals,0)",
@@ -60,6 +61,7 @@ class TestCreatesOndemandMetricSpec:
             ("p75(measurements.fp)", "transaction.duration:>0"),
             ("p75(transaction.duration)", "transaction.duration:>0"),
             ("count_if(transaction.duration,equals,0)", "transaction.duration:>0"),
+            ("count_if(transaction.duration,notEquals,0)", "transaction.duration:>0"),
             (
                 "count()",
                 "project:a-1 route.action:CloseBatch level:info",
@@ -69,6 +71,7 @@ class TestCreatesOndemandMetricSpec:
             ("count()", "foo:bar"),
             ("failure_rate()", "transaction.duration:>100"),
             ("apdex(10)", "transaction.duration:>100"),
+            ("apdex(10)", ""),
         ],
     )
     def test_creates_on_demand_spec(self, aggregate, query):
@@ -90,7 +93,7 @@ class TestCreatesOndemandMetricSpec:
             ("p95(measurements.lcp)", ""),
             ("avg(spans.http)", ""),
             ("failure_rate()", "release:bar"),
-            ("apdex(10)", "release:foo"),
+            ("failure_rate()", ""),
         ],
     )
     def test_does_not_create_on_demand_spec(self, aggregate, query):
@@ -294,6 +297,20 @@ def test_spec_apdex(_get_apdex_project_transaction_threshold, default_project):
             "value": "frustrated",
         },
     ]
+
+
+@django_db_all
+@patch("sentry.snuba.metrics.extraction._get_apdex_project_transaction_threshold")
+def test_spec_apdex_without_condition(_get_apdex_project_transaction_threshold, default_project):
+    _get_apdex_project_transaction_threshold.return_value = 100, "transaction.duration"
+
+    spec = OnDemandMetricSpec("apdex(10)", "")
+
+    assert spec._metric_type == "c"
+    assert spec.field_to_extract is None
+    assert spec.op == "on_demand_apdex"
+    assert spec.condition is None
+    assert len(spec.tags_conditions(default_project)) == 3
 
 
 def test_spec_custom_tag():

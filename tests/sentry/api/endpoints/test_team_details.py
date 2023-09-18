@@ -1,4 +1,5 @@
 from sentry import audit_log
+from sentry.api.base import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.models import AuditLogEntry, DeletedTeam, RegionScheduledDeletion, Team, TeamStatus
 from sentry.services.hybrid_cloud.log.service import log_rpc_service
 from sentry.silo import SiloMode
@@ -88,10 +89,7 @@ class TeamUpdateTest(TeamDetailsTestBase):
     @override_options({"api.prevent-numeric-slugs": True})
     def test_invalid_numeric_slug(self):
         response = self.get_error_response(self.organization.slug, self.team.slug, slug="1234")
-        assert response.data["slug"][0] == (
-            "Enter a valid slug consisting of lowercase letters, numbers, underscores or "
-            "hyphens. It cannot be entirely numeric."
-        )
+        assert response.data["slug"][0] == DEFAULT_SLUG_ERROR_MESSAGE
 
     def test_member_without_team_role(self):
         user = self.create_user("foo@example.com")

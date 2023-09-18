@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import re
 from abc import ABC, abstractmethod
 from collections import defaultdict
+from datetime import datetime, timezone
 from functools import lru_cache
 from typing import Callable, Dict, List, Type
 
@@ -14,6 +16,8 @@ from sentry.backup.helpers import Side, get_exportable_sentry_models
 from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.utils.json import JSONData
+
+UNIX_EPOCH = unix_zero_date = datetime.utcfromtimestamp(0).replace(tzinfo=timezone.utc).isoformat()
 
 
 class ScrubbedData:
@@ -121,6 +125,10 @@ class JSONScrubbingComparator(ABC):
         for field in self.fields:
             for side in [left, right]:
                 if side["fields"].get(field) is None:
+                    # Normalize fields that are literally `None` vs those that are totally absent.
+                    if field in side["fields"]:
+                        del side["fields"][field]
+                        side["scrubbed"][f"{self.get_kind().name}::{field}"] = None
                     continue
                 value = side["fields"][field]
                 value = [value] if not isinstance(value, list) else value
@@ -190,8 +198,8 @@ class DateUpdatedComparator(JSONScrubbingComparator):
             if left["fields"].get(f) is None and right["fields"].get(f) is None:
                 continue
 
-            left_date_updated = left["fields"][f]
-            right_date_updated = right["fields"][f]
+            left_date_updated = left["fields"][f] or UNIX_EPOCH
+            right_date_updated = right["fields"][f] or UNIX_EPOCH
             if parser.parse(left_date_updated) > parser.parse(right_date_updated):
                 findings.append(
                     ComparatorFinding(
@@ -262,8 +270,8 @@ class ForeignKeyComparator(JSONScrubbingComparator):
             if self.left_pk_map is None or self.right_pk_map is None:
                 raise RuntimeError("must call `set_primary_key_maps` before comparing")
 
-            left_fk_as_ordinal = self.left_pk_map.get(field_model_name, left["fields"][f])
-            right_fk_as_ordinal = self.right_pk_map.get(field_model_name, right["fields"][f])
+            left_fk_as_ordinal = self.left_pk_map.get_pk(field_model_name, left["fields"][f])
+            right_fk_as_ordinal = self.right_pk_map.get_pk(field_model_name, right["fields"][f])
             if left_fk_as_ordinal is None or right_fk_as_ordinal is None:
                 if left_fk_as_ordinal is None:
                     findings.append(
@@ -363,7 +371,7 @@ class EmailObfuscatingComparator(ObfuscatingComparator):
 
 
 class HashObfuscatingComparator(ObfuscatingComparator):
-    """Comparator that compares hashed values like keys and passwords, but then safely truncates
+    """Comparator that compares hashed values like keys and tokens, but then safely truncates
     them to ensure that they do not leak out in logs, stack traces, etc."""
 
     def truncate(self, data: list[str]) -> list[str]:
@@ -379,6 +387,80 @@ class HashObfuscatingComparator(ObfuscatingComparator):
         return truncated
 
 
+class UserPasswordObfuscatingComparator(ObfuscatingComparator):
+    """
+    Comparator that safely truncates passwords to ensure that they do not leak out in logs, stack
+    traces, etc. Additionally, it validates that the left and right "claimed" status is correct.
+    Namely, we want the following behaviors:
+
+    - If the left side is `is_unclaimed = True` but the right side is `is_unclaimed = False`, error.
+    - If the right side is `is_unclaimed = True`, make sure the password has changed.
+    - If the right side is `is_unclaimed = False`, make sure that the password stays the same.
+    """
+
+    def __init__(self):
+        super().__init__("password")
+
+    def compare(self, on: InstanceID, left: JSONData, right: JSONData) -> list[ComparatorFinding]:
+        findings = []
+
+        # Error case: there is no importing action that can "claim" a user.
+        if left["fields"].get("is_unclaimed") and not right["fields"].get("is_unclaimed"):
+            findings.append(
+                ComparatorFinding(
+                    kind=self.get_kind(),
+                    on=on,
+                    left_pk=left["pk"],
+                    right_pk=right["pk"],
+                    reason="""the left value of `is_unclaimed` was `True` but the right value was `False`, even though the act of importing cannot claim users""",
+                )
+            )
+
+        # Old user, password must remain constant.
+        if not right["fields"].get("is_unclaimed"):
+            findings.extend(super().compare(on, left, right))
+            return findings
+
+        # New user, password must change.
+        left_password = left["fields"]["password"]
+        right_password = right["fields"]["password"]
+        if left_password == right_password:
+            left_pw_truncated = self.truncate(
+                [left_password] if not isinstance(left_password, list) else left_password
+            )[0]
+            right_pw_truncated = self.truncate(
+                [right_password] if not isinstance(right_password, list) else right_password
+            )[0]
+            findings.append(
+                ComparatorFinding(
+                    kind=self.get_kind(),
+                    on=on,
+                    left_pk=left["pk"],
+                    right_pk=right["pk"],
+                    reason=f"""the left value ("{left_pw_truncated}") of `password` was equal to the
+                            right value ("{right_pw_truncated}"), which is disallowed when
+                            `is_unclaimed` is `True`""",
+                )
+            )
+
+        return findings
+
+    def truncate(self, data: list[str]) -> list[str]:
+        truncated = []
+        for d in data:
+            length = len(d)
+            if length > 80:
+                # Retains algorithm identifying prefix, plus a few characters on the end.
+                truncated.append(f"{d[:12]}...{d[-6:]}")
+            elif length > 40:
+                # Smaller hashes expose less information
+                truncated.append(f"{d[:6]}...{d[-4:]}")
+            else:
+                # Very small hashes expose no information at all.
+                truncated.append("...")
+        return truncated
+
+
 class IgnoredComparator(JSONScrubbingComparator):
     """Ensures that two fields are tested for mutual existence, and nothing else.
 
@@ -388,6 +470,126 @@ class IgnoredComparator(JSONScrubbingComparator):
         """Noop - there is nothing to compare once we've checked for existence."""
 
         return []
+
+
+class RegexComparator(JSONScrubbingComparator, ABC):
+    """Comparator that ensures that both sides match a certain regex."""
+
+    def __init__(self, regex: re.Pattern, *fields: str):
+        self.regex = regex
+        super().__init__(*fields)
+
+    def compare(self, on: InstanceID, left: JSONData, right: JSONData) -> list[ComparatorFinding]:
+        findings = []
+        fields = sorted(self.fields)
+        for f in fields:
+            if left["fields"].get(f) is None and right["fields"].get(f) is None:
+                continue
+
+            lv = left["fields"][f]
+            if not self.regex.fullmatch(lv):
+                findings.append(
+                    ComparatorFinding(
+                        kind=self.get_kind(),
+                        on=on,
+                        left_pk=left["pk"],
+                        right_pk=right["pk"],
+                        reason=f"""the left value ("{lv}") of `{f}` was not matched by this regex: {self.regex.pattern}""",
+                    )
+                )
+
+            rv = right["fields"][f]
+            if not self.regex.fullmatch(rv):
+                findings.append(
+                    ComparatorFinding(
+                        kind=self.get_kind(),
+                        on=on,
+                        left_pk=left["pk"],
+                        right_pk=right["pk"],
+                        reason=f"""the right value ("{rv}") of `{f}` was not matched by this regex: {self.regex.pattern}""",
+                    )
+                )
+        return findings
+
+
+class SecretHexComparator(RegexComparator):
+    """Certain 16-byte hexadecimal API keys are regenerated during an import operation."""
+
+    def __init__(self, bytes: int, *fields: str):
+        super().__init__(re.compile(f"""^[0-9a-f]{{{bytes * 2}}}$"""), *fields)
+
+
+class SubscriptionIDComparator(RegexComparator):
+    """Compare the basic format of `QuerySubscription` IDs, which is basically a UUID1 with a numeric prefix. Ensure that the two values are NOT equivalent."""
+
+    def __init__(self, *fields: str):
+        super().__init__(re.compile("^\\d+/[0-9a-f]{32}$"), *fields)
+
+    def compare(self, on: InstanceID, left: JSONData, right: JSONData) -> list[ComparatorFinding]:
+        # First, ensure that the two sides are not equivalent.
+        findings = []
+        fields = sorted(self.fields)
+        for f in fields:
+            if left["fields"].get(f) is None and right["fields"].get(f) is None:
+                continue
+
+            lv = left["fields"][f]
+            rv = right["fields"][f]
+            if lv == rv:
+                findings.append(
+                    ComparatorFinding(
+                        kind=self.get_kind(),
+                        on=on,
+                        left_pk=left["pk"],
+                        right_pk=right["pk"],
+                        reason=f"""the left value ({lv}) of the subscription ID field `{f}` was
+                                equal to the right value ({rv})""",
+                    )
+                )
+
+        # Now, make sure both IDs' regex are valid.
+        findings.extend(super().compare(on, left, right))
+        return findings
+
+
+# Note: we could also use the `uuid` Python uuid module for this, but it is finicky and accepts some
+# weird syntactic variations that are not very common and may cause weird failures when they are
+# rejected elsewhere.
+class UUID4Comparator(RegexComparator):
+    """UUIDs must be regenerated on import (otherwise they would not be unique...). This comparator ensures that they retain their validity, but are not equivalent."""
+
+    def __init__(self, *fields: str):
+        super().__init__(
+            re.compile(
+                "^[a-f0-9]{8}-?[a-f0-9]{4}-?4[a-f0-9]{3}-?[89ab][a-f0-9]{3}-?[a-f0-9]{12}\\Z$", re.I
+            ),
+            *fields,
+        )
+
+    def compare(self, on: InstanceID, left: JSONData, right: JSONData) -> list[ComparatorFinding]:
+        # First, ensure that the two sides are not equivalent.
+        findings = []
+        fields = sorted(self.fields)
+        for f in fields:
+            if left["fields"].get(f) is None and right["fields"].get(f) is None:
+                continue
+
+            lv = left["fields"][f]
+            rv = right["fields"][f]
+            if lv == rv:
+                findings.append(
+                    ComparatorFinding(
+                        kind=self.get_kind(),
+                        on=on,
+                        left_pk=left["pk"],
+                        right_pk=right["pk"],
+                        reason=f"""the left value ({lv}) of the UUID field `{f}` was equal to the right value ({rv})""",
+                    )
+                )
+
+        # Now, make sure both UUIDs are valid.
+        findings.extend(super().compare(on, left, right))
+        return findings
 
 
 def auto_assign_datetime_equality_comparators(comps: ComparatorMap) -> None:
@@ -469,16 +671,27 @@ def get_default_comparators():
             "sentry.apiapplication": [HashObfuscatingComparator("client_id", "client_secret")],
             "sentry.authidentity": [HashObfuscatingComparator("ident", "token")],
             "sentry.alertrule": [DateUpdatedComparator("date_modified")],
+            "sentry.incident": [UUID4Comparator("detection_uuid")],
+            "sentry.incidentactivity": [UUID4Comparator("notification_uuid")],
             "sentry.incidenttrigger": [DateUpdatedComparator("date_modified")],
             "sentry.integration": [DateUpdatedComparator("date_updated")],
+            "sentry.monitor": [UUID4Comparator("guid")],
             "sentry.orgauthtoken": [
                 HashObfuscatingComparator("token_hashed", "token_last_characters")
             ],
             "sentry.organization": [AutoSuffixComparator("slug")],
             "sentry.organizationintegration": [DateUpdatedComparator("date_updated")],
             "sentry.organizationmember": [HashObfuscatingComparator("token")],
-            "sentry.projectkey": [HashObfuscatingComparator("public_key", "secret_key")],
-            "sentry.querysubscription": [DateUpdatedComparator("date_updated")],
+            "sentry.projectkey": [
+                HashObfuscatingComparator("public_key", "secret_key"),
+                SecretHexComparator(16, "public_key", "secret_key"),
+            ],
+            "sentry.querysubscription": [
+                DateUpdatedComparator("date_updated"),
+                # We regenerate subscriptions when importing them, so even though all of the
+                # particulars stay the same, the `subscription_id`s will be different.
+                SubscriptionIDComparator("subscription_id"),
+            ],
             "sentry.relay": [HashObfuscatingComparator("relay_id", "public_key")],
             "sentry.relayusage": [HashObfuscatingComparator("relay_id", "public_key")],
             "sentry.sentryapp": [
@@ -489,7 +702,12 @@ def get_default_comparators():
             "sentry.servicehook": [HashObfuscatingComparator("secret")],
             "sentry.user": [
                 AutoSuffixComparator("username"),
-                HashObfuscatingComparator("password"),
+                DateUpdatedComparator("last_password_change"),
+                # UserPasswordComparator handles `is_unclaimed` and `password` for us. Because of
+                # this, we can ignore the `is_unclaimed` field otherwise and scrub it from the
+                # comparison.
+                IgnoredComparator("is_unclaimed"),
+                UserPasswordObfuscatingComparator(),
             ],
             "sentry.useremail": [
                 DateUpdatedComparator("date_hash_added"),

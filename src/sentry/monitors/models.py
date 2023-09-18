@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any, Dict, Optional
+from uuid import uuid4
 
 import jsonschema
 import pytz
@@ -14,7 +15,9 @@ from django.db.models.signals import pre_save
 from django.dispatch import receiver
 from django.utils import timezone
 
-from sentry.backup.scopes import RelocationScope
+from sentry.backup.dependencies import PrimaryKeyMap
+from sentry.backup.helpers import ImportFlags
+from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.constants import ObjectStatus
 from sentry.db.models import (
     BaseManager,
@@ -357,6 +360,17 @@ class Monitor(Model):
 
         return None
 
+    def _normalize_before_relocation_import(
+        self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
+    ) -> Optional[int]:
+        old_pk = super()._normalize_before_relocation_import(pk_map, scope, flags)
+        if old_pk is None:
+            return None
+
+        # Generate a new UUID.
+        self.guid = uuid4()
+        return old_pk
+
 
 @receiver(pre_save, sender=Monitor)
 def check_organization_monitor_limits(sender, instance, **kwargs):
@@ -565,29 +579,6 @@ class MonitorEnvironment(Model):
             .order_by("-date_added")
             .first()
         )
-
-    def mark_ok(self, checkin: MonitorCheckIn, ts: datetime):
-        recovery_threshold = self.monitor.config.get("recovery_threshold", 0)
-        if recovery_threshold:
-            previous_checkins = MonitorCheckIn.objects.filter(monitor_environment=self).order_by(
-                "-date_added"
-            )[:recovery_threshold]
-            # check for successive OK previous check-ins
-            if not all(checkin.status == CheckInStatus.OK for checkin in previous_checkins):
-                return
-
-        next_checkin = self.monitor.get_next_expected_checkin(ts)
-        next_checkin_latest = self.monitor.get_next_expected_checkin_latest(ts)
-
-        params = {
-            "last_checkin": ts,
-            "next_checkin": next_checkin,
-            "next_checkin_latest": next_checkin_latest,
-        }
-        if checkin.status == CheckInStatus.OK and self.monitor.status != ObjectStatus.DISABLED:
-            params["status"] = MonitorStatus.OK
-
-        MonitorEnvironment.objects.filter(id=self.id).exclude(last_checkin__gt=ts).update(**params)
 
 
 @receiver(pre_save, sender=MonitorEnvironment)

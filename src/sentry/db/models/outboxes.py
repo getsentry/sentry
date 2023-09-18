@@ -1,15 +1,23 @@
 from __future__ import annotations
 
 import contextlib
-from typing import TYPE_CHECKING, Any, Collection, List, Mapping, Tuple, Type
+import logging
+from typing import TYPE_CHECKING, Any, Collection, List, Mapping, Optional, Tuple, Type
 
 from django.db import router, transaction
+from django.dispatch import receiver
+from sentry_sdk.api import capture_exception
 
 from sentry.db.models import Model
+from sentry.signals import post_upgrade
+from sentry.silo import SiloMode
 from sentry.types.region import find_regions_for_orgs
+from sentry.utils.env import in_test_environment
 
 if TYPE_CHECKING:
     from sentry.models.outbox import ControlOutboxBase, OutboxCategory, RegionOutboxBase
+
+logger = logging.getLogger("sentry.outboxes")
 
 
 class RegionOutboxProducingModel(Model):
@@ -27,12 +35,15 @@ class RegionOutboxProducingModel(Model):
     replication_version: int = 1
 
     @contextlib.contextmanager
-    def _maybe_prepare_outboxes(self, *, outbox_before_super: bool):
+    def prepare_outboxes(self, *, outbox_before_super: bool, flush: Optional[bool] = None):
         from sentry.models.outbox import outbox_context
+
+        if flush is None:
+            flush = self.default_flush
 
         with outbox_context(
             transaction.atomic(router.db_for_write(type(self))),
-            flush=self.default_flush,
+            flush=flush,
         ):
             if not outbox_before_super:
                 yield
@@ -41,15 +52,15 @@ class RegionOutboxProducingModel(Model):
                 yield
 
     def save(self, *args: Any, **kwds: Any) -> None:
-        with self._maybe_prepare_outboxes(outbox_before_super=False):
+        with self.prepare_outboxes(outbox_before_super=False):
             super().save(*args, **kwds)
 
     def update(self, *args: Any, **kwds: Any) -> int:
-        with self._maybe_prepare_outboxes(outbox_before_super=False):
+        with self.prepare_outboxes(outbox_before_super=False):
             return super().update(*args, **kwds)
 
     def delete(self, *args: Any, **kwds: Any) -> Tuple[int, dict[str, Any]]:
-        with self._maybe_prepare_outboxes(outbox_before_super=True):
+        with self.prepare_outboxes(outbox_before_super=True, flush=False):
             return super().delete(*args, **kwds)
 
     def outbox_for_update(self, shard_identifier: int | None = None) -> RegionOutboxBase:
@@ -239,3 +250,36 @@ class ReplicatedControlModel(ControlOutboxProducingModel):
         operations are idempotent!
         """
         pass
+
+
+@receiver(post_upgrade)
+def run_outbox_replications_for_self_hosted(*args: Any, **kwds: Any):
+    from django.conf import settings
+
+    from sentry.models.outbox import OutboxBase
+    from sentry.tasks.backfill_outboxes import backfill_outboxes_for
+
+    if not settings.SENTRY_SELF_HOSTED:
+        return
+
+    logger.info("Executing outbox replication backfill")
+    while backfill_outboxes_for(
+        SiloMode.get_current_mode(), max_batch_rate=1000, force_synchronous=True
+    ):
+        pass
+
+    for outbox_name in (name for names in settings.SENTRY_OUTBOX_MODELS.values() for name in names):
+        logger.info(f"Processing {outbox_name}s...")
+        outbox_model: Type[OutboxBase] = OutboxBase.from_outbox_name(outbox_name)
+        for shard_attrs in outbox_model.find_scheduled_shards():
+            next_outbox: OutboxBase | None = outbox_model.prepare_next_from_shard(shard_attrs)
+            if next_outbox is None:
+                continue
+            try:
+                next_outbox.drain_shard(flush_all=True)
+            except Exception:
+                capture_exception()
+                if in_test_environment():
+                    raise
+
+    logger.info("done")

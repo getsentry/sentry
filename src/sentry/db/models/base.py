@@ -7,7 +7,8 @@ from django.db import models
 from django.db.models import signals
 from django.utils import timezone
 
-from sentry.backup.dependencies import PrimaryKeyMap, dependencies, normalize_model_name
+from sentry.backup.dependencies import ImportKind, PrimaryKeyMap, dependencies, normalize_model_name
+from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.silo import SiloLimit, SiloMode
 
@@ -45,7 +46,7 @@ class BaseModel(models.Model):
     class Meta:
         abstract = True
 
-    __relocation_scope__: RelocationScope
+    __relocation_scope__: RelocationScope | set[RelocationScope]
 
     objects = BaseManager[M]()  # type: ignore
 
@@ -105,10 +106,27 @@ class BaseModel(models.Model):
         Retrieves the `RelocationScope` for a `Model` subclass. It generally just forwards `__relocation_scope__`, but some models have instance-specific logic for deducing the scope.
         """
 
+        if isinstance(self.__relocation_scope__, set):
+            raise ValueError(
+                "Must define `get_relocation_scope` override if using multiple relocation scopes."
+            )
+
         return self.__relocation_scope__
 
+    @classmethod
+    def get_possible_relocation_scopes(cls) -> RelocationScope:
+        """
+        Retrieves the `RelocationScope` for a `Model` subclass. It always returns a set, to account for models that support multiple scopes on a situational, per-instance basis.
+        """
+
+        return (
+            cls.__relocation_scope__
+            if isinstance(cls.__relocation_scope__, set)
+            else {cls.__relocation_scope__}
+        )
+
     def _normalize_before_relocation_import(
-        self, pk_map: PrimaryKeyMap, _: ImportScope
+        self, pk_map: PrimaryKeyMap, _s: ImportScope, _f: ImportFlags
     ) -> Optional[int]:
         """
         A helper function that normalizes a deserialized model. Note that this modifies the model in
@@ -131,7 +149,7 @@ class BaseModel(models.Model):
             field_id = field if field.endswith("_id") else f"{field}_id"
             fk = getattr(self, field_id, None)
             if fk is not None:
-                new_fk = pk_map.get(normalize_model_name(model_relation.model), fk)
+                new_fk = pk_map.get_pk(normalize_model_name(model_relation.model), fk)
                 if new_fk is None:
                     return None
 
@@ -143,8 +161,8 @@ class BaseModel(models.Model):
         return old_pk
 
     def write_relocation_import(
-        self, pk_map: PrimaryKeyMap, scope: ImportScope
-    ) -> Optional[Tuple[int, int]]:
+        self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
+    ) -> Optional[Tuple[int, int, ImportKind]]:
         """
         Writes a deserialized model to the database. If this write is successful, this method will
         return a tuple of the old and new `pk`s.
@@ -153,12 +171,12 @@ class BaseModel(models.Model):
         `rest_framework.serializers.ValidationError`.
         """
 
-        old_pk = self._normalize_before_relocation_import(pk_map, scope)
+        old_pk = self._normalize_before_relocation_import(pk_map, scope, flags)
         if old_pk is None:
             return
 
         self.save(force_insert=True)
-        return (old_pk, self.pk)
+        return (old_pk, self.pk, ImportKind.Inserted)
 
 
 class Model(BaseModel):
@@ -201,6 +219,15 @@ def __model_class_prepared(sender: Any, **kwargs: Any) -> None:
             f"This should be True for core, low volume models used to configure Sentry. Things like "
             f"Organization, Project  and related settings. It should be False for high volume models "
             f"like Group."
+        )
+
+    if (
+        isinstance(getattr(sender, "__relocation_scope__"), set)
+        and RelocationScope.Excluded in sender.get_possible_relocation_scopes()
+    ):
+        raise ValueError(
+            f"{sender!r} model uses a set of __relocation_scope__ values, one of which is "
+            f"`Excluded`, which does not make sense. `Excluded` must always be a standalone value."
         )
 
     from .outboxes import ReplicatedControlModel, ReplicatedRegionModel

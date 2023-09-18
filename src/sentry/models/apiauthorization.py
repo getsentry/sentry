@@ -15,7 +15,7 @@ class ApiAuthorization(Model, HasApiScopes):
     overall approved applications (vs individual tokens).
     """
 
-    __relocation_scope__ = RelocationScope.Global
+    __relocation_scope__ = {RelocationScope.Global, RelocationScope.Config}
 
     # users can generate tokens without being application-bound
     application = FlexibleForeignKey("sentry.ApiApplication", null=True)
@@ -28,3 +28,10 @@ class ApiAuthorization(Model, HasApiScopes):
         unique_together = (("user", "application"),)
 
     __repr__ = sane_repr("user_id", "application_id")
+
+    def get_relocation_scope(self) -> RelocationScope:
+        if self.application_id is not None:
+            # TODO(getsentry/team-ospo#188): this should be extension scope once that gets added.
+            return RelocationScope.Global
+
+        return RelocationScope.Config

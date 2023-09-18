@@ -1,14 +1,16 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping
+from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Optional
 
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Q
 
+from sentry import features
 from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
-from sentry.models.user import User
+from sentry.models.organizationmapping import OrganizationMapping
+from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.notifications.defaults import (
     NOTIFICATION_SETTING_DEFAULTS,
     NOTIFICATION_SETTINGS_ALL_SOMETIMES,
@@ -33,6 +35,7 @@ from sentry.services.hybrid_cloud import extract_id_from
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.notifications import RpcNotificationSetting
 from sentry.services.hybrid_cloud.user.model import RpcUser
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.types.integrations import (
     EXTERNAL_PROVIDERS,
     ExternalProviderEnum,
@@ -42,7 +45,14 @@ from sentry.types.integrations import (
 )
 
 if TYPE_CHECKING:
-    from sentry.models import Group, GroupSubscription, Organization, Project, Team  # noqa: S005
+    from sentry.models import (  # noqa: S005
+        Group,
+        GroupSubscription,
+        Organization,
+        Project,
+        Team,
+        User,
+    )
 
 
 def _get_notification_setting_default(
@@ -648,7 +658,7 @@ def get_providers_for_recipient(
     return user_providers
 
 
-def recipient_is_user(recipient: RpcActor | Team | User) -> bool:
+def recipient_is_user(recipient: RpcActor | Team | RpcUser) -> bool:
     from sentry.models.user import User
 
     if isinstance(recipient, RpcActor) and recipient.actor_type == ActorType.USER:
@@ -656,7 +666,7 @@ def recipient_is_user(recipient: RpcActor | Team | User) -> bool:
     return isinstance(recipient, (RpcUser, User))
 
 
-def recipient_is_team(recipient: RpcActor | Team | User) -> bool:
+def recipient_is_team(recipient: RpcActor | Team | RpcUser) -> bool:
     from sentry.models.team import Team
 
     if isinstance(recipient, RpcActor) and recipient.actor_type == ActorType.TEAM:
@@ -665,18 +675,17 @@ def recipient_is_team(recipient: RpcActor | Team | User) -> bool:
 
 
 def get_query(
-    recipients: Iterable[RpcActor | Team | User] | None = None,
-    project: Project | None = None,
-    organization: Organization | None = None,
+    recipients: Iterable[RpcActor | Team | RpcUser] | None = None,
+    project_ids: Iterable[int] | None = None,
+    organization_id: int | None = None,
 ) -> Q:
     """
     Generates a query for all settings for a project, org, user, or team.
 
     Args:
-        recipient: The recipient of the notification settings (user or team).
-        project: The project to get notification settings for.
-        organization: The organization to get notification settings for.
-        user_ids: The user ids to get notification settings for.
+        recipients: The recipients of the notification settings (user or team).
+        projects_ids: The projects to get notification settings for.
+        organization_id: The organization to get notification settings for.
     """
     if not recipients:
         raise Exception("recipient, team_ids, or user_ids must be provided")
@@ -695,9 +704,9 @@ def get_query(
         Q(
             (Q(user_id__in=user_ids) | Q(team_id__in=team_ids)),
             scope_type=NotificationScopeEnum.PROJECT.value,
-            scope_identifier=project.id,
+            scope_identifier__in=project_ids,
         )
-        if project
+        if project_ids
         else Q()
     )
 
@@ -705,11 +714,9 @@ def get_query(
         Q(
             (Q(user_id__in=user_ids) | Q(team_id__in=team_ids)),
             scope_type=NotificationScopeEnum.ORGANIZATION.value,
-            scope_identifier=(
-                organization.id if organization else project.organization.id if project else None
-            ),
+            scope_identifier=organization_id,
         )
-        if organization or project
+        if organization_id
         else Q()
     )
 
@@ -722,126 +729,95 @@ def get_query(
     return project_settings | org_settings | team_or_user_settings
 
 
-def get_all_setting_providers(
-    recipients: Iterable[RpcActor | Team | User] | None = None,
-    project: Project | None = None,
-    organization: Organization | None = None,
-) -> Iterable[NotificationSettingProvider]:
-    """
-    Returns all NotificationSettingProviders for given recipients.
-    Recipients can be either a user or a team, or a list of user ids.
-
-    Args:
-        recipient: The recipient of the notification settings (user or team).
-        project: The project to get notification settings for.
-        organization: The organization to get notification settings for.
-        user_ids: The user ids to get notification settings for.
-    """
-
-    query = get_query(recipients, project, organization)
-    return NotificationSettingProvider.objects.filter(query)
-
-
 def get_all_setting_options(
-    recipients: Iterable[RpcActor | Team | User] | None = None,
-    project: Project | None = None,
-    organization: Organization | None = None,
+    recipients: Iterable[RpcActor | Team | RpcUser] | None = None,
+    project_ids: Iterable[int] | None = None,
+    organization_id: int | None = None,
+    additional_filters: Q | None = None,
 ) -> Iterable[NotificationSettingOption]:
     """
     Returns all NotificationSettingOption for given recipients.
-    Recipients can be either a user or a team, or a list of user ids.
+    Recipients can be either an RpcUser or a Team.
 
     Args:
-        recipient: The recipient of the notification settings (user or team).
-        project: The project to get notification settings for.
-        organization: The organization to get notification settings for.
-        user_ids: The user ids to get notification settings for.
-    """
-    query = get_query(recipients, project, organization)
-    return NotificationSettingOption.objects.filter(query)
-
-
-def get_setting_options_for_recipient(
-    recipient: RpcActor | Team | User,
-    project: Project | None = None,
-    organization: Organization | None = None,
-) -> MutableMapping[NotificationSettingEnum, NotificationSettingsOptionEnum]:
-    all_settings = get_all_setting_options([recipient], project, organization)
-
-    notification_settings = {}
-    # Project settings take precedence over all other notification settings
-    for setting in all_settings:
-        if setting.scope_type == NotificationScopeEnum.PROJECT.value:
-            notification_settings[
-                NotificationSettingEnum(setting.type)
-            ] = NotificationSettingsOptionEnum(setting.value)
-
-    # Organization settings apply when project settings are not set
-    for setting in all_settings:
-        if setting.scope_type == NotificationScopeEnum.ORGANIZATION.value:
-            setting_type = NotificationSettingEnum(setting.type)
-            if setting_type not in notification_settings:
-                notification_settings[setting_type] = NotificationSettingsOptionEnum(setting.value)
-
-    # Team/User settings are the most specific.
-    if recipient_is_user(recipient):
-        scope_type = NotificationScopeEnum.USER.value
-    elif recipient_is_team(recipient):
-        scope_type = NotificationScopeEnum.TEAM.value
-    else:
-        raise Exception("recipient must be either user or team")
-
-    for setting in all_settings:
-        if setting.scope_type == scope_type:
-            setting_type = NotificationSettingEnum(setting.type)
-            if setting_type not in notification_settings:
-                notification_settings[setting_type] = NotificationSettingsOptionEnum(setting.value)
-
-    # Fill in any missing settings with the default
-    defaults = get_type_defaults()
-    for type in NotificationSettingEnum:
-        if type not in notification_settings and type in defaults:
-            notification_settings[type] = defaults[type]
-
-    return notification_settings
-
-
-def get_setting_options_for_users(
-    user_ids: Iterable[int],
-    project: Project | None = None,
-    organization: Organization | None = None,
-    additional_filters: Q | None = None,
-) -> MutableMapping[
-    RpcActor,
-    MutableMapping[NotificationSettingEnum, NotificationSettingsOptionEnum],
-]:
-    """
-    Returns a map of users to NotificationSettingOption by type:
-    {user -> {notification type -> setting}}.
-
-    Args:
-        user_ids: The user ids to get notification settings for.
-        project: The project to get notification settings for.
-        organization: The organization to get notification settings for.
+        recipients: The recipients of the notification settings (user or team).
+        projects_ids: The projects to get notification settings for.
+        organization_id: The organization to get notification settings for.
+        additional_filters: Additional filters to apply to the query for NotificationSettingOption.
     """
     if not additional_filters:
         additional_filters = Q()
 
-    users = User.objects.filter(id__in=user_ids)
+    query = get_query(recipients, project_ids, organization_id)
+    return NotificationSettingOption.objects.filter(query & additional_filters)
 
-    query = get_query(recipients=users, project=project, organization=organization)
-    notification_settings = NotificationSettingOption.objects.filter(query & additional_filters)
 
+def get_all_setting_providers(
+    recipients: Iterable[RpcActor | Team | RpcUser] | None = None,
+    project_ids: Iterable[int] | None = None,
+    organization_id: int | None = None,
+    additional_filters: Q | None = None,
+) -> Iterable[NotificationSettingProvider]:
+    """
+    Returns all NotificationSettingProviders for given recipients.
+
+    Args:
+        recipients: The recipients of the notification settings (user or team).
+        projects_ids: The projects to get notification settings for.
+        organization_id: The organization to get notification settings for.
+        additional_filters: Additional filters to apply to the query for NotificationSettingProvider.
+    """
+    if not additional_filters:
+        additional_filters = Q()
+
+    query = get_query(recipients, project_ids, organization_id)
+    return NotificationSettingProvider.objects.filter(query & additional_filters)
+
+
+def get_recipient_from_team_or_user(user_id: int | None, team_id: int | None) -> RpcUser | Team:
+    if user_id is not None:
+        recipient = RpcUser(id=user_id)
+    elif team_id is not None:
+        recipient = Team.objects.get(id=team_id)
+    if not recipient:
+        raise Exception("Unable to find user or team")
+    return recipient
+
+
+def get_layered_setting_options(
+    recipients: Iterable[RpcActor | Team | RpcUser],
+    project_ids: Iterable[int] | None = None,
+    organization_id: int | None = None,
+    additional_filters: Q | None = None,
+) -> MutableMapping[
+    RpcUser | Team, MutableMapping[NotificationSettingEnum, NotificationSettingOption]
+]:
+    """
+    Returns a list of the most specific notification setting options for the given recipients.
+    Note that default settings are not populated in this list.
+
+    Args:
+        recipients: The recipients of the notification settings (user or team).
+        projects_ids: The projects to get notification settings for.
+        organization_id: The organization to get notification settings for.
+        additional_filters: Additional filters to apply to the query.
+    """
+    notification_settings = get_all_setting_options(
+        recipients, project_ids, organization_id, additional_filters
+    )
+
+    # Generate a map of user to the most specific notification setting for each type.
     user_to_setting: MutableMapping[
-        RpcActor, MutableMapping[NotificationSettingEnum, NotificationSettingOption]
+        RpcUser | Team, MutableMapping[NotificationSettingEnum, NotificationSettingOption]
     ] = defaultdict(dict)
     for ns in notification_settings:
-        ns_dict = user_to_setting[ns.user]
+        recipient = get_recipient_from_team_or_user(ns.user_id, ns.team_id)
+        ns_dict = user_to_setting[recipient]
         setting_type = NotificationSettingEnum(ns.type)
+
         if ns.scope_type == NotificationScopeEnum.PROJECT.value:
             # Project settings take precedence, so we can overwrite any existing settings.
             ns_dict[setting_type] = ns
-
         if ns.scope_type == NotificationScopeEnum.ORGANIZATION.value:
             if setting_type not in ns_dict:
                 ns_dict[setting_type] = ns
@@ -849,7 +825,6 @@ def get_setting_options_for_users(
                 # Organization settings do not override project settings
                 if ns_dict[setting_type].scope_type != NotificationScopeEnum.PROJECT.value:
                     ns_dict[setting_type] = ns
-
         if ns.scope_type == NotificationScopeEnum.USER.value:
             if setting_type not in ns_dict:
                 ns_dict[setting_type] = ns
@@ -860,125 +835,204 @@ def get_setting_options_for_users(
                     NotificationScopeEnum.ORGANIZATION.value,
                 ]:
                     ns_dict[setting_type] = ns
-
-    # Replace the NotificationSettingOption object with the setting value
-    result: MutableMapping[
-        RpcActor, MutableMapping[NotificationSettingEnum, NotificationSettingsOptionEnum]
-    ] = {
-        user: {
-            setting_type: NotificationSettingsOptionEnum(ns.value)
-            for setting_type, ns in setting.items()
-        }
-        for user, setting in user_to_setting.items()
-    }
-
-    # Fill in the setting defaults if they are missing
-    defaults = get_type_defaults()
-    for _, res_dict in result.items():
-        for type in NotificationSettingEnum:
-            if type not in res_dict and type in defaults:
-                res_dict[type] = defaults[type]
-
-    return result
+    return user_to_setting
 
 
-def get_setting_providers_for_users(
-    user_ids: Iterable[int],
-    project: Project | None = None,
-    organization: Organization | None = None,
-) -> MutableMapping[RpcActor, MutableMapping[ExternalProviderEnum, NotificationSettingsOptionEnum]]:
+def get_layered_setting_providers(
+    recipients: Iterable[RpcActor | Team | RpcUser],
+    project_ids: Iterable[int] | None = None,
+    organization_id: int | None = None,
+    additional_filters: Q | None = None,
+) -> MutableMapping[
+    RpcUser | Team,
+    MutableMapping[
+        NotificationSettingEnum,
+        MutableMapping[ExternalProviderEnum, NotificationSettingProvider],
+    ],
+]:
     """
-    Returns a map of users to NotificationSettingProvider by provider:
-    {user -> {provider -> setting}}.
+    Returns a list of the most specific settings for each provider
+    and notification type for the given recipients.
 
     Args:
         user_ids: The user ids to get notification settings for.
         project: The project to get notification settings for.
         organization: The organization to get notification settings for.
+        additional_filters: Additional filters to apply to the query for NotificationSettingProvider.
     """
-    users = User.objects.filter(id__in=user_ids)
-    query = get_query(recipients=users, project=project, organization=organization)
-    notification_settings = NotificationSettingProvider.objects.filter(query)
+    notification_settings = get_all_setting_providers(
+        recipients, project_ids, organization_id, additional_filters
+    )
 
+    # Generate a map of user to the most specific setting for each provdier for each notification type.
     user_to_setting: MutableMapping[
-        RpcActor, MutableMapping[ExternalProviderEnum, NotificationSettingProvider]
+        RpcUser | Team,
+        MutableMapping[
+            NotificationSettingEnum,
+            MutableMapping[ExternalProviderEnum, NotificationSettingProvider],
+        ],
     ] = defaultdict(dict)
     for ns in notification_settings:
-        ns_dict = user_to_setting[ns.user]
+        recipient = get_recipient_from_team_or_user(ns.user_id, ns.team_id)
+        ns_dict = user_to_setting[recipient]
+
+        setting_type = NotificationSettingEnum(ns.type)
         provider = ExternalProviderEnum(ns.provider)
+        if setting_type not in ns_dict:
+            ns_dict[setting_type] = {}
+
         if ns.scope_type == NotificationScopeEnum.PROJECT.value:
             # Project settings take precedence, so we can overwrite any existing settings.
-            ns_dict[provider] = ns
-
+            ns_dict[setting_type].update({provider: ns})
         if ns.scope_type == NotificationScopeEnum.ORGANIZATION.value:
-            if provider not in ns_dict:
-                ns_dict[provider] = ns
+            if setting_type not in ns_dict or provider not in ns_dict[setting_type]:
+                ns_dict[setting_type].update({provider: ns})
             else:
                 # Organization settings do not override project settings
-                if ns_dict[provider].scope_type != NotificationScopeEnum.PROJECT.value:
-                    ns_dict[provider] = ns
-
+                if (
+                    ns_dict[setting_type][provider].scope_type
+                    != NotificationScopeEnum.PROJECT.value
+                ):
+                    ns_dict[setting_type].update({provider: ns})
         if ns.scope_type == NotificationScopeEnum.USER.value:
-            if provider not in ns_dict:
-                ns_dict[provider] = ns
+            if setting_type not in ns_dict or provider not in ns_dict[setting_type].keys():
+                ns_dict[setting_type].update({provider: ns})
             else:
                 # User settings do not override project or organization settings
-                if ns_dict[provider].scope_type not in [
+                if ns_dict[setting_type][provider].scope_type not in [
                     NotificationScopeEnum.PROJECT.value,
                     NotificationScopeEnum.ORGANIZATION.value,
                 ]:
-                    ns_dict[provider] = ns
+                    ns_dict[setting_type].update({provider: ns})
 
+    return user_to_setting
+
+
+def get_setting_options_with_defaults(
+    recipients: Iterable[RpcActor | Team | RpcUser],
+    project_ids: Iterable[int] | None = None,
+    organization_id: int | None = None,
+    additional_filters: Q | None = None,
+) -> MutableMapping[
+    RpcUser | Team, MutableMapping[NotificationSettingEnum, NotificationSettingsOptionEnum]
+]:
+    setting_options = get_layered_setting_options(
+        recipients, project_ids, organization_id, additional_filters
+    )
+
+    # Replace the NotificationSettingOption object with the setting value
     result: MutableMapping[
-        RpcActor, MutableMapping[ExternalProviderEnum, NotificationSettingsOptionEnum]
+        RpcUser | Team, MutableMapping[NotificationSettingEnum, NotificationSettingsOptionEnum]
     ] = {
-        user: {
-            provider: NotificationSettingsOptionEnum(ns.value) for provider, ns in setting.items()
+        recipient: {
+            setting_type: NotificationSettingsOptionEnum(setting.value)
+            for setting_type, setting in setting_o.items()
         }
-        for user, setting in user_to_setting.items()
+        for recipient, setting_o in setting_options.items()
     }
 
-    provider_defaults = get_provider_defaults()
-    for _, res_dict in result.items():
-        for provider in ExternalProviderEnum:
-            if provider not in res_dict and provider in provider_defaults:
-                res_dict[provider] = NotificationSettingsOptionEnum.ALWAYS
+    # Fill in the setting defaults if they are missing
+    defaults = get_type_defaults()
+    for _, settings in result.items():
+        for type in NotificationSettingEnum:
+            if type not in settings and type in defaults:
+                settings[type] = defaults[type]
+
     return result
 
 
-def get_notification_recipients(project: Project) -> Mapping[ExternalProviderEnum, set[RpcActor]]:
+def get_setting_providers_with_defaults(
+    recipients: Iterable[RpcActor | Team | RpcUser],
+    project_ids: Iterable[int] | None = None,
+    organization_id: int | None = None,
+    additional_filters: Q | None = None,
+) -> MutableMapping[
+    RpcUser | Team,
+    MutableMapping[
+        NotificationSettingEnum,
+        MutableMapping[ExternalProviderEnum, NotificationSettingsOptionEnum],
+    ],
+]:
+    setting_providers = get_layered_setting_providers(  # {user -> {type -> {provider -> value}}}
+        recipients, project_ids, organization_id, additional_filters
+    )
+
+    result: MutableMapping[
+        RpcUser | Team,
+        MutableMapping[
+            NotificationSettingEnum,
+            MutableMapping[ExternalProviderEnum, NotificationSettingsOptionEnum],
+        ],
+    ] = defaultdict(dict)
+    for recipient, settings_p in setting_providers.items():
+        result[recipient] = {}
+        for type, providers in settings_p.items():
+            res = {
+                type: {provider: NotificationSettingsOptionEnum(setting.value)}
+                for provider, setting in providers.items()
+            }
+            result[recipient].update(res)
+
+    provider_defaults = get_provider_defaults()
+    for recipient, settings in result.items():
+        for type in NotificationSettingEnum:
+            for provider in provider_defaults:
+                if type not in settings:
+                    result[recipient][type] = {provider: NotificationSettingsOptionEnum.ALWAYS}
+
+                if provider not in settings[type]:
+                    result[recipient][type].update(
+                        {provider: NotificationSettingsOptionEnum.ALWAYS}
+                    )
+    return result
+
+
+def get_notification_recipients(
+    project: Project,
+) -> Mapping[ExternalProviderEnum, set[RpcUser | Team]]:
     """
     Returns the recipients that should be notified for each provider.
 
     Args:
         project: The project to get notification settings for.
     """
-    user_ids = project.member_set.values_list("user_id", flat=True)
-    options = get_setting_options_for_users(user_ids, project=project)
-    providers = get_setting_providers_for_users(user_ids, project=project)
+    user_ids = list(project.member_set.values_list("user_id", flat=True))
+    users = user_service.get_many(filter={"user_ids": user_ids})
+    options = get_setting_options_with_defaults(recipients=users, project_ids=[project.id])
+    providers = get_setting_providers_with_defaults(recipients=users, project_ids=[project.id])
 
     enabled_providers: Mapping[
-        RpcActor, Mapping[ExternalProviderEnum, NotificationSettingsOptionEnum]
+        RpcUser | Team,
+        Mapping[
+            NotificationSettingEnum, Mapping[ExternalProviderEnum, NotificationSettingsOptionEnum]
+        ],
     ] = {
-        user: {
-            provider: ps
-            for provider, ps in setting.items()
-            if ps != NotificationSettingsOptionEnum.NEVER
+        recipient: {
+            type: {
+                provider: value
+                for provider, value in providers.items()
+                if value != NotificationSettingsOptionEnum.NEVER
+            }
+            for type, providers in setting.items()
         }
-        for user, setting in providers.items()
+        for recipient, setting in providers.items()
     }
 
-    recipients: Mapping[ExternalProviderEnum, set[RpcActor]] = defaultdict(set)
-    for user in options.keys():
-        user_providers = enabled_providers[user].keys()
-        for provider in user_providers:
-            recipients[provider].add(user)
+    recipients: Mapping[ExternalProviderEnum, set[RpcUser | Team]] = defaultdict(set)
+    for recipient, setting_option in options.items():
+        for type, value in setting_option.items():
+            if value == NotificationSettingsOptionEnum.NEVER:
+                continue
+
+            recipient_providers = enabled_providers[recipient][type].keys()
+            for provider in recipient_providers:
+                recipients[provider].add(recipient)
 
     return recipients
 
 
 def user_has_any_provider_settings(
-    recipient: RpcActor | Team | User, provider: ExternalProviderEnum
+    recipient: RpcActor | Team | RpcUser, provider: ExternalProviderEnum
 ) -> bool:
     """
     Returns whether the recipient has any notification settings for the given provider.
@@ -996,6 +1050,31 @@ def user_has_any_provider_settings(
             return True
 
     return False
+
+
+def is_double_write_enabled(
+    user_id: Optional[int] = None, organization_id_for_team: Optional[int] = None
+):
+    from sentry.services.hybrid_cloud.organization_mapping.serial import (
+        serialize_organization_mapping,
+    )
+
+    # all operations are expected to happen in the control siolo
+    if organization_id_for_team is not None:
+        org_ids = [organization_id_for_team]
+    elif user_id is not None:
+        org_ids = OrganizationMemberMapping.objects.filter(user_id=user_id).values_list(
+            "organization_id", flat=True
+        )
+    else:
+        raise ValueError("Need organization_id_for_team or user_id")
+    orgs = list(
+        map(
+            serialize_organization_mapping,
+            OrganizationMapping.objects.filter(organization_id__in=list(org_ids)),
+        )
+    )
+    return any(features.has("organizations:notifications-double-write", org) for org in orgs)
 
 
 PROVIDER_DEFAULTS: list[ExternalProviderEnum] = get_provider_defaults()

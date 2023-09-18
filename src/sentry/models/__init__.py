@@ -93,13 +93,14 @@ from .rawevent import *  # NOQA
 from .recentsearch import *  # NOQA
 from .relay import *  # NOQA
 from .release import *  # NOQA
+from .release_threshold.constants import *  # NOQA
+from .release_threshold.releasethreshold import *  # NOQA
 from .releaseactivity import *  # NOQA
 from .releasecommit import *  # NOQA
 from .releaseenvironment import *  # NOQA
 from .releasefile import *  # NOQA
 from .releaseheadcommit import *  # NOQA
 from .releaseprojectenvironment import *  # NOQA
-from .releasethreshold import *  # NOQA
 from .repository import *  # NOQA
 from .reprocessingreport import *  # NOQA
 from .rule import *  # NOQA
@@ -112,6 +113,7 @@ from .sentryfunction import *  # NOQA
 from .servicehook import *  # NOQA
 from .sourcemapprocessingissue import *  # NOQA
 from .team import *  # NOQA
+from .teamreplica import *  # NOQA
 from .tombstone import *  # NOQA
 from .transaction_threshold import *  # NOQA
 from .user import *  # NOQA

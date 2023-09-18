@@ -1,4 +1,5 @@
 {
+  "feedback.Feedback": [],
   "nodestore.Node": [],
   "replays.ReplayRecordingSegment": [],
   "sentry.Activity": [
@@ -60,7 +61,6 @@
     "sentry.Organization"
   ],
   "sentry.ArtifactBundleFlatFileIndex": [
-    "sentry.File",
     "sentry.Project"
   ],
   "sentry.ArtifactBundleIndex": [
@@ -333,6 +333,7 @@
   "sentry.GroupSubscription": [
     "sentry.Group",
     "sentry.Project",
+    "sentry.Team",
     "sentry.User"
   ],
   "sentry.GroupTombstone": [
@@ -405,6 +406,10 @@
     "sentry.Monitor"
   ],
   "sentry.MonitorLocation": [],
+  "sentry.NeglectedRule": [
+    "sentry.Organization",
+    "sentry.Rule"
+  ],
   "sentry.NotificationAction": [
     "sentry.Integration",
     "sentry.Organization",
@@ -727,6 +732,10 @@
   "sentry.TeamKeyTransaction": [
     "sentry.Organization",
     "sentry.ProjectTeam"
+  ],
+  "sentry.TeamReplica": [
+    "sentry.Organization",
+    "sentry.Team"
   ],
   "sentry.TimeSeriesSnapshot": [],
   "sentry.User": [],

@@ -1,3 +1,5 @@
+import {LineSeriesOption} from 'echarts';
+
 import {Event} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import TrendsDiscoverQuery from 'sentry/utils/performance/trends/trendsDiscoverQuery';
@@ -44,6 +46,8 @@ function EventBreakpointChart({event}: EventBreakpointChartProps) {
     return acc;
   }, {}) as NormalizedTrendsTransaction;
 
+  const additionalSeries: LineSeriesOption[] = [];
+
   return (
     <DataSection>
       <TrendsDiscoverQuery
@@ -74,6 +78,8 @@ function EventBreakpointChart({event}: EventBreakpointChartProps) {
               transaction={normalizedOccurrenceEvent}
               trendChangeType={TrendChangeType.REGRESSION}
               trendFunctionField={TrendFunctionField.P95}
+              additionalSeries={additionalSeries}
+              applyRegressionFormatToInterval
               disableLegend
             />
           );

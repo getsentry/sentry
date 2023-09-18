@@ -182,6 +182,7 @@ class OutboxCategory(IntEnum):
         Outbox = outbox or RegionOutbox
 
         return Outbox(
+            shard_scope=scope,
             shard_identifier=shard_identifier,
             category=self,
             object_identifier=object_identifier,
@@ -281,6 +282,7 @@ class OutboxScope(IntEnum):
             OutboxCategory.DISABLE_AUTH_PROVIDER,
             OutboxCategory.ORGANIZATION_MAPPING_CUSTOMER_ID_UPDATE,
             OutboxCategory.AUTH_PROVIDER_UPDATE,
+            OutboxCategory.TEAM_UPDATE,
         },
     )
     USER_SCOPE = scope_categories(
@@ -314,11 +316,10 @@ class OutboxScope(IntEnum):
             OutboxCategory.SENTRY_APP_INSTALLATION_UPDATE,
         },
     )
+    # Deprecate?
     TEAM_SCOPE = scope_categories(
         7,
-        {
-            OutboxCategory.TEAM_UPDATE,
-        },
+        set(),
     )
     PROVISION_SCOPE = scope_categories(
         8,
@@ -341,8 +342,6 @@ class OutboxScope(IntEnum):
             return "organization_id"
         if scope == OutboxScope.USER_SCOPE:
             return "user_id"
-        if scope == OutboxScope.TEAM_SCOPE:
-            return "team_id"
         if scope == OutboxScope.APP_SCOPE:
             return "app_id"
 
@@ -407,38 +406,55 @@ class OutboxBase(Model):
                 return cursor.fetchone()[0]
 
     @classmethod
-    def find_scheduled_shards(cls) -> Iterable[Mapping[str, Any]]:
-        return (
-            cls.objects.values(*cls.sharding_columns)
-            .annotate(
+    def find_scheduled_shards(cls, low: int = 0, hi: int | None = None) -> List[Mapping[str, Any]]:
+        q = cls.objects.values(*cls.sharding_columns).filter(
+            scheduled_for__lte=timezone.now(), id__gte=low
+        )
+        if hi is not None:
+            q = q.filter(id__lt=hi)
+
+        return list(
+            {k: row[k] for k in cls.sharding_columns}
+            for row in q.annotate(
                 scheduled_for=Min("scheduled_for"),
-                id=Max("id"),
-            )
-            .filter(scheduled_for__lte=timezone.now())
-            .order_by("scheduled_for", "id")
+                max_id=Max("id"),
+            ).order_by("scheduled_for", "max_id")
         )
 
     @classmethod
     def prepare_next_from_shard(cls, row: Mapping[str, Any]) -> Self | None:
         using = router.db_for_write(cls)
-        with transaction.atomic(using=using, savepoint=False):
-            next_outbox: OutboxBase | None
-            next_outbox = (
-                cls(**row).selected_messages_in_shard().order_by("id").select_for_update().first()
-            )
-            if not next_outbox:
+        try:
+            with transaction.atomic(using=using, savepoint=False):
+                next_outbox: OutboxBase | None
+                next_outbox = (
+                    cls(**row)
+                    .selected_messages_in_shard()
+                    .order_by("id")
+                    .select_for_update(nowait=True)
+                    .first()
+                )
+                if not next_outbox:
+                    return None
+
+                # We rely on 'proof of failure by remaining' to handle retries -- basically, by scheduling this shard, we
+                # expect all objects to be drained before the next schedule comes around, or else we will run again.
+                # Note that the system does not strongly protect against concurrent processing -- this is expected in the
+                # case of drains, for instance.
+                now = timezone.now()
+                next_outbox.selected_messages_in_shard().update(
+                    scheduled_for=next_outbox.next_schedule(now), scheduled_from=now
+                )
+
+                return next_outbox
+
+        except OperationalError as e:
+            # If concurrent locking is happening on the table, gracefully pass and allow
+            # that work to process.
+            if "LockNotAvailable" in str(e):
                 return None
-
-            # We rely on 'proof of failure by remaining' to handle retries -- basically, by scheduling this shard, we
-            # expect all objects to be drained before the next schedule comes around, or else we will run again.
-            # Note that the system does not strongly protect against concurrent processing -- this is expected in the
-            # case of drains, for instance.
-            now = timezone.now()
-            next_outbox.selected_messages_in_shard().update(
-                scheduled_for=next_outbox.next_schedule(now), scheduled_from=now
-            )
-
-            return next_outbox
+            else:
+                raise
 
     def key_from(self, attrs: Iterable[str]) -> Mapping[str, Any]:
         return {k: _ensure_not_null(k, getattr(self, k)) for k in attrs}
@@ -524,21 +540,39 @@ class OutboxBase(Model):
     @contextlib.contextmanager
     def process_coalesced(self) -> Generator[OutboxBase | None, None, None]:
         coalesced: OutboxBase | None = self.select_coalesced_messages().last()
+        first_coalesced: OutboxBase | None = self.select_coalesced_messages().first() or coalesced
+        tags = {"category": "None"}
+
+        if coalesced is not None:
+            tags["category"] = OutboxCategory(self.category).name
+            assert first_coalesced, "first_coalesced incorrectly set for non-empty coalesce group"
+            metrics.timing(
+                "outbox.coalesced_net_queue_time",
+                datetime.datetime.now(tz=datetime.timezone.utc).timestamp()
+                - first_coalesced.date_added.timestamp(),
+                tags=tags,
+            )
+
         yield coalesced
 
         # If the context block didn't raise we mark messages as completed by deleting them.
         if coalesced is not None:
-            first_coalesced: OutboxBase = self.select_coalesced_messages().first() or coalesced
+            assert first_coalesced, "first_coalesced incorrectly set for non-empty coalesce group"
             deleted_count, _ = (
                 self.select_coalesced_messages().filter(id__lte=coalesced.id).delete()
             )
 
-            tags = {"category": OutboxCategory(self.category).name}
-
             metrics.incr("outbox.processed", deleted_count, tags=tags)
             metrics.timing(
                 "outbox.processing_lag",
-                datetime.datetime.now().timestamp() - first_coalesced.scheduled_from.timestamp(),
+                datetime.datetime.now(tz=datetime.timezone.utc).timestamp()
+                - first_coalesced.scheduled_from.timestamp(),
+                tags=tags,
+            )
+            metrics.timing(
+                "outbox.coalesced_net_processing_time",
+                datetime.datetime.now(tz=datetime.timezone.utc).timestamp()
+                - first_coalesced.date_added.timestamp(),
                 tags=tags,
             )
 

@@ -49,7 +49,7 @@ class MsTeamsNotifyServiceAction(IntegrationEventAction):
             rules = [f.rule for f in futures]
             card = MSTeamsIssueMessageBuilder(
                 event.group, event, rules, integration
-            ).build_group_card()
+            ).build_group_card(notification_uuid=notification_uuid)
 
             client = MsTeamsClient(integration)
             client.send_card(channel, card)

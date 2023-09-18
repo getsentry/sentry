@@ -1363,6 +1363,14 @@ function buildRoutes() {
     <Fragment>
       <IndexRoute component={make(() => import('sentry/views/replays/list'))} />
       <Route
+        path="dead-clicks/"
+        component={make(() => import('sentry/views/replays/deadClickList'))}
+      />
+      <Route
+        path="rage-clicks/"
+        component={make(() => import('sentry/views/replays/rageClickList'))}
+      />
+      <Route
         path=":replaySlug/"
         component={make(() => import('sentry/views/replays/details'))}
       />
@@ -1588,10 +1596,24 @@ function buildRoutes() {
         />
       </Route>
       <Route path="browser/">
+        <Route path="interactions/">
+          <IndexRoute
+            component={make(
+              () => import('sentry/views/performance/browser/interactionsLandingPage')
+            )}
+          />
+          <Route
+            path="summary/"
+            component={make(
+              () => import('sentry/views/performance/browser/interactionSummary/index')
+            )}
+          />
+        </Route>
         <Route
-          path="interactions/"
+          path="pageloads/"
           component={make(
-            () => import('sentry/views/performance/browser/interactionsLandingPage')
+            () =>
+              import('sentry/views/performance/browser/webVitals/webVitalsLandingPage')
           )}
         />
       </Route>
@@ -1772,6 +1794,40 @@ function buildRoutes() {
         component={withDomainRedirect(make(() => import('sentry/views/userFeedback')))}
         key="org-user-feedback"
       />
+    </Fragment>
+  );
+
+  const feedbackChildRoutes = (
+    <Fragment>
+      <IndexRoute
+        component={make(() => import('sentry/views/feedback/feedbackListPage'))}
+      />
+      <Route
+        path=":feedbackId/"
+        component={make(() => import('sentry/views/feedback/details'))}
+      />
+    </Fragment>
+  );
+  const feedbackv2Routes = (
+    <Fragment>
+      {usingCustomerDomain && (
+        <Route
+          path="/feedback/"
+          component={withDomainRequired(
+            make(() => import('sentry/views/feedback/index'))
+          )}
+          key="orgless-feedback-list-route"
+        >
+          {feedbackChildRoutes}
+        </Route>
+      )}
+      <Route
+        path="/organizations/:orgId/feedback/"
+        component={withDomainRedirect(make(() => import('sentry/views/feedback/index')))}
+        key="org-feedback-list-route"
+      >
+        {feedbackChildRoutes}
+      </Route>
     </Fragment>
   );
 
@@ -2068,6 +2124,33 @@ function buildRoutes() {
     </Fragment>
   );
 
+  const ddmChildRoutes = (
+    <Fragment>
+      <IndexRoute component={make(() => import('sentry/views/ddm/ddm'))} />
+    </Fragment>
+  );
+
+  const ddmRoutes = (
+    <Fragment>
+      {usingCustomerDomain && (
+        <Route
+          path="/ddm/"
+          component={withDomainRequired(make(() => import('sentry/views/ddm')))}
+          key="orgless-ddm-route"
+        >
+          {ddmChildRoutes}
+        </Route>
+      )}
+      <Route
+        path="/organizations/:orgId/ddm/"
+        component={withDomainRedirect(make(() => import('sentry/views/ddm')))}
+        key="org-ddm"
+      >
+        {ddmChildRoutes}
+      </Route>
+    </Fragment>
+  );
+
   // Support for deprecated URLs (pre-Sentry 10). We just redirect users to new
   // canonical URLs.
   //
@@ -2162,6 +2245,7 @@ function buildRoutes() {
       {projectsRoutes}
       {dashboardRoutes}
       {userFeedbackRoutes}
+      {feedbackv2Routes}
       {issueListRoutes}
       {issueDetailsRoutes}
       {alertRoutes}
@@ -2174,6 +2258,7 @@ function buildRoutes() {
       {performanceRoutes}
       {starfishRoutes}
       {profilingRoutes}
+      {ddmRoutes}
       {gettingStartedRoutes}
       {adminManageRoutes}
       {legacyOrganizationRootRoutes}

@@ -66,7 +66,7 @@ def release_filter_converter(
             )
         )
 
-    return builder._default_filter_converter(SearchFilter(search_filter.key, operator, value))
+    return builder.default_filter_converter(SearchFilter(search_filter.key, operator, value))
 
 
 def project_slug_converter(

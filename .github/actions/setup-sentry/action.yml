@@ -40,9 +40,6 @@ outputs:
   yarn-cache-dir:
     description: 'Path to yarn cache'
     value: ${{ steps.config.outputs.yarn-cache-dir }}
-  acceptance-dir:
-    description: 'Path to acceptance visual snapshot artifacts'
-    value: ${{ steps.config.outputs.acceptance-dir }}
   matrix-instance-number:
     description: 'The matrix instance number (starting at 1)'
     value: ${{ steps.config.outputs.matrix-instance-number }}
@@ -70,7 +67,6 @@ runs:
 
         ### node configuration ###
         echo "NODE_ENV=development" >> $GITHUB_ENV
-        echo "NODE_OPTIONS=--max-old-space-size=4096" >> $GITHUB_ENV
 
         ### pytest configuration ###
         echo "PY_COLORS=1" >> "$GITHUB_ENV"
@@ -120,7 +116,6 @@ runs:
         echo "yarn-cache-dir=$(yarn cache dir)" >> "$GITHUB_OUTPUT"
         echo "matrix-instance-number=$(($MATRIX_INSTANCE+1))" >> "$GITHUB_OUTPUT"
         echo "matrix-instance-total=$((${MATRIX_INSTANCE_TOTAL:-}))" >> "$GITHUB_OUTPUT"
-        echo "acceptance-dir=.artifacts/visual-snapshots/acceptance" >> "$GITHUB_OUTPUT"
 
     - name: Install python dependencies
       shell: bash --noprofile --norc -eo pipefail -ux {0}

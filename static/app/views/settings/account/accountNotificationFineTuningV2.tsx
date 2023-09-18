@@ -236,22 +236,19 @@ class AccountNotificationFineTuningV2 extends DeprecatedAsyncView<Props, State> 
         <SettingsPageHeader title={title} />
         {description && <TextBlock>{description}</TextBlock>}
 
-        {field &&
-          field.defaultFieldName &&
-          // not implemented yet
-          field.defaultFieldName !== 'weeklyReports' && (
-            <Form
-              saveOnBlur
-              apiMethod="PUT"
-              apiEndpoint="/users/me/notifications/"
-              initialData={notifications}
-            >
-              <JsonForm
-                title={`Default ${title}`}
-                fields={[fields[field.defaultFieldName]]}
-              />
-            </Form>
-          )}
+        {field && field.defaultFieldName && (
+          <Form
+            saveOnBlur
+            apiMethod="PUT"
+            apiEndpoint="/users/me/notifications/"
+            initialData={notifications}
+          >
+            <JsonForm
+              title={`Default ${title}`}
+              fields={[fields[field.defaultFieldName]]}
+            />
+          </Form>
+        )}
         <Panel>
           <StyledPanelHeader hasButtons={isProject}>
             {isProject ? (

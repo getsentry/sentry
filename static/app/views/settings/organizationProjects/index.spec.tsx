@@ -34,14 +34,12 @@ describe('OrganizationProjects', function () {
   });
 
   it('should render the projects in the store', async function () {
-    const {container} = render(
+    render(
       <OrganizationProjectsContainer
         {...routerProps}
         location={{...router.location, query: {}}}
       />
     );
-
-    expect(container).toSnapshot();
 
     expect(screen.getByText('project-slug')).toBeInTheDocument();
 
