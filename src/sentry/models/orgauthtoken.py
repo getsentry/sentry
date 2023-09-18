@@ -8,7 +8,7 @@ from django.forms import model_to_dict
 from django.utils import timezone
 from django.utils.encoding import force_str
 
-from sentry.backup.dependencies import ImportKind, PrimaryKeyMap
+from sentry.backup.dependencies import ImportKind
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.conf.server import SENTRY_SCOPES
@@ -83,16 +83,12 @@ class OrgAuthToken(Model):
         return self.date_deactivated is None
 
     def write_relocation_import(
-        self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
-    ) -> Optional[Tuple[int, int, ImportKind]]:
+        self, _s: ImportScope, _f: ImportFlags
+    ) -> Optional[Tuple[int, ImportKind]]:
         # TODO(getsentry/team-ospo#190): Prevents a circular import; could probably split up the
         # source module in such a way that this is no longer an issue.
         from sentry.api.utils import generate_region_url
         from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
-
-        old_pk = super()._normalize_before_relocation_import(pk_map, scope, flags)
-        if old_pk is None:
-            return None
 
         # If there is a token collision, or the token does not exist for some reason, generate a new
         # one.
@@ -117,7 +113,7 @@ class OrgAuthToken(Model):
             self.pk = key.pk
             self.save()
 
-        return (old_pk, self.pk, ImportKind.Inserted if created else ImportKind.Existing)
+        return (self.pk, ImportKind.Inserted if created else ImportKind.Existing)
 
 
 def is_org_auth_token_auth(auth: object) -> bool:

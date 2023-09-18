@@ -144,10 +144,10 @@ class Actor(Model):
         return self.get_actor_tuple().get_actor_identifier()
 
     # TODO(hybrid-cloud): actor refactor. Remove this method when done.
-    def _normalize_before_relocation_import(
+    def normalize_before_relocation_import(
         self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
     ) -> Optional[int]:
-        old_pk = super()._normalize_before_relocation_import(pk_map, scope, flags)
+        old_pk = super().normalize_before_relocation_import(pk_map, scope, flags)
         if old_pk is None:
             return None
 
