@@ -1,7 +1,6 @@
 from django.urls import reverse
 
-from sentry.models.environment import Environment
-from sentry.models.release_threshold.releasethreshold import ReleaseThreshold
+from sentry.models import Environment, ReleaseThreshold
 from sentry.testutils.cases import APITestCase
 
 

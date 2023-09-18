@@ -11,14 +11,13 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.environment import EnvironmentField
-from sentry.models import Project
+from sentry.models import Project, ReleaseThreshold
 from sentry.models.release_threshold.constants import (
     THRESHOLD_TYPE_STR_TO_INT,
     TRIGGER_TYPE_STRING_TO_INT,
     ReleaseThresholdType,
     TriggerType,
 )
-from sentry.models.release_threshold.releasethreshold import ReleaseThreshold
 
 
 class ReleaseThresholdPOSTSerializer(serializers.Serializer):
@@ -46,10 +45,6 @@ class ReleaseThresholdEndpoint(ProjectEndpoint):
     def post(self, request: Request, project: Project) -> HttpResponse:
         serializer = ReleaseThresholdPOSTSerializer(
             data=request.data,
-            context={
-                "organization": project.organization,
-                "access": request.access,
-            },
         )
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)

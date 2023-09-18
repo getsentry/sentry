@@ -10,8 +10,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
-from sentry.models.project import Project
-from sentry.models.release_threshold.releasethreshold import ReleaseThreshold
+from sentry.models import Project, ReleaseThreshold
 
 
 @region_silo_endpoint
