@@ -23,7 +23,7 @@ interface Props extends RouteComponentProps<{}, {}, DeadRageSelectorQueryParams>
 
 export default function DeadClickList({location}: Props) {
   const organization = useOrganization();
-  const hasDeadClicks = organization.features.includes(
+  const hasDeadClickFeature = organization.features.includes(
     'session-replay-rage-dead-selectors'
   );
 
@@ -32,7 +32,7 @@ export default function DeadClickList({location}: Props) {
     sort: '-count_dead_clicks',
   });
 
-  if (!hasDeadClicks) {
+  if (!hasDeadClickFeature) {
     return (
       <Layout.Page withPadding>
         <Alert type="warning">{t("You don't have access to this feature")}</Alert>
@@ -73,17 +73,15 @@ export default function DeadClickList({location}: Props) {
                 clickCountColumn={{key: 'count_dead_clicks', name: 'dead clicks'}}
               />
             </LayoutGap>
-            {
-              <PaginationNoMargin
-                pageLinks={pageLinks}
-                onCursor={(cursor, path, searchQuery) => {
-                  browserHistory.push({
-                    pathname: path,
-                    query: {...searchQuery, cursor},
-                  });
-                }}
-              />
-            }
+            <PaginationNoMargin
+              pageLinks={pageLinks}
+              onCursor={(cursor, path, searchQuery) => {
+                browserHistory.push({
+                  pathname: path,
+                  query: {...searchQuery, cursor},
+                });
+              }}
+            />
           </Layout.Main>
         </Layout.Body>
       </PageFiltersContainer>
