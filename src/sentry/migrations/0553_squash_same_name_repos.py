@@ -4,6 +4,7 @@ from django.db import migrations, router, transaction
 from django.db.models import Count, Q
 
 from sentry.new_migrations.migrations import CheckedMigration
+from sentry.utils.query import RangeQuerySetWrapper
 
 
 def squash_duped_repos(apps, schema_editor):
@@ -13,11 +14,16 @@ def squash_duped_repos(apps, schema_editor):
     LatestRepoReleaseEnvironment = apps.get_model("sentry", "LatestRepoReleaseEnvironment")
     Commit = apps.get_model("sentry", "Commit")
 
-    duplicates = Repository.objects.values("name").annotate(count=Count("name")).filter(count__gt=1)
+    duplicates = (
+        Repository.objects.values("organization_id", "name")
+        .annotate(count=Count("*"))
+        .filter(count__gt=1)
+    )
 
-    for duplicate_group in duplicates:
+    for duplicate_group in RangeQuerySetWrapper(duplicates):
+        org_id = duplicate_group["organization_id"]
         duplicate_name = duplicate_group["name"]
-        duped_repos = Repository.objects.filter(name=duplicate_name)
+        duped_repos = Repository.objects.filter(organization_id=org_id, name=duplicate_name)
 
         # try to find a repo with external_id and provider
         populated_repo = (
