@@ -14,7 +14,7 @@ export interface FeedbackItemResponse {
   };
   dist: string;
   environment: string;
-  id: string;
+  feedback_id: string;
   locale: {
     lang: string;
     timezone: string;
@@ -25,6 +25,7 @@ export interface FeedbackItemResponse {
     version: null | string;
   };
   platform: string;
+  project_id: number;
   release: string;
   replay_id: null | string;
   sdk: {
@@ -60,7 +61,7 @@ export interface FeedbackListQueryParams {
   project?: string[];
   query?: string;
   queryReferrer?: string;
-  sort?: 'timestamp' | '-timestamp' | 'projectId' | '-projectId';
+  sort?: string | 'timestamp' | '-timestamp' | 'projectId' | '-projectId';
   start?: string;
   statsPeriod?: string;
   utc?: 'true' | 'false';
