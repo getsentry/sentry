@@ -2,13 +2,13 @@ from __future__ import annotations
 
 import contextlib
 import logging
-from typing import TYPE_CHECKING, Any, Collection, List, Mapping, Optional, Tuple, Type
+from typing import TYPE_CHECKING, Any, Collection, List, Mapping, Optional, Tuple, Type, TypeVar
 
 from django.db import router, transaction
 from django.dispatch import receiver
 from sentry_sdk.api import capture_exception
 
-from sentry.db.models import Model
+from sentry.db.models import BaseManager, Model
 from sentry.signals import post_upgrade
 from sentry.silo import SiloMode
 from sentry.types.region import find_regions_for_orgs
@@ -65,6 +65,13 @@ class RegionOutboxProducingModel(Model):
 
     def outbox_for_update(self, shard_identifier: int | None = None) -> RegionOutboxBase:
         raise NotImplementedError
+
+
+_RM = TypeVar("_RM", bound=RegionOutboxProducingModel)
+
+
+class RegionOutboxProducingManager(BaseManager):
+    pass
 
 
 class ReplicatedRegionModel(RegionOutboxProducingModel):

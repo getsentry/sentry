@@ -285,9 +285,12 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
             # null. We do this because such a team role would be effectively
             # invisible in the UI, and would be surprising if it were left behind
             # after the user's org role is lowered again.
-            omt_update_count = OrganizationMemberTeam.objects.filter(
+            omt_update_count = 0
+            for omt in OrganizationMemberTeam.objects.filter(
                 organizationmember=member, role__in=lesser_team_roles
-            ).update(role=None)
+            ):
+                omt.update(role=None)
+                omt_update_count += 1
 
             member.role = role
             member.save()
