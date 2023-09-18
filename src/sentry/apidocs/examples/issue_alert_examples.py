@@ -65,7 +65,7 @@ class IssueAlertExamples:
         OpenApiExample(
             "Issue alert successfully created",
             value={
-                "id": "3",
+                "id": "5",
                 "name": "Severe issues",
                 "conditions": [
                     {
@@ -98,6 +98,10 @@ class IssueAlertExamples:
                 "frequency": 300,
                 "owner": "team:24601",
                 "projects": ["squirrels"],
+                "lastTriggered": None,
+                "snooze": False,
+                "snoozeCreatedBy": None,
+                "snoozeForEveryone": None,
                 "status": "active",
             },
             status_codes=["201"],

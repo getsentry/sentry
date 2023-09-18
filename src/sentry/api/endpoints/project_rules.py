@@ -3,8 +3,8 @@ from typing import List
 from django.conf import settings
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
-from drf_spectacular.utils import extend_schema
-from rest_framework import status
+from drf_spectacular.utils import extend_schema, inline_serializer
+from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -126,9 +126,16 @@ class ProjectRulesEndpoint(ProjectEndpoint):
     @extend_schema(
         operation_id="Create an Issue Alert Rule for a Project",
         parameters=[GlobalParams.ORG_SLUG, GlobalParams.PROJECT_SLUG],
-        request=None,
+        request=inline_serializer(
+            name="RuleRequestBody",
+            fields={
+                "name": serializers.CharField(max_length=64),
+                "environment": serializers.CharField(max_length=64, required=False),
+                "actions": serializers.ListField(child=serializers.CharField(), required=False),
+            },
+        ),
         responses={
-            201: RuleSerializer,
+            201: inline_sentry_response_serializer("RuleCreated", RuleSerializerResponse),
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
