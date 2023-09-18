@@ -119,6 +119,7 @@ def mark_failed_threshold(
         occurrence_context = get_occurrence_context_from_checkin(previous_checkin)
         create_issue_platform_occurrence(monitor_env, reason, occurrence_context, fingerprint)
 
+    # TODO create Incident with hash + opening check-in
     monitor_environment_failed.send(monitor_environment=monitor_env, sender=type(monitor_env))
 
     return True

@@ -591,3 +591,17 @@ def check_monitor_environment_limits(sender, instance, **kwargs):
         raise MonitorEnvironmentLimitsExceeded(
             f"You may not exceed {settings.MAX_ENVIRONMENTS_PER_MONITOR} environments per monitor"
         )
+
+
+@region_silo_only_model
+class MonitorEnvironment(Model):
+    __relocation_scope__ = RelocationScope.Excluded
+
+    monitor = FlexibleForeignKey("sentry.Monitor", related_name="incidents")
+    monitor_environment = FlexibleForeignKey("sentry.MonitorEnvironment", related_name="incidents")
+    opening_checkin = FlexibleForeignKey("sentry.MonitorCheckIn", related_name="created_incidents")
+    closing_checkin = FlexibleForeignKey(
+        "sentry.MonitorCheckIn", related_name="closed_incidents", null=True
+    )
+    grouphash = models.CharField(max_length=32)
+    date_added = models.DateTimeField(default=timezone.now)

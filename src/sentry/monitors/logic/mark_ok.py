@@ -33,6 +33,7 @@ def mark_ok(checkin: MonitorCheckIn, ts: datetime):
         # in the future this will auto-resolve associated issues
         if monitor_env.status != MonitorStatus.OK:
             params["last_state_change"] = ts
+            # TODO lookup hash on Incident table + resolve
 
     MonitorEnvironment.objects.filter(id=monitor_env.id).exclude(last_checkin__gt=ts).update(
         **params
