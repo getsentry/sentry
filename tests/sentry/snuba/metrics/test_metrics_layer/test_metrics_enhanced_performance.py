@@ -43,8 +43,9 @@ from sentry.testutils.cases import (
     TestCase,
 )
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.skips import requires_snuba
 
-pytestmark = pytest.mark.sentry_metrics
+pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
 
 
 @pytest.mark.snuba_ci

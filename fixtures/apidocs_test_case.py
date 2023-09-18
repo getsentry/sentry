@@ -7,9 +7,11 @@ from openapi_core.validation.response.validators import ResponseValidator
 
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
 
 
+@requires_snuba
 class APIDocsTestCase(APITestCase):
     cached_schema = None
 
