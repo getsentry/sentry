@@ -1597,7 +1597,7 @@ class DiscoverDatasetConfig(DatasetConfig):
         return filter_aliases.semver_build_filter_converter(self.builder, search_filter)
 
     def _issue_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
-        if self.builder.builder_config.skip_issue_validation:
+        if self.builder.builder_config.skip_field_validation_for_entity_subscription_deletion:
             return None
 
         operator = search_filter.operator
