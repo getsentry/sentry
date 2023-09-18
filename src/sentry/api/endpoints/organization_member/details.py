@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import List
+
 from django.db import router, transaction
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
@@ -285,13 +287,13 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
             # null. We do this because such a team role would be effectively
             # invisible in the UI, and would be surprising if it were left behind
             # after the user's org role is lowered again.
-            omt_update_count = 0
+            omts: List[OrganizationMemberTeam] = []
             for omt in OrganizationMemberTeam.objects.filter(
                 organizationmember=member, role__in=lesser_team_roles
             ):
-                omt.update(role=None)
-                omt_update_count += 1
-
+                omt.role = None
+            OrganizationMemberTeam.objects.bulk_update(omts)
+            omt_update_count = len(omts)
             member.role = role
             member.save()
         if omt_update_count > 0:

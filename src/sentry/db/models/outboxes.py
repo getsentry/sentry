@@ -114,6 +114,23 @@ class RegionOutboxProducingManager(BaseManager[_RM]):
             type(outboxes[0]).objects.bulk_create(outboxes)
             return super().bulk_create(tuple_of_objs, *args, **kwds)
 
+    def bulk_update(self, objs: Iterable[_RM], *args: Any, **kwds: Any) -> Any:
+        from sentry.models.outbox import outbox_context
+
+        tuple_of_objs: Tuple[_RM, ...] = tuple(objs)
+        if not tuple_of_objs:
+            return super().bulk_update(tuple_of_objs, *args, **kwds)
+
+        model: Type[_RM] = type(tuple_of_objs[0])
+        using = router.db_for_write(model)
+        with outbox_context(transaction.atomic(using=using), flush=False):
+            outboxes: List[RegionOutboxBase] = []
+            for obj in objs:
+                outboxes.append(obj.outbox_for_update())
+
+            type(outboxes[0]).objects.bulk_create(outboxes)
+            return super().bulk_update(tuple_of_objs, *args, **kwds)
+
     def bulk_delete(self, objs: Iterable[_RM]) -> Tuple[int, Mapping[str, int]]:
         from sentry.models.outbox import outbox_context
 
@@ -278,6 +295,23 @@ class ControlOutboxProducingManager(BaseManager[_CM]):
 
             type(outboxes[0]).objects.bulk_create(outboxes)
             return super().bulk_create(tuple_of_objs, *args, **kwds)
+
+    def bulk_update(self, objs: Iterable[_CM], *args: Any, **kwds: Any) -> Any:
+        from sentry.models.outbox import outbox_context
+
+        tuple_of_objs: Tuple[_CM, ...] = tuple(objs)
+        if not tuple_of_objs:
+            return super().bulk_update(tuple_of_objs, *args, **kwds)
+
+        model: Type[_CM] = type(tuple_of_objs[0])
+        using = router.db_for_write(model)
+        with outbox_context(transaction.atomic(using=using), flush=False):
+            outboxes: List[ControlOutboxBase] = []
+            for obj in objs:
+                outboxes.extend(obj.outboxes_for_update())
+
+            type(outboxes[0]).objects.bulk_create(outboxes)
+            return super().bulk_update(tuple_of_objs, *args, **kwds)
 
     def bulk_delete(self, objs: Iterable[_CM]) -> Tuple[int, Mapping[str, int]]:
         from sentry.models.outbox import outbox_context
