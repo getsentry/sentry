@@ -46,6 +46,7 @@ type Props = ViewProps & {
   statsData: TrendsStats;
   trendChangeType: TrendChangeType;
   additionalSeries?: LineSeriesOption[];
+  applyRegressionFormatToInterval?: boolean;
   disableLegend?: boolean;
   disableXAxis?: boolean;
   grid?: LineChartProps['grid'];
@@ -106,6 +107,7 @@ export function Chart({
   project,
   organization,
   additionalSeries,
+  applyRegressionFormatToInterval = false,
 }: Props) {
   const location = useLocation();
   const router = useRouter();
@@ -202,7 +204,8 @@ export function Chart({
     smoothedResults || [],
     0.5,
     needsLabel,
-    transaction
+    transaction,
+    applyRegressionFormatToInterval
   );
 
   const yDiff = yMax - yMin;

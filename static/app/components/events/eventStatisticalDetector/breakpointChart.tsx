@@ -1,8 +1,5 @@
-import {useTheme} from '@emotion/react';
 import {LineSeriesOption} from 'echarts';
 
-import MarkArea from 'sentry/components/charts/components/markArea';
-import MarkLine from 'sentry/components/charts/components/markLine';
 import {Event} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import TrendsDiscoverQuery from 'sentry/utils/performance/trends/trendsDiscoverQuery';
@@ -26,12 +23,10 @@ type EventBreakpointChartProps = {
 };
 
 function EventBreakpointChart({event}: EventBreakpointChartProps) {
-  const theme = useTheme();
   const organization = useOrganization();
   const location = useLocation();
 
-  const {transaction, requestStart, requestEnd, breakpoint} =
-    event?.occurrence?.evidenceData ?? {};
+  const {transaction, requestStart, requestEnd} = event?.occurrence?.evidenceData ?? {};
 
   const eventView = EventView.fromLocation(location);
   eventView.query = `event.type:transaction transaction:"${transaction}"`;
@@ -52,66 +47,6 @@ function EventBreakpointChart({event}: EventBreakpointChartProps) {
   }, {}) as NormalizedTrendsTransaction;
 
   const additionalSeries: LineSeriesOption[] = [];
-
-  // Add the red marked area to the chart
-  additionalSeries.push({
-    name: 'Regression Area',
-    type: 'line',
-    markLine: MarkLine({
-      silent: true,
-      animation: false,
-      lineStyle: {color: theme.red300, type: 'solid', width: 2, opacity: 1.0},
-      label: {
-        show: false,
-      },
-      data: [
-        {
-          xAxis: breakpoint * 1000,
-        },
-      ],
-    }),
-    markArea: MarkArea({
-      silent: true,
-      itemStyle: {
-        color: theme.red300,
-        opacity: 0.2,
-      },
-      data: [
-        [
-          {
-            xAxis: breakpoint * 1000,
-          },
-          {xAxis: requestEnd * 1000},
-        ],
-      ],
-    }),
-    data: [],
-  });
-
-  additionalSeries.push({
-    name: 'Regression Axis Line',
-    type: 'line',
-    markLine: MarkLine({
-      silent: true,
-      lineStyle: {color: 'red', type: 'solid', width: 4},
-      data: [[{coord: [breakpoint, 57]}, {coord: [requestEnd, 57]}]],
-    }),
-    data: [],
-  });
-
-  additionalSeries.push({
-    name: 'Baseline Axis Line',
-    type: 'line',
-    markLine: MarkLine({
-      silent: true,
-      label: {
-        show: false,
-      },
-      lineStyle: {color: 'green', type: 'solid', width: 4},
-      data: [{yAxis: 100}],
-    }),
-    data: [],
-  });
 
   return (
     <DataSection>
@@ -144,6 +79,7 @@ function EventBreakpointChart({event}: EventBreakpointChartProps) {
               trendChangeType={TrendChangeType.REGRESSION}
               trendFunctionField={TrendFunctionField.P95}
               additionalSeries={additionalSeries}
+              applyRegressionFormatToInterval
               disableLegend
             />
           );
