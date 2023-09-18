@@ -24,7 +24,7 @@ function FileChange({filename, authors, className}: Props) {
         <AvatarList
           users={authors as AvatarUser[]}
           avatarSize={25}
-          typeMembers="authors"
+          typeAvatars="authors"
         />
       </div>
     </FileItem>

@@ -555,6 +555,14 @@ interface ReprocessingStatusDetails {
   pendingEvents: number;
 }
 
+export interface UserParticipant extends User {
+  type: 'user';
+}
+
+export interface TeamParticipant extends Team {
+  type: 'team';
+}
+
 /**
  * The payload sent when marking reviewed
  */
@@ -564,6 +572,7 @@ export interface MarkReviewed {
 /**
  * The payload sent when updating a group's status
  */
+
 export interface GroupStatusResolution {
   status: GroupStatus.RESOLVED | GroupStatus.UNRESOLVED | GroupStatus.IGNORED;
   statusDetails: ResolvedStatusDetails | IgnoredStatusDetails | {};
@@ -607,7 +616,7 @@ export interface BaseGroup {
   logger: string | null;
   metadata: EventMetadata;
   numComments: number;
-  participants: User[];
+  participants: Array<UserParticipant | TeamParticipant>;
   permalink: string;
   platform: PlatformKey;
   pluginActions: any[]; // TODO(ts)
