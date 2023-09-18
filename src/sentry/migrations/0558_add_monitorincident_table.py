@@ -23,7 +23,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0556_organizationmapping_replicate_require_2fa"),
+        ("sentry", "0557_add_monitorincident_table"),
     ]
 
     operations = [
