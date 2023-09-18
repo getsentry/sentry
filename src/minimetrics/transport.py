@@ -24,7 +24,7 @@ sanitize_value = partial(re.compile(r"[^a-zA-Z0-9_/.]").sub, "")
 class RelayStatsdEncoder:
     def _encode(self, value: FlushableMetric, out: BytesIO):
         _write = out.write
-        (timestamp, metric_type, metric_name, metric_unit, metric_tags), metric = value
+        timestamp, (metric_type, metric_name, metric_unit, metric_tags), metric = value
         metric_name = sanitize_value(metric_name) or "invalid-metric-name"
         _write(f"{metric_name}@{metric_unit}".encode())
 
