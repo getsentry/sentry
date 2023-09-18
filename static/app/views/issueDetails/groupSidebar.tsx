@@ -136,7 +136,7 @@ export default function GroupSidebar({
     }
 
     const userParticipants = participants.filter(p => p.type === 'user');
-    const teamParticiapnts = participants.filter(p => p.type === 'team');
+    const teamParticipants = participants.filter(p => p.type === 'team');
 
     return (
       <SidebarSection.Wrap>
@@ -151,9 +151,10 @@ export default function GroupSidebar({
         <SidebarSection.Content>
           <StyledAvatarList
             users={userParticipants as AvatarUser[]}
-            teams={teamParticiapnts as Team[]}
+            teams={teamParticipants as Team[]}
             avatarSize={28}
             maxVisibleAvatars={13}
+            typeAvatars="participants"
           />
         </SidebarSection.Content>
       </SidebarSection.Wrap>
