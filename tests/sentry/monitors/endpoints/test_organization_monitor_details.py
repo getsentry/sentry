@@ -324,7 +324,7 @@ class UpdateMonitorTest(MonitorTestCase):
             monitor.slug,
             method="PUT",
             status_code=400,
-            **{"config": {"schedule": "* * 31 2 *"}},
+            **{"config": {"schedule": "* * 31 9 *"}},
         )
 
     def test_crontab_unsupported(self):
