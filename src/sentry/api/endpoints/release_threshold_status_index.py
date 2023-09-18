@@ -164,6 +164,17 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
         Determines whether a projects threshold has been breached or not
         True - healthy
         False - unhealthy
+
+        error count - over/under
+        new issue count - over/under
+        unhandled issue count - over/under/%unhandled total
+        regressed issue count - over/under/% of issues that have regressed
+        failure rate - % uptime
+        crash_free_session_rate - % over/%under
+        crash free user session - % over/%under
+
+        Could simply have over/under
+        - each threshold type is either a count or a %?
         """
         # TOTAL_ERROR_COUNT_STR = "total_error_count" - Can we even get a % over/under for errors?
         # NEW_ISSUE_COUNT_STR = "new_issue_count" - What is a % over/under for new issues??
