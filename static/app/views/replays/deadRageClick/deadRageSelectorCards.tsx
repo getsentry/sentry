@@ -15,30 +15,11 @@ import SelectorTable from 'sentry/views/replays/deadRageClick/selectorTable';
 
 function DeadRageSelectorCards() {
   const location = useLocation();
-  const {project, environment, start, statsPeriod, utc, end} = location.query;
-  const widgetLocation: Location<any> = {
-    pathname: '',
-    search: '',
-    hash: '',
-    state: '',
-    action: 'PUSH' as const,
-    key: '',
-    query: {
-      project,
-      environment,
-      start,
-      statsPeriod,
-      utc,
-      end,
-      cursor: undefined,
-      sort: undefined,
-    },
-  };
 
   return (
     <SplitCardContainer>
-      <DeadClickTable location={widgetLocation} />
-      <RageClickTable location={widgetLocation} />
+      <DeadClickTable location={location} />
+      <RageClickTable location={location} />
     </SplitCardContainer>
   );
 }
