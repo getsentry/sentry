@@ -20,7 +20,6 @@ interface UrlState {
 
 interface Props {
   clickCountColumn: {key: string; name: string};
-  clickType: 'count_dead_clicks' | 'count_rage_clicks';
   data: DeadRageSelectorItem[];
   isError: boolean;
   isLoading: boolean;
@@ -34,7 +33,6 @@ const BASE_COLUMNS: GridColumnOrder<string>[] = [
 ];
 
 export default function SelectorTable({
-  clickType,
   clickCountColumn,
   isError,
   isLoading,
@@ -44,7 +42,7 @@ export default function SelectorTable({
   const organization = useOrganization();
 
   const {currentSort, makeSortLinkGenerator} = useQueryBasedSorting({
-    defaultSort: {field: clickType, kind: 'desc'},
+    defaultSort: {field: clickCountColumn.key, kind: 'desc'},
     location,
   });
 

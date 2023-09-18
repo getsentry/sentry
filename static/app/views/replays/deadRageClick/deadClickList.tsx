@@ -70,7 +70,6 @@ export default function DeadClickList({location}: Props) {
                 isError={isError}
                 isLoading={isLoading}
                 location={location}
-                clickType="count_dead_clicks"
                 clickCountColumn={{key: 'count_dead_clicks', name: 'dead clicks'}}
               />
             </LayoutGap>

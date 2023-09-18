@@ -70,7 +70,6 @@ export default function RageClickList({location}: Props) {
                 isError={isError}
                 isLoading={isLoading}
                 location={location}
-                clickType="count_rage_clicks"
                 clickCountColumn={{key: 'count_rage_clicks', name: 'rage clicks'}}
               />
             </LayoutGap>
