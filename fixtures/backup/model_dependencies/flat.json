@@ -131,6 +131,14 @@
   "sentry.Counter": [
     "sentry.Project"
   ],
+  "sentry.CustomDynamicSamplingRule": [
+    "sentry.Organization"
+  ],
+  "sentry.CustomDynamicSamplingRuleProject": [
+    "sentry.CustomDynamicSamplingRule",
+    "sentry.Organization",
+    "sentry.Project"
+  ],
   "sentry.Dashboard": [
     "sentry.Organization",
     "sentry.User"
