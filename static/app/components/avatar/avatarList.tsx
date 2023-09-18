@@ -30,11 +30,10 @@ function AvatarList({
   renderTooltip,
 }: Props) {
   const numTeams = teams ? teams.length : 0;
-  // maximum number of teams/users we can show
-  const maxVisibleTeams = maxVisibleAvatars - numTeams > 0 ? numTeams : maxVisibleAvatars;
+  const numVisibleTeams = maxVisibleAvatars - numTeams > 0 ? numTeams : maxVisibleAvatars;
   const maxVisibleUsers =
-    maxVisibleAvatars - maxVisibleTeams > 0 ? maxVisibleAvatars - maxVisibleTeams : 0;
-  const visibleTeamAvatars = teams?.slice(0, maxVisibleTeams);
+    maxVisibleAvatars - numVisibleTeams > 0 ? maxVisibleAvatars - numVisibleTeams : 0;
+  const visibleTeamAvatars = teams?.slice(0, numVisibleTeams);
   const visibleUserAvatars = users.slice(0, maxVisibleUsers);
   const numCollapsedAvatars = users.length - visibleUserAvatars.length;
 
