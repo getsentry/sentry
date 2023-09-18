@@ -3,15 +3,14 @@ import threading
 import time
 import zlib
 from threading import Event, Lock, Thread
-from typing import Any, Callable, Dict, Iterable, List, Optional, Set, Tuple, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, Set, Union
 
 import sentry_sdk
 
 from minimetrics.transport import MetricEnvelopeTransport, RelayStatsdEncoder
 from minimetrics.types import (
     BucketKey,
-    ExtendedBucketKey,
-    FlushedMetric,
+    FlushableBuckets,
     FlushedMetricValue,
     Metric,
     MetricTagsExternal,
@@ -183,43 +182,40 @@ class Aggregator:
             self._flush_event.wait(5.0)
 
     def _flush(self):
-        flushable_buckets, force_flushed = self._flushable_buckets()
-        flushed_metrics: List[FlushedMetric] = []
-
-        for buckets_timestamp, buckets in flushable_buckets:
-            for bucket_key, metric in buckets:
-                # We compute the extended bucket key.
-                extended_bucket_key: ExtendedBucketKey = (buckets_timestamp, *bucket_key)
-                flushed_metrics.append((extended_bucket_key, metric))
-
-        if flushed_metrics:
+        flushable_buckets, _ = self._flushable_buckets()
+        if flushable_buckets:
             # You should emit metrics to `metrics` only inside this method, since we know that if we received
             # metrics the `sentry.utils.metrics` file was initialized. If we do it before, it will likely cause a
             # circular dependency since the methods in the `sentry.utils.metrics` depend on the backend
             # initialization, thus if you emit metrics when a backend is initialized Python will throw an error.
-            self._emit(flushed_metrics, force_flushed)
+            self._emit(flushable_buckets)
 
-    def _flushable_buckets(self) -> [List[Tuple[int, Dict[BucketKey, Metric]]], bool]:
+    def _flushable_buckets(self) -> [FlushableBuckets, bool]:
         with self._lock:
             force_flush = self._force_flush
             cutoff = time.time() - self.ROLLUP_IN_SECONDS
             flushable_buckets = []
             weight_to_remove = 0
 
-            for buckets_timestamp, buckets in self.buckets.items():
-                # If the timestamp of the bucket is newer that the rollup we want to skip it.
-                if buckets_timestamp > cutoff and not force_flush:
-                    continue
+            if force_flush:
+                flushable_buckets = self.buckets.items()
+                self.buckets = {}
+                self._buckets_total_weight = 0
+            else:
+                for buckets_timestamp, buckets in self.buckets.items():
+                    # If the timestamp of the bucket is newer that the rollup we want to skip it.
+                    if buckets_timestamp > cutoff:
+                        continue
 
-                flushable_buckets.append((buckets_timestamp, buckets))
+                    flushable_buckets.append((buckets_timestamp, buckets))
 
-            # We will clear the elements while holding the lock, in order to avoid requesting it downstream again.
-            for buckets_timestamp, buckets in flushable_buckets:
-                for bucket_key, metric in buckets:
-                    weight_to_remove += metric.weight
-                self.buckets.pop(buckets_timestamp)
+                # We will clear the elements while holding the lock, in order to avoid requesting it downstream again.
+                for buckets_timestamp, buckets in flushable_buckets:
+                    for bucket_key, metric in buckets:
+                        weight_to_remove += metric.weight
+                    self.buckets.pop(buckets_timestamp)
 
-            self._buckets_total_weight -= weight_to_remove
+                self._buckets_total_weight -= weight_to_remove
 
         return flushable_buckets, force_flush
 
@@ -294,49 +290,12 @@ class Aggregator:
             self._force_flush = True
             self._flush_event.set()
 
-    def _emit(self, flushed_metrics: Iterable[FlushedMetric], force_flush: bool) -> Any:
+    def _emit(self, flushable_buckets: FlushableBuckets) -> Any:
         if options.get("delightful_metrics.enable_envelope_forwarding"):
             try:
-                self._transport.send(flushed_metrics)
+                self._transport.send(flushable_buckets)
             except Exception as e:
                 sentry_sdk.capture_exception(e)
-
-        # We obtain the counts for each metric type of how many buckets we have and how much weight is in each
-        # bucket.
-        stats_by_type: Dict[MetricType, Tuple[int, int]] = {}
-        for bucket_key, metric in flushed_metrics:
-            (prev_buckets_count, prev_buckets_weight) = stats_by_type.get(bucket_key[1], (0, 0))
-            stats_by_type[bucket_key[1]] = (
-                prev_buckets_count + 1,
-                prev_buckets_weight + metric.weight,
-            )
-
-        for metric_type, (buckets_count, buckets_weight) in stats_by_type.items():
-            # We want to emit a metric on how many buckets and weight there was for a metric type.
-            metrics.timing(
-                key="minimetrics.flushed_buckets",
-                value=buckets_count,
-                tags={"metric_type": metric_type, "force_flush": force_flush},
-                sample_rate=self.DEFAULT_SAMPLE_RATE,
-            )
-            metrics.incr(
-                key="minimetrics.flushed_buckets_counter",
-                amount=buckets_count,
-                tags={"metric_type": metric_type, "force_flush": force_flush},
-                sample_rate=self.DEFAULT_SAMPLE_RATE,
-            )
-            metrics.timing(
-                key="minimetrics.flushed_buckets_weight",
-                value=buckets_weight,
-                tags={"metric_type": metric_type, "force_flush": force_flush},
-                sample_rate=self.DEFAULT_SAMPLE_RATE,
-            )
-            metrics.incr(
-                key="minimetrics.flushed_buckets_weight_counter",
-                amount=buckets_weight,
-                tags={"metric_type": metric_type, "force_flush": force_flush},
-                sample_rate=self.DEFAULT_SAMPLE_RATE,
-            )
 
     def _to_internal_metric_tags(self, tags: Optional[MetricTagsExternal]) -> MetricTagsInternal:
         rv = []

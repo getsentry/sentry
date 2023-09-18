@@ -1,4 +1,4 @@
-from typing import Generic, Iterable, List, Literal, Mapping, Tuple, TypeVar, Union
+from typing import Dict, Generic, Iterable, List, Literal, Mapping, Tuple, TypeVar, Union
 
 # Unit of the metrics.
 MetricUnit = Literal[
@@ -48,10 +48,7 @@ MetricTagsExternal = Mapping[MetricTagKey, MetricTagValueExternal]
 # Value inside the generator for the metric value.
 FlushedMetricValue = Union[int, float]
 
-
 BucketKey = Tuple[MetricType, str, MetricUnit, MetricTagsInternal]
-ExtendedBucketKey = Tuple[int, MetricType, str, MetricUnit, MetricTagsInternal]
-
 
 T = TypeVar("T")
 
@@ -70,4 +67,5 @@ class Metric(Generic[T]):
         raise NotImplementedError()
 
 
-FlushedMetric = Tuple[ExtendedBucketKey, Metric]
+FlushableMetric = Tuple[int, BucketKey, Metric]
+FlushableBuckets = Iterable[Tuple[int, Dict[BucketKey, Metric]]]
