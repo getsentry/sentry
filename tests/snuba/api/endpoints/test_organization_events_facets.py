@@ -925,7 +925,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
         # Test the default query fetches the first 10 results
         with self.feature(self.features):
             response = self.client.get(
-                self.url, format="json", data={"project": [test_project.id], "includeAll": True}
+                self.url, format="json", data={"project": test_project.id, "includeAll": True}
             )
 
         assert response.status_code == 200, response.content
