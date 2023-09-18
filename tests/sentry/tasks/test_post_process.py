@@ -1759,6 +1759,32 @@ class PostProcessGroupErrorTest(
         )
         return cache_key
 
+    @with_feature("organizations:escalating-metrics-backend")
+    @patch("sentry.sentry_metrics.client.generic_metrics_backend.counter")
+    def test_generic_metrics_backend_counter(self, generic_metrics_backend_mock):
+        min_ago = iso_format(before_now(minutes=1))
+        event = self.create_event(
+            data={
+                "exception": {
+                    "values": [
+                        {
+                            "type": "ZeroDivisionError",
+                            "stacktrace": {"frames": [{"function": f} for f in ["a", "b"]]},
+                        }
+                    ]
+                },
+                "timestamp": min_ago,
+                "start_timestamp": min_ago,
+                "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
+            },
+            project_id=self.project.id,
+        )
+        self.call_post_process_group(
+            is_new=True, is_regression=False, is_new_group_environment=True, event=event
+        )
+
+        assert generic_metrics_backend_mock.call_count == 1
+
 
 @region_silo_test
 class PostProcessGroupPerformanceTest(
