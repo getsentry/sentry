@@ -306,18 +306,10 @@ class NotificationsManager(BaseManager["NotificationSetting"]):  # noqa: F821
 
         return self.filter(query)
 
+    # only used in tests
     def remove_for_user(self, user: User, type: NotificationSettingTypes | None = None) -> None:
         """Bulk delete all Notification Settings for a USER, optionally by type."""
         self._filter(user_ids=[user.id], type=type).delete()
-
-    def remove_for_team(
-        self,
-        team: Team,
-        type: NotificationSettingTypes | None = None,
-        provider: ExternalProviders | None = None,
-    ) -> None:
-        """Bulk delete all Notification Settings for a TEAM, optionally by type."""
-        self._filter(team_ids=[team.id], provider=provider, type=type).delete()
 
     def remove_for_project(
         self, project_id: int, type: NotificationSettingTypes | None = None
