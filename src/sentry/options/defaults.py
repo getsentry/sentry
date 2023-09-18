@@ -1523,6 +1523,19 @@ register(
 )
 
 register(
+    "delightful_metrics.enable_transport",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "delightful_metrics.enable_envelope_serialization",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+
+register(
     "delightful_metrics.enable_envelope_forwarding",
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,

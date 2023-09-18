@@ -292,7 +292,7 @@ class Aggregator:
             self._flush_event.set()
 
     def _emit(self, flushable_buckets: FlushableBuckets) -> Any:
-        if options.get("delightful_metrics.enable_envelope_forwarding"):
+        if options.get("delightful_metrics.enable_transport"):
             try:
                 self._transport.send(flushable_buckets)
             except Exception as e:
