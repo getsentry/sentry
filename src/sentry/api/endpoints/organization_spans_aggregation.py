@@ -131,15 +131,15 @@ class OrganizationSpansAggregationEndpoint(OrganizationEventsEndpointBase):
             except KeyError:
                 continue
 
-            self.fingerprint_nodes(root_span)
+            self.fingerprint_nodes(root_span, root_span["start_ms"])
 
         return Response(data=self.aggregated_tree)
 
     def fingerprint_nodes(
         self,
         span_tree,
+        root_start_timestamp,
         root_prefix=None,
-        parent_start_ms=None,
         parent_node_fingerprint=None,
         nth_span=0,
     ):
@@ -191,7 +191,7 @@ class OrganizationSpansAggregationEndpoint(OrganizationEventsEndpointBase):
             node["avg(offset)"] = incremental_average(
                 node["avg(offset)"],
                 count,
-                0 if parent_start_ms is None else start_ms - parent_start_ms,
+                start_ms - root_start_timestamp,
             )
             node["count()"] += 1
         except KeyError:
@@ -202,10 +202,8 @@ class OrganizationSpansAggregationEndpoint(OrganizationEventsEndpointBase):
                 "description": description,
                 "start_ms": start_ms,
                 "avg(exclusive_time)": span_tree["exclusive_time"],
-                "avg(offset)": 0
-                if parent_start_ms is None
-                else start_ms - parent_start_ms,  # offset of the child span from the parent
-                "avg(duration)": span_tree["duration"],
+                "avg(offset)": start_ms
+                - root_start_timestamp,  # offset of the span relative to the start timestamp of the root span
                 "count()": 1,
             }
 
@@ -217,7 +215,11 @@ class OrganizationSpansAggregationEndpoint(OrganizationEventsEndpointBase):
             child_span_hash = child["coalesced_group"]
             span_hash_seen[child_span_hash] += 1
             self.fingerprint_nodes(
-                child, prefix, start_ms, node_fingerprint, span_hash_seen[child_span_hash]
+                child,
+                root_start_timestamp,
+                prefix,
+                node_fingerprint,
+                span_hash_seen[child_span_hash],
             )
 
 
