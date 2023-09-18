@@ -37,6 +37,9 @@ class OrganizationMapping(Model):
     region_name = models.CharField(max_length=REGION_NAME_LENGTH)
     status = BoundedBigIntegerField(choices=OrganizationStatus.as_choices(), null=True)
 
+    # Replicated from the Organization.flags attribute
+    require_2fa = models.BooleanField(default=False)
+
     class Meta:
         app_label = "sentry"
         db_table = "sentry_organizationmapping"
