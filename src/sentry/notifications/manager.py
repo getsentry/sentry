@@ -306,18 +306,10 @@ class NotificationsManager(BaseManager["NotificationSetting"]):  # noqa: F821
 
         return self.filter(query)
 
+    # only used in tests
     def remove_for_user(self, user: User, type: NotificationSettingTypes | None = None) -> None:
         """Bulk delete all Notification Settings for a USER, optionally by type."""
         self._filter(user_ids=[user.id], type=type).delete()
-
-    def remove_for_team(
-        self,
-        team: Team,
-        type: NotificationSettingTypes | None = None,
-        provider: ExternalProviders | None = None,
-    ) -> None:
-        """Bulk delete all Notification Settings for a TEAM, optionally by type."""
-        self._filter(team_ids=[team.id], provider=provider, type=type).delete()
 
     def remove_for_project(
         self, project_id: int, type: NotificationSettingTypes | None = None
@@ -595,8 +587,29 @@ class NotificationsManager(BaseManager["NotificationSetting"]):  # noqa: F821
         ):
             return
 
-        # first update the NotificationSettingOption based on what's passed in
+        enabled_providers = defaultdict(set)
+        disabled_providers = defaultdict(set)
+        defaulted_providers = defaultdict(set)
+        all_settings = set()
+
+        # group the type, scope_type, scope_identifier, together and get store the explicitly enabled/disabled providers
         for (provider, type, scope_type, scope_identifier, value) in notification_settings:
+            # Group the type, scope_type, scope_identifier together
+            group_key = (type, scope_type, scope_identifier)
+            all_settings.add(group_key)
+            # Initialize the dictionaries to store the explicitly enabled/disabled providers
+
+            # Check the value and add the provider to the corresponding dictionary
+            if value == NotificationSettingOptionValues.NEVER:
+                disabled_providers[group_key].add(provider)
+            elif value == NotificationSettingOptionValues.DEFAULT:
+                defaulted_providers[group_key].add(provider)
+            else:
+                enabled_providers[group_key].add(provider)
+
+        # iterate through all the settings and create/update the NotificationSettingOption
+        for group_key in all_settings:
+            (type, scope_type, scope_identifier) = group_key
             query_args = {
                 "type": NOTIFICATION_SETTING_TYPES[type],
                 "scope_type": NOTIFICATION_SCOPE_TYPE[scope_type],
@@ -604,13 +617,21 @@ class NotificationsManager(BaseManager["NotificationSetting"]):  # noqa: F821
                 "user_id": user_id,
                 "team_id": team_id,
             }
-            # if default, delete the row
-            if value == NotificationSettingOptionValues.DEFAULT:
+
+            # if any settings are default, we should remove the row
+            if len(defaulted_providers[group_key]) > 0:
                 NotificationSettingOption.objects.filter(**query_args).delete()
-            else:
+            # if any of the providers are explicitly enabled, we should create/update the row
+            if len(enabled_providers[group_key]) > 0:
                 NotificationSettingOption.objects.create_or_update(
                     **query_args,
-                    values={"value": NOTIFICATION_SETTING_OPTION_VALUES[value]},
+                    values={"value": NotificationSettingsOptionEnum.ALWAYS.value},
+                )
+            # if any settings are explicitly disabled, we should create/update the row
+            elif len(disabled_providers[group_key]) > 0:
+                NotificationSettingOption.objects.create_or_update(
+                    **query_args,
+                    values={"value": NotificationSettingsOptionEnum.NEVER.value},
                 )
 
         # update the provider settings after we update the NotificationSettingOption
