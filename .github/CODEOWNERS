@@ -478,4 +478,5 @@ yarn.lock                                                @getsentry/owners-js-de
 /src/sentry/api/helpers/source_map_helper.py                  @getsentry/issues
 /src/sentry/api/endpoints/actionable_items.py                @getsentry/issues
 /src/sentry/api/helpers/actionable_items_helper.py                  @getsentry/issues
+/static/app/components/events/interfaces/crashContent/exception/actionableItems   @getsentry/issues
 ## End of Issues
