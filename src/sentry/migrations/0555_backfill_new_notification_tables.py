@@ -177,6 +177,15 @@ class NotificationSettingsOptionEnum(Enum):
     COMMITTED_ONLY = "committed_only"
 
 
+NOTIFICATION_SETTING_OPTION_VALUES = {
+    NotificationSettingOptionValues.DEFAULT: NotificationSettingsOptionEnum.DEFAULT.value,
+    NotificationSettingOptionValues.NEVER: NotificationSettingsOptionEnum.NEVER.value,
+    NotificationSettingOptionValues.ALWAYS: NotificationSettingsOptionEnum.ALWAYS.value,
+    NotificationSettingOptionValues.SUBSCRIBE_ONLY: NotificationSettingsOptionEnum.SUBSCRIBE_ONLY.value,
+    NotificationSettingOptionValues.COMMITTED_ONLY: NotificationSettingsOptionEnum.COMMITTED_ONLY.value,
+}
+
+
 class NotificationScopeEnum(Enum):
     USER = "user"
     ORGANIZATION = "organization"
@@ -204,7 +213,6 @@ End of copied over code
 
 
 def backfill_notification_settings(apps, schema_editor):
-    print("migration backfill_notification_settings start")
     NotificationSetting = apps.get_model("sentry", "NotificationSetting")
     NotificationSettingOption = apps.get_model("sentry", "NotificationSettingOption")
     NotificationSettingProvider = apps.get_model("sentry", "NotificationSettingProvider")
@@ -221,49 +229,57 @@ def backfill_notification_settings(apps, schema_editor):
         )
 
         enabled_providers = []
-        disabled_providers = []
+        all_providers = []
+        enabled_value = None
         for related_setting in related_settings:
-            # find all the enabled providers for this setting
-            if related_setting.value == NotificationSettingOption.ValueValues.NEVER:
-                disabled_providers.append(related_setting.provider)
-            else:
+            if related_setting.value != NotificationSettingOptionValues.NEVER.value:
                 enabled_providers.append(related_setting.provider)
+                enabled_value = related_setting.value
+            all_providers.append(related_setting.provider)
 
         update_args = {
             "type": get_notification_setting_type_name(related_setting.type),
             "user_id": related_setting.user_id,
             "team_id": related_setting.team_id,
-            "scope": get_notification_scope_name(related_setting.scope),
+            "scope_type": get_notification_scope_name(related_setting.scope_type),
             "scope_identifier": related_setting.scope_identifier,
         }
 
-        # if the setting is enabled for any provider, we want to create a setting option
-        if len(enabled_providers) > 0:
-            NotificationSettingOption.objects.create_or_update(
-                **update_args, values={"value": NotificationSettingsOptionEnum.ALWAYS.value}
+        # check if all are disabled
+        if len(enabled_providers) == 0:
+            NotificationSettingOption.objects.update_or_create(
+                **update_args, defaults={"value": NotificationSettingsOptionEnum.NEVER.value}
             )
-        elif len(disabled_providers) > 0:
-            NotificationSettingOption.objects.create_or_update(
-                **update_args, values={"value": NotificationSettingsOptionEnum.NEVER.value}
+        else:
+            # map the enabled setting
+            NotificationSettingOption.objects.update_or_create(
+                **update_args,
+                defaults={
+                    "value": NOTIFICATION_SETTING_OPTION_VALUES[
+                        NotificationSettingOptionValues(enabled_value)
+                    ]
+                },
             )
+
         # now set the provider settings if the scope is user or team
-        if related_setting.scope in [
+        if related_setting.scope_type in [
             NotificationScopeType.USER.value,
             NotificationScopeType.TEAM.value,
         ]:
             for provider in enabled_providers:
-                NotificationSettingProvider.objects.create_or_update(
+                NotificationSettingProvider.objects.update_or_create(
                     **update_args,
-                    values={
-                        "provider": get_provider_name(provider),
+                    provider=get_provider_name(provider),
+                    defaults={
                         "value": NotificationSettingsOptionEnum.ALWAYS.value,
                     },
                 )
+            disabled_providers = set(all_providers) - set(enabled_providers)
             for provider in disabled_providers:
-                NotificationSettingProvider.objects.create_or_update(
+                NotificationSettingProvider.objects.update_or_create(
                     **update_args,
-                    values={
-                        "provider": get_provider_name(provider),
+                    provider=get_provider_name(provider),
+                    defaults={
                         "value": NotificationSettingsOptionEnum.NEVER.value,
                     },
                 )

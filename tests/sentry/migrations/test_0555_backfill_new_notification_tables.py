@@ -18,7 +18,9 @@ class BackfillNewNotificationTables(TestMigrations):
     migrate_to = "0555_backfill_new_notification_tables"
 
     def setup_initial_state(self):
-        print("setup_initial_state")
+        self.user2 = self.create_user()
+        self.project2 = self.create_project()
+        self.organization2 = self.create_organization()
         NotificationSetting.objects.update_settings_bulk(
             [
                 (
@@ -49,20 +51,75 @@ class BackfillNewNotificationTables(TestMigrations):
                     self.user.id,
                     NotificationSettingOptionValues.ALWAYS,
                 ),
+                # user 1 project overrides
+                (
+                    ExternalProviders.SLACK,
+                    NotificationSettingTypes.WORKFLOW,
+                    NotificationScopeType.PROJECT,
+                    self.project.id,
+                    NotificationSettingOptionValues.ALWAYS,
+                ),
+                (
+                    ExternalProviders.SLACK,
+                    NotificationSettingTypes.WORKFLOW,
+                    NotificationScopeType.PROJECT,
+                    self.project2.id,
+                    NotificationSettingOptionValues.NEVER,
+                ),
+                # user 1 organization overrides
+                (
+                    ExternalProviders.EMAIL,
+                    NotificationSettingTypes.DEPLOY,
+                    NotificationScopeType.ORGANIZATION,
+                    self.organization.id,
+                    NotificationSettingOptionValues.NEVER,
+                ),
+                (
+                    ExternalProviders.SLACK,
+                    NotificationSettingTypes.DEPLOY,
+                    NotificationScopeType.ORGANIZATION,
+                    self.organization.id,
+                    NotificationSettingOptionValues.COMMITTED_ONLY,
+                ),
+                (
+                    ExternalProviders.EMAIL,
+                    NotificationSettingTypes.DEPLOY,
+                    NotificationScopeType.ORGANIZATION,
+                    self.organization2.id,
+                    NotificationSettingOptionValues.NEVER,
+                ),
+                (
+                    ExternalProviders.SLACK,
+                    NotificationSettingTypes.DEPLOY,
+                    NotificationScopeType.ORGANIZATION,
+                    self.organization2.id,
+                    NotificationSettingOptionValues.NEVER,
+                ),
             ],
             user=self.user,
         )
 
-    def test(self):
-        NotificationSettingOption2 = self.apps.get_model("sentry", "NotificationSettingOption")
-        print("all", NotificationSettingOption.objects.all())
-        print("all", NotificationSettingOption2.objects.all())
+        # update user 2 workflow
+        NotificationSetting.objects.update_settings_bulk(
+            [
+                (
+                    ExternalProviders.EMAIL,
+                    NotificationSettingTypes.WORKFLOW,
+                    NotificationScopeType.USER,
+                    self.user2.id,
+                    NotificationSettingOptionValues.NEVER,
+                ),
+            ],
+            user=self.user2,
+        )
 
+    def test(self):
         # validate the feature flag is off double writes
         assert not features.has("organizations:notifications-double-write", self.organization)
         base_user_args = {
-            "scope_type": NotificationScopeType.USER,
+            "scope_type": "user",
             "scope_identifier": self.user.id,
+            "user_id": self.user.id,
         }
         # validate user 1 alert settings
         assert NotificationSettingOption.objects.filter(
@@ -88,14 +145,67 @@ class BackfillNewNotificationTables(TestMigrations):
             type="workflow",
             value="subscribe_only",
         ).exists()
-        assert not NotificationSettingProvider.objects.filter(
+        assert NotificationSettingProvider.objects.filter(
             **base_user_args,
             provider="email",
             type="workflow",
+            value="never",
         ).exists()
         assert NotificationSettingProvider.objects.filter(
             **base_user_args,
             provider="slack",
-            type="wor",
+            type="workflow",
             value="always",
+        ).exists()
+        # validate user 1 project settings
+        base_project_args = {
+            "scope_type": "project",
+            "user_id": self.user.id,
+        }
+        assert NotificationSettingOption.objects.filter(
+            **base_project_args,
+            scope_identifier=self.project.id,
+            type="workflow",
+            value="always",
+        ).exists()
+        assert NotificationSettingOption.objects.filter(
+            **base_project_args,
+            scope_identifier=self.project2.id,
+            type="workflow",
+            value="never",
+        ).exists()
+        # validate user 1 organization settings
+        base_org_args = {
+            "scope_type": "organization",
+            "user_id": self.user.id,
+        }
+        assert NotificationSettingOption.objects.filter(
+            **base_org_args,
+            scope_identifier=self.organization.id,
+            type="deploy",
+            value="committed_only",
+        ).exists()
+        assert NotificationSettingOption.objects.filter(
+            **base_org_args,
+            scope_identifier=self.organization2.id,
+            type="deploy",
+            value="never",
+        ).exists()
+
+        # validate user 2 settings
+        base_user2_args = {
+            "scope_type": "user",
+            "scope_identifier": self.user2.id,
+            "user_id": self.user2.id,
+        }
+        assert NotificationSettingOption.objects.filter(
+            **base_user2_args,
+            type="workflow",
+            value="never",
+        ).exists()
+        assert NotificationSettingProvider.objects.filter(
+            **base_user2_args,
+            type="workflow",
+            provider="email",
+            value="never",
         ).exists()
