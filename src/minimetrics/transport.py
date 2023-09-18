@@ -126,5 +126,5 @@ class MetricEnvelopeTransport:
                 items=[metric_item],
             )
 
-            if options.get("delightful_metrics.enable_envelope_forwarding"):
+            if options.get("delightful_metrics.enable_capture_envelope"):
                 transport.capture_envelope(envelope)
