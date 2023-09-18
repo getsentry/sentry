@@ -65,6 +65,7 @@ class OrganizationSpansAggregationTest(APITestCase, SnubaTestCase):
                             ["B2", 0, "root_2", "B", "B", "connect", 158, 10, 30.0],
                             ["C2", 0, "root_2", "C", "C", "resolve_conditions", 448, 0, 40.0],
                             ["D2", 0, "C2", "D", "D", "resolve_orderby", 429, 0, 10.0],
+                            ["D2-duplicate", 0, "C2", "D", "D", "resolve_orderby", 430, 0, 20.0],
                         ],
                     },
                 ]
@@ -91,3 +92,9 @@ class OrganizationSpansAggregationTest(APITestCase, SnubaTestCase):
             fingerprint = hashlib.md5(b"A-C-D").hexdigest()[:16]
             assert data[fingerprint]["description"] == "resolve_orderby"
             assert data[fingerprint]["avg(exclusive_time)"] == 15.0
+            assert data[fingerprint]["count()"] == 2
+
+            fingerprint = hashlib.md5(b"A-C-D2").hexdigest()[:16]
+            assert data[fingerprint]["description"] == "resolve_orderby"
+            assert data[fingerprint]["avg(exclusive_time)"] == 20.0
+            assert data[fingerprint]["count()"] == 1
