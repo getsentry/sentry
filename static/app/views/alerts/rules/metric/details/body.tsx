@@ -77,16 +77,19 @@ export default function MetricDetailsBody({
     return getInterval({start: timePeriod.start, end: timePeriod.end}, 'high');
   }
 
-  function getFilter() {
-    const {dataset, query} = rule ?? {};
+  function getFilter(): string[] | null {
     if (!rule) {
       return null;
     }
 
-    const eventType = isCrashFreeAlert(dataset)
-      ? null
-      : extractEventTypeFilterFromRule(rule);
-    return [eventType, query].join(' ').split(' ');
+    const {dataset, query} = rule;
+
+    if (isCrashFreeAlert(dataset)) {
+      return query.trim().split(' ');
+    }
+
+    const eventType = extractEventTypeFilterFromRule(rule);
+    return (query ? `(${eventType}) AND (${query.trim()})` : eventType).split(' ');
   }
 
   const handleTimePeriodChange = (datetime: ChangeData) => {
@@ -130,7 +133,10 @@ export default function MetricDetailsBody({
 
   const {dataset, aggregate, query} = rule;
 
-  const queryWithTypeFilter = `${query} ${extractEventTypeFilterFromRule(rule)}`.trim();
+  const eventType = extractEventTypeFilterFromRule(rule);
+  const queryWithTypeFilter = (
+    query ? `(${query}) AND (${eventType})` : eventType
+  ).trim();
   const relativeOptions = {
     ...SELECTOR_RELATIVE_PERIODS,
     ...(rule.timeWindow > 1 ? {[TimePeriod.FOURTEEN_DAYS]: t('Last 14 days')} : {}),
@@ -204,9 +210,10 @@ export default function MetricDetailsBody({
                   timePeriod={timePeriod}
                   query={
                     dataset === Dataset.ERRORS
-                      ? queryWithTypeFilter
+                      ? // Not using (query) AND (event.type:x) because issues doesn't support it yet
+                        `${extractEventTypeFilterFromRule(rule)} ${query}`.trim()
                       : isCrashFreeAlert(dataset)
-                      ? `${query} error.unhandled:true`
+                      ? `${query} error.unhandled:true`.trim()
                       : undefined
                   }
                 />
