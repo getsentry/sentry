@@ -2,7 +2,19 @@ from __future__ import annotations
 
 import contextlib
 import logging
-from typing import TYPE_CHECKING, Any, Collection, List, Mapping, Optional, Tuple, Type, TypeVar
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Collection,
+    Generic,
+    Iterable,
+    List,
+    Mapping,
+    Optional,
+    Tuple,
+    Type,
+    TypeVar,
+)
 
 from django.db import router, transaction
 from django.dispatch import receiver
@@ -70,8 +82,14 @@ class RegionOutboxProducingModel(Model):
 _RM = TypeVar("_RM", bound=RegionOutboxProducingModel)
 
 
-class RegionOutboxProducingManager(BaseManager):
-    pass
+class RegionOutboxProducingManager(Generic[_RM], BaseManager[_RM]):
+    def bulk_create(
+        self, objs: Iterable[_RM], batch_size: int | None = None, ignore_conflicts=False
+    ) -> Collection[_RM]:
+        pass
+
+    def delete(self) -> Tuple[int, Mapping[str, int]]:
+        pass
 
 
 class ReplicatedRegionModel(RegionOutboxProducingModel):
