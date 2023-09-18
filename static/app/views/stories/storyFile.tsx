@@ -2,6 +2,7 @@ import {ComponentProps} from 'react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from 'sentry/components/button';
+import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import TextOverflow from 'sentry/components/textOverflow';
 import {IconGithub} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -23,10 +24,13 @@ export default function StoryFile({filename, resolved, style}: Props) {
   return (
     <FlexColumn style={style}>
       <FlexRow style={{justifyContent: 'space-between'}}>
-        <Header>
-          <TextOverflow>{filename}</TextOverflow>
-        </Header>
-        <FlexRow style={{gap: space(1)}}>
+        <FlexRow style={{alignItems: 'center', gap: space(1)}}>
+          <Header>
+            <TextOverflow>{filename}</TextOverflow>
+          </Header>
+          <CopyToClipboardButton size="xs" iconSize="xs" text={filename} />
+        </FlexRow>
+        <FlexRow style={{alignItems: 'center', gap: space(1)}}>
           <LinkButton
             href={githubViewUrl}
             external
@@ -78,5 +82,8 @@ const StoryArea = styled('div')`
 `;
 
 const Header = styled('h2')`
+  font-family: ${p => p.theme.text.familyMono};
+  font-size: ${p => p.theme.fontSizeMedium};
+  font-weight: 400;
   margin: 0;
 `;
