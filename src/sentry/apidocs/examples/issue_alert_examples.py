@@ -17,44 +17,84 @@ class IssueAlertExamples:
             value=[
                 {
                     "id": "3",
-                    "name": "Severe issues",
+                    "name": "High Number of Issues with Production",
                     "conditions": [
                         {
-                            "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
-                            "name": "A new issue is created",
+                            "interval": "1h",
+                            "id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
+                            "value": 1000,
+                            "comparisonType": "count",
+                            "name": "The issue is seen more than 1000 times in 1h",
                         }
                     ],
                     "filters": [
                         {
-                            "match": "gte",
-                            "id": "sentry.rules.filters.issue_severity.IssueSeverityFilter",
-                            "value": "0.05",
-                            "name": "The issue's severity is greater than or equal to 0.05",
-                        }
+                            "value": "1",
+                            "id": "sentry.rules.filters.issue_category.IssueCategoryFilter",
+                            "name": "The issue's category is equal to 1",
+                        },
+                        {
+                            "value": "2",
+                            "id": "sentry.rules.filters.issue_category.IssueCategoryFilter",
+                            "name": "The issue's category is equal to 2",
+                        },
                     ],
-                    "filterMatch": "all",
+                    "filterMatch": "any",
                     "actions": [
                         {
-                            "workspace": "1",
-                            "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
-                            "channel": "sentry-alerts",
-                            "channel_id": "XO23H3M4",
-                            "name": "Send a notification to the Plays with Squirrels Slack workspace to sentry-alerts (optionally, an ID: XO23H3M4) and show tags [] in notification",
+                            "targetType": "Team",
+                            "fallthroughType": "ActiveMembers",
+                            "id": "sentry.mail.actions.NotifyEmailAction",
+                            "targetIdentifier": 4367234414355,
+                            "name": "Send a notification to Team and if none can be found then send a notification to ActiveMembers",
                         }
                     ],
                     "actionMatch": "any",
-                    "createdBy": {"id": 2, "name": "John Doe", "email": "johndoe@email.com"},
-                    "dateCreated": "2023-09-08T20:00:07.244602Z",
+                    "createdBy": {"id": 2435786, "name": "Kitty White", "email": "meow@test.io"},
+                    "dateCreated": "2023-01-15T06:45:34.353346Z",
                     "environment": "prod",
-                    "frequency": 300,
-                    "owner": "team:24601",
-                    "projects": ["squirrels"],
-                    "lastTriggered": "2023-09-09T21:00:13.244602Z",
+                    "frequency": 60,
+                    "owner": "team:63562",
+                    "projects": ["melody"],
+                    "lastTriggered": "2023-07-15T00:00:00.351236Z",
                     "snooze": False,
                     "snoozeCreatedBy": None,
                     "snoozeForEveryone": None,
                     "status": "active",
-                }
+                },
+                {
+                    "id": "6",
+                    "name": "Escalating from Archived",
+                    "conditions": [
+                        {
+                            "id": "sentry.rules.conditions.reappeared_event.ReappearedEventCondition",
+                            "name": "The issue changes state from ignored to unresolved",
+                        }
+                    ],
+                    "filters": [],
+                    "filterMatch": "all",
+                    "actions": [
+                        {
+                            "targetType": "IssueOwners",
+                            "fallthroughType": "AllMembers",
+                            "id": "sentry.mail.actions.NotifyEmailAction",
+                            "targetIdentifier": "",
+                            "name": "Send a notification to IssueOwners and if none can be found then send a notification to AllMembers",
+                        }
+                    ],
+                    "actionMatch": "any",
+                    "createdBy": {"id": 2435, "name": "John Doe", "email": "johndoe@email.com"},
+                    "dateCreated": "2022-09-18T23:27:02.253030Z",
+                    "environment": None,
+                    "frequency": 180,
+                    "owner": "team:63457",
+                    "projects": ["squirrels"],
+                    "lastTriggered": "2023-07-15T00:00:00.351236Z",
+                    "snooze": False,
+                    "snoozeCreatedBy": None,
+                    "snoozeForEveryone": None,
+                    "status": "active",
+                },
             ],
             status_codes=["200"],
             response_only=True,
@@ -65,8 +105,8 @@ class IssueAlertExamples:
         OpenApiExample(
             "Issue alert successfully created",
             value={
-                "id": "5",
-                "name": "Severe issues",
+                "id": "1",
+                "name": "Owner Alert",
                 "conditions": [
                     {
                         "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
@@ -75,29 +115,29 @@ class IssueAlertExamples:
                 ],
                 "filters": [
                     {
-                        "match": "gte",
-                        "id": "sentry.rules.filters.issue_severity.IssueSeverityFilter",
-                        "value": "0.05",
-                        "name": "The issue's severity is greater than or equal to 0.05",
+                        "targetType": "Unassigned",
+                        "id": "sentry.rules.filters.assigned_to.AssignedToFilter",
+                        "targetIdentifier": "",
+                        "name": "The issue is assigned to Unassigned",
                     }
                 ],
                 "filterMatch": "all",
                 "actions": [
                     {
-                        "workspace": "1",
-                        "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
-                        "channel": "sentry-alerts",
-                        "channel_id": "XO23H3M4",
-                        "name": "Send a notification to the Plays with Squirrels Slack workspace to sentry-alerts (optionally, an ID: XO23H3M4) and show tags [] in notification",
+                        "targetType": "Member",
+                        "fallthroughType": "ActiveMembers",
+                        "id": "sentry.mail.actions.NotifyEmailAction",
+                        "targetIdentifier": 1523125,
+                        "name": "Send a notification to Member and if none can be found then send a notification to ActiveMembers",
                     }
                 ],
                 "actionMatch": "any",
-                "createdBy": {"id": 2, "name": "John Doe", "email": "johndoe@email.com"},
+                "createdBy": {"id": 24601, "name": "Jean Valjean", "email": "jean@test.io"},
                 "dateCreated": "2023-09-08T20:00:07.244602Z",
-                "environment": "prod",
-                "frequency": 300,
-                "owner": "team:24601",
-                "projects": ["squirrels"],
+                "environment": None,
+                "frequency": 1440,
+                "owner": "team:74234",
+                "projects": ["python"],
                 "lastTriggered": None,
                 "snooze": False,
                 "snoozeCreatedBy": None,
