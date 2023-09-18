@@ -562,6 +562,7 @@ def post_process_group(
         sentry_sdk.set_tag("is_reprocessed", is_reprocessed)
 
         is_transaction_event = event.get_event_type() == "transaction"
+        is_error_event = event.get_event_type() == "error"
 
         # Simplified post processing for transaction events.
         # This should eventually be completely removed and transactions
@@ -592,7 +593,10 @@ def post_process_group(
         update_event_groups(event, group_states)
         bind_organization_context(event.project.organization)
         _capture_event_stats(event)
-        if features.has("organizations:escalating-metrics-backend", event.project.organization):
+        if (
+            features.has("organizations:escalating-metrics-backend", event.project.organization)
+            and is_error_event
+        ):
             _update_escalating_metrics(event)
 
         group_events: Mapping[int, GroupEvent] = {
