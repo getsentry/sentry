@@ -135,7 +135,7 @@ export default function MetricDetailsBody({
 
   const eventType = extractEventTypeFilterFromRule(rule);
   const queryWithTypeFilter = (
-    query ? `(${query}) AND (${eventType}})` : eventType
+    query ? `(${query}) AND (${eventType})` : eventType
   ).trim();
   const relativeOptions = {
     ...SELECTOR_RELATIVE_PERIODS,
