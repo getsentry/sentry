@@ -597,8 +597,8 @@ def check_monitor_environment_limits(sender, instance, **kwargs):
 class MonitorIncident(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
-    monitor = FlexibleForeignKey("sentry.Monitor", related_name="incidents")
-    monitor_environment = FlexibleForeignKey("sentry.MonitorEnvironment", related_name="incidents")
+    monitor = FlexibleForeignKey("sentry.Monitor")
+    monitor_environment = FlexibleForeignKey("sentry.MonitorEnvironment")
     starting_checkin = FlexibleForeignKey(
         "sentry.MonitorCheckIn", null=True, related_name="created_incidents"
     )
