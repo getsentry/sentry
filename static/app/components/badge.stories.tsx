@@ -3,7 +3,7 @@ import SideBySide from 'sentry/components/stories/sideBySide';
 import storyBook from 'sentry/stories/storyBook';
 
 export default storyBook('Badge', story => {
-  story(() => (
+  story('Default', () => (
     <SideBySide>
       <Badge text="Text Prop" />
       <Badge>
