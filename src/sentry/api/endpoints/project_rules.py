@@ -86,7 +86,7 @@ def find_duplicate_rule(rule_data, project, rule_id=None):
 class ProjectRulesEndpoint(ProjectEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
-        "POST": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.PUBLIC,
     }
     owner = ApiOwner.ISSUES
     permission_classes = (ProjectAlertRulePermission,)
@@ -107,6 +107,9 @@ class ProjectRulesEndpoint(ProjectEndpoint):
     def get(self, request: Request, project) -> Response:
         """
         Retrieve a list of rules for a given project.
+
+            {method} {path}
+
         """
         queryset = Rule.objects.filter(
             project=project,
@@ -120,19 +123,18 @@ class ProjectRulesEndpoint(ProjectEndpoint):
             on_results=lambda x: serialize(x, request.user),
         )
 
-    # @extend_schema(
-    #     operation_id="Create an Issue Alert Rule for a Project",
-    #     parameters=[GlobalParams.ORG_SLUG, GlobalParams.PROJECT_SLUG],
-    #     responses={
-    #         200: inline_sentry_response_serializer(
-    #             "ProjectRulesResponseDict", ProjectRulesResponse
-    #         ),  # TODO: replaceß
-    #         401: RESPONSE_UNAUTHORIZED,
-    #         403: RESPONSE_FORBIDDEN,
-    #         404: RESPONSE_NOT_FOUND,
-    #     },
-    #     # TODO: example
-    # )
+    @extend_schema(
+        operation_id="Create an Issue Alert Rule for a Project",
+        parameters=[GlobalParams.ORG_SLUG, GlobalParams.PROJECT_SLUG],
+        request=None,
+        responses={
+            201: RuleSerializer,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+        examples=IssueAlertExamples.CREATE_ISSUE_ALERT_RULE,
+    )
     @transaction_start("ProjectRulesEndpoint")
     def post(self, request: Request, project) -> Response:
         """
