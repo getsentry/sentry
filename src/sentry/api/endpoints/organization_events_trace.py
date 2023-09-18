@@ -891,7 +891,6 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                 spans: NodeSpans = []
                 if allow_load_more:
                     previous_event_id = previous_event.event["id"]
-                    spans: NodeSpans = []
                     if previous_event_id in event_id_to_nodestore_event:
                         previous_event.fetched_nodestore = True
                         nodestore_event = event_id_to_nodestore_event[previous_event_id]
