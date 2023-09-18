@@ -1,5 +1,6 @@
 import logging
 from collections import defaultdict, deque
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import (
     Any,
     Callable,
@@ -581,6 +582,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
                 event_id,
                 detailed,
                 tracing_without_performance_enabled,
+                trace_view_load_more_enabled,
             )
         )
 
@@ -656,6 +658,7 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
         event_id: Optional[str],
         detailed: bool = False,
         allow_orphan_errors: bool = False,
+        allow_load_more: bool = False,
     ) -> Sequence[LightResponse]:
         """Because the light endpoint could potentially have gaps between root and event we return a flattened list"""
         if event_id is None:
@@ -793,6 +796,26 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                 child.generation = parent.generation + 1 if parent.generation is not None else None
                 parents.append(child)
 
+    # Concurrently fetches nodestore data to construct and return a dict mapping eventid of a txn
+    # to the associated nodestore event.
+    @staticmethod
+    def nodestore_event_map(events: Sequence[SnubaTransaction]) -> Dict[str, Optional[Event]]:
+        map = {}
+        with ThreadPoolExecutor(max_workers=20) as executor:
+            future_to_event = {
+                executor.submit(
+                    eventstore.backend.get_event_by_id, event["project.id"], event["id"]
+                ): event
+                for event in events
+            }
+
+            for future in as_completed(future_to_event):
+                event_id = future_to_event[future]["id"]
+                nodestore_event = future.result()
+                map[event_id] = nodestore_event
+
+        return map
+
     def serialize(
         self,
         limit: int,
@@ -803,12 +826,16 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
         event_id: Optional[str],
         detailed: bool = False,
         allow_orphan_errors: bool = False,
+        allow_load_more: bool = False,
     ) -> Sequence[FullResponse]:
         """For the full event trace, we return the results as a graph instead of a flattened list
 
         if event_id is passed, we prune any potential branches of the trace to make as few nodestore calls as
         possible
         """
+        event_id_to_nodestore_event = (
+            self.nodestore_event_map(transactions) if allow_load_more else {}
+        )
         parent_map = self.construct_parent_map(transactions)
         error_map = self.construct_error_map(errors)
         parent_events: Dict[str, TraceEvent] = {}
@@ -830,6 +857,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
         iteration = 0
         with sentry_sdk.start_span(op="building.trace", description="full trace"):
             has_orphans = False
+
             while parent_map or to_check:
                 if len(to_check) == 0:
                     has_orphans = True
@@ -862,11 +890,17 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                             del parent_map[to_remove["trace.parent_span"]]
                     to_check = deque()
 
-                spans: NodeSpans = (
-                    previous_event.nodestore_event.data.get("spans", [])
-                    if previous_event.nodestore_event
-                    else []
-                )
+                spans: NodeSpans = []
+                if allow_load_more:
+                    previous_event_id = previous_event.event["id"]
+                    if previous_event_id in event_id_to_nodestore_event:
+                        previous_event.fetched_nodestore = True
+                        nodestore_event = event_id_to_nodestore_event[previous_event_id]
+                        previous_event._nodestore_event = nodestore_event
+                        spans = nodestore_event.data.get("spans", [])
+                else:
+                    if previous_event.nodestore_event:
+                        spans = previous_event.nodestore_event.data.get("spans", [])
 
                 # Need to include the transaction as a span as well
                 #
