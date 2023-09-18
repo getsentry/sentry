@@ -419,7 +419,7 @@ def _process_checkin(
         return
 
     # 02
-    # Retrieve monitor environment for this check-in
+    # Retrieve or upsert monitor environment for this check-in
     try:
         monitor_environment = MonitorEnvironment.objects.ensure_environment(
             project, monitor, environment
