@@ -248,7 +248,7 @@ class BaseApiClient(TrackResponseMixin):
                     finalized_request = self.finalize_request(_prepared_request)
                     environment_settings = session.merge_environment_settings(
                         url=finalized_request.url,
-                        proxies=None,
+                        proxies={},
                         stream=None,
                         verify=self.verify_ssl,
                         cert=None,
