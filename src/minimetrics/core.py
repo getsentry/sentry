@@ -201,6 +201,7 @@ class Aggregator:
                 flushable_buckets = self.buckets.items()
                 self.buckets = {}
                 self._buckets_total_weight = 0
+                self._force_flush = False
             else:
                 for buckets_timestamp, buckets in self.buckets.items():
                     # If the timestamp of the bucket is newer that the rollup we want to skip it.
@@ -213,7 +214,7 @@ class Aggregator:
                 for buckets_timestamp, buckets in flushable_buckets:
                     for bucket_key, metric in buckets:
                         weight_to_remove += metric.weight
-                    self.buckets.pop(buckets_timestamp)
+                    del self.buckets[buckets_timestamp]
 
                 self._buckets_total_weight -= weight_to_remove
 
