@@ -209,5 +209,6 @@
   "sentry.IncidentSnapshot",
   "sentry.IncidentActivity",
   "sentry.IncidentSubscription",
-  "sentry.IncidentTrigger"
+  "sentry.IncidentTrigger",
+  "sentry.MonitorIncident"
 ]
