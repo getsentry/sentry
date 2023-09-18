@@ -248,7 +248,7 @@ class BaseApiClient(TrackResponseMixin):
                     finalized_request = self.finalize_request(_prepared_request)
                     environment_settings = session.merge_environment_settings(
                         url=finalized_request.url,
-                        proxies=None,
+                        proxies={},
                         stream=None,
                         verify=self.verify_ssl,
                         cert=None,
@@ -452,10 +452,7 @@ class BaseApiClient(TrackResponseMixin):
 
         if (
             (rpc_integration.provider == "slack" and buffer.is_integration_fatal_broken())
-            or (
-                features.has("organizations:github-disable-on-broken", org)
-                and rpc_integration.provider == "github"
-            )
+            or (rpc_integration.provider == "github")
             or (
                 features.has("organizations:gitlab-disable-on-broken", org)
                 and rpc_integration.provider == "gitlab"

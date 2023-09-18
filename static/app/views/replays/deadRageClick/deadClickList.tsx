@@ -1,45 +1,57 @@
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
+import Alert from 'sentry/components/alert';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
-import FeedbackTable from 'sentry/components/feedback/table/feedbackTable';
-import useFeedbackListQueryParams from 'sentry/components/feedback/useFeedbackListQueryParams';
-import useFetchFeedbackList from 'sentry/components/feedback/useFetchFeedbackList';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import Pagination from 'sentry/components/pagination';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
+import {hydratedSelectorData} from 'sentry/components/replays/utils';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {FeedbackListQueryParams} from 'sentry/utils/feedback/types';
+import useDeadRageSelectors from 'sentry/utils/replays/hooks/useDeadRageSelectors';
 import useOrganization from 'sentry/utils/useOrganization';
+import SelectorTable from 'sentry/views/replays/deadRageClick/selectorTable';
+import {DeadRageSelectorQueryParams} from 'sentry/views/replays/types';
 
-interface Props extends RouteComponentProps<{}, {}, FeedbackListQueryParams> {}
+interface Props extends RouteComponentProps<{}, {}, DeadRageSelectorQueryParams> {}
 
-export default function FeedbackListPage({location}: Props) {
+export default function DeadClickList({location}: Props) {
   const organization = useOrganization();
+  const hasDeadClickFeature = organization.features.includes(
+    'session-replay-rage-dead-selectors'
+  );
 
-  const query = useFeedbackListQueryParams({
-    location,
-    queryReferrer: 'feedback_list_page',
+  const {isLoading, isError, data, pageLinks} = useDeadRageSelectors({
+    per_page: 50,
+    sort: '-count_dead_clicks',
   });
-  const {isLoading, isError, data, pageLinks} = useFetchFeedbackList({query}, {});
+
+  if (!hasDeadClickFeature) {
+    return (
+      <Layout.Page withPadding>
+        <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+      </Layout.Page>
+    );
+  }
 
   return (
-    <SentryDocumentTitle title={t(`Feedback v2`)} orgSlug={organization.slug}>
+    <SentryDocumentTitle
+      title={t('Top Selectors with Dead Clicks')}
+      orgSlug={organization.slug}
+    >
       <Layout.Header>
         <Layout.HeaderContent>
           <Layout.Title>
-            {t('Feedback v2')}
+            {t('Top Selectors with Dead Clicks')}
             <PageHeadingQuestionTooltip
-              title={t(
-                'Feedback submitted by users who experienced an error while using your application, including their name, email address, and any additional comments.'
-              )}
-              docsUrl="https://docs.sentry.io/product/user-feedback/"
+              title={t('See the top selectors your users have dead clicked on.')}
+              docsUrl="https://docs.sentry.io/product/session-replay/replay-page-and-filters/"
             />
           </Layout.Title>
         </Layout.HeaderContent>
@@ -53,11 +65,12 @@ export default function FeedbackListPage({location}: Props) {
                 <EnvironmentPageFilter resetParamsOnChange={['cursor']} />
                 <DatePageFilter alignDropdown="left" resetParamsOnChange={['cursor']} />
               </PageFilterBar>
-              <FeedbackTable
-                data={data ?? []}
+              <SelectorTable
+                data={hydratedSelectorData(data, 'count_dead_clicks')}
                 isError={isError}
                 isLoading={isLoading}
                 location={location}
+                clickCountColumn={{key: 'count_dead_clicks', name: 'dead clicks'}}
               />
             </LayoutGap>
             <PaginationNoMargin

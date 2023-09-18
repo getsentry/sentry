@@ -1364,11 +1364,11 @@ function buildRoutes() {
       <IndexRoute component={make(() => import('sentry/views/replays/list'))} />
       <Route
         path="dead-clicks/"
-        component={make(() => import('sentry/views/replays/deadClickList'))}
+        component={make(() => import('sentry/views/replays/deadRageClick/deadClickList'))}
       />
       <Route
         path="rage-clicks/"
-        component={make(() => import('sentry/views/replays/rageClickList'))}
+        component={make(() => import('sentry/views/replays/deadRageClick/rageClickList'))}
       />
       <Route
         path=":replaySlug/"
@@ -1803,8 +1803,8 @@ function buildRoutes() {
         component={make(() => import('sentry/views/feedback/feedbackListPage'))}
       />
       <Route
-        path=":feedbackId/"
-        component={make(() => import('sentry/views/feedback/details'))}
+        path=":feedbackSlug/"
+        component={make(() => import('sentry/views/feedback/feedbackDetailsPage'))}
       />
     </Fragment>
   );
@@ -2124,6 +2124,33 @@ function buildRoutes() {
     </Fragment>
   );
 
+  const ddmChildRoutes = (
+    <Fragment>
+      <IndexRoute component={make(() => import('sentry/views/ddm/ddm'))} />
+    </Fragment>
+  );
+
+  const ddmRoutes = (
+    <Fragment>
+      {usingCustomerDomain && (
+        <Route
+          path="/ddm/"
+          component={withDomainRequired(make(() => import('sentry/views/ddm')))}
+          key="orgless-ddm-route"
+        >
+          {ddmChildRoutes}
+        </Route>
+      )}
+      <Route
+        path="/organizations/:orgId/ddm/"
+        component={withDomainRedirect(make(() => import('sentry/views/ddm')))}
+        key="org-ddm"
+      >
+        {ddmChildRoutes}
+      </Route>
+    </Fragment>
+  );
+
   // Support for deprecated URLs (pre-Sentry 10). We just redirect users to new
   // canonical URLs.
   //
@@ -2231,6 +2258,7 @@ function buildRoutes() {
       {performanceRoutes}
       {starfishRoutes}
       {profilingRoutes}
+      {ddmRoutes}
       {gettingStartedRoutes}
       {adminManageRoutes}
       {legacyOrganizationRootRoutes}
