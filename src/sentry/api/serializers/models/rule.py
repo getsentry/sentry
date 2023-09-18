@@ -15,6 +15,7 @@ from sentry.models import (
     actor_type_to_string,
 )
 from sentry.models.actor import Actor
+from sentry.models.rule import NeglectedRule
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.services.hybrid_cloud.user.service import user_service
@@ -194,5 +195,14 @@ class RuleSerializer(Serializer):
             d["snoozeForEveryone"] = snooze.user_id is None
         else:
             d["snooze"] = False
+
+        try:
+            neglected_rule = NeglectedRule.objects.get(
+                rule=obj, organization=obj.project.organization_id, opted_out=False
+            )
+            d["disableReason"] = "noisy"
+            d["disableDate"] = neglected_rule.disable_date
+        except (NeglectedRule.DoesNotExist, NeglectedRule.MultipleObjectsReturned):
+            pass
 
         return d
