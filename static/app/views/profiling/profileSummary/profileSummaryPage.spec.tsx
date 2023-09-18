@@ -36,7 +36,23 @@ describe('ProfileSummaryPage', () => {
     expect(await screen.findByTestId(/profile-summary-legacy/i)).toBeInTheDocument();
   });
 
-  it('renders new page', () => {
+  it('renders new page', async () => {
+    const organization = TestStubs.Organization({
+      features: [],
+      projects: [TestStubs.Project()],
+    });
+    OrganizationStore.onUpdate(organization);
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/profiling/filters/`,
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-stats/`,
+      body: [],
+    });
+
     render(
       <ProfileSummaryPage
         params={{}}
@@ -51,6 +67,6 @@ describe('ProfileSummaryPage', () => {
       }
     );
 
-    expect(screen.getByTestId(/profile-summary-redesign/i)).toBeInTheDocument();
+    expect(await screen.findByTestId(/profile-summary-redesign/i)).toBeInTheDocument();
   });
 });
