@@ -79,21 +79,25 @@ function MonitorCheckIns({monitor, monitorEnvs, orgSlug}: Props) {
 
   const emptyCell = <Text>{'\u2014'}</Text>;
 
+  // XXX(epurkhiser): Attachmnets are still experimental and may not exist in
+  // the future. For now hide these if they're not being used.
+  const hasAttachments = checkInList?.some(checkin => checkin.attachmentId !== null);
+
+  const headers = [
+    t('Status'),
+    t('Started'),
+    t('Duration'),
+    t('Issues'),
+    ...(hasAttachments ? [t('Attachment')] : []),
+    t('Timestamp'),
+  ];
+
   return (
     <Fragment>
       <SectionHeading>{t('Recent Check-Ins')}</SectionHeading>
-      <PanelTable
-        headers={[
-          t('Status'),
-          t('Started'),
-          t('Duration'),
-          t('Issues'),
-          t('Attachment'),
-          t('Timestamp'),
-        ]}
-      >
+      <PanelTable headers={headers}>
         {isLoading
-          ? [...new Array(6)].map((_, i) => (
+          ? [...new Array(headers.length)].map((_, i) => (
               <RowPlaceholder key={i}>
                 <Placeholder height="2rem" />
               </RowPlaceholder>
@@ -167,7 +171,7 @@ function MonitorCheckIns({monitor, monitorEnvs, orgSlug}: Props) {
                 ) : (
                   emptyCell
                 )}
-                {checkIn.attachmentId ? (
+                {!hasAttachments ? null : checkIn.attachmentId ? (
                   <Button
                     size="xs"
                     icon={<IconDownload size="xs" />}
