@@ -67,7 +67,6 @@ runs:
 
         ### node configuration ###
         echo "NODE_ENV=development" >> $GITHUB_ENV
-        echo "NODE_OPTIONS=--max-old-space-size=4096" >> $GITHUB_ENV
 
         ### pytest configuration ###
         echo "PY_COLORS=1" >> "$GITHUB_ENV"
