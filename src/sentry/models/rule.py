@@ -140,5 +140,5 @@ class NeglectedRule(Model):
     organization = FlexibleForeignKey("sentry.Organization")
     disable_date = models.DateTimeField()
     opted_out = models.BooleanField(default=False)
-    sent_initial_email_date = models.DateTimeField()
-    sent_final_email_date = models.DateTimeField()
+    sent_initial_email_date = models.DateTimeField(null=True)
+    sent_final_email_date = models.DateTimeField(null=True)
