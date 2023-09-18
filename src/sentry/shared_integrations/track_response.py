@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from typing import Mapping
 
 from django.utils.functional import cached_property
 from rest_framework.response import Response
@@ -41,6 +42,7 @@ class TrackResponseMixin:
         span: Span | None = None,
         error: Exception | None = None,
         resp: Response | None = None,
+        extra: Mapping[str, str] | None = None,
     ) -> None:
         # if no span was passed, create a dummy to which to add data to avoid having to wrap every
         # span call in `if span`
@@ -58,6 +60,7 @@ class TrackResponseMixin:
             span.set_status(str(code))
 
         extra = {
+            **(extra or {}),
             "status_string": str(code),
             "error": str(error)[:256] if error else None,
         }

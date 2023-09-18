@@ -278,18 +278,20 @@ class BaseApiClient(TrackResponseMixin):
                 self.record_error(e)
                 raise ApiTimeoutError.from_exception(e) from e
             except HTTPError as e:
+                extra = {"url": full_url}
+                # It shouldn't be possible for integration_type to be null.
+                if self.integration_type:
+                    extra[self.integration_type] = self.name
                 error_resp = e.response
+
                 if error_resp is None:
                     self.track_response_data("unknown", span, e)
 
-                    # It shouldn't be possible for integration_type to be null.
-                    extra = {"url": full_url}
-                    if self.integration_type:
-                        extra[self.integration_type] = self.name
                     self.logger.exception("request.error", extra=extra)
                     self.record_error(e)
                     raise ApiError("Internal Error", url=full_url) from e
-                self.track_response_data(error_resp.status_code, span, e)
+
+                self.track_response_data(error_resp.status_code, span, e, extra=extra)
                 self.record_error(e)
                 raise ApiError.from_response(error_resp, url=full_url) from e
 
