@@ -70,11 +70,9 @@ export default function ListContent() {
     <Fragment>
       <FiltersContainer>
         <ReplaysFilters />
-      </FiltersContainer>
-      <ReplaysErroneousDeadRageCards />
-      <FiltersContainer>
         <ReplaysSearch />
       </FiltersContainer>
+      <ReplaysErroneousDeadRageCards />
       <ReplaysList />
     </Fragment>
   );
