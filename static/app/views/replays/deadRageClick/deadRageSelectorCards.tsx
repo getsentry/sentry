@@ -4,30 +4,46 @@ import {Location} from 'history';
 
 import {LinkButton} from 'sentry/components/button';
 import {hydratedSelectorData} from 'sentry/components/replays/utils';
+import {IconShow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useDeadRageSelectors from 'sentry/utils/replays/hooks/useDeadRageSelectors';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import SelectorTable, {UrlState} from 'sentry/views/replays/deadRageClick/selectorTable';
-import {DeadRageSelectorQueryParams} from 'sentry/views/replays/types';
+import SelectorTable from 'sentry/views/replays/deadRageClick/selectorTable';
 
 function DeadRageSelectorCards() {
-  const location = useLocation<DeadRageSelectorQueryParams & UrlState>();
+  const location = useLocation();
+  const {project, environment, start, statsPeriod, utc, end} = location.query;
+  const widgetLocation: Location<any> = {
+    pathname: '',
+    search: '',
+    hash: '',
+    state: '',
+    action: 'PUSH' as const,
+    key: '',
+    query: {
+      project,
+      environment,
+      start,
+      statsPeriod,
+      utc,
+      end,
+      cursor: undefined,
+      sort: undefined,
+    },
+  };
+
   return (
     <SplitCardContainer>
-      <DeadClickTable location={location} />
-      <RageClickTable location={location} />
+      <DeadClickTable location={widgetLocation} />
+      <RageClickTable location={widgetLocation} />
     </SplitCardContainer>
   );
 }
 
-function DeadClickTable({
-  location,
-}: {
-  location: Location<DeadRageSelectorQueryParams & UrlState>;
-}) {
+function DeadClickTable({location}: {location: Location<any>}) {
   const {isLoading, isError, data} = useDeadRageSelectors({
     per_page: 3,
     sort: '-count_dead_clicks',
@@ -49,15 +65,12 @@ function DeadClickTable({
           path="dead-clicks" // temporary; this might point to a tab on the replay index later
         />
       }
+      customHandleResize={() => {}}
     />
   );
 }
 
-function RageClickTable({
-  location,
-}: {
-  location: Location<DeadRageSelectorQueryParams & UrlState>;
-}) {
+function RageClickTable({location}: {location: Location<any>}) {
   const {isLoading, isError, data} = useDeadRageSelectors({
     per_page: 3,
     sort: '-count_rage_clicks',
@@ -79,6 +92,7 @@ function RageClickTable({
           path="rage-clicks" // temporary; this might point to a tab on the replay index later
         />
       }
+      customHandleResize={() => {}}
     />
   );
 }
@@ -97,7 +111,7 @@ function SearchButton({
   const organization = useOrganization();
 
   return (
-    <StyledButton
+    <LinkButton
       {...props}
       size="sm"
       to={{
@@ -105,12 +119,14 @@ function SearchButton({
         query: {
           ...location.query,
           sort,
+          query: undefined,
           cursor: undefined,
         },
       }}
+      icon={<IconShow size="xs" />}
     >
       {label}
-    </StyledButton>
+    </LinkButton>
   );
 }
 
@@ -122,12 +138,6 @@ const SplitCardContainer = styled('div')`
   gap: 0 ${space(2)};
   align-items: stretch;
   padding-top: ${space(1)};
-`;
-
-const StyledButton = styled(LinkButton)`
-  width: 100%;
-  border-radius: ${p => p.theme.borderRadius};
-  padding: ${space(1)};
 `;
 
 export default DeadRageSelectorCards;

@@ -9,10 +9,7 @@ import Link from 'sentry/components/links/link';
 import {Organization} from 'sentry/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import {
-  DeadRageSelectorItem,
-  DeadRageSelectorQueryParams,
-} from 'sentry/views/replays/types';
+import {DeadRageSelectorItem} from 'sentry/views/replays/types';
 
 export interface UrlState {
   widths: string[];
@@ -24,8 +21,9 @@ interface Props {
   data: DeadRageSelectorItem[];
   isError: boolean;
   isLoading: boolean;
-  location: Location<DeadRageSelectorQueryParams & UrlState>;
+  location: Location<any>;
   children?: ReactNode;
+  customHandleResize?: () => void;
   headerButtons?: ReactNode;
   title?: string;
 }
@@ -46,6 +44,7 @@ export default function SelectorTable({
   children,
   title,
   headerButtons,
+  customHandleResize,
 }: Props) {
   const organization = useOrganization();
 
@@ -98,7 +97,7 @@ export default function SelectorTable({
         columnSortBy={[]}
         stickyHeader
         grid={{
-          onResizeColumn: handleResizeColumn,
+          onResizeColumn: customHandleResize ?? handleResizeColumn,
           renderHeadCell,
           renderBodyCell,
         }}
