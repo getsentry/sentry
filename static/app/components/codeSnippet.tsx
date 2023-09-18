@@ -1,4 +1,5 @@
 import {Fragment, useEffect, useRef, useState} from 'react';
+import {Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import Prism from 'prismjs';
 
@@ -35,6 +36,22 @@ interface CodeSnippetProps {
   }[];
 }
 
+const darkColors = {
+  textColor: '#e0dce5',
+  subText: '#80708f',
+  border: '#40364a',
+};
+
+function getLightColors(theme: Theme) {
+  return {
+    textColor: theme.textColor,
+    subText: theme.subText,
+    border: theme.innerBorder,
+  };
+}
+
+type Colors = typeof darkColors | ReturnType<typeof getLightColors>;
+
 export function CodeSnippet({
   children,
   language,
@@ -50,6 +67,7 @@ export function CodeSnippet({
   tabs,
 }: CodeSnippetProps) {
   const ref = useRef<HTMLModElement | null>(null);
+  const theme = useTheme();
 
   useEffect(() => {
     const element = ref.current;
@@ -89,9 +107,11 @@ export function CodeSnippet({
       ? t('Copied')
       : t('Unable to copy');
 
+  const colors = dark ? darkColors : getLightColors(theme);
+
   return (
     <Wrapper className={`${dark ? 'prism-dark ' : ''}${className ?? ''}`}>
-      <Header isSolid={hasSolidHeader}>
+      <Header isSolid={hasSolidHeader} colors={colors}>
         {hasTabs && (
           <Fragment>
             <TabsWrapper>
@@ -101,6 +121,7 @@ export function CodeSnippet({
                   isSelected={selectedTab === value}
                   onClick={() => onTabClick?.(value)}
                   key={value}
+                  colors={colors}
                 >
                   {label}
                 </Tab>
@@ -117,6 +138,7 @@ export function CodeSnippet({
             size="xs"
             translucentBorder
             borderless
+            colors={colors}
             onClick={handleCopy}
             title={tooltipTitle}
             tooltipProps={{delay: 0, isHoverable: false, position: 'left'}}
@@ -153,13 +175,13 @@ const Wrapper = styled('div')`
   }
 `;
 
-const Header = styled('div')<{isSolid: boolean}>`
+const Header = styled('div')<{colors: Colors; isSolid: boolean}>`
   display: flex;
   align-items: center;
 
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.codeFontSize};
-  color: var(--prism-base);
+  color: ${p => p.colors.textColor};
   font-weight: 600;
   z-index: 2;
 
@@ -167,7 +189,7 @@ const Header = styled('div')<{isSolid: boolean}>`
     p.isSolid
       ? `
       margin: 0 ${space(0.5)};
-      border-bottom: solid 1px #80708F;
+      border-bottom: solid 1px ${p.colors.border};
     `
       : `
       justify-content: flex-end;
@@ -193,19 +215,19 @@ const TabsWrapper = styled('div')`
   display: flex;
 `;
 
-const Tab = styled('button')<{isSelected: boolean}>`
+const Tab = styled('button')<{colors: Colors; isSelected: boolean}>`
   box-sizing: border-box;
   display: block;
   margin: 0;
   border: none;
   background: none;
   padding: ${space(1)} ${space(1)};
-  color: #80708f;
+  color: ${p => p.colors.subText};
   ${p =>
     p.isSelected
       ? `border-bottom: 3px solid ${p.theme.purple300};
       padding-bottom: 5px;
-      color: #E0DCE5;`
+      color: ${p.colors.textColor};`
       : ''}
 `;
 
@@ -213,8 +235,8 @@ const FlexSpacer = styled('div')`
   flex-grow: 1;
 `;
 
-const CopyButton = styled(Button)<{isAlwaysVisible: boolean}>`
-  color: #80708f;
+const CopyButton = styled(Button)<{colors: Colors; isAlwaysVisible: boolean}>`
+  color: ${p => p.colors.subText};
   transition: opacity 0.1s ease-out;
   opacity: 0;
 
@@ -223,7 +245,7 @@ const CopyButton = styled(Button)<{isAlwaysVisible: boolean}>`
     opacity: 1;
   }
   &:hover {
-    color: #e0dce5;
+    color: ${p => p.colors.textColor};
   }
   ${p => (p.isAlwaysVisible ? 'opacity: 1;' : '')}
 `;
