@@ -5,6 +5,7 @@ from unittest.mock import patch
 from minimetrics.core import CounterMetric, DistributionMetric, GaugeMetric, SetMetric
 from minimetrics.transport import MetricEnvelopeTransport, RelayStatsdEncoder
 from minimetrics.types import BucketKey
+from sentry.testutils.pytest.fixtures import django_db_all
 
 
 def encode_metric(value):
@@ -198,6 +199,7 @@ def test_relay_encoder_with_multiple_metrics():
 
 
 @patch("minimetrics.transport.sentry_sdk")
+@django_db_all
 def test_send(sentry_sdk):
     flushed_metric = (
         1693994400,
