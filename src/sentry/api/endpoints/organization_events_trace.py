@@ -833,7 +833,9 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
         if event_id is passed, we prune any potential branches of the trace to make as few nodestore calls as
         possible
         """
-        event_id_to_nodestore_event = self.nodestore_event_map(transactions)
+        event_id_to_nodestore_event = (
+            self.nodestore_event_map(transactions) if allow_load_more else {}
+        )
         parent_map = self.construct_parent_map(transactions)
         error_map = self.construct_error_map(errors)
         parent_events: Dict[str, TraceEvent] = {}
