@@ -2,6 +2,7 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import Input from 'sentry/components/input';
+import {Sticky} from 'sentry/components/sticky';
 import {Tooltip} from 'sentry/components/tooltip';
 import * as Icons from 'sentry/icons';
 import {space} from 'sentry/styles/space';
@@ -1207,7 +1208,7 @@ export default function IconsStories() {
 
   return (
     <Fragment>
-      <Sticky>
+      <StickySearch>
         <p>
           In addition to icon name, you can also search by keyword. For example, typing
           either <kbd>checkmark</kbd> or <kbd>success</kbd> will return{' '}
@@ -1217,7 +1218,7 @@ export default function IconsStories() {
           placeholder="Search icons by name or keyword"
           onChange={e => setSearchTerm(e.target.value.toLowerCase())}
         />
-      </Sticky>
+      </StickySearch>
       <Section section={otherSection} />
       {filteredSections.map(section => (
         <Section key={section.id} section={section} />
@@ -1273,10 +1274,8 @@ function formatObjAsReactStatement(name, props: Record<string, unknown>) {
     .join(' ')} />`;
 }
 
-const Sticky = styled('div')`
-  position: sticky;
-  top: 0;
-  background: white;
+export const StickySearch = styled(Sticky)`
+  background: ${p => p.theme.background};
   z-index: 1;
 `;
 
