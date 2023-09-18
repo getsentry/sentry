@@ -78,10 +78,11 @@ export default function MetricDetailsBody({
   }
 
   function getFilter(): string[] | null {
-    const {dataset, query} = rule ?? {};
     if (!rule) {
       return null;
     }
+
+    const {dataset, query} = rule;
 
     if (isCrashFreeAlert(dataset)) {
       return query?.trim().split(' ') ?? null;
