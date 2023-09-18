@@ -1,5 +1,6 @@
 import {useEffect, useState} from 'react';
 
+import storiesContext from 'sentry/views/stories/storiesContext';
 import type {ResolvedStoryModule} from 'sentry/views/stories/types';
 
 interface Props {
@@ -9,34 +10,28 @@ interface Props {
 interface EmptyState {
   error: undefined;
   filename: undefined | string;
-  importName: undefined | string;
   resolved: undefined;
 }
 
 interface ResolvedState {
   error: undefined;
   filename: string;
-  importName: string;
+
   resolved: ResolvedStoryModule;
 }
 
 interface ErrorState {
   error: Error;
   filename: undefined | string;
-  importName: undefined | string;
   resolved: undefined;
 }
 
 type State = EmptyState | ResolvedState | ErrorState;
 
 export default function useStoriesLoader({filename}: Props) {
-  const match = filename?.match(/app\/(?<filename>.*).stories.tsx/);
-  const importName = match?.groups?.filename;
-
   const [mod, setMod] = useState<State>({
     error: undefined,
     filename,
-    importName,
     resolved: undefined,
   });
 
@@ -44,33 +39,23 @@ export default function useStoriesLoader({filename}: Props) {
     if (!filename) {
       return;
     }
-    if (importName) {
-      import(`sentry/${importName}.stories`)
-        .then(resolved => {
-          setMod({
-            error: undefined,
-            filename,
-            importName,
-            resolved,
-          });
-        })
-        .catch(error => {
-          setMod({
-            error,
-            filename,
-            importName,
-            resolved: undefined,
-          });
+    storiesContext()
+      .importStory(filename)
+      .then(resolved => {
+        setMod({
+          error: undefined,
+          filename,
+          resolved,
         });
-    } else {
-      setMod({
-        error: new Error(`Invalid importName for filename '${filename}'`),
-        filename,
-        importName,
-        resolved: undefined,
+      })
+      .catch(error => {
+        setMod({
+          error,
+          filename,
+          resolved: undefined,
+        });
       });
-    }
-  }, [filename, importName]);
+  }, [filename]);
 
   return mod;
 }
