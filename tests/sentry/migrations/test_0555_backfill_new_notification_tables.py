@@ -113,6 +113,21 @@ class BackfillNewNotificationTables(TestMigrations):
             user=self.user2,
         )
 
+        # update team notification settings
+        NotificationSetting.objects.update_settings_bulk(
+            [
+                (
+                    ExternalProviders.SLACK,
+                    NotificationSettingTypes.WORKFLOW,
+                    NotificationScopeType.TEAM,
+                    self.team.id,
+                    NotificationSettingOptionValues.SUBSCRIBE_ONLY,
+                ),
+            ],
+            team=self.team,
+            organization_id_for_team=self.organization.id,
+        )
+
     def test(self):
         # validate the feature flag is off double writes
         assert not features.has("organizations:notifications-double-write", self.organization)
@@ -208,4 +223,27 @@ class BackfillNewNotificationTables(TestMigrations):
             type="workflow",
             provider="email",
             value="never",
+        ).exists()
+
+        # validate team settings
+        base_team_args = {
+            "scope_type": "team",
+            "scope_identifier": self.team.id,
+            "team_id": self.team.id,
+        }
+        assert NotificationSettingOption.objects.filter(
+            **base_team_args,
+            type="workflow",
+            value="subscribe_only",
+        ).exists()
+        assert NotificationSettingProvider.objects.filter(
+            **base_team_args,
+            type="workflow",
+            provider="slack",
+            value="always",
+        ).exists()
+        assert not NotificationSettingProvider.objects.filter(
+            **base_team_args,
+            type="workflow",
+            provider="email",
         ).exists()
