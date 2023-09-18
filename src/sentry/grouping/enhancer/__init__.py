@@ -142,7 +142,6 @@ class Enhancements:
         platform: str,
         exception_data: dict[str, Any],
         extra_fingerprint: str = "",
-        load_stacktrace_from_cache: bool = False,
     ) -> None:
         """This applies the frame modifications to the frames itself. This does not affect grouping."""
         in_memory_cache: dict[str, str] = {}
@@ -158,12 +157,7 @@ class Enhancements:
         cache_key = f"stacktrace_hash.{stacktrace_fingerprint}"
         use_cache = bool(stacktrace_fingerprint)
         if use_cache:
-            frames_changed = _update_frames_from_cached_values(
-                frames,
-                cache_key,
-                platform,
-                load_from_cache=load_stacktrace_from_cache,
-            )
+            frames_changed = _update_frames_from_cached_values(frames, cache_key, platform)
             if frames_changed:
                 logger.info("The frames have been loaded from the cache. Skipping some work.")
                 return
