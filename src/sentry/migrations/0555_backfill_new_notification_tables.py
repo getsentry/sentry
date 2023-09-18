@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-from django.db import migrations
 from enum import Enum
 from typing import Optional
+
+from django.db import migrations
 
 from sentry.new_migrations.migrations import CheckedMigration
 from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
@@ -282,7 +283,7 @@ class Migration(CheckedMigration):
     is_dangerous = True
 
     dependencies = [
-        ("sentry", "0551_drop_xactor_actor"),
+        ("sentry", "0554_add_team_replica"),
     ]
 
     operations = [

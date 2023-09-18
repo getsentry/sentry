@@ -1,17 +1,18 @@
 import {ReactNode} from 'react';
 
+import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
-import {QueryClient, QueryClientProvider} from 'sentry/utils/queryClient';
+import {QueryClientProvider} from 'sentry/utils/queryClient';
 import useProjectSdkNeedsUpdate from 'sentry/utils/useProjectSdkNeedsUpdate';
-
-const client = new QueryClient();
 
 const MOCK_ORG = TestStubs.Organization();
 const MOCK_PROJECT = TestStubs.Project();
 
 function wrapper({children}: {children?: ReactNode}) {
-  return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+  return (
+    <QueryClientProvider client={makeTestQueryClient()}>{children}</QueryClientProvider>
+  );
 }
 
 function mockCurrentVersion(

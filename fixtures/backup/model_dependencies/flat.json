@@ -406,6 +406,10 @@
     "sentry.Monitor"
   ],
   "sentry.MonitorLocation": [],
+  "sentry.NeglectedRule": [
+    "sentry.Organization",
+    "sentry.Rule"
+  ],
   "sentry.NotificationAction": [
     "sentry.Integration",
     "sentry.Organization",
@@ -728,6 +732,10 @@
   "sentry.TeamKeyTransaction": [
     "sentry.Organization",
     "sentry.ProjectTeam"
+  ],
+  "sentry.TeamReplica": [
+    "sentry.Organization",
+    "sentry.Team"
   ],
   "sentry.TimeSeriesSnapshot": [],
   "sentry.User": [],

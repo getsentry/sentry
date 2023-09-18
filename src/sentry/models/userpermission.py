@@ -14,9 +14,7 @@ class UserPermission(Model):
     Generally speaking, they should only apply to active superuser sessions.
     """
 
-    # It only makes sense to import/export this data when doing a full global backup/restore, so it
-    # lives in the `Global` scope, even though it only depends on the `User` model.
-    __relocation_scope__ = RelocationScope.Global
+    __relocation_scope__ = RelocationScope.Config
 
     user = FlexibleForeignKey("sentry.User")
     # permissions should be in the form of 'service-name.permission-name'

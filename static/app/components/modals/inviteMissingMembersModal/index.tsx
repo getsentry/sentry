@@ -52,6 +52,7 @@ export function InviteMissingMembersModal({
   }));
   const [memberInvites, setMemberInvites] =
     useState<MissingMemberInvite[]>(initialMemberInvites);
+  const referrer = missingMembers.integration + '_nudge_invite';
   const [inviteStatus, setInviteStatus] = useState<InviteStatus>({});
   const [sendingInvites, setSendingInvites] = useState(false);
   const [complete, setComplete] = useState(false);
@@ -137,10 +138,13 @@ export function InviteMissingMembersModal({
     };
 
     try {
-      await api.requestPromise(`/organizations/${organization?.slug}/members/`, {
-        method: 'POST',
-        data,
-      });
+      await api.requestPromise(
+        `/organizations/${organization?.slug}/members/?referrer=${referrer}`,
+        {
+          method: 'POST',
+          data,
+        }
+      );
     } catch (err) {
       const errorResponse = err.responseJSON;
 
