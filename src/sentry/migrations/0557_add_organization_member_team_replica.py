@@ -22,7 +22,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0555_set_neglectedrule_email_date_columns_nullable"),
+        ("sentry", "0556_organizationmapping_replicate_require_2fa"),
     ]
 
     operations = [
