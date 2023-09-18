@@ -1,6 +1,7 @@
 import hashlib
+from ast import Dict
 from collections import defaultdict, namedtuple
-from typing import List, TypedDict
+from typing import List, TypedDict, Union
 
 from rest_framework import status
 from rest_framework.request import Request
@@ -47,7 +48,7 @@ class OrganizationSpansAggregationEndpoint(OrganizationEventsEndpointBase):
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
 
-    aggregated_tree = {}
+    aggregated_tree: Dict[str, Dict[str, Union[str, int, float]]] = {}
 
     def get(self, request: Request, organization: Organization) -> Response:
         if not features.has("organizations:starfish-view", organization, actor=request.user):
@@ -211,7 +212,7 @@ class OrganizationSpansAggregationEndpoint(OrganizationEventsEndpointBase):
 
         # Handles sibling spans that have the same group
         span_tree["children"].sort(key=lambda s: s["start_ms"])
-        span_hash_seen = defaultdict(lambda: 0)
+        span_hash_seen: Dict[str, int] = defaultdict(lambda: 0)
 
         for child in span_tree["children"]:
             child_span_hash = child["coalesced_group"]
