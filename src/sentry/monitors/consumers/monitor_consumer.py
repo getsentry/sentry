@@ -353,6 +353,8 @@ def _process_checkin(
 
         return
 
+    # 01
+    # Retrieve or upsert monitor for this check-in
     try:
         monitor_config = params.pop("monitor_config", None)
 
@@ -416,6 +418,8 @@ def _process_checkin(
         )
         return
 
+    # 02
+    # Retrieve or upsert monitor environment for this check-in
     try:
         monitor_environment = MonitorEnvironment.objects.ensure_environment(
             project, monitor, environment
@@ -453,15 +457,22 @@ def _process_checkin(
         )
         return
 
+    # 03
+    # Create or update check-in
     lock = locks.get(f"checkin-creation:{guid.hex}", duration=LOCK_TIMEOUT, name="checkin_creation")
     try:
-        # use lock.blocking_acquire() as default lock.acquire() fast fails if lock is in use
+        # use lock.blocking_acquire() as default lock.acquire() fast fails if
+        # lock is in use. We absolutely want to wait to acquire this lock
+        # otherwise we would drop the check-in.
         with lock.blocking_acquire(
             INITIAL_LOCK_DELAY, float(LOCK_TIMEOUT), exp_base=LOCK_EXP_BASE
         ), transaction.atomic(router.db_for_write(Monitor)):
             status = getattr(CheckInStatus, validated_params["status"].upper())
             trace_id = validated_params.get("contexts", {}).get("trace", {}).get("trace_id")
+            duration = validated_params["duration"]
 
+            # 03-A
+            # Retrieve existing check-in for update
             try:
                 if use_latest_checkin:
                     check_in = (
@@ -498,19 +509,23 @@ def _process_checkin(
                         return
 
                 txn.set_tag("outcome", "process_existing_checkin")
-                update_existing_check_in(check_in, status, validated_params["duration"], start_time)
+                update_existing_check_in(check_in, status, duration, start_time)
 
+            # 03-B
+            # Create a brand new check-in object
             except MonitorCheckIn.DoesNotExist:
                 # Infer the original start time of the check-in from the duration.
                 # Note that the clock of this worker may be off from what Relay is reporting.
                 date_added = start_time
-                duration = validated_params["duration"]
                 if duration is not None:
                     date_added -= timedelta(milliseconds=duration)
 
                 # When was this check-in expected to have happened?
                 expected_time = monitor_environment.next_checkin
 
+                # denormalize the monitor configration into the check-in.
+                # Useful to show details about the configuration of the
+                # monitor at the time of the check-in
                 monitor_config = monitor.get_validated_config()
                 timeout_at = get_timeout_at(monitor_config, status, date_added)
 
@@ -530,6 +545,13 @@ def _process_checkin(
                     monitor_environment=monitor_environment,
                     guid=guid,
                 )
+
+                # Race condition. The check-in was created (such as an
+                # in_progress) while this check-in was being processed.
+                # Create a new one now.
+                #
+                # XXX(epurkhiser): Is this needed since we're already
+                # locking this entire process?
                 if not created:
                     txn.set_tag("outcome", "process_existing_checkin_race_condition")
                     update_existing_check_in(check_in, status, duration, start_time)
@@ -537,6 +559,8 @@ def _process_checkin(
                     txn.set_tag("outcome", "create_new_checkin")
                     signal_first_checkin(project, monitor)
 
+            # 04
+            # Update monitor status
             if check_in.status == CheckInStatus.ERROR:
                 mark_failed(
                     monitor_environment,
