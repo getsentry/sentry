@@ -261,9 +261,12 @@ def test_detect_function_trends(
     assert detect_function_change_points.delay.called
 
 
+@mock.patch("sentry.tasks.statistical_detectors.detect_breakpoints")
 @mock.patch("sentry.tasks.statistical_detectors.raw_snql_query")
 @django_db_all
-def test_detect_function_change_points(mock_raw_snql_query, timestamp, project):
+def test_detect_function_change_points(
+    mock_raw_snql_query, mock_detect_breakpoints, timestamp, project
+):
     start_of_hour = timestamp.replace(minute=0, second=0, microsecond=0, tzinfo=timezone.utc)
 
     fingerprint = 12345
@@ -274,10 +277,28 @@ def test_detect_function_change_points(mock_raw_snql_query, timestamp, project):
                 "time": (start_of_hour - timedelta(days=day, hours=hour)).isoformat(),
                 "project.id": project.id,
                 "fingerprint": fingerprint,
-                "p95": 200 if day < 1 else 100,
+                "p95": 2 if day < 1 and hour < 8 else 1,
             }
             for day in reversed(range(14))
             for hour in reversed(range(24))
+        ]
+    }
+
+    mock_detect_breakpoints.return_value = {
+        "data": [
+            {
+                "absolute_percentage_change": 5.0,
+                "aggregate_range_1": 100000000.0,
+                "aggregate_range_2": 500000000.0,
+                "breakpoint": 1687323600,
+                "change": "regression",
+                "project": str(project.id),
+                "transaction": str(fingerprint),
+                "trend_difference": 400000000.0,
+                "trend_percentage": 5.0,
+                "unweighted_p_value": 0.0,
+                "unweighted_t_value": -float("inf"),
+            },
         ]
     }
 

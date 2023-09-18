@@ -23,10 +23,13 @@ from snuba_sdk import (
 )
 
 from sentry import options
+from sentry.api.serializers.snuba import SnubaTSResultSerializer
 from sentry.constants import ObjectStatus
 from sentry.models.project import Project
 from sentry.search.events.builder import ProfileTopFunctionsTimeseriesQueryBuilder
+from sentry.search.events.fields import get_function_alias
 from sentry.search.events.types import QueryBuilderConfig
+from sentry.seer.utils import detect_breakpoints
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba import functions
@@ -231,10 +234,46 @@ def _detect_function_trends(
 
 
 def _detect_function_change_points(functions_list: List[Tuple[int, int]], start: datetime) -> None:
-    for project_id, fingerprint, timeseries in chunked(
-        query_functions_timeseries(functions_list, start), 10
-    ):
-        pass
+    serializer = SnubaTSResultSerializer(None, None, None)
+
+    trend_function = "p95()"
+
+    for chunk in chunked(query_functions_timeseries(functions_list, start, trend_function), 10):
+        data = {}
+        for project_id, fingerprint, timeseries in chunk:
+            serialized = serializer.serialize(timeseries, get_function_alias(trend_function))
+            data[f"{project_id},{fingerprint}"] = {
+                "data": serialized["data"],
+                "data_start": serialized["start"],
+                "data_end": serialized["end"],
+                # only look at the last 24 hours as the request data
+                "request_start": serialized["end"] - 24 * 60 * 60,
+                "request_end": serialized["end"],
+            }
+
+        request = {
+            "data": data,
+            "sort": "-trend_percentage()",
+            "trendFunction": trend_function,
+        }
+
+        breakpoints = detect_breakpoints(request)["data"]
+
+        for entry in breakpoints:
+            with sentry_sdk.push_scope() as scope:
+                scope.set_tag("regressed_project_id", entry["project"])
+                # the service was originally meant for transactions so this
+                # naming is a result of this
+                scope.set_tag("regressed_function_id", entry["transaction"])
+                scope.set_context(
+                    "statistical_detectors",
+                    {
+                        **entry,
+                        "timestamp": start.isoformat(),
+                        "breakpoint": datetime.fromtimestamp(entry["breakpoint"]),
+                    },
+                )
+                sentry_sdk.capture_message("Potential Regression")
 
 
 def all_function_payloads(
@@ -410,6 +449,7 @@ def query_functions(projects: List[Project], start: datetime) -> List[DetectorPa
 def query_functions_timeseries(
     functions_list: List[Tuple[int, int]],
     start: datetime,
+    agg_function: str,
 ) -> Generator[Tuple[int, int, Any], None, None]:
     project_ids = [project_id for project_id, _ in functions_list]
     projects = Project.objects.filter(id__in=project_ids)
@@ -443,7 +483,7 @@ def query_functions_timeseries(
             other=False,
             query="is_application:1",
             selected_columns=["project.id", "fingerprint"],
-            timeseries_columns=["p95()"],
+            timeseries_columns=[agg_function],
             config=QueryBuilderConfig(
                 skip_tag_resolution=True,
             ),
