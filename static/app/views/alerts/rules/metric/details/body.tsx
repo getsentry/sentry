@@ -85,7 +85,7 @@ export default function MetricDetailsBody({
     const {dataset, query} = rule;
 
     if (isCrashFreeAlert(dataset)) {
-      return query?.trim().split(' ') ?? null;
+      return query.trim().split(' ');
     }
 
     const eventType = extractEventTypeFilterFromRule(rule);
