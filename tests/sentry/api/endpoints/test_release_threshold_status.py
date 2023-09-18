@@ -154,9 +154,15 @@ class ReleaseThresholdStatusTest(APITestCase):
         """
         now = str(datetime.now())
         yesterday = str(datetime.now() - timedelta(hours=24))
+        last_week = str(datetime.now() - timedelta(days=7))
+        release_old = Release.objects.create(
+            version="0", organization=self.organization, date_added=last_week
+        )
+
         response = self.get_success_response(self.organization.slug, start=yesterday, end=now)
 
         assert len(response.data) == 2  # 2 releases
+        assert release_old.id not in response.data  # old release is filtered out of response
         assert len(response.data.get(self.release1.id)) == 2  # 2 projects (p1 & p2) in release 1
 
         assert (
