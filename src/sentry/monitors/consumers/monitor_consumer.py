@@ -462,7 +462,7 @@ def _process_checkin(
     lock = locks.get(f"checkin-creation:{guid.hex}", duration=LOCK_TIMEOUT, name="checkin_creation")
     try:
         # use lock.blocking_acquire() as default lock.acquire() fast fails if
-        # lock is in use. We absolutely want to wait to aqurie this lock
+        # lock is in use. We absolutely want to wait to acquire this lock
         # otherwise we will be dropping the check-in.
         with lock.blocking_acquire(
             INITIAL_LOCK_DELAY, float(LOCK_TIMEOUT), exp_base=LOCK_EXP_BASE
