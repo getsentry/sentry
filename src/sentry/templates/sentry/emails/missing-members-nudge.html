@@ -34,9 +34,18 @@
         font-size: 12px;
     }
 
+    a {
+        text-decoration: none;
+    }
+
     .email {
-        color: #80708F;
         font-size: 12px;
+        text-decoration: none;
+        color: #80708F !important;
+    }
+
+    a.email:link, a.email:visited, a.email:hover, a.email:active {
+        color: #80708F !important;
     }
 
     .provider-logo {
@@ -63,7 +72,7 @@
                 <span><a href="{{ member.profile_link }}">{{ member.external_id }}</a></span>
             </div>
             <div class="subtitle user-row">
-                <img src="{% static 'sentry/images/commit-icon.svg' %}" alt="Commits"/>
+                <img src="{% absolute_asset_url 'sentry' 'images/email/commit-icon.png' %}" alt="Commits" width="16px" height="16px"/>
                 <span>{{ member.commit_count }} Recent Commits</span>
             </div>
             <div class="email">{{ member.email }}</div>
