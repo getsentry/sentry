@@ -713,8 +713,6 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             organization=self.organization,
             opted_out=False,
             disable_date=now + timedelta(days=14),
-            sent_initial_email_date=now,
-            sent_final_email_date=now,
         )
         payload = {
             "name": "hellooo world",
@@ -757,8 +755,6 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             organization=self.organization,
             opted_out=False,
             disable_date=now + timedelta(days=14),
-            sent_initial_email_date=now,
-            sent_final_email_date=now,
         )
         payload = {
             "name": "hellooo world",
