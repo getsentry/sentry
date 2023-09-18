@@ -1335,7 +1335,7 @@ def get_alert_rule_trigger_action_discord_channel_id(
 
     integration = integration_service.get_integration(integration_id=integration_id)
     if integration is None:
-        raise InvalidTriggerActionError("Discord server is a required field.")
+        raise Integration.DoesNotExist
 
     try:
         validate_channel_id(channel_id, integration.external_id, integration.id)
@@ -1471,16 +1471,6 @@ def get_discord_servers(organization_id, providers) -> List[RpcIntegration]:
         org_integration_status=OrganizationStatus.ACTIVE,
         providers=providers,
     )
-
-
-# def get_discord_servers(organization_id, integration_id) -> list[Tuple[str, str]]:
-#     org_int = integration_service.get_organization_integration(
-#         organization_id=organization_id, integration_id=integration_id
-#     )
-#     if org_int is None:
-#         return []
-#     servers = [(i.id, i.name) for i in org_int]
-#     return servers
 
 
 # TODO: This is temporarily needed to support back and forth translations for snuba / frontend.
