@@ -600,7 +600,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):  # noqa: F821
         defaulted_providers = defaultdict(set)
         all_settings = set()
 
-        # group the type, scope_type, scope_identifir, together and get store the explicitly enabled/disaled providers
+        # group the type, scope_type, scope_identifier, together and get store the explicitly enabled/disabled providers
         for (provider, type, scope_type, scope_identifier, value) in notification_settings:
             # Group the type, scope_type, scope_identifier together
             group_key = (type, scope_type, scope_identifier)
