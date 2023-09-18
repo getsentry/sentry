@@ -58,9 +58,11 @@ class NotificationController:
             NotificationSettingProvider.objects.filter(query & type_filter & provider_filter)
         )
 
+    @property
     def get_all_setting_options(self) -> Iterable[NotificationSettingOption]:
         return self._setting_options
 
+    @property
     def get_all_setting_providers(self) -> Iterable[NotificationSettingProvider]:
         return self._setting_providers
 
@@ -166,7 +168,7 @@ class NotificationController:
         Args:
             setting_type: If specified, only return settings of this type.
         """
-        settings = self.get_all_setting_options()
+        settings = self.get_all_setting_options
         project_settings = self._filter_options(
             settings=settings, scope_type=NotificationScopeEnum.PROJECT.value, **kwargs
         )
@@ -192,15 +194,20 @@ class NotificationController:
                 for type in NotificationSettingEnum:
                     most_specific_setting = None
                     for setting in scoped_settings:
-                        user_settings = self._filter_options(
-                            settings=setting, user_id=recipient.id, type=type.value
-                        )
-                        team_settings = self._filter_options(
-                            settings=setting, team_id=recipient.id, type=type.value
-                        )
-                        s = user_settings + team_settings
-                        if len(s) > 0:
-                            most_specific_setting = NotificationSettingsOptionEnum(s[0].value)
+                        user_or_team_settings = []
+                        if recipient_is_user:
+                            user_or_team_settings = self._filter_options(
+                                settings=setting, user_id=recipient.id, type=type.value
+                            )
+                        elif recipient_is_team:
+                            user_or_team_settings = self._filter_options(
+                                settings=setting, team_id=recipient.id, type=type.value
+                            )
+
+                        if len(user_or_team_settings) > 0:
+                            most_specific_setting = NotificationSettingsOptionEnum(
+                                user_or_team_settings[0].value
+                            )
                             break
 
                     if most_specific_setting is None and type in defaults:
@@ -231,7 +238,7 @@ class NotificationController:
         Note that this includes default settings for any notification types that are not set.
         """
 
-        settings = self.get_all_setting_providers()
+        settings = self.get_all_setting_providers
         project_settings = self._filter_providers(
             settings=settings, scope_type=NotificationScopeEnum.PROJECT.value, **kwargs
         )
@@ -262,15 +269,20 @@ class NotificationController:
                     for provider in ExternalProviderEnum:
                         most_specific_setting = None
                         for setting in scoped_settings:
-                            user_settings = self._filter_providers(
-                                settings=setting, user_id=recipient.id, type=type.value
-                            )
-                            team_settings = self._filter_providers(
-                                settings=setting, team_id=recipient.id, type=type.value
-                            )
-                            s = user_settings + team_settings
-                            if len(s) > 0:
-                                most_specific_setting = NotificationSettingsOptionEnum(s[0].value)
+                            user_or_team_settings = []
+                            if recipient_is_user:
+                                user_or_team_settings = self._filter_options(
+                                    settings=setting, user_id=recipient.id, type=type.value
+                                )
+                            elif recipient_is_team:
+                                user_or_team_settings = self._filter_options(
+                                    settings=setting, team_id=recipient.id, type=type.value
+                                )
+
+                            if len(user_or_team_settings) > 0:
+                                most_specific_setting = NotificationSettingsOptionEnum(
+                                    user_or_team_settings[0].value
+                                )
                                 break
 
                         if most_specific_setting is None:
@@ -298,6 +310,9 @@ class NotificationController:
         Args:
             type: The notification type to filter providers and recipients by.
         """
+        if self.type and type != self.type:
+            raise Exception("Type mismatch: the provided type differs from the controller type")
+
         setting_options = self._get_layered_setting_options(type=type.value)
         setting_providers = self._get_layered_setting_providers(type=type.value)
 
@@ -401,20 +416,27 @@ class NotificationController:
         return result
 
     def get_subscriptions_status_for_projects(
-        self, user: Recipient
+        self,
+        user: Recipient,
+        project_ids: Iterable[int],
+        type: NotificationSettingEnum | None = None,
     ) -> Mapping[int, Tuple[bool, bool]]:
         """
         Returns whether the user is subscribed for each project, and the subscription object if it exists.
         {project_id -> (is_disabled, is_active, subscription object)}
         """
-        if not self.type:
+        setting_type = type or self.type
+        if not type:
             raise Exception("Must specify type")
 
         enabled_settings = self.get_settings_options_for_user_by_projects(user)
         subscription_status_for_projects = {}
         for project, type_setting in enabled_settings.items():
+            if project not in project_ids:
+                continue
+
             for type, setting in type_setting.items():
-                if type != self.type:
+                if type != setting_type:
                     continue
 
                 subscription_status_for_projects[project] = (
@@ -470,7 +492,7 @@ class NotificationController:
         if not provider:
             raise Exception("Must specify provider")
 
-        settings = self.get_all_setting_providers()
+        settings = self.get_all_setting_providers
         for setting in settings:
             if setting.provider != provider.value:
                 continue

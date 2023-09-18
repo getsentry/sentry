@@ -111,7 +111,7 @@ class NotificationControllerTest(TestCase):
             project_ids=[self.project.id],
             organization_id=self.organization.id,
         )
-        assert list(controller.get_all_setting_options()) == self.setting_options
+        assert list(controller.get_all_setting_options) == self.setting_options
 
     def test_get_all_setting_providers(self):
         controller = NotificationController(
@@ -119,7 +119,7 @@ class NotificationControllerTest(TestCase):
             project_ids=[self.project.id],
             organization_id=self.organization.id,
         )
-        assert list(controller.get_all_setting_providers()) == self.setting_providers
+        assert list(controller.get_all_setting_providers) == self.setting_providers
 
     def test_filter_setting_options(self):
         controller = NotificationController(

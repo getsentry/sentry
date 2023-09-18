@@ -215,7 +215,7 @@ class DatabaseBackedNotificationsService(NotificationsService):
             project_ids=project_ids,
             type=type,
         )
-        return controller.get_subscriptions_status_for_projects(user=user)
+        return controller.get_subscriptions_status_for_projects(user=user, project_ids=project_ids)
 
     class _NotificationSettingsQuery(
         FilterQueryDatabaseImpl[
