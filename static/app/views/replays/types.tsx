@@ -169,9 +169,11 @@ export interface ReplayError {
 }
 
 export type DeadRageSelectorItem = {
-  count_dead_clicks: number;
-  count_rage_clicks: number;
+  aria_label: string;
   dom_element: string;
+  element: string;
+  count_dead_clicks?: number;
+  count_rage_clicks?: number;
 };
 
 export type DeadRageSelectorListResponse = {
