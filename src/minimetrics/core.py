@@ -10,6 +10,7 @@ import sentry_sdk
 from minimetrics.transport import MetricEnvelopeTransport, RelayStatsdEncoder
 from minimetrics.types import (
     BucketKey,
+    ExtendedBucketKey,
     FlushedMetric,
     FlushedMetricValue,
     Metric,
@@ -140,8 +141,9 @@ class Aggregator:
     DEFAULT_SAMPLE_RATE = 1.0
 
     def __init__(self) -> None:
-        # Buckets holding the grouped metrics.
-        self.buckets: Dict[BucketKey, Metric[Any]] = {}
+        # Buckets holding the grouped metrics. The buckets are represented in two levels, in order to more efficiently
+        # perform locking.
+        self.buckets: Dict[int, Dict[BucketKey, Metric[Any]]] = {}
         # Stores the total weight of the in-memory buckets. Weight is determined on a per metric type basis and
         # represents how much weight is there to represent the metric (e.g., counter = 1, distribution = n).
         self._buckets_total_weight: int = 0
@@ -181,40 +183,40 @@ class Aggregator:
             self._flush_event.wait(5.0)
 
     def _flush(self):
-        with self._lock:
-            buckets = self.buckets
-            force_flush = self._force_flush
-            flushed_metrics: Optional[Iterable[FlushedMetric]] = None
+        flushable_buckets, force_flushed = self._flushable_buckets()
+        flushed_metrics: List[FlushedMetric] = []
 
-            if force_flush:
-                flushed_metrics = buckets.items()
-                self.buckets = {}
-                self._buckets_total_weight = 0
-                self._force_flush = False
-
-            else:
-                cutoff = time.time() - self.ROLLUP_IN_SECONDS
-                weight_to_remove = 0
-                flushed_metrics = []
-                for bucket_key, metric in buckets.items():
-                    if bucket_key[0] > cutoff:
-                        continue
-
-                    flushed_metrics.append((bucket_key, metric))
-                    weight_to_remove += metric.weight
-
-                # We remove all flushed buckets, in order to avoid memory leaks.
-                for bucket_key, _ in flushed_metrics:
-                    buckets.pop(bucket_key)
-
-                self._buckets_total_weight -= weight_to_remove
+        for buckets_timestamp, buckets in flushable_buckets:
+            for bucket_key, metric in buckets:
+                # We compute the extended bucket key.
+                extended_bucket_key: ExtendedBucketKey = (buckets_timestamp, *bucket_key)
+                flushed_metrics.append((extended_bucket_key, metric))
 
         if flushed_metrics:
             # You should emit metrics to `metrics` only inside this method, since we know that if we received
             # metrics the `sentry.utils.metrics` file was initialized. If we do it before, it will likely cause a
             # circular dependency since the methods in the `sentry.utils.metrics` depend on the backend
             # initialization, thus if you emit metrics when a backend is initialized Python will throw an error.
-            self._emit(flushed_metrics, force_flush)
+            self._emit(flushed_metrics, force_flushed)
+
+    def _flushable_buckets(self) -> [List[Tuple[int, Dict[BucketKey, Metric]]], bool]:
+        with self._lock:
+            force_flush = self._force_flush
+            cutoff = time.time() - self.ROLLUP_IN_SECONDS
+            flushable_buckets = []
+
+            for buckets_timestamp, buckets in self.buckets.items():
+                # If the timestamp of the bucket is newer that the rollup we want to skip it.
+                if buckets_timestamp > cutoff and not force_flush:
+                    continue
+
+                flushable_buckets.append((buckets_timestamp, buckets))
+
+            # We will clear the elements while holding the lock, in order to avoid requesting it downstream again.
+            for buckets_timestamp, _ in flushable_buckets:
+                self.buckets.pop(buckets_timestamp)
+
+        return flushable_buckets, force_flush
 
     def add(
         self,
@@ -226,17 +228,15 @@ class Aggregator:
         timestamp: Optional[float],
     ) -> None:
         self._ensure_thread()
-        if in_minimetrics():
-            return
 
-        if self._flusher is None:
+        if in_minimetrics() or self._flusher is None:
             return
 
         if timestamp is None:
             timestamp = time.time()
 
+        bucket_timestamp = int((timestamp // self.ROLLUP_IN_SECONDS) * self.ROLLUP_IN_SECONDS)
         bucket_key = (
-            int((timestamp // self.ROLLUP_IN_SECONDS) * self.ROLLUP_IN_SECONDS),
             ty,
             key,
             unit,
@@ -246,12 +246,13 @@ class Aggregator:
         )
 
         with self._lock:
-            metric = self.buckets.get(bucket_key)
+            local_buckets = self.buckets.setdefault(bucket_timestamp, {})
+            metric = local_buckets.get(bucket_key)
             if metric is not None:
                 previous_weight = metric.weight
                 metric.add(value)
             else:
-                metric = self.buckets[bucket_key] = METRIC_TYPES[ty](value)
+                metric = local_buckets[bucket_key] = METRIC_TYPES[ty](value)
                 previous_weight = 0
 
             self._buckets_total_weight += metric.weight - previous_weight

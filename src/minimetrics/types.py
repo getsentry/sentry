@@ -49,7 +49,8 @@ MetricTagsExternal = Mapping[MetricTagKey, MetricTagValueExternal]
 FlushedMetricValue = Union[int, float]
 
 
-BucketKey = Tuple[int, MetricType, str, MetricUnit, MetricTagsInternal]
+BucketKey = Tuple[MetricType, str, MetricUnit, MetricTagsInternal]
+ExtendedBucketKey = Tuple[int, MetricType, str, MetricUnit, MetricTagsInternal]
 
 
 T = TypeVar("T")
@@ -69,4 +70,4 @@ class Metric(Generic[T]):
         raise NotImplementedError()
 
 
-FlushedMetric = Tuple[BucketKey, Metric]
+FlushedMetric = Tuple[ExtendedBucketKey, Metric]
