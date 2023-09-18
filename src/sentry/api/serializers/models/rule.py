@@ -9,7 +9,6 @@ from sentry.constants import ObjectStatus
 from sentry.models import (
     ACTOR_TYPES,
     Environment,
-    Organization,
     Rule,
     RuleActivity,
     RuleActivityType,
@@ -197,9 +196,10 @@ class RuleSerializer(Serializer):
         else:
             d["snooze"] = False
 
-        org = Organization.objects.get(id=obj.project.organization_id)
         try:
-            neglected_rule = NeglectedRule.objects.get(rule=obj, organization=org, opted_out=False)
+            neglected_rule = NeglectedRule.objects.get(
+                rule=obj, organization=obj.project.organization_id, opted_out=False
+            )
             d["disableReason"] = "noisy"
             d["disableDate"] = neglected_rule.disable_date
         except (NeglectedRule.DoesNotExist, NeglectedRule.MultipleObjectsReturned):
