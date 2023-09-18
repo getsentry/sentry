@@ -690,6 +690,7 @@ class DetailedProjectSerializerTest(TestCase):
         assert "releases" in result["features"]
         assert result["platform"] == self.project.platform
         assert result["latestRelease"] == {"version": self.release.version}
+        assert "sentry:token" not in result["options"]
 
 
 @region_silo_test(stable=True)
