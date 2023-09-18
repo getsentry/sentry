@@ -15,7 +15,7 @@ from django.utils.translation import gettext_lazy as _
 
 from bitfield import TypedClassBitField
 from sentry import features, options
-from sentry.backup.dependencies import ImportKind, PrimaryKeyMap
+from sentry.backup.dependencies import ImportKind
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import (
@@ -286,12 +286,8 @@ class ProjectKey(Model):
         return self.scopes
 
     def write_relocation_import(
-        self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
-    ) -> Optional[Tuple[int, int, ImportKind]]:
-        old_pk = super()._normalize_before_relocation_import(pk_map, scope, flags)
-        if old_pk is None:
-            return None
-
+        self, _s: ImportScope, _f: ImportFlags
+    ) -> Optional[Tuple[int, ImportKind]]:
         # If there is a key collision, generate new keys.
         matching_public_key = self.__class__.objects.filter(public_key=self.public_key).first()
         if not self.public_key or matching_public_key:
@@ -307,4 +303,4 @@ class ProjectKey(Model):
             self.pk = key.pk
             self.save()
 
-        return (old_pk, self.pk, ImportKind.Inserted if created else ImportKind.Existing)
+        return (self.pk, ImportKind.Inserted if created else ImportKind.Existing)

@@ -525,7 +525,10 @@ class MetricsQueryBuilder(QueryBuilder):
                 value = resolved_value
             else:
                 resolved_item = self.resolve_tag_value(value)
-                if resolved_item is None:
+                if (
+                    resolved_item is None
+                    and not self.builder_config.skip_field_validation_for_entity_subscription_deletion
+                ):
                     raise IncompatibleMetricsQuery(f"{name} value {value} in filter not found")
                 value = resolved_item
 
