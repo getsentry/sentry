@@ -14,6 +14,7 @@ import {isDone} from 'sentry/components/sidebar/utils';
 import {
   IconChevron,
   IconDashboard,
+  IconGraph,
   IconIssues,
   IconLightning,
   IconPlay,
@@ -338,6 +339,22 @@ function Sidebar({location, organization}: Props) {
     </Feature>
   );
 
+  const ddm = hasOrganization && (
+    <Feature
+      features={['ddm-ui', 'custom-metrics']}
+      organization={organization}
+      requireAll
+    >
+      <SidebarItem
+        {...sidebarItemProps}
+        icon={<IconGraph />}
+        label={t('DDM')}
+        to={`/organizations/${organization.slug}/ddm/`}
+        id="ddm"
+      />
+    </Feature>
+  );
+
   const dashboards = hasOrganization && (
     <Feature
       hookName="feature-disabled:dashboards-sidebar-item"
@@ -426,6 +443,7 @@ function Sidebar({location, organization}: Props) {
 
               <SidebarSection>
                 {discover2}
+                {ddm}
                 {dashboards}
                 {releases}
                 {userFeedback}
