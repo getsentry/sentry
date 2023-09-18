@@ -12,7 +12,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.models import Organization
-from sentry.search.events.builder import QueryBuilder
+from sentry.search.events.builder.spans_indexed import SpansIndexedQueryBuilder
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.utils.snuba import raw_snql_query
@@ -64,7 +64,7 @@ class OrganizationSpansAggregationEndpoint(OrganizationEventsEndpointBase):
                 status=status.HTTP_400_BAD_REQUEST, data={"details": "Transaction not provided"}
             )
 
-        builder = QueryBuilder(
+        builder = SpansIndexedQueryBuilder(
             dataset=Dataset.SpansIndexed,
             params=params,
             selected_columns=["transaction_id", "count()"],
@@ -101,8 +101,8 @@ class OrganizationSpansAggregationEndpoint(OrganizationEventsEndpointBase):
             root_span_id = None
             spans = event["spans"]
 
-            for span in spans:
-                span = EventSpan(*span)
+            for span_ in spans:
+                span = EventSpan(*span_)
                 span_id = getattr(span, "span_id")
                 is_root = getattr(span, "is_segment")
                 if is_root:
@@ -120,19 +120,14 @@ class OrganizationSpansAggregationEndpoint(OrganizationEventsEndpointBase):
 
             for span in span_tree.values():
                 parent_id = span["parent_span_id"]
-                try:
+                if parent_id in span_tree:
                     parent_span = span_tree[parent_id]
                     children = parent_span["children"]
                     children.append(span)
-                except KeyError:
-                    pass
 
-            try:
+            if root_span_id in span_tree:
                 root_span = span_tree[root_span_id]
-            except KeyError:
-                continue
-
-            self.fingerprint_nodes(root_span, root_span["start_ms"])
+                self.fingerprint_nodes(root_span, root_span["start_ms"])
 
         return Response(data=self.aggregated_tree)
 
@@ -179,7 +174,7 @@ class OrganizationSpansAggregationEndpoint(OrganizationEventsEndpointBase):
                 prefix = f"{root_prefix}-{coalesced_group}{nth_span}"
         node_fingerprint = hashlib.md5(prefix.encode()).hexdigest()[:16]
 
-        try:
+        if node_fingerprint in self.aggregated_tree:
             node = self.aggregated_tree[node_fingerprint]
             count = node["count()"]
             node["avg(exclusive_time)"] = incremental_average(
@@ -194,7 +189,7 @@ class OrganizationSpansAggregationEndpoint(OrganizationEventsEndpointBase):
                 start_ms - root_start_timestamp,
             )
             node["count()"] += 1
-        except KeyError:
+        else:
             self.aggregated_tree[node_fingerprint] = {
                 "node_fingerprint": node_fingerprint,
                 "parent_node_fingerprint": parent_node_fingerprint,
