@@ -39,12 +39,12 @@ function DeadClickTable({location}: {location: Location<any>}) {
       location={location}
       clickCountColumn={{key: 'count_dead_clicks', name: 'dead clicks'}}
       clickCountSortable={false}
-      title="Most Dead Clicks"
+      title={t('Most Dead Clicks')}
       headerButtons={
         <SearchButton
           label={t('Show all')}
           sort="-count_dead_clicks"
-          path="dead-clicks" // temporary; this might point to a tab on the replay index later
+          path="dead-clicks"
         />
       }
       customHandleResize={() => {}}
@@ -67,12 +67,12 @@ function RageClickTable({location}: {location: Location<any>}) {
       location={location}
       clickCountColumn={{key: 'count_rage_clicks', name: 'rage clicks'}}
       clickCountSortable={false}
-      title="Most Rage Clicks"
+      title={t('Most Rage Clicks')}
       headerButtons={
         <SearchButton
           label={t('Show all')}
           sort="-count_rage_clicks"
-          path="rage-clicks" // temporary; this might point to a tab on the replay index later
+          path="rage-clicks"
         />
       }
       customHandleResize={() => {}}

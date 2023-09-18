@@ -23,7 +23,6 @@ interface Props {
   isError: boolean;
   isLoading: boolean;
   location: Location<any>;
-  children?: ReactNode;
   customHandleResize?: () => void;
   headerButtons?: ReactNode;
   title?: string;
@@ -42,7 +41,6 @@ export default function SelectorTable({
   isError,
   isLoading,
   location,
-  children,
   title,
   headerButtons,
   customHandleResize,
@@ -109,7 +107,6 @@ export default function SelectorTable({
         title={title}
         headerButtons={() => headerButtons}
       />
-      {children}
     </Fragment>
   );
 }
