@@ -5,6 +5,7 @@ from snuba_sdk import Column, Function
 from sentry.api.utils import InvalidParams
 from sentry.search.events import constants
 from sentry.search.events.datasets.function_aliases import resolve_project_threshold_config
+from sentry.search.events.types import SelectType
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import (
     resolve_tag_key,
@@ -731,7 +732,7 @@ def team_key_transaction_snql(org_id, team_key_condition_rhs, alias=None):
     )
 
 
-def _resolve_project_threshold_config(project_ids, org_id):
+def _resolve_project_threshold_config(project_ids: Sequence[int], org_id: int) -> SelectType:
     return resolve_project_threshold_config(
         tag_value_resolver=lambda use_case_id, org_id, value: resolve_tag_value(
             use_case_id, org_id, value
