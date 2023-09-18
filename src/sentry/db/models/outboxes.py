@@ -26,12 +26,7 @@ from sentry.types.region import find_regions_for_orgs
 from sentry.utils.env import in_test_environment
 
 if TYPE_CHECKING:
-    from sentry.models.outbox import (
-        ControlOutboxBase,
-        OutboxCategory,
-        RegionOutboxBase,
-        outbox_context,
-    )
+    from sentry.models.outbox import ControlOutboxBase, OutboxCategory, RegionOutboxBase
 
 logger = logging.getLogger("sentry.outboxes")
 
@@ -95,6 +90,8 @@ class RegionOutboxProducingManager(BaseManager[_RM]):
     """
 
     def bulk_create(self, objs: Iterable[_RM], *args: Any, **kwds: Any) -> Collection[_RM]:
+        from sentry.models.outbox import outbox_context
+
         tuple_of_objs: Tuple[_RM, ...] = tuple(objs)
         if not tuple_of_objs:
             return super().bulk_create(tuple_of_objs, *args, **kwds)
@@ -118,6 +115,8 @@ class RegionOutboxProducingManager(BaseManager[_RM]):
             return super().bulk_create(tuple_of_objs, *args, **kwds)
 
     def bulk_delete(self, objs: Iterable[_RM]) -> Tuple[int, Mapping[str, int]]:
+        from sentry.models.outbox import outbox_context
+
         tuple_of_objs: Tuple[_RM, ...] = tuple(objs)
         if not tuple_of_objs:
             return 0, {}
@@ -256,6 +255,8 @@ class ControlOutboxProducingManager(BaseManager[_CM]):
     """
 
     def bulk_create(self, objs: Iterable[_CM], *args: Any, **kwds: Any) -> Collection[_CM]:
+        from sentry.models.outbox import outbox_context
+
         tuple_of_objs: Tuple[_CM, ...] = tuple(objs)
         if not tuple_of_objs:
             return super().bulk_create(tuple_of_objs, *args, **kwds)
@@ -279,6 +280,8 @@ class ControlOutboxProducingManager(BaseManager[_CM]):
             return super().bulk_create(tuple_of_objs, *args, **kwds)
 
     def bulk_delete(self, objs: Iterable[_CM]) -> Tuple[int, Mapping[str, int]]:
+        from sentry.models.outbox import outbox_context
+
         tuple_of_objs: Tuple[_CM, ...] = tuple(objs)
         if not tuple_of_objs:
             return 0, {}
