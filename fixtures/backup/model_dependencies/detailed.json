@@ -1841,7 +1841,10 @@
       }
     },
     "model": "sentry.NotificationAction",
-    "relocation_scope": "Global",
+    "relocation_scope": [
+      "Organization",
+      "Global"
+    ],
     "silos": [
       "Region"
     ]
@@ -1858,7 +1861,10 @@
       }
     },
     "model": "sentry.NotificationActionProject",
-    "relocation_scope": "Global",
+    "relocation_scope": [
+      "Organization",
+      "Global"
+    ],
     "silos": [
       "Region"
     ]
