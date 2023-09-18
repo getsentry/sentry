@@ -550,7 +550,7 @@ def _process_checkin(
                 # in_progress) while this check-in was being processed.
                 # Create a new one now.
                 #
-                # XXX(epurkhiser): Is this needed since wer'e already
+                # XXX(epurkhiser): Is this needed since we're already
                 # locking this entire process?
                 if not created:
                     txn.set_tag("outcome", "process_existing_checkin_race_condition")
