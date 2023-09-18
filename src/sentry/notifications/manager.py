@@ -464,7 +464,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):  # noqa: F821
                 mapping[provider].add(recipient)
         return mapping
 
-    # TODO(snigdha): This can be removed in V2.
+    # TODO(snigdha): cleanup after v2
     def get_notification_recipients(
         self, project: Project
     ) -> Mapping[ExternalProviders, Iterable[RpcActor]]:

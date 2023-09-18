@@ -314,6 +314,7 @@ class NotificationController:
 
     def get_all_enabled_settings(
         self,
+        **kwargs,
     ) -> MutableMapping[
         Recipient,
         MutableMapping[
@@ -329,8 +330,8 @@ class NotificationController:
         Note that this includes default settings for any notification types that are not set.
         """
 
-        setting_options = self._get_layered_setting_options()
-        setting_providers = self._get_layered_setting_providers()
+        setting_options = self._get_layered_setting_options(**kwargs)
+        setting_providers = self._get_layered_setting_providers(**kwargs)
 
         setting_option_and_providers: MutableMapping[
             Recipient,
@@ -415,6 +416,26 @@ class NotificationController:
                 )
 
         return subscription_status_for_projects
+
+    def get_participants(
+        self,
+    ) -> MutableMapping[
+        Recipient, MutableMapping[ExternalProviderEnum, NotificationSettingsOptionEnum]
+    ]:
+        enabled_settings = self.get_all_enabled_settings(type=self.type.value)
+
+        user_to_providers: MutableMapping[
+            Recipient, MutableMapping[ExternalProviderEnum, NotificationSettingsOptionEnum]
+        ] = defaultdict(dict)
+        for recipient, setting in enabled_settings.items():
+            if not recipient_is_user(recipient):
+                continue
+
+            for type_map in setting.values():
+                for provider_map in type_map.values():
+                    user_to_providers[recipient] = provider_map
+
+        return user_to_providers
 
     def user_has_any_provider_settings(self, provider: ExternalProviderEnum | None = None) -> bool:
         """

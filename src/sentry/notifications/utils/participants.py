@@ -204,6 +204,23 @@ def get_participants_for_release(
 
     actors = RpcActor.many_from_object(RpcUser(id=user_id) for user_id in user_ids)
 
+    if should_use_notifications_v2(organization.id):
+        controller = NotificationController(
+            recipients=actors,
+            organization_id=organization.id,
+            type=NotificationSettingTypes.DEPLOY,
+        )
+        providers_by_recipient = controller.get_participants()
+
+        users_to_reasons_by_provider = ParticipantMap()
+        for actor in actors:
+            settings = providers_by_recipient[actor]
+            for provider, value in settings.items():
+                reason_option = get_reason(actor, value, commited_user_ids)
+                if reason_option:
+                    users_to_reasons_by_provider.add(provider, actor, reason_option)
+        return users_to_reasons_by_provider
+
     # Get all the involved users' settings for deploy-emails (including
     # users' organization-independent settings.)
     notification_settings = notifications_service.get_settings_for_recipient_by_parent(
