@@ -243,6 +243,11 @@ class BaseApiClient(TrackResponseMixin):
             if span and existing_transaction:
                 span.set_data("existing_transaction", existing_transaction)
 
+            extra = {"url": full_url}
+            # It shouldn't be possible for integration_type to be null.
+            if self.integration_type:
+                extra[self.integration_type] = self.name
+
             try:
                 with build_session() as session:
                     finalized_request = self.finalize_request(_prepared_request)
@@ -266,24 +271,19 @@ class BaseApiClient(TrackResponseMixin):
                         return resp
                     resp.raise_for_status()
             except RestrictedIPAddress as e:
-                self.track_response_data("restricted_ip_address", span, e)
+                self.track_response_data("restricted_ip_address", span, e, extra=extra)
                 self.record_error(e)
                 raise ApiHostError.from_exception(e) from e
             except ConnectionError as e:
-                self.track_response_data("connection_error", span, e)
+                self.track_response_data("connection_error", span, e, extra=extra)
                 self.record_error(e)
                 raise ApiHostError.from_exception(e) from e
             except Timeout as e:
-                self.track_response_data("timeout", span, e)
+                self.track_response_data("timeout", span, e, extra=extra)
                 self.record_error(e)
                 raise ApiTimeoutError.from_exception(e) from e
             except HTTPError as e:
-                extra = {"url": full_url}
-                # It shouldn't be possible for integration_type to be null.
-                if self.integration_type:
-                    extra[self.integration_type] = self.name
                 error_resp = e.response
-
                 if error_resp is None:
                     self.track_response_data("unknown", span, e)
 
