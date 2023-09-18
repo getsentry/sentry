@@ -17,7 +17,7 @@ export default function useRageDeadSelectors(params: DeadRageSelectorQueryParams
         `/organizations/${organization.slug}/replay-selectors/`,
         {
           query: {
-            cursor: query.cursor,
+            cursor: params.cursor ?? undefined,
             environment: query.environment,
             project: query.project,
             statsPeriod: query.statsPeriod,

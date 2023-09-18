@@ -30,6 +30,7 @@ export default function DeadClickList({location}: Props) {
   const {isLoading, isError, data, pageLinks} = useDeadRageSelectors({
     per_page: 50,
     sort: '-count_dead_clicks',
+    cursor: location.query.cursor,
   });
 
   if (!hasDeadClickFeature) {

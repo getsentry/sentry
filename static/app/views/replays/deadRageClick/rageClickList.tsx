@@ -30,6 +30,7 @@ export default function RageClickList({location}: Props) {
   const {isLoading, isError, data, pageLinks} = useDeadRageSelectors({
     per_page: 50,
     sort: '-count_rage_clicks',
+    cursor: location.query.cursor,
   });
 
   if (!hasRageClickFeature) {

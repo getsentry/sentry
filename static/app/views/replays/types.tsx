@@ -181,6 +181,7 @@ export type DeadRageSelectorListResponse = {
 };
 
 export interface DeadRageSelectorQueryParams {
+  cursor: string | undefined;
   per_page?: number;
   sort?:
     | 'count_dead_clicks'
