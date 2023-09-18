@@ -1,6 +1,6 @@
 import hashlib
 from collections import defaultdict, namedtuple
-from typing import Tuple, TypedDict
+from typing import List, TypedDict
 
 from rest_framework import status
 from rest_framework.request import Request
@@ -17,12 +17,6 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.utils.snuba import raw_snql_query
 
-
-class EventSpans(TypedDict):
-    transaction_id: str
-    spans: Tuple[str, str, str, str, str, int, int]
-
-
 EventSpan = namedtuple(
     "EventSpan",
     [
@@ -37,6 +31,13 @@ EventSpan = namedtuple(
         "exclusive_time",
     ],
 )
+
+
+class EventSpans(TypedDict):
+    transaction_id: str
+    spans: List[EventSpan]
+
+
 NULL_GROUP = "00"
 
 
@@ -202,6 +203,7 @@ class OrganizationSpansAggregationEndpoint(OrganizationEventsEndpointBase):
                 "description": description,
                 "start_ms": start_ms,
                 "avg(exclusive_time)": span_tree["exclusive_time"],
+                "is_segment": span_tree["is_segment"],
                 "avg(offset)": start_ms
                 - root_start_timestamp,  # offset of the span relative to the start timestamp of the root span
                 "count()": 1,
