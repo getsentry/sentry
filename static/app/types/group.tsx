@@ -555,11 +555,11 @@ interface ReprocessingStatusDetails {
   pendingEvents: number;
 }
 
-interface UserParticipant extends User {
+export interface UserParticipant extends User {
   type: 'user';
 }
 
-interface TeamParticipant extends Team {
+export interface TeamParticipant extends Team {
   type: 'team';
 }
 
