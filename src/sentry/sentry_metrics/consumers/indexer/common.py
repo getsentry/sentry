@@ -41,7 +41,6 @@ def get_config(
     )
     if group_instance_id is not None:
         consumer_config["group.instance.id"] = str(group_instance_id)
-    logger.info(f"consumer_config: {consumer_config}")
     return consumer_config
 
 
