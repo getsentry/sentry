@@ -25,6 +25,8 @@ from sentry.models.rulesnooze import RuleSnooze
 from sentry.models.user import User
 from sentry.notifications.helpers import should_use_notifications_v2
 from sentry.notifications.notificationcontroller import NotificationController
+from sentry.notifications.types import NotificationSettingEnum
+from sentry.services.hybrid_cloud.actor import ActorType
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.services.hybrid_cloud.user_option import RpcUserOption, user_option_service
@@ -133,11 +135,13 @@ class EmailActionHandler(ActionHandler):
             if should_use_notifications_v2(self.project.organization):
                 controller = NotificationController(
                     recipients={RpcUser(id=member.user_id) for member in target.member_set},
-                    project_ids=[id for project in self.projects],
+                    project_ids=[project.id for project in self.projects],
                     organization_id=self.project.organization_id,
                 )
 
-                users = controller.get_notification_recipients(type=type)
+                users = controller.get_notification_recipients(
+                    type=NotificationSettingEnum.ISSUE_ALERTS, actor_type=ActorType.USER
+                )
             else:
                 users = NotificationSetting.objects.filter_to_accepting_recipients(
                     self.project,

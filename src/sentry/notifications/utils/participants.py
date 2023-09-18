@@ -43,9 +43,11 @@ from sentry.notifications.helpers import (
 from sentry.notifications.notificationcontroller import NotificationController
 from sentry.notifications.notify import notification_providers
 from sentry.notifications.types import (
+    NOTIFICATION_SETTING_TYPES,
     ActionTargetType,
     FallthroughChoiceType,
     GroupSubscriptionReason,
+    NotificationSettingEnum,
     NotificationSettingOptionValues,
     NotificationSettingTypes,
 )
@@ -568,14 +570,19 @@ def get_recipients_by_provider(
 
     # First evaluate the teams.
     teams_by_provider = None
+    setting_type = NotificationSettingEnum[
+        [val for key, val in NOTIFICATION_SETTING_TYPES.items() if key == notification_type][0]
+    ]
     if should_use_notifications_v2(project.organization):
         controller = NotificationController(
             recipients=users,
             organization_id=project.organization_id,
             project_ids=[project.id],
-            type=notification_type,
+            type=setting_type,
         )
-        teams_by_provider = controller.get_notification_recipients(type=notification_type)
+        teams_by_provider = controller.get_notification_recipients(
+            type=setting_type, actor_type=ActorType.TEAM
+        )
     else:
         teams_by_provider = NotificationSetting.objects.filter_to_accepting_recipients(
             project, teams, notification_type
@@ -598,9 +605,11 @@ def get_recipients_by_provider(
             recipients=users,
             organization_id=project.organization_id,
             project_ids=[project.id],
-            type=notification_type,
+            type=setting_type,
         )
-        teams_by_provider = controller.get_notification_recipients(type=notification_type)
+        users_by_provider = controller.get_notification_recipients(
+            type=setting_type, actor_type=ActorType.USER
+        )
     else:
         users_by_provider = NotificationSetting.objects.filter_to_accepting_recipients(
             project, users, notification_type

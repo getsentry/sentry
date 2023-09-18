@@ -5,7 +5,7 @@ from typing import Any, Mapping, MutableMapping
 from sentry import features
 from sentry.models import Activity, NotificationSetting
 from sentry.notifications.notificationcontroller import NotificationController
-from sentry.notifications.types import GroupSubscriptionReason
+from sentry.notifications.types import GroupSubscriptionReason, NotificationSettingEnum
 from sentry.notifications.utils import summarize_issues
 from sentry.notifications.utils.participants import ParticipantMap
 from sentry.services.hybrid_cloud.actor import RpcActor
@@ -33,7 +33,9 @@ class NewProcessingIssuesActivityNotification(ActivityNotification):
                 project_ids=[self.project.id],
                 organization_id=self.project.organization_id,
             )
-            participants_by_provider = notification_controller.get_notification_recipients()
+            participants_by_provider = notification_controller.get_notification_recipients(
+                type=NotificationSettingEnum.ISSUE_ALERTS,
+            )
         else:
             participants_by_provider = NotificationSetting.objects.get_notification_recipients(
                 self.project

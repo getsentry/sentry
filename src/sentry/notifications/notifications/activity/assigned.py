@@ -1,11 +1,16 @@
 from __future__ import annotations
 
-from typing import Any, Mapping
+from typing import Any, Iterable, Mapping
 
 from sentry.models import Activity, NotificationSetting, Organization, Team
 from sentry.notifications.helpers import should_use_notifications_v2
 from sentry.notifications.notificationcontroller import NotificationController
-from sentry.notifications.types import GroupSubscriptionReason
+from sentry.notifications.types import (
+    NOTIFICATION_SETTING_TYPES,
+    GroupSubscriptionReason,
+    NotificationSettingEnum,
+)
+from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.types.integrations import ExternalProviders
@@ -85,16 +90,23 @@ class AssignedActivityNotification(GroupActivityNotification):
             assignee_team = _get_team_option(assignee_id, self.organization)
 
             if assignee_team:
-                teams_by_provider = None
+                teams_by_provider: Mapping[ExternalProviders, Iterable[RpcActor]] = {}
                 if should_use_notifications_v2(self.project.organization):
+                    setting_type = NotificationSettingEnum[
+                        [
+                            val
+                            for key, val in NOTIFICATION_SETTING_TYPES.items()
+                            if key == self.notification_setting_type
+                        ][0]
+                    ]
                     controller = NotificationController(
                         recipients=[assignee_team],
                         organization_id=self.project.organization_id,
                         project_ids=[self.project.id],
-                        type=self.notification_setting_type,
+                        type=setting_type,
                     )
                     teams_by_provider = controller.get_notification_recipients(
-                        type=self.notification_setting_type
+                        type=setting_type, actor_type=ActorType.TEAM
                     )
                 else:
                     teams_by_provider = NotificationSetting.objects.filter_to_accepting_recipients(

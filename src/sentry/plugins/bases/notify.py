@@ -11,8 +11,10 @@ from sentry.exceptions import InvalidIdentity, PluginError
 from sentry.models import NotificationSetting
 from sentry.notifications.helpers import should_use_notifications_v2
 from sentry.notifications.notificationcontroller import NotificationController
+from sentry.notifications.types import NotificationSettingEnum
 from sentry.plugins.base import Notification, Plugin
 from sentry.plugins.base.configuration import react_plugin_config
+from sentry.services.hybrid_cloud.actor import ActorType
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.types.integrations import ExternalProviderEnum, ExternalProviders
@@ -153,9 +155,10 @@ class NotificationPlugin(Plugin):
                     organization_id=project.organization_id,
                     provider=ExternalProviderEnum.EMAIL,
                 )
-                return notification_controller.get_notification_recipients()[
-                    ExternalProviders.EMAIL
-                ]
+                return notification_controller.get_notification_recipients(
+                    type=NotificationSettingEnum.ISSUE_ALERTS,
+                    actor_type=ActorType.USER,
+                )[ExternalProviders.EMAIL]
             else:
                 return NotificationSetting.objects.get_notification_recipients(project)[
                     ExternalProviders.EMAIL

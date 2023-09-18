@@ -118,7 +118,8 @@ class MailAdapter:
                 type=NotificationSettingEnum.ISSUE_ALERTS,
             )
             return controller.get_notification_recipients(
-                type=NotificationSettingEnum.ISSUE_ALERTS
+                type=NotificationSettingEnum.ISSUE_ALERTS,
+                actor_type=ActorType.USER,
             )[ExternalProviders.EMAIL]
 
         accepting_recipients = NotificationSetting.objects.filter_to_accepting_recipients(

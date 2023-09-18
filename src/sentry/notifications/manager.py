@@ -42,6 +42,7 @@ from sentry.notifications.types import (
     VALID_VALUES_FOR_KEY_V2,
     NotificationScopeEnum,
     NotificationScopeType,
+    NotificationSettingEnum,
     NotificationSettingOptionValues,
     NotificationSettingsOptionEnum,
     NotificationSettingTypes,
@@ -440,13 +441,17 @@ class NotificationsManager(BaseManager["NotificationSetting"]):  # noqa: F821
             organization = parent.id
 
         if should_use_notifications_v2(organization):
+            setting_type = NotificationSettingEnum[
+                [val for key, val in NOTIFICATION_SETTING_TYPES.items() if key == type][0]
+            ]
             controller = NotificationController(
                 recipients=recipient_actors,
                 project_ids=project_ids,
                 organization_id=organization.id,
+                type=setting_type,
             )
             logger.warning("Missing upstream implementation for get_notification_recipients in v2")
-            return controller.get_notification_recipients(type=type)
+            return controller.get_notification_recipients(type=setting_type)
 
         notification_settings = notifications_service.get_settings_for_recipient_by_parent(
             type=type, parent_id=parent.id, recipients=recipient_actors
