@@ -4,6 +4,7 @@ from datetime import timedelta, timezone
 from unittest.mock import patch
 from uuid import uuid4
 
+import pytest
 from django.utils.timezone import now
 from freezegun import freeze_time
 
@@ -17,9 +18,13 @@ from sentry.rules.conditions.event_frequency import (
 from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
+from sentry.testutils.skips import requires_snuba
 from sentry.utils.samples import load_data
 
+pytestmark = [requires_snuba]
 
+
+@pytest.mark.snuba_ci
 class FrequencyConditionMixin:
     def increment(self, event, count, environment=None, timestamp=None):
         raise NotImplementedError

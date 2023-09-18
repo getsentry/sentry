@@ -132,14 +132,22 @@ def test_client_config_in_silo_modes(request_factory: RequestFactory):
         request, _ = request
 
     base_line = get_client_config(request)
+    # Removing the region list as it varies based on silo mode.
+    # See Region.to_url()
+    base_line.pop("regions")
     cache.clear()
 
     with override_settings(SILO_MODE=SiloMode.REGION):
-        assert get_client_config(request) == base_line
+        result = get_client_config(request)
+        result.pop("regions")
+        assert result == base_line
         cache.clear()
 
     with override_settings(SILO_MODE=SiloMode.CONTROL):
-        assert get_client_config(request) == base_line
+        result = get_client_config(request)
+        result.pop("regions")
+        assert result == base_line
+        cache.clear()
 
 
 @django_db_all(transaction=True)
@@ -156,7 +164,7 @@ def test_client_config_deleted_user():
 
 @django_db_all
 @override_regions(regions=[])
-@override_settings(SILO_MODE=SiloMode.CONTROL, SENTRY_REGION=settings.SENTRY_MONOLITH_REGION)
+@override_settings(SILO_MODE=SiloMode.MONOLITH, SENTRY_REGION=settings.SENTRY_MONOLITH_REGION)
 def test_client_config_empty_region_data():
     request, user = make_user_request_from_org()
     request.user = user

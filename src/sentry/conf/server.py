@@ -728,6 +728,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.files",
     "sentry.tasks.groupowner",
     "sentry.tasks.integrations",
+    "sentry.tasks.invite_missing_org_members",
     "sentry.tasks.low_priority_symbolication",
     "sentry.tasks.merge",
     "sentry.tasks.options",
@@ -893,6 +894,7 @@ CELERY_QUEUES_REGION = [
     Queue("performance.statistical_detector", routing_key="performance.statistical_detector"),
     Queue("profiling.statistical_detector", routing_key="profiling.statistical_detector"),
     CELERY_ISSUE_STATES_QUEUE,
+    Queue("nudge.invite_missing_org_members", routing_key="invite_missing_org_members"),
 ]
 
 from celery.schedules import crontab
@@ -1046,6 +1048,15 @@ CELERYBEAT_SCHEDULE_REGION = {
             minute=0, hour=12, day_of_week="monday"  # 05:00 PDT, 09:00 EDT, 12:00 UTC
         ),
         "options": {"expires": 60 * 60 * 3},
+    },
+    "schedule-monthly-invite-missing-org-members": {
+        "task": "sentry.tasks.invite_missing_org_members.schedule_organizations",
+        "schedule": crontab(
+            minute=0,
+            hour=7,
+            day_of_month="1",  # 00:00 PDT, 03:00 EDT, 7:00 UTC
+        ),
+        "options": {"expires": 60 * 25},
     },
     "schedule-hybrid-cloud-foreign-key-jobs": {
         "task": "sentry.tasks.deletion.hybrid_cloud.schedule_hybrid_cloud_foreign_key_jobs",
@@ -1431,6 +1442,8 @@ SENTRY_FEATURES = {
     "organizations:profiling-memory-chart": False,
     # Enable profiling battery usage chart
     "organizations:profiling-battery-usage-chart": False,
+    # Enable profiling summary redesign view
+    "organizations:profiling-summary-redesign": False,
     # Enable disabling github integrations when broken is detected
     "organizations:github-disable-on-broken": False,
     # Enable disabling gitlab integrations when broken is detected
@@ -1451,6 +1464,8 @@ SENTRY_FEATURES = {
     "organizations:incidents": False,
     # Enable issue platform
     "organizations:issue-platform": False,
+    # Enable additional logging for issue platform
+    "organizations:issue-platform-extra-logging": False,
     # Whether to allow issue only search on the issue list
     "organizations:issue-search-allow-postgres-only-search": False,
     # Flags for enabling CdcEventsDatasetSnubaSearchBackend in sentry.io. No effect in open-source
@@ -1651,6 +1666,8 @@ SENTRY_FEATURES = {
     "organizations:session-replay-trace-table": False,
     # Enable the AM1 trial ended banner on sentry.io
     "organizations:session-replay-trial-ended-banner": False,
+    # Enable the Replay rage and dead click selector tables in the UI
+    "organizations:session-replay-rage-dead-selectors": False,
     # Enable the new suggested assignees feature
     "organizations:streamline-targeting-context": False,
     # Enable the new experimental starfish view
@@ -1669,6 +1686,8 @@ SENTRY_FEATURES = {
     "organizations:performance-issues-dev": False,
     # Enable performance issues detector threshold configuration
     "organizations:project-performance-settings-admin": False,
+    # Enable feature to load more than 100 rows in performance trace view.
+    "organizations:trace-view-load-more": False,
     # Enables updated all events tab in a performance issue
     "organizations:performance-issues-all-events-tab": False,
     # Temporary flag to test search performance that's running slow in S4S
@@ -1760,6 +1779,8 @@ SENTRY_FEATURES = {
     "organizations:notifications-double-write": False,
     # Excludes measurement config from project config builds.
     "organizations:projconfig-exclude-measurements": False,
+    # Enable source maps debugger
+    "organizations:source-maps-debugger-blue-thunder-edition": False,
     # Enable data forwarding functionality for projects.
     "projects:data-forwarding": True,
     # Enable functionality to discard groups.
@@ -1785,6 +1806,8 @@ SENTRY_FEATURES = {
     "projects:auto-associate-commits-to-release": False,
     # Starfish: extract metrics from the spans
     "projects:span-metrics-extraction": False,
+    "projects:span-metrics-extraction-ga-modules": False,
+    "projects:span-metrics-extraction-all-modules": False,
     # Metrics: Enable ingestion, storage, and rendering of custom metrics
     "organizations:custom-metrics": False,
     # Metrics: Enable creation of investigation dynamic sampling rules (rules that

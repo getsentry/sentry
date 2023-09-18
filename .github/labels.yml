@@ -320,14 +320,6 @@
   color: '584774'
   description: ''
 
-# Hosting type
-- name: 'Hosting: Self-hosted'
-  color: '584774'
-  description: ''
-- name: 'Hosting: sentry.io'
-  color: '584774'
-  description: ''
-
 # Generic useful label
 - name: WIP
   color: 'F6F6F8'

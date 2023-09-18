@@ -221,6 +221,7 @@ yarn.lock                                                @getsentry/owners-js-de
 
 /static/app/views/performance/                                            @getsentry/performance
 /static/app/utils/performance/                                            @getsentry/performance
+/static/app/components/events/eventStatisticalDetector/                   @getsentry/performance
 /static/app/components/events/interfaces/spans/                           @getsentry/performance
 /static/app/components/performance/                                       @getsentry/performance
 /static/app/components/quickTrace/                                        @getsentry/performance
@@ -308,6 +309,7 @@ yarn.lock                                                @getsentry/owners-js-de
 /src/sentry/api/endpoints/organization_release_previous_commits.py   @getsentry/issues
 /src/sentry/api/endpoints/sentry_app/                                @getsentry/issues
 /src/sentry/api/endpoints/project_rule*.py                           @getsentry/issues
+/src/sentry/api/serializers/models/rule.py 							 @getsentry/issues
 
 /static/app/views/organizationIntegrations                           @getsentry/issues
 /static/app/views/settings/project/projectOwnership/                 @getsentry/issues
@@ -417,7 +419,8 @@ yarn.lock                                                @getsentry/owners-js-de
 
 
 ## SDK
-/src/sentry/utils/sdk.py   @getsentry/team-web-sdk-backend
+/src/sentry/utils/sdk.py                                             @getsentry/team-web-sdk-backend
+/src/sentry/api/endpoints/source_map_debug_blue_thunder_edition.py   @getsentry/team-web-sdk-frontend
 ## End of SDK
 
 

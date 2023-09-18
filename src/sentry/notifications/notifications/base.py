@@ -158,6 +158,7 @@ class BaseNotification(abc.ABC):
             self.record_analytics(
                 f"integrations.{provider.name}.notification_sent",
                 category=self.metrics_key,
+                notification_uuid=self.notification_uuid if self.notification_uuid else "",
                 **self.get_log_params(recipient),
             )
             # record an optional second event
