@@ -75,7 +75,7 @@ class Migration(CheckedMigration):
     is_dangerous = True
 
     dependencies = [
-        ("sentry", "0552_create_neglectedalert_table"),
+        ("sentry", "0555_set_neglectedrule_email_date_columns_nullable"),
     ]
 
     operations = [
