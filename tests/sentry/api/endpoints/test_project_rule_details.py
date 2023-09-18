@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any, Mapping
 from unittest.mock import patch
 
@@ -10,7 +10,14 @@ from rest_framework import status
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.slack.utils.channel import strip_channel_name
-from sentry.models import Environment, Integration, Rule, RuleActivity, RuleActivityType
+from sentry.models import (
+    Environment,
+    Integration,
+    NeglectedRule,
+    Rule,
+    RuleActivity,
+    RuleActivityType,
+)
 from sentry.models.actor import Actor, get_actor_for_user
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.silo import SiloMode
@@ -159,6 +166,28 @@ class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
         assert response.data["conditions"][0]["id"] == conditions[0]["id"]
         assert len(response.data["filters"]) == 1
         assert response.data["filters"][0]["id"] == conditions[1]["id"]
+
+    @responses.activate
+    def test_neglected_rule(self):
+        now = datetime.now().replace(tzinfo=timezone.utc)
+        NeglectedRule.objects.create(
+            rule=self.rule,
+            organization=self.organization,
+            opted_out=False,
+            disable_date=now + timedelta(days=14),
+        )
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, self.rule.id, status_code=200
+        )
+        assert response.data["disableReason"] == "noisy"
+        assert response.data["disableDate"] == now + timedelta(days=14)
+
+        another_rule = self.create_project_rule(project=self.project)
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, another_rule.id, status_code=200
+        )
+        assert not response.data.get("disableReason")
+        assert not response.data.get("disableDate")
 
     @responses.activate
     def test_with_snooze_rule(self):
