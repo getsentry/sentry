@@ -24,7 +24,7 @@ MAX_RULE_PERIOD = parse_stats_period(MAX_RULE_PERIOD_STRING)
 DEFAULT_PERIOD_STRING = "1h"
 # the number of samples to collect per custom rule
 NUM_SAMPLES_PER_CUSTOM_RULE = 100
-_DATE_FORMAT = "%Y-%m-%dT%H:%M:%S,%fZ"
+_DATE_FORMAT = "%Y-%m-%dT%H:%M:%S.%fZ"
 
 
 class CustomRulesInputSerializer(serializers.Serializer):

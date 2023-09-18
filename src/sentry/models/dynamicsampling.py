@@ -1,5 +1,5 @@
 import hashlib
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, Mapping, Optional, Sequence
 
 from django.db import connections, models, router, transaction
@@ -8,9 +8,11 @@ from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, region_silo_only_model
-from sentry.dynamic_sampling.rules.utils import MAX_CUSTOM_RULES, RESERVED_IDS, RuleType
-from sentry.snuba.metrics.extraction import RuleCondition
 from sentry.utils import json
+
+# max number of custom rules that can be created per organization
+MAX_CUSTOM_RULES = 2000
+CUSTOM_RULE_START = 3000
 
 
 class TooManyRules(ValueError):
@@ -21,7 +23,7 @@ class TooManyRules(ValueError):
     pass
 
 
-def get_condition_hash(condition: RuleCondition) -> str:
+def get_condition_hash(condition: Any) -> str:
     """
     Returns the hash of the rule based on the condition and projects
     """
@@ -104,7 +106,7 @@ class CustomDynamicSamplingRule(Model):
         For external users, i.e. Relay, we need to shift the ids since the slot we
         have allocated starts at the offset specified in RESERVED_IDS.
         """
-        return self.rule_id + RESERVED_IDS[RuleType.CUSTOM_RULE]
+        return self.rule_id + CUSTOM_RULE_START
 
     class Meta:
         app_label = "sentry"
@@ -122,7 +124,7 @@ class CustomDynamicSamplingRule(Model):
 
     @staticmethod
     def get_rule_for_org(
-        condition: RuleCondition, organization_id: int
+        condition: Any, organization_id: int
     ) -> Optional["CustomDynamicSamplingRule"]:
         """
         Returns an active rule for the given condition and organization if it exists otherwise None
@@ -143,7 +145,7 @@ class CustomDynamicSamplingRule(Model):
 
     @staticmethod
     def update_or_create(
-        condition: RuleCondition,
+        condition: Any,
         start: datetime,
         end: datetime,
         project_ids: Sequence[int],
@@ -240,3 +242,17 @@ class CustomDynamicSamplingRule(Model):
             cursor.execute(raw_sql, (self.organization.id, now, self.id))
         self.refresh_from_db()
         return self.rule_id
+
+    @staticmethod
+    def deactivate_old_rules() -> None:
+        """
+        Deactivates all rules expired rules (this is just an optimization to remove old rules from indexes).
+
+        This should be called periodically to clean up old rules (it is not necessary to call it for correctness,
+        just for performance)
+        """
+        CustomDynamicSamplingRule.objects.filter(
+            # give it a minute grace period to make sure we don't deactivate rules that are still active
+            end_date__lt=timezone.now()
+            - timedelta(minutes=1),
+        ).update(is_active=False)

@@ -1,171 +1,22 @@
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 
 import pytest
-from freezegun import freeze_time
 
-from sentry.api.endpoints.custom_rules import _save_rule
-from sentry.dynamic_sampling import get_redis_client_for_ds
-from sentry.dynamic_sampling.rules.biases.custom_rule_bias import (
-    SerializedCustomRule,
-    custom_rules_redis_key,
-    get_custom_rule_hash,
-    remove_expired_rules,
-    rule_from_json,
+from sentry.api.endpoints.custom_rules import (
+    _DATE_FORMAT,
+    DEFAULT_PERIOD_STRING,
+    MAX_RULE_PERIOD_STRING,
+    CustomRulesInputSerializer,
 )
-from sentry.snuba.metrics.extraction import ComparingRuleCondition
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import Feature
 from sentry.testutils.silo import region_silo_test
-from sentry.utils import json
-
-
-@freeze_time("2023-09-11T10:00:00Z")
-def test_save_expired_rule():
-    """
-    Test that we are not saving already expired rules
-    """
-    org_id = 1
-
-    now = datetime.now(tz=timezone.utc)
-
-    rule = SerializedCustomRule(
-        condition={"op": "eq", "name": "event.type", "value": "transaction"},
-        start=now.timestamp(),
-        expiration=(now - timedelta(minutes=1)).timestamp(),
-        project_ids=[1, 2, 3],
-        org_id=org_id,
-        count=100,
-        rule_id=0,
-    )
-
-    redis_client = get_redis_client_for_ds()
-    key = custom_rules_redis_key(org_id)
-
-    # start with a clean slate
-    redis_client.delete(key)
-
-    with pytest.raises(ValueError):
-        _save_rule(rule)
-
-    # check that the rule was not saved
-    rule = redis_client.hget(key, get_custom_rule_hash(rule))
-    assert rule is None
-
-
-@freeze_time("2023-09-11T10:00:00Z")
-@pytest.mark.parametrize("old_exists", [True, False])
-def test_save_rule(old_exists):
-    condition: ComparingRuleCondition = {"op": "eq", "name": "event.type", "value": "transaction"}
-    org_id = 1
-
-    new_rule = SerializedCustomRule(
-        condition=condition,
-        expiration=(datetime.utcnow() + timedelta(hours=1)).timestamp(),
-        project_ids=[1, 2, 3],
-        org_id=org_id,
-        count=100,
-        rule_id=0,
-    )
-
-    old_rule = SerializedCustomRule(
-        condition=condition,
-        expiration=(datetime.utcnow() + timedelta(minutes=1)).timestamp(),
-        project_ids=[1, 2, 3],
-        org_id=org_id,
-        count=100,
-        rule_id=0,
-    )
-
-    other_condition: ComparingRuleCondition = {"op": "eq", "name": "event.type", "value": "event"}
-
-    some_other_rule = SerializedCustomRule(
-        condition=other_condition,  # something that should not be overridden
-        expiration=(datetime.utcnow() + timedelta(minutes=30)).timestamp(),
-        project_ids=[],
-        org_id=org_id,
-        count=100,
-        rule_id=0,
-    )
-
-    redis_client = get_redis_client_for_ds()
-    key = custom_rules_redis_key(org_id)
-
-    # start with a clean slate
-    redis_client.delete(key)
-
-    redis_client.hset(key, get_custom_rule_hash(some_other_rule), json.dumps(some_other_rule))
-    if old_exists:
-        redis_client.hset(key, get_custom_rule_hash(old_rule), json.dumps(old_rule))
-
-    _save_rule(new_rule)
-
-    # check the function does what it should
-
-    # it should not touch some other rule
-    other_rule_str = redis_client.hget(key, get_custom_rule_hash(some_other_rule))
-    actual_other_rule = rule_from_json(other_rule_str)
-
-    # keeps other rules
-    assert actual_other_rule == some_other_rule
-
-    actual_rule_str = redis_client.hget(key, get_custom_rule_hash(new_rule))
-    actual_rule = rule_from_json(actual_rule_str)
-
-    if old_exists:
-        assert actual_rule["expiration"] == old_rule["expiration"]
-    else:
-        assert actual_rule["expiration"] == new_rule["expiration"]
-
-
-def test_clean_expired_rules():
-    """
-    Test that rules that are expired are cleaned up from redis
-    """
-    org_id = 1
-    condition: ComparingRuleCondition = {"op": "eq", "name": "event.type", "value": "transaction"}
-
-    with freeze_time("2023-09-11T10:00:00Z") as frozen_time:
-        old_rule = SerializedCustomRule(
-            condition=condition,
-            expiration=(datetime.utcnow() + timedelta(minutes=1)).timestamp(),
-            project_ids=[],
-            org_id=org_id,
-            count=100,
-            rule_id=0,
-        )
-
-        new_condition: ComparingRuleCondition = {"op": "eq", "name": "event.type", "value": "event"}
-        new_rule = SerializedCustomRule(
-            condition=new_condition,  # something that should not be overridden
-            expiration=(datetime.utcnow() + timedelta(minutes=30)).timestamp(),
-            project_ids=[],
-            org_id=org_id,
-        )
-
-        _save_rule(old_rule)
-        _save_rule(new_rule)
-
-        # expire the old rule go forward 2 minutes since the old rule expires in 1 minute from now
-        frozen_time.tick(delta=timedelta(minutes=2))
-
-        remove_expired_rules(org_id)
-
-        redis_client = get_redis_client_for_ds()
-        key = custom_rules_redis_key(org_id)
-
-        # the new rule should still be there
-        new_rule_str = redis_client.hget(key, get_custom_rule_hash(new_rule))
-        assert new_rule_str is not None
-
-        # the old rule should be gone
-        old_rule_str = redis_client.hget(key, get_custom_rule_hash(old_rule))
-        assert old_rule_str is None
 
 
 @region_silo_test(stable=True)
 class CustomRulesEndpoint(APITestCase):
     """
-    Tests that calling the endpoint converts the query to a rule returns it and saves it in redis
+    Tests that calling the endpoint converts the query to a rule returns it and saves it in the db
     """
 
     endpoint = "sentry-api-0-organization-dynamic_sampling-custom_rules"
@@ -174,12 +25,13 @@ class CustomRulesEndpoint(APITestCase):
     def setUp(self):
         super().setUp()
         self.login_as(user=self.user)
+        self.second_project = self.create_project(organization=self.organization)
 
     def test_simple(self):
         request_data = {
             "query": "event.type:transaction",
             "projects": [self.project.id],
-            "period": "1d",
+            "period": "1h",
             "overrideExisting": True,
         }
         with Feature({"organizations:investigation-bias": True}):
@@ -189,14 +41,72 @@ class CustomRulesEndpoint(APITestCase):
 
         data = resp.data
 
-        # check we have the rule in redis
-        redis_client = get_redis_client_for_ds()
-        key = custom_rules_redis_key(self.organization.id)
-        rule_str = redis_client.hget(key, get_custom_rule_hash(data))
-        rule = rule_from_json(rule_str)
+        start_date = datetime.strptime(data["startDate"], _DATE_FORMAT)
+        end_date = datetime.strptime(data["endDate"], _DATE_FORMAT)
+        assert end_date - start_date == timedelta(hours=1)
+        projects = data["projects"]
+        assert projects == [self.project.id]
+        org_id = data["orgId"]
+        assert org_id == self.organization.id
 
-        # returned rule is the same as the one in redis
-        assert rule == data
+        # check the database
+        rule_id = data["ruleId"]
+        rules = list(self.organization.customdynamicsamplingrule_set.all())
+        assert len(rules) == 1
+        rule = rules[0]
+        assert rule.external_rule_id == rule_id
+
+    def test_updates_existing(self):
+        """
+        Test that the endpoint updates an existing rule if the same rule condition is given
+
+        The rule id should be the same
+        The period and the projects should be updated
+        """
+        request_data = {
+            "query": "event.type:transaction",
+            "projects": [self.project.id],
+            "period": "1h",
+            "overrideExisting": True,
+        }
+
+        # create rule
+        with Feature({"organizations:investigation-bias": True}):
+            resp = self.get_response(self.organization.slug, raw_data=request_data)
+
+        assert resp.status_code == 200
+
+        data = resp.data
+
+        rule_id = data["ruleId"]
+        start_date = datetime.strptime(data["startDate"], _DATE_FORMAT)
+        end_date = datetime.strptime(data["endDate"], _DATE_FORMAT)
+        assert end_date - start_date == timedelta(hours=1)
+
+        request_data = {
+            "query": "event.type:transaction",
+            "projects": [self.second_project.id],
+            "period": "2h",
+            "overrideExisting": True,
+        }
+
+        # update existing rule
+        with Feature({"organizations:investigation-bias": True}):
+            resp = self.get_response(self.organization.slug, raw_data=request_data)
+
+        assert resp.status_code == 200
+        data = resp.data
+
+        start_date = datetime.strptime(data["startDate"], _DATE_FORMAT)
+        end_date = datetime.strptime(data["endDate"], _DATE_FORMAT)
+        assert end_date - start_date >= timedelta(hours=2)
+
+        projects = data["projects"]
+        assert self.project.id in projects
+        assert self.second_project.id in projects
+
+        new_rule_id = data["ruleId"]
+        assert rule_id == new_rule_id
 
     def test_checks_feature(self):
         """
@@ -205,10 +115,66 @@ class CustomRulesEndpoint(APITestCase):
         request_data = {
             "query": "event.type:transaction",
             "projects": [self.project.id],
-            "period": "1d",
+            "period": "1h",
             "overrideExisting": True,
         }
         with Feature({"organizations:investigation-bias": False}):
             resp = self.get_response(self.organization.slug, raw_data=request_data)
 
         assert resp.status_code == 404
+
+
+@pytest.mark.parametrize(
+    "what,value,valid",
+    [
+        ("query", "event.type:transaction", True),
+        ("projects", [1, 2, 3], True),
+        ("period", "1h", True),
+        ("projects", ["abc"], False),
+        ("period", "hello", False),
+    ],
+)
+def test_custom_rule_serializer(what, value, valid):
+    """
+    Test that the serializer works as expected
+    """
+    data = {"query": "event.type:transaction", "projects": [1, 2, 3], "period": "1h"}
+    data[what] = value
+
+    serializer = CustomRulesInputSerializer(data=data)
+
+    assert serializer.is_valid() == valid
+
+
+def test_custom_rule_serializer_default_period():
+    """
+    Test that the serializer validation sets the default period
+    """
+    data = {"query": "event.type:transaction", "projects": [1, 2, 3]}
+    serializer = CustomRulesInputSerializer(data=data)
+
+    assert serializer.is_valid()
+    assert serializer.validated_data["period"] == DEFAULT_PERIOD_STRING
+
+
+def test_custom_rule_serializer_limits_period():
+    """
+    Test that the serializer validation limits the peroid to the max allowed
+    """
+    data = {"query": "event.type:transaction", "projects": [1, 2, 3], "period": "100d"}
+    serializer = CustomRulesInputSerializer(data=data)
+
+    assert serializer.is_valid()
+    assert serializer.validated_data["period"] == MAX_RULE_PERIOD_STRING
+
+
+def test_custom_rule_serializer_creates_org_rule_when_no_projects_given():
+    """
+    Test that the serializer creates an org level rule when no projects are given
+    """
+    data = {"query": "event.type:transaction", "period": "1h"}
+    serializer = CustomRulesInputSerializer(data=data)
+
+    assert serializer.is_valid()
+    # an org level rule has an empty list of projects set
+    assert serializer.validated_data["projects"] == []
