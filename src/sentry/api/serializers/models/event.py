@@ -15,6 +15,7 @@ from sentry.eventstore.models import Event, GroupEvent
 from sentry.models import EventAttachment, EventError, Release, User, UserReport
 from sentry.sdk_updates import SdkSetupState, get_suggested_updates
 from sentry.search.utils import convert_user_tag_to_query, map_device_class_level
+from sentry.stacktraces.processing import find_stacktraces_in_data
 from sentry.utils.json import prune_empty_keys
 from sentry.utils.safe import get_path
 
@@ -429,11 +430,22 @@ class IssueEventSerializer(SqlFormatEventSerializer):
     def _get_sdk_updates(self, obj):
         return list(get_suggested_updates(SdkSetupState.from_event_json(obj.data)))
 
+    def _get_resolved_with(self, obj: Event) -> list[str]:
+        stacktraces = find_stacktraces_in_data(obj.data)
+
+        frames = [stacktrace.get_frames() for stacktrace in stacktraces]
+        flattened_frames = [frame for frame_list in frames for frame in frame_list]
+
+        unique_resolution_methods = list({frame.get("resolved_with") for frame in flattened_frames})
+
+        return [method for method in unique_resolution_methods if method]
+
     def serialize(self, obj, attrs, user, include_full_release_data=False):
         result = super().serialize(obj, attrs, user)
         result["release"] = self._get_release_info(user, obj, include_full_release_data)
         result["userReport"] = self._get_user_report(user, obj)
         result["sdkUpdates"] = self._get_sdk_updates(obj)
+        result["resolvedWith"] = self._get_resolved_with(obj)
         return result
 
 
