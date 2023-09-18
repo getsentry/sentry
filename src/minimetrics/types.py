@@ -1,4 +1,16 @@
-from typing import Dict, Generic, Iterable, List, Literal, Mapping, Tuple, TypeVar, Union
+from typing import (
+    Any,
+    Dict,
+    Generic,
+    Iterable,
+    List,
+    Literal,
+    Mapping,
+    Sequence,
+    Tuple,
+    TypeVar,
+    Union,
+)
 
 # Unit of the metrics.
 MetricUnit = Literal[
@@ -67,5 +79,5 @@ class Metric(Generic[T]):
         raise NotImplementedError()
 
 
-FlushableMetric = Tuple[int, BucketKey, Metric]
-FlushableBuckets = Iterable[Tuple[int, Dict[BucketKey, Metric]]]
+FlushableMetric = Tuple[int, BucketKey, Metric[Any]]
+FlushableBuckets = Sequence[Tuple[int, Dict[BucketKey, Metric[Any]]]]

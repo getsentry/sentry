@@ -3,7 +3,7 @@ import threading
 import time
 import zlib
 from threading import Event, Lock, Thread
-from typing import Any, Callable, Dict, Iterable, List, Optional, Set, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, Set, Tuple, Union
 
 import sentry_sdk
 
@@ -190,11 +190,11 @@ class Aggregator:
             # initialization, thus if you emit metrics when a backend is initialized Python will throw an error.
             self._emit(flushable_buckets)
 
-    def _flushable_buckets(self) -> [FlushableBuckets, bool]:
+    def _flushable_buckets(self) -> Tuple[FlushableBuckets, bool]:
         with self._lock:
             force_flush = self._force_flush
             cutoff = time.time() - self.ROLLUP_IN_SECONDS
-            flushable_buckets = []
+            flushable_buckets: Any = []
             weight_to_remove = 0
 
             if force_flush:
@@ -212,7 +212,7 @@ class Aggregator:
 
                 # We will clear the elements while holding the lock, in order to avoid requesting it downstream again.
                 for buckets_timestamp, buckets in flushable_buckets:
-                    for bucket_key, metric in buckets:
+                    for _, metric in buckets.items():
                         weight_to_remove += metric.weight
                     del self.buckets[buckets_timestamp]
 

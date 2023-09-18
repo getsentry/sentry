@@ -78,8 +78,9 @@ class MetricEnvelopeTransport:
         flushable_metrics: List[FlushableMetric] = []
         stats_by_type: Dict[MetricType, Tuple[int, int]] = {}
         for buckets_timestamp, buckets in flushable_buckets:
-            for bucket_key, metric in buckets:
-                flushable_metrics.append((buckets_timestamp, bucket_key, metric))
+            for bucket_key, metric in buckets.items():
+                flushable_metric: FlushableMetric = (buckets_timestamp, bucket_key, metric)
+                flushable_metrics.append(flushable_metric)
                 (prev_buckets_count, prev_buckets_weight) = stats_by_type.get(bucket_key[0], (0, 0))
                 stats_by_type[bucket_key[0]] = (
                     prev_buckets_count + 1,
