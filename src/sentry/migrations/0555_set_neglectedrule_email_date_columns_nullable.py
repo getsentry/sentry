@@ -19,7 +19,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0555_set_neglectedrule_email_date_columns_nullable"),
+        ("sentry", "0554_add_team_replica"),
     ]
 
     operations = [
