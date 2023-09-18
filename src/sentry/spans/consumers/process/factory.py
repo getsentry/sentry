@@ -115,7 +115,7 @@ def _build_snuba_span(relay_span: Mapping[str, Any]) -> MutableMapping[str, Any]
     if "status_code" in sentry_tags:
         sentry_tags["status_code"] = sentry_tags["status_code"]
 
-    snuba_span["sentry_tags"] = {k: str(v) for k, v in sentry_tags}
+    snuba_span["sentry_tags"] = {k: str(v) for k, v in sentry_tags.items()}
 
     grouping_config = load_span_grouping_config()
     snuba_span["span_grouping_config"] = {"id": grouping_config.id}
