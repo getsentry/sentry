@@ -23,19 +23,16 @@ class IssueAlertExamples:
                             "id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
                             "value": 1000,
                             "comparisonType": "count",
-                            "name": "The issue is seen more than 1000 times in 1h",
                         }
                     ],
                     "filters": [
                         {
                             "value": "1",
                             "id": "sentry.rules.filters.issue_category.IssueCategoryFilter",
-                            "name": "The issue's category is equal to 1",
                         },
                         {
                             "value": "2",
                             "id": "sentry.rules.filters.issue_category.IssueCategoryFilter",
-                            "name": "The issue's category is equal to 2",
                         },
                     ],
                     "actions": [
@@ -44,7 +41,6 @@ class IssueAlertExamples:
                             "fallthroughType": "ActiveMembers",
                             "id": "sentry.mail.actions.NotifyEmailAction",
                             "targetIdentifier": 4367234414355,
-                            "name": "Send a notification to Team and if none can be found then send a notification to ActiveMembers",
                         }
                     ],
                     "actionMatch": "any",
@@ -78,7 +74,6 @@ class IssueAlertExamples:
                 "conditions": [
                     {
                         "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
-                        "name": "A new issue is created",
                     }
                 ],
                 "filters": [
@@ -86,7 +81,6 @@ class IssueAlertExamples:
                         "targetType": "Unassigned",
                         "id": "sentry.rules.filters.assigned_to.AssignedToFilter",
                         "targetIdentifier": "",
-                        "name": "The issue is assigned to Unassigned",
                     }
                 ],
                 "actions": [
@@ -95,7 +89,6 @@ class IssueAlertExamples:
                         "fallthroughType": "ActiveMembers",
                         "id": "sentry.mail.actions.NotifyEmailAction",
                         "targetIdentifier": 1523125,
-                        "name": "Send a notification to Member and if none can be found then send a notification to ActiveMembers",
                     }
                 ],
                 "actionMatch": "any",
