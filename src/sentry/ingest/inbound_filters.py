@@ -161,7 +161,10 @@ def _filter_from_filter_id(filter_id):
 
 
 class _FilterSerializer(serializers.Serializer):
-    active = serializers.BooleanField()
+    active = serializers.BooleanField(
+        help_text="Toggle the browser-extensions, localhost, filtered-transaction, or web-crawlers filter on or off.",
+        required=False,
+    )
 
 
 class _FilterSpec:
@@ -218,6 +221,18 @@ _browser_extensions_filter = _FilterSpec(
 
 class _LegacyBrowserFilterSerializer(_FilterSerializer):
     subfilters = MultipleChoiceField(
+        help_text="""
+Specifies which legacy browser filters should be active. Anything excluded from the list will be
+disabled. The options are:
+- `ie_pre_9`: Internet Explorer Version 8 and lower
+- `ie9`: Internet Explorer Version 9
+- `ie10`: Internet Explorer Version 10
+- `ie11`: Internet Explorer Version 11
+- `safari_pre_6`: Safari Version 5 and lower
+- `opera_pre_15`: Opera Version 14 and lower
+- `opera_mini_pre_8`: Opera Mini Version 8 and lower
+- `android_pre_4`: Android Version 3 and lower
+""",
         choices=[
             "ie_pre_9",
             "ie9",
@@ -227,7 +242,8 @@ class _LegacyBrowserFilterSerializer(_FilterSerializer):
             "android_pre_4",
             "safari_pre_6",
             "opera_mini_pre_8",
-        ]
+        ],
+        required=False,
     )
 
 

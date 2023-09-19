@@ -1,3 +1,4 @@
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 ERROR_MESSAGES = {
@@ -5,6 +6,7 @@ ERROR_MESSAGES = {
 }
 
 
+@extend_schema_field(field={"type": "array", "items": {"type": "integer"}})
 class MultipleChoiceField(serializers.Field):
     def __init__(self, choices=None, *args, **kwargs):
         self.choices = set(choices or ())
