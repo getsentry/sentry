@@ -21,7 +21,6 @@ from sentry.notifications.helpers import (
     transform_to_notification_settings_by_recipient,
     where_should_be_participating,
 )
-from sentry.notifications.notificationcontroller import NotificationController
 from sentry.notifications.types import (
     GroupSubscriptionReason,
     NotificationSettingEnum,
@@ -151,18 +150,20 @@ class GroupSubscriptionManager(BaseManager):
             subscription.user_id: subscription for subscription in active_and_disabled_subscriptions
         }
 
-        if should_use_notifications_v2(group.organization.id):
-            controller = NotificationController(
+        if should_use_notifications_v2(group.project.organization):
+            if not all_possible_users:  # no users, no notifications
+                return ParticipantMap()
+
+            providers_by_recipient = notifications_service.get_participants(
                 recipients=all_possible_users,
                 project_ids=[group.project_id],
                 organization_id=group.organization.id,
                 type=NotificationSettingEnum.WORKFLOW,
             )
-            providers_by_recipient = controller.get_participants()
             result = ParticipantMap()
             for user in all_possible_users:
                 subscription_option = subscriptions_by_user_id.get(user.id)
-                for provider in providers_by_recipient.get(user, []):
+                for provider in providers_by_recipient.get(user.id, []):
                     reason = (
                         subscription_option
                         and subscription_option.reason

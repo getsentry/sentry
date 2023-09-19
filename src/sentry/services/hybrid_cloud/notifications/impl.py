@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Callable, List, Mapping, Optional, Sequence, Tuple
+from typing import Callable, List, Mapping, MutableMapping, Optional, Sequence, Tuple
 
 from django.db import router, transaction
 from django.db.models import Q, QuerySet
@@ -14,6 +14,7 @@ from sentry.notifications.types import (
     NotificationScopeType,
     NotificationSettingEnum,
     NotificationSettingOptionValues,
+    NotificationSettingsOptionEnum,
     NotificationSettingTypes,
 )
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
@@ -215,7 +216,26 @@ class DatabaseBackedNotificationsService(NotificationsService):
             project_ids=project_ids,
             type=type,
         )
-        return controller.get_subscriptions_status_for_projects(user=user, project_ids=project_ids)
+        return controller.get_subscriptions_status_for_projects(
+            user=user, project_ids=project_ids, type=type
+        )
+
+    def get_participants(
+        self,
+        *,
+        recipients: List[RpcActor],
+        project_ids: Optional[List[int]],
+        organization_id: Optional[int],
+        type: NotificationSettingEnum,
+    ) -> MutableMapping[int, MutableMapping[ExternalProviders, NotificationSettingsOptionEnum]]:
+        controller = NotificationController(
+            recipients=recipients,
+            project_ids=project_ids,
+            organization_id=organization_id,
+            type=type,
+        )
+        participants = controller.get_participants()
+        return {actor.id: providers for actor, providers in participants.items()}
 
     class _NotificationSettingsQuery(
         FilterQueryDatabaseImpl[

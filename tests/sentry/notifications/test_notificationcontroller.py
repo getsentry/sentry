@@ -519,3 +519,58 @@ class NotificationControllerTest(TestCase):
         assert controller.user_has_any_provider_settings(provider=ExternalProviderEnum.SLACK)
         assert controller.user_has_any_provider_settings(provider=ExternalProviderEnum.EMAIL)
         assert not controller.user_has_any_provider_settings(provider=ExternalProviderEnum.MSTEAMS)
+
+    def test_get_subscriptions_status_for_projects(self):
+        controller = NotificationController(
+            recipients=[self.user],
+            project_ids=[self.project.id],
+            organization_id=self.organization.id,
+        )
+
+        assert controller.get_subscriptions_status_for_projects(
+            project_ids=[self.project.id],
+            user=self.user,
+            type=NotificationSettingEnum.DEPLOY,
+        ) == {self.project.id: (False, True)}
+
+        assert controller.get_subscriptions_status_for_projects(
+            project_ids=[self.project.id],
+            user=self.user,
+            type=NotificationSettingEnum.ISSUE_ALERTS,
+        ) == {self.project.id: (False, False)}
+
+        assert controller.get_subscriptions_status_for_projects(
+            project_ids=[self.project.id],
+            user=self.user,
+            type=NotificationSettingEnum.QUOTA,
+        ) == {self.project.id: (False, True)}
+
+    def test_get_participants(self):
+        rpc_user = RpcActor.from_object(self.user)
+        controller = NotificationController(
+            recipients=[self.user],
+            project_ids=[self.project.id],
+            organization_id=self.organization.id,
+            type=NotificationSettingEnum.ISSUE_ALERTS,
+        )
+
+        assert controller.get_participants() == {
+            rpc_user: {
+                ExternalProviders.EMAIL: NotificationSettingsOptionEnum.ALWAYS,
+                ExternalProviders.SLACK: NotificationSettingsOptionEnum.ALWAYS,
+            }
+        }
+
+        controller = NotificationController(
+            recipients=[self.user],
+            project_ids=[self.project.id],
+            organization_id=self.organization.id,
+            type=NotificationSettingEnum.WORKFLOW,
+        )
+
+        assert controller.get_participants() == {
+            rpc_user: {
+                ExternalProviders.EMAIL: NotificationSettingsOptionEnum.ALWAYS,
+                ExternalProviders.SLACK: NotificationSettingsOptionEnum.ALWAYS,
+            }
+        }

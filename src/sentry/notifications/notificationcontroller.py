@@ -422,29 +422,34 @@ class NotificationController:
         type: NotificationSettingEnum | None = None,
     ) -> Mapping[int, Tuple[bool, bool]]:
         """
-        Returns whether the user is subscribed for each project, and the subscription object if it exists.
-        {project_id -> (is_disabled, is_active, subscription object)}
+        Returns whether the user is subscribed for each project.
+        {project_id -> (is_disabled, is_active)}
         """
         setting_type = type or self.type
-        if not type:
+        if not setting_type:
             raise Exception("Must specify type")
 
         enabled_settings = self.get_settings_options_for_user_by_projects(user)
         subscription_status_for_projects = {}
         for project, type_setting in enabled_settings.items():
+            has_setting = False
             if project not in project_ids:
                 continue
 
-            for type, setting in type_setting.items():
-                if type != setting_type:
+            for t, setting in type_setting.items():
+                if t != setting_type:
                     continue
 
+                has_setting = True
                 subscription_status_for_projects[project] = (
                     setting == {},
                     any(
                         value == NotificationSettingsOptionEnum.ALWAYS for value in setting.values()
                     ),
                 )
+
+            if not has_setting:
+                subscription_status_for_projects[project] = (False, False)
 
         return subscription_status_for_projects
 
@@ -462,7 +467,6 @@ class NotificationController:
             raise Exception("Must specify type")
 
         enabled_settings = self.get_all_enabled_settings(type=self.type.value)
-
         user_to_providers: MutableMapping[
             RpcActor, MutableMapping[ExternalProviders, NotificationSettingsOptionEnum]
         ] = defaultdict(dict)
@@ -476,6 +480,7 @@ class NotificationController:
                     user_to_providers[actor] = {
                         EXTERNAL_PROVIDERS_REVERSE[provider]: value
                         for provider, value in provider_map.items()
+                        if value != NotificationSettingsOptionEnum.NEVER
                     }
 
         return user_to_providers
