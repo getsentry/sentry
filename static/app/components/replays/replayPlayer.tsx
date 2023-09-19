@@ -114,21 +114,15 @@ function BasePlayerRoot({className, isPreview = false}: Props) {
   }, [windowDimensions, videoDimensions]);
 
   return (
-    <FixedContainer ref={windowEl} className="sentry-block">
+    <NegativeSpaceContainer ref={windowEl} className="sentry-block">
       <div ref={viewEl} className={className} />
       {fastForwardSpeed ? <PositionedFastForward speed={fastForwardSpeed} /> : null}
       {isBuffering ? <PositionedBuffering /> : null}
       {isPreview ? null : <PlayerDOMAlert />}
       {isFetching ? <PositionedLoadingIndicator /> : null}
-    </FixedContainer>
+    </NegativeSpaceContainer>
   );
 }
-
-const FixedContainer = styled(NegativeSpaceContainer)`
-  border: none;
-  resize: none;
-  padding: 0;
-`;
 
 const PositionedFastForward = styled(FastForwardBadge)`
   position: absolute;
