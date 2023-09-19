@@ -127,7 +127,10 @@ export default function TagFacets({
             name,
             value: name,
             count,
-            url: '',
+
+            // These values aren't displayed in the sidebar
+            firstSeen: '',
+            lastSeen: '',
           })),
         };
       });
