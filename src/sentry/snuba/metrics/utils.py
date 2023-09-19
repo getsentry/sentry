@@ -96,7 +96,6 @@ MetricOperationType = Literal[
     "min_timestamp",
     "max_timestamp",
     # Custom operations used for on demand derived metrics.
-    "on_demand_failure_count",
     "on_demand_failure_rate",
     "on_demand_apdex",
 ]
@@ -274,13 +273,7 @@ OPERATIONS_PERCENTILES = (
     "p95",
     "p99",
 )
-OPERATIONS = (
-    "avg",
-    "count_unique",
-    "count",
-    "max",
-    "min",
-    "sum",
+DERIVED_OPERATIONS = (
     "histogram",
     "rate",
     "count_web_vitals",
@@ -295,7 +288,19 @@ OPERATIONS = (
     "on_demand_failure_count",
     "on_demand_failure_rate",
     "on_demand_apdex",
-) + OPERATIONS_PERCENTILES
+)
+OPERATIONS = (
+    (
+        "avg",
+        "count_unique",
+        "count",
+        "max",
+        "min",
+        "sum",
+    )
+    + OPERATIONS_PERCENTILES
+    + DERIVED_OPERATIONS
+)
 
 DEFAULT_AGGREGATES: Dict[MetricOperationType, Optional[Union[int, List[Tuple[float]]]]] = {
     "avg": None,
@@ -426,7 +431,7 @@ def to_intervals(
 
 def get_num_intervals(
     start: Optional[datetime],
-    end: datetime,
+    end: Optional[datetime],
     granularity: int,
     interval: Optional[int] = None,
 ) -> int:

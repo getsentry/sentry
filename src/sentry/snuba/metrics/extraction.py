@@ -28,7 +28,6 @@ from sentry.discover.arithmetic import is_equation
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import Project, ProjectTransactionThreshold, TransactionMetric
 from sentry.search.events import fields
-from sentry.search.events.constants import NON_FAILURE_STATUS
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.utils import MetricOperationType
 from sentry.utils.snuba import is_measurement, is_span_op_breakdown, resolve_column
@@ -562,7 +561,7 @@ def failure_tag_spec(_1: Project, _2: Optional[str]) -> List[TagSpec]:
                 "inner": {
                     "name": "event.contexts.trace.status",
                     "op": "eq",
-                    "value": list(NON_FAILURE_STATUS),
+                    "value": ["ok", "cancelled", "unknown"],
                 },
                 "op": "not",
             },
@@ -643,12 +642,12 @@ class OnDemandMetricSpec:
     _metric_type: str
     _argument: Optional[str]
 
-    def __init__(self, field: str, query: str) -> None:
+    def __init__(self, field: str, query: str):
         self.field = field
         self.query = self._cleanup_query(query)
         self._eager_process()
 
-    def _eager_process(self) -> None:
+    def _eager_process(self):
         op, metric_type, argument = self._process_field()
 
         self.op = op

@@ -805,7 +805,7 @@ def max_timestamp(aggregate_filter, org_id, use_case_id, alias=None):
 def on_demand_failure_count_snql_factory(
     aggregate_filter: Function, org_id: int, use_case_id: UseCaseID, alias: str = None
 ) -> Function:
-    # XXX Make sure typing fails
+    """Count the number of transactions where the failure tag is set to true."""
     return Function(
         "sumIf",
         [
@@ -830,6 +830,7 @@ def on_demand_failure_count_snql_factory(
 def on_demand_failure_rate_snql_factory(
     aggregate_filter: Function, org_id: int, use_case_id: UseCaseID, alias: str = None
 ) -> Function:
+    """Divide the number of transactions that failed from the total."""
     return Function(
         "divide",
         [
