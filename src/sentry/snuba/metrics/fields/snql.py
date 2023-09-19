@@ -802,6 +802,22 @@ def max_timestamp(aggregate_filter, org_id, use_case_id, alias=None):
     return timestamp_column_snql("maxIf", aggregate_filter, org_id, use_case_id, alias)
 
 
+def on_demand_failure_rate_snql_factory(
+    aggregate_filter: Function, org_id: int, use_case_id: UseCaseID, alias: str
+) -> Function:
+    """Divide the number of transactions that failed from the total."""
+    return Function(
+        "divide",
+        [
+            on_demand_failure_count_snql_factory(
+                aggregate_filter, org_id, use_case_id, "failure_count"
+            ),
+            Function("sumIf", [Column("value"), aggregate_filter]),
+        ],
+        alias=alias,
+    )
+
+
 def on_demand_failure_count_snql_factory(
     aggregate_filter: Function, org_id: int, use_case_id: UseCaseID, alias: str
 ) -> Function:
@@ -823,22 +839,6 @@ def on_demand_failure_count_snql_factory(
                     aggregate_filter,
                 ],
             ),
-        ],
-        alias=alias,
-    )
-
-
-def on_demand_failure_rate_snql_factory(
-    aggregate_filter: Function, org_id: int, use_case_id: UseCaseID, alias: str
-) -> Function:
-    """Divide the number of transactions that failed from the total."""
-    return Function(
-        "divide",
-        [
-            on_demand_failure_count_snql_factory(
-                aggregate_filter, org_id, use_case_id, "failure_count"
-            ),
-            Function("sumIf", [Column("value"), aggregate_filter]),
         ],
         alias=alias,
     )
