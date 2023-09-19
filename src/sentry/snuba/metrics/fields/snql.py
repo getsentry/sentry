@@ -802,9 +802,7 @@ def max_timestamp(aggregate_filter, org_id, use_case_id, alias=None):
     return timestamp_column_snql("maxIf", aggregate_filter, org_id, use_case_id, alias)
 
 
-def on_demand_failure_rate_snql_factory(
-    aggregate_filter: Function, org_id: int, use_case_id: UseCaseID, alias: str
-) -> Function:
+def on_demand_failure_rate_snql_factory(aggregate_filter, org_id, use_case_id, alias=None):
     """Divide the number of transactions that failed from the total."""
     return Function(
         "divide",
@@ -844,9 +842,7 @@ def on_demand_failure_count_snql_factory(
     )
 
 
-def on_demand_apdex_snql_factory(
-    aggregate_filter: Function, org_id: int, use_case_id: UseCaseID, alias: str
-) -> Function:
+def on_demand_apdex_snql_factory(aggregate_filter, org_id, use_case_id, alias=None):
     # For more information about the formula, check https://docs.sentry.io/product/performance/metrics/#apdex.
 
     satisfactory = Function(
