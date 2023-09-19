@@ -19,7 +19,10 @@ from sentry.silo import SiloMode
 from sentry.testutils.cases import PerformanceIssueTestCase, TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.skips import requires_snuba
 from sentry.types.integrations import ExternalProviders
+
+pytestmark = [requires_snuba]
 
 
 @region_silo_test(stable=True)
