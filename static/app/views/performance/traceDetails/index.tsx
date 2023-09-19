@@ -23,6 +23,7 @@ import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import TraceDetailsContent from './content';
+import {DEFAULT_TRACE_ROWS_LIMIT} from './limitExceededMessage';
 import {getTraceSplitResults} from './utils';
 
 type Props = RouteComponentProps<{traceSlug: string}, {}> & {
@@ -30,7 +31,23 @@ type Props = RouteComponentProps<{traceSlug: string}, {}> & {
   organization: Organization;
 };
 
+type State = {
+  limit: number;
+};
+
 class TraceSummary extends Component<Props> {
+  state: State = {
+    limit: Number(this.props.location.query.limit) ?? DEFAULT_TRACE_ROWS_LIMIT,
+  };
+
+  componentDidUpdate(prevProps: Props): void {
+    if (prevProps.location.query.limit !== this.props.location.query.limit) {
+      this.setState({
+        limit: this.props.location.query.limit,
+      });
+    }
+  }
+
   getDocumentTitle(): string {
     return [t('Trace Details'), t('Performance')].join(' — ');
   }
@@ -125,6 +142,7 @@ class TraceSummary extends Component<Props> {
         start={start}
         end={end}
         statsPeriod={statsPeriod}
+        limit={this.state.limit}
       >
         {traceResults => (
           <TraceMetaQuery

@@ -11,6 +11,7 @@ import {
 } from 'sentry/utils/performance/quickTrace/types';
 import {isTraceSplitResult, reduceTrace} from 'sentry/utils/performance/quickTrace/utils';
 
+import {DEFAULT_TRACE_ROWS_LIMIT} from './limitExceededMessage';
 import {TraceInfo} from './types';
 
 export function getTraceDetailsUrl(
@@ -20,14 +21,22 @@ export function getTraceDetailsUrl(
   query: Query
 ): LocationDescriptor {
   const {start, end, statsPeriod} = dateSelection;
+
+  const queryParams = {
+    ...query,
+    statsPeriod,
+    limit: DEFAULT_TRACE_ROWS_LIMIT,
+    [PAGE_URL_PARAM.PAGE_START]: start,
+    [PAGE_URL_PARAM.PAGE_END]: end,
+  };
+
+  if (organization.features.includes('trace-view-load-more')) {
+    queryParams.limit = DEFAULT_TRACE_ROWS_LIMIT;
+  }
+
   return {
     pathname: `/organizations/${organization.slug}/performance/trace/${traceSlug}/`,
-    query: {
-      ...query,
-      statsPeriod,
-      [PAGE_URL_PARAM.PAGE_START]: start,
-      [PAGE_URL_PARAM.PAGE_END]: end,
-    },
+    query: queryParams,
   };
 }
 

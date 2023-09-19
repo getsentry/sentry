@@ -132,7 +132,12 @@ class TraceDetailsContent extends Component<Props, State> {
   }
 
   renderTraceLoading() {
-    return <LoadingIndicator />;
+    return (
+      <LoadingContainer>
+        <StyledLoadingIndicator />
+        Hang in there, as we build your trace view!
+      </LoadingContainer>
+    );
   }
 
   renderTraceRequiresDateRangeSelection() {
@@ -413,6 +418,16 @@ class TraceDetailsContent extends Component<Props, State> {
     );
   }
 }
+
+const StyledLoadingIndicator = styled(LoadingIndicator)`
+  margin-bottom: 0;
+`;
+
+const LoadingContainer = styled('div')`
+  font-size: ${p => p.theme.fontSizeLarge};
+  color: ${p => p.theme.subText};
+  text-align: center;
+`;
 
 const Margin = styled('div')`
   margin-top: ${space(2)};
