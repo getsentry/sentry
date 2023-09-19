@@ -2,11 +2,11 @@ import uuid
 from datetime import timedelta
 
 from django.utils import timezone
-from freezegun import freeze_time
 
 from sentry.models import Environment, Group
 from sentry.monitors.models import CheckInStatus, MonitorCheckIn, MonitorStatus
 from sentry.testutils.cases import MonitorTestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.samples import load_data
 

@@ -5,7 +5,6 @@ from hashlib import sha1
 from unittest.mock import patch
 
 from django.core.files.base import ContentFile
-from freezegun import freeze_time
 
 from sentry.models import File, FileBlob, FileBlobOwner, ReleaseFile
 from sentry.models.artifactbundle import (
@@ -30,6 +29,7 @@ from sentry.tasks.assemble import (
     get_assemble_status,
 )
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.datetime import freeze_time
 
 
 class BaseAssembleTest(TestCase):

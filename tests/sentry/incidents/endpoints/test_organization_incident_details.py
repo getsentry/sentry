@@ -1,11 +1,10 @@
 from functools import cached_property
 
-from freezegun import freeze_time
-
 from sentry.api.serializers import serialize
 from sentry.incidents.models import Incident, IncidentActivity, IncidentStatus
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 

@@ -1,15 +1,14 @@
-import freezegun
 import pytest
 
 from sentry.constants import DataCategory
 from sentry.models import ProjectKey
 from sentry.testutils.cases import APITestCase, OutcomesSnubaTest, SnubaTestCase
-from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.outcomes import Outcome
 
 
-@freezegun.freeze_time("2022-01-01 03:30:00")
+@freeze_time("2022-01-01 03:30:00")
 @region_silo_test(stable=True)
 class ProjectKeyStatsTest(OutcomesSnubaTest, SnubaTestCase, APITestCase):
     def setUp(self):

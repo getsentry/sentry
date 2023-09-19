@@ -1,7 +1,6 @@
 from unittest import mock
 
 import pytest
-from freezegun import freeze_time
 
 from sentry.ingest.transaction_clusterer import ClustererNamespace
 from sentry.ingest.transaction_clusterer.base import ReplacementRule
@@ -29,6 +28,7 @@ from sentry.ingest.transaction_clusterer.tasks import (
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.relay.config import get_project_config
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import Feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all

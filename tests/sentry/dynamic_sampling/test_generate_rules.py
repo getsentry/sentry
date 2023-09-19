@@ -3,7 +3,6 @@ from datetime import datetime, timedelta, timezone
 from unittest.mock import MagicMock, patch
 
 import pytest
-from freezegun import freeze_time
 from sentry_relay.processing import validate_project_config
 
 from sentry.constants import HEALTH_CHECK_GLOBS
@@ -19,6 +18,7 @@ from sentry.dynamic_sampling.rules.utils import (
 from sentry.models.projectteam import ProjectTeam
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import Feature
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json
 

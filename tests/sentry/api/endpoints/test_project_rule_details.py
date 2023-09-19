@@ -5,7 +5,6 @@ from typing import Any, Mapping
 from unittest.mock import patch
 
 import responses
-from freezegun import freeze_time
 from rest_framework import status
 
 from sentry.constants import ObjectStatus
@@ -23,6 +22,7 @@ from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import install_slack
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.utils import json
 

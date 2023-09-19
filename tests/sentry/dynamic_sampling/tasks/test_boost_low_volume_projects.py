@@ -2,7 +2,6 @@ from datetime import timedelta
 from typing import List, cast
 
 from django.utils import timezone
-from freezegun import freeze_time
 
 from sentry.dynamic_sampling.tasks.boost_low_volume_projects import (
     fetch_projects_with_total_root_transaction_count_and_rates,
@@ -11,6 +10,7 @@ from sentry.dynamic_sampling.tasks.task_context import TaskContext
 from sentry.models import Organization, Project
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.testutils.cases import BaseMetricsLayerTestCase, SnubaTestCase, TestCase
+from sentry.testutils.helpers.datetime import freeze_time
 
 MOCK_DATETIME = (timezone.now() - timedelta(days=1)).replace(
     hour=0, minute=0, second=0, microsecond=0

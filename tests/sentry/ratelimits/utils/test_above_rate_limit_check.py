@@ -4,10 +4,10 @@ from time import sleep, time
 from unittest import TestCase
 
 from django.conf import settings
-from freezegun import freeze_time
 
 from sentry.ratelimits import above_rate_limit_check, finish_request
 from sentry.ratelimits.config import RateLimitConfig
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.types.ratelimit import RateLimit, RateLimitMeta, RateLimitType
 
 

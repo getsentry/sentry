@@ -7,7 +7,6 @@ import pytest
 from django.test import override_settings
 from django.urls import reverse
 from django.utils import timezone as django_timezone
-from freezegun import freeze_time
 from snuba_sdk.column import Column
 from snuba_sdk.function import Function
 
@@ -22,7 +21,7 @@ from sentry.models.transaction_threshold import (
 from sentry.search.events import constants
 from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_not_arm64
 from sentry.utils import json

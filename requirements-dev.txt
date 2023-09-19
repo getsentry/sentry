@@ -2,7 +2,6 @@
 
 covdefaults>=2.3.0
 docker>=3.7.0,<3.8.0
-freezegun>=1.2.2
 time-machine>=2.13.0
 honcho>=1.1.0
 openapi-core>=0.14.2

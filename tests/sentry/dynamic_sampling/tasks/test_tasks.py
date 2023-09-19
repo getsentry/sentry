@@ -4,7 +4,6 @@ from unittest.mock import patch
 
 import pytest
 from django.utils import timezone as django_timezone
-from freezegun import freeze_time
 
 from sentry.dynamic_sampling import RuleType, generate_rules, get_redis_client_for_ds
 from sentry.dynamic_sampling.rules.base import NEW_MODEL_THRESHOLD_IN_MINUTES
@@ -33,6 +32,7 @@ from sentry.dynamic_sampling.tasks.sliding_window import sliding_window
 from sentry.dynamic_sampling.tasks.sliding_window_org import sliding_window_org
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.testutils.cases import BaseMetricsLayerTestCase, SnubaTestCase, TestCase
+from sentry.testutils.helpers.datetime import freeze_time
 
 MOCK_DATETIME = (django_timezone.now() - timedelta(days=1)).replace(
     hour=0, minute=0, second=0, microsecond=0

@@ -7,7 +7,6 @@ from django.conf import settings
 from django.core import mail
 from django.urls import reverse
 from django.utils import timezone
-from freezegun import freeze_time
 
 from sentry.incidents.action_handlers import (
     EmailActionHandler,
@@ -29,6 +28,7 @@ from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.types.integrations import ExternalProviders
 

@@ -1,10 +1,10 @@
 from unittest.mock import patch
 
 import responses
-from freezegun import freeze_time
 
 from sentry.incidents.action_handlers import SentryAppActionHandler
 from sentry.incidents.models import AlertRuleTriggerAction, IncidentStatus
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 

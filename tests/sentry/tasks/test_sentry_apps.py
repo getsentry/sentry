@@ -7,7 +7,6 @@ from celery import Task
 from django.core import mail
 from django.test import override_settings
 from django.urls import reverse
-from freezegun import freeze_time
 from requests.exceptions import Timeout
 
 from sentry import audit_log
@@ -38,7 +37,7 @@ from sentry.tasks.sentry_apps import (
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
 from sentry.testutils.helpers.eventprocessing import write_event_to_cache
 from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
