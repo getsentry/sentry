@@ -123,11 +123,6 @@ def update_alert_rule(request: Request, organization, alert_rule):
 
 
 def remove_alert_rule(request: Request, organization, alert_rule):
-    project = alert_rule.snuba_query.subscriptions.get().project
-
-    if not request.access.has_project_access(project):
-        return Response(status=status.HTTP_403_FORBIDDEN)
-
     try:
         delete_alert_rule(alert_rule, user=request.user, ip_address=request.META.get("REMOTE_ADDR"))
         return Response(status=status.HTTP_204_NO_CONTENT)
@@ -143,6 +138,18 @@ class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
         "PUT": ApiPublishStatus.UNKNOWN,
     }
 
+    def check_project_access(func):
+        def wrapper(self, request: Request, organization, alert_rule):
+            project = alert_rule.snuba_query.subscriptions.get().project
+
+            if not request.access.has_project_access(project):
+                return Response(status=status.HTTP_403_FORBIDDEN)
+
+            return func(self, request, organization, alert_rule)
+
+        return wrapper
+
+    @check_project_access
     def get(self, request: Request, organization, alert_rule) -> Response:
         """
         Fetch a metric alert rule.
@@ -151,6 +158,7 @@ class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
         """
         return fetch_alert_rule(request, organization, alert_rule)
 
+    @check_project_access
     def put(self, request: Request, organization, alert_rule) -> Response:
         """
         Update a metric alert rule.
@@ -159,6 +167,7 @@ class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
         """
         return update_alert_rule(request, organization, alert_rule)
 
+    @check_project_access
     def delete(self, request: Request, organization, alert_rule) -> Response:
         """
         Fetch a metric alert rule.
