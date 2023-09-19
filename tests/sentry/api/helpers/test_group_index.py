@@ -30,8 +30,11 @@ from sentry.models.actor import ActorTuple
 from sentry.models.groupassignee import GroupAssignee
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
+
+pytestmark = [requires_snuba]
 
 
 class ValidateSearchFilterPermissionsTest(TestCase):
