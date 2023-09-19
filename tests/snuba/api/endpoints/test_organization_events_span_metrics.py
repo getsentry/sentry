@@ -591,6 +591,15 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             )
             assert response.status_code == 200, response.content
 
+            data = response.data["data"]
+            meta = response.data["meta"]
+
+            assert len(data) == 1
+            assert data[0][function_name] == -0.9
+
+            assert meta["dataset"] == "spansMetrics"
+            assert meta["fields"][function_name] == "percent_change"
+
     def test_avg_compare_invalid_column(self):
         response = self.do_request(
             {
