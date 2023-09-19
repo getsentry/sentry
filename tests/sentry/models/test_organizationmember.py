@@ -53,6 +53,12 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
         ):
             assert member.legacy_token == "df41d9dfd4ba25d745321e654e15b5d0"
 
+    def test_get_invite_link_with_referrer(self):
+        member = OrganizationMember(id=1, organization=self.organization, email="foo@example.com")
+
+        link = member.get_invite_link(referrer="test_referrer")
+        assert "?referrer=test_referrer" in link
+
     def test_send_invite_email(self):
         member = OrganizationMember(id=1, organization=self.organization, email="foo@example.com")
         with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
@@ -74,14 +80,15 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
     def test_send_sso_link_email(self):
         organization = self.create_organization()
         member = OrganizationMember(id=1, organization=organization, email="foo@example.com")
+        provider = manager.get("dummy")
         with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
-            member.send_invite_email()
+            member.send_sso_link_email("sender@example.com", provider)
 
         assert len(mail.outbox) == 1
 
         msg = mail.outbox[0]
-
         assert msg.to == ["foo@example.com"]
+        assert msg.subject == f"Action Required for {organization.name}"
 
     @patch("sentry.utils.email.MessageBuilder")
     def test_send_sso_unlink_email(self, builder):

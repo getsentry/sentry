@@ -5,14 +5,13 @@ from datetime import timedelta
 from typing import TYPE_CHECKING, Iterable, Mapping, Optional, Tuple
 
 from django.conf import settings
-from django.core.serializers.base import DeserializedObject
 from django.db import models
-from django.forms import model_to_dict
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
-from sentry.backup.dependencies import PrimaryKeyMap
-from sentry.backup.scopes import RelocationScope
+from sentry.backup.dependencies import ImportKind, PrimaryKeyMap
+from sentry.backup.helpers import ImportFlags
+from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import (
     BaseManager,
     FlexibleForeignKey,
@@ -84,14 +83,33 @@ class UserEmail(Model):
         """@deprecated"""
         return cls.objects.get_primary_email(user)
 
-    # TODO(getsentry/team-ospo#181): what's up with email/useremail here? Seems like both get added
-    # with `sentry.user` simultaneously? Will need to make more robust user handling logic, and to
-    # test what happens when a UserEmail already exists.
+    def normalize_before_relocation_import(
+        self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
+    ) -> Optional[int]:
+        # If we are merging users, ignore this import and use the merged user's data.
+        if pk_map.get_kind("sentry.User", self.user_id) == ImportKind.Existing:
+            return None
+
+        old_pk = super().normalize_before_relocation_import(pk_map, scope, flags)
+        if old_pk is None:
+            return None
+
+        # Only preserve validation hashes in global scope - in all others, have the user verify
+        # their email again.
+        if scope != ImportScope.Global:
+            self.is_verified = False
+            self.validation_hash = get_secure_token()
+            self.date_hash_added = timezone.now()
+
+        return old_pk
+
     def write_relocation_import(
-        self, pk_map: PrimaryKeyMap, _: DeserializedObject
-    ) -> Optional[Tuple[int, int]]:
-        old_pk = super()._normalize_before_relocation_import(pk_map)
-        (useremail, _) = self.__class__.objects.get_or_create(
-            user=self.user, email=self.email, defaults=model_to_dict(self)
-        )
-        return (old_pk, useremail.pk)
+        self, _s: ImportScope, _f: ImportFlags
+    ) -> Optional[Tuple[int, ImportKind]]:
+        useremail = self.__class__.objects.get(user=self.user, email=self.email)
+        for f in self._meta.fields:
+            if f.name not in ["id", "pk"]:
+                setattr(useremail, f.name, getattr(self, f.name))
+        useremail.save()
+
+        return (useremail.pk, ImportKind.Existing)

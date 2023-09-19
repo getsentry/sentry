@@ -128,5 +128,17 @@ class AppService(RpcService):
     ) -> List[RpcSentryApp]:
         pass
 
+    @rpc_method
+    @abc.abstractmethod
+    def create_internal_integration_for_channel_request(
+        self,
+        *,
+        organization_id: int,
+        integration_creator: str,
+        integration_name: str,
+        integration_scopes: List[str],
+    ) -> RpcSentryAppInstallation:
+        pass
+
 
 app_service = cast(AppService, AppService.create_delegation())

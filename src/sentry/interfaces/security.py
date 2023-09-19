@@ -64,7 +64,7 @@ DEFAULT_DISALLOWED_SOURCES = (
     "hoholikik.club",
     "smartlink.cool",
     "promfflinkdev.com",
-)  # yapf: disable
+)
 
 
 class SecurityReport(Interface):
@@ -72,7 +72,7 @@ class SecurityReport(Interface):
     A browser security violation report.
     """
 
-    title = None
+    title: str
 
 
 class Hpkp(SecurityReport):

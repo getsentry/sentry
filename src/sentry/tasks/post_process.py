@@ -16,18 +16,20 @@ from sentry.exceptions import PluginError
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.killswitches import killswitch_matches_context
+from sentry.replays.lib.event_linking import transform_event_for_linking_payload
+from sentry.replays.lib.kafka import initialize_replays_publisher
 from sentry.sentry_metrics.client import generic_metrics_backend
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.signals import event_processed, issue_unignored, transaction_processed
 from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.utils import metrics
+from sentry.utils import json, metrics
 from sentry.utils.cache import cache
 from sentry.utils.event_frames import get_sdk_name
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.locking.manager import LockManager
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
-from sentry.utils.safe import safe_execute
+from sentry.utils.safe import get_path, safe_execute
 from sentry.utils.sdk import bind_organization_context, set_current_event_project
 from sentry.utils.services import build_instance_from_options
 
@@ -844,6 +846,17 @@ def process_snoozes(job: PostProcessJob) -> None:
 
 
 def process_replay_link(job: PostProcessJob) -> None:
+    def _get_replay_id(event):
+        # replay ids can either come as a context, or a tag.
+        # right now they come as a context on non-js events,
+        # and javascript transaction (through DSC context)
+        # It comes as a tag on js errors.
+        # TODO: normalize this upstream in relay and javascript SDK. and eventually remove the tag
+        # logic.
+
+        context_replay_id = get_path(event.data, "contexts", "replay", "replay_id")
+        return context_replay_id or event.get_tag("replayId")
+
     if job["is_reprocessed"]:
         return
 
@@ -856,10 +869,22 @@ def process_replay_link(job: PostProcessJob) -> None:
     metrics.incr("post_process.process_replay_link.id_sampled")
 
     group_event = job["event"]
-    if not group_event.data.get("contexts", {}).get("replay", {}).get("replay_id"):
+    replay_id = _get_replay_id(group_event)
+    if not replay_id:
         return
 
     metrics.incr("post_process.process_replay_link.id_exists")
+
+    publisher = initialize_replays_publisher(is_async=True)
+    try:
+        kafka_payload = transform_event_for_linking_payload(replay_id, group_event)
+    except ValueError:
+        metrics.incr("post_process.process_replay_link.id_invalid")
+
+    publisher.publish(
+        "ingest-replay-events",
+        json.dumps(kafka_payload),
+    )
 
 
 def process_rules(job: PostProcessJob) -> None:

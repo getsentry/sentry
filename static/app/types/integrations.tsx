@@ -249,8 +249,12 @@ export type SentryAppInstallation = {
   code?: string;
 };
 
-export type SentryAppComponent = {
-  schema: SentryAppSchemaStacktraceLink;
+export type SentryAppComponent<
+  Schema extends SentryAppSchemaStacktraceLink | SentryAppSchemaElement =
+    | SentryAppSchemaStacktraceLink
+    | SentryAppSchemaElement,
+> = {
+  schema: Schema;
   sentryApp: {
     avatars: Avatar[];
     name: string;

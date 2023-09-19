@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {LineSeriesOption} from 'echarts';
 import * as echarts from 'echarts/core';
 import {
+  MarkLineOption,
   TooltipFormatterCallback,
   TopLevelFormatterParams,
   XAXisOption,
@@ -50,15 +51,15 @@ import {
 } from 'sentry/utils/discover/fields';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
-import {SpanMetricsFields} from 'sentry/views/starfish/types';
+import {SpanMetricsField} from 'sentry/views/starfish/types';
 
 const STARFISH_CHART_GROUP = 'starfish_chart_group';
 
 export const STARFISH_FIELDS: Record<string, {outputType: AggregationOutputType}> = {
-  [SpanMetricsFields.SPAN_DURATION]: {
+  [SpanMetricsField.SPAN_DURATION]: {
     outputType: 'duration',
   },
-  [SpanMetricsFields.SPAN_SELF_TIME]: {
+  [SpanMetricsField.SPAN_SELF_TIME]: {
     outputType: 'duration',
   },
   // local is only used with `time_spent_percentage` function
@@ -82,11 +83,13 @@ type Props = {
   forwardedRef?: RefObject<ReactEchartsRef>;
   grid?: AreaChartProps['grid'];
   height?: number;
+  hideYAxis?: boolean;
   hideYAxisSplitLine?: boolean;
   isBarChart?: boolean;
   isLineChart?: boolean;
   legendFormatter?: (name: string) => string;
   log?: boolean;
+  markLine?: MarkLineOption;
   onClick?: EChartClickHandler;
   onDataZoom?: EChartDataZoomHandler;
   onHighlight?: EChartHighlightHandler;
@@ -456,6 +459,7 @@ function Chart({
               additionalSeries={transformedThroughput}
               xAxis={xAxis}
               stacked={stacked}
+              colors={colors}
               onClick={onClick}
               {...areaChartProps}
               onLegendSelectChanged={onLegendSelectChanged}

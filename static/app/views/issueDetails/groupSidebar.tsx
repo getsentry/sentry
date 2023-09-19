@@ -26,9 +26,12 @@ import {
   AvatarUser,
   CurrentRelease,
   Group,
+  IssueType,
   Organization,
   OrganizationSummary,
   Project,
+  TeamParticipant,
+  UserParticipant,
 } from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -133,6 +136,13 @@ export default function GroupSidebar({
       return null;
     }
 
+    const userParticipants = participants.filter(
+      (p): p is UserParticipant => p.type === 'user'
+    );
+    const teamParticipants = participants.filter(
+      (p): p is TeamParticipant => p.type === 'team'
+    );
+
     return (
       <SidebarSection.Wrap>
         <SidebarSection.Title>
@@ -144,7 +154,13 @@ export default function GroupSidebar({
           />
         </SidebarSection.Title>
         <SidebarSection.Content>
-          <StyledAvatarList users={participants} avatarSize={28} maxVisibleAvatars={13} />
+          <StyledAvatarList
+            users={userParticipants}
+            teams={teamParticipants}
+            avatarSize={28}
+            maxVisibleAvatars={13}
+            typeAvatars="participants"
+          />
         </SidebarSection.Content>
       </SidebarSection.Wrap>
     );
@@ -190,14 +206,16 @@ export default function GroupSidebar({
   return (
     <Container>
       <AssignedTo group={group} event={event} project={project} onAssign={trackAssign} />
-      <GroupReleaseStats
-        organization={organization}
-        project={project}
-        environments={environments}
-        allEnvironments={allEnvironmentsGroupData}
-        group={group}
-        currentRelease={currentRelease}
-      />
+      {group.issueType !== IssueType.PERFORMANCE_DURATION_REGRESSION && (
+        <GroupReleaseStats
+          organization={organization}
+          project={project}
+          environments={environments}
+          allEnvironments={allEnvironmentsGroupData}
+          group={group}
+          currentRelease={currentRelease}
+        />
+      )}
       {event && (
         <ErrorBoundary mini>
           <ExternalIssueList project={project} group={group} event={event} />

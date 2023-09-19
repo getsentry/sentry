@@ -1,10 +1,15 @@
-import {Fragment} from 'react';
-
 import ExternalLink from 'sentry/components/links/externalLink';
 import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
 import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import {t, tct} from 'sentry/locale';
+
+interface StepsParams {
+  dsn: string;
+  hasPerformance: boolean;
+  hasProfiling: boolean;
+}
 
 // Configuration Start
 const introduction = (
@@ -18,7 +23,9 @@ const introduction = (
 
 export const steps = ({
   dsn,
-}: Partial<Pick<ModuleProps, 'dsn'>> = {}): LayoutProps['steps'] => [
+  hasPerformance,
+  hasProfiling,
+}: StepsParams): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
     configurations: [
@@ -31,37 +38,15 @@ export const steps = ({
         ),
         code: 'composer require sentry/sentry-symfony',
       },
-      {
-        language: 'yaml',
-        description: (
-          <p>
-            {tct(
-              'Due to a bug in all versions below "6.0" of the [sensioFrameworkExtraBundleCode:SensioFrameworkExtraBundle] bundle, you will likely receive an error during the execution of the command above related to the missing [nyholmPsr7FactoryPsr17FactoryCode:NyholmPsr7FactoryPsr17Factory] class. To workaround the issue, if you are not using the PSR-7 bridge, please change the configuration of that bundle as follows:',
-              {
-                sensioFrameworkExtraBundleCode: <code />,
-                nyholmPsr7FactoryPsr17FactoryCode: <code />,
-              }
-            )}
-          </p>
-        ),
-        code: `
-sensio_framework_extra:
-  psr_message:
-  enabled: false
-        `,
-        additionalInfo: (
-          <p>
-            {tct(
-              'For more details about the issue see [link:https://github.com/sensiolabs/SensioFrameworkExtraBundle/pull/710].',
-              {
-                link: (
-                  <ExternalLink href="https://github.com/sensiolabs/SensioFrameworkExtraBundle/pull/710" />
-                ),
-              }
-            )}
-          </p>
-        ),
-      },
+      ...(hasProfiling
+        ? [
+            {
+              description: t('Install the Excimer extension via PECL:'),
+              language: 'bash',
+              code: 'pecl install excimer',
+            },
+          ]
+        : []),
     ],
   },
   {
@@ -69,25 +54,45 @@ sensio_framework_extra:
     configurations: [
       {
         description: (
-          <p>
-            {tct('Add your DSN to [code:config/packages/sentry.yaml]:', {code: <code />})}
-          </p>
+          <p>{tct('Add your DSN to your [code:.env] file:', {code: <code />})}</p>
         ),
-        language: 'php',
-        code: `
-sentry:
-  dsn: "%env(${dsn})%"
-        `,
-      },
-      {
-        description: <p>{tct('And in your [code:.env] file:', {code: <code />})}</p>,
-        language: 'plain',
+        language: 'shell',
         code: `
 ###> sentry/sentry-symfony ###
 SENTRY_DSN="${dsn}"
 ###< sentry/sentry-symfony ###
         `,
       },
+      ...(hasPerformance || hasProfiling
+        ? [
+            {
+              description: (
+                <p>
+                  {tct(
+                    'Add further configuration options to your [code:config/packages/sentry.yaml] file:',
+                    {code: <code />}
+                  )}
+                </p>
+              ),
+              language: 'yaml',
+              code: `when@prod:
+    sentry:
+        dsn: '%env(SENTRY_DSN)%'${
+          hasPerformance
+            ? `
+        # Specify a fixed sample rate
+        traces_sample_rate: 1.0`
+            : ''
+        }${
+          hasProfiling
+            ? `
+        # Set a sampling rate for profiling - this is relative to traces_sample_rate
+        profiles_sample_rate: 1.0`
+            : ''
+        }`,
+            },
+          ]
+        : []),
     ],
   },
   {
@@ -149,135 +154,25 @@ class SentryTestController extends AbstractController {
       </p>
     ),
   },
-  {
-    title: t('Performance monitoring'),
-    description: (
-      <Fragment>
-        {t('Performance monitoring integrations to support tracing')}
-        <p>
-          {t(
-            'The process of logging the events that took place during a request, often across multiple services are enabled by default. To use them, update to the latest version of the SDK.'
-          )}
-        </p>
-        <p>
-          {tct(
-            'These integrations hook into critical paths of the framework and of the vendors. As a result, there may be a performance penalty. To disable tracing, please see the [integrationDocumentationLink:Integrations documentation].',
-            {
-              integrationDocumentationLink: (
-                <ExternalLink href="https://docs.sentry.io/platforms/php/guides/symfony/performance/instrumentation/automatic-instrumentation/" />
-              ),
-            }
-          )}
-        </p>
-      </Fragment>
-    ),
-    configurations: [
-      {
-        description: (
-          <p>
-            {tct(
-              "If you [strong:are not] using Symfony Flex, you'll also need to enable the bundle in [code:config/bundles.php]:",
-              {
-                code: <code />,
-                strong: <strong />,
-              }
-            )}
-          </p>
-        ),
-        language: 'php',
-        code: `
-<?php
-
-  return [
-    // ...
-    Sentry\\SentryBundle\\SentryBundle::class => ['all' => true],
-  ];
-        `,
-      },
-    ],
-  },
-  {
-    title: t('Monolog Integration'),
-    configurations: [
-      {
-        description: (
-          <p>
-            {tct(
-              'If you are using [monologLink:Monolog] to report events instead of the typical error listener approach, you need this additional configuration to log the errors correctly:',
-              {
-                monologLink: <ExternalLink href="https://github.com/Seldaek/monolog" />,
-              }
-            )}
-          </p>
-        ),
-        language: 'yaml',
-        code: `
-sentry:
-  register_error_listener: false # Disables the ErrorListener to avoid duplicated log in sentry
-  register_error_handler: false # Disables the ErrorListener, ExceptionListener and FatalErrorListener integrations of the base PHP SDK
-
-monolog:
-  handlers:
-    sentry:
-      type: sentry
-      level: !php/const Monolog\\Logger::ERROR
-      hub_id: Sentry\\State\\HubInterface
-        `,
-      },
-      {
-        description: (
-          <p>
-            {tct(
-              'f you are using a version of [monologBundleLink:MonologBundle] prior to [code:3.7], you need to configure the handler as a service instead:',
-              {
-                monologBundleLink: (
-                  <ExternalLink href="https://github.com/symfony/monolog-bundle" />
-                ),
-                code: <code />,
-              }
-            )}
-          </p>
-        ),
-        language: 'yaml',
-        code: `
-monolog:
-  handlers:
-    sentry:
-      type: service
-      id: Sentry\\Monolog\\Handler
-
-services:
-  Sentry\\Monolog\\Handler:
-    arguments:
-      $hub: '@Sentry\\State\\HubInterface'
-      $level: !php/const Monolog\\Logger::ERROR
-        `,
-      },
-      {
-        description: (
-          <p>
-            {tct(
-              'Additionally, you can register the [code:PsrLogMessageProcessor] to resolve PSR-3 placeholders in reported messages:',
-              {
-                code: <code />,
-              }
-            )}
-          </p>
-        ),
-        language: 'yaml',
-        code: `
-services:
-  Monolog\\Processor\\PsrLogMessageProcessor:
-    tags: { name: monolog.processor, handler: sentry }
-        `,
-      },
-    ],
-  },
 ];
 // Configuration End
 
-export function GettingStartedWithSymfony({dsn, ...props}: ModuleProps) {
-  return <Layout steps={steps({dsn})} introduction={introduction} {...props} />;
+export function GettingStartedWithSymfony({
+  dsn,
+  activeProductSelection = [],
+  ...props
+}: ModuleProps) {
+  const hasPerformance = activeProductSelection.includes(
+    ProductSolution.PERFORMANCE_MONITORING
+  );
+  const hasProfiling = activeProductSelection.includes(ProductSolution.PROFILING);
+  return (
+    <Layout
+      introduction={introduction}
+      steps={steps({dsn, hasPerformance, hasProfiling})}
+      {...props}
+    />
+  );
 }
 
 export default GettingStartedWithSymfony;

@@ -297,6 +297,11 @@ function useEventApiQuery({
           query: omit(qs.parse(window.location.search), 'query'),
         });
 
+        // 404s are expected if all events have exceeded retention
+        if (latestOrHelpfulEvent.error.status === 404) {
+          return;
+        }
+
         const scope = new Sentry.Scope();
         scope.setExtras({
           groupId,
@@ -814,7 +819,7 @@ function GroupDetails(props: GroupDetailsProps) {
   const {data} = useFetchIssueTagsForDetailsPage(
     {
       groupId: router.params.groupId,
-      organizationSlug: organization.slug,
+      orgSlug: organization.slug,
       environment: environments,
     },
     // Don't want this query to take precedence over the main requests

@@ -43,10 +43,12 @@ from sentry.testutils.cases import (
     TestCase,
 )
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.skips import requires_snuba
 
-pytestmark = pytest.mark.sentry_metrics
+pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
 
 
+@pytest.mark.snuba_ci
 @freeze_time(BaseMetricsLayerTestCase.MOCK_DATETIME)
 class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
     @property
@@ -2099,7 +2101,7 @@ class GetCustomMeasurementsTestCase(MetricsEnhancedPerformanceTestCase):
                     self.organization.id,
                     something_custom_metric,
                 ),
-                "mri_string": something_custom_metric,
+                "mri": something_custom_metric,
             }
         ]
 
@@ -2153,7 +2155,7 @@ class GetCustomMeasurementsTestCase(MetricsEnhancedPerformanceTestCase):
                     self.organization.id,
                     something_custom_metric,
                 ),
-                "mri_string": something_custom_metric,
+                "mri": something_custom_metric,
             }
         ]
 

@@ -933,6 +933,37 @@ class SnubaQueryBuilder:
 
         return orderby_fields
 
+    def _build_having(self) -> List[Union[BooleanCondition, Condition]]:
+        """
+        This function makes a lot of assumptions about what the HAVING clause allows, mostly
+        because HAVING is not a fully supported function of metrics.
+
+        It is assumed that the having clause is a list of simple conditions, where the LHS is an aggregated
+        metric e.g. p50(duration) and the RHS is a literal value being compared too.
+        """
+        resolved_having = []
+        if not self._metrics_query.having:
+            return []
+
+        for condition in self._metrics_query.having:
+            lhs_expression = condition.lhs
+            if isinstance(lhs_expression, Function):
+                metric = lhs_expression.parameters[0]
+                assert isinstance(metric, Column)
+                metrics_field_obj = metric_object_factory(lhs_expression.function, metric.name)
+
+                resolved_lhs = metrics_field_obj.generate_select_statements(
+                    projects=self._projects,
+                    use_case_id=self._use_case_id,
+                    alias=lhs_expression.alias,
+                    params=None,
+                )
+                resolved_having.append(Condition(resolved_lhs[0], condition.op, condition.rhs))
+            else:
+                resolved_having.append(condition)
+
+        return resolved_having
+
     def __build_totals_and_series_queries(
         self,
         entity,
@@ -1106,13 +1137,14 @@ class SnubaQueryBuilder:
                 ),
             ]
             orderby = self._build_orderby()
+            having = self._build_having()
 
             # Functionally [] and None will be the same and the same applies for Offset(0) and None.
             queries_dict[entity] = self.__build_totals_and_series_queries(
                 entity=entity,
                 select=select,
                 where=where + where_for_entity,
-                having=self._metrics_query.having,
+                having=having,
                 groupby=groupby,  # Empty group by is set to None.
                 orderby=orderby,  # Empty order by is set to None.
                 limit=self._metrics_query.limit,

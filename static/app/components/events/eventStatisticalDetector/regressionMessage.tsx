@@ -1,3 +1,4 @@
+import DateTime from 'sentry/components/dateTime';
 import {DataSection} from 'sentry/components/events/styles';
 import Link from 'sentry/components/links/link';
 import {t, tct} from 'sentry/locale';
@@ -22,35 +23,27 @@ function EventStatisticalDetectorMessage({event}: EventStatisticalDetectorMessag
     orgSlug: organization.slug,
     transaction: transactionName,
     query: {},
+    trendFunction: 'p95',
     projectID: event.projectID,
     display: DisplayModes.TREND,
   });
-  const detectionTime = new Date(0);
-  detectionTime.setUTCSeconds(event?.occurrence?.evidenceData?.breakpoint);
+  const detectionTime = new Date(event?.occurrence?.evidenceData?.breakpoint * 1000);
 
-  // TODO: This messaging should respect selected locale in user settings
   return (
     <DataSection>
       <div style={{display: 'inline'}}>
         {tct(
-          '[detected] Based on the transaction [transactionName], there was a [amount] increase in duration (P95) around [date] at [time] UTC. Overall operation percentage changes indicate what may have changed in the regression.',
+          '[detected] Based on the transaction [transactionName], there was a [amount] increase in duration (P95) around [date] at [time]. Overall operation percentage changes indicate what may have changed in the regression.',
           {
             detected: <strong>{t('Detected:')}</strong>,
             transactionName: (
               <Link to={normalizeUrl(transactionSummaryLink)}>{transactionName}</Link>
             ),
             amount: formatPercentage(
-              event?.occurrence?.evidenceData?.trendPercentage / 100
+              event?.occurrence?.evidenceData?.trendPercentage - 1
             ),
-            date: detectionTime.toLocaleDateString(undefined, {
-              month: 'short',
-              day: 'numeric',
-            }),
-            time: detectionTime.toLocaleTimeString(undefined, {
-              hour12: true,
-              hour: 'numeric',
-              minute: 'numeric',
-            }),
+            date: <DateTime date={detectionTime} dateOnly />,
+            time: <DateTime date={detectionTime} timeOnly />,
           }
         )}
       </div>

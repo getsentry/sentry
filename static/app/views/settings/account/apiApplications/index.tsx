@@ -79,12 +79,7 @@ class ApiApplications extends DeprecatedAsyncView<Props, State> {
           <PanelBody>
             {!isEmpty ? (
               this.state.appList.map(app => (
-                <Row
-                  api={this.api}
-                  key={app.id}
-                  app={app}
-                  onRemove={this.handleRemoveApplication}
-                />
+                <Row key={app.id} app={app} onRemove={this.handleRemoveApplication} />
               ))
             ) : (
               <EmptyMessage>

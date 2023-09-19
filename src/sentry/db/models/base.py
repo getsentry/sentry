@@ -3,13 +3,13 @@ from __future__ import annotations
 from typing import Any, Callable, Iterable, Mapping, Optional, Tuple, Type, TypeVar
 
 from django.apps.config import AppConfig
-from django.core.serializers.base import DeserializedObject
 from django.db import models
 from django.db.models import signals
 from django.utils import timezone
 
-from sentry.backup.dependencies import PrimaryKeyMap, dependencies, normalize_model_name
-from sentry.backup.scopes import RelocationScope
+from sentry.backup.dependencies import ImportKind, PrimaryKeyMap, dependencies, normalize_model_name
+from sentry.backup.helpers import ImportFlags
+from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.silo import SiloLimit, SiloMode
 
 from .fields.bounded import BoundedBigAutoField
@@ -46,7 +46,7 @@ class BaseModel(models.Model):
     class Meta:
         abstract = True
 
-    __relocation_scope__: RelocationScope
+    __relocation_scope__: RelocationScope | set[RelocationScope]
 
     objects = BaseManager[M]()  # type: ignore
 
@@ -106,17 +106,44 @@ class BaseModel(models.Model):
         Retrieves the `RelocationScope` for a `Model` subclass. It generally just forwards `__relocation_scope__`, but some models have instance-specific logic for deducing the scope.
         """
 
+        if isinstance(self.__relocation_scope__, set):
+            raise ValueError(
+                "Must define `get_relocation_scope` override if using multiple relocation scopes."
+            )
+
         return self.__relocation_scope__
 
-    def _normalize_before_relocation_import(self, pk_map: PrimaryKeyMap) -> int:
+    @classmethod
+    def get_possible_relocation_scopes(cls) -> RelocationScope:
         """
-        A helper function that normalizes a deserialized model. Note that this modifies the model in place, so it should generally be done inside of the companion `write_relocation_import` method, to avoid data skew or corrupted local state.
+        Retrieves the `RelocationScope` for a `Model` subclass. It always returns a set, to account for models that support multiple scopes on a situational, per-instance basis.
+        """
 
-        The only reason this function is left as a standalone, rather than being folded into `write_relocation_import`, is that it is often useful to adjust just the normalization logic by itself. Overrides of this method should take care not to mutate the `pk_map`.
+        return (
+            cls.__relocation_scope__
+            if isinstance(cls.__relocation_scope__, set)
+            else {cls.__relocation_scope__}
+        )
 
-        The default normalization logic merely replaces foreign keys with their new values from the provided `pk_map`.
+    def normalize_before_relocation_import(
+        self, pk_map: PrimaryKeyMap, _s: ImportScope, _f: ImportFlags
+    ) -> Optional[int]:
+        """
+        A helper function that normalizes a deserialized model. Note that this modifies the model in
+        place, so it should generally be done immediately prior to a companion
+        `write_relocation_import()` method, to avoid data skew or corrupted local state. The method
+        returns the old `pk` that was replaced, or `None` if normalization failed.
 
-        The method returns the old `pk` that was replaced.
+        The primary reason this function is left as a standalone, rather than being folded into
+        `write_relocation_import`, is that it is often useful to adjust just the normalization logic
+        by itself without affecting the writing logic.
+
+        Overrides of this method should take care NOT to mutate the `pk_map`. Overrides should also
+        take care NOT to push the updated changes to the database (ie, no calls to `.save()` or
+        `.update()`), as this functionality is delegated to the `write_relocation_import()` method.
+
+        The default normalization logic merely replaces foreign keys with their new values from the
+        provided `pk_map`.
         """
 
         deps = dependencies()
@@ -125,9 +152,10 @@ class BaseModel(models.Model):
             field_id = field if field.endswith("_id") else f"{field}_id"
             fk = getattr(self, field_id, None)
             if fk is not None:
-                new_fk = pk_map.get(normalize_model_name(model_relation.model), fk)
-                # TODO(getsentry/team-ospo#167): Will allow missing items when we
-                # implement org-based filtering.
+                new_fk = pk_map.get_pk(normalize_model_name(model_relation.model), fk)
+                if new_fk is None:
+                    return None
+
                 setattr(self, field_id, new_fk)
 
         old_pk = self.pk
@@ -136,15 +164,22 @@ class BaseModel(models.Model):
         return old_pk
 
     def write_relocation_import(
-        self, pk_map: PrimaryKeyMap, obj: DeserializedObject
-    ) -> Optional[Tuple[int, int]]:
+        self, _s: ImportScope, _f: ImportFlags
+    ) -> Optional[Tuple[int, ImportKind]]:
         """
-        Writes a deserialized model to the database. If this write is successful, this method will return a tuple of the old and new `pk`s.
+        Writes a deserialized model to the database. If this write is successful, this method will
+        return a tuple of the new `pk` and the `ImportKind` (ie, whether we created a new model or
+        re-used an existing one).
+
+        Overrides of this method can throw either `django.core.exceptions.ValidationError` or
+        `rest_framework.serializers.ValidationError`.
+
+        This function should only be executed after `normalize_before_relocation_import()` has fired
+        and returned a not-null `old_pk` input.
         """
 
-        old_pk = self._normalize_before_relocation_import(pk_map)
-        obj.save(force_insert=True)
-        return (old_pk, self.pk)
+        self.save(force_insert=True)
+        return (self.pk, ImportKind.Inserted)
 
 
 class Model(BaseModel):
@@ -188,6 +223,22 @@ def __model_class_prepared(sender: Any, **kwargs: Any) -> None:
             f"Organization, Project  and related settings. It should be False for high volume models "
             f"like Group."
         )
+
+    if (
+        isinstance(getattr(sender, "__relocation_scope__"), set)
+        and RelocationScope.Excluded in sender.get_possible_relocation_scopes()
+    ):
+        raise ValueError(
+            f"{sender!r} model uses a set of __relocation_scope__ values, one of which is "
+            f"`Excluded`, which does not make sense. `Excluded` must always be a standalone value."
+        )
+
+    from .outboxes import ReplicatedControlModel, ReplicatedRegionModel
+
+    if issubclass(sender, ReplicatedControlModel):
+        sender.category.connect_control_model_updates(sender)
+    elif issubclass(sender, ReplicatedRegionModel):
+        sender.category.connect_region_model_updates(sender)
 
 
 signals.pre_save.connect(__model_pre_save)

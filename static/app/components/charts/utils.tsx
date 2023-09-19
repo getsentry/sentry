@@ -4,6 +4,7 @@ import moment from 'moment';
 
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {EventsStats, MultiSeriesEventsStats, PageFilters} from 'sentry/types';
+import {Series} from 'sentry/types/echarts';
 import {defined, escape} from 'sentry/utils';
 import {getFormattedDate, parsePeriodToHours} from 'sentry/utils/dates';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
@@ -398,9 +399,8 @@ export function useEchartsAriaLabels(
           ? +highestValue[1].toFixed(3)
           : lowestValue[1];
 
-      return `The ${s.name} series contains ${
-        s.data?.length
-      } data points. Its lowest value is ${lowestY} ${
+      return `The ${s.name} series contains ${s.data
+        ?.length} data points. Its lowest value is ${lowestY} ${
         isGroupedByDate ? 'on' : 'at'
       } ${lowestX} and highest value is ${highestY} ${
         isGroupedByDate ? 'on' : 'at'
@@ -412,4 +412,8 @@ export function useEchartsAriaLabels(
     enabled: true,
     label: {description: [title, ...seriesDescriptions].join('. ')},
   };
+}
+
+export function isEmptySeries(series: Series) {
+  return series.data.every(dataPoint => dataPoint.value === 0);
 }

@@ -76,6 +76,7 @@ class ClusterColor(Enum):
     Purple = "lavenderblush"
     Yellow = "khaki"
     Green = "honeydew"
+    Blue = "lightsteelblue1"
 
 
 @unique
@@ -126,6 +127,12 @@ def print_edge(
     return f""""{src.__name__}":e -> "{dest.__name__}":w {style.value};"""
 
 
+def get_most_permissive_relocation_scope(mr: ModelRelations) -> RelocationScope:
+    if isinstance(mr.relocation_scope, set):
+        return sorted(list(mr.relocation_scope), key=lambda obj: obj.value * -1)[0]
+    return mr.relocation_scope
+
+
 @click.command()
 @click.option("--show-excluded", default=False, is_flag=True, help="Show unexportable models too")
 def main(show_excluded: bool):
@@ -136,17 +143,27 @@ def main(show_excluded: bool):
     if not show_excluded:
         deps = list(filter(lambda m: m.relocation_scope != RelocationScope.Excluded, deps))
 
-    # Group by region scope.
-    user_scoped = filter(lambda m: m.relocation_scope == RelocationScope.User, deps)
-    org_scoped = filter(lambda m: m.relocation_scope == RelocationScope.Organization, deps)
-    global_scoped = filter(lambda m: m.relocation_scope == RelocationScope.Global, deps)
+    # Group by most permissive region scope.
+    user_scoped = filter(
+        lambda m: get_most_permissive_relocation_scope(m) == RelocationScope.User, deps
+    )
+    org_scoped = filter(
+        lambda m: get_most_permissive_relocation_scope(m) == RelocationScope.Organization, deps
+    )
+    config_scoped = filter(
+        lambda m: get_most_permissive_relocation_scope(m) == RelocationScope.Config, deps
+    )
+    global_scoped = filter(
+        lambda m: get_most_permissive_relocation_scope(m) == RelocationScope.Global, deps
+    )
 
     # Print nodes.
     clusters = "".join(
         [
             print_rel_scope_subgraph("User", 1, user_scoped, ClusterColor.Green),
             print_rel_scope_subgraph("Organization", 2, org_scoped, ClusterColor.Purple),
-            print_rel_scope_subgraph("Global", 3, global_scoped, ClusterColor.Yellow),
+            print_rel_scope_subgraph("Config", 3, config_scoped, ClusterColor.Blue),
+            print_rel_scope_subgraph("Global", 4, global_scoped, ClusterColor.Yellow),
         ]
     )
 

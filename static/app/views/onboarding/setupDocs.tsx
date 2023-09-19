@@ -10,6 +10,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {platformToIntegrationMap} from 'sentry/utils/integrationUtil';
+import {decodeList} from 'sentry/utils/queryString';
 import useOrganization from 'sentry/utils/useOrganization';
 import SetupIntroduction from 'sentry/views/onboarding/components/setupIntroduction';
 import {SetupDocsLoader} from 'sentry/views/onboarding/setupDocsLoader';
@@ -24,7 +25,7 @@ function SetupDocs({location, recentCreatedProject: project}: StepProps) {
   const [integrationUseManualSetup, setIntegrationUseManualSetup] = useState(false);
 
   const products = useMemo<ProductSolution[]>(
-    () => (location.query.product ?? []) as ProductSolution[],
+    () => decodeList(location.query.product ?? []) as ProductSolution[],
     [location.query.product]
   );
 
@@ -86,7 +87,6 @@ function SetupDocs({location, recentCreatedProject: project}: StepProps) {
                   location={location}
                   platform={currentPlatform.id}
                   close={hideLoaderOnboarding}
-                  newOrg
                 />
               ) : (
                 <SdkDocumentation

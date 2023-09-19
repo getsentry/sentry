@@ -14,6 +14,7 @@ import {isDone} from 'sentry/components/sidebar/utils';
 import {
   IconChevron,
   IconDashboard,
+  IconGraph,
   IconIssues,
   IconLightning,
   IconPlay,
@@ -27,6 +28,7 @@ import {
   IconSupport,
   IconTelescope,
   IconTimer,
+  IconUser,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -246,6 +248,20 @@ function Sidebar({location, organization}: Props) {
           id="performance-database"
           icon={<SubitemDot collapsed={collapsed} />}
         />
+        <SidebarItem
+          {...sidebarItemProps}
+          label={<GuideAnchor target="starfish">{t('Interactions')}</GuideAnchor>}
+          to={`/organizations/${organization.slug}/performance/browser/interactions`}
+          id="performance-browser-interactions"
+          icon={<SubitemDot collapsed={collapsed} />}
+        />
+        <SidebarItem
+          {...sidebarItemProps}
+          label={<GuideAnchor target="starfish">{t('Page Loads')}</GuideAnchor>}
+          to={`/organizations/${organization.slug}/performance/browser/pageloads`}
+          id="performance-browser-page-loads"
+          icon={<SubitemDot collapsed={collapsed} />}
+        />
       </SidebarAccordion>
     </Feature>
   );
@@ -268,6 +284,19 @@ function Sidebar({location, organization}: Props) {
       to={`/organizations/${organization.slug}/user-feedback/`}
       id="user-feedback"
     />
+  );
+
+  const feedback = hasOrganization && (
+    <Feature features={['user-feedback-ui']} organization={organization}>
+      <SidebarItem
+        {...sidebarItemProps}
+        icon={<IconUser />}
+        label={t('Feedback')}
+        to={`/organizations/${organization.slug}/feedback/`}
+        id="feedback"
+        isAlpha
+      />
+    </Feature>
   );
 
   const alerts = hasOrganization && (
@@ -306,6 +335,23 @@ function Sidebar({location, organization}: Props) {
         label={t('Replays')}
         to={`/organizations/${organization.slug}/replays/`}
         id="replays"
+      />
+    </Feature>
+  );
+
+  const ddm = hasOrganization && (
+    <Feature
+      features={['ddm-ui', 'custom-metrics']}
+      organization={organization}
+      requireAll
+    >
+      <SidebarItem
+        {...sidebarItemProps}
+        icon={<IconGraph />}
+        label={t('DDM')}
+        to={`/organizations/${organization.slug}/ddm/`}
+        id="ddm"
+        isAlpha
       />
     </Feature>
   );
@@ -398,9 +444,11 @@ function Sidebar({location, organization}: Props) {
 
               <SidebarSection>
                 {discover2}
+                {ddm}
                 {dashboards}
                 {releases}
                 {userFeedback}
+                {feedback}
               </SidebarSection>
 
               <SidebarSection>

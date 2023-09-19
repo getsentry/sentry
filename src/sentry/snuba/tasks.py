@@ -179,7 +179,7 @@ def delete_subscription_from_snuba(query_subscription_id, **kwargs):
             subscription.snuba_query,
             subscription.project.organization_id,
             subscription.project_id,
-            skip_issue_validation=True,
+            skip_field_validation_for_entity_subscription_deletion=True,
         )
         _delete_from_snuba(
             query_dataset,

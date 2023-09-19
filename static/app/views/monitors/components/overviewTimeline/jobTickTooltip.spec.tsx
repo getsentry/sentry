@@ -4,12 +4,18 @@ import {getFormat} from 'sentry/utils/dates';
 import {JobTickTooltip} from 'sentry/views/monitors/components/overviewTimeline/jobTickTooltip';
 import {TimeWindowOptions} from 'sentry/views/monitors/components/overviewTimeline/types';
 
-type StatusCounts = [ok: number, missed: number, timeout: number, error: number];
+type StatusCounts = [
+  in_progress: number,
+  ok: number,
+  missed: number,
+  timeout: number,
+  error: number,
+];
 
 export function generateEnvMapping(name: string, counts: StatusCounts) {
-  const [ok, missed, timeout, error] = counts;
+  const [in_progress, ok, missed, timeout, error] = counts;
   return {
-    [name]: {ok, missed, timeout, error},
+    [name]: {in_progress, ok, missed, timeout, error},
   };
 }
 
@@ -24,7 +30,7 @@ describe('JobTickTooltip', function () {
   it('renders tooltip representing single job run', function () {
     const startTs = new Date('2023-06-15T11:00:00Z').valueOf();
     const endTs = startTs;
-    const envMapping = generateEnvMapping('prod', [0, 1, 0, 0]);
+    const envMapping = generateEnvMapping('prod', [0, 0, 1, 0, 0]);
     const jobTick = {
       startTs,
       envMapping,
@@ -49,7 +55,7 @@ describe('JobTickTooltip', function () {
   it('renders tooltip representing multiple job runs 1 env', function () {
     const startTs = new Date('2023-06-15T11:00:00Z').valueOf();
     const endTs = startTs;
-    const envMapping = generateEnvMapping('prod', [1, 1, 1, 1]);
+    const envMapping = generateEnvMapping('prod', [0, 1, 1, 1, 1]);
     const jobTick = {
       startTs,
       envMapping,
@@ -87,8 +93,8 @@ describe('JobTickTooltip', function () {
   it('renders tooltip representing multiple job runs multiple envs', function () {
     const startTs = new Date('2023-06-15T11:00:00Z').valueOf();
     const endTs = startTs;
-    const prodEnvMapping = generateEnvMapping('prod', [0, 1, 0, 0]);
-    const devEnvMapping = generateEnvMapping('dev', [1, 2, 1, 0]);
+    const prodEnvMapping = generateEnvMapping('prod', [0, 0, 1, 0, 0]);
+    const devEnvMapping = generateEnvMapping('dev', [0, 1, 2, 1, 0]);
     const envMapping = {...prodEnvMapping, ...devEnvMapping};
     const jobTick = {
       startTs,

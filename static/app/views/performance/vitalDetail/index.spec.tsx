@@ -202,9 +202,7 @@ describe('Performance > VitalDetail', function () {
     MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/${organization.slug}/metrics/data/`,
-      body: TestStubs.MetricsField({
-        field: 'p75(sentry.transactions.measurements.lcp)',
-      }),
+      body: TestStubs.MetricsField('p75(sentry.transactions.measurements.lcp)'),
       match: [
         MockApiClient.matchQuery({
           field: ['p75(sentry.transactions.measurements.lcp)'],

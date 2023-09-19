@@ -12,6 +12,8 @@ from django.test.utils import override_settings
 from django.utils import timezone
 from freezegun import freeze_time
 from rest_framework.status import HTTP_404_NOT_FOUND
+from urllib3 import HTTPResponse
+from urllib3.exceptions import MaxRetryError
 
 from fixtures.github import (
     COMPARE_COMMITS_EXAMPLE_WITH_INTERMEDIATE,
@@ -34,10 +36,13 @@ from sentry.event_manager import (
     EventManager,
     HashDiscarded,
     _get_event_instance,
+    _get_severity_score,
+    _save_aggregate,
     _save_grouphash_and_group,
     get_event_type,
     has_pending_commit_resolution,
     materialize_metadata,
+    severity_connection_pool,
 )
 from sentry.eventstore.models import Event
 from sentry.grouping.utils import hash_from_values
@@ -2494,6 +2499,148 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             metrics_logged = [call.args[0] for call in mock_metrics_incr.mock_calls]
             assert "grouping.in_app_frame_mix" not in metrics_logged
 
+    @patch(
+        "sentry.event_manager.severity_connection_pool.urlopen",
+        return_value=HTTPResponse(body=json.dumps({"severity": 0.1231})),
+    )
+    @patch("sentry.event_manager.logger.info")
+    def test_get_severity_score_simple(
+        self,
+        mock_logger_info: MagicMock,
+        mock_urlopen: MagicMock,
+    ) -> None:
+        manager = EventManager(
+            make_event(exception={"values": [{"type": "NopeError", "value": "Nopey McNopeface"}]})
+        )
+        event = manager.save(self.project.id)
+
+        severity = _get_severity_score(event)
+
+        mock_urlopen.assert_called_with(
+            "POST",
+            "/issues/severity-score",
+            body='{"message":"NopeError: Nopey McNopeface"}',
+            headers={"content-type": "application/json;charset=utf-8"},
+        )
+        mock_logger_info.assert_called_with(
+            f"Got severity score of 0.1231 for event {event.event_id}",
+            extra={
+                "event_id": event.event_id,
+                "op": "event_manager._get_severity_score",
+                "event_message": "NopeError: Nopey McNopeface",
+            },
+        )
+        assert severity == 0.1231
+
+    @patch(
+        "sentry.event_manager.severity_connection_pool.urlopen",
+        return_value=HTTPResponse(body=json.dumps({"severity": 0.1231})),
+    )
+    @patch("sentry.event_manager.logger.warning")
+    def test_get_severity_score_no_message(
+        self,
+        mock_logger_warning: MagicMock,
+        mock_urlopen: MagicMock,
+    ) -> None:
+        manager = EventManager(make_event())
+        event = manager.save(self.project.id)
+
+        severity = _get_severity_score(event)
+
+        mock_urlopen.assert_not_called()
+        mock_logger_warning.assert_called_with(
+            "Unable to get severity score because event has no message",
+            extra={
+                "event_id": event.event_id,
+                "op": "event_manager._get_severity_score",
+                "error_type": None,
+                "error_msg": None,
+            },
+        )
+        assert severity is None
+
+    @patch(
+        "sentry.event_manager.severity_connection_pool.urlopen",
+        side_effect=MaxRetryError(
+            severity_connection_pool, "/issues/severity-score", Exception("It broke")
+        ),
+    )
+    @patch("sentry.event_manager.logger.warning")
+    def test_get_severity_score_max_retry_exception(
+        self,
+        mock_logger_warning: MagicMock,
+        _mock_urlopen: MagicMock,
+    ) -> None:
+        manager = EventManager(
+            make_event(exception={"values": [{"type": "NopeError", "value": "Nopey McNopeface"}]})
+        )
+        event = manager.save(self.project.id)
+
+        severity = _get_severity_score(event)
+
+        mock_logger_warning.assert_called_with(
+            "Unable to get severity score from microservice after 1 retry. Got MaxRetryError caused by: Exception('It broke').",
+            extra={
+                "event_id": event.event_id,
+                "op": "event_manager._get_severity_score",
+                "event_message": "NopeError: Nopey McNopeface",
+            },
+        )
+        assert severity is None
+
+    @patch(
+        "sentry.event_manager.severity_connection_pool.urlopen",
+        side_effect=Exception("It broke"),
+    )
+    @patch("sentry.event_manager.logger.warning")
+    def test_get_severity_score_other_exception(
+        self,
+        mock_logger_warning: MagicMock,
+        _mock_urlopen: MagicMock,
+    ) -> None:
+        manager = EventManager(
+            make_event(exception={"values": [{"type": "NopeError", "value": "Nopey McNopeface"}]})
+        )
+        event = manager.save(self.project.id)
+
+        severity = _get_severity_score(event)
+
+        mock_logger_warning.assert_called_with(
+            "Unable to get severity score from microservice. Got: Exception('It broke').",
+            extra={
+                "event_id": event.event_id,
+                "op": "event_manager._get_severity_score",
+                "event_message": "NopeError: Nopey McNopeface",
+            },
+        )
+        assert severity is None
+
+    @patch("sentry.event_manager._get_severity_score", return_value=0.1121)
+    def test_severity_score_flag_on(self, mock_get_severity_score: MagicMock):
+        with self.feature({"projects:first-event-severity-calculation": True}):
+            manager = EventManager(
+                make_event(
+                    exception={"values": [{"type": "NopeError", "value": "Nopey McNopeface"}]}
+                )
+            )
+            event = manager.save(self.project.id)
+
+            mock_get_severity_score.assert_called()
+            assert event.group and event.group.get_event_metadata()["severity"] == 0.1121
+
+    @patch("sentry.event_manager._get_severity_score", return_value=0.1121)
+    def test_severity_score_flag_off(self, mock_get_severity_score: MagicMock):
+        with self.feature({"projects:first-event-severity-calculation": False}):
+            manager = EventManager(
+                make_event(
+                    exception={"values": [{"type": "NopeError", "value": "Nopey McNopeface"}]}
+                )
+            )
+            event = manager.save(self.project.id)
+
+            mock_get_severity_score.assert_not_called()
+            assert event.group and event.group.get_event_metadata().get("severity") is None
+
 
 class AutoAssociateCommitTest(TestCase, EventManagerTestMixin):
     def setUp(self):
@@ -3542,3 +3689,105 @@ class TestSaveGroupHashAndGroup(TransactionTestCase):
         assert created
         assert group_2.id != group_3.id
         assert Group.objects.filter(grouphash__hash=group_hash).count() == 1
+
+    @patch("sentry.event_manager.logger.error")
+    @patch("sentry.event_manager._get_severity_score", return_value=None)
+    def test_logs_error_on_no_severity_score_when_enabled(
+        self,
+        mock_get_severity_score: MagicMock,
+        mock_logger_error: MagicMock,
+    ):
+        with self.feature({"projects:first-event-severity-calculation": True}):
+            event = _get_event_instance(
+                make_event(
+                    exception={"values": [{"type": "NopeError", "value": "Nopey McNopeface"}]}
+                ),
+                self.project.id,
+            )
+
+            group, created = _save_grouphash_and_group(self.project, event, "dogs are great")
+
+            assert created is True
+            mock_get_severity_score.assert_called()
+            mock_logger_error.assert_called_with(
+                "Group created without severity score",
+                extra={
+                    "event_id": event.event_id,
+                    "group_id": group.id,
+                },
+            )
+
+    @patch("sentry.event_manager.logger.error")
+    @patch("sentry.event_manager._get_severity_score", return_value=None)
+    def test_no_error_logged_on_no_severity_score_when_disabled(
+        self,
+        mock_get_severity_score: MagicMock,
+        mock_logger_error: MagicMock,
+    ):
+        with self.feature({"projects:first-event-severity-calculation": False}):
+            event = _get_event_instance(
+                make_event(
+                    exception={"values": [{"type": "NopeError", "value": "Nopey McNopeface"}]}
+                ),
+                self.project.id,
+            )
+
+            _save_grouphash_and_group(self.project, event, "dogs are great")
+
+            logger_messages = [call.args[0] for call in mock_logger_error.mock_calls]
+
+            mock_get_severity_score.assert_not_called()
+            assert "Group created without severity score" not in logger_messages
+
+
+class TestSaveAggregate(TestCase):
+    @patch("sentry.event_manager._save_aggregate", wraps=_save_aggregate)
+    @patch("sentry.event_manager.logger.error")
+    @patch("sentry.event_manager._get_severity_score", return_value=None)
+    def test_logs_error_on_no_severity_score_when_enabled(
+        self,
+        mock_get_severity_score: MagicMock,
+        mock_logger_error: MagicMock,
+        mock_save_aggregate: MagicMock,
+    ):
+        with self.feature({"projects:first-event-severity-calculation": True}):
+            manager = EventManager(
+                make_event(
+                    exception={"values": [{"type": "NopeError", "value": "Nopey McNopeface"}]}
+                )
+            )
+            event = manager.save(self.project.id)
+
+            mock_save_aggregate.assert_called()
+            mock_get_severity_score.assert_called()
+            mock_logger_error.assert_called_with(
+                "Group created without severity score",
+                extra={
+                    "event_id": event.event_id,
+                    "group_id": event.group_id,
+                },
+            )
+
+    @patch("sentry.event_manager._save_aggregate", wraps=_save_aggregate)
+    @patch("sentry.event_manager.logger.error")
+    @patch("sentry.event_manager._get_severity_score", return_value=None)
+    def test_no_error_logged_on_no_severity_score_when_disabled(
+        self,
+        mock_get_severity_score: MagicMock,
+        mock_logger_error: MagicMock,
+        mock_save_aggregate: MagicMock,
+    ):
+        with self.feature({"projects:first-event-severity-calculation": False}):
+            manager = EventManager(
+                make_event(
+                    exception={"values": [{"type": "NopeError", "value": "Nopey McNopeface"}]}
+                )
+            )
+            manager.save(self.project.id)
+
+            logger_messages = [call.args[0] for call in mock_logger_error.mock_calls]
+
+            mock_save_aggregate.assert_called()
+            mock_get_severity_score.assert_not_called()
+
+            assert "Group created without severity score" not in logger_messages

@@ -1,8 +1,11 @@
 import {useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
+import * as qs from 'query-string';
 
+import {openInviteMissingMembersModal} from 'sentry/actionCreators/modal';
 import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
 import {Button} from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
 import Card from 'sentry/components/card';
 import Carousel from 'sentry/components/carousel';
 import {openConfirmModal} from 'sentry/components/confirm';
@@ -12,33 +15,47 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconCommit, IconEllipsis, IconGithub, IconMail} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {MissingMember, Organization} from 'sentry/types';
+import {MissingMember, Organization, OrgRole} from 'sentry/types';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
 import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
 import withOrganization from 'sentry/utils/withOrganization';
 
 type Props = {
+  allowedRoles: OrgRole[];
   missingMembers: {integration: string; users: MissingMember[]};
+  onModalClose: () => void;
   onSendInvite: (email: string) => void;
   organization: Organization;
 };
 
-export function InviteBanner({missingMembers, onSendInvite, organization}: Props) {
+export function InviteBanner({
+  missingMembers,
+  onSendInvite,
+  organization,
+  allowedRoles,
+  onModalClose,
+}: Props) {
   // NOTE: this is currently used for Github only
 
-  const hideBanner =
-    !organization.features.includes('integrations-gh-invite') ||
-    !organization.access.includes('org:write') ||
-    !missingMembers?.users ||
-    missingMembers?.users.length === 0;
+  const isEligibleForBanner =
+    organization.features.includes('integrations-gh-invite') &&
+    organization.access.includes('org:write') &&
+    organization.githubNudgeInvite &&
+    missingMembers?.users?.length > 0;
   const [sendingInvite, setSendingInvite] = useState<boolean>(false);
   const [showBanner, setShowBanner] = useState<boolean>(false);
 
   const api = useApi();
   const integrationName = missingMembers?.integration;
   const promptsFeature = `${integrationName}_missing_members`;
+  const location = useLocation();
 
   const snoozePrompt = useCallback(async () => {
+    trackAnalytics('github_invite_banner.snoozed', {
+      organization,
+    });
     setShowBanner(false);
     await promptsUpdate(api, {
       organizationId: organization.id,
@@ -47,8 +64,17 @@ export function InviteBanner({missingMembers, onSendInvite, organization}: Props
     });
   }, [api, organization, promptsFeature]);
 
+  const openInviteModal = useCallback(() => {
+    openInviteMissingMembersModal({
+      allowedRoles,
+      missingMembers,
+      organization,
+      onClose: onModalClose,
+    });
+  }, [allowedRoles, missingMembers, organization, onModalClose]);
+
   useEffect(() => {
-    if (hideBanner) {
+    if (!isEligibleForBanner) {
       return;
     }
     promptsCheck(api, {
@@ -57,9 +83,22 @@ export function InviteBanner({missingMembers, onSendInvite, organization}: Props
     }).then(prompt => {
       setShowBanner(!promptIsDismissed(prompt));
     });
-  }, [api, organization, promptsFeature, hideBanner]);
+  }, [api, organization, promptsFeature, isEligibleForBanner]);
 
-  if (hideBanner || !showBanner) {
+  useEffect(() => {
+    const {inviteMissingMembers} = qs.parse(location.search);
+
+    if (isEligibleForBanner && inviteMissingMembers) {
+      openInviteModal();
+    }
+  }, [openInviteModal, location, isEligibleForBanner]);
+
+  if (isEligibleForBanner && showBanner) {
+    trackAnalytics('github_invite_banner.viewed', {
+      organization,
+    });
+  }
+  if (!isEligibleForBanner || !showBanner) {
     return null;
   }
 
@@ -88,34 +127,48 @@ export function InviteBanner({missingMembers, onSendInvite, organization}: Props
 
   const users = missingMembers.users;
 
-  const cards = users.slice(0, 5).map(member => (
-    <MemberCard key={member.externalId} data-test-id={`member-card-${member.externalId}`}>
-      <MemberCardContent>
-        <MemberCardContentRow>
-          <IconGithub size="sm" />
-          {/* TODO: create mapping from integration to lambda external link function */}
-          <StyledExternalLink href={`http://github.com/${member.externalId}`}>
-            {tct('@[externalId]', {externalId: member.externalId})}
-          </StyledExternalLink>
-        </MemberCardContentRow>
-        <MemberCardContentRow>
-          <IconCommit size="xs" />
-          {tct('[commitCount] Recent Commits', {commitCount: member.commitCount})}
-        </MemberCardContentRow>
-        <Subtitle>{member.email}</Subtitle>
-      </MemberCardContent>
-      <Button
-        size="sm"
-        onClick={() => handleSendInvite(member.email)}
-        data-test-id="invite-missing-member"
-        icon={<IconMail />}
+  const cards = users.slice(0, 5).map(member => {
+    const username = member.externalId.split(':').pop();
+    return (
+      <MemberCard
+        key={member.externalId}
+        data-test-id={`member-card-${member.externalId}`}
       >
-        {t('Invite')}
-      </Button>
-    </MemberCard>
-  ));
+        <MemberCardContent>
+          <MemberCardContentRow>
+            <IconGithub size="sm" />
+            {/* TODO(cathy): create mapping from integration to lambda external link function */}
+            <StyledExternalLink href={`https://github.com/${username}`}>
+              @{username}
+            </StyledExternalLink>
+          </MemberCardContentRow>
+          <MemberCardContentRow>
+            <IconCommit size="xs" />
+            {tct('[commitCount] Recent Commits', {commitCount: member.commitCount})}
+          </MemberCardContentRow>
+          <Subtitle>{member.email}</Subtitle>
+        </MemberCardContent>
+        <Button
+          size="sm"
+          onClick={() => handleSendInvite(member.email)}
+          data-test-id="invite-missing-member"
+          icon={<IconMail />}
+          analyticsEventName="Github Invite Banner: Invite"
+          analyticsEventKey="github_invite_banner.invite"
+        >
+          {t('Invite')}
+        </Button>
+      </MemberCard>
+    );
+  });
 
-  cards.push(<SeeMoreCard key="see-more" missingUsers={users} />);
+  cards.push(
+    <SeeMoreCard
+      key="see-more"
+      missingMembers={missingMembers}
+      openInviteModal={openInviteModal}
+    />
+  );
 
   return (
     <StyledCard>
@@ -134,11 +187,13 @@ export function InviteBanner({missingMembers, onSendInvite, organization}: Props
             />
           </Subtitle>
         </CardTitleContent>
-        <ButtonContainer>
+        <ButtonBar gap={1}>
           <Button
             priority="primary"
             size="xs"
-            // TODO(cathy): open up invite modal
+            onClick={openInviteModal}
+            analyticsEventName="Github Invite Banner: View All"
+            analyticsEventKey="github_invite_banner.view_all"
           >
             {t('View All')}
           </Button>
@@ -151,7 +206,7 @@ export function InviteBanner({missingMembers, onSendInvite, organization}: Props
               'aria-label': t('Actions'),
             }}
           />
-        </ButtonContainer>
+        </ButtonBar>
       </CardTitleContainer>
       <Carousel>{cards}</Carousel>
     </StyledCard>
@@ -161,30 +216,35 @@ export function InviteBanner({missingMembers, onSendInvite, organization}: Props
 export default withOrganization(InviteBanner);
 
 type SeeMoreCardProps = {
-  missingUsers: MissingMember[];
+  missingMembers: {integration: string; users: MissingMember[]};
+  openInviteModal: () => void;
 };
 
-function SeeMoreCard({missingUsers}: SeeMoreCardProps) {
+function SeeMoreCard({missingMembers, openInviteModal}: SeeMoreCardProps) {
+  const {users} = missingMembers;
+
   return (
     <MemberCard data-test-id="see-more-card">
       <MemberCardContent>
         <MemberCardContentRow>
           <SeeMore>
             {tct('See all [missingMembersCount] missing members', {
-              missingMembersCount: missingUsers.length,
+              missingMembersCount: users.length,
             })}
           </SeeMore>
         </MemberCardContentRow>
         <Subtitle>
           {tct('Accounting for [totalCommits] recent commits', {
-            totalCommits: missingUsers.reduce((acc, curr) => acc + curr.commitCount, 0),
+            totalCommits: users.reduce((acc, curr) => acc + curr.commitCount, 0),
           })}
         </Subtitle>
       </MemberCardContent>
       <Button
         size="sm"
         priority="primary"
-        // TODO(cathy): open up invite modal
+        onClick={openInviteModal}
+        analyticsEventName="Github Invite Banner: View All"
+        analyticsEventKey="github_invite_banner.view_all"
       >
         {t('View All')}
       </Button>
@@ -202,7 +262,6 @@ const StyledCard = styled(Card)`
 const CardTitleContainer = styled('div')`
   display: flex;
   justify-content: space-between;
-  margin-bottom: ${space(1)};
 `;
 
 const CardTitleContent = styled('div')`
@@ -217,23 +276,13 @@ const CardTitle = styled('h6')`
   color: ${p => p.theme.gray400};
 `;
 
-const Subtitle = styled('div')`
+export const Subtitle = styled('div')`
   display: flex;
   align-items: center;
   font-size: ${p => p.theme.fontSizeSmall};
   font-weight: 400;
   color: ${p => p.theme.gray300};
-  & > *:first-child {
-    margin-left: ${space(0.5)};
-    display: flex;
-    align-items: center;
-  }
-`;
-
-const ButtonContainer = styled('div')`
-  display: grid;
-  grid-auto-flow: column;
-  grid-column-gap: ${space(1)};
+  gap: ${space(0.5)};
 `;
 
 const MemberCard = styled(Card)`
@@ -259,12 +308,10 @@ const MemberCardContentRow = styled('div')`
   align-items: center;
   margin-bottom: ${space(0.25)};
   font-size: ${p => p.theme.fontSizeSmall};
-  & > *:first-child {
-    margin-right: ${space(0.75)};
-  }
+  gap: ${space(0.75)};
 `;
 
-const StyledExternalLink = styled(ExternalLink)`
+export const StyledExternalLink = styled(ExternalLink)`
   font-size: ${p => p.theme.fontSizeMedium};
 `;
 

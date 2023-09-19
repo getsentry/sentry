@@ -38,9 +38,10 @@ class SlackRegressionNotificationTest(SlackActivityNotificationTest, Performance
             attachment["text"]
             == "Sentry flagged this issue as escalating because over 100 events happened in an hour."
         )
+        notification_uuid = self.get_notification_uuid(attachment["title_link"])
         assert (
             attachment["footer"]
-            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=escalating_activity-slack-user|Notification Settings>"
+            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=escalating_activity-slack-user&notification_uuid={notification_uuid}|Notification Settings>"
         )
 
     @responses.activate
@@ -61,9 +62,10 @@ class SlackRegressionNotificationTest(SlackActivityNotificationTest, Performance
         attachment, text = get_attachment()
         assert text == "Issue marked as escalating"
         assert attachment["title"] == "N+1 Query"
+        notification_uuid = self.get_notification_uuid(attachment["title_link"])
         assert (
             attachment["title_link"]
-            == f"http://testserver/organizations/{self.organization.slug}/issues/{event.group.id}/?referrer=escalating_activity-slack"
+            == f"http://testserver/organizations/{self.organization.slug}/issues/{event.group.id}/?referrer=escalating_activity-slack&notification_uuid={notification_uuid}"
         )
         assert (
             attachment["text"]
@@ -71,7 +73,7 @@ class SlackRegressionNotificationTest(SlackActivityNotificationTest, Performance
         )
         assert (
             attachment["footer"]
-            == f"{self.project.slug} | production | <http://testserver/settings/account/notifications/workflow/?referrer=escalating_activity-slack-user|Notification Settings>"
+            == f"{self.project.slug} | production | <http://testserver/settings/account/notifications/workflow/?referrer=escalating_activity-slack-user&notification_uuid={notification_uuid}|Notification Settings>"
         )
 
     @responses.activate
@@ -96,9 +98,10 @@ class SlackRegressionNotificationTest(SlackActivityNotificationTest, Performance
         attachment, text = get_attachment()
         assert text == "Issue marked as escalating"
         assert attachment["title"] == TEST_ISSUE_OCCURRENCE.issue_title
+        notification_uuid = self.get_notification_uuid(attachment["title_link"])
         assert (
             attachment["title_link"]
-            == f"http://testserver/organizations/{self.organization.slug}/issues/{group_event.group.id}/?referrer=escalating_activity-slack"
+            == f"http://testserver/organizations/{self.organization.slug}/issues/{group_event.group.id}/?referrer=escalating_activity-slack&notification_uuid={notification_uuid}"
         )
         assert (
             attachment["text"]
@@ -106,5 +109,5 @@ class SlackRegressionNotificationTest(SlackActivityNotificationTest, Performance
         )
         assert (
             attachment["footer"]
-            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=escalating_activity-slack-user|Notification Settings>"
+            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=escalating_activity-slack-user&notification_uuid={notification_uuid}|Notification Settings>"
         )

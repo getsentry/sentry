@@ -14,7 +14,7 @@ class UserPermission(Model):
     Generally speaking, they should only apply to active superuser sessions.
     """
 
-    __relocation_scope__ = RelocationScope.User
+    __relocation_scope__ = RelocationScope.Config
 
     user = FlexibleForeignKey("sentry.User")
     # permissions should be in the form of 'service-name.permission-name'
