@@ -24,6 +24,7 @@ from sentry.signals import post_upgrade
 from sentry.silo import SiloMode
 from sentry.types.region import find_regions_for_orgs
 from sentry.utils.env import in_test_environment
+from sentry.utils.snowflake import SnowflakeIdMixin
 
 if TYPE_CHECKING:
     from sentry.models.outbox import ControlOutboxBase, OutboxCategory, RegionOutboxBase
@@ -98,16 +99,20 @@ class RegionOutboxProducingManager(BaseManager[_RM]):
 
         model: Type[_RM] = type(tuple_of_objs[0])
         using = router.db_for_write(model)
+
+        assert not issubclass(
+            model, SnowflakeIdMixin
+        ), "bulk_create cannot work for SnowflakeIdMixin models!"
         with outbox_context(transaction.atomic(using=using), flush=False):
             with connections[using].cursor() as cursor:
                 cursor.execute(
                     "SELECT nextval(%s) FROM generate_series(1,%s);",
                     [f"{model._meta.db_table}_id_seq", len(tuple_of_objs)],
                 )
-                ids = cursor.fetchone()
+                ids = [i for i, in cursor.fetchall()]
 
             outboxes: List[RegionOutboxBase] = []
-            for row_id, obj in zip(ids, objs):
+            for row_id, obj in zip(ids, tuple_of_objs):
                 obj.id = row_id
                 outboxes.append(obj.outbox_for_update())
 
@@ -125,11 +130,11 @@ class RegionOutboxProducingManager(BaseManager[_RM]):
         using = router.db_for_write(model)
         with outbox_context(transaction.atomic(using=using), flush=False):
             outboxes: List[RegionOutboxBase] = []
-            for obj in objs:
+            for obj in tuple_of_objs:
                 outboxes.append(obj.outbox_for_update())
 
             type(outboxes[0]).objects.bulk_create(outboxes)
-            return super().bulk_update(tuple_of_objs, *args, **kwds)
+            return super().bulk_update(tuple_of_objs, fields, *args, **kwds)
 
     def bulk_delete(self, objs: Iterable[_RM]) -> Tuple[int, Mapping[str, int]]:
         from sentry.models.outbox import outbox_context
@@ -142,11 +147,11 @@ class RegionOutboxProducingManager(BaseManager[_RM]):
         using = router.db_for_write(model)
         with outbox_context(transaction.atomic(using=using), flush=False):
             outboxes: List[RegionOutboxBase] = []
-            for obj in objs:
+            for obj in tuple_of_objs:
                 outboxes.append(obj.outbox_for_update())
 
             type(outboxes[0]).objects.bulk_create(outboxes)
-            return self.filter(id__in={o.id for o in objs}).delete()
+            return self.filter(id__in={o.id for o in tuple_of_objs}).delete()
 
 
 class ReplicatedRegionModel(RegionOutboxProducingModel):
@@ -280,38 +285,43 @@ class ControlOutboxProducingManager(BaseManager[_CM]):
 
         model: Type[_CM] = type(tuple_of_objs[0])
         using = router.db_for_write(model)
+
+        assert not issubclass(
+            model, SnowflakeIdMixin
+        ), "bulk_create cannot work for SnowflakeIdMixin models!"
+
         with outbox_context(transaction.atomic(using=using), flush=False):
             with connections[using].cursor() as cursor:
                 cursor.execute(
                     "SELECT nextval(%s) FROM generate_series(1,%s);",
                     [f"{model._meta.db_table}_id_seq", len(tuple_of_objs)],
                 )
-                ids = cursor.fetchone()
+                ids = [i for i, in cursor.fetchall()]
 
             outboxes: List[ControlOutboxBase] = []
-            for row_id, obj in zip(ids, objs):
+            for row_id, obj in zip(ids, tuple_of_objs):
                 obj.id = row_id
                 outboxes.extend(obj.outboxes_for_update())
 
             type(outboxes[0]).objects.bulk_create(outboxes)
             return super().bulk_create(tuple_of_objs, *args, **kwds)
 
-    def bulk_update(self, objs: Iterable[_CM], *args: Any, **kwds: Any) -> Any:
+    def bulk_update(self, objs: Iterable[_CM], fields: List[str], *args: Any, **kwds: Any) -> Any:
         from sentry.models.outbox import outbox_context
 
         tuple_of_objs: Tuple[_CM, ...] = tuple(objs)
         if not tuple_of_objs:
-            return super().bulk_update(tuple_of_objs, *args, **kwds)
+            return super().bulk_update(tuple_of_objs, fields, *args, **kwds)
 
         model: Type[_CM] = type(tuple_of_objs[0])
         using = router.db_for_write(model)
         with outbox_context(transaction.atomic(using=using), flush=False):
             outboxes: List[ControlOutboxBase] = []
-            for obj in objs:
+            for obj in tuple_of_objs:
                 outboxes.extend(obj.outboxes_for_update())
 
             type(outboxes[0]).objects.bulk_create(outboxes)
-            return super().bulk_update(tuple_of_objs, *args, **kwds)
+            return super().bulk_update(tuple_of_objs, fields, *args, **kwds)
 
     def bulk_delete(self, objs: Iterable[_CM]) -> Tuple[int, Mapping[str, int]]:
         from sentry.models.outbox import outbox_context
@@ -324,11 +334,11 @@ class ControlOutboxProducingManager(BaseManager[_CM]):
         using = router.db_for_write(model)
         with outbox_context(transaction.atomic(using=using), flush=False):
             outboxes: List[ControlOutboxBase] = []
-            for obj in objs:
+            for obj in tuple_of_objs:
                 outboxes.extend(obj.outboxes_for_update())
 
             type(outboxes[0]).objects.bulk_create(outboxes)
-            return self.filter(id__in={o.id for o in objs}).delete()
+            return self.filter(id__in={o.id for o in tuple_of_objs}).delete()
 
 
 class ReplicatedControlModel(ControlOutboxProducingModel):

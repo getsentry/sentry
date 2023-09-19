@@ -293,10 +293,10 @@ class Team(ReplicatedRegionModel, SnowflakeIdMixin):
             except IntegrityError:
                 pass
 
-        for omt in OrganizationMemberTeam.objects.filter(team=self).exclude(
+        existing = OrganizationMemberTeam.objects.filter(team=self).exclude(
             organizationmember__organization=organization
-        ):
-            omt.delete()
+        )
+        OrganizationMemberTeam.objects.bulk_delete(existing)
 
         if new_team != self:
             with outbox_context(
