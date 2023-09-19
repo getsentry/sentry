@@ -673,3 +673,82 @@ class NotificationControllerTest(TestCase):
             )
             == NotificationSettingsOptionEnum.NEVER
         )
+
+    def test_get_notification_value_for_recipient_and_type_with_layering(self):
+        controller = NotificationController(
+            recipients=[self.user],
+            project_ids=[self.project.id],
+            organization_id=self.organization.id,
+        )
+
+        assert (
+            controller.get_notification_value_for_recipient_and_type(
+                recipient=self.user,
+                type=NotificationSettingEnum.DEPLOY,
+            )
+            == NotificationSettingsOptionEnum.ALWAYS
+        )
+
+        # overrides the user setting in setUp()
+        add_notification_setting_option(
+            scope_type=NotificationScopeEnum.ORGANIZATION,
+            scope_identifier=self.organization.id,
+            type=NotificationSettingEnum.DEPLOY,
+            value=NotificationSettingsOptionEnum.NEVER,
+            user_id=self.user.id,
+        )
+
+        controller = NotificationController(
+            recipients=[self.user],
+            project_ids=[self.project.id],
+            organization_id=self.organization.id,
+        )
+
+        assert (
+            controller.get_notification_value_for_recipient_and_type(
+                recipient=self.user,
+                type=NotificationSettingEnum.DEPLOY,
+            )
+            == NotificationSettingsOptionEnum.NEVER
+        )
+
+    def test_get_notification_provider_value_for_recipient_and_type_with_layering(self):
+        controller = NotificationController(
+            recipients=[self.user],
+            project_ids=[self.project.id],
+            organization_id=self.organization.id,
+        )
+
+        assert (
+            controller.get_notification_provider_value_for_recipient_and_type(
+                recipient=self.user,
+                type=NotificationSettingEnum.WORKFLOW,
+                provider=ExternalProviderEnum.EMAIL,
+            )
+            == NotificationSettingsOptionEnum.ALWAYS
+        )
+
+        # overrides the user setting in setUp()
+        add_notification_setting_provider(
+            scope_type=NotificationScopeEnum.ORGANIZATION,
+            scope_identifier=self.organization.id,
+            provider=ExternalProviderEnum.EMAIL,
+            type=NotificationSettingEnum.WORKFLOW,
+            value=NotificationSettingsOptionEnum.NEVER,
+            user_id=self.user.id,
+        )
+
+        controller = NotificationController(
+            recipients=[self.user],
+            project_ids=[self.project.id],
+            organization_id=self.organization.id,
+        )
+
+        assert (
+            controller.get_notification_provider_value_for_recipient_and_type(
+                recipient=self.user,
+                type=NotificationSettingEnum.WORKFLOW,
+                provider=ExternalProviderEnum.EMAIL,
+            )
+            == NotificationSettingsOptionEnum.NEVER
+        )
