@@ -70,6 +70,7 @@ class DiscordNotifyServiceAction(IntegrationEventAction):
 
         analytics.record(
             "integrations.discord.notification_sent",
+            category="issue_alert",
             organization_id=event.organization.id,
             project_id=event.project_id,
             group_id=event.group_id,
