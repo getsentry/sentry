@@ -2,6 +2,7 @@ from enum import Enum
 from typing import Any, Dict, List, Literal, Optional, Set, Tuple, TypedDict, Union
 
 from django.conf import settings
+from typing_extensions import NotRequired
 
 from sentry.models import CUSTOM_RULE_START
 from sentry.utils import json, redis
@@ -114,7 +115,8 @@ class Rule(TypedDict):
 
 class DecayingFn(TypedDict):
     type: str
-    decayedValue: Optional[str]
+    decayedValue: NotRequired[Optional[str]]
+    limit: NotRequired[int]
 
 
 class DecayingRule(Rule):
