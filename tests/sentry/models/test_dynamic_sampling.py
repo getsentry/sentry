@@ -137,3 +137,26 @@ class TestCustomDynamicSamplingRuleProject(TestCase):
         assert len(active_rules) == 10
         for rule in new_rules:
             assert rule in active_rules
+
+    def test_get_rule_for_org(self):
+        """
+        Test the get_rule_for_org method
+        """
+        condition = {"op": "equals", "name": "environment", "value": "prod"}
+
+        # check empty result
+        rule = CustomDynamicSamplingRule.get_rule_for_org(condition, self.organization.id)
+        assert rule is None
+
+        new_rule = CustomDynamicSamplingRule.update_or_create(
+            condition=condition,
+            start=timezone.now() - timedelta(hours=2),
+            end=timezone.now() + timedelta(hours=1),
+            project_ids=[self.project.id],
+            organization_id=self.organization.id,
+            num_samples=100,
+            sample_rate=0.5,
+        )
+
+        rule = CustomDynamicSamplingRule.get_rule_for_org(condition, self.organization.id)
+        assert rule == new_rule

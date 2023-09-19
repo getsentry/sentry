@@ -138,10 +138,9 @@ class CustomDynamicSamplingRule(Model):
             condition_hash=condition_hash,
             is_active=True,
             end_date__gt=timezone.now(),
-        )
-        for rule in rules:
-            return rule
-        return None
+        )[:1]
+
+        return rules[0] if rules else None
 
     @staticmethod
     def update_or_create(
@@ -154,7 +153,6 @@ class CustomDynamicSamplingRule(Model):
         sample_rate: float,
     ) -> "CustomDynamicSamplingRule":
         with transaction.atomic(router.db_for_write(CustomDynamicSamplingRule)):
-
             # check if rule already exists for this organization
             existing_rule = CustomDynamicSamplingRule.get_rule_for_org(condition, organization_id)
 
