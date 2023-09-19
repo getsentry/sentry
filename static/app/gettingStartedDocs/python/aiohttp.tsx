@@ -14,13 +14,12 @@ const profilingConfiguration = `    # Set profiles_sample_rate to 1.0 to profile
 
 const performanceConfiguration = `    # Set traces_sample_rate to 1.0 to capture 100%
     # of transactions for performance monitoring.
-    # We recommend adjusting this value in production.
     traces_sample_rate=1.0,`;
 
 const introduction = (
   <p>
     {tct(
-      'The AIOHTTP integration adds support for the [link:AIOHTTP-Server Web Framework]. A Python version of 3.6 or greater is required.',
+      'The AIOHTTP integration adds support for the [link:AIOHTTP-Server Web Framework].',
       {
         link: <ExternalLink href="https://docs.aiohttp.org/en/stable/web.html" />,
       }
@@ -65,19 +64,27 @@ export const steps = ({
   },
   {
     type: StepType.CONFIGURE,
-    description: t('Initialize the SDK before starting the server:'),
+    description: (
+      <p>
+        {tct(
+          'If you have the [code:aiohttp] package in your dependencies, the AIOHTTO integration will be enabled automatically. There is nothing to do for you except initializing the Sentry SDK before initializing your application:',
+          {
+            code: <code />,
+          }
+        )}
+      </p>
+    ),
     configurations: [
       {
         language: 'python',
         code: `
+from aiohttp import web
+
 import sentry_sdk
-from sentry_sdk.integrations.aiohttp import AioHttpIntegration
 
 sentry_sdk.init(
 ${sentryInitContent}
 )
-
-from aiohttp import web
 
 async def hello(request):
     return web.Response(text="Hello, world")
@@ -90,6 +97,44 @@ web.run_app(app)
       },
     ],
   },
+  {
+    type: StepType.VERIFY,
+    description: t(
+      'You can easily verify your Sentry installation by creating a route that triggers an error:'
+    ),
+    configurations: [
+      {
+        language: 'python',
+
+        code: `
+from aiohttp import web
+
+sentry_sdk.init(...)  # same as above
+
+async def hello(request):
+    1/0  # raises an error
+    return web.Response(text="Hello, world")
+
+app = web.Application()
+app.add_routes([web.get('/', hello)])
+
+web.run_app(app)`,
+      },
+    ],
+    additionalInfo: (
+      <p>
+        {tct(
+          `When you point your browser to [localhost_link:http://localhost:8080/] a transaction in the Performance section of [sentry_link:sentry.io] will be created. Additionally an error event will be sent to [sentry_link:sentry.io] and will be connected to the transaction. It takes a couple of moments for the data to appear in [sentry_link:sentry.io].`,
+          {
+            localhost_link: <ExternalLink href="http://localhost:8080/" />,
+            sentry_link: (
+              <ExternalLink href="https://docs.aiohttp.org/en/stable/web.html" />
+            ),
+          }
+        )}
+      </p>
+    ),
+  },
 ];
 // Configuration End
 
@@ -100,10 +145,7 @@ export function GettingStartedWithAIOHTTP({
 }: ModuleProps) {
   const otherConfigs: string[] = [];
 
-  let sentryInitContent: string[] = [
-    `    dsn="${dsn}",`,
-    `    integrations=[AioHttpIntegration()],`,
-  ];
+  let sentryInitContent: string[] = [`    dsn="${dsn}",`];
 
   if (activeProductSelection.includes(ProductSolution.PERFORMANCE_MONITORING)) {
     otherConfigs.push(performanceConfiguration);
