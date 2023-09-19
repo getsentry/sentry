@@ -7,6 +7,7 @@ import sentry_sdk
 from sentry_sdk.envelope import Envelope, Item
 
 from minimetrics.types import FlushableBuckets, FlushableMetric, MetricType
+from sentry import options
 from sentry.utils import metrics
 
 
@@ -87,8 +88,6 @@ class MetricEnvelopeTransport:
                     prev_buckets_weight + metric.weight,
                 )
 
-        encoded_metrics = self._encoder.encode_multiple(flushable_metrics)
-
         for metric_type, (buckets_count, buckets_weight) in stats_by_type.items():
             # We want to emit a metric on how many buckets and weight there was for a metric type.
             metrics.timing(
@@ -116,13 +115,16 @@ class MetricEnvelopeTransport:
                 sample_rate=1.0,
             )
 
-        metrics.timing(
-            key="minimetrics.encoded_metrics_size", value=len(encoded_metrics), sample_rate=1.0
-        )
+        if options.get("delightful_metrics.enable_envelope_serialization"):
+            encoded_metrics = self._encoder.encode_multiple(flushable_metrics)
+            metrics.timing(
+                key="minimetrics.encoded_metrics_size", value=len(encoded_metrics), sample_rate=1.0
+            )
+            metric_item = Item(payload=encoded_metrics, type="statsd")
+            envelope = Envelope(
+                headers=None,
+                items=[metric_item],
+            )
 
-        metric_item = Item(payload=encoded_metrics, type="statsd")
-        envelope = Envelope(
-            headers=None,
-            items=[metric_item],
-        )
-        transport.capture_envelope(envelope)
+            if options.get("delightful_metrics.enable_capture_envelope"):
+                transport.capture_envelope(envelope)

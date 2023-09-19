@@ -22,7 +22,9 @@ export const inputStyles = (p: InputStylesProps & {theme: Theme}) => css`
   border-radius: ${p.theme.borderRadius};
   box-shadow: inset ${p.theme.dropShadowMedium};
   resize: vertical;
-  transition: border 0.1s, box-shadow 0.1s;
+  transition:
+    border 0.1s,
+    box-shadow 0.1s;
 
   ${p.monospace ? `font-family: ${p.theme.text.familyMono};` : ''}
   ${p.readOnly ? 'cursor: default;' : ''}

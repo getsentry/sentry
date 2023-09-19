@@ -351,6 +351,7 @@ function Sidebar({location, organization}: Props) {
         label={t('DDM')}
         to={`/organizations/${organization.slug}/ddm/`}
         id="ddm"
+        isAlpha
       />
     </Feature>
   );

@@ -306,12 +306,12 @@ def _get_function_support(function: str) -> SupportedBy:
 
 
 def _get_args_support(function: str, args: Sequence[str]) -> SupportedBy:
+    if len(args) == 0:
+        return SupportedBy.both()
+
     # apdex can have two variations, either apdex() or apdex(value).
     if function == "apdex":
         return SupportedBy(on_demand_metrics=True, standard_metrics=False)
-
-    if len(args) == 0:
-        return SupportedBy.both()
 
     arg = args[0]
 
