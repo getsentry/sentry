@@ -1,6 +1,7 @@
 import * as Sentry from '@sentry/react';
 import isNil from 'lodash/isNil';
 
+import {Tag} from 'sentry/actionCreators/events';
 import {Client, RequestCallbacks, RequestOptions} from 'sentry/api';
 import GroupStore from 'sentry/stores/groupStore';
 import {Actor, Group, Member, Note, User} from 'sentry/types';
@@ -448,15 +449,18 @@ const makeFetchStatisticalDetectorTagsQueryKey = ({
 
 export const useFetchIssueTags = (
   parameters: FetchIssueTagsParameters,
-  {enabled = true, ...options}: Partial<UseApiQueryOptions<GroupTagsResponse>> = {}
+  {
+    enabled = true,
+    ...options
+  }: Partial<UseApiQueryOptions<GroupTagsResponse | Tag[]>> = {}
 ) => {
   let queryKey = makeFetchIssueTagsQueryKey(parameters);
   if (parameters.isStatisticalDetector) {
-    // TODO: This changes the type
+    // Statistical detector issues need to use a Discover query for tags
     queryKey = makeFetchStatisticalDetectorTagsQueryKey(parameters);
   }
 
-  return useApiQuery<GroupTagsResponse>(queryKey, {
+  return useApiQuery<GroupTagsResponse | Tag[]>(queryKey, {
     staleTime: 30000,
     enabled: defined(parameters.groupId) && enabled,
     ...options,
