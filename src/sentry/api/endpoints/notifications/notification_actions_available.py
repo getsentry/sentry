@@ -14,7 +14,7 @@ from sentry.services.hybrid_cloud.integration import integration_service
 @region_silo_endpoint
 class NotificationActionsAvailableEndpoint(OrganizationEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.EXPERIMENTAL,
     }
 
     owner = ApiOwner.ENTERPRISE

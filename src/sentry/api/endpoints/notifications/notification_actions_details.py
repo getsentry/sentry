@@ -26,9 +26,9 @@ logger = logging.getLogger(__name__)
 @region_silo_endpoint
 class NotificationActionsDetailsEndpoint(OrganizationEndpoint):
     publish_status = {
-        "DELETE": ApiPublishStatus.PRIVATE,
-        "GET": ApiPublishStatus.PRIVATE,
-        "PUT": ApiPublishStatus.PRIVATE,
+        "DELETE": ApiPublishStatus.EXPERIMENTAL,
+        "GET": ApiPublishStatus.EXPERIMENTAL,
+        "PUT": ApiPublishStatus.EXPERIMENTAL,
     }
 
     owner = ApiOwner.ENTERPRISE

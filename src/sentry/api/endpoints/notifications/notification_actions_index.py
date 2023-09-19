@@ -45,11 +45,12 @@ class NotificationActionsPermission(OrganizationPermission):
 @region_silo_endpoint
 class NotificationActionsIndexEndpoint(OrganizationEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
-        "POST": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.EXPERIMENTAL,
+        "POST": ApiPublishStatus.EXPERIMENTAL,
     }
 
     owner = ApiOwner.ENTERPRISE
+
     """
     View existing NotificationActions or create a new one.
     GET: Returns paginated, serialized NotificationActions for an organization

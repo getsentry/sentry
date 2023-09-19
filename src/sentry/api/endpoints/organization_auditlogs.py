@@ -34,7 +34,7 @@ class AuditLogQueryParamSerializer(serializers.Serializer):
 @control_silo_endpoint
 class OrganizationAuditLogsEndpoint(ControlSiloOrganizationEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.ENTERPRISE
     permission_classes = (OrganizationAuditPermission,)

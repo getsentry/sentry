@@ -94,7 +94,7 @@ def _get_shared_email_domain(organization: Organization) -> str | None:
 @region_silo_endpoint
 class OrganizationMissingMembersEndpoint(OrganizationEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.EXPERIMENTAL,
     }
 
     owner = ApiOwner.ENTERPRISE

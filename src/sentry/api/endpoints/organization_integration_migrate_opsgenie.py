@@ -15,7 +15,7 @@ from sentry.utils import metrics
 @region_silo_endpoint
 class OrganizationIntegrationMigrateOpsgenieEndpoint(RegionOrganizationIntegrationBaseEndpoint):
     publish_status = {
-        "PUT": ApiPublishStatus.PRIVATE,
+        "PUT": ApiPublishStatus.UNKNOWN,
     }
     owner = ApiOwner.ENTERPRISE
 
