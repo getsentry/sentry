@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import inspect
 import os.path
+import re
 import time
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
@@ -23,8 +24,9 @@ from django.contrib.auth import login
 from django.contrib.auth.models import AnonymousUser
 from django.core import signing
 from django.core.cache import cache
-from django.db import DEFAULT_DB_ALIAS, connection, connections
+from django.db import DEFAULT_DB_ALIAS, connection, connections, router
 from django.db.migrations.executor import MigrationExecutor
+from django.db.migrations.loader import MigrationLoader
 from django.http import HttpRequest
 from django.test import TestCase as DjangoTestCase
 from django.test import TransactionTestCase as DjangoTransactionTestCase
@@ -2241,7 +2243,25 @@ class TestMigrations(TransactionTestCase):
 
     @property
     def connection(self):
-        return "default"
+        # Infer connection from table_name
+        m = MigrationLoader(connections["default"]).get_migration(self.app, self.migrate_to[0][1])
+        hinted_tables = {
+            table
+            for op in m.operations
+            for tables in op.hints.get("tables", [])
+            for table in tables
+        }
+
+        hinted_migrations = set()
+        for table_name in hinted_tables:
+            for connection_name in connections:
+                if router.allow_migrate(connection_name, self.app, table_name=table_name):
+                    hinted_migrations.add(connection_name)
+
+        assert (
+            len(hinted_migrations) == 1
+        ), f"Could not determine migration test connection from tables hints  Found {hinted_migrations}"
+        return next(iter(hinted_migrations))
 
     def setUp(self):
         super().setUp()
@@ -2370,6 +2390,12 @@ class ActivityTestCase(TestCase):
 
         return release, deploy
 
+    def get_notification_uuid(self, text: str) -> str:
+        # Allow notification\\_uuid and notification_uuid
+        result = re.search("notification.*_uuid=([a-zA-Z0-9-]+)", text)
+        assert result is not None
+        return result[1]
+
 
 class SlackActivityNotificationTest(ActivityTestCase):
     @cached_property
@@ -2449,25 +2475,26 @@ class SlackActivityNotificationTest(ActivityTestCase):
 
 class MSTeamsActivityNotificationTest(ActivityTestCase):
     def setUp(self):
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.MSTEAMS,
-            NotificationSettingTypes.WORKFLOW,
-            NotificationSettingOptionValues.ALWAYS,
-            user_id=self.user.id,
-        )
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.MSTEAMS,
-            NotificationSettingTypes.ISSUE_ALERTS,
-            NotificationSettingOptionValues.ALWAYS,
-            user_id=self.user.id,
-        )
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.MSTEAMS,
-            NotificationSettingTypes.DEPLOY,
-            NotificationSettingOptionValues.ALWAYS,
-            user_id=self.user.id,
-        )
-        UserOption.objects.create(user=self.user, key="self_notifications", value="1")
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            NotificationSetting.objects.update_settings(
+                ExternalProviders.MSTEAMS,
+                NotificationSettingTypes.WORKFLOW,
+                NotificationSettingOptionValues.ALWAYS,
+                user_id=self.user.id,
+            )
+            NotificationSetting.objects.update_settings(
+                ExternalProviders.MSTEAMS,
+                NotificationSettingTypes.ISSUE_ALERTS,
+                NotificationSettingOptionValues.ALWAYS,
+                user_id=self.user.id,
+            )
+            NotificationSetting.objects.update_settings(
+                ExternalProviders.MSTEAMS,
+                NotificationSettingTypes.DEPLOY,
+                NotificationSettingOptionValues.ALWAYS,
+                user_id=self.user.id,
+            )
+            UserOption.objects.create(user=self.user, key="self_notifications", value="1")
 
         self.tenant_id = "50cccd00-7c9c-4b32-8cda-58a084f9334a"
         self.integration = self.create_integration(

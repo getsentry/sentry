@@ -14,14 +14,14 @@ class FeedbackResponseType(TypedDict):
     replay_id: Optional[str]
     url: Optional[str]
     dist: Optional[str]
+    environment: Optional[str]
+    release: Optional[str]
     sdk: Any
     contact_email: str
-    environment: str
     feedback_id: str
     message: str
     platform: str
     project_id: str
-    release: str
     status: str
     timestamp: str
 
