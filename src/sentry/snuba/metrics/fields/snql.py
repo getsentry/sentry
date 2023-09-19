@@ -824,6 +824,7 @@ def on_demand_failure_count_snql_factory(
                 ],
             ),
         ],
+        alias=alias,
     )
 
 

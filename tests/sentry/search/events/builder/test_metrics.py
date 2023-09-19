@@ -2104,7 +2104,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             internal_metric=TransactionMRI.COUNT_ON_DEMAND.value,
             entity="metrics_counters",
             tags={"query_hash": spec.query_hash, "failure": "true"},
-            timestamp=self.start,
+            timestamp=timestamp,
         )
         query = TimeseriesMetricQueryBuilder(
             self.params,
@@ -2115,7 +2115,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             config=QueryBuilderConfig(on_demand_metrics_enabled=True),
         )
         result = query.run_query("test_query")
-        assert result["data"][:1] == [{"time": timestamp.isoformat(), "failure_count": 1}]
+        assert result["data"][:1] == [{"time": timestamp.isoformat(), "failure_count": 1.0}]
         assert result["meta"] == [
             {"name": "time", "type": "DateTime('Universal')"},
             {"name": "failure_count", "type": "Float64"},
