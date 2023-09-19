@@ -2103,7 +2103,7 @@
         "model": "sentry.OrganizationMember"
       },
       "organizationmemberteam_id": {
-        "kind": "HybridCloudForeignKey",
+        "kind": "ImplicitForeignKey",
         "model": "sentry.OrganizationMemberTeam"
       },
       "team_id": {
