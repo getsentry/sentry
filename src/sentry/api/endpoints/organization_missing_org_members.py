@@ -13,6 +13,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import roles
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
@@ -93,8 +94,11 @@ def _get_shared_email_domain(organization: Organization) -> str | None:
 @region_silo_endpoint
 class OrganizationMissingMembersEndpoint(OrganizationEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
+
+    owner = ApiOwner.ENTERPRISE
+
     permission_classes = (MissingMembersPermission,)
 
     def get(self, request: Request, organization: Organization) -> Response:
