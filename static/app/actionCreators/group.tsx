@@ -3,6 +3,7 @@ import isNil from 'lodash/isNil';
 
 import {Tag} from 'sentry/actionCreators/events';
 import {Client, RequestCallbacks, RequestOptions} from 'sentry/api';
+import {getSampleEventQuery} from 'sentry/components/events/eventStatisticalDetector/eventComparison/eventDisplay';
 import GroupStore from 'sentry/stores/groupStore';
 import {Actor, Group, Member, Note, User} from 'sentry/types';
 import {buildTeamId, buildUserId, defined} from 'sentry/utils';
@@ -417,7 +418,10 @@ type FetchIssueTagsParameters = {
   readable: boolean;
   groupId?: string;
   isStatisticalDetector?: boolean;
-  transaction?: string;
+  statisticalDetectorParameters?: {
+    durationBaseline: number;
+    transaction: string;
+  };
 };
 
 export const makeFetchIssueTagsQueryKey = ({
@@ -434,18 +438,24 @@ export const makeFetchIssueTagsQueryKey = ({
 const makeFetchStatisticalDetectorTagsQueryKey = ({
   orgSlug,
   environment,
-  transaction,
-}: FetchIssueTagsParameters): ApiQueryKey => [
-  `/organizations/${orgSlug}/events-facets/`,
-  {
-    query: {
-      environment,
-      transaction,
-      includeAll: true,
-      query: `event.type:transaction transaction:${transaction}`,
+  statisticalDetectorParameters,
+}: FetchIssueTagsParameters): ApiQueryKey => {
+  const {transaction, durationBaseline} = statisticalDetectorParameters ?? {
+    transaction: '',
+    durationBaseline: 0,
+  };
+  return [
+    `/organizations/${orgSlug}/events-facets/`,
+    {
+      query: {
+        environment,
+        transaction,
+        includeAll: true,
+        query: getSampleEventQuery({transaction, durationBaseline, addUpperBound: false}),
+      },
     },
-  },
-];
+  ];
+};
 
 export const useFetchIssueTags = (
   parameters: FetchIssueTagsParameters,

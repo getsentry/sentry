@@ -100,8 +100,11 @@ export default function TagFacets({
     groupId,
     orgSlug: organization.slug,
     environment: environments,
-    transaction: event?.occurrence?.evidenceData?.transaction,
     isStatisticalDetector,
+    statisticalDetectorParameters: {
+      transaction: event?.occurrence?.evidenceData?.transaction,
+      durationBaseline: event?.occurrence?.evidenceData?.aggregateRange2,
+    },
   });
 
   const tagsData = useMemo(() => {
