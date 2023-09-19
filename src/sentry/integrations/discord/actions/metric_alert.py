@@ -36,8 +36,8 @@ def send_incident_alert_notification(
     if not channel:
         # We can't send a message if we don't know the channel
         logger.warning(
-            "discord.metric_alert.message_send_failure",
-            extra={"guild_id": incident.identifier, "channel_id": channel},
+            "discord.metric_alert.no_channel",
+            extra={"guild_id": incident.identifier},
         )
         return
 
