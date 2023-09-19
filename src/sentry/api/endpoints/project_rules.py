@@ -3,7 +3,7 @@ from typing import List
 from django.conf import settings
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
-from drf_spectacular.utils import extend_schema, inline_serializer
+from drf_spectacular.utils import extend_schema
 from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -81,6 +81,41 @@ def find_duplicate_rule(rule_data, project, rule_id=None):
     return None
 
 
+class ProjectRulesPostSerializer(serializers.Serializer):
+    name = GlobalParams.name("The name for the rule.")
+    conditions = serializers.ListField(
+        child=serializers.DictField(),
+        help_text="A list of triggers that determine when the rule fires.",
+    )
+    filters = serializers.ListField(
+        child=serializers.DictField(),
+        required=False,
+        help_text="A list of filters that determine if a rule fires after the listed conditions have been met.",
+    )
+    filterMatch = serializers.ChoiceField(
+        choices=(("all", "all"), ("any", "any"), ("none", "none")),
+        required=False,
+        help_text="An operator determining which filters need to hold before any actions take place. Required when `filters` is passed in.",
+    )
+    actions = serializers.ListField(
+        child=serializers.DictField(),
+        help_text="A list of actions that will occur when all required conditions and filters for the rule are met.",
+    )
+    actionMatch = serializers.ChoiceField(
+        choices=(("all", "all"), ("any", "any"), ("none", "none")),
+        help_text="An operator determining which actions should take place when the rule triggers.",
+    )
+    environment = GlobalParams.ENVIRONMENT
+    frequency = serializers.IntegerField(
+        min_value=5,
+        max_value=60 * 24 * 30,
+        help_text="How often the alert rule can be triggered for a particular issue, in seconds.",
+    )
+    owner = serializers.IntegerField(
+        required=False, allow_null=True, help_text="The ID of the team or user that owns the rule."
+    )
+
+
 @extend_schema(tags=["Events"])
 @region_silo_endpoint
 class ProjectRulesEndpoint(ProjectEndpoint):
@@ -92,7 +127,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
     permission_classes = (ProjectAlertRulePermission,)
 
     @extend_schema(
-        operation_id="List Issue Alert Rules for a Project",
+        operation_id="List a Project's Issue Alert Rules",
         parameters=[GlobalParams.ORG_SLUG, GlobalParams.PROJECT_SLUG],
         request=None,
         responses={
@@ -106,9 +141,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
     @transaction_start("ProjectRulesEndpoint")
     def get(self, request: Request, project) -> Response:
         """
-        Retrieve a list of rules for a given project.
-
-            {method} {path}
+        Return a list of active issue alert rules bound to a project.
 
         """
         queryset = Rule.objects.filter(
@@ -125,15 +158,11 @@ class ProjectRulesEndpoint(ProjectEndpoint):
 
     @extend_schema(
         operation_id="Create an Issue Alert Rule for a Project",
-        parameters=[GlobalParams.ORG_SLUG, GlobalParams.PROJECT_SLUG],
-        request=inline_serializer(
-            name="RuleRequestBody",
-            fields={
-                "name": serializers.CharField(max_length=64),
-                "environment": serializers.CharField(max_length=64, required=False),
-                "actions": serializers.ListField(child=serializers.CharField(), required=False),
-            },
-        ),
+        parameters=[
+            GlobalParams.ORG_SLUG,
+            GlobalParams.PROJECT_SLUG,
+        ],
+        request=ProjectRulesPostSerializer,
         responses={
             201: inline_sentry_response_serializer("RuleCreated", RuleSerializerResponse),
             401: RESPONSE_UNAUTHORIZED,
@@ -145,20 +174,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
     @transaction_start("ProjectRulesEndpoint")
     def post(self, request: Request, project) -> Response:
         """
-        Create a rule
-
-        Create a new rule for the given project.
-
-            {method} {path}
-            {{
-              "name": "My rule name",
-              "owner": "type:id",
-              "conditions": [],
-              "filters": [],
-              "actions": [],
-              "actionMatch": "all",
-              "filterMatch": "all"
-            }}
+        Create a new issue alert rule for the given project.
 
         """
 

@@ -46,7 +46,7 @@ class RuleCreatedBy(TypedDict):
     email: str
 
 
-class RuleSerializerResponse(TypedDict):
+class RuleSerializerResponse(TypedDict, total=False):
     """
     This represents a Sentry Rule.
     """
