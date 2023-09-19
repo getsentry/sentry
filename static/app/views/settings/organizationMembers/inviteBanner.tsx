@@ -96,6 +96,7 @@ export function InviteBanner({
   if (isEligibleForBanner && showBanner) {
     trackAnalytics('github_invite_banner.viewed', {
       organization,
+      members_shown: missingMembers.users.slice(0, 5).length,
     });
   }
   if (!isEligibleForBanner || !showBanner) {
