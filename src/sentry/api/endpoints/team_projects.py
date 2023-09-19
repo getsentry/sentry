@@ -38,10 +38,8 @@ class ProjectPostSerializer(serializers.Serializer, PreventNumericSlugMixin):
     )
     slug = serializers.RegexField(
         DEFAULT_SLUG_PATTERN,
-        help_text="""
-Optional slug for the project. If not provided a slug is automatically
-generated from the name.
-        """,
+        help_text="""Uniquely identifies a project and is used for the interface.
+        If not provided, it is automatically generated from the name.""",
         max_length=50,
         required=False,
         allow_null=True,
