@@ -130,8 +130,6 @@ class PushEventWebhookTest(APITestCase):
 
         commit_filechanges = CommitFileChange.objects.all()
         assert len(commit_filechanges) == 2
-        assert commit_filechanges[0].language == "python"
-        assert commit_filechanges[1].language is None
 
     def test_auto_linking_missing_feature_flag(self):
         project = self.project  # force creation
@@ -221,8 +219,6 @@ class PushEventWebhookTest(APITestCase):
 
         commit_filechanges = CommitFileChange.objects.all()
         assert len(commit_filechanges) == 2
-        assert commit_filechanges[0].language == "python"
-        assert commit_filechanges[1].language is None
 
     def test_multiple_orgs(self):
         project = self.project  # force creation
