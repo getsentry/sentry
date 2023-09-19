@@ -17,12 +17,12 @@ export default function useRageDeadSelectors(params: DeadRageSelectorQueryParams
         `/organizations/${organization.slug}/replay-selectors/`,
         {
           query: {
-            cursor: query.cursor,
+            cursor: params.cursor,
             environment: query.environment,
             project: query.project,
             statsPeriod: query.statsPeriod,
             per_page: params.per_page,
-            sort: query.sort ?? params.sort,
+            sort: query[params.prefix + 'sort'] ?? params.sort,
           },
         },
       ],
