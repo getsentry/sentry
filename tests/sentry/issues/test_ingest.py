@@ -35,10 +35,13 @@ from sentry.receivers import create_default_projects
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
+from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
 from sentry.utils.samples import load_data
 from sentry.utils.snuba import raw_query
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
+
+pytestmark = [requires_snuba]
 
 
 @region_silo_test
