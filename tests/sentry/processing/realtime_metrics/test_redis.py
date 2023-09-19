@@ -1,13 +1,13 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Any, Dict
 
 import pytest
-from freezegun import freeze_time
 from redis import StrictRedis
 
 from sentry.exceptions import InvalidConfiguration
 from sentry.processing import realtime_metrics
 from sentry.processing.realtime_metrics.redis import RedisRealtimeMetricsStore
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.utils import redis
 
 
@@ -60,7 +60,7 @@ def test_record_project_duration_same_bucket(
 ) -> None:
     with freeze_time(datetime.fromtimestamp(1147)) as frozen_datetime:
         store.record_project_duration(17, 1.0)
-        frozen_datetime.tick(delta=timedelta(seconds=2))
+        frozen_datetime.shift(2)
         store.record_project_duration(17, 1.0)
 
     assert redis_cluster.get("symbolicate_event_low_priority:budget:10:17:1140") == "2000"
@@ -71,7 +71,7 @@ def test_record_project_duration_different_buckets(
 ) -> None:
     with freeze_time(datetime.fromtimestamp(1147)) as frozen_datetime:
         store.record_project_duration(17, 1.0)
-        frozen_datetime.tick(delta=timedelta(seconds=5))
+        frozen_datetime.shift(5)
         store.record_project_duration(17, 1.0)
 
     assert redis_cluster.get("symbolicate_event_low_priority:budget:10:17:1140") == "1000"

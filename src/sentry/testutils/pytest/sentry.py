@@ -10,7 +10,6 @@ from hashlib import md5
 from typing import TypeVar
 from unittest import mock
 
-import freezegun
 import pytest
 from django.conf import settings
 from sentry_sdk import Hub
@@ -272,8 +271,6 @@ def pytest_configure(config: pytest.Config) -> None:
 
     # force celery registration
     from sentry.celery import app  # NOQA
-
-    freezegun.configure(extend_ignore_list=["sentry.utils.retries"])  # type: ignore[attr-defined]
 
 
 def register_extensions() -> None:
