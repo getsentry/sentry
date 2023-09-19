@@ -562,9 +562,9 @@ class EventManager:
 
         _materialize_metadata_many(jobs)
 
-        kwargs = _get_group_creation_kwargs(job)
+        group_creation_kwargs = _get_group_creation_kwargs(job)
 
-        kwargs["culprit"] = job["culprit"]
+        group_creation_kwargs["culprit"] = job["culprit"]
 
         # Load attachments first, but persist them at the very last after
         # posting to eventstream to make sure all counters and eventstream are
@@ -583,7 +583,7 @@ class EventManager:
                     metadata=dict(job["event_metadata"]),
                     received_timestamp=job["received_timestamp"],
                     migrate_off_hierarchical=migrate_off_hierarchical,
-                    **kwargs,
+                    **group_creation_kwargs,
                 )
                 job["groups"] = [group_info]
         except HashDiscarded as err:
