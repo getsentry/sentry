@@ -37,4 +37,18 @@ const secret = '<span data-token="___SECRET___"></span>';
     expect(tokenNodes.___SECRET___).toHaveLength(1);
     expect(element.contains(tokenNodes.___SECRET___[0])).toBe(true);
   });
+
+  it('does not return the key if the token was not replaced', function () {
+    const element = document.createElement('div');
+    element.innerHTML = `
+const cdn = '___CDN___';
+`;
+    const tokenNodes = replaceTokensWithSpan(element, ['___SECRET___']);
+
+    expect(element.innerHTML).toEqual(`
+const cdn = '___CDN___';
+`);
+    expect(tokenNodes.___CDN___).toBe(undefined);
+    expect(tokenNodes.___SECRET___).toBe(undefined);
+  });
 });

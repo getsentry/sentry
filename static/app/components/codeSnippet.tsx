@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import Prism from 'prismjs';
 
 import {Button} from 'sentry/components/button';
+import {NODE_ENV} from 'sentry/constants';
 import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -23,12 +24,17 @@ export function replaceTokensWithSpan(element: HTMLElement, tokens: string[]) {
   );
 
   const nodes = tokens.reduce(
-    (acc, token) => ({
-      ...acc,
-      [token]: Array.from<HTMLSpanElement>(
-        element.querySelectorAll(`span[data-token=${token}]`)
-      ),
-    }),
+    (acc, token) => {
+      const tokenNodes = Array.from<HTMLSpanElement>(
+        element.querySelectorAll(`[data-token="${token}"]`)
+      );
+      return tokenNodes.length > 0
+        ? {
+            ...acc,
+            [token]: tokenNodes,
+          }
+        : acc;
+    },
     {} as Record<string, HTMLSpanElement[]>
   );
   return nodes;
@@ -85,10 +91,14 @@ export function CodeSnippet({
         return;
       }
       const nodes = replaceTokensWithSpan(element, Object.keys(tokenReplacers));
-      setTokenNodes(nodes);
+      if (Object.keys(nodes).length > 0) {
+        setTokenNodes(nodes);
+      }
     };
 
-    if (language in Prism.languages) {
+    // Don't load languages in test environment as it takes long enough to trigger
+    // console error about updating state without act() when setState is called afterwords
+    if (language in Prism.languages || NODE_ENV === 'test') {
       Prism.highlightElement(element, false, applyTokenReplacers);
       return () => {};
     }

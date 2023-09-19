@@ -430,7 +430,7 @@ def to_intervals(
 
 def get_num_intervals(
     start: Optional[datetime],
-    end: datetime,
+    end: Optional[datetime],
     granularity: int,
     interval: Optional[int] = None,
 ) -> int:
