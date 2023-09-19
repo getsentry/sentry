@@ -415,6 +415,8 @@ type FetchIssueTagsParameters = {
   orgSlug: string;
   readable: boolean;
   groupId?: string;
+  isStatisticalDetector?: boolean;
+  transaction?: string;
 };
 
 export const makeFetchIssueTagsQueryKey = ({
@@ -428,11 +430,33 @@ export const makeFetchIssueTagsQueryKey = ({
   {query: {environment, readable, limit}},
 ];
 
+const makeFetchStatisticalDetectorTagsQueryKey = ({
+  orgSlug,
+  environment,
+  transaction,
+}: FetchIssueTagsParameters): ApiQueryKey => [
+  `/organizations/${orgSlug}/events-facets/`,
+  {
+    query: {
+      environment,
+      transaction,
+      includeAll: true,
+      query: `event.type:transaction transaction:${transaction}`,
+    },
+  },
+];
+
 export const useFetchIssueTags = (
   parameters: FetchIssueTagsParameters,
   {enabled = true, ...options}: Partial<UseApiQueryOptions<GroupTagsResponse>> = {}
 ) => {
-  return useApiQuery<GroupTagsResponse>(makeFetchIssueTagsQueryKey(parameters), {
+  let queryKey = makeFetchIssueTagsQueryKey(parameters);
+  if (parameters.isStatisticalDetector) {
+    // TODO: This changes the type
+    queryKey = makeFetchStatisticalDetectorTagsQueryKey(parameters);
+  }
+
+  return useApiQuery<GroupTagsResponse>(queryKey, {
     staleTime: 30000,
     enabled: defined(parameters.groupId) && enabled,
     ...options,

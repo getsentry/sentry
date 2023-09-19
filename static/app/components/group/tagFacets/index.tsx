@@ -77,6 +77,7 @@ type Props = {
   project: Project;
   tagKeys: string[];
   event?: Event;
+  isStatisticalDetector?: boolean;
   tagFormatter?: (
     tagsData: Record<string, GroupTagResponseItem>
   ) => Record<string, GroupTagResponseItem>;
@@ -88,6 +89,8 @@ export default function TagFacets({
   groupId,
   tagFormatter,
   project,
+  isStatisticalDetector,
+  event,
 }: Props) {
   const organization = useOrganization();
 
@@ -95,6 +98,8 @@ export default function TagFacets({
     groupId,
     orgSlug: organization.slug,
     environment: environments,
+    transaction: event?.occurrence?.evidenceData?.transaction,
+    isStatisticalDetector,
   });
 
   const tagsData = useMemo(() => {
@@ -103,14 +108,39 @@ export default function TagFacets({
     }
 
     const keyed = keyBy(data, 'key');
-    const formatted = tagFormatter?.(keyed) ?? keyed;
+    let formatted = tagFormatter?.(keyed) ?? keyed;
 
     if (!organization.features.includes('device-classification')) {
       delete formatted['device.class'];
     }
 
+    // Statistical detector issues need to use a Discover query
+    // which means we need to massage the values to fit the component API
+    if (isStatisticalDetector) {
+      formatted = data.reduce((formattedTags, tag) => {
+        if (tag.key === 'transaction') {
+          // Skip transaction because the statistical detector is
+          // already scoped to a transaction
+          return formattedTags;
+        }
+
+        formattedTags[tag.key] = {
+          ...tag,
+          name: tag.key,
+          totalValues: tag.topValues.reduce((acc, {count}) => acc + count, 0),
+          topValues: tag.topValues.map(({name, count}) => ({
+            key: tag.key,
+            name,
+            value: name,
+            count,
+          })),
+        };
+        return formattedTags;
+      }, {});
+    }
+
     return formatted;
-  }, [data, tagFormatter, organization]);
+  }, [data, tagFormatter, organization, isStatisticalDetector]);
 
   const topTagKeys = tagKeys.filter(tagKey => Object.keys(tagsData).includes(tagKey));
   const remainingTagKeys = Object.keys(tagsData)
