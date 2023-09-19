@@ -87,25 +87,35 @@ export function AuthTokenGenerator() {
   }
 
   if (isLoading) {
-    return <Fragment>{t('Generating token...')}</Fragment>;
+    return <Wrapper isInteractive={false}>{t('Generating token...')}</Wrapper>;
   }
 
   return (
-    <Button role="button" tabIndex={0} onClick={handleClick} onKeyDown={handleKeyDown}>
+    <Wrapper
+      isInteractive
+      role="button"
+      tabIndex={0}
+      onClick={handleClick}
+      onKeyDown={handleKeyDown}
+    >
       {t('Click to generate token')}
-    </Button>
+    </Wrapper>
   );
 }
 
-const Button = styled('span')`
-  background: var(--prism-highlight-background);
+const Wrapper = styled('span')<{isInteractive: boolean}>`
+  background: var(--prism-highlight-accent);
   border-radius: 4px;
   border: none;
   padding: 0px 2px;
   margin: 0 4px;
 
+  ${p =>
+    p.isInteractive &&
+    `
+  cursor: pointer;
+
   &:hover {
-    cursor: pointer;
-    background: var(--prism-highlight-accent);
-  }
+    background: var(--prism-highlight-background);
+  }`}
 `;
