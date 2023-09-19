@@ -5,11 +5,12 @@ from urllib.parse import urlencode
 
 from sentry import features
 from sentry.models import Activity, NotificationSetting
-from sentry.notifications.helpers import get_notification_recipients
-from sentry.notifications.types import GroupSubscriptionReason
+from sentry.notifications.notificationcontroller import NotificationController
+from sentry.notifications.types import GroupSubscriptionReason, NotificationSettingEnum
 from sentry.notifications.utils import summarize_issues
 from sentry.notifications.utils.participants import ParticipantMap
 from sentry.services.hybrid_cloud.actor import RpcActor
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.types.integrations import ExternalProviders
 
 from .base import ActivityNotification
@@ -26,7 +27,16 @@ class NewProcessingIssuesActivityNotification(ActivityNotification):
     def get_participants_with_group_subscription_reason(self) -> ParticipantMap:
         participants_by_provider = None
         if features.has("organizations:notification-settings-v2", self.project.organization):
-            participants_by_provider = get_notification_recipients(self.project)
+            user_ids = list(self.project.member_set.values_list("user_id", flat=True))
+            users = user_service.get_many(filter={"user_ids": user_ids})
+            notification_controller = NotificationController(
+                recipients=users,
+                project_ids=[self.project.id],
+                organization_id=self.project.organization_id,
+            )
+            participants_by_provider = notification_controller.get_notification_recipients(
+                type=NotificationSettingEnum.ISSUE_ALERTS,
+            )
         else:
             participants_by_provider = NotificationSetting.objects.get_notification_recipients(
                 self.project
