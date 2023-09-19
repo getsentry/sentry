@@ -40,9 +40,8 @@ class MissingMembersNudgeNotification(BaseNotification):
     def reference(self) -> Model | None:
         return None
 
-    # TODO
     def get_subject(self, context: Mapping[str, Any] | None = None) -> str:
-        return "Invite your dev team to Sentry"
+        return "Invite your developers to Sentry"
 
     def get_notification_providers(self) -> Iterable[ExternalProviders]:
         # only email
@@ -61,8 +60,7 @@ class MissingMembersNudgeNotification(BaseNotification):
     def get_context(self) -> MutableMapping[str, Any]:
         return {
             "organization": self.organization,
-            "missing_members": self.commit_authors[0:3],
-            "missing_member_count": len(self.commit_authors),
+            "top_missing_members": self.commit_authors,
             "members_list_url": self.get_members_list_url(provider=ExternalProviders.EMAIL),
             "provider": self.provider.capitalize(),
         }

@@ -47,8 +47,7 @@ class DebugMissingMembersNudgeView(View):
             text_template="sentry/emails/missing-members-nudge.txt",
             context={
                 "organization": self.organization,
-                "missing_members": commit_authors[0:3],
-                "missing_members_count": len(commit_authors),
+                "top_missing_members": commit_authors[0:3],
                 "members_list_url": "https://sentry.io/",
                 "provider": "Github",
             },

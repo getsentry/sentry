@@ -1,14 +1,14 @@
 
 Bring your full {{ provider }} team on board in Sentry
 
-There are {{ missing_member_count }} users that are active in your org on {{ provider }} but are not currently in Sentry based on recent commit data*.
+Developers on your team are committing to Sentry projects that are not part of your Sentry organization. Invite them to Sentry so they can monitor their commits for error or performance issues
 
-Top Most Active Contributors
+Most Active Contributors
 
-{% for member in missing_members %}
+{% for member in top_missing_members %}
     {{ member.external_id }} {{ member.profile_link }}
     {{ member.commit_count }} Recent Commits
     {{ member.email }}
 {% endfor %}
 
-View All Missing Members {{ members_list_url }}
+View Missing Members {{ members_list_url }}

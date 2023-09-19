@@ -95,7 +95,7 @@ def send_nudge_email(org_id):
         )
 
     notification = MissingMembersNudgeNotification(
-        organization=organization, commit_authors=commit_authors, provider="github"
+        organization=organization, commit_authors=commit_authors[:3], provider="github"
     )
 
     logger.info(

@@ -9,18 +9,16 @@
     .card-container {
         display: flex;
         width: 100%;
-        justify-content: center;
-        margin: 16px -7px 20px -7px;
+        justify-content: left;
+        margin: 16px -7px 0px -7px;
         padding: 0px;
-        > div {
-            margin-left: 7px;
-            margin-right: 7px;
-        }
     }
 
     .user-container {
         width: 33%;
         border: 1px solid #E0DCE5;
+        margin-left: 7px;
+        margin-right: 7px;
         border-radius: 4px;
         padding: 16px 18px;
     }
@@ -49,12 +47,12 @@
         color: #80708F !important;
     }
 
-    a.email:link, a.email:visited, a.email:hover, a.email:active {
-        color: #80708F !important;
-    }
-
     .provider-logo {
         max-width: 16px;
+    }
+
+    .btn-container {
+        margin-top: 20px;
     }
   </style>
 {% endblock %}
@@ -62,12 +60,12 @@
 {% block main %}
     <h3>Bring your full {{ provider }} team on board in Sentry</h3>
 
-    <p>There are {{ missing_member_count }} users that are active in your org on {{ provider }} but are not currently in Sentry based on recent commit data*.</p>
+    <p>Developers on your team are committing to Sentry projects that are not part of your Sentry organization. Invite them to Sentry so they can monitor their commits for error or performance issues.</p>
 
-    <h5>Top Most Active Contributors</h5>
+    <h5>Most Active Contributors</h5>
 
     <div class="card-container">
-        {% for member in missing_members %}
+        {% for member in top_missing_members %}
         <div class="user-container">
             <div class="user-row">
                 {% if provider == "Github" %}
@@ -85,6 +83,8 @@
         {% endfor %}
     </div>
 
-    <p><a href="{{ members_list_url }}" class="btn">View All Missing Members</a></p>
+    <div class="btn-container">
+        <a href="{{ members_list_url }}" class="btn">View Missing Members</a>
+    </div>
 
 {% endblock %}
