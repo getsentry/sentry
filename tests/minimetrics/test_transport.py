@@ -199,7 +199,12 @@ def test_relay_encoder_with_multiple_metrics():
     )
 
 
-@override_options({"delightful_metrics.enable_capture_envelope": True})
+@override_options(
+    {
+        "delightful_metrics.enable_envelope_serialization": True,
+        "delightful_metrics.enable_capture_envelope": True,
+    }
+)
 @patch("minimetrics.transport.sentry_sdk")
 @django_db_all
 def test_send(sentry_sdk):
