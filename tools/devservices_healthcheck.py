@@ -41,22 +41,6 @@ class HealthCheck:
             raise HealthcheckError(f"Container '{self.container_name}' is not running.")
 
 
-def check_kafka():
-    subprocess.run(
-        (
-            "docker",
-            "exec",
-            "sentry_kafka",
-            "kafka-topics",
-            "--zookeeper",
-            # TODO: sentry_zookeeper:2181 doesn't work in CI, but 127.0.0.1 doesn't work locally
-            os.environ.get("ZK_HOST", "127.0.0.1:2181"),
-            "--list",
-        ),
-        check=True,
-    )
-
-
 def check_postgres() -> None:
     subprocess.run(
         ("docker", "exec", "sentry_postgres", "pg_isready", "-U", "postgres"), check=True
@@ -70,13 +54,6 @@ all_service_healthchecks = {
         "sentry_postgres",
         True,
         check_postgres,
-    ),
-    "kafka": HealthCheck(
-        "kafka",
-        "sentry_kafka",
-        os.getenv("NEED_KAFKA") == "true",
-        check_kafka,
-        deps=["zookeeper"],
     ),
     "zookeeper": HealthCheck(
         "zookeeper",
