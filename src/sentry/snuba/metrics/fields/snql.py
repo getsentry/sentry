@@ -835,7 +835,9 @@ def on_demand_failure_rate_snql_factory(
     return Function(
         "divide",
         [
-            on_demand_failure_count_snql_factory(aggregate_filter, org_id, use_case_id, alias),
+            on_demand_failure_count_snql_factory(
+                aggregate_filter, org_id, use_case_id, "failure_count"
+            ),
             Function("sumIf", [Column("value"), aggregate_filter]),
         ],
         alias=alias,
