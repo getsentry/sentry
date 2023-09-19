@@ -18,7 +18,7 @@ from sentry.models.release_threshold.constants import (
     ReleaseThresholdType,
     TriggerType,
 )
-from sentry.models.release_threshold.releasethreshold import ReleaseThreshold
+from sentry.models.release_threshold.release_threshold import ReleaseThreshold
 
 
 class ReleaseThresholdPOSTSerializer(serializers.Serializer):

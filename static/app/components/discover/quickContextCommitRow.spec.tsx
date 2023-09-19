@@ -64,6 +64,7 @@ describe('Quick Context Commit Row', () => {
           dateCreated: '2022-10-07T19:35:27.370422Z',
           integrationId: '14',
           externalSlug: 'org-slug',
+          externalId: '1',
         },
       },
     };

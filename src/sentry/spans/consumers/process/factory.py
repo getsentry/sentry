@@ -3,7 +3,8 @@ from __future__ import annotations
 import random
 import uuid
 from datetime import datetime
-from typing import Any, Mapping, MutableMapping
+from functools import lru_cache
+from typing import Any, Mapping, MutableMapping, Tuple
 
 import msgpack
 import sentry_sdk
@@ -15,7 +16,7 @@ from arroyo.types import BrokerValue, Commit, Message, Partition, Topic
 from django.conf import settings
 
 from sentry import quotas
-from sentry.models import Project
+from sentry.models import Organization, Project
 from sentry.spans.grouping.api import load_span_grouping_config
 from sentry.spans.grouping.strategy.base import Span
 from sentry.utils import json, metrics
@@ -40,8 +41,9 @@ SPAN_SCHEMA_VERSION = 1
 DEFAULT_SPAN_RETENTION_DAYS = 90
 
 
-def _build_snuba_span(relay_span: Mapping[str, Any]) -> MutableMapping[str, Any]:
-    project = Project.objects.get_from_cache(id=relay_span["project_id"])
+@lru_cache(maxsize=10000)
+def get_organization(project_id: int) -> Tuple[Organization, int]:
+    project = Project.objects.get_from_cache(id=project_id)
     organization = project.organization
     retention_days = (
         quotas.backend.get_event_retention(
@@ -49,25 +51,33 @@ def _build_snuba_span(relay_span: Mapping[str, Any]) -> MutableMapping[str, Any]
         )
         or DEFAULT_SPAN_RETENTION_DAYS
     )
+    return organization.id, retention_days
 
+
+def _build_snuba_span(relay_span: Mapping[str, Any]) -> MutableMapping[str, Any]:
+    organization_id, retention_days = get_organization(
+        relay_span["project_id"],
+    )
     span_data: Mapping[str, Any] = relay_span.get("data", {})
 
     snuba_span: MutableMapping[str, Any] = {}
-    snuba_span["description"] = relay_span.get("description")
     snuba_span["event_id"] = relay_span["event_id"]
     snuba_span["exclusive_time_ms"] = int(relay_span.get("exclusive_time", 0))
     snuba_span["is_segment"] = relay_span.get("is_segment", False)
-    snuba_span["organization_id"] = organization.id
+    snuba_span["organization_id"] = organization_id
     snuba_span["parent_span_id"] = relay_span.get("parent_span_id", "0")
     snuba_span["project_id"] = relay_span["project_id"]
     snuba_span["retention_days"] = retention_days
     snuba_span["segment_id"] = relay_span.get("segment_id", "0")
     snuba_span["span_id"] = relay_span.get("span_id", "0")
     snuba_span["tags"] = {
-        k: v for k, v in (relay_span.get("tags", {}) or {}).items() if v is not None
+        k: str(v) for k, v in (relay_span.get("tags", {}) or {}).items() if v is not None
     }
     snuba_span["trace_id"] = uuid.UUID(relay_span["trace_id"]).hex
     snuba_span["version"] = SPAN_SCHEMA_VERSION
+
+    if (description := relay_span.get("description")) is not None:
+        snuba_span["description"] = description
 
     start_timestamp = datetime.utcfromtimestamp(relay_span["start_timestamp"])
     snuba_span["start_timestamp_ms"] = int(start_timestamp.timestamp() * 1e3)
@@ -103,14 +113,12 @@ def _build_snuba_span(relay_span: Mapping[str, Any]) -> MutableMapping[str, Any]
         sentry_tags["status"] = status
 
     if "status_code" in sentry_tags:
-        try:
-            sentry_tags["status_code"] = int(sentry_tags["status_code"])
-        except ValueError:
-            pass
+        sentry_tags["status_code"] = sentry_tags["status_code"]
 
-    snuba_span["sentry_tags"] = sentry_tags
+    snuba_span["sentry_tags"] = {k: str(v) for k, v in sentry_tags.items()}
 
     grouping_config = load_span_grouping_config()
+    snuba_span["span_grouping_config"] = {"id": grouping_config.id}
 
     if snuba_span["is_segment"]:
         group_raw = grouping_config.strategy.get_transaction_span_group(
@@ -139,8 +147,6 @@ def _build_snuba_span(relay_span: Mapping[str, Any]) -> MutableMapping[str, Any]
     except ValueError:
         snuba_span["group_raw"] = "0"
         metrics.incr("spans.invalid_group_raw")
-
-    snuba_span["span_grouping_config"] = {"id": grouping_config.id}
 
     return snuba_span
 

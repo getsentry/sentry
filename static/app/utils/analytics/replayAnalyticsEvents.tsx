@@ -3,6 +3,7 @@ import {Output} from 'sentry/views/replays/detail/network/details/getOutputType'
 import {ReferrerTableType} from 'sentry/views/replays/replayTable/tableCell';
 
 export type ReplayEventParameters = {
+  'replay.dead-click-card.rendered': {};
   'replay.details-data-loaded': {
     be_errors: number;
     fe_errors: number;
@@ -68,6 +69,14 @@ export type ReplayEventParameters = {
     play: boolean;
     user_email: string;
   };
+  'replay.rage-click-card.rendered': {};
+  'replay.rage-click-sdk-banner.dismissed': {
+    surface: string;
+  };
+  'replay.rage-click-sdk-banner.rendered': {
+    is_dismissed: boolean;
+    surface: string;
+  };
   'replay.render-issues-group-list': {
     platform: string | undefined;
     project_id: string | undefined;
@@ -93,6 +102,7 @@ export type ReplayEventParameters = {
 export type ReplayEventKey = keyof ReplayEventParameters;
 
 export const replayEventMap: Record<ReplayEventKey, string | null> = {
+  'replay.dead-click-card.rendered': 'Replay Dead Click Card Rendered',
   'replay.details-data-loaded': 'Replay Details Data Loaded',
   'replay.details-layout-changed': 'Changed Replay Details Layout',
   'replay.details-network-panel-closed': 'Closed Replay Network Details Panel',
@@ -107,6 +117,9 @@ export const replayEventMap: Record<ReplayEventKey, string | null> = {
   'replay.list-time-spent': 'Time Spent Viewing Replay List',
   'replay.list-view-setup-sidebar': 'Views Set Up Replays Sidebar',
   'replay.play-pause': 'Played/Paused Replay',
+  'replay.rage-click-card.rendered': 'Replay Rage Click Card Rendered',
+  'replay.rage-click-sdk-banner.dismissed': 'Replay Rage Click SDK Banner Dismissed',
+  'replay.rage-click-sdk-banner.rendered': 'Replay Rage Click SDK Banner Rendered',
   'replay.render-issues-group-list': 'Render Issues Detail Replay List',
   'replay.render-player': 'Rendered ReplayPlayer',
   'replay.search': 'Searched Replay',

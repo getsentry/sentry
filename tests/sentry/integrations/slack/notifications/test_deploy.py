@@ -56,6 +56,7 @@ class SlackDeployNotificationTest(SlackActivityNotificationTest):
         )
 
         first_project = None
+        notification_uuid = self.get_notification_uuid(attachment["actions"][0]["url"])
         for i in range(len(projects)):
             project = SLUGS_TO_PROJECT[attachment["actions"][i]["text"]]
             if not first_project:
@@ -63,12 +64,12 @@ class SlackDeployNotificationTest(SlackActivityNotificationTest):
             assert (
                 attachment["actions"][i]["url"]
                 == f"http://testserver/organizations/{self.organization.slug}/releases/"
-                f"{release.version}/?project={project.id}&unselectedSeries=Healthy/"
+                f"{release.version}/?project={project.id}&unselectedSeries=Healthy&referrer=release_activity&notification_uuid={notification_uuid}"
             )
         assert first_project is not None
 
         assert (
             attachment["footer"]
             == f"{first_project.slug} | <http://testserver/settings/account/notifications/"
-            f"deploy/?referrer=release_activity-slack-user|Notification Settings>"
+            f"deploy/?referrer=release_activity-slack-user&notification_uuid={notification_uuid}|Notification Settings>"
         )

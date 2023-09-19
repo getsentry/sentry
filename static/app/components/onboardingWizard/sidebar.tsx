@@ -181,13 +181,14 @@ function OnboardingWizardSidebar({collapsed, orientation, onClose, projects}: Pr
   );
 
   const customizedCards = customTasks
-    .map(task =>
-      task.renderCard?.({
-        organization,
-        task,
-        onboardingContext,
-        projects,
-      })
+    .map(
+      task =>
+        task.renderCard?.({
+          organization,
+          task,
+          onboardingContext,
+          projects,
+        })
     )
     .filter(card => !!card);
 

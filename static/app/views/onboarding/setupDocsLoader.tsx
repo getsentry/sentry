@@ -148,6 +148,7 @@ export function SetupDocsLoader({
         skipLazyLoader={close}
         platform={currentPlatform}
       />
+      <Divider />
       {projectKeyUpdateError && (
         <LoadingError
           message={t('Failed to update the project key with the selected products.')}
@@ -204,19 +205,19 @@ Sentry.onLoad(function() {
     // You can add any additional configuration here`
       : ''
   }${
-      hasPerformance
-        ? `
+    hasPerformance
+      ? `
     // Performance Monitoring
     tracesSampleRate: 1.0, // Capture 100% of the transactions, reduce in production!`
-        : ''
-    }${
-      hasSessionReplay
-        ? `
+      : ''
+  }${
+    hasSessionReplay
+      ? `
     // Session Replay
     replaysSessionSampleRate: 0.1, // This sets the sample rate at 10%. You may want to change it to 100% while in development and then sample at a lower rate in production.
     replaysOnErrorSampleRate: 1.0, // If you're not already sampling the entire session, change the sample rate to 100% when sampling sessions where errors occur.`
-        : ''
-    }
+      : ''
+  }
   });
 });
 </script>`,
@@ -349,4 +350,11 @@ const ToggleButton = styled(Button)`
   :hover {
     color: ${p => p.theme.gray500};
   }
+`;
+
+const Divider = styled('hr')<{withBottomMargin?: boolean}>`
+  height: 1px;
+  width: 100%;
+  background: ${p => p.theme.border};
+  border: none;
 `;

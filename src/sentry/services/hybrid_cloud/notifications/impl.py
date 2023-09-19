@@ -8,9 +8,12 @@ from django.db.models import Q, QuerySet
 from sentry.api.serializers.base import Serializer
 from sentry.api.serializers.models.notification_setting import NotificationSettingsSerializer
 from sentry.models import NotificationSetting, User
+from sentry.models.notificationsettingoption import NotificationSettingOption
+from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.notifications.helpers import get_scope_type, is_double_write_enabled
 from sentry.notifications.notificationcontroller import NotificationController
 from sentry.notifications.types import (
+    NotificationScopeEnum,
     NotificationScopeType,
     NotificationSettingEnum,
     NotificationSettingOptionValues,
@@ -170,16 +173,15 @@ class DatabaseBackedNotificationsService(NotificationsService):
         NotificationSetting.objects._filter(
             team_ids=team_ids, user_ids=user_ids, provider=provider
         ).delete()
+        # delete all options for team/user
+        query_args = {"team_id": team_id, "user_id": user_id}
+        NotificationSettingOption.objects.filter(**query_args).delete()
+        NotificationSettingProvider.objects.filter(**query_args).delete()
 
     def remove_notification_settings_for_team(
         self, *, team_id: int, provider: ExternalProviders
     ) -> None:
         self.remove_notification_settings(team_id=team_id, user_id=None, provider=provider)
-
-    def remove_notification_settings_for_user(
-        self, *, user_id: int, provider: ExternalProviders
-    ) -> None:
-        self.remove_notification_settings(team_id=None, user_id=user_id, provider=provider)
 
     def get_many(self, *, filter: NotificationSettingFilterArgs) -> List[RpcNotificationSetting]:
         return self._FQ.get_many(filter)
@@ -187,9 +189,25 @@ class DatabaseBackedNotificationsService(NotificationsService):
     def remove_notification_settings_for_organization(self, *, organization_id: int) -> None:
         assert organization_id, "organization_id must be a positive integer"
         NotificationSetting.objects.remove_for_organization(organization_id=organization_id)
+        NotificationSettingOption.objects.filter(
+            scope_type=NotificationScopeEnum.ORGANIZATION.value,
+            scope_identifier=organization_id,
+        ).delete()
+        NotificationSettingProvider.objects.filter(
+            scope_type=NotificationScopeEnum.ORGANIZATION.value,
+            scope_identifier=organization_id,
+        ).delete()
 
     def remove_notification_settings_for_project(self, *, project_id: int) -> None:
         NotificationSetting.objects.remove_for_project(project_id=project_id)
+        NotificationSettingOption.objects.filter(
+            scope_type=NotificationScopeEnum.PROJECT.value,
+            scope_identifier=project_id,
+        ).delete()
+        NotificationSettingProvider.objects.filter(
+            scope_type=NotificationScopeEnum.PROJECT.value,
+            scope_identifier=project_id,
+        ).delete()
 
     def serialize_many(
         self,

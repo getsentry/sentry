@@ -16,12 +16,14 @@ from sentry.exceptions import PluginError
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.killswitches import killswitch_matches_context
+from sentry.replays.lib.event_linking import transform_event_for_linking_payload
+from sentry.replays.lib.kafka import initialize_replays_publisher
 from sentry.sentry_metrics.client import generic_metrics_backend
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.signals import event_processed, issue_unignored, transaction_processed
 from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.utils import metrics
+from sentry.utils import json, metrics
 from sentry.utils.cache import cache
 from sentry.utils.event_frames import get_sdk_name
 from sentry.utils.locking import UnableToAcquireLock
@@ -590,7 +592,10 @@ def post_process_group(
         update_event_groups(event, group_states)
         bind_organization_context(event.project.organization)
         _capture_event_stats(event)
-        if features.has("organizations:escalating-metrics-backend", event.project.organization):
+        if (
+            features.has("organizations:escalating-metrics-backend", event.project.organization)
+            and not is_transaction_event
+        ):
             _update_escalating_metrics(event)
 
         group_events: Mapping[int, GroupEvent] = {
@@ -872,6 +877,17 @@ def process_replay_link(job: PostProcessJob) -> None:
         return
 
     metrics.incr("post_process.process_replay_link.id_exists")
+
+    publisher = initialize_replays_publisher(is_async=True)
+    try:
+        kafka_payload = transform_event_for_linking_payload(replay_id, group_event)
+    except ValueError:
+        metrics.incr("post_process.process_replay_link.id_invalid")
+
+    publisher.publish(
+        "ingest-replay-events",
+        json.dumps(kafka_payload),
+    )
 
 
 def process_rules(job: PostProcessJob) -> None:

@@ -130,3 +130,15 @@ class RuleActivity(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_ruleactivity"
+
+
+@region_silo_only_model
+class NeglectedRule(Model):
+    __relocation_scope__ = RelocationScope.Organization
+
+    rule = FlexibleForeignKey("sentry.Rule")
+    organization = FlexibleForeignKey("sentry.Organization")
+    disable_date = models.DateTimeField()
+    opted_out = models.BooleanField(default=False)
+    sent_initial_email_date = models.DateTimeField(null=True)
+    sent_final_email_date = models.DateTimeField(null=True)

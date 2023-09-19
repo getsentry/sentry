@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Any, Mapping, MutableMapping
+from urllib.parse import urlencode
 
 from sentry import features
 from sentry.models import Activity, NotificationSetting
@@ -57,7 +58,10 @@ class NewProcessingIssuesActivityNotification(ActivityNotification):
             "issues": self.issues,
             "reprocessing_active": self.activity.data["reprocessing_active"],
             "info_url": self.organization.absolute_url(
-                f"/settings/{self.organization.slug}/projects/{self.project.slug}/processing-issues/"
+                f"/settings/{self.organization.slug}/projects/{self.project.slug}/processing-issues/",
+                query=urlencode(
+                    {"referrer": self.metrics_key, "notification_uuid": self.notification_uuid}
+                ),
             ),
         }
 
@@ -72,7 +76,10 @@ class NewProcessingIssuesActivityNotification(ActivityNotification):
         self, provider: ExternalProviders, context: Mapping[str, Any] | None = None
     ) -> str:
         project_url = self.organization.absolute_url(
-            f"/settings/{self.organization.slug}/projects/{self.project.slug}/processing-issues/"
+            f"/settings/{self.organization.slug}/projects/{self.project.slug}/processing-issues/",
+            query=urlencode(
+                {"referrer": self.metrics_key, "notification_uuid": self.notification_uuid}
+            ),
         )
         return f"Processing issues on {self.format_url(text=self.project.slug, url=project_url, provider=provider)}"
 

@@ -83,12 +83,12 @@ class MailAdapter:
             extra["digest_key"] = digest_key
             immediate_delivery = digests.add(
                 digest_key,
-                event_to_record(event, rules),
+                event_to_record(event, rules, notification_uuid=notification_uuid),
                 increment_delay=get_digest_option("increment_delay"),
                 maximum_delay=get_digest_option("maximum_delay"),
             )
             if immediate_delivery:
-                deliver_digest.delay(digest_key)
+                deliver_digest.delay(digest_key, notification_uuid=notification_uuid)
             else:
                 log_event = "digested"
 
