@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from typing import Any
+
 import responses
 
 from sentry.integrations.bitbucket.installed import BitbucketInstalledEndpoint
@@ -7,7 +11,7 @@ from sentry.plugins.base import plugins
 from sentry.plugins.bases.issue2 import IssueTrackingPlugin2
 from sentry.services.hybrid_cloud.organization.serial import serialize_rpc_organization
 from sentry.silo.base import SiloMode
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
@@ -68,7 +72,7 @@ class BitbucketInstalledEndpointTest(APITestCase):
         self.user_metadata["type"] = self.user_data["type"]
         self.user_metadata["domain_name"] = self.user_display_name
 
-        self.team_data_from_bitbucket = {
+        self.team_data_from_bitbucket: dict[str, Any] = {
             "key": "sentry-bitbucket",
             "eventType": "installed",
             "baseUrl": self.base_url,

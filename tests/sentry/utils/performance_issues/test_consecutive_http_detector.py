@@ -7,7 +7,7 @@ import pytest
 from sentry.issues.grouptype import PerformanceConsecutiveHTTPQueriesGroupType
 from sentry.models.options.project_option import ProjectOption
 from sentry.spans.grouping.strategy.base import Span
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.performance_issues.event_generators import (
     create_event,
     create_span,
@@ -26,7 +26,7 @@ from sentry.utils.performance_issues.performance_problem import PerformanceProbl
 MIN_SPAN_DURATION = 900  # ms
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 @pytest.mark.django_db
 class ConsecutiveHTTPSpansDetectorTest(TestCase):
     def setUp(self):

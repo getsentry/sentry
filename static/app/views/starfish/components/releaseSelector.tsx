@@ -2,6 +2,7 @@ import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
 import {CompactSelect} from 'sentry/components/compactSelect';
+import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -49,6 +50,18 @@ export function ReleaseSelector({selectorName, selectorKey}: Props) {
         });
       }}
     />
+  );
+}
+
+export function ReleaseComparisonSelector() {
+  return (
+    <PageFilterBar condensed>
+      <ReleaseSelector selectorKey="primaryRelease" selectorName={t('Primary Release')} />
+      <ReleaseSelector
+        selectorKey="secondaryRelease"
+        selectorName={t('Secondary Release')}
+      />
+    </PageFilterBar>
   );
 }
 

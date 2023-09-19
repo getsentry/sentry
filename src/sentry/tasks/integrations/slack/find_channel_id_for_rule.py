@@ -10,8 +10,9 @@ from sentry.integrations.slack.utils import (
 )
 from sentry.mediators import project_rules
 from sentry.models import Project, Rule, RuleActivity, RuleActivityType
-from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
+from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import ApiRateLimitedError, DuplicateDisplayNameError
+from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
 
 logger = logging.getLogger("sentry.integrations.slack.tasks")
@@ -20,6 +21,7 @@ logger = logging.getLogger("sentry.integrations.slack.tasks")
 @instrumented_task(
     name="sentry.integrations.slack.search_channel_id",
     queue="integrations",
+    silo_mode=SiloMode.REGION,
 )
 def find_channel_id_for_rule(
     project: Project,
@@ -49,7 +51,6 @@ def find_channel_id_for_rule(
             channel_name = strip_channel_name(action["channel"])
             break
 
-    integration: RpcIntegration
     integrations = integration_service.get_integrations(
         organization_id=organization.id, providers=["slack"], integration_ids=[integration_id]
     )

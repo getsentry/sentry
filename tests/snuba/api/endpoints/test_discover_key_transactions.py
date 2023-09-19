@@ -7,7 +7,7 @@ from django.urls import reverse
 
 from sentry.discover.models import MAX_TEAM_KEY_TRANSACTIONS, TeamKeyTransaction
 from sentry.models.projectteam import ProjectTeam
-from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.samples import load_data

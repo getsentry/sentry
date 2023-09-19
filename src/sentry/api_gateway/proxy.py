@@ -2,6 +2,7 @@
 Utilities related to proxying a request to a region silo
 """
 import logging
+from urllib.parse import urljoin
 from wsgiref.util import is_hop_by_hop
 
 from django.conf import settings
@@ -17,7 +18,7 @@ from sentry.silo.util import (
     clean_outbound_headers,
     clean_proxy_headers,
 )
-from sentry.types.region import RegionResolutionError
+from sentry.types.region import RegionResolutionError, get_region_for_organization
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +50,6 @@ def _parse_response(response: ExternalResponse, remote_url: str) -> StreamingHtt
 
 def proxy_request(request: HttpRequest, org_slug: str) -> StreamingHttpResponse:
     """Take a django request object and proxy it to a remote location given an org_slug"""
-    from sentry.types.region import get_region_for_organization
 
     try:
         region = get_region_for_organization(org_slug)
@@ -57,7 +57,7 @@ def proxy_request(request: HttpRequest, org_slug: str) -> StreamingHttpResponse:
         logger.info("region_resolution_error", extra={"org_slug": org_slug})
         raise NotFound from e
 
-    target_url = region.to_url(request.path)
+    target_url = urljoin(region.address, request.path)
     header_dict = clean_proxy_headers(request.headers)
     # TODO: use requests session for connection pooling capabilities
     assert request.method is not None

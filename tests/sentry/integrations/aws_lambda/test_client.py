@@ -12,6 +12,7 @@ from rest_framework.test import APIRequestFactory
 from sentry.integrations.aws_lambda import AwsLambdaIntegrationProvider
 from sentry.integrations.aws_lambda.client import AwsLambdaProxyClient, gen_aws_client
 from sentry.models import Integration
+from sentry.shared_integrations.client.proxy import get_proxy_url
 from sentry.silo.base import SiloMode
 from sentry.silo.util import (
     PROXY_BASE_PATH,
@@ -19,7 +20,7 @@ from sentry.silo.util import (
     PROXY_SIGNATURE_HEADER,
     encode_subnet_signature,
 )
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
 
@@ -267,6 +268,7 @@ class AwsLambdaProxyApiClientTest(TestCase):
             }
             signature = encode_subnet_signature(
                 secret=SENTRY_SUBNET_SECRET,
+                base_url=get_proxy_url(),
                 path="",
                 identifier=str(self.installation.org_integration.id),
                 request_body=json.dumps(expected_proxy_payload).encode("utf-8"),

@@ -331,7 +331,7 @@ describe('GroupActivity', function () {
 
     beforeEach(function () {
       deleteMock = MockApiClient.addMockResponse({
-        url: '/issues/1337/comments/note-1/',
+        url: '/organizations/org-slug/issues/1337/comments/note-1/',
         method: 'DELETE',
       });
       ConfigStore.set('user', TestStubs.User({id: '123', isSuperuser: true}));
@@ -596,7 +596,6 @@ describe('GroupActivity', function () {
           dateCreated,
         },
       ],
-      organization: TestStubs.Organization({features: ['issue-release-semver']}),
     });
     expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
       'Foo Bar marked this issue as resolved in 1.0.0 (semver)'
@@ -617,8 +616,6 @@ describe('GroupActivity', function () {
           dateCreated,
         },
       ],
-      // TODO(scttcper): combine test with the above test once we remove the feature flag
-      organization: TestStubs.Organization({features: ['issue-release-semver']}),
     });
     expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
       'Foo Bar marked this issue as resolved in releases greater than 1.0.0 (semver)'
@@ -675,7 +672,6 @@ describe('GroupActivity', function () {
             dateCreated,
           },
         ],
-        organization: TestStubs.Organization({features: ['issue-release-semver']}),
       });
       const activity = screen.getAllByTestId('activity-item').at(-1);
       expect(activity).toHaveTextContent(
@@ -700,7 +696,6 @@ describe('GroupActivity', function () {
             dateCreated,
           },
         ],
-        organization: TestStubs.Organization({features: ['issue-release-semver']}),
       });
       const activity = screen.getAllByTestId('activity-item').at(-1);
       expect(activity).toHaveTextContent(

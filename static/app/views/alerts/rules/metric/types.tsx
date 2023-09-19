@@ -73,7 +73,7 @@ export type ThresholdControlValue = {
   thresholdType: AlertRuleThresholdType;
 };
 
-type SavedTrigger = Omit<UnsavedTrigger, 'actions'> & {
+export type SavedTrigger = Omit<UnsavedTrigger, 'actions'> & {
   actions: Action[];
   dateCreated: string;
   id: string;
@@ -145,6 +145,7 @@ export enum ActionType {
   SLACK = 'slack',
   PAGERDUTY = 'pagerduty',
   MSTEAMS = 'msteams',
+  OPSGENIE = 'opsgenie',
   SENTRY_APP = 'sentry_app',
 }
 
@@ -155,6 +156,7 @@ export const ActionLabel = {
   [ActionType.SLACK]: t('Slack'),
   [ActionType.PAGERDUTY]: t('Pagerduty'),
   [ActionType.MSTEAMS]: t('MS Teams'),
+  [ActionType.OPSGENIE]: t('Opsgenie'),
   [ActionType.SENTRY_APP]: t('Notification'),
 };
 

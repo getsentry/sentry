@@ -10,7 +10,7 @@ describe('OrganizationRepositories', function () {
   const routerProps = {router, location, routeParams: {}, routes: [], route: {}};
 
   it('renders without providers', function () {
-    const {container} = render(
+    render(
       <OrganizationRepositories
         onRepositoryChange={jest.fn()}
         organization={org}
@@ -18,11 +18,10 @@ describe('OrganizationRepositories', function () {
         {...routerProps}
       />
     );
-    expect(container).toSnapshot();
   });
 
   it('renders with a repository', function () {
-    const {container} = render(
+    render(
       <OrganizationRepositories
         onRepositoryChange={jest.fn()}
         organization={org}
@@ -30,22 +29,20 @@ describe('OrganizationRepositories', function () {
         {...routerProps}
       />
     );
-    expect(container).toSnapshot();
   });
 
   it('renders with a repository and github provider', function () {
-    const {container} = render(
+    render(
       <OrganizationRepositories
         onRepositoryChange={jest.fn()}
         organization={org}
         itemList={[
           TestStubs.Repository({
-            provider: TestStubs.GitHubRepositoryProvider({id: 'github'}),
+            provider: {id: 'github', name: 'GitHub'},
           }),
         ]}
         {...routerProps}
       />
     );
-    expect(container).toSnapshot();
   });
 });

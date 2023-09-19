@@ -1,3 +1,5 @@
+import re
+
 import pytest
 
 from sentry.models import (
@@ -10,12 +12,13 @@ from sentry.models import (
 )
 from sentry.services.hybrid_cloud.organization_actions.impl import (
     create_organization_with_outbox_message,
+    generate_deterministic_organization_slug,
     mark_organization_as_pending_deletion_with_outbox_message,
     unmark_organization_as_pending_deletion_with_outbox_message,
     update_organization_with_outbox_message,
     upsert_organization_by_org_id_with_outbox_message,
 )
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 
 
@@ -241,3 +244,52 @@ class UnmarkOrganizationForDeletionWithOutboxMessageTest(TestCase):
         assert self.org.name == org_before_update.name
         assert self.org.slug == org_before_update.slug
         assert_outbox_update_message_exists(self.org, 0)
+
+
+class TestGenerateDeterministicOrganizationSlug(TestCase):
+    def test_slug_under_size_limit(self):
+        slug = generate_deterministic_organization_slug(
+            desired_slug_base="santry", desired_org_name="santry", owning_user_id=42
+        )
+
+        assert slug == "santry-095a9012d"
+
+    def test_slug_above_size_limit(self):
+        slug = generate_deterministic_organization_slug(
+            desired_slug_base="areallylongsentryorgnamethatiswaytoolong",
+            desired_org_name="santry",
+            owning_user_id=42,
+        )
+        assert len(slug) == 30
+        assert slug == "areallylongsentryorg-945bda148"
+
+    def test_slug_with_mixed_casing(self):
+        slug = generate_deterministic_organization_slug(
+            desired_slug_base="A mixed CASING str",
+            desired_org_name="santry",
+            owning_user_id=42,
+        )
+        assert slug == "a-mixed-casing-str-9e9173167"
+
+    def test_slug_with_unicode_chars(self):
+        unicoded_str = "Sí Señtry 😅"
+        slug = generate_deterministic_organization_slug(
+            desired_slug_base=unicoded_str, desired_org_name=unicoded_str, owning_user_id=42
+        )
+
+        assert slug == "si-sentry-3471b1b85"
+
+    def test_slug_with_0_length(self):
+        unicoded_str = "😅"
+
+        slug = generate_deterministic_organization_slug(
+            desired_slug_base=unicoded_str, desired_org_name=unicoded_str, owning_user_id=42
+        )
+
+        random_slug_regex = re.compile(r"^[a-f0-9]{10}-[a-f0-9]{9}")
+        assert random_slug_regex.match(slug)
+
+        slug = generate_deterministic_organization_slug(
+            desired_slug_base="", desired_org_name=unicoded_str, owning_user_id=42
+        )
+        assert random_slug_regex.match(slug)

@@ -94,6 +94,7 @@ class TransactionMetricKey(Enum):
     USER_MISERY = "transaction.user_misery"
     FAILURE_COUNT = "transaction.failure_count"
     TEAM_KEY_TRANSACTION = "transactions.team_key_transaction"
+    HTTP_ERROR_RATE = "transaction.http_error_rate"
 
     # Span metrics.
     # NOTE: These might be moved to their own namespace soon.
@@ -108,6 +109,22 @@ class TransactionMetricKey(Enum):
     SET_ON_DEMAND = "set.on_demand"
 
 
+class SpanMetricKey(Enum):
+    USER = "span.user"
+    DURATION = "span.duration"
+    SELF_TIME = "span.exclusive_time"
+    SELF_TIME_LIGHT = "span.exclusive_time_light"
+
+    HTTP_ERROR_COUNT = "span.http_error_count"
+    HTTP_ERROR_RATE = "span.http_error_rate"
+    HTTP_ERROR_COUNT_LIGHT = "span.http_error_count_light"
+    HTTP_ERROR_RATE_LIGHT = "span.http_error_rate_light"
+
+
+class SpanTagsKey(Enum):
+    HTTP_STATUS_CODE = "span.status_code"
+
+
 # TODO: these tag keys and values below probably don't belong here, and should
 # be moved to another more private file.
 class TransactionTagsKey(Enum):
@@ -115,6 +132,7 @@ class TransactionTagsKey(Enum):
 
     TRANSACTION_STATUS = "transaction.status"
     TRANSACTION_SATISFACTION = "satisfaction"
+    TRANSACTION_HTTP_STATUS_CODE = "http.status_code"
 
 
 class TransactionStatusTagValue(Enum):

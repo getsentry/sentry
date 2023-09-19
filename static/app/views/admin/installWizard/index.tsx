@@ -11,21 +11,34 @@ import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 
-import {getForm, getOptionDefault, getOptionField} from '../options';
+import {Field, getForm, getOptionDefault, getOptionField} from '../options';
 
-type Props = DeprecatedAsyncView['props'] & {
+export type InstallWizardProps = DeprecatedAsyncView['props'] & {
   onConfigured: () => void;
 };
 
-type State = DeprecatedAsyncView['state'];
+export type InstallWizardOptions = Record<
+  string,
+  {
+    field: Field;
+    value?: unknown;
+  }
+>;
 
-export default class InstallWizard extends DeprecatedAsyncView<Props, State> {
+type State = DeprecatedAsyncView['state'] & {
+  data: null | InstallWizardOptions;
+};
+
+export default class InstallWizard extends DeprecatedAsyncView<
+  InstallWizardProps,
+  State
+> {
   getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     return [['data', '/internal/options/?query=is:required']];
   }
 
   renderFormFields() {
-    const options = this.state.data;
+    const options = this.state.data!;
 
     let missingOptions = new Set(
       Object.keys(options).filter(option => !options[option].field.isSet)
@@ -54,7 +67,7 @@ export default class InstallWizard extends DeprecatedAsyncView<Props, State> {
   }
 
   getInitialData() {
-    const options = this.state.data;
+    const options = this.state.data!;
     const data = {};
     Object.keys(options).forEach(optionName => {
       const option = options[optionName];

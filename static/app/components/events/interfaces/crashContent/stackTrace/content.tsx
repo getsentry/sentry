@@ -2,7 +2,6 @@ import {cloneElement, Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import {StacktraceFilenameQuery} from 'sentry/components/events/interfaces/crashContent/exception/useSourceMapDebug';
 import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import {Frame, Organization, PlatformType} from 'sentry/types';
@@ -12,7 +11,14 @@ import {defined} from 'sentry/utils';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import DeprecatedLine, {DeprecatedLineProps} from '../../frame/deprecatedLine';
-import {getImageRange, parseAddress, stackTracePlatformIcon} from '../../utils';
+import {
+  findImageForAddress,
+  getHiddenFrameIndices,
+  getLastFrameIndex,
+  isRepeatedFrame,
+  parseAddress,
+  stackTracePlatformIcon,
+} from '../../utils';
 
 import StacktracePlatformIcon from './platformIcon';
 
@@ -26,7 +32,6 @@ type Props = {
   event: Event;
   platform: PlatformType;
   className?: string;
-  debugFrames?: StacktraceFilenameQuery[];
   hideIcon?: boolean;
   isHoverPreviewed?: boolean;
   lockAddress?: string;
@@ -37,19 +42,6 @@ type Props = {
   organization?: Organization;
   threadId?: number;
 } & Partial<DefaultProps>;
-
-function isRepeatedFrame(frame: Frame, nextFrame?: Frame) {
-  if (!nextFrame) {
-    return false;
-  }
-  return (
-    frame.lineNo === nextFrame.lineNo &&
-    frame.instructionAddr === nextFrame.instructionAddr &&
-    frame.package === nextFrame.package &&
-    frame.module === nextFrame.module &&
-    frame.function === nextFrame.function
-  );
-}
 
 function Content({
   data,
@@ -62,7 +54,6 @@ function Content({
   isHoverPreviewed,
   maxDepth,
   meta,
-  debugFrames,
   hideIcon,
   threadId,
   lockAddress,
@@ -114,63 +105,6 @@ function Content({
     return countMap;
   }
 
-  function getRepeatedFrameIndices() {
-    const repeats: number[] = [];
-    (data.frames ?? []).forEach((frame, frameIdx) => {
-      const nextFrame = (data.frames ?? [])[frameIdx + 1];
-      const repeatedFrame = isRepeatedFrame(frame, nextFrame);
-
-      if (repeatedFrame) {
-        repeats.push(frameIdx);
-      }
-    });
-    return repeats;
-  }
-
-  function getHiddenFrameIndices(frameCountMap: {[frameIndex: number]: number}) {
-    const repeatedIndeces = getRepeatedFrameIndices();
-    let hiddenFrameIndices: number[] = [];
-    Object.keys(toggleFrameMap)
-      .filter(frameIndex => toggleFrameMap[frameIndex] === true)
-      .forEach(indexString => {
-        const index = parseInt(indexString, 10);
-        const indicesToBeAdded: number[] = [];
-        let i = 1;
-        let numHidden = frameCountMap[index];
-        while (numHidden > 0) {
-          if (!repeatedIndeces.includes(index - i)) {
-            indicesToBeAdded.push(index - i);
-            numHidden -= 1;
-          }
-          i += 1;
-        }
-        hiddenFrameIndices = [...hiddenFrameIndices, ...indicesToBeAdded];
-      });
-    return hiddenFrameIndices;
-  }
-
-  function findImageForAddress(
-    address: Frame['instructionAddr'],
-    addrMode: Frame['addrMode']
-  ) {
-    const images = event.entries.find(entry => entry.type === 'debugmeta')?.data?.images;
-
-    if (!images || !address) {
-      return null;
-    }
-
-    const image = images.find((img, idx) => {
-      if (!addrMode || addrMode === 'abs') {
-        const [startAddress, endAddress] = getImageRange(img);
-        return address >= (startAddress as any) && address < (endAddress as any);
-      }
-
-      return addrMode === `rel:${idx}`;
-    });
-
-    return image;
-  }
-
   function isFrameAfterLastNonApp(): boolean {
     if (!frames.length || frames.length < 2) {
       return false;
@@ -204,21 +138,6 @@ function Content({
     }));
   };
 
-  function getLastFrameIndex() {
-    const inAppFrameIndexes = frames
-      .map((frame, frameIndex) => {
-        if (frame.inApp) {
-          return frameIndex;
-        }
-        return undefined;
-      })
-      .filter(frame => frame !== undefined);
-
-    return !inAppFrameIndexes.length
-      ? frames.length - 1
-      : inAppFrameIndexes[inAppFrameIndexes.length - 1];
-  }
-
   function renderOmittedFrames(firstFrameOmitted: any, lastFrameOmitted: any) {
     const props = {
       className: 'frame frames-omitted',
@@ -237,9 +156,13 @@ function Content({
 
   const firstFrameOmitted = framesOmitted?.[0] ?? null;
   const lastFrameOmitted = framesOmitted?.[1] ?? null;
-  const lastFrameIndex = getLastFrameIndex();
+  const lastFrameIndex = getLastFrameIndex(frames);
   const frameCountMap = getInitialFrameCounts();
-  const hiddenFrameIndices: number[] = getHiddenFrameIndices(frameCountMap);
+  const hiddenFrameIndices: number[] = getHiddenFrameIndices({
+    data,
+    toggleFrameMap,
+    frameCountMap,
+  });
 
   const mechanism =
     platform === 'java' && event.tags?.find(({key}) => key === 'mechanism')?.value;
@@ -249,10 +172,11 @@ function Content({
 
   const maxLengthOfAllRelativeAddresses = frames.reduce(
     (maxLengthUntilThisPoint, frame) => {
-      const correspondingImage = findImageForAddress(
-        frame.instructionAddr,
-        frame.addrMode
-      );
+      const correspondingImage = findImageForAddress({
+        event,
+        addrMode: frame.addrMode,
+        address: frame.instructionAddr,
+      });
 
       try {
         const relativeAddress = (
@@ -296,7 +220,11 @@ function Content({
           timesRepeated: nRepeats,
           showingAbsoluteAddress: showingAbsoluteAddresses,
           onAddressToggle: handleToggleAddresses,
-          image: findImageForAddress(frame.instructionAddr, frame.addrMode),
+          image: findImageForAddress({
+            event,
+            addrMode: frame.addrMode,
+            address: frame.instructionAddr,
+          }),
           maxLengthOfRelativeAddress: maxLengthOfAllRelativeAddresses,
           registers: {}, // TODO: Fix registers
           isFrameAfterLastNonApp: isFrameAfterLastNonApp(),
@@ -311,7 +239,6 @@ function Content({
           isHoverPreviewed,
           frameMeta: meta?.frames?.[frameIndex],
           registersMeta: meta?.registers,
-          debugFrames,
           isANR,
           threadId,
           lockAddress,

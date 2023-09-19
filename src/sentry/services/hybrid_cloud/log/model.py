@@ -22,7 +22,7 @@ class AuditLogEvent(RpcModel):
     # 'datetime' is apparently reserved attribute name for dataclasses.
     date_added: datetime.datetime = DEFAULT_DATE
     event_id: int = -1
-    actor_label: str = ""
+    actor_label: Optional[str] = None
     actor_user_id: Optional[int] = None
     actor_key_id: Optional[int] = None
     ip_address: Optional[str] = None

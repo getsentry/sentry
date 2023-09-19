@@ -27,9 +27,9 @@ export function ExceptionV2({
 }: Props) {
   const eventHasThreads = !!event.entries.some(entry => entry.type === EntryType.THREADS);
 
-  /* in case there are threads in the event data, we don't render the
-   exception block.  Instead the exception is contained within the
-   thread interface. */
+  // in case there are threads in the event data, we don't render the
+  // exception block.  Instead the exception is contained within the
+  // thread interface.
   if (eventHasThreads) {
     return null;
   }
@@ -63,7 +63,6 @@ export function ExceptionV2({
     <TraceEventDataSection
       title={<PermalinkTitle>{t('Stack Trace')}</PermalinkTitle>}
       type={EntryType.EXCEPTION}
-      stackType={StackType.ORIGINAL}
       projectSlug={projectSlug}
       eventId={event.id}
       recentFirst={isStacktraceNewestFirst()}

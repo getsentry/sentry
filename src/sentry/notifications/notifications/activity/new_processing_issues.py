@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 from typing import Any, Mapping, MutableMapping
+from urllib.parse import urlencode
 
+from sentry import features
 from sentry.models import Activity, NotificationSetting
+from sentry.notifications.helpers import get_notification_recipients
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.notifications.utils import summarize_issues
 from sentry.notifications.utils.participants import ParticipantMap
@@ -21,9 +24,14 @@ class NewProcessingIssuesActivityNotification(ActivityNotification):
         self.issues = summarize_issues(self.activity.data["issues"])
 
     def get_participants_with_group_subscription_reason(self) -> ParticipantMap:
-        participants_by_provider = NotificationSetting.objects.get_notification_recipients(
-            self.project
-        )
+        participants_by_provider = None
+        if features.has("organizations:notification-settings-v2", self.project.organization):
+            participants_by_provider = get_notification_recipients(self.project)
+        else:
+            participants_by_provider = NotificationSetting.objects.get_notification_recipients(
+                self.project
+            )
+
         result = ParticipantMap()
         for provider, participants in participants_by_provider.items():
             for participant in participants:
@@ -40,7 +48,10 @@ class NewProcessingIssuesActivityNotification(ActivityNotification):
             "issues": self.issues,
             "reprocessing_active": self.activity.data["reprocessing_active"],
             "info_url": self.organization.absolute_url(
-                f"/settings/{self.organization.slug}/projects/{self.project.slug}/processing-issues/"
+                f"/settings/{self.organization.slug}/projects/{self.project.slug}/processing-issues/",
+                query=urlencode(
+                    {"referrer": self.metrics_key, "notification_uuid": self.notification_uuid}
+                ),
             ),
         }
 
@@ -55,7 +66,10 @@ class NewProcessingIssuesActivityNotification(ActivityNotification):
         self, provider: ExternalProviders, context: Mapping[str, Any] | None = None
     ) -> str:
         project_url = self.organization.absolute_url(
-            f"/settings/{self.organization.slug}/projects/{self.project.slug}/processing-issues/"
+            f"/settings/{self.organization.slug}/projects/{self.project.slug}/processing-issues/",
+            query=urlencode(
+                {"referrer": self.metrics_key, "notification_uuid": self.notification_uuid}
+            ),
         )
         return f"Processing issues on {self.format_url(text=self.project.slug, url=project_url, provider=provider)}"
 

@@ -17,9 +17,10 @@ import {TransactionProfileIdProvider} from 'sentry/components/profiling/transact
 import ResolutionBox from 'sentry/components/resolutionBox';
 import {space} from 'sentry/styles/space';
 import {
-  BaseGroupStatusReprocessing,
   Group,
   GroupActivityReprocess,
+  GroupReprocessing,
+  IssueType,
   Organization,
   Project,
 } from 'sentry/types';
@@ -201,8 +202,7 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
             <ReprocessingProgress
               totalEvents={(mostRecentActivity as GroupActivityReprocess).data.eventCount}
               pendingEvents={
-                (group.statusDetails as BaseGroupStatusReprocessing['statusDetails'])
-                  .pendingEvents
+                (group.statusDetails as GroupReprocessing['statusDetails']).pendingEvents
               }
             />
           ) : (
@@ -221,13 +221,15 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
                         group={group}
                       />
                       <QuickTraceContext.Provider value={results}>
-                        {eventWithMeta && (
-                          <GroupEventHeader
-                            group={group}
-                            event={eventWithMeta}
-                            project={project}
-                          />
-                        )}
+                        {eventWithMeta &&
+                          group.issueType !==
+                            IssueType.PERFORMANCE_DURATION_REGRESSION && (
+                            <GroupEventHeader
+                              group={group}
+                              event={eventWithMeta}
+                              project={project}
+                            />
+                          )}
                         {renderContent()}
                       </QuickTraceContext.Provider>
                     </StyledLayoutMain>

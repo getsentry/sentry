@@ -22,7 +22,7 @@ describe('AccountIdentities', function () {
       body: [],
     });
 
-    const {container} = render(
+    render(
       <AccountIdentities
         route={router.routes[0]}
         routeParams={router.params}
@@ -32,7 +32,6 @@ describe('AccountIdentities', function () {
         routes={router.routes}
       />
     );
-    expect(container).toSnapshot();
   });
 
   it('renders list', function () {
@@ -53,7 +52,7 @@ describe('AccountIdentities', function () {
       ],
     });
 
-    const {container} = render(
+    render(
       <AccountIdentities
         route={router.routes[0]}
         routeParams={router.params}
@@ -63,7 +62,6 @@ describe('AccountIdentities', function () {
         routes={router.routes}
       />
     );
-    expect(container).toSnapshot();
   });
 
   it('disconnects identity', async function () {

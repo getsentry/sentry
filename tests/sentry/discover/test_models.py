@@ -3,7 +3,7 @@ from django.db import IntegrityError, router, transaction
 
 from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryProject
 from sentry.models import User
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 
 
 class DiscoverSavedQueryTest(TestCase):

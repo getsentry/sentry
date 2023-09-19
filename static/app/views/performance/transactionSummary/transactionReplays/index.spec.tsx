@@ -90,6 +90,11 @@ describe('TransactionReplays', () => {
   let replaysMockApi: jest.Mock<any, any>;
   beforeEach(() => {
     MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/sdk-updates/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-has-measurements/',
       body: {measurements: false},
     });
@@ -150,7 +155,7 @@ describe('TransactionReplays', () => {
   });
 
   it('should snapshot empty state', async () => {
-    MockApiClient.addMockResponse({
+    const mockApi = MockApiClient.addMockResponse({
       url: mockReplaysUrl,
       body: {
         data: [],
@@ -158,10 +163,10 @@ describe('TransactionReplays', () => {
       statusCode: 200,
     });
 
-    const {container} = renderComponent();
+    renderComponent();
 
     await waitFor(() => {
-      expect(container).toSnapshot();
+      expect(mockApi).toHaveBeenCalledTimes(1);
     });
   });
 

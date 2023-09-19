@@ -1,15 +1,15 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {TeamProjects as OrganizationTeamProjects} from 'sentry/views/settings/organizationTeams/teamProjects';
+import OrganizationTeamProjects from 'sentry/views/settings/organizationTeams/teamProjects';
 
 describe('OrganizationTeamProjects', function () {
-  let team;
-  let getMock;
-  let putMock;
-  let postMock;
-  let deleteMock;
+  let getMock!: jest.Mock;
+  let putMock!: jest.Mock;
+  let postMock!: jest.Mock;
+  let deleteMock!: jest.Mock;
 
+  const team = TestStubs.Team({slug: 'team-slug'});
   const project = TestStubs.Project({
     teams: [team],
     access: ['project:read', 'project:write', 'project:admin'],
@@ -21,24 +21,13 @@ describe('OrganizationTeamProjects', function () {
     access: ['project:read', 'project:write', 'project:admin'],
   });
 
-  const {routerContext, organization} = initializeOrg({
+  const {routerContext, routerProps, organization} = initializeOrg({
     organization: TestStubs.Organization({slug: 'org-slug'}),
     projects: [project, project2],
+    router: {params: {teamId: team.slug}},
   });
 
-  const router = TestStubs.router();
-  const routerProps = {
-    router,
-    routes: router.routes,
-    params: router.params,
-    routeParams: router.params,
-    route: router.routes[0],
-    location: router.location,
-  };
-
   beforeEach(function () {
-    team = TestStubs.Team({slug: 'team-slug'});
-
     getMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [project, project2],
@@ -69,18 +58,13 @@ describe('OrganizationTeamProjects', function () {
     MockApiClient.clearMockResponses();
   });
 
-  it('fetches linked and unlinked projects', function () {
-    render(
-      <OrganizationTeamProjects
-        {...routerProps}
-        api={new MockApiClient()}
-        organization={organization}
-        team={team}
-        params={{teamId: team.slug}}
-        location={{...routerProps.location, query: {}}}
-      />,
-      {context: routerContext}
-    );
+  it('should fetch linked and unlinked projects', async function () {
+    render(<OrganizationTeamProjects {...routerProps} team={team} />, {
+      context: routerContext,
+      organization,
+    });
+
+    expect(await screen.findByText('project-slug')).toBeInTheDocument();
 
     expect(getMock).toHaveBeenCalledTimes(2);
 
@@ -88,35 +72,11 @@ describe('OrganizationTeamProjects', function () {
     expect(getMock.mock.calls[1][1].query.query).toBe('!team:team-slug');
   });
 
-  it('Should render', async function () {
-    const {container} = render(
-      <OrganizationTeamProjects
-        {...routerProps}
-        api={new MockApiClient()}
-        organization={organization}
-        team={team}
-        params={{teamId: team.slug}}
-        location={{...routerProps.location, query: {}}}
-      />,
-      {context: routerContext}
-    );
-
-    expect(await screen.findByText('project-slug')).toBeInTheDocument();
-    expect(container).toSnapshot();
-  });
-
-  it('Should allow bookmarking', async function () {
-    render(
-      <OrganizationTeamProjects
-        {...routerProps}
-        api={new MockApiClient()}
-        organization={organization}
-        team={team}
-        params={{teamId: team.slug}}
-        location={{...routerProps.location, query: {}}}
-      />,
-      {context: routerContext}
-    );
+  it('should allow bookmarking', async function () {
+    render(<OrganizationTeamProjects {...routerProps} team={team} />, {
+      context: routerContext,
+      organization,
+    });
 
     const stars = await screen.findAllByRole('button', {name: 'Bookmark Project'});
     expect(stars).toHaveLength(2);
@@ -127,25 +87,23 @@ describe('OrganizationTeamProjects', function () {
     ).toBeInTheDocument();
 
     expect(putMock).toHaveBeenCalledTimes(1);
+    expect(putMock).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        data: {isBookmarked: true},
+      })
+    );
   });
 
-  it('Should allow adding and removing projects', async function () {
-    render(
-      <OrganizationTeamProjects
-        {...routerProps}
-        api={new MockApiClient()}
-        organization={organization}
-        team={team}
-        params={{teamId: team.slug}}
-        location={{...routerProps.location, query: {}}}
-      />,
-      {context: routerContext}
-    );
+  it('should allow adding and removing projects', async function () {
+    render(<OrganizationTeamProjects {...routerProps} team={team} />, {
+      context: routerContext,
+      organization,
+    });
 
     expect(getMock).toHaveBeenCalledTimes(2);
 
     await userEvent.click(await screen.findByText('Add Project'));
-    // console.log(screen.debug());
     await userEvent.click(screen.getByRole('option', {name: 'project-slug-2'}));
 
     expect(postMock).toHaveBeenCalledTimes(1);
@@ -158,17 +116,10 @@ describe('OrganizationTeamProjects', function () {
   });
 
   it('handles filtering unlinked projects', async function () {
-    render(
-      <OrganizationTeamProjects
-        {...routerProps}
-        api={new MockApiClient()}
-        organization={organization}
-        team={team}
-        params={{teamId: team.slug}}
-        location={{...routerProps.location, query: {}}}
-      />,
-      {context: routerContext}
-    );
+    render(<OrganizationTeamProjects {...routerProps} team={team} />, {
+      context: routerContext,
+      organization,
+    });
 
     expect(getMock).toHaveBeenCalledTimes(2);
 

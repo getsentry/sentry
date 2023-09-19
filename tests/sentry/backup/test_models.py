@@ -1,16 +1,14 @@
 from __future__ import annotations
 
-import tempfile
-from datetime import datetime, timedelta, timezone
-from pathlib import Path
-from typing import Type
+from datetime import datetime, timedelta
+from typing import Literal, Type
 from uuid import uuid4
 
-from click.testing import CliRunner
-from django.core.management import call_command
-from django.db import models, router
+from django.utils import timezone
 from sentry_relay.auth import generate_key_pair
 
+from sentry.backup.helpers import get_exportable_sentry_models
+from sentry.backup.scopes import RelocationScope
 from sentry.incidents.models import (
     AlertRule,
     AlertRuleActivity,
@@ -26,9 +24,10 @@ from sentry.incidents.models import (
     PendingIncidentSnapshot,
     TimeSeriesSnapshot,
 )
-from sentry.models.actor import ACTOR_TYPES, Actor
+from sentry.models.actor import Actor
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.apiauthorization import ApiAuthorization
+from sentry.models.apigrant import ApiGrant
 from sentry.models.apikey import ApiKey
 from sentry.models.apitoken import ApiToken
 from sentry.models.authenticator import Authenticator
@@ -43,6 +42,9 @@ from sentry.models.dashboard_widget import (
 )
 from sentry.models.email import Email
 from sentry.models.environment import Environment, EnvironmentProject
+from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.models.integrations.project_integration import ProjectIntegration
 from sentry.models.integrations.sentry_app import SentryApp
 from sentry.models.integrations.sentry_app_component import SentryAppComponent
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
@@ -53,7 +55,6 @@ from sentry.models.options.project_option import ProjectOption
 from sentry.models.options.user_option import UserOption
 from sentry.models.organization import Organization
 from sentry.models.organizationaccessrequest import OrganizationAccessRequest
-from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.orgauthtoken import OrgAuthToken
@@ -66,7 +67,7 @@ from sentry.models.projectteam import ProjectTeam
 from sentry.models.recentsearch import RecentSearch
 from sentry.models.relay import Relay, RelayUsage
 from sentry.models.repository import Repository
-from sentry.models.rule import Rule, RuleActivity, RuleActivityType
+from sentry.models.rule import NeglectedRule, Rule, RuleActivity, RuleActivityType
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.models.savedsearch import SavedSearch, Visibility
 from sentry.models.search_common import SearchType
@@ -77,170 +78,48 @@ from sentry.models.useremail import UserEmail
 from sentry.models.userip import UserIP
 from sentry.models.userpermission import UserPermission
 from sentry.models.userrole import UserRole, UserRoleUser
-from sentry.monitors.models import (
-    CheckInStatus,
-    Monitor,
-    MonitorCheckIn,
-    MonitorEnvironment,
-    MonitorLocation,
-    MonitorType,
-    ScheduleType,
-)
-from sentry.runner.commands.backup import DatetimeSafeDjangoJSONEncoder, import_, validate
+from sentry.monitors.models import Monitor, MonitorType, ScheduleType
 from sentry.sentry_apps.apps import SentryAppUpdater
-from sentry.silo import unguarded_write
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
-from sentry.testutils import TransactionTestCase
+from sentry.testutils.cases import TransactionTestCase
+from sentry.testutils.helpers.backups import import_export_then_validate
 from sentry.utils.json import JSONData
-from tests.sentry.backup import ValidationError, tmp_export_to_file
+from tests.sentry.backup import run_backup_tests_only_on_single_db, targets
 
-TESTED_MODELS = set()
+UNIT_TESTED_MODELS = set()
 
 
-def mark(*marking: Type):
+def mark(*marking: Type | Literal["__all__"]):
     """A function that runs at module load time (which is why this logic can't be folded into the
     `targets` decorator) and marks all models that appear in at least one test. This is then used by
     test_coverage.py to ensure that all final derivations of django's "Model" that set
-    `__include_in_export__ = True` are exercised by at least one test here."""
+    `__relocation_scope__ != RelocationScope.Excluded` are exercised by at least one test here.
+
+    Use the sentinel string "__all__" to indicate that all models are expected."""
+
+    all: Literal["__all__"] = "__all__"
     for model in marking:
-        TESTED_MODELS.add(model.__name__)
+        if model == all:
+            all_models = get_exportable_sentry_models()
+            UNIT_TESTED_MODELS.update({c.__name__ for c in all_models})
+            return list(all_models)
+
+        UNIT_TESTED_MODELS.add(model.__name__)
     return marking
 
 
-def targets(expected_models: list[Type]):
-    """A helper decorator that checks that every model that a test "targeted" was actually seen in
-    the output, ensuring that we're actually testing the thing we think we are. Additionally, this
-    decorator is easily legible to static analysis, which allows for static checks to ensure that
-    all `__include_in_export__ = True` models are being tested.
-
-    To be considered a proper "testing" of a given target type, the resulting output must contain at
-    least one instance of that type with all of its fields present and set to non-default values."""
-
-    def decorator(func):
-        def wrapped(*args, **kwargs):
-            actual = func(*args, **kwargs)
-            if actual is None:
-                return AssertionError(f"The test {func.__name__} did not return its actual JSON")
-
-            # Do a quick scan to ensure that at least one instance of each expected model is
-            # present.
-            actual_model_names = {entry["model"] for entry in actual}
-            expected_model_types = {
-                "sentry." + type.__name__.lower(): type for type in expected_models
-            }
-            expected_model_names = set(expected_model_types.keys())
-            notfound = sorted(expected_model_names - actual_model_names)
-            if len(notfound) > 0:
-                raise AssertionError(f"Some `@targets_models` entries were not found: {notfound}")
-
-            # Now do a more thorough check: for every `expected_models` entry, make sure that we
-            # have at least one instance of that model that sets all of its fields to some
-            # non-default value.
-            mistakes_by_model: dict[str, list[str]] = {}
-            encoder = DatetimeSafeDjangoJSONEncoder()
-            for model in actual:
-                name = model["model"]
-                if name not in expected_model_names:
-                    continue
-
-                data = model["fields"]
-                type = expected_model_types[name]
-                fields = type._meta.get_fields()
-                mistakes = []
-                for f in fields:
-                    field_name = f.name
-
-                    # IDs are synonymous with primary keys, and should not be included in JSON field
-                    # output.
-                    if field_name == "id":
-                        continue
-
-                    # The model gets a `ManyToOneRel` or `ManyToManyRel` from all other models where
-                    # it is referenced by foreign key. Those do not explicitly need to be set - we
-                    # don't care that models that reference this model exist, just that this model
-                    # exists in its most filled-out form.
-                    if isinstance(f, models.ManyToOneRel) or isinstance(f, models.ManyToManyRel):
-                        continue
-
-                    # TODO(getsentry/team-ospo#156): For some reason we currently don't always
-                    # serialize some `ManyToManyField`s with the `through` property set. I'll
-                    # investigate, but will skip over these for now.
-                    if isinstance(f, models.ManyToManyField):
-                        continue
-
-                    # TODO(getsentry/team-ospo#156): Maybe make these checks recursive for models
-                    # that have POPOs for some of their field values?
-                    if field_name not in data:
-                        mistakes.append(f"Must include field: `{field_name}`")
-                        continue
-                    if f.has_default():
-                        default_value = f.get_default()
-                        serialized = encoder.encode(default_value)
-                        if serialized == data:
-                            mistakes.append(f"Must use non-default data: `{field_name}`")
-                            return
-
-                # If one model instance has N mistakes, and another has N - 1 mistakes, we want to
-                # keep the shortest list, to give the user the smallest number of fixes to make when
-                # reporting the mistake.
-                if name not in mistakes_by_model or (len(mistakes) < len(mistakes_by_model[name])):
-                    mistakes_by_model[name] = mistakes
-            for name, mistakes in mistakes_by_model.items():
-                num = len(mistakes)
-                if num > 0:
-                    raise AssertionError(f"Model {name} has {num} mistakes: {mistakes}")
-
-            return actual
-
-        return wrapped
-
-    return decorator
-
-
+@run_backup_tests_only_on_single_db
 class ModelBackupTests(TransactionTestCase):
-    """Test the JSON-ification of models marked `__include_in_export__ = True`. Each test here
-    creates a fresh database, performs some writes to it, then exports that data into a temporary
-    file (called the "expected" JSON). It then imports the "expected" JSON and re-exports it into
-    the "actual" JSON file, and diffs the two to ensure that they match per the specified
-    comparators."""
-
-    def setUp(self):
-        # TODO(Hybrid-Cloud): Review whether this is the correct route to apply in this case.
-        with unguarded_write(using=router.db_for_write(Organization)):
-            # Reset the Django database.
-            call_command("flush", verbosity=0, interactive=False)
+    """
+    Test the JSON-ification of models marked `__relocation_scope__ != RelocationScope.Excluded`.
+    Each test here creates a fresh database, performs some writes to it, then exports that data into
+    a temporary file (called the "expected" JSON). It then imports the "expected" JSON and
+    re-exports it into the "actual" JSON file, and diffs the two to ensure that they match per the
+    specified comparators.
+    """
 
     def import_export_then_validate(self) -> JSONData:
-        """Test helper that validates that data imported from a temporary `.json` file correctly
-        matches the actual outputted export data.
-
-        Return the actual JSON, so that we may use the `@targets` decorator to ensure that we have
-        at least one instance of all the "tested for" models in the actual output."""
-
-        with tempfile.TemporaryDirectory() as tmpdir:
-            tmp_expect = Path(tmpdir).joinpath(f"{self._testMethodName}.expect.json")
-            tmp_actual = Path(tmpdir).joinpath(f"{self._testMethodName}.actual.json")
-
-            # Export the current state of the database into the "expected" temporary file, then
-            # parse it into a JSON object for comparison.
-            expect = tmp_export_to_file(tmp_expect)
-
-            # Write the contents of the "expected" JSON file into the now clean database.
-            # TODO(Hybrid-Cloud): Review whether this is the correct route to apply in this case.
-            with unguarded_write(using=router.db_for_write(Organization)):
-                # Reset the Django database.
-                call_command("flush", verbosity=0, interactive=False)
-
-                rv = CliRunner().invoke(import_, [str(tmp_expect)])
-                assert rv.exit_code == 0, rv.output
-
-            # Validate that the "expected" and "actual" JSON matches.
-            actual = tmp_export_to_file(tmp_actual)
-            res = validate(expect, actual)
-            if res.findings:
-                raise ValidationError(res)
-
-        return actual
+        return import_export_then_validate(self._testMethodName, reset_pks=False)
 
     def create_dashboard(self):
         """Re-usable dashboard object for test cases."""
@@ -253,19 +132,6 @@ class ModelBackupTests(TransactionTestCase):
         )
         dashboard.projects.add(project)
         return dashboard
-
-    def create_monitor(self):
-        """Re-usable monitor object for test cases."""
-
-        user = self.create_user()
-        org = self.create_organization(owner=user)
-        project = self.create_project(organization=org)
-        return Monitor.objects.create(
-            organization_id=project.organization.id,
-            project_id=project.id,
-            type=MonitorType.CRON_JOB,
-            config={"schedule": "* * * * *", "schedule_type": ScheduleType.CRONTAB},
-        )
 
     @targets(mark(Actor))
     def test_actor(self):
@@ -294,12 +160,19 @@ class ModelBackupTests(TransactionTestCase):
         self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
         return self.import_export_then_validate()
 
-    @targets(mark(ApiAuthorization, ApiApplication))
-    def test_api_authorization_application(self):
+    @targets(mark(ApiAuthorization, ApiApplication, ApiGrant))
+    def test_api_application(self):
         user = self.create_user()
         app = ApiApplication.objects.create(name="test", owner=user)
         ApiAuthorization.objects.create(
             application=app, user=self.create_user("example@example.com")
+        )
+        ApiGrant.objects.create(
+            user=self.user,
+            application=app,
+            expires_at="2022-01-01 11:11",
+            redirect_uri="https://example.com",
+            scope_list=["openid", "profile", "email"],
         )
         return self.import_export_then_validate()
 
@@ -328,6 +201,7 @@ class ModelBackupTests(TransactionTestCase):
     @targets(mark(AuthIdentity, AuthProvider))
     def test_auth_identity_provider(self):
         user = self.create_user()
+        org = self.create_organization(owner=user)
         test_data = {
             "key1": "value1",
             "key2": 42,
@@ -336,7 +210,7 @@ class ModelBackupTests(TransactionTestCase):
         }
         AuthIdentity.objects.create(
             user=user,
-            auth_provider=AuthProvider.objects.create(organization_id=1, provider="sentry"),
+            auth_provider=AuthProvider.objects.create(organization_id=org.id, provider="sentry"),
             ident="123456789",
             data=test_data,
         )
@@ -439,27 +313,41 @@ class ModelBackupTests(TransactionTestCase):
             alert_rule_trigger=trigger,
             status=1,
         )
+        return self.import_export_then_validate()
+
+    @targets(mark(Integration, OrganizationIntegration, ProjectIntegration, Repository))
+    def test_integration(self):
+        user = self.create_user()
+        org = self.create_organization(owner=user)
+        project = self.create_project()
+        integration = self.create_integration(
+            org, provider="slack", name="Slack 1", external_id="slack:1"
+        )
+
+        # Note: this model is deprecated, and can safely be removed from this test when it is finally removed. Until then, it is included for completeness.
+        ProjectIntegration.objects.create(
+            project=project, integration_id=integration.id, config='{"hello":"hello"}'
+        )
+
+        self.create_repo(
+            project=self.project,
+            name="getsentry/getsentry",
+            provider="integrations:github",
+            integration_id=self.integration.id,
+            url="https://github.com/getsentry/getsentry",
+        )
+        return self.import_export_then_validate()
 
     @targets(mark(Monitor))
     def test_monitor(self):
-        self.create_monitor()
-        return self.import_export_then_validate()
-
-    @targets(mark(MonitorEnvironment, MonitorLocation))
-    def test_monitor_environment(self):
-        monitor = self.create_monitor()
-        env = Environment.objects.create(organization_id=monitor.organization_id, name="test_env")
-        mon_env = MonitorEnvironment.objects.create(
-            monitor=monitor,
-            environment=env,
-        )
-        location = MonitorLocation.objects.create(guid=uuid4(), name="test_location")
-        MonitorCheckIn.objects.create(
-            monitor=monitor,
-            monitor_environment=mon_env,
-            location=location,
-            project_id=monitor.project_id,
-            status=CheckInStatus.IN_PROGRESS,
+        user = self.create_user()
+        org = self.create_organization(owner=user)
+        project = self.create_project(organization=org)
+        Monitor.objects.create(
+            organization_id=project.organization.id,
+            project_id=project.id,
+            type=MonitorType.CRON_JOB,
+            config={"schedule": "* * * * *", "schedule_type": ScheduleType.CRONTAB},
         )
         return self.import_export_then_validate()
 
@@ -487,7 +375,7 @@ class ModelBackupTests(TransactionTestCase):
         )
         return self.import_export_then_validate()
 
-    @targets(mark(Organization, OrganizationMapping))
+    @targets(mark(Organization))
     def test_organization(self):
         user = self.create_user()
         self.create_organization(owner=user)
@@ -552,20 +440,18 @@ class ModelBackupTests(TransactionTestCase):
         RelayUsage.objects.create(relay_id=relay_id, version="0.0.1", public_key=public_key)
         return self.import_export_then_validate()
 
-    @targets(mark(Repository))
-    def test_repository(self):
-        Repository.objects.create(
-            name="test_repo",
-            organization_id=self.organization.id,
-            integration_id=self.integration.id,
-        )
-        return self.import_export_then_validate()
-
-    @targets(mark(Rule, RuleActivity, RuleSnooze))
+    @targets(mark(Rule, RuleActivity, RuleSnooze, NeglectedRule))
     def test_rule(self):
         rule = self.create_project_rule(project=self.project)
         RuleActivity.objects.create(rule=rule, type=RuleActivityType.CREATED.value)
         self.snooze_rule(user_id=self.user.id, owner_id=self.user.id, rule=rule)
+        NeglectedRule.objects.create(
+            rule=rule,
+            organization=self.organization,
+            disable_date=datetime.now(),
+            sent_initial_email_date=datetime.now(),
+            sent_final_email_date=datetime.now(),
+        )
         return self.import_export_then_validate()
 
     @targets(mark(RecentSearch, SavedSearch))
@@ -587,9 +473,7 @@ class ModelBackupTests(TransactionTestCase):
     @targets(mark(SentryApp, SentryAppComponent, SentryAppInstallation))
     def test_sentry_app(self):
         app = self.create_sentry_app(name="test_app", organization=self.organization)
-        self.create_sentry_app_installation(
-            slug=app.slug, organization=self.organization, user=self.user
-        )
+        self.create_sentry_app_installation(slug=app.slug, organization=self.organization)
         updater = SentryAppUpdater(sentry_app=app)
         updater.schema = {"elements": [self.create_alert_rule_action_schema()]}
         updater.run(self.user)
@@ -606,16 +490,13 @@ class ModelBackupTests(TransactionTestCase):
     @targets(mark(ServiceHook))
     def test_service_hook(self):
         app = self.create_sentry_app()
-        actor = Actor.objects.create(type=ACTOR_TYPES["team"])
         install = self.create_sentry_app_installation(organization=self.organization, slug=app.slug)
-        ServiceHook.objects.create(
-            application_id=app.id,
-            actor_id=actor.id,
-            project_id=self.project.id,
-            organization_id=self.organization.id,
-            events=[],
+        self.create_service_hook(
+            application_id=app.application.id,
+            actor_id=app.proxy_user.id,
             installation_id=install.id,
-            url="https://example.com",
+            project=self.project,
+            org=self.project.organization,
         )
         return self.import_export_then_validate()
 
@@ -643,3 +524,65 @@ class ModelBackupTests(TransactionTestCase):
         role = UserRole.objects.create(name="test-role")
         UserRoleUser.objects.create(user=user, role=role)
         return self.import_export_then_validate()
+
+
+@run_backup_tests_only_on_single_db
+class DynamicRelocationScopeTests(TransactionTestCase):
+    """
+    For models that support different relocation scopes depending on properties of the model instance itself (ie, they have a set for their `__relocation_scope__`, rather than a single value), make sure that this dynamic deduction works correctly.
+    """
+
+    def test_api_auth_application_bound(self):
+        user = self.create_user()
+        app = ApiApplication.objects.create(name="test", owner=user)
+        auth = ApiAuthorization.objects.create(
+            application=app, user=self.create_user("example@example.com")
+        )
+        token = ApiToken.objects.create(
+            application=app, user=user, token=uuid4().hex, expires_at=None
+        )
+
+        # TODO(getsentry/team-ospo#188): this should be extension scope once that gets added.
+        assert auth.get_relocation_scope() == RelocationScope.Global
+        assert token.get_relocation_scope() == RelocationScope.Global
+
+    def test_api_auth_not_bound(self):
+        user = self.create_user()
+        auth = ApiAuthorization.objects.create(user=self.create_user("example@example.com"))
+        token = ApiToken.objects.create(user=user, token=uuid4().hex, expires_at=None)
+
+        assert auth.get_relocation_scope() == RelocationScope.Config
+        assert token.get_relocation_scope() == RelocationScope.Config
+
+    def test_notification_action_integration_bound(self):
+        integration = self.create_integration(
+            self.organization, provider="slack", name="Slack 1", external_id="slack:1"
+        )
+        action = self.create_notification_action(
+            organization=self.organization, projects=[self.project], integration_id=integration.id
+        )
+        action_project = NotificationActionProject.objects.get(action=action)
+
+        # TODO(getsentry/team-ospo#188): this should be extension scope once that gets added.
+        assert action.get_relocation_scope() == RelocationScope.Global
+        assert action_project.get_relocation_scope() == RelocationScope.Global
+
+    def test_notification_action_sentry_app_bound(self):
+        app = self.create_sentry_app(name="test_app", organization=self.organization)
+        action = self.create_notification_action(
+            organization=self.organization, projects=[self.project], sentry_app_id=app.id
+        )
+        action_project = NotificationActionProject.objects.get(action=action)
+
+        # TODO(getsentry/team-ospo#188): this should be extension scope once that gets added.
+        assert action.get_relocation_scope() == RelocationScope.Global
+        assert action_project.get_relocation_scope() == RelocationScope.Global
+
+    def test_notification_action_not_bound(self):
+        action = self.create_notification_action(
+            organization=self.organization, projects=[self.project]
+        )
+        action_project = NotificationActionProject.objects.get(action=action)
+
+        assert action.get_relocation_scope() == RelocationScope.Organization
+        assert action_project.get_relocation_scope() == RelocationScope.Organization

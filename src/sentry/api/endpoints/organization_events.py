@@ -8,6 +8,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
@@ -18,7 +19,6 @@ from sentry.apidocs.parameters import GlobalParams, VisibilityParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
-from sentry.search.events.fields import is_function
 from sentry.snuba import discover, metrics_enhanced_performance, metrics_performance
 from sentry.snuba.referrer import Referrer
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -72,11 +72,6 @@ ALLOWED_EVENTS_REFERRERS = {
     Referrer.API_STARFISH_TOTAL_TIME.value,
 }
 
-ALLOWED_EVENTS_GEO_REFERRERS = {
-    Referrer.API_ORGANIZATION_EVENTS_GEO.value,
-    Referrer.API_DASHBOARDS_WORLDMAPWIDGET.value,
-}
-
 API_TOKEN_REFERRER = Referrer.API_AUTH_TOKEN_EVENTS.value
 
 RATE_LIMIT = 15
@@ -128,7 +123,9 @@ def rate_limit_events(request: Request, organization_slug=None, *args, **kwargs)
 @extend_schema(tags=["Discover"])
 @region_silo_endpoint
 class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
-    public = {"GET"}
+    publish_status = {
+        "GET": ApiPublishStatus.PUBLIC,
+    }
 
     enforce_rate_limit = True
 
@@ -144,6 +141,8 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             "organizations:dynamic-sampling",
             "organizations:use-metrics-layer",
             "organizations:starfish-view",
+            "organizations:on-demand-metrics-extraction",
+            "organizations:on-demand-metrics-extraction-experimental",
         ]
         batch_features = features.batch_has(
             feature_names,
@@ -239,6 +238,10 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             or batch_features.get("organizations:dashboards-mep", False)
         )
 
+        on_demand_metrics_enabled = batch_features.get(
+            "organizations:on-demand-metrics-extraction", False
+        ) and batch_features.get("organizations:on-demand-metrics-extraction-experimental", False)
+
         dataset = self.get_dataset(request)
         metrics_enhanced = dataset in {metrics_performance, metrics_enhanced_performance}
 
@@ -269,6 +272,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                 # Whether the flag is enabled or not, regardless of the referrer
                 has_metrics=use_metrics,
                 use_metrics_layer=batch_features.get("organizations:use-metrics-layer", False),
+                on_demand_metrics_enabled=on_demand_metrics_enabled,
             )
 
         with self.handle_query_errors():
@@ -297,61 +301,3 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                         dataset=dataset,
                     ),
                 )
-
-
-@region_silo_endpoint
-class OrganizationEventsGeoEndpoint(OrganizationEventsV2EndpointBase):
-    def has_feature(self, request: Request, organization):
-        return features.has("organizations:dashboards-basic", organization, actor=request.user)
-
-    def get(self, request: Request, organization) -> Response:
-        if not self.has_feature(request, organization):
-            return Response(status=404)
-
-        try:
-            params = self.get_snuba_params(request, organization)
-        except NoProjects:
-            return Response([])
-
-        maybe_aggregate = request.GET.get("field")
-
-        if not maybe_aggregate:
-            raise ParseError(detail="No column selected")
-
-        if not is_function(maybe_aggregate):
-            raise ParseError(detail="Functions may only be given")
-
-        referrer = request.GET.get("referrer")
-        referrer = (
-            referrer
-            if referrer in ALLOWED_EVENTS_GEO_REFERRERS
-            else Referrer.API_ORGANIZATION_EVENTS_GEO.value
-        )
-
-        def data_fn(offset, limit):
-            return discover.query(
-                selected_columns=["geo.country_code", maybe_aggregate],
-                query=f"{request.GET.get('query', '')} has:geo.country_code",
-                params=params,
-                offset=offset,
-                limit=limit,
-                referrer=referrer,
-                use_aggregate_conditions=True,
-                orderby=self.get_orderby(request) or maybe_aggregate,
-            )
-
-        with self.handle_query_errors():
-            # We don't need pagination, so we don't include the cursor headers
-            return Response(
-                self.handle_results_with_meta(
-                    request,
-                    organization,
-                    params["project_id"],
-                    # Expect Discover query output to be at most 251 rows, which corresponds
-                    # to the number of possible two-letter country codes as defined in ISO 3166-1 alpha-2.
-                    #
-                    # There are 250 country codes from sentry/static/app/data/countryCodesMap.tsx
-                    # plus events with no assigned country code.
-                    data_fn(0, self.get_per_page(request, default_per_page=251, max_per_page=251)),
-                )
-            )

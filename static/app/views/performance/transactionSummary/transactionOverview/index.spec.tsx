@@ -1,6 +1,7 @@
 import {browserHistory, InjectedRouter} from 'react-router';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {
   render,
   renderGlobalModal,
@@ -19,7 +20,7 @@ import {
   MEPSetting,
   MEPState,
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {QueryClient, QueryClientProvider} from 'sentry/utils/queryClient';
+import {QueryClientProvider} from 'sentry/utils/queryClient';
 import TransactionSummary from 'sentry/views/performance/transactionSummary/transactionOverview';
 import {RouteContext} from 'sentry/views/routeContext';
 
@@ -71,14 +72,12 @@ function TestComponent({
 }: React.ComponentProps<typeof TransactionSummary> & {
   router: InjectedRouter<Record<string, string>, any>;
 }) {
-  const client = new QueryClient();
-
   if (!props.organization) {
     throw new Error('Missing organization');
   }
 
   return (
-    <QueryClientProvider client={client}>
+    <QueryClientProvider client={makeTestQueryClient()}>
       <RouteContext.Provider value={{router, ...router}}>
         <MetricsCardinalityProvider
           organization={props.organization}
@@ -464,7 +463,6 @@ describe('Performance > TransactionSummary', function () {
     MockApiClient.clearMockResponses();
     ProjectsStore.reset();
     jest.clearAllMocks();
-    jest.restoreAllMocks();
   });
 
   describe('with events', function () {

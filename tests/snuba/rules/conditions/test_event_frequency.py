@@ -1,10 +1,10 @@
 import time
 from copy import deepcopy
-from datetime import timedelta
+from datetime import timedelta, timezone
 from unittest.mock import patch
 from uuid import uuid4
 
-import pytz
+import pytest
 from django.utils.timezone import now
 from freezegun import freeze_time
 
@@ -18,9 +18,13 @@ from sentry.rules.conditions.event_frequency import (
 from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
+from sentry.testutils.skips import requires_snuba
 from sentry.utils.samples import load_data
 
+pytestmark = [requires_snuba]
 
+
+@pytest.mark.snuba_ci
 class FrequencyConditionMixin:
     def increment(self, event, count, environment=None, timestamp=None):
         raise NotImplementedError
@@ -82,8 +86,8 @@ class PerfIssuePlatformEventMixin(PerformanceIssueTestCase):
         )
         event_data = load_data(
             "transaction-n-plus-one",
-            timestamp=timestamp.replace(tzinfo=pytz.utc),
-            start_timestamp=timestamp.replace(tzinfo=pytz.utc),
+            timestamp=timestamp.replace(tzinfo=timezone.utc),
+            start_timestamp=timestamp.replace(tzinfo=timezone.utc),
             fingerprint=[fingerprint],
         )
         event_data["user"] = {"id": uuid4().hex}

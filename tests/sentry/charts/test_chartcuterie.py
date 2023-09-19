@@ -6,7 +6,7 @@ from django.urls.base import reverse
 
 from sentry.charts import backend as charts
 from sentry.charts.types import ChartType
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.response import close_streaming_response
 from sentry.testutils.silo import control_silo_test
 from sentry.utils import json

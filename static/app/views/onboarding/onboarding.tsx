@@ -138,12 +138,7 @@ function Onboarding(props: Props) {
     props.location.pathname,
   ]);
 
-  const projectDeletionOnBackClick = !!organization?.features.includes(
-    'onboarding-project-deletion-on-back-click'
-  );
-
   const shallProjectBeDeleted =
-    projectDeletionOnBackClick &&
     onboardingSteps[stepIndex].id === 'setup-docs' &&
     recentCreatedProject &&
     // if the project has received a first error, we don't delete it

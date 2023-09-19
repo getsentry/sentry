@@ -10,7 +10,7 @@ from sentry.models import (
     Integration,
     OrganizationIntegration,
 )
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.utils.signing import unsign
 
@@ -98,6 +98,7 @@ class MsTeamsIntegrationUnlinkIdentityTest(TestCase):
         )
         assert len(responses.calls) == 2
 
+    @responses.activate
     def test_no_identity(self):
         teams_user_id = "my-teams-user-id"
         # identity for a different user

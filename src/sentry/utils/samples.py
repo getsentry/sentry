@@ -1,10 +1,10 @@
+import logging
 import os.path
 import random
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
-import pytz
 from django.core.exceptions import SuspiciousFileOperation
 
 from sentry.constants import DATA_ROOT, INTEGRATION_ID_TO_PLATFORM_DATA
@@ -15,6 +15,7 @@ from sentry.utils import json
 from sentry.utils.canonical import CanonicalKeyDict
 from sentry.utils.dates import to_timestamp
 
+logger = logging.getLogger(__name__)
 epoch = datetime.utcfromtimestamp(0)
 
 
@@ -184,14 +185,14 @@ def load_data(
     if timestamp is None:
         timestamp = datetime.utcnow() - timedelta(minutes=1)
         timestamp = timestamp - timedelta(microseconds=timestamp.microsecond % 1000)
-    timestamp = timestamp.replace(tzinfo=pytz.utc)
+    timestamp = timestamp.replace(tzinfo=timezone.utc)
     data.setdefault("timestamp", to_timestamp(timestamp))
 
     if data.get("type") == "transaction":
         if start_timestamp is None:
             start_timestamp = timestamp - timedelta(seconds=3)
         else:
-            start_timestamp = start_timestamp.replace(tzinfo=pytz.utc)
+            start_timestamp = start_timestamp.replace(tzinfo=timezone.utc)
         data["start_timestamp"] = to_timestamp(start_timestamp)
 
         if trace is None:
@@ -410,6 +411,13 @@ def create_sample_event(
     )
 
     if not data:
+        logger.info(
+            "create_sample_event: no data loaded",
+            extra={
+                "project_id": project.id,
+                "sample_event": True,
+            },
+        )
         return
     for key in ["parent_span_id", "hash", "exclusive_time"]:
         if key in kwargs:

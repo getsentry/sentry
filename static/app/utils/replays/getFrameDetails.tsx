@@ -1,9 +1,20 @@
 import {ReactNode} from 'react';
 
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconWarning} from 'sentry/icons';
+import {
+  IconCursorArrow,
+  IconFire,
+  IconFix,
+  IconInfo,
+  IconInput,
+  IconKeyDown,
+  IconLocation,
+  IconSort,
+  IconTerminal,
+  IconUser,
+  IconWarning,
+} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {BreadcrumbType} from 'sentry/types/breadcrumbs';
 import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import type {
   BreadcrumbFrame,
@@ -27,9 +38,9 @@ import stripOrigin from 'sentry/utils/url/stripOrigin';
 interface Details {
   color: Color;
   description: ReactNode;
+  icon: ReactNode;
   tabKey: TabKey;
   title: ReactNode;
-  type: BreadcrumbType;
 }
 
 const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
@@ -38,35 +49,35 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
     description: stripOrigin(frame.message ?? ''),
     tabKey: TabKey.CONSOLE,
     title: 'Replay Start',
-    type: BreadcrumbType.DEFAULT,
+    icon: <IconTerminal size="xs" />,
   }),
   navigation: (frame: NavFrame) => ({
     color: 'green300',
     description: stripOrigin((frame as NavFrame).data.to),
     tabKey: TabKey.NETWORK,
     title: 'Navigation',
-    type: BreadcrumbType.NAVIGATION,
+    icon: <IconLocation size="xs" />,
   }),
   issue: (frame: ErrorFrame) => ({
     color: 'red300',
     description: frame.message,
     tabKey: TabKey.ERRORS,
     title: defaultTitle(frame),
-    type: BreadcrumbType.ERROR,
+    icon: <IconFire size="xs" />,
   }),
   'ui.slowClickDetected': (frame: SlowClickFrame) => {
     const node = frame.data.node;
     if (isDeadClick(frame)) {
       return {
-        color: 'red300',
+        color: isDeadRageClick(frame) ? 'red300' : 'yellow300',
         description: tct(
           'Click on [selector] did not cause a visible effect within [timeout] ms',
           {
             selector: stringifyNodeAttributes(node),
-            timeout: frame.data.timeAfterClickMs,
+            timeout: Math.round(frame.data.timeAfterClickMs),
           }
         ),
-        type: BreadcrumbType.ERROR,
+        icon: <IconCursorArrow size="xs" />,
         title: isDeadRageClick(frame) ? 'Rage Click' : 'Dead Click',
         tabKey: TabKey.DOM,
       };
@@ -77,10 +88,10 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
         'Click on [selector] took [duration] ms to have a visible effect',
         {
           selector: stringifyNodeAttributes(node),
-          duration: frame.data.timeAfterClickMs,
+          duration: Math.round(frame.data.timeAfterClickMs),
         }
       ),
-      type: BreadcrumbType.WARNING,
+      icon: <IconWarning size="xs" />,
       title: 'Slow Click',
       tabKey: TabKey.DOM,
     };
@@ -95,7 +106,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
         }),
         tabKey: TabKey.DOM,
         title: 'Rage Click',
-        type: BreadcrumbType.ERROR,
+        icon: <IconFire size="xs" />,
       };
     }
 
@@ -107,7 +118,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
       }),
       tabKey: TabKey.DOM,
       title: 'Multi Click',
-      type: BreadcrumbType.WARNING,
+      icon: <IconWarning size="xs" />,
     };
   },
   'replay.mutations': (frame: MutationFrame) => ({
@@ -123,77 +134,77 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
         ),
     tabKey: TabKey.DOM,
     title: 'Replay',
-    type: BreadcrumbType.WARNING,
+    icon: <IconWarning size="xs" />,
   }),
   'ui.click': frame => ({
     color: 'purple300',
     description: frame.message ?? '',
     tabKey: TabKey.DOM,
     title: 'User Click',
-    type: BreadcrumbType.UI,
+    icon: <IconCursorArrow size="xs" />,
   }),
   'ui.input': () => ({
     color: 'purple300',
     description: 'User Action',
     tabKey: TabKey.DOM,
     title: 'User Input',
-    type: BreadcrumbType.UI,
+    icon: <IconInput size="xs" />,
   }),
   'ui.keyDown': () => ({
     color: 'purple300',
     description: 'User Action',
     tabKey: TabKey.DOM,
     title: 'User KeyDown',
-    type: BreadcrumbType.UI,
+    icon: <IconKeyDown size="xs" />,
   }),
   'ui.blur': () => ({
     color: 'purple300',
     description: 'User Action',
     tabKey: TabKey.DOM,
     title: 'User Blur',
-    type: BreadcrumbType.UI,
+    icon: <IconUser size="xs" />,
   }),
   'ui.focus': () => ({
     color: 'purple300',
     description: 'User Action',
     tabKey: TabKey.DOM,
     title: 'User Focus',
-    type: BreadcrumbType.UI,
+    icon: <IconUser size="xs" />,
   }),
   console: frame => ({
     color: 'gray300',
     description: frame.message ?? '',
     tabKey: TabKey.CONSOLE,
     title: 'Console',
-    type: BreadcrumbType.DEBUG,
+    icon: <IconFix size="xs" />,
   }),
   'navigation.navigate': frame => ({
     color: 'green300',
     description: stripOrigin(frame.description),
     tabKey: TabKey.NETWORK,
     title: 'Page Load',
-    type: BreadcrumbType.NAVIGATION,
+    icon: <IconLocation size="xs" />,
   }),
   'navigation.reload': frame => ({
     color: 'green300',
     description: stripOrigin(frame.description),
     tabKey: TabKey.NETWORK,
     title: 'Reload',
-    type: BreadcrumbType.NAVIGATION,
+    icon: <IconLocation size="xs" />,
   }),
   'navigation.back_forward': frame => ({
     color: 'green300',
     description: stripOrigin(frame.description),
     tabKey: TabKey.NETWORK,
-    title: 'Navigate Back',
-    type: BreadcrumbType.NAVIGATION,
+    title: 'Navigate Back/Forward',
+    icon: <IconLocation size="xs" />,
   }),
   'navigation.push': frame => ({
     color: 'green300',
     description: stripOrigin(frame.description),
     tabKey: TabKey.NETWORK,
     title: 'Navigation',
-    type: BreadcrumbType.NAVIGATION,
+    icon: <IconLocation size="xs" />,
   }),
   'largest-contentful-paint': (frame: LargestContentfulPaintFrame) => ({
     color: 'gray300',
@@ -211,50 +222,96 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
       ),
     tabKey: TabKey.NETWORK,
     title: 'LCP',
-    type: BreadcrumbType.INFO,
+    icon: <IconInfo size="xs" />,
   }),
   memory: () => ({
     color: 'gray300',
     description: undefined,
     tabKey: TabKey.MEMORY,
     title: 'Memory',
-    type: BreadcrumbType.INFO,
+    icon: <IconInfo size="xs" />,
   }),
   paint: () => ({
     color: 'gray300',
     description: undefined,
     tabKey: TabKey.NETWORK,
     title: 'Paint',
-    type: BreadcrumbType.INFO,
+    icon: <IconInfo size="xs" />,
+  }),
+  'resource.css': frame => ({
+    color: 'gray300',
+    description: undefined,
+    tabKey: TabKey.NETWORK,
+    title: frame.description,
+    icon: <IconSort size="xs" rotated />,
   }),
   'resource.fetch': frame => ({
     color: 'gray300',
     description: undefined,
     tabKey: TabKey.NETWORK,
     title: frame.description,
-    type: BreadcrumbType.HTTP,
+    icon: <IconSort size="xs" rotated />,
+  }),
+  'resource.iframe': frame => ({
+    color: 'gray300',
+    description: undefined,
+    tabKey: TabKey.NETWORK,
+    title: frame.description,
+    icon: <IconSort size="xs" rotated />,
+  }),
+  'resource.img': frame => ({
+    color: 'gray300',
+    description: undefined,
+    tabKey: TabKey.NETWORK,
+    title: frame.description,
+    icon: <IconSort size="xs" rotated />,
+  }),
+  'resource.link': frame => ({
+    color: 'gray300',
+    description: undefined,
+    tabKey: TabKey.NETWORK,
+    title: frame.description,
+    icon: <IconSort size="xs" rotated />,
+  }),
+  'resource.other': frame => ({
+    color: 'gray300',
+    description: undefined,
+    tabKey: TabKey.NETWORK,
+    title: frame.description,
+    icon: <IconSort size="xs" rotated />,
+  }),
+  'resource.script': frame => ({
+    color: 'gray300',
+    description: undefined,
+    tabKey: TabKey.NETWORK,
+    title: frame.description,
+    icon: <IconSort size="xs" rotated />,
   }),
   'resource.xhr': frame => ({
     color: 'gray300',
     description: undefined,
     tabKey: TabKey.NETWORK,
     title: frame.description,
-    type: BreadcrumbType.HTTP,
+    icon: <IconSort size="xs" rotated />,
   }),
 };
 
-const MAPPER_DEFAULT = frame => ({
+const MAPPER_DEFAULT = (frame): Details => ({
   color: 'gray300',
   description: frame.message ?? '',
   tabKey: TabKey.CONSOLE,
   title: defaultTitle(frame),
-  type: BreadcrumbType.DEFAULT,
+  icon: <IconTerminal size="xs" />,
 });
 
 export default function getFrameDetails(frame: ReplayFrame): Details {
   const key = getFrameOpOrCategory(frame);
   const fn = MAPPER_FOR_FRAME[key] ?? MAPPER_DEFAULT;
-  return fn(frame);
+  try {
+    return fn(frame);
+  } catch (error) {
+    return MAPPER_DEFAULT(frame);
+  }
 }
 
 function defaultTitle(frame: ReplayFrame) {
@@ -265,7 +322,7 @@ function defaultTitle(frame: ReplayFrame) {
   if ('message' in frame) {
     return frame.message as string; // TODO(replay): Included for backwards compat
   }
-  return frame.description;
+  return frame.description ?? '';
 }
 
 function stringifyNodeAttributes(node: SlowClickFrame['data']['node']) {

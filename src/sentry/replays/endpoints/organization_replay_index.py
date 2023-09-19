@@ -1,21 +1,36 @@
+from typing import List
+
+import sentry_sdk
+from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import NoProjects, OrganizationEndpoint
 from sentry.api.event_search import parse_search_query
 from sentry.api.paginator import GenericOffsetPaginator
+from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN
+from sentry.apidocs.examples.replay_examples import ReplayExamples
+from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
-from sentry.replays.post_process import process_raw_response
+from sentry.replays.post_process import ReplayDetailsResponse, process_raw_response
 from sentry.replays.query import query_replays_collection, replay_url_parser_config
 from sentry.replays.validators import ReplayValidator
+from sentry.utils.snuba import QueryMemoryLimitExceeded
 
 
 @region_silo_endpoint
+@extend_schema(tags=["Replays"])
 class OrganizationReplayIndexEndpoint(OrganizationEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.PUBLIC,
+    }
+
     def get_replay_filter_params(self, request, organization):
 
         query_referrer = request.GET.get("queryReferrer", None)
@@ -32,7 +47,21 @@ class OrganizationReplayIndexEndpoint(OrganizationEndpoint):
 
         return filter_params
 
+    @extend_schema(
+        operation_id="List an Organization's Replays",
+        parameters=[GlobalParams.ORG_SLUG, ReplayValidator],
+        responses={
+            200: inline_sentry_response_serializer("data", List[ReplayDetailsResponse]),
+            400: RESPONSE_BAD_REQUEST,
+            403: RESPONSE_FORBIDDEN,
+        },
+        examples=ReplayExamples.GET_REPLAYS,
+    )
     def get(self, request: Request, organization: Organization) -> Response:
+        """
+        Return a list of replays belonging to an organization.
+        """
+
         if not features.has("organizations:session-replay", organization, actor=request.user):
             return Response(status=404)
         try:
@@ -70,13 +99,20 @@ class OrganizationReplayIndexEndpoint(OrganizationEndpoint):
                 actor=request.user,
             )
 
-        return self.paginate(
-            request=request,
-            paginator=GenericOffsetPaginator(data_fn=data_fn),
-            on_results=lambda results: {
-                "data": process_raw_response(
-                    results,
-                    fields=request.query_params.getlist("field"),
-                )
-            },
-        )
+        try:
+            return self.paginate(
+                request=request,
+                paginator=GenericOffsetPaginator(data_fn=data_fn),
+                on_results=lambda results: {
+                    "data": process_raw_response(
+                        results,
+                        fields=request.query_params.getlist("field"),
+                    )
+                },
+            )
+        except QueryMemoryLimitExceeded as e:
+            sentry_sdk.capture_exception(e)
+            context = {
+                "detail": "Replay search query limits exceeded. Please narrow the time-range."
+            }
+            return self.respond(context, status=400)

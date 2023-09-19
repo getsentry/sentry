@@ -4,6 +4,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import {metric} from 'sentry/utils/analytics';
 import RuleFormContainer from 'sentry/views/alerts/rules/metric/ruleForm';
 import {permissionAlertText} from 'sentry/views/settings/project/permissionAlert';
@@ -38,6 +39,7 @@ describe('Incident Rules Form', () => {
     });
     organization = initialData.organization;
     project = initialData.project;
+    ProjectsStore.loadInitialData([project]);
     routerContext = initialData.routerContext;
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/',
@@ -71,6 +73,10 @@ describe('Incident Rules Form', () => {
           integrationId: null,
         },
       ],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/metrics-estimation-stats/',
+      body: TestStubs.EventsStats(),
     });
   });
 
@@ -113,9 +119,21 @@ describe('Incident Rules Form', () => {
   describe('Creating a new rule', () => {
     let createRule;
     beforeEach(() => {
+      ProjectsStore.loadInitialData([
+        project,
+        {
+          ...project,
+          id: '10',
+          slug: 'project-slug-2',
+        },
+      ]);
       createRule = MockApiClient.addMockResponse({
-        url: '/projects/org-slug/project-slug/alert-rules/',
+        url: '/organizations/org-slug/alert-rules/',
         method: 'POST',
+      });
+      MockApiClient.addMockResponse({
+        url: '/projects/org-slug/project-slug-2/environments/',
+        body: [],
       });
     });
 
@@ -154,6 +172,43 @@ describe('Incident Rules Form', () => {
             projects: ['project-slug'],
             eventTypes: ['default'],
             thresholdPeriod: 10,
+          }),
+        })
+      );
+      expect(metric.startTransaction).toHaveBeenCalledWith({name: 'saveAlertRule'});
+    });
+
+    it('can create a rule for a different project', async () => {
+      const rule = TestStubs.MetricRule();
+      createWrapper({
+        rule: {
+          ...rule,
+          id: undefined,
+          eventTypes: ['default'],
+        },
+      });
+
+      // Clear field
+      await userEvent.clear(screen.getByPlaceholderText('Enter Alert Name'));
+
+      // Enter in name so we can submit
+      await userEvent.type(
+        screen.getByPlaceholderText('Enter Alert Name'),
+        'Incident Rule'
+      );
+
+      // Change project
+      await userEvent.click(screen.getByText('project-slug'));
+      await userEvent.click(screen.getByText('project-slug-2'));
+
+      await userEvent.click(screen.getByLabelText('Save Rule'));
+
+      expect(createRule).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            name: 'Incident Rule',
+            projects: ['project-slug-2'],
           }),
         })
       );
@@ -242,14 +297,14 @@ describe('Incident Rules Form', () => {
 
     beforeEach(() => {
       editRule = MockApiClient.addMockResponse({
-        url: `/projects/org-slug/project-slug/alert-rules/${rule.id}/`,
+        url: `/organizations/org-slug/alert-rules/${rule.id}/`,
         method: 'PUT',
         body: rule,
       });
       editTrigger = MockApiClient.addMockResponse({
         url: `/organizations/org-slug/alert-rules/${rule.id}/triggers/1/`,
         method: 'PUT',
-        body: TestStubs.IncidentTrigger({id: 1}),
+        body: TestStubs.IncidentTrigger({id: '1'}),
       });
     });
     afterEach(() => {
@@ -394,7 +449,7 @@ describe('Incident Rules Form', () => {
     it('success status updates the rule', async () => {
       const alertRule = TestStubs.MetricRule({name: 'Slack Alert Rule'});
       MockApiClient.addMockResponse({
-        url: `/projects/org-slug/project-slug/alert-rules/${alertRule.id}/`,
+        url: `/organizations/org-slug/alert-rules/${alertRule.id}/`,
         method: 'PUT',
         body: {uuid},
         statusCode: 202,
@@ -441,7 +496,7 @@ describe('Incident Rules Form', () => {
     it('pending status keeps loading true', () => {
       const alertRule = TestStubs.MetricRule({name: 'Slack Alert Rule'});
       MockApiClient.addMockResponse({
-        url: `/projects/org-slug/project-slug/alert-rules/${alertRule.id}/`,
+        url: `/organizations/org-slug/alert-rules/${alertRule.id}/`,
         method: 'PUT',
         body: {uuid},
         statusCode: 202,
@@ -467,7 +522,7 @@ describe('Incident Rules Form', () => {
     it('failed status renders error message', async () => {
       const alertRule = TestStubs.MetricRule({name: 'Slack Alert Rule'});
       MockApiClient.addMockResponse({
-        url: `/projects/org-slug/project-slug/alert-rules/${alertRule.id}/`,
+        url: `/organizations/org-slug/alert-rules/${alertRule.id}/`,
         method: 'PUT',
         body: {uuid},
         statusCode: 202,

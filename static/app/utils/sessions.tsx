@@ -343,10 +343,10 @@ export function filterSessionsInTimeWindow(
         totals[field] = mean(series[field]);
       }
       if (field.startsWith('count_unique')) {
-        /* E.g. users
-        We cannot sum here because users would not be unique anymore.
-        User can be repeated and part of multiple buckets in series but it's still that one user so totals would be wrong.
-        This operation is not 100% correct, because we are filtering series in time window but the total is for unfiltered series (it's the closest thing we can do right now) */
+        // E.g. users
+        // We cannot sum here because users would not be unique anymore.
+        // User can be repeated and part of multiple buckets in series but it's still that one user so totals would be wrong.
+        // This operation is not 100% correct, because we are filtering series in time window but the total is for unfiltered series (it's the closest thing we can do right now)
         totals[field] = group.totals[field];
       }
     });

@@ -2,7 +2,7 @@ from django.urls import reverse
 
 from sentry import auth
 from sentry.auth.providers.fly.provider import FlyOAuth2Provider
-from sentry.testutils import APITestCase, PermissionTestCase
+from sentry.testutils.cases import APITestCase, PermissionTestCase
 from sentry.testutils.silo import region_silo_test
 
 

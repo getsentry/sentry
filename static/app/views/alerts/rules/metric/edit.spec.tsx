@@ -71,7 +71,7 @@ describe('MetricRulesEdit', function () {
     });
 
     const editRule = MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/project-slug/alert-rules/${rule.id}/`,
+      url: `/organizations/${organization.slug}/alert-rules/${rule.id}/`,
       method: 'PUT',
       body: rule,
     });
@@ -114,7 +114,6 @@ describe('MetricRulesEdit', function () {
       expect.anything(),
       expect.objectContaining({
         data: expect.objectContaining({
-          aggregation: 0,
           dataset: 'events',
           id: '4',
           name: 'My Incident Rule',
@@ -167,7 +166,7 @@ describe('MetricRulesEdit', function () {
     });
 
     const editRule = MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/project-slug/alert-rules/${rule.id}/`,
+      url: `/organizations/${organization.slug}/alert-rules/${rule.id}/`,
       method: 'PUT',
       body: rule,
     });
@@ -200,7 +199,6 @@ describe('MetricRulesEdit', function () {
       expect.anything(),
       expect.objectContaining({
         data: expect.objectContaining({
-          aggregation: 0,
           dataset: 'events',
           id: '4',
           name: 'My Incident Rule',

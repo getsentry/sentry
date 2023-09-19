@@ -14,7 +14,7 @@ from sentry.models import (
     UserEmail,
 )
 from sentry.silo import SiloMode
-from sentry.testutils import APITestCase, TestCase
+from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.helpers import Feature, with_feature
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
@@ -80,7 +80,9 @@ class OrganizationMemberSerializerTest(TestCase):
 
             invite_state = get_invite_state(member.id, org.slug, user.id)
             assert invite_state, "Expected invite state, logic bug?"
-            invite_helper = ApiInviteHelper(request=request, invite_context=invite_state, token=None)  # type: ignore
+            invite_helper = ApiInviteHelper(
+                request=request, invite_context=invite_state, token=None
+            )
             invite_helper.accept_invite(user)
 
         serializer = OrganizationMemberSerializer(context=context, data=data)
@@ -624,7 +626,7 @@ class OrganizationMemberListPostTest(OrganizationMemberListTestBase, HybridCloud
         assert om.inviter_id == self.user.id
         self.assert_org_member_mapping(org_member=om)
 
-        mock_send_invite_email.assert_called_once_with()
+        mock_send_invite_email.assert_called_once()
 
     def test_no_teams(self):
         data = {"email": "jane@gmail.com", "role": "member"}
@@ -656,6 +658,27 @@ class OrganizationMemberListPostTest(OrganizationMemberListTestBase, HybridCloud
         self.assert_org_member_mapping(org_member=om)
 
         assert not mock_send_invite_email.mock_calls
+
+    @patch.object(OrganizationMember, "send_invite_email")
+    def test_referrer_param(self, mock_send_invite_email):
+        data = {
+            "email": "jane@gmail.com",
+            "role": "member",
+            "teams": [self.team.slug],
+        }
+        response = self.get_success_response(
+            self.organization.slug, **data, qs_params={"referrer": "test_referrer"}
+        )
+
+        om = OrganizationMember.objects.get(id=response.data["id"])
+        assert om.user_id is None
+        assert om.email == "jane@gmail.com"
+        assert om.role == "member"
+        assert list(om.teams.all()) == [self.team]
+        assert om.inviter_id == self.user.id
+        self.assert_org_member_mapping(org_member=om)
+
+        mock_send_invite_email.assert_called_with("test_referrer")
 
     @patch("sentry.ratelimits.for_organization_member_invite")
     def test_rate_limited(self, mock_rate_limit):

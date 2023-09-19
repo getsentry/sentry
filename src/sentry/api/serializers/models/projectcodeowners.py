@@ -33,8 +33,7 @@ class ProjectCodeOwnersSerializer(Serializer):
             code_mapping = item.repository_project_path_config
 
             integration = integrations[item.repository_project_path_config.integration_id]
-            install = integration_service.get_installation(
-                integration=integration,
+            install = integration.get_installation(
                 organization_id=item.repository_project_path_config.organization_id,
             )
             codeowners_url = "unknown"

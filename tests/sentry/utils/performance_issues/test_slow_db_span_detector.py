@@ -6,7 +6,7 @@ import pytest
 
 from sentry.issues.grouptype import PerformanceSlowDBQueryGroupType
 from sentry.models.options.project_option import ProjectOption
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.performance_issues.event_generators import (
     create_event,
     create_span,
@@ -21,7 +21,7 @@ from sentry.utils.performance_issues.performance_detection import (
 from sentry.utils.performance_issues.performance_problem import PerformanceProblem
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 @pytest.mark.django_db
 class SlowDBQueryDetectorTest(TestCase):
     def setUp(self):

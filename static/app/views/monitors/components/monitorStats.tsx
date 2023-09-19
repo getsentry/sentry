@@ -1,4 +1,4 @@
-import React, {useRef} from 'react';
+import {Fragment, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {AreaChart, AreaChartSeries} from 'sentry/components/charts/areaChart';
@@ -6,9 +6,9 @@ import {BarChart, BarChartSeries} from 'sentry/components/charts/barChart';
 import {getYAxisMaxFn} from 'sentry/components/charts/miniBarChart';
 import {HeaderTitle} from 'sentry/components/charts/styles';
 import EmptyMessage from 'sentry/components/emptyMessage';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
+import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {intervalToMilliseconds} from 'sentry/utils/dates';
@@ -23,10 +23,10 @@ import {Monitor, MonitorEnvironment, MonitorStat} from '../types';
 type Props = {
   monitor: Monitor;
   monitorEnvs: MonitorEnvironment[];
-  orgId: string;
+  orgSlug: string;
 };
 
-function MonitorStats({monitor, monitorEnvs, orgId}: Props) {
+function MonitorStats({monitor, monitorEnvs, orgSlug}: Props) {
   const {selection} = usePageFilters();
   const {start, end, period} = selection.datetime;
 
@@ -43,7 +43,7 @@ function MonitorStats({monitor, monitorEnvs, orgId}: Props) {
   }
 
   const queryKey = [
-    `/organizations/${orgId}/monitors/${monitor.slug}/stats/`,
+    `/organizations/${orgSlug}/monitors/${monitor.slug}/stats/`,
     {
       query: {
         since: since.toString(),
@@ -55,10 +55,6 @@ function MonitorStats({monitor, monitorEnvs, orgId}: Props) {
   ] as const;
 
   const {data: stats, isLoading} = useApiQuery<MonitorStat[]>(queryKey, {staleTime: 0});
-
-  if (isLoading) {
-    return <LoadingIndicator />;
-  }
 
   let emptyStats = true;
   const success: BarChartSeries = {
@@ -107,7 +103,7 @@ function MonitorStats({monitor, monitorEnvs, orgId}: Props) {
     },
   });
 
-  if (emptyStats) {
+  if (!isLoading && emptyStats) {
     return (
       <Panel>
         <PanelBody withPadding>
@@ -120,56 +116,64 @@ function MonitorStats({monitor, monitorEnvs, orgId}: Props) {
   }
 
   return (
-    <React.Fragment>
+    <Fragment>
       <Panel>
         <PanelBody withPadding>
-          <StyledHeaderTitle>{t('Check-Ins')}</StyledHeaderTitle>
-          <BarChart
-            isGroupedByDate
-            showTimeInTooltip
-            useShortDate
-            series={[success, failed, timeout, missed]}
-            stacked
-            height={height}
-            colors={colors}
-            tooltip={{
-              trigger: 'axis',
-            }}
-            yAxis={getYAxisOptions('number')}
-            grid={{
-              top: 6,
-              bottom: 0,
-              left: 0,
-              right: 0,
-            }}
-            animation={false}
-          />
+          <StyledHeaderTitle>{t('Status')}</StyledHeaderTitle>
+          {isLoading ? (
+            <Placeholder height={`${height}px`} />
+          ) : (
+            <BarChart
+              isGroupedByDate
+              showTimeInTooltip
+              useShortDate
+              series={[success, failed, timeout, missed]}
+              stacked
+              height={height}
+              colors={colors}
+              tooltip={{
+                trigger: 'axis',
+              }}
+              yAxis={getYAxisOptions('number')}
+              grid={{
+                top: 6,
+                bottom: 0,
+                left: 0,
+                right: 0,
+              }}
+              animation={false}
+            />
+          )}
         </PanelBody>
       </Panel>
       <Panel>
         <PanelBody withPadding>
           <StyledHeaderTitle>{t('Average Duration')}</StyledHeaderTitle>
-          <AreaChart
-            isGroupedByDate
-            showTimeInTooltip
-            useShortDate
-            series={[duration]}
-            height={height}
-            colors={[theme.charts.colors[0]]}
-            yAxis={getYAxisOptions('duration')}
-            grid={{
-              top: 6,
-              bottom: 0,
-              left: 0,
-              right: 0,
-            }}
-            tooltip={{
-              valueFormatter: value => tooltipFormatter(value, 'duration'),
-            }}
-          />
+          {isLoading ? (
+            <Placeholder height={`${height}px`} />
+          ) : (
+            <AreaChart
+              isGroupedByDate
+              showTimeInTooltip
+              useShortDate
+              series={[duration]}
+              height={height}
+              colors={[theme.charts.colors[0]]}
+              yAxis={getYAxisOptions('duration')}
+              grid={{
+                top: 6,
+                bottom: 0,
+                left: 0,
+                right: 0,
+              }}
+              tooltip={{
+                valueFormatter: value => tooltipFormatter(value, 'duration'),
+              }}
+            />
+          )}
         </PanelBody>
       </Panel>
-    </React.Fragment>
+    </Fragment>
   );
 }
 

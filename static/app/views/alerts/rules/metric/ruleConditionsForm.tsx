@@ -7,6 +7,10 @@ import pick from 'lodash/pick';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
+import {
+  OnDemandMetricAlert,
+  OnDemandWarningIcon,
+} from 'sentry/components/alerts/onDemandMetricAlert';
 import SearchBar from 'sentry/components/events/searchBar';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import SelectField from 'sentry/components/forms/fields/selectField';
@@ -15,11 +19,17 @@ import IdBadge from 'sentry/components/idBadge';
 import ListItem from 'sentry/components/list/listItem';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
+import {InvalidReason} from 'sentry/components/searchSyntax/parser';
 import {SearchInvalidTag} from 'sentry/components/smartSearchBar/searchInvalidTag';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Environment, Organization, Project, SelectValue} from 'sentry/types';
 import {getDisplayName} from 'sentry/utils/environment';
+import {
+  getOnDemandKeys,
+  hasOnDemandMetricAlertFeature,
+  isOnDemandQueryString,
+} from 'sentry/utils/onDemandMetrics';
 import withApi from 'sentry/utils/withApi';
 import withProjects from 'sentry/utils/withProjects';
 import WizardField from 'sentry/views/alerts/rules/metric/wizardField';
@@ -28,11 +38,7 @@ import {
   DATA_SOURCE_LABELS,
   DATA_SOURCE_TO_SET_AND_EVENT_TYPES,
 } from 'sentry/views/alerts/utils';
-import {
-  AlertType,
-  datasetOmittedTags,
-  datasetSupportedTags,
-} from 'sentry/views/alerts/wizard/options';
+import {AlertType, getSupportedAndOmittedTags} from 'sentry/views/alerts/wizard/options';
 
 import {getProjectOptions} from '../utils';
 
@@ -70,6 +76,7 @@ type Props = {
   allowChangeEventTypes?: boolean;
   comparisonDelta?: number;
   disableProjectSelector?: boolean;
+  isExtrapolatedChartData?: boolean;
   loadingProjects?: boolean;
 };
 
@@ -364,8 +371,14 @@ class RuleConditionsForm extends PureComponent<Props, State> {
   }
 
   render() {
-    const {organization, disabled, onFilterSearch, allowChangeEventTypes, dataset} =
-      this.props;
+    const {
+      organization,
+      disabled,
+      onFilterSearch,
+      allowChangeEventTypes,
+      dataset,
+      isExtrapolatedChartData,
+    } = this.props;
     const {environments} = this.state;
 
     const environmentOptions: SelectValue<string | null>[] = [
@@ -382,6 +395,13 @@ class RuleConditionsForm extends PureComponent<Props, State> {
         <ChartPanel>
           <StyledPanelBody>{this.props.thresholdChart}</StyledPanelBody>
         </ChartPanel>
+        {isExtrapolatedChartData && (
+          <OnDemandMetricAlert
+            message={t(
+              'The chart data above is an estimate based on the stored transactions that match the filters specified.'
+            )}
+          />
+        )}
         {this.renderInterval()}
         <StyledListItem>{t('Filter events')}</StyledListItem>
         <FormRow noMargin columns={1 + (allowChangeEventTypes ? 1 : 0) + 1}>
@@ -420,10 +440,16 @@ class RuleConditionsForm extends PureComponent<Props, State> {
             }}
             flexibleControlStateSize
           >
-            {({onChange, onBlur, onKeyDown, initialData}) => {
+            {({onChange, onBlur, onKeyDown, initialData, value}) => {
               return (
                 <SearchContainer>
                   <StyledSearchBar
+                    disallowWildcard={dataset === Dataset.SESSIONS}
+                    invalidMessages={{
+                      [InvalidReason.WILDCARD_NOT_ALLOWED]: t(
+                        'The wildcard operator is not supported here.'
+                      ),
+                    }}
                     customInvalidTagMessage={item => {
                       if (
                         ![Dataset.GENERIC_METRICS, Dataset.TRANSACTIONS].includes(dataset)
@@ -444,10 +470,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                     }}
                     searchSource="alert_builder"
                     defaultQuery={initialData?.query ?? ''}
-                    omitTags={datasetOmittedTags(dataset, organization)}
-                    {...(datasetSupportedTags(dataset, organization)
-                      ? {supportedTags: datasetSupportedTags(dataset, organization)}
-                      : {})}
+                    {...getSupportedAndOmittedTags(dataset, organization)}
                     includeSessionTagsValues={dataset === Dataset.SESSIONS}
                     disabled={disabled}
                     useFormWrapper={false}
@@ -457,7 +480,9 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                     query={initialData.query}
                     // We only need strict validation for Transaction queries, everything else is fine
                     highlightUnsupportedTags={
-                      organization.features.includes('alert-allow-indexed')
+                      organization.features.includes('alert-allow-indexed') ||
+                      (hasOnDemandMetricAlertFeature(organization) &&
+                        isOnDemandQueryString(initialData.query))
                         ? false
                         : [Dataset.GENERIC_METRICS, Dataset.TRANSACTIONS].includes(
                             dataset
@@ -485,6 +510,24 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                     }}
                     hasRecentSearches={dataset !== Dataset.SESSIONS}
                   />
+                  {isExtrapolatedChartData && isOnDemandQueryString(value) && (
+                    <OnDemandWarningIcon
+                      color="gray500"
+                      msg={tct(
+                        `We don’t routinely collect metrics from [fields]. However, we’ll do so [strong:once this alert has been saved.]`,
+                        {
+                          fields: (
+                            <strong>
+                              {getOnDemandKeys(value)
+                                .map(key => `"${key}"`)
+                                .join(', ')}
+                            </strong>
+                          ),
+                          strong: <strong />,
+                        }
+                      )}
+                    />
+                  )}
                 </SearchContainer>
               );
             }}
@@ -515,6 +558,8 @@ const StyledPanelBody = styled(PanelBody)`
 
 const SearchContainer = styled('div')`
   display: flex;
+  align-items: center;
+  gap: ${space(1)};
 `;
 
 const StyledSearchBar = styled(SearchBar)`
@@ -530,7 +575,7 @@ const StyledSearchBar = styled(SearchBar)`
 `;
 
 const StyledListItem = styled(ListItem)`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${space(0.5)};
   font-size: ${p => p.theme.fontSizeExtraLarge};
   line-height: 1.3;
 `;

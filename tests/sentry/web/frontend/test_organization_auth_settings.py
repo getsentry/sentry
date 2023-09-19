@@ -7,7 +7,10 @@ from django.urls import reverse
 from sentry import audit_log, auth
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.auth.exceptions import IdentityNotValid
+from sentry.auth.providers.dummy import PLACEHOLDER_TEMPLATE
 from sentry.auth.providers.fly.provider import FlyOAuth2Provider
+from sentry.auth.providers.saml2.generic.provider import GenericSAML2Provider
+from sentry.auth.providers.saml2.provider import Attributes
 from sentry.models import (
     AuditLogEntry,
     AuthIdentity,
@@ -20,7 +23,7 @@ from sentry.models import (
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.signals import receivers_raise_on_send
 from sentry.silo import SiloMode
-from sentry.testutils import AuthProviderTestCase, PermissionTestCase
+from sentry.testutils.cases import AuthProviderTestCase, PermissionTestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
@@ -140,7 +143,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
             with receivers_raise_on_send():
                 resp = self.client.post(configure_path, {"provider": "dummy", "init": True})
             assert resp.status_code == 200
-            assert self.provider.TEMPLATE in resp.content.decode("utf-8")
+            assert PLACEHOLDER_TEMPLATE in resp.content.decode("utf-8")
 
             with assume_test_silo_mode(SiloMode.CONTROL):
                 path = reverse("sentry-auth-sso")
@@ -199,7 +202,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
             resp = self.client.post(path, {"provider": "dummy", "init": True})
 
         assert resp.status_code == 200
-        assert resp.content.decode("utf-8") == self.provider.TEMPLATE
+        assert resp.content.decode("utf-8") == PLACEHOLDER_TEMPLATE
 
     def test_cannot_start_auth_flow_feature_missing(self):
         organization = self.create_organization(name="foo", owner=self.user)
@@ -303,6 +306,37 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
 
         resp = self.client.post(path, {"op": "disable"})
         assert resp.status_code == 405
+
+    def test_disable__scim_missing(self):
+        organization, auth_provider = self.create_org_and_auth_provider()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            auth_provider.flags.scim_enabled = True
+            auth_provider.save()
+
+        member = self.create_om_and_link_sso(organization)
+        member.flags["idp:provisioned"] = True
+        member.save()
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert not SentryAppInstallationForProvider.objects.filter(
+                provider=auth_provider
+            ).exists()
+
+        path = reverse("sentry-organization-auth-provider-settings", args=[organization.slug])
+        self.login_as(self.user, organization_id=organization.id)
+
+        with self.feature({"organizations:sso-basic": True}):
+            resp = self.client.post(path, {"op": "disable"}, follow=True)
+
+        assert resp.status_code == 200
+        assert resp.redirect_chain == [
+            ("/settings/foo/auth/", 302),
+        ]
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert not AuthProvider.objects.filter(organization_id=organization.id).exists()
+
+        member.refresh_from_db()
+        assert not member.flags["idp:provisioned"], "member should not be idp controlled now"
 
     @patch("sentry.web.frontend.organization_auth_settings.email_unlink_notifications")
     def test_superuser_disable_provider(self, email_unlink_notifications):
@@ -491,15 +525,9 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         assert getattr(auth_provider.flags, "scim_enabled")
         with assume_test_silo_mode(SiloMode.CONTROL):
             assert auth_provider.get_scim_token() is not None
-        assert (
-            get_scim_url(
-                auth_provider,
-                organization_service.get_organization_by_id(
-                    id=auth_provider.organization_id
-                ).organization,
-            )
-            is not None
-        )
+        org_member = organization_service.get_organization_by_id(id=auth_provider.organization_id)
+        assert org_member is not None
+        assert get_scim_url(auth_provider, org_member.organization) is not None
 
         # "add" some scim users
         u1 = self.create_user()
@@ -535,15 +563,9 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
             auth_provider = AuthProvider.objects.get(organization_id=organization.id)
 
         assert not getattr(auth_provider.flags, "scim_enabled")
-        assert (
-            get_scim_url(
-                auth_provider,
-                organization_service.get_organization_by_id(
-                    id=auth_provider.organization_id
-                ).organization,
-            )
-            is None
-        )
+        org_member = organization_service.get_organization_by_id(id=auth_provider.organization_id)
+        assert org_member is not None
+        assert get_scim_url(auth_provider, org_member.organization) is None
         with assume_test_silo_mode(SiloMode.CONTROL), pytest.raises(
             SentryAppInstallationForProvider.DoesNotExist
         ):
@@ -565,3 +587,82 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
                 scim_role_restricted_user.flags["idp:role-restricted"],
             )
         )
+
+
+dummy_provider_config = {
+    "idp": {
+        "entity_id": "https://example.com/saml/metadata/1234",
+        "x509cert": "foo_x509_cert",
+        "sso_url": "http://example.com/sso_url",
+        "slo_url": "http://example.com/slo_url",
+    },
+    "attribute_mapping": {
+        Attributes.IDENTIFIER: "user_id",
+        Attributes.USER_EMAIL: "email",
+        Attributes.FIRST_NAME: "first_name",
+        Attributes.LAST_NAME: "last_name",
+    },
+}
+
+
+class DummySAML2Provider(GenericSAML2Provider):
+    name = "dummy"
+
+    def get_saml_setup_pipeline(self):
+        return []
+
+    def build_config(self, state):
+        return dummy_provider_config
+
+
+@region_silo_test(stable=True)
+class OrganizationAuthSettingsSAML2Test(AuthProviderTestCase):
+    provider = DummySAML2Provider
+    provider_name = "saml2_dummy"
+
+    def setUp(self):
+        super().setUp()
+        self.user = self.create_user("foobar@sentry.io")
+        self.organization = self.create_organization(owner=self.user, name="saml2-org")
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.auth_provider_inst = AuthProvider.objects.create(
+                provider=self.provider_name,
+                config=dummy_provider_config,
+                organization_id=self.organization.id,
+            )
+
+    def test_update_generic_saml2_config(self):
+        self.login_as(self.user, organization_id=self.organization.id)
+
+        expected_provider_config = {
+            "idp": {
+                "entity_id": "https://foobar.com/saml/metadata/4321",
+                "x509cert": "bar_x509_cert",
+                "sso_url": "http://foobar.com/sso_url",
+                "slo_url": "http://foobar.com/slo_url",
+            },
+            "attribute_mapping": {
+                Attributes.IDENTIFIER: "new_user_id",
+                Attributes.USER_EMAIL: "new_email",
+                Attributes.FIRST_NAME: "new_first_name",
+                Attributes.LAST_NAME: "new_last_name",
+            },
+        }
+
+        configure_path = reverse(
+            "sentry-organization-auth-provider-settings", args=[self.organization.slug]
+        )
+        payload = {
+            **expected_provider_config["idp"],
+            **expected_provider_config["attribute_mapping"],
+        }
+        resp = self.client.post(configure_path, payload)
+        assert resp.status_code == 200
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            actual = AuthProvider.objects.get(id=self.auth_provider_inst.id)
+            assert actual.config == expected_provider_config
+            assert actual.config != self.auth_provider_inst.config
+
+            assert actual.provider == self.auth_provider_inst.provider
+            assert actual.flags == self.auth_provider_inst.flags

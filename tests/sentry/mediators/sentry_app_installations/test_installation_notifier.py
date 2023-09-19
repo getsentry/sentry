@@ -4,8 +4,9 @@ from unittest.mock import patch
 import pytest
 
 from sentry.coreapi import APIUnauthorized
-from sentry.mediators.sentry_app_installations import InstallationNotifier
-from sentry.testutils import TestCase
+from sentry.mediators.sentry_app_installations.installation_notifier import InstallationNotifier
+from sentry.testutils.cases import TestCase
+from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
 from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
 
@@ -20,6 +21,7 @@ MockResponse = namedtuple(
 MockResponseInstance = MockResponse({}, {}, True, 200, raiseStatusFalse)
 
 
+@control_silo_test(stable=True)
 class TestInstallationNotifier(TestCase):
     def setUp(self):
         super().setUp()

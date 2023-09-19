@@ -41,10 +41,8 @@ function SelectAsyncField({onChangeOption, ...props}: SelectAsyncFieldProps) {
         const {defaultOptions} = props;
         // We don't use defaultOptions if it is undefined or a boolean
         const options = typeof defaultOptions === 'object' ? defaultOptions : [];
-        /**
-         * The propsValue is the `id` of the object (user, team, etc), and
-         * react-select expects a full value object: {value: "id", label: "name"}
-         **/
+        // The propsValue is the `id` of the object (user, team, etc), and
+        // react-select expects a full value object: {value: "id", label: "name"}
         const resolvedValue =
           // When rendering the selected value, first look at the API results...
           results.find(({value: v}) => v === value) ??

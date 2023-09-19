@@ -1,7 +1,7 @@
 from sentry.models import Group, GroupSubscription, Project
 from sentry.notifications.helpers import get_user_subscriptions_for_groups
 from sentry.notifications.types import NotificationScopeType, NotificationSettingOptionValues
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import no_silo_test
 from sentry.types.integrations import ExternalProviders
 

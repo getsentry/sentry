@@ -94,3 +94,26 @@ class SnubaParams:
         if self.start and self.end:
             return (self.end - self.start).total_seconds()
         return None
+
+
+@dataclass
+class QueryBuilderConfig:
+    auto_fields: bool = False
+    auto_aggregations: bool = False
+    use_aggregate_conditions: bool = False
+    functions_acl: Optional[List[str]] = None
+    equation_config: Optional[Dict[str, bool]] = None
+    # This allows queries to be resolved without adding time constraints. Currently this is just
+    # used to allow metric alerts to be built and validated before creation in snuba.
+    skip_time_conditions: bool = False
+    parser_config_overrides: Optional[Mapping[str, Any]] = None
+    has_metrics: bool = False
+    transform_alias_to_input_format: bool = False
+    use_metrics_layer: bool = False
+    # This skips converting tags back to their non-prefixed versions when processing the results
+    # Currently this is only used for avoiding conflicting values when doing the first query
+    # of a top events request
+    skip_tag_resolution: bool = False
+    on_demand_metrics_enabled: bool = False
+    skip_field_validation_for_entity_subscription_deletion: bool = False
+    allow_metric_aggregates: Optional[bool] = False

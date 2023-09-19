@@ -8,9 +8,9 @@ import ProjectPluginDetailsContainer, {
 describe('ProjectPluginDetails', function () {
   const organization = TestStubs.Organization();
   const project = TestStubs.Project();
-  const router = TestStubs.router();
   const plugins = TestStubs.Plugins();
   const plugin = TestStubs.Plugin();
+  const routerProps = TestStubs.routeComponentProps();
 
   beforeAll(function () {
     jest.spyOn(console, 'info').mockImplementation(() => {});
@@ -45,23 +45,17 @@ describe('ProjectPluginDetails', function () {
   });
 
   it('renders', function () {
-    const {container} = render(
+    render(
       <ProjectPluginDetailsContainer
+        {...routerProps}
         organization={organization}
         project={project}
         params={{
           projectId: project.slug,
           pluginId: 'amazon-sqs',
         }}
-        location={router.location}
-        route={{}}
-        routeParams={router.params}
-        router={router}
-        routes={router.routes}
       />
     );
-
-    expect(container).toSnapshot();
   });
 
   it('resets plugin', async function () {
@@ -69,6 +63,7 @@ describe('ProjectPluginDetails', function () {
 
     render(
       <ProjectPluginDetails
+        {...routerProps}
         organization={organization}
         project={project}
         plugins={{plugins}}
@@ -76,11 +71,6 @@ describe('ProjectPluginDetails', function () {
           projectId: project.slug,
           pluginId: 'amazon-sqs',
         }}
-        location={router.location}
-        route={{}}
-        routeParams={router.params}
-        router={router}
-        routes={router.routes}
       />
     );
 
@@ -96,17 +86,13 @@ describe('ProjectPluginDetails', function () {
 
     render(
       <ProjectPluginDetailsContainer
+        {...routerProps}
         organization={organization}
         project={project}
         params={{
           projectId: project.slug,
           pluginId: 'amazon-sqs',
         }}
-        location={router.location}
-        route={{}}
-        routeParams={router.params}
-        router={router}
-        routes={router.routes}
       />
     );
 

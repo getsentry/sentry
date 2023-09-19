@@ -7,7 +7,7 @@ from sentry.tasks.check_am2_compatibility import (
     get_check_status,
     run_compatibility_check_async,
 )
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 
 pytestmark = pytest.mark.sentry_metrics
 

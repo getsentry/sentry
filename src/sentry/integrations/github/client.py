@@ -18,6 +18,7 @@ from sentry.integrations.utils.code_mapping import (
 from sentry.models import Integration, Repository
 from sentry.services.hybrid_cloud.integration import RpcIntegration
 from sentry.services.hybrid_cloud.util import control_silo_function
+from sentry.shared_integrations.client.base import BaseApiResponseX
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
@@ -163,8 +164,15 @@ class GithubProxyClient(IntegrationProxyClient):
 
         return prepared_request
 
+    def is_error_fatal(self, error: Exception) -> bool:
+        if hasattr(error.response, "text") and error.response.text:
+            if "suspended" in error.response.text:
+                return True
+        return super().is_error_fatal(error)
+
 
 class GitHubClientMixin(GithubProxyClient):
+
     allow_redirects = True
 
     base_url = "https://api.github.com"
@@ -212,6 +220,15 @@ class GitHubClientMixin(GithubProxyClient):
         Returns the merged pull request that introduced the commit to the repository. If the commit is not present in the default branch, will only return open pull requests associated with the commit.
         """
         pullrequest: JSONData = self.get(f"/repos/{repo}/commits/{sha}/pulls")
+        return pullrequest
+
+    def get_pullrequest(self, repo: str, pull_number: int) -> JSONData:
+        """
+        https://docs.github.com/en/free-pro-team@latest/rest/pulls/pulls?apiVersion=2022-11-28#get-a-pull-request
+
+        Returns the pull request details
+        """
+        pullrequest: JSONData = self.get(f"/repos/{repo}/pulls/{pull_number}")
         return pullrequest
 
     def get_repo(self, repo: str) -> JSONData:
@@ -574,11 +591,8 @@ class GitHubClientMixin(GithubProxyClient):
         """
         return self.get(f"/users/{gh_username}")
 
-    def check_file(self, repo: Repository, path: str, version: str) -> str | None:
-        file: str = self.head_cached(
-            path=f"/repos/{repo.name}/contents/{path}", params={"ref": version}
-        )
-        return file
+    def check_file(self, repo: Repository, path: str, version: str) -> BaseApiResponseX:
+        return self.head_cached(path=f"/repos/{repo.name}/contents/{path}", params={"ref": version})
 
     def get_file(self, repo: Repository, path: str, ref: str) -> str:
         """Get the contents of a file
@@ -622,34 +636,27 @@ class GitHubClientMixin(GithubProxyClient):
             }}
         }}"""
 
-        contents = self.post(
-            path="/graphql",
-            data={"query": query},
-        )
-
         try:
-            results: Sequence[Mapping[str, Any]] = (
-                contents.get("data", {})
-                .get("repository", {})
-                .get("ref", {})
-                .get("target", {})
-                .get("blame", {})
-                .get("ranges", [])
+            contents = self.post(
+                path="/graphql",
+                data={"query": query},
+                allow_text=False,
             )
-            return results
-        except AttributeError as e:
-            if contents.get("errors"):
-                err_message = ", ".join(
-                    [error.get("message", "") for error in contents.get("errors", [])]
-                )
-                raise ApiError(err_message)
-
-            if contents.get("data", {}).get("repository", {}).get("ref", {}) is None:
-                raise ApiError("Branch does not exist in GitHub.")
-
+        except ValueError as e:
             sentry_sdk.capture_exception(e)
-
             return []
+
+        if contents.get("errors"):
+            err_message = ", ".join(
+                [error.get("message", "") for error in contents.get("errors", [])]
+            )
+            raise ApiError(err_message)
+
+        ref = contents.get("data", {}).get("repository", {}).get("ref")
+        if ref is None:
+            raise ApiError("Branch does not exist in GitHub.")
+
+        return ref.get("target", {}).get("blame", {}).get("ranges", [])
 
 
 class GitHubAppsClient(GitHubClientMixin):
@@ -661,8 +668,13 @@ class GitHubAppsClient(GitHubClientMixin):
         logging_context: Mapping[str, Any] | None = None,
     ) -> None:
         self.integration = integration
+        kwargs = {}
+        if hasattr(self.integration, "id"):
+            kwargs["integration_id"] = integration.id
+
         super().__init__(
             org_integration_id=org_integration_id,
             verify_ssl=verify_ssl,
             logging_context=logging_context,
+            **kwargs,
         )

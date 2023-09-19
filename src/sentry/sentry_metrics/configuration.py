@@ -9,6 +9,10 @@ from typing import Any, Mapping, MutableMapping, Optional, Tuple
 
 import sentry_sdk
 
+# The maximum length of a column that is indexed in postgres. It is important to keep this in
+# sync between the consumers and the models defined in src/sentry/sentry_metrics/models.py
+MAX_INDEXED_COLUMN_LENGTH = 200
+
 
 class UseCaseKey(Enum):
     RELEASE_HEALTH = "release-health"
@@ -42,7 +46,7 @@ class MetricsIngestConfiguration:
     cardinality_limiter_cluster_options: Mapping[str, Any]
     cardinality_limiter_namespace: str
 
-    index_tag_values_option_name: Optional[str] = None
+    should_index_tag_values: bool
     is_output_sliced: Optional[bool] = False
 
 
@@ -73,6 +77,7 @@ def get_ingest_config(
                 writes_limiter_namespace=RELEASE_HEALTH_PG_NAMESPACE,
                 cardinality_limiter_cluster_options=settings.SENTRY_METRICS_INDEXER_CARDINALITY_LIMITER_OPTIONS,
                 cardinality_limiter_namespace=RELEASE_HEALTH_PG_NAMESPACE,
+                should_index_tag_values=True,
             )
         )
 
@@ -88,12 +93,12 @@ def get_ingest_config(
                 writes_limiter_namespace=PERFORMANCE_PG_NAMESPACE,
                 cardinality_limiter_cluster_options=settings.SENTRY_METRICS_INDEXER_CARDINALITY_LIMITER_OPTIONS_PERFORMANCE,
                 cardinality_limiter_namespace=PERFORMANCE_PG_NAMESPACE,
-                index_tag_values_option_name="sentry-metrics.performance.index-tag-values",
                 is_output_sliced=settings.SENTRY_METRICS_INDEXER_ENABLE_SLICED_PRODUCER,
+                should_index_tag_values=False,
             )
         )
 
-    if db_backend == IndexerStorage.MOCK:
+    if (use_case_key, db_backend) == (UseCaseKey.RELEASE_HEALTH, IndexerStorage.MOCK):
         _register_ingest_config(
             MetricsIngestConfiguration(
                 db_backend=IndexerStorage.MOCK,
@@ -103,9 +108,27 @@ def get_ingest_config(
                 use_case_id=use_case_key,
                 internal_metrics_tag="release-health",
                 writes_limiter_cluster_options={},
-                writes_limiter_namespace="test-namespace",
+                writes_limiter_namespace="test-namespace-rh",
                 cardinality_limiter_cluster_options={},
                 cardinality_limiter_namespace=RELEASE_HEALTH_PG_NAMESPACE,
+                should_index_tag_values=True,
+            )
+        )
+
+    if (use_case_key, db_backend) == (UseCaseKey.PERFORMANCE, IndexerStorage.MOCK):
+        _register_ingest_config(
+            MetricsIngestConfiguration(
+                db_backend=IndexerStorage.MOCK,
+                db_backend_options={},
+                input_topic="topic",
+                output_topic="output-topic",
+                use_case_id=use_case_key,
+                internal_metrics_tag="perf",
+                writes_limiter_cluster_options={},
+                writes_limiter_namespace="test-namespace-perf",
+                cardinality_limiter_cluster_options={},
+                cardinality_limiter_namespace=PERFORMANCE_PG_NAMESPACE,
+                should_index_tag_values=False,
             )
         )
 

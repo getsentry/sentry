@@ -15,7 +15,7 @@ def _assert_org_has_owner_not_from_team(organization, top_role):
 def prevent_demoting_last_owner(instance: OrganizationMember, **kwargs):
     # if a member is being created
     if instance.id is None:
-        return
+        return  # type: ignore[unreachable]
 
     try:
         member = OrganizationMember.objects.get(id=instance.id)
@@ -33,7 +33,7 @@ def prevent_demoting_last_owner(instance: OrganizationMember, **kwargs):
 def prevent_demoting_last_owner_team(instance: Team, **kwargs):
     # if a team is being created
     if instance.id is None:
-        return
+        return  # type: ignore[unreachable]
 
     try:
         team = Team.objects.get(id=instance.id)

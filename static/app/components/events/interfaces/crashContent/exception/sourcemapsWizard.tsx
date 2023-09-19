@@ -11,9 +11,10 @@ import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import type {BaseEventAnalyticsParams} from 'sentry/utils/analytics/workflowAnalyticsEvents';
 import localStorage from 'sentry/utils/localStorage';
-import useOrganization from 'sentry/utils/useOrganization';
 
 const LOCAL_STORAGE_KEY = 'issues-sourcemap-wizard-hide-until';
 const DISMISS_TIME = 1000 * 60 * 60 * 24 * 7; // 1 week
@@ -32,8 +33,15 @@ function clearHideUntilTime() {
   localStorage.removeItem(LOCAL_STORAGE_KEY);
 }
 
-export default function SourceMapsWizard() {
-  const organization = useOrganization();
+interface Props {
+  analyticsParams: {
+    organization: Organization;
+    project_id: string;
+    group_id?: string;
+  } & BaseEventAnalyticsParams;
+}
+
+export default function SourceMapsWizard({analyticsParams}: Props) {
   const isDarkmode = useLegacyStore(ConfigStore).theme === 'dark';
 
   const [isHidden, setIsHidden] = useState(() => {
@@ -50,13 +58,13 @@ export default function SourceMapsWizard() {
   }
 
   return (
-    <Panel dashedBorder data-test-id="sourcemaps-wizard">
+    <StyledPanel dashedBorder data-test-id="sourcemaps-wizard">
       <CloseButton
         onClick={() => {
           setIsHidden(true);
           setHideUntilTime(DISMISS_TIME);
           trackAnalytics('issue_details.sourcemap_wizard_dismiss', {
-            organization,
+            ...analyticsParams,
           });
         }}
         icon={<IconClose size="xs" />}
@@ -66,15 +74,15 @@ export default function SourceMapsWizard() {
       <EmptyMessage
         size="medium"
         icon={<IconFlag size="xl" />}
-        title={t("Sentry isn't Sentry without source maps")}
+        title={t("You're not a computer, so why parse minified code?")}
         description={tct(
-          'Automatically upload your source maps to enable readable stack traces and better error grouping using the Sentry Wizard. [link:Learn more]',
+          'Upload source maps with the Sentry Wizard to unlock readable stack traces and better error grouping. [link:Learn more]',
           {
             link: (
               <ExternalLink
                 onClick={() => {
                   trackAnalytics('issue_details.sourcemap_wizard_learn_more', {
-                    organization,
+                    ...analyticsParams,
                   });
                 }}
                 openInNewTab
@@ -91,14 +99,14 @@ export default function SourceMapsWizard() {
           language="bash"
           onCopy={() => {
             trackAnalytics('issue_details.sourcemap_wizard_copy', {
-              organization,
+              ...analyticsParams,
             });
           }}
         >
           {wizardCommand}
         </StyledCodeSnippet>
       </EmptyMessage>
-    </Panel>
+    </StyledPanel>
   );
 }
 
@@ -110,6 +118,10 @@ const StyledCodeSnippet = styled(CodeSnippet)<{isDarkMode: boolean}>`
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     width: 100%;
   }
+`;
+
+const StyledPanel = styled(Panel)`
+  margin: 0 30px;
 `;
 
 const CloseButton = styled(Button)`

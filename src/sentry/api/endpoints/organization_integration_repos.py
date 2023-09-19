@@ -3,6 +3,8 @@ from typing import Any, Optional, TypedDict
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization_integrations import RegionOrganizationIntegrationBaseEndpoint
 from sentry.auth.exceptions import IdentityNotValid
@@ -10,7 +12,6 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.mixins import RepositoryMixin
 from sentry.models import Organization
 from sentry.models.repository import Repository
-from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import IntegrationError
 
 
@@ -22,6 +23,11 @@ class IntegrationRepository(TypedDict):
 
 @region_silo_endpoint
 class OrganizationIntegrationReposEndpoint(RegionOrganizationIntegrationBaseEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+    owner = ApiOwner.ISSUES
+
     def get(
         self,
         request: Request,
@@ -50,9 +56,7 @@ class OrganizationIntegrationReposEndpoint(RegionOrganizationIntegrationBaseEndp
         )
         repo_names = {installed_repo.name for installed_repo in installed_repos}
 
-        install = integration_service.get_installation(
-            integration=integration, organization_id=organization.id
-        )
+        install = integration.get_installation(organization_id=organization.id)
 
         if isinstance(install, RepositoryMixin):
             try:

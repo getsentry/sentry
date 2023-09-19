@@ -12,33 +12,30 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {AVG_COLOR, ERRORS_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
 import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
-import {ModuleName, SpanMetricsFields} from 'sentry/views/starfish/types';
+import {ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 import {useErrorRateQuery as useErrorCountQuery} from 'sentry/views/starfish/views/spans/queries';
 import {
   DataTitles,
+  getDurationChartTitle,
   getThroughputChartTitle,
 } from 'sentry/views/starfish/views/spans/types';
+import {ModuleFilters} from 'sentry/views/starfish/views/spans/useModuleFilters';
 import {NULL_SPAN_CATEGORY} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
 
-const {SPAN_SELF_TIME, SPAN_OP, SPAN_MODULE, SPAN_DESCRIPTION} = SpanMetricsFields;
+const {SPAN_SELF_TIME, SPAN_MODULE, SPAN_DESCRIPTION} = SpanMetricsField;
+
+const CHART_HEIGHT = 140;
 
 type Props = {
-  appliedFilters: AppliedFilters;
+  appliedFilters: ModuleFilters;
   moduleName: ModuleName;
   spanCategory?: string;
 };
 
-type AppliedFilters = {
-  'span.action': string;
-  'span.domain': string;
-  'span.group': string;
-  'span.op': string;
-};
-
 type ChartProps = {
-  filters: AppliedFilters;
+  filters: ModuleFilters;
   moduleName: ModuleName;
 };
 
@@ -65,7 +62,7 @@ export function SpanTimeCharts({moduleName, appliedFilters, spanCategory}: Props
   > = {
     [ModuleName.ALL]: [
       {title: getThroughputChartTitle(moduleName), Comp: ThroughputChart},
-      {title: DataTitles.avg, Comp: DurationChart},
+      {title: getDurationChartTitle(moduleName), Comp: DurationChart},
     ],
     [ModuleName.DB]: [],
     [ModuleName.HTTP]: [{title: DataTitles.errorCount, Comp: ErrorChart}],
@@ -122,7 +119,7 @@ function ThroughputChart({moduleName, filters}: ChartProps): JSX.Element {
 
   return (
     <Chart
-      height={100}
+      height={CHART_HEIGHT}
       data={throughputTimeSeries}
       loading={isLoading}
       utc={false}
@@ -178,7 +175,7 @@ function DurationChart({moduleName, filters}: ChartProps): JSX.Element {
 
   return (
     <Chart
-      height={100}
+      height={CHART_HEIGHT}
       data={[...avgSeries]}
       loading={isLoading}
       utc={false}
@@ -212,7 +209,7 @@ function ErrorChart({moduleName, filters}: ChartProps): JSX.Element {
 
   return (
     <Chart
-      height={100}
+      height={CHART_HEIGHT}
       data={[errorRateSeries]}
       loading={isLoading}
       utc={false}
@@ -235,7 +232,7 @@ const SPAN_FILTER_KEYS = ['span_operation', 'domain', 'action'];
 const getEventView = (
   moduleName: ModuleName,
   pageFilters: PageFilters,
-  appliedFilters: AppliedFilters,
+  appliedFilters: ModuleFilters,
   spanCategory?: string
 ) => {
   const query = buildDiscoverQueryConditions(moduleName, appliedFilters, spanCategory);
@@ -256,7 +253,7 @@ const getEventView = (
 
 const buildDiscoverQueryConditions = (
   moduleName: ModuleName,
-  appliedFilters: AppliedFilters,
+  appliedFilters: ModuleFilters,
   spanCategory?: string
 ) => {
   const result = Object.keys(appliedFilters)
@@ -270,10 +267,6 @@ const buildDiscoverQueryConditions = (
 
   if (moduleName !== ModuleName.ALL) {
     result.push(`${SPAN_MODULE}:${moduleName}`);
-  }
-
-  if (moduleName === ModuleName.DB) {
-    result.push(`!${SPAN_OP}:db.redis`);
   }
 
   if (spanCategory) {

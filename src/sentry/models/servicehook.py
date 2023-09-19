@@ -1,4 +1,5 @@
 import hmac
+import secrets
 from functools import cached_property
 from hashlib import sha256
 from uuid import uuid4
@@ -6,6 +7,7 @@ from uuid import uuid4
 from django.db import models
 from django.utils import timezone
 
+from sentry.backup.scopes import RelocationScope
 from sentry.constants import ObjectStatus
 from sentry.db.models import (
     ArrayField,
@@ -30,7 +32,7 @@ SERVICE_HOOK_EVENTS = [
 
 @region_silo_only_model
 class ServiceHookProject(Model):
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     service_hook = FlexibleForeignKey("sentry.ServiceHook")
     project_id = BoundedBigIntegerField(db_index=True)
@@ -42,12 +44,14 @@ class ServiceHookProject(Model):
 
 
 def generate_secret():
-    return uuid4().hex + uuid4().hex
+    # the `secret` field on `ServiceHook` does not have a max_length so we can use the default length
+    # of 64 characters. This is sufficiently secure and will update over time to sane defaults.
+    return secrets.token_hex()
 
 
 @region_silo_only_model
 class ServiceHook(Model):
-    __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Global
 
     guid = models.CharField(max_length=32, unique=True, null=True)
     # hooks may be bound to an api application, or simply registered by a user

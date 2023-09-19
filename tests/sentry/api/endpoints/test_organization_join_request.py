@@ -1,13 +1,13 @@
 from functools import cached_property
 from unittest.mock import patch
+from urllib.parse import parse_qs, urlparse
 
 import responses
 from django.core import mail
 
 from sentry.models import AuthProvider, InviteStatus, OrganizationMember, OrganizationOption
 from sentry.silo import SiloMode
-from sentry.testutils import APITestCase
-from sentry.testutils.cases import SlackActivityNotificationTest
+from sentry.testutils.cases import APITestCase, SlackActivityNotificationTest
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.slack import get_attachment_no_text
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
@@ -138,7 +138,10 @@ class OrganizationJoinRequestTest(APITestCase, SlackActivityNotificationTest, Hy
         assert not join_request.invite_approved
 
         mock_record.assert_called_with(
-            "join_request.created", member_id=join_request.id, organization_id=self.organization.id
+            "join_request.created",
+            member_id=join_request.id,
+            organization_id=self.organization.id,
+            referrer=None,
         )
 
         self.assert_org_member_mapping(org_member=join_request)
@@ -177,6 +180,8 @@ class OrganizationJoinRequestTest(APITestCase, SlackActivityNotificationTest, Hy
 
         attachment = get_attachment_no_text()
         assert attachment["text"] == f"{self.email} is requesting to join {self.organization.name}"
+        query_params = parse_qs(urlparse(attachment["actions"][2]["url"]).query)
+        notification_uuid = query_params["notification_uuid"][0]
         assert attachment["actions"] == [
             {
                 "text": "Approve",
@@ -197,7 +202,7 @@ class OrganizationJoinRequestTest(APITestCase, SlackActivityNotificationTest, Hy
             {
                 "text": "See Members & Requests",
                 "name": "See Members & Requests",
-                "url": f"http://testserver/settings/{self.organization.slug}/members/?referrer=join_request-slack-user",
+                "url": f"http://testserver/settings/{self.organization.slug}/members/?referrer=join_request-slack-user&notification_uuid={notification_uuid}",
                 "type": "button",
             },
         ]

@@ -5,11 +5,10 @@ from django.http import HttpResponse
 from django.test import RequestFactory, override_settings
 from django.urls import reverse
 
-from sentry.middleware.integrations.integration_control import IntegrationControlMiddleware
 from sentry.middleware.integrations.parsers.github_enterprise import GithubEnterpriseRequestParser
 from sentry.models.outbox import ControlOutbox, WebhookProviderIdentifier
 from sentry.silo.base import SiloMode
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.outbox import assert_webhook_outboxes
 from sentry.testutils.silo import control_silo_test
 from sentry.types.region import Region, RegionCategory
@@ -18,10 +17,9 @@ from sentry.types.region import Region, RegionCategory
 @control_silo_test(stable=True)
 class GithubEnterpriseRequestParserTest(TestCase):
     get_response = MagicMock(return_value=HttpResponse(content=b"no-error", status=200))
-    middleware = IntegrationControlMiddleware(get_response)
     factory = RequestFactory()
     path = reverse("sentry-integration-github-enterprise-webhook")
-    region = Region("na", 1, "https://na.testserver", RegionCategory.MULTI_TENANT)
+    region = Region("us", 1, "https://us.testserver", RegionCategory.MULTI_TENANT)
     external_host = "12.345.678.901"
     external_identifier = "github_enterprise:1"
     external_id = f"{external_host}:{external_identifier}"

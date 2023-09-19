@@ -4,7 +4,7 @@ from sentry.models import Organization
 from sentry.sentry_apps.components import SentryAppComponentPreparer
 from sentry.services.hybrid_cloud.app.serial import serialize_sentry_app_installation
 from sentry.silo import SiloMode
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.utils import json
 

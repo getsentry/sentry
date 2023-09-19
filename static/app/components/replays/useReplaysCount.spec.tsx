@@ -1,5 +1,6 @@
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
+import {IssueCategory} from 'sentry/types';
 import {useLocation} from 'sentry/utils/useLocation';
 
 import useReplaysCount from './useReplaysCount';
@@ -7,13 +8,11 @@ import useReplaysCount from './useReplaysCount';
 jest.mock('sentry/utils/useLocation');
 
 describe('useReplaysCount', () => {
-  const MockUseLocation = useLocation as jest.MockedFunction<typeof useLocation>;
-
   const mockGroupIds = ['123', '456'];
   const mockReplayIds = ['abc', 'def'];
   const mockTransactionNames = ['/home', '/profile'];
 
-  MockUseLocation.mockReturnValue({
+  jest.mocked(useLocation).mockReturnValue({
     pathname: '',
     search: '',
     query: {},
@@ -85,6 +84,38 @@ describe('useReplaysCount', () => {
       expect.objectContaining({
         query: {
           query: `issue.id:[${mockGroupIds.join(',')}]`,
+          data_source: 'discover',
+          statsPeriod: '14d',
+          project: -1,
+        },
+      })
+    );
+
+    await waitForNextUpdate();
+  });
+
+  it('should query for groupIds on performance issues', async () => {
+    const replayCountRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/replay-count/`,
+      method: 'GET',
+      body: {},
+    });
+
+    const {result, waitForNextUpdate} = reactHooks.renderHook(useReplaysCount, {
+      initialProps: {
+        organization,
+        issueCategory: IssueCategory.PERFORMANCE,
+        groupIds: mockGroupIds,
+      },
+    });
+
+    expect(result.current).toEqual({});
+    expect(replayCountRequest).toHaveBeenCalledWith(
+      '/organizations/org-slug/replay-count/',
+      expect.objectContaining({
+        query: {
+          query: `issue.id:[${mockGroupIds.join(',')}]`,
+          data_source: 'search_issues',
           statsPeriod: '14d',
           project: -1,
         },
@@ -143,6 +174,7 @@ describe('useReplaysCount', () => {
       expect.objectContaining({
         query: {
           query: `issue.id:[123,456]`,
+          data_source: 'discover',
           statsPeriod: '14d',
           project: -1,
         },
@@ -166,6 +198,7 @@ describe('useReplaysCount', () => {
       expect.objectContaining({
         query: {
           query: `issue.id:[789]`,
+          data_source: 'discover',
           statsPeriod: '14d',
           project: -1,
         },
@@ -200,6 +233,7 @@ describe('useReplaysCount', () => {
       expect.objectContaining({
         query: {
           query: `issue.id:[123,456]`,
+          data_source: 'discover',
           statsPeriod: '14d',
           project: -1,
         },
@@ -242,6 +276,7 @@ describe('useReplaysCount', () => {
       expect.objectContaining({
         query: {
           query: `replay_id:[abc,def]`,
+          data_source: 'discover',
           statsPeriod: '14d',
           project: -1,
         },
@@ -298,6 +333,7 @@ describe('useReplaysCount', () => {
       expect.objectContaining({
         query: {
           query: `transaction:["/home","/profile"]`,
+          data_source: 'discover',
           statsPeriod: '14d',
           project: -1,
         },

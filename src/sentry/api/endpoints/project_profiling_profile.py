@@ -8,6 +8,8 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.paginator import GenericOffsetPaginator
@@ -25,6 +27,8 @@ from sentry.utils import json
 
 
 class ProjectProfilingBaseEndpoint(ProjectEndpoint):
+    owner = ApiOwner.PROFILING
+
     def get_profiling_params(self, request: Request, project: Project) -> Dict[str, Any]:
         try:
             params: Dict[str, Any] = parse_profile_filters(request.query_params.get("query", ""))
@@ -66,6 +70,10 @@ class ProjectProfilingPaginatedBaseEndpoint(ProjectProfilingBaseEndpoint, ABC):
 
 @region_silo_endpoint
 class ProjectProfilingTransactionIDProfileIDEndpoint(ProjectProfilingBaseEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, project: Project, transaction_id: str) -> HttpResponse:
         if not features.has("organizations:profiling", project.organization, actor=request.user):
             return Response(status=404)
@@ -78,6 +86,10 @@ class ProjectProfilingTransactionIDProfileIDEndpoint(ProjectProfilingBaseEndpoin
 
 @region_silo_endpoint
 class ProjectProfilingProfileEndpoint(ProjectProfilingBaseEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, project: Project, profile_id: str) -> HttpResponse:
         if not features.has("organizations:profiling", project.organization, actor=request.user):
             return Response(status=404)
@@ -125,6 +137,10 @@ def get_release(project: Project, version: str) -> Any:
 
 @region_silo_endpoint
 class ProjectProfilingRawProfileEndpoint(ProjectProfilingBaseEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, project: Project, profile_id: str) -> HttpResponse:
         if not features.has("organizations:profiling", project.organization, actor=request.user):
             return Response(status=404)
@@ -137,6 +153,10 @@ class ProjectProfilingRawProfileEndpoint(ProjectProfilingBaseEndpoint):
 
 @region_silo_endpoint
 class ProjectProfilingFlamegraphEndpoint(ProjectProfilingBaseEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, project: Project) -> HttpResponse:
         if not features.has("organizations:profiling", project.organization, actor=request.user):
             return Response(status=404)
@@ -151,6 +171,9 @@ class ProjectProfilingFlamegraphEndpoint(ProjectProfilingBaseEndpoint):
 
 @region_silo_endpoint
 class ProjectProfilingFunctionsEndpoint(ProjectProfilingPaginatedBaseEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     DEFAULT_PER_PAGE = 5
     MAX_PER_PAGE = 50
 
@@ -205,6 +228,10 @@ class ProjectProfileEventSerializer(serializers.Serializer):
 
 @region_silo_endpoint
 class ProjectProfilingEventEndpoint(ProjectProfilingBaseEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def convert_args(self, request: Request, *args, **kwargs):
         # disables the auto conversion of project slug inherited from the
         # project endpoint since this takes the project id instead of the slug

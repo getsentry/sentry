@@ -3,7 +3,7 @@ from rest_framework import status
 from sentry.api.validators.project_codeowners import validate_codeowners_associations
 from sentry.models import Integration
 from sentry.silo import SiloMode
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 

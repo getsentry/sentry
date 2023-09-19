@@ -6,7 +6,7 @@ from rest_framework.serializers import ListField
 
 from sentry.api.fields.actor import ActorField
 from sentry.models import Team, User
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 
 
 class ChildSerializer(serializers.Serializer):

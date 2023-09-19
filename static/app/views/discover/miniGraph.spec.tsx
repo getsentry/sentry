@@ -7,35 +7,6 @@ import MiniGraph from 'sentry/views/discover/miniGraph';
 
 jest.mock('sentry/components/charts/eventsRequest');
 
-jest.mock('sentry/components/charts/eventsGeoRequest', () =>
-  jest.fn(({children}) =>
-    children({
-      errored: false,
-      loading: false,
-      reloading: false,
-      tableData: [
-        {
-          data: [
-            {
-              'geo.country_code': 'PE',
-              count: 9215,
-            },
-            {
-              'geo.country_code': 'VI',
-              count: 1,
-            },
-          ],
-          meta: {
-            'geo.country_code': 'string',
-            count: 'integer',
-          },
-          title: 'Country',
-        },
-      ],
-    })
-  )
-);
-
 describe('Discover > MiniGraph', function () {
   const features = ['discover-basic'];
   const location = TestStubs.location({

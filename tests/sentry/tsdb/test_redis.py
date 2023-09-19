@@ -1,11 +1,10 @@
 from contextlib import contextmanager
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import pytest
-import pytz
 from django.test import override_settings
 
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.tsdb.base import ONE_DAY, ONE_HOUR, ONE_MINUTE, TSDBModel
 from sentry.tsdb.redis import CountMinScript, RedisTSDB, SuppressionWrapper
 from sentry.utils.dates import to_datetime, to_timestamp
@@ -81,7 +80,7 @@ class RedisTSDBTest(TestCase):
         assert result == "26f980fbe1e8a9d3a0123d2049f95f28"
 
     def test_simple(self):
-        now = datetime.utcnow().replace(tzinfo=pytz.UTC) - timedelta(hours=4)
+        now = datetime.utcnow().replace(tzinfo=timezone.utc) - timedelta(hours=4)
         dts = [now + timedelta(hours=i) for i in range(4)]
 
         def timestamp(d):
@@ -189,7 +188,7 @@ class RedisTSDBTest(TestCase):
         assert results == {1: 0, 2: 0}
 
     def test_count_distinct(self):
-        now = datetime.utcnow().replace(tzinfo=pytz.UTC) - timedelta(hours=4)
+        now = datetime.utcnow().replace(tzinfo=timezone.utc) - timedelta(hours=4)
         dts = [now + timedelta(hours=i) for i in range(4)]
 
         model = TSDBModel.users_affected_by_group
@@ -327,7 +326,7 @@ class RedisTSDBTest(TestCase):
         assert results == {1: 0, 2: 0}
 
     def test_frequency_tables(self):
-        now = datetime.utcnow().replace(tzinfo=pytz.UTC)
+        now = datetime.utcnow().replace(tzinfo=timezone.utc)
         model = TSDBModel.frequent_issues_by_project
 
         # None of the registered frequency tables actually support

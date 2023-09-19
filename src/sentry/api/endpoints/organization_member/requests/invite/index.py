@@ -4,8 +4,10 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log, roles
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.api.endpoints.organization_member.index import OrganizationMemberSerializer
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization_member import OrganizationMemberWithTeamsSerializer
@@ -14,7 +16,6 @@ from sentry.notifications.notifications.organization_request import InviteReques
 from sentry.notifications.utils.tasks import async_send_notification
 
 from ... import save_team_assignments
-from ...index import OrganizationMemberSerializer
 
 
 class InviteRequestPermissions(OrganizationPermission):
@@ -26,6 +27,10 @@ class InviteRequestPermissions(OrganizationPermission):
 
 @region_silo_endpoint
 class OrganizationInviteRequestIndexEndpoint(OrganizationEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (InviteRequestPermissions,)
 
     def get(self, request: Request, organization) -> Response:

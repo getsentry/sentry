@@ -10,13 +10,16 @@ import {IconFire, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import theme from 'sentry/utils/theme';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {
   DisplayModes,
   transactionSummaryRouteWithQuery,
 } from 'sentry/views/performance/transactionSummary/utils';
+import {FunctionsList} from 'sentry/views/performance/trends/changeExplorerUtils/functionsList';
 import {MetricsTable} from 'sentry/views/performance/trends/changeExplorerUtils/metricsTable';
+import {SpansList} from 'sentry/views/performance/trends/changeExplorerUtils/spansList';
 import {Chart} from 'sentry/views/performance/trends/chart';
 import {
   NormalizedTrendsTransaction,
@@ -171,6 +174,22 @@ function ExplorerBody(props: ExplorerBodyProps) {
         trendView={trendView}
         organization={organization}
       />
+      <SpansList
+        location={location}
+        organization={organization}
+        trendView={trendView}
+        transaction={transaction}
+        breakpoint={transaction.breakpoint!}
+        trendChangeType={trendChangeType}
+      />
+      <FunctionsList
+        location={location}
+        organization={organization}
+        trendView={trendView}
+        transaction={transaction}
+        breakpoint={transaction.breakpoint!}
+        trendChangeType={trendChangeType}
+      />
     </Fragment>
   );
 }
@@ -205,6 +224,13 @@ function Header(props: HeaderProps) {
     trendParameter
   );
 
+  const handleClickAnalytics = () => {
+    trackAnalytics('performance_views.performance_change_explorer.summary_link_clicked', {
+      organization,
+      transaction: transaction.transaction,
+    });
+  };
+
   return (
     <HeaderWrapper data-test-id="pce-header">
       <FireIcon regression={regression}>
@@ -221,6 +247,7 @@ function Header(props: HeaderProps) {
             to={normalizeUrl(transactionSummaryLink)}
             icon={<IconOpen />}
             aria-label={t('View transaction summary')}
+            onClick={handleClickAnalytics}
           />
         </TransactionNameWrapper>
       </HeaderTextWrapper>
@@ -254,7 +281,7 @@ function getTransactionSummaryLink(
 
 const PanelBodyWrapper = styled('div')`
   padding: 0 ${space(2)};
-  margin-top: ${space(4)};
+  margin-top: ${space(1)};
 `;
 
 const HeaderWrapper = styled('div')`
@@ -291,7 +318,7 @@ const TransactionNameWrapper = styled('div')`
   display: flex;
   align-items: center;
   margin-bottom: ${space(3)};
-  width: fit-content;
+  max-width: fit-content;
 `;
 
 const ViewTransactionButton = styled(Button)`

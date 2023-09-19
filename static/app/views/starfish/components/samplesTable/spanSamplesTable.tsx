@@ -1,10 +1,13 @@
 import {CSSProperties} from 'react';
 import {Link} from 'react-router';
 
-import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
+import GridEditable, {
+  COL_WIDTH_UNDEFINED,
+  GridColumnHeader,
+} from 'sentry/components/gridEditable';
 import {useLocation} from 'sentry/utils/useLocation';
 import {DurationComparisonCell} from 'sentry/views/starfish/components/samplesTable/common';
-import DurationCell from 'sentry/views/starfish/components/tableCells/durationCell';
+import {DurationCell} from 'sentry/views/starfish/components/tableCells/durationCell';
 import {
   OverflowEllipsisTextContainer,
   TextAlignRight,
@@ -23,17 +26,17 @@ const COLUMN_ORDER: TableColumnHeader[] = [
   {
     key: 'transaction_id',
     name: 'Event ID',
-    width: 200,
+    width: COL_WIDTH_UNDEFINED,
   },
   {
     key: 'duration',
     name: 'Span Duration',
-    width: 200,
+    width: COL_WIDTH_UNDEFINED,
   },
   {
     key: 'avg_comparison',
-    name: 'Compared to baseline',
-    width: 200,
+    name: 'Compared to Average',
+    width: COL_WIDTH_UNDEFINED,
   },
 ];
 

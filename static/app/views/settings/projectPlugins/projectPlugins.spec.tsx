@@ -5,10 +5,11 @@ import ProjectPlugins from 'sentry/views/settings/projectPlugins/projectPlugins'
 
 describe('ProjectPlugins', function () {
   it('renders', async function () {
-    const {organization, route, router, project} = initializeOrg();
+    const {organization, routerProps, project} = initializeOrg();
 
-    const {container} = render(
+    render(
       <ProjectPlugins
+        {...routerProps}
         organization={organization}
         params={{
           orgId: organization.slug,
@@ -18,26 +19,20 @@ describe('ProjectPlugins', function () {
         loading={false}
         error={undefined}
         plugins={TestStubs.Plugins()}
-        router={router}
-        routes={router.routes}
-        route={route}
-        location={router.location}
-        routeParams={router.params}
       />
     );
 
     await waitFor(() =>
       expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument()
     );
-
-    expect(container).toSnapshot();
   });
 
   it('has error state when plugins=[]', async function () {
-    const {organization, route, router, project} = initializeOrg();
+    const {organization, routerProps, project} = initializeOrg();
 
     render(
       <ProjectPlugins
+        {...routerProps}
         organization={organization}
         params={{
           orgId: organization.slug,
@@ -47,11 +42,6 @@ describe('ProjectPlugins', function () {
         loading={false}
         error={new Error('An error')}
         plugins={[]}
-        router={router}
-        routes={router.routes}
-        route={route}
-        location={router.location}
-        routeParams={router.params}
       />
     );
 

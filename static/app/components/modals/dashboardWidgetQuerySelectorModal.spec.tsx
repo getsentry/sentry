@@ -68,10 +68,6 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       body: {data: [{'event.type': 'error'}], meta: {'event.type': 'string'}},
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-geo/',
-      body: {data: [], meta: {}},
-    });
-    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/recent-searches/',
       body: [],
     });

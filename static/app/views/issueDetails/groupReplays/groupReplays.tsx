@@ -56,6 +56,7 @@ function GroupReplays({group}: Props) {
           replays={[]}
           sort={undefined}
           visibleColumns={VISIBLE_COLUMNS}
+          showDropdownFilters={false}
         />
       </StyledLayoutPage>
     );
@@ -80,7 +81,7 @@ function GroupReplaysTable({
   pageLinks: string | null;
   visibleColumns: ReplayColumn[];
 }) {
-  const location = useMemo(() => ({query: {}} as Location<ReplayListLocationQuery>), []);
+  const location = useMemo(() => ({query: {}}) as Location<ReplayListLocationQuery>, []);
 
   const {replays, isFetching, fetchError} = useReplayList({
     eventView,
@@ -97,6 +98,7 @@ function GroupReplaysTable({
         replays={replays}
         sort={undefined}
         visibleColumns={visibleColumns}
+        showDropdownFilters={false}
       />
     </StyledLayoutPage>
   );

@@ -1,15 +1,15 @@
 import itertools
 import logging
 import math
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
-import pytz
-from snuba_sdk import Column, Condition, Function, Limit, Op
+from snuba_sdk import BooleanCondition, Column, Condition, Function, Limit, Op
 
 from sentry.api.utils import get_date_range_from_params
 from sentry.release_health.base import AllowedResolution, SessionsQueryConfig
 from sentry.search.events.builder import SessionsV2QueryBuilder, TimeseriesSessionsV2QueryBuilder
+from sentry.search.events.types import QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
 from sentry.utils.dates import parse_stats_period, to_datetime, to_timestamp
 
@@ -326,8 +326,8 @@ class QueryDefinition:
             "query": self.query,
             "orderby": orderby,
             "limit": max_groups,
-            "auto_aggregations": True,
             "granularity": self.rollup,
+            "config": QueryBuilderConfig(auto_aggregations=True),
         }
         if self._query_config.allow_session_status_query:
             query_builder_dict.update({"extra_filter_allowlist_fields": ["session.status"]})
@@ -341,7 +341,10 @@ class QueryDefinition:
         conditions = SessionsV2QueryBuilder(**self.to_query_builder_dict()).where
         filter_conditions = []
         for condition in conditions:
-            # Exclude sessions "started" timestamp condition and org_id condition, as it is not needed for metrics queries.
+            self._check_supported_condition(condition)
+
+            # Exclude sessions "started" timestamp condition and org_id condition, as it is not needed for metrics
+            # queries.
             if (
                 isinstance(condition, Condition)
                 and isinstance(condition.lhs, Column)
@@ -349,7 +352,22 @@ class QueryDefinition:
             ):
                 continue
             filter_conditions.append(condition)
+
         return filter_conditions
+
+    @classmethod
+    def _check_supported_condition(cls, condition):
+        if isinstance(condition, BooleanCondition):
+            for nested_condition in condition.conditions:
+                cls._check_supported_condition(nested_condition)
+        elif isinstance(condition, Condition):
+            if isinstance(condition.lhs, Function):
+                # Since we moved to metrics backed sessions, we don't allow wildcard search anymore. The reason for this
+                # is that we don't store tag values as strings in the database, this makes wildcard match on the
+                # db impossible. The solution would be to lift it out at the application level, but it will impact
+                # performance.
+                if condition.lhs.function == "match":
+                    raise InvalidField("Invalid condition: wildcard search is not supported")
 
     def __repr__(self):
         return f"{self.__class__.__name__}({repr(self.__dict__)})"
@@ -385,7 +403,7 @@ class NonPreflightOrderByException(InvalidParams):
 
 def get_now():
     """Wrapper function to make it mockable in unit tests"""
-    return datetime.now(tz=pytz.utc)
+    return datetime.now(tz=timezone.utc)
 
 
 def get_constrained_date_range(
@@ -413,6 +431,9 @@ def get_constrained_date_range(
 
     start, end = get_date_range_from_params(params)
     now = get_now()
+
+    if start > now:
+        start = now
 
     # if `end` is explicitly given, we add a second to it, so it is treated as
     # inclusive. the rounding logic down below will take care of the rest.

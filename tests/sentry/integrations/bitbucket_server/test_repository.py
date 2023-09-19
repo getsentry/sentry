@@ -20,7 +20,7 @@ from sentry.integrations.bitbucket_server.repository import BitbucketServerRepos
 from sentry.models import Identity, IdentityProvider, IdentityStatus, Integration, Repository
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.silo import SiloMode
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 

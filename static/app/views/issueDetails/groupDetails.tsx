@@ -23,7 +23,7 @@ import {TabPanels, Tabs} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';
-import {Group, IssueCategory, Organization, Project} from 'sentry/types';
+import {Group, GroupStatus, IssueCategory, Organization, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -49,6 +49,7 @@ import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyti
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -63,6 +64,7 @@ import {
   getGroupReprocessingStatus,
   markEventSeen,
   ReprocessingStatus,
+  useDefaultIssueEvent,
   useEnvironmentsFromUrl,
   useFetchIssueTagsForDetailsPage,
 } from './utils';
@@ -248,7 +250,9 @@ function useEventApiQuery({
   const hasMostHelpfulEventFeature = organization.features.includes(
     'issue-details-most-helpful-event'
   );
-  const eventIdUrl = eventId ?? (hasMostHelpfulEventFeature ? 'recommended' : 'latest');
+  const defaultIssueEvent = useDefaultIssueEvent();
+  const eventIdUrl =
+    eventId ?? (hasMostHelpfulEventFeature ? defaultIssueEvent : 'latest');
   const helpfulEventQuery =
     hasMostHelpfulEventFeature && typeof location.query.query === 'string'
       ? location.query.query
@@ -256,7 +260,7 @@ function useEventApiQuery({
 
   const endpointEventId = eventIdUrl === 'recommended' ? 'helpful' : eventIdUrl;
   const queryKey: ApiQueryKey = [
-    `/issues/${groupId}/events/${endpointEventId}/`,
+    `/organizations/${organization.slug}/issues/${groupId}/events/${endpointEventId}/`,
     {
       query: getGroupEventDetailsQueryData({
         environments,
@@ -293,6 +297,11 @@ function useEventApiQuery({
           query: omit(qs.parse(window.location.search), 'query'),
         });
 
+        // 404s are expected if all events have exceeded retention
+        if (latestOrHelpfulEvent.error.status === 404) {
+          return;
+        }
+
         const scope = new Sentry.Scope();
         scope.setExtras({
           groupId,
@@ -320,13 +329,18 @@ function useEventApiQuery({
 type FetchGroupQueryParameters = {
   environments: string[];
   groupId: string;
+  organizationSlug: string;
 };
 
 function makeFetchGroupQueryKey({
   groupId,
+  organizationSlug,
   environments,
 }: FetchGroupQueryParameters): ApiQueryKey {
-  return [`/issues/${groupId}/`, {query: getGroupDetailsQueryData({environments})}];
+  return [
+    `/organizations/${organizationSlug}/issues/${groupId}/`,
+    {query: getGroupDetailsQueryData({environments})},
+  ];
 }
 
 /**
@@ -337,6 +351,7 @@ function makeFetchGroupQueryKey({
  */
 function useSyncGroupStore(incomingEnvs: string[]) {
   const queryClient = useQueryClient();
+  const organization = useOrganization();
 
   const environmentsRef = useRef<string[]>(incomingEnvs);
   environmentsRef.current = incomingEnvs;
@@ -349,7 +364,11 @@ function useSyncGroupStore(incomingEnvs: string[]) {
       if (defined(storeGroup)) {
         setApiQueryData(
           queryClient,
-          makeFetchGroupQueryKey({groupId: storeGroup.id, environments}),
+          makeFetchGroupQueryKey({
+            groupId: storeGroup.id,
+            organizationSlug: organization.slug,
+            environments,
+          }),
           storeGroup
         );
       }
@@ -393,11 +412,14 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
     isError: isGroupError,
     error: groupError,
     refetch: refetchGroupCall,
-  } = useApiQuery<Group>(makeFetchGroupQueryKey({groupId, environments}), {
-    staleTime: 30000,
-    cacheTime: 30000,
-    retry: false,
-  });
+  } = useApiQuery<Group>(
+    makeFetchGroupQueryKey({organizationSlug: organization.slug, groupId, environments}),
+    {
+      staleTime: 30000,
+      cacheTime: 30000,
+      retry: false,
+    }
+  );
 
   const group = groupData ?? null;
 
@@ -502,11 +524,7 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
   }, [isGroupError, groupError, handleError]);
 
   const refetchGroup = useCallback(() => {
-    if (
-      group?.status !== ReprocessingStatus.REPROCESSING ||
-      loadingGroup ||
-      loadingEvent
-    ) {
+    if (group?.status !== GroupStatus.REPROCESSING || loadingGroup || loadingEvent) {
       return;
     }
 
@@ -553,6 +571,25 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
   };
 }
 
+function useLoadedEventType() {
+  const organization = useOrganization();
+  const params = useParams<{eventId?: string}>();
+  const defaultIssueEvent = useDefaultIssueEvent();
+  const hasMostHelpfulEventFeature = organization.features.includes(
+    'issue-details-most-helpful-event'
+  );
+
+  switch (params.eventId) {
+    case undefined:
+      return hasMostHelpfulEventFeature ? defaultIssueEvent : 'latest';
+    case 'latest':
+    case 'oldest':
+      return params.eventId;
+    default:
+      return 'event_id';
+  }
+}
+
 function useTrackView({
   group,
   event,
@@ -567,6 +604,7 @@ function useTrackView({
   const location = useLocation();
   const {alert_date, alert_rule_id, alert_type, ref_fallback, stream_index, query} =
     location.query;
+  const groupEventType = useLoadedEventType();
 
   useRouteAnalyticsEventNames('issue_details.viewed', 'Issue Details: Viewed');
   useRouteAnalyticsParams({
@@ -582,6 +620,7 @@ function useTrackView({
     alert_rule_id: typeof alert_rule_id === 'string' ? alert_rule_id : undefined,
     alert_type: typeof alert_type === 'string' ? alert_type : undefined,
     ref_fallback,
+    group_event_type: groupEventType,
     // Will be updated by StacktraceLink if there is a stacktrace link
     stacktrace_link_viewed: false,
     // Will be updated by IssueQuickTrace if there is a trace
@@ -685,21 +724,6 @@ function GroupDetailsContent({
 
   useTrackView({group, event, project, tab: currentTab});
 
-  useEffect(() => {
-    if (
-      currentTab === Tab.DETAILS &&
-      group &&
-      event &&
-      group.id !== event?.groupID &&
-      !eventError
-    ) {
-      // if user pastes only the event id into the url, but it's from another group, redirect to correct group/event
-      const redirectUrl = `/organizations/${organization.slug}/issues/${event.groupID}/events/${event.id}/`;
-
-      router.push(normalizeUrl(redirectUrl));
-    }
-  }, [currentTab, event, eventError, group, organization.slug, router]);
-
   const childProps = {
     environments,
     group,
@@ -753,6 +777,7 @@ function GroupDetailsPageContent(props: GroupDetailsProps & FetchGroupDetailsSta
           projectId: props.group?.project.id,
           availableProjects: projectIds,
         });
+        scope.setFingerprint(['group-details-project-not-found']);
         Sentry.captureException(new Error('Project not found'));
       });
     }
@@ -794,6 +819,7 @@ function GroupDetails(props: GroupDetailsProps) {
   const {data} = useFetchIssueTagsForDetailsPage(
     {
       groupId: router.params.groupId,
+      orgSlug: organization.slug,
       environment: environments,
     },
     // Don't want this query to take precedence over the main requests

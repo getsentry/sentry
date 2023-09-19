@@ -359,9 +359,9 @@ const appConfig: Configuration = {
               configOverwrite: {
                 compilerOptions: {incremental: true},
               },
-              memoryLimit: 3072,
             },
             devServer: false,
+            // memorylimit is configured in package.json
           }),
         ]
       : []),
@@ -523,8 +523,6 @@ if (
 
   appConfig.devServer = {
     headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Credentials': 'true',
       'Document-Policy': 'js-profiling',
     },
     // Cover the various environments we use (vercel, getsentry-dev, localhost)
@@ -566,7 +564,10 @@ if (
       // with the configuration api.Client uses.
       const controlSiloAddress = `http://127.0.0.1:${CONTROL_SILO_PORT}`;
       controlSiloProxy = {
+        '/auth/**': controlSiloAddress,
+        '/account/**': controlSiloAddress,
         '/api/0/users/**': controlSiloAddress,
+        '/api/0/api-tokens/**': controlSiloAddress,
         '/api/0/sentry-apps/**': controlSiloAddress,
         '/api/0/organizations/*/audit-logs/**': controlSiloAddress,
         '/api/0/organizations/*/broadcasts/**': controlSiloAddress,
@@ -647,6 +648,8 @@ if (IS_UI_DEV_ONLY) {
       options: httpsOptions,
     },
     headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Credentials': 'true',
       'Document-Policy': 'js-profiling',
     },
     static: {

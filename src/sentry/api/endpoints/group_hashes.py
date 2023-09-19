@@ -4,6 +4,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import eventstore
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import GroupEndpoint
 from sentry.api.paginator import GenericOffsetPaginator
@@ -16,6 +17,11 @@ from sentry.utils.snuba import raw_query
 
 @region_silo_endpoint
 class GroupHashesEndpoint(GroupEndpoint):
+    publish_status = {
+        "DELETE": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, group) -> Response:
         """
         List an Issue's Hashes
@@ -60,7 +66,8 @@ class GroupHashesEndpoint(GroupEndpoint):
             .values_list("hash", flat=True)
         )
         if not hash_list:
-            return Response()
+            # respond with an error that it's already being merged
+            return Response({"detail": "Already being unmerged"}, status=409)
 
         metrics.incr(
             "grouping.unmerge_issues",

@@ -71,18 +71,13 @@ describe('TeamSettings', function () {
         orgRole: 'owner',
       },
     });
-
-    const context = TestStubs.routerContext([
-      {
-        organization: TestStubs.Organization({
-          access: ['org:admin'],
-          features: ['org-roles-for-teams'],
-        }),
-      },
-    ]);
+    const organization = TestStubs.Organization({
+      access: ['org:admin'],
+      features: ['org-roles-for-teams'],
+    });
 
     render(<TeamSettings {...routerProps} team={team} params={{teamId: team.slug}} />, {
-      context,
+      organization,
     });
 
     // set org role
@@ -117,15 +112,10 @@ describe('TeamSettings', function () {
 
   it('needs team:admin in order to see an enabled Remove Team button', function () {
     const team = TestStubs.Team();
-
-    const context = TestStubs.routerContext([
-      {
-        organization: TestStubs.Organization({access: []}),
-      },
-    ]);
+    const organization = TestStubs.Organization({access: []});
 
     render(<TeamSettings {...routerProps} team={team} params={{teamId: team.slug}} />, {
-      context,
+      organization,
     });
 
     expect(screen.getByTestId('button-remove-team')).toBeDisabled();
@@ -133,18 +123,13 @@ describe('TeamSettings', function () {
 
   it('needs org:admin in order to set team org-role', function () {
     const team = TestStubs.Team();
-
-    const context = TestStubs.routerContext([
-      {
-        organization: TestStubs.Organization({
-          access: [],
-          features: ['org-roles-for-teams'],
-        }),
-      },
-    ]);
+    const organization = TestStubs.Organization({
+      access: [],
+      features: ['org-roles-for-teams'],
+    });
 
     render(<TeamSettings {...routerProps} team={team} params={{teamId: team.slug}} />, {
-      context,
+      organization,
     });
 
     expect(screen.getByRole('textbox', {name: 'Organization Role'})).toBeDisabled();
@@ -152,18 +137,13 @@ describe('TeamSettings', function () {
 
   it('cannot set team org-role for idp:provisioned team', function () {
     const team = TestStubs.Team({flags: {'idp:provisioned': true}});
-
-    const context = TestStubs.routerContext([
-      {
-        organization: TestStubs.Organization({
-          access: ['org:admin'],
-          features: ['org-roles-for-teams'],
-        }),
-      },
-    ]);
+    const organization = TestStubs.Organization({
+      access: ['org:admin'],
+      features: ['org-roles-for-teams'],
+    });
 
     render(<TeamSettings {...routerProps} team={team} params={{teamId: team.slug}} />, {
-      context,
+      organization,
     });
 
     expect(screen.getByRole('textbox', {name: 'Organization Role'})).toBeDisabled();

@@ -12,7 +12,7 @@ from sentry.notifications.types import (
 from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.services.hybrid_cloud.notifications.serial import serialize_notification_setting
 from sentry.silo import SiloMode
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.types.integrations import ExternalProviders
 
@@ -26,7 +26,7 @@ class TransformTestCase(TestCase):
         with assume_test_silo_mode(SiloMode.REGION):
             actor_id = get_actor_id_for_user(self.user)
         self.notification_settings = [
-            NotificationSetting(
+            NotificationSetting.objects.create(
                 provider=ExternalProviders.SLACK.value,
                 type=NotificationSettingTypes.WORKFLOW.value,
                 value=NotificationSettingOptionValues.ALWAYS.value,
@@ -35,7 +35,7 @@ class TransformTestCase(TestCase):
                 scope_type=NotificationScopeType.PROJECT.value,
                 scope_identifier=self.project.id,
             ),
-            NotificationSetting(
+            NotificationSetting.objects.create(
                 provider=ExternalProviders.SLACK.value,
                 type=NotificationSettingTypes.WORKFLOW.value,
                 value=NotificationSettingOptionValues.ALWAYS.value,

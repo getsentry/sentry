@@ -1,9 +1,21 @@
 from __future__ import annotations
 
 import logging
+import uuid
 from datetime import timedelta
 from random import randrange
-from typing import Any, Callable, Iterable, List, Mapping, MutableMapping, Sequence, Set, Tuple
+from typing import (
+    Any,
+    Callable,
+    Collection,
+    List,
+    Mapping,
+    MutableMapping,
+    Optional,
+    Sequence,
+    Set,
+    Tuple,
+)
 
 from django.core.cache import cache
 from django.utils import timezone
@@ -13,6 +25,7 @@ from sentry.eventstore.models import GroupEvent
 from sentry.models import Environment, GroupRuleStatus, Rule
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.rules import EventState, history, rules
+from sentry.rules.conditions.base import EventCondition
 from sentry.types.rules import RuleFuture
 from sentry.utils.hashlib import hash_values
 from sentry.utils.safe import safe_execute
@@ -135,7 +148,7 @@ class RuleProcessor:
             self.logger.warning("Unregistered condition %r", condition["id"])
             return None
 
-        condition_inst = condition_cls(self.project, data=condition, rule=rule)
+        condition_inst: EventCondition = condition_cls(self.project, data=condition, rule=rule)
         passes: bool = safe_execute(
             condition_inst.passes, self.event, state, _with_transaction=False
         )
@@ -165,11 +178,21 @@ class RuleProcessor:
         :param rule: `Rule` object
         :return: void
         """
+        logging_details = {
+            "rule_id": rule.id,
+            "group_id": self.group.id,
+            "event_id": self.event.event_id,
+            "project_id": self.project.id,
+            "is_new": self.is_new,
+            "is_regression": self.is_regression,
+            "has_reappeared": self.has_reappeared,
+            "new_group_environment": self.is_new_group_environment,
+        }
+
         condition_match = rule.data.get("action_match") or Rule.DEFAULT_CONDITION_MATCH
         filter_match = rule.data.get("filter_match") or Rule.DEFAULT_FILTER_MATCH
         rule_condition_list = rule.data.get("conditions", ())
         frequency = rule.data.get("frequency") or Rule.DEFAULT_FREQUENCY
-
         try:
             environment = self.event.get_environment()
         except Environment.DoesNotExist:
@@ -209,7 +232,10 @@ class RuleProcessor:
                     return
             else:
                 self.logger.error(
-                    f"Unsupported {name}_match {match!r} for rule {rule.id}", filter_match, rule.id
+                    f"Unsupported {name}_match {match!r} for rule {rule.id}",
+                    filter_match,
+                    rule.id,
+                    extra={**logging_details},
                 )
                 return
 
@@ -231,10 +257,13 @@ class RuleProcessor:
                 rule_id=rule.id,
             )
 
-        history.record(rule, self.group, self.event.event_id)
-        self.activate_downstream_actions(rule)
+        notification_uuid = str(uuid.uuid4())
+        history.record(rule, self.group, self.event.event_id, notification_uuid)
+        self.activate_downstream_actions(rule, notification_uuid)
 
-    def activate_downstream_actions(self, rule: Rule) -> None:
+    def activate_downstream_actions(
+        self, rule: Rule, notification_uuid: Optional[str] = None
+    ) -> None:
         state = self.get_state()
         for action in rule.data.get("actions", ()):
             action_cls = rules.get(action["id"])
@@ -243,8 +272,13 @@ class RuleProcessor:
                 continue
 
             action_inst = action_cls(self.project, data=action, rule=rule)
+
             results = safe_execute(
-                action_inst.after, event=self.event, state=state, _with_transaction=False
+                action_inst.after,
+                event=self.event,
+                state=state,
+                _with_transaction=False,
+                notification_uuid=notification_uuid,
             )
             if results is None:
                 self.logger.warning("Action %s did not return any futures", action["id"])
@@ -261,7 +295,7 @@ class RuleProcessor:
 
     def apply(
         self,
-    ) -> Iterable[Tuple[Callable[[GroupEvent, Sequence[RuleFuture]], None], List[RuleFuture]]]:
+    ) -> Collection[Tuple[Callable[[GroupEvent, Sequence[RuleFuture]], None], List[RuleFuture]]]:
         # we should only apply rules on unresolved issues
         if not self.event.group.is_unresolved():
             return {}.values()

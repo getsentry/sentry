@@ -1,5 +1,5 @@
 from sentry.models import Activity
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
 from sentry.utils.iterators import chunked

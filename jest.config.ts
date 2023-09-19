@@ -271,8 +271,13 @@ const config: Config.InitialOptions = {
       },
     ],
   ],
+  /**
+   * jest.clearAllMocks() automatically called before each test
+   * @link - https://jestjs.io/docs/configuration#clearmocks-boolean
+   */
+  clearMocks: true,
 
-  testEnvironment: '<rootDir>/tests/js/instrumentedEnv',
+  testEnvironment: 'jsdom',
   testEnvironmentOptions: {
     sentryConfig: {
       init: {
@@ -294,7 +299,6 @@ const config: Config.InitialOptions = {
         },
       },
     },
-    output: path.resolve(__dirname, '.artifacts', 'visual-snapshots', 'jest'),
   },
 };
 

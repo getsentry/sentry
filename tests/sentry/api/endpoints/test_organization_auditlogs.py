@@ -5,7 +5,7 @@ from rest_framework.exceptions import ErrorDetail
 
 from sentry import audit_log
 from sentry.models import AuditLogEntry
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
 

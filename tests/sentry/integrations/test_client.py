@@ -1,10 +1,12 @@
 import errno
+import os
 from unittest import mock
 
 import pytest
 import responses
 from requests import Response
 from requests.exceptions import ConnectionError, HTTPError, Timeout
+from requests.sessions import Session
 from sentry_sdk import Scope
 from sentry_sdk.consts import OP
 from sentry_sdk.tracing import Transaction
@@ -20,7 +22,7 @@ from sentry.shared_integrations.exceptions import (
 )
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.shared_integrations.response.base import BaseApiResponse
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 
 
 class ApiClientTest(TestCase):
@@ -29,6 +31,7 @@ class ApiClientTest(TestCase):
         responses.add(responses.GET, "http://example.com", json={})
 
         resp = ApiClient().get("http://example.com")
+        assert isinstance(resp, BaseApiResponse)
         assert resp.status_code == 200
 
     @responses.activate
@@ -36,6 +39,7 @@ class ApiClientTest(TestCase):
         responses.add(responses.POST, "http://example.com", json={})
 
         resp = ApiClient().post("http://example.com")
+        assert isinstance(resp, BaseApiResponse)
         assert resp.status_code == 200
 
     @responses.activate
@@ -43,6 +47,7 @@ class ApiClientTest(TestCase):
         responses.add(responses.DELETE, "http://example.com", json={})
 
         resp = ApiClient().delete("http://example.com")
+        assert isinstance(resp, BaseApiResponse)
         assert resp.status_code == 200
 
     @responses.activate
@@ -50,6 +55,7 @@ class ApiClientTest(TestCase):
         responses.add(responses.PUT, "http://example.com", json={})
 
         resp = ApiClient().put("http://example.com")
+        assert isinstance(resp, BaseApiResponse)
         assert resp.status_code == 200
 
     @responses.activate
@@ -57,6 +63,7 @@ class ApiClientTest(TestCase):
         responses.add(responses.PATCH, "http://example.com", json={})
 
         resp = ApiClient().patch("http://example.com")
+        assert isinstance(resp, BaseApiResponse)
         assert resp.status_code == 200
 
     @mock.patch("sentry.shared_integrations.client.base.cache")
@@ -131,6 +138,7 @@ class ApiClientTest(TestCase):
             responses.GET, "http://example.com/1", status=301, headers=destination_headers
         )
         resp = ApiClient().get("http://example.com/1")
+        assert isinstance(resp, BaseApiResponse)
         assert resp.status_code == destination_status
 
         # By default, non GET requests are not allowed to redirect
@@ -142,6 +150,7 @@ class ApiClientTest(TestCase):
             json={},
         )
         resp = ApiClient().delete("http://example.com/2")
+        assert isinstance(resp, BaseApiResponse)
         assert resp.status_code == 301
 
         responses.add(
@@ -152,6 +161,7 @@ class ApiClientTest(TestCase):
             json={},
         )
         resp = ApiClient().delete("http://example.com/3", allow_redirects=True)
+        assert isinstance(resp, BaseApiResponse)
         assert resp.status_code == destination_status
 
     def test_connection_error_handling(self):
@@ -254,7 +264,7 @@ class ApiClientTest(TestCase):
         with mock.patch.object(
             client, "track_response_data", wraps=client.track_response_data
         ) as track_response_data_spy:
-            chained_error = InvalidChunkLength(mock_error_response, "")
+            chained_error = InvalidChunkLength(mock_error_response, b"")
             caught_error = Exception(
                 "Connection broken: InvalidChunkLength(got length b'', 0 bytes read)"
             )
@@ -301,6 +311,49 @@ class ApiClientTest(TestCase):
                     assert (
                         mock_start_transaction.call_count == expected_call_count
                     ), f"Case {case_name} failed"
+
+    @responses.activate
+    def test_verify_ssl_handling(self):
+        """
+        Test handling of `verify_ssl` parameter when setting REQUESTS_CA_BUNDLE.
+        """
+        responses.add(responses.GET, "https://example.com", json={})
+
+        requests_ca_bundle = "/some/path/to/certs"
+
+        with mock.patch.dict(os.environ, {"REQUESTS_CA_BUNDLE": requests_ca_bundle}):
+            client = ApiClient()
+            with mock.patch(
+                "requests.sessions.Session.send", wraps=Session().send
+            ) as session_send_mock:
+                client.get("https://example.com")
+                session_send_mock.assert_called_once_with(
+                    mock.ANY,
+                    timeout=30,
+                    allow_redirects=True,
+                    proxies={},
+                    stream=False,
+                    verify=requests_ca_bundle,
+                    cert=None,
+                )
+
+    @responses.activate
+    def test_parameters_passed_correctly(self):
+        responses.add(responses.GET, "https://example.com", json={})
+        client = ApiClient(verify_ssl=False)
+        with mock.patch(
+            "requests.sessions.Session.send", wraps=Session().send
+        ) as session_send_mock:
+            client.get("https://example.com", timeout=50, allow_redirects=False)
+            session_send_mock.assert_called_once_with(
+                mock.ANY,
+                timeout=50,
+                allow_redirects=False,
+                proxies={},
+                stream=False,
+                verify=False,
+                cert=None,
+            )
 
 
 class OAuthProvider(OAuth2Provider):

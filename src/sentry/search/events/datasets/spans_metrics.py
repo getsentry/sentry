@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Callable, Mapping, Optional, Union
 
 import sentry_sdk
-from snuba_sdk import Column, Function, OrderBy
+from snuba_sdk import AliasedExpression, Column, Function, OrderBy
 
 from sentry.api.event_search import SearchFilter
 from sentry.exceptions import IncompatibleMetricsQuery
@@ -11,6 +11,7 @@ from sentry.search.events import builder, constants, fields
 from sentry.search.events.datasets import field_aliases, function_aliases
 from sentry.search.events.datasets.base import DatasetConfig
 from sentry.search.events.types import SelectType, WhereType
+from sentry.snuba.metrics.naming_layer.mri import SpanMRI
 from sentry.snuba.referrer import Referrer
 
 
@@ -139,7 +140,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                         ),
                     ],
                     calculated_args=[resolve_metric_id],
-                    snql_percentile=lambda args, alias: Function(
+                    snql_distribution=lambda args, alias: Function(
                         "avgIf",
                         [
                             Column("value"),
@@ -147,6 +148,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                         ],
                         alias,
                     ),
+                    is_percentile=True,
                     result_type_fn=self.reflective_result_type(),
                     default_result_type="duration",
                 ),
@@ -162,7 +164,8 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                         fields.NumberRange("percentile", 0, 1),
                     ],
                     calculated_args=[resolve_metric_id],
-                    snql_percentile=function_aliases.resolve_metrics_percentile,
+                    snql_distribution=function_aliases.resolve_metrics_percentile,
+                    is_percentile=True,
                     result_type_fn=self.reflective_result_type(),
                     default_result_type="duration",
                 ),
@@ -179,9 +182,10 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                         ),
                     ],
                     calculated_args=[resolve_metric_id],
-                    snql_percentile=lambda args, alias: function_aliases.resolve_metrics_percentile(
+                    snql_distribution=lambda args, alias: function_aliases.resolve_metrics_percentile(
                         args=args, alias=alias, fixed_percentile=0.50
                     ),
+                    is_percentile=True,
                     default_result_type="duration",
                 ),
                 fields.MetricsFunction(
@@ -197,9 +201,10 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                         ),
                     ],
                     calculated_args=[resolve_metric_id],
-                    snql_percentile=lambda args, alias: function_aliases.resolve_metrics_percentile(
+                    snql_distribution=lambda args, alias: function_aliases.resolve_metrics_percentile(
                         args=args, alias=alias, fixed_percentile=0.75
                     ),
+                    is_percentile=True,
                     default_result_type="duration",
                 ),
                 fields.MetricsFunction(
@@ -215,9 +220,10 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                         ),
                     ],
                     calculated_args=[resolve_metric_id],
-                    snql_percentile=lambda args, alias: function_aliases.resolve_metrics_percentile(
+                    snql_distribution=lambda args, alias: function_aliases.resolve_metrics_percentile(
                         args=args, alias=alias, fixed_percentile=0.95
                     ),
+                    is_percentile=True,
                     default_result_type="duration",
                 ),
                 fields.MetricsFunction(
@@ -233,9 +239,10 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                         ),
                     ],
                     calculated_args=[resolve_metric_id],
-                    snql_percentile=lambda args, alias: function_aliases.resolve_metrics_percentile(
+                    snql_distribution=lambda args, alias: function_aliases.resolve_metrics_percentile(
                         args=args, alias=alias, fixed_percentile=0.99
                     ),
+                    is_percentile=True,
                     default_result_type="duration",
                 ),
                 fields.MetricsFunction(
@@ -251,9 +258,10 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                         ),
                     ],
                     calculated_args=[resolve_metric_id],
-                    snql_percentile=lambda args, alias: function_aliases.resolve_metrics_percentile(
+                    snql_distribution=lambda args, alias: function_aliases.resolve_metrics_percentile(
                         args=args, alias=alias, fixed_percentile=1
                     ),
+                    is_percentile=True,
                     default_result_type="duration",
                 ),
                 fields.MetricsFunction(
@@ -268,7 +276,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                 ),
                 fields.MetricsFunction(
                     "http_error_rate",
-                    snql_distribution=lambda args, alias: self.builder.resolve_division(
+                    snql_distribution=lambda args, alias: function_aliases.resolve_division(
                         self._resolve_http_error_count(args),
                         Function(
                             "countIf",
@@ -293,63 +301,31 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     default_result_type="integer",
                 ),
                 fields.MetricsFunction(
-                    "percentile_range",
+                    "avg_compare",
                     required_args=[
                         fields.MetricArg(
                             "column",
                             allowed_columns=constants.SPAN_METRIC_DURATION_COLUMNS,
                             allow_custom_measurements=False,
                         ),
-                        fields.NumberRange("percentile", 0, 1),
-                        fields.ConditionArg("condition"),
-                        fields.SnQLDateArg("middle"),
+                        fields.MetricArg(
+                            "comparison_column",
+                            allowed_columns=["release"],
+                        ),
+                        fields.SnQLStringArg(
+                            "first_value", unquote=True, unescape_quotes=True, optional_unquote=True
+                        ),
+                        fields.SnQLStringArg(
+                            "second_value",
+                            unquote=True,
+                            unescape_quotes=True,
+                            optional_unquote=True,
+                        ),
                     ],
                     calculated_args=[resolve_metric_id],
-                    snql_percentile=lambda args, alias: function_aliases.resolve_metrics_percentile(
-                        args=args,
-                        alias=alias,
-                        fixed_percentile=args["percentile"],
-                        extra_conditions=[
-                            Function(
-                                args["condition"],
-                                [
-                                    Function("toDateTime", [args["middle"]]),
-                                    self.builder.column("timestamp"),
-                                ],
-                            ),
-                        ],
+                    snql_distribution=lambda args, alias: function_aliases.resolve_avg_compare(
+                        self.builder.column, args, alias
                     ),
-                    default_result_type="duration",
-                ),
-                fields.MetricsFunction(
-                    "percentile_percent_change",
-                    required_args=[
-                        fields.MetricArg(
-                            "column",
-                            allowed_columns=constants.SPAN_METRIC_DURATION_COLUMNS,
-                            allow_custom_measurements=False,
-                        ),
-                        fields.NumberRange("percentile", 0, 1),
-                    ],
-                    calculated_args=[resolve_metric_id],
-                    snql_percentile=self._resolve_percentile_percent_change,
-                    default_result_type="percent_change",
-                ),
-                fields.MetricsFunction(
-                    "http_error_count_percent_change",
-                    snql_distribution=self._resolve_http_error_count_percent_change,
-                    default_result_type="percent_change",
-                ),
-                fields.MetricsFunction(
-                    "epm_percent_change",
-                    snql_distribution=self._resolve_epm_percent_change,
-                    optional_args=[fields.IntervalDefault("interval", 1, None)],
-                    default_result_type="percent_change",
-                ),
-                fields.MetricsFunction(
-                    "eps_percent_change",
-                    snql_distribution=self._resolve_eps_percent_change,
-                    optional_args=[fields.IntervalDefault("interval", 1, None)],
                     default_result_type="percent_change",
                 ),
             ]
@@ -423,7 +399,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
         )
         metric_id = self.resolve_metric("span.self_time")
 
-        return self.builder.resolve_division(
+        return function_aliases.resolve_division(
             Function(
                 "sumIf",
                 [
@@ -526,62 +502,6 @@ class SpansMetricsDatasetConfig(DatasetConfig):
             alias,
         )
 
-    def _resolve_http_error_count_percent_change(
-        self,
-        _: Mapping[str, Union[str, Column, SelectType, int, float]],
-        alias: Optional[str] = None,
-    ) -> SelectType:
-        first_half = self._resolve_http_error_count({}, None, self.builder.first_half_condition())
-        second_half = self._resolve_http_error_count({}, None, self.builder.second_half_condition())
-        return self._resolve_percent_change_function(first_half, second_half, alias)
-
-    def _resolve_percentile_percent_change(
-        self,
-        args: Mapping[str, Union[str, Column, SelectType, int, float]],
-        alias: Optional[str] = None,
-    ) -> SelectType:
-        first_half = function_aliases.resolve_metrics_percentile(
-            args=args,
-            alias=None,
-            fixed_percentile=args["percentile"],
-            extra_conditions=[self.builder.first_half_condition()],
-        )
-        second_half = function_aliases.resolve_metrics_percentile(
-            args=args,
-            alias=None,
-            fixed_percentile=args["percentile"],
-            extra_conditions=[self.builder.second_half_condition()],
-        )
-        return self._resolve_percent_change_function(first_half, second_half, alias)
-
-    def _resolve_epm_percent_change(
-        self,
-        args: Mapping[str, Union[str, Column, SelectType, int, float]],
-        alias: Optional[str] = None,
-    ) -> SelectType:
-        first_half = self._resolve_epm(args, None, self.builder.first_half_condition())
-        second_half = self._resolve_epm(args, None, self.builder.second_half_condition())
-        return self._resolve_percent_change_function(first_half, second_half, alias)
-
-    def _resolve_eps_percent_change(
-        self,
-        args: Mapping[str, Union[str, Column, SelectType, int, float]],
-        alias: Optional[str] = None,
-    ) -> SelectType:
-        first_half = self._resolve_eps(args, None, self.builder.first_half_condition())
-        second_half = self._resolve_eps(args, None, self.builder.second_half_condition())
-        return self._resolve_percent_change_function(first_half, second_half, alias)
-
-    def _resolve_percent_change_function(self, first_half, second_half, alias):
-        return self.builder.resolve_division(
-            Function(
-                "minus",
-                [second_half, first_half],
-            ),
-            first_half,
-            alias,
-        )
-
     @property
     def orderby_converter(self) -> Mapping[str, OrderBy]:
         return {}
@@ -595,6 +515,8 @@ class SpansMetricsLayerDatasetConfig(DatasetConfig):
         self.total_span_duration: Optional[float] = None
 
     def resolve_mri(self, value) -> Column:
+        """Given the public facing column name resolve it to the MRI and return a Column"""
+        # If the query builder has not detected a transaction use the light self time metric to get a performance boost
         if value == "span.self_time" and not self.builder.has_transaction:
             return Column(constants.SELF_TIME_LIGHT)
         else:
@@ -608,7 +530,11 @@ class SpansMetricsLayerDatasetConfig(DatasetConfig):
 
     @property
     def field_alias_converter(self) -> Mapping[str, Callable[[str], SelectType]]:
-        return {constants.SPAN_MODULE_ALIAS: self._resolve_span_module}
+        return {
+            constants.SPAN_MODULE_ALIAS: lambda alias: field_aliases.resolve_span_module(
+                self.builder, alias
+            )
+        }
 
     @property
     def function_converter(self) -> Mapping[str, fields.MetricsFunction]:
@@ -722,7 +648,11 @@ class SpansMetricsLayerDatasetConfig(DatasetConfig):
                         ),
                         fields.NumberRange("percentile", 0, 1),
                     ],
-                    snql_metric_layer=self._resolve_percentile,
+                    snql_metric_layer=lambda args, alias: function_aliases.resolve_metrics_layer_percentile(
+                        args,
+                        alias,
+                        self.resolve_mri,
+                    ),
                     result_type_fn=self.reflective_result_type(),
                     default_result_type="duration",
                 ),
@@ -738,8 +668,8 @@ class SpansMetricsLayerDatasetConfig(DatasetConfig):
                             ),
                         ),
                     ],
-                    snql_metric_layer=lambda args, alias: self._resolve_percentile(
-                        args=args, alias=alias, fixed_percentile=0.50
+                    snql_metric_layer=lambda args, alias: function_aliases.resolve_metrics_layer_percentile(
+                        args=args, alias=alias, resolve_mri=self.resolve_mri, fixed_percentile=0.50
                     ),
                     default_result_type="duration",
                 ),
@@ -755,8 +685,8 @@ class SpansMetricsLayerDatasetConfig(DatasetConfig):
                             ),
                         ),
                     ],
-                    snql_metric_layer=lambda args, alias: self._resolve_percentile(
-                        args=args, alias=alias, fixed_percentile=0.75
+                    snql_metric_layer=lambda args, alias: function_aliases.resolve_metrics_layer_percentile(
+                        args=args, alias=alias, resolve_mri=self.resolve_mri, fixed_percentile=0.75
                     ),
                     default_result_type="duration",
                 ),
@@ -772,8 +702,8 @@ class SpansMetricsLayerDatasetConfig(DatasetConfig):
                             ),
                         ),
                     ],
-                    snql_metric_layer=lambda args, alias: self._resolve_percentile(
-                        args=args, alias=alias, fixed_percentile=0.95
+                    snql_metric_layer=lambda args, alias: function_aliases.resolve_metrics_layer_percentile(
+                        args=args, alias=alias, resolve_mri=self.resolve_mri, fixed_percentile=0.95
                     ),
                     default_result_type="duration",
                 ),
@@ -789,8 +719,8 @@ class SpansMetricsLayerDatasetConfig(DatasetConfig):
                             ),
                         ),
                     ],
-                    snql_metric_layer=lambda args, alias: self._resolve_percentile(
-                        args=args, alias=alias, fixed_percentile=0.99
+                    snql_metric_layer=lambda args, alias: function_aliases.resolve_metrics_layer_percentile(
+                        args=args, alias=alias, resolve_mri=self.resolve_mri, fixed_percentile=0.99
                     ),
                     default_result_type="duration",
                 ),
@@ -806,10 +736,34 @@ class SpansMetricsLayerDatasetConfig(DatasetConfig):
                             ),
                         ),
                     ],
-                    snql_metric_layer=lambda args, alias: self._resolve_percentile(
-                        args=args, alias=alias, fixed_percentile=1
+                    snql_metric_layer=lambda args, alias: function_aliases.resolve_metrics_layer_percentile(
+                        args=args, alias=alias, resolve_mri=self.resolve_mri, fixed_percentile=1.0
                     ),
                     default_result_type="duration",
+                ),
+                fields.MetricsFunction(
+                    "http_error_count",
+                    snql_metric_layer=lambda args, alias: AliasedExpression(
+                        Column(
+                            SpanMRI.HTTP_ERROR_COUNT_LIGHT.value
+                            if not self.builder.has_transaction
+                            else SpanMRI.HTTP_ERROR_COUNT.value
+                        ),
+                        alias,
+                    ),
+                    default_result_type="integer",
+                ),
+                fields.MetricsFunction(
+                    "http_error_rate",
+                    snql_metric_layer=lambda args, alias: AliasedExpression(
+                        Column(
+                            SpanMRI.HTTP_ERROR_RATE_LIGHT.value
+                            if not self.builder.has_transaction
+                            else SpanMRI.HTTP_ERROR_RATE.value
+                        ),
+                        alias,
+                    ),
+                    default_result_type="percentage",
                 ),
             ]
         }
@@ -823,36 +777,3 @@ class SpansMetricsLayerDatasetConfig(DatasetConfig):
     @property
     def orderby_converter(self) -> Mapping[str, OrderBy]:
         return {}
-
-    def _resolve_span_module(self, alias: str) -> SelectType:
-        return field_aliases.resolve_span_module(self.builder, alias)
-
-    # Query Functions
-    def _resolve_percentile(
-        self,
-        args: Mapping[str, Union[str, Column, SelectType, int, float]],
-        alias: str,
-        fixed_percentile: Optional[float] = None,
-    ) -> SelectType:
-        if fixed_percentile is None:
-            fixed_percentile = args["percentile"]
-        if fixed_percentile not in constants.METRIC_PERCENTILES:
-            raise IncompatibleMetricsQuery("Custom quantile incompatible with metrics")
-        column = self.resolve_mri(args["column"])
-        return (
-            Function(
-                "max",
-                [
-                    column,
-                ],
-                alias,
-            )
-            if fixed_percentile == 1
-            else Function(
-                f"p{int(fixed_percentile * 100)}",
-                [
-                    column,
-                ],
-                alias,
-            )
-        )

@@ -1,5 +1,7 @@
 from typing import Collection, Dict, Mapping, Optional, Set
 
+from django.conf import settings
+
 from sentry.sentry_metrics.indexer.base import (
     FetchType,
     OrgId,
@@ -150,9 +152,14 @@ SHARED_TAG_STRINGS = {
     "span.group": PREFIX + 252,
     "transaction.method": PREFIX + 253,
     "span.category": PREFIX + 254,
+    "span.main_thread": PREFIX + 255,
+    "device.class": PREFIX + 256,
     # More Transactions
     "has_profile": PREFIX + 260,
     "query_hash": PREFIX + 261,
+    "failure": PREFIX + 262,
+    # Escalating Issues
+    "group": PREFIX + 263,
     # GENERAL/MISC (don't have a category)
     "": PREFIX + 1000,
 }
@@ -168,12 +175,20 @@ SPAN_METRICS_NAMES = {
     "d:spans/duration@millisecond": PREFIX + 404,
     "d:spans/exclusive_time@millisecond": PREFIX + 405,
     "d:spans/exclusive_time_light@millisecond": PREFIX + 406,
+    "d:spans/frames_frozen@none": PREFIX + 407,
+    "d:spans/frames_slow@none": PREFIX + 408,
+}
+
+# 500-599
+ESCALATING_ISSUES_METRIC_NAMES = {
+    "c:escalating_issues/event_ingested@none": PREFIX + 500,
 }
 
 SHARED_STRINGS = {
     **SESSION_METRIC_NAMES,
     **TRANSACTION_METRICS_NAMES,
     **SPAN_METRICS_NAMES,
+    **ESCALATING_ISSUES_METRIC_NAMES,
     **SHARED_TAG_STRINGS,
 }
 REVERSE_SHARED_STRINGS = {v: k for k, v in SHARED_STRINGS.items()}
@@ -231,7 +246,16 @@ class StaticStringIndexer(StringIndexer):
     def reverse_resolve(self, use_case_id: UseCaseID, org_id: int, id: int) -> Optional[str]:
         if id in REVERSE_SHARED_STRINGS:
             return REVERSE_SHARED_STRINGS[id]
-        return self.indexer.reverse_resolve(use_case_id, org_id, id)
+
+        resolved_id = self.indexer.reverse_resolve(use_case_id, org_id, id)
+        if resolved_id is None:
+            # HACK: if a string gets re-indexed we need to have some way to look
+            # up the old id and we do it this way because the table has a unique
+            # constraint on the org_id and the string.
+            reindexed_ints = settings.SENTRY_METRICS_INDEXER_REINDEXED_INTS
+            if id in reindexed_ints:
+                return reindexed_ints[id]
+        return resolved_id
 
     def bulk_reverse_resolve(
         self, use_case_id: UseCaseID, org_id: int, ids: Collection[int]

@@ -3,6 +3,7 @@ import datetime
 import time
 
 from sentry import options
+from sentry.services.hybrid_cloud.integration.model import RpcIntegration
 from sentry.utils import jwt
 from sentry_plugins.client import ApiClient, AuthApiClient
 
@@ -77,7 +78,7 @@ class GithubPluginClient(GithubPluginClientMixin, AuthApiClient):
 
 
 class GithubPluginAppsClient(GithubPluginClientMixin, ApiClient):
-    def __init__(self, integration):
+    def __init__(self, integration: RpcIntegration):
         self.integration = integration
         self.token = None
         self.expires_at = None

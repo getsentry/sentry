@@ -5,13 +5,16 @@ from unittest import TestCase
 
 import pytest
 
-from sentry.utils.locking.backends import LockBackend
-from sentry.utils.locking.backends.redis import RedisClusterLockBackend, RedisLockBackend
+from sentry.utils.locking.backends.redis import (
+    BaseRedisLockBackend,
+    RedisClusterLockBackend,
+    RedisLockBackend,
+)
 from sentry.utils.redis import clusters, redis_clusters
 
 
 class RedisBackendTestCaseBase:
-    backend_class: type[LockBackend]
+    backend_class: type[BaseRedisLockBackend]
 
     @property
     def cluster(self):

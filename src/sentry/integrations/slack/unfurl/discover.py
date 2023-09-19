@@ -37,7 +37,6 @@ display_modes: Mapping[str, ChartType] = {
     "top5line": ChartType.SLACK_DISCOVER_TOP5_PERIOD_LINE,
     "dailytop5": ChartType.SLACK_DISCOVER_TOP5_DAILY,
     "previous": ChartType.SLACK_DISCOVER_PREVIOUS_PERIOD,
-    "worldmap": ChartType.SLACK_DISCOVER_WORLDMAP,
     "bar": ChartType.SLACK_DISCOVER_TOTAL_DAILY,
 }
 
@@ -102,10 +101,10 @@ def is_aggregate(field: str) -> bool:
 
 
 def unfurl_discover(
-    data: HttpRequest,
+    request: HttpRequest,
     integration: Integration,
     links: list[UnfurlableUrl],
-    user: User | None,
+    user: User | None = None,
 ) -> UnfurledUrl:
     org_integrations = integration_service.get_organization_integrations(
         integration_id=integration.id
@@ -149,7 +148,7 @@ def unfurl_discover(
         params.setlist(
             "order",
             params.getlist("sort")
-            or (to_list(saved_query.get("orderby")) if saved_query.get("orderby") else []),
+            or (to_list(saved_query["orderby"]) if saved_query.get("orderby") else []),
         )
         params.setlist("name", params.getlist("name") or to_list(saved_query.get("name")))
 
@@ -233,10 +232,6 @@ def unfurl_discover(
                 params.setlist("statsPeriod", [stats_period])
 
         endpoint = "events-stats/"
-        if "worldmap" in display_mode:
-            endpoint = "events-geo/"
-            params.setlist("field", params.getlist("yAxis"))
-            params.pop("sort", None)
 
         try:
             resp = client.get(
@@ -306,7 +301,7 @@ customer_domain_discover_link_regex = re.compile(
     r"^https?\://(?P<org_slug>[^.]+?)\.(?#url_prefix)[^/]+/discover/(results|homepage)"
 )
 
-handler: Handler = Handler(
+handler = Handler(
     fn=unfurl_discover,
     matcher=[discover_link_regex, customer_domain_discover_link_regex],
     arg_mapper=map_discover_query_args,

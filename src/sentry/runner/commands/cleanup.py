@@ -1,16 +1,19 @@
+from __future__ import annotations
+
 import os
 import time
 from datetime import timedelta
+from multiprocessing import JoinableQueue as Queue
+from multiprocessing import Process
+from typing import Final, Literal
 from uuid import uuid4
 
 import click
+from django.conf import settings
 from django.utils import timezone
+from typing_extensions import TypeAlias
 
 from sentry.runner.decorators import log_options
-
-# allows services like tagstore to add their own (abstracted) models
-# to cleanup
-EXTRA_BULK_QUERY_DELETES = []
 
 
 def get_project(value):
@@ -30,12 +33,15 @@ def get_project(value):
 # We need a unique value to indicate when to stop multiprocessing queue
 # an identity on an object() isn't guaranteed to work between parent
 # and child proc
-_STOP_WORKER = "91650ec271ae4b3e8a67cdc909d80f8c"
+_STOP_WORKER: Final = "91650ec271ae4b3e8a67cdc909d80f8c"
+_WorkQueue: TypeAlias = (
+    "Queue[Literal['91650ec271ae4b3e8a67cdc909d80f8c'] | tuple[str, tuple[int, ...]]]"
+)
 
 API_TOKEN_TTL_IN_DAYS = 30
 
 
-def multiprocess_worker(task_queue):
+def multiprocess_worker(task_queue: _WorkQueue) -> None:
     # Configure within each Process
     import logging
 
@@ -45,7 +51,6 @@ def multiprocess_worker(task_queue):
 
     configured = False
     skip_models = []
-    deletions = None
 
     while True:
         j = task_queue.get()
@@ -71,7 +76,7 @@ def multiprocess_worker(task_queue):
                 models.GroupRuleStatus,
                 # Handled by TTL
                 similarity,
-            ] + [b[0] for b in EXTRA_BULK_QUERY_DELETES]
+            ]
 
         model, chunk = j
         model = import_string(model)
@@ -133,11 +138,9 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
 
     # Make sure we fork off multiprocessing pool
     # before we import or configure the app
-    from multiprocessing import JoinableQueue as Queue
-    from multiprocessing import Process
 
     pool = []
-    task_queue = Queue(1000)
+    task_queue: _WorkQueue = Queue(1000)
     for _ in range(concurrency):
         p = Process(target=multiprocess_worker, args=(task_queue,))
         p.daemon = True
@@ -149,15 +152,16 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
 
         configure()
 
+        from django.apps import apps
         from django.db import router as db_router
 
         from sentry import models, nodestore
         from sentry.constants import ObjectStatus
         from sentry.data_export.models import ExportedData
         from sentry.db.deletion import BulkDeleteQuery
+        from sentry.models.rulefirehistory import RuleFireHistory
         from sentry.monitors import models as monitor_models
         from sentry.replays import models as replay_models
-        from sentry.sentry_metrics.indexer.postgres import models as metrics_indexer_models
         from sentry.utils import metrics
         from sentry.utils.query import RangeQuerySetWrapper
 
@@ -177,15 +181,19 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
 
         # Deletions that use `BulkDeleteQuery` (and don't need to worry about child relations)
         # (model, datetime_field, order_by)
+        additional_bulk_query_deletes = []
+        for entry in settings.ADDITIONAL_BULK_QUERY_DELETES:
+            app_name, model_name = entry[0].split(".")
+            model = apps.get_model(app_name, model_name)
+            additional_bulk_query_deletes.append((model, entry[1], entry[2]))
+
         BULK_QUERY_DELETES = [
             (models.UserReport, "date_added", None),
             (models.GroupEmailThread, "date", None),
             (models.GroupRuleStatus, "date_added", None),
-            (models.RuleFireHistory, "date_added", None),
+            (RuleFireHistory, "date_added", None),
             (monitor_models.MonitorCheckIn, "date_added", None),
-            (metrics_indexer_models.StringIndexer, "last_seen", None),
-            (metrics_indexer_models.PerfStringIndexer, "last_seen", None),
-        ] + EXTRA_BULK_QUERY_DELETES
+        ] + additional_bulk_query_deletes
 
         # Deletions that use the `deletions` code path (which handles their child relations)
         # (model, datetime_field, order_by)
@@ -201,6 +209,7 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
             # used this index instead of a more appropriate one. This was causing a lot of postgres
             # load, so we had to remove it.
             (models.Group, "last_seen", "last_seen"),
+            (models.ProjectDebugFile, "date_accessed", "date_accessed"),
         ]
 
         if not silent:
@@ -261,8 +270,6 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
             click.echo("Bulk NodeStore deletion not available for project selection", err=True)
             project_id = get_project(project)
             # These models span across projects, so let's skip them
-            BULK_QUERY_DELETES.remove((metrics_indexer_models.StringIndexer, "last_seen", None))
-            BULK_QUERY_DELETES.remove((metrics_indexer_models.PerfStringIndexer, "last_seen", None))
             DELETES.remove((models.ArtifactBundle, "date_added", "date_added"))
             if project_id is None:
                 click.echo("Error: Project not found", err=True)
@@ -273,16 +280,12 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
 
             cutoff = timezone.now() - timedelta(days=days)
             try:
-                nodestore.cleanup(cutoff)
+                nodestore.backend.cleanup(cutoff)
             except NotImplementedError:
                 click.echo("NodeStore backend does not support cleanup operation", err=True)
 
-        for bqd in BULK_QUERY_DELETES:
-            if len(bqd) == 4:
-                model, dtfield, order_by, chunk_size = bqd
-            else:
-                chunk_size = 10000
-                model, dtfield, order_by = bqd
+        for model, dtfield, order_by in BULK_QUERY_DELETES:
+            chunk_size = 10000
 
             if not silent:
                 click.echo(

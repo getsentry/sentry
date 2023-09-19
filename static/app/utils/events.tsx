@@ -395,8 +395,8 @@ function getNumberOfThreadsWithNames(event: Event) {
 
 export function eventHasExceptionGroup(event: Event) {
   const exceptionEntries = getExceptionEntries(event);
-  return exceptionEntries.some(entry =>
-    entry.data.values?.some(({mechanism}) => mechanism?.is_exception_group)
+  return exceptionEntries.some(
+    entry => entry.data.values?.some(({mechanism}) => mechanism?.is_exception_group)
   );
 }
 
@@ -479,7 +479,7 @@ export type CommonGroupAnalyticsData = {
   is_assigned?: boolean;
   issue_level?: string;
   issue_status?: string;
-  issue_substatus?: string;
+  issue_substatus?: string | null;
 };
 
 export function getAnalyticsDataForGroup(group?: Group | null): CommonGroupAnalyticsData {

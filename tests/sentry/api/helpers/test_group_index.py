@@ -28,7 +28,7 @@ from sentry.models import (
 )
 from sentry.models.actor import ActorTuple
 from sentry.models.groupassignee import GroupAssignee
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus

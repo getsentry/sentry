@@ -7,7 +7,7 @@ from sentry.api.serializers import serialize
 from sentry.models import ExternalActor, Integration
 from sentry.models.actor import Actor, get_actor_id_for_user
 from sentry.silo import SiloMode
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.types.integrations import ExternalProviders, get_provider_name
 
@@ -39,7 +39,7 @@ class ExternalActorSerializerTest(TestCase):
 
     def test_user(self):
         external_actor, _ = ExternalActor.objects.get_or_create(
-            actor_id=get_actor_id_for_user(self.user),
+            user_id=self.user.id,
             organization=self.organization,
             integration_id=self.integration.id,
             provider=ExternalProviders.SLACK.value,
@@ -59,7 +59,7 @@ class ExternalActorSerializerTest(TestCase):
         team = self.create_team(organization=self.organization, members=[self.user])
 
         external_actor, _ = ExternalActor.objects.get_or_create(
-            actor_id=team.actor_id,
+            team_id=team.id,
             organization=self.organization,
             integration_id=self.integration.id,
             provider=ExternalProviders.SLACK.value,

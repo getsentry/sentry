@@ -3,10 +3,12 @@ from __future__ import annotations
 from typing import Any, Iterable, List, Mapping, Optional, Set, Union, cast
 
 from django.db import IntegrityError, models, router, transaction
+from django.db.models.expressions import F
 from django.dispatch import Signal
 
 from sentry import roles
 from sentry.api.serializers import serialize
+from sentry.db.postgres.transactions import enforce_constraints
 from sentry.models import (
     Activity,
     ControlOutbox,
@@ -290,7 +292,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
 
         with outbox_context(transaction.atomic(router.db_for_write(Organization))):
             Organization.objects.filter(id=organization_id).update(flags=updates)
-            Organization.outbox_for_update(org_id=organization_id).save()
+            Organization(id=organization_id).outbox_for_update().save()
 
     @staticmethod
     def _deserialize_member_flags(flags: RpcOrganizationMemberFlags) -> int:
@@ -366,12 +368,12 @@ class DatabaseBackedOrganizationService(OrganizationService):
 
     def get_all_org_roles(
         self,
-        organization_member: Optional[RpcOrganizationMember] = None,
-        member_id: Optional[int] = None,
+        *,
+        organization_id: int,
+        member_id: int,
     ) -> List[str]:
-        if member_id:
-            member = OrganizationMember.objects.get(id=member_id)
-            organization_member = serialize_member(member)
+        member = OrganizationMember.objects.get(id=member_id)
+        organization_member = serialize_member(member)
 
         org_roles: List[str] = []
         if organization_member:
@@ -449,7 +451,9 @@ class DatabaseBackedOrganizationService(OrganizationService):
 
         for team in from_member.teams.all():
             try:
-                with transaction.atomic(router.db_for_write(OrganizationMemberTeam)):
+                with enforce_constraints(
+                    transaction.atomic(router.db_for_write(OrganizationMemberTeam))
+                ):
                     OrganizationMemberTeam.objects.create(organizationmember=to_member, team=team)
             except IntegrityError:
                 pass
@@ -468,7 +472,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
                 user_id=from_user_id, project__organization_id=organization_id
             ):
                 try:
-                    with transaction.atomic(router.db_for_write(model)):
+                    with enforce_constraints(transaction.atomic(router.db_for_write(model))):
                         obj.update(user_id=to_user_id)
                 except IntegrityError:
                     pass
@@ -508,6 +512,27 @@ class DatabaseBackedOrganizationService(OrganizationService):
     def delete_option(self, *, organization_id: int, key: str) -> None:
         orm_organization = Organization.objects.get_from_cache(id=organization_id)
         orm_organization.delete_option(key)
+
+    def send_sso_link_emails(
+        self, *, organization_id: int, sending_user_email: str, provider_key: str
+    ) -> None:
+        from sentry.auth import manager
+        from sentry.auth.exceptions import ProviderNotRegistered
+
+        try:
+            provider = manager.get(provider_key)
+        except ProviderNotRegistered as e:
+            logger.warning("Could not send SSO link emails: %s", e)
+            return
+
+        member_list = OrganizationMember.objects.filter(
+            organization_id=organization_id,
+            flags=F("flags").bitand(~OrganizationMember.flags["sso:linked"]),
+        ).select_related("organization")
+
+        provider = manager.get(provider_key)
+        for member in member_list:
+            member.send_sso_link_email(sending_user_email, provider)
 
     def send_signal(
         self,

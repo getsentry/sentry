@@ -1,20 +1,19 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from unittest.mock import patch
 
 import pytest
-import pytz
-from django.utils import timezone
+from django.utils import timezone as django_timezone
 
 from fixtures.page_objects.issue_details import IssueDetailsPage
 from fixtures.page_objects.issue_list import IssueListPage
-from sentry.testutils import AcceptanceTestCase, SnubaTestCase
+from sentry.testutils.cases import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import no_silo_test
 
-event_time = before_now(days=3).replace(tzinfo=pytz.utc)
+event_time = before_now(days=3).replace(tzinfo=timezone.utc)
 
 
-@region_silo_test
+@no_silo_test(stable=True)
 class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -68,20 +67,17 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
 
     def test_global_selection_header_dropdown(self):
         self.dismiss_assistant()
-        self.project.update(first_event=timezone.now())
+        self.project.update(first_event=django_timezone.now())
         self.issues_list.visit_issue_list(
             self.org.slug, query="?query=assigned%3Ame&project=" + str(self.project_1.id)
         )
         self.browser.wait_until_test_id("awaiting-events")
 
         self.browser.click('[data-test-id="page-filter-project-selector"]')
-        self.browser.snapshot("globalSelectionHeader - project selector")
 
         self.browser.click('[data-test-id="page-filter-environment-selector"]')
-        self.browser.snapshot("globalSelectionHeader - environment selector")
 
         self.browser.click('[data-test-id="page-filter-timerange-selector"]')
-        self.browser.snapshot("globalSelectionHeader - timerange selector")
 
     @pytest.mark.skip(reason="Has been flaky lately.")
     def test_global_selection_header_loads_with_correct_project(self):
@@ -283,7 +279,7 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
         "My Projects" in issues list.
         """
         with self.feature("organizations:global-views"):
-            mock_now.return_value = datetime.utcnow().replace(tzinfo=pytz.utc)
+            mock_now.return_value = datetime.utcnow().replace(tzinfo=timezone.utc)
             self.create_issues()
             self.issues_list.visit_issue_list(self.org.slug)
             self.issues_list.wait_for_issue()
@@ -316,7 +312,7 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
         If user has a project defined in URL, if they visit an issue and then
         return back to issues list, that project id should still exist in URL
         """
-        mock_now.return_value = datetime.utcnow().replace(tzinfo=pytz.utc)
+        mock_now.return_value = datetime.utcnow().replace(tzinfo=timezone.utc)
         self.create_issues()
         self.issues_list.visit_issue_list(self.org.slug, query=f"?project={self.project_2.id}")
         self.issues_list.wait_for_issue()
@@ -350,7 +346,7 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
         When navigating back to issues stream, should keep environment and project in context.
         """
 
-        mock_now.return_value = datetime.utcnow().replace(tzinfo=pytz.utc)
+        mock_now.return_value = datetime.utcnow().replace(tzinfo=timezone.utc)
         self.create_issues()
         self.issue_details.visit_issue_in_environment(self.org.slug, self.issue_2.group.id, "prod")
 
@@ -381,7 +377,7 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
         """
 
         with self.feature("organizations:global-views"):
-            mock_now.return_value = datetime.utcnow().replace(tzinfo=pytz.utc)
+            mock_now.return_value = datetime.utcnow().replace(tzinfo=timezone.utc)
             self.create_issues()
             self.issue_details.visit_issue_in_environment(
                 self.org.slug, self.issue_2.group.id, "prod"

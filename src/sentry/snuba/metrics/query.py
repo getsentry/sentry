@@ -7,7 +7,6 @@ from datetime import datetime, timedelta
 from functools import cached_property
 from typing import Dict, Literal, Optional, Sequence, Set, Tuple, Union
 
-from django.db.models import QuerySet
 from snuba_sdk import Column, Direction, Granularity, Limit, Offset, Op
 from snuba_sdk.conditions import BooleanCondition, Condition, ConditionGroup
 
@@ -28,6 +27,7 @@ from .utils import (
     OPERATIONS,
     UNALLOWED_TAGS,
     DerivedMetricParseException,
+    MetricEntity,
     MetricOperationType,
     get_num_intervals,
 )
@@ -41,6 +41,7 @@ class MetricField:
         Dict[str, Union[None, str, int, float, Sequence[Tuple[Union[str, int], ...]]]]
     ] = None
     alias: Optional[str] = None
+    allow_private: bool = False
 
     def __post_init__(self) -> None:
         # Validate that it is a valid MRI format
@@ -49,7 +50,10 @@ class MetricField:
             raise InvalidParams(f"Invalid Metric MRI: {self.metric_mri}")
 
         # Validates that the MRI requested is an MRI the metrics layer exposes
-        metric_name = get_public_name_from_mri(self.metric_mri)
+        metric_name = f"pm_{self.metric_mri}"
+        if not self.allow_private:
+            metric_name = get_public_name_from_mri(self.metric_mri)
+
         if not self.alias:
             key = f"{self.op}({metric_name})" if self.op is not None else metric_name
             object.__setattr__(self, "alias", key)
@@ -66,7 +70,7 @@ class MetricField:
         return bool(self.__hash__() == other.__hash__())
 
     def __hash__(self) -> int:
-        hashable_list = []
+        hashable_list: list[MetricOperationType | str] = []
         if self.op is not None:
             hashable_list.append(self.op)
         hashable_list.append(self.metric_mri)
@@ -166,7 +170,7 @@ class MetricsQuery(MetricsQueryValidationRunner):
     is_alerts_query: bool = False
 
     @cached_property
-    def projects(self) -> QuerySet:
+    def projects(self) -> list[Project]:
         return Project.objects.filter(id__in=self.project_ids)
 
     @cached_property
@@ -239,7 +243,7 @@ class MetricsQuery(MetricsQueryValidationRunner):
                 self._validate_field(metric_order_by_field.field)
 
         orderby_metric_fields: Set[MetricField] = set()
-        metric_entities: Set[MetricField] = set()
+        metric_entities: Set[MetricEntity] = set()
         group_by_str_fields: Set[str] = self.action_by_str_fields(on_group_by=True)
         for metric_order_by_field in self.orderby:
             if isinstance(metric_order_by_field.field, MetricField):
@@ -371,8 +375,14 @@ class MetricsQuery(MetricsQueryValidationRunner):
         if ONE_DAY % self.granularity.granularity != 0:
             raise InvalidParams("The interval should divide one day without a remainder.")
 
+        # see what's our effective interval (either the one passed in or the one from the granularity)
+        if self.interval is None:
+            interval = self.granularity.granularity
+        else:
+            interval = self.interval
+
         if self.start and self.end and self.include_series:
-            if (self.end - self.start).total_seconds() / self.granularity.granularity > MAX_POINTS:
+            if (self.end - self.start).total_seconds() / interval > MAX_POINTS:
                 raise InvalidParams(
                     "Your interval and date range would create too many results. "
                     "Use a larger interval, or a smaller date range."

@@ -597,6 +597,11 @@ urlpatterns += [
                     name="sentry-customer-domain-developer-settings-settings",
                 ),
                 re_path(
+                    r"^auth-tokens/",
+                    react_page_view,
+                    name="sentry-customer-domain-auth-token-settings",
+                ),
+                re_path(
                     r"^document-integrations/",
                     react_page_view,
                     name="sentry-customer-domain-document-integrations-settings",
@@ -755,6 +760,16 @@ urlpatterns += [
         react_page_view,
         name="replays",
     ),
+    re_path(
+        r"^replays/dead-clicks/",
+        react_page_view,
+        name="replays-dead-clicks",
+    ),
+    re_path(
+        r"^replays/rage-clicks/",
+        react_page_view,
+        name="replays-rage-clicks",
+    ),
     # Crons
     re_path(
         r"^crons/",
@@ -772,6 +787,12 @@ urlpatterns += [
         r"^user-feedback/",
         react_page_view,
         name="user-feedback",
+    ),
+    # User Feedback v2
+    re_path(
+        r"^feedback/(?P<feedback_id>\d+)/",
+        react_page_view,
+        name="feedback",
     ),
     # Data Export
     re_path(
@@ -844,6 +865,18 @@ urlpatterns += [
                     r"^(?P<organization_slug>[\w_-]+)/issues/(?P<group_id>\d+)/events/(?P<event_id_or_latest>[\w-]+)/$",
                     react_page_view,
                     name="sentry-organization-event-detail",
+                ),
+                # User Feedback
+                re_path(
+                    r"^(?P<organization_slug>[\w_-]+)/user-feedback/$",
+                    react_page_view,
+                    name="sentry-organization-user-feedback",
+                ),
+                # User Feedback v2
+                re_path(
+                    r"^(?P<organization_slug>[\w_-]+)/feedback/(?P<feedback_id>\d+)/$",
+                    react_page_view,
+                    name="sentry-organization-feedback",
                 ),
                 re_path(
                     r"^(?P<organization_slug>[\w_-]+)/data-export/(?P<data_export_id>\d+)/$",
@@ -923,6 +956,16 @@ urlpatterns += [
                     r"^(?P<organization_slug>[\w_-]+)/replays/(?P<replay_id>[\w_-]+)/$",
                     react_page_view,
                     name="sentry-organization-replay-details",
+                ),
+                re_path(
+                    r"^(?P<organization_slug>[\w_-]+)/replays/dead-clicks/$",
+                    react_page_view,
+                    name="sentry-organization-replay-dead-clicks",
+                ),
+                re_path(
+                    r"^(?P<organization_slug>[\w_-]+)/replays/rage-clicks/$",
+                    react_page_view,
+                    name="sentry-organization-replay-rage-clicks",
                 ),
                 re_path(
                     r"^(?P<organization_slug>[\w_-]+)/restore/$",

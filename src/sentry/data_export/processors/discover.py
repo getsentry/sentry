@@ -1,5 +1,7 @@
 import logging
 
+from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
+
 from sentry.api.utils import get_date_range_from_params
 from sentry.models import Environment, Group, Project
 from sentry.search.events.fields import get_function_alias
@@ -108,6 +110,13 @@ class DiscoverProcessor:
             for result in new_result_list:
                 if "issue.id" in result:
                     result["issue"] = issues.get(result["issue.id"], "unknown")
+
+        if "transaction.status" in self.header_fields:
+            for result in new_result_list:
+                if "transaction.status" in result:
+                    result["transaction.status"] = SPAN_STATUS_CODE_TO_NAME.get(
+                        result["transaction.status"], "unknown"
+                    )
 
         # Map equations back to their unaliased forms
         if self.equation_aliases:

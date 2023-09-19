@@ -5,12 +5,15 @@ from sentry.integrations.example.integration import ExampleIntegration
 from sentry.models import Activity, ExternalIssue, GroupLink
 from sentry.services.hybrid_cloud.user_option import get_option_from_list, user_option_service
 from sentry.shared_integrations.exceptions import IntegrationError
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
+from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.utils.http import absolute_uri
+
+pytestmark = [requires_snuba]
 
 
 @region_silo_test(stable=True)

@@ -17,12 +17,11 @@ describe('SettingsIndex', function () {
   };
 
   it('renders', function () {
-    const {container} = render(
+    render(
       <BreadcrumbContextProvider>
         <SettingsIndex {...props} organization={TestStubs.Organization()} />
       </BreadcrumbContextProvider>
     );
-    expect(container).toSnapshot();
   });
 
   it('has loading when there is no organization', function () {
@@ -59,14 +58,14 @@ describe('SettingsIndex', function () {
     } as unknown as Organization;
 
     const spy = jest.spyOn(OrgActions, 'fetchOrganizationDetails');
-    const api = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/`,
-    });
+    let orgApi: jest.Mock;
 
     beforeEach(function () {
       ConfigStore.set('isSelfHosted', false);
-      spy.mockClear();
-      api.mockClear();
+      MockApiClient.clearMockResponses();
+      orgApi = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/`,
+      });
     });
 
     it('fetches org details for SidebarDropdown', function () {
@@ -87,7 +86,7 @@ describe('SettingsIndex', function () {
         setActive: true,
         loadProjects: true,
       });
-      expect(api).toHaveBeenCalledTimes(1);
+      expect(orgApi).toHaveBeenCalledTimes(1);
     });
 
     it('does not fetch org details for SidebarDropdown', function () {
@@ -105,7 +104,7 @@ describe('SettingsIndex', function () {
       );
 
       expect(spy).not.toHaveBeenCalledWith();
-      expect(api).not.toHaveBeenCalled();
+      expect(orgApi).not.toHaveBeenCalled();
     });
   });
 });

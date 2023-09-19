@@ -10,6 +10,7 @@ from arroyo.processing import StreamProcessor
 from arroyo.processing.strategies import ProcessingStrategy, ProcessingStrategyFactory
 from arroyo.types import Commit, Message, Partition
 from django.conf import settings
+from typing_extensions import NotRequired
 
 from sentry.constants import DataCategory
 from sentry.sentry_metrics.indexer.strings import SHARED_TAG_STRINGS, TRANSACTION_METRICS_NAMES
@@ -79,6 +80,8 @@ class MetricsBucket(TypedDict):
     timestamp: int
     value: Any
     tags: Union[Mapping[str, str], Mapping[str, int]]
+    # not used here but allows us to use the TypedDict for assignments
+    type: NotRequired[str]
 
 
 class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):

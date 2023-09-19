@@ -1,16 +1,23 @@
+from __future__ import annotations
+
 import re
+import secrets
+from typing import Any, Optional, Tuple
 from urllib.parse import urlparse
-from uuid import uuid4
 
 import petname
 from django.conf import settings
 from django.db import ProgrammingError, models
+from django.forms import model_to_dict
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from bitfield import TypedClassBitField
 from sentry import features, options
+from sentry.backup.dependencies import ImportKind
+from sentry.backup.helpers import ImportFlags
+from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import (
     BaseManager,
     BoundedPositiveIntegerField,
@@ -20,9 +27,10 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
+from sentry.silo.base import SiloMode
 from sentry.tasks.relay import schedule_invalidate_project_config
 
-_uuid4_re = re.compile(r"^[a-f0-9]{32}$")
+_token_re = re.compile(r"^[a-f0-9]{32}$")
 
 # TODO(dcramer): pull in enum library
 
@@ -46,7 +54,7 @@ class ProjectKeyManager(BaseManager):
 
 @region_silo_only_model
 class ProjectKey(Model):
-    __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Organization
 
     project = FlexibleForeignKey("sentry.Project", related_name="key_set")
     label = models.CharField(max_length=64, blank=True, null=True)
@@ -81,7 +89,7 @@ class ProjectKey(Model):
         cache_ttl=60 * 30,
     )
 
-    data = JSONField()
+    data: models.Field[dict[str, Any], dict[str, Any]] = JSONField()
 
     # support legacy project keys in API
     scopes = (
@@ -105,11 +113,11 @@ class ProjectKey(Model):
 
     @classmethod
     def generate_api_key(cls):
-        return uuid4().hex
+        return secrets.token_hex(nbytes=16)
 
     @classmethod
     def looks_like_api_key(cls, key):
-        return bool(_uuid4_re.match(key))
+        return bool(_token_re.match(key))
 
     @classmethod
     def from_dsn(cls, dsn):
@@ -223,11 +231,15 @@ class ProjectKey(Model):
             )
 
     def get_endpoint(self, public=True):
+        from sentry.api.utils import generate_region_url
+
         if public:
             endpoint = settings.SENTRY_PUBLIC_ENDPOINT or settings.SENTRY_ENDPOINT
         else:
             endpoint = settings.SENTRY_ENDPOINT
 
+        if not endpoint and SiloMode.get_current_mode() == SiloMode.REGION:
+            endpoint = generate_region_url()
         if not endpoint:
             endpoint = options.get("system.url-prefix")
 
@@ -244,12 +256,12 @@ class ProjectKey(Model):
             urlparts = urlparse(endpoint)
             if urlparts.scheme and urlparts.netloc:
                 endpoint = "{}://{}.{}{}".format(
-                    urlparts.scheme,
+                    str(urlparts.scheme),
                     settings.SENTRY_ORG_SUBDOMAIN_TEMPLATE.format(
                         organization_id=self.project.organization_id
                     ),
-                    urlparts.netloc,
-                    urlparts.path,
+                    str(urlparts.netloc),
+                    str(urlparts.path),
                 )
 
         return endpoint
@@ -272,3 +284,23 @@ class ProjectKey(Model):
 
     def get_scopes(self):
         return self.scopes
+
+    def write_relocation_import(
+        self, _s: ImportScope, _f: ImportFlags
+    ) -> Optional[Tuple[int, ImportKind]]:
+        # If there is a key collision, generate new keys.
+        matching_public_key = self.__class__.objects.filter(public_key=self.public_key).first()
+        if not self.public_key or matching_public_key:
+            self.public_key = self.generate_api_key()
+        matching_secret_key = self.__class__.objects.filter(secret_key=self.secret_key).first()
+        if not self.secret_key or matching_secret_key:
+            self.secret_key = self.generate_api_key()
+
+        (key, created) = ProjectKey.objects.get_or_create(
+            project=self.project, defaults=model_to_dict(self)
+        )
+        if key:
+            self.pk = key.pk
+            self.save()
+
+        return (self.pk, ImportKind.Inserted if created else ImportKind.Existing)

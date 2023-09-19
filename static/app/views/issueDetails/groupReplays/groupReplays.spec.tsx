@@ -51,6 +51,11 @@ function init({organizationProps = {features: ['session-replay']}}: InitializeOr
 describe('GroupReplays', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/sdk-updates/`,
+      body: [],
+    });
   });
 
   describe('Replay Feature Disabled', () => {
@@ -105,6 +110,7 @@ describe('GroupReplays', () => {
           expect.objectContaining({
             query: {
               returnIds: true,
+              data_source: 'discover',
               query: `issue.id:[${mockGroup.id}]`,
               statsPeriod: '14d',
               project: -1,
@@ -120,7 +126,9 @@ describe('GroupReplays', () => {
               field: [
                 'activity',
                 'browser',
+                'count_dead_clicks',
                 'count_errors',
+                'count_rage_clicks',
                 'duration',
                 'finished_at',
                 'id',
@@ -160,7 +168,7 @@ describe('GroupReplays', () => {
         },
       });
 
-      const {container} = render(<GroupReplays group={mockGroup} />, {
+      render(<GroupReplays group={mockGroup} />, {
         context: routerContext,
         organization,
         router,
@@ -171,7 +179,6 @@ describe('GroupReplays', () => {
       ).toBeInTheDocument();
       expect(mockReplayCountApi).toHaveBeenCalledTimes(1);
       expect(mockReplayApi).toHaveBeenCalledTimes(1);
-      expect(container).toSnapshot();
     });
 
     it('should display error message when api call fails', async () => {

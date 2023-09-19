@@ -5,14 +5,20 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.paginator import GenericOffsetPaginator
-from sentry.replays.usecases.reader import download_segments, fetch_segments_metadata, storage
+from sentry.replays.lib.storage import storage
+from sentry.replays.usecases.reader import download_segments, fetch_segments_metadata
 
 
 @region_silo_endpoint
 class ProjectReplayRecordingSegmentIndexEndpoint(ProjectEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def __init__(self, **options) -> None:
         storage.initialize_client()
         super().__init__(**options)

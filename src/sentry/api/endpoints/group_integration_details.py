@@ -5,6 +5,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import GroupEndpoint
 from sentry.api.serializers import serialize
@@ -48,6 +49,13 @@ class IntegrationIssueConfigSerializer(IntegrationSerializer):
 
 @region_silo_endpoint
 class GroupIntegrationDetailsEndpoint(GroupEndpoint):
+    publish_status = {
+        "DELETE": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.UNKNOWN,
+        "PUT": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
+
     def _has_issue_feature(self, organization, user):
         has_issue_basic = features.has(
             "organizations:integrations-issue-basic", organization, actor=user
@@ -60,11 +68,9 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
         return has_issue_sync or has_issue_basic
 
     def _has_issue_feature_on_integration(self, integration: RpcIntegration):
-        return integration_service.has_feature(
-            provider=integration.provider, feature=IntegrationFeatures.ISSUE_BASIC
-        ) or integration_service.has_feature(
-            provider=integration.provider, feature=IntegrationFeatures.ISSUE_SYNC
-        )
+        return integration.has_feature(
+            feature=IntegrationFeatures.ISSUE_BASIC
+        ) or integration.has_feature(feature=IntegrationFeatures.ISSUE_SYNC)
 
     def create_issue_activity(self, request: Request, group, installation, external_issue):
         issue_information = {
@@ -104,9 +110,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
                 {"detail": "This feature is not supported for this integration."}, status=400
             )
 
-        installation = integration_service.get_installation(
-            integration=integration, organization_id=organization_id
-        )
+        installation = integration.get_installation(organization_id=organization_id)
         config = None
         try:
             if action == "link":
@@ -149,9 +153,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
                 {"detail": "This feature is not supported for this integration."}, status=400
             )
 
-        installation = integration_service.get_installation(
-            integration=integration, organization_id=organization_id
-        )
+        installation = integration.get_installation(organization_id=organization_id)
         try:
             data = installation.get_issue(external_issue_id, data=request.data)
         except IntegrationFormError as exc:
@@ -233,9 +235,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
                 {"detail": "This feature is not supported for this integration."}, status=400
             )
 
-        installation = integration_service.get_installation(
-            integration=integration, organization_id=organization_id
-        )
+        installation = integration.get_installation(organization_id=organization_id)
         try:
             data = installation.create_issue(request.data)
         except IntegrationFormError as exc:

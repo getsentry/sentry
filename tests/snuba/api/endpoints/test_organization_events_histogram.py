@@ -9,7 +9,8 @@ import pytest
 from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
 
-from sentry.testutils import APITestCase, MetricsEnhancedPerformanceTestCase, SnubaTestCase
+from sentry.sentry_metrics.aggregation_option_registry import AggregationOption
+from sentry.testutils.cases import APITestCase, MetricsEnhancedPerformanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.samples import load_data
@@ -1027,7 +1028,6 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
         assert response.data == self.as_response_data(expected)
 
 
-@region_silo_test
 class OrganizationEventsMetricsEnhancedPerformanceHistogramEndpointTest(
     MetricsEnhancedPerformanceTestCase
 ):
@@ -1047,6 +1047,7 @@ class OrganizationEventsMetricsEnhancedPerformanceHistogramEndpointTest(
                         metric=suffix_key,
                         tags={"transaction": suffix_key, **spec.tags},
                         timestamp=start,
+                        aggregation_option=AggregationOption.HIST,
                     )
 
     def as_response_data(self, specs):

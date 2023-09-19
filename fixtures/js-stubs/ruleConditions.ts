@@ -1,3 +1,5 @@
+import {IssueAlertRuleActionTemplate} from 'sentry/types/alerts';
+
 const DEFAULT_INTERVAL_CHOICES = [
   ['1m', 'one minute'],
   ['1h', 'one hour'],
@@ -257,3 +259,8 @@ export const MOCK_RESP_INCONSISTENT_INTERVALS = [
     label: 'The issue is seen by more than {value} users in {interval}',
   },
 ];
+
+export type MockRuleCondition = Pick<
+  IssueAlertRuleActionTemplate,
+  'formFields' | 'id' | 'label'
+>;

@@ -1,9 +1,13 @@
 from django.conf import settings
+from django.db.models.signals import pre_save
+from django.dispatch import receiver
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import audit_log
+from sentry import audit_log, features
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectAlertRulePermission, ProjectEndpoint
 from sentry.api.serializers import serialize
@@ -19,8 +23,63 @@ from sentry.tasks.integrations.slack import find_channel_id_for_rule
 from sentry.web.decorators import transaction_start
 
 
+def clean_rule_data(data):
+    for datum in data:
+        if datum.get("name"):
+            del datum["name"]
+
+
+@receiver(pre_save, sender=Rule)
+def pre_save_rule(instance, sender, *args, **kwargs):
+    clean_rule_data(instance.data.get("conditions", []))
+    clean_rule_data(instance.data.get("actions", []))
+
+
+def find_duplicate_rule(rule_data, project, rule_id=None):
+    matchers = {key for key in list(rule_data.keys()) if key not in ("name", "user_id")}
+    extra_fields = ["actions", "environment"]
+    matchers.update(extra_fields)
+    existing_rules = Rule.objects.exclude(id=rule_id).filter(
+        project=project, status=ObjectStatus.ACTIVE
+    )
+    for existing_rule in existing_rules:
+        keys = 0
+        matches = 0
+        for matcher in matchers:
+            if existing_rule.data.get(matcher) and rule_data.get(matcher):
+                keys += 1
+
+                if existing_rule.data[matcher] == rule_data[matcher]:
+                    matches += 1
+
+            elif matcher in extra_fields:
+                if not existing_rule.data.get(matcher) and not rule_data.get(matcher):
+                    # neither rule has the matcher
+                    continue
+
+                elif matcher == "environment":
+                    if existing_rule.environment_id and rule_data.get(matcher):
+                        keys += 1
+                        if existing_rule.environment_id == rule_data.get(matcher):
+                            matches += 1
+                    else:
+                        keys += 1
+                else:
+                    # one rule has the matcher and the other one doesn't
+                    keys += 1
+
+        if keys == matches:
+            return existing_rule
+    return None
+
+
 @region_silo_endpoint
 class ProjectRulesEndpoint(ProjectEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
+    owner = ApiOwner.ISSUES
     permission_classes = (ProjectAlertRulePermission,)
 
     @transaction_start("ProjectRulesEndpoint")
@@ -72,6 +131,16 @@ class ProjectRulesEndpoint(ProjectEndpoint):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         data = serializer.validated_data
+
+        if not data.get("actions", []):
+            return Response(
+                {
+                    "actions": [
+                        "You must add an action for this alert to fire.",
+                    ]
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         # combine filters and conditions into one conditions criteria for the rule object
         conditions = data.get("conditions", [])
         if "filters" in data:
@@ -91,15 +160,19 @@ class ProjectRulesEndpoint(ProjectEndpoint):
                     slow_rules += 1
                     break
 
-        if new_rule_is_slow and slow_rules >= settings.MAX_SLOW_CONDITION_ISSUE_ALERTS:
-            return Response(
-                {
-                    "conditions": [
-                        f"You may not exceed {settings.MAX_SLOW_CONDITION_ISSUE_ALERTS} rules with this type of condition per project.",
-                    ]
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        if new_rule_is_slow:
+            max_slow_alerts = settings.MAX_SLOW_CONDITION_ISSUE_ALERTS
+            if features.has("organizations:more-slow-alerts", project.organization):
+                max_slow_alerts = settings.MAX_MORE_SLOW_CONDITION_ISSUE_ALERTS
+            if slow_rules >= max_slow_alerts:
+                return Response(
+                    {
+                        "conditions": [
+                            f"You may not exceed {max_slow_alerts} rules with this type of condition per project.",
+                        ]
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
         if (
             not new_rule_is_slow
             and (len(rules) - slow_rules) >= settings.MAX_FAST_CONDITION_ISSUE_ALERTS
@@ -124,6 +197,18 @@ class ProjectRulesEndpoint(ProjectEndpoint):
             "frequency": data.get("frequency"),
             "user_id": request.user.id,
         }
+        duplicate_rule = find_duplicate_rule(kwargs, project)
+        if duplicate_rule:
+            return Response(
+                {
+                    "name": [
+                        f"This rule is an exact duplicate of '{duplicate_rule.label}' in this project and may not be created.",
+                    ],
+                    "ruleId": [duplicate_rule.id],
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         owner = data.get("owner")
         if owner:
             try:
@@ -145,6 +230,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
             kwargs.get("actions")
         )
         rule = project_rules.Creator.run(request=request, **kwargs)
+
         RuleActivity.objects.create(
             rule=rule, user_id=request.user.id, type=RuleActivityType.CREATED.value
         )

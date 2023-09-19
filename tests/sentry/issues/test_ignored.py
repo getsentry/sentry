@@ -10,7 +10,7 @@ from sentry.models import (
     GroupStatus,
     add_group_to_inbox,
 )
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import apply_feature_flag_on_cls
 from sentry.types.group import GroupSubStatus
 from tests.sentry.issues.test_utils import get_mock_groups_past_counts_response

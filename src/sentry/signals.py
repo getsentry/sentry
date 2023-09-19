@@ -88,7 +88,7 @@ class BetterSignal(Signal):
 
         # Call each receiver with whatever arguments it can accept.
         # Return a list of tuple pairs [(receiver, response), ... ].
-        for receiver in self._live_receivers(sender):  # type: ignore[attr-defined]
+        for receiver in self._live_receivers(sender):
             try:
                 response = receiver(signal=self, sender=sender, **named)
             except Exception as err:
@@ -148,7 +148,7 @@ advanced_search = BetterSignal()  # ["project"]
 advanced_search_feature_gated = BetterSignal()  # ["organization", "user"]
 save_search_created = BetterSignal()  # ["project", "user"]
 inbound_filter_toggled = BetterSignal()  # ["project"]
-sso_enabled = BetterSignal()  # ["organization", "user", "provider"]
+sso_enabled = BetterSignal()  # ["organization_id", "user_id", "provider"]
 data_scrubber_enabled = BetterSignal()  # ["organization"]
 # ["project", "rule", "user", "rule_type", "is_api_token", "duplicate_rule", "wizard_v3"]
 alert_rule_created = BetterSignal()

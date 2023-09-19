@@ -1,18 +1,24 @@
+import {Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import omit from 'lodash/omit';
 import moment from 'moment-timezone';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Button, ButtonProps} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import DateTime from 'sentry/components/dateTime';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import FeatureBadge from 'sentry/components/featureBadge';
+import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
 import {
   IconChevron,
   IconCopy,
   IconEllipsis,
+  IconJson,
+  IconLink,
   IconNext,
   IconOpen,
   IconPrevious,
@@ -20,7 +26,7 @@ import {
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Event, Group, Organization} from 'sentry/types';
+import {Event, Group, IssueType, Organization} from 'sentry/types';
 import {defined, formatBytesBase2} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {eventDetailsRoute, generateEventSlug} from 'sentry/utils/discover/urls';
@@ -30,6 +36,7 @@ import {
   getShortEventId,
 } from 'sentry/utils/events';
 import getDynamicText from 'sentry/utils/getDynamicText';
+import {projectCanLinkToReplay} from 'sentry/utils/replays/projectSupportsReplay';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
@@ -37,6 +44,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import EventCreatedTooltip from 'sentry/views/issueDetails/eventCreatedTooltip';
+import {useDefaultIssueEvent} from 'sentry/views/issueDetails/utils';
 
 import QuickTrace from './quickTrace';
 
@@ -44,6 +52,12 @@ type GroupEventCarouselProps = {
   event: Event;
   group: Group;
   projectSlug: string;
+};
+
+type GroupEventNavigationProps = {
+  event: Event;
+  group: Group;
+  isDisabled: boolean;
 };
 
 type EventNavigationButtonProps = {
@@ -59,29 +73,12 @@ enum EventNavDropdownOption {
   RECOMMENDED = 'recommended',
   LATEST = 'latest',
   OLDEST = 'oldest',
+  CUSTOM = 'custom',
   ALL = 'all',
 }
 
 const BUTTON_SIZE = 'sm';
 const BUTTON_ICON_SIZE = 'sm';
-
-const EVENT_NAV_DROPDOWN_OPTIONS = [
-  {value: EventNavDropdownOption.RECOMMENDED, label: 'Recommended Event'},
-  {value: EventNavDropdownOption.LATEST, label: 'Latest Event'},
-  {value: EventNavDropdownOption.OLDEST, label: 'Oldest Event'},
-  {options: [{value: EventNavDropdownOption.ALL, label: 'View All Events'}]},
-];
-
-const copyToClipboard = (value: string) => {
-  navigator.clipboard
-    .writeText(value)
-    .then(() => {
-      addSuccessMessage(t('Copied to clipboard'));
-    })
-    .catch(() => {
-      t('Error copying to clipboard');
-    });
-};
 
 const makeBaseEventsPath = ({
   organization,
@@ -123,12 +120,13 @@ function EventNavigationButton({
   );
 }
 
-function EventNavigationDropdown({group}: {group: Group}) {
+function EventNavigationDropdown({group, event, isDisabled}: GroupEventNavigationProps) {
   const location = useLocation();
   const params = useParams<{eventId?: string}>();
   const theme = useTheme();
   const organization = useOrganization();
   const largeViewport = useMedia(`(min-width: ${theme.breakpoints.large})`);
+  const defaultIssueEvent = useDefaultIssueEvent();
 
   const isHelpfulEventUiEnabled =
     organization.features.includes('issue-details-most-helpful-event') &&
@@ -145,66 +143,121 @@ function EventNavigationDropdown({group}: {group: Group}) {
       case EventNavDropdownOption.OLDEST:
         return params.eventId;
       case undefined:
-        return EventNavDropdownOption.RECOMMENDED;
+        return defaultIssueEvent;
       default:
         return undefined;
     }
   };
 
   const selectedValue = getSelectedOption();
+  const eventNavDropdownOptions = [
+    {
+      value: EventNavDropdownOption.RECOMMENDED,
+      label: (
+        <div>
+          {t('Recommended')}
+          <FeatureBadge type="new" />
+        </div>
+      ),
+      textValue: t('Recommended'),
+      details: t('Event with the most context'),
+    },
+    {
+      value: EventNavDropdownOption.LATEST,
+      label: t('Latest'),
+      details: t('Last seen event in this issue'),
+    },
+    {
+      value: EventNavDropdownOption.OLDEST,
+      label: t('Oldest'),
+      details: t('First seen event in this issue'),
+    },
+    ...(!selectedValue
+      ? [
+          {
+            value: EventNavDropdownOption.CUSTOM,
+            label: t('Custom Selection'),
+          },
+        ]
+      : []),
+    {
+      options: [{value: EventNavDropdownOption.ALL, label: 'View All Events'}],
+    },
+  ];
 
   return (
-    <CompactSelect
-      size="sm"
-      options={EVENT_NAV_DROPDOWN_OPTIONS}
-      value={selectedValue}
-      triggerLabel={!selectedValue ? 'Navigate Events' : undefined}
-      onChange={selectedOption => {
-        switch (selectedOption.value) {
-          case EventNavDropdownOption.RECOMMENDED:
-          case EventNavDropdownOption.LATEST:
-          case EventNavDropdownOption.OLDEST:
-            browserHistory.push({
-              pathname: normalizeUrl(
-                makeBaseEventsPath({organization, group}) + selectedOption.value + '/'
-              ),
-              query: {...location.query, referrer: `${selectedOption.value}-event`},
-            });
-            break;
-          case EventNavDropdownOption.ALL:
-            browserHistory.push({
-              pathname: normalizeUrl(
-                `/organizations/${organization.slug}/issues/${group.id}/events/`
-              ),
-              query: location.query,
-            });
-            break;
-          default:
-            break;
+    <GuideAnchor target="issue_details_default_event" position="bottom">
+      <CompactSelect
+        size="sm"
+        disabled={isDisabled}
+        options={eventNavDropdownOptions}
+        value={!selectedValue ? EventNavDropdownOption.CUSTOM : selectedValue}
+        triggerLabel={
+          !selectedValue ? (
+            <TimeSince
+              date={event.dateCreated ?? event.dateReceived}
+              disabledAbsoluteTooltip
+            />
+          ) : selectedValue === EventNavDropdownOption.RECOMMENDED ? (
+            t('Recommended')
+          ) : undefined
         }
-      }}
-    />
+        menuWidth={232}
+        onChange={selectedOption => {
+          trackAnalytics('issue_details.event_dropdown_option_selected', {
+            organization,
+            selected_event_type: selectedOption.value,
+            from_event_type: selectedValue ?? EventNavDropdownOption.CUSTOM,
+            event_id: event.id,
+            group_id: group.id,
+          });
+
+          switch (selectedOption.value) {
+            case EventNavDropdownOption.RECOMMENDED:
+            case EventNavDropdownOption.LATEST:
+            case EventNavDropdownOption.OLDEST:
+              browserHistory.push({
+                pathname: normalizeUrl(
+                  makeBaseEventsPath({organization, group}) + selectedOption.value + '/'
+                ),
+                query: {...location.query, referrer: `${selectedOption.value}-event`},
+              });
+              break;
+            case EventNavDropdownOption.ALL:
+              const searchTermWithoutQuery = omit(location.query, 'query');
+              browserHistory.push({
+                pathname: normalizeUrl(
+                  `/organizations/${organization.slug}/issues/${group.id}/events/`
+                ),
+                query: searchTermWithoutQuery,
+              });
+              break;
+            default:
+              break;
+          }
+        }}
+      />
+    </GuideAnchor>
   );
 }
 
-export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarouselProps) {
+type GroupEventActionsProps = {
+  event: Event;
+  group: Group;
+  projectSlug: string;
+};
+
+export function GroupEventActions({event, group, projectSlug}: GroupEventActionsProps) {
   const theme = useTheme();
-  const organization = useOrganization();
-  const location = useLocation();
   const xlargeViewport = useMedia(`(min-width: ${theme.breakpoints.xlarge})`);
+  const organization = useOrganization();
 
   const hasReplay = Boolean(event?.tags?.find(({key}) => key === 'replayId')?.value);
-  const isReplayEnabled = organization.features.includes('session-replay');
-  const latencyThreshold = 30 * 60 * 1000; // 30 minutes
-  const isOverLatencyThreshold =
-    event.dateReceived &&
-    event.dateCreated &&
-    Math.abs(+moment(event.dateReceived) - +moment(event.dateCreated)) > latencyThreshold;
-
-  const hasPreviousEvent = defined(event.previousEventID);
-  const hasNextEvent = defined(event.nextEventID);
-
-  const {onClick: onClickCopy} = useCopyToClipboard({text: event.id});
+  const isReplayEnabled =
+    organization.features.includes('session-replay') &&
+    projectCanLinkToReplay(group.project);
+  const isDurationRegressionIssue =
+    group?.issueType === IssueType.PERFORMANCE_DURATION_REGRESSION;
 
   const downloadJson = () => {
     const jsonUrl = `/api/0/projects/${organization.slug}/${projectSlug}/events/${event.id}/json/`;
@@ -215,17 +268,158 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
     });
   };
 
-  const copyLink = () => {
-    copyToClipboard(
+  const {onClick: copyLink} = useCopyToClipboard({
+    successMessage: t('Event URL copied to clipboard'),
+    text:
       window.location.origin +
-        normalizeUrl(`${makeBaseEventsPath({organization, group})}${event.id}/`)
-    );
-    trackAnalytics('issue_details.copy_event_link_clicked', {
-      organization,
-      ...getAnalyticsDataForGroup(group),
-      ...getAnalyticsDataForEvent(event),
-    });
-  };
+      normalizeUrl(`${makeBaseEventsPath({organization, group})}${event.id}/`),
+    onCopy: () =>
+      trackAnalytics('issue_details.copy_event_link_clicked', {
+        organization,
+        ...getAnalyticsDataForGroup(group),
+        ...getAnalyticsDataForEvent(event),
+      }),
+  });
+
+  const {onClick: copyEventDetailLink} = useCopyToClipboard({
+    successMessage: t('Event URL copied to clipboard'),
+    text:
+      window.location.origin +
+      normalizeUrl(
+        eventDetailsRoute({
+          eventSlug: generateEventSlug({project: projectSlug, id: event.id}),
+          orgSlug: organization.slug,
+        })
+      ),
+  });
+
+  const {onClick: copyEventId} = useCopyToClipboard({
+    successMessage: t('Event ID copied to clipboard'),
+    text: event.id,
+  });
+
+  const isHelpfulEventUiEnabled =
+    organization.features.includes('issue-details-most-helpful-event') &&
+    organization.features.includes('issue-details-most-helpful-event-ui');
+
+  return (
+    <Fragment>
+      <DropdownMenu
+        position="bottom-end"
+        triggerProps={{
+          'aria-label': t('Event Actions Menu'),
+          icon: <IconEllipsis size="xs" />,
+          showChevron: false,
+          size: BUTTON_SIZE,
+        }}
+        items={[
+          {
+            key: 'copy-event-id',
+            label: t('Copy Event ID'),
+            onAction: copyEventId,
+          },
+          {
+            key: 'copy-event-url',
+            label: t('Copy Event Link'),
+            hidden: xlargeViewport,
+            onAction: isDurationRegressionIssue ? copyEventDetailLink : copyLink,
+          },
+          {
+            key: 'json',
+            label: `JSON (${formatBytesBase2(event.size)})`,
+            onAction: downloadJson,
+            hidden: xlargeViewport,
+          },
+          {
+            key: 'full-event-discover',
+            label: t('Full Event Details'),
+            hidden: !organization.features.includes('discover-basic'),
+            to: eventDetailsRoute({
+              eventSlug: generateEventSlug({project: projectSlug, id: event.id}),
+              orgSlug: organization.slug,
+            }),
+            onAction: () => {
+              trackAnalytics('issue_details.event_details_clicked', {
+                organization,
+                ...getAnalyticsDataForGroup(group),
+                ...getAnalyticsDataForEvent(event),
+              });
+            },
+          },
+          {
+            key: 'replay',
+            label: t('View Replay'),
+            hidden: !hasReplay || !isReplayEnabled,
+            onAction: () => {
+              const breadcrumbsHeader = document.getElementById('breadcrumbs');
+              if (breadcrumbsHeader) {
+                breadcrumbsHeader.scrollIntoView({behavior: 'smooth'});
+              }
+              trackAnalytics('issue_details.header_view_replay_clicked', {
+                organization,
+                ...getAnalyticsDataForGroup(group),
+                ...getAnalyticsDataForEvent(event),
+              });
+            },
+          },
+        ]}
+      />
+      {xlargeViewport && !isDurationRegressionIssue && (
+        <Button
+          title={isHelpfulEventUiEnabled ? t('Copy link to this issue event') : undefined}
+          size={BUTTON_SIZE}
+          onClick={copyLink}
+          aria-label={t('Copy Link')}
+          icon={isHelpfulEventUiEnabled ? <IconLink /> : undefined}
+        >
+          {!isHelpfulEventUiEnabled && 'Copy Link'}
+        </Button>
+      )}
+      {xlargeViewport && isDurationRegressionIssue && (
+        <Button
+          title={isHelpfulEventUiEnabled ? t('Copy link to this event') : undefined}
+          size={BUTTON_SIZE}
+          onClick={copyEventDetailLink}
+          aria-label={t('Copy Link')}
+          icon={isHelpfulEventUiEnabled ? <IconLink /> : undefined}
+        >
+          {!isHelpfulEventUiEnabled && 'Copy Link'}
+        </Button>
+      )}
+      {xlargeViewport && (
+        <Button
+          title={isHelpfulEventUiEnabled ? t('View JSON') : undefined}
+          size={BUTTON_SIZE}
+          onClick={downloadJson}
+          aria-label={t('View JSON')}
+          icon={
+            isHelpfulEventUiEnabled ? <IconJson /> : <IconOpen size={BUTTON_ICON_SIZE} />
+          }
+        >
+          {!isHelpfulEventUiEnabled && 'JSON'}
+        </Button>
+      )}
+    </Fragment>
+  );
+}
+
+export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarouselProps) {
+  const organization = useOrganization();
+  const location = useLocation();
+
+  const latencyThreshold = 30 * 60 * 1000; // 30 minutes
+  const isOverLatencyThreshold =
+    event.dateReceived &&
+    event.dateCreated &&
+    Math.abs(+moment(event.dateReceived) - +moment(event.dateCreated)) > latencyThreshold;
+
+  const hasPreviousEvent = defined(event.previousEventID);
+  const hasNextEvent = defined(event.nextEventID);
+
+  const {onClick: copyEventId} = useCopyToClipboard({
+    successMessage: t('Event ID copied to clipboard'),
+    text: event.id,
+  });
 
   const isHelpfulEventUiEnabled =
     organization.features.includes('issue-details-most-helpful-event') &&
@@ -241,7 +435,7 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
               <Button
                 aria-label={t('Copy')}
                 borderless
-                onClick={onClickCopy}
+                onClick={copyEventId}
                 size="zero"
                 title={event.id}
                 tooltipProps={{overlayStyle: {maxWidth: 'max-content'}}}
@@ -282,81 +476,12 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
         <QuickTrace event={event} organization={organization} location={location} />
       </div>
       <ActionsWrapper>
-        <DropdownMenu
-          position="bottom-end"
-          triggerProps={{
-            'aria-label': t('Event Actions Menu'),
-            icon: <IconEllipsis size="xs" />,
-            showChevron: false,
-            size: BUTTON_SIZE,
-          }}
-          items={[
-            {
-              key: 'copy-event-id',
-              label: t('Copy Event ID'),
-              onAction: () => copyToClipboard(event.id),
-            },
-            {
-              key: 'copy-event-url',
-              label: t('Copy Event Link'),
-              hidden: xlargeViewport,
-              onAction: copyLink,
-            },
-            {
-              key: 'json',
-              label: `JSON (${formatBytesBase2(event.size)})`,
-              onAction: downloadJson,
-              hidden: xlargeViewport,
-            },
-            {
-              key: 'full-event-discover',
-              label: t('Full Event Details'),
-              hidden: !organization.features.includes('discover-basic'),
-              to: eventDetailsRoute({
-                eventSlug: generateEventSlug({project: projectSlug, id: event.id}),
-                orgSlug: organization.slug,
-              }),
-              onAction: () => {
-                trackAnalytics('issue_details.event_details_clicked', {
-                  organization,
-                  ...getAnalyticsDataForGroup(group),
-                  ...getAnalyticsDataForEvent(event),
-                });
-              },
-            },
-            {
-              key: 'replay',
-              label: t('View Replay'),
-              hidden: !hasReplay || !isReplayEnabled,
-              onAction: () => {
-                const breadcrumbsHeader = document.getElementById('breadcrumbs');
-                if (breadcrumbsHeader) {
-                  breadcrumbsHeader.scrollIntoView({behavior: 'smooth'});
-                }
-                trackAnalytics('issue_details.header_view_replay_clicked', {
-                  organization,
-                  ...getAnalyticsDataForGroup(group),
-                  ...getAnalyticsDataForEvent(event),
-                });
-              },
-            },
-          ]}
+        <GroupEventActions event={event} group={group} projectSlug={projectSlug} />
+        <EventNavigationDropdown
+          isDisabled={!hasPreviousEvent && !hasNextEvent}
+          group={group}
+          event={event}
         />
-        {xlargeViewport && (
-          <Button size={BUTTON_SIZE} onClick={copyLink}>
-            Copy Link
-          </Button>
-        )}
-        {xlargeViewport && (
-          <Button
-            size={BUTTON_SIZE}
-            icon={<IconOpen size={BUTTON_ICON_SIZE} />}
-            onClick={downloadJson}
-          >
-            JSON
-          </Button>
-        )}
-        <EventNavigationDropdown group={group} />
         <NavButtons>
           {!isHelpfulEventUiEnabled && (
             <EventNavigationButton

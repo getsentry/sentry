@@ -13,11 +13,13 @@ from sentry.snuba.metrics import MetricField, MetricGroupByField
 from sentry.snuba.metrics.datasource import get_series
 from sentry.snuba.metrics.naming_layer import SessionMRI
 from sentry.snuba.metrics.query_builder import QueryDefinition
-from sentry.testutils import BaseMetricsLayerTestCase, TestCase
+from sentry.testutils.cases import BaseMetricsLayerTestCase, TestCase
+from sentry.testutils.skips import requires_snuba
 
-pytestmark = pytest.mark.sentry_metrics
+pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
 
 
+@pytest.mark.snuba_ci
 @freeze_time(BaseMetricsLayerTestCase.MOCK_DATETIME)
 class ReleaseHealthMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
     @property
@@ -68,7 +70,7 @@ class ReleaseHealthMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                     "session.healthy",
                     "session.anr_rate",
                 ],
-                "includeSeries": "0",
+                "includeSeries": ["0"],
             }
         )
         query = QueryDefinition([self.project], query_params)

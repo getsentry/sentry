@@ -9,7 +9,7 @@ import {
 import Placeholder from 'sentry/components/placeholder';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {t} from 'sentry/locale';
-import type {Crumb} from 'sentry/types/breadcrumbs';
+import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import ConsoleFilters from 'sentry/views/replays/detail/console/consoleFilters';
 import ConsoleLogRow from 'sentry/views/replays/detail/console/consoleLogRow';
 import useConsoleFilters from 'sentry/views/replays/detail/console/useConsoleFilters';
@@ -20,11 +20,6 @@ import useVirtualizedList from 'sentry/views/replays/detail/useVirtualizedList';
 
 import useVirtualizedInspector from '../useVirtualizedInspector';
 
-interface Props {
-  breadcrumbs: undefined | Crumb[];
-  startTimestampMs: number;
-}
-
 // Ensure this object is created once as it is an input to
 // `useVirtualizedList`'s memoization
 const cellMeasurer = {
@@ -32,11 +27,16 @@ const cellMeasurer = {
   minHeight: 24,
 };
 
-function Console({breadcrumbs, startTimestampMs}: Props) {
-  const filterProps = useConsoleFilters({breadcrumbs: breadcrumbs || []});
+function Console() {
+  const {currentTime, currentHoverTime, replay} = useReplayContext();
+  const {onMouseEnter, onMouseLeave, onClickTimestamp} = useCrumbHandlers();
+
+  const startTimestampMs = replay?.getReplay()?.started_at?.getTime() ?? 0;
+  const frames = replay?.getConsoleFrames();
+
+  const filterProps = useConsoleFilters({frames: frames || []});
   const {expandPathsRef, searchTerm, logLevel, items, setSearchTerm} = filterProps;
   const clearSearchTerm = () => setSearchTerm('');
-  const {currentTime, currentHoverTime} = useReplayContext();
 
   const listRef = useRef<ReactVirtualizedList>(null);
 
@@ -67,11 +67,14 @@ function Console({breadcrumbs, startTimestampMs}: Props) {
         rowIndex={index}
       >
         <ConsoleLogRow
-          breadcrumb={item}
-          currentTime={currentTime}
           currentHoverTime={currentHoverTime}
+          currentTime={currentTime}
           expandPaths={Array.from(expandPathsRef.current?.get(index) || [])}
+          frame={item}
+          onMouseEnter={onMouseEnter}
+          onMouseLeave={onMouseLeave}
           index={index}
+          onClickTimestamp={onClickTimestamp}
           onDimensionChange={handleDimensionChange}
           startTimestampMs={startTimestampMs}
           style={style}
@@ -82,9 +85,9 @@ function Console({breadcrumbs, startTimestampMs}: Props) {
 
   return (
     <FluidHeight>
-      <ConsoleFilters breadcrumbs={breadcrumbs} {...filterProps} />
-      <TabItemContainer>
-        {breadcrumbs ? (
+      <ConsoleFilters frames={frames} {...filterProps} />
+      <TabItemContainer data-test-id="replay-details-console-tab">
+        {frames ? (
           <AutoSizer onResize={updateList}>
             {({width, height}) => (
               <ReactVirtualizedList
@@ -92,7 +95,7 @@ function Console({breadcrumbs, startTimestampMs}: Props) {
                 height={height}
                 noRowsRenderer={() => (
                   <NoRowRenderer
-                    unfilteredItems={breadcrumbs}
+                    unfilteredItems={frames}
                     clearSearchTerm={clearSearchTerm}
                   >
                     {t('No console logs recorded')}

@@ -5,6 +5,7 @@ import logging
 from types import LambdaType
 from typing import Any, Mapping, Sequence, Type
 
+from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase
 from django.views import View
 from rest_framework.request import Request
@@ -57,7 +58,7 @@ class Pipeline(abc.ABC):
     session_store_cls = PipelineSessionStore
 
     @classmethod
-    def get_for_request(cls, request: Request) -> Pipeline | None:
+    def get_for_request(cls, request: HttpRequest) -> Pipeline | None:
         req_state = cls.unpack_state(request)
         if not req_state:
             return None
@@ -72,7 +73,7 @@ class Pipeline(abc.ABC):
         )
 
     @classmethod
-    def unpack_state(cls, request: Request) -> PipelineRequestState | None:
+    def unpack_state(cls, request: HttpRequest) -> PipelineRequestState | None:
         state = cls.session_store_cls(request, cls.pipeline_name, ttl=PIPELINE_STATE_TTL)
         if not state.is_valid():
             return None

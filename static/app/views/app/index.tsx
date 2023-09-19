@@ -23,6 +23,7 @@ import {onRenderCallback} from 'sentry/utils/performanceForSentry';
 import useApi from 'sentry/utils/useApi';
 import {useColorscheme} from 'sentry/utils/useColorscheme';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
+import type {InstallWizardProps} from 'sentry/views/admin/installWizard';
 
 import SystemAlerts from './systemAlerts';
 
@@ -30,7 +31,9 @@ type Props = {
   children: React.ReactNode;
 } & RouteComponentProps<{orgId?: string}, {}>;
 
-const InstallWizard = lazy(() => import('sentry/views/admin/installWizard'));
+const InstallWizard: React.FC<InstallWizardProps> = lazy(
+  () => import('sentry/views/admin/installWizard')
+);
 const NewsletterConsent = lazy(() => import('sentry/views/newsletterConsent'));
 
 /**
@@ -71,8 +74,19 @@ function App({children, params}: Props) {
    * Loads the users organization list into the OrganizationsStore
    */
   const loadOrganizations = useCallback(async () => {
+    const regions = ConfigStore.get('regions');
     try {
-      const data = await api.requestPromise('/organizations/', {query: {member: '1'}});
+      // Get the current user's organizations from each multi-tenant region. Will
+      // include single-tenants if the user has membership on those.
+      const results = await Promise.all(
+        regions.map(region =>
+          api.requestPromise(`/organizations/`, {
+            query: {member: '1'},
+            host: region.url,
+          })
+        )
+      );
+      const data = results.reduce((acc, response) => acc.concat(response), []);
       OrganizationsStore.load(data);
     } catch {
       // TODO: do something?

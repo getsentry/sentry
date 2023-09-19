@@ -102,16 +102,16 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
           ),
         },
         {
-          title: t('Transactions'),
+          title: t('Events'),
           target: 'trace_view_guide_row',
           description: t(
-            `You can quickly see all the transactions in a trace alongside the project, transaction duration, and any related errors.`
+            `You can quickly see errors and transactions in a trace alongside the project, transaction duration and any errors or performance issues related to the transaction.`
           ),
         },
         {
-          title: t('Transactions Details'),
+          title: t('Event Details'),
           target: 'trace_view_guide_row_details',
-          description: t('Click on any transaction to see more details.'),
+          description: t('Click on any transaction or error row to see more details.'),
         },
       ],
     },
@@ -270,6 +270,24 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
             "Archive this issue to move it out of the stream - but don't worry, we'll bring it back if it escalates."
           ),
           dismissText: t('Go Away'),
+        },
+      ],
+    },
+    {
+      guide: 'explain_new_default_event_issue_detail',
+      requiredTargets: ['issue_details_default_event'],
+      dateThreshold: new Date('2023-08-22'),
+      steps: [
+        {
+          title: t('New Default Event'),
+          target: 'issue_details_default_event',
+          description: tct(
+            'Rather than the latest event, we now default to a recent event with the most context (replays, traces, and profiles). You can easily switch between events or [link:configure your default event] in settings.',
+            {
+              link: <Link to="/settings/account/details/#defaultIssueEvent" />,
+            }
+          ),
+          dismissText: t('Got It'),
         },
       ],
     },

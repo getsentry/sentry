@@ -19,16 +19,15 @@ describe('DropdownAutoCompleteMenu', function () {
   ];
 
   it('renders without a group', function () {
-    const {container} = render(
+    render(
       <DropdownAutoCompleteMenu isOpen items={items}>
         {() => 'Click Me!'}
       </DropdownAutoCompleteMenu>
     );
-    expect(container).toSnapshot();
   });
 
   it('renders with a group', function () {
-    const {container} = render(
+    render(
       <DropdownAutoCompleteMenu
         isOpen
         items={[
@@ -52,7 +51,6 @@ describe('DropdownAutoCompleteMenu', function () {
         {() => 'Click Me!'}
       </DropdownAutoCompleteMenu>
     );
-    expect(container).toSnapshot();
   });
 
   it('can select an item by clicking', async function () {

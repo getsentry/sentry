@@ -3,15 +3,16 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationIntegrationsPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
-from sentry.models import Commit, Integration, Repository, ScheduledDeletion
+from sentry.models import Commit, RegionScheduledDeletion, Repository
 from sentry.services.hybrid_cloud import coerce_id_from
+from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.tasks.repository import repository_cascade_delete_on_hide
 
 
@@ -31,6 +32,10 @@ class RepositorySerializer(serializers.Serializer):
 
 @region_silo_endpoint
 class OrganizationRepositoryDetailsEndpoint(OrganizationEndpoint):
+    publish_status = {
+        "DELETE": ApiPublishStatus.UNKNOWN,
+        "PUT": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (OrganizationIntegrationsPermission,)
 
     def put(self, request: Request, organization, repo_id) -> Response:
@@ -60,25 +65,14 @@ class OrganizationRepositoryDetailsEndpoint(OrganizationEndpoint):
             else:
                 raise NotImplementedError
         if result.get("integrationId"):
-            try:
-                integration = Integration.objects.get(
-                    id=result["integrationId"],
-                    organizationintegration__organization_id=coerce_id_from(organization),
-                )
-            except Integration.DoesNotExist:
+            integration = integration_service.get_integration(
+                integration_id=result["integrationId"], organization_id=coerce_id_from(organization)
+            )
+            if integration is None:
                 return Response({"detail": "Invalid integration id"}, status=400)
 
             update_kwargs["integration_id"] = integration.id
             update_kwargs["provider"] = f"integrations:{integration.provider}"
-
-        if (
-            features.has("organizations:integrations-custom-scm", organization, actor=request.user)
-            and repo.provider == "integrations:custom_scm"
-        ):
-            if result.get("name"):
-                update_kwargs["name"] = result["name"]
-            if result.get("url") is not None:
-                update_kwargs["url"] = result["url"] or None
 
         if update_kwargs:
             old_status = repo.status
@@ -118,8 +112,8 @@ class OrganizationRepositoryDetailsEndpoint(OrganizationEndpoint):
                 repo.rename_on_pending_deletion()
 
                 if has_commits:
-                    ScheduledDeletion.schedule(repo, days=0, hours=1, actor=request.user)
+                    RegionScheduledDeletion.schedule(repo, days=0, hours=1, actor=request.user)
                 else:
-                    ScheduledDeletion.schedule(repo, days=0, actor=request.user)
+                    RegionScheduledDeletion.schedule(repo, days=0, actor=request.user)
 
         return Response(serialize(repo, request.user), status=202)

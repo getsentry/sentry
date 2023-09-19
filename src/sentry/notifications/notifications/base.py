@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import abc
+import uuid
 from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Optional, Sequence
+from urllib.parse import urlencode
 
 import sentry_sdk
 
@@ -23,14 +25,16 @@ class BaseNotification(abc.ABC):
     provider_to_url_format = {
         ExternalProviders.SLACK: "<{url}|{text}>",
         ExternalProviders.MSTEAMS: "[{text}]({url})",
+        ExternalProviders.DISCORD: "[{text}]({url})",
     }
     message_builder = "SlackNotificationsMessageBuilder"
     # some notifications have no settings for it
     notification_setting_type: NotificationSettingTypes | None = None
     analytics_event: str = ""
 
-    def __init__(self, organization: Organization):
+    def __init__(self, organization: Organization, notification_uuid: str | None = None):
         self.organization = organization
+        self.notification_uuid = notification_uuid if notification_uuid else str(uuid.uuid4())
 
     @property
     def from_email(self) -> str | None:
@@ -155,6 +159,7 @@ class BaseNotification(abc.ABC):
             self.record_analytics(
                 f"integrations.{provider.name}.notification_sent",
                 category=self.metrics_key,
+                notification_uuid=self.notification_uuid if self.notification_uuid else "",
                 **self.get_log_params(recipient),
             )
             # record an optional second event
@@ -183,7 +188,13 @@ class BaseNotification(abc.ABC):
         If the recipient is not necessarily a user (ex: sending to an email address associated with an account),
         The recipient may be omitted.
         """
-        return f"?referrer={self.get_referrer(provider, recipient)}"
+        query = urlencode(
+            {
+                "referrer": self.get_referrer(provider, recipient),
+                "notification_uuid": self.notification_uuid,
+            }
+        )
+        return f"?{query}"
 
     def get_settings_url(self, recipient: RpcActor, provider: ExternalProviders) -> str:
         # Settings url is dependant on the provider so we know which provider is sending them into Sentry.
@@ -202,7 +213,7 @@ class BaseNotification(abc.ABC):
             )
         )
 
-    def determine_recipients(self) -> Iterable[RpcActor]:
+    def determine_recipients(self) -> list[RpcActor]:
         raise NotImplementedError
 
     def get_notification_providers(self) -> Iterable[ExternalProviders]:
@@ -252,9 +263,9 @@ class BaseNotification(abc.ABC):
 
 
 class ProjectNotification(BaseNotification, abc.ABC):
-    def __init__(self, project: Project) -> None:
+    def __init__(self, project: Project, notification_uuid: str | None = None) -> None:
         self.project = project
-        super().__init__(project.organization)
+        super().__init__(project.organization, notification_uuid)
 
     def get_project_link(self) -> str:
         return self.organization.absolute_url(

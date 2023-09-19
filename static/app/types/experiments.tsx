@@ -46,12 +46,12 @@ type ExperimentList = (typeof experimentList)[number];
 
 type ExperimentSelect<
   C extends ExperimentConfig,
-  N extends ExperimentConfig['key']
+  N extends ExperimentConfig['key'],
 > = C extends {key: N} ? C : never;
 
 type TypeSelect<
   C extends ExperimentConfig,
-  T extends ExperimentConfig['type']
+  T extends ExperimentConfig['type'],
 > = C extends {type: T} ? C : never;
 
 /**

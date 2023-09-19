@@ -5,7 +5,7 @@ import responses
 
 from sentry.models import Identity, IdentityProvider, Integration
 from sentry.tasks.integrations import kickoff_vsts_subscription_check
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 
 PROVIDER = "vsts"

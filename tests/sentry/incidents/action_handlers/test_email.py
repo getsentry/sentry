@@ -28,7 +28,7 @@ from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.types.integrations import ExternalProviders
 
@@ -38,7 +38,7 @@ pytestmark = pytest.mark.sentry_metrics
 
 
 @freeze_time()
-class EmailActionHandlerTest(FireTest, TestCase):
+class EmailActionHandlerTest(FireTest):
     @responses.activate
     def run_test(self, incident, method):
         action = self.create_alert_rule_trigger_action(
@@ -59,6 +59,20 @@ class EmailActionHandlerTest(FireTest, TestCase):
 
     def test_resolve_metric_alert(self):
         self.run_fire_test("resolve")
+
+    @patch("sentry.analytics.record")
+    def test_alert_sent_recorded(self, mock_record):
+        self.run_fire_test()
+        mock_record.assert_called_with(
+            "alert.sent",
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            provider="email",
+            alert_id=self.alert_rule.id,
+            alert_type="metric_alert",
+            external_id=str(self.user.id),
+            notification_uuid="",
+        )
 
 
 class EmailActionHandlerGetTargetsTest(TestCase):
@@ -230,7 +244,7 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
                     "incident_id": incident.identifier,
                 },
             ),
-            query="referrer=alert_email",
+            query="referrer=metric_alert_email",
         )
         expected = {
             "link": alert_link,

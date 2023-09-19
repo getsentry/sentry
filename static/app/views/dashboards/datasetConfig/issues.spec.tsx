@@ -1,4 +1,4 @@
-import {ResolutionStatus} from 'sentry/types';
+import {GroupStatus} from 'sentry/types';
 import {transformIssuesResponseToTable} from 'sentry/views/dashboards/datasetConfig/issues';
 
 describe('transformIssuesResponseToTable', function () {
@@ -12,7 +12,7 @@ describe('transformIssuesResponseToTable', function () {
             project: TestStubs.Project({
               id: '3',
             }),
-            status: ResolutionStatus.UNRESOLVED,
+            status: GroupStatus.UNRESOLVED,
             owners: [
               {
                 type: 'ownershipRule',

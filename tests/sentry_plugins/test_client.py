@@ -1,8 +1,9 @@
-from unittest.mock import Mock
+from unittest.mock import patch
 
 import pytest
 import responses
 
+from sentry.services.hybrid_cloud.usersocialauth.serial import serialize_usersocialauth
 from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiHostError,
@@ -10,7 +11,7 @@ from sentry.shared_integrations.exceptions import (
     UnsupportedResponseType,
 )
 from sentry.shared_integrations.response.base import BaseApiResponse
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 from sentry_plugins.client import ApiClient, AuthApiClient
 
@@ -74,10 +75,10 @@ class AuthApiClientTest(TestCase):
     def test_with_authorization(self):
         responses.add(responses.GET, "http://example.com", json={})
 
-        auth = Mock()
-        auth.tokens = {"access_token": "access-token"}
+        auth = self.create_usersocialauth(extra_data={"access_token": "access-token"})
+        rpc_auth = serialize_usersocialauth(auth=auth)
 
-        resp = AuthApiClient(auth=auth).get("http://example.com")
+        resp = AuthApiClient(auth=rpc_auth).get("http://example.com")
         assert isinstance(resp, BaseApiResponse)
         assert resp.status_code == 200
 
@@ -88,15 +89,35 @@ class AuthApiClientTest(TestCase):
     def test_with_authorization_and_no_auth(self):
         responses.add(responses.GET, "http://example.com", json={})
 
-        auth = Mock()
-        auth.tokens = {"access_token": "access-token"}
+        auth = self.create_usersocialauth(extra_data={"access_token": "access-token"})
+        rpc_auth = serialize_usersocialauth(auth=auth)
+        resp = AuthApiClient(auth=rpc_auth).get("http://example.com", auth=None)
 
-        resp = AuthApiClient(auth=auth).get("http://example.com", auth=None)
         assert isinstance(resp, BaseApiResponse)
         assert resp.status_code == 200
 
         request = responses.calls[-1].request
         assert not request.headers.get("Authorization")
+
+    @responses.activate
+    def test_with_authorized_token_refresh(self):
+        # First attempt
+        responses.add(responses.GET, "http://example.com", json={}, status=401)
+        # After refresh
+        responses.add(responses.GET, "http://example.com", json={}, status=200)
+
+        auth = self.create_usersocialauth(extra_data={"access_token": "access-token"})
+        rpc_auth = serialize_usersocialauth(auth=auth)
+
+        with patch("social_auth.models.UserSocialAuth.refresh_token") as mock_refresh_token:
+            resp = AuthApiClient(auth=rpc_auth).get("http://example.com")
+            assert mock_refresh_token.called
+
+        assert isinstance(resp, BaseApiResponse)
+        assert resp.status_code == 200
+
+        request = responses.calls[-1].request
+        assert request.headers.get("Authorization") == "Bearer access-token"
 
     @responses.activate
     def test_invalid_host(self):

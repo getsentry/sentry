@@ -121,5 +121,24 @@ class AppService(RpcService):
     ) -> RpcAlertRuleActionResult:
         pass
 
+    @rpc_method
+    @abc.abstractmethod
+    def get_published_sentry_apps_for_organization(
+        self, *, organization_id: int
+    ) -> List[RpcSentryApp]:
+        pass
+
+    @rpc_method
+    @abc.abstractmethod
+    def create_internal_integration_for_channel_request(
+        self,
+        *,
+        organization_id: int,
+        integration_creator: str,
+        integration_name: str,
+        integration_scopes: List[str],
+    ) -> RpcSentryAppInstallation:
+        pass
+
 
 app_service = cast(AppService, AppService.create_delegation())

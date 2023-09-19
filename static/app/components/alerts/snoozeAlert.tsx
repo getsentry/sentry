@@ -24,6 +24,7 @@ type Props = {
   projectSlug: string;
   ruleActionCategory: RuleActionsCategories;
   type: 'issue' | 'metric';
+  disabled?: boolean;
   ruleId?: string;
 };
 
@@ -35,6 +36,7 @@ function SnoozeAlert({
   ruleActionCategory,
   hasAccess,
   type,
+  disabled: alwaysDisabled,
 }: Props) {
   const organization = useOrganization();
   const api = useApi();
@@ -151,7 +153,7 @@ function SnoozeAlert({
       <Button
         size="sm"
         icon={<IconMute />}
-        disabled={disabled || !hasAccess}
+        disabled={alwaysDisabled || disabled || !hasAccess}
         onClick={() => handleUnmute()}
       >
         {t('Unmute')}
@@ -163,7 +165,7 @@ function SnoozeAlert({
       <MuteButton
         size="sm"
         icon={<IconSound />}
-        disabled={disabled || !hasAccess}
+        disabled={alwaysDisabled || disabled || !hasAccess}
         hasDropdown={hasDropdown}
         onClick={() => {
           handleMute(primaryMuteAction);
@@ -183,7 +185,7 @@ function SnoozeAlert({
             />
           )}
           items={dropdownItems}
-          isDisabled={disabled || !hasAccess}
+          isDisabled={alwaysDisabled || disabled || !hasAccess}
         />
       )}
     </ButtonBar>

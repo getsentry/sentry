@@ -17,10 +17,6 @@ import * as types from 'sentry/views/dashboards/types';
 import ViewEditDashboard from 'sentry/views/dashboards/view';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
-jest.mock('sentry/components/charts/worldMapChart', () => ({
-  WorldMapChart: () => null,
-}));
-
 describe('Dashboards > Detail', function () {
   const organization = TestStubs.Organization({
     features: ['global-views', 'dashboards-basic', 'dashboards-edit', 'discover-query'],
@@ -71,10 +67,6 @@ describe('Dashboards > Detail', function () {
       MockApiClient.addMockResponse({
         url: '/prompts-activity/',
         body: {},
-      });
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/events-geo/',
-        body: {data: [], meta: {}},
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events/',
@@ -345,10 +337,6 @@ describe('Dashboards > Detail', function () {
         url: '/organizations/org-slug/users/',
         method: 'GET',
         body: [],
-      });
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/events-geo/',
-        body: {data: [], meta: {}},
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/releases/',

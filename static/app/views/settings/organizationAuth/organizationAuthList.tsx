@@ -118,3 +118,6 @@ function OrganizationAuthList({organization, providerList, activeProvider}: Prop
 }
 
 export default withOrganization(OrganizationAuthList);
+
+// For tests
+export {OrganizationAuthList};

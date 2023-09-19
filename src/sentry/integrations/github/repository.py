@@ -6,6 +6,7 @@ from sentry.integrations import IntegrationInstallation
 from sentry.models import Organization, PullRequest, Repository
 from sentry.plugins.providers import IntegrationRepositoryProvider
 from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.services.hybrid_cloud.organization.model import RpcOrganization
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.utils.json import JSONData
 
@@ -48,7 +49,7 @@ class GitHubRepositoryProvider(IntegrationRepositoryProvider):
         return config
 
     def build_repository_config(
-        self, organization: Organization, data: Mapping[str, Any]
+        self, organization: RpcOrganization, data: Mapping[str, Any]
     ) -> Mapping[str, Any]:
         return {
             "name": data["identifier"],
@@ -75,9 +76,7 @@ class GitHubRepositoryProvider(IntegrationRepositoryProvider):
         if integration_id is None:
             raise NotImplementedError("GitHub apps requires an integration id to fetch commits")
         integration = integration_service.get_integration(integration_id=integration_id)
-        installation = integration_service.get_installation(
-            integration=integration, organization_id=repo.organization_id
-        )
+        installation = integration.get_installation(organization_id=repo.organization_id)
         client = installation.get_client()
 
         try:

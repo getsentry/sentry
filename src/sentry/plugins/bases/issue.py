@@ -7,12 +7,13 @@ from rest_framework.request import Request
 
 from sentry.models import Activity, GroupMeta
 from sentry.plugins.base.v1 import Plugin
+from sentry.services.hybrid_cloud.usersocialauth.model import RpcUserSocialAuth
+from sentry.services.hybrid_cloud.usersocialauth.service import usersocialauth_service
 from sentry.signals import issue_tracker_used
 from sentry.types.activity import ActivityType
 from sentry.utils.auth import get_auth_providers
 from sentry.utils.http import absolute_uri
 from sentry.utils.safe import safe_execute
-from social_auth.models import UserSocialAuth
 
 
 class NewIssueForm(forms.Form):
@@ -57,19 +58,19 @@ class IssueTrackingPlugin(Plugin):
     def is_configured(self, request: Request, project, **kwargs):
         raise NotImplementedError
 
-    def get_auth_for_user(self, user, **kwargs):
+    def get_auth_for_user(self, user, **kwargs) -> RpcUserSocialAuth:
         """
-        Return a ``UserSocialAuth`` object for the given user based on this plugins ``auth_provider``.
+        Return a ``RpcUserSocialAuth`` object for the given user based on this plugins ``auth_provider``.
         """
         assert self.auth_provider, "There is no auth provider configured for this plugin."
 
         if not user.is_authenticated:
             return None
 
-        try:
-            return UserSocialAuth.objects.filter(user=user, provider=self.auth_provider)[0]
-        except IndexError:
-            return None
+        auth = usersocialauth_service.get_one_or_none(
+            filter={"user_id": user.id, "provider": self.auth_provider}
+        )
+        return auth
 
     def needs_auth(self, request: Request, project, **kwargs):
         """
@@ -82,11 +83,10 @@ class IssueTrackingPlugin(Plugin):
         if not request.user.is_authenticated:
             return True
 
-        return bool(
-            not UserSocialAuth.objects.filter(
-                user=request.user, provider=self.auth_provider
-            ).exists()
+        auth = usersocialauth_service.get_one_or_none(
+            filter={"user_id": request.user.id, "provider": self.auth_provider}
         )
+        return bool(auth)
 
     def get_new_issue_title(self, **kwargs):
         """

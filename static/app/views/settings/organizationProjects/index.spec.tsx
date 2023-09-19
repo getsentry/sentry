@@ -3,18 +3,16 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import OrganizationProjectsContainer from 'sentry/views/settings/organizationProjects';
 
 describe('OrganizationProjects', function () {
-  let org;
-  let project;
-  let projectsGetMock;
-  let statsGetMock;
-  let projectsPutMock;
+  let projectsGetMock: jest.Mock;
+  let statsGetMock: jest.Mock;
+  let projectsPutMock: jest.Mock;
+  const org = TestStubs.Organization();
+  const project = TestStubs.Project();
+  const routerProps = TestStubs.routeComponentProps();
   const routerContext = TestStubs.routerContext();
   const router = TestStubs.router();
 
   beforeEach(function () {
-    project = TestStubs.Project();
-    org = TestStubs.Organization();
-
     projectsGetMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [project],
@@ -36,18 +34,12 @@ describe('OrganizationProjects', function () {
   });
 
   it('should render the projects in the store', async function () {
-    const {container} = render(
+    render(
       <OrganizationProjectsContainer
-        router={router}
-        routes={router.routes}
-        params={router.params}
-        routeParams={router.params}
-        route={router.routes[0]}
+        {...routerProps}
         location={{...router.location, query: {}}}
       />
     );
-
-    expect(container).toSnapshot();
 
     expect(screen.getByText('project-slug')).toBeInTheDocument();
 
@@ -70,11 +62,7 @@ describe('OrganizationProjects', function () {
     });
     render(
       <OrganizationProjectsContainer
-        router={router}
-        routes={router.routes}
-        params={router.params}
-        routeParams={router.params}
-        route={router.routes[0]}
+        {...routerProps}
         location={{...router.location, query: {}}}
       />,
       {

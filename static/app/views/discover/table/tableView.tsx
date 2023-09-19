@@ -89,7 +89,7 @@ export type TableViewProps = {
  * The `TableView` is marked with leading _ in its method names. It consumes
  * the EventView object given in its props to generate new EventView objects
  * for actions like resizing column.
-
+ *
  * The entire state of the table view (or event view) is co-located within
  * the EventView object. This object is fed from the props.
  *

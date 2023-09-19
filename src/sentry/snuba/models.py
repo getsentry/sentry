@@ -1,12 +1,15 @@
 from datetime import timedelta
 from enum import Enum
+from typing import Optional, Tuple
 
 from django.db import models
 from django.utils import timezone
 
-from sentry.db.models import FlexibleForeignKey, Model, region_silo_only_model
+from sentry.backup.dependencies import ImportKind
+from sentry.backup.helpers import ImportFlags
+from sentry.backup.scopes import ImportScope, RelocationScope
+from sentry.db.models import BaseManager, FlexibleForeignKey, Model, region_silo_only_model
 from sentry.db.models.base import DefaultFieldsModel
-from sentry.db.models.manager import BaseManager
 
 
 class QueryAggregations(Enum):
@@ -22,7 +25,7 @@ query_aggregation_to_snuba = {
 
 @region_silo_only_model
 class SnubaQuery(Model):
-    __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Organization
 
     class Type(Enum):
         ERROR = 0
@@ -50,7 +53,7 @@ class SnubaQuery(Model):
 
 @region_silo_only_model
 class SnubaQueryEventType(Model):
-    __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Organization
 
     class EventType(Enum):
         ERROR = 0
@@ -72,7 +75,7 @@ class SnubaQueryEventType(Model):
 
 @region_silo_only_model
 class QuerySubscription(DefaultFieldsModel):
-    __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Organization
 
     class Status(Enum):
         ACTIVE = 0
@@ -96,3 +99,21 @@ class QuerySubscription(DefaultFieldsModel):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_querysubscription"
+
+    # We want the `QuerySubscription` to get properly created in Snuba, so we'll run it through the
+    # purpose-built logic for that operation rather than copying the data verbatim. This will result
+    # in an identical duplicate of the `QuerySubscription` model with a unique `subscription_id`.
+    def write_relocation_import(
+        self, _s: ImportScope, _f: ImportFlags
+    ) -> Optional[Tuple[int, ImportKind]]:
+        # TODO(getsentry/team-ospo#190): Prevents a circular import; could probably split up the
+        # source module in such a way that this is no longer an issue.
+        from sentry.snuba.subscriptions import create_snuba_subscription
+
+        subscription = create_snuba_subscription(self.project, self.type, self.snuba_query)
+
+        # Keep the original creation date.
+        subscription.date_added = self.date_added
+        subscription.save()
+
+        return (subscription.pk, ImportKind.Inserted)

@@ -2,9 +2,9 @@ import {MouseEvent, useEffect, useMemo} from 'react';
 import queryString from 'query-string';
 
 import ObjectInspector from 'sentry/components/objectInspector';
+import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {t} from 'sentry/locale';
 import {formatBytesBase10} from 'sentry/utils';
-import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import {
   getFrameMethod,
   getFrameStatus,
@@ -30,7 +30,7 @@ export type SectionProps = {
 const UNKNOWN_STATUS = 'unknown';
 
 export function GeneralSection({item, startTimestampMs}: SectionProps) {
-  const {handleClick} = useCrumbHandlers(startTimestampMs);
+  const {setCurrentTime} = useReplayContext();
 
   const requestFrame = isRequestFrame(item) ? item : null;
 
@@ -58,7 +58,7 @@ export function GeneralSection({item, startTimestampMs}: SectionProps) {
         format="mm:ss.SSS"
         onClick={(event: MouseEvent) => {
           event.stopPropagation();
-          handleClick(item);
+          setCurrentTime(item.offsetMs);
         }}
         startTimestampMs={startTimestampMs}
         timestampMs={item.timestampMs}
@@ -86,7 +86,7 @@ export function ResponseHeadersSection({item}: SectionProps) {
   const data = isRequestFrame(item) ? item.data : {};
   return (
     <SectionItem title={t('Response Headers')}>
-      {keyValueTableOrNotFound(data.request?.headers, t('Headers not captured'))}
+      {keyValueTableOrNotFound(data.response?.headers, t('Headers not captured'))}
     </SectionItem>
   );
 }

@@ -1,0 +1,92 @@
+
+name: IGNORE ME codecov-ats
+
+on:
+  pull_request:
+
+env:
+    CLI_VERSION: v0.1.5
+
+# Cancel in progress workflows on pull_requests.
+# https://docs.github.com/en/actions/using-jobs/using-concurrency#example-using-a-fallback-value
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+    files-changed:
+        name: detect what files changed
+        runs-on: ubuntu-20.04
+        timeout-minutes: 3
+        # Map a step output to a job output
+        outputs:
+          api_docs: ${{ steps.changes.outputs.api_docs }}
+          backend: ${{ steps.changes.outputs.backend_all }}
+          backend_dependencies: ${{ steps.changes.outputs.backend_dependencies }}
+          backend_any_type: ${{ steps.changes.outputs.backend_any_type }}
+          migration_lockfile: ${{ steps.changes.outputs.migration_lockfile }}
+        steps:
+          - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8  # v3.1.0
+
+          - name: Check for backend file changes
+            uses: getsentry/paths-filter@4512585405083f25c027a35db413c2b3b9006d50  # v2.11.1
+            id: changes
+            with:
+              token: ${{ github.token }}
+              filters: .github/file-filters.yml
+    coverage-ats:
+        # Temporary test
+        if: needs.files-changed.outputs.backend == 'true'
+        needs: files-changed
+        timeout-minutes: 40
+        runs-on: ubuntu-latest
+        steps:
+        - uses: actions/checkout@v3
+          with:
+            fetch-depth: 0
+        - name: Set up Python 3.10.10
+          uses: actions/setup-python@v4
+          with:
+            python-version: "3.10.10"
+        - name: Setup sentry env
+          uses: ./.github/actions/setup-sentry
+          id: setup
+          with:
+            snuba: true
+            # Right now, we run so few bigtable related tests that the
+            # overhead of running bigtable in all backend tests
+            # is way smaller than the time it would take to run in its own job.
+            bigtable: true
+            pg-version: 14
+        - name: Download Codecov CLI
+          run: |
+            pip install --extra-index-url https://pypi.org/simple --no-cache-dir pytest codecov-cli
+        # Creates the commit and report objects in codecov
+        - name: Codecov startup
+          run: |
+            codecovcli create-commit
+            codecovcli create-report
+          env:
+            CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        # Sends static analysis information to codecov
+        - name: Static Analysis
+          run: |
+            codecovcli static-analysis --token=${CODECOV_STATIC_TOKEN} \
+            --folders-to-exclude .artifacts \
+            --folders-to-exclude .github \
+            --folders-to-exclude .venv \
+            --folders-to-exclude static \
+            --folders-to-exclude bin
+          env:
+            CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+            CODECOV_STATIC_TOKEN: ${{ secrets.CODECOV_STATIC_TOKEN }}
+        # Run label analysis IN DRY MODE (no tests will actually run)
+        - name: Label Analysis
+          continue-on-error: true
+          run: |
+            BASE_COMMIT=$(git merge-base ${{ github.sha }}^ origin/master)
+            echo $BASE_COMMIT
+            codecovcli --codecov-yml-path=codecov.yml label-analysis --dry-run --token=${CODECOV_STATIC_TOKEN} --base-sha=${BASE_COMMIT}
+          env:
+            CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+            CODECOV_STATIC_TOKEN: ${{ secrets.CODECOV_STATIC_TOKEN }}

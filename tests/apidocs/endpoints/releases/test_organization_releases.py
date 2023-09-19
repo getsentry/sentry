@@ -8,7 +8,7 @@ from sentry.models import Release
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationReleasesDocsTest(APIDocsTestCase):
     def setUp(self):
         user = self.create_user(is_staff=False, is_superuser=False)

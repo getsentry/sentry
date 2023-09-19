@@ -108,6 +108,7 @@ const createWrapper = (props = {}) => {
     organization,
     project,
     onChangeTitleMock,
+    router,
   };
 };
 
@@ -223,7 +224,7 @@ describe('IssueRuleEditor', function () {
       await userEvent.click(screen.getByLabelText('Delete Rule'));
 
       expect(
-        await screen.findByText('Are you sure you want to delete this rule?')
+        await screen.findByText(/Are you sure you want to delete "My alert rule"\?/)
       ).toBeInTheDocument();
       await userEvent.click(screen.getByTestId('confirm-button'));
 
@@ -366,7 +367,7 @@ describe('IssueRuleEditor', function () {
         statusCode: 202,
         body: {uuid},
       });
-      createWrapper();
+      const {router} = createWrapper();
       await userEvent.click(screen.getByText('Save Rule'), {delay: null});
 
       await waitFor(() => expect(addLoadingMessage).toHaveBeenCalledTimes(2));
@@ -375,7 +376,9 @@ describe('IssueRuleEditor', function () {
       await waitFor(() => expect(mockSuccess).toHaveBeenCalledTimes(1));
       jest.advanceTimersByTime(1000);
       await waitFor(() => expect(addSuccessMessage).toHaveBeenCalledTimes(1));
-      expect(screen.getByDisplayValue('Slack Rule')).toBeInTheDocument();
+      expect(router.push).toHaveBeenCalledWith({
+        pathname: '/organizations/org-slug/alerts/rules/project-slug/1/details/',
+      });
     });
 
     it('pending status keeps loading true', async function () {

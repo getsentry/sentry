@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 from collections import defaultdict, namedtuple
-from typing import TYPE_CHECKING, List, Optional, Sequence, Type, Union, cast
+from typing import TYPE_CHECKING, Optional, Sequence, Union, overload
 
 import sentry_sdk
 from django.conf import settings
@@ -7,6 +9,9 @@ from django.db import IntegrityError, models, router, transaction
 from django.db.models.signals import post_save
 from rest_framework import serializers
 
+from sentry.backup.dependencies import PrimaryKeyMap
+from sentry.backup.helpers import ImportFlags
+from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import Model, region_silo_only_model
 from sentry.db.models.fields.foreignkey import FlexibleForeignKey
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
@@ -19,23 +24,38 @@ if TYPE_CHECKING:
 ACTOR_TYPES = {"team": 0, "user": 1}
 
 
-def actor_type_to_class(type: int) -> Type[Union["Team", "RpcUser"]]:
+def actor_type_to_class(type: int) -> type[Team] | type[User]:
     # type will be 0 or 1 and we want to get Team or User
     from sentry.models import Team, User
 
-    ACTOR_TYPE_TO_CLASS = {ACTOR_TYPES["team"]: Team, ACTOR_TYPES["user"]: User}
+    if type == ACTOR_TYPES["team"]:
+        return Team
+    elif type == ACTOR_TYPES["user"]:
+        return User
+    else:
+        raise ValueError(type)
 
-    return ACTOR_TYPE_TO_CLASS[type]
 
-
-def fetch_actor_by_actor_id(cls, actor_id: int) -> Union["Team", "RpcUser"]:
+def fetch_actor_by_actor_id(cls, actor_id: int) -> Union[Team, RpcUser]:
     results = fetch_actors_by_actor_ids(cls, [actor_id])
     if len(results) == 0:
         raise cls.DoesNotExist()
     return results[0]
 
 
-def fetch_actors_by_actor_ids(cls, actor_ids: List[int]) -> Union[List["Team"], List["RpcUser"]]:
+@overload
+def fetch_actors_by_actor_ids(cls: type[User], actor_ids: list[int]) -> list[RpcUser]:
+    ...
+
+
+@overload
+def fetch_actors_by_actor_ids(cls: type[Team], actor_ids: list[int]) -> list[Team]:
+    ...
+
+
+def fetch_actors_by_actor_ids(
+    cls: type[User] | type[Team], actor_ids: list[int]
+) -> list[Team] | list[RpcUser]:
     from sentry.models import Team, User
 
     if cls is User:
@@ -43,26 +63,38 @@ def fetch_actors_by_actor_ids(cls, actor_ids: List[int]) -> Union[List["Team"], 
             "user_id", flat=True
         )
         return user_service.get_many(filter={"user_ids": list(user_ids)})
-    if cls is Team:
+    elif cls is Team:
         return Team.objects.filter(actor_id__in=actor_ids).all()
+    else:
+        raise ValueError(f"Cls {cls} is not a valid actor type.")
 
-    raise ValueError(f"Cls {cls} is not a valid actor type.")
+
+@overload
+def fetch_actor_by_id(cls: type[User], id: int) -> RpcUser:
+    ...
 
 
-def fetch_actor_by_id(cls, id: int) -> Union["Team", "RpcUser"]:
+@overload
+def fetch_actor_by_id(cls: type[Team], id: int) -> Team:
+    ...
+
+
+def fetch_actor_by_id(cls: type[User] | type[Team], id: int) -> Team | RpcUser:
     from sentry.models import Team, User
 
     if cls is Team:
         return Team.objects.get(id=id)
 
-    if cls is User:
+    elif cls is User:
         user = user_service.get_user(id)
         if user is None:
             raise User.DoesNotExist()
         return user
+    else:
+        raise ValueError(f"Cls {cls} is not a valid actor type.")
 
 
-def actor_type_to_string(type: int) -> Optional[str]:
+def actor_type_to_string(type: int) -> str | None:
     # type will be 0 or 1 and we want to get "team" or "user"
     for k, v in ACTOR_TYPES.items():
         if v == type:
@@ -72,7 +104,7 @@ def actor_type_to_string(type: int) -> Optional[str]:
 
 @region_silo_only_model
 class Actor(Model):
-    __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Organization
 
     type = models.PositiveSmallIntegerField(
         choices=(
@@ -97,11 +129,11 @@ class Actor(Model):
         app_label = "sentry"
         db_table = "sentry_actor"
 
-    def resolve(self) -> Union["Team", "RpcUser"]:
+    def resolve(self) -> Union[Team, RpcUser]:
         # Returns User/Team model object
         return fetch_actor_by_actor_id(actor_type_to_class(self.type), self.id)
 
-    def get_actor_tuple(self) -> "ActorTuple":
+    def get_actor_tuple(self) -> ActorTuple:
         # Returns ActorTuple version of the Actor model.
         actor_type = actor_type_to_class(self.type)
         return ActorTuple(self.resolve().id, actor_type)
@@ -111,12 +143,34 @@ class Actor(Model):
         # essentially forwards request to ActorTuple.get_actor_identifier
         return self.get_actor_tuple().get_actor_identifier()
 
+    # TODO(hybrid-cloud): actor refactor. Remove this method when done.
+    def normalize_before_relocation_import(
+        self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
+    ) -> Optional[int]:
+        old_pk = super().normalize_before_relocation_import(pk_map, scope, flags)
+        if old_pk is None:
+            return None
 
-def get_actor_id_for_user(user: Union["User", RpcUser]) -> int:
-    return cast(int, get_actor_for_user(user).id)
+        # `Actor` and `Team` have a direct circular dependency between them for the time being due
+        # to an ongoing refactor (that is, `Actor` foreign keys directly into `Team`, and `Team`
+        # foreign keys directly into `Actor`). If we use `INSERT` database calls naively, they will
+        # always fail, because one half of the cycle will always be missing.
+        #
+        # Because `Actor` ends up first in the dependency sorting (see:
+        # fixtures/backup/model_dependencies/sorted.json), a viable solution here is to always null
+        # out the `team_id` field of the `Actor` when we import it, and then make sure to circle
+        # back and update the relevant `Actor` after we create the `Team` models later on (see the
+        # `write_relocation_import` method override on that class for details).
+        self.team_id = None
+
+        return old_pk
 
 
-def get_actor_for_user(user: Union[int, "User", RpcUser]) -> "Actor":
+def get_actor_id_for_user(user: Union[User, RpcUser]) -> int:
+    return get_actor_for_user(user).id
+
+
+def get_actor_for_user(user: Union[int, User, RpcUser]) -> Actor:
     if isinstance(user, int):
         user_id = user
     else:
@@ -141,10 +195,19 @@ class ActorTuple(namedtuple("Actor", "id type")):
     def get_actor_identifier(self):
         return f"{self.type.__name__.lower()}:{self.id}"
 
+    @overload
     @classmethod
-    def from_actor_identifier(cls, actor_identifier: Union[int, str, None]) -> "ActorTuple":
+    def from_actor_identifier(cls, actor_identifier: None) -> None:
+        ...
+
+    @overload
+    @classmethod
+    def from_actor_identifier(cls, actor_identifier: int | str) -> ActorTuple:
+        ...
+
+    @classmethod
+    def from_actor_identifier(cls, actor_identifier: int | str | None) -> ActorTuple | None:
         from sentry.models import Team, User
-        from sentry.utils.auth import find_users
 
         """
         Returns an Actor tuple corresponding to a User or Team associated with
@@ -178,11 +241,12 @@ class ActorTuple(namedtuple("Actor", "id type")):
             return cls(int(actor_identifier[5:]), Team)
 
         try:
-            return cls(find_users(actor_identifier)[0].id, User)
+            user = user_service.get_by_username(username=actor_identifier)[0]
+            return cls(user.id, User)
         except IndexError as e:
             raise serializers.ValidationError(f"Unable to resolve actor identifier: {e}")
 
-    def resolve(self) -> Union["Team", "RpcUser"]:
+    def resolve(self) -> Union[Team, RpcUser]:
         return fetch_actor_by_id(self.type, self.id)
 
     def resolve_to_actor(self) -> Actor:
@@ -195,7 +259,7 @@ class ActorTuple(namedtuple("Actor", "id type")):
         return Actor.objects.get(id=obj.actor_id)
 
     @classmethod
-    def resolve_many(cls, actors: Sequence["ActorTuple"]) -> Sequence[Union["Team", "RpcUser"]]:
+    def resolve_many(cls, actors: Sequence[ActorTuple]) -> Sequence[Union[Team, RpcUser]]:
         """
         Resolve multiple actors at the same time. Returns the result in the same order
         as the input, minus any actors we couldn't resolve.

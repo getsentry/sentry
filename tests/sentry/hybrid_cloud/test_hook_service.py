@@ -2,7 +2,7 @@ from sentry.models import ServiceHook
 from sentry.sentry_apps.apps import consolidate_events, expand_events
 from sentry.services.hybrid_cloud.hook import hook_service
 from sentry.silo import SiloMode
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
 
 

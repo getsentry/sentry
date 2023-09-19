@@ -6,6 +6,7 @@ import sortBy from 'lodash/sortBy';
 import {PlatformIcon} from 'platformicons';
 
 import onboardingFrameworkSelectionDotnet from 'sentry-images/spot/onboarding-framework-selection-dotnet.svg';
+import onboardingFrameworkSelectionGo from 'sentry-images/spot/onboarding-framework-selection-go.svg';
 import onboardingFrameworkSelectionJava from 'sentry-images/spot/onboarding-framework-selection-java.svg';
 import onboardingFrameworkSelectionJavascript from 'sentry-images/spot/onboarding-framework-selection-javascript.svg';
 import onboardingFrameworkSelectionNode from 'sentry-images/spot/onboarding-framework-selection-node.svg';
@@ -33,7 +34,18 @@ export enum SupportedLanguages {
   NODE = 'node',
   DOTNET = 'dotnet',
   JAVA = 'java',
+  GO = 'go',
 }
+
+export const topGoFrameworks = [
+  'go-echo',
+  'go-fasthttp',
+  'go-gin',
+  'go-http',
+  'go-iris',
+  'go-martini',
+  'go-negroni',
+];
 
 export const topJavascriptFrameworks = [
   'javascript-react',
@@ -111,6 +123,12 @@ export const languageDetails = {
     ),
     topFrameworksImage: onboardingFrameworkSelectionJava,
   },
+  [SupportedLanguages.GO]: {
+    description: t(
+      'Our Go framework SDKs include all the features of our Go SDK with instructions specific to that framework'
+    ),
+    topFrameworksImage: onboardingFrameworkSelectionGo,
+  },
 };
 
 type Props = ModalRenderProps & {
@@ -154,6 +172,9 @@ export function FrameworkSuggestionModal({
     if (selectedPlatform.key === SupportedLanguages.JAVA) {
       return topJavaFrameworks.includes(framework.id);
     }
+    if (selectedPlatform.key === SupportedLanguages.GO) {
+      return topGoFrameworks.includes(framework.id);
+    }
     return topJavascriptFrameworks.includes(framework.id);
   });
 
@@ -170,6 +191,9 @@ export function FrameworkSuggestionModal({
     }
     if (selectedPlatform.key === SupportedLanguages.JAVA) {
       return topJavaFrameworks.indexOf(framework.id);
+    }
+    if (selectedPlatform.key === SupportedLanguages.GO) {
+      return topGoFrameworks.indexOf(framework.id);
     }
     return topJavascriptFrameworks.indexOf(framework.id);
   });
@@ -233,13 +257,15 @@ export function FrameworkSuggestionModal({
         <CloseButton onClick={closeModal} />
       </Header>
       <Body>
-        <TopFrameworksImage
-          src={languageDetails[selectedPlatform.key].topFrameworksImage}
-        />
+        {languageDetails[selectedPlatform.key].topFrameworksImage && (
+          <TopFrameworksImage
+            src={languageDetails[selectedPlatform.key].topFrameworksImage}
+          />
+        )}
         <Heading>{t('Do you use a framework?')}</Heading>
         <Description>{languageDetails[selectedPlatform.key].description}</Description>
-        <Panel>
-          <PanelBody>
+        <StyledPanel>
+          <StyledPanelBody>
             <Frameworks>
               {[...topFrameworksOrdered, ...otherFrameworksSortedAlphabetically].map(
                 (framework, index) => {
@@ -274,8 +300,8 @@ export function FrameworkSuggestionModal({
                 }
               )}
             </Frameworks>
-          </PanelBody>
-        </Panel>
+          </StyledPanelBody>
+        </StyledPanel>
       </Body>
       <Footer>
         <Actions>
@@ -308,7 +334,8 @@ const Header = styled('header')`
 `;
 
 const TopFrameworksImage = styled('img')`
-  margin-bottom: ${space(2)};
+  width: 256px;
+  margin: 0px auto ${space(2)};
 `;
 
 const Heading = styled('h6')`
@@ -322,12 +349,25 @@ const Description = styled(TextBlock)`
 `;
 
 const Frameworks = styled(List)`
-  max-height: 240px;
+  display: block; /* Needed to prevent list item from stretching if the list is scrollable (Safari) */
   overflow-y: auto;
+  max-height: 550px;
+`;
+
+const StyledPanel = styled(Panel)`
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+`;
+
+const StyledPanelBody = styled(PanelBody)`
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 `;
 
 const Framework = styled(ListItem)`
-  height: 40px;
+  min-height: 40px;
   display: grid;
   text-align: left;
   cursor: pointer;
@@ -362,7 +402,20 @@ const Actions = styled('div')`
   width: 100%;
 `;
 
+// Style the modals document and section elements as flex containers
+// to allow the list of frameworks to dynamically grow and shrink with the dialog / screen height
 export const modalCss = css`
+  [role='document'] {
+    display: flex;
+    flex-direction: column;
+    max-height: 80vh;
+    min-height: 500px;
+  }
+  section {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
   max-width: 400px;
   width: 100%;
 `;

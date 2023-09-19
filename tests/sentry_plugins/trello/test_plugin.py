@@ -4,7 +4,7 @@ from urllib.parse import parse_qsl, urlparse
 import responses
 from django.test import RequestFactory
 
-from sentry.testutils import PluginTestCase
+from sentry.testutils.cases import PluginTestCase
 from sentry.utils import json
 from sentry_plugins.trello.plugin import TrelloPlugin
 

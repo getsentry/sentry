@@ -14,9 +14,12 @@ from sentry.models import (
     DashboardWidgetTypes,
 )
 from sentry.models.project import Project
-from sentry.testutils import OrganizationDashboardWidgetTestCase
+from sentry.testutils.cases import OrganizationDashboardWidgetTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
+from sentry.testutils.skips import requires_snuba
+
+pytestmark = [requires_snuba]
 
 
 class OrganizationDashboardDetailsTestCase(OrganizationDashboardWidgetTestCase):
@@ -342,20 +345,6 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                 {"id": str(self.widget_3.id)},
                 {"id": str(self.widget_4.id)},
                 {
-                    "title": "Error Counts by Country",
-                    "displayType": "world_map",
-                    "interval": "5m",
-                    "queries": [
-                        {
-                            "name": "Errors",
-                            "fields": ["count()"],
-                            "columns": [],
-                            "aggregates": ["count()"],
-                            "conditions": "event.type:error",
-                        }
-                    ],
-                },
-                {
                     "title": "Errors per project",
                     "displayType": "table",
                     "interval": "5m",
@@ -375,14 +364,14 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert response.status_code == 200, response.data
 
         widgets = self.get_widgets(self.dashboard.id)
-        assert len(widgets) == 6
+        assert len(widgets) == 5
 
         last = list(widgets).pop()
-        self.assert_serialized_widget(data["widgets"][5], last)
+        self.assert_serialized_widget(data["widgets"][4], last)
 
         queries = last.dashboardwidgetquery_set.all()
         assert len(queries) == 1
-        self.assert_serialized_widget_query(data["widgets"][5]["queries"][0], queries[0])
+        self.assert_serialized_widget_query(data["widgets"][4]["queries"][0], queries[0])
 
     def test_add_widget_with_field_aliases(self):
         data: dict[str, Any] = {
@@ -443,20 +432,6 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                     "aggregates": [],
                 },
                 {
-                    "title": "Error Counts by Country",
-                    "displayType": "world_map",
-                    "interval": "5m",
-                    "queries": [
-                        {
-                            "name": "Errors",
-                            "fields": [],
-                            "columns": [],
-                            "aggregates": ["count()"],
-                            "conditions": "event.type:error",
-                        }
-                    ],
-                },
-                {
                     "title": "Errors per project",
                     "displayType": "table",
                     "interval": "5m",
@@ -476,14 +451,14 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert response.status_code == 200, response.data
 
         widgets = self.get_widgets(self.dashboard.id)
-        assert len(widgets) == 6
+        assert len(widgets) == 5
 
         last = list(widgets).pop()
-        self.assert_serialized_widget(data["widgets"][5], last)
+        self.assert_serialized_widget(data["widgets"][4], last)
 
         queries = last.dashboardwidgetquery_set.all()
         assert len(queries) == 1
-        self.assert_serialized_widget_query(data["widgets"][5]["queries"][0], queries[0])
+        self.assert_serialized_widget_query(data["widgets"][4]["queries"][0], queries[0])
 
     def test_add_widget_missing_title(self):
         data = {

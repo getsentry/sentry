@@ -1,7 +1,10 @@
 from unittest import mock
 
 from sentry.rules.actions.notify_event import NotifyEventAction
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.skips import requires_snuba
+
+pytestmark = [requires_snuba]
 
 
 class ProjectRuleActionsEndpointTest(APITestCase):

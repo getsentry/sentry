@@ -2,7 +2,7 @@ from hashlib import sha1
 from uuid import uuid4
 
 from sentry.models import Commit, GroupHistory, GroupHistoryStatus, PullRequest, Repository
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 
 

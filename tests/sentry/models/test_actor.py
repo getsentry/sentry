@@ -1,5 +1,5 @@
 from sentry.models.actor import Actor, get_actor_for_user
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 
 
 class ActorTest(TestCase):

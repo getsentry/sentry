@@ -3,7 +3,7 @@ from __future__ import annotations
 from hashlib import md5
 
 from sentry.models import EventUser
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 
 

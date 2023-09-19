@@ -8,6 +8,7 @@ from symbolic.debuginfo import normalize_debug_id
 from symbolic.exceptions import SymbolicError
 
 from sentry import ratelimits
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.endpoints.debug_files import has_download_permission
@@ -32,6 +33,9 @@ MAX_RELEASEFILES_QUERY = 10
 
 @region_silo_endpoint
 class ProjectArtifactLookupEndpoint(ProjectEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (ProjectReleasePermission,)
 
     def download_file(self, download_id, project: Project):
@@ -73,19 +77,19 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
             )
             metrics.incr("sourcemaps.download.release_file")
         elif ty == "bundle_index":
-            file = (
-                ArtifactBundleFlatFileIndex.objects.filter(id=ty_id, project_id=project.id)
-                .select_related("flat_file_index")
-                .first()
-            )
+            file = ArtifactBundleFlatFileIndex.objects.filter(
+                id=ty_id, project_id=project.id
+            ).first()
             metrics.incr("sourcemaps.download.flat_file_index")
+
+            if file is not None and (data := file.load_flat_file_index()):
+                return HttpResponse(data, content_type="application/json")
+            else:
+                raise Http404
 
         if file is None:
             raise Http404
-        if isinstance(file, ArtifactBundleFlatFileIndex):
-            file = file.flat_file_index
-        else:
-            file = file.file
+        file = file.file
 
         try:
             fp = file.getfile()

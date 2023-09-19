@@ -2,18 +2,14 @@ from functools import cached_property
 from unittest import mock
 
 from django.conf import settings
+from django.test import override_settings
 from django.urls import reverse
 
 from sentry.auth import superuser
-from sentry.models import (
-    ApiToken,
-    Organization,
-    OrganizationMember,
-    OrganizationStatus,
-    ScheduledDeletion,
-)
+from sentry.models import ApiToken, Organization, OrganizationMember, OrganizationStatus
+from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.tasks.deletion.scheduled import run_deletion
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 
@@ -294,7 +290,7 @@ class ClientConfigViewTest(TestCase):
         assert resp.status_code == 200
         assert resp["Content-Type"] == "application/json"
 
-        with self.options({"system.region": "eu"}):
+        with override_settings(SENTRY_REGION="eu"):
             resp = self.client.get(self.path)
             assert resp.status_code == 200
             assert resp["Content-Type"] == "application/json"
@@ -438,10 +434,10 @@ class ClientConfigViewTest(TestCase):
 
         # Delete lastOrganization
         assert Organization.objects.filter(slug=self.organization.slug).count() == 1
-        assert ScheduledDeletion.objects.count() == 0
+        assert RegionScheduledDeletion.objects.count() == 0
 
         self.organization.update(status=OrganizationStatus.PENDING_DELETION)
-        deletion = ScheduledDeletion.schedule(self.organization, days=0)
+        deletion = RegionScheduledDeletion.schedule(self.organization, days=0)
         deletion.update(in_progress=True)
 
         with self.tasks():

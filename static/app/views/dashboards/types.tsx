@@ -15,7 +15,6 @@ export enum DisplayType {
   BAR = 'bar',
   LINE = 'line',
   TABLE = 'table',
-  WORLD_MAP = 'world_map',
   BIG_NUMBER = 'big_number',
   TOP_N = 'top_n',
 }
@@ -92,7 +91,7 @@ export type DashboardDetails = {
   dateCreated: string;
   filters: DashboardFilters;
   id: string;
-  projects: number[];
+  projects: undefined | number[];
   title: string;
   widgets: Widget[];
   createdBy?: User;

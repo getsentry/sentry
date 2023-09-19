@@ -11,10 +11,7 @@ import useNetworkFilters, {FilterFields, NetworkSelectOption} from './useNetwork
 jest.mock('react-router');
 jest.mock('sentry/utils/useLocation');
 
-const mockUseLocation = useLocation as jest.MockedFunction<typeof useLocation>;
-const mockBrowserHistoryPush = browserHistory.push as jest.MockedFunction<
-  typeof browserHistory.push
->;
+const mockUseLocation = jest.mocked(useLocation);
 
 const [
   SPAN_0_NAVIGATE,
@@ -113,20 +110,20 @@ describe('useNetworkFilters', () => {
   ];
 
   beforeEach(() => {
-    mockBrowserHistoryPush.mockReset();
+    jest.mocked(browserHistory.push).mockReset();
   });
 
   it('should update the url when setters are called', () => {
-    const TYPE_OPTION = {
+    const TYPE_OPTION: NetworkSelectOption = {
       value: 'resource.fetch',
       label: 'resource.fetch',
-      qs: 'f_n_type',
-    } as NetworkSelectOption;
-    const STATUS_OPTION = {
+      qs: 'f_n_type' as const,
+    };
+    const STATUS_OPTION: NetworkSelectOption = {
       value: '200',
       label: '200',
-      qs: 'f_n_status',
-    } as NetworkSelectOption;
+      qs: 'f_n_status' as const,
+    };
     const SEARCH_FILTER = 'pikachu';
 
     mockUseLocation
@@ -183,16 +180,16 @@ describe('useNetworkFilters', () => {
   });
 
   it('should clear details params when setters are called', () => {
-    const TYPE_OPTION = {
+    const TYPE_OPTION: NetworkSelectOption = {
       value: 'resource.fetch',
       label: 'resource.fetch',
       qs: 'f_n_type',
-    } as NetworkSelectOption;
-    const STATUS_OPTION = {
+    };
+    const STATUS_OPTION: NetworkSelectOption = {
       value: '200',
       label: '200',
       qs: 'f_n_status',
-    } as NetworkSelectOption;
+    };
     const SEARCH_FILTER = 'pikachu';
 
     mockUseLocation

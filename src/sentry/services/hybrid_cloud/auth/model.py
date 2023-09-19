@@ -5,6 +5,7 @@
 
 import base64
 import contextlib
+import datetime
 from enum import IntEnum
 from typing import (
     TYPE_CHECKING,
@@ -31,6 +32,15 @@ from sentry.services.hybrid_cloud.user import RpcUser
 
 if TYPE_CHECKING:
     from django.contrib.auth.models import AnonymousUser
+
+
+class RpcApiKey(RpcModel):
+    id: int
+    organization_id: int
+    key: str
+    status: int
+    allowed_origins: List[str]
+    label: str
 
 
 class RpcAuthenticatorType(IntEnum):
@@ -190,6 +200,9 @@ class AuthenticatedToken(RpcModel):
     organization_id: Optional[int] = None
     application_id: Optional[int] = None  # only relevant for ApiToken
 
+    def token_has_org_access(self, organization_id: int) -> bool:
+        return self.kind == "api_token" and self.organization_id == organization_id
+
     @classmethod
     def from_token(cls, token: Any) -> Optional["AuthenticatedToken"]:
         if token is None:
@@ -316,6 +329,8 @@ class RpcAuthProvider(RpcModel):
     provider: str = ""
     flags: RpcAuthProviderFlags = Field(default_factory=lambda: RpcAuthProviderFlags())
     config: Mapping[str, Any]
+    default_role: int = -1
+    default_global_access: bool = False
 
     def __hash__(self) -> int:
         return hash((self.id, self.organization_id, self.provider))
@@ -328,12 +343,19 @@ class RpcAuthProvider(RpcModel):
 
         return manager.get(self.provider, **self.config)
 
+    def get_scim_token(self) -> Optional[str]:
+        from sentry.models import get_scim_token
+
+        return get_scim_token(self.flags.scim_enabled, self.organization_id, self.provider)
+
 
 class RpcAuthIdentity(RpcModel):
     id: int = -1
     user_id: int = -1
-    provider_id: int = -1
+    auth_provider_id: int = -1
     ident: str = ""
+    data: Mapping[str, Any] = Field(default_factory=dict)
+    last_verified: datetime.datetime = Field(default_factory=datetime.datetime.now)
 
 
 class RpcOrganizationAuthConfig(RpcModel):

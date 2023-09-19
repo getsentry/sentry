@@ -70,6 +70,8 @@ class NotificationsService(RpcService):
         actor: RpcActor,
         project_id: Optional[int] = None,
         organization_id: Optional[int] = None,
+        skip_provider_updates: bool = False,
+        organization_id_for_team: Optional[int] = None,
     ) -> None:
         pass
 
@@ -104,13 +106,6 @@ class NotificationsService(RpcService):
 
     @rpc_method
     @abstractmethod
-    def remove_notification_settings_for_user(
-        self, *, user_id: int, provider: ExternalProviders
-    ) -> None:
-        pass
-
-    @rpc_method
-    @abstractmethod
     def get_many(self, *, filter: NotificationSettingFilterArgs) -> List[RpcNotificationSetting]:
         pass
 
@@ -122,8 +117,17 @@ class NotificationsService(RpcService):
         filter: NotificationSettingFilterArgs,
         as_user: Optional[RpcUser] = None,
         auth_context: Optional[AuthenticationContext] = None,
-        serializer: Optional[None] = None,
     ) -> List[OpaqueSerializedResponse]:
+        pass
+
+    @rpc_method
+    @abstractmethod
+    def remove_notification_settings_for_organization(self, *, organization_id: int) -> None:
+        pass
+
+    @rpc_method
+    @abstractmethod
+    def remove_notification_settings_for_project(self, *, project_id: int) -> None:
         pass
 
 

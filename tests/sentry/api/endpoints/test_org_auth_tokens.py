@@ -4,8 +4,7 @@ from django.urls import reverse
 from rest_framework import status
 
 from sentry.models.orgauthtoken import OrgAuthToken
-from sentry.testutils import APITestCase
-from sentry.testutils.cases import PermissionTestCase
+from sentry.testutils.cases import APITestCase, PermissionTestCase
 from sentry.testutils.silo import control_silo_test
 
 
@@ -156,6 +155,16 @@ class OrgAuthTokenCreateTest(APITestCase):
         )
         assert response.content
         assert response.data == {"detail": ["The name cannot be blank."]}
+
+    def test_name_too_long(self):
+        payload = {"name": "a" * 300}
+
+        self.login_as(self.user)
+        response = self.get_error_response(
+            self.organization.slug, status_code=status.HTTP_400_BAD_REQUEST, **payload
+        )
+        assert response.content
+        assert response.data == {"detail": ["The name cannot be longer than 255 characters."]}
 
     def test_no_auth(self):
         response = self.get_error_response(self.organization.slug)

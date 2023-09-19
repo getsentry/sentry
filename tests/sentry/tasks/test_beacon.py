@@ -8,7 +8,7 @@ import sentry
 from sentry import options
 from sentry.models import Broadcast
 from sentry.tasks.beacon import BEACON_URL, send_beacon, send_beacon_metric
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import no_silo_test
 from sentry.utils import json
 

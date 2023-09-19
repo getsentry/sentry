@@ -4,22 +4,33 @@ import functools
 from typing import Callable, Optional, Tuple
 
 import pytest
+from django.conf import settings
 from django.contrib.auth.models import AnonymousUser, User
 from django.core.cache import cache
 from django.http import HttpRequest
 from django.test import override_settings
 
+from sentry import options
 from sentry.app import env
 from sentry.middleware.auth import AuthenticationMiddleware
 from sentry.middleware.placeholder import placeholder_get_response
-from sentry.models import AuthIdentity, AuthProvider
+from sentry.models import AuthIdentity, AuthProvider, Organization
+from sentry.models.organizationmapping import OrganizationMapping
 from sentry.silo import SiloMode
 from sentry.testutils.factories import Factories
+from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.testutils.region import override_regions
+from sentry.types.region import Region, RegionCategory
 from sentry.utils.auth import login
-from sentry.utils.pytest.fixtures import django_db_all
 from sentry.web.client_config import get_client_config
 
 RequestFactory = Callable[[], Optional[Tuple[HttpRequest, User]]]
+
+region_data = [
+    Region("us", 1, "http://us.testserver", RegionCategory.MULTI_TENANT),
+    Region("eu", 2, "http://eu.testserver", RegionCategory.MULTI_TENANT),
+    Region("acme", 3, "http://acme.testserver", RegionCategory.SINGLE_TENANT),
+]
 
 
 def request_factory(f):
@@ -37,7 +48,7 @@ def request_factory(f):
             env.request = request
             cache.clear()
         else:
-            env.request = None
+            env.clear()
         return result
 
     return wrapper
@@ -83,7 +94,7 @@ def make_user_request_from_non_existant_org(org=None):
 
 def make_user_request_from_org_with_auth_identities(org=None):
     request, user = make_user_request_from_org(org)
-    org = user.get_orgs()[0]
+    org = Organization.objects.get_for_user_ids({user.id})[0]
     provider = AuthProvider.objects.create(
         organization_id=org.id, provider="google", config={"domain": "olddomain.com"}
     )
@@ -98,9 +109,9 @@ def none_request() -> None:
 
 @pytest.fixture(autouse=True)
 def clear_env_request():
-    env.request = None
+    env.clear()
     yield
-    env.request = None
+    env.clear()
 
 
 @pytest.mark.parametrize(
@@ -121,14 +132,22 @@ def test_client_config_in_silo_modes(request_factory: RequestFactory):
         request, _ = request
 
     base_line = get_client_config(request)
+    # Removing the region list as it varies based on silo mode.
+    # See Region.to_url()
+    base_line.pop("regions")
     cache.clear()
 
     with override_settings(SILO_MODE=SiloMode.REGION):
-        assert get_client_config(request) == base_line
+        result = get_client_config(request)
+        result.pop("regions")
+        assert result == base_line
         cache.clear()
 
     with override_settings(SILO_MODE=SiloMode.CONTROL):
-        assert get_client_config(request) == base_line
+        result = get_client_config(request)
+        result.pop("regions")
+        assert result == base_line
+        cache.clear()
 
 
 @django_db_all(transaction=True)
@@ -141,3 +160,48 @@ def test_client_config_deleted_user():
     result = get_client_config(request)
     assert result["isAuthenticated"] is False
     assert result["user"] is None
+
+
+@django_db_all
+@override_regions(regions=[])
+@override_settings(SILO_MODE=SiloMode.MONOLITH, SENTRY_REGION=settings.SENTRY_MONOLITH_REGION)
+def test_client_config_empty_region_data():
+    request, user = make_user_request_from_org()
+    request.user = user
+    result = get_client_config(request)
+
+    assert len(result["regions"]) == 1
+    regions = result["regions"]
+    assert regions[0]["name"] == settings.SENTRY_MONOLITH_REGION
+    assert regions[0]["url"] == options.get("system.url-prefix")
+
+
+@django_db_all
+@override_regions(regions=region_data)
+@override_settings(SILO_MODE=SiloMode.CONTROL)
+def test_client_config_with_region_data():
+    request, user = make_user_request_from_org()
+    request.user = user
+    result = get_client_config(request)
+
+    assert len(result["regions"]) == 2
+    regions = result["regions"]
+    assert {r["name"] for r in regions} == {"eu", "us"}
+
+
+@django_db_all
+@override_regions(regions=region_data)
+@override_settings(SILO_MODE=SiloMode.CONTROL)
+def test_client_config_with_single_tenant_membership():
+    request, user = make_user_request_from_org()
+    request.user = user
+
+    Factories.create_organization(slug="acme-co", owner=user)
+    mapping = OrganizationMapping.objects.get(slug="acme-co")
+    mapping.update(region_name="acme")
+
+    result = get_client_config(request)
+
+    assert len(result["regions"]) == 3
+    regions = result["regions"]
+    assert {r["name"] for r in regions} == {"eu", "us", "acme"}

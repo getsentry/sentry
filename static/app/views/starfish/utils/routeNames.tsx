@@ -6,4 +6,7 @@ export const ROUTE_NAMES = {
   'endpoint-overview': t('Endpoint Overview'),
   'span-summary': t('Span Summary'),
   'web-service': t('Web Service'),
+  initialization: t('App Initialization'),
+  pageload: t('Pageload'),
+  responsiveness: t('Responsiveness'),
 };

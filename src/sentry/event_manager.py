@@ -8,7 +8,7 @@ import re
 import time
 import uuid
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from io import BytesIO
 from typing import (
     TYPE_CHECKING,
@@ -32,7 +32,8 @@ from django.db import IntegrityError, OperationalError, connection, router, tran
 from django.db.models import Func
 from django.db.models.signals import post_save
 from django.utils.encoding import force_str
-from pytz import UTC
+from urllib3 import Retry
+from urllib3.exceptions import MaxRetryError
 
 from sentry import (
     eventstore,
@@ -45,6 +46,7 @@ from sentry import (
     tsdb,
 )
 from sentry.attachments import CachedAttachment, MissingAttachmentChunks, attachment_cache
+from sentry.conf.server import SEVERITY_DETECTION_RETRIES
 from sentry.constants import (
     DEFAULT_STORE_NORMALIZER_ARGS,
     LOG_LEVELS_MAP,
@@ -106,6 +108,7 @@ from sentry.models import (
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.release import follows_semver_versioning_scheme
+from sentry.net.http import connection_from_url
 from sentry.plugins.base import plugins
 from sentry.projectoptions.defaults import BETA_GROUPING_CONFIG, DEFAULT_GROUPING_CONFIG
 from sentry.quotas.base import index_data_category
@@ -174,6 +177,10 @@ def get_tag(data: dict[str, Any], key: str) -> Optional[Any]:
         if k == key:
             return v
     return None
+
+
+def is_sample_event(job):
+    return get_tag(job["data"], "sample_event") == "yes"
 
 
 def plugin_is_regression(group: Group, event: Event) -> bool:
@@ -455,16 +462,23 @@ class EventManager:
         project: Project,
         job: Job,
         projects: ProjectsMapping,
-        metric_tags: Dict[str, str],
+        metric_tags: MutableTags,
         raw: bool = False,
         cache_key: Optional[str] = None,
     ) -> Event:
         jobs = [job]
 
-        is_reprocessed = is_reprocessed_event(job["data"])
+        if is_sample_event(job):
+            logger.info(
+                "save_error_events: processing sample event",
+                extra={
+                    "event.id": job["event"].event_id,
+                    "project_id": project.id,
+                    "sample_event": True,
+                },
+            )
 
-        # This metric can be used to track how many error events there are per platform
-        metrics.incr("save_event.error", tags={"platform": job["event"].platform or "unknown"})
+        is_reprocessed = is_reprocessed_event(job["data"])
 
         with sentry_sdk.start_span(op="event_manager.save.get_or_create_release_many"):
             _get_or_create_release_many(jobs, projects)
@@ -581,6 +595,15 @@ class EventManager:
             raise
 
         if not group_info:
+            if is_sample_event(job):
+                logger.info(
+                    "save_error_events: no groupinfo found, returning event",
+                    extra={
+                        "event.id": job["event"].event_id,
+                        "project_id": project.id,
+                        "sample_event": True,
+                    },
+                )
             return job["event"]
 
         job["event"].group = group_info.group
@@ -869,8 +892,8 @@ def _associate_commits_with_release(release: Release, project: Project) -> None:
             integration = integration_service.get_integration(integration_id=oi.integration_id)
             if not integration:
                 continue
-            integration_installation = integration_service.get_installation(
-                integration=integration, organization_id=oi.organization_id
+            integration_installation = integration.get_installation(
+                organization_id=oi.organization_id
             )
             if not integration_installation:
                 continue
@@ -1266,7 +1289,7 @@ def _tsdb_record_all_metrics(jobs: Sequence[Job]) -> None:
 
 @metrics.wraps("save_event.nodestore_save_many")
 def _nodestore_save_many(jobs: Sequence[Job]) -> None:
-    inserted_time = datetime.utcnow().replace(tzinfo=UTC).timestamp()
+    inserted_time = datetime.utcnow().replace(tzinfo=timezone.utc).timestamp()
     for job in jobs:
         # Write the event to Nodestore
         subkeys = {}
@@ -1288,6 +1311,16 @@ def _nodestore_save_many(jobs: Sequence[Job]) -> None:
 @metrics.wraps("save_event.eventstream_insert_many")
 def _eventstream_insert_many(jobs: Sequence[Job]) -> None:
     for job in jobs:
+        if is_sample_event(job):
+            logger.info(
+                "_eventstream_insert_many: attempting to insert event into eventstream",
+                extra={
+                    "event.id": job["event"].event_id,
+                    "project_id": job["event"].project_id,
+                    "sample_event": True,
+                },
+            )
+
         if job["event"].project_id == settings.SENTRY_PROJECT:
             metrics.incr(
                 "internal.captured.eventstream_insert",
@@ -1320,6 +1353,15 @@ def _eventstream_insert_many(jobs: Sequence[Job]) -> None:
                 if gi is not None
             ]
 
+        if is_sample_event(job):
+            logger.info(
+                "_eventstream_insert_many: inserting into evenstream",
+                extra={
+                    "event.id": job["event"].event_id,
+                    "project_id": job["event"].project_id,
+                    "sample_event": True,
+                },
+            )
         eventstream.backend.insert(
             event=job["event"],
             is_new=is_new,
@@ -1441,7 +1483,7 @@ EventMetadata = Dict[str, Any]
 
 
 def materialize_metadata(
-    data: Mapping[str, Any], event_type: EventType, event_metadata: Mapping[str, Any]
+    data: Mapping[str, Any], event_type: EventType, event_metadata: dict[str, Any]
 ) -> EventMetadata:
     """Returns the materialized metadata to be merged with group or
     event data.  This currently produces the keys `type`, `culprit`,
@@ -1450,6 +1492,24 @@ def materialize_metadata(
 
     # XXX(markus): Ideally this wouldn't take data or event_type, and instead
     # calculate culprit + type from event_metadata
+
+    # Don't clobber existing metadata
+    try:
+        event_metadata.update(data.get("metadata", {}))
+    except TypeError:
+        # On a small handful of occasions, the line above has errored with `TypeError: 'NoneType'
+        # object is not iterable`, even though it's clear from looking at the local variable values
+        # in the event in Sentry that this shouldn't be possible.
+        logger.exception(
+            "Non-None being read as None",
+            extra={
+                "data is None": data is None,
+                "event_metadata is None": event_metadata is None,
+                "data.get": data.get,
+                "event_metadata.update": event_metadata.update,
+                "data.get('metadata', {})": data.get("metadata", {}),
+            },
+        )
 
     return {
         "type": event_type.key,
@@ -1564,6 +1624,18 @@ def _save_aggregate(
 
                 group = _create_group(project, event, **kwargs)
 
+                if (
+                    features.has("projects:first-event-severity-calculation", event.project)
+                    and group.data.get("metadata", {}).get("severity") is None
+                ):
+                    logger.error(
+                        "Group created without severity score",
+                        extra={
+                            "event_id": event.data["event_id"],
+                            "group_id": group.id,
+                        },
+                    )
+
                 if root_hierarchical_grouphash is not None:
                     new_hashes = [root_hierarchical_grouphash]
                 else:
@@ -1584,6 +1656,18 @@ def _save_aggregate(
                     skip_internal=True,
                     tags={"platform": event.platform or "unknown"},
                 )
+
+                # This only applies to events with stacktraces
+                frame_mix = event.get_event_metadata().get("in_app_frame_mix")
+                if frame_mix:
+                    metrics.incr(
+                        "grouping.in_app_frame_mix",
+                        sample_rate=1.0,
+                        tags={
+                            "platform": event.platform or "unknown",
+                            "frame_mix": frame_mix,
+                        },
+                    )
 
                 return GroupInfo(group, is_new, is_regression)
 
@@ -1756,10 +1840,19 @@ def _create_group(project: Project, event: Event, **kwargs: Any) -> Group:
         else None
     )
 
+    # get severity score for use in alerting
+    group_data = kwargs.pop("data", {})
+    if features.has("projects:first-event-severity-calculation", event.project):
+        severity = _get_severity_score(event)
+        if severity is not None:  # Severity can be 0
+            group_data.setdefault("metadata", {})
+            group_data["metadata"]["severity"] = severity
+
     return Group.objects.create(
         project=project,
         short_id=short_id,
         first_release_id=first_release_id,
+        data=group_data,
         **kwargs,
     )
 
@@ -1803,6 +1896,7 @@ def _handle_regression(group: Group, event: Event, release: Optional[Release]) -
             substatus=GroupSubStatus.REGRESSED,
         )
     )
+
     group.active_at = date
     group.status = GroupStatus.UNRESOLVED
     group.substatus = GroupSubStatus.REGRESSED
@@ -1931,6 +2025,71 @@ def _process_existing_aggregate(
     buffer_incr(Group, update_kwargs, {"id": group.id}, extra)
 
     return bool(is_regression)
+
+
+severity_connection_pool = connection_from_url(
+    settings.SEVERITY_DETECTION_URL,
+    retries=Retry(
+        total=SEVERITY_DETECTION_RETRIES,  # Defaults to 1
+        status_forcelist=[
+            408,  # Request timeout
+            429,  # Too many requests
+            502,  # Bad gateway
+            503,  # Service unavailable
+            504,  # Gateway timeout
+        ],
+    ),
+    timeout=settings.SEVERITY_DETECTION_TIMEOUT,  # Defaults to 300 milliseconds
+)
+
+
+def _get_severity_score(event: Event) -> float | None:
+    op = "event_manager._get_severity_score"
+    logger_data = {"event_id": event.data["event_id"], "op": op}
+    severity = None
+
+    metadata = event.get_event_metadata()
+    error_type = metadata.get("type")
+    error_msg = metadata.get("value")
+    message = ""
+    if error_type:
+        message = error_type if not error_msg else f"{error_type}: {error_msg}"
+
+    if message:
+        logger_data["event_message"] = message
+        with metrics.timer(op):
+            with sentry_sdk.start_span(op=op):
+                try:
+                    response = severity_connection_pool.urlopen(
+                        "POST",
+                        "/issues/severity-score",
+                        body=json.dumps({"message": message or "<unknown event>"}),
+                        headers={"content-type": "application/json;charset=utf-8"},
+                    )
+                    severity = json.loads(response.data).get("severity")
+                except MaxRetryError as e:
+                    logger.warning(
+                        f"Unable to get severity score from microservice after {SEVERITY_DETECTION_RETRIES} retr{'ies' if SEVERITY_DETECTION_RETRIES >1 else 'y'}. Got MaxRetryError caused by: {repr(e.reason)}.",
+                        extra=logger_data,
+                    )
+                except Exception as e:
+                    logger.warning(
+                        f"Unable to get severity score from microservice. Got: {repr(e)}.",
+                        extra=logger_data,
+                    )
+                else:
+                    logger.info(
+                        f"Got severity score of {severity} for event {event.data['event_id']}",
+                        extra=logger_data,
+                    )
+    else:
+        logger_data.update({"error_type": error_type, "error_msg": error_msg})
+        logger.warning(
+            "Unable to get severity score because event has no message",
+            extra=logger_data,
+        )
+
+    return severity
 
 
 Attachment = CachedAttachment
@@ -2153,7 +2312,7 @@ def save_attachment(
     if start_time is not None:
         timestamp = to_datetime(start_time)
     else:
-        timestamp = datetime.utcnow().replace(tzinfo=UTC)
+        timestamp = datetime.utcnow().replace(tzinfo=timezone.utc)
 
     try:
         data = attachment.data
@@ -2253,7 +2412,7 @@ def _calculate_event_grouping(
     Main entrypoint for modifying/enhancing and grouping an event, writes
     hashes back into event payload.
     """
-    metric_tags = {
+    metric_tags: MutableTags = {
         "grouping_config": grouping_config["id"],
         "platform": event.platform or "unknown",
     }
@@ -2280,7 +2439,7 @@ def _calculate_event_grouping(
 
     with metrics.timer("event_manager.event.get_hashes", tags=metric_tags):
         # Here we try to use the grouping config that was requested in the
-        # event.  If that config has since been deleted (because it was an
+        # event. If that config has since been deleted (because it was an
         # experimental grouping config) we fall back to the default.
         try:
             hashes = event.get_hashes(grouping_config)
@@ -2348,6 +2507,18 @@ def _save_grouphash_and_group(
             group = _create_group(project, event, **group_kwargs)
             group_hash.update(group=group)
 
+            if (
+                features.has("projects:first-event-severity-calculation", event.project)
+                and group.data.get("metadata", {}).get("severity") is None
+            ):
+                logger.error(
+                    "Group created without severity score",
+                    extra={
+                        "event_id": event.data["event_id"],
+                        "group_id": group.id,
+                    },
+                )
+
     if group is None:
         # If we failed to create the group it means another worker beat us to
         # it. Since a GroupHash can only be created in a transaction with the
@@ -2365,6 +2536,25 @@ def _send_occurrence_to_platform(jobs: Sequence[Job], projects: ProjectsMapping)
         event_id = event.event_id
 
         performance_problems = job["performance_problems"]
+        if features.has("organizations:issue-platform-extra-logging", project.organization):
+            if performance_problems and len(performance_problems) > 0:
+                logger.warning(
+                    f"Detected {len(performance_problems)} performance problems",
+                    extra={
+                        "performance_problems": performance_problems,
+                        "project_id": project.id,
+                        "event_id": event_id,
+                    },
+                )
+            else:
+                logger.warning(
+                    "No performance problems detected",
+                    extra={
+                        "project_id": project.id,
+                        "event_id": event_id,
+                    },
+                )
+
         for problem in performance_problems:
             occurrence = IssueOccurrence(
                 id=uuid.uuid4().hex,

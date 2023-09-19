@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, timezone
 from freezegun import freeze_time
 
 from sentry.monitors.models import CheckInStatus, MonitorCheckIn
-from sentry.testutils import MonitorTestCase
+from sentry.testutils.cases import MonitorTestCase
 from sentry.testutils.silo import region_silo_test
 
 
@@ -86,15 +86,15 @@ class OrganizationMonitorIndexStatsTest(MonitorTestCase):
         assert hour_one == [
             1647846000,
             {
-                "production": {"ok": 1, "error": 0, "missed": 0, "timeout": 0},
-                "debug": {"ok": 1, "error": 0, "missed": 0, "timeout": 0},
+                "production": {"in_progress": 1, "ok": 1, "error": 0, "missed": 0, "timeout": 0},
+                "debug": {"in_progress": 0, "ok": 1, "error": 0, "missed": 0, "timeout": 0},
             },
         ]
         assert hour_two == [
             1647849600,
             {
-                "production": {"ok": 0, "error": 0, "missed": 1, "timeout": 1},
-                "debug": {"ok": 0, "error": 1, "missed": 0, "timeout": 1},
+                "production": {"in_progress": 0, "ok": 0, "error": 0, "missed": 1, "timeout": 1},
+                "debug": {"in_progress": 0, "ok": 0, "error": 1, "missed": 0, "timeout": 1},
             },
         ]
 
@@ -103,7 +103,7 @@ class OrganizationMonitorIndexStatsTest(MonitorTestCase):
         assert hour_one == [
             1647846000,
             {
-                "production": {"ok": 2, "error": 0, "missed": 0, "timeout": 0},
+                "production": {"ok": 2, "error": 0, "missed": 0, "timeout": 0, "in_progress": 0},
             },
         ]
 
@@ -125,7 +125,7 @@ class OrganizationMonitorIndexStatsTest(MonitorTestCase):
         assert hour_one == [
             1647846000,
             {
-                "production": {"ok": 2, "error": 0, "missed": 0, "timeout": 0},
+                "production": {"ok": 2, "error": 0, "missed": 0, "timeout": 0, "in_progress": 0},
             },
         ]
 
@@ -152,12 +152,12 @@ class OrganizationMonitorIndexStatsTest(MonitorTestCase):
         assert min_1 == [
             1647849480,
             {
-                "production": {"ok": 1, "error": 0, "missed": 0, "timeout": 0},
+                "production": {"in_progress": 1, "ok": 1, "error": 0, "missed": 0, "timeout": 0},
             },
         ]
         assert min_2 == [
             1647849540,
             {
-                "debug": {"ok": 1, "error": 0, "missed": 0, "timeout": 0},
+                "debug": {"in_progress": 0, "ok": 1, "error": 0, "missed": 0, "timeout": 0},
             },
         ]

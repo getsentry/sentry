@@ -1,11 +1,10 @@
 import unittest
 from copy import deepcopy
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from functools import cached_property
 from unittest import mock
 
 import pytest
-import pytz
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.types import BrokerValue, Message, Partition, Topic
 from dateutil.parser import parse as parse_date
@@ -24,9 +23,13 @@ from sentry.snuba.query_subscriptions.consumer import (
 from sentry.snuba.query_subscriptions.run import QuerySubscriptionStrategyFactory
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils.cases import TestCase
+from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
 
+pytestmark = [requires_snuba]
 
+
+@pytest.mark.snuba_ci
 class BaseQuerySubscriptionTest:
     @cached_property
     def topic(self):
@@ -122,14 +125,14 @@ class HandleMessageTest(BaseQuerySubscriptionTest, TestCase):
         data["payload"].pop("result")
         data["payload"].pop("request")
         data["payload"]["timestamp"] = parse_date(data["payload"]["timestamp"]).replace(
-            tzinfo=pytz.utc
+            tzinfo=timezone.utc
         )
         mock_callback.assert_called_once_with(data["payload"], sub)
 
 
 class ParseMessageValueTest(BaseQuerySubscriptionTest, unittest.TestCase):
     def run_test(self, message):
-        parse_message_value(json.dumps(message), self.jsoncodec)
+        parse_message_value(json.dumps(message).encode(), self.jsoncodec)
 
     def run_invalid_schema_test(self, message):
         with pytest.raises(InvalidSchemaError):
@@ -183,16 +186,16 @@ class RegisterSubscriberTest(unittest.TestCase):
         subscriber_registry.update(self.orig_registry)
 
     def test_register(self):
-        callback = object()
-        other_callback = object()
+        callback = lambda a, b: None
+        other_callback = lambda a, b: None
         register_subscriber("hello")(callback)
-        assert subscriber_registry["hello"] == callback
+        assert subscriber_registry["hello"] is callback
         register_subscriber("goodbye")(other_callback)
-        assert subscriber_registry["goodbye"] == other_callback
+        assert subscriber_registry["goodbye"] is other_callback
 
     def test_already_registered(self):
-        callback = object()
-        other_callback = object()
+        callback = lambda a, b: None
+        other_callback = lambda a, b: None
         register_subscriber("hello")(callback)
         assert subscriber_registry["hello"] == callback
         with pytest.raises(Exception) as excinfo:

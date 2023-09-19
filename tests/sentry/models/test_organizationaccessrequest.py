@@ -1,7 +1,7 @@
 from django.core import mail
 
 from sentry.models import OrganizationAccessRequest, OrganizationMember, OrganizationMemberTeam
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import region_silo_test
 
