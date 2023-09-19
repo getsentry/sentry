@@ -1612,17 +1612,6 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
 
 
 class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
-    def _store_on_demand_counter_metric(self, tags: dict[str, str], timestamp: int) -> None:
-        """Shorthand function to store an on-demand counter metric"""
-        self.store_transaction_metric(
-            value=1,
-            metric=TransactionMetricKey.COUNT_ON_DEMAND.value,
-            internal_metric=TransactionMRI.COUNT_ON_DEMAND.value,
-            entity="metrics_counters",
-            tags=tags,
-            timestamp=timestamp,
-        )
-
     def test_get_query(self):
         query = TimeseriesMetricQueryBuilder(
             self.params,
@@ -2109,8 +2098,13 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         query = "transaction.duration:>=100"
         spec = OnDemandMetricSpec(field=field, query=query)
         timestamp = self.start
-        self._store_on_demand_counter_metric(
-            {"query_hash": spec.query_hash, "failure": "true"}, timestamp
+        self.store_transaction_metric(
+            value=1,
+            metric=TransactionMetricKey.COUNT_ON_DEMAND.value,
+            internal_metric=TransactionMRI.COUNT_ON_DEMAND.value,
+            entity="metrics_counters",
+            tags={"query_hash": spec.query_hash, "failure": "true"},
+            timestamp=self.start,
         )
         query = TimeseriesMetricQueryBuilder(
             self.params,
