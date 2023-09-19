@@ -89,6 +89,25 @@ from sentry.utils.snuba import parse_snuba_datetime
 QUERY_PROJECT_LIMIT = 10
 
 
+def _strip_project_id(condition):
+    if isinstance(condition, BooleanCondition):
+        new_boolean_condition = BooleanCondition()
+        for nested_condition in condition.conditions:
+            stripped_condition = _strip_project_id(nested_condition)
+            # Only if we have a condition object we append, since if its None it means that we directly had a
+            # project.id.
+            if stripped_condition is not None:
+                new_boolean_condition.conditions.append(stripped_condition)
+
+        return new_boolean_condition
+    elif isinstance(condition, Condition):
+        if isinstance(condition.lhs, Column):
+            if condition.lhs.name == "project_id":
+                return None
+
+            return condition
+
+
 def parse_field(field: str, allow_mri: bool = False, allow_private: bool = False) -> MetricField:
 
     if allow_mri:
@@ -423,11 +442,7 @@ def parse_conditions(
             config=QueryBuilderConfig(use_aggregate_conditions=True),
         )
         where, _ = query_builder.resolve_conditions(query_string)
-        param_conditions = list(
-            filter(
-                lambda condition: condition.lhs.name != "project_id", query_builder.resolve_params()
-            )
-        )
+        param_conditions = list(filter(_strip_project_id, query_builder.resolve_params()))
     except InvalidSearchQuery as e:
         raise InvalidParams(f"Failed to parse conditions: {e}")
 
