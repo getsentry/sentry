@@ -96,6 +96,7 @@ export function GettingStartedWithNode({
   activeProductSelection = [],
   organization,
   projectId,
+  ...props
 }: ModuleProps) {
   const productSelection = getProductSelectionMap(activeProductSelection);
 
@@ -130,6 +131,7 @@ export function GettingStartedWithNode({
       })}
       newOrg={newOrg}
       platformKey={platformKey}
+      {...props}
     />
   );
 }

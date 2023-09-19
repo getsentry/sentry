@@ -397,6 +397,7 @@ export function GettingStartedWithSpringBoot({
       nextSteps={nextStepDocs}
       introduction={introduction}
       platformOptions={platformOptions}
+      projectSlug={projectSlug}
       {...props}
     />
   );

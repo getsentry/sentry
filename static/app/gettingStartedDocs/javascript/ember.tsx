@@ -132,6 +132,7 @@ export function GettingStartedWithEmber({
   newOrg,
   platformKey,
   projectId,
+  ...props
 }: ModuleProps) {
   const integrations: string[] = [];
   const otherConfigs: string[] = [];
@@ -175,6 +176,7 @@ export function GettingStartedWithEmber({
       nextSteps={nextStepDocs}
       newOrg={newOrg}
       platformKey={platformKey}
+      {...props}
     />
   );
 }

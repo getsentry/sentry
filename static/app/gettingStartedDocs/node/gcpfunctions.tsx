@@ -109,6 +109,7 @@ export function GettingStartedWithGCPFunctions({
   activeProductSelection = [],
   organization,
   projectId,
+  ...props
 }: ModuleProps) {
   const productSelection = getProductSelectionMap(activeProductSelection);
 
@@ -154,6 +155,7 @@ export function GettingStartedWithGCPFunctions({
       })}
       newOrg={newOrg}
       platformKey={platformKey}
+      {...props}
     />
   );
 }

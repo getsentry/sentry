@@ -124,6 +124,7 @@ export function GettingStartedWithExpress({
   activeProductSelection = [],
   organization,
   projectId,
+  ...props
 }: ModuleProps) {
   const productSelection = getProductSelectionMap(activeProductSelection);
 
@@ -164,6 +165,7 @@ export function GettingStartedWithExpress({
       })}
       newOrg={newOrg}
       platformKey={platformKey}
+      {...props}
     />
   );
 }

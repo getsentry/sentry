@@ -410,6 +410,7 @@ export function GettingStartedWithSpring({
       })}
       nextSteps={nextStepDocs}
       introduction={introduction}
+      projectSlug={projectSlug}
       {...props}
     />
   );

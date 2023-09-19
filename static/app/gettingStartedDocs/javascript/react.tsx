@@ -144,6 +144,7 @@ export function GettingStartedWithReact({
   newOrg,
   platformKey,
   projectId,
+  ...props
 }: ModuleProps) {
   const integrations: string[] = [];
   const otherConfigs: string[] = [];
@@ -187,6 +188,7 @@ export function GettingStartedWithReact({
       nextSteps={nextStepDocs}
       newOrg={newOrg}
       platformKey={platformKey}
+      {...props}
     />
   );
 }
