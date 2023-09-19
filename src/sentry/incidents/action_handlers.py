@@ -248,6 +248,8 @@ class MsTeamsActionHandler(DefaultActionHandler):
     integration_provider="discord",
 )
 class DiscordActionHandler(DefaultActionHandler):
+    provider = "discord"
+
     def send_alert(
         self,
         metric_value: int | float,
