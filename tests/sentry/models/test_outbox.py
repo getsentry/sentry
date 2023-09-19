@@ -10,7 +10,6 @@ import responses
 from django.conf import settings
 from django.db import connections
 from django.test import RequestFactory
-from freezegun import freeze_time
 from pytest import raises
 from rest_framework import status
 
@@ -30,6 +29,7 @@ from sentry.silo import SiloMode
 from sentry.tasks.deliver_from_outbox import enqueue_outbox_jobs
 from sentry.testutils.cases import TestCase, TransactionTestCase
 from sentry.testutils.factories import Factories
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.region import override_regions
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, region_silo_test

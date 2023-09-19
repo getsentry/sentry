@@ -3,13 +3,11 @@ import uuid
 from time import time
 from unittest import mock
 
-from freezegun import freeze_time
-
 from sentry import tsdb
 from sentry.event_manager import EventManager
 from sentry.models import Group, GroupHash
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.tsdb.base import TSDBModel
 
