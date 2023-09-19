@@ -8,6 +8,7 @@ export function Repository(params: Partial<RepositoryType> = {}): RepositoryType
     url: 'https://github.com/example/repo-name',
     status: RepositoryStatus.ACTIVE,
     externalSlug: 'example/repo-name',
+    externalId: '1',
     dateCreated: '',
     integrationId: '',
     ...params,

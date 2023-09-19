@@ -74,6 +74,7 @@ export enum RepositoryStatus {
 
 export type Repository = {
   dateCreated: string;
+  externalId: string;
   externalSlug: string;
   id: string;
   integrationId: string;
