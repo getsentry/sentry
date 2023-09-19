@@ -132,7 +132,7 @@ class PluginConfig extends Component<Props, State> {
                 </Button>
               )}
               <Button
-                size="sm"
+                size="xs"
                 onClick={this.handleDisablePlugin}
                 disabled={!hasWriteAccess}
               >
