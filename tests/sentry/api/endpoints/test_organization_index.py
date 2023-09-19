@@ -5,10 +5,17 @@ from typing import Any
 from unittest.mock import patch
 
 from sentry.auth.authenticators.totp import TotpInterface
-from sentry.models import Authenticator, Organization, OrganizationMember, OrganizationStatus
+from sentry.models import (
+    Authenticator,
+    Organization,
+    OrganizationMember,
+    OrganizationMemberTeam,
+    OrganizationStatus,
+    Team,
+)
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase, TwoFactorAPITestCase
-from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
@@ -119,8 +126,45 @@ class OrganizationsCreateTest(OrganizationIndexTest, HybridCloudTestMixin):
         org = Organization.objects.get(id=organization_id)
         assert org.name == "hello world"
         assert org.slug == "foobar"
+        team_qs = Team.objects.filter(organization_id=organization_id)
+        assert not team_qs.exists()
 
         self.get_error_response(status_code=400, **data)
+
+    def test_org_ownership(self):
+        data = {"name": "hello world", "slug": "foobar"}
+        response = self.get_success_response(**data)
+
+        organization_id = response.data["id"]
+        org = Organization.objects.get(id=organization_id)
+        assert org.name == "hello world"
+        owners = [owner.id for owner in org.get_owners()]
+        assert [self.user.id] == owners
+
+    def test_with_default_team_false(self):
+        data = {"name": "hello world", "slug": "foobar", "defaultTeam": False}
+        response = self.get_success_response(**data)
+
+        organization_id = response.data["id"]
+        org = Organization.objects.get(id=organization_id)
+        assert org.name == "hello world"
+        assert org.slug == "foobar"
+        team_qs = Team.objects.filter(organization_id=organization_id)
+        assert not team_qs.exists()
+
+    def test_with_default_team_true(self):
+        data = {"name": "hello world", "slug": "foobar", "defaultTeam": True}
+        response = self.get_success_response(**data)
+
+        organization_id = response.data["id"]
+        Organization.objects.get(id=organization_id)
+        team = Team.objects.get(organization_id=organization_id)
+        assert team.name == "hello world"
+
+        org_member = OrganizationMember.objects.get(
+            organization_id=organization_id, user_id=self.user.id
+        )
+        OrganizationMemberTeam.objects.get(organizationmember_id=org_member.id, team_id=team.id)
 
     def test_slugs(self):
         valid_slugs = ["santry", "downtown-canada", "1234", "CaNaDa"]
@@ -139,7 +183,7 @@ class OrganizationsCreateTest(OrganizationIndexTest, HybridCloudTestMixin):
             self.get_error_response(name="name", slug="canada-", status_code=400)
             self.get_error_response(name="name", slug="-canada", status_code=400)
             self.get_error_response(name="name", slug="----", status_code=400)
-            with self.feature("app:enterprise-prevent-numeric-slugs"):
+            with override_options({"api.prevent-numeric-slugs": True}):
                 self.get_error_response(name="name", slug="1234", status_code=400)
 
     def test_without_slug(self):
@@ -149,13 +193,14 @@ class OrganizationsCreateTest(OrganizationIndexTest, HybridCloudTestMixin):
         org = Organization.objects.get(id=organization_id)
         assert org.slug == "hello-world"
 
-    @with_feature("app:enterprise-prevent-numeric-slugs")
+    @override_options({"api.prevent-numeric-slugs": True})
     def test_generated_slug_not_entirely_numeric(self):
         response = self.get_success_response(name="1234")
 
         organization_id = response.data["id"]
         org = Organization.objects.get(id=organization_id)
-        assert org.slug.startswith("1234" + "-")
+        assert org.slug.startswith("1234-")
+        assert not org.slug.isdecimal()
 
     @patch(
         "sentry.api.endpoints.organization_member.requests.join.ratelimiter.is_limited",
@@ -224,15 +269,6 @@ class OrganizationsCreateTest(OrganizationIndexTest, HybridCloudTestMixin):
         org = Organization.objects.get(id=organization_id)
         assert org.slug == data["slug"]
         assert org.name == data["name"]
-
-        # TODO(HC) Re-enable this check once organization mapping stabilizes
-        # with assume_test_silo_mode(SiloMode.CONTROL):
-        #     assert OrganizationMapping.objects.filter(
-        #         organization_id=organization_id,
-        #         slug=data["slug"],
-        #         name=data["name"],
-        #         idempotency_key=data["idempotencyKey"],
-        #     ).exists()
 
     def test_slug_already_taken(self):
         self.create_organization(slug="taken")

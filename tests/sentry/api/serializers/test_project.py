@@ -26,6 +26,7 @@ from sentry.models import (
     ReleaseProjectEnvironment,
     UserReport,
 )
+from sentry.models.options.project_option import ProjectOption
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -690,6 +691,17 @@ class DetailedProjectSerializerTest(TestCase):
         assert "releases" in result["features"]
         assert result["platform"] == self.project.platform
         assert result["latestRelease"] == {"version": self.release.version}
+
+    def test_symbol_sources(self):
+        ProjectOption.objects.set_value(
+            project=self.project,
+            key="sentry:symbol_sources",
+            value='[{"id":"1","name":"hello","password":"password",}]',
+        )
+        result = serialize(self.project, self.user, DetailedProjectSerializer())
+
+        assert "sentry:token" not in result["options"]
+        assert "sentry:symbol_sources" not in result["options"]
 
 
 @region_silo_test(stable=True)

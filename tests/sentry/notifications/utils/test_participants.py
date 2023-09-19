@@ -142,6 +142,7 @@ class GetSendToTeamTest(_ParticipantsTest):
                 NotificationSettingTypes.ISSUE_ALERTS,
                 NotificationSettingOptionValues.NEVER,
                 team_id=self.team.id,
+                organization_id_for_team=self.organization.id,
             )
             NotificationSetting.objects.update_settings(
                 ExternalProviders.SLACK,
@@ -183,6 +184,7 @@ class GetSendToTeamTest(_ParticipantsTest):
                 NotificationSettingTypes.ISSUE_ALERTS,
                 NotificationSettingOptionValues.ALWAYS,
                 team_id=self.team.id,
+                organization_id_for_team=self.organization.id,
             )
         assert self.get_send_to_team() == {
             ExternalProviders.SLACK: {RpcActor.from_orm_team(self.team)}
@@ -194,6 +196,7 @@ class GetSendToTeamTest(_ParticipantsTest):
                 NotificationSettingTypes.ISSUE_ALERTS,
                 NotificationSettingOptionValues.NEVER,
                 team_id=self.team.id,
+                organization_id_for_team=self.organization.id,
             )
         self.assert_recipients_are(self.get_send_to_team(), email=[self.user.id])
 
@@ -279,6 +282,7 @@ class GetSendToOwnersTest(_ParticipantsTest):
                 NotificationSettingTypes.ISSUE_ALERTS,
                 NotificationSettingOptionValues.NEVER,
                 team_id=self.team2.id,
+                organization_id_for_team=self.organization.id,
             )
 
             self.integration.add_organization(self.project.organization, self.user)

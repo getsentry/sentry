@@ -1,31 +1,30 @@
 from __future__ import annotations
 
-import warnings
 from collections import defaultdict
 from typing import TYPE_CHECKING, Literal, Optional, Sequence, Tuple, Union, overload
 
 from django.conf import settings
-from django.core.serializers.base import DeserializedObject
 from django.db import IntegrityError, connections, models, router, transaction
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from sentry.app import env
-from sentry.backup.dependencies import PrimaryKeyMap
-from sentry.backup.scopes import RelocationScope
+from sentry.backup.dependencies import ImportKind
+from sentry.backup.helpers import ImportFlags
+from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.constants import ObjectStatus
 from sentry.db.models import (
     BaseManager,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
-    Model,
     region_silo_only_model,
     sane_repr,
 )
+from sentry.db.models.outboxes import ReplicatedRegionModel
 from sentry.db.models.utils import slugify_instance
 from sentry.locks import locks
 from sentry.models.actor import ACTOR_TYPES, Actor
-from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox, outbox_context
+from sentry.models.outbox import OutboxCategory, outbox_context
 from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.snowflake import SnowflakeIdMixin
 
@@ -154,12 +153,13 @@ class TeamStatus:
 
 
 @region_silo_only_model
-class Team(Model, SnowflakeIdMixin):
+class Team(ReplicatedRegionModel, SnowflakeIdMixin):
     """
     A team represents a group of individuals which maintain ownership of projects.
     """
 
     __relocation_scope__ = RelocationScope.Organization
+    category = OutboxCategory.TEAM_UPDATE
 
     organization = FlexibleForeignKey("sentry.Organization")
     slug = models.SlugField()
@@ -201,6 +201,12 @@ class Team(Model, SnowflakeIdMixin):
     def __str__(self):
         return f"{self.name} ({self.slug})"
 
+    def handle_async_replication(self, shard_identifier: int) -> None:
+        from sentry.services.hybrid_cloud.organization.serial import serialize_rpc_team
+        from sentry.services.hybrid_cloud.replica import control_replica_service
+
+        control_replica_service.upsert_replicated_team(team=serialize_rpc_team(self))
+
     def save(self, *args, **kwargs):
         if not self.slug:
             lock = locks.get(f"slug:team:{self.organization_id}", duration=5, name="team_slug")
@@ -223,29 +229,6 @@ class Team(Model, SnowflakeIdMixin):
             user_id__isnull=False,
             user_is_active=True,
         ).distinct()
-
-    def has_access(self, user, access=None):
-        from sentry.models import AuthIdentity, OrganizationMember
-
-        warnings.warn("Team.has_access is deprecated.", DeprecationWarning)
-
-        queryset = self.member_set.filter(user=user)
-        if access is not None:
-            queryset = queryset.filter(type__lte=access)
-
-        try:
-            member = queryset.get()
-        except OrganizationMember.DoesNotExist:
-            return False
-
-        try:
-            auth_identity = AuthIdentity.objects.get(
-                auth_provider__organization=self.organization_id, user=member.user_id
-            )
-        except AuthIdentity.DoesNotExist:
-            return True
-
-        return auth_identity.is_valid(member)
 
     def transfer_to(self, organization):
         """
@@ -342,24 +325,6 @@ class Team(Model, SnowflakeIdMixin):
 
         return Project.objects.get_for_team_ids([self.id])
 
-    def outbox_for_update(self) -> RegionOutbox:
-        return RegionOutbox(
-            shard_scope=OutboxScope.TEAM_SCOPE,
-            shard_identifier=self.organization_id,
-            category=OutboxCategory.TEAM_UPDATE,
-            object_identifier=self.id,
-        )
-
-    def delete(self, **kwargs):
-        from sentry.models import ExternalActor
-
-        # There is no foreign key relationship so we have to manually delete the ExternalActors
-        with outbox_context(transaction.atomic(router.db_for_write(ExternalActor))):
-            ExternalActor.objects.filter(actor_id=self.actor_id).delete()
-            self.outbox_for_update().save()
-
-            return super().delete(**kwargs)
-
     def get_member_actor_ids(self):
         owner_ids = [self.actor_id]
         member_user_ids = self.member_set.values_list("user_id", flat=True)
@@ -372,11 +337,11 @@ class Team(Model, SnowflakeIdMixin):
 
     # TODO(hybrid-cloud): actor refactor. Remove this method when done.
     def write_relocation_import(
-        self, pk_map: PrimaryKeyMap, obj: DeserializedObject
-    ) -> Optional[Tuple[int, int]]:
-        written = super().write_relocation_import(pk_map, obj)
+        self, scope: ImportScope, flags: ImportFlags
+    ) -> Optional[Tuple[int, ImportKind]]:
+        written = super().write_relocation_import(scope, flags)
         if written is not None:
-            (_, new_pk) = written
+            (new_pk, _) = written
 
             # `Actor` and `Team` have a direct circular dependency between them for the time being
             # due to an ongoing refactor (that is, `Actor` foreign keys directly into `Team`, and

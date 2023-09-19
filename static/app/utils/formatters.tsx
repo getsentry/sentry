@@ -328,7 +328,35 @@ export function formatAbbreviatedNumber(
 export function formatRate(
   value: number,
   unit: RateUnits = RateUnits.PER_SECOND,
-  significantDigits?: number
+  options: {
+    minimumValue?: number;
+    significantDigits?: number;
+  } = {}
 ) {
-  return `${formatAbbreviatedNumber(value, significantDigits)}${RATE_UNIT_LABELS[unit]}`;
+  // NOTE: `Intl` doesn't support unitless-per-unit formats (i.e.,
+  // `"-per-minute"` is not valid) so we have to concatenate the unit manually, since our rates are usually just "/min" or "/s".
+  // Because of this, the unit is not internationalized.
+
+  // 0 is special!
+  if (value === 0) {
+    return `${0}${RATE_UNIT_LABELS[unit]}`;
+  }
+
+  const minimumValue = options.minimumValue ?? 0;
+  const significantDigits = options.significantDigits ?? 3;
+
+  const numberFormatOptions: ConstructorParameters<typeof Intl.NumberFormat>[1] = {
+    notation: 'compact',
+    compactDisplay: 'short',
+    minimumSignificantDigits: significantDigits,
+    maximumSignificantDigits: significantDigits,
+  };
+
+  if (value <= minimumValue) {
+    return `<${minimumValue}${RATE_UNIT_LABELS[unit]}`;
+  }
+
+  return `${value.toLocaleString(undefined, numberFormatOptions)}${
+    RATE_UNIT_LABELS[unit]
+  }`;
 }

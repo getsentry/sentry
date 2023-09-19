@@ -21,6 +21,12 @@ from sentry.api.endpoints.organization_missing_org_members import OrganizationMi
 from sentry.api.endpoints.organization_projects_experiment import (
     OrganizationProjectsExperimentEndpoint,
 )
+from sentry.api.endpoints.organization_spans_aggregation import OrganizationSpansAggregationEndpoint
+from sentry.api.endpoints.release_threshold import ReleaseThresholdEndpoint
+from sentry.api.endpoints.release_threshold_details import ReleaseThresholdDetailsEndpoint
+from sentry.api.endpoints.source_map_debug_blue_thunder_edition import (
+    SourceMapDebugBlueThunderEditionEndpoint,
+)
 from sentry.api.utils import method_dispatch
 from sentry.data_export.endpoints.data_export import DataExportEndpoint
 from sentry.data_export.endpoints.data_export_details import DataExportDetailsEndpoint
@@ -34,6 +40,9 @@ from sentry.discover.endpoints.discover_saved_query_detail import (
     DiscoverSavedQueryDetailEndpoint,
     DiscoverSavedQueryVisitEndpoint,
 )
+from sentry.feedback.endpoints.feedback_ingest import FeedbackIngestEndpoint
+from sentry.feedback.endpoints.organization_feedback_index import OrganizationFeedbackIndexEndpoint
+from sentry.feedback.endpoints.project_feedback_details import ProjectFeedbackDetailsEndpoint
 from sentry.incidents.endpoints.organization_alert_rule_available_action_index import (
     OrganizationAlertRuleAvailableActionIndexEndpoint,
 )
@@ -1322,6 +1331,11 @@ ORGANIZATION_URLS = [
         OrganizationEventsTrendsStatsEndpoint.as_view(),
         name="sentry-api-0-organization-events-trends-stats",
     ),
+    re_path(
+        r"^(?P<organization_slug>[^\/]+)/spans-aggregation/$",
+        OrganizationSpansAggregationEndpoint.as_view(),
+        name="sentry-api-0-organization-spans-aggregation",
+    ),
     # This endpoint is for experimentation only
     # Once this feature is developed, the endpoint will replace /events-trends-stats
     re_path(
@@ -1744,6 +1758,12 @@ ORGANIZATION_URLS = [
         OrganizationTransactionAnomalyDetectionEndpoint.as_view(),
         name="sentry-api-0-organization-transaction-anomaly-detection",
     ),
+    # Feedback
+    re_path(
+        r"^(?P<organization_slug>[^\/]+)/feedback/$",
+        OrganizationFeedbackIndexEndpoint.as_view(),
+        name="sentry-api-0-organization-feedback-index",
+    ),
     # relay usage
     re_path(
         r"^(?P<organization_slug>[^\/]+)/relay_usage/$",
@@ -2003,9 +2023,20 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-event-source-map-debug",
     ),
     re_path(
+        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/events/(?P<event_id>[\w-]+)/source-map-debug-blue-thunder-edition/$",
+        SourceMapDebugBlueThunderEditionEndpoint.as_view(),
+        name="sentry-api-0-event-source-map-debug-blue-thunder-edition",
+    ),
+    re_path(
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/events/(?P<event_id>[\w-]+)/actionable-items/$",
         ActionableItemsEndpoint.as_view(),
         name="sentry-api-0-event-actionable-items",
+    ),
+    # Feedback
+    re_path(
+        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/feedback/(?P<feedback_id>[\w-]+)/$",
+        ProjectFeedbackDetailsEndpoint.as_view(),
+        name="sentry-api-0-project-feedback-details",
     ),
     re_path(
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/files/dsyms/$",
@@ -2099,6 +2130,16 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/$",
         ProjectReleasesEndpoint.as_view(),
         name="sentry-api-0-project-releases",
+    ),
+    re_path(
+        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/thresholds/$",
+        ReleaseThresholdEndpoint.as_view(),
+        name="sentry-api-0-project-release-thresholds",
+    ),
+    re_path(
+        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/thresholds/(?P<release_threshold>[^/]+)/$",
+        ReleaseThresholdDetailsEndpoint.as_view(),
+        name="sentry-api-0-project-release-thresholds-details",
     ),
     re_path(
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/commits/$",
@@ -2908,6 +2949,12 @@ urlpatterns = [
         r"^wizard/(?P<wizard_hash>[^\/]+)/$",
         SetupWizard.as_view(),
         name="sentry-api-0-project-wizard",
+    ),
+    # Feedback
+    re_path(
+        r"^feedback/$",
+        FeedbackIngestEndpoint.as_view(),
+        name="sentry-api-0-feedback-ingest",
     ),
     # Internal
     re_path(

@@ -93,6 +93,7 @@ export default function TagFacets({
 
   const {isLoading, isError, data, refetch} = useFetchIssueTagsForDetailsPage({
     groupId,
+    orgSlug: organization.slug,
     environment: environments,
   });
 

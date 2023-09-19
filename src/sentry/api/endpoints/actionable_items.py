@@ -7,18 +7,16 @@ from typing_extensions import TypedDict
 
 from sentry import eventstore, features
 from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.helpers.actionable_items_helper import (
     ActionPriority,
     deprecated_event_errors,
     errors_to_hide,
-    find_debug_frames,
     priority_ranking,
-    sourcemap_sdks,
 )
-from sentry.api.helpers.source_map_helper import source_map_debug
-from sentry.models import EventError, Organization, Project, SourceMapProcessingIssue
+from sentry.models import EventError, Organization, Project
 
 
 class ActionableItemResponse(TypedDict):
@@ -37,6 +35,9 @@ class SourceMapProcessingResponse(TypedDict):
 # errors or messages we show to users about problems with their event which we will show the user how to fix.
 @region_silo_endpoint
 class ActionableItemsEndpoint(ProjectEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     owner = ApiOwner.ISSUES
 
     def has_feature(self, organization: Organization, request: Request):
@@ -55,21 +56,6 @@ class ActionableItemsEndpoint(ProjectEndpoint):
             raise NotFound(detail="Event not found")
 
         actions = []
-        debug_frames = []
-
-        sdk_info = event.data.get("sdk")
-        # Find debug frames if event has frontend js sdk
-        if sdk_info and sdk_info["name"] in sourcemap_sdks:
-            debug_frames = find_debug_frames(event)
-
-        for frame_idx, exception_idx in debug_frames:
-            debug_response = source_map_debug(project, event.event_id, exception_idx, frame_idx)
-            issue, data = debug_response.issue, debug_response.data
-
-            if issue:
-                response = SourceMapProcessingIssue(issue, data=data).get_api_context()
-                actions.append(response)
-
         event_errors = event.data.get("errors", [])
 
         # Add event errors to actionable items

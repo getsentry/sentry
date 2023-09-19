@@ -4,6 +4,7 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.integrations.slack.message_builder.disconnected import SlackDisconnectedMessageBuilder
 from sentry.integrations.slack.requests.base import SlackDMRequest, SlackRequestError
@@ -45,6 +46,9 @@ def is_team_linked_to_channel(organization: Organization, slack_request: SlackDM
 
 @region_silo_endpoint
 class SlackCommandsEndpoint(SlackDMEndpoint):
+    publish_status = {
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     authentication_classes = ()
     permission_classes = ()
     slack_request_class = SlackCommandRequest

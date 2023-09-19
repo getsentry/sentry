@@ -1,18 +1,11 @@
+import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {EventData} from 'sentry/utils/discover/eventView';
-import {QueryClient, QueryClientProvider} from 'sentry/utils/queryClient';
+import {QueryClientProvider} from 'sentry/utils/queryClient';
 
 import IssueContext from './issueContext';
 import {defaultRow} from './testUtils';
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: false,
-    },
-  },
-});
 
 let mockedGroup = TestStubs.Group({
   id: '3512441874',
@@ -34,7 +27,7 @@ let mockedGroup = TestStubs.Group({
 const renderIssueContext = (dataRow: EventData = defaultRow) => {
   const organization = TestStubs.Organization();
   render(
-    <QueryClientProvider client={queryClient}>
+    <QueryClientProvider client={makeTestQueryClient()}>
       <IssueContext dataRow={dataRow} organization={organization} />
     </QueryClientProvider>,
     {organization}
@@ -67,7 +60,6 @@ describe('Quick Context Content Issue Column', function () {
   });
 
   afterEach(function () {
-    queryClient.clear();
     MockApiClient.clearMockResponses();
   });
 

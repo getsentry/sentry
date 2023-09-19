@@ -74,13 +74,10 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
         self.browser.wait_until_test_id("awaiting-events")
 
         self.browser.click('[data-test-id="page-filter-project-selector"]')
-        self.browser.snapshot("globalSelectionHeader - project selector")
 
         self.browser.click('[data-test-id="page-filter-environment-selector"]')
-        self.browser.snapshot("globalSelectionHeader - environment selector")
 
         self.browser.click('[data-test-id="page-filter-timerange-selector"]')
-        self.browser.snapshot("globalSelectionHeader - timerange selector")
 
     @pytest.mark.skip(reason="Has been flaky lately.")
     def test_global_selection_header_loads_with_correct_project(self):

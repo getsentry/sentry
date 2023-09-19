@@ -15,6 +15,7 @@ type AssignToUserParams = {
    * Issue id
    */
   id: string;
+  orgSlug: string;
   user: User | Actor;
   member?: Member;
 };
@@ -22,7 +23,7 @@ type AssignToUserParams = {
 export function assignToUser(params: AssignToUserParams) {
   const api = new Client();
 
-  const endpoint = `/issues/${params.id}/`;
+  const endpoint = `/organizations/${params.orgSlug}/issues/${params.id}/`;
 
   const id = uniqueId();
 
@@ -52,10 +53,14 @@ export function assignToUser(params: AssignToUserParams) {
   return request;
 }
 
-export function clearAssignment(groupId: string, assignedBy: AssignedBy) {
+export function clearAssignment(
+  groupId: string,
+  orgSlug: string,
+  assignedBy: AssignedBy
+) {
   const api = new Client();
 
-  const endpoint = `/issues/${groupId}/`;
+  const endpoint = `/organizations/${orgSlug}/issues/${groupId}/`;
 
   const id = uniqueId();
 
@@ -90,12 +95,13 @@ type AssignToActorParams = {
    * Issue id
    */
   id: string;
+  orgSlug: string;
 };
 
-export function assignToActor({id, actor, assignedBy}: AssignToActorParams) {
+export function assignToActor({id, actor, assignedBy, orgSlug}: AssignToActorParams) {
   const api = new Client();
 
-  const endpoint = `/issues/${id}/`;
+  const endpoint = `/organizations/${orgSlug}/issues/${id}/`;
 
   const guid = uniqueId();
   let actorId = '';
@@ -131,7 +137,13 @@ export function assignToActor({id, actor, assignedBy}: AssignToActorParams) {
     });
 }
 
-export function deleteNote(api: Client, group: Group, id: string, _oldText: string) {
+export function deleteNote(
+  api: Client,
+  orgSlug: string,
+  group: Group,
+  id: string,
+  _oldText: string
+) {
   const restore = group.activity.find(activity => activity.id === id);
   const index = GroupStore.removeActivity(group.id, id);
 
@@ -140,20 +152,26 @@ export function deleteNote(api: Client, group: Group, id: string, _oldText: stri
     return Promise.reject(new Error('Group was not found in store'));
   }
 
-  const promise = api.requestPromise(`/issues/${group.id}/comments/${id}/`, {
-    method: 'DELETE',
-  });
+  const promise = api.requestPromise(
+    `/organizations/${orgSlug}/issues/${group.id}/comments/${id}/`,
+    {
+      method: 'DELETE',
+    }
+  );
 
   promise.catch(() => GroupStore.addActivity(group.id, restore, index));
 
   return promise;
 }
 
-export function createNote(api: Client, group: Group, note: Note) {
-  const promise = api.requestPromise(`/issues/${group.id}/comments/`, {
-    method: 'POST',
-    data: note,
-  });
+export function createNote(api: Client, orgSlug: string, group: Group, note: Note) {
+  const promise = api.requestPromise(
+    `/organizations/${orgSlug}/issues/${group.id}/comments/`,
+    {
+      method: 'POST',
+      data: note,
+    }
+  );
 
   promise.then(data => GroupStore.addActivity(group.id, data));
 
@@ -162,6 +180,7 @@ export function createNote(api: Client, group: Group, note: Note) {
 
 export function updateNote(
   api: Client,
+  orgSlug: string,
   group: Group,
   note: Note,
   id: string,
@@ -169,10 +188,13 @@ export function updateNote(
 ) {
   GroupStore.updateActivity(group.id, id, {data: {text: note.text}});
 
-  const promise = api.requestPromise(`/issues/${group.id}/comments/${id}/`, {
-    method: 'PUT',
-    data: note,
-  });
+  const promise = api.requestPromise(
+    `/organizations/${orgSlug}/issues/${group.id}/comments/${id}/`,
+    {
+      method: 'PUT',
+      data: note,
+    }
+  );
 
   promise.catch(() => GroupStore.updateActivity(group.id, id, {data: {text: oldText}}));
 
@@ -390,17 +412,19 @@ export type GroupTagsResponse = GroupTagResponseItem[];
 type FetchIssueTagsParameters = {
   environment: string[];
   limit: number;
+  orgSlug: string;
   readable: boolean;
   groupId?: string;
 };
 
 export const makeFetchIssueTagsQueryKey = ({
   groupId,
+  orgSlug,
   environment,
   readable,
   limit,
 }: FetchIssueTagsParameters): ApiQueryKey => [
-  `/issues/${groupId}/tags/`,
+  `/organizations/${orgSlug}/issues/${groupId}/tags/`,
   {query: {environment, readable, limit}},
 ];
 

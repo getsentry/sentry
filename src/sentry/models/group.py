@@ -544,6 +544,7 @@ class Group(Model):
             ("project", "status", "substatus", "last_seen", "id"),
             ("project", "status", "substatus", "type", "last_seen", "id"),
             ("project", "status", "substatus", "id"),
+            ("status", "substatus", "id"),
         ]
         unique_together = (
             ("project", "short_id"),
@@ -648,10 +649,17 @@ class Group(Model):
             )
             return cached_has_replays
 
+        data_source = (
+            Dataset.IssuePlatform
+            if self.issue_category == GroupCategory.PERFORMANCE
+            else Dataset.Discover
+        )
+
         counts = get_replay_counts(
             make_snuba_params_for_replay_count_query(),
             f"issue.id:[{self.id}]",
             return_ids=False,
+            data_source=data_source,
         )
 
         has_replays = counts.get(self.id, 0) > 0  # type: ignore

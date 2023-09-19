@@ -1,6 +1,8 @@
 import {Organization} from 'sentry/types';
-import {useProjectSdkUpdates} from 'sentry/utils/useProjectSdkUpdates';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import {semverCompare} from 'sentry/utils/versions';
+
+import {ProjectSdkUpdates} from '../types/project';
 
 type Opts = {
   minVersion: string;
@@ -8,29 +10,28 @@ type Opts = {
   projectId: string[];
 };
 
-function useProjectSdkNeedsUpdate({minVersion, organization, projectId}: Opts):
-  | {
-      isFetching: true;
-      needsUpdate: undefined;
-    }
-  | {
-      isFetching: false;
-      needsUpdate: boolean;
-    } {
-  const sdkUpdates = useProjectSdkUpdates({
-    organization,
-    projectId: null,
-  });
+function useProjectSdkNeedsUpdate({
+  minVersion,
+  organization,
+  projectId,
+}: Opts):
+  | {isError: false; isFetching: true; needsUpdate: undefined}
+  | {isError: true; isFetching: false; needsUpdate: undefined}
+  | {isError: false; isFetching: false; needsUpdate: boolean} {
+  const {data, isLoading, isError} = useApiQuery<ProjectSdkUpdates[]>(
+    [`/organizations/${organization.slug}/sdk-updates/`],
+    {staleTime: 5000}
+  );
 
-  if (sdkUpdates.type !== 'resolved') {
-    return {isFetching: true, needsUpdate: undefined};
+  if (isLoading) {
+    return {isError: false, isFetching: true, needsUpdate: undefined};
   }
 
-  if (!sdkUpdates.data?.length) {
-    return {isFetching: true, needsUpdate: undefined};
+  if (isError) {
+    return {isError: true, isFetching: false, needsUpdate: undefined};
   }
 
-  const selectedProjects = sdkUpdates.data.filter(sdkUpdate =>
+  const selectedProjects = data.filter(sdkUpdate =>
     projectId.includes(sdkUpdate.projectId)
   );
 
@@ -40,7 +41,11 @@ function useProjectSdkNeedsUpdate({minVersion, organization, projectId}: Opts):
       sdkUpdate => semverCompare(sdkUpdate.sdkVersion || '', minVersion) === -1
     );
 
-  return {isFetching: false, needsUpdate};
+  return {
+    isError: false,
+    isFetching: false,
+    needsUpdate,
+  };
 }
 
 export default useProjectSdkNeedsUpdate;

@@ -3,6 +3,7 @@ from sentry.models import Project, Rule
 from sentry.notifications.types import FallthroughChoiceType
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import region_silo_test
 
 
@@ -62,7 +63,7 @@ class TeamProjectsCreateTest(APITestCase):
         assert project.platform == "python"
         assert project.teams.first() == self.team
 
-    @with_feature("app:enterprise-prevent-numeric-slugs")
+    @override_options({"api.prevent-numeric-slugs": True})
     def test_invalid_numeric_slug(self):
         response = self.get_error_response(
             self.organization.slug,
@@ -74,7 +75,7 @@ class TeamProjectsCreateTest(APITestCase):
 
         assert response.data["slug"][0] == DEFAULT_SLUG_ERROR_MESSAGE
 
-    @with_feature("app:enterprise-prevent-numeric-slugs")
+    @override_options({"api.prevent-numeric-slugs": True})
     def test_generated_slug_not_entirely_numeric(self):
         response = self.get_success_response(
             self.organization.slug,
@@ -82,8 +83,9 @@ class TeamProjectsCreateTest(APITestCase):
             name="1234",
             status_code=201,
         )
-
-        assert response.data["slug"].startswith("1234" + "-")
+        slug = response.data["slug"]
+        assert slug.startswith("1234-")
+        assert not slug.isdecimal()
 
     def test_invalid_platform(self):
         response = self.get_error_response(

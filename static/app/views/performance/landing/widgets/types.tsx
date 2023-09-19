@@ -37,10 +37,11 @@ export type PerformanceWidgetProps = {
   organization: Organization;
   title: string;
   titleTooltip: string;
-
   InteractiveTitle?: React.ComponentType<{isLoading: boolean}> | null;
 
   chartColor?: string;
+
+  subTitle?: string;
 
   withStaticFilters?: boolean;
 };
@@ -78,7 +79,7 @@ export type QueryFC<T extends WidgetDataConstraint> = React.ComponentType<
 
 export type QueryDefinition<
   T extends WidgetDataConstraint,
-  S extends WidgetDataResult | undefined
+  S extends WidgetDataResult | undefined,
 > = {
   component: QueryFC<T>;
   fields: string | string[];
@@ -140,10 +141,11 @@ export type GenericPerformanceWidgetProps<T extends WidgetDataConstraint> = {
   title: string;
   titleTooltip: string;
   EmptyComponent?: React.ComponentType<{height?: number}>;
-
   HeaderActions?: HeaderActions<T>;
+
   InteractiveTitle?: InteractiveTitle<T> | null;
   Subtitle?: Subtitle<T>;
+  subTitle?: string;
 };
 
 export type GenericPerformanceWithData<T extends WidgetDataConstraint> =

@@ -12,7 +12,9 @@ from .assistant import *  # NOQA
 from .auditlogentry import *  # NOQA
 from .authenticator import *  # NOQA
 from .authidentity import *  # NOQA
+from .authidentityreplica import *  # NOQA
 from .authprovider import *  # NOQA
+from .authproviderreplica import *  # NOQA
 from .avatars import *  # NOQA
 from .broadcast import *  # NOQA
 from .commit import *  # NOQA
@@ -109,6 +111,7 @@ from .sentryfunction import *  # NOQA
 from .servicehook import *  # NOQA
 from .sourcemapprocessingissue import *  # NOQA
 from .team import *  # NOQA
+from .teamreplica import *  # NOQA
 from .tombstone import *  # NOQA
 from .transaction_threshold import *  # NOQA
 from .user import *  # NOQA

@@ -36,7 +36,6 @@ from sentry.models.commit import Commit
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.notifications.helpers import (
-    get_settings_by_provider,
     get_values_by_provider_by_type,
     transform_to_notification_settings_by_recipient,
 )
@@ -45,7 +44,6 @@ from sentry.notifications.types import (
     ActionTargetType,
     FallthroughChoiceType,
     GroupSubscriptionReason,
-    NotificationScopeType,
     NotificationSettingOptionValues,
     NotificationSettingTypes,
 )
@@ -298,38 +296,6 @@ def get_owner_reason(
         return f"We notified recently active members in the {project.get_full_name()} project of this issue"
 
     return None
-
-
-def disabled_users_from_project(project: Project) -> Mapping[ExternalProviders, set[User]]:
-    """Get a set of users that have disabled Issue Alert notifications for a given project."""
-    user_ids = list(project.member_set.values_list("user", flat=True))
-    rpc_users = user_service.get_many(filter={"user_ids": user_ids})
-    users = RpcActor.many_from_object(rpc_users)
-
-    notification_settings = NotificationSetting.objects.get_for_recipient_by_parent(
-        NotificationSettingTypes.ISSUE_ALERTS,
-        parent=project,
-        recipients=users,
-    )
-    notification_settings_by_recipient = transform_to_notification_settings_by_recipient(
-        notification_settings, users
-    )
-    # Although this can be done with dict comprehension, looping for clarity.
-    output = defaultdict(set)
-    for user in users:
-        settings = notification_settings_by_recipient.get(user)
-        if settings:
-            settings_by_provider = get_settings_by_provider(settings)
-            for provider, settings_value_by_scope in settings_by_provider.items():
-                project_setting = settings_value_by_scope.get(NotificationScopeType.PROJECT)
-                user_setting = settings_value_by_scope.get(
-                    NotificationScopeType.USER
-                ) or settings_value_by_scope.get(NotificationScopeType.TEAM)
-                if project_setting == NotificationSettingOptionValues.NEVER or (
-                    not project_setting and user_setting == NotificationSettingOptionValues.NEVER
-                ):
-                    output[provider].add(user)
-    return output
 
 
 def get_suspect_commit_users(project: Project, event: Event) -> List[RpcUser]:

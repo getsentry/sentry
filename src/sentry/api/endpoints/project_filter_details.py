@@ -6,6 +6,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -23,7 +24,9 @@ from sentry.ingest.inbound_filters import FilterStatKeys
 @extend_schema(tags=["Projects"])
 @region_silo_endpoint
 class ProjectFilterDetailsEndpoint(ProjectEndpoint):
-    public = {"PUT"}
+    publish_status = {
+        "PUT": ApiPublishStatus.PUBLIC,
+    }
 
     @extend_schema(
         operation_id="Update an Inbound Data Filter",

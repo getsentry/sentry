@@ -5,6 +5,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import GroupEndpoint
 from sentry.api.serializers import serialize
@@ -48,6 +49,13 @@ class IntegrationIssueConfigSerializer(IntegrationSerializer):
 
 @region_silo_endpoint
 class GroupIntegrationDetailsEndpoint(GroupEndpoint):
+    publish_status = {
+        "DELETE": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.UNKNOWN,
+        "PUT": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
+
     def _has_issue_feature(self, organization, user):
         has_issue_basic = features.has(
             "organizations:integrations-issue-basic", organization, actor=user

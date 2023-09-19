@@ -33,15 +33,12 @@ describe('Organization Developer Settings', function () {
         url: `/organizations/${org.slug}/sentry-apps/`,
         body: [],
       });
-      const {container} = render(
-        <OrganizationDeveloperSettings {...routerProps} organization={org} />
-      );
+      render(<OrganizationDeveloperSettings {...routerProps} organization={org} />);
       await waitFor(() => {
         expect(
           screen.getByText('No internal integrations have been created yet.')
         ).toBeInTheDocument();
       });
-      expect(container).toSnapshot();
     });
   });
 
@@ -150,9 +147,8 @@ describe('Organization Developer Settings', function () {
         await userEvent.type(element, answer);
       }
 
-      const requestPublishButton = await within(dialog).findByLabelText(
-        'Request Publication'
-      );
+      const requestPublishButton =
+        await within(dialog).findByLabelText('Request Publication');
       expect(requestPublishButton).toHaveAttribute('aria-disabled', 'false');
 
       await userEvent.click(requestPublishButton);

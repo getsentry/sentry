@@ -2,6 +2,7 @@ import {browserHistory} from 'react-router';
 
 import {addMetricsDataMock} from 'sentry-test/performance/addMetricsDataMock';
 import {initializeData} from 'sentry-test/performance/initializePerformanceData';
+import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {
   act,
   render,
@@ -13,7 +14,7 @@ import {
 
 import TeamStore from 'sentry/stores/teamStore';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
-import {QueryClient, QueryClientProvider} from 'sentry/utils/queryClient';
+import {QueryClientProvider} from 'sentry/utils/queryClient';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {generatePerformanceEventView} from 'sentry/views/performance/data';
 import {PerformanceLanding} from 'sentry/views/performance/landing';
@@ -32,10 +33,8 @@ function WrappedComponent({data, withStaticFilters = false}) {
     data.organization
   );
 
-  const client = new QueryClient();
-
   return (
-    <QueryClientProvider client={client}>
+    <QueryClientProvider client={makeTestQueryClient()}>
       <OrganizationContext.Provider value={data.organization}>
         <MetricsCardinalityProvider
           location={data.router.location}
@@ -316,7 +315,7 @@ describe('Performance > Landing > Index', function () {
 
       render(<WrappedComponent data={data} withStaticFilters />, data.routerContext);
 
-      await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
+      await waitForElementToBeRemoved(() => screen.getAllByTestId('loading-indicator'));
       await userEvent.type(screen.getByPlaceholderText('Search Transactions'), '{enter}');
       expect(searchHandlerMock).toHaveBeenCalledWith('', 'transactionsOnly');
     });
@@ -343,7 +342,7 @@ describe('Performance > Landing > Index', function () {
 
       wrapper = render(<WrappedComponent data={data} />, data.routerContext);
 
-      await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
+      await waitForElementToBeRemoved(() => screen.getAllByTestId('loading-indicator'));
 
       expect(await screen.findByPlaceholderText('Search Transactions')).toHaveValue('');
     });
