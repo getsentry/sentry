@@ -336,6 +336,7 @@ export const NODE_ENV = process.env.NODE_ENV;
 export const SPA_DSN = process.env.SPA_DSN;
 export const SENTRY_RELEASE_VERSION = process.env.SENTRY_RELEASE_VERSION;
 export const UI_DEV_ENABLE_PROFILING = process.env.UI_DEV_ENABLE_PROFILING;
+export const UI_STORIES_ONLY = !!process.env.UI_STORIES_ONLY;
 
 export const DEFAULT_ERROR_JSON = {
   detail: t('Unknown error. Please try again.'),

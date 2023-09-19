@@ -1,7 +1,7 @@
 import {createRoutes, RouteComponent} from 'react-router';
 
 import * as constants from 'sentry/constants';
-import {buildRoutes} from 'sentry/routes';
+import {buildAppRoutes} from 'sentry/routes';
 
 import {normalizeUrl} from './utils/withDomainRequired';
 
@@ -73,7 +73,7 @@ function extractRoutes(rootRoute: any): Record<string, RouteComponent> {
   return routeMap;
 }
 
-describe('buildRoutes()', function () {
+describe('buildAppRoutes()', function () {
   // Until customer-domains is mainlined and path
   // based slug routes are removed we need to ensure
   // that each orgId route also has slugless path.
@@ -82,11 +82,11 @@ describe('buildRoutes()', function () {
 
     // Get routes for with customer domains off.
     spy.mockReturnValue(false);
-    const routeMap = extractRoutes(buildRoutes());
+    const routeMap = extractRoutes(buildAppRoutes());
 
     // Get routes with customer domains on.
     spy.mockReturnValue(true);
-    const domainRoutes = extractRoutes(buildRoutes());
+    const domainRoutes = extractRoutes(buildAppRoutes());
 
     // All routes that exist under orgId path slugs should
     // have a sibling under customer-domains.

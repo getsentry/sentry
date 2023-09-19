@@ -93,6 +93,9 @@ const DEPLOY_PREVIEW_CONFIG = IS_DEPLOY_PREVIEW && {
 const SENTRY_EXPERIMENTAL_SPA =
   !DEPLOY_PREVIEW_CONFIG && !IS_UI_DEV_ONLY ? !!env.SENTRY_EXPERIMENTAL_SPA : true;
 
+// Only build Sentry Stories
+const SENTRY_UI_STORIES_ONLY = !!env.SENTRY_UI_STORIES_ONLY;
+
 // We should only read from the SENTRY_SPA_DSN env variable if SENTRY_EXPERIMENTAL_SPA
 // is true. This is to make sure we can validate that the experimental SPA mode is
 // working properly.
@@ -342,6 +345,7 @@ const appConfig: Configuration = {
         DEPLOY_PREVIEW_CONFIG: JSON.stringify(DEPLOY_PREVIEW_CONFIG),
         EXPERIMENTAL_SPA: JSON.stringify(SENTRY_EXPERIMENTAL_SPA),
         SPA_DSN: JSON.stringify(SENTRY_SPA_DSN),
+        UI_STORIES_ONLY: JSON.stringify(SENTRY_UI_STORIES_ONLY),
         SENTRY_RELEASE_VERSION: JSON.stringify(SENTRY_RELEASE_VERSION),
       },
     }),
@@ -681,7 +685,7 @@ if (IS_UI_DEV_ONLY) {
   };
 }
 
-if (IS_UI_DEV_ONLY || SENTRY_EXPERIMENTAL_SPA) {
+if (IS_UI_DEV_ONLY || SENTRY_EXPERIMENTAL_SPA || SENTRY_UI_STORIES_ONLY) {
   appConfig.output!.publicPath = '/_assets/';
 
   /**

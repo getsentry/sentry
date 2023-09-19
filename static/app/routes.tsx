@@ -10,7 +10,7 @@ import {
 import memoize from 'lodash/memoize';
 
 import LazyLoad from 'sentry/components/lazyLoad';
-import {EXPERIMENTAL_SPA, usingCustomerDomain} from 'sentry/constants';
+import {EXPERIMENTAL_SPA, UI_STORIES_ONLY, usingCustomerDomain} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import HookStore from 'sentry/stores/hookStore';
 import {HookName} from 'sentry/types/hooks';
@@ -71,7 +71,7 @@ export function makeLazyloadComponent<C extends React.ComponentType<any>>(
 // Shorthand to avoid extra line wrapping
 const make = makeLazyloadComponent;
 
-function buildRoutes() {
+function buildAppRoutes() {
   // Read this to understand where to add new routes, how / why the routing
   // tree is structured the way it is, and how the lazy-loading /
   // code-splitting works for pages.
@@ -270,18 +270,6 @@ function buildRoutes() {
         <IndexRedirect to="welcome/" />
         <Route path=":step/" component={make(() => import('sentry/views/onboarding'))} />
       </Route>
-      {usingCustomerDomain && (
-        <Route
-          path="/stories/"
-          component={make(() => import('sentry/views/stories/index'))}
-          key="orgless-stories"
-        />
-      )}
-      <Route
-        path="/organizations/:orgId/stories/"
-        component={withDomainRedirect(make(() => import('sentry/views/stories/index')))}
-        key="org-stories"
-      />
     </Fragment>
   );
 
@@ -2421,12 +2409,21 @@ function buildRoutes() {
   return appRoutes;
 }
 
+/**
+ * Sentry storybook routes
+ */
+function buildStoryRoutes() {
+  return <Route path="/" component={make(() => import('sentry/views/stories/index'))} />;
+}
+
 // We load routes both when initializing the SDK (for routing integrations) and
 // when the app renders Main. Memoize to avoid rebuilding the route tree.
-export const routes = memoize(buildRoutes);
+export const routes = UI_STORIES_ONLY
+  ? memoize(buildStoryRoutes)
+  : memoize(buildAppRoutes);
 
 // Exported for use in tests.
-export {buildRoutes};
+export {buildAppRoutes};
 
 function NoOp(props: {children: React.ReactNode}) {
   return <Fragment>{props.children}</Fragment>;

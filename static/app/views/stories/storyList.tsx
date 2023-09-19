@@ -34,10 +34,11 @@ function FolderContent({path, content}: {content: DirContent; path: string}) {
 
         if (Object.keys(childContent).length === 0) {
           const isCurrent = childPath === currentFile ? true : undefined;
-          const to = `/stories/?name=${childPath}`;
           return (
             <ListItem key={name} aria-current={isCurrent}>
-              <FolderLink to={to}>{name}</FolderLink>
+              <FolderLink to={`${location.pathname}?name=${childPath}`}>
+                {name}
+              </FolderLink>
             </ListItem>
           );
         }
