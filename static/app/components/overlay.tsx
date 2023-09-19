@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import {HTMLMotionProps, motion, MotionProps, MotionStyle} from 'framer-motion';
 
 import {OverlayArrow, OverlayArrowProps} from 'sentry/components/overlayArrow';
-import {IS_ACCEPTANCE_TEST, NODE_ENV} from 'sentry/constants';
+import {NODE_ENV} from 'sentry/constants';
 import {defined} from 'sentry/utils';
 import PanelProvider from 'sentry/utils/panelProvider';
 import testableTransition from 'sentry/utils/testableTransition';
@@ -109,7 +109,7 @@ const Overlay = styled(
       },
       ref
     ) => {
-      const isTestEnv = IS_ACCEPTANCE_TEST || NODE_ENV === 'test';
+      const isTestEnv = NODE_ENV === 'test';
       const animationProps =
         !isTestEnv && animated
           ? {
