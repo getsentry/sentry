@@ -20,15 +20,12 @@ import {
 } from 'sentry/utils/performance/contexts/pageError';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
-import {PerformanceScoreChart} from 'sentry/views/performance/browser/webVitals/performanceScoreChart';
-import {calculatePerformanceScore} from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
 import {getScoreColor} from 'sentry/views/performance/browser/webVitals/utils/getScoreColor';
 import {
   Row,
   RowWithScore,
   WebVitals,
 } from 'sentry/views/performance/browser/webVitals/utils/types';
-import {useProjectWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/useProjectWebVitalsQuery';
 import {useTransactionWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/useTransactionWebVitalsQuery';
 import {ClsDescription} from 'sentry/views/performance/browser/webVitals/webVitalsDescriptions/cls';
 import {FcpDescription} from 'sentry/views/performance/browser/webVitals/webVitalsDescriptions/fcp';
@@ -119,16 +116,6 @@ export function WebVitalsDetailPanel({
     return <NoOverflow>{row[key]}</NoOverflow>;
   };
 
-  const {data: projectWebVitalsData} = useProjectWebVitalsQuery({});
-
-  const projectScore = calculatePerformanceScore({
-    lcp: projectWebVitalsData?.data[0]['p75(measurements.lcp)'] as number,
-    fcp: projectWebVitalsData?.data[0]['p75(measurements.fcp)'] as number,
-    cls: projectWebVitalsData?.data[0]['p75(measurements.cls)'] as number,
-    ttfb: projectWebVitalsData?.data[0]['p75(measurements.ttfb)'] as number,
-    fid: projectWebVitalsData?.data[0]['p75(measurements.fid)'] as number,
-  });
-
   return (
     <PageErrorProvider>
       <DetailPanel detailKey={detailKey ?? undefined} onClose={onClose}>
@@ -146,10 +133,6 @@ export function WebVitalsDetailPanel({
         {webVital === 'ttfb' && <TtfbDescription />}
         {webVital === 'cls' && <ClsDescription />}
         {webVital === 'fid' && <FidDescription />}
-
-        <PerformanceScoreChartContainer>
-          <PerformanceScoreChart projectScore={projectScore} webVital={webVital} />
-        </PerformanceScoreChartContainer>
 
         <h5>{t('Pages to Improve')}</h5>
         <GridEditable
@@ -200,9 +183,4 @@ const AlignRight = styled('span')<{color?: string}>`
   text-align: right;
   width: 100%;
   ${p => (p.color ? `color: ${p.color};` : '')}
-`;
-
-const PerformanceScoreChartContainer = styled('div')`
-  margin-top: ${space(2)};
-  margin-bottom: ${space(4)};
 `;
