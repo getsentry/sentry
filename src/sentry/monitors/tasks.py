@@ -205,45 +205,39 @@ def check_missing(current_datetime: datetime):
     )
     metrics.gauge("sentry.monitors.tasks.check_missing.count", qs.count(), sample_rate=1.0)
     for monitor_environment in qs:
-        check_missing_environment.delay(monitor_environment.id)
+        try:
+            logger.info(
+                "monitor.missed-checkin", extra={"monitor_environment_id": monitor_environment.id}
+            )
 
+            monitor = monitor_environment.monitor
+            expected_time = monitor_environment.next_checkin
 
-@instrumented_task(
-    name="sentry.monitors.tasks.check_missing_environment",
-    max_retries=0,
-)
-def check_missing_environment(monitor_environment_id: int):
-    logger.info("monitor.missed-checkin", extra={"monitor_environment_id": monitor_environment_id})
-
-    monitor_environment = MonitorEnvironment.objects.select_related("monitor").get(
-        id=monitor_environment_id
-    )
-    monitor = monitor_environment.monitor
-    expected_time = monitor_environment.next_checkin
-
-    # add missed checkin.
-    #
-    # XXX(epurkhiser): The date_added is backdated so that this missed
-    # check-in correctly reflects the time of when the checkin SHOULD
-    # have happened. It is the same as the expected_time.
-    MonitorCheckIn.objects.create(
-        project_id=monitor_environment.monitor.project_id,
-        monitor=monitor_environment.monitor,
-        monitor_environment=monitor_environment,
-        status=CheckInStatus.MISSED,
-        date_added=expected_time,
-        expected_time=expected_time,
-        monitor_config=monitor.get_validated_config(),
-    )
-    mark_failed(
-        monitor_environment,
-        reason=MonitorFailure.MISSED_CHECKIN,
-        occurrence_context={
-            "expected_time": expected_time.strftime(SUBTITLE_DATETIME_FORMAT)
-            if expected_time
-            else expected_time
-        },
-    )
+            # add missed checkin.
+            #
+            # XXX(epurkhiser): The date_added is backdated so that this missed
+            # check-in correctly reflects the time of when the checkin SHOULD
+            # have happened. It is the same as the expected_time.
+            MonitorCheckIn.objects.create(
+                project_id=monitor_environment.monitor.project_id,
+                monitor=monitor_environment.monitor,
+                monitor_environment=monitor_environment,
+                status=CheckInStatus.MISSED,
+                date_added=expected_time,
+                expected_time=expected_time,
+                monitor_config=monitor.get_validated_config(),
+            )
+            mark_failed(
+                monitor_environment,
+                reason=MonitorFailure.MISSED_CHECKIN,
+                occurrence_context={
+                    "expected_time": expected_time.strftime(SUBTITLE_DATETIME_FORMAT)
+                    if expected_time
+                    else expected_time
+                },
+            )
+        except Exception:
+            logger.exception("Exception in check_monitors - mark missed", exc_info=True)
 
 
 @instrumented_task(
