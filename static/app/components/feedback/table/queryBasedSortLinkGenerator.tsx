@@ -7,8 +7,8 @@ import {Sort} from 'sentry/utils/discover/fields';
 export default function queryBasedSortLinkGenerator<Key extends ReactText>(
   location: Location,
   column: GridColumnOrder<Key>,
-  currentSort: Sort,
-  prefix: string
+  currentSort: Sort
+  /* prefix: string */
 ): () => LocationDescriptorObject {
   const direction =
     currentSort.field !== column.key
@@ -21,7 +21,7 @@ export default function queryBasedSortLinkGenerator<Key extends ReactText>(
     ...location,
     query: {
       ...location.query,
-      [prefix + 'sort']: `${direction === 'desc' ? '-' : ''}${column.key}`,
+      [/* prefix + */ 'sort']: `${direction === 'desc' ? '-' : ''}${column.key}`,
     },
   });
 }

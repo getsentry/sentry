@@ -10,20 +10,23 @@ import type {Sort} from 'sentry/utils/discover/fields';
 interface Props {
   defaultSort: Sort;
   location: Location<{sort?: undefined | string}>;
-  prefix?: string;
+  // prefix?: string;
 }
 
-export default function useQueryBasedSorting({location, defaultSort, prefix}: Props) {
-  const pre = prefix ?? '';
+export default function useQueryBasedSorting({
+  location,
+  defaultSort /* prefix */,
+}: Props) {
+  /// const pre = prefix ?? '';
   const sorts = useMemo(
-    () => fromSorts(location.query[pre + 'sort']),
-    [location.query, pre]
+    () => fromSorts(/* location.query[pre + 'sort'] */ location.query.sort),
+    [/* location.query, pre */ location.query.sort]
   );
   const currentSort = useMemo(() => first(sorts) ?? defaultSort, [defaultSort, sorts]);
 
   return {
     makeSortLinkGenerator: (column: GridColumnOrder) =>
-      queryBasedSortLinkGenerator(location, column, currentSort, pre),
+      queryBasedSortLinkGenerator(location, column, currentSort /* pre */),
     currentSort,
   };
 }
