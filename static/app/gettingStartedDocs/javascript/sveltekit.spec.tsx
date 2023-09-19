@@ -6,7 +6,7 @@ import {GettingStartedWithSvelteKit, steps} from './sveltekit';
 
 describe('GettingStartedWithSvelteKit', function () {
   it('renders doc correctly', function () {
-    render(<GettingStartedWithSvelteKit dsn="test-dsn" />);
+    render(<GettingStartedWithSvelteKit dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps()) {

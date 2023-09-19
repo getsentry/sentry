@@ -6,7 +6,7 @@ import {GettingStartedWithDotnet, steps} from './dotnet';
 
 describe('GettingStartedWithDotnet', function () {
   it('renders doc correctly', function () {
-    render(<GettingStartedWithDotnet dsn="test-dsn" />);
+    render(<GettingStartedWithDotnet dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps()) {

@@ -6,7 +6,7 @@ import {GettingStartedWithEcho, steps} from './echo';
 
 describe('GettingStartedWithEcho', function () {
   it('renders doc correctly', function () {
-    render(<GettingStartedWithEcho dsn="test-dsn" />);
+    render(<GettingStartedWithEcho dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps()) {

@@ -6,7 +6,7 @@ import {GettingStartedWithElixir, steps} from './elixir';
 
 describe('GettingStartedWithElixir', function () {
   it('renders doc correctly', function () {
-    render(<GettingStartedWithElixir dsn="test-dsn" />);
+    render(<GettingStartedWithElixir dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps()) {

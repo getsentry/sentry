@@ -6,7 +6,7 @@ import {GettingStartedWithRuby, steps} from './ruby';
 
 describe('GettingStartedWithRuby', function () {
   it('renders doc correctly', function () {
-    render(<GettingStartedWithRuby dsn="test-dsn" />);
+    render(<GettingStartedWithRuby dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps()) {

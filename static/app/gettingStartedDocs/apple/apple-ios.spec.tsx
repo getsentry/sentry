@@ -6,7 +6,7 @@ import {GettingStartedWithIos, steps} from './apple-ios';
 
 describe('GettingStartedWithIos', function () {
   it('renders doc correctly', function () {
-    render(<GettingStartedWithIos dsn="test-dsn" />);
+    render(<GettingStartedWithIos dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps({

@@ -6,7 +6,7 @@ import {GettingStartedWithStarlette, steps} from './starlette';
 
 describe('GettingStartedWithDjango', function () {
   it('renders doc correctly', function () {
-    render(<GettingStartedWithStarlette dsn="test-dsn" />);
+    render(<GettingStartedWithStarlette dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps({sentryInitContent: 'test-init-content'})) {

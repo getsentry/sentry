@@ -6,7 +6,7 @@ import {GettingStartedWithApple, steps} from './apple';
 
 describe('GettingStartedWithApple', function () {
   it('renders doc correctly', function () {
-    render(<GettingStartedWithApple dsn="test-dsn" />);
+    render(<GettingStartedWithApple dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps()) {

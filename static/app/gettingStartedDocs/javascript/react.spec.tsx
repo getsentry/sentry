@@ -10,6 +10,7 @@ describe('GettingStartedWithReact', function () {
     render(
       <GettingStartedWithReact
         dsn="test-dsn"
+        projectSlug="test-project"
         activeProductSelection={[
           ProductSolution.PERFORMANCE_MONITORING,
           ProductSolution.SESSION_REPLAY,
@@ -44,6 +45,7 @@ describe('GettingStartedWithReact', function () {
     render(
       <GettingStartedWithReact
         dsn="test-dsn"
+        projectSlug="test-project"
         activeProductSelection={[ProductSolution.SESSION_REPLAY]}
       />
     );
@@ -58,6 +60,7 @@ describe('GettingStartedWithReact', function () {
     render(
       <GettingStartedWithReact
         dsn="test-dsn"
+        projectSlug="test-project"
         activeProductSelection={[ProductSolution.PERFORMANCE_MONITORING]}
       />
     );

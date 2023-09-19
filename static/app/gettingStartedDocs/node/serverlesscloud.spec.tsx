@@ -6,7 +6,9 @@ import {GettingStartedWithServerlesscloud, steps} from './serverlesscloud';
 
 describe('GettingStartedWithServerlesscloud', function () {
   it('renders doc correctly', function () {
-    render(<GettingStartedWithServerlesscloud dsn="test-dsn" />);
+    render(
+      <GettingStartedWithServerlesscloud dsn="test-dsn" projectSlug="test-project" />
+    );
 
     // Steps
     for (const step of steps()) {

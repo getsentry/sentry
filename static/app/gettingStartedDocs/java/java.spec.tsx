@@ -6,7 +6,7 @@ import {GettingStartedWithJava, steps} from './java';
 
 describe('GettingStartedWithJava', function () {
   it('renders doc correctly', function () {
-    render(<GettingStartedWithJava dsn="test-dsn" />);
+    render(<GettingStartedWithJava dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps({

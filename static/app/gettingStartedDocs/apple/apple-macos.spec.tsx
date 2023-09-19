@@ -6,7 +6,7 @@ import {GettingStartedWithMacos, steps} from './apple-macos';
 
 describe('GettingStartedWithMacos', function () {
   it('renders doc correctly', function () {
-    render(<GettingStartedWithMacos dsn="test-dsn" />);
+    render(<GettingStartedWithMacos dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps()) {

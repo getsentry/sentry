@@ -6,7 +6,7 @@ import {GettingStartedWithSanic, steps} from './sanic';
 
 describe('GettingStartedWithSanic', function () {
   it('renders doc correctly', function () {
-    render(<GettingStartedWithSanic dsn="test-dsn" />);
+    render(<GettingStartedWithSanic dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps({sentryInitContent: 'test-init-content'})) {

@@ -6,7 +6,7 @@ import {GettingStartedWithNegroni, steps} from './negroni';
 
 describe('GettingStartedWithNegroni', function () {
   it('renders doc correctly', function () {
-    render(<GettingStartedWithNegroni dsn="test-dsn" />);
+    render(<GettingStartedWithNegroni dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps()) {

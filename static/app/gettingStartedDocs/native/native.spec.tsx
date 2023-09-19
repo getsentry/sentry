@@ -6,7 +6,7 @@ import {GettingStartedWithNative, steps} from './native';
 
 describe('GettingStartedWithNative', function () {
   it('renders doc correctly', function () {
-    render(<GettingStartedWithNative dsn="test-dsn" />);
+    render(<GettingStartedWithNative dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps()) {

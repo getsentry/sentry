@@ -6,7 +6,7 @@ import {GettingStartedWithKoa, steps} from './koa';
 
 describe('GettingStartedWithKoa', function () {
   it('all products are selected', function () {
-    render(<GettingStartedWithKoa dsn="test-dsn" />);
+    render(<GettingStartedWithKoa dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps({

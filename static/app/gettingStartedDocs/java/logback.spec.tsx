@@ -6,7 +6,7 @@ import {GettingStartedWithLogBack, steps} from './logback';
 
 describe('GettingStartedWithLogBack', function () {
   it('renders doc correctly', function () {
-    render(<GettingStartedWithLogBack dsn="test-dsn" />);
+    render(<GettingStartedWithLogBack dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps({

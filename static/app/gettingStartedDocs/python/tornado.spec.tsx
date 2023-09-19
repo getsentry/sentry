@@ -6,7 +6,7 @@ import {GettingStartedWithTornado, steps} from './tornado';
 
 describe('GettingStartedWithTornado', function () {
   it('renders doc correctly', function () {
-    render(<GettingStartedWithTornado dsn="test-dsn" />);
+    render(<GettingStartedWithTornado dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps({sentryInitContent: 'test-init-content'})) {

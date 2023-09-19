@@ -6,7 +6,7 @@ import {GettingStartedWithFlutter, steps} from './flutter';
 
 describe('GettingStartedWithFlutter', function () {
   it('renders doc correctly', function () {
-    render(<GettingStartedWithFlutter dsn="test-dsn" />);
+    render(<GettingStartedWithFlutter dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps()) {

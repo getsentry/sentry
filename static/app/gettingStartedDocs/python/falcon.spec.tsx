@@ -6,7 +6,7 @@ import {GettingStartedWithFalcon, steps} from './falcon';
 
 describe('GettingStartedWithFalcon', function () {
   it('renders doc correctly', function () {
-    render(<GettingStartedWithFalcon dsn="test-dsn" />);
+    render(<GettingStartedWithFalcon dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps({sentryInitContent: 'test-init-content'})) {

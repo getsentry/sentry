@@ -6,7 +6,7 @@ import {GettingStartedWithMongo, steps} from './mongo';
 
 describe('GettingStartedWithMongo', function () {
   it('renders doc correctly', function () {
-    render(<GettingStartedWithMongo dsn="test-dsn" />);
+    render(<GettingStartedWithMongo dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps()) {
