@@ -70,13 +70,6 @@ all_service_healthchecks = {
         True,
         check_postgres,
     ),
-    "kafka": HealthCheck(
-        "kafka",
-        "sentry_kafka",
-        os.getenv("NEED_KAFKA") == "true",
-        check_kafka,
-        deps=["zookeeper"],
-    ),
     "zookeeper": HealthCheck(
         "zookeeper",
         "sentry_zookeeper",

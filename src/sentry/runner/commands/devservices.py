@@ -298,6 +298,7 @@ def up(
                 executor.submit(
                     check_health,
                     name,
+                    containers,
                 )
             )
         for future in as_completed(futures):
@@ -579,12 +580,21 @@ Are you sure you want to continue?"""
                 network.remove()
 
 
-def check_health(service_name) -> None:
+def check_health(service_name, containers) -> None:
     healthcheck = service_healthchecks.get(service_name)
     if healthcheck is None:
         return
+
     click.secho(f"> Checking container health '{service_name}'", fg="yellow")
-    run_with_retries(healthcheck["check"])
+
+    def hc():
+        healthcheck["check"](containers)
+
+    try:
+        run_with_retries(hc)
+    except subprocess.CalledProcessError:
+        click.secho(f"> '{service_name}' is not healthy", fg="red")
+        raise
 
 
 def run_with_retries(cmd: Callable[[], object], retries: int = 3, timeout: int = 5) -> None:
@@ -604,18 +614,26 @@ def run_with_retries(cmd: Callable[[], object], retries: int = 3, timeout: int =
             return
 
 
-def check_kafka() -> None:
+def check_kafka(containers) -> None:
+    kafka_options = containers["kafka"]
+    zk_options = containers["zookeeper"]
+
+    zk_port = 2181
+    if zk_options["ports"]:
+        zk_port = zk_options["ports"][0]
+
     subprocess.run(
         (
             "docker",
             "exec",
-            "sentry_kafka",
+            kafka_options["name"],
             "kafka-topics",
             "--zookeeper",
             # TODO: sentry_zookeeper:2181 doesn't work in CI, but 127.0.0.1 doesn't work locally
-            os.environ.get("ZK_HOST", "127.0.0.1:2181"),
+            os.environ.get("ZK_HOST", f"{zk_options['name']}:{zk_port}"),
             "--list",
         ),
+        check=True,
         capture_output=True,
         text=True,
     )
