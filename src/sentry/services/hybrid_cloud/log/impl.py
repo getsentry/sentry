@@ -25,6 +25,7 @@ def record_audit_log_to_db(*, event: AuditLogEvent) -> None:
         else:
             raise
 
+
 def record_user_ip_to_db(*, event: UserIpEvent) -> None:
     UserIP.objects.create_or_update(
         user_id=event.user_id,
@@ -42,6 +43,7 @@ def record_user_ip_to_db(*, event: UserIpEvent) -> None:
             id=event.user_id,
             last_active__lt=(event.last_seen - datetime.timedelta(minutes=1)),
         ).update(last_active=event.last_seen)
+
 
 def find_last_log(
     *, organization_id: int | None, target_object_id: int | None, event: int | None
@@ -67,6 +69,7 @@ def record_audit_log_to_outbox(*, event: AuditLogEvent) -> None:
         payload=event.__dict__,
     )  # type: ignore
     outbox.save()
+
 
 def record_user_ip_to_outbox(*, event: UserIpEvent) -> None:
     outbox = RegionOutbox(
