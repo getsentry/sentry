@@ -2227,7 +2227,7 @@ SENTRY_SCOPE_HIERARCHY_MAPPING = {
     "team:admin": {"team:read", "team:write", "team:admin"},
     "project:read": {"project:read"},
     "project:write": {"project:read", "project:write"},
-    "project:admin": {"project:read", "project:write", "project:admin", "project:releases"},
+    "project:admin": {"project:read", "project:write", "project:admin"},
     "project:releases": {"project:releases"},
     "event:read": {"event:read"},
     "event:write": {"event:read", "event:write"},
