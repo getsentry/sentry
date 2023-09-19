@@ -411,7 +411,7 @@ class JiraServerIntegrationTest(APITestCase):
     @responses.activate
     def test_get_create_issue_config_with_default_project_issue_types_erroring(self):
         """Test that if you have a default project set that's returning an error when
-        we try to get the issue types we re-fetch the projects list w/o caching and try again
+        we try to get the issue types we try a second project
         """
         event = self.store_event(
             data={"message": "oh no", "timestamp": self.min_ago}, project_id=self.project.id
@@ -421,7 +421,7 @@ class JiraServerIntegrationTest(APITestCase):
         assert self.installation.org_integration is not None
         self.installation.org_integration = integration_service.update_organization_integration(
             org_integration_id=self.installation.org_integration.id,
-            config={"project_issue_defaults": {str(group.project_id): {"project": "10000"}}},
+            config={"project_issue_defaults": {str(group.project_id): {}}},
         )
         responses.add(
             responses.GET,
