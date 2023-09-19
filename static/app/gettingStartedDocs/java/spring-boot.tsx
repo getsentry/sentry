@@ -281,19 +281,19 @@ sentry.traces-sample-rate=1.0`
             }`,
           },
           {
-            label: 'YML',
-            value: 'yml',
+            label: 'YAML',
+            value: 'yaml',
             language: 'properties',
             code: `
 sentry:
-  dsn:${dsn}${
-              hasPerformance
-                ? `
+  dsn: ${dsn}${
+    hasPerformance
+      ? `
   # Set traces-sample-rate to 1.0 to capture 100% of transactions for performance monitoring.
   # We recommend adjusting this value in production.
-  sentry.traces-sample-rate=1.0`
-                : ''
-            }`,
+  sentry.traces-sample-rate: 1.0`
+      : ''
+  }`,
           },
         ],
       },
