@@ -1187,7 +1187,7 @@ class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase, APITestCase):
         ).delete()
         with self.feature("organizations:incidents"):
             resp = self.get_response(self.organization.slug, alert_rule.id)
-        assert resp.status_code == 403
+        assert resp.status_code == 204
         another_alert_rule = self.alert_rule
         alert_rule.owner = self.team.actor
         another_alert_rule.save()
@@ -1197,6 +1197,10 @@ class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase, APITestCase):
 
     def test_project_permission(self):
         """Test that a user can't delete an alert in a project they do not have access to"""
+        # disable Open Membership
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
         team = self.create_team(organization=self.organization, members=[self.user])
         project = self.create_project(name="boo", organization=self.organization, teams=[team])
         alert_rule = self.create_alert_rule(projects=[project])

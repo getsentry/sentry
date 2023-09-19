@@ -124,9 +124,8 @@ def update_alert_rule(request: Request, organization, alert_rule):
 
 def remove_alert_rule(request: Request, organization, alert_rule):
     project = alert_rule.snuba_query.subscriptions.get().project
-    projects_for_user = project.objects.get_for_user_ids([request.user.id])
 
-    if not list(projects_for_user) == [project]:
+    if not request.access.has_project_access(project):
         return Response(status=status.HTTP_403_FORBIDDEN)
 
     try:
