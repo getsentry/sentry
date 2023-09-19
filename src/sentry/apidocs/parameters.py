@@ -364,8 +364,14 @@ Configure various project filters:
         required=False,
         type=str,
         description="""
+<<<<<<< HEAD
 Filter client keys by `active` or `inactive`. Defaults to returning all
 keys if not specified.
+=======
+Filter client keys by status. The choices are:
+- `active`
+- `inactive`
+>>>>>>> 04b788037a (rebase master)
 """,
     )
 
