@@ -1,6 +1,6 @@
 from django.db.models import F
-from drf_spectacular.utils import extend_schema
-from rest_framework import status
+from drf_spectacular.utils import extend_schema, inline_serializer
+from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -12,6 +12,10 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.project_key import ProjectKeySerializer
 from sentry.api.serializers.rest_framework import ProjectKeyRequestSerializer
+from sentry.api.serializers.rest_framework.project_key import (
+    DynamicSdkLoaderOptionSerializer,
+    RateLimitSerializer,
+)
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
@@ -20,7 +24,10 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.examples.project_examples import ProjectExamples
 from sentry.apidocs.parameters import GlobalParams, ProjectParams
-from sentry.loader.browsersdkversion import get_default_sdk_version_for_project
+from sentry.loader.browsersdkversion import (
+    get_all_browser_sdk_version_choices,
+    get_default_sdk_version_for_project,
+)
 from sentry.models import ProjectKey, ProjectKeyStatus
 
 
@@ -67,13 +74,29 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
             GlobalParams.ORG_SLUG,
             GlobalParams.PROJECT_SLUG,
             ProjectParams.key_id("The ID of the key to update."),
-            GlobalParams.name("The name for the client key"),
-            ProjectParams.IS_ACTIVE,
-            ProjectParams.RATE_LIMIT,
-            ProjectParams.BROWSER_SDK_VERSION,
-            ProjectParams.DYNAMIC_SDK_LOADER_OPTIONS,
         ],
-        request=ProjectKeyRequestSerializer,
+        request=inline_serializer(
+            name="UpdateClientKey",
+            fields={
+                "name": serializers.IntegerField(
+                    help_text="The name for the client key", required=False
+                ),
+                "isActive": serializers.BooleanField(
+                    help_text="Activate or deactivate the client key.", required=False
+                ),
+                "rateLimit": RateLimitSerializer(
+                    required=False,
+                ),
+                "browserSdkVersion": serializers.ChoiceField(
+                    help_text="The Sentry Javascript SDK version to use. The currently supported options are:",
+                    choices=get_all_browser_sdk_version_choices(),
+                    required=False,
+                ),
+                "dynamicSdkLoaderOptions": DynamicSdkLoaderOptionSerializer(
+                    required=False, partial=True
+                ),
+            },
+        ),
         responses={
             200: ProjectKeySerializer,
             400: RESPONSE_BAD_REQUEST,
@@ -84,7 +107,7 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
     )
     def put(self, request: Request, project, key_id) -> Response:
         """
-        Update a client key.
+        Update various settings for a client key.
         """
         try:
             key = ProjectKey.objects.get(

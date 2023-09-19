@@ -35,10 +35,6 @@ class ProjectKeysEndpoint(ProjectEndpoint):
     @extend_schema(
         operation_id="List a Project's Client Keys",
         parameters=[GlobalParams.ORG_SLUG, GlobalParams.PROJECT_SLUG, CursorQueryParam],
-        request=inline_serializer(
-            "ListClientKeys",
-            fields={"status": serializers.ChoiceField(choices=["active", "inactive"])},
-        ),
         responses={
             200: inline_sentry_response_serializer(
                 "ListClientKeysResponse", List[ProjectKeySerializerResponse]
@@ -75,11 +71,15 @@ class ProjectKeysEndpoint(ProjectEndpoint):
         parameters=[
             GlobalParams.ORG_SLUG,
             GlobalParams.PROJECT_SLUG,
-            GlobalParams.name(
-                "The optional name of the key. If not provided a name will be automatically generated"
-            ),
         ],
-        request=None,
+        request=inline_serializer(
+            name="CreateClientKey",
+            fields={
+                "name": serializers.CharField(
+                    help_text="The optional name of the key. If not provided a name will be automatically generated."
+                ),
+            },
+        ),
         responses={
             201: ProjectKeySerializer,
             400: RESPONSE_BAD_REQUEST,

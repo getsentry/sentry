@@ -658,6 +658,7 @@
             "OrganizationStatsEndpointV2::GET"
         ],
         "private": [
+            "ReleaseThresholdDetailsEndpoint::GET",
             "ReleaseThresholdEndpoint::GET",
             "ReleaseThresholdEndpoint::POST"
         ],
@@ -701,7 +702,7 @@
         ]
     },
     "telemetry-experience": {
-        "block_start": 703,
+        "block_start": 704,
         "public": [],
         "private": [],
         "experimental": [],
@@ -718,7 +719,7 @@
         ]
     },
     "team-starfish": {
-        "block_start": 720,
+        "block_start": 721,
         "public": [],
         "private": [],
         "experimental": [],
@@ -728,7 +729,7 @@
         ]
     },
     "growth": {
-        "block_start": 730,
+        "block_start": 731,
         "public": [],
         "private": [],
         "experimental": [],
@@ -737,17 +738,18 @@
         ]
     },
     "feedback-backend": {
-        "block_start": 739,
+        "block_start": 740,
         "public": [],
         "private": [],
         "experimental": [
             "FeedbackIngestEndpoint::POST",
-            "OrganizationFeedbackIndexEndpoint::GET"
+            "OrganizationFeedbackIndexEndpoint::GET",
+            "ProjectFeedbackDetailsEndpoint::GET"
         ],
         "unknown": []
     },
     "replay-backend": {
-        "block_start": 749,
+        "block_start": 751,
         "public": [],
         "private": [],
         "experimental": [],
@@ -756,7 +758,7 @@
         ]
     },
     "profiling": {
-        "block_start": 758,
+        "block_start": 760,
         "public": [],
         "private": [],
         "experimental": [],
@@ -771,8 +773,17 @@
             "ProjectProfilingTransactionIDProfileIDEndpoint::GET"
         ]
     },
+    "team-web-sdk-frontend": {
+        "block_start": 776,
+        "public": [],
+        "private": [
+            "SourceMapDebugBlueThunderEditionEndpoint::GET"
+        ],
+        "experimental": [],
+        "unknown": []
+    },
     "hybrid-cloud": {
-        "block_start": 774,
+        "block_start": 785,
         "public": [],
         "private": [],
         "experimental": [],
