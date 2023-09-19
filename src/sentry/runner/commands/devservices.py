@@ -485,7 +485,7 @@ def rm(project: str, services: list[str]) -> None:
 
     configure()
 
-    containers = _prepare_containers(project, silent=True)
+    containers = _prepare_containers(project, skip_only_if=len(services) > 0, silent=True)
 
     if services:
         selected_containers = {}
