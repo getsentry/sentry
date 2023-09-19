@@ -407,7 +407,7 @@ def query_functions(projects: List[Project], start: datetime) -> List[DetectorPa
     # we just need to query for the 1 minute of data.
     start = start - timedelta(hours=1)
     start = start.replace(minute=0, second=0, microsecond=0)
-    params = {
+    params: Dict[str, Any] = {
         "start": start,
         "end": start + timedelta(minutes=1),
         "project_id": [project.id for project in projects],
@@ -456,7 +456,7 @@ def query_functions_timeseries(
 
     # take the last 14 days as our window
     end = start.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
-    params = {
+    params: Dict[str, Any] = {
         "start": end - timedelta(days=14),
         "end": end,
         "project_id": project_ids,
