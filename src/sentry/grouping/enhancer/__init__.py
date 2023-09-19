@@ -142,6 +142,7 @@ class Enhancements:
         platform: str,
         exception_data: dict[str, Any],
         extra_fingerprint: str = "",
+        load_stacktrace_from_cache: bool = False,
     ) -> None:
         """This applies the frame modifications to the frames itself. This does not affect grouping."""
         in_memory_cache: dict[str, str] = {}
@@ -157,7 +158,12 @@ class Enhancements:
         cache_key = f"stacktrace_hash.{stacktrace_fingerprint}"
         use_cache = bool(stacktrace_fingerprint)
         if use_cache:
-            frames_changed = _update_frames_from_cached_values(frames, cache_key, platform)
+            frames_changed = _update_frames_from_cached_values(
+                frames,
+                cache_key,
+                platform,
+                load_from_cache=load_stacktrace_from_cache,
+            )
             if frames_changed:
                 logger.info("The frames have been loaded from the cache. Skipping some work.")
                 return
@@ -497,11 +503,12 @@ class EnhancementsVisitor(NodeVisitor):
 
 
 def _update_frames_from_cached_values(
-    frames: Sequence[dict[str, Any]], cache_key: str, platform: str
+    frames: Sequence[dict[str, Any]], cache_key: str, platform: str, load_from_cache: bool = False
 ) -> bool:
     """
     This will update the frames of the stacktrace if it's been cached.
-    Returns True if the merged has correctly happened.
+    Set load_from_cache to True to actually change the frames.
+    Returns if the merged has correctly happened.
     """
     frames_changed = False
     changed_frames_values = cache.get(cache_key, {})
@@ -509,9 +516,13 @@ def _update_frames_from_cached_values(
     # This helps tracking changes in the hit/miss ratio of the cache
     metrics.incr(
         f"{DATADOG_KEY}.cache.get",
-        tags={"success": bool(changed_frames_values), "platform": platform},
+        tags={
+            "success": bool(changed_frames_values),
+            "platform": platform,
+            "loading_from_cache": load_from_cache,
+        },
     )
-    if changed_frames_values:
+    if changed_frames_values and load_from_cache:
         try:
             for frame, changed_frame_values in zip(frames, changed_frames_values):
                 if changed_frame_values.get("in_app") is not None:
@@ -534,7 +545,11 @@ def _update_frames_from_cached_values(
 
     metrics.incr(
         f"{DATADOG_KEY}.merged_cached_values",
-        tags={"success": frames_changed, "platform": platform},
+        tags={
+            "success": frames_changed,
+            "platform": platform,
+            "loading_from_cache": load_from_cache,
+        },
     )
     return frames_changed
 
