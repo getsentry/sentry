@@ -29,6 +29,7 @@ function DeadClickTable({location}: {location: Location<any>}) {
     per_page: 3,
     sort: '-count_dead_clicks',
     cursor: undefined,
+    prefix: 'selector_',
   });
 
   return (
@@ -47,7 +48,6 @@ function DeadClickTable({location}: {location: Location<any>}) {
           path="dead-clicks"
         />
       }
-      customHandleResize={() => {}}
     />
   );
 }
@@ -57,6 +57,7 @@ function RageClickTable({location}: {location: Location<any>}) {
     per_page: 3,
     sort: '-count_rage_clicks',
     cursor: undefined,
+    prefix: 'selector_',
   });
 
   return (
@@ -75,7 +76,6 @@ function RageClickTable({location}: {location: Location<any>}) {
           path="rage-clicks"
         />
       }
-      customHandleResize={() => {}}
     />
   );
 }

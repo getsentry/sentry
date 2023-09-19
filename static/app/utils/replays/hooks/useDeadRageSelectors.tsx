@@ -22,7 +22,7 @@ export default function useRageDeadSelectors(params: DeadRageSelectorQueryParams
             project: query.project,
             statsPeriod: query.statsPeriod,
             per_page: params.per_page,
-            sort: query.sort ?? params.sort,
+            sort: query[params.prefix + 'sort'] ?? params.sort ?? undefined,
           },
         },
       ],

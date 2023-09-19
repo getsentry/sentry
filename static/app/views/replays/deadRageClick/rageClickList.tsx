@@ -31,6 +31,7 @@ export default function RageClickList({location}: Props) {
     per_page: 50,
     sort: '-count_rage_clicks',
     cursor: location.query.cursor,
+    prefix: '',
   });
 
   if (!hasRageClickFeature) {

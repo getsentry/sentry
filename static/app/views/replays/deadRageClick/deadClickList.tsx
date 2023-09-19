@@ -31,6 +31,7 @@ export default function DeadClickList({location}: Props) {
     per_page: 50,
     sort: '-count_dead_clicks',
     cursor: location.query.cursor,
+    prefix: '',
   });
 
   if (!hasDeadClickFeature) {
