@@ -2,6 +2,7 @@ import os
 import threading
 import time
 import zlib
+from functools import wraps
 from threading import Event, Lock, Thread
 from typing import Any, Callable, Dict, Iterable, List, Optional, Set, Tuple, Union
 
@@ -30,6 +31,23 @@ def in_minimetrics():
         return thread_local.in_minimetrics
     except AttributeError:
         return False
+
+
+def minimetrics_noop(func):
+    @wraps(func)
+    def new_func(*args, **kwargs):
+        try:
+            in_minimetrics = thread_local.in_minimetrics
+        except AttributeError:
+            in_minimetrics = False
+        thread_local.in_minimetrics = True
+        try:
+            if not in_minimetrics:
+                return func(*args, **kwargs)
+        finally:
+            thread_local.in_minimetrics = in_minimetrics
+
+    return new_func
 
 
 class CounterMetric(Metric[float]):
@@ -220,6 +238,7 @@ class Aggregator:
 
         return flushable_buckets, force_flush
 
+    @minimetrics_noop
     def add(
         self,
         ty: MetricType,
@@ -231,7 +250,7 @@ class Aggregator:
     ) -> None:
         self._ensure_thread()
 
-        if in_minimetrics() or self._flusher is None:
+        if self._flusher is None:
             return
 
         if timestamp is None:
