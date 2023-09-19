@@ -562,13 +562,9 @@ def _process_checkin(
             # 04
             # Update monitor status
             if check_in.status == CheckInStatus.ERROR:
-                mark_failed(
-                    monitor_environment,
-                    start_time,
-                    occurrence_context={"trace_id": trace_id},
-                )
+                mark_failed(check_in, ts=start_time)
             else:
-                mark_ok(check_in, start_time)
+                mark_ok(check_in, ts=start_time)
 
             metrics.incr(
                 "monitors.checkin.result",
