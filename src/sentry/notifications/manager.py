@@ -434,22 +434,22 @@ class NotificationsManager(BaseManager["NotificationSetting"]):  # noqa: F821
         recipient_actors = RpcActor.many_from_object(recipients)
 
         organization, project_ids = None, None
-        if isinstance(parent, Project):
-            organization = parent.organization
+        try:
+            organization = parent.organization  # type: ignore
             project_ids = [parent.id]
-        else:
-            organization = parent.id
+        except AttributeError:
+            organization = parent
 
-        if should_use_notifications_v2(organization):
-            setting_type = NotificationSettingEnum[
-                [val for key, val in NOTIFICATION_SETTING_TYPES.items() if key == type][0]
-            ]
+        if should_use_notifications_v2(organization):  # type: ignore
+            # We should replace calls to NotificationSettings.get_notification_recipients at the call site - this code should never be reached
+            setting_type = NotificationSettingEnum(NOTIFICATION_SETTING_TYPES[type])
             controller = NotificationController(
                 recipients=recipient_actors,
                 project_ids=project_ids,
                 organization_id=organization.id,
                 type=setting_type,
             )
+
             logger.warning("Missing upstream implementation for get_notification_recipients in v2")
             return controller.get_notification_recipients(type=setting_type)
 

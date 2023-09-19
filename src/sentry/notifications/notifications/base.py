@@ -220,10 +220,10 @@ class BaseNotification(abc.ABC):
     def filter_to_accepting_recipients(
         self, recipients: Iterable[RpcActor]
     ) -> Mapping[ExternalProviders, Iterable[RpcActor]]:
-        if should_use_notifications_v2(self.project.organization):
+        if should_use_notifications_v2(self.organization):
             controller = NotificationController(
                 recipients=recipients,
-                organization_id=self.project.organization_id,
+                organization_id=self.organization.id,
                 type=self.notification_setting_type,
             )
             return controller.get_notification_recipients(type=self.notification_setting_type)

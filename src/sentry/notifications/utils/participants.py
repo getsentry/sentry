@@ -569,10 +569,8 @@ def get_recipients_by_provider(
     users = recipients_by_type[ActorType.USER]
 
     # First evaluate the teams.
+    setting_type = NotificationSettingEnum(NOTIFICATION_SETTING_TYPES[notification_type])
     teams_by_provider = None
-    setting_type = NotificationSettingEnum[
-        [val for key, val in NOTIFICATION_SETTING_TYPES.items() if key == notification_type][0]
-    ]
     if should_use_notifications_v2(project.organization):
         controller = NotificationController(
             recipients=users,

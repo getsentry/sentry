@@ -195,11 +195,11 @@ class NotificationController:
                     most_specific_setting = None
                     for setting in scoped_settings:
                         user_or_team_settings = []
-                        if recipient_is_user:
+                        if recipient_is_user(recipient):
                             user_or_team_settings = self._filter_options(
                                 settings=setting, user_id=recipient.id, type=type.value
                             )
-                        elif recipient_is_team:
+                        elif recipient_is_team(recipient):
                             user_or_team_settings = self._filter_options(
                                 settings=setting, team_id=recipient.id, type=type.value
                             )
@@ -270,12 +270,12 @@ class NotificationController:
                         most_specific_setting = None
                         for setting in scoped_settings:
                             user_or_team_settings = []
-                            if recipient_is_user:
-                                user_or_team_settings = self._filter_options(
+                            if recipient_is_user(recipient):
+                                user_or_team_settings = self._filter_providers(
                                     settings=setting, user_id=recipient.id, type=type.value
                                 )
-                            elif recipient_is_team:
-                                user_or_team_settings = self._filter_options(
+                            elif recipient_is_team(recipient):
+                                user_or_team_settings = self._filter_providers(
                                     settings=setting, team_id=recipient.id, type=type.value
                                 )
 

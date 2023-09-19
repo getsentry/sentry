@@ -92,13 +92,9 @@ class AssignedActivityNotification(GroupActivityNotification):
             if assignee_team:
                 teams_by_provider: Mapping[ExternalProviders, Iterable[RpcActor]] = {}
                 if should_use_notifications_v2(self.project.organization):
-                    setting_type = NotificationSettingEnum[
-                        [
-                            val
-                            for key, val in NOTIFICATION_SETTING_TYPES.items()
-                            if key == self.notification_setting_type
-                        ][0]
-                    ]
+                    setting_type = NotificationSettingEnum(
+                        NOTIFICATION_SETTING_TYPES[self.notification_setting_type]
+                    )
                     controller = NotificationController(
                         recipients=[assignee_team],
                         organization_id=self.project.organization_id,
