@@ -8,16 +8,16 @@ from sentry.snuba.metrics.naming_layer.mapping import get_mri, get_public_name_f
 from sentry.snuba.metrics.utils import to_intervals
 
 
-def run_query(request: Request, tenant_ids: Optional[Dict[str, Any]] = None):
+def run_query(request: Request, tenant_ids: Optional[Dict[str, Any]] = None) -> None:
     """
     Entrypoint for executing a metrics query in Snuba.
 
     First iteration:
     The purpose of this function is to eventually replace datasource.py::get_series().
-    As a first iteration, this function will only support timeseries metric queries.
+    As a first iteration, this function will only support single timeseries metric queries.
     This means that for now, other queries such as total, formula, or meta queries
     will not be supported. Additionally, the first iteration will only support
-    querying raw metrics. This means that each call to this function will only
+    querying raw metrics (no derived). This means that each call to this function will only
     resolve into a single request (and single entity) to the Snuba API.
     """
     metrics_query = request.query
@@ -39,6 +39,13 @@ def run_query(request: Request, tenant_ids: Optional[Dict[str, Any]] = None):
         metrics_query = metrics_query.set_end(end)
 
     # Resolves MRI or public name in metrics_query
+    resolved_metrics_query = resolve_metrics_query(metrics_query)
+    request.query = resolved_metrics_query
+
+    # TODO: entity resolution, executing MetricQuery validation and serialization, result formatting, etc.
+
+
+def resolve_metrics_query(metrics_query: MetricsQuery) -> MetricsQuery:
     assert metrics_query.query is not None
     metric = metrics_query.query.metric
     op = metrics_query.query.aggregate
@@ -60,5 +67,4 @@ def run_query(request: Request, tenant_ids: Optional[Dict[str, Any]] = None):
     metrics_query = metrics_query.set_query(
         metrics_query.query.set_metric(metric.set_id(metric_id))
     )
-
-    # TODO: entity resolution, calling MetricQuery validation and serialization, result formatting, etc.
+    return metrics_query
