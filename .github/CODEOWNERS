@@ -260,6 +260,7 @@ yarn.lock                                                @getsentry/owners-js-de
 
 ## Starfish
 /src/sentry/api/endpoints/organization_events_facets_stats_performance.py           @getsentry/team-starfish
+/src/sentry/api/endpoints/organization_spans_aggregation.py                         @getsentry/team-starfish
 /src/sentry/api/endpoints/organization_events_starfish.py                           @getsentry/team-starfish
 /tests/snuba/api/endpoints/test_organization_events_facets_stats_performance.py     @getsentry/team-starfish
 
@@ -309,6 +310,7 @@ yarn.lock                                                @getsentry/owners-js-de
 /src/sentry/api/endpoints/organization_release_previous_commits.py   @getsentry/issues
 /src/sentry/api/endpoints/sentry_app/                                @getsentry/issues
 /src/sentry/api/endpoints/project_rule*.py                           @getsentry/issues
+/src/sentry/api/serializers/models/rule.py 							 @getsentry/issues
 
 /static/app/views/organizationIntegrations                           @getsentry/issues
 /static/app/views/settings/project/projectOwnership/                 @getsentry/issues
@@ -477,4 +479,5 @@ yarn.lock                                                @getsentry/owners-js-de
 /src/sentry/api/helpers/source_map_helper.py                  @getsentry/issues
 /src/sentry/api/endpoints/actionable_items.py                @getsentry/issues
 /src/sentry/api/helpers/actionable_items_helper.py                  @getsentry/issues
+/static/app/components/events/interfaces/crashContent/exception/actionableItems   @getsentry/issues
 ## End of Issues

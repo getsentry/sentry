@@ -31,7 +31,9 @@ const Radio = styled('input')<CheckedProps>`
   box-shadow: inset ${p => p.theme.dropShadowMedium};
   background: none;
   appearance: none;
-  transition: border 0.1s, box-shadow 0.1s;
+  transition:
+    border 0.1s,
+    box-shadow 0.1s;
 
   /* TODO(bootstrap): Our bootstrap CSS adds this, we can remove when we remove that */
   margin: 0 !important;

@@ -1,6 +1,7 @@
 import pytz
-from croniter import croniter
+from croniter import CroniterBadDateError, croniter
 from django.core.exceptions import ValidationError
+from django.utils import timezone
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
@@ -189,6 +190,14 @@ class ConfigValidator(serializers.Serializer):
             # crontab schedule must be valid
             if not croniter.is_valid(schedule):
                 raise ValidationError({"schedule": "Schedule was not parseable"})
+
+            # check to make sure schedule actually has a next valid expected check-in
+            try:
+                itr = croniter(schedule, timezone.now())
+                next(itr)
+            except CroniterBadDateError:
+                raise ValidationError({"schedule": "Schedule is invalid"})
+
             # Do not support 6 or 7 field crontabs
             if len(schedule.split()) > 5:
                 raise ValidationError({"schedule": "Only 5 field crontab syntax is supported"})

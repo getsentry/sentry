@@ -47,7 +47,7 @@ export class Request {
 export type ApiResult<Data = any> = [
   data: Data,
   statusText: string | undefined,
-  resp: ResponseMeta | undefined
+  resp: ResponseMeta | undefined,
 ];
 
 export type ResponseMeta<R = any> = {
