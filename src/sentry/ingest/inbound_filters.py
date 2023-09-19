@@ -1,6 +1,5 @@
 from rest_framework import serializers
 
-from sentry.api.fields.multiplechoice import MultipleChoiceField
 from sentry.models import ProjectOption
 from sentry.relay.utils import to_camel_case_name
 from sentry.signals import inbound_filter_toggled
@@ -220,7 +219,7 @@ _browser_extensions_filter = _FilterSpec(
 
 
 class _LegacyBrowserFilterSerializer(_FilterSerializer):
-    subfilters = MultipleChoiceField(
+    subfilters = serializers.MultipleChoiceField(
         help_text="""
 Specifies which legacy browser filters should be active. Anything excluded from the list will be
 disabled. The options are:
