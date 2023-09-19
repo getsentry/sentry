@@ -285,7 +285,7 @@ class BaseApiClient(TrackResponseMixin):
             except HTTPError as e:
                 error_resp = e.response
                 if error_resp is None:
-                    self.track_response_data("unknown", span, e)
+                    self.track_response_data("unknown", span, e, extra=extra)
 
                     self.logger.exception("request.error", extra=extra)
                     self.record_error(e)
@@ -303,19 +303,19 @@ class BaseApiClient(TrackResponseMixin):
                 # which is a ChunkedEncodingError caused by a ProtocolError caused by a ConnectionResetError.
                 # Rather than worrying about what the other layers might be, we just stringify to detect this.
                 if "ConnectionResetError" in str(e):
-                    self.track_response_data("connection_reset_error", span, e)
+                    self.track_response_data("connection_reset_error", span, e, extra=extra)
                     self.record_error(e)
                     raise ApiConnectionResetError("Connection reset by peer", url=full_url) from e
                 # The same thing can happen with an InvalidChunkLength exception, which is a subclass of HTTPError
                 if "InvalidChunkLength" in str(e):
-                    self.track_response_data("invalid_chunk_length", span, e)
+                    self.track_response_data("invalid_chunk_length", span, e, extra=extra)
                     self.record_error(e)
                     raise ApiError("Connection broken: invalid chunk length", url=full_url) from e
 
                 # If it's not something we recognize, let the caller deal with it
                 raise e
 
-            self.track_response_data(resp.status_code, span, None, resp)
+            self.track_response_data(resp.status_code, span, None, resp, extra=extra)
 
             self.record_response(resp)
 
