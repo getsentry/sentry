@@ -7,6 +7,7 @@ import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionT
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
+import MetricsExplorer from 'sentry/views/ddm/metricsExplorer';
 
 function DDM() {
   const organization = useOrganization();
@@ -33,7 +34,9 @@ function DDM() {
             </Layout.HeaderActions>
           </Layout.Header>
           <Layout.Body>
-            <Layout.Main fullWidth>.</Layout.Main>
+            <Layout.Main fullWidth>
+              <MetricsExplorer />
+            </Layout.Main>
           </Layout.Body>
         </Layout.Page>
       </PageFiltersContainer>
