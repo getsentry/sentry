@@ -640,9 +640,16 @@ def check_kafka(containers: dict[str, Any]) -> None:
 
 
 def check_postgres(containers: dict[str, Any]) -> None:
-    pg_options = containers["postgress"]
+    pg_options = containers["postgres"]
     subprocess.run(
-        ("docker", "exec", pg_options["name"], "pg_isready", "-U", "postgres"),
+        (
+            "docker",
+            "exec",
+            pg_options["name"],
+            "pg_isready",
+            "-U",
+            "postgres",
+        ),
         check=True,
         capture_output=True,
         text=True,
