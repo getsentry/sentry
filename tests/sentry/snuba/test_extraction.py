@@ -6,7 +6,9 @@ from sentry.api.event_search import ParenExpression, parse_search_query
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import (
     OnDemandMetricSpec,
+    apdex_tag_spec,
     cleanup_query,
+    failure_tag_spec,
     query_tokens_to_string,
     should_use_on_demand_metrics,
     to_standard_metrics_query,
@@ -250,20 +252,7 @@ def test_spec_failure_count(default_project):
     assert spec.field_to_extract is None
     assert spec.op == "on_demand_failure_count"
     assert spec.condition == {"name": "event.duration", "op": "gt", "value": 1000.0}
-    assert spec.tags_conditions(default_project) == [
-        {
-            "condition": {
-                "inner": {
-                    "name": "event.contexts.trace.status",
-                    "op": "eq",
-                    "value": ["ok", "cancelled", "unknown"],
-                },
-                "op": "not",
-            },
-            "key": "failure",
-            "value": "true",
-        },
-    ]
+    assert spec.tags_conditions(default_project) == failure_tag_spec("not_used", "not_used")
 
 
 @django_db_all
@@ -274,20 +263,7 @@ def test_spec_failure_rate(default_project):
     assert spec.field_to_extract is None
     assert spec.op == "on_demand_failure_rate"
     assert spec.condition == {"name": "event.duration", "op": "gt", "value": 1000.0}
-    assert spec.tags_conditions(default_project) == [
-        {
-            "condition": {
-                "inner": {
-                    "name": "event.contexts.trace.status",
-                    "op": "eq",
-                    "value": ["ok", "cancelled", "unknown"],
-                },
-                "op": "not",
-            },
-            "key": "failure",
-            "value": "true",
-        },
-    ]
+    assert spec.tags_conditions(default_project) == failure_tag_spec("not_used", "not_used")
 
 
 @django_db_all
@@ -301,29 +277,7 @@ def test_spec_apdex(_get_apdex_project_transaction_threshold, default_project):
     assert spec.field_to_extract is None
     assert spec.op == "on_demand_apdex"
     assert spec.condition == {"name": "event.release", "op": "eq", "value": "a"}
-    assert spec.tags_conditions(default_project) == [
-        {
-            "condition": {"name": "event.duration", "op": "lte", "value": 10},
-            "key": "satisfaction",
-            "value": "satisfactory",
-        },
-        {
-            "condition": {
-                "inner": [
-                    {"name": "event.duration", "op": "gt", "value": 10},
-                    {"name": "event.duration", "op": "lte", "value": 40},
-                ],
-                "op": "and",
-            },
-            "key": "satisfaction",
-            "value": "tolerable",
-        },
-        {
-            "condition": {"name": "event.duration", "op": "gt", "value": 40},
-            "key": "satisfaction",
-            "value": "frustrated",
-        },
-    ]
+    assert spec.tags_conditions(default_project) == apdex_tag_spec(default_project, 10)
 
 
 @django_db_all
@@ -337,7 +291,7 @@ def test_spec_apdex_without_condition(_get_apdex_project_transaction_threshold, 
     assert spec.field_to_extract is None
     assert spec.op == "on_demand_apdex"
     assert spec.condition is None
-    assert len(spec.tags_conditions(default_project)) == 3
+    assert spec.tags_conditions(default_project) == apdex_tag_spec(default_project, 10)
 
 
 def test_spec_custom_tag():
