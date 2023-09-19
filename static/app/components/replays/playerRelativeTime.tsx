@@ -19,7 +19,6 @@ function PlayerRelativeTime({relativeTimeMs, timestamp}: Props) {
       title={<DateTime date={timestamp} seconds />}
       disabled={!timestamp}
       skipWrapper
-      disableForVisualTest
       underlineColor="gray300"
       showUnderline
     >

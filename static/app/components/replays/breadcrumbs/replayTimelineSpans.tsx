@@ -59,7 +59,6 @@ function ReplayTimelineSpans({className, durationMs, frames, startTimestampMs}: 
               </CountTooltipContent>
             }
             skipWrapper
-            disableForVisualTest
             position="bottom"
           >
             <Span
