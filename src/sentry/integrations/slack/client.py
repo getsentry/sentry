@@ -84,6 +84,7 @@ class SlackClient(IntegrationProxyClient):
         span: Span | None = None,
         error: Optional[str] = None,
         resp: Optional[Response] = None,
+        extra: Optional[Mapping[str, str]] = None,
     ) -> None:
         # if no span was passed, create a dummy to which to add data to avoid having to wrap every
         # span call in `if span`
@@ -121,6 +122,7 @@ class SlackClient(IntegrationProxyClient):
         )
 
         extra = {
+            **(extra or {}),
             self.integration_type: self.name,
             "status_string": str(code),
             "error": str(error)[:256] if error else None,
