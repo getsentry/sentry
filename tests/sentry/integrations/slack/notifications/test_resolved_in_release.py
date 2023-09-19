@@ -41,9 +41,10 @@ class SlackResolvedInReleaseNotificationTest(
         attachment, text = get_attachment()
         release_name = notification.activity.data["version"]
         assert text == f"Issue marked as resolved in {release_name} by {self.name}"
+        notification_uuid = self.get_notification_uuid(attachment["title_link"])
         assert (
             attachment["footer"]
-            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=resolved_in_release_activity-slack-user|Notification Settings>"
+            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=resolved_in_release_activity-slack-user&notification_uuid={notification_uuid}|Notification Settings>"
         )
 
     @responses.activate
@@ -107,7 +108,8 @@ class SlackResolvedInReleaseNotificationTest(
 
         attachment, text = get_attachment()
         assert text == f"Issue marked as resolved in 1.0.0 by {self.name}"
+        notification_uuid = self.get_notification_uuid(attachment["title_link"])
         assert (
             attachment["footer"]
-            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=resolved_in_release_activity-slack-user|Notification Settings>"
+            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=resolved_in_release_activity-slack-user&notification_uuid={notification_uuid}|Notification Settings>"
         )
