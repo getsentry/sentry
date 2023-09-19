@@ -19,7 +19,7 @@ from sentry.snuba.metrics import (
     MetricGroupByField,
     MetricOrderByField,
     MetricsQuery,
-    parse_query,
+    parse_conditions,
 )
 from sentry.snuba.metrics.naming_layer import SessionMRI, TransactionMRI
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -459,7 +459,7 @@ def test_validate_distribution_functions_in_orderby():
 @django_db_all
 def test_validate_where():
     query = "session.status:crashed"
-    where = parse_query(query, [])
+    where = parse_conditions(query, [], {})
 
     with pytest.raises(InvalidParams, match="Tag name session.status is not a valid query filter"):
         MetricsQuery(**MetricsQueryBuilder().with_where(where).to_metrics_query_dict())
