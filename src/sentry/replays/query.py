@@ -74,7 +74,7 @@ def query_replay_instance(
     start: datetime,
     end: datetime,
     organization: Optional[Organization] = None,
-) -> dict:
+):
     """Query aggregated replay instance."""
     if isinstance(project_id, list):
         project_ids = project_id
