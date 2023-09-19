@@ -11,6 +11,7 @@ import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import {AggregateFlamegraph} from 'sentry/components/profiling/flamegraph/aggregateFlamegraph';
 import {
   ProfilingBreadcrumbs,
   ProfilingBreadcrumbsProps,
@@ -25,6 +26,9 @@ import type {Organization, PageFilters, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import {isAggregateField} from 'sentry/utils/discover/fields';
+import {FlamegraphStateProvider} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphContextProvider';
+import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/flamegraphThemeProvider';
+import {useAggregateFlamegraphQuery} from 'sentry/utils/profiling/hooks/useAggregateFlamegraphQuery';
 import {useCurrentProjectFromRouteParam} from 'sentry/utils/profiling/hooks/useCurrentProjectFromRouteParam';
 import {useProfileFilters} from 'sentry/utils/profiling/hooks/useProfileFilters';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -32,6 +36,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import {ProfilesSummaryChart} from 'sentry/views/profiling/landing/profilesSummaryChart';
+import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
 import {LegacySummaryPage} from 'sentry/views/profiling/profileSummary/legacySummaryPage';
 import {DEFAULT_PROFILING_DATETIME_SELECTION} from 'sentry/views/profiling/utils';
 
@@ -236,6 +241,8 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
     return search.formatString();
   }, [rawQuery, transaction]);
 
+  const {data} = useAggregateFlamegraphQuery({transaction: transaction ?? ''});
+
   return (
     <SentryDocumentTitle
       title={t('Profiling \u2014 Profile Summary')}
@@ -273,11 +280,54 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
             query={query}
             hideCount
           />
+          <ProfileVisualizationContainer>
+            <ProfileVisualization>
+              <ProfileGroupProvider
+                type="flamegraph"
+                input={data ?? null}
+                traceID=""
+                frameFilter={undefined}
+              >
+                <FlamegraphStateProvider
+                  initialState={{
+                    preferences: {
+                      sorting: 'alphabetical',
+                    },
+                  }}
+                >
+                  <FlamegraphThemeProvider>
+                    <AggregateFlamegraph
+                      hideToolbar
+                      hideSystemFrames={false}
+                      setHideSystemFrames={() => void 0}
+                    />
+                  </FlamegraphThemeProvider>
+                </FlamegraphStateProvider>
+              </ProfileGroupProvider>
+            </ProfileVisualization>
+            <ProfileDigest>
+              <div>TODO: Profile Digest</div>
+            </ProfileDigest>
+          </ProfileVisualizationContainer>
         </PageFiltersContainer>
       </ProfileSummaryContainer>
     </SentryDocumentTitle>
   );
 }
+
+const ProfileVisualization = styled('div')`
+  grid-area: visualization;
+`;
+
+const ProfileDigest = styled('div')`
+  grid-area: digest;
+`;
+
+const ProfileVisualizationContainer = styled('div')`
+  display: grid;
+  grid-template-areas: 'visualization digest';
+  flex: 1 1 100%;
+`;
 
 const ProfileSummaryContainer = styled('div')`
   display: flex;
