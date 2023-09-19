@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import beautify from 'js-beautify';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {AuthTokenGenerator} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
@@ -76,6 +77,10 @@ interface StepPropsWithoutTitle extends BaseStepProps {
 
 export type StepProps = StepPropsWithTitle | StepPropsWithoutTitle;
 
+const tokenReplacers = {
+  ___ORG_AUTH_TOKEN___: AuthTokenGenerator,
+};
+
 function getConfiguration({
   description,
   code,
@@ -96,6 +101,7 @@ function getConfiguration({
           onSelectAndCopy={onSelectAndCopy}
           hideCopyButton={partialLoading}
           disableUserSelection={partialLoading}
+          tokenReplacers={tokenReplacers}
         >
           {language === 'javascript'
             ? beautify.js(code, {
