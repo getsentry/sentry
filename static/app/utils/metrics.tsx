@@ -98,7 +98,7 @@ export function useMetricsData({
   const field = op ? `${op}(${mri})` : mri;
 
   const {start, end} = getUTCTimeRange(timeRange);
-  const interval = getMetricsInterval({start, end});
+  const interval = getInterval({start, end}, 'metrics');
 
   const query = getQueryString({projects, queryString});
 
@@ -108,6 +108,10 @@ export function useMetricsData({
     interval,
     query,
     groupBy,
+    start,
+    end,
+    // max result groups
+    per_page: 20,
   };
 
   return useApiQuery<MetricsData>(
@@ -136,22 +140,6 @@ const getUTCTimeRange = (timeRange: Record<string, any>) => {
     start: moment(absoluteTimeRange.start).utc().toISOString(),
     end: moment(absoluteTimeRange.end).utc().toISOString(),
   };
-};
-
-const getMetricsInterval = (timeRange: Record<string, any>) => {
-  const diff = moment(timeRange.end).diff(moment(timeRange.start), 'days');
-
-  if (diff >= 7 && diff <= 16) {
-    return '2h';
-  }
-  if (diff > 16 && diff <= 30) {
-    return '4h';
-  }
-  if (diff > 32 && diff <= 90) {
-    return '12h';
-  }
-
-  return getInterval(timeRange, 'medium');
 };
 
 type UseCase = 'sessions' | 'transactions' | 'custom';
