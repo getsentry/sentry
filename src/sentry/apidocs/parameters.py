@@ -310,61 +310,12 @@ incorrect or missing.
         description="Toggle the browser-extensions, localhost, filtered-transaction, or web-crawlers filter on or off.",
     )
 
-    BROWSER_SDK_VERSION = OpenApiParameter(
-        name="browserSdkVersion",
-        location="query",
-        required=False,
-        type=str,
-        description="""
-The Sentry Javascript SDK version to use. The currently supported options are:
-- `7.x`
-- `latest`
-""",
-    )
-
     DEFAULT_RULES = OpenApiParameter(
         name="default_rules",
         location="query",
         required=False,
         type=bool,
         description="Defaults to true where the behavior is to alert the user on every new issue. Setting this to false will turn this off and the user must create their own alerts to be notified of new issues.",
-    )
-
-    DYNAMIC_SDK_LOADER_OPTIONS = OpenApiParameter(
-        name="dynamicSdkLoaderOptions",
-        location="query",
-        required=False,
-        type=inline_serializer(
-            name="DynamicSDKLoaderOptionsSerializer",
-            fields={
-                "hasReplay": serializers.BooleanField(required=False),
-                "hasPerformance": serializers.BooleanField(required=False),
-                "hasDebug": serializers.BooleanField(required=False),
-            },
-        ),
-        description="""
-Configures multiple options for the Javascript Loader Script.
-- `Performance Monitoring`
-- `Debug Bundles & Logging`
-- `Session Replay`: Note that the loader will load the ES6 bundle instead of the ES5 bundle.
-```json
-{
-    "dynamicSdkLoaderOptions": {
-        "hasReplay": true,
-        "hasPerformance": true,
-        "hasDebug": true
-    }
-}
-```
-""",
-    )
-
-    IS_ACTIVE = OpenApiParameter(
-        name="isActive",
-        location="query",
-        required=False,
-        type=bool,
-        description="Activate or deactivate the client key.",
     )
 
     IS_BOOKMARKED = OpenApiParameter(
@@ -407,29 +358,16 @@ Configure various project filters:
 """,
     )
 
-    RATE_LIMIT = OpenApiParameter(
-        name="rateLimit",
+    STATUS = OpenApiParameter(
+        name="status",
         location="query",
         required=False,
-        type=inline_serializer(
-            name="RateLimitParameterSerializer",
-            fields={
-                "window": serializers.IntegerField(required=False),
-                "count": serializers.IntegerField(required=False),
-            },
-        ),
+        type=str,
         description="""
-Applies a rate limit to cap the number of errors accepted during a given time window. To
-disable entirely set `rateLimit` to null.
-```json
-{
-    "rateLimit": {
-        "window": 7200, // time in seconds
-        "count": 1000 // error cap
-    }
-}
-```
-        """,
+Filter client keys by status. The choices are:
+- `active`
+- `inactive`
+""",
     )
 
     SUB_FILTERS = OpenApiParameter(
