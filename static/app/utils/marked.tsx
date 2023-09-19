@@ -2,7 +2,7 @@ import dompurify from 'dompurify';
 import marked from 'marked'; // eslint-disable-line no-restricted-imports
 import Prism from 'prismjs';
 
-import {IS_ACCEPTANCE_TEST, NODE_ENV} from 'sentry/constants';
+import {NODE_ENV} from 'sentry/constants';
 import {loadPrismLanguage} from 'sentry/utils/loadPrismLanguage';
 
 // Only https and mailto, (e.g. no javascript, vbscript, data protocols)
@@ -77,7 +77,7 @@ marked.setOptions({
   //      as a html error, instead of throwing an exception, however none of
   //      our tests are rendering failed markdown so this is likely a safe
   //      tradeoff to turn off off the deprecation warning.
-  silent: !!IS_ACCEPTANCE_TEST || NODE_ENV === 'test',
+  silent: NODE_ENV === 'test',
 });
 
 const sanitizedMarked = (...args: Parameters<typeof marked>) =>
