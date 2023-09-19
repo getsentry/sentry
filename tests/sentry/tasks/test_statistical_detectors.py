@@ -229,6 +229,38 @@ def test_detect_function_trends_query_timerange(functions_query, timestamp, proj
     assert params["end"] == datetime(2023, 8, 1, 11, 1, tzinfo=timezone.utc)
 
 
+@mock.patch("sentry.tasks.statistical_detectors.query_transactions")
+@mock.patch("sentry.tasks.statistical_detectors.detect_transaction_change_points")
+@django_db_all
+def test_detect_transaction_trends(
+    detect_transaction_change_points,
+    query_transactions,
+    timestamp,
+    project,
+    organization,
+):
+    n = 20
+    timestamps = [timestamp - timedelta(hours=n - i) for i in range(n)]
+
+    query_transactions.side_effect = [
+        [
+            DetectorPayload(
+                project_id=project.id,
+                group="/123",
+                count=100,
+                value=100 if i < n / 2 else 200,
+                timestamp=ts,
+            ),
+        ]
+        for i, ts in enumerate(timestamps)
+    ]
+
+    with override_options({"statistical_detectors.enable": True}), TaskRunner():
+        for ts in timestamps:
+            detect_transaction_trends([organization.id], [project.id], ts)
+    assert detect_transaction_change_points.delay.called
+
+
 @mock.patch("sentry.tasks.statistical_detectors.query_functions")
 @mock.patch("sentry.tasks.statistical_detectors.detect_function_change_points")
 @django_db_all
