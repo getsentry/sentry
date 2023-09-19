@@ -9,7 +9,6 @@ import {space} from 'sentry/styles/space';
 import {Group} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import EventWaiter, {EventWaiterProps} from 'sentry/utils/eventWaiter';
-import testableTransition from 'sentry/utils/testableTransition';
 
 type RenderProps = {
   firstEventButton: React.ReactNode;
@@ -92,7 +91,7 @@ StatusWrapper.defaultProps = {
     animate: {
       opacity: 1,
       y: 0,
-      transition: testableTransition({when: 'beforeChildren', staggerChildren: 0.35}),
+      transition: {when: 'beforeChildren', staggerChildren: 0.35},
     },
     exit: {opacity: 0, y: 10},
   },
@@ -126,7 +125,6 @@ const AnimatedText = styled(motion.div)``;
 
 AnimatedText.defaultProps = {
   variants: indicatorAnimation,
-  transition: testableTransition(),
 };
 
 const WaitingIndicator = styled(motion.div)`
@@ -136,7 +134,6 @@ const WaitingIndicator = styled(motion.div)`
 
 WaitingIndicator.defaultProps = {
   variants: indicatorAnimation,
-  transition: testableTransition(),
 };
 
 const ReceivedIndicator = styled(IconCheckmark)`

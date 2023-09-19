@@ -1,8 +1,6 @@
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
-import testableTransition from 'sentry/utils/testableTransition';
-
 const Light = styled(motion.g)`
   transform-box: fill-box;
 `;
@@ -14,11 +12,11 @@ Light.defaultProps = {
   },
   animate: {
     rotate: [-5, 8, -5],
-    transition: testableTransition({
+    transition: {
       duration: 3,
       repeat: Infinity,
       repeatType: 'loop',
-    }),
+    },
   },
 };
 
@@ -220,13 +218,11 @@ Compass.defaultProps = {
     animate: {
       opacity: 1,
       scale: 1,
-      transition: testableTransition({duration: 0.5}),
+      transition: {duration: 0.5},
     },
     exit: {y: -120, opacity: 0},
   },
-  transition: testableTransition({
-    duration: 0.9,
-  }),
+  transition: {duration: 0.9},
 };
 
 const Log = styled(Illustration)`
@@ -243,13 +239,11 @@ Log.defaultProps = {
     animate: {
       opacity: 1,
       scale: 1,
-      transition: testableTransition({duration: 0.5}),
+      transition: {duration: 0.5},
     },
     exit: {y: -200, opacity: 0},
   },
-  transition: testableTransition({
-    duration: 1.1,
-  }),
+  transition: {duration: 1.1},
 };
 
 const Container = styled(motion.div)`
@@ -269,5 +263,5 @@ Container.defaultProps = {
     animate: {},
     exit: {},
   },
-  transition: testableTransition({staggerChildren: 0.2}),
+  transition: {staggerChildren: 0.2},
 };

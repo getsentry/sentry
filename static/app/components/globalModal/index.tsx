@@ -12,7 +12,6 @@ import ModalStore from 'sentry/stores/modalStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import getModalPortal from 'sentry/utils/getModalPortal';
-import testableTransition from 'sentry/utils/testableTransition';
 
 import {makeClosableHeader, makeCloseButton, ModalBody, ModalFooter} from './components';
 
@@ -262,10 +261,10 @@ Modal.defaultProps = {
   initial: {opacity: 0, y: -10},
   animate: {opacity: 1, y: 0},
   exit: {opacity: 0, y: 15},
-  transition: testableTransition({
+  transition: {
     opacity: {duration: 0.2},
     y: {duration: 0.25},
-  }),
+  },
 };
 
 const Content = styled('div')`

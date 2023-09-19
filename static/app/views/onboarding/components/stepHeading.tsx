@@ -2,7 +2,6 @@ import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
 import {space} from 'sentry/styles/space';
-import testableTransition from 'sentry/utils/testableTransition';
 
 const StepHeading = styled(motion.h2)<{step: number}>`
   margin-left: calc(-${space(2)} - 30px);
@@ -32,9 +31,7 @@ StepHeading.defaultProps = {
     animate: {clipPath: 'inset(0% 0% 0% 0%)', opacity: 1},
     exit: {opacity: 0},
   },
-  transition: testableTransition({
-    duration: 0.3,
-  }),
+  transition: {duration: 0.3},
 };
 
 export default StepHeading;

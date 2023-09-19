@@ -5,7 +5,6 @@ import {motion} from 'framer-motion';
 
 import Text from 'sentry/components/text';
 import {space} from 'sentry/styles/space';
-import testableTransition from 'sentry/utils/testableTransition';
 
 /**
  * The default wrapper for the detail text.
@@ -25,10 +24,7 @@ const subItemAnimation = {
   animate: {
     opacity: 1,
     x: 0,
-    transition: testableTransition({
-      type: 'spring',
-      duration: 0.4,
-    }),
+    transition: {type: 'spring', duration: 0.4},
   },
 };
 
@@ -41,7 +37,6 @@ const Header = styled(motion.h2)`
 
 Header.defaultProps = {
   variants: subItemAnimation,
-  transition: testableTransition(),
 };
 
 const Body = styled(motion.div)`
@@ -50,7 +45,6 @@ const Body = styled(motion.div)`
 
 Body.defaultProps = {
   variants: subItemAnimation,
-  transition: testableTransition(),
 };
 
 type ContentOpts = {
@@ -195,13 +189,13 @@ function PageOverlay({
 
   const Wrapper = customWrapper ?? DefaultWrapper;
 
-  const transition = testableTransition({
+  const transition = {
     delay: 1,
     duration: 1.2,
     ease: 'easeInOut',
     delayChildren: animateDelay ?? (BackgroundComponent ? 0.5 : 1.5),
     staggerChildren: 0.15,
-  });
+  };
 
   return (
     <MaskedContent {...props}>

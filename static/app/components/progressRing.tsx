@@ -2,7 +2,6 @@ import {SerializedStyles, Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
-import testableTransition from 'sentry/utils/testableTransition';
 import theme from 'sentry/utils/theme';
 
 type TextProps = {
@@ -67,7 +66,6 @@ AnimatedText.defaultProps = {
   initial: {opacity: 0, y: -10},
   animate: {opacity: 1, y: 0},
   exit: {opacity: 0, y: 10},
-  transition: testableTransition(),
 };
 
 function ProgressRing({

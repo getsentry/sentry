@@ -16,7 +16,6 @@ import {space} from 'sentry/styles/space';
 import {AvatarUser, OnboardingTask, OnboardingTaskKey, Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoWalkthrough} from 'sentry/utils/demoMode';
-import testableTransition from 'sentry/utils/testableTransition';
 import {useRouteContext} from 'sentry/utils/useRouteContext';
 import withOrganization from 'sentry/utils/withOrganization';
 
@@ -241,8 +240,6 @@ const CloseButton = styled(Button)`
   color: ${p => p.theme.gray300};
 `;
 
-const transition = testableTransition();
-
 const StatusIndicator = styled(motion.div)`
   display: flex;
 `;
@@ -251,7 +248,6 @@ StatusIndicator.defaultProps = {
     initial: {opacity: 0, x: 10},
     animate: {opacity: 1, x: 0},
   },
-  transition,
 };
 
 const CompleteIndicator = styled(IconCheckmark)``;
@@ -279,13 +275,11 @@ const DateCompleted = styled(motion.div)`
 
 DateCompleted.defaultProps = {
   variants: completedItemAnimation,
-  transition,
 };
 
 const TaskUserAvatar = motion(Avatar);
 TaskUserAvatar.defaultProps = {
   variants: completedItemAnimation,
-  transition,
 };
 
 const TaskBlankAvatar = styled(motion(LetterAvatar))`
@@ -294,7 +288,6 @@ const TaskBlankAvatar = styled(motion(LetterAvatar))`
 
 TaskBlankAvatar.defaultProps = {
   variants: completedItemAnimation,
-  transition,
 };
 
 const WrappedTask = withOrganization(Task);

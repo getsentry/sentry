@@ -24,7 +24,6 @@ import {
   Project,
 } from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
 import useProjects from 'sentry/utils/useProjects';
 import {useTeams} from 'sentry/utils/useTeams';
@@ -238,9 +237,7 @@ const SelectionWrapper = styled(motion.div)`
 `;
 
 SelectionWrapper.defaultProps = {
-  transition: testableTransition({
-    duration: 1.8,
-  }),
+  transition: {duration: 1.8},
 };
 
 const ButtonWrapper = styled(motion.div)`
@@ -252,9 +249,7 @@ const ButtonWrapper = styled(motion.div)`
 `;
 
 ButtonWrapper.defaultProps = {
-  transition: testableTransition({
-    duration: 1.3,
-  }),
+  transition: {duration: 1.3},
 };
 
 const SelectedPlatformIcon = styled(PlatformIcon)`

@@ -12,7 +12,6 @@ import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext'
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import testableTransition from 'sentry/utils/testableTransition';
 import useOrganization from 'sentry/utils/useOrganization';
 import FallingError from 'sentry/views/onboarding/components/fallingError';
 import WelcomeBackground from 'sentry/views/onboarding/components/welcomeBackground';
@@ -25,7 +24,7 @@ const fadeAway: MotionProps = {
     animate: {opacity: 1, filter: 'blur(0px)'},
     exit: {opacity: 0, filter: 'blur(1px)'},
   },
-  transition: testableTransition({duration: 0.8}),
+  transition: {duration: 0.8},
 };
 
 type TextWrapperProps = {

@@ -1,8 +1,6 @@
 import {Component} from 'react';
 import {motion} from 'framer-motion';
 
-import testableTransition from 'sentry/utils/testableTransition';
-
 type RenderProps = {
   fallCount: number;
   fallingError: React.ReactNode;
@@ -49,11 +47,11 @@ class FallingError extends Component<Props, State> {
             originY: '0',
             opacity: [1, 1, 1],
             rotateZ: [8, -8, 8],
-            transition: testableTransition({
+            transition: {
               repeat: Infinity,
               repeatType: 'loop',
               duration: 4,
-            }),
+            },
           },
           falling: {
             originY: '50%',

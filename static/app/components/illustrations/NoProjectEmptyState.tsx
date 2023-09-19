@@ -3,14 +3,13 @@ import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
 import {makeOpacityJitter, makeShake} from 'sentry/styles/animations';
-import testableTransition from 'sentry/utils/testableTransition';
 
 const Background = styled(motion.g)``;
 
 Background.defaultProps = {
   initial: {opacity: 0},
   animate: {opacity: 1},
-  transition: testableTransition({duration: 0.5}),
+  transition: {duration: 0.5},
 };
 
 const MainWindows = styled(motion.g)``;
@@ -18,7 +17,7 @@ const MainWindows = styled(motion.g)``;
 MainWindows.defaultProps = {
   initial: {rotate: -2, scale: 0.95, opacity: 0},
   animate: {rotate: 0, scale: 1, opacity: 1},
-  transition: testableTransition({type: 'spring', delay: 0.2, stiffness: 200, bounce: 5}),
+  transition: {type: 'spring', delay: 0.2, stiffness: 200, bounce: 5},
 };
 
 const SecondWindow = styled(motion.g)``;
@@ -26,7 +25,7 @@ const SecondWindow = styled(motion.g)``;
 SecondWindow.defaultProps = {
   initial: {rotate: 10, scale: 0.9, opacity: 0},
   animate: {rotate: 0, scale: 1, opacity: 1},
-  transition: testableTransition({type: 'spring', delay: 0.7, stiffness: 200, bounce: 5}),
+  transition: {type: 'spring', delay: 0.7, stiffness: 200, bounce: 5},
 };
 
 const Alert = styled(motion.g)`
@@ -52,7 +51,7 @@ const CablePlug = styled(Cable)``;
 CablePlug.defaultProps = {
   ...cableAnimate,
   style: {'--stroke-length': 717.05} as any,
-  transition: testableTransition({duration: 2, delay: 1.3}),
+  transition: {duration: 2, delay: 1.3},
 };
 
 const CableWindow1 = styled(Cable)``;
@@ -60,21 +59,21 @@ CableWindow1.defaultProps = {
   ...cableAnimate,
   custom: {length: 89.28},
   style: {'--stroke-length': 89.28} as any,
-  transition: testableTransition({duration: 0.8, delay: 0.9}),
+  transition: {duration: 0.8, delay: 0.9},
 };
 
 const CableWindow2 = styled(Cable)``;
 CableWindow2.defaultProps = {
   ...cableAnimate,
   style: {'--stroke-length': 132.26} as any,
-  transition: testableTransition({duration: 0.9, delay: 1}),
+  transition: {duration: 0.9, delay: 1},
 };
 
 const PowerBolts = styled(motion.g)``;
 PowerBolts.defaultProps = {
   initial: {rotate: 10, scale: 0.9, opacity: 0},
   animate: {rotate: 0, scale: 1, opacity: 1},
-  transition: testableTransition({type: 'spring', delay: 3.2, stiffness: 200, bounce: 5}),
+  transition: {type: 'spring', delay: 3.2, stiffness: 200, bounce: 5},
 };
 
 const PowerBolt = styled(motion.g)`
@@ -89,11 +88,11 @@ Sparks.defaultProps = {
   variants: {
     animate: {
       x: 0,
-      transition: testableTransition({
+      transition: {
         when: 'beforeChildren',
         delay: 3.6,
         staggerChildren: 0.2,
-      }),
+      },
     },
   },
 };
@@ -118,7 +117,7 @@ Spark.defaultProps = {
       display: 'block',
     },
   },
-  transition: testableTransition({type: 'spring', stiffness: 500, bounce: 80}),
+  transition: {type: 'spring', stiffness: 500, bounce: 80},
 };
 
 const oilSpill = keyframes`

@@ -8,7 +8,6 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconCheckmark, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import testableTransition from 'sentry/utils/testableTransition';
 
 type Props = {
   indicator: Indicator;
@@ -87,11 +86,11 @@ Toast.defaultProps = {
     opacity: 0,
     y: 70,
   },
-  transition: testableTransition({
+  transition: {
     type: 'spring',
     stiffness: 450,
     damping: 25,
-  }),
+  },
 };
 
 const Icon = styled('div', {shouldForwardProp: p => p !== 'type'})<{type: string}>`

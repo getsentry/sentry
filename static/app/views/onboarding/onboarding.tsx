@@ -22,7 +22,6 @@ import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import Redirect from 'sentry/utils/redirect';
-import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -475,9 +474,9 @@ OnboardingStep.defaultProps = {
   animate: 'animate',
   exit: 'exit',
   variants: {animate: {}},
-  transition: testableTransition({
+  transition: {
     staggerChildren: 0.2,
-  }),
+  },
 };
 
 const Sidebar = styled(motion.div)`
@@ -492,9 +491,9 @@ Sidebar.defaultProps = {
   animate: 'animate',
   exit: 'exit',
   variants: {animate: {}},
-  transition: testableTransition({
+  transition: {
     staggerChildren: 0.2,
-  }),
+  },
 };
 
 const AdaptivePageCorners = styled(PageCorners)`
@@ -520,13 +519,12 @@ const Back = styled(({className, animate, ...props}: BackButtonProps) => (
   <motion.div
     className={className}
     animate={animate}
-    transition={testableTransition()}
     variants={{
       initial: {opacity: 0, visibility: 'hidden'},
       visible: {
         opacity: 1,
         visibility: 'visible',
-        transition: testableTransition({delay: 1}),
+        transition: {delay: 1},
       },
       hidden: {
         opacity: 0,

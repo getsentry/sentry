@@ -16,7 +16,6 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {OnboardingTask, OnboardingTaskKey, Organization, Project} from 'sentry/types';
 import {isDemoWalkthrough} from 'sentry/utils/demoMode';
-import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import withProjects from 'sentry/utils/withProjects';
@@ -53,7 +52,6 @@ const Heading = styled(motion.div)`
 
 Heading.defaultProps = {
   layout: true,
-  transition: testableTransition(),
 };
 
 const completeNowText = isDemoWalkthrough() ? t('Sentry Basics') : t('Next Steps');
@@ -233,11 +231,11 @@ AnimatedTaskItem.defaultProps = {
     animate: {
       opacity: 1,
       y: 0,
-      transition: testableTransition({
+      transition: {
         delay: 0.8,
         when: 'beforeChildren',
         staggerChildren: 0.3,
-      }),
+      },
     },
     exit: {
       y: 20,

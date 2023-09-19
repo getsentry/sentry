@@ -7,7 +7,6 @@ import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext'
 import PlatformPicker from 'sentry/components/platformPicker';
 import platforms from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
-import testableTransition from 'sentry/utils/testableTransition';
 import useOrganization from 'sentry/utils/useOrganization';
 import StepHeading from 'sentry/views/onboarding/components/stepHeading';
 
@@ -30,7 +29,6 @@ export function PlatformSelection(props: StepProps) {
         {t('Select the platform you want to monitor')}
       </StepHeading>
       <motion.div
-        transition={testableTransition()}
         variants={{
           initial: {y: 30, opacity: 0},
           animate: {y: 0, opacity: 1},

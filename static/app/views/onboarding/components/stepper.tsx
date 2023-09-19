@@ -2,7 +2,6 @@ import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
 import {space} from 'sentry/styles/space';
-import testableTransition from 'sentry/utils/testableTransition';
 
 const StepperContainer = styled('div')`
   display: flex;
@@ -28,11 +27,11 @@ const StepperTransitionIndicator = styled(motion.span)`
 `;
 StepperTransitionIndicator.defaultProps = {
   layout: true,
-  transition: testableTransition({
+  transition: {
     type: 'spring',
     stiffness: 175,
     damping: 18,
-  }),
+  },
 };
 
 type Props = React.HTMLAttributes<HTMLDivElement> & {

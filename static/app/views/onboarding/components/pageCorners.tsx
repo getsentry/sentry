@@ -2,8 +2,6 @@ import {HTMLAttributes} from 'react';
 import styled from '@emotion/styled';
 import {AnimationControls, motion} from 'framer-motion';
 
-import testableTransition from 'sentry/utils/testableTransition';
-
 type Props = {
   animateVariant: AnimationControls;
 } & HTMLAttributes<HTMLDivElement>;
@@ -79,10 +77,10 @@ function PageCorners({animateVariant, ...rest}: Props) {
 
 export default PageCorners;
 
-const transition = testableTransition({
+const transition = {
   type: 'spring',
   duration: 0.8,
-});
+};
 
 const TopLeft = styled(motion.svg)`
   position: absolute;
