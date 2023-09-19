@@ -150,9 +150,10 @@ class ScheduleAutoNewOngoingIssuesTest(TestCase):
         ) == {g.id for g in older_groups}
 
     @freeze_time("2023-07-12 18:40:00Z")
+    @mock.patch("sentry.utils.metrics.incr")
     @mock.patch("sentry.tasks.auto_ongoing_issues.ITERATOR_CHUNK", new=2)
     @mock.patch("sentry.tasks.auto_ongoing_issues.backend")
-    def test_not_all_groups_get_updated(self, mock_backend):
+    def test_not_all_groups_get_updated(self, mock_backend, mock_metrics_incr):
         now = datetime.now(tz=timezone.utc)
         project = self.create_project()
         groups_count = 110
@@ -196,6 +197,38 @@ class ScheduleAutoNewOngoingIssuesTest(TestCase):
                 substatus=GroupSubStatus.ONGOING,
             ).count()
             == 100
+        )
+
+        mock_metrics_incr.assert_any_call(
+            "sentry.tasks.schedule_auto_transition_issues_new_to_ongoing.executed",
+            sample_rate=1.0,
+            tags={"count": 100},
+        )
+        mock_metrics_incr.assert_any_call(
+            "sentry.tasks.schedule_auto_transition_issues_new_to_ongoing.remaining",
+            sample_rate=1.0,
+            tags={"count": 10},
+        )
+
+        mock_metrics_incr.assert_any_call(
+            "sentry.tasks.schedule_auto_transition_issues_regressed_to_ongoing.executed",
+            sample_rate=1.0,
+            tags={"count": 0},
+        )
+        mock_metrics_incr.assert_any_call(
+            "sentry.tasks.schedule_auto_transition_issues_regressed_to_ongoing.remaining",
+            sample_rate=1.0,
+            tags={"count": 0},
+        )
+        mock_metrics_incr.assert_any_call(
+            "sentry.tasks.schedule_auto_transition_issues_escalating_to_ongoing.executed",
+            sample_rate=1.0,
+            tags={"count": 0},
+        )
+        mock_metrics_incr.assert_any_call(
+            "sentry.tasks.schedule_auto_transition_issues_escalating_to_ongoing.remaining",
+            sample_rate=1.0,
+            tags={"count": 0},
         )
 
 
