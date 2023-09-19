@@ -51,6 +51,7 @@ type Props = Pick<RouteComponentProps<{traceSlug: string}, {}>, 'params' | 'loca
   traceEventView: EventView;
   traceSlug: string;
   traces: TraceFullDetailed[] | null;
+  handleLimitChange?: (newLimit: number) => void;
   orphanErrors?: TraceError[];
 };
 
@@ -372,6 +373,7 @@ class TraceDetailsContent extends Component<Props, State> {
               traces={traces || []}
               meta={meta}
               orphanErrors={orphanErrors || []}
+              handleLimitChange={this.props.handleLimitChange}
             />
           </VisuallyCompleteWithData>
         </Margin>

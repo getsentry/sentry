@@ -1,4 +1,4 @@
-import {Component} from 'react';
+import React, {Component} from 'react';
 import {RouteComponentProps} from 'react-router';
 
 import {Client} from 'sentry/api';
@@ -40,13 +40,9 @@ class TraceSummary extends Component<Props> {
     limit: Number(this.props.location.query.limit) ?? DEFAULT_TRACE_ROWS_LIMIT,
   };
 
-  componentDidUpdate(prevProps: Props): void {
-    if (prevProps.location.query.limit !== this.props.location.query.limit) {
-      this.setState({
-        limit: this.props.location.query.limit,
-      });
-    }
-  }
+  handleLimitChange = (newLimit: number) => {
+    this.setState({limit: newLimit});
+  };
 
   getDocumentTitle(): string {
     return [t('Trace Details'), t('Performance')].join(' — ');
@@ -121,6 +117,7 @@ class TraceSummary extends Component<Props> {
           orphanErrors={orphanErrors}
           traces={transactions ?? (traces as TraceFullDetailed[])}
           meta={meta}
+          handleLimitChange={this.handleLimitChange}
         />
       );
     };
@@ -182,4 +179,4 @@ class TraceSummary extends Component<Props> {
   }
 }
 
-export default withOrganization(withApi(TraceSummary));
+export default React.memo(withOrganization(withApi(TraceSummary)));

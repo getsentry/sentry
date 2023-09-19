@@ -17,6 +17,7 @@ interface LimitExceededMessageProps {
   organization: Organization;
   traceEventView: EventView;
   traceInfo: TraceInfo;
+  handleLimitChange?: (newLimit: number) => void;
 }
 
 const MAX_TRACE_ROWS_LIMIT = 2000;
@@ -27,6 +28,7 @@ function LimitExceededMessage({
   traceEventView,
   organization,
   meta,
+  handleLimitChange,
 }: LimitExceededMessageProps) {
   const count = traceInfo.transactions.size + traceInfo.errors.size;
   const totalEvents = (meta && meta.transactions + meta.errors) ?? count;
@@ -68,12 +70,16 @@ function LimitExceededMessage({
       loadMore: (
         <Button
           priority="link"
-          onClick={() =>
+          onClick={() => {
+            const newLimit = currentLimit + increment;
+            if (handleLimitChange) {
+              handleLimitChange(newLimit);
+            }
             browserHistory.push({
               pathname: location.pathname,
-              query: {...location.query, limit: currentLimit + increment},
-            })
-          }
+              query: {...location.query, limit: newLimit},
+            });
+          }}
           aria-label={t('Load more')}
         />
       ),

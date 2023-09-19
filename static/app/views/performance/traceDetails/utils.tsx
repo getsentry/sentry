@@ -25,7 +25,6 @@ export function getTraceDetailsUrl(
   const queryParams = {
     ...query,
     statsPeriod,
-    limit: DEFAULT_TRACE_ROWS_LIMIT,
     [PAGE_URL_PARAM.PAGE_START]: start,
     [PAGE_URL_PARAM.PAGE_END]: end,
   };
