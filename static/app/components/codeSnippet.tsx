@@ -1,4 +1,5 @@
-import {useEffect, useRef, useState} from 'react';
+import {ComponentType, useEffect, useRef, useState} from 'react';
+import {createPortal} from 'react-dom';
 import styled from '@emotion/styled';
 import Prism from 'prismjs';
 
@@ -7,6 +8,31 @@ import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {loadPrismLanguage} from 'sentry/utils/loadPrismLanguage';
+
+/**
+ * Replaces tokens in a DOM element with a span element.
+ * @param element DOM element in which the tokens will be replaced
+ * @param tokens array of tokens to be replaced
+ * @returns object with keys as tokens and values as array of HTMLSpanElement
+ */
+export function replaceTokensWithSpan(element: HTMLElement, tokens: string[]) {
+  const replaceRegex = new RegExp(`(${tokens.join('|')})`, 'g');
+  element.innerHTML = element.innerHTML.replace(
+    replaceRegex,
+    '<span data-token="$1"></span>'
+  );
+
+  const nodes = tokens.reduce(
+    (acc, token) => ({
+      ...acc,
+      [token]: Array.from<HTMLSpanElement>(
+        element.querySelectorAll(`span[data-token=${token}]`)
+      ),
+    }),
+    {} as Record<string, HTMLSpanElement[]>
+  );
+  return nodes;
+}
 
 interface CodeSnippetProps {
   children: string;
@@ -26,6 +52,11 @@ interface CodeSnippetProps {
    * Fired when the user selects and copies code snippet manually
    */
   onSelectAndCopy?: () => void;
+  tokenReplacers?: TokenReplacer;
+}
+
+interface TokenReplacer {
+  [token: string]: ComponentType;
 }
 
 export function CodeSnippet({
@@ -38,28 +69,44 @@ export function CodeSnippet({
   className,
   onSelectAndCopy,
   disableUserSelection,
+  tokenReplacers,
 }: CodeSnippetProps) {
   const ref = useRef<HTMLModElement | null>(null);
+  const [tokenNodes, setTokenNodes] = useState<Record<string, HTMLSpanElement[]>>({});
 
   useEffect(() => {
     const element = ref.current;
     if (!element) {
-      return;
+      return () => {};
     }
+
+    const applyTokenReplacers = () => {
+      if (!tokenReplacers) {
+        return;
+      }
+      const nodes = replaceTokensWithSpan(element, Object.keys(tokenReplacers));
+      setTokenNodes(nodes);
+    };
 
     if (language in Prism.languages) {
-      Prism.highlightElement(element);
-      return;
+      Prism.highlightElement(element, false, applyTokenReplacers);
+      return () => {};
     }
 
-    loadPrismLanguage(language, {onLoad: () => Prism.highlightElement(element)});
-  }, [children, language]);
+    loadPrismLanguage(language, {
+      onLoad: () => Prism.highlightElement(element, false, applyTokenReplacers),
+    });
+
+    return () => {
+      setTokenNodes({});
+    };
+  }, [children, language, tokenReplacers]);
 
   const [tooltipState, setTooltipState] = useState<'copy' | 'copied' | 'error'>('copy');
 
   const handleCopy = () => {
     navigator.clipboard
-      .writeText(children)
+      .writeText(ref.current?.textContent ?? '')
       .then(() => {
         setTooltipState('copied');
       })
@@ -106,6 +153,13 @@ export function CodeSnippet({
           {children}
         </Code>
       </pre>
+      {tokenReplacers &&
+        Object.entries(tokenNodes).map(([token, nodes]) => {
+          const TokenReplacer = tokenReplacers[token];
+          return nodes.map((node, index) =>
+            createPortal(<TokenReplacer />, node, `${token}_${index}`)
+          );
+        })}
     </Wrapper>
   );
 }
