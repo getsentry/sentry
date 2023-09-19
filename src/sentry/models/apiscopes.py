@@ -62,7 +62,6 @@ class HasApiScopes(models.Model):
             "org:read": bool,
             "org:write": bool,
             "org:admin": bool,
-            "org:integrations": bool,
             "member:read": bool,
             "member:write": bool,
             "member:admin": bool,
