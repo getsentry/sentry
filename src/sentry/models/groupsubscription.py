@@ -188,7 +188,10 @@ class GroupSubscriptionManager(BaseManager):
             result = ParticipantMap()
             for user in all_possible_users:
                 subscription_option = subscriptions_by_user_id.get(user.id)
-                for provider in providers_by_recipient.get(user.id, []):
+                if user.id not in providers_by_recipient:
+                    continue
+
+                for provider in providers_by_recipient[user.id]:
                     reason = (
                         subscription_option
                         and subscription_option.reason
