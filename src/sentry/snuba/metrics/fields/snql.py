@@ -803,7 +803,7 @@ def max_timestamp(aggregate_filter, org_id, use_case_id, alias=None):
 
 
 def on_demand_failure_count_snql_factory(
-    aggregate_filter: Function, org_id: int, use_case_id: UseCaseID, alias: str = None
+    aggregate_filter: Function, org_id: int, use_case_id: UseCaseID, alias: str
 ) -> Function:
     """Count the number of transactions where the failure tag is set to true."""
     return Function(
@@ -829,7 +829,7 @@ def on_demand_failure_count_snql_factory(
 
 
 def on_demand_failure_rate_snql_factory(
-    aggregate_filter: Function, org_id: int, use_case_id: UseCaseID, alias: str = None
+    aggregate_filter: Function, org_id: int, use_case_id: UseCaseID, alias: str
 ) -> Function:
     """Divide the number of transactions that failed from the total."""
     return Function(
@@ -845,7 +845,7 @@ def on_demand_failure_rate_snql_factory(
 
 
 def on_demand_apdex_snql_factory(
-    aggregate_filter: Function, org_id: int, use_case_id: UseCaseID, alias: str = None
+    aggregate_filter: Function, org_id: int, use_case_id: UseCaseID, alias: str
 ) -> Function:
     # For more information about the formula, check https://docs.sentry.io/product/performance/metrics/#apdex.
 
