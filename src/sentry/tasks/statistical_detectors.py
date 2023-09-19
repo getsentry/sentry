@@ -134,7 +134,7 @@ def detect_transaction_trends(
 
 @instrumented_task(
     name="sentry.tasks.statistical_detectors.detect_transaction_change_points",
-    queue="transactions.statistical_detector",
+    queue="performance.statistical_detector",
     max_retries=0,
 )
 def detect_transaction_change_points(
