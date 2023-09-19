@@ -1,8 +1,6 @@
 from datetime import datetime, timedelta, timezone
 from unittest import mock
 
-from freezegun import freeze_time
-
 from sentry.models import (
     Activity,
     Group,
@@ -20,6 +18,7 @@ from sentry.tasks.auto_ongoing_issues import (
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import apply_feature_flag_on_cls
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
 

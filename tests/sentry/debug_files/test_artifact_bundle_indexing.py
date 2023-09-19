@@ -7,7 +7,6 @@ from unittest.mock import patch
 import pytest
 from django.core.files.base import ContentFile
 from django.utils import timezone
-from freezegun import freeze_time
 
 from sentry.debug_files.artifact_bundle_indexing import (
     BundleManifest,
@@ -27,6 +26,7 @@ from sentry.models.artifactbundle import (
     ArtifactBundleFlatFileIndex,
 )
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.utils import json
 
 

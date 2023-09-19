@@ -2,7 +2,6 @@ from datetime import datetime, timedelta
 
 import pytest
 from django.utils import timezone
-from freezegun import freeze_time
 
 from sentry.models import EventUser, GroupStatus, Release, Team
 from sentry.search.base import ANY
@@ -20,6 +19,7 @@ from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import control_silo_test, region_silo_test
 
 

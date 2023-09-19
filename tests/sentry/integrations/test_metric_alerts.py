@@ -3,13 +3,13 @@ from datetime import timedelta
 
 import pytest
 from django.utils import timezone
-from freezegun import freeze_time
 
 from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL
 from sentry.incidents.models import IncidentStatus, IncidentTrigger
 from sentry.integrations.metric_alerts import incident_attachment_info
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import BaseIncidentsTest, BaseMetricsTestCase, SnubaTestCase, TestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.utils.dates import to_timestamp
 
 pytestmark = pytest.mark.sentry_metrics

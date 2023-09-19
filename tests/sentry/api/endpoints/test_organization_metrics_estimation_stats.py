@@ -4,7 +4,6 @@ from typing import List, Optional, cast
 
 import pytest
 from django.utils import timezone
-from freezegun import freeze_time
 
 from sentry.api.endpoints.organization_metrics_estimation_stats import (
     CountResult,
@@ -13,6 +12,7 @@ from sentry.api.endpoints.organization_metrics_estimation_stats import (
 )
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.testutils.cases import APITestCase, BaseMetricsLayerTestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.samples import load_data
 

@@ -5,7 +5,6 @@ from datetime import datetime, timedelta
 from typing import Optional, Sequence
 
 import pytest
-from freezegun import freeze_time
 from snuba_sdk import Direction, Granularity, Limit, Offset
 from snuba_sdk.conditions import ConditionGroup
 
@@ -22,6 +21,7 @@ from sentry.snuba.metrics import (
     parse_query,
 )
 from sentry.snuba.metrics.naming_layer import SessionMRI, TransactionMRI
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils.dates import parse_stats_period
 

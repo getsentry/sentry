@@ -3,7 +3,6 @@ from unittest import mock
 
 from django.test import override_settings
 from django.utils import timezone
-from freezegun import freeze_time
 
 from sentry import tsdb
 from sentry.issues.grouptype import PerformanceSlowDBQueryGroupType
@@ -28,6 +27,7 @@ from sentry.notifications.types import GroupSubscriptionReason
 from sentry.plugins.base import plugins
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase, SnubaTestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.testutils.skips import requires_snuba
