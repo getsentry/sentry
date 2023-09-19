@@ -53,7 +53,7 @@ type Props = {
 
 class AbstractIntegrationDetailedView<
   P extends Props = Props,
-  S extends State = State
+  S extends State = State,
 > extends DeprecatedAsyncComponent<P, S> {
   tabs: Tab[] = ['overview', 'configurations'];
 

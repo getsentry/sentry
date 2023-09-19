@@ -163,12 +163,12 @@ plugins {
   <meta-data android:name="io.sentry.traces.sample-rate" android:value="1.0" />`
       : ''
   }${
-          hasProfiling
-            ? `
+    hasProfiling
+      ? `
   <!-- enable profiling when starting transactions, adjust in production env -->
   <meta-data android:name="io.sentry.traces.profiling.sample-rate" android:value="1.0" />`
-            : ''
-        }
+      : ''
+  }
 </application>
         `,
       },

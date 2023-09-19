@@ -31,11 +31,14 @@ export function SuggestionLoaderMessage() {
   const [messageIndex, setMessageIndex] = useState(0);
 
   useEffect(() => {
-    const id = setInterval(() => {
-      if (messageIndex < messages.length - 1) {
-        setMessageIndex(messageIndex + 1);
-      }
-    }, Math.random() * 700 + 800);
+    const id = setInterval(
+      () => {
+        if (messageIndex < messages.length - 1) {
+          setMessageIndex(messageIndex + 1);
+        }
+      },
+      Math.random() * 700 + 800
+    );
     return () => clearInterval(id);
   });
 

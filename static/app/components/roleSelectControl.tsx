@@ -32,7 +32,7 @@ function RoleSelectControl({roles, disableUnallowed, ...props}: Props) {
             label: r.name,
             disabled: (disableUnallowed && !r.allowed) || r.isRetired,
             details: <Details>{r.desc}</Details>,
-          } as OptionType)
+          }) as OptionType
       )}
       showDividers
       {...props}

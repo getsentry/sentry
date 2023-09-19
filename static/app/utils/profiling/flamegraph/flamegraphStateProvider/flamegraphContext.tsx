@@ -57,7 +57,7 @@ export type FlamegraphStateValue = [
   {
     nextState: FlamegraphState | undefined;
     previousState: FlamegraphState | undefined;
-  }
+  },
 ];
 
 export type FlamegraphStateDispatch = React.Dispatch<

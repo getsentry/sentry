@@ -107,7 +107,7 @@ export type QueryFieldValue =
         AggregationKeyWithAlias,
         string,
         AggregationRefinement,
-        AggregationRefinement
+        AggregationRefinement,
       ];
       kind: 'function';
       alias?: string;

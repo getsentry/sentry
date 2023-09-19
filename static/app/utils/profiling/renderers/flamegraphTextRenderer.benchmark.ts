@@ -139,21 +139,24 @@ interface FramePartitionData {
 }
 
 const makeSearchResults = (flamegraph: Flamegraph): FlamegraphSearch => {
-  const framesPartitionedByWords = flamegraph.frames.reduce((acc, frame) => {
-    const words = frame.frame.name.split(' ');
-    words.forEach(w => {
-      if (!acc[w]) {
-        acc[w] = {
-          count: 0,
-          frames: new Set(),
-        };
-      }
-      const node = acc[w];
-      node.count++;
-      node.frames.add(frame);
-    });
-    return acc;
-  }, {} as Record<string, FramePartitionData>);
+  const framesPartitionedByWords = flamegraph.frames.reduce(
+    (acc, frame) => {
+      const words = frame.frame.name.split(' ');
+      words.forEach(w => {
+        if (!acc[w]) {
+          acc[w] = {
+            count: 0,
+            frames: new Set(),
+          };
+        }
+        const node = acc[w];
+        node.count++;
+        node.frames.add(frame);
+      });
+      return acc;
+    },
+    {} as Record<string, FramePartitionData>
+  );
 
   const [word, data] = maxBy(
     Object.entries(framesPartitionedByWords),

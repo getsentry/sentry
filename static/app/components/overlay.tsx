@@ -133,7 +133,9 @@ const Overlay = styled(
   position: relative;
   border-radius: ${p => p.theme.panelBorderRadius};
   background: ${p => p.theme.backgroundElevated};
-  box-shadow: 0 0 0 1px ${p => p.theme.translucentBorder}, ${p => p.theme.dropShadowHeavy};
+  box-shadow:
+    0 0 0 1px ${p => p.theme.translucentBorder},
+    ${p => p.theme.dropShadowHeavy};
   font-size: ${p => p.theme.fontSizeMedium};
 
   /* Override z-index from useOverlayPosition */

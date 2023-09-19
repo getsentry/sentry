@@ -1077,7 +1077,7 @@ class EventView {
         ({
           key: sort.field,
           order: sort.kind,
-        } as TableColumnSort<string>)
+        }) as TableColumnSort<string>
     );
   }
 

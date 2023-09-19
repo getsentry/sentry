@@ -287,13 +287,13 @@ sentry.traces-sample-rate=1.0`
         code: `
 sentry:
   dsn:${dsn}${
-          hasPerformance
-            ? `
+    hasPerformance
+      ? `
   # Set traces-sample-rate to 1.0 to capture 100% of transactions for performance monitoring.
   # We recommend adjusting this value in production.
   sentry.traces-sample-rate=1.0`
-            : ''
-        }`,
+      : ''
+  }`,
       },
     ],
   },

@@ -136,9 +136,8 @@ class ProjectSessionsChartRequest extends Component<
           })
         );
       }
-      const [response, responseUsersTotal]: SessionApiResponse[] = await Promise.all(
-        requests
-      );
+      const [response, responseUsersTotal]: SessionApiResponse[] =
+        await Promise.all(requests);
 
       const filteredResponse = filterSessionsInTimeWindow(
         response,

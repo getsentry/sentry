@@ -252,7 +252,7 @@ export type SentryAppInstallation = {
 export type SentryAppComponent<
   Schema extends SentryAppSchemaStacktraceLink | SentryAppSchemaElement =
     | SentryAppSchemaStacktraceLink
-    | SentryAppSchemaElement
+    | SentryAppSchemaElement,
 > = {
   schema: Schema;
   sentryApp: {

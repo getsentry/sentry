@@ -79,7 +79,7 @@ export type QueryFC<T extends WidgetDataConstraint> = React.ComponentType<
 
 export type QueryDefinition<
   T extends WidgetDataConstraint,
-  S extends WidgetDataResult | undefined
+  S extends WidgetDataResult | undefined,
 > = {
   component: QueryFC<T>;
   fields: string | string[];

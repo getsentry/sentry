@@ -544,7 +544,7 @@ function BaseChartUnwrapped({
         rendered: (props, instance) => onRendered?.(props, instance),
         legendselectchanged: (props, instance) =>
           onLegendSelectChanged?.(props, instance),
-      } as ReactEchartProps['onEvents']),
+      }) as ReactEchartProps['onEvents'],
     [
       onClick,
       onHighlight,
