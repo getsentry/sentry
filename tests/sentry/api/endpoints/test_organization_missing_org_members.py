@@ -257,3 +257,18 @@ class OrganizationMissingMembersTestCase(APITestCase):
             {"email": "c@example.com", "externalId": "c", "commitCount": 2},
             {"email": "d@example.com", "externalId": "d", "commitCount": 1},
         ]
+
+    def test_limit_50_missing_members(self):
+        repo = self.create_repo(
+            project=self.project, provider="integrations:github", integration_id=self.integration.id
+        )
+        for i in range(50):
+            nonmember_commit_author = self.create_commit_author(
+                project=self.project, email=str(i) + "@example.com"
+            )
+            nonmember_commit_author.external_id = str(i)
+            nonmember_commit_author.save()
+            self.create_commit(repo=repo, author=nonmember_commit_author)
+
+        response = self.get_success_response(self.organization.slug)
+        assert len(response.data[0]["users"]) == 50
