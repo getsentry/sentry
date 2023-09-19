@@ -29,7 +29,7 @@ from sentry.models.project import Project
 from sentry.search.events.builder import ProfileTopFunctionsTimeseriesQueryBuilder
 from sentry.search.events.fields import get_function_alias
 from sentry.search.events.types import QueryBuilderConfig
-from sentry.seer.utils import detect_breakpoints
+from sentry.seer.utils import BreakpointData, detect_breakpoints
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba import functions
@@ -249,7 +249,10 @@ def _detect_function_trends(
     )
 
 
-def _detect_function_change_points(functions_list: List[Tuple[int, int]], start: datetime) -> None:
+def _detect_function_change_points(
+    functions_list: List[Tuple[int, int]],
+    start: datetime,
+) -> Generator[BreakpointData, None, None]:
     serializer = SnubaTSResultSerializer(None, None, None)
 
     trend_function = "p95()"
