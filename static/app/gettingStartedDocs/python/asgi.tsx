@@ -2,13 +2,23 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
 import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import {t, tct} from 'sentry/locale';
 
 // Configuration Start
+const performanceConfiguration = `    # Set traces_sample_rate to 1.0 to capture 100%
+    # of transactions for performance monitoring.
+    traces_sample_rate=1.0,`;
+
+const profilingConfiguration = `    # Set profiles_sample_rate to 1.0 to profile 100%
+    # of sampled transactions.
+    # We recommend adjusting this value in production.
+    profiles_sample_rate=1.0,`;
+
 const introduction = (
   <p>
     {tct(
-      'The ASGI middleware can be used to instrument any [link:ASGI-compatible web framework] to attach request data for your events.',
+      'The ASGI middleware can be used to instrument any bare bones ASGI application. If you have a ASGI based web framework (like FastAPI, Starlette, or others), please use the specific integration for the framework.',
       {
         link: <ExternalLink href="https://asgi.readthedocs.io/en/latest/" />,
       }
@@ -17,21 +27,33 @@ const introduction = (
 );
 
 export const steps = ({
-  dsn,
-}: Partial<Pick<ModuleProps, 'dsn'>> = {}): LayoutProps['steps'] => [
+  sentryInitContent,
+}: {
+  sentryInitContent: string;
+}): LayoutProps['steps'] => [
+  {
+    type: StepType.INSTALL,
+    description: (
+      <p>
+        {tct('Install [code:sentry-sdk] from PyPI:', {
+          code: <code />,
+        })}
+      </p>
+    ),
+    configurations: [
+      {
+        language: 'bash',
+        code: '$ pip install --upgrade sentry-sdk',
+      },
+    ],
+  },
   {
     type: StepType.CONFIGURE,
     description: (
       <p>
-        {tct(
-          'This can be used to instrument, for example [starletteLink:Starlette] or [djangoLink:Django Channels 2.0].',
-          {
-            starletteLink: <ExternalLink href="https://www.starlette.io/middleware/" />,
-            djangoLink: (
-              <ExternalLink href="https://channels.readthedocs.io/en/latest/" />
-            ),
-          }
-        )}
+        {tct('Wrap your ASGI application with [code: SentryAsgiMiddleware]:', {
+          code: <code />,
+        })}
       </p>
     ),
     configurations: [
@@ -44,11 +66,7 @@ from sentry_sdk.integrations.asgi import SentryAsgiMiddleware
 from myapp import asgi_app
 
 sentry_sdk.init(
-    dsn="${dsn}",
-    # Set traces_sample_rate to 1.0 to capture 100%
-    # of transactions for performance monitoring.
-    # We recommend adjusting this value in production,
-    traces_sample_rate=1.0,
+${sentryInitContent}
 )
 
 asgi_app = SentryAsgiMiddleware(asgi_app)
@@ -60,8 +78,34 @@ asgi_app = SentryAsgiMiddleware(asgi_app)
 ];
 // Configuration End
 
-export function GettingStartedWithASGI({dsn, ...props}: ModuleProps) {
-  return <Layout steps={steps({dsn})} introduction={introduction} {...props} />;
+export function GettingStartedWithASGI({
+  dsn,
+  activeProductSelection = [],
+  ...props
+}: ModuleProps) {
+  const otherConfigs: string[] = [];
+
+  let sentryInitContent: string[] = [`    dsn="${dsn}",`];
+
+  if (activeProductSelection.includes(ProductSolution.PERFORMANCE_MONITORING)) {
+    otherConfigs.push(performanceConfiguration);
+  }
+
+  if (activeProductSelection.includes(ProductSolution.PROFILING)) {
+    otherConfigs.push(profilingConfiguration);
+  }
+
+  sentryInitContent = sentryInitContent.concat(otherConfigs);
+
+  return (
+    <Layout
+      introduction={introduction}
+      steps={steps({
+        sentryInitContent: sentryInitContent.join('\n'),
+      })}
+      {...props}
+    />
+  );
 }
 
 export default GettingStartedWithASGI;

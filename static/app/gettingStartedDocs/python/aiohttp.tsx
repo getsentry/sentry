@@ -6,15 +6,14 @@ import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import {t, tct} from 'sentry/locale';
 
 // Configuration Start
+const performanceConfiguration = `    # Set traces_sample_rate to 1.0 to capture 100%
+    # of transactions for performance monitoring.
+    traces_sample_rate=1.0,`;
 
 const profilingConfiguration = `    # Set profiles_sample_rate to 1.0 to profile 100%
     # of sampled transactions.
     # We recommend adjusting this value in production.
     profiles_sample_rate=1.0,`;
-
-const performanceConfiguration = `    # Set traces_sample_rate to 1.0 to capture 100%
-    # of transactions for performance monitoring.
-    traces_sample_rate=1.0,`;
 
 const introduction = (
   <p>
@@ -109,7 +108,9 @@ web.run_app(app)
         code: `
 from aiohttp import web
 
-sentry_sdk.init(...)  # same as above
+sentry_sdk.init(
+  ${sentryInitContent}
+)
 
 async def hello(request):
     1/0  # raises an error
