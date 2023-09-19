@@ -40,7 +40,10 @@ export const BACKEND_TAGS = [
 
 export const DEFAULT_TAGS = ['transaction', 'environment', 'release'];
 
-export function TAGS_FORMATTER(tagsData: Record<string, GroupTagResponseItem>) {
+export function TAGS_FORMATTER(
+  tagsData: Record<string, GroupTagResponseItem>,
+  isStatisticalDetector?: boolean
+) {
   // For "release" tag keys, format the release tag value to be more readable (ie removing version prefix)
   const transformedTagsData = {};
   Object.keys(tagsData).forEach(tagKey => {
@@ -68,6 +71,32 @@ export function TAGS_FORMATTER(tagsData: Record<string, GroupTagResponseItem>) {
       transformedTagsData[tagKey] = tagsData[tagKey];
     }
   });
+
+  // Statistical detector issues need to use a Discover query
+  // which means we need to massage the values to fit the component API
+  if (isStatisticalDetector) {
+    Object.keys(transformedTagsData).forEach(tagKey => {
+      const tagData = transformedTagsData[tagKey];
+      transformedTagsData[tagKey] = {
+        ...tagData,
+        name: tagData.key,
+        totalValues: tagData.topValues.reduce((acc, {count}) => acc + count, 0),
+        topValues: tagData.topValues.map(({name, count}) => ({
+          key: tagData.key,
+          name,
+          value: name,
+          count,
+        })),
+      };
+    });
+
+    if ('transaction' in transformedTagsData) {
+      // Statistical detectors are scoped to a single transaction so
+      // this tag doesn't add anything to the user experience
+      delete transformedTagsData.transaction;
+    }
+  }
+
   return transformedTagsData;
 }
 
@@ -79,7 +108,8 @@ type Props = {
   event?: Event;
   isStatisticalDetector?: boolean;
   tagFormatter?: (
-    tagsData: Record<string, GroupTagResponseItem>
+    tagsData: Record<string, GroupTagResponseItem>,
+    isStatisticalDetector?: boolean
   ) => Record<string, GroupTagResponseItem>;
 };
 
@@ -108,35 +138,10 @@ export default function TagFacets({
     }
 
     const keyed = keyBy(data, 'key');
-    let formatted = tagFormatter?.(keyed) ?? keyed;
+    const formatted = tagFormatter?.(keyed, isStatisticalDetector) ?? keyed;
 
     if (!organization.features.includes('device-classification')) {
       delete formatted['device.class'];
-    }
-
-    // Statistical detector issues need to use a Discover query
-    // which means we need to massage the values to fit the component API
-    if (isStatisticalDetector) {
-      formatted = data.reduce((formattedTags, tag) => {
-        if (tag.key === 'transaction') {
-          // Skip transaction because the statistical detector is
-          // already scoped to a transaction
-          return formattedTags;
-        }
-
-        formattedTags[tag.key] = {
-          ...tag,
-          name: tag.key,
-          totalValues: tag.topValues.reduce((acc, {count}) => acc + count, 0),
-          topValues: tag.topValues.map(({name, count}) => ({
-            key: tag.key,
-            name,
-            value: name,
-            count,
-          })),
-        };
-        return formattedTags;
-      }, {});
     }
 
     return formatted;
