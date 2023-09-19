@@ -273,7 +273,13 @@ OPERATIONS_PERCENTILES = (
     "p95",
     "p99",
 )
-DERIVED_OPERATIONS = (
+OPERATIONS = (
+    "avg",
+    "count_unique",
+    "count",
+    "max",
+    "min",
+    "sum",
     "histogram",
     "rate",
     "count_web_vitals",
@@ -287,19 +293,7 @@ DERIVED_OPERATIONS = (
     # Custom operations used for on demand derived metrics.
     "on_demand_failure_rate",
     "on_demand_apdex",
-)
-OPERATIONS = (
-    (
-        "avg",
-        "count_unique",
-        "count",
-        "max",
-        "min",
-        "sum",
-    )
-    + OPERATIONS_PERCENTILES
-    + DERIVED_OPERATIONS
-)
+) + OPERATIONS_PERCENTILES
 
 DEFAULT_AGGREGATES: Dict[MetricOperationType, Optional[Union[int, List[Tuple[float]]]]] = {
     "avg": None,
