@@ -23,7 +23,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0557_add_monitorincident_table"),
+        ("sentry", "0557_threshold_related_name"),
     ]
 
     operations = [
