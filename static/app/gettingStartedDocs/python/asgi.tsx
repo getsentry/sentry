@@ -10,11 +10,6 @@ const performanceConfiguration = `    # Set traces_sample_rate to 1.0 to capture
     # of transactions for performance monitoring.
     traces_sample_rate=1.0,`;
 
-const profilingConfiguration = `    # Set profiles_sample_rate to 1.0 to profile 100%
-    # of sampled transactions.
-    # We recommend adjusting this value in production.
-    profiles_sample_rate=1.0,`;
-
 const introduction = (
   <p>
     {tct(
@@ -89,10 +84,6 @@ export function GettingStartedWithASGI({
 
   if (activeProductSelection.includes(ProductSolution.PERFORMANCE_MONITORING)) {
     otherConfigs.push(performanceConfiguration);
-  }
-
-  if (activeProductSelection.includes(ProductSolution.PROFILING)) {
-    otherConfigs.push(profilingConfiguration);
   }
 
   sentryInitContent = sentryInitContent.concat(otherConfigs);

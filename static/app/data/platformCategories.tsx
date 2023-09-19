@@ -118,6 +118,7 @@ export const backend = [
   'python-quart',
   'python-tryton',
   'python-wsgi',
+  'python-asgi',
   'python-bottle',
   'python-pylons',
   'python-pyramid',
