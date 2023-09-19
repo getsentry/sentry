@@ -47,12 +47,14 @@ class OrganizationMemberSerializer(serializers.Serializer):
         choices=roles.get_choices(), default=organization_roles.get_default().id
     )  # deprecated, use orgRole
     orgRole = serializers.ChoiceField(
-        choices=roles.get_choices(), default=organization_roles.get_default().id
+        choices=roles.get_choices(), default=organization_roles.get_default().id, required=False
     )
     teams = serializers.ListField(
         required=False, allow_null=False, default=[]
     )  # deprecated, use teamRoles
-    teamRoles = serializers.ListField(required=False, allow_null=True, default=[])
+    teamRoles = serializers.ListField(
+        required=False, allow_null=True, default=[], child=serializers.JSONField()
+    )
     sendInvite = serializers.BooleanField(required=False, default=True, write_only=True)
     reinvite = serializers.BooleanField(required=False)
     regenerate = serializers.BooleanField(required=False)
