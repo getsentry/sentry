@@ -26,7 +26,8 @@ from sentry.testutils.pytest.fixtures import django_db_all
             "transaction.duration:>1",
             True,
         ),  # transaction.duration not supported by standard metrics
-        ("failure_rate()", "transaction.duration:>1", True),  # supported by on demand,\
+        ("failure_count()", "transaction.duration:>1", True),  # supported by on demand
+        ("failure_rate()", "transaction.duration:>1", True),  # supported by on demand
         ("apdex(10)", "", True),  # every apdex query is on-demand
         ("apdex(10)", "transaction.duration:>10", True),  # supported by on demand
         (
@@ -69,6 +70,7 @@ class TestCreatesOndemandMetricSpec:
             ("count()", "transaction.duration:[1,2,3]"),
             ("count()", "project:a_1 or project:b-2 or transaction.duration:>0"),
             ("count()", "foo:bar"),
+            ("failure_count()", "transaction.duration:>100"),
             ("failure_rate()", "transaction.duration:>100"),
             ("apdex(10)", "transaction.duration:>100"),
             ("apdex(10)", ""),
@@ -92,6 +94,7 @@ class TestCreatesOndemandMetricSpec:
             ("count_web_vitals(measurements.fcp,any)", "transaction.duration:>0"),
             ("p95(measurements.lcp)", ""),
             ("avg(spans.http)", ""),
+            ("failure_count()", ""),
             ("failure_rate()", "release:bar"),
             ("failure_rate()", ""),
         ],
@@ -237,6 +240,30 @@ def test_spec_ignore_fields():
     without_ignored_field = OnDemandMetricSpec("count()", "transaction.duration:>=1")
 
     assert with_ignored_field.condition == without_ignored_field.condition
+
+
+@django_db_all
+def test_spec_failure_count(default_project):
+    spec = OnDemandMetricSpec("failure_count()", "transaction.duration:>1s")
+
+    assert spec._metric_type == "c"
+    assert spec.field_to_extract is None
+    assert spec.op == "on_demand_failure_count"
+    assert spec.condition == {"name": "event.duration", "op": "gt", "value": 1000.0}
+    assert spec.tags_conditions(default_project) == [
+        {
+            "condition": {
+                "inner": {
+                    "name": "event.contexts.trace.status",
+                    "op": "eq",
+                    "value": ["ok", "cancelled", "unknown"],
+                },
+                "op": "not",
+            },
+            "key": "failure",
+            "value": "true",
+        },
+    ]
 
 
 @django_db_all
