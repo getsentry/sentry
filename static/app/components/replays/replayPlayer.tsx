@@ -2,11 +2,11 @@ import {useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useResizeObserver} from '@react-aria/utils';
 
+import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import BufferingOverlay from 'sentry/components/replays/player/bufferingOverlay';
 import FastForwardBadge from 'sentry/components/replays/player/fastForwardBadge';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import SizingWindow from 'sentry/components/stories/sizingWindow';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -114,17 +114,17 @@ function BasePlayerRoot({className, isPreview = false}: Props) {
   }, [windowDimensions, videoDimensions]);
 
   return (
-    <FixedSizingWindow ref={windowEl} className="sentry-block">
+    <FixedContainer ref={windowEl} className="sentry-block">
       <div ref={viewEl} className={className} />
       {fastForwardSpeed ? <PositionedFastForward speed={fastForwardSpeed} /> : null}
       {isBuffering ? <PositionedBuffering /> : null}
       {isPreview ? null : <PlayerDOMAlert />}
       {isFetching ? <PositionedLoadingIndicator /> : null}
-    </FixedSizingWindow>
+    </FixedContainer>
   );
 }
 
-const FixedSizingWindow = styled(SizingWindow)`
+const FixedContainer = styled(NegativeSpaceContainer)`
   border: none;
   resize: none;
   padding: 0;
