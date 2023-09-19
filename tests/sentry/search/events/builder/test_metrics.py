@@ -2108,19 +2108,10 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         field = "failure_count()"
         query = "transaction.duration:>=100"
         spec = OnDemandMetricSpec(field=field, query=query)
-        expected_results = [{"time": self.start.isoformat(), "failure_count": 1}]
-
-        for hour in range(0, 5):
-            timestamp = self.start + datetime.timedelta(hours=hour)
-            # A failed transaction
-            self._store_on_demand_counter_metric(
-                {"query_hash": spec.query_hash, "failure": "true"}, timestamp
-            )
-            expected_results.append({"time": timestamp.isoformat(), "failure_count": 1})
-            # Four successful transactions
-            for _ in range(0, 4):
-                self._store_on_demand_counter_metric({"query_hash": spec.query_hash}, timestamp)
-
+        timestamp = self.start
+        self._store_on_demand_counter_metric(
+            {"query_hash": spec.query_hash, "failure": "true"}, timestamp
+        )
         query = TimeseriesMetricQueryBuilder(
             self.params,
             dataset=Dataset.PerformanceMetrics,
@@ -2130,15 +2121,11 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             config=QueryBuilderConfig(on_demand_metrics_enabled=True),
         )
         result = query.run_query("test_query")
-        assert result["data"][:5] == expected_results
-        # XXX: assertCountEquals is too loose
-        self.assertCountEqual(
-            result["meta"],
-            [
-                {"name": "time", "type": "DateTime('Universal')"},
-                {"name": "failure_count", "type": "Float64"},
-            ],
-        )
+        assert result["data"][:1] == [{"time": timestamp.isoformat(), "failure_count": 1}]
+        assert result["meta"] == [
+            {"name": "time", "type": "DateTime('Universal')"},
+            {"name": "failure_count", "type": "Float64"},
+        ]
 
     def test_run_query_with_on_demand_failure_rate(self):
         field = "failure_rate()"

@@ -807,10 +807,22 @@ def on_demand_failure_count_snql_factory(
 ) -> Function:
     # XXX Make sure typing fails
     return Function(
-        "equals",
+        "sumIf",
         [
-            Column(resolve_tag_key(use_case_id, org_id, "failure")),
-            resolve_tag_value(use_case_id, org_id, "true"),
+            Column("value"),
+            Function(
+                "and",
+                [
+                    Function(
+                        "equals",
+                        [
+                            Column(resolve_tag_key(use_case_id, org_id, "failure")),
+                            resolve_tag_value(use_case_id, org_id, "true"),
+                        ],
+                    ),
+                    aggregate_filter,
+                ],
+            ),
         ],
     )
 
@@ -821,25 +833,7 @@ def on_demand_failure_rate_snql_factory(
     return Function(
         "divide",
         [
-            Function(
-                "sumIf",
-                [
-                    Column("value"),
-                    Function(
-                        "and",
-                        [
-                            Function(
-                                "equals",
-                                [
-                                    Column(resolve_tag_key(use_case_id, org_id, "failure")),
-                                    resolve_tag_value(use_case_id, org_id, "true"),
-                                ],
-                            ),
-                            aggregate_filter,
-                        ],
-                    ),
-                ],
-            ),
+            on_demand_failure_count_snql_factory(aggregate_filter, org_id, use_case_id, alias),
             Function("sumIf", [Column("value"), aggregate_filter]),
         ],
         alias=alias,
