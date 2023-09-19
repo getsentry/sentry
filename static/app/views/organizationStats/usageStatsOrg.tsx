@@ -59,7 +59,7 @@ type UsageStatsOrganizationState = {
  */
 class UsageStatsOrganization<
   P extends UsageStatsOrganizationProps = UsageStatsOrganizationProps,
-  S extends UsageStatsOrganizationState = UsageStatsOrganizationState
+  S extends UsageStatsOrganizationState = UsageStatsOrganizationState,
 > extends DeprecatedAsyncComponent<P, S> {
   componentDidUpdate(prevProps: UsageStatsOrganizationProps) {
     const {dataDatetime: prevDateTime, projectIds: prevProjectIds} = prevProps;

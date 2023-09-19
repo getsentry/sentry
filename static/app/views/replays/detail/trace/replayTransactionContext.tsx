@@ -201,7 +201,7 @@ function ReplayTransactionContext({children, replayRecord}: Options) {
               ({
                 ...prev,
                 detailsRequests: prev.detailsRequests + traceIds.length,
-              } as InternalState)
+              }) as InternalState
           );
           await Promise.allSettled(traceIds.map(fetchSingleTraceData));
           setState(
@@ -209,16 +209,16 @@ function ReplayTransactionContext({children, replayRecord}: Options) {
               ({
                 ...prev,
                 detailsResponses: prev.detailsResponses + traceIds.length,
-              } as InternalState)
+              }) as InternalState
           );
         })();
 
         const pageLinks = listResp?.getResponseHeader('Link') ?? null;
         cursor = parseLinkHeader(pageLinks)?.next;
         const indexComplete = !cursor.results;
-        setState(prev => ({...prev, indexComplete} as InternalState));
+        setState(prev => ({...prev, indexComplete}) as InternalState);
       } catch (indexError) {
-        setState(prev => ({...prev, indexError, indexComplete: true} as InternalState));
+        setState(prev => ({...prev, indexError, indexComplete: true}) as InternalState);
         cursor = {cursor: '', results: false, href: ''} as ParsedHeader;
       }
     }

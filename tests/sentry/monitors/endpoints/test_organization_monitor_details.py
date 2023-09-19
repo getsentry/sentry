@@ -319,6 +319,13 @@ class UpdateMonitorTest(MonitorTestCase):
             status_code=400,
             **{"config": {"schedule": "* * * *"}},
         )
+        self.get_error_response(
+            self.organization.slug,
+            monitor.slug,
+            method="PUT",
+            status_code=400,
+            **{"config": {"schedule": "* * 31 9 *"}},
+        )
 
     def test_crontab_unsupported(self):
         monitor = self._create_monitor()

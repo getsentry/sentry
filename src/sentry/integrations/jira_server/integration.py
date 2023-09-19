@@ -705,17 +705,24 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
         project_id = params.get("project", defaults.get("project"))
         jira_projects = self.get_projects()
 
+        try_other_projects = False
         if not project_id:
             project_id = jira_projects[0]["id"]
+            try_other_projects = True
 
         client = self.get_client()
         try:
             issue_type_choices = client.get_issue_types(project_id)
         except ApiError:
-            # re-fetch projects list w/o caching and try again
-            jira_projects = self.get_projects(False)
-            project_id = jira_projects[0]["id"]
-            issue_type_choices = client.get_issue_types(project_id)
+            if try_other_projects:
+                # try again with a different project
+                other_projects = list(filter(lambda x: x["id"] != str(project_id), jira_projects))
+                if not other_projects:
+                    raise
+                project_id = other_projects[0]["id"]
+                issue_type_choices = client.get_issue_types(project_id)
+            else:
+                raise
 
         issue_type_choices_formatted = [
             (choice["id"], choice["name"]) for choice in issue_type_choices["values"]

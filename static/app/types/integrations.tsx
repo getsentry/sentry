@@ -74,6 +74,7 @@ export enum RepositoryStatus {
 
 export type Repository = {
   dateCreated: string;
+  externalId: string;
   externalSlug: string;
   id: string;
   integrationId: string;
@@ -252,7 +253,7 @@ export type SentryAppInstallation = {
 export type SentryAppComponent<
   Schema extends SentryAppSchemaStacktraceLink | SentryAppSchemaElement =
     | SentryAppSchemaStacktraceLink
-    | SentryAppSchemaElement
+    | SentryAppSchemaElement,
 > = {
   schema: Schema;
   sentryApp: {

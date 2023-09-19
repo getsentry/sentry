@@ -1624,9 +1624,10 @@ def _save_aggregate(
 
                 group = _create_group(project, event, **kwargs)
 
-                if features.has(
-                    "projects:first-event-severity-calculation", event.project
-                ) and not group.data.get("metadata", {}).get("severity"):
+                if (
+                    features.has("projects:first-event-severity-calculation", event.project)
+                    and group.data.get("metadata", {}).get("severity") is None
+                ):
                     logger.error(
                         "Group created without severity score",
                         extra={
@@ -1843,7 +1844,7 @@ def _create_group(project: Project, event: Event, **kwargs: Any) -> Group:
     group_data = kwargs.pop("data", {})
     if features.has("projects:first-event-severity-calculation", event.project):
         severity = _get_severity_score(event)
-        if severity:
+        if severity is not None:  # Severity can be 0
             group_data.setdefault("metadata", {})
             group_data["metadata"]["severity"] = severity
 
@@ -2510,9 +2511,10 @@ def _save_grouphash_and_group(
             group = _create_group(project, event, **group_kwargs)
             group_hash.update(group=group)
 
-            if features.has(
-                "projects:first-event-severity-calculation", event.project
-            ) and not group.data.get("metadata", {}).get("severity"):
+            if (
+                features.has("projects:first-event-severity-calculation", event.project)
+                and group.data.get("metadata", {}).get("severity") is None
+            ):
                 logger.error(
                     "Group created without severity score",
                     extra={
