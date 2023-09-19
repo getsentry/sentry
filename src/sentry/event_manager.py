@@ -2004,8 +2004,8 @@ def _handle_regression(group: Group, event: Event, release: Optional[Release]) -
 def _process_existing_aggregate(
     group: Group, event: Event, new_group_data: Mapping[str, Any], release: Optional[Release]
 ) -> bool:
-    date = max(event.datetime, group.last_seen)
-    extra = {"last_seen": date, "data": new_group_data["data"]}
+    last_seen = max(event.datetime, group.last_seen)
+    extra = {"last_seen": last_seen, "data": new_group_data["data"]}
     if (
         event.search_message
         and event.search_message != group.message
