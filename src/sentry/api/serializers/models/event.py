@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from collections import defaultdict
 from datetime import datetime, timezone
-from typing import Any, Dict, Sequence
+from typing import Any, Dict, List, Sequence
 
 import sentry_sdk
 import sqlparse
@@ -430,15 +430,19 @@ class IssueEventSerializer(SqlFormatEventSerializer):
     def _get_sdk_updates(self, obj):
         return list(get_suggested_updates(SdkSetupState.from_event_json(obj.data)))
 
-    def _get_resolved_with(self, obj: Event) -> list[str]:
+    def _get_resolved_with(self, obj: Event) -> List[str]:
         stacktraces = find_stacktraces_in_data(obj.data)
 
         frame_lists = [stacktrace.get_frames() for stacktrace in stacktraces]
         frames = [frame for frame_list in frame_lists for frame in frame_list]
 
-        unique_resolution_methods = list([frame.get("resolved_with") for frame in frames])
+        unique_resolution_methods = {
+            resolved_with
+            for frame in frames
+            if (resolved_with := frame.get("resolved_with")) is not None
+        }
 
-        return [method for method in unique_resolution_methods if method]
+        return list(unique_resolution_methods)
 
     def serialize(self, obj, attrs, user, include_full_release_data=False):
         result = super().serialize(obj, attrs, user)
