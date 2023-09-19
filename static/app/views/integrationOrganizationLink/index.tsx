@@ -107,7 +107,7 @@ export default class IntegrationOrganizationLink extends DeprecatedAsyncView<
     try {
       const [organization, {providers}]: [
         Organization,
-        {providers: IntegrationProvider[]}
+        {providers: IntegrationProvider[]},
       ] = await Promise.all([
         this.controlSiloApi.requestPromise(`/organizations/${orgSlug}/`),
         this.controlSiloApi.requestPromise(

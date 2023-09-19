@@ -483,7 +483,7 @@ function WidgetBuilder({
   }
 
   function handleDisplayTypeOrAnnotationChange<
-    F extends keyof Pick<State, 'displayType' | 'title' | 'description'>
+    F extends keyof Pick<State, 'displayType' | 'title' | 'description'>,
   >(field: F, value: State[F]) {
     value &&
       trackAnalytics('dashboards_views.widget_builder.change', {
