@@ -786,8 +786,8 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
 
     @pytest.mark.xfail(reason="Not implemented")
     def test_span_domain_array_filter_wildcard(self):
-        super.test_span_domain_array_filter_wildcard()
+        super().test_span_domain_array_filter_wildcard()
 
     @pytest.mark.xfail(reason="Not implemented")
     def test_span_domain_array_has_filter(self):
-        super.test_span_domain_array_has_filter()
+        super().test_span_domain_array_has_filter()
