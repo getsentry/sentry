@@ -1,18 +1,17 @@
 import {ReactNode} from 'react';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
 import {useProfileEventsStats} from 'sentry/utils/profiling/hooks/useProfileEventsStats';
-import {QueryClient, QueryClientProvider} from 'sentry/utils/queryClient';
+import {QueryClientProvider} from 'sentry/utils/queryClient';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 const {organization} = initializeOrg();
-const client = new QueryClient();
-
 function TestContext({children}: {children?: ReactNode}) {
   return (
-    <QueryClientProvider client={client}>
+    <QueryClientProvider client={makeTestQueryClient()}>
       <OrganizationContext.Provider value={organization}>
         {children}
       </OrganizationContext.Provider>

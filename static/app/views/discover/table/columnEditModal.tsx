@@ -63,14 +63,12 @@ function ColumnEditModal(props: Props) {
     tagKeys,
     measurementKeys,
     spanOperationBreakdownKeys,
-    customMeasurements:
-      organization.features.includes('dashboards-mep') ||
-      organization.features.includes('mep-rollout-flag')
-        ? Object.values(customMeasurements ?? {}).map(({key, functions}) => ({
-            key,
-            functions,
-          }))
-        : undefined,
+    customMeasurements: Object.values(customMeasurements ?? {}).map(
+      ({key, functions}) => ({
+        key,
+        functions,
+      })
+    ),
   });
   return (
     <Fragment>

@@ -22,6 +22,7 @@ from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.relay import RelayStoreHelper
+from sentry.testutils.skips import requires_kafka, requires_symbolicator
 from sentry.utils import json
 from tests.symbolicator import insta_snapshot_native_stacktrace_data, redact_location
 
@@ -34,6 +35,8 @@ from tests.symbolicator import insta_snapshot_native_stacktrace_data, redact_loc
 # either change `system.url-prefix` option override inside `initialize` fixture to `system.internal-url-prefix`,
 # or add `127.0.0.1 host.docker.internal` entry to your `/etc/hosts`
 
+
+pytestmark = [requires_symbolicator, requires_kafka]
 
 REAL_RESOLVING_EVENT_DATA = {
     "platform": "cocoa",

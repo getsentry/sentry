@@ -24,7 +24,7 @@ export enum PackageManager {
 
 type PlaformOptionKey = 'springBootVersion' | 'packageManager';
 
-interface StepProps {
+interface StepsParams {
   dsn: string;
   hasPerformance: boolean;
   organizationSlug?: string;
@@ -86,7 +86,7 @@ export const steps = ({
   springBootVersion,
   packageManager,
   hasPerformance,
-}: StepProps): LayoutProps['steps'] => [
+}: StepsParams): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
     configurations: [
@@ -287,13 +287,13 @@ sentry.traces-sample-rate=1.0`
         code: `
 sentry:
   dsn:${dsn}${
-          hasPerformance
-            ? `
+    hasPerformance
+      ? `
   # Set traces-sample-rate to 1.0 to capture 100% of transactions for performance monitoring.
   # We recommend adjusting this value in production.
   sentry.traces-sample-rate=1.0`
-            : ''
-        }`,
+      : ''
+  }`,
       },
     ],
   },

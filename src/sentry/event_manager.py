@@ -1624,6 +1624,18 @@ def _save_aggregate(
 
                 group = _create_group(project, event, **kwargs)
 
+                if (
+                    features.has("projects:first-event-severity-calculation", event.project)
+                    and group.data.get("metadata", {}).get("severity") is None
+                ):
+                    logger.error(
+                        "Group created without severity score",
+                        extra={
+                            "event_id": event.data["event_id"],
+                            "group_id": group.id,
+                        },
+                    )
+
                 if root_hierarchical_grouphash is not None:
                     new_hashes = [root_hierarchical_grouphash]
                 else:
@@ -1832,7 +1844,7 @@ def _create_group(project: Project, event: Event, **kwargs: Any) -> Group:
     group_data = kwargs.pop("data", {})
     if features.has("projects:first-event-severity-calculation", event.project):
         severity = _get_severity_score(event)
-        if severity:
+        if severity is not None:  # Severity can be 0
             group_data.setdefault("metadata", {})
             group_data["metadata"]["severity"] = severity
 
@@ -2032,6 +2044,8 @@ severity_connection_pool = connection_from_url(
 
 
 def _get_severity_score(event: Event) -> float | None:
+    op = "event_manager._get_severity_score"
+    logger_data = {"event_id": event.data["event_id"], "op": op}
     severity = None
 
     metadata = event.get_event_metadata()
@@ -2041,14 +2055,10 @@ def _get_severity_score(event: Event) -> float | None:
     if error_type:
         message = error_type if not error_msg else f"{error_type}: {error_msg}"
 
-    logger.info(
-        "event_manager.get_severity_score",
-        extra={"event_message": message, "event_id": event.event_id},
-    )
-
     if message:
-        with metrics.timer("event_manager._get_severity_score"):
-            with sentry_sdk.start_span(op="event_manager._get_severity_score"):
+        logger_data["event_message"] = message
+        with metrics.timer(op):
+            with sentry_sdk.start_span(op=op):
                 try:
                     response = severity_connection_pool.urlopen(
                         "POST",
@@ -2060,13 +2070,24 @@ def _get_severity_score(event: Event) -> float | None:
                 except MaxRetryError as e:
                     logger.warning(
                         f"Unable to get severity score from microservice after {SEVERITY_DETECTION_RETRIES} retr{'ies' if SEVERITY_DETECTION_RETRIES >1 else 'y'}. Got MaxRetryError caused by: {repr(e.reason)}.",
-                        extra={"event_id": event.data["event_id"], "reason": e.reason},
+                        extra=logger_data,
                     )
                 except Exception as e:
                     logger.warning(
                         f"Unable to get severity score from microservice. Got: {repr(e)}.",
-                        extra={"event_id": event.data["event_id"], "reason": e},
+                        extra=logger_data,
                     )
+                else:
+                    logger.info(
+                        f"Got severity score of {severity} for event {event.data['event_id']}",
+                        extra=logger_data,
+                    )
+    else:
+        logger_data.update({"error_type": error_type, "error_msg": error_msg})
+        logger.warning(
+            "Unable to get severity score because event has no message",
+            extra=logger_data,
+        )
 
     return severity
 
@@ -2391,14 +2412,10 @@ def _calculate_event_grouping(
     Main entrypoint for modifying/enhancing and grouping an event, writes
     hashes back into event payload.
     """
-    load_stacktrace_from_cache = bool(event.org_can_load_stacktrace_from_cache)
     metric_tags: MutableTags = {
         "grouping_config": grouping_config["id"],
         "platform": event.platform or "unknown",
-        "loading_from_cache": load_stacktrace_from_cache,
     }
-    # This will help us differentiate when a transaction uses caching vs not
-    sentry_sdk.set_tag("stacktrace.loaded_from_cache", load_stacktrace_from_cache)
 
     with metrics.timer("event_manager.normalize_stacktraces_for_grouping", tags=metric_tags):
         with sentry_sdk.start_span(op="event_manager.normalize_stacktraces_for_grouping"):
@@ -2490,6 +2507,18 @@ def _save_grouphash_and_group(
             group = _create_group(project, event, **group_kwargs)
             group_hash.update(group=group)
 
+            if (
+                features.has("projects:first-event-severity-calculation", event.project)
+                and group.data.get("metadata", {}).get("severity") is None
+            ):
+                logger.error(
+                    "Group created without severity score",
+                    extra={
+                        "event_id": event.data["event_id"],
+                        "group_id": group.id,
+                    },
+                )
+
     if group is None:
         # If we failed to create the group it means another worker beat us to
         # it. Since a GroupHash can only be created in a transaction with the
@@ -2508,14 +2537,23 @@ def _send_occurrence_to_platform(jobs: Sequence[Job], projects: ProjectsMapping)
 
         performance_problems = job["performance_problems"]
         if features.has("organizations:issue-platform-extra-logging", project.organization):
-            logger.warning(
-                "Performance problems detected",
-                extra={
-                    "performance_problems": performance_problems,
-                    "project_id": project.id,
-                    "event_id": event_id,
-                },
-            )
+            if performance_problems and len(performance_problems) > 0:
+                logger.warning(
+                    f"Detected {len(performance_problems)} performance problems",
+                    extra={
+                        "performance_problems": performance_problems,
+                        "project_id": project.id,
+                        "event_id": event_id,
+                    },
+                )
+            else:
+                logger.warning(
+                    "No performance problems detected",
+                    extra={
+                        "project_id": project.id,
+                        "event_id": event_id,
+                    },
+                )
 
         for problem in performance_problems:
             occurrence = IssueOccurrence(

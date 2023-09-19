@@ -563,6 +563,45 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert data[0]["sum(span.self_time)"] == 321
         assert meta["dataset"] == "spansMetrics"
 
+    def test_avg_compare(self):
+        self.store_span_metric(
+            100,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.min_ago,
+            tags={"release": "foo"},
+        )
+        self.store_span_metric(
+            10,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.min_ago,
+            tags={"release": "bar"},
+        )
+
+        for function_name in [
+            "avg_compare(span.self_time, release, foo, bar)",
+            'avg_compare(span.self_time, release, "foo", "bar")',
+        ]:
+            response = self.do_request(
+                {
+                    "field": [function_name],
+                    "query": "",
+                    "project": self.project.id,
+                    "dataset": "spansMetrics",
+                }
+            )
+            assert response.status_code == 200, response.content
+
+    def test_avg_compare_invalid_column(self):
+        response = self.do_request(
+            {
+                "field": ["avg_compare(span.self_time, transaction, foo, bar)"],
+                "query": "",
+                "project": self.project.id,
+                "dataset": "spansMetrics",
+            }
+        )
+        assert response.status_code == 400, response.content
+
     def test_span_domain_array(self):
         self.store_span_metric(
             321,
@@ -723,3 +762,23 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     @pytest.mark.xfail(reason="Cannot search by tags")
     def test_free_text_search(self):
         super().test_free_text_search()
+
+    @pytest.mark.xfail(reason="Not implemented")
+    def test_avg_compare(self):
+        super().test_avg_compare()
+
+    @pytest.mark.xfail(reason="Not implemented")
+    def test_span_domain_array(self):
+        super().test_span_domain_array()
+
+    @pytest.mark.xfail(reason="Not implemented")
+    def test_span_domain_array_filter(self):
+        super().test_span_domain_array_filter()
+
+    @pytest.mark.xfail(reason="Not implemented")
+    def test_span_domain_array_filter_wildcard(self):
+        super.test_span_domain_array_filter_wildcard()
+
+    @pytest.mark.xfail(reason="Not implemented")
+    def test_span_domain_array_has_filter(self):
+        super.test_span_domain_array_has_filter()

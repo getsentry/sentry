@@ -10,12 +10,12 @@ from sentry.testutils.cases import MSTeamsActivityNotificationTest
 from sentry.testutils.silo import region_silo_test
 
 
+@region_silo_test(stable=True)
 @patch(
     "sentry.integrations.msteams.MsTeamsClientMixin.get_user_conversation_id",
     Mock(return_value="some_conversation_id"),
 )
 @patch("sentry.integrations.msteams.MsTeamsClientMixin.send_card")
-@region_silo_test
 class MSTeamsIssueAlertNotificationTest(MSTeamsActivityNotificationTest):
     def test_issue_alert_user(self, mock_send_card: MagicMock):
         """Test that issue alerts are sent to a MS Teams user."""
@@ -66,7 +66,7 @@ class MSTeamsIssueAlertNotificationTest(MSTeamsActivityNotificationTest):
             == body[1]["text"]
         )
         assert (
-            f"{self.project.slug} | [Notification Settings](http://testserver/settings/account/notifications/alerts/?referrer=issue\\_alert-msteams-user)"
+            f"{self.project.slug} | [Notification Settings](http://testserver/settings/account/notifications/alerts/?referrer=issue\\_alert-msteams-user&amp;notification\\_uuid={notification_uuid})"
             == body[3]["columns"][1]["items"][0]["text"]
         )
 
@@ -118,6 +118,6 @@ class MSTeamsIssueAlertNotificationTest(MSTeamsActivityNotificationTest):
             == body[1]["text"]
         )
         assert (
-            f"{self.project.slug} | [Notification Settings](http://testserver/settings/account/notifications/alerts/?referrer=issue\\_alert-msteams-user)"
+            f"{self.project.slug} | [Notification Settings](http://testserver/settings/account/notifications/alerts/?referrer=issue\\_alert-msteams-user&amp;notification\\_uuid={notification_uuid})"
             == body[3]["columns"][1]["items"][0]["text"]
         )

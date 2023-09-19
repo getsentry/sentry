@@ -29,14 +29,14 @@ from sentry.utils.sdk import bind_organization_context, configure_scope
 
 class FeedbackValidator(serializers.Serializer):
     # required fields
-    environment = serializers.CharField(required=True)
     feedback = serializers.JSONField(required=True)
     platform = serializers.CharField(required=True)
-    release = serializers.CharField(required=True)
     sdk = serializers.JSONField(required=True)
     timestamp = serializers.FloatField(required=True)
 
     # optional fields
+    release = serializers.CharField(required=False)
+    environment = serializers.CharField(required=False)
     dist = serializers.CharField(required=False)
     event_id = serializers.CharField(required=False)
     request = serializers.JSONField(required=False)
@@ -50,11 +50,11 @@ class FeedbackValidator(serializers.Serializer):
         try:
             ret: Dict[str, Any] = {}
             ret["data"] = {
-                "environment": data["environment"],
                 "feedback": data["feedback"],
                 "platform": data["platform"],
-                "release": data["release"],
                 "sdk": data["sdk"],
+                "release": data.get("release"),
+                "environment": data.get("environment"),
                 "request": data.get("request"),
                 "user": data.get("user"),
                 "tags": data.get("tags"),

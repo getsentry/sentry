@@ -61,7 +61,7 @@ from sentry.models.projectownership import ProjectOwnership
 from sentry.models.projectredirect import ProjectRedirect
 from sentry.models.recentsearch import RecentSearch
 from sentry.models.relay import Relay, RelayUsage
-from sentry.models.rule import RuleActivity, RuleActivityType
+from sentry.models.rule import NeglectedRule, RuleActivity, RuleActivityType
 from sentry.models.savedsearch import SavedSearch, Visibility
 from sentry.models.search_common import SearchType
 from sentry.models.user import User
@@ -317,6 +317,13 @@ class BackupTestCase(TransactionTestCase):
         rule = self.create_project_rule(project=project)
         RuleActivity.objects.create(rule=rule, type=RuleActivityType.CREATED.value)
         self.snooze_rule(user_id=owner_id, owner_id=owner_id, rule=rule)
+        NeglectedRule.objects.create(
+            rule=rule,
+            organization=org,
+            disable_date=datetime.now(),
+            sent_initial_email_date=datetime.now(),
+            sent_final_email_date=datetime.now(),
+        )
 
         # Environment*
         self.create_environment(project=project)
