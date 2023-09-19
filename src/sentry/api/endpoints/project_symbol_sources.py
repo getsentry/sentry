@@ -1,3 +1,4 @@
+from django.http import Http404
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -34,6 +35,13 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
         """
         Return custom symbol sources configured for an individual project.
         """
+        id = request.GET.get("id")
         data = serialize(project, request.user, SymbolSourcesSerializer())
+
+        if id:
+            for source in data:
+                if source["id"] == id:
+                    return Response(source)
+            raise Http404
 
         return Response(data)
