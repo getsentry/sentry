@@ -10,3 +10,8 @@ class IssueAlertExamples:
             response_only=True,
         )
     ]
+
+    # TODO: can i reuse the sample used for creating a rule?
+    GET_PROJECT_RULE = []
+
+    UPDATE_PROJECT_RULE = []

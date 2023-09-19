@@ -14,6 +14,7 @@ from sentry.api.endpoints.project_rules import find_duplicate_rule
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.rule import RuleSerializer
 from sentry.api.serializers.rest_framework.rule import RuleSerializer as DrfRuleSerializer
+from sentry.apidocs.parameters import IssueAlertParams
 from sentry.constants import ObjectStatus
 from sentry.integrations.slack.utils import RedisRuleStatus
 from sentry.mediators import project_rules
@@ -38,22 +39,35 @@ from sentry.web.decorators import transaction_start
 logger = logging.getLogger(__name__)
 
 
+@extend_schema(tags=["Events"])
 @region_silo_endpoint
 class ProjectRuleDetailsEndpoint(RuleEndpoint):
     publish_status = {
-        "DELETE": ApiPublishStatus.UNKNOWN,
-        "GET": ApiPublishStatus.UNKNOWN,
-        "PUT": ApiPublishStatus.UNKNOWN,
+        "DELETE": ApiPublishStatus.PUBLIC,
+        "GET": ApiPublishStatus.PUBLIC,
+        "PUT": ApiPublishStatus.PUBLIC,
     }
 
+    @extend_schema(
+        operation_id="Retrieve an Issue Alert Rule for a Project",
+        parameters=[
+            GlobalParams.ORG_SLUG,
+            GlobalParams.PROJECT_SLUG,
+            IssueAlertParams.ISSUE_RULE_ID,
+        ],
+        request=None,
+        responses={
+            200: RuleSerializerResponse,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+        examples=IssueAlertExamples.GET_PROJECT_RULE,
+    )
     @transaction_start("ProjectRuleDetailsEndpoint")
     def get(self, request: Request, project, rule) -> Response:
         """
-        Retrieve a rule
-
         Return details on an individual rule.
-
-            {method} {path}
 
         """
         # Serialize Rule object
@@ -101,22 +115,26 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
 
         return Response(serialized_rule)
 
+    @extend_schema(
+        operation_id="Update an Issue Alert Rule",
+        parameters=[
+            GlobalParams.ORG_SLUG,
+            GlobalParams.PROJECT_SLUG,
+            IssueAlertParams.ISSUE_RULE_ID,
+        ],
+        request=DrfRuleSerializer,
+        responses={
+            200: RuleSerializerResponse,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+        examples=IssueAlertExamples.UPDATE_PROJECT_RULE,
+    )
     @transaction_start("ProjectRuleDetailsEndpoint")
     def put(self, request: Request, project, rule) -> Response:
         """
-        Update a rule
-
-        Update various attributes for the given rule.
-
-            {method} {path}
-            {{
-              "name": "My rule name",
-              "conditions": [],
-              "filters": [],
-              "actions": [],
-              "actionMatch": "all",
-              "filterMatch": "all"
-            }}
+        Updates an individual rule's attributes. Only the attributes submitted are modified.
 
         """
         serializer = DrfRuleSerializer(
@@ -254,6 +272,21 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+    @extend_schema(
+        operation_id="Delete an Issue Alert Rule",
+        parameters=[
+            GlobalParams.ORG_SLUG,
+            GlobalParams.PROJECT_SLUG,
+            IssueAlertParams.ISSUE_RULE_ID,
+        ],
+        request=None,
+        responses={
+            202: RESPONSE_SUCCESS,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
     @transaction_start("ProjectRuleDetailsEndpoint")
     def delete(self, request: Request, project, rule) -> Response:
         """
