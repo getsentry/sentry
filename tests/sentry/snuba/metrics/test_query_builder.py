@@ -258,7 +258,7 @@ def test_parse_conditions(query_string, expected):
     parsed = resolve_tags(
         use_case_id,
         org_id,
-        parse_conditions(query_string, [], {}),
+        parse_conditions(query_string, [], []),
         [],
     )
     assert parsed == expected()

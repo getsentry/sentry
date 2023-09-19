@@ -89,7 +89,7 @@ from sentry.utils.snuba import parse_snuba_datetime
 QUERY_PROJECT_LIMIT = 10
 
 
-def _strip_project_id(condition):
+def _strip_project_id(condition: Condition) -> Optional[Condition]:
     if isinstance(condition, BooleanCondition):
         new_boolean_condition = BooleanCondition()
         for nested_condition in condition.conditions:
@@ -99,13 +99,15 @@ def _strip_project_id(condition):
             if stripped_condition is not None:
                 new_boolean_condition.conditions.append(stripped_condition)
 
-        return new_boolean_condition
+        return new_boolean_condition if new_boolean_condition.conditions else None
     elif isinstance(condition, Condition):
         if isinstance(condition.lhs, Column):
             if condition.lhs.name == "project_id":
                 return None
 
             return condition
+
+    return None
 
 
 def parse_field(field: str, allow_mri: bool = False, allow_private: bool = False) -> MetricField:
@@ -426,7 +428,7 @@ def is_tag_key_allowed(tag_key: str, allowed_tag_keys: Optional[Dict[str, str]])
 
 
 def parse_conditions(
-    query_string: str, projects: Sequence[Project], query_params: Mapping[str, Any]
+    query_string: str, projects: Sequence[Project], environments: Sequence[str]
 ) -> Sequence[Condition]:
     """Parse given filter query and query params into a list of snuba conditions"""
     # HACK: Parse a sessions query, validate / transform afterwards.
@@ -435,7 +437,7 @@ def parse_conditions(
         query_builder = ReleaseHealthQueryBuilder(
             Dataset.Sessions,
             params={
-                **query_params,
+                "environment": environments,
                 "project_id": [project.id for project in projects],
                 "organization_id": org_id_from_projects(projects) if projects else None,
             },
@@ -507,7 +509,9 @@ class QueryDefinition:
         self.limit: Optional[Limit] = self._parse_limit(paginator_kwargs)
         self.offset: Optional[Offset] = self._parse_offset(paginator_kwargs)
         self.having: Optional[ConditionGroup] = query_params.getlist("having")
-        self.where = parse_conditions(self.query, projects, query_params)
+        self.where = parse_conditions(
+            self.query, projects, environments=query_params.getlist("environment")
+        )
 
         start, end, rollup = get_date_range(query_params)
         self.rollup = rollup
