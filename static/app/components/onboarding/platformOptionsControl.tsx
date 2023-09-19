@@ -31,11 +31,14 @@ export function useUrlPlatformOptions<K extends string>(
 
   return useMemo(
     () =>
-      Object.keys(platformOptions).reduce((acc, key) => {
-        const values = platformOptions[key as K].items.map(({value}) => value);
-        acc[key] = values.includes(query[key]) ? query[key] : values[0];
-        return acc;
-      }, {} as Record<K, string>),
+      Object.keys(platformOptions).reduce(
+        (acc, key) => {
+          const values = platformOptions[key as K].items.map(({value}) => value);
+          acc[key] = values.includes(query[key]) ? query[key] : values[0];
+          return acc;
+        },
+        {} as Record<K, string>
+      ),
     [platformOptions, query]
   );
 }
