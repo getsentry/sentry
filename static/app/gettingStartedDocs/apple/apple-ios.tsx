@@ -200,13 +200,13 @@ struct SwiftUIApp: App {
             options.tracesSampleRate = 1.0`
                 : ''
             }${
-          hasProfiling
-            ? `
+              hasProfiling
+                ? `
             // Set profilesSampleRate to 1.0 to profile 100% of sampled transactions.
             // We recommend adjusting this value in production
             options.profilesSampleRate = 1.0`
-            : ''
-        }
+                : ''
+            }
         }
     }
 }

@@ -49,7 +49,7 @@ function TagPanel() {
             ? `${name}:"${value}"`
             : `tags["${name}"]:"${value}"`,
         },
-      } as LocationDescriptor),
+      }) as LocationDescriptor,
     [organization.slug]
   );
 

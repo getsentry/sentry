@@ -5,7 +5,7 @@ from typing import Optional, Tuple
 from django.db import models
 from django.utils import timezone
 
-from sentry.backup.dependencies import ImportKind, PrimaryKeyMap
+from sentry.backup.dependencies import ImportKind
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import BaseManager, FlexibleForeignKey, Model, region_silo_only_model
@@ -104,15 +104,11 @@ class QuerySubscription(DefaultFieldsModel):
     # purpose-built logic for that operation rather than copying the data verbatim. This will result
     # in an identical duplicate of the `QuerySubscription` model with a unique `subscription_id`.
     def write_relocation_import(
-        self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
-    ) -> Optional[Tuple[int, int, ImportKind]]:
+        self, _s: ImportScope, _f: ImportFlags
+    ) -> Optional[Tuple[int, ImportKind]]:
         # TODO(getsentry/team-ospo#190): Prevents a circular import; could probably split up the
         # source module in such a way that this is no longer an issue.
         from sentry.snuba.subscriptions import create_snuba_subscription
-
-        old_pk = super()._normalize_before_relocation_import(pk_map, scope, flags)
-        if old_pk is None:
-            return None
 
         subscription = create_snuba_subscription(self.project, self.type, self.snuba_query)
 
@@ -120,4 +116,4 @@ class QuerySubscription(DefaultFieldsModel):
         subscription.date_added = self.date_added
         subscription.save()
 
-        return (old_pk, subscription.pk, ImportKind.Inserted)
+        return (subscription.pk, ImportKind.Inserted)

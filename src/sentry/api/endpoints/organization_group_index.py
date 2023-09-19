@@ -479,7 +479,9 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         any data mutation.
 
         :qparam int id: a list of IDs of the issues to be removed.  This
-                        parameter shall be repeated for each issue.
+                        parameter shall be repeated for each issue, e.g.
+                        `?id=1&id=2&id=3`. If this parameter is not provided,
+                        it will attempt to remove the first 1000 issues.
         :pparam string organization_slug: the slug of the organization the
                                           issues belong to.
         :auth: required

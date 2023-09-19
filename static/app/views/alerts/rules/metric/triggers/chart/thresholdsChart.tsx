@@ -406,8 +406,8 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
 
           return `<span>${date}<span style="color:${changeStatusColor};margin-left:10px;">
             ${Math.sign(changePercentage) === 1 ? '+' : '-'}${Math.abs(
-            changePercentage
-          ).toFixed(2)}%</span></span>`;
+              changePercentage
+            ).toFixed(2)}%</span></span>`;
         },
       },
       yAxis: {

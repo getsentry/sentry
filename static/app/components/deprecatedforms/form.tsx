@@ -43,7 +43,7 @@ export type Context = FormContextData;
 
 class Form<
   Props extends FormProps = FormProps,
-  State extends FormClassState = FormClassState
+  State extends FormClassState = FormClassState,
 > extends Component<Props, State> {
   static defaultProps = {
     cancelLabel: t('Cancel'),

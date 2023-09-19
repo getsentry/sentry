@@ -741,6 +741,30 @@ class CollisionTests(ImportTestCase):
                 == 1
             )
 
+    def test_colliding_user_role(self):
+        self.create_exhaustive_user("owner", is_admin=True)
+
+        # Take note of the `UserRole` - this is the one we'll be importing.
+        colliding = UserRole.objects.all().first()
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
+
+            # After exporting and clearing the database, insert a copy of the same `UserRole` as the
+            # one found in the import.
+            colliding.save()
+
+            assert UserRole.objects.count() == 1
+            assert UserRole.objects.filter(name="test-admin-role").count() == 1
+
+            with open(tmp_path) as tmp_file:
+                import_in_global_scope(tmp_file, printer=NOOP_PRINTER)
+
+        assert UserRole.objects.count() == 2
+        assert UserRole.objects.filter(name__contains="test-admin-role").count() == 2
+        assert UserRole.objects.filter(name__exact="test-admin-role").count() == 1
+        assert UserRole.objects.filter(name__contains="test-admin-role-").count() == 1
+
     def test_colliding_user_with_merging_enabled_in_user_scope(self):
         self.create_exhaustive_user(username="owner", email="owner@example.com")
 

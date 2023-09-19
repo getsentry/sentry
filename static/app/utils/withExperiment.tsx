@@ -70,7 +70,7 @@ type LogExperimentProps = {
 function withExperiment<
   E extends ExperimentKey,
   L extends boolean,
-  P extends InjectedExperimentProps<E, L>
+  P extends InjectedExperimentProps<E, L>,
 >(
   ExperimentComponent: React.ComponentType<P>,
   {experiment, injectLogExperiment}: Options<E, L>
