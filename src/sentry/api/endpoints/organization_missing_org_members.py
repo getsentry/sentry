@@ -20,6 +20,7 @@ from sentry.api.serializers import Serializer, serialize
 from sentry.constants import ObjectStatus
 from sentry.integrations.base import IntegrationFeatures
 from sentry.models import Repository
+from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.organization import Organization
 from sentry.search.utils import tokenize_query
@@ -55,11 +56,12 @@ def _get_missing_organization_members(
         integration_id__in=integration_ids,
     ).values_list("id", flat=True)
 
+    recent_commits = Commit.objects.filter(
+        repository_id__in=set(org_repos), date_added__gte=timezone.now() - timedelta(days=30)
+    ).values_list("id", flat=True)
+
     return (
-        nonmember_authors.filter(
-            commit__repository_id__in=set(org_repos),
-            commit__date_added__gte=timezone.now() - timedelta(days=30),
-        )
+        nonmember_authors.filter(commit__id__in=recent_commits)
         .annotate(Count("commit"))
         .order_by("-commit__count")
     )
@@ -144,7 +146,7 @@ class OrganizationMissingMembersEndpoint(OrganizationEndpoint):
             missing_members_for_integration = {
                 "integration": integration_provider,
                 "users": serialize(
-                    list(queryset), request.user, serializer=MissingOrgMemberSerializer()
+                    list(queryset[:50]), request.user, serializer=MissingOrgMemberSerializer()
                 ),
             }
 
