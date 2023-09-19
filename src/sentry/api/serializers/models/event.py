@@ -434,12 +434,10 @@ class IssueEventSerializer(SqlFormatEventSerializer):
         stacktraces = find_stacktraces_in_data(obj.data)
 
         frame_lists = [stacktrace.get_frames() for stacktrace in stacktraces]
-        frames = [frame for frame_list in frame_lists for frame in frame_list]
+        frame_data = [frame.get("data") for frame_list in frame_lists for frame in frame_list]
 
         unique_resolution_methods = {
-            resolved_with
-            for frame in frames
-            if (resolved_with := frame.get("resolved_with")) is not None
+            frame.get("resolved_with") for frame in frame_data if frame is not None
         }
 
         return list(unique_resolution_methods)
