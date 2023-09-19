@@ -3,7 +3,7 @@ from sentry.models.release_threshold.constants import (
     THRESHOLD_TYPE_INT_TO_STR,
     TRIGGER_TYPE_INT_TO_STR,
 )
-from sentry.models.release_threshold.releasethreshold import ReleaseThreshold
+from sentry.models.release_threshold.release_threshold import ReleaseThreshold
 
 
 @register(ReleaseThreshold)
