@@ -2639,7 +2639,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             event = manager.save(self.project.id)
 
             mock_get_severity_score.assert_not_called()
-            assert event.group and event.group.get_event_metadata().get("severity") is None
+            assert event.group and "severity" not in event.group.get_event_metadata()
 
 
 class AutoAssociateCommitTest(TestCase, EventManagerTestMixin):
