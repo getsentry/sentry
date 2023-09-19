@@ -48,6 +48,7 @@ function DeadClickTable({location}: {location: Location<any>}) {
           path="dead-clicks"
         />
       }
+      customHandleResize={() => {}}
     />
   );
 }
@@ -76,6 +77,7 @@ function RageClickTable({location}: {location: Location<any>}) {
           path="rage-clicks"
         />
       }
+      customHandleResize={() => {}}
     />
   );
 }
