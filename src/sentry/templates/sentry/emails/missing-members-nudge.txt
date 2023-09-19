@@ -1,7 +1,7 @@
 
 Bring your full {{ provider }} team on board in Sentry
 
-Developers on your team are committing to Sentry projects that are not part of your Sentry organization. Invite them to Sentry so they can monitor their commits for error or performance issues
+You have developers committing code changes in your GitHub organization. Invite them to Sentry so that they can monitor their error and performance issues.
 
 Most Active Contributors
 
