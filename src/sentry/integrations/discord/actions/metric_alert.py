@@ -19,6 +19,7 @@ def send_incident_alert_notification(
     incident: Incident,
     metric_value: int,
     new_status: IncidentStatus,
+    notification_uuid: str | None = None,
 ) -> None:
     chart_url = None
     if features.has("organizations:metric-alert-chartcuterie", incident.organization):
@@ -42,11 +43,7 @@ def send_incident_alert_notification(
         return
 
     message = DiscordMetricAlertMessageBuilder(
-        incident.alert_rule,
-        incident,
-        new_status,
-        metric_value,
-        chart_url,
+        incident.alert_rule, incident, new_status, metric_value, chart_url, notification_uuid
     )
 
     client = DiscordClient(integration_id=incident.identifier)
