@@ -11,7 +11,7 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.project_key import ProjectKeySerializer
-from sentry.api.serializers.rest_framework import ProjectKeyRequestSerializer
+from sentry.api.serializers.rest_framework import ProjectKeyPutSerializer
 from sentry.api.serializers.rest_framework.project_key import (
     DynamicSdkLoaderOptionSerializer,
     RateLimitSerializer,
@@ -78,7 +78,7 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
         request=inline_serializer(
             name="UpdateClientKey",
             fields={
-                "name": serializers.IntegerField(
+                "name": serializers.CharField(
                     help_text="The name for the client key", required=False
                 ),
                 "isActive": serializers.BooleanField(
@@ -116,7 +116,7 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
         except ProjectKey.DoesNotExist:
             raise ResourceDoesNotExist
 
-        serializer = ProjectKeyRequestSerializer(data=request.data, partial=True)
+        serializer = ProjectKeyPutSerializer(data=request.data, partial=True)
         default_version = get_default_sdk_version_for_project(project)
 
         if not serializer.is_valid():

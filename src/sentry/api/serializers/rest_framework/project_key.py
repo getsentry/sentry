@@ -63,7 +63,22 @@ class DynamicSdkLoaderOptionSerializer(serializers.Serializer):
         "private",
     ),
 )
-class ProjectKeyRequestSerializer(serializers.Serializer):
+class ProjectKeyPostSerializer(serializers.Serializer):
+    name = serializers.CharField(
+        help_text="The optional name of the key. If not provided it will be automatically generated.",
+        max_length=64,
+        required=False,
+        allow_blank=True,
+        allow_null=True,
+    )
+    rateLimit = RateLimitSerializer(
+        required=False,
+    )
+    public = serializers.RegexField(r"^[a-f0-9]{32}$", required=False, allow_null=True)
+    secret = serializers.RegexField(r"^[a-f0-9]{32}$", required=False, allow_null=True)
+
+
+class ProjectKeyPutSerializer(serializers.Serializer):
     name = serializers.CharField(
         help_text="The name for the client key.",
         max_length=64,
@@ -84,5 +99,3 @@ class ProjectKeyRequestSerializer(serializers.Serializer):
     dynamicSdkLoaderOptions = DynamicSdkLoaderOptionSerializer(
         required=False, allow_null=True, partial=True
     )
-    public = serializers.RegexField(r"^[a-f0-9]{32}$", required=False, allow_null=True)
-    secret = serializers.RegexField(r"^[a-f0-9]{32}$", required=False, allow_null=True)
