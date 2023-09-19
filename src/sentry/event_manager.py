@@ -562,7 +562,7 @@ class EventManager:
 
         _materialize_metadata_many(jobs)
 
-        kwargs = _create_kwargs(job)
+        kwargs = _get_group_creation_kwargs(job)
 
         kwargs["culprit"] = job["culprit"]
 
@@ -1097,7 +1097,7 @@ def _materialize_metadata_many(jobs: Sequence[Job]) -> None:
         job["culprit"] = data["culprit"]
 
 
-def _create_kwargs(job: Union[Job, PerformanceJob]) -> dict[str, Any]:
+def _get_group_creation_kwargs(job: Union[Job, PerformanceJob]) -> dict[str, Any]:
     kwargs = {
         "platform": job["platform"],
         "message": job["event"].search_message,
