@@ -82,8 +82,14 @@ export function highlightNode(replayer: Replayer, props: AddHighlightParams) {
   // want on top of the replay. We may need to revisit this strategy as we
   // create a new canvas for every highlight. See additional notes in
   // removeHighlight() method.
+  const element = node.nodeType === Node.ELEMENT_NODE ? (node as HTMLElement) : null;
+
+  if (!element) {
+    return null;
+  }
+
   const canvas = mouseTail.cloneNode();
-  const boundingClientRect = node.getBoundingClientRect();
+  const boundingClientRect = element.getBoundingClientRect();
   const drawProps = {
     annotation: props.annotation ?? '',
     color: props.color ?? DEFAULT_HIGHLIGHT_COLOR,
