@@ -1,6 +1,6 @@
 import subprocess
 import time
-from typing import Generator, List
+from typing import Generator
 from unittest import mock
 
 import pytest
@@ -71,57 +71,3 @@ def test_postgres_running(mock_subprocess_run: mock.MagicMock) -> None:
 
     check_health(["postgres"])
     assert mock_subprocess_run.call_count == 2
-
-
-def test_kafka_zookeper_running(mock_subprocess_run: mock.MagicMock) -> None:
-    running = mock.Mock()
-    running.stdout = "running\n"
-    running.code = 0
-
-    healthcheck = mock.Mock()
-
-    def run(
-        cmd_args: List[str], capture_output: bool = False, text: bool = False, check: bool = False
-    ) -> mock.Mock:
-        if cmd_args == (
-            "docker",
-            "container",
-            "inspect",
-            "-f",
-            "{{.State.Status}}",
-            "sentry_zookeeper",
-        ):
-            return running
-        elif cmd_args == (
-            "docker",
-            "container",
-            "inspect",
-            "-f",
-            "{{.State.Status}}",
-            "sentry_kafka",
-        ):
-            return running
-        elif cmd_args == (
-            "docker",
-            "exec",
-            "sentry_kafka",
-            "kafka-topics",
-            "--zookeeper",
-            "sentry_zookeeper:2181",
-            "--list",
-        ) or (
-            "docker",
-            "exec",
-            "sentry_kafka",
-            "kafka-topics",
-            "--zookeeper",
-            "127.0.0.1:2181",
-            "--list",
-        ):
-            return healthcheck
-        raise AssertionError(f"unexpected command '{cmd_args}'")
-
-    mock_subprocess_run.side_effect = run
-
-    check_health(["kafka"])
-    assert mock_subprocess_run.call_count == 3

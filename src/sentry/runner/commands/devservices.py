@@ -9,7 +9,7 @@ import subprocess
 import sys
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import TYPE_CHECKING, Any, Callable, Generator, Literal, overload
+from typing import TYPE_CHECKING, Any, Callable, Generator, Literal, TypedDict, overload
 
 import click
 import requests
@@ -580,14 +580,14 @@ Are you sure you want to continue?"""
                 network.remove()
 
 
-def check_health(service_name, containers) -> None:
+def check_health(service_name: str, containers: dict[str, Any]) -> None:
     healthcheck = service_healthchecks.get(service_name)
     if healthcheck is None:
         return
 
     click.secho(f"> Checking container health '{service_name}'", fg="yellow")
 
-    def hc():
+    def hc() -> None:
         healthcheck["check"](containers)
 
     try:
@@ -614,7 +614,7 @@ def run_with_retries(cmd: Callable[[], object], retries: int = 3, timeout: int =
             return
 
 
-def check_kafka(containers) -> None:
+def check_kafka(containers: dict[str, Any]) -> None:
     kafka_options = containers["kafka"]
     zk_options = containers["zookeeper"]
 
@@ -639,16 +639,21 @@ def check_kafka(containers) -> None:
     )
 
 
-def check_postgres() -> None:
+def check_postgres(containers: dict[str, Any]) -> None:
+    pg_options = containers["postgress"]
     subprocess.run(
-        ("docker", "exec", "sentry_postgres", "pg_isready", "-U", "postgres"),
+        ("docker", "exec", pg_options["name"], "pg_isready", "-U", "postgres"),
         check=True,
         capture_output=True,
         text=True,
     )
 
 
-service_healthchecks = {
+class ServiceHealthcheck(TypedDict):
+    check: Callable[[dict[str, Any]], None]
+
+
+service_healthchecks: dict[str, ServiceHealthcheck] = {
     "postgres": {
         "check": check_postgres,
     },

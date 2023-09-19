@@ -69,13 +69,20 @@ def _requires_snuba() -> None:
 @pytest.fixture(scope="session")
 def _requires_kafka() -> None:
     kafka_conf = settings.SENTRY_DEVSERVICES["kafka"](settings, {})
+    zk_conf = settings.SENTRY_DEVSERVICES["zookeeper"](settings, {})
     (port,) = kafka_conf["ports"].values()
 
     if not _service_available("127.0.0.1", port):
         pytest.skip("requires kafka server running")
 
     try:
-        check_health("kafka")
+        check_health(
+            "kafka",
+            {
+                "kafka": kafka_conf,
+                "zookeeper": zk_conf,
+            },
+        )
     except Exception as e:
         pytest.skip(f"kafka server is not heathy: {e}")
 
