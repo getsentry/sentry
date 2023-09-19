@@ -140,6 +140,7 @@ class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
 
     def check_project_access(func):
         def wrapper(self, request: Request, organization, alert_rule):
+            # a metric alert is only associated with one project at a time
             project = alert_rule.snuba_query.subscriptions.get().project
 
             if not request.access.has_project_access(project):
