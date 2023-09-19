@@ -1,9 +1,11 @@
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Sequence
 
 from snuba_sdk import Request
 from snuba_sdk.metrics_query import MetricsQuery
 
-from sentry.snuba.metrics.fields.base import RawMetric, metric_object_factory
+from sentry.models import Project
+from sentry.sentry_metrics.utils import string_to_use_case_id
+from sentry.snuba.metrics.fields.base import MetricExpression, RawMetric, metric_object_factory
 from sentry.snuba.metrics.naming_layer.mapping import get_mri, get_public_name_from_mri
 from sentry.snuba.metrics.utils import to_intervals
 
@@ -53,18 +55,31 @@ def resolve_metrics_query(metrics_query: MetricsQuery) -> MetricsQuery:
     if not metric.public_name and metric.mri:
         public_name = get_public_name_from_mri(metric.mri)
         metrics_query = metrics_query.set_query(
-            metrics_query.query.set_metric(metric.set_public_name(public_name))
+            metrics_query.query.set_metric(metrics_query.query.metric.set_public_name(public_name))
         )
     if not metric.mri and metric.public_name:
         mri = get_mri(metric.public_name)
-        metrics_query = metrics_query.set_query(metrics_query.query.set_metric(metric.set_mri(mri)))
+        metrics_query = metrics_query.set_query(
+            metrics_query.query.set_metric(metrics_query.query.metric.set_mri(mri))
+        )
 
-    metrics_object = metric_object_factory(op, metric.public_name)
-    assert isinstance(metrics_object, RawMetric)  # only support raw metrics for now
-    metric_id = metrics_object.generate_metric_ids(scope.project_ids, scope.use_case_id)[
-        0
-    ]  # for raw metrics, there will always only be one metric_id
+    metrics_object = metric_object_factory(op, metrics_query.query.metric.mri)
+    assert isinstance(metrics_object, MetricExpression)
+    assert isinstance(metrics_object.metric_object, RawMetric)  # only support raw metrics for now
+
+    projects = get_projects(scope.project_ids)
+    use_case_id = string_to_use_case_id(scope.use_case_id)
+    metrics_ids = metrics_object.generate_metric_ids(projects, use_case_id)
+    [metric_id] = metrics_ids  # for raw metrics, there will always only be one metric_id
     metrics_query = metrics_query.set_query(
-        metrics_query.query.set_metric(metric.set_id(metric_id))
+        metrics_query.query.set_metric(metrics_query.query.metric.set_id(metric_id))
     )
     return metrics_query
+
+
+def get_projects(project_ids: Sequence[int]) -> Sequence[Project]:
+    try:
+        projects = [Project.objects.get(id=project_id) for project_id in project_ids]
+        return projects
+    except Project.DoesNotExist:
+        raise Exception("Requested project does not exist")
