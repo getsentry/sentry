@@ -9,10 +9,13 @@
     .card-container {
         display: flex;
         width: 100%;
-        margin-top: 16px;
-        margin-bottom: 20px;
+        justify-content: center;
+        margin: 16px -7px 20px -7px;
         padding: 0px;
-        gap: 14px;
+        > div {
+            margin-left: 7px;
+            margin-right: 7px;
+        }
     }
 
     .user-container {
@@ -27,7 +30,9 @@
         align-items: center;
         margin-bottom: 2px;
         font-size: 14px;
-        gap: 5px;
+        > img {
+            margin-right: 5px;
+        }
     }
 
     .subtitle {
