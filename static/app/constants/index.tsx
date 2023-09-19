@@ -157,7 +157,10 @@ export const SENTRY_APP_PERMISSIONS: PermissionObj[] = [
       'no-access': {label: 'No Access', scopes: []},
       read: {label: 'Read', scopes: ['org:read']},
       write: {label: 'Read & Write', scopes: ['org:read', 'org:write']},
-      admin: {label: 'Admin', scopes: ['org:read', 'org:write', 'org:admin']},
+      admin: {
+        label: 'Admin',
+        scopes: ['org:read', 'org:write', 'org:admin', 'org:integrations'],
+      },
     },
   },
   {

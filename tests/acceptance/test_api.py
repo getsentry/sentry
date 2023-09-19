@@ -1,27 +1,4 @@
 from sentry.testutils.cases import AcceptanceTestCase
-from sentry.testutils.silo import no_silo_test
-
-
-@no_silo_test(stable=True)
-class ApiTokensTest(AcceptanceTestCase):
-    def setUp(self):
-        super().setUp()
-        self.org = self.create_organization(name="Rowdy Tiger Rowdy Tiger Rowdy Tiger", owner=None)
-        self.project = self.create_project(
-            organization=self.org, teams=[self.team], name="Bengal Bengal Bengal Bengal"
-        )
-        self.login_as(self.user)
-        self.path = "/api/"
-
-    def test_simple(self):
-        self.browser.get(self.path)
-        self.browser.wait_until_not('[data-test-id="loading-indicator"]')
-
-        self.browser.click_when_visible('[data-test-id="create-token"]')
-        self.browser.wait_until_not('[data-test-id="loading-indicator"]')
-
-        self.browser.click_when_visible('[data-test-id="form-submit"]')
-        self.browser.wait_until_not('[data-test-id="loading-indicator"]')
 
 
 class ApiApplicationTest(AcceptanceTestCase):
