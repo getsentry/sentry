@@ -2,7 +2,6 @@ from datetime import datetime, timedelta
 from unittest import mock
 
 import msgpack
-import pytest
 from arroyo.backends.kafka import KafkaPayload
 from django.test import override_settings
 from django.utils import timezone
@@ -19,7 +18,6 @@ from sentry.monitors.models import (
 )
 from sentry.monitors.tasks import (
     check_missing,
-    check_missing_environment,
     check_timeout,
     clock_pulse,
     try_monitor_tasks_trigger,
@@ -50,8 +48,7 @@ def make_ref_time():
 
 
 class MonitorTaskCheckMissingTest(TestCase):
-    @mock.patch("sentry.monitors.tasks.check_missing_environment")
-    def test_missing_checkin(self, check_missing_environment_mock):
+    def test_missing_checkin(self):
         org = self.create_organization()
         project = self.create_project(organization=org)
 
@@ -81,14 +78,6 @@ class MonitorTaskCheckMissingTest(TestCase):
 
         check_missing(task_run_ts)
 
-        # assert that task is called for the specific environment
-        assert check_missing_environment_mock.delay.call_count == 1
-        assert check_missing_environment_mock.delay.mock_calls[0] == mock.call(
-            monitor_environment.id
-        )
-
-        check_missing_environment(monitor_environment.id)
-
         # Monitor status is updated
         monitor_environment = MonitorEnvironment.objects.get(
             id=monitor_environment.id, status=MonitorStatus.MISSED_CHECKIN
@@ -109,8 +98,7 @@ class MonitorTaskCheckMissingTest(TestCase):
         ).replace(second=0, microsecond=0)
         assert missed_checkin.monitor_config == monitor.config
 
-    @mock.patch("sentry.monitors.tasks.check_missing_environment")
-    def test_missing_checkin_with_margin(self, check_missing_environment_mock):
+    def test_missing_checkin_with_margin(self):
         org = self.create_organization()
         project = self.create_project(organization=org)
 
@@ -144,9 +132,6 @@ class MonitorTaskCheckMissingTest(TestCase):
         # No missed check-in generated as we're still within the check-in margin
         check_missing(task_run_ts)
 
-        # assert that task is not called for the specific environment
-        assert check_missing_environment_mock.delay.call_count == 0
-
         assert not MonitorEnvironment.objects.filter(
             id=monitor_environment.id, status=MonitorStatus.MISSED_CHECKIN
         ).exists()
@@ -156,14 +141,6 @@ class MonitorTaskCheckMissingTest(TestCase):
 
         # Missed check-in generated as clock now exceeds expected time plus margin
         check_missing(task_run_ts + timedelta(minutes=4))
-
-        # assert that task is called for the specific environment
-        assert check_missing_environment_mock.delay.call_count == 1
-        assert check_missing_environment_mock.delay.mock_calls[0] == mock.call(
-            monitor_environment.id
-        )
-
-        check_missing_environment(monitor_environment.id)
 
         monitor_environment = MonitorEnvironment.objects.get(
             id=monitor_environment.id, status=MonitorStatus.MISSED_CHECKIN
@@ -180,7 +157,7 @@ class MonitorTaskCheckMissingTest(TestCase):
         )
 
         # Missed checkins are back-dated to when the checkin was expected to
-        # happen. In this case the expected_time is equal to the date_added.
+        # happpen. In this case the expected_time is equal to the date_added.
         assert missed_check.date_added == (
             monitor_environment.last_checkin + timedelta(minutes=10)
         ).replace(second=0, microsecond=0)
@@ -292,8 +269,8 @@ class MonitorTaskCheckMissingTest(TestCase):
             monitor_environment=monitor_environment.id, status=CheckInStatus.MISSED
         ).exists()
 
-    @mock.patch("sentry.monitors.tasks.check_missing_environment")
-    def test_missed_exception_handling(self, check_missing_environment_mock):
+    @mock.patch("sentry.monitors.tasks.logger")
+    def test_missed_exception_handling(self, logger):
         org = self.create_organization()
         project = self.create_project(organization=org)
 
@@ -310,7 +287,7 @@ class MonitorTaskCheckMissingTest(TestCase):
                 "schedule": [-2, "minute"],
             },
         )
-        failing_monitor_environment = MonitorEnvironment.objects.create(
+        MonitorEnvironment.objects.create(
             monitor=exception_monitor,
             environment=self.environment,
             next_checkin=ts - timedelta(minutes=1),
@@ -324,7 +301,7 @@ class MonitorTaskCheckMissingTest(TestCase):
             type=MonitorType.CRON_JOB,
             config={"schedule": "* * * * *"},
         )
-        successful_monitor_environment = MonitorEnvironment.objects.create(
+        monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
             environment=self.environment,
             next_checkin=ts - timedelta(minutes=1),
@@ -334,22 +311,15 @@ class MonitorTaskCheckMissingTest(TestCase):
 
         check_missing(task_run_ts)
 
-        # assert that task is called for the specific environments
-        assert check_missing_environment_mock.delay.call_count == 2
-
-        # assert failing monitor raises an error
-        with pytest.raises(ValueError):
-            check_missing_environment(failing_monitor_environment.id)
-
-        # assert regular monitor works
-        check_missing_environment(successful_monitor_environment.id)
+        # Logged the exception
+        assert logger.exception.call_count == 1
 
         # We still marked a monitor as missed
         assert MonitorEnvironment.objects.filter(
-            id=successful_monitor_environment.id, status=MonitorStatus.MISSED_CHECKIN
+            id=monitor_environment.id, status=MonitorStatus.MISSED_CHECKIN
         ).exists()
         assert MonitorCheckIn.objects.filter(
-            monitor_environment=successful_monitor_environment.id, status=CheckInStatus.MISSED
+            monitor_environment=monitor_environment.id, status=CheckInStatus.MISSED
         ).exists()
 
 
