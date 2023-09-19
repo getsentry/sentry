@@ -37,8 +37,16 @@ type State = {
 
 class TraceSummary extends Component<Props> {
   state: State = {
-    limit: Number(this.props.location.query.limit) ?? DEFAULT_TRACE_ROWS_LIMIT,
+    limit: DEFAULT_TRACE_ROWS_LIMIT,
   };
+
+  componentDidMount(): void {
+    const {query} = this.props.location;
+
+    if (query.limit) {
+      this.setState({limit: query.limit});
+    }
+  }
 
   handleLimitChange = (newLimit: number) => {
     this.setState({limit: newLimit});
