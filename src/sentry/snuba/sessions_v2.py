@@ -1,7 +1,8 @@
+from __future__ import annotations
+
 import itertools
 import logging
 import math
-from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -703,9 +704,11 @@ def massage_sessions_result_summary(
             name: field.extract_from_row(totals[0], group) for name, field in query.fields.items()
         }
 
-    def get_category_stats(reason, totals, outcome, category, category_stats=None):
+    def get_category_stats(
+        reason, totals, outcome, category, category_stats: None | Dict[str, int] = None
+    ):
         if not category_stats:
-            category_stats: defaultdict(int) = {
+            category_stats = {
                 "category": category,
                 "outcomes": {o.api_name(): 0 for o in Outcome}
                 if not outcome_query
