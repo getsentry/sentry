@@ -109,11 +109,14 @@ const TextContainer = styled('div')`
 
 const SubText = styled('div')`
   color: ${p => p.theme.subText};
-  line-height: ${p => p.theme.fontSizeMedium};
   font-size: ${p => p.theme.fontSizeMedium};
+  line-height: ${p => p.theme.fontSizeMedium};
 `;
 
 const TypeText = styled(SubText)`
-  text-transform: uppercase;
+  align-items: center;
+  display: flex;
   font-weight: 500;
+  gap: ${space(0.5)};
+  text-transform: uppercase;
 `;
