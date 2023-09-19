@@ -6,7 +6,11 @@ from rest_framework import serializers
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.api.serializers.rest_framework.project import ProjectField
 from sentry.constants import SentryAppInstallationStatus
-from sentry.integrations.slack.utils.channel import get_channel_id, validate_channel_id
+from sentry.integrations.discord.utils.channel import (
+    validate_channel_id as validate_channel_id_discord,
+)
+from sentry.integrations.slack.utils.channel import get_channel_id
+from sentry.integrations.slack.utils.channel import validate_channel_id as validate_channel_id_slack
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.models.notificationaction import ActionService, ActionTarget, NotificationAction
 from sentry.models.project import Project
@@ -172,7 +176,7 @@ class NotificationActionSerializer(CamelSnakeModelSerializer):
         # If we've received a channel and id, verify them against one another
         if channel_name and channel_id:
             try:
-                validate_channel_id(
+                validate_channel_id_slack(
                     name=channel_name,
                     integration_id=self.integration.id,
                     input_channel_id=channel_id,
@@ -202,6 +206,41 @@ class NotificationActionSerializer(CamelSnakeModelSerializer):
                     "target_identifier": "Please provide a slack channel id, we encountered an error while earching for it via the channel name."
                 }
             )
+        data["target_identifier"] = channel_id
+        return data
+
+    def validate_discord_channel(
+        self, data: NotificationActionInputData
+    ) -> NotificationActionInputData:
+        """
+        Validates that SPECIFIC targets for DISCORD service has the following target data:
+            target_display: Discord channel id
+            target_identifier: Discord channel id
+        NOTE: Reaches out to via discord integration to verify channel
+        """
+        if (
+            data["service_type"] != ActionService.DISCORD.value
+            or data["target_type"] != ActionTarget.SPECIFIC.value
+        ):
+            return data
+
+        channel_name = data.get("target_display")
+        channel_id = data.get("target_identifier")
+
+        if not channel_id and channel_name:
+            raise serializers.ValidationError(
+                {"target_identifier": "Did not receive a discord channel id."}
+            )
+
+        try:
+            validate_channel_id_discord(
+                channel_id=channel_id,
+                guild_id=self.integration.external_id,
+                integration_id=self.integration.id,
+            )
+        except Exception as e:
+            raise serializers.ValidationError({"target_identifier": str(e)})
+
         data["target_identifier"] = channel_id
         return data
 
@@ -262,6 +301,7 @@ class NotificationActionSerializer(CamelSnakeModelSerializer):
 
         data = self.validate_slack_channel(data)
         data = self.validate_pagerduty_service(data)
+        data = self.validate_discord_channel(data)
 
         return data
 
