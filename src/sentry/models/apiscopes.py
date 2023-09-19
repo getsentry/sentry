@@ -14,7 +14,7 @@ class ApiScopes(Sequence):
 
     event = (("event:read"), ("event:write"), ("event:admin"))
 
-    org = (("org:read"), ("org:write"), ("org:admin"), ("org:integrations"))
+    org = (("org:read"), ("org:write"), ("org:admin"))
 
     member = (("member:read"), ("member:write"), ("member:admin"))
 
@@ -62,7 +62,6 @@ class HasApiScopes(models.Model):
             "org:read": bool,
             "org:write": bool,
             "org:admin": bool,
-            "org:integrations": bool,
             "member:read": bool,
             "member:write": bool,
             "member:admin": bool,
