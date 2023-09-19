@@ -1,7 +1,6 @@
-import subprocess
 from typing import Tuple
 
-from devenv.lib import fs
+from devenv.lib import fs, proc
 from devenv.lib_check import brew
 from devenv.lib_check.types import checker, fixer
 
@@ -25,16 +24,7 @@ def check() -> Tuple[bool, str]:
 @fixer
 def fix() -> Tuple[bool, str]:
     try:
-        subprocess.run(("brew", "bundle"), cwd=fs.gitroot(), check=True, capture_output=True)
-    except subprocess.CalledProcessError as e:
-        return (
-            False,
-            f"""
-`{e.cmd}` returned code {e.returncode}
-stdout:
-{e.stdout.decode()}
-stderr:
-{e.stderr.decode()}
-""",
-        )
+        proc.run_stream_output(("brew", "bundle"), cwd=fs.gitroot(), exit=False)
+    except RuntimeError as e:
+        return False, f"{e}"
     return True, ""
