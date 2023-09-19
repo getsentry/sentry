@@ -160,7 +160,23 @@ def detect_function_trends(project_ids: List[int], start: datetime, *args, **kwa
 def detect_function_change_points(
     functions_list: List[Tuple[int, int]], start: datetime, *args, **kwargs
 ) -> None:
-    _detect_function_change_points(functions_list, start)
+    breakpoints = _detect_function_change_points(functions_list, start)
+
+    for entry in breakpoints:
+        with sentry_sdk.push_scope() as scope:
+            scope.set_tag("regressed_project_id", entry["project"])
+            # the service was originally meant for transactions so this
+            # naming is a result of this
+            scope.set_tag("regressed_function_id", entry["transaction"])
+            scope.set_context(
+                "statistical_detectors",
+                {
+                    **entry,
+                    "timestamp": start.isoformat(),
+                    "breakpoint": datetime.fromtimestamp(entry["breakpoint"]),
+                },
+            )
+            sentry_sdk.capture_message("Potential Regression")
 
 
 def _detect_function_trends(
@@ -259,21 +275,7 @@ def _detect_function_change_points(functions_list: List[Tuple[int, int]], start:
 
         breakpoints = detect_breakpoints(request)["data"]
 
-        for entry in breakpoints:
-            with sentry_sdk.push_scope() as scope:
-                scope.set_tag("regressed_project_id", entry["project"])
-                # the service was originally meant for transactions so this
-                # naming is a result of this
-                scope.set_tag("regressed_function_id", entry["transaction"])
-                scope.set_context(
-                    "statistical_detectors",
-                    {
-                        **entry,
-                        "timestamp": start.isoformat(),
-                        "breakpoint": datetime.fromtimestamp(entry["breakpoint"]),
-                    },
-                )
-                sentry_sdk.capture_message("Potential Regression")
+        yield from breakpoints
 
 
 def all_function_payloads(
