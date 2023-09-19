@@ -745,10 +745,12 @@ def massage_sessions_result_summary(
             projects[project_id] = {"categories": {}}
 
         if category in projects[project_id]["categories"]:
+            # update stats dict for category
             projects[project_id]["categories"][category] = get_category_stats(
                 reason, totals, outcome, category, projects[project_id]["categories"][category]
             )
         else:
+            # create stats dict for category
             projects[project_id]["categories"][category] = get_category_stats(
                 reason, totals, outcome, category
             )
@@ -757,6 +759,8 @@ def massage_sessions_result_summary(
     ids = projects.keys()
     project_id_to_slug = dict(Project.objects.filter(id__in=ids).values_list("id", "slug"))
     formatted_projects = []
+
+    # format stats for each project
     for key, values in projects.items():
         categories = values["categories"]
         project_dict = {"id": key, "slug": project_id_to_slug[key], "stats": []}

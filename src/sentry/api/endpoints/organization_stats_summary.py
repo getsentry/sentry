@@ -13,6 +13,7 @@ from rest_framework.response import Response
 from typing_extensions import TypedDict
 
 from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.utils import InvalidParams as InvalidParamsApi
@@ -29,8 +30,6 @@ from sentry.utils.outcomes import Outcome
 
 
 class OrgStatsSummaryQueryParamsSerializer(serializers.Serializer):
-    # TODO: refactor endpoint and use this to validate query parameters.
-    # TODO: define fields for date parameters for use elsewhere
     # time params
     statsPeriod = serializers.CharField(
         help_text=(
@@ -120,11 +119,11 @@ class StatsSummaryApiResponse(TypedDict):
 @extend_schema(tags=["Organizations"])
 @region_silo_endpoint
 class OrganizationStatsSummaryEndpoint(OrganizationEventsEndpointBase):
+    public = {"GET": ApiPublishStatus.EXPERIMENTAL}
     owner = ApiOwner.ENTERPRISE
-    public = {"GET"}
 
     @extend_schema(
-        operation_id="Retrieve Summarized Event Counts for an Organization",
+        operation_id="Retrieve Summarized Event Counts for Projects in an Organization",
         parameters=[GlobalParams.ORG_SLUG, OrgStatsSummaryQueryParamsSerializer],
         request=None,
         responses={
@@ -132,7 +131,7 @@ class OrganizationStatsSummaryEndpoint(OrganizationEventsEndpointBase):
             401: RESPONSE_UNAUTHORIZED,
             404: RESPONSE_NOT_FOUND,
         },
-        examples=OrganizationExamples.RETRIEVE_EVENT_COUNTS_V2,
+        examples=OrganizationExamples.RETRIEVE_SUMMARY_EVENT_COUNT,
     )
     def get(self, request: Request, organization) -> Response:
         """
