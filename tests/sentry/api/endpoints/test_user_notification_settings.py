@@ -189,7 +189,9 @@ class UserNotificationSettingsUpdateTest(UserNotificationSettingsTestBase):
         self.get_success_response(
             "me",
             deploy={
-                "user": {"me": {"email": "never", "slack": "always"}},  # enabled for slack
+                "user": {
+                    "me": {"email": "never", "slack": "committed_only"}
+                },  # committed_only for slack
                 "project": {
                     project2.id: {"email": "never", "slack": "always"},  # enabled
                     self.project.id: {"email": "never", "slack": "never"},  # disabled
@@ -209,7 +211,9 @@ class UserNotificationSettingsUpdateTest(UserNotificationSettingsTestBase):
             "scope_type": "user",
             "scope_identifier": self.user.id,
         }
-        assert NotificationSettingOption.objects.filter(**query_args, value="always").exists()
+        assert NotificationSettingOption.objects.filter(
+            **query_args, value="committed_only"
+        ).exists()
         assert NotificationSettingProvider.objects.filter(
             **query_args, provider="email", value="never"
         ).exists()
