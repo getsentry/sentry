@@ -2,14 +2,9 @@ from datetime import datetime, timedelta
 
 from django.urls import reverse
 
-from sentry.models import (
-    Environment,
-    Release,
-    ReleaseEnvironment,
-    ReleaseProjectEnvironment,
-    ReleaseThreshold,
-)
+from sentry.models import Environment, Release, ReleaseEnvironment, ReleaseProjectEnvironment
 from sentry.models.release_threshold.constants import ReleaseThresholdType
+from sentry.models.release_threshold.release_threshold import ReleaseThreshold
 from sentry.testutils.cases import APITestCase
 
 
@@ -37,7 +32,6 @@ class ReleaseThresholdStatusTest(APITestCase):
         self.release1 = Release.objects.create(version="1", organization=self.organization)
         # add_project get_or_creates a ReleaseProject
         self.release1.add_project(self.project1)
-        # cannot add multiple projects to a release??? :think:
         self.release1.add_project(self.project2)
 
         # release created for proj1
@@ -85,7 +79,7 @@ class ReleaseThresholdStatusTest(APITestCase):
         # thresholds for project1 in canary
         ReleaseThreshold.objects.create(
             threshold_type=ReleaseThresholdType.TOTAL_ERROR_COUNT,
-            trigger_type=2,
+            trigger_type=1,
             value=100,
             window_in_seconds=100,
             project=self.project1,
@@ -93,7 +87,7 @@ class ReleaseThresholdStatusTest(APITestCase):
         )
         ReleaseThreshold.objects.create(
             threshold_type=ReleaseThresholdType.NEW_ISSUE_COUNT,
-            trigger_type=2,
+            trigger_type=1,
             value=100,
             window_in_seconds=100,
             project=self.project1,
@@ -102,7 +96,7 @@ class ReleaseThresholdStatusTest(APITestCase):
         # threshold for project1 in production
         ReleaseThreshold.objects.create(
             threshold_type=ReleaseThresholdType.TOTAL_ERROR_COUNT,
-            trigger_type=2,
+            trigger_type=1,
             value=100,
             window_in_seconds=100,
             project=self.project1,
@@ -111,7 +105,7 @@ class ReleaseThresholdStatusTest(APITestCase):
         # threshold for project2 in canary
         ReleaseThreshold.objects.create(
             threshold_type=ReleaseThresholdType.TOTAL_ERROR_COUNT,
-            trigger_type=2,
+            trigger_type=1,
             value=100,
             window_in_seconds=100,
             project=self.project2,
