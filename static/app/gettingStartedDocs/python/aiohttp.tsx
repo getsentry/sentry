@@ -109,7 +109,7 @@ web.run_app(app)
 from aiohttp import web
 
 sentry_sdk.init(
-  ${sentryInitContent}
+${sentryInitContent}
 )
 
 async def hello(request):
@@ -123,17 +123,22 @@ web.run_app(app)`,
       },
     ],
     additionalInfo: (
-      <p>
-        {tct(
-          `When you point your browser to [localhost_link:http://localhost:8080/] a transaction in the Performance section of [sentry_link:sentry.io] will be created. Additionally an error event will be sent to [sentry_link:sentry.io] and will be connected to the transaction. It takes a couple of moments for the data to appear in [sentry_link:sentry.io].`,
-          {
-            localhost_link: <ExternalLink href="http://localhost:8080/" />,
-            sentry_link: (
-              <ExternalLink href="https://docs.aiohttp.org/en/stable/web.html" />
-            ),
-          }
-        )}
-      </p>
+      <span>
+        <p>
+          {tct(
+            `When you point your browser to [localhostLInk:http://localhost:8080/] a transaction in the Performance section of Sentry will be created.`,
+            {
+              localhostLInk: <ExternalLink href="http://localhost:8080/" />,
+            }
+          )}
+        </p>
+        <p>
+          {t(
+            'Additionally, an error event will be sent to Sentry and will be connected to the transaction.'
+          )}
+        </p>
+        <p>{t('It takes a couple of moments for the data to appear in Sentry.')}</p>
+      </span>
     ),
   },
 ];

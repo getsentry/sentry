@@ -105,14 +105,22 @@ run(app, host='localhost', port=8000)
       },
     ],
     additionalInfo: (
-      <p>
-        {tct(
-          'When you point your browser to [link:http://localhost:8000/] a transaction in the Performance section of Sentry will be created. Additionally, an error event will be sent to Sentry and will be connected to the transaction. It takes a couple of moments for the data to appear in Sentry.',
-          {
-            link: <ExternalLink href="http://localhost:8000/" />,
-          }
-        )}
-      </p>
+      <span>
+        <p>
+          {tct(
+            'When you point your browser to [link:http://localhost:8000/] a transaction in the Performance section of Sentry will be created.',
+            {
+              link: <ExternalLink href="http://localhost:8000/" />,
+            }
+          )}
+        </p>
+        <p>
+          {t(
+            'Additionally, an error event will be sent to Sentry and will be connected to the transaction.'
+          )}
+        </p>
+        <p>{t('It takes a couple of moments for the data to appear in Sentry.')}</p>
+      </span>
     ),
   },
 ];
