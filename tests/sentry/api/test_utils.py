@@ -4,7 +4,6 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from django.utils import timezone
-from freezegun import freeze_time
 from sentry_sdk import Scope
 from sentry_sdk.utils import exc_info_from_error
 
@@ -16,6 +15,7 @@ from sentry.api.utils import (
     print_and_capture_handler_exception,
 )
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.datetime import freeze_time
 
 
 class GetDateRangeFromParamsTest(unittest.TestCase):

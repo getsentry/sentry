@@ -10,7 +10,6 @@ import responses
 from django.conf import settings
 from django.db import connections
 from django.test import RequestFactory
-from freezegun import freeze_time
 from pytest import raises
 from rest_framework import status
 
@@ -18,6 +17,8 @@ from sentry.models import (
     ControlOutbox,
     Organization,
     OrganizationMember,
+    OrganizationMemberTeam,
+    OrganizationMemberTeamReplica,
     OutboxCategory,
     OutboxFlushError,
     OutboxScope,
@@ -30,6 +31,7 @@ from sentry.silo import SiloMode
 from sentry.tasks.deliver_from_outbox import enqueue_outbox_jobs
 from sentry.testutils.cases import TestCase, TransactionTestCase
 from sentry.testutils.factories import Factories
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.region import override_regions
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, region_silo_test
@@ -593,3 +595,53 @@ class RegionOutboxTest(TestCase):
             # We expect the shard to be drained if at *least* one scheduled
             # message is in the past.
             assert RegionOutbox.objects.count() == 0
+
+
+class TestOutboxesManager(TestCase):
+    def test_bulk_operations(self):
+        org = self.create_organization()
+        team = self.create_team(organization=org)
+        members = [
+            self.create_member(user_id=i + 1000, organization_id=org.id) for i in range(0, 10)
+        ]
+        do_not_touch = OrganizationMemberTeam(
+            organizationmember=self.create_member(user_id=99, organization_id=org.id),
+            team=team,
+            role="ploy",
+        )
+        do_not_touch.save()
+
+        OrganizationMemberTeam.objects.bulk_create(
+            OrganizationMemberTeam(organizationmember=member, team=team) for member in members
+        )
+
+        with outbox_runner():
+            assert RegionOutbox.objects.count() == 10
+            assert OrganizationMemberTeamReplica.objects.count() == 1
+            assert OrganizationMemberTeam.objects.count() == 11
+
+        assert RegionOutbox.objects.count() == 0
+        assert OrganizationMemberTeamReplica.objects.count() == 11
+        assert OrganizationMemberTeam.objects.count() == 11
+
+        existing = OrganizationMemberTeam.objects.all().exclude(id=do_not_touch.id).all()
+        for obj in existing:
+            obj.role = "cow"
+        OrganizationMemberTeam.objects.bulk_update(existing, ["role"])
+
+        with outbox_runner():
+            assert RegionOutbox.objects.count() == 10
+            assert OrganizationMemberTeamReplica.objects.filter(role="cow").count() == 0
+
+        assert RegionOutbox.objects.count() == 0
+        assert OrganizationMemberTeamReplica.objects.filter(role="cow").count() == 10
+
+        OrganizationMemberTeam.objects.bulk_delete(existing)
+
+        with outbox_runner():
+            assert RegionOutbox.objects.count() == 10
+            assert OrganizationMemberTeamReplica.objects.count() == 11
+            assert OrganizationMemberTeam.objects.count() == 1
+
+        assert RegionOutbox.objects.count() == 0
+        assert OrganizationMemberTeamReplica.objects.count() == 1

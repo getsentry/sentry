@@ -382,7 +382,11 @@ function MonitorForm({
               />
               <NumberField
                 name="config.max_runtime"
-                placeholder={`Defaults to ${DEFAULT_MAX_RUNTIME} minutes`}
+                placeholder={tn(
+                  'Defaults to %s minute',
+                  'Defaults to %s minutes',
+                  DEFAULT_MAX_RUNTIME
+                )}
                 help={t(
                   'Number of a minutes before an in-progress check-in is marked timed out.'
                 )}

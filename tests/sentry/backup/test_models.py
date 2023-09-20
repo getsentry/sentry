@@ -24,6 +24,7 @@ from sentry.incidents.models import (
     PendingIncidentSnapshot,
     TimeSeriesSnapshot,
 )
+from sentry.models import CustomDynamicSamplingRule, CustomDynamicSamplingRuleProject
 from sentry.models.actor import Actor
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.apiauthorization import ApiAuthorization
@@ -523,6 +524,25 @@ class ModelBackupTests(TransactionTestCase):
         user = self.create_user()
         role = UserRole.objects.create(name="test-role")
         UserRoleUser.objects.create(user=user, role=role)
+        return self.import_export_then_validate()
+
+    @targets(mark(CustomDynamicSamplingRule, CustomDynamicSamplingRuleProject))
+    def test_custom_dynamic_sampling_rule(self):
+        condition = {"op": "equals", "name": "environment", "value": "prod"}
+
+        rule = CustomDynamicSamplingRule.update_or_create(
+            condition=condition,
+            start=timezone.now(),
+            end=timezone.now() + timedelta(hours=1),
+            project_ids=[self.project.id],
+            organization_id=self.organization.id,
+            num_samples=100,
+            sample_rate=0.5,
+        )
+
+        CustomDynamicSamplingRuleProject.objects.create(
+            rule=rule, project=self.project, organization=self.organization
+        )
         return self.import_export_then_validate()
 
 

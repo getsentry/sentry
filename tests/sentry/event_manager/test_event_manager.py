@@ -10,7 +10,6 @@ import responses
 from django.core.cache import cache
 from django.test.utils import override_settings
 from django.utils import timezone
-from freezegun import freeze_time
 from rest_framework.status import HTTP_404_NOT_FOUND
 from urllib3 import HTTPResponse
 from urllib3.exceptions import MaxRetryError
@@ -91,10 +90,11 @@ from sentry.testutils.cases import (
     TransactionTestCase,
 )
 from sentry.testutils.helpers import apply_feature_flag_on_cls, override_options
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.performance_issues.event_generators import get_event
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.skips import requires_snuba
 from sentry.tsdb.base import TSDBModel
 from sentry.types.activity import ActivityType
 from sentry.utils import json
@@ -102,6 +102,8 @@ from sentry.utils.cache import cache_key_for_event
 from sentry.utils.outcomes import Outcome
 from sentry.utils.samples import load_data
 from tests.sentry.integrations.github.test_repository import stub_installation_token
+
+pytestmark = [requires_snuba]
 
 
 def make_event(**kwargs):
