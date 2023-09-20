@@ -280,11 +280,11 @@ def get_stream_processor(
     strict_offset_reset: bool,
     join_timeout: Optional[float],
     max_poll_interval_ms: Optional[int],
-    group_instance_id: Optional[str],
     synchronize_commit_log_topic: Optional[str],
     synchronize_commit_group: Optional[str],
     healthcheck_file_path: Optional[str],
     validate_schema: bool = False,
+    group_instance_id: Optional[str] = None,
 ) -> StreamProcessor:
     try:
         consumer_definition = KAFKA_CONSUMERS[consumer_name]
