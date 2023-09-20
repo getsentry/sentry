@@ -114,6 +114,7 @@ class SharedGroupDetailsTest(APITestCase):
 
         self.login_as(user=self.user)
         for path_func in self._get_path_functions():
+            path = path_func(share_id)
             response = self.client.get(path, format="json")
 
             assert response.status_code == 200, response.content
