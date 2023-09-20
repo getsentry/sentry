@@ -66,16 +66,29 @@ class DiscordNotifyServiceAction(IntegrationEventAction):
                     },
                 )
 
+            rule = rules[0] if rules else None
+            analytics.record(
+                "integrations.discord.notification_sent",
+                category="issue_alert",
+                organization_id=event.organization.id,
+                project_id=event.project_id,
+                group_id=event.group_id,
+                notification_uuid=notification_uuid if notification_uuid else "",
+                alert_id=rule.id if rule else None,
+            )
+            analytics.record(
+                "alert.sent",
+                provider=self.provider,
+                alert_id=rule.id if rule else "",
+                alert_type="issue_alert",
+                organization_id=event.organization.id,
+                project_id=event.project_id,
+                external_id=channel_id,
+                notification_uuid=notification_uuid if notification_uuid else "",
+            )
+
         key = f"discord:{integration.id}:{channel_id}"
 
-        analytics.record(
-            "integrations.discord.notification_sent",
-            category="issue_alert",
-            organization_id=event.organization.id,
-            project_id=event.project_id,
-            group_id=event.group_id,
-            notification_uuid=notification_uuid if notification_uuid else "",
-        )
         metrics.incr("notifications.sent", instance="discord.notifications", skip_internal=False)
         yield self.future(send_notification, key=key)
 
