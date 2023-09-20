@@ -292,6 +292,7 @@ export function InviteMissingMembersModal({
             analyticsEventKey="github_invite_modal.invite"
             analyticsParams={{
               invited_all: memberInvites.length === selectedCount,
+              invited_count: selectedCount,
             }}
           >
             {inviteButtonLabel()}
