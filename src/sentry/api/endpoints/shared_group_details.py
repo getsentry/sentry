@@ -44,7 +44,7 @@ class SharedGroupDetailsEndpoint(Endpoint, EnvironmentMixin):
 
         if organization_slug:
             if organization_slug != group.organization.slug:
-                return ResourceDoesNotExist
+                raise ResourceDoesNotExist
 
         if group.organization.flags.disable_shared_issues:
             raise ResourceDoesNotExist

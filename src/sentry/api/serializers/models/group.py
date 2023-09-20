@@ -884,6 +884,7 @@ class SharedGroupSerializer(GroupSerializer):
     ) -> BaseGroupSerializerResponse:
         result = super().serialize(obj, attrs, user)
         del result["annotations"]  # type:ignore
+        del result["assignedTo"]  # type:ignore
         return result
 
 
