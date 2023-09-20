@@ -13,9 +13,10 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectAlertRulePermission, ProjectEndpoint
+from sentry.api.fields.actor import ActorField
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.rule import RuleSerializerResponse
-from sentry.api.serializers.rest_framework.rule import RuleSerializer
+from sentry.api.serializers.rest_framework.rule import RuleNodeField, RuleSerializer
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.examples.issue_alert_examples import IssueAlertExamples
 from sentry.apidocs.parameters import GlobalParams
@@ -84,11 +85,11 @@ def find_duplicate_rule(rule_data, project, rule_id=None):
 class ProjectRulesPostSerializer(serializers.Serializer):
     name = GlobalParams.name("The name for the rule.")
     conditions = serializers.ListField(
-        child=serializers.DictField(),
+        child=RuleNodeField(type="condition/event"),
         help_text="A list of triggers that determine when the rule fires.",
     )
     filters = serializers.ListField(
-        child=serializers.DictField(),
+        child=RuleNodeField(type="filter/event"),
         required=False,
         help_text="A list of filters that determine if a rule fires after the listed conditions have been met.",
     )
@@ -98,7 +99,7 @@ class ProjectRulesPostSerializer(serializers.Serializer):
         help_text="An operator determining which filters need to hold before any actions take place. Required when `filters` is passed in.",
     )
     actions = serializers.ListField(
-        child=serializers.DictField(),
+        child=RuleNodeField(type="action/event"),
         help_text="A list of actions that will occur when all required conditions and filters for the rule are met.",
     )
     actionMatch = serializers.ChoiceField(
@@ -111,7 +112,7 @@ class ProjectRulesPostSerializer(serializers.Serializer):
         max_value=60 * 24 * 30,
         help_text="How often the alert rule can be triggered for a particular issue, in seconds.",
     )
-    owner = serializers.IntegerField(
+    owner = ActorField(
         required=False, allow_null=True, help_text="The ID of the team or user that owns the rule."
     )
 
