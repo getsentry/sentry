@@ -276,7 +276,7 @@ describe('AlertRuleDetails', () => {
 
     expect(enableMock).toHaveBeenCalled();
     expect(
-      screen.queryByText(/This alert is scheduled to be disabled/)
+      screen.queryByText(/This alert was disabled due to lack of activity/)
     ).not.toBeInTheDocument();
   });
 
