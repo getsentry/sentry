@@ -965,7 +965,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
         # We are now left with orphan errors in the error_map,
         # that we need to serialize and return with our results.
         orphan_errors: List[TraceError] = []
-        if allow_orphan_errors and iteration <= limit:
+        if allow_orphan_errors and iteration < limit:
             for errors in error_map.values():
                 for error in errors:
                     orphan_errors.append(self.serialize_error(error))
