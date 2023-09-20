@@ -1,4 +1,5 @@
 import pytz
+import sentry_sdk
 from croniter import CroniterBadDateError, croniter
 from django.core.exceptions import ValidationError
 from django.utils import timezone
@@ -71,6 +72,24 @@ class MonitorAlertRuleValidator(serializers.Serializer):
     )
 
 
+class MissedMarginField(EmptyIntegerField):
+    def to_internal_value(self, value):
+        value = super().to_internal_value(value)
+
+        # XXX(epurkhiser): As part of GH-56526 we changed the minimum value
+        # allowed for the checkin_margin to 1 from 0. Some monitors may still
+        # be upserting monitors with a 0 for the checkin_margin.
+        #
+        # In order to not break those checkins we will still allow a value of
+        # 0, but we will transform it to 1.
+        if value == 0:
+            # Capture this as a sentry error so we can understand if we can
+            # remove this code once very few people send upserts like this.
+            sentry_sdk.capture_message("Cron Monitor recieved upsert with checkin_margin = 0")
+            return 1
+        return value
+
+
 class ConfigValidator(serializers.Serializer):
     schedule_type = serializers.ChoiceField(
         choices=list(zip(SCHEDULE_TYPES.keys(), SCHEDULE_TYPES.keys())),
@@ -90,12 +109,12 @@ class ConfigValidator(serializers.Serializer):
     When using this format the `schedule_type` is not required
     """
 
-    checkin_margin = EmptyIntegerField(
+    checkin_margin = MissedMarginField(
         required=False,
         allow_null=True,
         default=None,
         help_text="How long (in minutes) after the expected checkin time will we wait until we consider the checkin to have been missed.",
-        min_value=0,
+        min_value=1,
     )
 
     max_runtime = EmptyIntegerField(
