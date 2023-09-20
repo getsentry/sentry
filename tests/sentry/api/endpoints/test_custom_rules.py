@@ -8,7 +8,7 @@ from sentry.api.endpoints.custom_rules import (
     MAX_RULE_PERIOD_STRING,
     CustomRulesInputSerializer,
 )
-from sentry.testutils.cases import APITestCase
+from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.helpers import Feature
 from sentry.testutils.silo import region_silo_test
 
@@ -128,7 +128,6 @@ class CustomRulesEndpoint(APITestCase):
     "what,value,valid",
     [
         ("query", "event.type:transaction", True),
-        ("projects", [1, 2, 3], True),
         ("period", "1h", True),
         ("projects", ["abc"], False),
         ("period", "hello", False),
@@ -138,7 +137,7 @@ def test_custom_rule_serializer(what, value, valid):
     """
     Test that the serializer works as expected
     """
-    data = {"query": "event.type:transaction", "projects": [1, 2, 3], "period": "1h"}
+    data = {"query": "event.type:transaction", "projects": [], "period": "1h"}
     data[what] = value
 
     serializer = CustomRulesInputSerializer(data=data)
@@ -150,7 +149,7 @@ def test_custom_rule_serializer_default_period():
     """
     Test that the serializer validation sets the default period
     """
-    data = {"query": "event.type:transaction", "projects": [1, 2, 3]}
+    data = {"query": "event.type:transaction", "projects": []}
     serializer = CustomRulesInputSerializer(data=data)
 
     assert serializer.is_valid()
@@ -161,7 +160,7 @@ def test_custom_rule_serializer_limits_period():
     """
     Test that the serializer validation limits the peroid to the max allowed
     """
-    data = {"query": "event.type:transaction", "projects": [1, 2, 3], "period": "100d"}
+    data = {"query": "event.type:transaction", "projects": [], "period": "100d"}
     serializer = CustomRulesInputSerializer(data=data)
 
     assert serializer.is_valid()
@@ -178,3 +177,46 @@ def test_custom_rule_serializer_creates_org_rule_when_no_projects_given():
     assert serializer.is_valid()
     # an org level rule has an empty list of projects set
     assert serializer.validated_data["projects"] == []
+
+
+class TestCustomRuleSerializerWithProjects(TestCase):
+    def test_valid_projects(self):
+        """
+        Test that the serializer works with valid projects
+        """
+        p1 = self.create_project()
+        p2 = self.create_project()
+
+        data = {
+            "query": "event.type:transaction",
+            "period": "1h",
+            "isOrgLevel": True,
+            "projects": [p1.id, p2.id],
+        }
+        serializer = CustomRulesInputSerializer(data=data)
+
+        assert serializer.is_valid()
+        # an org level rule has an empty list of projects set
+        assert p1.id in serializer.validated_data["projects"]
+        assert p2.id in serializer.validated_data["projects"]
+
+    def test_invalid_projects(self):
+        """
+        Test that the serializer works with valid projects
+        """
+        # some valid
+        p1 = self.create_project()
+        p2 = self.create_project()
+        invalid_project_id = 1234
+        invalid_project_id2 = 4321
+
+        data = {
+            "query": "event.type:transaction",
+            "period": "1h",
+            "isOrgLevel": True,
+            "projects": [p1.id, invalid_project_id, p2.id, invalid_project_id2],
+        }
+        serializer = CustomRulesInputSerializer(data=data)
+        assert not serializer.is_valid()
+        # the two invalid projects should be in the error message
+        assert len(serializer.errors["projects"]) == 2

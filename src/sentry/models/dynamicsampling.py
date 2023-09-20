@@ -63,7 +63,6 @@ class CustomDynamicSamplingRuleProject(Model):
         "sentry.CustomDynamicSamplingRule", on_delete=models.CASCADE
     )
     project = FlexibleForeignKey("sentry.Project", on_delete=models.CASCADE)
-    organization = FlexibleForeignKey("sentry.Organization", on_delete=models.CASCADE)
 
     class Meta:
         app_label = "sentry"
@@ -152,6 +151,9 @@ class CustomDynamicSamplingRule(Model):
         num_samples: int,
         sample_rate: float,
     ) -> "CustomDynamicSamplingRule":
+
+        from sentry.models import Project
+
         with transaction.atomic(router.db_for_write(CustomDynamicSamplingRule)):
             # check if rule already exists for this organization
             existing_rule = CustomDynamicSamplingRule.get_rule_for_org(condition, organization_id)
@@ -173,11 +175,9 @@ class CustomDynamicSamplingRule(Model):
                     else:
                         # add the new projects to the rule, if not already there
                         for project_id in project_ids:
-                            CustomDynamicSamplingRuleProject.objects.get_or_create(
-                                custom_dynamic_sampling_rule=existing_rule,
-                                project_id=project_id,
-                                organization_id=organization_id,
-                            )
+                            project = Project.objects.get_from_cache(id=project_id)
+                            existing_rule.projects.add(project)
+
                 # for org rules we don't need to do anything with the projects
                 existing_rule.save()
                 return existing_rule
@@ -208,12 +208,8 @@ class CustomDynamicSamplingRule(Model):
 
                 # set the projects if not org level
                 for project_id in project_ids:
-                    CustomDynamicSamplingRuleProject.objects.get_or_create(
-                        custom_dynamic_sampling_rule=rule,
-                        project_id=project_id,
-                        organization_id=organization_id,
-                    )
-
+                    project = Project.objects.get_from_cache(id=project_id)
+                    rule.projects.add(project)
                 return rule
 
     def assign_rule_id(self) -> int:

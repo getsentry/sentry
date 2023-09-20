@@ -15,6 +15,7 @@ from sentry.api.event_search import parse_search_query
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import CustomDynamicSamplingRule, TooManyRules
 from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.snuba.metrics.extraction import SearchQueryConverter
 from sentry.utils import json
 from sentry.utils.dates import parse_stats_period
@@ -46,6 +47,18 @@ class CustomRulesInputSerializer(serializers.Serializer):
         """
         if data.get("projects") is None:
             data["projects"] = []
+
+        # check that the project exists
+        invalid_projects = []
+
+        for project_id in data["projects"]:
+            try:
+                Project.objects.get_from_cache(id=project_id)
+            except Project.DoesNotExist:
+                invalid_projects.append(f"invalid project id: {project_id}")
+
+        if invalid_projects:
+            raise serializers.ValidationError({"projects": invalid_projects})
 
         period = data.get("period")
         if period is None:
