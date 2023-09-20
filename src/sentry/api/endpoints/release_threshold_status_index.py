@@ -63,6 +63,26 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
     def get(self, request: Request, organization: Organization | RpcOrganization) -> HttpResponse:
         """
         List all derived statuses of releases that fall within the provided start/end datetimes
+
+        Constructs a nested response key'd off release_id, project_id, and lists _all_ thresholds for specified project
+        Each returned threshold value will contain the full serialized release_threshold instance as well as it's derived health status
+
+        health = {
+            release_id: {
+                project_id: [
+                    {
+                        threshold_id,
+                        project,
+                        ...,
+                        is_healthy: True/False
+                    },
+                    {...},
+                ],
+                project2_id: [],
+                ...
+            },
+            ...
+        }
         ``````````````````
 
         :param start: timestamp of the beginning of the specified date range
@@ -114,28 +134,8 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
 
         # ========================================================================
         # TODO:
+        # Fetch relevant snuba/sessions data
         # Determine which thresholds have succeeded/failed
-        """
-        Constructs a nested response key'd off release_id, project_id, and lists _all_ threshold for specified project
-        Each returned threshold value will contain the full serialized release_threshold instance as well as it's derived health status
-
-        health = {
-            release_id: {
-                project_id: [
-                    {
-                        threshold_id,
-                        project,
-                        ...,
-                        is_healthy: True/False
-                    },
-                    {...},
-                ],
-                project2_id: [],
-                ...
-            },
-            ...
-        }
-        """
 
         release_threshold_health = defaultdict()
         for release in queryset:
