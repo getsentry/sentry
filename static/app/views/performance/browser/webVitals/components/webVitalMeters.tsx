@@ -1,13 +1,13 @@
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
 import {formatAbbreviatedNumber, getDuration} from 'sentry/utils/formatters';
-import {
-  PerformanceBadge,
-  scoreToStatus,
-} from 'sentry/views/performance/browser/webVitals/components/performanceBadge';
 import {ProjectScore} from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
+import {PERFORMANCE_SCORE_COLORS} from 'sentry/views/performance/browser/webVitals/utils/performanceScoreColors';
+import {
+  scoreToStatus,
+  STATUS_TEXT,
+} from 'sentry/views/performance/browser/webVitals/utils/scoreToStatus';
 import {WebVitals} from 'sentry/views/performance/browser/webVitals/utils/types';
 
 type Props = {
@@ -18,8 +18,6 @@ type Props = {
 };
 
 export default function WebVitalMeters({onClick, projectData, projectScore}: Props) {
-  const theme = useTheme();
-  const colors = theme.charts.getColorPalette(3);
   const betterGetDuration = (value: number) => {
     return getDuration(value, value < 1000 ? 0 : 2, true);
   };
@@ -27,75 +25,60 @@ export default function WebVitalMeters({onClick, projectData, projectScore}: Pro
     <Container>
       <Flex>
         <MeterBarContainer key="lcp" onClick={() => onClick?.('lcp')}>
-          <Flex>
-            <MeterHeader>Largest Contentful Paint</MeterHeader>
-            <PerformanceBadge status={scoreToStatus(projectScore.lcpScore)} />
-          </Flex>
-          <Flex>
-            <LegendDot color={colors[0]} />
+          <MeterBarBody>
+            <MeterHeader>Largest Contentful Paint (P75)</MeterHeader>
             <MeterValueText>
               {betterGetDuration(
                 (projectData?.data?.[0]?.['p75(measurements.lcp)'] as number) / 1000
               )}
             </MeterValueText>
-          </Flex>
+          </MeterBarBody>
+          <MeterBarFooter score={projectScore.lcpScore} />
         </MeterBarContainer>
         <MeterBarContainer key="fcp" onClick={() => onClick?.('fcp')}>
-          <Flex>
-            <MeterHeader>First Contentful Paint</MeterHeader>
-            <PerformanceBadge status={scoreToStatus(projectScore.fcpScore)} />
-          </Flex>
-          <Flex>
-            <LegendDot color={colors[1]} />
+          <MeterBarBody>
+            <MeterHeader>First Contentful Paint (P75)</MeterHeader>
             <MeterValueText>
               {betterGetDuration(
                 (projectData?.data?.[0]?.['p75(measurements.fcp)'] as number) / 1000
               )}
             </MeterValueText>
-          </Flex>
+          </MeterBarBody>
+          <MeterBarFooter score={projectScore.fcpScore} />
         </MeterBarContainer>
         <MeterBarContainer key="fid" onClick={() => onClick?.('fid')}>
-          <Flex>
-            <MeterHeader>First Input Delay</MeterHeader>
-            <PerformanceBadge status={scoreToStatus(projectScore.fidScore)} />
-          </Flex>
-          <Flex>
-            <LegendDot color={colors[2]} />
+          <MeterBarBody>
+            <MeterHeader>First Input Delay (P75)</MeterHeader>
             <MeterValueText>
               {betterGetDuration(
                 (projectData?.data?.[0]?.['p75(measurements.fid)'] as number) / 1000
               )}
             </MeterValueText>
-          </Flex>
+          </MeterBarBody>
+          <MeterBarFooter score={projectScore.fidScore} />
         </MeterBarContainer>
         <MeterBarContainer key="cls" onClick={() => onClick?.('cls')}>
-          <Flex>
-            <MeterHeader>Cumulative Layout Shift</MeterHeader>
-            <PerformanceBadge status={scoreToStatus(projectScore.clsScore)} />
-          </Flex>
-          <Flex>
-            <LegendDot color={colors[3]} />
+          <MeterBarBody>
+            <MeterHeader>Cumulative Layout Shift (P75)</MeterHeader>
             <MeterValueText>
               {formatAbbreviatedNumber(
                 projectData?.data?.[0]?.['p75(measurements.cls)'] as number,
                 2
               )}
             </MeterValueText>
-          </Flex>
+          </MeterBarBody>
+          <MeterBarFooter score={projectScore.clsScore} />
         </MeterBarContainer>
         <MeterBarContainer key="ttfb" onClick={() => onClick?.('ttfb')}>
-          <Flex>
-            <MeterHeader>Time To First Byte</MeterHeader>
-            <PerformanceBadge status={scoreToStatus(projectScore.ttfbScore)} />
-          </Flex>
-          <Flex>
-            <LegendDot color={colors[4]} />
+          <MeterBarBody>
+            <MeterHeader>Time To First Byte (P75)</MeterHeader>
             <MeterValueText>
               {betterGetDuration(
                 (projectData?.data?.[0]?.['p75(measurements.ttfb)'] as number) / 1000
               )}
             </MeterValueText>
-          </Flex>
+          </MeterBarBody>
+          <MeterBarFooter score={projectScore.ttfbScore} />
         </MeterBarContainer>
       </Flex>
     </Container>
@@ -106,12 +89,12 @@ const Container = styled('div')`
   margin-top: ${space(2)};
 `;
 
-const Flex = styled('div')`
+const Flex = styled('div')<{gap?: number}>`
   display: flex;
   flex-direction: row;
   justify-content: space-between;
   width: 100%;
-  gap: ${space(2)};
+  gap: ${p => (p.gap ? `${p.gap}px` : space(2))};
   align-items: center;
 `;
 
@@ -119,11 +102,16 @@ const MeterBarContainer = styled('div')`
   flex: 1;
   top: -6px;
   position: relative;
-  border: 1px solid ${p => p.theme.gray200};
-  border-radius: ${p => p.theme.borderRadius};
-  padding: ${space(1.5)};
+  padding: 0;
   cursor: pointer;
   min-width: 200px;
+`;
+
+const MeterBarBody = styled('div')`
+  border: 1px solid ${p => p.theme.gray200};
+  border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
+  border-bottom: none;
+  padding: ${space(1)} 0 ${space(0.5)} 0;
 `;
 
 const MeterHeader = styled('div')`
@@ -131,22 +119,33 @@ const MeterHeader = styled('div')`
   color: ${p => p.theme.textColor};
   font-weight: bold;
   display: inline-block;
-`;
-
-const LegendDot = styled('span')<{color: string}>`
-  padding: 0;
-  position: relative;
-  width: 10px;
-  height: 10px;
-  text-indent: -9999em;
-  display: inline-block;
-  border-radius: 50%;
-  flex-shrink: 0;
-  background-color: ${p => p.color};
+  white-space: nowrap;
+  text-align: center;
+  width: 100%;
 `;
 
 const MeterValueText = styled('div')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.headerFontSize};
   color: ${p => p.theme.textColor};
   flex: 1;
+  text-align: center;
+`;
+
+function MeterBarFooter({score}: {score: number}) {
+  const status = scoreToStatus(score);
+  return (
+    <MeterBarFooterContainer status={status}>
+      {STATUS_TEXT[status]} {score}
+    </MeterBarFooterContainer>
+  );
+}
+
+const MeterBarFooterContainer = styled('div')<{status: string}>`
+  color: ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].normal]};
+  border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
+  background-color: ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].light]};
+  border: solid 1px ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].normal]};
+  font-size: ${p => p.theme.fontSizeExtraSmall};
+  padding: ${space(0.5)};
+  text-align: center;
 `;

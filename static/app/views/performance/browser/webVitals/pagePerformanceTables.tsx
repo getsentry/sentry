@@ -1,20 +1,25 @@
 import {useMemo} from 'react';
 import {Link} from 'react-router';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
-import GridEditable, {
+import {
   COL_WIDTH_UNDEFINED,
   GridColumnHeader,
   GridColumnOrder,
-  GridColumnSortBy,
 } from 'sentry/components/gridEditable';
+import {
+  Grid,
+  GridBody,
+  GridBodyCell,
+  GridRow,
+} from 'sentry/components/gridEditable/styles';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
-import {getScoreColor} from 'sentry/views/performance/browser/webVitals/utils/getScoreColor';
+import {PerformanceBadge} from 'sentry/views/performance/browser/webVitals/components/performanceBadge';
 import {Row} from 'sentry/views/performance/browser/webVitals/utils/types';
 import {useTransactionWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/useTransactionWebVitalsQuery';
 
@@ -26,14 +31,11 @@ type Column = GridColumnHeader<keyof RowWithScore>;
 
 const columnOrder: GridColumnOrder<keyof RowWithScore>[] = [
   {key: 'transaction', width: COL_WIDTH_UNDEFINED, name: 'Transaction'},
-  {key: 'count()', width: COL_WIDTH_UNDEFINED, name: 'Count'},
+  {key: 'count()', width: COL_WIDTH_UNDEFINED, name: 'Page Loads'},
   {key: 'score', width: COL_WIDTH_UNDEFINED, name: 'Score'},
 ];
 
-const sort: GridColumnSortBy<keyof Row> = {key: 'count()', order: 'desc'};
-
 export function PagePerformanceTables() {
-  const theme = useTheme();
   const location = useLocation();
   const {projects} = useProjects();
 
@@ -42,7 +44,7 @@ export function PagePerformanceTables() {
     [projects, location.query.project]
   );
 
-  const {data, isLoading} = useTransactionWebVitalsQuery({});
+  const {data} = useTransactionWebVitalsQuery({});
 
   const tableData: RowWithScore[] = data.sort((a, b) => b['count()'] - a['count()']);
 
@@ -52,25 +54,17 @@ export function PagePerformanceTables() {
     .slice(0, MAX_ROWS);
   const bad = tableData.filter(row => row.score < 50).slice(0, MAX_ROWS);
 
-  const getRenderHeadCell = (label, threshold) => {
-    return function (col: Column) {
-      if (col.key === 'score') {
-        return <AlignRight>{threshold}</AlignRight>;
-      }
-      if (col.key === 'transaction') {
-        return <NoOverflow>{label}</NoOverflow>;
-      }
-      return <AlignRight>{col.name}</AlignRight>;
-    };
-  };
-
   function renderBodyCell(col: Column, row: RowWithScore) {
     const {key} = col;
     if (key === 'score') {
-      return <AlignRight color={getScoreColor(row.score, theme)}>{row.score}</AlignRight>;
+      return (
+        <AlignCenter>
+          <PerformanceBadge score={row.score} />
+        </AlignCenter>
+      );
     }
     if (key === 'count()') {
-      return <AlignRight>{row['count()']}</AlignRight>;
+      return <AlignRight>{formatAbbreviatedNumber(row['count()'])}</AlignRight>;
     }
     if (key === 'transaction') {
       const link = `/performance/summary/?${qs.stringify({
@@ -90,47 +84,53 @@ export function PagePerformanceTables() {
     <div>
       <Flex>
         <GridContainer>
-          <GridEditable
-            data={bad}
-            isLoading={isLoading}
-            columnOrder={columnOrder}
-            columnSortBy={[sort]}
-            grid={{
-              renderHeadCell: getRenderHeadCell('Bad', '<50'),
-              renderBodyCell,
-            }}
-            location={location}
-          />
+          <GridDescription>
+            <GridDescriptionHeader>{t('Poor Score')}</GridDescriptionHeader>
+            {t('Pageload scores less than 50')}
+          </GridDescription>
+          <StyledGrid data-test-id="grid-editable" scrollable={false}>
+            <GridContent data={bad} renderBodyCell={renderBodyCell} />
+          </StyledGrid>
         </GridContainer>
         <GridContainer>
-          <GridEditable
-            data={needsImprovement}
-            isLoading={isLoading}
-            columnOrder={columnOrder}
-            columnSortBy={[sort]}
-            grid={{
-              renderHeadCell: getRenderHeadCell('Needs Improvement', '>= 50'),
-              renderBodyCell,
-            }}
-            location={location}
-          />
+          <GridDescription>
+            <GridDescriptionHeader>{t('Good Score')}</GridDescriptionHeader>
+            {t('Pageload scores greater than or equal to 50')}
+          </GridDescription>
+          <StyledGrid data-test-id="grid-editable" scrollable={false}>
+            <GridContent data={needsImprovement} renderBodyCell={renderBodyCell} />
+          </StyledGrid>
         </GridContainer>
         <GridContainer>
-          <GridEditable
-            data={good}
-            isLoading={isLoading}
-            columnOrder={columnOrder}
-            columnSortBy={[sort]}
-            grid={{
-              renderHeadCell: getRenderHeadCell('Good', '>= 90'),
-              renderBodyCell,
-            }}
-            location={location}
-          />
+          <GridDescription>
+            <GridDescriptionHeader>{t('Good Score')}</GridDescriptionHeader>
+            {t('Pageload scores greater than or equal to 90')}
+          </GridDescription>
+          <StyledGrid data-test-id="grid-editable" scrollable={false}>
+            <GridContent data={good} renderBodyCell={renderBodyCell} />
+          </StyledGrid>
         </GridContainer>
       </Flex>
       <ShowMore>{t('Show More')}</ShowMore>
     </div>
+  );
+}
+
+function GridContent({data, renderBodyCell}) {
+  return (
+    <GridBody>
+      {data.map(row => {
+        return (
+          <GridRow key={row.transaction}>
+            {columnOrder.map(column => (
+              <GridBodyCell key={`${row.transaction} ${column.key}`}>
+                {renderBodyCell(column, row)}
+              </GridBodyCell>
+            ))}
+          </GridRow>
+        );
+      })}
+    </GridBody>
   );
 }
 
@@ -159,6 +159,11 @@ const AlignRight = styled('span')<{color?: string}>`
   ${p => (p.color ? `color: ${p.color};` : '')}
 `;
 
+const AlignCenter = styled('span')`
+  text-align: center;
+  width: 100%;
+`;
+
 const ShowMore = styled('div')`
   color: ${p => p.theme.gray300};
   font-size: ${p => p.theme.fontSizeMedium};
@@ -168,4 +173,28 @@ const ShowMore = styled('div')`
   &:hover {
     color: ${p => p.theme.gray400};
   }
+`;
+
+const StyledGrid = styled(Grid)`
+  grid-template-columns: minmax(90px, auto) minmax(90px, auto) minmax(90px, auto);
+  border: 1px solid ${p => p.theme.border};
+  border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
+
+  > tbody > tr:first-child td {
+    border-top: none;
+  }
+`;
+
+const GridDescription = styled('div')`
+  font-size: ${p => p.theme.fontSizeMedium};
+  padding: ${space(1)} ${space(2)};
+  border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
+  border: 1px solid ${p => p.theme.border};
+  border-bottom: none;
+  color: ${p => p.theme.gray300};
+`;
+
+const GridDescriptionHeader = styled('div')`
+  font-weight: bold;
+  color: ${p => p.theme.textColor};
 `;

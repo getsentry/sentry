@@ -1,8 +1,6 @@
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import toUpper from 'lodash/toUpper';
 
-import MarkLine from 'sentry/components/charts/components/markLine';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -79,7 +77,7 @@ export function PerformanceScoreChart({projectScore, webVital}: Props) {
       </PerformanceScoreLabelContainer>
       <ChartContainer>
         <PerformanceScoreLabel>
-          {t('Performance Score Breakdown')}
+          {t('Score Breakdown')}
           <IconChevron size="xs" direction="down" style={{top: 1}} />
         </PerformanceScoreLabel>
         <PerformanceScoreSubtext>{performanceScoreSubtext}</PerformanceScoreSubtext>
@@ -139,66 +137,17 @@ export function PerformanceScoreChart({projectScore, webVital}: Props) {
               seriesName: 'TTFB',
               color: segmentColors[4],
             },
-            {
-              data: [],
-              seriesName: `${webVital ? toUpper(webVital) : 'Performance'} Score`,
-              markLine: MarkLine({
-                data: [
-                  {
-                    yAxis: 90,
-                    lineStyle: {
-                      color: theme.green200,
-                      type: 'dashed',
-                      width: 1,
-                    },
-                    label: {
-                      position: 'end',
-                      color: theme.green300,
-                    },
-                    emphasis: {
-                      lineStyle: {
-                        color: theme.green300,
-                        type: 'dashed',
-                        width: 1,
-                      },
-                    },
-                  },
-                  {
-                    yAxis: 50,
-                    lineStyle: {
-                      color: theme.yellow200,
-                      type: 'dashed',
-                      width: 1,
-                    },
-                    label: {
-                      position: 'end',
-                      color: theme.yellow300,
-                    },
-                    emphasis: {
-                      lineStyle: {
-                        color: theme.yellow300,
-                        type: 'dashed',
-                        width: 1,
-                      },
-                    },
-                  },
-                ],
-                label: {},
-                symbol: ['none', 'none'],
-                tooltip: {
-                  show: false,
-                },
-              }),
-            },
           ]}
+          disableXAxis
           loading={isLoading}
           utc={false}
           grid={{
             left: 5,
-            right: 20,
+            right: 5,
             top: 5,
             bottom: 0,
           }}
+          dataMax={100}
         />
       </ChartContainer>
     </Flex>
@@ -215,7 +164,7 @@ const Flex = styled('div')`
 `;
 
 const ChartContainer = styled('div')`
-  padding: ${space(2)};
+  padding: ${space(2)} ${space(2)} 0 ${space(2)};
   flex: 1;
   border: 1px solid ${p => p.theme.gray200};
   border-radius: ${p => p.theme.borderRadius};
