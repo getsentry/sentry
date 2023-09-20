@@ -1,6 +1,6 @@
 from drf_spectacular.plumbing import build_array_type, build_basic_type
 from drf_spectacular.types import OpenApiTypes
-from drf_spectacular.utils import OpenApiParameter, inline_serializer
+from drf_spectacular.utils import OpenApiParameter
 from rest_framework import serializers
 
 # NOTE: Please add new params by path vs query, then in alphabetical order
@@ -302,60 +302,12 @@ incorrect or missing.
 """,
     )
 
-    ACTIVE = OpenApiParameter(
-        name="active",
-        location="query",
-        required=False,
-        type=bool,
-        description="Toggle the browser-extensions, localhost, filtered-transaction, or web-crawlers filter on or off.",
-    )
-
     DEFAULT_RULES = OpenApiParameter(
         name="default_rules",
         location="query",
         required=False,
         type=bool,
         description="Defaults to true where the behavior is to alert the user on every new issue. Setting this to false will turn this off and the user must create their own alerts to be notified of new issues.",
-    )
-
-    IS_BOOKMARKED = OpenApiParameter(
-        name="isBookmarked",
-        location="query",
-        required=False,
-        type=bool,
-        description="Enables starring the project within the projects tab.",
-    )
-
-    OPTIONS = OpenApiParameter(
-        name="options",
-        location="query",
-        required=False,
-        type=inline_serializer(
-            name="ProjectOptionsSerializer",
-            fields={
-                "filters:react-hydration-errors": serializers.BooleanField(required=False),
-                "filters:blacklisted_ips": serializers.CharField(required=False),
-                "filters:releases": serializers.CharField(required=False),
-                "filters:error_messages": serializers.CharField(required=False),
-            },
-        ),
-        description="""
-Configure various project filters:
-- `Hydration Errors`: Filter out react hydration errors that are often unactionable
-- `IP Addresses`: Filter events from these IP addresses separated with newlines.
-- `Releases`: Filter events from these releases separated with newlines. Allows [glob pattern matching](https://docs.sentry.io/product/data-management-settings/filtering/#glob-matching).
-- `Error Message`: Filter events by error messages separated with newlines. Allows [glob pattern matching](https://docs.sentry.io/product/data-management-settings/filtering/#glob-matching).
-```json
-{
-    options: {
-        filters:react-hydration-errors: true,
-        filters:blacklisted_ips: "127.0.0.1\\n192.168. 0.1"
-        filters:releases: "[!3]\\n4"
-        filters:error_messages: "TypeError*\\n*ConnectionError*"
-    }
-}
-```
-""",
     )
 
     STATUS = OpenApiParameter(
