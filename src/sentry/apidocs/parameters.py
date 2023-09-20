@@ -302,14 +302,6 @@ incorrect or missing.
 """,
     )
 
-    ACTIVE = OpenApiParameter(
-        name="active",
-        location="query",
-        required=False,
-        type=bool,
-        description="Toggle the browser-extensions, localhost, filtered-transaction, or web-crawlers filter on or off.",
-    )
-
     BROWSER_SDK_VERSION = OpenApiParameter(
         name="browserSdkVersion",
         location="query",
@@ -359,46 +351,6 @@ Configures multiple options for the Javascript Loader Script.
         description="Activate or deactivate the client key.",
     )
 
-    IS_BOOKMARKED = OpenApiParameter(
-        name="isBookmarked",
-        location="query",
-        required=False,
-        type=bool,
-        description="Enables starring the project within the projects tab.",
-    )
-
-    OPTIONS = OpenApiParameter(
-        name="options",
-        location="query",
-        required=False,
-        type=inline_serializer(
-            name="ProjectOptionsSerializer",
-            fields={
-                "filters:react-hydration-errors": serializers.BooleanField(required=False),
-                "filters:blacklisted_ips": serializers.CharField(required=False),
-                "filters:releases": serializers.CharField(required=False),
-                "filters:error_messages": serializers.CharField(required=False),
-            },
-        ),
-        description="""
-Configure various project filters:
-- `Hydration Errors`: Filter out react hydration errors that are often unactionable
-- `IP Addresses`: Filter events from these IP addresses separated with newlines.
-- `Releases`: Filter events from these releases separated with newlines. Allows [glob pattern matching](https://docs.sentry.io/product/data-management-settings/filtering/#glob-matching).
-- `Error Message`: Filter events by error messages separated with newlines. Allows [glob pattern matching](https://docs.sentry.io/product/data-management-settings/filtering/#glob-matching).
-```json
-{
-    options: {
-        filters:react-hydration-errors: true,
-        filters:blacklisted_ips: "127.0.0.1\\n192.168. 0.1"
-        filters:releases: "[!3]\\n4"
-        filters:error_messages: "TypeError*\\n*ConnectionError*"
-    }
-}
-```
-""",
-    )
-
     RATE_LIMIT = OpenApiParameter(
         name="rateLimit",
         location="query",
@@ -422,25 +374,6 @@ disable entirely set `rateLimit` to null.
 }
 ```
         """,
-    )
-
-    SUB_FILTERS = OpenApiParameter(
-        name="subfilters",
-        location="query",
-        required=False,
-        type=build_typed_list(OpenApiTypes.STR),
-        description="""
-Specifies which legacy browser filters should be active. Anything excluded from the list will be
-disabled. The options are:
-- `ie_pre_9`: Internet Explorer Version 8 and lower
-- `ie9`: Internet Explorer Version 9
-- `ie10`: Internet Explorer Version 10
-- `ie11`: Internet Explorer Version 11
-- `safari_pre_6`: Safari Version 5 and lower
-- `opera_pre_15`: Opera Version 14 and lower
-- `opera_mini_pre_8`: Opera Mini Version 8 and lower
-- `android_pre_4`: Android Version 3 and lower
-""",
     )
 
     @staticmethod

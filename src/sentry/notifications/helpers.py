@@ -708,6 +708,9 @@ def is_double_write_enabled(
             OrganizationMapping.objects.filter(organization_id__in=list(org_ids)),
         )
     )
+    # if no orgs, then automatically enable the feature
+    if not orgs:
+        return True
     return any(features.has("organizations:notifications-double-write", org) for org in orgs)
 
 

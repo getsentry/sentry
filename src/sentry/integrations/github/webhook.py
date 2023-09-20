@@ -14,7 +14,7 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.request import Request
 
-from sentry import analytics, features, options
+from sentry import analytics, options
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.constants import ObjectStatus
@@ -109,22 +109,21 @@ class Webhook:
                 for org in orgs.values():
                     rpc_org = serialize_rpc_organization(org)
 
-                    if features.has("organizations:integrations-auto-repo-linking", org):
-                        try:
-                            _, repo = provider.create_repository(
-                                repo_config=config, organization=rpc_org
-                            )
-                        except RepoExistsError:
-                            metrics.incr("sentry.integration_repo_provider.repo_exists")
-                            continue
-
-                        analytics.record(
-                            "webhook.repository_created",
-                            organization_id=org.id,
-                            repository_id=repo.id,
-                            integration="github",
+                    try:
+                        _, repo = provider.create_repository(
+                            repo_config=config, organization=rpc_org
                         )
-                        metrics.incr("github.webhook.repository_created")
+                    except RepoExistsError:
+                        metrics.incr("sentry.integration_repo_provider.repo_exists")
+                        continue
+
+                    analytics.record(
+                        "webhook.repository_created",
+                        organization_id=org.id,
+                        repository_id=repo.id,
+                        integration="github",
+                    )
+                    metrics.incr("github.webhook.repository_created")
 
                 repos = repos.all()
 
