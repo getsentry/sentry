@@ -16,8 +16,6 @@ from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.utils import get_date_range_from_params
 from sentry.models import Release
-
-# from sentry.models.release_threshold.constants import ReleaseThresholdType, TriggerType as ReleaseThresholdTriggerType
 from sentry.services.hybrid_cloud.organization import RpcOrganization
 
 if TYPE_CHECKING:
@@ -57,7 +55,7 @@ class ReleaseThresholdStatusIndexSerializer(serializers.Serializer):
 class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, EnvironmentMixin):
     owner: ApiOwner = ApiOwner.ENTERPRISE
     publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.EXPERIMENTAL,
     }
 
     def get(self, request: Request, organization: Organization | RpcOrganization) -> HttpResponse:
