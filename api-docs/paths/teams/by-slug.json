@@ -109,11 +109,11 @@
             "properties": {
               "slug": {
                 "type": "string",
-                "description": "Uniquely identifies a team and is used for the interface. Must be available. If not provided, it is automatically generated from the name."
+                "description": "Uniquely identifies a team and is used for the interface. Must be available."
               },
               "name": {
                 "type": "string",
-                "description": "**`[DEPRECATED]`** The name for the team. If not provided, it is automatically generated from the name.",
+                "description": "**`[DEPRECATED]`** The name for the team.",
                 "deprecated": true
               }
             }
