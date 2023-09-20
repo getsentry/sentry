@@ -1,4 +1,4 @@
-import React, {Component} from 'react';
+import {Component} from 'react';
 import {RouteComponentProps} from 'react-router';
 
 import {Client} from 'sentry/api';
@@ -187,4 +187,4 @@ class TraceSummary extends Component<Props> {
   }
 }
 
-export default React.memo(withOrganization(withApi(TraceSummary)));
+export default withOrganization(withApi(TraceSummary));
