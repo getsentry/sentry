@@ -10,6 +10,7 @@ from sentry.dynamic_sampling import get_redis_client_for_ds
 from sentry.exceptions import IncompatibleMetricsQuery
 from sentry.incidents.models import AlertRule
 from sentry.models import DashboardWidgetQuery, Organization, Project
+from sentry.search.events.builder import MetricsQueryBuilder
 from sentry.search.events.types import QueryBuilderConfig
 from sentry.silo import SiloMode
 from sentry.snuba.dataset import Dataset
@@ -467,15 +468,8 @@ class CheckAM2Compatibility:
             "end": datetime.now(tz=timezone.utc),
         }
 
-        import sentry.search.events.builder.metrics as metrics
-
-        def noop_raw_snql_query(_1, _2, _3):
-            # We craft an empty dictionary for the result, in order to not make the `run_query` method crash due to
-            # mismatched expectations.
-            return {"data": [], "meta": []}
-
         try:
-            builder = metrics.MetricsQueryBuilder(
+            builder = MetricsQueryBuilder(
                 params,
                 dataset=Dataset.PerformanceMetrics,
                 query=query,
@@ -488,15 +482,7 @@ class CheckAM2Compatibility:
                     on_demand_metrics_enabled=False,
                 ),
             )
-            # We store the old function, to replace later on.
-            old_raw_snql_query = metrics.raw_snql_query  # type:ignore
-
-            # We want to make the query a noop, in order to not actually run it, since it's expensive. This is a
-            # hack in order to run all the query validations in the query builder but not actually execute the query.
-            metrics.raw_snql_query = noop_raw_snql_query  # type:ignore
-            builder.run_query(referrer="api.organization-events")
-            metrics.raw_snql_query = old_raw_snql_query  # type:ignore
-
+            builder.get_snql_query()
             return True
         except IncompatibleMetricsQuery:
             return False
