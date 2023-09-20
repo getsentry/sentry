@@ -2,11 +2,10 @@ import {useMemo} from 'react';
 import moment from 'moment';
 
 import {getInterval} from 'sentry/components/charts/utils';
-import {parseStatsPeriod} from 'sentry/components/organizations/timeRangeSelector/utils';
 import {ApiQueryKey, useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import {DateString} from '../types/core';
+import {PageFilters} from '../types/core';
 
 type MetricMeta = {
   mri: string;
@@ -63,15 +62,8 @@ export function useMetricsTagValues(mri: string, tag: string) {
   );
 }
 
-type DateTime = {
-  end: DateString | null;
-  period: string | null;
-  start: DateString | null;
-  utc: boolean | null;
-};
-
 export type MetricsDataProps = {
-  datetime: DateTime;
+  datetime: PageFilters['datetime'];
   mri: string;
   groupBy?: string[];
   op?: string;
@@ -106,19 +98,12 @@ export function useMetricsData({
   const useCase = getUseCaseFromMri(mri);
   const field = op ? `${op}(${mri})` : mri;
 
-  const {start, end, period} = useMemo(
-    () => getUTCTimeRange(datetime.start, datetime.end, datetime.period),
-    [datetime.period, datetime.start, datetime.end]
-  );
-
-  const interval = getInterval({start, end}, 'metrics');
-
   const query = getQueryString({projects, queryString});
 
-  const datetimeParams = period ? {statsPeriod: period} : {start, end};
+  const interval = getInterval(datetime, 'metrics');
 
   const queryToSend = {
-    ...datetimeParams,
+    ...getDateTimeParams(datetime),
     field,
     useCase,
     interval,
@@ -148,6 +133,12 @@ export function useMetricsData({
   );
 }
 
+function getDateTimeParams({start, end, period}: PageFilters['datetime']) {
+  return period
+    ? {statsPeriod: period}
+    : {start: moment(start).toISOString(), end: moment(end).toISOString()};
+}
+
 function getQueryString({
   projects = [],
   queryString = '',
@@ -155,22 +146,6 @@ function getQueryString({
   const projectQuery = projects.length ? `project:[${projects}]` : '';
   return [projectQuery, queryString].join(' ');
 }
-
-const getUTCTimeRange = (
-  startDate: DateString,
-  endDate: DateString,
-  period: string | null
-) => {
-  const {start, end} = period
-    ? parseStatsPeriod(period)
-    : {start: startDate, end: endDate};
-
-  return {
-    period,
-    start: moment(start).utc().toISOString(),
-    end: moment(end).utc().toISOString(),
-  };
-};
 
 type UseCase = 'sessions' | 'transactions' | 'custom';
 
