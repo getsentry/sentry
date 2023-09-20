@@ -9,7 +9,7 @@ class TransitionNewToOngoingTest(TestCase):
     def test_new_to_ongoing(self) -> None:
         group = self.create_group(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.NEW)
 
-        bulk_transition_group_to_ongoing(GroupStatus.UNRESOLVED, GroupSubStatus.NEW, [group])
+        bulk_transition_group_to_ongoing(GroupStatus.UNRESOLVED, GroupSubStatus.NEW, [group.id])
         assert Activity.objects.filter(
             group=group, type=ActivityType.AUTO_SET_ONGOING.value
         ).exists()
@@ -20,7 +20,9 @@ class TransitionNewToOngoingTest(TestCase):
     def test_regressed_to_ongoing(self) -> None:
         group = self.create_group(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.REGRESSED)
 
-        bulk_transition_group_to_ongoing(GroupStatus.UNRESOLVED, GroupSubStatus.REGRESSED, [group])
+        bulk_transition_group_to_ongoing(
+            GroupStatus.UNRESOLVED, GroupSubStatus.REGRESSED, [group.id]
+        )
         assert Activity.objects.filter(
             group=group, type=ActivityType.AUTO_SET_ONGOING.value
         ).exists()
