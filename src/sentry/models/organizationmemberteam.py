@@ -64,7 +64,7 @@ class OrganizationMemberTeam(ReplicatedRegionModel):
 
         control_replica_service.remove_replicated_organization_member_team(
             organization_id=shard_identifier,
-            organization_member_id=identifier,
+            organization_member_team_id=identifier,
         )
 
     def get_audit_log_data(self):

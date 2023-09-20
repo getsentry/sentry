@@ -157,10 +157,10 @@ class DatabaseBackedRegionReplicaService(RegionReplicaService):
 
 class DatabaseBackedControlReplicaService(ControlReplicaService):
     def remove_replicated_organization_member_team(
-        self, *, organization_id: int, organization_member_id: int
+        self, *, organization_id: int, organization_member_team_id: int
     ) -> None:
         OrganizationMemberTeamReplica.objects.filter(
-            organization_id=organization_id, organizationmember_id=organization_member_id
+            organization_id=organization_id, organizationmemberteam_id=organization_member_team_id
         ).delete()
 
     def upsert_replicated_organization_member_team(self, *, omt: RpcOrganizationMemberTeam) -> None:

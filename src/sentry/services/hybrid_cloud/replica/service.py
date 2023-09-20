@@ -25,7 +25,7 @@ class ControlReplicaService(RpcService):
     @rpc_method
     @abc.abstractmethod
     def remove_replicated_organization_member_team(
-        self, *, organization_id: int, organization_member_id: int
+        self, *, organization_id: int, organization_member_team_id: int
     ) -> None:
         pass
 
