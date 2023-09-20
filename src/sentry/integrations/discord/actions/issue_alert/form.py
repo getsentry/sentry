@@ -6,7 +6,7 @@ from django import forms
 from django.core.exceptions import ValidationError
 from django.forms.fields import ChoiceField
 
-from sentry.integrations.discord.utils.channel import validate_channel_id
+from sentry.integrations.discord.utils.channel import validate_channel_id_discord
 from sentry.services.hybrid_cloud.integration import integration_service
 
 
@@ -43,7 +43,7 @@ class DiscordNotifyServiceForm(forms.Form):
 
         if channel_id and isinstance(channel_id, str):
             try:
-                validate_channel_id(
+                validate_channel_id_discord(
                     channel_id=channel_id,
                     guild_id=integration.external_id,
                     integration_id=integration.id,

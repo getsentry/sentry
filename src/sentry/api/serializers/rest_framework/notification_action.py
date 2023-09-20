@@ -6,11 +6,8 @@ from rest_framework import serializers
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.api.serializers.rest_framework.project import ProjectField
 from sentry.constants import SentryAppInstallationStatus
-from sentry.integrations.discord.utils.channel import (
-    validate_channel_id as validate_channel_id_discord,
-)
-from sentry.integrations.slack.utils.channel import get_channel_id
-from sentry.integrations.slack.utils.channel import validate_channel_id as validate_channel_id_slack
+from sentry.integrations.discord.utils.channel import validate_channel_id_discord
+from sentry.integrations.slack.utils.channel import get_channel_id, validate_channel_id
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.models.notificationaction import ActionService, ActionTarget, NotificationAction
 from sentry.models.project import Project
@@ -176,7 +173,7 @@ class NotificationActionSerializer(CamelSnakeModelSerializer):
         # If we've received a channel and id, verify them against one another
         if channel_name and channel_id:
             try:
-                validate_channel_id_slack(
+                validate_channel_id(
                     name=channel_name,
                     integration_id=self.integration.id,
                     input_channel_id=channel_id,

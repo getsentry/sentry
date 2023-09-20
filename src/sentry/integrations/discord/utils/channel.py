@@ -11,7 +11,7 @@ from . import logger
 NO_CHANNEL_MESSAGE = "We couldn't find a channel with that ID. Make sure you have the correct server selected and are providing a Discord channel ID (not a channel name)."
 
 
-def validate_channel_id(channel_id: str, guild_id: str, integration_id: int | None) -> None:
+def validate_channel_id_discord(channel_id: str, guild_id: str, integration_id: int | None) -> None:
     """
     Make sure that for this integration, the channel exists, belongs to this
     integration, and our bot has access to it.
