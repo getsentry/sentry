@@ -24,10 +24,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.examples.project_examples import ProjectExamples
 from sentry.apidocs.parameters import GlobalParams, ProjectParams
-from sentry.loader.browsersdkversion import (
-    get_all_browser_sdk_version_choices,
-    get_default_sdk_version_for_project,
-)
+from sentry.loader.browsersdkversion import get_default_sdk_version_for_project
 from sentry.models import ProjectKey, ProjectKeyStatus
 
 
@@ -89,7 +86,9 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
                 ),
                 "browserSdkVersion": serializers.ChoiceField(
                     help_text="The Sentry Javascript SDK version to use. The currently supported options are:",
-                    choices=get_all_browser_sdk_version_choices(),
+                    # Ideally we would call get_browser_sdk_version_choices() here but that requires
+                    # passing in project to this decorator
+                    choices=[("latest", "Most recent version"), ("7.x", "Version 7 releases")],
                     required=False,
                 ),
                 "dynamicSdkLoaderOptions": DynamicSdkLoaderOptionSerializer(
