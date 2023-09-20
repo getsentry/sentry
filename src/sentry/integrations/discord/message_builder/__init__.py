@@ -1,12 +1,5 @@
 from __future__ import annotations
 
-from typing import Any, List, Mapping, Union
-
-# TODO(mgaeta): Continue fleshing out these types.
-DiscordAttachment = Mapping[str, Any]
-DiscordBlock = Mapping[str, Any]
-DiscordBody = Union[DiscordAttachment, List[DiscordAttachment]]
-
 # Discord likes colors as decimal integers
 LEVEL_TO_COLOR = {
     "_actioned_issue": int("0xEDEEEF", 16),

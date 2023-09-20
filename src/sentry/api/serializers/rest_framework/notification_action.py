@@ -3,11 +3,14 @@ from typing import Dict, List, Tuple, TypedDict
 from django.db import router, transaction
 from rest_framework import serializers
 
-import sentry.integrations.discord.utils.channel
-import sentry.integrations.slack.utils.channel
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.api.serializers.rest_framework.project import ProjectField
 from sentry.constants import SentryAppInstallationStatus
+from sentry.integrations.discord.utils.channel import (
+    validate_channel_id as validate_channel_id_discord,
+)
+from sentry.integrations.slack.utils.channel import get_channel_id
+from sentry.integrations.slack.utils.channel import validate_channel_id as validate_channel_id_slack
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.models.notificationaction import ActionService, ActionTarget, NotificationAction
 from sentry.models.project import Project
@@ -173,7 +176,7 @@ class NotificationActionSerializer(CamelSnakeModelSerializer):
         # If we've received a channel and id, verify them against one another
         if channel_name and channel_id:
             try:
-                sentry.integrations.slack.utils.channel.validate_channel_id(
+                validate_channel_id_slack(
                     name=channel_name,
                     integration_id=self.integration.id,
                     input_channel_id=channel_id,
@@ -186,11 +189,7 @@ class NotificationActionSerializer(CamelSnakeModelSerializer):
         # If we've only received a channel name, ask slack for its id
         generic_error_message = f"Could not fetch channel id from Slack for '{channel_name}'. Try providing the channel id, or try again later."
         try:
-            (
-                _prefix,
-                channel_id,
-                timed_out,
-            ) = sentry.integrations.slack.utils.channel.get_channel_id(
+            _prefix, channel_id, timed_out, = get_channel_id(
                 organization=self.context["organization"],
                 integration=self.integration,
                 channel_name=channel_name,
@@ -234,7 +233,7 @@ class NotificationActionSerializer(CamelSnakeModelSerializer):
             )
 
         try:
-            sentry.integrations.discord.utils.channel.validate_channel_id_discord(
+            validate_channel_id_discord(
                 channel_id=channel_id,
                 guild_id=self.integration.external_id,
                 integration_id=self.integration.id,
