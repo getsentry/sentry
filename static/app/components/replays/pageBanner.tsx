@@ -1,4 +1,4 @@
-import type {ReactNode} from 'react';
+import type {CSSProperties, ReactNode} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
@@ -15,6 +15,7 @@ interface Props {
   title: ReactNode;
   button?: ReactNode;
   onDismiss?: () => void;
+  style?: CSSProperties;
 }
 
 export default function PageBanner({
@@ -25,9 +26,10 @@ export default function PageBanner({
   image,
   onDismiss,
   title,
+  style,
 }: Props) {
   return (
-    <Wrapper>
+    <Wrapper style={style}>
       {onDismiss && (
         <CloseButton
           onClick={onDismiss}
@@ -106,15 +108,15 @@ const TextContainer = styled('div')`
 `;
 
 const SubText = styled('div')`
-  display: flex;
   color: ${p => p.theme.subText};
-  line-height: ${p => p.theme.fontSizeMedium};
   font-size: ${p => p.theme.fontSizeMedium};
-  align-items: center;
-  gap: ${space(0.5)};
+  line-height: ${p => p.theme.fontSizeMedium};
 `;
 
 const TypeText = styled(SubText)`
-  text-transform: uppercase;
+  align-items: center;
+  display: flex;
   font-weight: 500;
+  gap: ${space(0.5)};
+  text-transform: uppercase;
 `;
