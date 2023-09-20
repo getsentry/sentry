@@ -60,8 +60,6 @@ describe('highlightFuseMatches', function () {
 
   it('matches whole word', function () {
     // eslint-disable-next-line sentry/no-to-match-snapshot
-    expect(
-      highlightFuseMatches({value: 'foo', indices: [[0, 2]]}, Mark)
-    ).toMatchSnapshot();
+    expect(highlightFuseMatches({value: 'foo', indices: [[0, 2]]}, Mark)).toSnapshot();
   });
 });
