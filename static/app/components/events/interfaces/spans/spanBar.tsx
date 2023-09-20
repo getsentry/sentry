@@ -6,6 +6,7 @@ import styled from '@emotion/styled';
 import {withProfiler} from '@sentry/react';
 
 import Count from 'sentry/components/count';
+import AggregateSpanDetail from 'sentry/components/events/interfaces/spans/aggregateSpanDetail';
 import {ROW_HEIGHT, SpanBarType} from 'sentry/components/performance/waterfall/constants';
 import {MessageRow} from 'sentry/components/performance/waterfall/messageRow';
 import {
@@ -45,10 +46,15 @@ import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
-import {EventTransaction} from 'sentry/types/event';
+import {
+  AggregateEventTransaction,
+  EventOrGroupType,
+  EventTransaction,
+} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
+import {formatPercentage} from 'sentry/utils/formatters';
 import toPercent from 'sentry/utils/number/toPercent';
 import {
   QuickTraceContext,
@@ -122,7 +128,7 @@ export type SpanBarProps = {
   cellMeasurerCache: CellMeasurerCache;
   continuingTreeDepths: Array<TreeDepthType>;
   didAnchoredSpanMount: () => boolean;
-  event: Readonly<EventTransaction>;
+  event: Readonly<EventTransaction | AggregateEventTransaction>;
   fetchEmbeddedChildrenState: FetchEmbeddedChildrenState;
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
   getCurrentLeftPos: () => number;
@@ -305,7 +311,20 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
       return null;
     }
 
-    return (
+    const isAggregateSpan = event.type === EventOrGroupType.AGGREGATE_TRANSACTION;
+    const SpanDetailComponent = isAggregateSpan ? (
+      <AggregateSpanDetail
+        span={span}
+        organization={organization}
+        event={event}
+        isRoot={!!isRoot}
+        trace={trace}
+        childTransactions={transactions}
+        relatedErrors={errors}
+        scrollToHash={this.scrollIntoView}
+        resetCellMeasureCache={this.props.resetCellMeasureCache}
+      />
+    ) : (
       <SpanDetail
         span={span}
         organization={organization}
@@ -318,6 +337,8 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
         resetCellMeasureCache={this.props.resetCellMeasureCache}
       />
     );
+
+    return SpanDetailComponent;
   }
 
   getBounds(bounds?: SpanGeneratedBoundsType): SpanViewBoundsType {
@@ -1081,6 +1102,10 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
       : null;
 
     const durationDisplay = getDurationDisplay(bounds);
+    let frequency: number | undefined = undefined;
+    if (span.type === 'aggregate') {
+      frequency = span.frequency;
+    }
     return (
       <Fragment>
         <RowRectangle
@@ -1102,6 +1127,9 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
           </DurationPill>
         </RowRectangle>
         {subSpans}
+        <PercentageContainer>
+          <Percentage>{frequency && formatPercentage(frequency)}</Percentage>
+        </PercentageContainer>
       </Fragment>
     );
   }
@@ -1184,3 +1212,16 @@ const StyledIconWarning = styled(IconWarning)`
 const Regroup = styled('span')``;
 
 export const ProfiledSpanBar = withProfiler(SpanBar);
+
+const PercentageContainer = styled('div')`
+  position: absolute;
+  left: 100%;
+  padding-left: 10px;
+  white-space: nowrap;
+  color: ${p => p.theme.gray300};
+  font-size: ${p => p.theme.fontSizeSmall};
+`;
+
+const Percentage = styled('div')`
+  position: fixed;
+`;

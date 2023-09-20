@@ -881,9 +881,13 @@ function SpanRow(props: SpanRowProps) {
 }
 
 const TraceViewContainer = styled('div')`
-  overflow-x: hidden;
+  overflow-x: visible;
   border-bottom-left-radius: 3px;
   border-bottom-right-radius: 3px;
+  > div,
+  > div > div {
+    overflow: visible !important;
+  }
 `;
 
 /**
