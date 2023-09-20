@@ -13,8 +13,11 @@ from sentry.testutils.helpers.notifications import (
     DummyNotificationWithMoreFields,
 )
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
+from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.utils import json
+
+pytestmark = [requires_snuba]
 
 TEST_CARD = {"type": "test_card"}
 
