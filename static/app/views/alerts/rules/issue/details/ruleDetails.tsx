@@ -304,7 +304,7 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
   }
 
   function renderDisabledAlertBanner() {
-    // Rule has been disabled due to being after disabled date
+    // Rule has been disabled and has a disabled date indicating it was disabled due to lack of activity
     if (rule?.status === 'disabled' && moment(new Date()).isAfter(rule.disableDate)) {
       return (
         <Alert type="warning" showIcon>
