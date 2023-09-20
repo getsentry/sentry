@@ -7,13 +7,14 @@ import sentry_sdk
 from django.db.models import Q
 
 from sentry.dynamic_sampling import get_redis_client_for_ds
+from sentry.exceptions import IncompatibleMetricsQuery
 from sentry.incidents.models import AlertRule
 from sentry.models import DashboardWidgetQuery, Organization, Project
+from sentry.search.events.types import QueryBuilderConfig
 from sentry.silo import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.discover import query as discover_query
 from sentry.snuba.metrics.extraction import should_use_on_demand_metrics
-from sentry.snuba.metrics_enhanced_performance import query as performance_query
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json
 
@@ -458,7 +459,6 @@ class CheckAM2Compatibility:
 
     @classmethod
     def is_metrics_data(cls, organization_id, project_objects, query):
-        # We use the count operation since it's the most generic.
         selected_columns = ["count()"]
         params = {
             "organization_id": organization_id,
@@ -467,15 +467,33 @@ class CheckAM2Compatibility:
             "end": datetime.now(tz=timezone.utc),
         }
 
-        try:
-            results = performance_query(
-                selected_columns=selected_columns,
-                query=query,
-                params=params,
-                referrer="api.organization-events",
-            )
+        import sentry.search.events.builder.metrics as metrics
 
-            return results.get("meta", {}).get("isMetricsData", None)
+        def noop_raw_snql_query(_1, _2, _3):
+            # We craft an empty dictionary for the result, in order to not make the `run_query` method crash due to
+            # mismatched expectations.
+            return {"data": [], "meta": []}
+
+        metrics.raw_snql_query = noop_raw_snql_query
+
+        try:
+            builder = metrics.MetricsQueryBuilder(
+                params,
+                dataset=Dataset.PerformanceMetrics,
+                query=query,
+                selected_columns=selected_columns,
+                equations=[],
+                config=QueryBuilderConfig(
+                    allow_metric_aggregates=True,
+                    auto_fields=False,
+                    use_metrics_layer=False,
+                    on_demand_metrics_enabled=False,
+                ),
+            )
+            builder.run_query(referrer="api.organization-events")
+            return True
+        except IncompatibleMetricsQuery:
+            return False
         except Exception:
             return None
 
@@ -514,7 +532,7 @@ class CheckAM2Compatibility:
         return (
             AlertRule.objects.filter(
                 organization_id=organization_id,
-                snuba_query__dataset=[Dataset.Transactions.value],
+                snuba_query__dataset=Dataset.Transactions.value,
             )
             .select_related("snuba_query")
             .values_list("id", "snuba_query__aggregate", "snuba_query__query")
