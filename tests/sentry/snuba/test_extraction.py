@@ -252,7 +252,7 @@ def test_spec_failure_count(default_project):
     assert spec.field_to_extract is None
     assert spec.op == "on_demand_failure_count"
     assert spec.condition == {"name": "event.duration", "op": "gt", "value": 1000.0}
-    assert spec.tags_conditions(default_project) == failure_tag_spec(default_project)
+    assert spec.tags_conditions(default_project) == failure_tag_spec(default_project, "not_used")
 
 
 @django_db_all
@@ -263,7 +263,7 @@ def test_spec_failure_rate(default_project):
     assert spec.field_to_extract is None
     assert spec.op == "on_demand_failure_rate"
     assert spec.condition == {"name": "event.duration", "op": "gt", "value": 1000.0}
-    assert spec.tags_conditions(default_project) == failure_tag_spec(default_project)
+    assert spec.tags_conditions(default_project) == failure_tag_spec(default_project, "not_used")
 
 
 @django_db_all
