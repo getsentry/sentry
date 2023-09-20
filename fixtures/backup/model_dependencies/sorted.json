@@ -205,6 +205,7 @@
   "sentry.TeamAvatar",
   "sentry.SentryAppAvatar",
   "sentry.AuthProviderDefaultTeams",
+  "sentry.OrganizationMemberTeamReplica",
   "sentry.PendingIncidentSnapshot",
   "sentry.IncidentSnapshot",
   "sentry.IncidentActivity",

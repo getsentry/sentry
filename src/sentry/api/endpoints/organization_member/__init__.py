@@ -46,7 +46,8 @@ def save_team_assignments(
         new_assignments = [(team, team_role_map.get(team.slug, None)) for team in target_teams]
 
         with transaction.atomic(router.db_for_write(OrganizationMemberTeam)):
-            OrganizationMemberTeam.objects.filter(organizationmember=organization_member).delete()
+            existing = OrganizationMemberTeam.objects.filter(organizationmember=organization_member)
+            OrganizationMemberTeam.objects.bulk_delete(existing)
             OrganizationMemberTeam.objects.bulk_create(
                 [
                     OrganizationMemberTeam(

@@ -2092,6 +2092,31 @@
       "Region"
     ]
   },
+  "sentry.OrganizationMemberTeamReplica": {
+    "foreign_keys": {
+      "organization_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.Organization"
+      },
+      "organizationmember_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.OrganizationMember"
+      },
+      "organizationmemberteam_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.OrganizationMemberTeam"
+      },
+      "team_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.Team"
+      }
+    },
+    "model": "sentry.OrganizationMemberTeamReplica",
+    "relocation_scope": "Excluded",
+    "silos": [
+      "Control"
+    ]
+  },
   "sentry.OrganizationOnboardingTask": {
     "foreign_keys": {
       "organization": {
