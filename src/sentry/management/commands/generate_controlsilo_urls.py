@@ -14,6 +14,13 @@ from django.urls import URLPattern, URLResolver
 
 from sentry.silo.base import SiloMode
 
+# There are a handful of catchall routes
+# that we don't want to handle in controlsilo
+IGNORED_PATTERN_NAMES = {
+    "sentry-api-index",
+    "sentry-api-catchall",
+}
+
 
 @dataclass
 class PatternInfo:
@@ -47,7 +54,7 @@ def simplify_regex(pattern: str) -> str:
     for start, end in reversed(named_groups):
         updated = updated[0:start] + "[^/]+" + updated[end:]
 
-    return updated.replace("/", r"\/")
+    return updated.replace("\\", "\\\\")
 
 
 class Command(BaseCommand):
@@ -137,8 +144,7 @@ class Command(BaseCommand):
         if format == "js":
             js_regex = [f"new RegExp('{pattern}')," for pattern in url_patterns]
             pattern_code = "\n  ".join(js_regex)
-            ts_code = f"""
-// This is generated code.
+            ts_code = f"""// This is generated code.
 // To update it run `sentry django generate_controlsilo_urls --format=js --output=/path/to/thisfile.ts`
 const patterns: RegExp[] = [
   {pattern_code}
@@ -165,6 +171,10 @@ export default patterns;
                         name = f"{namespace}:{pat.name}"
                     else:
                         name = pat.name
+
+                    if name in IGNORED_PATTERN_NAMES:
+                        continue
+
                     pattern = describe_pattern(pat)
                     views.append(
                         PatternInfo(callable=pat.callback, pattern=base + pattern, name=name)
