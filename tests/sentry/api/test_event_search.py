@@ -6,7 +6,6 @@ from unittest.mock import patch
 import pytest
 from django.test import SimpleTestCase
 from django.utils import timezone
-from freezegun import freeze_time
 
 from sentry.api.event_search import (
     AggregateFilter,
@@ -20,6 +19,7 @@ from sentry.api.event_search import (
 from sentry.constants import MODULE_ROOT
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.utils import parse_datetime_string, parse_duration, parse_numeric_value
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.utils import json
 
 fixture_path = "fixtures/search-syntax"

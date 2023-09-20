@@ -19,6 +19,7 @@ from sentry.services.hybrid_cloud.organization import (
     RpcOrganizationMember,
     RpcOrganizationMemberFlags,
     RpcOrganizationMemberSummary,
+    RpcOrganizationMemberTeam,
     RpcOrganizationSummary,
     RpcTeam,
     RpcTeamMember,
@@ -143,3 +144,16 @@ def serialize_rpc_organization(org: Organization) -> RpcOrganization:
     rpc_org.projects.extend(serialize_project(project) for project in projects)
     rpc_org.teams.extend(serialize_rpc_team(team) for team in teams)
     return rpc_org
+
+
+def serialize_rpc_organization_member_team(
+    omt: OrganizationMemberTeam,
+) -> RpcOrganizationMemberTeam:
+    return RpcOrganizationMemberTeam(
+        id=omt.id,
+        team_id=omt.team_id,
+        organizationmember_id=omt.organizationmember_id,
+        organization_id=omt.organizationmember.organization_id,
+        is_active=omt.is_active,
+        role=omt.role,
+    )

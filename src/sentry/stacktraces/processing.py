@@ -301,7 +301,7 @@ def _normalize_in_app(stacktrace: Sequence[dict[str, str]]) -> str:
 
 
 def normalize_stacktraces_for_grouping(
-    data: MutableMapping[str, Any], grouping_config=None
+    data: MutableMapping[str, Any], grouping_config=None, load_stacktrace_from_cache: bool = False
 ) -> None:
     """
     Applies grouping enhancement rules and ensure in_app is set on all frames.
@@ -341,7 +341,11 @@ def normalize_stacktraces_for_grouping(
             for frames, stacktrace_container in zip(stacktrace_frames, stacktrace_containers):
                 # This call has a caching mechanism when the same stacktrace and rules are used
                 grouping_config.enhancements.apply_modifications_to_frame(
-                    frames, platform, stacktrace_container, extra_fingerprint=grouping_config.id
+                    frames,
+                    platform,
+                    stacktrace_container,
+                    extra_fingerprint=grouping_config.id,
+                    load_stacktrace_from_cache=load_stacktrace_from_cache,
                 )
 
     # normalize `in_app` values, noting and storing the event's mix of in-app and system frames, so

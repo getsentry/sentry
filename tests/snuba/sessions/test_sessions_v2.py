@@ -3,7 +3,6 @@ from datetime import datetime, timezone
 
 import pytest
 from django.http import QueryDict
-from freezegun import freeze_time
 
 from sentry.release_health.base import AllowedResolution, SessionsQueryConfig
 from sentry.snuba.sessions_v2 import (
@@ -13,6 +12,7 @@ from sentry.snuba.sessions_v2 import (
     get_timestamps,
     massage_sessions_result,
 )
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.pytest.fixtures import django_db_all
 
 

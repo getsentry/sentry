@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Callable, List, Mapping, Optional, Sequence
+from typing import Callable, List, Mapping, MutableMapping, Optional, Sequence, Tuple
 
 from django.db import router, transaction
 from django.db.models import Q, QuerySet
@@ -11,10 +11,13 @@ from sentry.models import NotificationSetting, User
 from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.notifications.helpers import get_scope_type, is_double_write_enabled
+from sentry.notifications.notificationcontroller import NotificationController
 from sentry.notifications.types import (
     NotificationScopeEnum,
     NotificationScopeType,
+    NotificationSettingEnum,
     NotificationSettingOptionValues,
+    NotificationSettingsOptionEnum,
     NotificationSettingTypes,
 )
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
@@ -27,6 +30,7 @@ from sentry.services.hybrid_cloud.notifications import NotificationsService, Rpc
 from sentry.services.hybrid_cloud.notifications.model import NotificationSettingFilterArgs
 from sentry.services.hybrid_cloud.notifications.serial import serialize_notification_setting
 from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.types.integrations import ExternalProviders
 
 
@@ -87,9 +91,7 @@ class DatabaseBackedNotificationsService(NotificationsService):
             if is_double_write_enabled(user_id=user_id):
                 NotificationSetting.objects.update_provider_settings(user_id, None)
 
-    # TODO(snigdha): this doesn't seem to be used anywhere, we can
-    # remove/replace it for notifications V2 using
-    # get_setting_options_for_users.
+    # TODO(snigdha): This can be removed in V2.
     def get_settings_for_users(
         self,
         *,
@@ -215,6 +217,43 @@ class DatabaseBackedNotificationsService(NotificationsService):
         auth_context: Optional[AuthenticationContext] = None,
     ) -> List[OpaqueSerializedResponse]:
         return self._FQ.serialize_many(filter, as_user, auth_context)
+
+    def get_subscriptions_for_projects(
+        self,
+        *,
+        user_id: int,
+        project_ids: List[int],
+        type: NotificationSettingEnum,
+    ) -> Mapping[int, Tuple[bool, bool]]:
+        user = user_service.get_user(user_id)
+        if not user:
+            return {}
+
+        controller = NotificationController(
+            recipients=[user],
+            project_ids=project_ids,
+            type=type,
+        )
+        return controller.get_subscriptions_status_for_projects(
+            user=user, project_ids=project_ids, type=type
+        )
+
+    def get_participants(
+        self,
+        *,
+        recipients: List[RpcActor],
+        project_ids: Optional[List[int]],
+        organization_id: Optional[int],
+        type: NotificationSettingEnum,
+    ) -> MutableMapping[int, MutableMapping[ExternalProviders, NotificationSettingsOptionEnum]]:
+        controller = NotificationController(
+            recipients=recipients,
+            project_ids=project_ids,
+            organization_id=organization_id,
+            type=type,
+        )
+        participants = controller.get_participants()
+        return {actor.id: providers for actor, providers in participants.items()}
 
     class _NotificationSettingsQuery(
         FilterQueryDatabaseImpl[

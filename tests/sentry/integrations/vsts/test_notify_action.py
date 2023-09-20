@@ -1,17 +1,20 @@
 from time import time
 
 import responses
-from freezegun import freeze_time
 
 from fixtures.vsts import GET_PROJECTS_RESPONSE, WORK_ITEM_RESPONSE
 from sentry.integrations.vsts import AzureDevopsCreateTicketAction
 from sentry.integrations.vsts.integration import VstsIntegration
 from sentry.models import ExternalIssue, GroupLink, Identity, IdentityProvider, Integration, Rule
 from sentry.testutils.cases import RuleTestCase
+from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.skips import requires_snuba
 from sentry.types.rules import RuleFuture
 from sentry.utils import json
 
 from .test_issues import VstsIssueBase
+
+pytestmark = [requires_snuba]
 
 
 @freeze_time()

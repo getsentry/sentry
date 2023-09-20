@@ -4,12 +4,11 @@ from unittest import mock
 
 import pytest
 from django.urls import reverse
-from freezegun import freeze_time
 
 from sentry.issues.grouptype import PerformanceDurationRegressionGroupType
 from sentry.snuba.metrics.naming_layer import TransactionMRI
 from sentry.testutils.cases import MetricsAPIBaseTestCase
-from sentry.testutils.helpers.datetime import iso_format
+from sentry.testutils.helpers.datetime import freeze_time, iso_format
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import region_silo_test
 
