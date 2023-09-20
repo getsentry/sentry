@@ -80,14 +80,7 @@ export default class ApiNewToken extends Component<{}, State> {
               <PanelBody>
                 <PermissionSelection
                   appPublished={false}
-                  permissions={{
-                    Event: 'no-access',
-                    Team: 'no-access',
-                    Member: 'no-access',
-                    Project: 'no-access',
-                    Release: 'no-access',
-                    Organization: 'no-access',
-                  }}
+                  permissions={this.state.permissions}
                   onChange={value => {
                     this.setState({permissions: value});
                   }}

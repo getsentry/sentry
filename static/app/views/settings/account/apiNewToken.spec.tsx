@@ -19,7 +19,7 @@ describe('ApiNewToken', function () {
     expect(await screen.getByRole('button', {name: 'Create Token'})).toBeDisabled();
   });
 
-  it('submits with correct scopes', async function () {
+  it('submits with correct hierarchical scopes', async function () {
     MockApiClient.clearMockResponses();
     const assignMock = MockApiClient.addMockResponse({
       method: 'POST',
@@ -34,6 +34,7 @@ describe('ApiNewToken', function () {
     const selectByValue = (name, value) =>
       selectEvent.select(screen.getByRole('textbox', {name}), value);
 
+    // Assigning Admin here will also grant read + write access to the resource
     await selectByValue('Project', 'Admin');
     await selectByValue('Release', 'Admin');
     await selectByValue('Team', 'Admin');
