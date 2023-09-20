@@ -17,7 +17,7 @@ from rest_framework.request import Request
 from sentry import analytics, features, options
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
-from sentry.constants import EXTENSION_LANGUAGE_MAP, ObjectStatus
+from sentry.constants import ObjectStatus
 from sentry.integrations.utils.scope import clear_tags_and_context
 from sentry.models import Commit, CommitAuthor, Organization, PullRequest, Repository
 from sentry.models.commitfilechange import CommitFileChange
@@ -45,18 +45,6 @@ logger = logging.getLogger("sentry.webhooks")
 def get_github_external_id(event: Mapping[str, Any], host: str | None = None) -> str | None:
     external_id: str | None = event.get("installation", {}).get("id")
     return f"{host}:{external_id}" if host else external_id
-
-
-def get_file_language(filename: str):
-    extension = filename.split(".")[-1]
-    language = None
-    if extension != filename:
-        language = EXTENSION_LANGUAGE_MAP.get(extension)
-
-        if language is None:
-            logger.info("github.unaccounted_file_lang", extra={"extension": extension})
-
-    return language
 
 
 class Webhook:
@@ -369,31 +357,25 @@ class PushEventWebhook(Webhook):
                         date_added=parse_date(commit["timestamp"]).astimezone(timezone.utc),
                     )
                     for fname in commit["added"]:
-                        language = get_file_language(fname)
                         CommitFileChange.objects.create(
                             organization_id=organization.id,
                             commit=c,
                             filename=fname,
                             type="A",
-                            language=language,
                         )
                     for fname in commit["removed"]:
-                        language = get_file_language(fname)
                         CommitFileChange.objects.create(
                             organization_id=organization.id,
                             commit=c,
                             filename=fname,
                             type="D",
-                            language=language,
                         )
                     for fname in commit["modified"]:
-                        language = get_file_language(fname)
                         CommitFileChange.objects.create(
                             organization_id=organization.id,
                             commit=c,
                             filename=fname,
                             type="M",
-                            language=language,
                         )
             except IntegrityError:
                 pass
