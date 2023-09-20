@@ -79,7 +79,7 @@
   },
   "put": {
     "tags": ["Teams"],
-    "description": "Update various attributes and configurable settings for the given team.",
+    "description": "Update various attributes settings for the given team.",
     "operationId": "Update a Team",
     "parameters": [
       {
