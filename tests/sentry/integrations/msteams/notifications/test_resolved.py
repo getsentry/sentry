@@ -6,7 +6,10 @@ from sentry.notifications.notifications.activity.resolved_in_release import (
     ResolvedInReleaseActivityNotification,
 )
 from sentry.testutils.cases import MSTeamsActivityNotificationTest
+from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
+
+pytestmark = [requires_snuba]
 
 
 @patch(

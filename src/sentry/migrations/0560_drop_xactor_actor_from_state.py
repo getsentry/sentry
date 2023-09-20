@@ -19,7 +19,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0558_add_organization_member_team_replica"),
+        ("sentry", "0559_custom_dynamic_sampling_rule"),
     ]
 
     operations = [
