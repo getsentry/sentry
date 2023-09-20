@@ -489,13 +489,13 @@ class CheckAM2Compatibility:
                 ),
             )
             # We store the old function, to replace later on.
-            old_raw_snql_query = metrics.raw_snql_query
+            old_raw_snql_query = metrics.raw_snql_query  # type:ignore
 
             # We want to make the query a noop, in order to not actually run it, since it's expensive. This is a
             # hack in order to run all the query validations in the query builder but not actually execute the query.
-            metrics.raw_snql_query = noop_raw_snql_query
+            metrics.raw_snql_query = noop_raw_snql_query  # type:ignore
             builder.run_query(referrer="api.organization-events")
-            metrics.raw_snql_query = old_raw_snql_query
+            metrics.raw_snql_query = old_raw_snql_query  # type:ignore
 
             return True
         except IncompatibleMetricsQuery:
