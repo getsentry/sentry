@@ -140,14 +140,10 @@ function renderSimpleBodyCell<T>(column: GridColumnOrder<string>, dataRow: T) {
   return <TextOverflow>{dataRow[column.key]}</TextOverflow>;
 }
 
-const DeadClickCount = styled(TextOverflow)<{
-  clickType?: string;
-}>`
+const DeadClickCount = styled(TextOverflow)`
   color: ${p => p.theme.yellow300};
 `;
 
-const RageClickCount = styled(TextOverflow)<{
-  clickType?: string;
-}>`
+const RageClickCount = styled(TextOverflow)`
   color: ${p => p.theme.red300};
 `;
