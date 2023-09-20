@@ -14,8 +14,8 @@ from sentry.types.integrations import ExternalProviders
 
 
 class BackfillNewNotificationTables(TestMigrations):
-    migrate_from = "0559_custom_dynamic_sampling_rule"
-    migrate_to = "0560_backfill_new_notification_tables"
+    migrate_from = "0560_add_monitorincident_table"
+    migrate_to = "0561_backfill_new_notification_tables"
     connection = "control"
 
     def setup_initial_state(self):

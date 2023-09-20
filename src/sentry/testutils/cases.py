@@ -24,9 +24,8 @@ from django.contrib.auth import login
 from django.contrib.auth.models import AnonymousUser
 from django.core import signing
 from django.core.cache import cache
-from django.db import DEFAULT_DB_ALIAS, connection, connections, router
+from django.db import DEFAULT_DB_ALIAS, connection, connections
 from django.db.migrations.executor import MigrationExecutor
-from django.db.migrations.loader import MigrationLoader
 from django.http import HttpRequest
 from django.test import TestCase as DjangoTestCase
 from django.test import TransactionTestCase as DjangoTransactionTestCase
@@ -2252,25 +2251,7 @@ class TestMigrations(TransactionTestCase):
 
     @property
     def connection(self):
-        # Infer connection from table_name
-        m = MigrationLoader(connections["default"]).get_migration(self.app, self.migrate_to[0][1])
-        hinted_tables = {
-            table
-            for op in m.operations
-            for tables in op.hints.get("tables", [])
-            for table in tables
-        }
-
-        hinted_migrations = set()
-        for table_name in hinted_tables:
-            for connection_name in connections:
-                if router.allow_migrate(connection_name, self.app, table_name=table_name):
-                    hinted_migrations.add(connection_name)
-
-        assert (
-            len(hinted_migrations) == 1
-        ), f"Could not determine migration test connection from tables hints  Found {hinted_migrations}"
-        return next(iter(hinted_migrations))
+        return "default"
 
     def setUp(self):
         super().setUp()
