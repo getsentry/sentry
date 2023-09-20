@@ -241,9 +241,6 @@ def _process_checkin(
     source_sdk: str,
     txn: Transaction | Span,
 ):
-
-    # Ensure the monitor_slug is slugified, since we are not running this
-    # through the MonitorValidator we must do this here.
     monitor_slug = slugify(params["monitor_slug"])[:MAX_SLUG_LENGTH].strip("-")
 
     environment = params.get("environment")
