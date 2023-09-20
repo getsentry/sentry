@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Tuple
 
 from sentry.models import Organization, OrganizationMapping
 from sentry.services.hybrid_cloud.organization_mapping import (
@@ -11,7 +11,7 @@ from sentry.types.region import Region
 def update_organization_mapping_from_instance(
     organization: Organization,
     region: Region,
-    customer_id: Optional[int] = None,
+    customer_id: Optional[Tuple[Optional[str]]] = None,
 ) -> RpcOrganizationMappingUpdate:
     return RpcOrganizationMappingUpdate(
         name=organization.name,

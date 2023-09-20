@@ -70,7 +70,7 @@ class DatabaseBackedOrganizationMappingService(OrganizationMappingService):
             require_2fa=update.requires_2fa,
         )
         if update.customer_id is not None:
-            update_dict["customer_id"] = update.customer_id
+            update_dict["customer_id"] = update.customer_id[0]
 
         with unguarded_write(using=router.db_for_write(OrganizationMapping)):
             OrganizationMapping.objects.update_or_create(

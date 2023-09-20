@@ -94,7 +94,7 @@ def process_organization_mapping_customer_id_update(
 
     if payload and "customer_id" in payload:
         update = update_organization_mapping_from_instance(
-            org, get_local_region(), customer_id=payload["customer_id"]
+            org, get_local_region(), customer_id=(payload["customer_id"],)
         )
         organization_mapping_service.upsert(organization_id=org.id, update=update)
 

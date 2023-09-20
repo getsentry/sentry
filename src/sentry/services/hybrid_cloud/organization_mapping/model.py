@@ -4,7 +4,7 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Tuple
 
 from django.utils import timezone
 from pydantic.fields import Field
@@ -26,5 +26,8 @@ class RpcOrganizationMappingUpdate(RpcModel):
     status: int = 0
     slug: str = ""
     region_name: str = ""
-    customer_id: Optional[str] = None
+    # When not set, no change to customer id performed,
+    # when set with a tuple, the customer_id set to either None or the string
+    # that is the first element.
+    customer_id: Optional[Tuple[Optional[str]]] = None
     requires_2fa: bool = False
