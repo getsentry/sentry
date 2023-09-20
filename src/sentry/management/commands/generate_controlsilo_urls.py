@@ -13,7 +13,6 @@ from django.core.management.base import BaseCommand
 from django.urls import URLPattern, URLResolver
 
 from sentry.silo.base import SiloMode
-from sentry.utils import json
 
 
 @dataclass
@@ -134,7 +133,7 @@ class Command(BaseCommand):
 
     def render(self, url_patterns: List[str], format: str) -> str:
         if format == "text":
-            return json.dumps(url_patterns)
+            return "\n".join(url_patterns)
         if format == "js":
             js_regex = [f"new RegExp('{pattern}')," for pattern in url_patterns]
             pattern_code = "\n  ".join(js_regex)
