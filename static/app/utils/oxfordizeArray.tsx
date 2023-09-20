@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Children, Fragment} from 'react';
 
 // Given a list of strings (probably nouns), join them into a single string
 // with correct punctuation and 'and' placement
@@ -34,5 +34,20 @@ export const oxfordizeElements = (elements: JSX.Element[]): JSX.Element => {
   );
   return <span>{joinedElements}</span>;
 };
+
+type Props = {
+  children: React.ReactNode;
+};
+export function Oxfordize({children}: Props) {
+  const elements = Children.toArray(children);
+  const joinedElements: JSX.Element[] = [];
+  for (const [i, element] of elements.slice(0, -1).entries()) {
+    joinedElements.push(<Fragment key={i}>{element}, </Fragment>);
+  }
+  joinedElements.push(
+    <Fragment key={elements.length - 1}>and {elements[elements.length - 1]}</Fragment>
+  );
+  return <span>{joinedElements}</span>;
+}
 
 export default oxfordizeArray;
