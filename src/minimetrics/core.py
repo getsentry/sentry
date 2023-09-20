@@ -2,7 +2,6 @@ import os
 import threading
 import time
 import zlib
-from contextlib import contextmanager
 from functools import wraps
 from threading import Event, Lock, Thread
 from typing import Any, Callable, Dict, Iterable, List, Optional, Set, Tuple, Union
@@ -12,7 +11,7 @@ import sentry_sdk
 from minimetrics.transport import MetricEnvelopeTransport, RelayStatsdEncoder
 from minimetrics.types import (
     BucketKey,
-    FlushedMetric,
+    FlushableBuckets,
     FlushedMetricValue,
     Metric,
     MetricTagsExternal,
@@ -24,41 +23,31 @@ from minimetrics.types import (
 from sentry import options
 from sentry.utils import metrics
 
-# The thread local instance must be initialized globally in order to correctly use the state.
 thread_local = threading.local()
 
 
-@contextmanager
-def enter_minimetrics():
-    try:
-        old = thread_local.in_minimetrics
-    except AttributeError:
-        old = False
-
-    thread_local.in_minimetrics = True
-    try:
-        yield
-    finally:
-        thread_local.in_minimetrics = old
-
-
-def is_in_minimetrics():
+def in_minimetrics():
     try:
         return thread_local.in_minimetrics
     except AttributeError:
         return False
 
 
-def minimetrics_noop(f):
-    @wraps(f)
-    def new_function(*args, **kwargs):
-        if is_in_minimetrics():
-            return None
+def minimetrics_noop(func):
+    @wraps(func)
+    def new_func(*args, **kwargs):
+        try:
+            in_minimetrics = thread_local.in_minimetrics
+        except AttributeError:
+            in_minimetrics = False
+        thread_local.in_minimetrics = True
+        try:
+            if not in_minimetrics:
+                return func(*args, **kwargs)
+        finally:
+            thread_local.in_minimetrics = in_minimetrics
 
-        with enter_minimetrics():
-            return f(*args, **kwargs)
-
-    return new_function
+    return new_func
 
 
 class CounterMetric(Metric[float]):
@@ -75,7 +64,7 @@ class CounterMetric(Metric[float]):
         self.value += value
 
     def serialize_value(self) -> Iterable[FlushedMetricValue]:
-        yield self.value
+        return (self.value,)
 
 
 class GaugeMetric(Metric[float]):
@@ -107,11 +96,13 @@ class GaugeMetric(Metric[float]):
         self.count += 1
 
     def serialize_value(self) -> Iterable[FlushedMetricValue]:
-        yield self.last
-        yield self.min
-        yield self.max
-        yield self.sum
-        yield self.count
+        return (
+            self.last,
+            self.min,
+            self.max,
+            self.sum,
+            self.count,
+        )
 
 
 class DistributionMetric(Metric[float]):
@@ -167,8 +158,9 @@ class Aggregator:
     DEFAULT_SAMPLE_RATE = 1.0
 
     def __init__(self) -> None:
-        # Buckets holding the grouped metrics.
-        self.buckets: Dict[BucketKey, Metric[Any]] = {}
+        # Buckets holding the grouped metrics. The buckets are represented in two levels, in order to more efficiently
+        # perform locking.
+        self.buckets: Dict[int, Dict[BucketKey, Metric[Any]]] = {}
         # Stores the total weight of the in-memory buckets. Weight is determined on a per metric type basis and
         # represents how much weight is there to represent the metric (e.g., counter = 1, distribution = n).
         self._buckets_total_weight: int = 0
@@ -202,39 +194,49 @@ class Aggregator:
             self._flusher.start()
 
     def _flush_loop(self) -> None:
+        thread_local.in_minimetrics = True
         while self._running or self._force_flush:
             self._flush()
-            self._flush_event.wait(2.0)
+            self._flush_event.wait(5.0)
 
     def _flush(self):
-        with enter_minimetrics():
-            with self._lock:
-                cutoff = time.time() - self.ROLLUP_IN_SECONDS
-                weight_to_remove = 0
-                buckets = self.buckets
-                force_flush = self._force_flush
-                flushed_metrics = []
+        flushable_buckets, _ = self._flushable_buckets()
+        if flushable_buckets:
+            # You should emit metrics to `metrics` only inside this method, since we know that if we received
+            # metrics the `sentry.utils.metrics` file was initialized. If we do it before, it will likely cause a
+            # circular dependency since the methods in the `sentry.utils.metrics` depend on the backend
+            # initialization, thus if you emit metrics when a backend is initialized Python will throw an error.
+            self._emit(flushable_buckets)
 
-                for bucket_key, metric in buckets.items():
-                    if not force_flush and bucket_key.timestamp > cutoff:
+    def _flushable_buckets(self) -> Tuple[FlushableBuckets, bool]:
+        with self._lock:
+            force_flush = self._force_flush
+            cutoff = time.time() - self.ROLLUP_IN_SECONDS
+            flushable_buckets: Any = []
+            weight_to_remove = 0
+
+            if force_flush:
+                flushable_buckets = self.buckets.items()
+                self.buckets = {}
+                self._buckets_total_weight = 0
+                self._force_flush = False
+            else:
+                for buckets_timestamp, buckets in self.buckets.items():
+                    # If the timestamp of the bucket is newer that the rollup we want to skip it.
+                    if buckets_timestamp > cutoff:
                         continue
 
-                    flushed_metrics.append(FlushedMetric(bucket_key=bucket_key, metric=metric))
-                    weight_to_remove += metric.weight
+                    flushable_buckets.append((buckets_timestamp, buckets))
 
-                # We remove all flushed buckets, in order to avoid memory leaks.
-                for bucket_key, _ in flushed_metrics:
-                    buckets.pop(bucket_key)
+                # We will clear the elements while holding the lock, in order to avoid requesting it downstream again.
+                for buckets_timestamp, buckets in flushable_buckets:
+                    for _, metric in buckets.items():
+                        weight_to_remove += metric.weight
+                    del self.buckets[buckets_timestamp]
 
-                self._force_flush = False
                 self._buckets_total_weight -= weight_to_remove
 
-            if flushed_metrics:
-                # You should emit metrics to `metrics` only inside this method, since we know that if we received
-                # metrics the `sentry.utils.metrics` file was initialized. If we do it before, it will likely cause a
-                # circular dependency since the methods in the `sentry.utils.metrics` depend on the backend
-                # initialization, thus if you emit metrics when a backend is initialized Python will throw an error.
-                self._emit(flushed_metrics, force_flush)
+        return flushable_buckets, force_flush
 
     @minimetrics_noop
     def add(
@@ -254,28 +256,30 @@ class Aggregator:
         if timestamp is None:
             timestamp = time.time()
 
-        bucket_key = BucketKey(
-            timestamp=int((timestamp // self.ROLLUP_IN_SECONDS) * self.ROLLUP_IN_SECONDS),
-            metric_type=ty,
-            metric_name=key,
-            metric_unit=unit,
+        bucket_timestamp = int((timestamp // self.ROLLUP_IN_SECONDS) * self.ROLLUP_IN_SECONDS)
+        bucket_key = (
+            ty,
+            key,
+            unit,
             # We have to convert tags into our own internal format, since we don't support lists as
             # tag values.
-            metric_tags=self._to_internal_metric_tags(tags),
+            self._to_internal_metric_tags(tags),
         )
 
         with self._lock:
-            metric = self.buckets.get(bucket_key)
+            local_buckets = self.buckets.setdefault(bucket_timestamp, {})
+            metric = local_buckets.get(bucket_key)
             if metric is not None:
                 previous_weight = metric.weight
                 metric.add(value)
             else:
-                metric = self.buckets[bucket_key] = METRIC_TYPES[ty](value)
+                metric = local_buckets[bucket_key] = METRIC_TYPES[ty](value)
                 previous_weight = 0
 
             self._buckets_total_weight += metric.weight - previous_weight
-            # Given the new weight we consider whether we want to force flush.
-            self.consider_force_flush()
+
+        # Given the new weight we consider whether we want to force flush.
+        self.consider_force_flush()
 
         # We want to track how many times metrics are being added, so that we know the actual count of adds.
         metrics.incr(
@@ -306,51 +310,12 @@ class Aggregator:
             self._force_flush = True
             self._flush_event.set()
 
-    def _emit(self, flushed_metrics: List[FlushedMetric], force_flush: bool) -> Any:
+    def _emit(self, flushable_buckets: FlushableBuckets) -> Any:
         if options.get("delightful_metrics.enable_envelope_forwarding"):
             try:
-                self._transport.send(flushed_metrics)
+                self._transport.send(flushable_buckets)
             except Exception as e:
                 sentry_sdk.capture_exception(e)
-
-        # We obtain the counts for each metric type of how many buckets we have and how much weight is in each
-        # bucket.
-        stats_by_type: Dict[MetricType, Tuple[int, int]] = {}
-        for bucket_key, metric in flushed_metrics:
-            (prev_buckets_count, prev_buckets_weight) = stats_by_type.get(
-                bucket_key.metric_type, (0, 0)
-            )
-            stats_by_type[bucket_key.metric_type] = (
-                prev_buckets_count + 1,
-                prev_buckets_weight + metric.weight,
-            )
-
-        for metric_type, (buckets_count, buckets_weight) in stats_by_type.items():
-            # We want to emit a metric on how many buckets and weight there was for a metric type.
-            metrics.timing(
-                key="minimetrics.flushed_buckets",
-                value=buckets_count,
-                tags={"metric_type": metric_type, "force_flush": force_flush},
-                sample_rate=self.DEFAULT_SAMPLE_RATE,
-            )
-            metrics.incr(
-                key="minimetrics.flushed_buckets_counter",
-                amount=buckets_count,
-                tags={"metric_type": metric_type, "force_flush": force_flush},
-                sample_rate=self.DEFAULT_SAMPLE_RATE,
-            )
-            metrics.timing(
-                key="minimetrics.flushed_buckets_weight",
-                value=buckets_weight,
-                tags={"metric_type": metric_type, "force_flush": force_flush},
-                sample_rate=self.DEFAULT_SAMPLE_RATE,
-            )
-            metrics.incr(
-                key="minimetrics.flushed_buckets_weight_counter",
-                amount=buckets_weight,
-                tags={"metric_type": metric_type, "force_flush": force_flush},
-                sample_rate=self.DEFAULT_SAMPLE_RATE,
-            )
 
     def _to_internal_metric_tags(self, tags: Optional[MetricTagsExternal]) -> MetricTagsInternal:
         rv = []

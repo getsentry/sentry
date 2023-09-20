@@ -1624,9 +1624,10 @@ def _save_aggregate(
 
                 group = _create_group(project, event, **kwargs)
 
-                if features.has(
-                    "projects:first-event-severity-calculation", event.project
-                ) and not group.data.get("metadata", {}).get("severity"):
+                if (
+                    features.has("projects:first-event-severity-calculation", event.project)
+                    and group.data.get("metadata", {}).get("severity") is None
+                ):
                     logger.error(
                         "Group created without severity score",
                         extra={
@@ -1843,7 +1844,7 @@ def _create_group(project: Project, event: Event, **kwargs: Any) -> Group:
     group_data = kwargs.pop("data", {})
     if features.has("projects:first-event-severity-calculation", event.project):
         severity = _get_severity_score(event)
-        if severity:
+        if severity is not None:  # Severity can be 0
             group_data.setdefault("metadata", {})
             group_data["metadata"]["severity"] = severity
 
@@ -2510,9 +2511,10 @@ def _save_grouphash_and_group(
             group = _create_group(project, event, **group_kwargs)
             group_hash.update(group=group)
 
-            if features.has(
-                "projects:first-event-severity-calculation", event.project
-            ) and not group.data.get("metadata", {}).get("severity"):
+            if (
+                features.has("projects:first-event-severity-calculation", event.project)
+                and group.data.get("metadata", {}).get("severity") is None
+            ):
                 logger.error(
                     "Group created without severity score",
                     extra={
@@ -2539,14 +2541,23 @@ def _send_occurrence_to_platform(jobs: Sequence[Job], projects: ProjectsMapping)
 
         performance_problems = job["performance_problems"]
         if features.has("organizations:issue-platform-extra-logging", project.organization):
-            logger.warning(
-                "Performance problems detected",
-                extra={
-                    "performance_problems": performance_problems,
-                    "project_id": project.id,
-                    "event_id": event_id,
-                },
-            )
+            if performance_problems and len(performance_problems) > 0:
+                logger.warning(
+                    f"Detected {len(performance_problems)} performance problems",
+                    extra={
+                        "performance_problems": performance_problems,
+                        "project_id": project.id,
+                        "event_id": event_id,
+                    },
+                )
+            else:
+                logger.warning(
+                    "No performance problems detected",
+                    extra={
+                        "project_id": project.id,
+                        "event_id": event_id,
+                    },
+                )
 
         for problem in performance_problems:
             occurrence = IssueOccurrence(

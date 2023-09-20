@@ -493,9 +493,19 @@ class MonitorConsumerTest(TestCase):
         assert checkin.monitor_id == monitor.id
 
     def test_monitor_invalid_config(self):
+        # 6 value schedule
         self.send_checkin(
             "my-invalid-monitor",
             monitor_config={"schedule": {"type": "crontab", "value": "13 * * * * *"}},
+            environment="my-environment",
+        )
+
+        assert not MonitorCheckIn.objects.filter(guid=self.guid).exists()
+
+        # no next valid check-in
+        self.send_checkin(
+            "my-invalid-monitor",
+            monitor_config={"schedule": {"type": "crontab", "value": "* * 31 2 *"}},
             environment="my-environment",
         )
 

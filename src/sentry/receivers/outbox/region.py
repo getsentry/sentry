@@ -19,7 +19,6 @@ from sentry.models import (
     Project,
     process_region_outbox,
 )
-from sentry.models.team import Team
 from sentry.receivers.outbox import maybe_process_tombstone
 from sentry.services.hybrid_cloud.auth import auth_service
 from sentry.services.hybrid_cloud.identity import identity_service
@@ -73,13 +72,6 @@ def process_organization_member_updates(
         organization_id=shard_identifier,
         mapping=rpc_org_member_update,
     )
-
-
-@receiver(process_region_outbox, sender=OutboxCategory.TEAM_UPDATE)
-def process_team_updates(
-    object_identifier: int, payload: Any, shard_identifier: int, **kwargs: Any
-):
-    maybe_process_tombstone(Team, object_identifier)
 
 
 @receiver(process_region_outbox, sender=OutboxCategory.PROJECT_UPDATE)

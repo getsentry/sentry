@@ -13,8 +13,9 @@ from sentry.snuba.subscriptions import (
     update_snuba_subscription,
 )
 from sentry.testutils.cases import TestCase
+from sentry.testutils.skips import requires_snuba
 
-pytestmark = pytest.mark.sentry_metrics
+pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
 
 
 @pytest.mark.snuba_ci

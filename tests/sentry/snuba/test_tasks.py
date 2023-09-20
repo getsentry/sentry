@@ -266,6 +266,18 @@ class DeleteSubscriptionFromSnubaTest(BaseSnubaTaskTest, TestCase):
         delete_subscription_from_snuba(sub.id)
         assert not QuerySubscription.objects.filter(id=sub.id).exists()
 
+    def test_invalid_metrics_subscription_query(self):
+        subscription_id = f"1/{uuid4().hex}"
+        sub = self.create_subscription(
+            QuerySubscription.Status.DELETING,
+            dataset=Dataset.Metrics,
+            subscription_id=subscription_id,
+            query="release:1",
+            aggregate="percentage(sessions_crashed, sessions) as _crash_rate_alert_aggregate",
+        )
+        delete_subscription_from_snuba(sub.id)
+        assert not QuerySubscription.objects.filter(id=sub.id).exists()
+
 
 class BuildSnqlQueryTest(TestCase):
     aggregate_mappings: dict[SnubaQuery.Type, dict[Dataset, dict[str, Any]]] = {

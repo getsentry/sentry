@@ -144,6 +144,18 @@ test-snuba: create-db
 		-vv --cov . --cov-report="xml:.artifacts/snuba.coverage.xml"
 	@echo ""
 
+# snuba-full runs on API changes in Snuba
+test-snuba-full: create-db
+	@echo "--> Running full snuba tests"
+	pytest tests/snuba \
+		tests/sentry/eventstream/kafka \
+		tests/sentry/post_process_forwarder \
+		tests/sentry/snuba \
+		tests/sentry/search/events \
+		tests/sentry/event_manager \
+		-vv --cov . --cov-report="xml:.artifacts/snuba.coverage.xml"
+	pytest tests -vv -m snuba_ci
+	@echo ""
 
 test-tools:
 	@echo "--> Running tools tests"

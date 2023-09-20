@@ -11,16 +11,19 @@ from sentry.models.transaction_threshold import (
 from sentry.search.events import constants
 from sentry.search.events.types import SelectType
 from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 
 
 def resolve_project_threshold_config(
+    # See resolve_tag_value signature
     tag_value_resolver: Callable[
-        [Optional[UseCaseKey], int, Sequence[int]], Optional[Union[int, str]]
+        [Union[UseCaseID, UseCaseKey], int, str], Optional[Union[int, str]]
     ],
-    column_name_resolver: Callable[[Optional[UseCaseKey], int, Sequence[int]], str],
+    # See resolve_tag_key signature
+    column_name_resolver: Callable[[Union[UseCaseID, UseCaseKey], int, str], str],
     project_ids: Sequence[int],
     org_id: int,
-    use_case_id: Optional[UseCaseKey] = None,
+    use_case_id: Optional[UseCaseID] = None,
 ) -> SelectType:
     """
     Shared function that resolves the project threshold configuration used by both snuba/metrics

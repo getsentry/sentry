@@ -7,7 +7,10 @@ from sentry.ingest.inbound_filters import (
 from sentry.models import ProjectOption
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.relay import RelayStoreHelper
+from sentry.testutils.skips import requires_kafka, requires_relay
 from sentry.utils.safe import set_path
+
+pytestmark = [requires_kafka, requires_relay]
 
 
 class FilterTests(RelayStoreHelper, TransactionTestCase):

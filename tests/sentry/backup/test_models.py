@@ -8,6 +8,7 @@ from django.utils import timezone
 from sentry_relay.auth import generate_key_pair
 
 from sentry.backup.helpers import get_exportable_sentry_models
+from sentry.backup.scopes import RelocationScope
 from sentry.incidents.models import (
     AlertRule,
     AlertRuleActivity,
@@ -444,6 +445,13 @@ class ModelBackupTests(TransactionTestCase):
         rule = self.create_project_rule(project=self.project)
         RuleActivity.objects.create(rule=rule, type=RuleActivityType.CREATED.value)
         self.snooze_rule(user_id=self.user.id, owner_id=self.user.id, rule=rule)
+        NeglectedRule.objects.create(
+            rule=rule,
+            organization=self.organization,
+            disable_date=datetime.now(),
+            sent_initial_email_date=datetime.now(),
+            sent_final_email_date=datetime.now(),
+        )
         return self.import_export_then_validate()
 
     @targets(mark(RecentSearch, SavedSearch))
@@ -516,3 +524,65 @@ class ModelBackupTests(TransactionTestCase):
         role = UserRole.objects.create(name="test-role")
         UserRoleUser.objects.create(user=user, role=role)
         return self.import_export_then_validate()
+
+
+@run_backup_tests_only_on_single_db
+class DynamicRelocationScopeTests(TransactionTestCase):
+    """
+    For models that support different relocation scopes depending on properties of the model instance itself (ie, they have a set for their `__relocation_scope__`, rather than a single value), make sure that this dynamic deduction works correctly.
+    """
+
+    def test_api_auth_application_bound(self):
+        user = self.create_user()
+        app = ApiApplication.objects.create(name="test", owner=user)
+        auth = ApiAuthorization.objects.create(
+            application=app, user=self.create_user("example@example.com")
+        )
+        token = ApiToken.objects.create(
+            application=app, user=user, token=uuid4().hex, expires_at=None
+        )
+
+        # TODO(getsentry/team-ospo#188): this should be extension scope once that gets added.
+        assert auth.get_relocation_scope() == RelocationScope.Global
+        assert token.get_relocation_scope() == RelocationScope.Global
+
+    def test_api_auth_not_bound(self):
+        user = self.create_user()
+        auth = ApiAuthorization.objects.create(user=self.create_user("example@example.com"))
+        token = ApiToken.objects.create(user=user, token=uuid4().hex, expires_at=None)
+
+        assert auth.get_relocation_scope() == RelocationScope.Config
+        assert token.get_relocation_scope() == RelocationScope.Config
+
+    def test_notification_action_integration_bound(self):
+        integration = self.create_integration(
+            self.organization, provider="slack", name="Slack 1", external_id="slack:1"
+        )
+        action = self.create_notification_action(
+            organization=self.organization, projects=[self.project], integration_id=integration.id
+        )
+        action_project = NotificationActionProject.objects.get(action=action)
+
+        # TODO(getsentry/team-ospo#188): this should be extension scope once that gets added.
+        assert action.get_relocation_scope() == RelocationScope.Global
+        assert action_project.get_relocation_scope() == RelocationScope.Global
+
+    def test_notification_action_sentry_app_bound(self):
+        app = self.create_sentry_app(name="test_app", organization=self.organization)
+        action = self.create_notification_action(
+            organization=self.organization, projects=[self.project], sentry_app_id=app.id
+        )
+        action_project = NotificationActionProject.objects.get(action=action)
+
+        # TODO(getsentry/team-ospo#188): this should be extension scope once that gets added.
+        assert action.get_relocation_scope() == RelocationScope.Global
+        assert action_project.get_relocation_scope() == RelocationScope.Global
+
+    def test_notification_action_not_bound(self):
+        action = self.create_notification_action(
+            organization=self.organization, projects=[self.project]
+        )
+        action_project = NotificationActionProject.objects.get(action=action)
+
+        assert action.get_relocation_scope() == RelocationScope.Organization
+        assert action_project.get_relocation_scope() == RelocationScope.Organization

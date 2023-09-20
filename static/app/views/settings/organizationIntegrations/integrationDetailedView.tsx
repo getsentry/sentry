@@ -360,6 +360,19 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
             ),
             visible: ({features}) => features.includes('integrations-open-pr-comment'),
           },
+          {
+            name: 'githubNudgeInvite',
+            type: 'boolean',
+            label: t('Enable Missing Member Detection'),
+            help: t(
+              'Allow Sentry to detect users committing to your GitHub repositories that are not part of your Sentry organization..'
+            ),
+            disabled: !hasIntegration,
+            disabledReason: t(
+              'You must have a GitHub integration to enable this feature.'
+            ),
+            visible: ({features}) => features.includes('integrations-gh-invite'),
+          },
         ],
       },
     ];
@@ -367,6 +380,7 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
     const initialData = {
       githubPRBot: organization.githubPRBot,
       githubOpenPRBot: organization.githubOpenPRBot,
+      githubNudgeInvite: organization.githubNudgeInvite,
     };
 
     return (
