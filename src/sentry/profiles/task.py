@@ -117,7 +117,8 @@ def process_profile_task(
     if not _push_profile_to_vroom(profile, project):
         return
 
-    _track_outcome(profile=profile, project=project, outcome=Outcome.ACCEPTED)
+    with metrics.timer("process_profile.track_outcome.accepted"):
+        _track_outcome(profile=profile, project=project, outcome=Outcome.ACCEPTED)
 
 
 JS_PLATFORMS = ["javascript", "node"]
