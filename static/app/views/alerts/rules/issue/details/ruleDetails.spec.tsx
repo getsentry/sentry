@@ -247,6 +247,9 @@ describe('AlertRuleDetails', () => {
       expect.anything(),
       expect.objectContaining({data: {...disabledRule, optOutExplicit: true}})
     );
+    expect(
+      screen.queryByText(/This alert is scheduled to be disabled/)
+    ).not.toBeInTheDocument();
   });
 
   it('renders the mute button and can mute/unmute alerts', async () => {
