@@ -26,7 +26,7 @@ interface Props {
   location: Location<any>;
   customHandleResize?: () => void;
   headerButtons?: ReactNode;
-  title?: string | ReactNode;
+  title?: ReactNode;
 }
 
 const BASE_COLUMNS: GridColumnOrder<string>[] = [

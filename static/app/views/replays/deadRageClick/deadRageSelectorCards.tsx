@@ -1,4 +1,4 @@
-import React, {ComponentProps, ReactNode} from 'react';
+import React, {ComponentProps, Fragment, ReactNode} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
@@ -41,12 +41,12 @@ function DeadClickTable({location}: {location: Location<any>}) {
       clickCountColumn={{key: 'count_dead_clicks', name: 'dead clicks'}}
       clickCountSortable={false}
       title={
-        <React.Fragment>
+        <Fragment>
           <IconContainer>
             <IconCursorArrow size="xs" color="yellow300" />
           </IconContainer>
           {t('Most Dead Clicks')}
-        </React.Fragment>
+        </Fragment>
       }
       headerButtons={
         <SearchButton

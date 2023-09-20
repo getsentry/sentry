@@ -115,7 +115,7 @@ type GridEditableProps<DataRow, ColumnKey> = {
    * - `columnSortBy` is not used at the moment, however it might be better to
    *   move sorting into Grid for performance
    */
-  title?: string | ReactNode;
+  title?: ReactNode;
 };
 
 type GridEditableState = {
