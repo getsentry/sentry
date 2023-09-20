@@ -7,6 +7,7 @@ from django.utils import timezone
 
 from sentry.api.endpoints.organization_metrics_estimation_stats import (
     CountResult,
+    MetricVolumeRow,
     StatsQualityEstimation,
     _count_non_zero_intervals,
     _should_scale,
@@ -261,9 +262,11 @@ def test_estimate_stats_quality(zero_samples, expected_result):
     one: CountResult = {"count": 1}
     zero: CountResult = {"count": 0}
 
-    data = [[start_timestamp + idx * 100, [zero]] for idx in range(zero_samples)] + [
-        [start_timestamp + idx * 100, [one]] for idx in range(zero_samples, num_samples)
-    ]
+    data = cast(
+        List[MetricVolumeRow],
+        [[start_timestamp + idx * 100, [zero]] for idx in range(zero_samples)]
+        + [[start_timestamp + idx * 100, [one]] for idx in range(zero_samples, num_samples)],
+    )
 
     assert estimate_stats_quality(data) == expected_result
 
@@ -277,8 +280,10 @@ def test_count_non_zero_intervals(zero_samples):
     one: CountResult = {"count": 1}
     zero: CountResult = {"count": 0}
 
-    data = [[start_timestamp + idx * 100, [zero]] for idx in range(zero_samples)] + [
-        [start_timestamp + idx * 100, [one]] for idx in range(zero_samples, num_samples)
-    ]
+    data = cast(
+        List[MetricVolumeRow],
+        [[start_timestamp + idx * 100, [zero]] for idx in range(zero_samples)]
+        + [[start_timestamp + idx * 100, [one]] for idx in range(zero_samples, num_samples)],
+    )
 
     assert _count_non_zero_intervals(data) == num_samples - zero_samples
