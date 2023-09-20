@@ -162,6 +162,7 @@ from .endpoints.codeowners import (
     ProjectCodeOwnersDetailsEndpoint,
     ProjectCodeOwnersEndpoint,
 )
+from .endpoints.custom_rules import CustomRulesEndpoint
 from .endpoints.data_scrubbing_selector_suggestions import DataScrubbingSelectorSuggestionsEndpoint
 from .endpoints.debug_files import (
     AssociateDSymFilesEndpoint,
@@ -1885,6 +1886,18 @@ ORGANIZATION_URLS = [
                     r"^function-trends/$",
                     OrganizationProfilingFunctionTrendsEndpoint.as_view(),
                     name="sentry-api-0-organization-profiling-function-trends",
+                ),
+            ],
+        ),
+    ),
+    re_path(
+        r"^(?P<organization_slug>[^/]+)/dynamic-sampling/",
+        include(
+            [
+                re_path(
+                    r"^custom-rules/$",
+                    CustomRulesEndpoint.as_view(),
+                    name="sentry-api-0-organization-dynamic_sampling-custom_rules",
                 ),
             ],
         ),

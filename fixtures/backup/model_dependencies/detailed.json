@@ -609,6 +609,36 @@
       "Region"
     ]
   },
+  "sentry.CustomDynamicSamplingRule": {
+    "foreign_keys": {
+      "organization": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.Organization"
+      }
+    },
+    "model": "sentry.CustomDynamicSamplingRule",
+    "relocation_scope": "Organization",
+    "silos": [
+      "Region"
+    ]
+  },
+  "sentry.CustomDynamicSamplingRuleProject": {
+    "foreign_keys": {
+      "custom_dynamic_sampling_rule": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.CustomDynamicSamplingRule"
+      },
+      "project": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.Project"
+      }
+    },
+    "model": "sentry.CustomDynamicSamplingRuleProject",
+    "relocation_scope": "Organization",
+    "silos": [
+      "Region"
+    ]
+  },
   "sentry.Dashboard": {
     "foreign_keys": {
       "created_by_id": {
