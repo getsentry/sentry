@@ -197,13 +197,16 @@ class DatabaseBackedUserService(UserService):
                 if user_query.count() > 1:
                     logger.warning("Email has multiple users", extra={"email": email})
                     if ident:
-                        for candid_user in user_query:
-                            identity_query = AuthIdentity.objects.filter(
-                                user=candid_user, ident=ident
+                        identity_query = AuthIdentity.objects.filter(
+                            user__in=user_query, ident=ident
+                        )
+                        if identity_query.exists():
+                            user = identity_query[0].user
+                        if identity_query.count() > 1:
+                            logger.warning(
+                                "Email has two auth identity for the same ident",
+                                extra={"email": email},
                             )
-                            if identity_query.exists():
-                                user = candid_user
-                                break
 
             return serialize_rpc_user(user)
 
