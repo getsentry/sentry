@@ -6,7 +6,10 @@ from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
+from sentry.testutils.skips import requires_snuba
 from sentry.utils.cache import cache
+
+pytestmark = requires_snuba
 
 
 def actor_key(actor):
