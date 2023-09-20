@@ -58,6 +58,8 @@ class TestCreatesOndemandMetricSpec:
         "aggregate, query",
         [
             ("count()", "transaction.duration:>0"),
+            ("count()", "transaction.duration:>0 event.type:transaction project:abc"),
+            ("count()", "(transaction.duration:>0) AND (event.type:transaction)"),
             ("p75(measurements.fp)", "transaction.duration:>0"),
             ("p75(transaction.duration)", "transaction.duration:>0"),
             ("count_if(transaction.duration,equals,0)", "transaction.duration:>0"),
