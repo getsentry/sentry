@@ -235,6 +235,39 @@ def check_missing(current_datetime: datetime):
 
 
 @instrumented_task(
+    name="sentry.monitors.tasks.mark_environment_missing",
+    max_retries=0,
+)
+def mark_environment_missing(monitor_environment_id: int):
+    logger.info("monitor.missed-checkin", extra={"monitor_environment_id": monitor_environment_id})
+
+    monitor_environment = MonitorEnvironment.objects.select_related("monitor").get(
+        id=monitor_environment_id
+    )
+    monitor = monitor_environment.monitor
+    expected_time = monitor_environment.next_checkin
+
+    # add missed checkin.
+    #
+    # XXX(epurkhiser): The date_added is backdated so that this missed
+    # check-in correctly reflects the time of when the checkin SHOULD
+    # have happened. It is the same as the expected_time.
+    checkin = MonitorCheckIn.objects.create(
+        project_id=monitor_environment.monitor.project_id,
+        monitor=monitor_environment.monitor,
+        monitor_environment=monitor_environment,
+        status=CheckInStatus.MISSED,
+        date_added=expected_time,
+        expected_time=expected_time,
+        monitor_config=monitor.get_validated_config(),
+    )
+    # TODO(epurkhiser): To properly fix GH-55874 we need to actually
+    # pass a timestamp here. But I'm not 100% sure what that should
+    # look like yet.
+    mark_failed(checkin, ts=None)
+
+
+@instrumented_task(
     name="sentry.monitors.tasks.check_timeout",
     time_limit=15,
     soft_time_limit=10,
