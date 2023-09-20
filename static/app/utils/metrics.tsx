@@ -6,6 +6,8 @@ import {parseStatsPeriod} from 'sentry/components/organizations/timeRangeSelecto
 import {ApiQueryKey, useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
+import {DateString} from '../types/core';
+
 type MetricMeta = {
   mri: string;
   operations: string[];
@@ -61,9 +63,16 @@ export function useMetricsTagValues(mri: string, tag: string) {
   );
 }
 
+type DateTime = {
+  end: DateString | null;
+  period: string | null;
+  start: DateString | null;
+  utc: boolean | null;
+};
+
 export type MetricsDataProps = {
+  datetime: DateTime;
   mri: string;
-  timeRange: any;
   groupBy?: string[];
   op?: string;
   projects?: string[];
@@ -88,7 +97,7 @@ export type MetricsData = {
 export function useMetricsData({
   mri,
   op,
-  timeRange,
+  datetime,
   projects,
   queryString,
   groupBy,
@@ -97,7 +106,11 @@ export function useMetricsData({
   const useCase = getUseCaseFromMri(mri);
   const field = op ? `${op}(${mri})` : mri;
 
-  const {start, end} = getUTCTimeRange(timeRange);
+  const {start, end} = useMemo(
+    () => getUTCTimeRange(datetime.start, datetime.end, datetime.period),
+    [datetime.period, datetime.start, datetime.end]
+  );
+
   const interval = getInterval({start, end}, 'metrics');
 
   const query = getQueryString({projects, queryString});
@@ -117,7 +130,7 @@ export function useMetricsData({
   return useApiQuery<MetricsData>(
     [`/organizations/${slug}/metrics/data/`, {query: queryToSend}],
     {
-      staleTime: 60,
+      staleTime: Infinity,
       retry: 0,
     }
   );
@@ -127,18 +140,22 @@ function getQueryString({
   projects = [],
   queryString = '',
 }: Pick<MetricsDataProps, 'projects' | 'queryString'>): string {
-  const projectQuery = projects.map(p => `project:${p}`).join(' OR ');
+  const projectQuery = projects.length ? `project:[${projects}]` : '';
   return [projectQuery, queryString].join(' ');
 }
 
-const getUTCTimeRange = (timeRange: Record<string, any>) => {
-  const absoluteTimeRange = timeRange.relative
-    ? parseStatsPeriod(timeRange.relative)
-    : timeRange;
+const getUTCTimeRange = (
+  startDate: DateString,
+  endDate: DateString,
+  period: string | null
+) => {
+  const {start, end} = period
+    ? parseStatsPeriod(period)
+    : {start: startDate, end: endDate};
 
   return {
-    start: moment(absoluteTimeRange.start).utc().toISOString(),
-    end: moment(absoluteTimeRange.end).utc().toISOString(),
+    start: moment(start).utc().toISOString(),
+    end: moment(end).utc().toISOString(),
   };
 };
 
