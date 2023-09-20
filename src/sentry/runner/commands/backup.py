@@ -21,6 +21,12 @@ MERGE_USERS_HELP = """If this flag is set and users in the import JSON have matc
                    are always created in the event of a collision, with the new user receiving a
                    random suffix to their username."""
 
+OVERWRITE_CONFIGS_HELP = """Imports are generally non-destructive of old data. However, if this flag
+                         is set and a global configuration, like an option or a relay id, collides
+                         with an existing value, the new value will overwrite the existing one. If
+                         the flag is left in its (default) unset state, the old value will be
+                         retained in the event of a collision."""
+
 
 def parse_filter_arg(filter_arg: str) -> set[str] | None:
     filter_by = None
@@ -98,15 +104,22 @@ def import_organizations(src, filter_org_slugs, merge_users, silent):
 
 @import_.command(name="global")
 @click.argument("src", type=click.File("rb"))
+@click.option(
+    "--overwrite_configs",
+    default=False,
+    is_flag=True,
+    help=OVERWRITE_CONFIGS_HELP,
+)
 @click.option("--silent", "-q", default=False, is_flag=True, help="Silence all debug output.")
 @configuration
-def import_global(src, silent):
+def import_global(src, silent, overwrite_configs):
     """
     Import all Sentry data from an exported JSON file.
     """
 
     import_in_global_scope(
         src,
+        flags=ImportFlags(overwrite_configs=overwrite_configs),
         printer=(lambda *args, **kwargs: None) if silent else click.echo,
     )
 

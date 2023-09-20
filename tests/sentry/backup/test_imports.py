@@ -21,6 +21,7 @@ from sentry.backup.scopes import ExportScope, RelocationScope
 from sentry.models.apitoken import DEFAULT_EXPIRATION, ApiToken, generate_token
 from sentry.models.authenticator import Authenticator
 from sentry.models.email import Email
+from sentry.models.options.option import ControlOption, Option
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization
 from sentry.models.organizationmapping import OrganizationMapping
@@ -29,6 +30,7 @@ from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
+from sentry.models.relay import Relay
 from sentry.models.user import User
 from sentry.models.useremail import UserEmail
 from sentry.models.userip import UserIP
@@ -820,29 +822,106 @@ class CollisionTests(ImportTestCase):
                 == 1
             )
 
-    def test_colliding_user_role(self):
+    def test_colliding_configs_overwrite_configs_enabled(self):
+        self.create_exhaustive_global_configs()
         self.create_exhaustive_user("owner", is_admin=True)
 
-        # Take note of the `UserRole` - this is the one we'll be importing.
-        colliding = UserRole.objects.all().first()
+        # Take note of the configs we want to track - this is the one we'll be importing.
+        colliding_option = Option.objects.all().first()
+        colliding_control_option = ControlOption.objects.all().first()
+        colliding_relay = Relay.objects.all().first()
+        colliding_user_role = UserRole.objects.all().first()
+        old_relay_public_key = colliding_relay.public_key
+        old_user_role_permissions = colliding_user_role.permissions
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
 
-            # After exporting and clearing the database, insert a copy of the same `UserRole` as the
-            # one found in the import.
-            colliding.save()
+            colliding_option.value = "y"
+            colliding_option.save()
+            colliding_control_option.value = "z"
+            colliding_control_option.save()
+            colliding_relay.public_key = "invalid"
+            colliding_relay.save()
+            colliding_user_role.permissions = ["other.admin"]
+            colliding_user_role.save()
 
+            assert Option.objects.count() == 1
+            assert ControlOption.objects.count() == 1
+            assert Relay.objects.count() == 1
             assert UserRole.objects.count() == 1
-            assert UserRole.objects.filter(name="test-admin-role").count() == 1
 
             with open(tmp_path) as tmp_file:
-                import_in_global_scope(tmp_file, printer=NOOP_PRINTER)
+                import_in_global_scope(
+                    tmp_file, flags=ImportFlags(overwrite_configs=True), printer=NOOP_PRINTER
+                )
 
-        assert UserRole.objects.count() == 2
-        assert UserRole.objects.filter(name__contains="test-admin-role").count() == 2
-        assert UserRole.objects.filter(name__exact="test-admin-role").count() == 1
-        assert UserRole.objects.filter(name__contains="test-admin-role-").count() == 1
+        assert Option.objects.count() == 1
+        assert Option.objects.filter(value__exact="a").exists()
+        assert not Option.objects.filter(value__exact="y").exists()
+
+        assert ControlOption.objects.count() == 1
+        assert ControlOption.objects.filter(value__exact="b").exists()
+        assert not ControlOption.objects.filter(value__exact="z").exists()
+
+        assert Relay.objects.count() == 1
+        assert Relay.objects.filter(public_key__exact=old_relay_public_key).exists()
+        assert not Relay.objects.filter(public_key__exact="invalid").exists()
+
+        actual_user_role = UserRole.objects.first()
+        assert len(actual_user_role.permissions) == len(old_user_role_permissions)
+        for i, actual_permission in enumerate(actual_user_role.permissions):
+            assert actual_permission == old_user_role_permissions[i]
+
+    def test_colliding_configs_overwrite_configs_disabled(self):
+        self.create_exhaustive_global_configs()
+        self.create_exhaustive_user("owner", is_admin=True)
+
+        # Take note of the configs we want to track - this is the one we'll be importing.
+        colliding_option = Option.objects.all().first()
+        colliding_control_option = ControlOption.objects.all().first()
+        colliding_relay = Relay.objects.all().first()
+        colliding_user_role = UserRole.objects.all().first()
+        old_relay_public_key = colliding_relay.public_key
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
+
+            colliding_option.value = "y"
+            colliding_option.save()
+            colliding_control_option.value = "z"
+            colliding_control_option.save()
+            colliding_relay.public_key = "invalid"
+            colliding_relay.save()
+            colliding_user_role.permissions = ["other.admin"]
+            colliding_user_role.save()
+
+            assert Option.objects.count() == 1
+            assert ControlOption.objects.count() == 1
+            assert Relay.objects.count() == 1
+            assert UserRole.objects.count() == 1
+
+            with open(tmp_path) as tmp_file:
+                import_in_global_scope(
+                    tmp_file, flags=ImportFlags(overwrite_configs=False), printer=NOOP_PRINTER
+                )
+
+        assert Option.objects.count() == 1
+        assert not Option.objects.filter(value__exact="a").exists()
+        assert Option.objects.filter(value__exact="y").exists()
+
+        assert ControlOption.objects.count() == 1
+        assert not ControlOption.objects.filter(value__exact="b").exists()
+        assert ControlOption.objects.filter(value__exact="z").exists()
+
+        assert Relay.objects.count() == 1
+        assert not Relay.objects.filter(public_key__exact=old_relay_public_key).exists()
+        assert Relay.objects.filter(public_key__exact="invalid").exists()
+
+        assert UserRole.objects.count() == 1
+        actual_user_role = UserRole.objects.first()
+        assert len(actual_user_role.permissions) == 1
+        assert actual_user_role.permissions[0] == "other.admin"
 
     def test_colliding_user_with_merging_enabled_in_user_scope(self):
         self.create_exhaustive_user(username="owner", email="owner@example.com")
