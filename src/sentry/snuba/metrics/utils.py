@@ -96,6 +96,7 @@ MetricOperationType = Literal[
     "min_timestamp",
     "max_timestamp",
     # Custom operations used for on demand derived metrics.
+    "on_demand_failure_count",
     "on_demand_failure_rate",
     "on_demand_apdex",
 ]
@@ -285,6 +286,7 @@ DERIVED_OPERATIONS = (
     "min_timestamp",
     "max_timestamp",
     # Custom operations used for on demand derived metrics.
+    "on_demand_failure_count",
     "on_demand_failure_rate",
     "on_demand_apdex",
 )

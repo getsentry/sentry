@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import datetime
 import math
 from datetime import timezone
@@ -2090,6 +2092,34 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
                 {"name": "p75_measurements_fp", "type": "Float64"},
             ],
         )
+
+    def test_run_query_with_on_demand_failure_count(self):
+        field = "failure_count()"
+        query = "transaction.duration:>=100"
+        spec = OnDemandMetricSpec(field=field, query=query)
+        timestamp = self.start
+        self.store_transaction_metric(
+            value=1,
+            metric=TransactionMetricKey.COUNT_ON_DEMAND.value,
+            internal_metric=TransactionMRI.COUNT_ON_DEMAND.value,
+            entity="metrics_counters",
+            tags={"query_hash": spec.query_hash, "failure": "true"},
+            timestamp=timestamp,
+        )
+        query = TimeseriesMetricQueryBuilder(
+            self.params,
+            dataset=Dataset.PerformanceMetrics,
+            interval=3600,
+            query=query,
+            selected_columns=[field],
+            config=QueryBuilderConfig(on_demand_metrics_enabled=True),
+        )
+        result = query.run_query("test_query")
+        assert result["data"][:1] == [{"time": timestamp.isoformat(), "failure_count": 1.0}]
+        assert result["meta"] == [
+            {"name": "time", "type": "DateTime('Universal')"},
+            {"name": "failure_count", "type": "Float64"},
+        ]
 
     def test_run_query_with_on_demand_failure_rate(self):
         field = "failure_rate()"
