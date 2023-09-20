@@ -337,7 +337,7 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
       );
     }
 
-    // Rule going to be disabled soon
+    // Rule to be disabled soon
     if (rule?.disableDate && moment(rule.disableDate).isAfter(new Date())) {
       return (
         <Alert type="warning" showIcon>
