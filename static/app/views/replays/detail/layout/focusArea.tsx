@@ -1,7 +1,10 @@
+import React from 'react';
+
 import useActiveReplayTab, {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import A11y from 'sentry/views/replays/detail/accessibility/index';
 import Console from 'sentry/views/replays/detail/console';
 import DomMutations from 'sentry/views/replays/detail/domMutations';
+import DomNodesChart from 'sentry/views/replays/detail/domNodesChart';
 import ErrorList from 'sentry/views/replays/detail/errorList/index';
 import MemoryChart from 'sentry/views/replays/detail/memoryChart';
 import NetworkList from 'sentry/views/replays/detail/network';
@@ -27,7 +30,12 @@ function FocusArea({}: Props) {
     case TabKey.DOM:
       return <DomMutations />;
     case TabKey.MEMORY:
-      return <MemoryChart />;
+      return (
+        <React.Fragment>
+          <MemoryChart />
+          <DomNodesChart />
+        </React.Fragment>
+      );
     case TabKey.CONSOLE:
     default: {
       return <Console />;

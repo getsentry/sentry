@@ -15,57 +15,55 @@ import {showPlayerTime} from 'sentry/components/replays/utils';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {ReactEchartsRef, Series} from 'sentry/types/echarts';
-import {formatBytesBase2} from 'sentry/utils';
 import {getFormattedDate} from 'sentry/utils/dates';
-import type {MemoryFrame} from 'sentry/utils/replays/types';
+import {axisLabelFormatter} from 'sentry/utils/discover/charts';
+import {useQuery} from 'sentry/utils/queryClient';
+import {DomNodeChartDatapoint} from 'sentry/utils/replays/countDomNodes';
+import ReplayReader from 'sentry/utils/replays/replayReader';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 
 interface Props {
-  memoryFrames: undefined | MemoryFrame[];
+  datapoints: DomNodeChartDatapoint[];
   setCurrentHoverTime: (time: undefined | number) => void;
   setCurrentTime: (time: number) => void;
   startTimestampMs: undefined | number;
 }
 
-interface MemoryChartProps extends Props {
+interface DomNodesChartProps extends Props {
   forwardedRef: React.Ref<ReactEchartsRef>;
 }
 
 const formatTimestamp = timestamp =>
   getFormattedDate(timestamp, 'MMM D, YYYY hh:mm:ss A z', {local: false});
 
-function MemoryChart({
+function DomNodesChart({
   forwardedRef,
-  memoryFrames,
+  datapoints,
   startTimestampMs = 0,
   setCurrentTime,
   setCurrentHoverTime,
-}: MemoryChartProps) {
+}: DomNodesChartProps) {
   const theme = useTheme();
 
-  if (!memoryFrames) {
+  if (!datapoints) {
     return (
-      <MemoryChartWrapper>
+      <DomNodesChartWrapper>
         <Placeholder height="100%" />
-      </MemoryChartWrapper>
+      </DomNodesChartWrapper>
     );
   }
 
-  if (!memoryFrames.length) {
+  if (!datapoints.length) {
     return (
       <EmptyMessage
-        data-test-id="replay-details-memory-tab"
-        title={t('No memory metrics found')}
-        description={t(
-          'Memory metrics are only captured within Chromium based browser sessions.'
-        )}
+        title={t('No DOM node metrics found')}
+        description={t('No DOM node metrics were found.')}
       />
     );
   }
 
   const chartOptions: Omit<AreaChartProps, 'series'> = {
     grid: Grid({
-      // makes space for the title
       top: '40px',
       left: space(1),
       right: space(1),
@@ -74,19 +72,16 @@ function MemoryChart({
       appendToBody: true,
       trigger: 'axis',
       renderMode: 'html',
-      chartId: 'replay-memory-chart',
+      chartId: 'replay-dom-nodes-chart',
       formatter: values => {
         const seriesTooltips = values.map(
           value => `
             <div>
-              <span className="tooltip-label">${value.marker}<strong>${
-                value.seriesName
-              }</strong></span>
-          ${formatBytesBase2(value.data[1])}
+              <span className="tooltip-label">${value.marker}<strong>${value.seriesName}</strong></span>
+          ${value.data[1]}
             </div>
           `
         );
-        // showPlayerTime expects a timestamp so we take the captured time in seconds and convert it to a UTC timestamp
         const template = [
           '<div class="tooltip-series">',
           ...seriesTooltips,
@@ -116,29 +111,22 @@ function MemoryChart({
     }),
     yAxis: YAxis({
       type: 'value',
-      name: t('Heap Size'),
+      name: t('DOM Nodes'),
       theme,
       nameTextStyle: {
-        padding: 8,
+        padding: [8, 8, 8, 48],
         fontSize: theme.fontSizeLarge,
         fontWeight: 600,
         lineHeight: 1.2,
         fontFamily: theme.text.family,
         color: theme.gray300,
       },
-      // input is in bytes, minInterval is a megabyte
-      minInterval: 1024 * 1024,
-      // maxInterval is a terabyte
+      minInterval: 500,
       maxInterval: Math.pow(1024, 4),
-      // format the axis labels to be whole number values
       axisLabel: {
-        formatter: value => formatBytesBase2(value, 0),
+        formatter: (value: number) => axisLabelFormatter(value, 'number', true),
       },
     }),
-
-    // XXX: For area charts, mouse events *only* occurs when interacting with
-    // the "line" of the area chart. Mouse events do not fire when interacting
-    // with the "area" under the line.
     onMouseOver: ({data}) => {
       if (data[0]) {
         setCurrentHoverTime(data[0] - startTimestampMs);
@@ -156,31 +144,17 @@ function MemoryChart({
 
   const series: Series[] = [
     {
-      seriesName: t('Used Heap Memory'),
-      data: memoryFrames.map(frame => ({
-        value: frame.data.memory.usedJSHeapSize,
-        name: frame.endTimestampMs,
+      seriesName: t('Number of DOM nodes'),
+      data: datapoints.map(d => ({
+        value: d.count,
+        name: d.endTimestampMs,
       })),
-      stack: 'heap-memory',
+      stack: 'dom-nodes',
       lineStyle: {
         opacity: 0.75,
         width: 1,
       },
     },
-    {
-      seriesName: t('Free Heap Memory'),
-      data: memoryFrames.map(frame => ({
-        value: frame.data.memory.totalJSHeapSize - frame.data.memory.usedJSHeapSize,
-        name: frame.endTimestampMs,
-      })),
-      stack: 'heap-memory',
-      lineStyle: {
-        opacity: 0.75,
-        width: 1,
-      },
-    },
-
-    // Inserting this here so we can update in Container
     {
       id: 'currentTime',
       seriesName: t('Current player time'),
@@ -218,13 +192,13 @@ function MemoryChart({
   ];
 
   return (
-    <MemoryChartWrapper id="replay-memory-chart">
+    <DomNodesChartWrapper id="replay-dom-nodes-chart">
       <AreaChart forwardedRef={forwardedRef} series={series} {...chartOptions} />
-    </MemoryChartWrapper>
+    </DomNodesChartWrapper>
   );
 }
 
-const MemoryChartWrapper = styled(FluidHeight)`
+const DomNodesChartWrapper = styled(FluidHeight)`
   border: 1px solid ${p => p.theme.border};
   border-radius: ${space(0.5)};
   height: 49%;
@@ -233,29 +207,26 @@ const MemoryChartWrapper = styled(FluidHeight)`
   margin-bottom: ${space(1)};
 `;
 
-const MemoizedMemoryChart = memo(
+const MemoizedDomNodesChart = memo(
   forwardRef<ReactEchartsRef, Props>((props, ref) => (
-    <MemoryChart forwardedRef={ref} {...props} />
+    <DomNodesChart forwardedRef={ref} {...props} />
   ))
 );
 
-/**
- * This container is used to update echarts outside of React. `currentTime` is
- * the current time of the player -- if replay is currently playing, this will
- * be updated quite frequently causing the chart to constantly re-render. The
- * re-renders will conflict with mouse interactions (e.g. hovers and tooltips).
- *
- * We need `MemoryChart` (which wraps an `<AreaChart>`) to re-render as
- * infrequently as possible, so we use React.memo and only pass in props that
- * are not frequently updated.
- */
-function MemoryChartContainer() {
+function useCountDomNodes({replay}: {replay: null | ReplayReader}) {
+  return useQuery(['countDomNodes', replay], () => replay?.countDomNodes() ?? [], {
+    enabled: Boolean(replay),
+    initialData: [],
+    cacheTime: Infinity,
+  });
+}
+
+function DomNodesChartContainer() {
   const {currentTime, currentHoverTime, replay, setCurrentTime, setCurrentHoverTime} =
     useReplayContext();
   const chart = useRef<ReactEchartsRef>(null);
   const theme = useTheme();
-
-  const memoryFrames = replay?.getMemoryFrames();
+  const {data: datapoints} = useCountDomNodes({replay});
   const startTimestampMs = replay?.getReplay()?.started_at?.getTime() ?? 0;
 
   useEffect(() => {
@@ -307,9 +278,9 @@ function MemoryChartContainer() {
   }, [currentHoverTime, startTimestampMs, theme]);
 
   return (
-    <MemoizedMemoryChart
+    <MemoizedDomNodesChart
       ref={chart}
-      memoryFrames={memoryFrames}
+      datapoints={datapoints}
       setCurrentHoverTime={setCurrentHoverTime}
       setCurrentTime={setCurrentTime}
       startTimestampMs={startTimestampMs}
@@ -317,4 +288,4 @@ function MemoryChartContainer() {
   );
 }
 
-export default MemoryChartContainer;
+export default DomNodesChartContainer;
