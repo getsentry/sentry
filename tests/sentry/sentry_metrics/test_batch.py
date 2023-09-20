@@ -2013,3 +2013,80 @@ def test_cardinality_limiter(caplog, settings):
             ],
         )
     ]
+
+@pytest.mark.django_db
+@patch("sentry.sentry_metrics.consumers.indexer.batch.UseCaseID", MockUseCaseID)
+def test_cardinality_limiter(caplog, settings):
+    settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
+
+    gauge_payload = {
+        "name": SessionMRI.SESSION.value,
+        "tags": {
+            "release": "1.0",
+            "http.status_code": "200",
+        },
+        "timestamp": ts,
+        "type": "c",
+        "value": 1,
+        "org_id": 1,
+        "retention_days": 90,
+        "project_id": 3,
+    }
+    gauge_headers = [("namespace", b"sessions")]
+
+    outer_message = _construct_outer_message(
+        [
+            (counter_payload, counter_headers),
+            (gauge_payload, gauge_headers)
+        ]
+    )
+
+    batch = IndexerBatch(
+        outer_message,
+        True,
+        False,
+        input_codec=_INGEST_CODEC,
+        tags_validator=ReleaseHealthTagsValidator().is_allowed,
+    )
+
+    assert batch.extract_strings() == {
+        MockUseCaseID.SESSIONS: {
+            1: {
+                'c:sessions/session@none',
+                "environment",
+                "production",
+                "session.status",
+                'init',
+                "release",
+                "1.0",
+                "http.status_code",
+                "200"
+            },
+        }
+    }
+
+    snuba_payloads = batch.reconstruct_messages(
+        {
+            MockUseCaseID.SESSIONS: {
+                1: {
+                    "environment": 1,
+                    "errored": 2,
+                    "production": 3,
+                    "s:sessions/error@none": 4,
+                    "session.status": 5,
+                },
+            }
+        },
+        {
+            MockUseCaseID.SESSIONS: {
+                1: {
+                    "environment": Metadata(id=1, fetch_type=FetchType.CACHE_HIT),
+                    "errored": Metadata(id=2, fetch_type=FetchType.CACHE_HIT),
+                    "production": Metadata(id=3, fetch_type=FetchType.CACHE_HIT),
+                    "s:sessions/error@none": Metadata(id=4, fetch_type=FetchType.CACHE_HIT),
+                    "session.status": Metadata(id=5, fetch_type=FetchType.CACHE_HIT),
+                }
+            }
+        },
+    )
+

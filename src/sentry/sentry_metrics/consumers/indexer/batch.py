@@ -15,7 +15,7 @@ from typing import (
     Set,
     Tuple,
     Union,
-    cast,
+    cast, List,
 )
 
 import rapidjson
@@ -45,7 +45,8 @@ logger = logging.getLogger(__name__)
 MAX_NAME_LENGTH = MAX_INDEXED_COLUMN_LENGTH
 
 ACCEPTED_METRIC_TYPES = {"s", "c", "d"}  # set, counter, distribution
-MRI_RE_PATTERN = re.compile("^([c|s|d|g|e]):([a-zA-Z0-9_]+)/.*$")
+MRI_RE_PATTERN = re.compile(r"^([c|s|d|g|e]):([a-zA-Z0-9_]+)/.*$")
+FULL_MRI_RE_PATTERN = re.compile(r"^([c|s|d|g|e]):([a-zA-Z0-9_]+)/([a-z_]+(?:\.[a-z_]+)*)(?:@([a-z]+))?$")
 
 OrgId = int
 Headers = MutableSequence[Tuple[str, bytes]]
@@ -81,6 +82,28 @@ def extract_use_case_id(mri: str) -> UseCaseID:
             return UseCaseID(use_case_str)
     raise ValidationError(f"Invalid mri: {mri}")
 
+def _convert_gauge_to_counters(message: ParsedMessage) -> List[ParsedMessage]:
+    if message["type"] == "g":
+        metric_name = message["name"]
+        if matched := FULL_MRI_RE_PATTERN.match(metric_name):
+            mri_use_case = matched.group(2)
+            mri_metric_name = matched.group(3)
+
+            converted_messages: List[ParsedMessage] = []
+            # We generate 5 messages from a single message in case of gauges, since we want to obtain a similar volume
+            # to more accurately estimate cost.
+            for i in range(5):
+                converted_message = message.copy()
+                converted_message["type"] = "c"
+                # TODO: check if we want to mutate the metric name with some index like "metric_name-index"
+                converted_message["name"] = f"c:{mri_use_case}/{mri_metric_name}"
+                converted_message["value"] = message["value"]["count"]
+
+                converted_messages[i] = converted_message
+
+            return converted_messages
+
+    return [message]
 
 class IndexerBatch:
     def __init__(
@@ -417,64 +440,65 @@ class IndexerBatch:
             # used for end-to-end latency metrics
             sentry_received_timestamp = message.value.timestamp.timestamp()
 
-            if self.__should_index_tag_values:
-                new_payload_v1: Metric = {
-                    "tags": new_tags,
-                    # XXX: relay actually sends this value unconditionally
-                    "retention_days": old_payload_value.get("retention_days", 90),
-                    "mapping_meta": output_message_meta,
-                    "use_case_id": old_payload_value["use_case_id"].value,
-                    "metric_id": numeric_metric_id,
-                    "org_id": old_payload_value["org_id"],
-                    "timestamp": old_payload_value["timestamp"],
-                    "project_id": old_payload_value["project_id"],
-                    "type": old_payload_value["type"],
-                    "value": old_payload_value["value"],
-                    "sentry_received_timestamp": sentry_received_timestamp,
-                }
+            for old_payload_value in _convert_gauge_to_counters(old_payload_value):
+                if self.__should_index_tag_values:
+                    new_payload_v1: Metric = {
+                        "tags": new_tags,
+                        # XXX: relay actually sends this value unconditionally
+                        "retention_days": old_payload_value.get("retention_days", 90),
+                        "mapping_meta": output_message_meta,
+                        "use_case_id": old_payload_value["use_case_id"].value,
+                        "metric_id": numeric_metric_id,
+                        "org_id": old_payload_value["org_id"],
+                        "timestamp": old_payload_value["timestamp"],
+                        "project_id": old_payload_value["project_id"],
+                        "type": old_payload_value["type"],
+                        "value": old_payload_value["value"],
+                        "sentry_received_timestamp": sentry_received_timestamp,
+                    }
 
-                new_payload_value = new_payload_v1
-            else:
-                # When sending tag values as strings, set the version on the payload
-                # to 2. This is used by the consumer to determine how to decode the
-                # tag values.
-                new_payload_v2: GenericMetric = {
-                    "tags": cast(Dict[str, str], new_tags),
-                    "version": 2,
-                    "retention_days": old_payload_value.get("retention_days", 90),
-                    "mapping_meta": output_message_meta,
-                    "use_case_id": old_payload_value["use_case_id"].value,
-                    "metric_id": numeric_metric_id,
-                    "org_id": old_payload_value["org_id"],
-                    "timestamp": old_payload_value["timestamp"],
-                    "project_id": old_payload_value["project_id"],
-                    "type": old_payload_value["type"],
-                    "value": old_payload_value["value"],
-                    "sentry_received_timestamp": sentry_received_timestamp,
-                }
-                if aggregation_option := get_aggregation_option(old_payload_value["name"]):
-                    new_payload_v2["aggregation_option"] = aggregation_option.value
+                    new_payload_value = new_payload_v1
+                else:
+                    # When sending tag values as strings, set the version on the payload
+                    # to 2. This is used by the consumer to determine how to decode the
+                    # tag values.
+                    new_payload_v2: GenericMetric = {
+                        "tags": cast(Dict[str, str], new_tags),
+                        "version": 2,
+                        "retention_days": old_payload_value.get("retention_days", 90),
+                        "mapping_meta": output_message_meta,
+                        "use_case_id": old_payload_value["use_case_id"].value,
+                        "metric_id": numeric_metric_id,
+                        "org_id": old_payload_value["org_id"],
+                        "timestamp": old_payload_value["timestamp"],
+                        "project_id": old_payload_value["project_id"],
+                        "type": old_payload_value["type"],
+                        "value": old_payload_value["value"],
+                        "sentry_received_timestamp": sentry_received_timestamp,
+                    }
+                    if aggregation_option := get_aggregation_option(old_payload_value["name"]):
+                        new_payload_v2["aggregation_option"] = aggregation_option.value
 
-                new_payload_value = new_payload_v2
+                    new_payload_value = new_payload_v2
 
-            kafka_payload = KafkaPayload(
-                key=message.payload.key,
-                value=rapidjson.dumps(new_payload_value).encode(),
-                headers=[
-                    *message.payload.headers,
-                    ("mapping_sources", mapping_header_content),
-                    # XXX: type mismatch, but seems to work fine in prod
-                    ("metric_type", new_payload_value["type"]),  # type: ignore
-                ],
-            )
-            if self.is_output_sliced:
-                routing_payload = RoutingPayload(
-                    routing_header={"org_id": org_id},
-                    routing_message=kafka_payload,
+                kafka_payload = KafkaPayload(
+                    key=message.payload.key,
+                    value=rapidjson.dumps(new_payload_value).encode(),
+                    headers=[
+                        *message.payload.headers,
+                        ("mapping_sources", mapping_header_content),
+                        # XXX: type mismatch, but seems to work fine in prod
+                        ("metric_type", new_payload_value["type"]),  # type: ignore
+                    ],
                 )
-                new_messages.append(Message(message.value.replace(routing_payload)))
-            else:
-                new_messages.append(Message(message.value.replace(kafka_payload)))
+                if self.is_output_sliced:
+                    routing_payload = RoutingPayload(
+                        routing_header={"org_id": org_id},
+                        routing_message=kafka_payload,
+                    )
+                    new_messages.append(Message(message.value.replace(routing_payload)))
+                else:
+                    new_messages.append(Message(message.value.replace(kafka_payload)))
 
         for use_case_id in self.__message_count:
             metrics.incr(
