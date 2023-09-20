@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Alert from 'sentry/components/alert';
+import {CodeSnippet} from 'sentry/components/codeSnippet';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
 import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
@@ -98,7 +99,7 @@ ${sentryInitContent}
           </li>
           <li>
             {tct(
-              'Initializing the SDK by hooking it to either the [celerydInit: celeryd_init] or [workerInit: worker_init] signals',
+              'Initializing the SDK by hooking it to either the [celerydInit: celeryd_init] or [workerInit: worker_init] signals:',
               {
                 celerydInit: (
                   <ExternalLink href="https://docs.celeryq.dev/en/stable/userguide/signals.html?#celeryd-init" />
@@ -108,12 +109,20 @@ ${sentryInitContent}
                 ),
               }
             )}
-            <span>TODO: Can I have a code block here?</span>
+            <CodeSnippet dark language="python">
+              {t(`import sentry_sdk
+from celery import Celery, signals
+
+app = Celery("myapp")
+
+#@signals.worker_init.connect
+@signals.celeryd_init.connect
+def init_sentry(**_kwargs):
+    sentry_sdk.init(...)  # same as above
+              `)}
+            </CodeSnippet>
           </li>
         </ul>
-        <p>
-          {t('The integration will automatically report errors from all celery jobs.')}
-        </p>
         <h5>{t('Setup With Django')}</h5>
         <p>
           {tct(
