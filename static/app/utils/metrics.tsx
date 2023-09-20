@@ -130,8 +130,18 @@ export function useMetricsData({
   return useApiQuery<MetricsData>(
     [`/organizations/${slug}/metrics/data/`, {query: queryToSend}],
     {
-      staleTime: 60,
       retry: 0,
+      staleTime: 0,
+      refetchOnReconnect: true,
+      refetchOnWindowFocus: true,
+      // auto refetch every 60 seconds
+      refetchInterval: data => {
+        // don't refetch if the request failed
+        if (!data) {
+          return false;
+        }
+        return 60 * 1000;
+      },
     }
   );
 }
