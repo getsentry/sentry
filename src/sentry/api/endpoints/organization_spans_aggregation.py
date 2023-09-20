@@ -158,9 +158,11 @@ class AggregateSpans:
                 count,
                 start_ms - parent_timestamp,
             )
-            # Calculates the absolute offset by the average offset of parent and average relative offset of current span from parent
-            # so we can more accurately represent parent/child relationships in the span waterfall. ie, does a better job of ensuring
-            # that child spans don't start before parent span at the aggregate level.
+            # Calculates the absolute offset by the average offset of parent and average
+            # relative offset of current span from parent so we can more accurately
+            # represent parent/child relationships in the span waterfall. ie, does
+            # a better job of ensuring that child spans don't start before parent
+            # span at the aggregate level.
             node["avg(absolute_offset)"] = (
                 parent_node["avg(absolute_offset)"] + node["avg(relative_offset)"]
                 if parent_node
