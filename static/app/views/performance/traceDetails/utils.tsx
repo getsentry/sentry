@@ -45,7 +45,7 @@ function transactionVisitor() {
       accumulator.errors.add(error.event_id);
     }
     for (const performanceIssue of event.performance_issues ?? []) {
-      accumulator.errors.add(performanceIssue.event_id);
+      accumulator.performanceIssues.add(performanceIssue.event_id);
     }
 
     accumulator.transactions.add(event.event_id);
@@ -102,6 +102,7 @@ export function getTraceInfo(
     startTimestamp: Number.MAX_SAFE_INTEGER,
     endTimestamp: 0,
     maxGeneration: 0,
+    trailingOrphansCount: 0,
   };
 
   const transactionsInfo = traces.reduce(
@@ -113,6 +114,7 @@ export function getTraceInfo(
   // Accumulate orphan error information.
   return orphanErrors.reduce((accumulator: TraceInfo, event: TraceError) => {
     accumulator.errors.add(event.event_id);
+    accumulator.trailingOrphansCount++;
 
     if (event.timestamp) {
       accumulator.startTimestamp = Math.min(accumulator.startTimestamp, event.timestamp);
