@@ -1,4 +1,4 @@
-import React, {ComponentProps, Fragment, ReactNode} from 'react';
+import {ComponentProps, Fragment, ReactNode} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
