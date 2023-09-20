@@ -452,7 +452,7 @@ class BackupTestCase(TransactionTestCase):
 
         return app
 
-    def create_exhaustive_globals(self):
+    def create_exhaustive_global_configs(self):
         # *Options
         Option.objects.create(key="foo", value="a")
         ControlOption.objects.create(key="bar", value="b")
@@ -474,7 +474,7 @@ class BackupTestCase(TransactionTestCase):
         invitee = self.create_exhaustive_user("invitee")
         org = self.create_exhaustive_organization("test-org", owner, invitee)
         self.create_exhaustive_sentry_app("test app", owner, org)
-        self.create_exhaustive_globals()
+        self.create_exhaustive_global_configs()
 
     def import_export_then_validate(self, out_name, *, reset_pks: bool = True) -> JSONData:
         return import_export_then_validate(out_name, reset_pks=reset_pks)
