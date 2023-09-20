@@ -78,6 +78,15 @@ class RpcTeamMember(RpcModel):
         return team_roles.get(self.role_id) if self.role_id else None
 
 
+class RpcOrganizationMemberTeam(RpcModel):
+    id: int = -1
+    team_id: int = -1
+    organizationmember_id: int = -1
+    organization_id: int = -1
+    is_active: bool = False
+    role: Optional[str] = None
+
+
 class RpcOrganizationMemberFlags(RpcModel):
     sso__linked: bool = False
     sso__invalid: bool = False
