@@ -1,8 +1,10 @@
+import os.path
 import tempfile
 from io import StringIO
 
 from django.core.management import call_command
 
+from sentry.constants import MODULE_ROOT
 from sentry.testutils.cases import TestCase
 
 
@@ -38,3 +40,27 @@ class TestGenerateControlsiloUrls(TestCase):
         assert "new RegExp('^api/0/users/$')," in result
         assert "const patterns" in result
         assert "export default patterns;" in result
+
+    def test_no_missing_urls(self):
+        pattern_file = "static/app/data/controlsiloUrlPatterns.ts"
+        project_root = os.path.dirname(os.path.dirname(MODULE_ROOT))
+        pattern_filepath = os.path.join(project_root, pattern_file)
+        with open(pattern_filepath) as f:
+            current_state = f.read()
+
+        result = self.call_command(format="js")
+        for line in result.splitlines():
+            msg = f"""
+            New control silo URL patterns detected!
+
+            The pattern: {line}
+
+            Does not exist in the current pattern inventory. You should regenerate
+            the pattern inventory with:
+
+            getsentry django generate_controlsilo_urls --format=js --output={pattern_file}
+
+            This command needs to be run in a getsentry environment
+            in order to not lose patterns that are important for sentry.io
+            """
+            assert line in current_state, msg
