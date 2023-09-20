@@ -105,8 +105,7 @@ class OrganizationMetricsEstimationStatsEndpoint(OrganizationEventsV2EndpointBas
                         stats_quality = StatsQualityEstimation.NO_DATA
 
                     metrics.incr(
-                        "sentry-api-0-organization-metrics-estimation-stats"
-                        "metrics_estimation_stats",
+                        "metrics_estimation_stats.data_quality",
                         sample_rate=1.0,
                         tags={"data_quality": stats_quality.value},
                     )
