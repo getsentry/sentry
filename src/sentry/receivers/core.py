@@ -16,7 +16,6 @@ from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.services.hybrid_cloud.util import region_silo_function
 from sentry.signals import post_upgrade, project_created
 from sentry.silo import SiloMode
-from sentry.utils.settings import is_self_hosted
 
 PROJECT_SEQUENCE_FIX = """
 SELECT setval('sentry_project_id_seq', (
@@ -40,9 +39,6 @@ def handle_db_failure(func, using=None):
 
 
 def create_default_projects(**kwds):
-    if not is_self_hosted():
-        return
-
     create_default_project(
         # This guards against sentry installs that have SENTRY_PROJECT set to None, so
         # that they don't error after every migration. Specifically for single tenant.
