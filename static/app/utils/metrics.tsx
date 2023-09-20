@@ -106,7 +106,7 @@ export function useMetricsData({
   const useCase = getUseCaseFromMri(mri);
   const field = op ? `${op}(${mri})` : mri;
 
-  const {start, end} = useMemo(
+  const {start, end, period} = useMemo(
     () => getUTCTimeRange(datetime.start, datetime.end, datetime.period),
     [datetime.period, datetime.start, datetime.end]
   );
@@ -115,14 +115,16 @@ export function useMetricsData({
 
   const query = getQueryString({projects, queryString});
 
+  const datetimeParams = period ? {statsPeriod: period} : {start, end};
+
   const queryToSend = {
+    ...datetimeParams,
     field,
     useCase,
     interval,
     query,
     groupBy,
-    start,
-    end,
+
     // max result groups
     per_page: 20,
   };
@@ -164,6 +166,7 @@ const getUTCTimeRange = (
     : {start: startDate, end: endDate};
 
   return {
+    period,
     start: moment(start).utc().toISOString(),
     end: moment(end).utc().toISOString(),
   };
