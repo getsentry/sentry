@@ -300,7 +300,7 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
           {tct(
             'This alert is scheduled to be disabled in [date] due to lack of activity. Please [keepAlive] to keep this alert active. [docs:Learn more]',
             {
-              date: <TimeSince date={tempDisabledDate} />,
+              date: <TimeSince date={rule.disableDate} />,
               keepAlive: (
                 <Button priority="link" size="sm" onClick={handleKeepAlertAlive}>
                   {t('Click Here')}
@@ -315,8 +315,6 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
 
     return null;
   }
-
-  const tempDisabledDate = moment().add(3, 'days').toDate();
 
   const {period, start, end, utc} = getDataDatetime();
   const {cursor} = location.query;
