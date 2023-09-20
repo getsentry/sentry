@@ -1,12 +1,13 @@
 import styled from '@emotion/styled';
 
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {AggregateEventTransaction} from 'sentry/types/event';
 import {formatPercentage, getDuration} from 'sentry/utils/formatters';
 import {QuickTraceEvent, TraceError} from 'sentry/utils/performance/quickTrace/types';
 
-import {ParsedTraceType, ProcessedSpanType} from './types';
+import {AggregateSpanType, ParsedTraceType} from './types';
 
 type Props = {
   childTransactions: QuickTraceEvent[] | null;
@@ -16,14 +17,13 @@ type Props = {
   relatedErrors: TraceError[] | null;
   resetCellMeasureCache: () => void;
   scrollToHash: (hash: string) => void;
-  span: ProcessedSpanType;
+  span: AggregateSpanType;
   trace: Readonly<ParsedTraceType>;
 };
 
 function AggregateSpanDetail({span}: Props) {
-  // @ts-ignore
   const frequency = span?.frequency;
-  const p95 = span?.timestamp - span?.start_timestamp;
+  const avgDuration = span?.timestamp - span?.start_timestamp;
   return (
     <SpanDetailContainer
       data-component="span-detail"
@@ -35,8 +35,8 @@ function AggregateSpanDetail({span}: Props) {
       <SpanDetails>
         <table className="table key-value">
           <tbody>
-            <Row title="p95(duration)">{getDuration(p95)}</Row>
-            <Row title="frequency">{frequency && formatPercentage(frequency)}</Row>
+            <Row title={t('avg(duration)')}>{getDuration(avgDuration)}</Row>
+            <Row title={t('frequency')}>{frequency && formatPercentage(frequency)}</Row>
           </tbody>
         </table>
       </SpanDetails>

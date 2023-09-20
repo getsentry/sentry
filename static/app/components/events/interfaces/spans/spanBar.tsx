@@ -79,6 +79,7 @@ import SpanBarCursorGuide from './spanBarCursorGuide';
 import SpanDetail from './spanDetail';
 import {MeasurementMarker} from './styles';
 import {
+  AggregateSpanType,
   FetchEmbeddedChildrenState,
   GroupType,
   ParsedTraceType,
@@ -144,7 +145,7 @@ export type SpanBarProps = {
   resetCellMeasureCache: () => void;
   showEmbeddedChildren: boolean;
   showSpanTree: boolean;
-  span: ProcessedSpanType;
+  span: ProcessedSpanType | AggregateSpanType;
   spanNumber: number;
   storeSpanBar: (spanBar: SpanBar) => void;
   toggleEmbeddedChildren:
@@ -311,24 +312,30 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
       return null;
     }
 
-    const isAggregateSpan = event.type === EventOrGroupType.AGGREGATE_TRANSACTION;
-    const SpanDetailComponent = isAggregateSpan ? (
-      <AggregateSpanDetail
-        span={span}
-        organization={organization}
-        event={event}
-        isRoot={!!isRoot}
-        trace={trace}
-        childTransactions={transactions}
-        relatedErrors={errors}
-        scrollToHash={this.scrollIntoView}
-        resetCellMeasureCache={this.props.resetCellMeasureCache}
-      />
-    ) : (
+    const isAggregateSpan =
+      event.type === EventOrGroupType.AGGREGATE_TRANSACTION && span.type === 'aggregate';
+
+    if (isAggregateSpan) {
+      return (
+        <AggregateSpanDetail
+          span={span}
+          organization={organization}
+          event={event}
+          isRoot={!!isRoot}
+          trace={trace}
+          childTransactions={transactions}
+          relatedErrors={errors}
+          scrollToHash={this.scrollIntoView}
+          resetCellMeasureCache={this.props.resetCellMeasureCache}
+        />
+      );
+    }
+
+    return (
       <SpanDetail
-        span={span}
+        span={span as ProcessedSpanType}
         organization={organization}
-        event={event}
+        event={event as EventTransaction}
         isRoot={!!isRoot}
         trace={trace}
         childTransactions={transactions}
@@ -337,8 +344,6 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
         resetCellMeasureCache={this.props.resetCellMeasureCache}
       />
     );
-
-    return SpanDetailComponent;
   }
 
   getBounds(bounds?: SpanGeneratedBoundsType): SpanViewBoundsType {
