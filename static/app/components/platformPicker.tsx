@@ -5,6 +5,7 @@ import {PlatformIcon} from 'platformicons';
 
 import {Button} from 'sentry/components/button';
 import EmptyMessage from 'sentry/components/emptyMessage';
+import ExternalLink from 'sentry/components/links/externalLink';
 import ListLink from 'sentry/components/links/listLink';
 import NavTabs from 'sentry/components/navTabs';
 import SearchBar from 'sentry/components/searchBar';
@@ -14,9 +15,9 @@ import categoryList, {
   filterAliases,
   PlatformKey,
 } from 'sentry/data/platformCategories';
-import platforms from 'sentry/data/platforms';
+import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {IconClose, IconProject} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, PlatformIntegration} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -181,9 +182,24 @@ class PlatformPicker extends Component<PlatformPickerProps, State> {
             icon={<IconProject size="xl" />}
             title={t("We don't have an SDK for that yet!")}
           >
-            {t(
-              "Make sure you've typed the platform correctly. If that doesn't help, we have several SDKs that are still useful if you use a lesser-known platform. For example, Browser JavaScript, Python, Node, .NET & Java."
-            )}
+            <p>
+              {tct(
+                `Sure you haven't misspelled? You can still create a project, but looks like we don't have an official SDK for your platform yet. However, there's a rich ecosystem of community supported SDKs (including NestJS, Nuxt2, Perl, CFML and Clojure).`,
+                {
+                  search: (
+                    <ExternalLink href="https://github.com/search?q=-org%3Agetsentry+topic%3Asentry&type=Repositories" />
+                  ),
+                }
+              )}
+            </p>
+            <Button
+              onClick={() => {
+                this.setState({filter: otherPlatform.name});
+                setPlatform({...otherPlatform, category});
+              }}
+            >
+              {t('Continue without a specialized platform')}
+            </Button>
           </EmptyMessage>
         )}
       </Fragment>
