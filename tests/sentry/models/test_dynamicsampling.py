@@ -1,10 +1,10 @@
 from datetime import timedelta
 
 from django.utils import timezone
-from freezegun import freeze_time
 
 from sentry.models import CustomDynamicSamplingRule
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import region_silo_test
 
 
