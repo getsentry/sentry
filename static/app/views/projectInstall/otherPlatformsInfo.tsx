@@ -81,7 +81,7 @@ export function OtherPlatformsInfo({
       </Suggestion>
       <div>
         {tct(
-          "Also there's a rich ecosystem of [link:community sudivported SDKs] (including NestJS, Nuxt2, Perl, CFML and Clojure).",
+          "Also there's a rich ecosystem of [link:community suported SDKs] (including NestJS, Nuxt2, Perl, CFML and Clojure).",
           {
             link: (
               <ExternalLink href="https://docs.sentry.io/platforms/#community-supported" />

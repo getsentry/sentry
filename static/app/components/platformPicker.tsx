@@ -5,7 +5,6 @@ import {PlatformIcon} from 'platformicons';
 
 import {Button} from 'sentry/components/button';
 import EmptyMessage from 'sentry/components/emptyMessage';
-import ExternalLink from 'sentry/components/links/externalLink';
 import ListLink from 'sentry/components/links/listLink';
 import NavTabs from 'sentry/components/navTabs';
 import SearchBar from 'sentry/components/searchBar';
@@ -182,24 +181,21 @@ class PlatformPicker extends Component<PlatformPickerProps, State> {
             icon={<IconProject size="xl" />}
             title={t("We don't have an SDK for that yet!")}
           >
-            <p>
-              {tct(
-                `Sure you haven't misspelled? You can still create a project, but looks like we don't have an official SDK for your platform yet. However, there's a rich ecosystem of community supported SDKs (including NestJS, Nuxt2, Perl, CFML and Clojure).`,
-                {
-                  search: (
-                    <ExternalLink href="https://github.com/search?q=-org%3Agetsentry+topic%3Asentry&type=Repositories" />
-                  ),
-                }
-              )}
-            </p>
-            <Button
-              onClick={() => {
-                this.setState({filter: otherPlatform.name});
-                setPlatform({...otherPlatform, category});
-              }}
-            >
-              {t('Continue without a specialized platform')}
-            </Button>
+            {tct(
+              `Sure you haven't misspelled? If you're using a lesser-known platform, consider choosing a more generic SDK like Browser JavaScript, Python, Node, .NET & Java or create a generic project, by selecting [linkOther:“Other”].`,
+              {
+                linkOther: (
+                  <Button
+                    aria-label={t("Select 'Other'")}
+                    priority="link"
+                    onClick={() => {
+                      this.setState({filter: otherPlatform.name});
+                      setPlatform({...otherPlatform, category});
+                    }}
+                  />
+                ),
+              }
+            )}
           </EmptyMessage>
         )}
       </Fragment>
