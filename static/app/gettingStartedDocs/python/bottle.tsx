@@ -19,12 +19,9 @@ const performanceConfiguration = `    # Set traces_sample_rate to 1.0 to capture
 
 const introduction = (
   <p>
-    {tct(
-      "The Bottle integration adds support for the Bottle Web Framework. Currently it works well with the stable version of Bottle (0.12). However the integration with the development version (0.13) doesn't work properly.",
-      {
-        link: <ExternalLink href="https://bottlepy.org/docs/dev/" />,
-      }
-    )}
+    {tct('The Bottle integration adds support for the [link:Bottle Web Framework].', {
+      link: <ExternalLink href="https://bottlepy.org/docs/dev/" />,
+    })}
   </p>
 );
 
@@ -49,14 +46,21 @@ export const steps = ({
     configurations: [
       {
         language: 'bash',
-        code: 'pip install --upgrade sentry-sdk[chalice]',
+        code: 'pip install --upgrade sentry-sdk[bottle]',
       },
     ],
   },
   {
     type: StepType.CONFIGURE,
-    description: t(
-      'To configure the SDK, initialize it with the integration before your app has been initialized:'
+    description: (
+      <p>
+        {tct(
+          'If you have the [code:bottle] package in your dependencies, the Bottle integration will be enabled automatically when you initialize the Sentry SDK. Initialize the Sentry SDK before your app has been initialized:',
+          {
+            code: <code />,
+          }
+        )}
+      </p>
     ),
     configurations: [
       {
@@ -64,8 +68,7 @@ export const steps = ({
         code: `
 import sentry_sdk
 
-from bottle import Bottle, run
-from sentry_sdk.integrations.bottle import BottleIntegration
+from bottle import Bottle
 
 sentry_sdk.init(
 ${sentryInitContent}
@@ -75,6 +78,42 @@ app = Bottle()
       `,
       },
     ],
+  },
+  {
+    type: StepType.VERIFY,
+    description: (
+      <p>{t('To verify that everything is working trigger an error on purpose:')}</p>
+    ),
+    configurations: [
+      {
+        language: 'python',
+        code: `from bottle import Bottle, run
+
+sentry_sdk.init(
+  ${sentryInitContent}
+)
+
+app = Bottle()
+
+@app.route('/')
+def hello():
+    1/0
+    return "Hello World!"
+
+run(app, host='localhost', port=8000)
+      `,
+      },
+    ],
+    additionalInfo: (
+      <p>
+        {tct(
+          'When you point your browser to [link:http://localhost:8000/] a transaction in the Performance section of Sentry will be created. Additionally, an error event will be sent to Sentry and will be connected to the transaction. It takes a couple of moments for the data to appear in Sentry.',
+          {
+            link: <ExternalLink href="http://localhost:8000/" />,
+          }
+        )}
+      </p>
+    ),
   },
 ];
 // Configuration End
@@ -86,10 +125,7 @@ export function GettingStartedWithBottle({
 }: ModuleProps) {
   const otherConfigs: string[] = [];
 
-  let sentryInitContent: string[] = [
-    `    dsn="${dsn}",`,
-    `    integrations=[BottleIntegration()],`,
-  ];
+  let sentryInitContent: string[] = [`    dsn="${dsn}",`];
 
   if (activeProductSelection.includes(ProductSolution.PERFORMANCE_MONITORING)) {
     otherConfigs.push(performanceConfiguration);
