@@ -2,7 +2,7 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import audit_log
+from sentry import analytics, audit_log
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -60,5 +60,11 @@ class ProjectRuleEnableEndpoint(ProjectEndpoint):
             target_object=rule.id,
             event=audit_log.get_event_id("RULE_EDIT"),
             data=rule.get_audit_log_data(),
+        )
+        analytics.record(
+            "rule.reenable",
+            rule_id=rule.id,
+            user_id=request.user.id,
+            organization_id=project.organization.id,
         )
         return Response(status=202)

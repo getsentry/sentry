@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from rest_framework import status
 
 from sentry import audit_log
@@ -18,7 +20,8 @@ class ProjectRuleEnableTestCase(APITestCase):
         self.rule = self.create_project_rule(project=self.project)
         self.login_as(user=self.user)
 
-    def test_simple(self):
+    @patch("sentry.analytics.record")
+    def test_simple(self, record_analytics):
         self.rule.status = ObjectStatus.DISABLED
         self.rule.save()
         with outbox_runner():
@@ -35,6 +38,13 @@ class ProjectRuleEnableTestCase(APITestCase):
                 target_object=self.rule.id,
                 event=audit_log.get_event_id("RULE_EDIT"),
             ).exists()
+        assert self.analytics_called_with_args(
+            record_analytics,
+            "rule.reenable",
+            rule_id=self.rule.id,
+            user_id=self.user.id,
+            organization_id=self.organization.id,
+        )
 
     def test_rule_enabled(self):
         """Test that we do not accept an enabled rule"""
