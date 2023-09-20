@@ -1131,8 +1131,8 @@ CELERYBEAT_SCHEDULE_REGION = {
     },
     "schedule_auto_transition_to_ongoing": {
         "task": "sentry.tasks.schedule_auto_transition_to_ongoing",
-        # Run job every minute
-        "schedule": crontab(minute="*/1"),
+        # Run job every 5 minutes
+        "schedule": crontab(minute="*/5"),
         "options": {"expires": 3600},
     },
     "github_comment_reactions": {
