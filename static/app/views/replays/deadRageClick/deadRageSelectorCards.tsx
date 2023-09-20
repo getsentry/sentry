@@ -43,7 +43,7 @@ function DeadClickTable({location}: {location: Location<any>}) {
       title={
         <React.Fragment>
           <IconContainer>
-            <IconCursorArrow size="sm" color="yellow300" />
+            <IconCursorArrow size="xs" color="yellow300" />
           </IconContainer>
           {t('Most Dead Clicks')}
         </React.Fragment>
@@ -79,7 +79,7 @@ function RageClickTable({location}: {location: Location<any>}) {
       title={
         <React.Fragment>
           <IconContainer>
-            <IconCursorArrow size="sm" color="red300" />
+            <IconCursorArrow size="xs" color="red300" />
           </IconContainer>
           {t('Most Rage Clicks')}
         </React.Fragment>
@@ -112,7 +112,7 @@ function SearchButton({
   return (
     <LinkButton
       {...props}
-      size="sm"
+      size="xs"
       to={{
         pathname: normalizeUrl(`/organizations/${organization.slug}/replays/${path}/`),
         query: {
