@@ -66,7 +66,9 @@ class OrganizationSpansAggregationEndpoint(OrganizationEventsEndpointBase):
     aggregated_tree: Dict[str, AggregateSpanRow] = {}
 
     def get(self, request: Request, organization: Organization) -> Response:
-        if not features.has("organizations:starfish-view", organization, actor=request.user):
+        if not features.has(
+            "organizations:aggregate-span-waterfall", organization, actor=request.user
+        ):
             return Response(status=404)
 
         try:
