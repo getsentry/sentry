@@ -23,8 +23,10 @@ class Migration(CheckedMigration):
     ]
 
     operations = [
-        migrations.RemoveField(
-            model_name="commitfilechange",
-            name="language",
-        ),
+        migrations.SeparateDatabaseAndState(
+            database_operations=[],
+            state_operations=[
+                migrations.RemoveField(model_name="commitfilechange", name="language"),
+            ],
+        )
     ]
