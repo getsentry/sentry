@@ -136,7 +136,7 @@ class TraceDetailsContent extends Component<Props, State> {
     return (
       <LoadingContainer>
         <StyledLoadingIndicator />
-        Hang in there, as we build your trace view!
+        {t("Hang in there, as we build your trace view!")}
       </LoadingContainer>
     );
   }
