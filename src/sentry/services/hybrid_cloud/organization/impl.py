@@ -27,7 +27,9 @@ from sentry.models import (
     outbox_context,
 )
 from sentry.models.organizationmember import InviteStatus
+from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.services.hybrid_cloud import OptionValue, logger
+from sentry.services.hybrid_cloud.app import app_service
 from sentry.services.hybrid_cloud.organization import (
     OrganizationService,
     OrganizationSignalService,
@@ -42,15 +44,24 @@ from sentry.services.hybrid_cloud.organization import (
     RpcUserInviteContext,
     RpcUserOrganizationContext,
 )
+from sentry.services.hybrid_cloud.organization.model import (
+    RpcAuditLogEntryActor,
+    RpcOrganizationDeleteResponse,
+    RpcOrganizationDeleteState,
+)
 from sentry.services.hybrid_cloud.organization.serial import (
     serialize_member,
     serialize_organization_summary,
     serialize_rpc_organization,
 )
+from sentry.services.hybrid_cloud.organization_actions.impl import (
+    mark_organization_as_pending_deletion_with_outbox_message,
+)
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.util import flags_to_bits
 from sentry.silo import unguarded_write
 from sentry.types.region import find_regions_for_orgs
+from sentry.utils.audit import create_org_delete_log
 
 
 class DatabaseBackedOrganizationService(OrganizationService):
@@ -533,6 +544,45 @@ class DatabaseBackedOrganizationService(OrganizationService):
         provider = manager.get(provider_key)
         for member in member_list:
             member.send_sso_link_email(sending_user_email, provider)
+
+    def delete_organization(
+        self, *, organization_id: int, user: RpcUser
+    ) -> RpcOrganizationDeleteResponse:
+        orm_organization = Organization.objects.get(id=organization_id)
+        if orm_organization.is_default:
+            return RpcOrganizationDeleteResponse(
+                response_state=RpcOrganizationDeleteState.CANNOT_REMOVE_DEFAULT_ORG
+            )
+
+        published_sentry_apps = app_service.get_published_sentry_apps_for_organization(
+            organization_id=orm_organization.id
+        )
+
+        if len(published_sentry_apps) > 0:
+            return RpcOrganizationDeleteResponse(
+                response_state=RpcOrganizationDeleteState.OWNS_PUBLISHED_INTEGRATION
+            )
+
+        with transaction.atomic(router.db_for_write(RegionScheduledDeletion)):
+            updated_organization = mark_organization_as_pending_deletion_with_outbox_message(
+                org_id=orm_organization.id
+            )
+
+            if updated_organization is not None:
+                schedule = RegionScheduledDeletion.schedule(orm_organization, days=1, actor=user)
+
+                Organization.objects.uncache_object(updated_organization.id)
+                return RpcOrganizationDeleteResponse(
+                    response_state=RpcOrganizationDeleteState.PENDING_DELETION,
+                    updated_organization=serialize_rpc_organization(updated_organization),
+                    schedule_guid=schedule.guid,
+                )
+        return RpcOrganizationDeleteResponse(response_state=RpcOrganizationDeleteState.NO_OP)
+
+    def create_org_delete_log(
+        self, *, organization_id: int, audit_log_actor: RpcAuditLogEntryActor
+    ) -> None:
+        create_org_delete_log(organization_id=organization_id, audit_log_actor=audit_log_actor)
 
     def send_signal(
         self,

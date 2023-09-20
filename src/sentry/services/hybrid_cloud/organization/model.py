@@ -3,20 +3,23 @@
 # in modules such as this one where hybrid cloud data models or service classes are
 # defined, because we want to reflect on type annotations and avoid forward references.
 from enum import IntEnum
-from typing import Any, List, Mapping, Optional
+from typing import Any, List, Mapping, Optional, Sequence
 
 from django.dispatch import Signal
 from pydantic import Field
 from typing_extensions import TypedDict
 
+from sentry import roles
 from sentry.db.models import ValidateFunction, Value
 from sentry.models.options.option import HasOption
 from sentry.roles import team_roles
 from sentry.roles.manager import TeamRole
 from sentry.services.hybrid_cloud import RpcModel
 from sentry.services.hybrid_cloud.project import RpcProject
+from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.services.hybrid_cloud.util import flags_to_bits
 from sentry.signals import sso_enabled
+from sentry.silo.base import SiloMode
 from sentry.types.organization import OrganizationAbsoluteUrlMixin
 
 
@@ -238,6 +241,21 @@ class RpcOrganization(RpcOrganizationSummary):
             "default_role": self.default_role,
         }
 
+    def get_owners(self) -> Sequence[RpcUser]:
+        from sentry.models.organizationmember import OrganizationMember
+        from sentry.models.organizationmembermapping import OrganizationMemberMapping
+        from sentry.services.hybrid_cloud.user.service import user_service
+
+        if SiloMode.get_current_mode() == SiloMode.CONTROL:
+            owners = OrganizationMemberMapping.objects.filter(
+                organization_id=self.id, role__in=[roles.get_top_dog().id]
+            ).values_list("user_id", flat=True)
+        else:
+            owners = OrganizationMember.objects.filter(
+                organization_id=self.id, role__in=[roles.get_top_dog().id]
+            ).values_list("user_id", flat=True)
+        return user_service.get_many(filter={"user_ids": list(owners)})
+
 
 class RpcUserOrganizationContext(RpcModel):
     """
@@ -308,3 +326,23 @@ class RpcOrganizationSignal(IntEnum):
     @property
     def signal(self) -> Signal:
         return self.signal_map()[self]
+
+
+class RpcOrganizationDeleteState(IntEnum):
+    PENDING_DELETION = 1
+    CANNOT_REMOVE_DEFAULT_ORG = 2
+    OWNS_PUBLISHED_INTEGRATION = 3
+    NO_OP = 4
+
+
+class RpcOrganizationDeleteResponse(RpcModel):
+    response_state: RpcOrganizationDeleteState
+    updated_organization: Optional[RpcOrganization] = None
+    schedule_guid: str = ""
+
+
+class RpcAuditLogEntryActor(RpcModel):
+    actor_label: Optional[str]
+    actor_id: int
+    actor_key: Optional[str]
+    ip_address: Optional[str]
