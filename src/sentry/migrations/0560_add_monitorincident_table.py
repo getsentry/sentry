@@ -23,7 +23,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0557_threshold_related_name"),
+        ("sentry", "0559_custom_dynamic_sampling_rule"),
     ]
 
     operations = [
