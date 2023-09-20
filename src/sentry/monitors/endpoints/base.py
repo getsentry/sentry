@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
+from django.utils.text import slugify
 from rest_framework.request import Request
 
 from sentry.api.authentication import (
@@ -16,7 +17,7 @@ from sentry.api.bases.project import ProjectPermission
 from sentry.api.exceptions import ParameterValidationError, ResourceDoesNotExist
 from sentry.constants import ObjectStatus
 from sentry.models import Organization, Project, ProjectKey
-from sentry.monitors.models import CheckInStatus, Monitor, MonitorCheckIn
+from sentry.monitors.models import MAX_SLUG_LENGTH, CheckInStatus, Monitor, MonitorCheckIn
 from sentry.utils.sdk import bind_organization_context, configure_scope
 
 
@@ -138,6 +139,7 @@ class MonitorIngestEndpoint(Endpoint):
         *args,
         **kwargs,
     ):
+        monitor_slug = slugify(monitor_slug)[:MAX_SLUG_LENGTH].strip("-")
         monitor = None
 
         # Include monitor_slug in kwargs when upsert is enabled

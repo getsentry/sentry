@@ -462,6 +462,15 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
 
         assert resp.status_code == 404
 
+    def test_invalid_slug_transform(self):
+        monitor = self._create_monitor()
+
+        # Add trailing `_` to the slug, making the slug invalid. We expect the
+        # slug to be trimmed, whcih is the same behavior the consumer has.
+        path = reverse(self.endpoint_with_org, args=[self.organization.slug, f"{monitor.slug}_"])
+        resp = self.client.post(path, {"status": "ok"}, **self.token_auth_headers)
+        assert resp.status_code == 201
+
     def test_with_dsn_and_missing_monitor_without_create(self):
         path = reverse(self.endpoint, args=["my-missing-monitor"])
         resp = self.client.post(path, {"status": "ok"}, **self.dsn_auth_headers)
