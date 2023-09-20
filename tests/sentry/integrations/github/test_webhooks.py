@@ -14,7 +14,6 @@ from sentry.models import Commit, CommitAuthor, GroupLink, PullRequest, Reposito
 from sentry.models.commitfilechange import CommitFileChange
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 
@@ -131,15 +130,6 @@ class PushEventWebhookTest(APITestCase):
         commit_filechanges = CommitFileChange.objects.all()
         assert len(commit_filechanges) == 2
 
-    def test_auto_linking_missing_feature_flag(self):
-        project = self.project  # force creation
-
-        self._setup_repo_test(project)
-
-        repos = Repository.objects.all()
-        assert len(repos) == 0
-
-    @with_feature("organizations:integrations-auto-repo-linking")
     @patch("sentry.integrations.github.webhook.metrics")
     def test_creates_missing_repo(self, mock_metrics):
         project = self.project  # force creation
@@ -154,7 +144,6 @@ class PushEventWebhookTest(APITestCase):
         assert repos[0].name == "baxterthehacker/public-repo"
         mock_metrics.incr.assert_called_with("github.webhook.repository_created")
 
-    @with_feature("organizations:integrations-auto-repo-linking")
     def test_ignores_hidden_repo(self):
         project = self.project  # force creation
 
@@ -285,7 +274,6 @@ class PushEventWebhookTest(APITestCase):
         )
         assert len(commit_list) == 0
 
-    @with_feature("organizations:integrations-auto-repo-linking")
     @patch("sentry.integrations.github.webhook.metrics")
     def test_multiple_orgs_creates_missing_repos(self, mock_metrics):
         project = self.project  # force creation
@@ -325,7 +313,6 @@ class PushEventWebhookTest(APITestCase):
             assert repo.name == "baxterthehacker/public-repo"
         mock_metrics.incr.assert_called_with("github.webhook.repository_created")
 
-    @with_feature("organizations:integrations-auto-repo-linking")
     def test_multiple_orgs_ignores_hidden_repo(self):
         project = self.project  # force creation
 
@@ -428,14 +415,6 @@ class PullRequestEventWebhook(APITestCase):
 
         self.assert_group_link(group, pr)
 
-    def test_auto_linking_missing_feature_flag(self):
-        project = self.project  # force creation
-        self._setup_repo_test(project)
-
-        repos = Repository.objects.all()
-        assert len(repos) == 0
-
-    @with_feature("organizations:integrations-auto-repo-linking")
     @patch("sentry.integrations.github.webhook.metrics")
     def test_creates_missing_repo(self, mock_metrics):
         project = self.project  # force creation
@@ -449,7 +428,6 @@ class PullRequestEventWebhook(APITestCase):
         assert repos[0].name == "baxterthehacker/public-repo"
         mock_metrics.incr.assert_called_with("github.webhook.repository_created")
 
-    @with_feature("organizations:integrations-auto-repo-linking")
     def test_ignores_hidden_repo(self):
         project = self.project  # force creation
 
@@ -468,7 +446,6 @@ class PullRequestEventWebhook(APITestCase):
         assert len(repos) == 1
         assert repos[0] == repo
 
-    @with_feature("organizations:integrations-auto-repo-linking")
     @patch("sentry.integrations.github.webhook.metrics")
     def test_multiple_orgs_creates_missing_repo(self, mock_metrics):
         project = self.project  # force creation
@@ -508,7 +485,6 @@ class PullRequestEventWebhook(APITestCase):
             assert repo.name == "baxterthehacker/public-repo"
         mock_metrics.incr.assert_called_with("github.webhook.repository_created")
 
-    @with_feature("organizations:integrations-auto-repo-linking")
     def test_multiple_orgs_ignores_hidden_repo(self):
         project = self.project  # force creation
 
