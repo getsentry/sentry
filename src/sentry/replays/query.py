@@ -609,6 +609,15 @@ class ReplayQueryConfig(QueryConfig):
     project_id = String(query_alias="project_id", is_filterable=False)
     project = String(query_alias="project_id", is_filterable=False)
 
+    x_error_ids = ListField(query_alias="x_error_ids")
+    x_error_id = ListField(query_alias="x_error_id")
+
+    x_warning_ids = ListField(query_alias="x_warning_ids")
+    x_warning_id = ListField(query_alias="x_warning_id")
+
+    x_info_ids = ListField(query_alias="x_info_ids")
+    x_info_id = ListField(query_alias="x_info_id")
+
 
 class ReplaySubqueryConfig(QueryConfig):
     browser = String(field_alias="browser", query_alias="browser_name")
@@ -752,6 +761,46 @@ def _activity_score():
     )
 
 
+def _exp_event_ids_agg(alias, ids_type_list):
+    id_types_to_aggregate = []
+    for id_type in ids_type_list:
+        id_types_to_aggregate.append(
+            Function(
+                "arrayFilter",
+                parameters=[
+                    Lambda(
+                        ["id"],
+                        Function(
+                            "notEquals",
+                            parameters=[
+                                Identifier("id"),
+                                "00000000-0000-0000-0000-000000000000",
+                            ],
+                        ),
+                    ),
+                    Function("groupArray", parameters=[Column(id_type)]),
+                ],
+            )
+        )
+
+    return Function(
+        "arrayMap",
+        parameters=[
+            Lambda(
+                ["error_id_no_dashes"],
+                _strip_uuid_dashes("error_id_no_dashes", Identifier("error_id_no_dashes")),
+            ),
+            Function(
+                "arrayDistinct",
+                parameters=[
+                    Function("flatten", [id_types_to_aggregate]),
+                ],
+            ),
+        ],
+        alias=alias,
+    )
+
+
 # A mapping of marshalable fields and theirs dependencies represented as query aliases.  If a
 # column is added which depends on another column, you must add it to this mapping.
 #
@@ -841,6 +890,12 @@ FIELD_QUERY_ALIAS_MAP: Dict[str, List[str]] = {
         "click.text",
         "click.title",
     ],
+    "x_error_id": ["x_error_ids"],
+    "x_warning_id": ["x_warning_ids"],
+    "x_info_id": ["x_info_ids", "x_debug_ids"],
+    "x_error_ids": ["x_error_ids"],
+    "x_warning_ids": ["x_warning_ids"],
+    "x_info_ids": ["x_info_ids"],
 }
 
 
@@ -867,7 +922,7 @@ QUERY_ALIAS_COLUMN_MAP = {
     "error_ids": Function(
         "arrayMap",
         parameters=[
-            Lambda(["error_id"], _strip_uuid_dashes("error_id", Identifier("error_id"))),
+            Lambda(["id"], _strip_uuid_dashes("id", Identifier("id"))),
             Function(
                 "groupUniqArrayArray",
                 parameters=[Column("error_ids")],
@@ -983,6 +1038,9 @@ QUERY_ALIAS_COLUMN_MAP = {
     ),
     "click.text": Function("groupArray", parameters=[Column("click_text")], alias="click_text"),
     "click.title": Function("groupArray", parameters=[Column("click_title")], alias="click_title"),
+    "x_error_ids": _exp_event_ids_agg("x_error_ids", ["error_id", "fatal_id"]),
+    "x_warning_ids": _exp_event_ids_agg("x_warning_ids", ["warning_id"]),
+    "x_info_ids": _exp_event_ids_agg("x_info_ids", ["info_id", "debug_id"]),
 }
 
 

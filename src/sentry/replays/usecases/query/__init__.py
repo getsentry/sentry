@@ -193,7 +193,6 @@ def query_using_optimized_search(
         query = query.set_offset(pagination.offset)
 
     subquery_response = _execute_query(query, tenant_id, referrer)
-
     # These replay_ids are ordered by the OrderBy expression in the query above.
     replay_ids = [row["replay_id"] for row in subquery_response.get("data", [])]
     if not replay_ids:

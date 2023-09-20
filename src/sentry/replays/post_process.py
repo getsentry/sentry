@@ -172,6 +172,10 @@ def generate_normalized_output(
         ret_item["replay_type"] = item.pop("replay_type", "session")
         ret_item["started_at"] = item.pop("started_at", None)
 
+        ret_item["x_warning_ids"] = item.pop("x_warning_ids", None)
+        ret_item["x_error_ids"] = item.pop("x_error_ids", None)
+        ret_item["x_info_ids"] = item.pop("x_info_ids", None)
+
         yield ret_item
 
 

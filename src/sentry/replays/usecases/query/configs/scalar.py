@@ -43,7 +43,19 @@ varying_search_config: dict[str, Union[ColumnField, ComputedField, TagField]] = 
     "user.id": StringColumnField("user_id", parse_str, StringScalar),
     "user.ip_address": StringColumnField("ip_address_v4", parse_str, IPv4Scalar),
     "user.username": StringColumnField("user_name", parse_str, StringScalar),
+    # "x_error_ids": ComputedField(parse_uuid, EventIdScalar),
+    "x_warning_ids": StringColumnField("warning_id", lambda x: str(parse_uuid(x)), StringScalar),
+    # "x_warning_id": StringColumnField("warning_id", lambda x: str(parse_uuid(x)), StringScalar),
+    # "x_info_ids": StringColumnField(
+    #     "info_id", lambda x: str(parse_uuid(x)), StringScalar
+    # ),  # TODO use info and debug
+    # "x_info_id": StringColumnField(
+    #     "info_id", lambda x: str(parse_uuid(x)), StringScalar
+    # ),  # TODO use info and debug
 }
+
+# varying_search_config["x_error_id"] = varying_search_config["x_error_ids"]
+varying_search_config["x_warning_id"] = varying_search_config["x_warning_ids"]
 
 
 scalar_search_config = {**static_search_config, **varying_search_config}

@@ -1713,3 +1713,70 @@ class OrganizationReplayIndexOptimizedSearchTest(OrganizationReplayIndexTest):
             response_data = response.json()
             assert "data" in response_data
             assert len(response_data["data"]) == 0
+
+    def test_exp_ids_warnings(self):
+        project = self.create_project(teams=[self.team])
+
+        uid1 = uuid.uuid4().hex
+        uid2 = uuid.uuid4().hex
+
+        replay1_id = uuid.uuid4().hex
+        seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=22)
+        seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=5)
+
+        self.store_replays(mock_replay(seq1_timestamp, project.id, replay1_id))
+        self.store_replays(mock_replay(seq2_timestamp, project.id, replay1_id))
+        self.store_replays(
+            self.mock_event_links(seq1_timestamp, project.id, "warning", replay1_id, uid1)
+        )
+        with self.feature(REPLAYS_FEATURES):
+            queries = [f"x_warning_id:{uid1}", f"x_warning_id:[{uid1}]"]
+            for query in queries:
+                response = self.client.get(
+                    self.url + f"?field=id&field=x_warning_ids&query={query}"
+                )
+                assert response.status_code == 200
+                response_data = response.json()
+                assert len(response_data["data"]) == 1, query
+
+            response = self.client.get(
+                self.url + f"?field=id&field=x_warning_ids&query=x_warning_id:{uid2}"
+            )
+            assert response.status_code == 200
+            response_data = response.json()
+            assert len(response_data["data"]) == 0, query
+
+    def test_exp_ids_errors(self):
+        project = self.create_project(teams=[self.team])
+
+        uid1 = uuid.uuid4().hex
+        uid2 = uuid.uuid4().hex
+        uid3 = uuid.uuid4().hex
+
+        replay1_id = uuid.uuid4().hex
+        seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=22)
+        seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=5)
+
+        self.store_replays(mock_replay(seq1_timestamp, project.id, replay1_id))
+        self.store_replays(mock_replay(seq2_timestamp, project.id, replay1_id))
+        self.store_replays(
+            self.mock_event_links(seq1_timestamp, project.id, "error", replay1_id, uid1)
+        )
+        self.store_replays(
+            self.mock_event_links(seq1_timestamp, project.id, "fatal", replay1_id, uid2)
+        )
+        with self.feature(REPLAYS_FEATURES):
+            queries = [f"x_error_id:{uid1}", f"x_error_id:{uid2}"]
+            for query in queries:
+                response = self.client.get(self.url + f"?field=id&field=x_error_ids&query={query}")
+                assert response.status_code == 200
+                response_data = response.json()
+                assert len(response_data["data"]) == 1, query
+                assert len(response_data["data"][0]["x_error_ids"]) == 2, query
+
+            response = self.client.get(
+                self.url + f"?field=id&field=x_error_id&query=x_error_id:{uid3}"
+            )
+            assert response.status_code == 200
+            response_data = response.json()
+            assert len(response_data["data"]) == 0, query
