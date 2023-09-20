@@ -24,11 +24,15 @@ from sentry.services.hybrid_cloud.auth import auth_service
 from sentry.services.hybrid_cloud.identity import identity_service
 from sentry.services.hybrid_cloud.log import AuditLogEvent, UserIpEvent, log_rpc_service
 from sentry.services.hybrid_cloud.organization_mapping import organization_mapping_service
+from sentry.services.hybrid_cloud.organization_mapping.serial import (
+    update_organization_mapping_from_instance,
+)
 from sentry.services.hybrid_cloud.organizationmember_mapping import (
     RpcOrganizationMemberMappingUpdate,
     organizationmember_mapping_service,
 )
 from sentry.services.hybrid_cloud.orgauthtoken import orgauthtoken_rpc_service
+from sentry.types.region import get_local_region
 
 
 @receiver(process_region_outbox, sender=OutboxCategory.AUDIT_LOG_EVENT)
@@ -89,9 +93,10 @@ def process_organization_mapping_customer_id_update(
         return
 
     if payload and "customer_id" in payload:
-        organization_mapping_service.update(
-            organization_id=org.id, update={"customer_id": payload["customer_id"]}
+        update = update_organization_mapping_from_instance(
+            org, get_local_region(), customer_id=payload["customer_id"]
         )
+        organization_mapping_service.upsert(organization_id=org.id, update=update)
 
 
 @receiver(process_region_outbox, sender=OutboxCategory.DISABLE_AUTH_PROVIDER)

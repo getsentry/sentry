@@ -249,8 +249,6 @@ class Organization(
                 slugify_target = slugify_target.lower().replace("_", "-").strip("-")
                 slugify_instance(self, slugify_target, reserved=RESERVED_ORGANIZATION_SLUGS)
 
-        # Run the save + outbox queueing in a transaction to ensure the control-silo is notified
-        # when a change is made to the organization model.
         if SENTRY_USE_SNOWFLAKE:
             self.save_with_snowflake_id(
                 self.snowflake_redis_key,

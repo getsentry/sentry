@@ -8,8 +8,8 @@ from typing import Optional
 
 from django.utils import timezone
 from pydantic.fields import Field
-from typing_extensions import TypedDict
 
+from sentry.services.hybrid_cloud import RpcModel
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 
 
@@ -21,14 +21,10 @@ class RpcOrganizationMapping(RpcOrganizationSummary):
     status: Optional[int] = None
 
 
-class RpcOrganizationMappingUpdate(TypedDict, total=False):
-    """A set of values to be updated on an OrganizationMapping.
-
-    An absent key indicates that the attribute should not be updated.
-    """
-
-    name: str
-    status: int
-    slug: str
-    region_name: str
-    customer_id: Optional[str]
+class RpcOrganizationMappingUpdate(RpcModel):
+    name: str = ""
+    status: int = 0
+    slug: str = ""
+    region_name: str = ""
+    customer_id: Optional[str] = None
+    requires_2fa: bool = False
