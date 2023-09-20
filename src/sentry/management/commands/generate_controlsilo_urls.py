@@ -127,7 +127,6 @@ class Command(BaseCommand):
         contents = self.render(url_patterns, options["format"])
 
         if not options["output"]:
-            self.stdout.write("The following URL patterns exist in control silo URL routes.")
             self.stdout.write(contents)
         else:
             self.stdout.write(f"Writing {options['output']} file..")
