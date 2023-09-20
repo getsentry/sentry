@@ -45,6 +45,7 @@ TOTAL_SPAN_DURATION_ALIAS = "total.span_duration"
 SPAN_MODULE_ALIAS = "span.module"
 SPAN_DOMAIN_ALIAS = "span.domain_array"
 SPAN_DOMAIN_SEPARATOR = ","
+UNIQUE_SPAN_DOMAIN_ALIAS = "unique_span_domains"
 
 
 class ThresholdDict(TypedDict):

@@ -743,6 +743,67 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert meta["dataset"] == "spansMetrics"
         assert meta["fields"]["span.domain_array"] == "array"
 
+    def test_unique_values_span_domain(self):
+        self.store_span_metric(
+            321,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.min_ago,
+            tags={"span.domain": ",sentry_table1,"},
+        )
+        self.store_span_metric(
+            21,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.min_ago,
+            tags={"span.domain": ",sentry_table2,sentry_table3,"},
+        )
+        response = self.do_request(
+            {
+                "field": ["unique_span_domains", "count()"],
+                "query": "",
+                "orderby": "unique_span_domains",
+                "project": self.project.id,
+                "dataset": "spansMetrics",
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 3
+        assert data[0]["unique_span_domains"] == "sentry_table1"
+        assert data[1]["unique_span_domains"] == "sentry_table2"
+        assert data[2]["unique_span_domains"] == "sentry_table3"
+        assert meta["fields"]["unique_span_domains"] == "string"
+
+    def test_unique_values_span_domain_with_filter(self):
+        self.store_span_metric(
+            321,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.min_ago,
+            tags={"span.domain": ",sentry_tible1,"},
+        )
+        self.store_span_metric(
+            21,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.min_ago,
+            tags={"span.domain": ",sentry_table2,sentry_table3,"},
+        )
+        response = self.do_request(
+            {
+                "field": ["unique_span_domains", "count()"],
+                "query": "span.domain_array:sentry_tab*",
+                "orderby": "unique_span_domains",
+                "project": self.project.id,
+                "dataset": "spansMetrics",
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 2
+        assert data[0]["unique_span_domains"] == "sentry_table2"
+        assert data[1]["unique_span_domains"] == "sentry_table3"
+        assert meta["fields"]["unique_span_domains"] == "string"
+
 
 @region_silo_test
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
@@ -791,3 +852,11 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     @pytest.mark.xfail(reason="Not implemented")
     def test_span_domain_array_has_filter(self):
         super().test_span_domain_array_has_filter()
+
+    @pytest.mark.xfail(reason="Not implemented")
+    def test_unique_values_span_domain(self):
+        super().test_unique_values_span_domain()
+
+    @pytest.mark.xfail(reason="Not implemented")
+    def test_unique_values_span_domain_with_filter(self):
+        super().test_unique_values_span_domain_with_filter()
