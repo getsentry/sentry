@@ -28,10 +28,10 @@ import DiscoverQuery, {
 import EventView, {isFieldSortable, MetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {getAggregateAlias, RateUnits} from 'sentry/utils/discover/fields';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {TableColumn} from 'sentry/views/discover/table/types';
 import {ThroughputCell} from 'sentry/views/starfish/components/tableCells/throughputCell';
 import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
+import {IssueCounts, useIssueCounts} from 'sentry/views/starfish/queries/useIssueCounts';
 import {TIME_SPENT_IN_SERVICE} from 'sentry/views/starfish/utils/generatePerformanceEventView';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 
@@ -55,42 +55,15 @@ export type TableColumnHeader = GridColumnHeader<keyof TableDataRow> & {
   column?: TableColumn<keyof TableDataRow>['column']; // TODO - remove this once gridEditable is properly typed
 };
 
-export function useIssueCounts(organization, eventView, transactions) {
-  const queryParameters = {
-    query: transactions,
-    project: eventView.project,
-    start: eventView.start,
-    end: eventView.end,
-    statsPeriod: eventView.statsPeriod,
-  };
-
-  return useApiQuery<Any[]>(
-    [
-      `/organizations/${organization.slug}/issues-count/`,
-      {
-        query: queryParameters,
-      },
-    ],
-    {
-      staleTime: Infinity,
-      enabled: transactions.length > 0,
-    }
-  );
-}
-
-function IssueCounts({eventView, organization, tableData, children}) {
+function QueryIssueCounts({eventView, tableData, children}) {
   const transactions: Map<string, string> = new Map();
   if (tableData) {
     tableData.data.forEach(row => {
       transactions.set(`transaction:${row.transaction} is:unresolved`, row.transaction);
     });
   }
-  const {data, isLoading} = useIssueCounts(
-    organization,
-    eventView,
-    Array.from(transactions.keys())
-  );
-  const result: Map<string, number> = new Map();
+  const {data, isLoading} = useIssueCounts(eventView, Array.from(transactions.keys()));
+  const result: Map<string, IssueCounts> = new Map();
   for (const [query, count] of data ? Object.entries(data) : []) {
     if (transactions.has(query)) {
       result.set(transactions.get(query)!, count);
@@ -330,8 +303,14 @@ function EndpointList({eventView, location, organization, setError}: Props) {
     });
   }
 
-  const columnOrder = eventView
-    .getColumns()
+  const eventViewColumns = eventView.getColumns();
+  eventViewColumns.push({
+    key: 'issues',
+    name: 'Issues',
+    type: 'number',
+    width: -1,
+  } as TableColumn<React.ReactText>);
+  const columnOrder = eventViewColumns
     .filter(
       (col: TableColumn<React.ReactText>) =>
         col.name !== 'project' &&
@@ -345,7 +324,6 @@ function EndpointList({eventView, location, organization, setError}: Props) {
       }
       return col;
     });
-  columnOrder.push({key: 'issues', name: 'Issues', type: 'number', width: -1});
 
   const columnSortBy = eventView.getSorts();
 
@@ -363,11 +341,7 @@ function EndpointList({eventView, location, organization, setError}: Props) {
       >
         {({pageLinks, isLoading, tableData}) => (
           <Fragment>
-            <IssueCounts
-              eventView={eventView}
-              organization={organization}
-              tableData={tableData}
-            >
+            <QueryIssueCounts eventView={eventView} tableData={tableData}>
               {({issueCounts, isIssueLoading}) => (
                 <GridEditable
                   isLoading={isLoading && isIssueLoading}
@@ -382,7 +356,7 @@ function EndpointList({eventView, location, organization, setError}: Props) {
                   location={location}
                 />
               )}
-            </IssueCounts>
+            </QueryIssueCounts>
 
             <Pagination pageLinks={pageLinks} />
           </Fragment>
