@@ -2,12 +2,15 @@ from __future__ import annotations
 
 import secrets
 from datetime import timedelta
+from typing import Optional, Tuple
 
 from django.db import models, router, transaction
 from django.utils import timezone
 from django.utils.encoding import force_str
 
-from sentry.backup.scopes import RelocationScope
+from sentry.backup.dependencies import ImportKind
+from sentry.backup.helpers import ImportFlags
+from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.constants import SentryAppStatus
 from sentry.db.models import (
     BaseManager,
@@ -85,6 +88,22 @@ class ApiToken(Model, HasApiScopes):
             return RelocationScope.Global
 
         return RelocationScope.Config
+
+    def write_relocation_import(
+        self, scope: ImportScope, flags: ImportFlags
+    ) -> Optional[Tuple[int, ImportKind]]:
+        # If there is a token collision, generate new tokens.
+        query = models.Q(token=self.token) | models.Q(refresh_token=self.refresh_token)
+        existing = self.__class__.objects.filter(query).first()
+        if existing:
+            self.pk = existing.pk
+            self.expires_at = timezone.now() + DEFAULT_EXPIRATION
+            self.token = generate_token()
+            self.refresh_token = generate_token()
+            self.save()
+            return (self.pk, ImportKind.Overwrite)
+
+        return super().write_relocation_import(scope, flags)
 
     @property
     def organization_id(self) -> int | None:

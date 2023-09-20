@@ -8,6 +8,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pytest
+from django.utils import timezone
 from rest_framework.serializers import ValidationError
 
 from sentry.backup.helpers import ImportFlags, get_exportable_sentry_models
@@ -17,6 +18,7 @@ from sentry.backup.imports import (
     import_in_user_scope,
 )
 from sentry.backup.scopes import ExportScope, RelocationScope
+from sentry.models.apitoken import DEFAULT_EXPIRATION, ApiToken, generate_token
 from sentry.models.authenticator import Authenticator
 from sentry.models.email import Email
 from sentry.models.options.project_option import ProjectOption
@@ -623,6 +625,83 @@ class CollisionTests(ImportTestCase):
     """
     Ensure that collisions are properly handled in different flag modes.
     """
+
+    def test_colliding_api_token(self):
+        owner = self.create_exhaustive_user("owner")
+        expires_at = timezone.now() + DEFAULT_EXPIRATION
+
+        # Take note of the `ApiTokens` that were created by the exhaustive organization - this is
+        # the one we'll be importing.
+        colliding_no_refresh = ApiToken.objects.create(
+            user=owner, token=generate_token(), expires_at=expires_at
+        )
+        colliding_same_refresh_only = ApiToken.objects.create(
+            user=owner,
+            token=generate_token(),
+            refresh_token=generate_token(),
+            expires_at=expires_at,
+        )
+        colliding_same_token_only = ApiToken.objects.create(
+            user=owner,
+            token=generate_token(),
+            refresh_token=generate_token(),
+            expires_at=expires_at,
+        )
+        colliding_same_both = ApiToken.objects.create(
+            user=owner,
+            token=generate_token(),
+            refresh_token=generate_token(),
+            expires_at=expires_at,
+        )
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
+            owner = self.create_exhaustive_user(username="owner")
+
+            # Re-insert colliding tokens, pointed at the new user.
+            colliding_no_refresh.user_id = owner.id
+            colliding_no_refresh.save()
+
+            colliding_same_refresh_only.token = generate_token()
+            colliding_same_refresh_only.user_id = owner.id
+            colliding_same_refresh_only.save()
+
+            colliding_same_token_only.refresh_token = generate_token()
+            colliding_same_token_only.user_id = owner.id
+            colliding_same_token_only.save()
+
+            colliding_same_both.user_id = owner.id
+            colliding_same_both.save()
+
+            assert ApiToken.objects.count() == 4
+            assert ApiToken.objects.filter(token=colliding_no_refresh.token).count() == 1
+            assert (
+                ApiToken.objects.filter(
+                    refresh_token=colliding_same_refresh_only.refresh_token
+                ).count()
+                == 1
+            )
+            assert ApiToken.objects.filter(token=colliding_same_token_only.token).count() == 1
+            assert (
+                ApiToken.objects.filter(
+                    token=colliding_same_both.token, refresh_token=colliding_same_both.refresh_token
+                ).count()
+                == 1
+            )
+
+            with open(tmp_path) as tmp_file:
+                import_in_global_scope(tmp_file, printer=NOOP_PRINTER)
+
+        # Ensure that old tokens have been replaced.
+        assert ApiToken.objects.count() == 4
+        assert not ApiToken.objects.filter(token=colliding_no_refresh.token).exists()
+        assert not ApiToken.objects.filter(
+            refresh_token=colliding_same_refresh_only.refresh_token
+        ).exists()
+        assert not ApiToken.objects.filter(token=colliding_same_token_only.token).exists()
+        assert not ApiToken.objects.filter(
+            token=colliding_same_both.token, refresh_token=colliding_same_both.refresh_token
+        ).exists()
 
     def test_colliding_org_auth_token(self):
         owner = self.create_exhaustive_user("owner")

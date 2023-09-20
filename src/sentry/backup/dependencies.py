@@ -87,11 +87,17 @@ class DependenciesJSONEncoder(json.JSONEncoder):
 
 class ImportKind(Enum):
     """
-    When importing a given model, we may either create a new copy of it (`Inserted`) or merely re-use an `Existing` copy that has the same already-used globally unique identifier (ex: `username` for users, `slug` for orgs, etc). This information can then be saved alongside the new `pk` for the model in the `PrimaryKeyMap`, so that models that depend on this one can know if they are dealing with a new or re-used model.
+    When importing a given model, we may create a new copy of it (`Inserted`), merely re-use an
+    `Existing` copy that has the same already-used globally unique identifier (ex: `username` for
+    users, `slug` for orgs, etc), or do an `Overwrite` that merges the new data into an existing
+    model that already has a `pk` assigned to it. This information can then be saved alongside the
+    new `pk` for the model in the `PrimaryKeyMap`, so that models that depend on this one can know
+    if they are dealing with a new or re-used model.
     """
 
     Inserted = auto()
     Existing = auto()
+    Overwrite = auto()
 
 
 class PrimaryKeyMap:
