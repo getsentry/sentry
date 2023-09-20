@@ -284,6 +284,7 @@ def get_stream_processor(
     synchronize_commit_group: Optional[str],
     healthcheck_file_path: Optional[str],
     validate_schema: bool = False,
+    group_instance_id: Optional[str] = None,
 ) -> StreamProcessor:
     try:
         consumer_definition = KAFKA_CONSUMERS[consumer_name]
@@ -341,6 +342,9 @@ def get_stream_processor(
             # to the same. (it's default is 45 seconds and it must be <= to max.poll.interval.ms)
             if max_poll_interval_ms < 45000:
                 consumer_config["session.timeout.ms"] = max_poll_interval_ms
+
+        if group_instance_id is not None:
+            consumer_config["group.instance.id"] = group_instance_id
 
         return consumer_config
 

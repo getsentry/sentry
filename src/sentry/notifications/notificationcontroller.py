@@ -506,3 +506,50 @@ class NotificationController:
                 return True
 
         return False
+
+    def get_notification_value_for_recipient_and_type(
+        self, recipient: Recipient, type: NotificationSettingEnum
+    ) -> NotificationSettingsOptionEnum:
+        """
+        Returns the notification setting value for the given recipient and type.
+
+        Args:
+            recipient: The recipient of the notification settings (user or team).
+            type: The notification type to filter providers and recipients by.
+        """
+        if self.type and type != self.type:
+            raise Exception("Type mismatch: the provided type differs from the controller type")
+
+        setting_options = self._get_layered_setting_options(type=type.value)
+        for _, setting in setting_options[recipient].items():
+            value = setting[type]
+            # Skip notifications that are off
+            if value == NotificationSettingsOptionEnum.NEVER:
+                continue
+            return value
+
+        return NotificationSettingsOptionEnum.NEVER
+
+    def get_notification_provider_value_for_recipient_and_type(
+        self, recipient: Recipient, type: NotificationSettingEnum, provider: ExternalProviderEnum
+    ) -> NotificationSettingsOptionEnum:
+        """
+        Returns the notification setting value for the given recipient and type.
+
+        Args:
+            recipient: The recipient of the notification settings (user or team).
+            type: The notification type to filter providers and recipients by.
+        """
+        if self.type and type != self.type:
+            raise Exception("Type mismatch: the provided type differs from the controller type")
+
+        setting_providers = self._get_layered_setting_providers(type=type.value)
+        for _, recipient_mapping in setting_providers[recipient].items():
+            type_mapping = recipient_mapping[type]
+            value = type_mapping[provider]
+            if value == NotificationSettingsOptionEnum.NEVER:
+                continue
+
+            return value
+
+        return NotificationSettingsOptionEnum.NEVER

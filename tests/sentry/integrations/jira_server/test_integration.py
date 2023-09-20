@@ -24,11 +24,14 @@ from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
 from sentry_plugins.jira.plugin import JiraPlugin
 
 from . import get_integration
+
+pytestmark = [requires_snuba]
 
 DEFAULT_PROJECT_ID = 10000
 DEFAULT_ISSUE_TYPE_ID = 10000

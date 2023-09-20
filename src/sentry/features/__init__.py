@@ -67,7 +67,6 @@ default_manager.add("organizations:alert-crash-free-metrics", OrganizationFeatur
 default_manager.add("organizations:alert-filters", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:api-keys", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:auto-enable-codecov", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
-default_manager.add("organizations:integrations-auto-repo-linking", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:crash-rate-alerts", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:crons-new-onboarding", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:customer-domains", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
