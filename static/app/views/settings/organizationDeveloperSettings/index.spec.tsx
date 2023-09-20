@@ -147,9 +147,8 @@ describe('Organization Developer Settings', function () {
         await userEvent.type(element, answer);
       }
 
-      const requestPublishButton = await within(dialog).findByLabelText(
-        'Request Publication'
-      );
+      const requestPublishButton =
+        await within(dialog).findByLabelText('Request Publication');
       expect(requestPublishButton).toHaveAttribute('aria-disabled', 'false');
 
       await userEvent.click(requestPublishButton);

@@ -5,6 +5,8 @@ from unittest.mock import patch
 from minimetrics.core import CounterMetric, DistributionMetric, GaugeMetric, SetMetric
 from minimetrics.transport import MetricEnvelopeTransport, RelayStatsdEncoder
 from minimetrics.types import BucketKey
+from sentry.testutils.helpers import override_options
+from sentry.testutils.pytest.fixtures import django_db_all
 
 
 def encode_metric(value):
@@ -197,7 +199,14 @@ def test_relay_encoder_with_multiple_metrics():
     )
 
 
+@override_options(
+    {
+        "delightful_metrics.enable_envelope_serialization": True,
+        "delightful_metrics.enable_capture_envelope": True,
+    }
+)
 @patch("minimetrics.transport.sentry_sdk")
+@django_db_all
 def test_send(sentry_sdk):
     flushed_metric = (
         1693994400,

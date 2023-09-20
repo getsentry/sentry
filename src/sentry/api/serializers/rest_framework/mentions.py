@@ -6,8 +6,10 @@ from rest_framework import serializers
 
 from sentry.models import ActorTuple, OrganizationMember, OrganizationMemberTeam, Team, User
 from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.services.hybrid_cloud.util import region_silo_function
 
 
+@region_silo_function
 def extract_user_ids_from_mentions(organization_id, mentions):
     """
     Extracts user ids from a set of mentions. Mentions should be a list of

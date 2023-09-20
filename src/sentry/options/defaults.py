@@ -1529,6 +1529,18 @@ register(
 )
 
 register(
+    "delightful_metrics.enable_envelope_serialization",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "delightful_metrics.enable_capture_envelope",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
     "outbox_replication.sentry_team.replication_version",
     type=Int,
     default=0,
@@ -1551,6 +1563,13 @@ register(
 
 register(
     "outbox_replication.sentry_authprovider.replication_version",
+    type=Int,
+    default=0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "outbox_replication.sentry_organizationmember_teams.replication_version",
     type=Int,
     default=0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,

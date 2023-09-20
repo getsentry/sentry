@@ -399,9 +399,8 @@ export function useEchartsAriaLabels(
           ? +highestValue[1].toFixed(3)
           : lowestValue[1];
 
-      return `The ${s.name} series contains ${
-        s.data?.length
-      } data points. Its lowest value is ${lowestY} ${
+      return `The ${s.name} series contains ${s.data
+        ?.length} data points. Its lowest value is ${lowestY} ${
         isGroupedByDate ? 'on' : 'at'
       } ${lowestX} and highest value is ${highestY} ${
         isGroupedByDate ? 'on' : 'at'

@@ -7,11 +7,9 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 from unittest import mock
 
-import freezegun
 import pytest
 import sentry_sdk
 from django.utils.datastructures import MultiValueDict
-from freezegun import freeze_time
 from snuba_sdk import (
     AliasedExpression,
     And,
@@ -73,7 +71,7 @@ from sentry.snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI
 from sentry.snuba.metrics.query import MetricConditionField, MetricField, MetricGroupByField
 from sentry.snuba.metrics.query_builder import QUERY_PROJECT_LIMIT, QueryDefinition
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.pytest.fixtures import django_db_all
 
 pytestmark = pytest.mark.sentry_metrics
@@ -304,7 +302,7 @@ def test_get_date_range(now, interval, parameters, expected):
 
     if interval is not None:
         parameters["interval"] = interval
-    with freezegun.freeze_time(now):
+    with freeze_time(now):
         start, end, interval = get_date_range(parameters)
 
         start_actual = _to_datetimestring(start)

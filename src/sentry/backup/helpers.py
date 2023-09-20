@@ -71,3 +71,8 @@ class ImportFlags(NamedTuple):
     # If a username already exists, should we re-use that user, or create a new one with a randomly
     # suffixed username (ex: "some-user" would become "some-user-ad21")
     merge_users: bool = False
+
+    # If a global configuration value `ControlOption`/`Option` (as identified by its unique
+    # `key`) or `Relay` (as identified by its unique `relay_id`) already exists, should we overwrite
+    # it with the new value, or keep the existing one and discard the incoming value instead?
+    overwrite_configs: bool = False

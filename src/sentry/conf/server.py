@@ -1131,8 +1131,8 @@ CELERYBEAT_SCHEDULE_REGION = {
     },
     "schedule_auto_transition_to_ongoing": {
         "task": "sentry.tasks.schedule_auto_transition_to_ongoing",
-        # Run job every 10 minutes
-        "schedule": crontab(minute="*/10"),
+        # Run job every minute
+        "schedule": crontab(minute="*/1"),
         "options": {"expires": 3600},
     },
     "github_comment_reactions": {
@@ -1446,8 +1446,6 @@ SENTRY_FEATURES = {
     "organizations:profiling-battery-usage-chart": False,
     # Enable profiling summary redesign view
     "organizations:profiling-summary-redesign": False,
-    # Enable disabling github integrations when broken is detected
-    "organizations:github-disable-on-broken": False,
     # Enable disabling gitlab integrations when broken is detected
     "organizations:gitlab-disable-on-broken": False,
     # Enable multi project selection
@@ -1670,6 +1668,8 @@ SENTRY_FEATURES = {
     "organizations:session-replay-trial-ended-banner": False,
     # Enable the Replay rage and dead click selector tables in the UI
     "organizations:session-replay-rage-dead-selectors": False,
+    # Enable the new event linking columns to be queried
+    "organizations:session-replay-new-event-counts": False,
     # Enable the new suggested assignees feature
     "organizations:streamline-targeting-context": False,
     # Enable the new experimental starfish view

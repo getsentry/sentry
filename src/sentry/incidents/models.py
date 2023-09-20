@@ -216,10 +216,10 @@ class Incident(Model):
     def duration(self):
         return self.current_end_date - self.date_started
 
-    def _normalize_before_relocation_import(
+    def normalize_before_relocation_import(
         self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
     ) -> Optional[int]:
-        old_pk = super()._normalize_before_relocation_import(pk_map, scope, flags)
+        old_pk = super().normalize_before_relocation_import(pk_map, scope, flags)
         if old_pk is None:
             return None
 
@@ -296,10 +296,10 @@ class IncidentActivity(Model):
         app_label = "sentry"
         db_table = "sentry_incidentactivity"
 
-    def _normalize_before_relocation_import(
+    def normalize_before_relocation_import(
         self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
     ) -> Optional[int]:
-        old_pk = super()._normalize_before_relocation_import(pk_map, scope, flags)
+        old_pk = super().normalize_before_relocation_import(pk_map, scope, flags)
         if old_pk is None:
             return None
 
