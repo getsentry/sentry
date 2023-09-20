@@ -48,7 +48,7 @@ class OrganizationTeamsPermission(OrganizationPermission):
     }
 
 
-@extend_schema_serializer(exclude_fields=["idp_provisioned"])
+@extend_schema_serializer(exclude_fields=["idp_provisioned"], deprecate_fields=["name"])
 class TeamPostSerializer(serializers.Serializer, PreventNumericSlugMixin):
     slug = serializers.RegexField(
         DEFAULT_SLUG_PATTERN,
@@ -60,8 +60,8 @@ class TeamPostSerializer(serializers.Serializer, PreventNumericSlugMixin):
         error_messages={"invalid": DEFAULT_SLUG_ERROR_MESSAGE},
     )
     name = serializers.CharField(
-        help_text="""A deprecated field that can be used for an external customer
-        ID if needed. If not provided, it is automatically generated from the slug.""",
+        help_text="""**`[DEPRECATED]`** The name for the team. If not provided, it is
+        automatically generated from the slug""",
         max_length=64,
         required=False,
         allow_null=True,
