@@ -36,10 +36,11 @@ from sentry.snuba.tasks import (
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import Feature
+from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
 from sentry.utils.snuba import _snuba_pool
 
-pytestmark = pytest.mark.sentry_metrics
+pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
 
 
 def indexer_record(use_case_id: UseCaseID, org_id: int, string: str) -> int:
