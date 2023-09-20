@@ -1830,6 +1830,31 @@
       "Region"
     ]
   },
+  "sentry.MonitorIncident": {
+    "foreign_keys": {
+      "monitor": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.Monitor"
+      },
+      "monitor_environment": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.MonitorEnvironment"
+      },
+      "resolving_checkin": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.MonitorCheckIn"
+      },
+      "starting_checkin": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.MonitorCheckIn"
+      }
+    },
+    "model": "sentry.MonitorIncident",
+    "relocation_scope": "Excluded",
+    "silos": [
+      "Region"
+    ]
+  },
   "sentry.MonitorLocation": {
     "foreign_keys": {},
     "model": "sentry.MonitorLocation",
