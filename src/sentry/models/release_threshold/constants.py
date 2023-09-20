@@ -52,7 +52,7 @@ class TriggerType:
     ABSOLUTE_UNDER_STR = "absolute_under"
 
     @classmethod
-    def as_choices(cls):
+    def as_choices(cls):  # choices for model column
         return (
             (cls.PERCENT_OVER_STR, cls.PERCENT_OVER),
             (cls.PERCENT_UNDER_STR, cls.PERCENT_UNDER),
@@ -61,7 +61,7 @@ class TriggerType:
         )
 
     @classmethod
-    def as_str_choices(cls):
+    def as_str_choices(cls):  # choices for serializer
         return (
             (cls.PERCENT_OVER_STR, cls.PERCENT_OVER_STR),
             (cls.PERCENT_UNDER_STR, cls.PERCENT_UNDER_STR),
@@ -72,7 +72,7 @@ class TriggerType:
 
 THRESHOLD_TYPE_INT_TO_STR = {
     ReleaseThresholdType.TOTAL_ERROR_COUNT: ReleaseThresholdType.TOTAL_ERROR_COUNT_STR,
-    ReleaseThresholdType.NEW_ISSUE_COUNT_STR: ReleaseThresholdType.NEW_ISSUE_COUNT_STR,
+    ReleaseThresholdType.NEW_ISSUE_COUNT: ReleaseThresholdType.NEW_ISSUE_COUNT_STR,
     ReleaseThresholdType.UNHANDLED_ISSUE_COUNT: ReleaseThresholdType.UNHANDLED_ISSUE_COUNT_STR,
     ReleaseThresholdType.REGRESSED_ISSUE_COUNT: ReleaseThresholdType.REGRESSED_ISSUE_COUNT_STR,
     ReleaseThresholdType.FAILURE_RATE: ReleaseThresholdType.FAILURE_RATE_STR,

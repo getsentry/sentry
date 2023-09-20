@@ -207,9 +207,16 @@ def get_group_settings_link(
     return str(group.get_absolute_url() + extra_params)
 
 
-def get_integration_link(organization: Organization, integration_slug: str) -> str:
+def get_integration_link(
+    organization: Organization, integration_slug: str, notification_uuid: Optional[str] = None
+) -> str:
+    query_params = {"referrer": "alert_email"}
+    if notification_uuid:
+        query_params.update({"notification_uuid": notification_uuid})
+
     return organization.absolute_url(
-        f"/settings/{organization.slug}/integrations/{integration_slug}/?referrer=alert_email"
+        f"/settings/{organization.slug}/integrations/{integration_slug}/",
+        query=urlencode(query_params),
     )
 
 

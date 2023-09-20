@@ -21,7 +21,7 @@ type ListItem<V> = [
   comma: string,
   space: ReturnType<TokenConverter['tokenSpaces']>,
   notComma: undefined,
-  value: V | null
+  value: V | null,
 ];
 
 const listJoiner = <K,>([s1, comma, s2, _, value]: ListItem<K>) => ({

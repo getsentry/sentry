@@ -14,6 +14,7 @@ import {isDone} from 'sentry/components/sidebar/utils';
 import {
   IconChevron,
   IconDashboard,
+  IconGraph,
   IconIssues,
   IconLightning,
   IconPlay,
@@ -44,6 +45,7 @@ import theme from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useProjects from 'sentry/utils/useProjects';
+import {RELEASE_LEVEL} from 'sentry/views/performance/database/settings';
 
 import {ProfilingOnboardingSidebar} from '../profiling/ProfilingOnboarding/profilingOnboardingSidebar';
 
@@ -215,13 +217,44 @@ function Sidebar({location, organization}: Props) {
       features={['performance-view']}
       organization={organization}
     >
-      <SidebarItem
-        {...sidebarItemProps}
-        icon={<IconLightning />}
-        label={<GuideAnchor target="performance">{t('Performance')}</GuideAnchor>}
-        to={`/organizations/${organization.slug}/performance/`}
-        id="performance"
-      />
+      {(() => {
+        // If Database View is enabled, show a Performance accordion with a Database sub-item
+        if (organization.features.includes('performance-database-view')) {
+          return (
+            <SidebarAccordion
+              {...sidebarItemProps}
+              icon={<IconLightning />}
+              label={<GuideAnchor target="performance">{t('Performance')}</GuideAnchor>}
+              to={`/organizations/${organization.slug}/performance/`}
+              id="performance"
+            >
+              <SidebarItem
+                {...sidebarItemProps}
+                isAlpha={RELEASE_LEVEL === 'alpha'}
+                isBeta={RELEASE_LEVEL === 'beta'}
+                isNew={RELEASE_LEVEL === 'new'}
+                label={
+                  <GuideAnchor target="performance-database">{t('Database')}</GuideAnchor>
+                }
+                to={`/organizations/${organization.slug}/performance/database/`}
+                id="performance-database"
+                icon={<SubitemDot collapsed={collapsed} />}
+              />
+            </SidebarAccordion>
+          );
+        }
+
+        // Otherwise, show a regular sidebar link to the Performance landing page
+        return (
+          <SidebarItem
+            {...sidebarItemProps}
+            icon={<IconLightning />}
+            label={<GuideAnchor target="performance">{t('Performance')}</GuideAnchor>}
+            to={`/organizations/${organization.slug}/performance/`}
+            id="performance"
+          />
+        );
+      })()}
     </Feature>
   );
 
@@ -338,6 +371,23 @@ function Sidebar({location, organization}: Props) {
     </Feature>
   );
 
+  const ddm = hasOrganization && (
+    <Feature
+      features={['ddm-ui', 'custom-metrics']}
+      organization={organization}
+      requireAll
+    >
+      <SidebarItem
+        {...sidebarItemProps}
+        icon={<IconGraph />}
+        label={t('DDM')}
+        to={`/organizations/${organization.slug}/ddm/`}
+        id="ddm"
+        isAlpha
+      />
+    </Feature>
+  );
+
   const dashboards = hasOrganization && (
     <Feature
       hookName="feature-disabled:dashboards-sidebar-item"
@@ -426,6 +476,7 @@ function Sidebar({location, organization}: Props) {
 
               <SidebarSection>
                 {discover2}
+                {ddm}
                 {dashboards}
                 {releases}
                 {userFeedback}
