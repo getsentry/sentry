@@ -2,6 +2,7 @@ from sentry.models import (
     NotificationSetting,
     NotificationSettingOption,
     NotificationSettingProvider,
+    OrganizationMemberMapping,
 )
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.testutils.cases import APITestCase
@@ -90,6 +91,11 @@ class UserNotificationDetailsPutTest(UserNotificationDetailsTestBase):
             "personalActivityNotifications": True,
             "selfAssignOnResolve": True,
         }
+        # make an org mapping for the user
+        OrganizationMemberMapping.objects.create(
+            organization_id=self.organization.id, user_id=self.user.id
+        )
+
         response = self.get_success_response("me", **data)
 
         assert response.data.get("deployNotifications") == 2

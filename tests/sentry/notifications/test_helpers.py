@@ -103,6 +103,13 @@ class DoubleWriteTests(TestCase):
         with pytest.raises(ValueError):
             is_double_write_enabled()
 
+    @mock.patch("sentry.notifications.helpers.features.has", return_value=False)
+    def test_no_orgs(self, mock_has):
+        user1 = self.create_user()
+
+        assert is_double_write_enabled(user_id=user1.id)
+        mock_has.assert_not_called()
+
 
 class NotificationHelpersTest(TestCase):
     def setUp(self):
