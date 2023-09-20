@@ -302,14 +302,6 @@ incorrect or missing.
 """,
     )
 
-    DEFAULT_RULES = OpenApiParameter(
-        name="default_rules",
-        location="query",
-        required=False,
-        type=bool,
-        description="Defaults to true where the behavior is to alert the user on every new issue. Setting this to false will turn this off and the user must create their own alerts to be notified of new issues.",
-    )
-
     STATUS = OpenApiParameter(
         name="status",
         location="query",
