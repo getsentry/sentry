@@ -1,4 +1,4 @@
-import {ComponentType, Fragment, useEffect, useRef, useState} from 'react';
+import {Fragment, useEffect, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
 import styled from '@emotion/styled';
 import Prism from 'prismjs';
@@ -69,7 +69,7 @@ interface CodeSnippetProps {
 }
 
 interface TokenReplacer {
-  [token: string]: ComponentType;
+  [token: string]: React.ComponentType;
 }
 
 export function CodeSnippet({
