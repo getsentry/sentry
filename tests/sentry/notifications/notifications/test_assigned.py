@@ -12,7 +12,10 @@ from sentry.models import (
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import get_attachment, install_slack, link_team
+from sentry.testutils.skips import requires_snuba
 from sentry.types.integrations import ExternalProviders
+
+pytestmark = [requires_snuba]
 
 
 class AssignedNotificationAPITest(APITestCase):

@@ -36,9 +36,12 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.skips import requires_snuba
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.cache import cache
 from tests.sentry.mail import make_event_data
+
+pytestmark = [requires_snuba]
 
 STACKTRACE = {
     "frames": [
