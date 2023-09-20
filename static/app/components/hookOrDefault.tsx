@@ -48,6 +48,8 @@ function HookOrDefault<H extends HookName>({
   defaultComponentPromise,
 }: Params<H>): React.FunctionComponent<ComponentProps<ReturnType<Hooks[H]>>> {
   type Props = ComponentProps<ReturnType<Hooks[H]>>;
+
+  // Defining the props here is unnecessary and slow for typescript
   function getDefaultComponent(): React.ComponentType<any> | undefined {
     // If `defaultComponentPromise` is passed, then return a Suspended component
     if (defaultComponentPromise) {
@@ -83,6 +85,7 @@ function HookOrDefault<H extends HookName>({
 
     const hookExists = hooks && hooks.length;
     const componentFromHook = hooks[0]?.();
+    // Defining the props here is unnecessary and slow for typescript
     const HookComponent: React.ComponentType<any> =
       hookExists && componentFromHook ? componentFromHook : getDefaultComponent();
 
