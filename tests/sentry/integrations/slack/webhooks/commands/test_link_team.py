@@ -9,7 +9,6 @@ from sentry.integrations.slack.webhooks.command import (
     TEAM_NOT_LINKED_MESSAGE,
 )
 from sentry.models import OrganizationIntegration
-from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.testutils.helpers import get_response_text, link_user
 from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
@@ -84,12 +83,34 @@ class SlackCommandsLinkTeamTest(SlackCommandsLinkTeamTestBase):
     @responses.activate
     def test_link_team_as_team_admin(self):
         """
-        Test that when a user whose role is insufficient attempts to link a
-        team, we reject them and reply with the INSUFFICIENT_ROLE_MESSAGE.
+        Test that when a user attemps to link a team they are a team admin on,
+        we allow it.
         """
         team_admin_user = self.create_user()
         self.create_member(
             team_roles=[(self.team, "admin")],
+            user=team_admin_user,
+            role="member",
+            organization=self.organization,
+        )
+        self.login_as(team_admin_user)
+        link_user(team_admin_user, self.idp, slack_id=OTHER_SLACK_ID)
+
+        data = self.send_slack_message("link team", user_id=OTHER_SLACK_ID)
+        assert INSUFFICIENT_ROLE_MESSAGE in get_response_text(data)
+
+    @responses.activate
+    def test_link_team_as_team_admin_on_diff_team(self):
+        """
+        Test that when a user attemps to link a team they are not a team admin
+        on, we reject them and reply with the INSUFFICIENT_ROLE_MESSAGE. The
+        user is a team admin on a different team..
+        """
+        team_admin_user = self.create_user()
+        # User is a member of team we are trying to link but team admin
+        # of a different team
+        self.create_member(
+            team_roles=[(self.team, "member"), (self.create_team(), "admin")],
             user=team_admin_user,
             role="member",
             organization=self.organization,
