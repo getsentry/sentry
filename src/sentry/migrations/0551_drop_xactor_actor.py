@@ -21,7 +21,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0561_add_monitorincident_table"),
+        ("sentry", "0550_migrate_no_action_dupe_issue_alerts"),
     ]
 
     operations = [
