@@ -22,7 +22,11 @@ DEFAULT_QUEUED_MIN_MESSAGES = 100000
 
 
 def get_config(
-    topic: str, group_id: str, auto_offset_reset: str, strict_offset_reset: bool
+    topic: str,
+    group_id: str,
+    auto_offset_reset: str,
+    strict_offset_reset: bool,
+    group_instance_id: Optional[str] = None,
 ) -> MutableMapping[Any, Any]:
     cluster_name: str = kafka_config.get_topic_definition(topic)["cluster"]
     consumer_config: MutableMapping[str, Any] = build_kafka_consumer_configuration(
@@ -35,6 +39,8 @@ def get_config(
         queued_max_messages_kbytes=DEFAULT_QUEUED_MAX_MESSAGE_KBYTES,
         queued_min_messages=DEFAULT_QUEUED_MIN_MESSAGES,
     )
+    if group_instance_id is not None:
+        consumer_config["group.instance.id"] = str(group_instance_id)
     return consumer_config
 
 

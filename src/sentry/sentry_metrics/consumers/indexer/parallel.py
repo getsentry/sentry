@@ -196,6 +196,7 @@ def get_parallel_metrics_consumer(
     strict_offset_reset: bool,
     ingest_profile: str,
     indexer_db: str,
+    group_instance_id: Optional[str],
 ) -> StreamProcessor[KafkaPayload]:
     processing_factory = MetricsConsumerStrategyFactory(
         max_msg_batch_size=max_msg_batch_size,
@@ -216,6 +217,7 @@ def get_parallel_metrics_consumer(
                 group_id,
                 auto_offset_reset=auto_offset_reset,
                 strict_offset_reset=strict_offset_reset,
+                group_instance_id=group_instance_id,
             )
         ),
         Topic(processing_factory.config.input_topic),
