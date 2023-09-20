@@ -790,12 +790,7 @@ def _exp_event_ids_agg(alias, ids_type_list):
                 ["error_id_no_dashes"],
                 _strip_uuid_dashes("error_id_no_dashes", Identifier("error_id_no_dashes")),
             ),
-            Function(
-                "arrayDistinct",
-                parameters=[
-                    Function("flatten", [id_types_to_aggregate]),
-                ],
-            ),
+            Function("flatten", [id_types_to_aggregate]),
         ],
         alias=alias,
     )
