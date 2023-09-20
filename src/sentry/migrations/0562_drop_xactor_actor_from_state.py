@@ -19,7 +19,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0560_add_monitorincident_table"),
+        ("sentry", "0561_backfill_new_notification_tables"),
     ]
 
     operations = [
