@@ -4,6 +4,7 @@ import collections
 from itertools import zip_longest
 from typing import Any, Dict, Generator, Iterable, Iterator, List, MutableMapping, Optional, Union
 
+from drf_spectacular.utils import extend_schema_serializer
 from typing_extensions import TypedDict
 
 from sentry.replays.validators import VALID_FIELD_SET
@@ -39,6 +40,7 @@ class UserResponseType(TypedDict, total=False):
     display_name: Optional[str]
 
 
+@extend_schema_serializer(exclude_fields=["x_info_ids", "x_warning_ids", "x_error_ids"])
 class ReplayDetailsResponse(TypedDict, total=False):
     id: str
     project_id: str
@@ -67,6 +69,9 @@ class ReplayDetailsResponse(TypedDict, total=False):
     platform: Optional[str]
     releases: List[str]
     dist: Optional[str]
+    x_warning_ids: Optional[List[str]]
+    x_error_ids: Optional[List[str]]
+    x_info_ids: Optional[List[str]]
 
 
 def process_raw_response(
@@ -175,7 +180,6 @@ def generate_normalized_output(
         ret_item["x_warning_ids"] = item.pop("x_warning_ids", None)
         ret_item["x_error_ids"] = item.pop("x_error_ids", None)
         ret_item["x_info_ids"] = item.pop("x_info_ids", None)
-
         yield ret_item
 
 

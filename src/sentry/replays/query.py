@@ -610,13 +610,13 @@ class ReplayQueryConfig(QueryConfig):
     project = String(query_alias="project_id", is_filterable=False)
 
     x_error_ids = ListField(query_alias="x_error_ids")
-    x_error_id = ListField(query_alias="x_error_id")
+    x_error_id = ListField(query_alias="x_error_ids")
 
     x_warning_ids = ListField(query_alias="x_warning_ids")
-    x_warning_id = ListField(query_alias="x_warning_id")
+    x_warning_id = ListField(query_alias="x_warning_ids")
 
     x_info_ids = ListField(query_alias="x_info_ids")
-    x_info_id = ListField(query_alias="x_info_id")
+    x_info_id = ListField(query_alias="x_info_ids")
 
 
 class ReplaySubqueryConfig(QueryConfig):

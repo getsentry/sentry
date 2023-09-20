@@ -128,25 +128,25 @@ class SumOfUUIDArray(GenericBase):
 
 class SumOfUUIDScalar(GenericBase):
     @staticmethod
-    def visit_eq(expression: Expression, value: str) -> Condition:
+    def visit_eq(expression: Expression, value: UUID) -> Condition:
         return contains(UUIDScalar.visit_eq(expression, value))
 
     @staticmethod
-    def visit_neq(expression: Expression, value: str) -> Condition:
+    def visit_neq(expression: Expression, value: UUID) -> Condition:
         return does_not_contain(UUIDScalar.visit_eq(expression, value))
 
     @staticmethod
-    def visit_match(expression: Expression, value: str) -> Condition:
+    def visit_match(expression: Expression, value: UUID) -> Condition:
         return contains(UUIDScalar.visit_match(expression, value))
 
     @staticmethod
-    def visit_not_match(expression: Expression, value: str) -> Condition:
+    def visit_not_match(expression: Expression, value: UUID) -> Condition:
         return does_not_contain(UUIDScalar.visit_match(expression, value))
 
     @staticmethod
-    def visit_in(expression: Expression, value: list[str]) -> Condition:
+    def visit_in(expression: Expression, value: list[UUID]) -> Condition:
         return contains(UUIDScalar.visit_in(expression, value))
 
     @staticmethod
-    def visit_not_in(expression: Expression, value: list[str]) -> Condition:
+    def visit_not_in(expression: Expression, value: list[UUID]) -> Condition:
         return does_not_contain(UUIDScalar.visit_in(expression, value))

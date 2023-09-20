@@ -913,6 +913,9 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                     "count_segments": None,
                     "count_urls": None,
                     "clicks": None,
+                    "x_error_ids": None,
+                    "x_warning_ids": None,
+                    "x_info_ids": None,
                 }
             ]
 
@@ -1714,7 +1717,8 @@ class OrganizationReplayIndexOptimizedSearchTest(OrganizationReplayIndexTest):
             assert "data" in response_data
             assert len(response_data["data"]) == 0
 
-    def test_exp_ids_warnings(self):
+    def test_event_ids(self):
+
         project = self.create_project(teams=[self.team])
 
         uid1 = uuid.uuid4().hex
@@ -1775,7 +1779,7 @@ class OrganizationReplayIndexOptimizedSearchTest(OrganizationReplayIndexTest):
                 assert len(response_data["data"][0]["x_error_ids"]) == 2, query
 
             response = self.client.get(
-                self.url + f"?field=id&field=x_error_id&query=x_error_id:{uid3}"
+                self.url + f"?field=id&field=x_error_ids&query=x_error_id:{uid3}"
             )
             assert response.status_code == 200
             response_data = response.json()

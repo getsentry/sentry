@@ -8,6 +8,7 @@ from sentry.replays.lib.new_query.utils import (
     contains,
     does_not_contain,
     to_uuid,
+    to_uuids,
     translate_condition_to_function,
 )
 from sentry.replays.usecases.query.conditions.base import ComputedBase
@@ -16,19 +17,14 @@ from sentry.replays.usecases.query.conditions.base import ComputedBase
 class EventIdScalar(ComputedBase):
     """Duration scalar condition class."""
 
-    @staticmethod
-    def visit_eq(value: UUID) -> Condition:
+    event_id_columns: list[str] = []
+
+    @classmethod
+    def visit_eq(cls, value: UUID) -> Condition:
         return Condition(
             Function(
                 "or",
-                [
-                    translate_condition_to_function(
-                        Condition(Column("fatal_id"), Op.EQ, to_uuid(value))
-                    ),
-                    translate_condition_to_function(
-                        Condition(Column("error_id"), Op.EQ, to_uuid(value))
-                    ),
-                ],
+                _make_conditions_from_column_names(cls.event_id_columns, Op.EQ, to_uuid(value)),
             ),
             Op.EQ,
             1,
@@ -54,8 +50,8 @@ class EventIdScalar(ComputedBase):
             Function(
                 "or",
                 [
-                    Condition(Column("error_id"), Op.IN, to_uuid(value)),
-                    Condition(Column("fatal_id"), Op.IN, to_uuid(value)),
+                    Condition(Column("error_id"), Op.IN, to_uuids(value)),
+                    Condition(Column("fatal_id"), Op.IN, to_uuids(value)),
                 ],
             ),
             Op.EQ,
@@ -63,13 +59,13 @@ class EventIdScalar(ComputedBase):
         )
 
     @staticmethod
-    def visit_not_in(value: UUID) -> Condition:
+    def visit_not_in(value: list[UUID]) -> Condition:
         return Condition(
             Function(
                 "and",
                 [
-                    Condition(Column("error_id"), Op.NOT_IN, to_uuid(value)),
-                    Condition(Column("fatal_id"), Op.NOT_IN, to_uuid(value)),
+                    Condition(Column("error_id"), Op.NOT_IN, to_uuids(value)),
+                    Condition(Column("fatal_id"), Op.NOT_IN, to_uuids(value)),
                 ],
             ),
             Op.EQ,
@@ -77,19 +73,52 @@ class EventIdScalar(ComputedBase):
         )
 
 
-class SumOfEventIdScalar(ComputedBase):
+def _make_conditions_from_column_names(event_id_columns, operator, value):
+    return [
+        translate_condition_to_function(Condition(Column(column_name), operator, value))
+        for column_name in event_id_columns
+    ]
+
+
+class ErrorIdScalar(EventIdScalar):
+    event_id_columns = ["error_id", "fatal_id"]
+
+
+class InfoIdScalar(EventIdScalar):
+    event_id_columns = ["info_id", "debug_id"]
+
+
+class SumOfErrorIdScalar(ComputedBase):
     @staticmethod
     def visit_eq(value: UUID) -> Condition:
-        return contains(EventIdScalar.visit_eq(value))
+        return contains(ErrorIdScalar.visit_eq(value))
 
     @staticmethod
     def visit_neq(value: UUID) -> Condition:
-        return does_not_contain(EventIdScalar.visit_eq(value))
+        return does_not_contain(ErrorIdScalar.visit_eq(value))
 
     @staticmethod
     def visit_in(value: list[UUID]) -> Condition:
-        return contains(EventIdScalar.visit_in(value))
+        return contains(ErrorIdScalar.visit_in(value))
 
     @staticmethod
     def visit_not_in(value: list[UUID]) -> Condition:
-        return does_not_contain(EventIdScalar.visit_in(value))
+        return does_not_contain(ErrorIdScalar.visit_in(value))
+
+
+class SumOfInfoIdScalar(ComputedBase):
+    @staticmethod
+    def visit_eq(value: UUID) -> Condition:
+        return contains(InfoIdScalar.visit_eq(value))
+
+    @staticmethod
+    def visit_neq(value: UUID) -> Condition:
+        return does_not_contain(InfoIdScalar.visit_eq(value))
+
+    @staticmethod
+    def visit_in(value: list[UUID]) -> Condition:
+        return contains(InfoIdScalar.visit_in(value))
+
+    @staticmethod
+    def visit_not_in(value: list[UUID]) -> Condition:
+        return does_not_contain(InfoIdScalar.visit_in(value))

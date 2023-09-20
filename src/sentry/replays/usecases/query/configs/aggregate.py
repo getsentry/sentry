@@ -38,7 +38,7 @@ from sentry.replays.usecases.query.conditions import (
     SumOfUUIDArray,
 )
 from sentry.replays.usecases.query.conditions.aggregate import SumOfUUIDScalar
-from sentry.replays.usecases.query.conditions.event_ids import SumOfEventIdScalar
+from sentry.replays.usecases.query.conditions.event_ids import SumOfErrorIdScalar, SumOfInfoIdScalar
 from sentry.replays.usecases.query.fields import ComputedField, TagField
 
 
@@ -97,9 +97,9 @@ search_config: dict[str, Union[ColumnField, ComputedField, TagField]] = {
     "duration": ComputedField(parse_int, SimpleAggregateDurationScalar),
     "environment": string_field("environment"),
     "error_ids": ComputedField(parse_uuid, SumOfErrorIdsArray),
-    "x_error_ids": ComputedField(parse_uuid, SumOfEventIdScalar),
+    "x_error_ids": ComputedField(parse_uuid, SumOfErrorIdScalar),
     "x_warning_ids": UUIDColumnField("warning_id", parse_uuid, SumOfUUIDScalar),
-    # "x_info_ids": ComputedField(parse_uuid, SumOfUUIDScalar),
+    "x_info_ids": ComputedField(parse_uuid, SumOfInfoIdScalar),
     # Backwards Compat: We pass a simple string to the UUID column. Older versions of ClickHouse
     # do not understand the UUID type.
     "id": ColumnField("replay_id", lambda x: str(parse_uuid(x)), StringScalar),
@@ -116,9 +116,6 @@ search_config: dict[str, Union[ColumnField, ComputedField, TagField]] = {
     "user.id": string_field("user_id"),
     "user.ip_address": StringColumnField("ip_address_v4", parse_str, SumOfIPv4Scalar),
     "user.username": string_field("user_name"),
-    "x_count_errors": None,
-    "x_count_info": None,
-    "x_count_warnings": None,
 }
 
 
@@ -137,7 +134,7 @@ search_config["user"] = search_config["user.username"]
 search_config["error_id"] = search_config["error_ids"]
 search_config["x_error_id"] = search_config["x_error_ids"]
 search_config["x_warning_id"] = search_config["x_warning_ids"]
-# search_config["x_info_id"] = search_config["x_info_ids"]
+search_config["x_info_id"] = search_config["x_info_ids"]
 
 
 search_config["release"] = search_config["releases"]

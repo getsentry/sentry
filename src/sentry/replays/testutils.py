@@ -115,6 +115,9 @@ def mock_expected_response(
         "activity": kwargs.pop("activity", 0),
         "is_archived": kwargs.pop("is_archived", False),
         "clicks": kwargs.pop("clicks", []),
+        "x_error_ids": kwargs.pop("x_error_ids", []),
+        "x_warning_ids": kwargs.pop("x_warning_ids", []),
+        "x_info_ids": kwargs.pop("x_info_ids", []),
     }
 
 

@@ -30,9 +30,6 @@ VALID_FIELD_SET = (
     "x_info_ids",
     "x_warning_ids",
     "x_error_ids",
-    "x_info_id",
-    "x_warning_id",
-    "x_error_id",
 )
 
 
