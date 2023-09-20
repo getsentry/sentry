@@ -2014,6 +2014,7 @@ def test_cardinality_limiter(caplog, settings):
         )
     ]
 
+
 @pytest.mark.django_db
 @patch("sentry.sentry_metrics.consumers.indexer.batch.UseCaseID", MockUseCaseID)
 def test_cardinality_limiter(caplog, settings):
@@ -2035,10 +2036,7 @@ def test_cardinality_limiter(caplog, settings):
     gauge_headers = [("namespace", b"sessions")]
 
     outer_message = _construct_outer_message(
-        [
-            (counter_payload, counter_headers),
-            (gauge_payload, gauge_headers)
-        ]
+        [(counter_payload, counter_headers), (gauge_payload, gauge_headers)]
     )
 
     batch = IndexerBatch(
@@ -2052,15 +2050,15 @@ def test_cardinality_limiter(caplog, settings):
     assert batch.extract_strings() == {
         MockUseCaseID.SESSIONS: {
             1: {
-                'c:sessions/session@none',
+                "c:sessions/session@none",
                 "environment",
                 "production",
                 "session.status",
-                'init',
+                "init",
                 "release",
                 "1.0",
                 "http.status_code",
-                "200"
+                "200",
             },
         }
     }
@@ -2089,4 +2087,3 @@ def test_cardinality_limiter(caplog, settings):
             }
         },
     )
-

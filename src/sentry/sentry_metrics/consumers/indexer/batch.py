@@ -6,6 +6,7 @@ from typing import (
     Any,
     Callable,
     Dict,
+    List,
     Mapping,
     MutableMapping,
     MutableSequence,
@@ -15,7 +16,7 @@ from typing import (
     Set,
     Tuple,
     Union,
-    cast, List,
+    cast,
 )
 
 import rapidjson
@@ -46,7 +47,9 @@ MAX_NAME_LENGTH = MAX_INDEXED_COLUMN_LENGTH
 
 ACCEPTED_METRIC_TYPES = {"s", "c", "d"}  # set, counter, distribution
 MRI_RE_PATTERN = re.compile(r"^([c|s|d|g|e]):([a-zA-Z0-9_]+)/.*$")
-FULL_MRI_RE_PATTERN = re.compile(r"^([c|s|d|g|e]):([a-zA-Z0-9_]+)/([a-z_]+(?:\.[a-z_]+)*)(?:@([a-z]+))?$")
+FULL_MRI_RE_PATTERN = re.compile(
+    r"^([c|s|d|g|e]):([a-zA-Z0-9_]+)/([a-z_]+(?:\.[a-z_]+)*)(?:@([a-z]+))?$"
+)
 
 OrgId = int
 Headers = MutableSequence[Tuple[str, bytes]]
@@ -82,6 +85,7 @@ def extract_use_case_id(mri: str) -> UseCaseID:
             return UseCaseID(use_case_str)
     raise ValidationError(f"Invalid mri: {mri}")
 
+
 def _convert_gauge_to_counters(message: ParsedMessage) -> List[ParsedMessage]:
     if message["type"] == "g":
         metric_name = message["name"]
@@ -104,6 +108,7 @@ def _convert_gauge_to_counters(message: ParsedMessage) -> List[ParsedMessage]:
             return converted_messages
 
     return [message]
+
 
 class IndexerBatch:
     def __init__(
