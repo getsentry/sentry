@@ -13,7 +13,6 @@ import {
   PERFORMANCE_SCORE_WEIGHTS,
   ProjectScore,
 } from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
-import {getScoreColor} from 'sentry/views/performance/browser/webVitals/utils/getScoreColor';
 import {WebVitals} from 'sentry/views/performance/browser/webVitals/utils/types';
 import {useProjectWebVitalsTimeseriesQuery} from 'sentry/views/performance/browser/webVitals/utils/useProjectWebVitalsTimeseriesQuery';
 import Chart from 'sentry/views/starfish/components/chart';
@@ -35,7 +34,7 @@ export function PerformanceScoreChart({projectScore, webVital}: Props) {
   const theme = useTheme();
   const pageFilters = usePageFilters();
 
-  const {data, isLoading} = useProjectWebVitalsTimeseriesQuery({webVital});
+  const {data, isLoading} = useProjectWebVitalsTimeseriesQuery();
   const score = webVital ? projectScore[`${webVital}Score`] : projectScore.totalScore;
   const {lcpScore, fcpScore, fidScore, clsScore, ttfbScore} = projectScore;
 
@@ -79,11 +78,69 @@ export function PerformanceScoreChart({projectScore, webVital}: Props) {
         </ProgressRingContainer>
       </PerformanceScoreLabelContainer>
       <ChartContainer>
+        <PerformanceScoreLabel>
+          {t('Performance Score Breakdown')}
+          <IconChevron size="xs" direction="down" style={{top: 1}} />
+        </PerformanceScoreLabel>
+        <PerformanceScoreSubtext>{performanceScoreSubtext}</PerformanceScoreSubtext>
         <Chart
-          height={200}
+          stacked
+          height={160}
           data={[
             {
-              data,
+              data: data?.lcp.map(({name, value}) => ({
+                name,
+                value: value * LCP_WEIGHT * 0.01,
+              })),
+              seriesName: 'LCP',
+              color: segmentColors[0],
+            },
+            {
+              data: data?.fcp.map(
+                ({name, value}) => ({
+                  name,
+                  value: value * FCP_WEIGHT * 0.01,
+                }),
+                []
+              ),
+              seriesName: 'FCP',
+              color: segmentColors[1],
+            },
+            {
+              data: data?.fid.map(
+                ({name, value}) => ({
+                  name,
+                  value: value * FID_WEIGHT * 0.01,
+                }),
+                []
+              ),
+              seriesName: 'FID',
+              color: segmentColors[2],
+            },
+            {
+              data: data?.cls.map(
+                ({name, value}) => ({
+                  name,
+                  value: value * CLS_WEIGHT * 0.01,
+                }),
+                []
+              ),
+              seriesName: 'CLS',
+              color: segmentColors[3],
+            },
+            {
+              data: data?.ttfb.map(
+                ({name, value}) => ({
+                  name,
+                  value: value * TTFB_WEIGHT * 0.01,
+                }),
+                []
+              ),
+              seriesName: 'TTFB',
+              color: segmentColors[4],
+            },
+            {
+              data: [],
               seriesName: `${webVital ? toUpper(webVital) : 'Performance'} Score`,
               markLine: MarkLine({
                 data: [
@@ -136,13 +193,11 @@ export function PerformanceScoreChart({projectScore, webVital}: Props) {
           ]}
           loading={isLoading}
           utc={false}
-          chartColors={[getScoreColor(score, theme)]}
-          isLineChart
           grid={{
-            left: 20,
-            right: 50,
-            top: 30,
-            bottom: 10,
+            left: 5,
+            right: 20,
+            top: 5,
+            bottom: 0,
           }}
         />
       </ChartContainer>
@@ -160,6 +215,7 @@ const Flex = styled('div')`
 `;
 
 const ChartContainer = styled('div')`
+  padding: ${space(2)};
   flex: 1;
   border: 1px solid ${p => p.theme.gray200};
   border-radius: ${p => p.theme.borderRadius};
@@ -180,6 +236,7 @@ const PerformanceScoreLabel = styled('div')`
   font-size: ${p => p.theme.fontSizeLarge};
   color: ${p => p.theme.textColor};
   font-weight: bold;
+  margin-right: ${space(1)};
 `;
 
 const PerformanceScoreSubtext = styled('div')`
