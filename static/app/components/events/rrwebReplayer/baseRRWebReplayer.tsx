@@ -1,4 +1,4 @@
-import {useEffect, useRef} from 'react';
+import {useCallback, useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 import RRWebPlayer from '@sentry-internal/rrweb-player';
 
@@ -14,7 +14,7 @@ interface Props {
 function BaseRRWebReplayerComponent({events, className}: Props) {
   const playerEl = useRef<HTMLDivElement>(null);
 
-  const initPlayer = () => {
+  const initPlayer = useCallback(() => {
     if (events === undefined) {
       return;
     }
@@ -28,9 +28,9 @@ function BaseRRWebReplayerComponent({events, className}: Props) {
       target: playerEl.current,
       props: {events, autoPlay: false},
     });
-  };
+  }, [events]);
 
-  useEffect(() => void initPlayer(), [events]);
+  useEffect(() => void initPlayer(), [initPlayer]);
 
   return <div ref={playerEl} className={className} />;
 }

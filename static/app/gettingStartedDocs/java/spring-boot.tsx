@@ -265,35 +265,37 @@ sentry {
     ),
     configurations: [
       {
-        language: 'properties',
-        description: (
-          <p>{tct('Modify [code:src/main/application.properties]:', {code: <code />})}</p>
-        ),
-        code: `
+        code: [
+          {
+            label: 'Properties',
+            value: 'properties',
+            language: 'properties',
+            code: `
 sentry.dsn=${dsn}${
-          hasPerformance
-            ? `
+              hasPerformance
+                ? `
 # Set traces-sample-rate to 1.0 to capture 100% of transactions for performance monitoring.
 # We recommend adjusting this value in production.
 sentry.traces-sample-rate=1.0`
-            : ''
-        }`,
-      },
-      {
-        language: 'properties',
-        description: (
-          <p>{tct('Or, modify [code:src/main/application.yml]:', {code: <code />})}</p>
-        ),
-        code: `
+                : ''
+            }`,
+          },
+          {
+            label: 'YAML',
+            value: 'yaml',
+            language: 'properties',
+            code: `
 sentry:
-  dsn:${dsn}${
+  dsn: ${dsn}${
     hasPerformance
       ? `
   # Set traces-sample-rate to 1.0 to capture 100% of transactions for performance monitoring.
   # We recommend adjusting this value in production.
-  sentry.traces-sample-rate=1.0`
+  sentry.traces-sample-rate: 1.0`
       : ''
   }`,
+          },
+        ],
       },
     ],
   },
@@ -304,32 +306,36 @@ sentry:
     ),
     configurations: [
       {
-        description: <h5>Java</h5>,
-        language: 'javascript', // TODO: This shouldn't be javascript but because of better formatting we use it for now
-        code: `
-        import java.lang.Exception;
-        import io.sentry.Sentry;
+        code: [
+          {
+            label: 'Java',
+            value: 'java',
+            language: 'javascript', // TODO: This shouldn't be javascript but because of better formatting we use it for now
+            code: `
+import java.lang.Exception;
+import io.sentry.Sentry;
 
-        try {
-          throw new Exception("This is a test.");
-        } catch (Exception e) {
-          Sentry.captureException(e);
-        }
-        `,
-      },
-      {
-        description: <h5>Kotlin</h5>,
-        language: 'javascript', // TODO: This shouldn't be javascript but because of better formatting we use it for now
-        code: `
-        import java.lang.Exception
-        import io.sentry.Sentry
+try {
+  throw new Exception("This is a test.");
+} catch (Exception e) {
+  Sentry.captureException(e);
+}`,
+          },
+          {
+            label: 'Kotlin',
+            value: 'kotlin',
+            language: 'javascript', // TODO: This shouldn't be javascript but because of better formatting we use it for now
+            code: `
+import java.lang.Exception
+import io.sentry.Sentry
 
-        try {
-          throw Exception("This is a test.")
-        } catch (e: Exception) {
-          Sentry.captureException(e)
-        }
-        `,
+try {
+  throw Exception("This is a test.")
+} catch (e: Exception) {
+  Sentry.captureException(e)
+}`,
+          },
+        ],
       },
     ],
     additionalInfo: (
