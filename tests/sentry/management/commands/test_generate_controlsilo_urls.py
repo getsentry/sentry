@@ -27,6 +27,7 @@ class TestGenerateControlsiloUrls(TestCase):
             self.call_command(format="js", output=tf.name)
             tf.seek(0)
             result = tf.read().decode("utf8")
+        assert "This is generated code" in result
         assert "new RegExp('^api\\/0\\/users\\/$')," in result
         assert "const patterns" in result
         assert "export default patterns;" in result
