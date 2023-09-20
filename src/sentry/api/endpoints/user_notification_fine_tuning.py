@@ -16,6 +16,7 @@ from sentry.notifications.helpers import is_double_write_enabled
 from sentry.notifications.types import (
     FineTuningAPIKey,
     NotificationScopeEnum,
+    NotificationSettingEnum,
     NotificationSettingsOptionEnum,
 )
 from sentry.notifications.utils.legacy_mappings import (
@@ -148,9 +149,12 @@ class UserNotificationFineTuningEndpoint(UserEndpoint):
                     scope_type=NotificationScopeEnum.ORGANIZATION.value,
                     scope_identifier=org_id,
                     user_id=user.id,
-                    value=NotificationSettingsOptionEnum.ALWAYS.value
-                    if enabled
-                    else NotificationSettingsOptionEnum.NEVER.value,
+                    type=NotificationSettingEnum.REPORTS.value,
+                    values={
+                        "value": NotificationSettingsOptionEnum.ALWAYS.value
+                        if enabled
+                        else NotificationSettingsOptionEnum.NEVER.value,
+                    },
                 )
 
         user_option.update(value=list(value))
