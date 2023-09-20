@@ -130,7 +130,7 @@ export function useMetricsData({
   return useApiQuery<MetricsData>(
     [`/organizations/${slug}/metrics/data/`, {query: queryToSend}],
     {
-      staleTime: Infinity,
+      staleTime: 60,
       retry: 0,
     }
   );
