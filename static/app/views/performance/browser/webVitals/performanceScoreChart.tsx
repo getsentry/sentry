@@ -3,12 +3,16 @@ import styled from '@emotion/styled';
 import toUpper from 'lodash/toUpper';
 
 import MarkLine from 'sentry/components/charts/components/markLine';
-import ProgressRing from 'sentry/components/progressRing';
-import {IconQuestion} from 'sentry/icons';
+import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
+import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {ProjectScore} from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
-import {getScoreColor} from 'sentry/views/performance/browser/webVitals/utils/getScoreColor';
+import usePageFilters from 'sentry/utils/usePageFilters';
+import PerformanceScoreRing from 'sentry/views/performance/browser/webVitals/components/performanceScoreRing';
+import {
+  PERFORMANCE_SCORE_WEIGHTS,
+  ProjectScore,
+} from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
 import {WebVitals} from 'sentry/views/performance/browser/webVitals/utils/types';
 import {useProjectWebVitalsTimeseriesQuery} from 'sentry/views/performance/browser/webVitals/utils/useProjectWebVitalsTimeseriesQuery';
 import Chart from 'sentry/views/starfish/components/chart';
@@ -18,38 +22,125 @@ type Props = {
   webVital?: WebVitals | null;
 };
 
+const {
+  lcp: LCP_WEIGHT,
+  fcp: FCP_WEIGHT,
+  fid: FID_WEIGHT,
+  cls: CLS_WEIGHT,
+  ttfb: TTFB_WEIGHT,
+} = PERFORMANCE_SCORE_WEIGHTS;
+
 export function PerformanceScoreChart({projectScore, webVital}: Props) {
   const theme = useTheme();
-  const {data, isLoading} = useProjectWebVitalsTimeseriesQuery({webVital});
+  const pageFilters = usePageFilters();
+
+  const {data, isLoading} = useProjectWebVitalsTimeseriesQuery();
   const score = webVital ? projectScore[`${webVital}Score`] : projectScore.totalScore;
+  const {lcpScore, fcpScore, fidScore, clsScore, ttfbScore} = projectScore;
+
+  const segmentColors = theme.charts.getColorPalette(3);
+  const backgroundColors = segmentColors.map(color => `${color}33`);
+
+  const period = pageFilters.selection.datetime.period;
+  const performanceScoreSubtext =
+    period && Object.keys(DEFAULT_RELATIVE_PERIODS).includes(period)
+      ? DEFAULT_RELATIVE_PERIODS[period]
+      : '';
   return (
     <Flex>
       <PerformanceScoreLabelContainer>
         <PerformanceScoreLabel>
-          {`${webVital ? `${toUpper(webVital)} Score` : t('Performance Score')}`}{' '}
-          {!webVital && <StyledIconQuestion size="xs" />}
+          {t('Performance Score')}
+          <IconChevron size="xs" direction="down" style={{top: 1}} />
         </PerformanceScoreLabel>
+        <PerformanceScoreSubtext>{performanceScoreSubtext}</PerformanceScoreSubtext>
         <ProgressRingContainer>
-          <ProgressRing
-            value={score}
+          <PerformanceScoreRing
+            values={[
+              lcpScore * LCP_WEIGHT * 0.01,
+              fcpScore * FCP_WEIGHT * 0.01,
+              fidScore * FID_WEIGHT * 0.01,
+              clsScore * CLS_WEIGHT * 0.01,
+              ttfbScore * TTFB_WEIGHT * 0.01,
+            ]}
+            maxValues={[LCP_WEIGHT, FCP_WEIGHT, FID_WEIGHT, CLS_WEIGHT, TTFB_WEIGHT]}
             text={score}
-            size={120}
-            barWidth={12}
-            progressEndcaps="round"
+            size={140}
+            barWidth={14}
             textCss={() => css`
-              font-size: ${theme.fontSizeExtraLarge};
+              font-size: 32px;
               font-weight: bold;
+              color: ${theme.textColor};
             `}
-            progressColor={getScoreColor(score, theme)}
+            segmentColors={segmentColors}
+            backgroundColors={backgroundColors}
           />
         </ProgressRingContainer>
       </PerformanceScoreLabelContainer>
       <ChartContainer>
+        <PerformanceScoreLabel>
+          {t('Performance Score Breakdown')}
+          <IconChevron size="xs" direction="down" style={{top: 1}} />
+        </PerformanceScoreLabel>
+        <PerformanceScoreSubtext>{performanceScoreSubtext}</PerformanceScoreSubtext>
         <Chart
-          height={200}
+          stacked
+          height={160}
           data={[
             {
-              data,
+              data: data?.lcp.map(({name, value}) => ({
+                name,
+                value: value * LCP_WEIGHT * 0.01,
+              })),
+              seriesName: 'LCP',
+              color: segmentColors[0],
+            },
+            {
+              data: data?.fcp.map(
+                ({name, value}) => ({
+                  name,
+                  value: value * FCP_WEIGHT * 0.01,
+                }),
+                []
+              ),
+              seriesName: 'FCP',
+              color: segmentColors[1],
+            },
+            {
+              data: data?.fid.map(
+                ({name, value}) => ({
+                  name,
+                  value: value * FID_WEIGHT * 0.01,
+                }),
+                []
+              ),
+              seriesName: 'FID',
+              color: segmentColors[2],
+            },
+            {
+              data: data?.cls.map(
+                ({name, value}) => ({
+                  name,
+                  value: value * CLS_WEIGHT * 0.01,
+                }),
+                []
+              ),
+              seriesName: 'CLS',
+              color: segmentColors[3],
+            },
+            {
+              data: data?.ttfb.map(
+                ({name, value}) => ({
+                  name,
+                  value: value * TTFB_WEIGHT * 0.01,
+                }),
+                []
+              ),
+              seriesName: 'TTFB',
+              color: segmentColors[4],
+            },
+            {
+              data: [],
               seriesName: `${webVital ? toUpper(webVital) : 'Performance'} Score`,
               markLine: MarkLine({
                 data: [
@@ -64,6 +155,13 @@ export function PerformanceScoreChart({projectScore, webVital}: Props) {
                       position: 'end',
                       color: theme.green300,
                     },
+                    emphasis: {
+                      lineStyle: {
+                        color: theme.green300,
+                        type: 'dashed',
+                        width: 1,
+                      },
+                    },
                   },
                   {
                     yAxis: 50,
@@ -75,6 +173,13 @@ export function PerformanceScoreChart({projectScore, webVital}: Props) {
                     label: {
                       position: 'end',
                       color: theme.yellow300,
+                    },
+                    emphasis: {
+                      lineStyle: {
+                        color: theme.yellow300,
+                        type: 'dashed',
+                        width: 1,
+                      },
                     },
                   },
                 ],
@@ -88,13 +193,11 @@ export function PerformanceScoreChart({projectScore, webVital}: Props) {
           ]}
           loading={isLoading}
           utc={false}
-          chartColors={[getScoreColor(score, theme)]}
-          isLineChart
           grid={{
-            left: 20,
-            right: 50,
-            top: 30,
-            bottom: 10,
+            left: 5,
+            right: 20,
+            top: 5,
+            bottom: 0,
           }}
         />
       </ChartContainer>
@@ -111,12 +214,8 @@ const Flex = styled('div')`
   margin-top: ${space(2)};
 `;
 
-const StyledIconQuestion = styled(IconQuestion)`
-  position: relative;
-  top: 1px;
-`;
-
 const ChartContainer = styled('div')`
+  padding: ${space(2)};
   flex: 1;
   border: 1px solid ${p => p.theme.gray200};
   border-radius: ${p => p.theme.borderRadius};
@@ -124,7 +223,7 @@ const ChartContainer = styled('div')`
 
 const PerformanceScoreLabelContainer = styled('div')`
   padding: ${space(2)};
-  min-width: 200px;
+  min-width: 320px;
   border: 1px solid ${p => p.theme.gray200};
   border-radius: ${p => p.theme.borderRadius};
   display: flex;
@@ -133,9 +232,20 @@ const PerformanceScoreLabelContainer = styled('div')`
 `;
 
 const PerformanceScoreLabel = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  width: 100%;
+  font-size: ${p => p.theme.fontSizeLarge};
+  color: ${p => p.theme.textColor};
+  font-weight: bold;
+  margin-right: ${space(1)};
+`;
+
+const PerformanceScoreSubtext = styled('div')`
+  width: 100%;
+  font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.gray300};
   margin-bottom: ${space(1)};
 `;
 
-const ProgressRingContainer = styled('div')``;
+const ProgressRingContainer = styled('div')`
+  padding-top: ${space(1)};
+`;

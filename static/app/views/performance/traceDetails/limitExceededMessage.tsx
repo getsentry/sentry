@@ -30,48 +30,53 @@ function LimitExceededMessage({
   meta,
   handleLimitChange,
 }: LimitExceededMessageProps) {
-  const count = traceInfo.transactions.size + traceInfo.errors.size;
-  const totalEvents = (meta && meta.transactions + meta.errors) ?? count;
+  // Number of events part of the traceView. Includes errors/issues appearing within txn details ui
+  // that appears when you click into a txn row.
+  const displayedEventsCount = traceInfo.transactions.size + traceInfo.errors.size;
+
+  const traceMetaEventsCount =
+    (meta && meta.transactions + meta.errors) ?? displayedEventsCount;
   const location = useLocation();
 
-  if (totalEvents === null || count >= totalEvents) {
+  if (traceMetaEventsCount === null || displayedEventsCount >= traceMetaEventsCount) {
     return null;
   }
 
   const target = traceEventView.getResultsViewUrlTarget(organization.slug);
 
+  // Number of rows in the trace view. Doesnot include associated errors/issues appearing in
+  // txn detail.
+  const displayedRowsCount = traceInfo.transactions.size + traceInfo.trailingOrphansCount;
+
   // Increment by by multiples of 500.
-  const increment = count <= 100 ? 400 : 500;
-  const currentLimit = location.query.limit
-    ? Number(location.query.limit)
-    : DEFAULT_TRACE_ROWS_LIMIT; // TODO Abdullah Khan: Use count when extra orphan row bug is fixed.
+  const increment = displayedRowsCount <= 100 ? 400 : 500;
 
   const discoverLink = (
     <DiscoverFeature>
       {({hasFeature}) => (
         <StyledLink disabled={!hasFeature} to={target}>
-          {t('open in Discover')}
+          {t('Discover')}
         </StyledLink>
       )}
     </DiscoverFeature>
   );
 
   const limitExceededMessage = tct(
-    'Limited to a view of [count] rows. To view the full list, [discover].',
+    'Limited to a view of [count] rows. To view the full list, go to [discover].',
     {
-      count,
+      count: displayedRowsCount,
       discover: discoverLink,
     }
   );
 
   const loadBiggerTraceMessage = tct(
-    'Click [loadMore:here] to build a view with more rows or to view the full list, [discover].',
+    '[loadMore:Show more] of this trace or go to the full list of events in [discover]',
     {
       loadMore: (
         <Button
           priority="link"
           onClick={() => {
-            const newLimit = currentLimit + increment;
+            const newLimit = displayedRowsCount + increment;
             if (handleLimitChange) {
               handleLimitChange(newLimit);
             }
@@ -90,7 +95,7 @@ function LimitExceededMessage({
   return (
     <MessageRow>
       {organization.features.includes('trace-view-load-more') &&
-      count < MAX_TRACE_ROWS_LIMIT
+      displayedRowsCount < MAX_TRACE_ROWS_LIMIT
         ? loadBiggerTraceMessage
         : limitExceededMessage}
     </MessageRow>

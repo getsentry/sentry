@@ -4,6 +4,7 @@ import {Location, LocationDescriptorObject} from 'history';
 import * as qs from 'query-string';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import {Button} from 'sentry/components/button';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   GridColumn,
@@ -11,9 +12,11 @@ import GridEditable, {
 } from 'sentry/components/gridEditable';
 import SortLink, {Alignments} from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import BaseSearchBar from 'sentry/components/searchBar';
 import {Tooltip} from 'sentry/components/tooltip';
+import {IconIssues} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
@@ -28,6 +31,7 @@ import {getAggregateAlias, RateUnits} from 'sentry/utils/discover/fields';
 import {TableColumn} from 'sentry/views/discover/table/types';
 import {ThroughputCell} from 'sentry/views/starfish/components/tableCells/throughputCell';
 import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
+import {IssueCounts, useIssueCounts} from 'sentry/views/starfish/queries/useIssueCounts';
 import {TIME_SPENT_IN_SERVICE} from 'sentry/views/starfish/utils/generatePerformanceEventView';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 
@@ -37,6 +41,7 @@ const COLUMN_TITLES = [
   DataTitles.avg,
   DataTitles.errorCount,
   DataTitles.timeSpent,
+  t('Issues'),
 ];
 
 type Props = {
@@ -49,6 +54,24 @@ type Props = {
 export type TableColumnHeader = GridColumnHeader<keyof TableDataRow> & {
   column?: TableColumn<keyof TableDataRow>['column']; // TODO - remove this once gridEditable is properly typed
 };
+
+function QueryIssueCounts({eventView, tableData, children}) {
+  const transactions: Map<string, string> = new Map();
+  if (tableData) {
+    tableData.data.forEach(row => {
+      transactions.set(`transaction:${row.transaction} is:unresolved`, row.transaction);
+    });
+  }
+  const {data, isLoading} = useIssueCounts(eventView, Array.from(transactions.keys()));
+  const result: Map<string, IssueCounts> = new Map();
+  for (const [query, count] of data ? Object.entries(data) : []) {
+    if (transactions.has(query)) {
+      result.set(transactions.get(query)!, count);
+    }
+  }
+
+  return children({issueCounts: result, isIssueLoading: isLoading});
+}
 
 function EndpointList({eventView, location, organization, setError}: Props) {
   const [widths, setWidths] = useState<number[]>([]);
@@ -68,7 +91,8 @@ function EndpointList({eventView, location, organization, setError}: Props) {
     tableData: TableData | null,
     column: TableColumnHeader,
     dataRow: TableDataRow,
-    _deltaColumnMap: Record<string, string>
+    _deltaColumnMap: Record<string, string>,
+    issueCounts: Map<string, number>
   ): React.ReactNode {
     if (!tableData || !tableData.meta) {
       return dataRow[column.key];
@@ -131,6 +155,30 @@ function EndpointList({eventView, location, organization, setError}: Props) {
       return null;
     }
 
+    if (field === 'issues') {
+      const transactionName = dataRow.transaction as string;
+      return (
+        <IssueButton
+          to={`/issues/?${qs.stringify({
+            project: eventView.project,
+            query: `is:unresolved transaction:"${dataRow.transaction}"`,
+            statsPeriod: eventView.statsPeriod,
+            start: eventView.start,
+            end: eventView.end,
+          })}`}
+        >
+          <IconIssues size="sm" />
+          <IssueLabel>
+            {issueCounts.has(transactionName) ? (
+              issueCounts.get(transactionName)
+            ) : (
+              <LoadingIndicator size={20} mini />
+            )}
+          </IssueLabel>
+        </IssueButton>
+      );
+    }
+
     const fieldName = getAggregateAlias(field);
     const value = dataRow[fieldName];
     if (tableMeta[fieldName] === 'integer' && typeof value === 'number' && value > 999) {
@@ -148,7 +196,10 @@ function EndpointList({eventView, location, organization, setError}: Props) {
     return rendered;
   }
 
-  function renderBodyCellWithData(tableData: TableData | null) {
+  function renderBodyCellWithData(
+    tableData: TableData | null,
+    issueCounts: Map<string, number>
+  ) {
     const deltaColumnMap: Record<string, string> = {};
     if (tableData?.data?.[0]) {
       Object.keys(tableData.data[0]).forEach(col => {
@@ -163,7 +214,7 @@ function EndpointList({eventView, location, organization, setError}: Props) {
     }
 
     return (column: TableColumnHeader, dataRow: TableDataRow): React.ReactNode =>
-      renderBodyCell(tableData, column, dataRow, deltaColumnMap);
+      renderBodyCell(tableData, column, dataRow, deltaColumnMap, issueCounts);
   }
 
   function renderHeadCell(
@@ -252,8 +303,14 @@ function EndpointList({eventView, location, organization, setError}: Props) {
     });
   }
 
-  const columnOrder = eventView
-    .getColumns()
+  const eventViewColumns = eventView.getColumns();
+  eventViewColumns.push({
+    key: 'issues',
+    name: 'Issues',
+    type: 'number',
+    width: -1,
+  } as TableColumn<React.ReactText>);
+  const columnOrder = eventViewColumns
     .filter(
       (col: TableColumn<React.ReactText>) =>
         col.name !== 'project' &&
@@ -280,21 +337,26 @@ function EndpointList({eventView, location, organization, setError}: Props) {
         setError={error => setError(error?.message)}
         referrer="api.starfish.endpoint-list"
         queryExtras={{dataset: 'metrics'}}
+        limit={10}
       >
         {({pageLinks, isLoading, tableData}) => (
           <Fragment>
-            <GridEditable
-              isLoading={isLoading}
-              data={tableData ? tableData.data : []}
-              columnOrder={columnOrder}
-              columnSortBy={columnSortBy}
-              grid={{
-                onResizeColumn: handleResizeColumn,
-                renderHeadCell: renderHeadCellWithMeta(tableData?.meta),
-                renderBodyCell: renderBodyCellWithData(tableData),
-              }}
-              location={location}
-            />
+            <QueryIssueCounts eventView={eventView} tableData={tableData}>
+              {({issueCounts, isIssueLoading}) => (
+                <GridEditable
+                  isLoading={isLoading && isIssueLoading}
+                  data={tableData ? tableData.data : []}
+                  columnOrder={columnOrder}
+                  columnSortBy={columnSortBy}
+                  grid={{
+                    onResizeColumn: handleResizeColumn,
+                    renderHeadCell: renderHeadCellWithMeta(tableData?.meta),
+                    renderBodyCell: renderBodyCellWithData(tableData, issueCounts),
+                  }}
+                  location={location}
+                />
+              )}
+            </QueryIssueCounts>
 
             <Pagination pageLinks={pageLinks} />
           </Fragment>
@@ -308,4 +370,15 @@ export default EndpointList;
 
 const StyledSearchBar = styled(BaseSearchBar)`
   margin-bottom: ${space(2)};
+`;
+
+const IssueButton = styled(Button)`
+  width: 100%;
+  margin-left: auto;
+`;
+
+const IssueLabel = styled('div')`
+  padding-left: ${space(1)};
+  margin-left: auto;
+  position: relative;
 `;
