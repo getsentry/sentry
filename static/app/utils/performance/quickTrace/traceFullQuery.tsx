@@ -19,6 +19,7 @@ import {
 type AdditionalQueryProps = {
   detailed?: boolean;
   eventId?: string;
+  limit?: number;
 };
 
 type TraceFullQueryChildrenProps<T> = BaseTraceChildrenProps &
@@ -38,6 +39,7 @@ type QueryProps<T> = Omit<TraceRequestProps, 'eventView'> &
 function getTraceFullRequestPayload({
   detailed,
   eventId,
+  limit,
   ...props
 }: DiscoverQueryProps & AdditionalQueryProps) {
   const additionalApiPayload: any = getTraceRequestPayload(props);
@@ -45,6 +47,11 @@ function getTraceFullRequestPayload({
   if (eventId) {
     additionalApiPayload.event_id = eventId;
   }
+
+  if (limit) {
+    additionalApiPayload.limit = limit;
+  }
+
   return additionalApiPayload;
 }
 
