@@ -802,6 +802,20 @@ def max_timestamp(aggregate_filter, org_id, use_case_id, alias=None):
     return timestamp_column_snql("maxIf", aggregate_filter, org_id, use_case_id, alias)
 
 
+def on_demand_epm_snql_factory(
+    aggregate_filter: Function, org_id: int, use_case_id: UseCaseID, alias: str
+) -> Function:
+    """Divide the total count of events by the time period"""
+    # XXX: This whole thing is wrong. Just pushing the code so
+    return Function(
+        "divide",
+        # [
+        #     XXX: Count if within a time range?
+        # ],
+        alias="epm_alias",
+    )
+
+
 def on_demand_failure_rate_snql_factory(aggregate_filter, org_id, use_case_id, alias=None):
     """Divide the number of transactions that failed from the total."""
     return Function(

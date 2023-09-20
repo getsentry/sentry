@@ -609,6 +609,10 @@ def apdex_tag_spec(project: Project, argument: Optional[str]) -> List[TagSpec]:
     ]
 
 
+def epm_tag_spec(_1: Project, _2: Optional[str]) -> List[TagSpec]:
+    pass
+
+
 DERIVED_METRICS = {
     "apdex": {
         "tag_spec_func": apdex_tag_spec,
