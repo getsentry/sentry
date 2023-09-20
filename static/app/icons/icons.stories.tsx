@@ -4,7 +4,6 @@ import {PlatformIcon} from 'platformicons';
 
 import Input from 'sentry/components/input';
 import {Sticky} from 'sentry/components/sticky';
-import StoryList from 'sentry/components/stories/storyList';
 import {Tooltip} from 'sentry/components/tooltip';
 import * as Icons from 'sentry/icons';
 import {space} from 'sentry/styles/space';
@@ -1341,12 +1340,6 @@ export default function IconsStories() {
           onChange={e => setSearchTerm(e.target.value.toLowerCase())}
         />
       </StyledSticky>
-
-      <section>
-        <SectionHeader>See Also</SectionHeader>
-
-        <StoryList links={['app/components/logoSentry.stories.tsx']} />
-      </section>
 
       <Section section={unclassifiedSection} />
 
