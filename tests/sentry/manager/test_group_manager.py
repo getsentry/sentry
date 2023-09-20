@@ -1,6 +1,9 @@
 from sentry.models import Group, Integration
 from sentry.services.hybrid_cloud.integration.serial import serialize_integration
 from sentry.testutils.cases import TestCase
+from sentry.testutils.skips import requires_snuba
+
+pytestmark = requires_snuba
 
 
 class SentryManagerTest(TestCase):

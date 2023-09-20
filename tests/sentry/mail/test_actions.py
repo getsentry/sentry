@@ -11,6 +11,9 @@ from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase, TestC
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.eventprocessing import write_event_to_cache
+from sentry.testutils.skips import requires_snuba
+
+pytestmark = requires_snuba
 
 
 class NotifyEmailFormTest(TestCase):
