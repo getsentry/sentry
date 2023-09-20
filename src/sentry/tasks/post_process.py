@@ -592,7 +592,10 @@ def post_process_group(
         update_event_groups(event, group_states)
         bind_organization_context(event.project.organization)
         _capture_event_stats(event)
-        if features.has("organizations:escalating-metrics-backend", event.project.organization):
+        if (
+            features.has("organizations:escalating-metrics-backend", event.project.organization)
+            and not is_transaction_event
+        ):
             _update_escalating_metrics(event)
 
         group_events: Mapping[int, GroupEvent] = {

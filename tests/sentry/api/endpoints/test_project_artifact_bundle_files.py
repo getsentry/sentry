@@ -1,8 +1,8 @@
 from django.urls import reverse
-from freezegun import freeze_time
 
 from sentry.models import ProjectArtifactBundle, ReleaseArtifactBundle
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import region_silo_test
 
 

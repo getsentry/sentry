@@ -7,7 +7,6 @@ import pytest
 import responses
 from django.core import mail
 from django.utils import timezone
-from freezegun import freeze_time
 
 from sentry.constants import ObjectStatus
 from sentry.incidents.events import (
@@ -72,6 +71,7 @@ from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.testutils.cases import BaseIncidentsTest, BaseMetricsTestCase, SnubaTestCase, TestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.utils import json
 
 pytestmark = [pytest.mark.sentry_metrics]

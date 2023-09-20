@@ -3,7 +3,6 @@ from unittest import mock
 
 import pytest
 from django.db.models import F
-from freezegun import freeze_time
 
 from sentry.models import Project
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
@@ -19,7 +18,7 @@ from sentry.tasks.statistical_detectors import (
 from sentry.testutils.cases import MetricsAPIBaseTestCase, ProfilesSnubaTestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import override_options
-from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.task_runner import TaskRunner
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import region_silo_test

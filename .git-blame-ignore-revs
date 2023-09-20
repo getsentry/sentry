@@ -42,7 +42,7 @@ a2df8eab9b802966c8af6d0d61e6f97b5fbd3882
 # https://github.com/getsentry/sentry/pull/5247
 49efa19a2fbd37a0b87e0aed234ea8fdae11dd5e
 
-# run prettier over jsx files to make escaping unecessary #5340
+# run prettier over jsx files to make escaping unnecessary #5340
 # https://github.com/getsentry/sentry/pull/5340
 f736793749a7e0a120a3d5f8630959864e553adb
 

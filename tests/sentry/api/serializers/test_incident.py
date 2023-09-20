@@ -1,13 +1,13 @@
 from datetime import timedelta
 
 from django.utils import timezone
-from freezegun import freeze_time
 
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.incident import DetailedIncidentSerializer
 from sentry.incidents.logic import subscribe_to_incident
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.datetime import freeze_time
 
 
 class IncidentSerializerTest(TestCase):

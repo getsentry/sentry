@@ -4,7 +4,6 @@ from urllib.parse import parse_qs
 import responses
 from django.db import router
 from django.urls import reverse
-from freezegun import freeze_time
 
 from sentry.integrations.slack.views.link_identity import build_linking_url
 from sentry.integrations.slack.views.unlink_identity import build_unlinking_url
@@ -22,6 +21,7 @@ from sentry.models import (
 )
 from sentry.models.activity import Activity, ActivityIntegration
 from sentry.silo import SiloMode, unguarded_write
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.types.group import GroupSubStatus
