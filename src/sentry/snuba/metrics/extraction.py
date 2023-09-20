@@ -1,6 +1,5 @@
 import hashlib
 import logging
-import re
 from dataclasses import dataclass
 from typing import (
     Any,
@@ -483,6 +482,22 @@ def _remove_on_demand_search_filters(tokens: Sequence[QueryToken]) -> Sequence[Q
     return ret_val
 
 
+def _remove_event_type_and_project_filter(tokens: Sequence[QueryToken]) -> Sequence[QueryToken]:
+    """
+    removes event.type: transaction and project:* from the query
+    """
+    ret_val: List[QueryToken] = []
+    for token in tokens:
+        if isinstance(token, SearchFilter):
+            if token.key.name not in ["event.type", "project"]:
+                ret_val.append(token)
+        elif isinstance(token, ParenExpression):
+            ret_val.append(ParenExpression(_remove_event_type_and_project_filter(token.children)))
+        else:
+            ret_val.append(token)
+    return ret_val
+
+
 def cleanup_query(tokens: Sequence[QueryToken]) -> Sequence[QueryToken]:
     """
     Recreates a valid query from an original query that has had on demand search filters removed.
@@ -644,7 +659,7 @@ class OnDemandMetricSpec:
 
     def __init__(self, field: str, query: str):
         self.field = field
-        self.query = self._cleanup_query(query)
+        self.query = query
         self._eager_process()
 
     def _eager_process(self):
@@ -818,15 +833,15 @@ class OnDemandMetricSpec:
 
         raise Exception(f"Unsupported aggregate function {function}")
 
-    @staticmethod
-    def _cleanup_query(query: str) -> str:
-        regexes = [r"event\.type:transaction\s*", r"project:[\w\d\"\-_]+\s*"]
-
-        new_query = query
-        for regex in regexes:
-            new_query = re.sub(regex, "", new_query)
-
-        return new_query
+    # @staticmethod
+    # def _cleanup_query(query: str) -> str:
+    #     regexes = [r"event\.type:transaction\s*", r"project:[\w\d\"\-_]+\s*"]
+    #
+    #     new_query = query
+    #     for regex in regexes:
+    #         new_query = re.sub(regex, "", new_query)
+    #
+    #     return new_query
 
     @staticmethod
     def _parse_field(value: str) -> Optional[FieldParsingResult]:
@@ -840,7 +855,8 @@ class OnDemandMetricSpec:
     def _parse_query(value: str) -> Optional[QueryParsingResult]:
         try:
             conditions = event_search.parse_search_query(value)
-            return QueryParsingResult(conditions=conditions)
+            clean_conditions = cleanup_query(_remove_event_type_and_project_filter(conditions))
+            return QueryParsingResult(conditions=clean_conditions)
         except InvalidSearchQuery:
             return None
 
