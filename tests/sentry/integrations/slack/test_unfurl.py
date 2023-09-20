@@ -18,6 +18,9 @@ from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import install_slack
 from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
+from sentry.testutils.skips import requires_snuba
+
+pytestmark = [requires_snuba]
 
 INTERVAL_COUNT = 300
 INTERVALS_PER_DAY = int(60 * 60 * 24 / INTERVAL_COUNT)

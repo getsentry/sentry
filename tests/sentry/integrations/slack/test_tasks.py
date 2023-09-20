@@ -18,7 +18,10 @@ from sentry.tasks.integrations.slack import (
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import install_slack
 from sentry.testutils.silo import region_silo_test
+from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
+
+pytestmark = [requires_snuba]
 
 
 @region_silo_test(stable=True)

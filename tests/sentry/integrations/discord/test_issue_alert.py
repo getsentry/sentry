@@ -14,8 +14,11 @@ from sentry.models.release import Release
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.testutils.cases import RuleTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.skips import requires_snuba
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
+
+pytestmark = [requires_snuba]
 
 
 class DiscordIssueAlertTest(RuleTestCase):

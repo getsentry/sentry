@@ -26,8 +26,9 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.skips import requires_snuba
 
-pytestmark = [pytest.mark.sentry_metrics]
+pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
 
 
 class AlertRuleBase:

@@ -43,7 +43,10 @@ from sentry.testutils.helpers.notifications import (
     DummyNotification,
     DummyNotificationWithMoreFields,
 )
+from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
+
+pytestmark = [requires_snuba]
 
 
 class MSTeamsMessageBuilderTest(TestCase):

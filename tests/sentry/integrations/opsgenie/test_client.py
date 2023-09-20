@@ -2,7 +2,10 @@ import responses
 
 from sentry.models import Integration, Rule
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
+
+pytestmark = [requires_snuba]
 
 EXTERNAL_ID = "test-app"
 METADATA = {

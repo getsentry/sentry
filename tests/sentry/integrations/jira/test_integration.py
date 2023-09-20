@@ -25,9 +25,12 @@ from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils.cases import APITestCase, IntegrationTestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
 from sentry.utils.signing import sign
 from sentry_plugins.jira.plugin import JiraPlugin
+
+pytestmark = [requires_snuba]
 
 
 def get_client():

@@ -8,7 +8,10 @@ from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.issues.merge import handle_merge
 from sentry.models import Activity, Group, GroupInboxReason, GroupStatus, add_group_to_inbox
 from sentry.testutils.cases import TestCase
+from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
+
+pytestmark = [requires_snuba]
 
 
 class HandleIssueMergeTest(TestCase):
