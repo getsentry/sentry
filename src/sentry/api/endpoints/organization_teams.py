@@ -2,7 +2,7 @@ from typing import List
 
 from django.db import IntegrityError, router, transaction
 from django.db.models import Q
-from drf_spectacular.utils import OpenApiResponse, extend_schema
+from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_serializer
 from rest_framework import serializers, status
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
@@ -48,14 +48,24 @@ class OrganizationTeamsPermission(OrganizationPermission):
     }
 
 
+@extend_schema_serializer(exclude_fields=["idp_provisioned"], deprecate_fields=["name"])
 class TeamPostSerializer(serializers.Serializer, PreventNumericSlugMixin):
-    name = serializers.CharField(max_length=64, required=False, allow_null=True, allow_blank=True)
     slug = serializers.RegexField(
         DEFAULT_SLUG_PATTERN,
+        help_text="""Uniquely identifies a team and is used for the interface. If not
+        provided, it is automatically generated from the name.""",
         max_length=50,
         required=False,
         allow_null=True,
         error_messages={"invalid": DEFAULT_SLUG_ERROR_MESSAGE},
+    )
+    name = serializers.CharField(
+        help_text="""**`[DEPRECATED]`** The name for the team. If not provided, it is
+        automatically generated from the slug""",
+        max_length=64,
+        required=False,
+        allow_null=True,
+        allow_blank=True,
     )
     idp_provisioned = serializers.BooleanField(required=False, default=False)
 
@@ -163,10 +173,6 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
         operation_id="Create a New Team",
         parameters=[
             GlobalParams.ORG_SLUG,
-            GlobalParams.name("The name for the team.", required=True),
-            GlobalParams.slug(
-                "Optional slug for the team. If not provided a slug is generated from the name."
-            ),
         ],
         request=TeamPostSerializer,
         responses={
@@ -179,7 +185,8 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
     )
     def post(self, request: Request, organization, **kwargs) -> Response:
         """
-        Create a new team bound to an organization.
+        Create a new team bound to an organization. Requires at least one of the `name`
+        or `slug` body params to be set.
         """
         serializer = TeamPostSerializer(data=request.data)
 
