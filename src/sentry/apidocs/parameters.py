@@ -369,25 +369,6 @@ keys if not specified.
 """,
     )
 
-    SUB_FILTERS = OpenApiParameter(
-        name="subfilters",
-        location="query",
-        required=False,
-        type=build_typed_list(OpenApiTypes.STR),
-        description="""
-Specifies which legacy browser filters should be active. Anything excluded from the list will be
-disabled. The options are:
-- `ie_pre_9`: Internet Explorer Version 8 and lower
-- `ie9`: Internet Explorer Version 9
-- `ie10`: Internet Explorer Version 10
-- `ie11`: Internet Explorer Version 11
-- `safari_pre_6`: Safari Version 5 and lower
-- `opera_pre_15`: Opera Version 14 and lower
-- `opera_mini_pre_8`: Opera Mini Version 8 and lower
-- `android_pre_4`: Android Version 3 and lower
-""",
-    )
-
     @staticmethod
     def key_id(description: str) -> OpenApiParameter:
         return OpenApiParameter(

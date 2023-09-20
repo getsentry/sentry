@@ -43,7 +43,6 @@ const Time = memo(function Time({
           </Title>
         }
         containerDisplayMode="inline-flex"
-        disableForVisualTest
       >
         {getDynamicText({
           value: <Highlight text={searchTerm}>{displayTime}</Highlight>,

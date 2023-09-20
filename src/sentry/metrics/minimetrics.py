@@ -1,5 +1,5 @@
 import random
-from typing import Optional, Union, cast
+from typing import Any, Optional, Union
 
 import sentry_sdk
 
@@ -9,13 +9,13 @@ from sentry.metrics.base import MetricsBackend, Tags
 
 def _to_minimetrics_external_metric_tags(tags: Optional[Tags]) -> Optional[MetricTagsExternal]:
     # We remove all `None` values, since then the types will be compatible.
-    casted_tags = None
+    casted_tags: Any = None
     if tags is not None:
         casted_tags = {
             tag_key: str(tag_value) for tag_key, tag_value in tags.items() if tag_value is not None
         }
 
-    return cast(Optional[MetricTagsExternal], casted_tags)
+    return casted_tags
 
 
 # This is needed to pass data between the sdk patcher and the
