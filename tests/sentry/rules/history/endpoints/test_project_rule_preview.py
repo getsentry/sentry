@@ -7,7 +7,10 @@ from sentry.models import Activity, Group, GroupInbox, GroupInboxReason
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import region_silo_test
+from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
+
+pytestmark = [requires_snuba]
 
 
 @freeze_time()

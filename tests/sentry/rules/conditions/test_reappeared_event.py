@@ -1,6 +1,9 @@
 from sentry.rules.conditions.reappeared_event import ReappearedEventCondition
 from sentry.testutils.cases import RuleTestCase
 from sentry.testutils.silo import region_silo_test
+from sentry.testutils.skips import requires_snuba
+
+pytestmark = [requires_snuba]
 
 
 @region_silo_test(stable=True)

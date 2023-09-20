@@ -8,6 +8,9 @@ from sentry.signals import event_processed, transaction_processed
 from sentry.silo import unguarded_write
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.skips import requires_snuba
+
+pytestmark = [requires_snuba]
 
 
 class RecordFirstTransactionTest(TestCase):
