@@ -1,4 +1,5 @@
 import {Fragment, ReactNode, useCallback, useMemo} from 'react';
+import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import renderSortableHeaderCell from 'sentry/components/feedback/table/renderSortableHeaderCell';
@@ -25,7 +26,7 @@ interface Props {
   location: Location<any>;
   customHandleResize?: () => void;
   headerButtons?: ReactNode;
-  title?: string;
+  title?: string | ReactNode;
 }
 
 const BASE_COLUMNS: GridColumnOrder<string>[] = [
@@ -130,5 +131,23 @@ function SelectorLink({
 }
 
 function renderSimpleBodyCell<T>(column: GridColumnOrder<string>, dataRow: T) {
+  if (column.key === 'count_dead_clicks') {
+    return <DeadClickCount>{dataRow[column.key]}</DeadClickCount>;
+  }
+  if (column.key === 'count_rage_clicks') {
+    return <RageClickCount>{dataRow[column.key]}</RageClickCount>;
+  }
   return <TextOverflow>{dataRow[column.key]}</TextOverflow>;
 }
+
+const DeadClickCount = styled(TextOverflow)<{
+  clickType?: string;
+}>`
+  color: ${p => p.theme.yellow300};
+`;
+
+const RageClickCount = styled(TextOverflow)<{
+  clickType?: string;
+}>`
+  color: ${p => p.theme.red300};
+`;
