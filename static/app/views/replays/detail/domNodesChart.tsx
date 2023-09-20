@@ -121,7 +121,7 @@ function DomNodesChart({
         fontFamily: theme.text.family,
         color: theme.gray300,
       },
-      minInterval: 500,
+      minInterval: 100,
       maxInterval: Math.pow(1024, 4),
       axisLabel: {
         formatter: (value: number) => axisLabelFormatter(value, 'number', true),

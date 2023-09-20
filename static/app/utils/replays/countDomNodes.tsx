@@ -118,7 +118,8 @@ function createPlayer(rrwebEvents): Replayer {
 }
 
 function countDomNodes(): number {
-  // const count = document.querySelectorAll('*').length;
-  const count = document.getElementsByTagName('*').length;
+  const iframe = document.getElementsByTagName('iframe')[0];
+  const innerDoc = iframe.contentDocument;
+  const count = innerDoc?.getElementsByTagName('*').length ?? 0;
   return count;
 }
