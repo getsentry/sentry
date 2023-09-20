@@ -63,7 +63,7 @@ function PerformanceScoreRing({
   );
 
   const foreignObjectSize = size / 2;
-  const foreginObjectOffset = size / 4;
+  const foreignObjectOffset = size / 4;
 
   const radius = size / 2 - barWidth / 2;
   const circumference = 2 * Math.PI * radius;
@@ -118,8 +118,8 @@ function PerformanceScoreRing({
       <foreignObject
         height={foreignObjectSize}
         width={foreignObjectSize}
-        x={foreginObjectOffset}
-        y={foreginObjectOffset}
+        x={foreignObjectOffset}
+        y={foreignObjectOffset}
       >
         {text !== undefined && textNode}
       </foreignObject>
