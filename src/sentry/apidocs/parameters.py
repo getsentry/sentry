@@ -302,14 +302,6 @@ incorrect or missing.
 """,
     )
 
-    ACTIVE = OpenApiParameter(
-        name="active",
-        location="query",
-        required=False,
-        type=bool,
-        description="Toggle the browser-extensions, localhost, filtered-transaction, or web-crawlers filter on or off.",
-    )
-
     BROWSER_SDK_VERSION = OpenApiParameter(
         name="browserSdkVersion",
         location="query",
@@ -422,25 +414,6 @@ disable entirely set `rateLimit` to null.
 }
 ```
         """,
-    )
-
-    SUB_FILTERS = OpenApiParameter(
-        name="subfilters",
-        location="query",
-        required=False,
-        type=build_typed_list(OpenApiTypes.STR),
-        description="""
-Specifies which legacy browser filters should be active. Anything excluded from the list will be
-disabled. The options are:
-- `ie_pre_9`: Internet Explorer Version 8 and lower
-- `ie9`: Internet Explorer Version 9
-- `ie10`: Internet Explorer Version 10
-- `ie11`: Internet Explorer Version 11
-- `safari_pre_6`: Safari Version 5 and lower
-- `opera_pre_15`: Opera Version 14 and lower
-- `opera_mini_pre_8`: Opera Mini Version 8 and lower
-- `android_pre_4`: Android Version 3 and lower
-""",
     )
 
     @staticmethod
