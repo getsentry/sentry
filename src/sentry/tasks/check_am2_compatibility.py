@@ -474,7 +474,6 @@ class CheckAM2Compatibility:
                 dataset=Dataset.PerformanceMetrics,
                 query=query,
                 selected_columns=selected_columns,
-                equations=[],
                 config=QueryBuilderConfig(
                     allow_metric_aggregates=True,
                     auto_fields=False,
