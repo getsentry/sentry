@@ -474,8 +474,6 @@ class CheckAM2Compatibility:
             # mismatched expectations.
             return {"data": [], "meta": []}
 
-        metrics.raw_snql_query = noop_raw_snql_query
-
         try:
             builder = metrics.MetricsQueryBuilder(
                 params,
@@ -490,7 +488,15 @@ class CheckAM2Compatibility:
                     on_demand_metrics_enabled=False,
                 ),
             )
+            # We store the old function, to replace later on.
+            old_raw_snql_query = metrics.raw_snql_query
+
+            # We want to make the query a noop, in order to not actually run it, since it's expensive. This is a
+            # hack in order to run all the query validations in the query builder but not actually execute the query.
+            metrics.raw_snql_query = noop_raw_snql_query
             builder.run_query(referrer="api.organization-events")
+            metrics.raw_snql_query = old_raw_snql_query
+
             return True
         except IncompatibleMetricsQuery:
             return False
