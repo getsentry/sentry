@@ -174,7 +174,11 @@ const categoryList = [
   {id: 'serverless', name: t('Serverless'), platforms: serverless},
 ] as const;
 
-export const deprecatedPlatforms = new Set(['node-serverlesscloud']);
+export const deprecatedPlatforms = new Set([
+  'node-serverlesscloud',
+  'python-pylons',
+  'python-pymongo',
+]);
 
 export const sourceMaps: PlatformKey[] = [
   ...frontend,

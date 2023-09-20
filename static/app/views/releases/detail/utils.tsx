@@ -91,7 +91,11 @@ export function getQuery({location, perPage = 40, activeRepository}: GetQueryPro
     return query;
   }
 
-  return {...query, repo_name: activeRepository.name};
+  return {
+    ...query,
+    repo_id: activeRepository.externalId,
+    repo_name: activeRepository.name,
+  };
 }
 
 /**

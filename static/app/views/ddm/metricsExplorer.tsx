@@ -135,8 +135,9 @@ function QueryBuilder({setQuery}: QueryBuilderProps) {
 
   const reducer = (state: QueryBuilderState, action: QueryBuilderAction) => {
     if (action.type === 'mri') {
-      const operations = meta[`${action.value}`]?.operations.filter(isAllowedOp) || [''];
-      return {...state, mri: action.value, op: operations[0]};
+      const availableOps = meta[`${action.value}`]?.operations.filter(isAllowedOp);
+      const selectedOp = availableOps.includes(state.op) ? state.op : availableOps[0];
+      return {...state, mri: action.value, op: selectedOp};
     }
     if (['op', 'groupBy', 'projects', 'timeRange', 'queryString'].includes(action.type)) {
       return {...state, [action.type]: action.value};
@@ -342,7 +343,7 @@ function MetricsExplorerDisplay({displayType, ...metricsDataProps}: DisplayProps
   if (!data) {
     return (
       <DisplayWrapper>
-        {isLoading && <LoadingIndicator overlay />}
+        {isLoading && <LoadingIndicator />}
         {isError && <Alert type="error">Error while fetching metrics data</Alert>}
       </DisplayWrapper>
     );
@@ -440,15 +441,6 @@ function Chart({data, displayType}: {data: MetricsData; displayType: DisplayType
   const chartProps = {
     isGroupedByDate: true,
     series: chartSeries,
-    colors: [
-      theme.purple400,
-      theme.yellow400,
-      theme.pink400,
-      theme.green400,
-      theme.red400,
-      theme.blue400,
-      ...theme.charts.colors,
-    ],
     height: 300,
     legend: Legend({
       itemGap: 20,

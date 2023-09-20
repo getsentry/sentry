@@ -1,9 +1,8 @@
 from datetime import datetime, timedelta, timezone
 
-from freezegun import freeze_time
-
 from sentry.rules.filters.age_comparison import AgeComparisonFilter
 from sentry.testutils.cases import RuleTestCase
+from sentry.testutils.helpers.datetime import freeze_time
 
 
 class AgeComparisonFilterTest(RuleTestCase):

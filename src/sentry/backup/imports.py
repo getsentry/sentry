@@ -232,7 +232,7 @@ def import_in_organization_scope(
     )
 
 
-def import_in_global_scope(src, *, printer=click.echo):
+def import_in_global_scope(src, *, flags: ImportFlags | None = None, printer=click.echo):
     """
     Perform an import in the `Global` scope, meaning that all models will be imported from the
     provided source file. Because a `Global` import is really only useful when restoring to a fresh
@@ -240,4 +240,4 @@ def import_in_global_scope(src, *, printer=click.echo):
     superuser privileges are not sanitized.
     """
 
-    return _import(src, ImportScope.Global, printer=printer)
+    return _import(src, ImportScope.Global, flags=flags, printer=printer)
