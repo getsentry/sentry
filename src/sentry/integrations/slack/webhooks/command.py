@@ -13,6 +13,7 @@ from sentry.integrations.slack.utils.auth import is_valid_role
 from sentry.integrations.slack.views.link_team import build_team_linking_url
 from sentry.integrations.slack.views.unlink_team import build_team_unlinking_url
 from sentry.models import ExternalActor, Organization, OrganizationMember
+from sentry.models.team import Team
 from sentry.types.integrations import ExternalProviders
 
 from .base import SlackDMEndpoint
@@ -79,8 +80,9 @@ class SlackCommandsEndpoint(SlackDMEndpoint):
         for organization_memberships in organization_memberships:
             if is_team_linked_to_channel(organization_memberships.organization, slack_request):
                 return self.reply(slack_request, CHANNEL_ALREADY_LINKED_MESSAGE)
-
-            if is_valid_role(organization_memberships):
+            print(slack_request.team_id)
+            print(Team.objects.all())
+            if is_valid_role(organization_memberships, slack_request.team_id):
                 has_valid_role = True
 
         if not has_valid_role:

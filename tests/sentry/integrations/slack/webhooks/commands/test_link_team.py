@@ -9,6 +9,7 @@ from sentry.integrations.slack.webhooks.command import (
     TEAM_NOT_LINKED_MESSAGE,
 )
 from sentry.models import OrganizationIntegration
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.testutils.helpers import get_response_text, link_user
 from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
@@ -79,6 +80,25 @@ class SlackCommandsLinkTeamTest(SlackCommandsLinkTeamTestBase):
         self.login_as(user2)
         data = self.send_slack_message("link team", user_id=OTHER_SLACK_ID)
         assert LINK_USER_FIRST_MESSAGE in get_response_text(data)
+
+    @responses.activate
+    def test_link_team_as_team_admin(self):
+        """
+        Test that when a user whose role is insufficient attempts to link a
+        team, we reject them and reply with the INSUFFICIENT_ROLE_MESSAGE.
+        """
+        team_admin_user = self.create_user()
+        self.create_member(
+            team_roles=[(self.team, "admin")],
+            user=team_admin_user,
+            role="member",
+            organization=self.organization,
+        )
+        self.login_as(team_admin_user)
+        link_user(team_admin_user, self.idp, slack_id=OTHER_SLACK_ID)
+
+        data = self.send_slack_message("link team", user_id=OTHER_SLACK_ID)
+        assert INSUFFICIENT_ROLE_MESSAGE in get_response_text(data)
 
     @responses.activate
     def test_link_team_insufficient_role(self):
