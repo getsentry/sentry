@@ -59,7 +59,7 @@ export const NOTIFICATION_SETTING_FIELDS: Record<string, Field> = {
     },
   },
   approval: {
-    name: 'Nudges',
+    name: 'approval',
     type: 'select',
     label: t('Nudges'),
     choices: [
