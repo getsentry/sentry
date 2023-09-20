@@ -1,86 +1,105 @@
-import {Row} from 'sentry/views/performance/browser/webVitals/utils/types';
+export const PERFORMANCE_SCORE_WEIGHTS = {
+  lcp: 30,
+  fcp: 15,
+  cls: 15,
+  fid: 30,
+  ttfb: 10,
+};
 
-export const LCP_MAX_SCORE = 25;
-export const FCP_MAX_SCORE = 10;
-export const CLS_MAX_SCORE = 25;
-export const LONG_TASK_MAX_SCORE = 30;
+export const PERFORMANCE_SCORE_MEDIANS = {
+  lcp: 2400,
+  fcp: 1600,
+  cls: 0.25,
+  fid: 300,
+  ttfb: 400,
+};
+
+export const PERFORMANCE_SCORE_P90S = {
+  lcp: 1200,
+  fcp: 900,
+  cls: 0.1,
+  fid: 100,
+  ttfb: 200,
+};
 
 export type ProjectScore = {
   clsScore: number;
   fcpScore: number;
+  fidScore: number;
   lcpScore: number;
-  tbtScore: number;
   totalScore: number;
+  ttfbScore: number;
 };
 
-export const calculatePerformanceScore = (
-  row: Pick<
-    Row,
-    | 'p75(measurements.app_init_long_tasks)'
-    | 'p75(measurements.cls)'
-    | 'p75(measurements.fcp)'
-    | 'p75(measurements.lcp)'
-  >
-): ProjectScore => {
-  // dont have tbt so using long task duration sum
-  const {
-    'p75(measurements.lcp)': lcp,
-    'p75(measurements.fcp)': fcp,
-    'p75(measurements.app_init_long_tasks)': longTaskDuration,
-    'p75(measurements.cls)': cls,
-  } = row;
+type Vitals = {
+  cls: number;
+  fcp: number;
+  fid: number;
+  lcp: number;
+  ttfb: number;
+};
 
-  const calculate = ({
-    value,
-    max,
-    min,
-    totalScore,
-  }: {
-    max: number;
-    min: number;
-    totalScore: number;
-    value: number;
-  }) => {
-    const boundedValue = Math.min(max, Math.max(min, value));
-    const range = max - min;
-    const score = ((max - boundedValue) / range) * totalScore;
-    return score;
-  };
+export const calculatePerformanceScore = (vitals: Vitals): ProjectScore => {
+  const {cls, fcp, fid, lcp, ttfb} = vitals;
 
-  const lcpScore = calculate({
-    value: lcp,
-    max: 8000,
-    min: 1000,
-    totalScore: LCP_MAX_SCORE,
-  });
-  const fcpScore = calculate({
-    value: fcp,
-    max: 6000,
-    min: 1000,
-    totalScore: FCP_MAX_SCORE,
-  });
-  const tbtScore = calculate({
-    value: longTaskDuration,
-    max: 3000,
-    min: 0,
-    totalScore: LONG_TASK_MAX_SCORE,
-  });
-  const clsScore = calculate({
-    value: cls,
-    max: 0.82,
-    min: 0,
-    totalScore: CLS_MAX_SCORE,
-  });
+  const lcpScore = cdf(lcp, PERFORMANCE_SCORE_MEDIANS.lcp, PERFORMANCE_SCORE_P90S.lcp);
+  const fcpScore = cdf(fcp, PERFORMANCE_SCORE_MEDIANS.fcp, PERFORMANCE_SCORE_P90S.fcp);
+  const ttfbScore = cdf(
+    ttfb,
+    PERFORMANCE_SCORE_MEDIANS.ttfb,
+    PERFORMANCE_SCORE_P90S.ttfb
+  );
+  const clsScore = cdf(cls, PERFORMANCE_SCORE_MEDIANS.cls, PERFORMANCE_SCORE_P90S.cls);
+  const fidScore = cdf(fid, PERFORMANCE_SCORE_MEDIANS.fid, PERFORMANCE_SCORE_P90S.fid);
 
-  // Roughly based off google performance score
-  // Adding 10 because we don't have a way to calculate speed index right now
-  const totalScore = lcpScore + fcpScore + tbtScore + clsScore + 10;
+  const totalScore =
+    lcpScore * PERFORMANCE_SCORE_WEIGHTS.lcp +
+    fcpScore * PERFORMANCE_SCORE_WEIGHTS.fcp +
+    ttfbScore * PERFORMANCE_SCORE_WEIGHTS.ttfb +
+    clsScore * PERFORMANCE_SCORE_WEIGHTS.cls +
+    fidScore * PERFORMANCE_SCORE_WEIGHTS.fid;
 
   return {
     totalScore: Math.round(totalScore),
-    lcpScore: Math.round((lcpScore * 100) / LCP_MAX_SCORE),
-    fcpScore: Math.round((fcpScore * 100) / FCP_MAX_SCORE),
-    tbtScore: Math.round((tbtScore * 100) / LONG_TASK_MAX_SCORE),
-    clsScore: Math.round((clsScore * 100) / CLS_MAX_SCORE),
+    lcpScore: Math.round(lcpScore * 100),
+    fcpScore: Math.round(fcpScore * 100),
+    ttfbScore: Math.round(ttfbScore * 100),
+    clsScore: Math.round(clsScore * 100),
+    fidScore: Math.round(fidScore * 100),
   };
+};
+
+const cdf = (x, median, p10) => {
+  return (
+    0.5 *
+    (1 - erf((Math.log(x) - Math.log(median)) / (Math.sqrt(2) * sigma(median, p10))))
+  );
+};
+
+const sigma = (median, p10) => {
+  return Math.abs(Math.log(p10) - Math.log(median)) / (Math.sqrt(2) * 0.9061938024368232);
+};
+
+// https://hewgill.com/picomath/javascript/erf.js.html
+const erf = x => {
+  // constants
+  const a1 = 0.254829592;
+  const a2 = -0.284496736;
+  const a3 = 1.421413741;
+  const a4 = -1.453152027;
+  const a5 = 1.061405429;
+  const p = 0.3275911;
+
+  // Save the sign of x
+  let sign = 1;
+  if (x < 0) {
+    sign = -1;
+  }
+  x = Math.abs(x);
+
+  // A&S formula 7.1.26
+  const t = 1.0 / (1.0 + p * x);
+  const y = 1.0 - ((((a5 * t + a4) * t + a3) * t + a2) * t + a1) * t * Math.exp(-x * x);
+
+  return sign * y;
 };
