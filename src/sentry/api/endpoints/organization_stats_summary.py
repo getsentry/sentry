@@ -133,7 +133,7 @@ class OrganizationStatsSummaryEndpoint(OrganizationEventsEndpointBase):
         },
         examples=OrganizationExamples.RETRIEVE_SUMMARY_EVENT_COUNT,
     )
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization) -> HttpResponse:
         """
         Query event counts for your Organization.
         Select a field, define a date range, and group or filter by columns.
