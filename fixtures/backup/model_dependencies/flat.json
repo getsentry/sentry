@@ -136,7 +136,6 @@
   ],
   "sentry.CustomDynamicSamplingRuleProject": [
     "sentry.CustomDynamicSamplingRule",
-    "sentry.Organization",
     "sentry.Project"
   ],
   "sentry.Dashboard": [

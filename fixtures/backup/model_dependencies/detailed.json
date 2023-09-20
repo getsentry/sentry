@@ -628,10 +628,6 @@
         "kind": "FlexibleForeignKey",
         "model": "sentry.CustomDynamicSamplingRule"
       },
-      "organization": {
-        "kind": "FlexibleForeignKey",
-        "model": "sentry.Organization"
-      },
       "project": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.Project"
