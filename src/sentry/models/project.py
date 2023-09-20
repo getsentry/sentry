@@ -624,7 +624,7 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
 
     @staticmethod
     def is_valid_platform(value):
-        return value in GETTING_STARTD_DOCS_PLATFORMS
+        return not value or value == "other" or value in GETTING_STARTD_DOCS_PLATFORMS
 
     @staticmethod
     def outbox_for_update(project_identifier: int, organization_identifier: int) -> RegionOutbox:
