@@ -70,7 +70,7 @@ function LimitExceededMessage({
   );
 
   const loadBiggerTraceMessage = tct(
-    '[loadMore:Show more] of this trace or go to full list of events in [discover]',
+    '[loadMore:Show more] of this trace or go to the full list of events in [discover]',
     {
       loadMore: (
         <Button
