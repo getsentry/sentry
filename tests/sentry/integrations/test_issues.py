@@ -105,7 +105,7 @@ class IssueSyncIntegration(TestCase):
             assert Group.objects.get(id=group.id).status == GroupStatus.UNRESOLVED
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class IssueDefaultTest(TestCase):
     def setUp(self):
         self.group.status = GroupStatus.RESOLVED
