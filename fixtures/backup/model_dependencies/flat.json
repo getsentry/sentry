@@ -131,6 +131,13 @@
   "sentry.Counter": [
     "sentry.Project"
   ],
+  "sentry.CustomDynamicSamplingRule": [
+    "sentry.Organization"
+  ],
+  "sentry.CustomDynamicSamplingRuleProject": [
+    "sentry.CustomDynamicSamplingRule",
+    "sentry.Project"
+  ],
   "sentry.Dashboard": [
     "sentry.Organization",
     "sentry.User"
@@ -405,6 +412,11 @@
     "sentry.Environment",
     "sentry.Monitor"
   ],
+  "sentry.MonitorIncident": [
+    "sentry.Monitor",
+    "sentry.MonitorCheckIn",
+    "sentry.MonitorEnvironment"
+  ],
   "sentry.MonitorLocation": [],
   "sentry.NeglectedRule": [
     "sentry.Organization",
@@ -466,6 +478,12 @@
   ],
   "sentry.OrganizationMemberTeam": [
     "sentry.OrganizationMember",
+    "sentry.Team"
+  ],
+  "sentry.OrganizationMemberTeamReplica": [
+    "sentry.Organization",
+    "sentry.OrganizationMember",
+    "sentry.OrganizationMemberTeam",
     "sentry.Team"
   ],
   "sentry.OrganizationOnboardingTask": [
