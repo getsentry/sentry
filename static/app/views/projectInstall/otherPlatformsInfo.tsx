@@ -6,7 +6,7 @@ import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Project, ProjectKey} from 'sentry/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -44,7 +44,7 @@ export function OtherPlatformsInfo({
         "We cannot provide instructions for '%s' projects. However, please find below the DSN key for this project, which is required to instrument Sentry.",
         platform
       )}
-      <CodeSnippet dark language="bash">
+      <CodeSnippet dark language="properties">
         {t('dsn: %s', data[0].dsn.public)}
       </CodeSnippet>
       <Suggestion>
@@ -78,6 +78,16 @@ export function OtherPlatformsInfo({
             </ExternalLink>
           </ListItem>
         </List>
+        <p>
+          {tct(
+            "Also there's a rich ecosystem of [link:community supported SDKs] (including NestJS, Nuxt2, Perl, CFML and Clojure).",
+            {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/platforms/#community-supported" />
+              ),
+            }
+          )}
+        </p>
       </Suggestion>
     </Wrapper>
   );
