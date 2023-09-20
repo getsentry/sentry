@@ -30,8 +30,11 @@ from sentry.tasks.store import preprocess_event
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.utils.cache import cache_key_for_event
+
+pytestmark = [requires_snuba]
 
 
 def _create_event_attachment(evt, type):

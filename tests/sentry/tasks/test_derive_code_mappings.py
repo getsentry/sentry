@@ -17,7 +17,10 @@ from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.tasks.derive_code_mappings import derive_code_mappings, identify_stacktrace_paths
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
+from sentry.testutils.skips import requires_snuba
 from sentry.utils.locking import UnableToAcquireLock
+
+pytestmark = [requires_snuba]
 
 
 class BaseDeriveCodeMappings(TestCase):
