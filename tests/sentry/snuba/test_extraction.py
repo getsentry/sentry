@@ -61,6 +61,8 @@ class TestCreatesOndemandMetricSpec:
         "aggregate, query",
         [
             ("count()", "transaction.duration:>0"),
+            ("count()", "transaction.duration:>0 event.type:transaction project:abc"),
+            ("count()", "(transaction.duration:>0) AND (event.type:transaction)"),
             ("p75(measurements.fp)", "transaction.duration:>0"),
             ("p75(transaction.duration)", "transaction.duration:>0"),
             ("count_if(transaction.duration,equals,0)", "transaction.duration:>0"),
@@ -278,6 +280,18 @@ def test_spec_apdex(_get_apdex_project_transaction_threshold, default_project):
     assert spec.op == "on_demand_apdex"
     assert spec.condition == {"name": "event.release", "op": "eq", "value": "a"}
     assert spec.tags_conditions(default_project) == apdex_tag_spec(default_project, "10")
+
+
+def test_cleanup_equivalent_specs():
+    simple_spec = OnDemandMetricSpec("count()", "transaction.duration:>0")
+    event_type_spec = OnDemandMetricSpec(
+        "count()", "transaction.duration:>0 event.type:transaction"
+    )
+    parens_spec = OnDemandMetricSpec(
+        "count()", "(transaction.duration:>0) AND (event.type:transaction) AND (project:foo)"
+    )
+
+    assert simple_spec.query_hash == event_type_spec.query_hash == parens_spec.query_hash
 
 
 @django_db_all
