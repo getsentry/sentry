@@ -9,7 +9,7 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from sentry.app import env
-from sentry.backup.dependencies import ImportKind, PrimaryKeyMap
+from sentry.backup.dependencies import ImportKind
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.constants import ObjectStatus
@@ -293,9 +293,10 @@ class Team(ReplicatedRegionModel, SnowflakeIdMixin):
             except IntegrityError:
                 pass
 
-        OrganizationMemberTeam.objects.filter(team=self).exclude(
+        existing = OrganizationMemberTeam.objects.filter(team=self).exclude(
             organizationmember__organization=organization
-        ).delete()
+        )
+        OrganizationMemberTeam.objects.bulk_delete(existing)
 
         if new_team != self:
             with outbox_context(
@@ -337,11 +338,11 @@ class Team(ReplicatedRegionModel, SnowflakeIdMixin):
 
     # TODO(hybrid-cloud): actor refactor. Remove this method when done.
     def write_relocation_import(
-        self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
-    ) -> Optional[Tuple[int, int, ImportKind]]:
-        written = super().write_relocation_import(pk_map, scope, flags)
+        self, scope: ImportScope, flags: ImportFlags
+    ) -> Optional[Tuple[int, ImportKind]]:
+        written = super().write_relocation_import(scope, flags)
         if written is not None:
-            (_, new_pk, _) = written
+            (new_pk, _) = written
 
             # `Actor` and `Team` have a direct circular dependency between them for the time being
             # due to an ongoing refactor (that is, `Actor` foreign keys directly into `Team`, and

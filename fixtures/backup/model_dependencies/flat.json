@@ -476,6 +476,12 @@
     "sentry.OrganizationMember",
     "sentry.Team"
   ],
+  "sentry.OrganizationMemberTeamReplica": [
+    "sentry.Organization",
+    "sentry.OrganizationMember",
+    "sentry.OrganizationMemberTeam",
+    "sentry.Team"
+  ],
   "sentry.OrganizationOnboardingTask": [
     "sentry.Organization",
     "sentry.Project",

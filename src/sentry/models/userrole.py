@@ -3,22 +3,25 @@ from typing import FrozenSet
 from django.conf import settings
 from django.db import models
 
+from sentry.backup.mixins import OverwritableConfigMixin
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import ArrayField, DefaultFieldsModel, control_silo_only_model, sane_repr
 from sentry.db.models.fields.foreignkey import FlexibleForeignKey
 from sentry.signals import post_upgrade
 from sentry.silo import SiloMode
 
+MAX_USER_ROLE_NAME_LENGTH = 32
+
 
 @control_silo_only_model
-class UserRole(DefaultFieldsModel):
+class UserRole(OverwritableConfigMixin, DefaultFieldsModel):
     """
     Roles are applied to administrative users and apply a set of `UserPermission`.
     """
 
     __relocation_scope__ = RelocationScope.Config
 
-    name = models.CharField(max_length=32, unique=True)
+    name = models.CharField(max_length=MAX_USER_ROLE_NAME_LENGTH, unique=True)
     permissions = ArrayField()
     users = models.ManyToManyField("sentry.User", through="sentry.UserRoleUser")
 

@@ -566,10 +566,43 @@ class DynamicRelocationScopeTests(TransactionTestCase):
         assert auth.get_relocation_scope() == RelocationScope.Global
         assert token.get_relocation_scope() == RelocationScope.Global
 
-    def test_api_auth_not_application_bound(self):
+    def test_api_auth_not_bound(self):
         user = self.create_user()
         auth = ApiAuthorization.objects.create(user=self.create_user("example@example.com"))
         token = ApiToken.objects.create(user=user, token=uuid4().hex, expires_at=None)
 
         assert auth.get_relocation_scope() == RelocationScope.Config
         assert token.get_relocation_scope() == RelocationScope.Config
+
+    def test_notification_action_integration_bound(self):
+        integration = self.create_integration(
+            self.organization, provider="slack", name="Slack 1", external_id="slack:1"
+        )
+        action = self.create_notification_action(
+            organization=self.organization, projects=[self.project], integration_id=integration.id
+        )
+        action_project = NotificationActionProject.objects.get(action=action)
+
+        # TODO(getsentry/team-ospo#188): this should be extension scope once that gets added.
+        assert action.get_relocation_scope() == RelocationScope.Global
+        assert action_project.get_relocation_scope() == RelocationScope.Global
+
+    def test_notification_action_sentry_app_bound(self):
+        app = self.create_sentry_app(name="test_app", organization=self.organization)
+        action = self.create_notification_action(
+            organization=self.organization, projects=[self.project], sentry_app_id=app.id
+        )
+        action_project = NotificationActionProject.objects.get(action=action)
+
+        # TODO(getsentry/team-ospo#188): this should be extension scope once that gets added.
+        assert action.get_relocation_scope() == RelocationScope.Global
+        assert action_project.get_relocation_scope() == RelocationScope.Global
+
+    def test_notification_action_not_bound(self):
+        action = self.create_notification_action(
+            organization=self.organization, projects=[self.project]
+        )
+        action_project = NotificationActionProject.objects.get(action=action)
+
+        assert action.get_relocation_scope() == RelocationScope.Organization
+        assert action_project.get_relocation_scope() == RelocationScope.Organization

@@ -11,7 +11,7 @@ import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
-import {Organization} from 'sentry/types';
+import {Organization, Project} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getShortEventId} from 'sentry/utils/events';
 import type {
@@ -21,6 +21,7 @@ import type {
 } from 'sentry/utils/feedback/types';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import useOrganization from 'sentry/utils/useOrganization';
+import useProjects from 'sentry/utils/useProjects';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
@@ -36,7 +37,7 @@ interface Props {
 }
 
 const BASE_COLUMNS: GridColumnOrder<string>[] = [
-  {key: 'id', name: 'id'},
+  {key: 'feedback_id', name: 'ID'},
   {key: 'status', name: 'status'},
   {key: 'contact_email', name: 'contact_email'},
   {key: 'message', name: 'message'},
@@ -47,6 +48,7 @@ const BASE_COLUMNS: GridColumnOrder<string>[] = [
 export default function FeedbackTable({isError, isLoading, data, location}: Props) {
   const routes = useRoutes();
   const organization = useOrganization();
+  const {projects} = useProjects();
 
   const {currentSort, makeSortLinkGenerator} = useQueryBasedSorting({
     defaultSort: {field: 'status', kind: 'desc'},
@@ -71,17 +73,31 @@ export default function FeedbackTable({isError, isLoading, data, location}: Prop
   );
 
   const renderBodyCell = useCallback(
-    (column, dataRow) => {
+    (column, dataRow: HydratedFeedbackItem) => {
       const value = dataRow[column.key];
       switch (column.key) {
-        case 'id':
-          return <FeedbackDetailsLink organization={organization} value={value} />;
+        case 'feedback_id':
+          const project = projects.find(p => p.id === String(dataRow.project_id));
+          if (!project) {
+            // TODO[feedback]: Guard against invalid test data that has no valid project.
+            return null;
+          }
+          return (
+            <FeedbackDetailsLink
+              organization={organization}
+              project={project!}
+              value={value}
+            />
+          );
         case 'status':
           return <Tag type={value === 'resolved' ? 'default' : 'warning'}>{value}</Tag>;
         case 'message':
           return <TextOverflow>{value}</TextOverflow>;
         case 'replay_id': {
           const referrer = getRouteStringFromRoutes(routes);
+          if (!value) {
+            return null;
+          }
           return (
             <Tooltip title={t('View Replay')}>
               <Link
@@ -101,7 +117,7 @@ export default function FeedbackTable({isError, isLoading, data, location}: Prop
           return renderSimpleBodyCell<HydratedFeedbackItem>(column, dataRow);
       }
     },
-    [organization, routes]
+    [routes, organization, projects]
   );
 
   return (
@@ -124,15 +140,19 @@ export default function FeedbackTable({isError, isLoading, data, location}: Prop
 
 function FeedbackDetailsLink({
   organization,
+  project,
   value,
 }: {
   organization: Organization;
+  project: Project;
   value: string;
 }) {
   return (
     <Link
       to={{
-        pathname: normalizeUrl(`/organizations/${organization.slug}/feedback/${value}/`),
+        pathname: normalizeUrl(
+          `/organizations/${organization.slug}/feedback/${project.slug}:${value}/`
+        ),
         query: {referrer: 'feedback_list_page'},
       }}
       onClick={() => {

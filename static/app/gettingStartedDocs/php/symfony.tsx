@@ -84,12 +84,12 @@ SENTRY_DSN="${dsn}"
         traces_sample_rate: 1.0`
             : ''
         }${
-                hasProfiling
-                  ? `
+          hasProfiling
+            ? `
         # Set a sampling rate for profiling - this is relative to traces_sample_rate
         profiles_sample_rate: 1.0`
-                  : ''
-              }`,
+            : ''
+        }`,
             },
           ]
         : []),

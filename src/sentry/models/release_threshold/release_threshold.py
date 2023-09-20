@@ -17,6 +17,6 @@ class ReleaseThreshold(Model):
     value = models.IntegerField()
     window_in_seconds = models.IntegerField()
 
-    project = FlexibleForeignKey("sentry.Project", db_index=True)
+    project = FlexibleForeignKey("sentry.Project", db_index=True, related_name="release_thresholds")
     environment = FlexibleForeignKey("sentry.Environment", null=True, db_index=True)
     date_added = models.DateTimeField(default=timezone.now)

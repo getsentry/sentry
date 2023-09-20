@@ -1,35 +1,47 @@
-import Alert from 'sentry/components/alert';
+import {RouteComponentProps} from 'react-router';
+
+import {Alert} from 'sentry/components/alert';
+import useFetchFeedbackItem from 'sentry/components/feedback/useFetchFeedbackItem';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import Placeholder from 'sentry/components/placeholder';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import useDeadRageSelectors from 'sentry/utils/replays/hooks/useDeadRageSelectors';
 import useOrganization from 'sentry/utils/useOrganization';
+import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
 
-export default function RageClickList() {
+interface RouteParams {
+  feedbackSlug: string;
+}
+interface Props extends RouteComponentProps<RouteParams, {}, any, {}> {}
+
+export default function FeedbackDetailsPage({params: {feedbackSlug}}: Props) {
   const organization = useOrganization();
-  const hasRageCicks = organization.features.includes(
-    'session-replay-rage-dead-selectors'
-  );
-  const {isLoading, isError, data} = useDeadRageSelectors({
-    per_page: 3,
-    sort: '-count_rage_clicks',
-  });
 
-  return hasRageCicks ? (
+  const [projectSlug, feedbackId] = feedbackSlug.split(':');
+  const project = useProjectFromSlug({organization, projectSlug});
+
+  const {isLoading, isError, data} = useFetchFeedbackItem(
+    {feedbackId, organization, project: project!},
+    {enabled: Boolean(project)}
+  );
+
+  return (
     <SentryDocumentTitle
-      title={t('Top Selectors with Rage Clicks')}
+      title={t(`Feedback v2`)}
       orgSlug={organization.slug}
+      projectSlug={projectSlug}
     >
       <Layout.Header>
         <Layout.HeaderContent>
           <Layout.Title>
-            {t('Top Selectors with Rage Clicks')}
+            {t('Feedback v2')}
             <PageHeadingQuestionTooltip
-              title={t('See the top selectors your users have rage clicked on.')}
-              docsUrl="https://docs.sentry.io/product/session-replay/replay-page-and-filters/"
+              title={t(
+                'Feedback submitted by users who experienced an error while using your application, including their name, email address, and any additional comments.'
+              )}
+              docsUrl="https://docs.sentry.io/product/user-feedback/"
             />
           </Layout.Title>
         </Layout.HeaderContent>
@@ -44,26 +56,11 @@ export default function RageClickList() {
                 {t('An error occurred')}
               </Alert>
             ) : (
-              <pre>
-                {JSON.stringify(
-                  data.data.map(d => {
-                    return {
-                      count_rage_clicks: d.count_rage_clicks,
-                      dom_element: d.dom_element,
-                    };
-                  }),
-                  null,
-                  '\t'
-                )}
-              </pre>
+              <pre>{JSON.stringify(data, null, '\t')}</pre>
             )}
           </Layout.Main>
         </Layout.Body>
       </PageFiltersContainer>
     </SentryDocumentTitle>
-  ) : (
-    <Layout.Page withPadding>
-      <Alert type="warning">{t("You don't have access to this feature")}</Alert>
-    </Layout.Page>
   );
 }

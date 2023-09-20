@@ -5,6 +5,8 @@ from unittest.mock import patch
 from minimetrics.core import CounterMetric, DistributionMetric, GaugeMetric, SetMetric
 from minimetrics.transport import MetricEnvelopeTransport, RelayStatsdEncoder
 from minimetrics.types import BucketKey
+from sentry.testutils.helpers import override_options
+from sentry.testutils.pytest.fixtures import django_db_all
 
 
 def encode_metric(value):
@@ -16,7 +18,6 @@ def encode_metric(value):
 
 def test_relay_encoder_with_counter():
     bucket_key: BucketKey = (
-        1693994400,
         "c",
         "button_click",
         "none",
@@ -26,7 +27,7 @@ def test_relay_encoder_with_counter():
         ),
     )
     metric = CounterMetric(first=2)
-    flushed_metric = (bucket_key, metric)
+    flushed_metric = (1693994400, bucket_key, metric)
 
     result = encode_metric(flushed_metric)
     assert result == "button_click@none:2|c|#browser:Chrome,browser.version:1.0|T1693994400"
@@ -34,7 +35,6 @@ def test_relay_encoder_with_counter():
 
 def test_relay_encoder_with_distribution():
     bucket_key: BucketKey = (
-        1693994400,
         "d",
         "execution_time",
         "second",
@@ -46,7 +46,7 @@ def test_relay_encoder_with_distribution():
     metric = DistributionMetric(first=1.0)
     metric.add(0.5)
     metric.add(3.0)
-    flushed_metric = (bucket_key, metric)
+    flushed_metric = (1693994400, bucket_key, metric)
 
     result = encode_metric(flushed_metric)
     assert (
@@ -57,7 +57,6 @@ def test_relay_encoder_with_distribution():
 
 def test_relay_encoder_with_set():
     bucket_key: BucketKey = (
-        1693994400,
         "s",
         "users",
         "none",
@@ -69,7 +68,7 @@ def test_relay_encoder_with_set():
     metric = SetMetric(first=123)
     metric.add(456)
     metric.add("riccardo")
-    flushed_metric = (bucket_key, metric)
+    flushed_metric = (1693994400, bucket_key, metric)
 
     result = encode_metric(flushed_metric)
     pieces = result.split("|")
@@ -85,7 +84,6 @@ def test_relay_encoder_with_set():
 
 def test_relay_encoder_with_gauge():
     bucket_key: BucketKey = (
-        1693994400,
         "g",
         "startup_time",
         "second",
@@ -97,7 +95,7 @@ def test_relay_encoder_with_gauge():
     metric = GaugeMetric(first=10.0)
     metric.add(5.0)
     metric.add(7.0)
-    flushed_metric = (bucket_key, metric)
+    flushed_metric = (1693994400, bucket_key, metric)
 
     result = encode_metric(flushed_metric)
     assert (
@@ -108,7 +106,6 @@ def test_relay_encoder_with_gauge():
 
 def test_relay_encoder_with_invalid_chars():
     bucket_key: BucketKey = (
-        1693994400,
         "c",
         "büttòn_click",
         "second",
@@ -126,7 +123,7 @@ def test_relay_encoder_with_invalid_chars():
         ),
     )
     metric = CounterMetric(first=1)
-    flushed_metric = (bucket_key, metric)
+    flushed_metric = (1693994400, bucket_key, metric)
 
     result = encode_metric(flushed_metric)
     assert (
@@ -135,14 +132,13 @@ def test_relay_encoder_with_invalid_chars():
     )
 
     bucket_key = (
-        1693994400,
         "c",
         "üòë",
         "second",
         (),
     )
     metric = CounterMetric(first=1)
-    flushed_metric = (bucket_key, metric)
+    flushed_metric = (1693994400, bucket_key, metric)
 
     assert encode_metric(flushed_metric) == "invalid-metric-name@second:1|c|T1693994400"
 
@@ -151,8 +147,8 @@ def test_relay_encoder_with_multiple_metrics():
     encoder = RelayStatsdEncoder()
 
     flushed_metric_1 = (
+        1693994400,
         (
-            1693994400,
             "g",
             "startup_time",
             "second",
@@ -165,8 +161,8 @@ def test_relay_encoder_with_multiple_metrics():
     )
 
     flushed_metric_2 = (
+        1693994400,
         (
-            1693994400,
             "c",
             "button_click",
             "none",
@@ -179,8 +175,8 @@ def test_relay_encoder_with_multiple_metrics():
     )
 
     flushed_metric_3 = (
+        1693994400,
         (
-            1693994400,
             "c",
             # This name will be completely scraped, resulting in an invalid metric.
             "öüâ",
@@ -203,20 +199,28 @@ def test_relay_encoder_with_multiple_metrics():
     )
 
 
+@override_options(
+    {
+        "delightful_metrics.enable_envelope_serialization": True,
+        "delightful_metrics.enable_capture_envelope": True,
+    }
+)
 @patch("minimetrics.transport.sentry_sdk")
+@django_db_all
 def test_send(sentry_sdk):
     flushed_metric = (
-        (
-            1693994400,
-            "c",
-            "button_click",
-            "none",
+        1693994400,
+        {
             (
-                ("browser", "Chrome"),
-                ("browser.version", "1.0"),
-            ),
-        ),
-        CounterMetric(first=1),
+                "c",
+                "button_click",
+                "none",
+                (
+                    ("browser", "Chrome"),
+                    ("browser.version", "1.0"),
+                ),
+            ): CounterMetric(first=1),
+        },
     )
 
     transport = MetricEnvelopeTransport(RelayStatsdEncoder())
