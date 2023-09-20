@@ -1,4 +1,3 @@
-import ExternalLink from 'sentry/components/links/externalLink';
 import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
 import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
@@ -32,6 +31,9 @@ export const steps = ({
   },
   {
     type: StepType.CONFIGURE,
+    description: t(
+      'To configure the SDK, initialize it with the integration before or after your app has been initialized:'
+    ),
     configurations: [
       {
         language: 'python',
@@ -81,19 +83,12 @@ def index():
       <span>
         <p>
           {tct(
-            'When you enter the [code:"/"] route or the scheduled task is run, an error event will be sent to [link:sentry.io].',
+            'When you enter the [code:"/"] route or the scheduled task is run, an error event will be sent to Sentry.',
             {
-              link: <ExternalLink href="https://sentry.io" />,
               code: <code />,
             }
           )}
         </p>
-        <p>
-          {t(
-            'Additionally, an error event will be sent to Sentry and will be connected to the transaction.'
-          )}
-        </p>
-        <p>{t('It takes a couple of moments for the data to appear in Sentry.')}</p>
       </span>
     ),
   },
