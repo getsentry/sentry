@@ -43,6 +43,8 @@ HTTP_STATUS_CODE_ALIAS = "http.status_code"
 DEVICE_CLASS_ALIAS = "device.class"
 TOTAL_SPAN_DURATION_ALIAS = "total.span_duration"
 SPAN_MODULE_ALIAS = "span.module"
+SPAN_DOMAIN_ALIAS = "span.domain_array"
+SPAN_DOMAIN_SEPARATOR = ","
 
 
 class ThresholdDict(TypedDict):
