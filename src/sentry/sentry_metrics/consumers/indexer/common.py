@@ -26,7 +26,7 @@ def get_config(
     group_id: str,
     auto_offset_reset: str,
     strict_offset_reset: bool,
-    group_instance_id: int,
+    group_instance_id: Optional[str] = None,
 ) -> MutableMapping[Any, Any]:
     cluster_name: str = kafka_config.get_topic_definition(topic)["cluster"]
     consumer_config: MutableMapping[str, Any] = build_kafka_consumer_configuration(
