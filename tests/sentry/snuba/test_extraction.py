@@ -301,6 +301,18 @@ def test_spec_apdex(_get_apdex_project_transaction_threshold, default_project):
     ]
 
 
+def test_cleanup_equivalent_specs():
+    simple_spec = OnDemandMetricSpec("count()", "transaction.duration:>0")
+    event_type_spec = OnDemandMetricSpec(
+        "count()", "transaction.duration:>0 event.type:transaction"
+    )
+    parens_spec = OnDemandMetricSpec(
+        "count()", "(transaction.duration:>0) AND (event.type:transaction) AND (project:foo)"
+    )
+
+    assert simple_spec.query_hash == event_type_spec.query_hash == parens_spec.query_hash
+
+
 @django_db_all
 @patch("sentry.snuba.metrics.extraction._get_apdex_project_transaction_threshold")
 def test_spec_apdex_without_condition(_get_apdex_project_transaction_threshold, default_project):
