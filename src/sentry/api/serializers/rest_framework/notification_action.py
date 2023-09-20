@@ -6,7 +6,6 @@ from rest_framework import serializers
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.api.serializers.rest_framework.project import ProjectField
 from sentry.constants import SentryAppInstallationStatus
-from sentry.integrations.discord.utils.channel import validate_channel_id_discord
 from sentry.integrations.slack.utils.channel import get_channel_id, validate_channel_id
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.models.notificationaction import ActionService, ActionTarget, NotificationAction
@@ -215,6 +214,8 @@ class NotificationActionSerializer(CamelSnakeModelSerializer):
             target_identifier: Discord channel id
         NOTE: Reaches out to via discord integration to verify channel
         """
+        from sentry.integrations.discord.utils.channel import validate_channel_id_discord
+
         if (
             data["service_type"] != ActionService.DISCORD.value
             or data["target_type"] != ActionTarget.SPECIFIC.value
