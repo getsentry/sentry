@@ -7,7 +7,7 @@ import ErrorStory from 'sentry/views/stories/errorStory';
 import storiesContext from 'sentry/views/stories/storiesContext';
 import StoryFile from 'sentry/views/stories/storyFile';
 import StoryHeader from 'sentry/views/stories/storyHeader';
-import StoryList from 'sentry/views/stories/storyList';
+import StoryTree from 'sentry/views/stories/storyTree';
 import type {StoriesQuery} from 'sentry/views/stories/types';
 import useStoriesLoader from 'sentry/views/stories/useStoriesLoader';
 
@@ -20,7 +20,7 @@ export default function Stories({location}: Props) {
     <Layout>
       <StoryHeader style={{gridArea: 'head'}} />
       <aside style={{gridArea: 'aside'}}>
-        <StoryList files={storiesContext().files()} />
+        <StoryTree files={storiesContext().files()} />
       </aside>
 
       {story.error ? (
