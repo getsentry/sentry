@@ -43,6 +43,12 @@ def test_global_scope():
 
 @run_backup_tests_only_on_single_db
 @django_db_all(transaction=True)
+def test_global_scope_import_overwrite_configs():
+    cli_import_then_export("global", import_args=["--overwrite_configs"])
+
+
+@run_backup_tests_only_on_single_db
+@django_db_all(transaction=True)
 def test_organization_scope_import_filter_org_slugs():
     cli_import_then_export("organizations", import_args=["--filter_org_slugs", "testing"])
 

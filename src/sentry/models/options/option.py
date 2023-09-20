@@ -5,6 +5,7 @@ import abc
 from django.db import models
 from django.utils import timezone
 
+from sentry.backup.mixins import OverwritableConfigMixin
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     Model,
@@ -19,7 +20,7 @@ from sentry.db.models.fields.picklefield import PickledObjectField
 from sentry.options.manager import UpdateChannel
 
 
-class BaseOption(Model):
+class BaseOption(OverwritableConfigMixin, Model):
     """
     Global options which apply in most situations as defaults,
     and generally can be overwritten by per-project options.
