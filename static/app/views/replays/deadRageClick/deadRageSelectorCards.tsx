@@ -77,12 +77,12 @@ function RageClickTable({location}: {location: Location<any>}) {
       clickCountColumn={{key: 'count_rage_clicks', name: 'rage clicks'}}
       clickCountSortable={false}
       title={
-        <React.Fragment>
+        <Fragment>
           <IconContainer>
             <IconCursorArrow size="xs" color="red300" />
           </IconContainer>
           {t('Most Rage Clicks')}
-        </React.Fragment>
+        </Fragment>
       }
       headerButtons={
         <SearchButton
