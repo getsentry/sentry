@@ -222,6 +222,36 @@ describe('AlertRuleDetails', () => {
     ).toBeInTheDocument();
   });
 
+  it('rule to be disabled can opt out', async () => {
+    const disabledRule = TestStubs.ProjectAlertRule({
+      disableDate: moment().add(1, 'day').format(),
+      disableReason: 'noisy',
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/rules/${disabledRule.id}/`,
+      body: disabledRule,
+      match: [MockApiClient.matchQuery({expand: 'lastTriggered'})],
+    });
+    const updateMock = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/rules/${disabledRule.id}/`,
+      method: 'PUT',
+    });
+    createWrapper();
+    expect(
+      await screen.findByText(/This alert is scheduled to be disabled/)
+    ).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Click Here'}));
+
+    expect(updateMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({data: {...disabledRule, optOutExplicit: true}})
+    );
+    expect(
+      screen.queryByText(/This alert is scheduled to be disabled/)
+    ).not.toBeInTheDocument();
+  });
+
   it('renders the mute button and can mute/unmute alerts', async () => {
     const postRequest = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/rules/${rule.id}/snooze/`,
