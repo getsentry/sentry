@@ -4,6 +4,9 @@ from sentry.rules import MatchType
 from sentry.rules.filters.issue_severity import IssueSeverityFilter
 from sentry.testutils.cases import RuleTestCase
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.skips import requires_snuba
+
+pytestmark = [requires_snuba]
 
 
 class IssueSeverityFilterTest(RuleTestCase):
