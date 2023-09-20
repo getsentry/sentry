@@ -1,5 +1,6 @@
 from functools import cached_property
 from unittest.mock import patch
+from urllib.parse import parse_qs, urlparse
 
 import responses
 from django.core import mail
@@ -179,6 +180,8 @@ class OrganizationJoinRequestTest(APITestCase, SlackActivityNotificationTest, Hy
 
         attachment = get_attachment_no_text()
         assert attachment["text"] == f"{self.email} is requesting to join {self.organization.name}"
+        query_params = parse_qs(urlparse(attachment["actions"][2]["url"]).query)
+        notification_uuid = query_params["notification_uuid"][0]
         assert attachment["actions"] == [
             {
                 "text": "Approve",
@@ -199,7 +202,7 @@ class OrganizationJoinRequestTest(APITestCase, SlackActivityNotificationTest, Hy
             {
                 "text": "See Members & Requests",
                 "name": "See Members & Requests",
-                "url": f"http://testserver/settings/{self.organization.slug}/members/?referrer=join_request-slack-user",
+                "url": f"http://testserver/settings/{self.organization.slug}/members/?referrer=join_request-slack-user&notification_uuid={notification_uuid}",
                 "type": "button",
             },
         ]

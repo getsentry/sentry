@@ -14,8 +14,8 @@ from sentry.types.integrations import ExternalProviders
 
 
 class BackfillNewNotificationTables(TestMigrations):
-    migrate_from = "0554_add_team_replica"
-    migrate_to = "0555_backfill_new_notification_tables"
+    migrate_from = "0559_custom_dynamic_sampling_rule"
+    migrate_to = "0560_backfill_new_notification_tables"
 
     def setup_initial_state(self):
         self.user2 = self.create_user()
