@@ -252,7 +252,7 @@ def test_spec_failure_count(default_project):
     assert spec.field_to_extract is None
     assert spec.op == "on_demand_failure_count"
     assert spec.condition == {"name": "event.duration", "op": "gt", "value": 1000.0}
-    assert spec.tags_conditions(default_project) == failure_tag_spec("not_used", "not_used")
+    assert spec.tags_conditions(default_project) == failure_tag_spec(default_project)
 
 
 @django_db_all
@@ -263,7 +263,7 @@ def test_spec_failure_rate(default_project):
     assert spec.field_to_extract is None
     assert spec.op == "on_demand_failure_rate"
     assert spec.condition == {"name": "event.duration", "op": "gt", "value": 1000.0}
-    assert spec.tags_conditions(default_project) == failure_tag_spec("not_used", "not_used")
+    assert spec.tags_conditions(default_project) == failure_tag_spec(default_project)
 
 
 @django_db_all
@@ -277,7 +277,7 @@ def test_spec_apdex(_get_apdex_project_transaction_threshold, default_project):
     assert spec.field_to_extract is None
     assert spec.op == "on_demand_apdex"
     assert spec.condition == {"name": "event.release", "op": "eq", "value": "a"}
-    assert spec.tags_conditions(default_project) == apdex_tag_spec(default_project, 10)
+    assert spec.tags_conditions(default_project) == apdex_tag_spec(default_project, "10")
 
 
 @django_db_all
@@ -291,7 +291,7 @@ def test_spec_apdex_without_condition(_get_apdex_project_transaction_threshold, 
     assert spec.field_to_extract is None
     assert spec.op == "on_demand_apdex"
     assert spec.condition is None
-    assert spec.tags_conditions(default_project) == apdex_tag_spec(default_project, 10)
+    assert spec.tags_conditions(default_project) == apdex_tag_spec(default_project, "10")
 
 
 def test_spec_custom_tag():
