@@ -109,10 +109,7 @@ class Command(BaseCommand):
             try:
                 import_module = importlib.import_module(func.__module__)
                 view_func = getattr(import_module, func_name)
-            except AttributeError as err:
-                self.stdout.write(
-                    f"Unable to import view {func_name} from {func.__module__}: {err}"
-                )
+            except AttributeError:
                 continue
             except ImportError as err:
                 raise CommandError(f"Could not load view in {module}: {err}")
