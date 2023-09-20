@@ -617,6 +617,9 @@ class NotificationsManager(BaseManager["NotificationSetting"]):  # noqa: F821
         disabled_providers = defaultdict(set)
         defaulted_providers = defaultdict(set)
         all_settings = set()
+        # we need to know which kind of enabled it is
+        # note for a given type/scope, all the enabled ones will be the same
+        enabled_value_dict = {}
 
         # group the type, scope_type, scope_identifier, together and get store the explicitly enabled/disabled providers
         for (provider, type, scope_type, scope_identifier, value) in notification_settings:
@@ -632,6 +635,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):  # noqa: F821
                 defaulted_providers[group_key].add(provider)
             else:
                 enabled_providers[group_key].add(provider)
+                enabled_value_dict[group_key] = value
 
         # iterate through all the settings and create/update the NotificationSettingOption
         for group_key in all_settings:
@@ -649,9 +653,14 @@ class NotificationsManager(BaseManager["NotificationSetting"]):  # noqa: F821
                 NotificationSettingOption.objects.filter(**query_args).delete()
             # if any of the providers are explicitly enabled, we should create/update the row
             if len(enabled_providers[group_key]) > 0:
+                value_to_use = (
+                    NOTIFICATION_SETTING_OPTION_VALUES[enabled_value_dict[group_key]]
+                    if group_key in enabled_value_dict
+                    else NotificationSettingsOptionEnum.ALWAYS.value
+                )
                 NotificationSettingOption.objects.create_or_update(
                     **query_args,
-                    values={"value": NotificationSettingsOptionEnum.ALWAYS.value},
+                    values={"value": value_to_use},
                 )
             # if any settings are explicitly disabled, we should create/update the row
             elif len(disabled_providers[group_key]) > 0:
