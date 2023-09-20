@@ -1668,6 +1668,8 @@ SENTRY_FEATURES = {
     "organizations:session-replay-trial-ended-banner": False,
     # Enable the Replay rage and dead click selector tables in the UI
     "organizations:session-replay-rage-dead-selectors": False,
+    # Enable the new event linking columns to be queried
+    "organizations:session-replay-new-event-counts": False,
     # Enable the new suggested assignees feature
     "organizations:streamline-targeting-context": False,
     # Enable the new experimental starfish view

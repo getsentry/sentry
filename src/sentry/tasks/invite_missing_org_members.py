@@ -3,6 +3,7 @@ import logging
 from sentry import features
 from sentry.api.endpoints.organization_missing_org_members import _get_missing_organization_members
 from sentry.constants import ObjectStatus
+from sentry.models.options import OrganizationOption
 from sentry.models.organization import Organization
 from sentry.notifications.notifications.missing_members_nudge import MissingMembersNudgeNotification
 from sentry.services.hybrid_cloud.integration import integration_service
@@ -20,6 +21,7 @@ logger = logging.getLogger(__name__)
 def schedule_organizations():
     logger.info("invite_missing_org_members.schedule_organizations")
 
+    # NOTE: currently only for github
     github_org_integrations = integration_service.get_organization_integrations(
         providers=["github"], status=ObjectStatus.ACTIVE
     )
@@ -55,6 +57,11 @@ def send_nudge_email(org_id):
         )
         return
 
+    if not OrganizationOption.objects.get_value(
+        organization=organization, key="sentry:github_nudge_invite", default=True
+    ):
+        return
+
     integrations = integration_service.get_integrations(
         organization_id=org_id, providers=["github"], status=ObjectStatus.ACTIVE
     )
@@ -88,7 +95,7 @@ def send_nudge_email(org_id):
         )
 
     notification = MissingMembersNudgeNotification(
-        organization=organization, commit_authors=commit_authors
+        organization=organization, commit_authors=commit_authors[:3], provider="github"
     )
 
     logger.info(

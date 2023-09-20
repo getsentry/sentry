@@ -1,8 +1,7 @@
 from unittest.mock import patch
 
-from freezegun import freeze_time
-
 from minimetrics.core import CounterMetric, DistributionMetric, MiniMetricsClient, SetMetric
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.pytest.fixtures import django_db_all
 
 

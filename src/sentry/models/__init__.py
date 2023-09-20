@@ -74,6 +74,7 @@ from .organizationmapping import *  # NOQA
 from .organizationmember import *  # NOQA
 from .organizationmembermapping import *  # NOQA
 from .organizationmemberteam import *  # NOQA
+from .organizationmemberteamreplica import *  # NOQA
 from .organizationonboardingtask import *  # NOQA
 from .orgauthtoken import *  # NOQA
 from .outbox import *  # NOQA
@@ -93,8 +94,6 @@ from .rawevent import *  # NOQA
 from .recentsearch import *  # NOQA
 from .relay import *  # NOQA
 from .release import *  # NOQA
-from .release_threshold.constants import *  # NOQA
-from .release_threshold.releasethreshold import *  # NOQA
 from .releaseactivity import *  # NOQA
 from .releasecommit import *  # NOQA
 from .releaseenvironment import *  # NOQA
