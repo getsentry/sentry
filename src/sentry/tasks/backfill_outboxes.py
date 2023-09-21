@@ -52,6 +52,7 @@ def get_processing_state(table_name: str) -> Tuple[int, int]:
             "backfill_outboxes.low_bound",
             result[1],
             tags=dict(table_name=table_name, version=result[0]),
+            sample_rate=1.0,
         )
         return result
 
@@ -187,5 +188,6 @@ def backfill_outboxes_for(
         amount=backfilled,
         tags=dict(silo_mode=silo_mode.name, force_synchronous=force_synchronous),
         skip_internal=True,
+        sample_rate=1.0,
     )
     return backfilled > 0
