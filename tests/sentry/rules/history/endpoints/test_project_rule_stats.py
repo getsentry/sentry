@@ -10,6 +10,9 @@ from sentry.rules.history.endpoints.project_rule_stats import TimeSeriesValueSer
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
 from sentry.testutils.silo import control_silo_test, region_silo_test
+from sentry.testutils.skips import requires_snuba
+
+pytestmark = [requires_snuba]
 
 
 @control_silo_test(stable=True)
