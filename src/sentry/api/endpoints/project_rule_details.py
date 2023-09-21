@@ -68,7 +68,9 @@ class ProjectRuleDetailsPutSerializer(serializers.Serializer):
         required=False,
         help_text="A list of triggers that determine when the rule fires. See Create an Issue Alert Rule for a list of conditions.",
     )
-    environment = GlobalParams.ENVIRONMENT
+    environment = serializers.CharField(
+        required=False, allow_null=True, help_text="The name of the environment to filter by."
+    )
     filterMatch = serializers.ChoiceField(
         choices=(("all", "all"), ("any", "any"), ("none", "none")),
         required=False,
@@ -85,7 +87,7 @@ class ProjectRuleDetailsPutSerializer(serializers.Serializer):
         required=False,
         help_text="How often the alert rule can be triggered for a particular issue, in seconds.",
     )
-    name = GlobalParams.name("The name for the rule")
+    name = serializers.CharField(max_length=64, required=False, help_text="The name for the rule.")
     owner = ActorField(required=False, allow_null=True)
 
 
