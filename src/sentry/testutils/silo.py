@@ -319,10 +319,6 @@ def get_protected_operations() -> List[re.Pattern]:
             protected_table("sentry_organizationmember", "insert"),
             protected_table("sentry_organizationmember", "update"),
             protected_table("sentry_organizationmember", "delete"),
-            protected_table("sentry_organization", "insert"),
-            protected_table("sentry_organization", "update"),
-            protected_table("sentry_organizationmapping", "insert"),
-            protected_table("sentry_organizationmapping", "update"),
             protected_table("sentry_organizationmembermapping", "insert"),
         ]
     )
