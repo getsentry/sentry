@@ -285,3 +285,33 @@ def check_timeout(current_datetime: datetime):
     ).count()
     if backlog_count:
         logger.exception(f"Exception in check_monitors - backlog count {backlog_count} is > 0")
+
+
+@instrumented_task(
+    name="sentry.monitors.tasks.mark_checkin_timeout",
+    max_retries=0,
+)
+def mark_checkin_timeout(checkin_id: int):
+    logger.info("checkin.timeout", extra={"checkin_id": checkin_id})
+
+    checkin = MonitorCheckIn.objects.select_related("monitor_environment").get(id=checkin_id)
+    monitor_environment = checkin.monitor_environment
+    logger.info(
+        "monitor_environment.checkin-timeout",
+        extra={"monitor_environment_id": monitor_environment.id, "checkin_id": checkin.id},
+    )
+    affected = checkin.update(status=CheckInStatus.TIMEOUT)
+    if not affected:
+        return
+
+    # we only mark the monitor as failed if a newer checkin wasn't responsible for the state
+    # change
+    has_newer_result = MonitorCheckIn.objects.filter(
+        monitor_environment=monitor_environment,
+        date_added__gt=checkin.date_added,
+        status__in=[CheckInStatus.OK, CheckInStatus.ERROR],
+    ).exists()
+    if not has_newer_result:
+        # TODO(epurkhiser): We also need a timestamp here, but not sure
+        # what we want it to be
+        mark_failed(checkin, ts=None)
