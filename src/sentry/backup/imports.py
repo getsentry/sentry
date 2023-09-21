@@ -167,15 +167,18 @@ def _import(
         errs = {field: error for field, error in e.message_dict.items()}
         raise DjangoRestFrameworkValidationError(errs) from e
 
-    sequence_reset_sql = StringIO()
-
+    sql = StringIO()
+    err = StringIO()
     for app in apps.get_app_configs():
-        management.call_command(
-            "sqlsequencereset", app.label, "--no-color", stdout=sequence_reset_sql
-        )
-
+        management.call_command("sqlsequencereset", app.label, "--no-color", stdout=sql, stderr=err)
     with connection.cursor() as cursor:
-        cursor.execute(sequence_reset_sql.getvalue())
+        cursor.execute(sql.getvalue())
+
+    errored = "\n".join(
+        [li for li in err.getvalue().splitlines() if "No sequences found." not in li]
+    ).strip()
+    if errored:
+        raise ValueError(f"Encountered SQL errors:\n\n {errs}")
 
 
 def import_in_user_scope(
@@ -232,7 +235,7 @@ def import_in_organization_scope(
     )
 
 
-def import_in_global_scope(src, *, printer=click.echo):
+def import_in_global_scope(src, *, flags: ImportFlags | None = None, printer=click.echo):
     """
     Perform an import in the `Global` scope, meaning that all models will be imported from the
     provided source file. Because a `Global` import is really only useful when restoring to a fresh
@@ -240,4 +243,4 @@ def import_in_global_scope(src, *, printer=click.echo):
     superuser privileges are not sanitized.
     """
 
-    return _import(src, ImportScope.Global, printer=printer)
+    return _import(src, ImportScope.Global, flags=flags, printer=printer)

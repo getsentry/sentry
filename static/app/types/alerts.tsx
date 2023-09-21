@@ -83,6 +83,11 @@ export interface IssueAlertRule extends UnsavedIssueAlertRule {
   projects: string[];
   snooze: boolean;
   status: 'active' | 'disabled';
+  /**
+   * Date alert is set to be disabled unless action is taken
+   */
+  disableDate?: string;
+  disableReason?: 'noisy';
   errors?: {detail: string}[];
   lastTriggered?: string;
   snoozeCreatedBy?: string;

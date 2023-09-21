@@ -1,6 +1,7 @@
 from unittest.mock import patch
 
 from sentry.constants import ObjectStatus
+from sentry.models.options.organization_option import OrganizationOption
 from sentry.tasks.invite_missing_org_members import schedule_organizations, send_nudge_email
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
@@ -103,6 +104,22 @@ class InviteMissingMembersTestCase(TestCase):
 
     @with_feature("organizations:integrations-gh-invite")
     def test_missing_integration(self, mock_send_email, mock_send_notification):
+        send_nudge_email(org_id=self.organization.id)
+
+        assert not mock_send_notification.called
+
+    @with_feature("organizations:integrations-gh-invite")
+    def test_missing_option(self, mock_send_email, mock_send_notification):
+        OrganizationOption.objects.set_value(
+            organization=self.organization, key="sentry:github_nudge_invite", value=False
+        )
+
+        integration = self.create_integration(
+            organization=self.organization, provider="github", name="Github", external_id="github:1"
+        )
+        self.repo.integration_id = integration.id
+        self.repo.save()
+
         send_nudge_email(org_id=self.organization.id)
 
         assert not mock_send_notification.called
