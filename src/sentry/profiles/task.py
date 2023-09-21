@@ -13,7 +13,6 @@ from symbolic.proguard import ProguardMapper
 from sentry import quotas
 from sentry.constants import DataCategory
 from sentry.lang.javascript.processing import _handles_frame as is_valid_javascript_frame
-from sentry.lang.javascript.processing import generate_scraping_config
 from sentry.lang.native.symbolicator import Symbolicator, SymbolicatorTaskKind
 from sentry.models import EventError, Organization, Project, ProjectDebugFile
 from sentry.profiles.device import classify_device
@@ -759,12 +758,10 @@ def process_js_stacktraces(
     stacktraces: List[Any],
     apply_source_context: bool = False,
 ) -> Any:
-    project = symbolicator.project
     return symbolicator.process_js(
         stacktraces=stacktraces,
         modules=modules,
         release=profile.get("release"),
         dist=profile.get("dist"),
-        scraping_config=generate_scraping_config(project),
         apply_source_context=apply_source_context,
     )
