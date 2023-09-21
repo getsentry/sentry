@@ -234,7 +234,9 @@ function Sidebar({location, organization}: Props) {
                 isBeta={RELEASE_LEVEL === 'beta'}
                 isNew={RELEASE_LEVEL === 'new'}
                 label={
-                  <GuideAnchor target="performance-database">{t('Database')}</GuideAnchor>
+                  <GuideAnchor target="performance-database">
+                    {t('Query Insights')}
+                  </GuideAnchor>
                 }
                 to={`/organizations/${organization.slug}/performance/database/`}
                 id="performance-database"

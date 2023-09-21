@@ -262,8 +262,8 @@ export const WIDGET_DEFINITIONS: ({
     chartColor: WIDGET_PALETTE[0],
   },
   [PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES]: {
-    title: t('Most Time Spent in DB Queries'),
-    subTitle: t('Suggested Queries'),
+    title: t('Most Time-Consuming Queries'),
+    subTitle: t('Top queries by total duration'),
     titleTooltip: getTermHelp(organization, PerformanceTerm.MOST_TIME_SPENT_DB_QUERIES),
     fields: [`time_spent_percentage()`],
     dataType: GenericPerformanceWidgetDataType.LINE_LIST,
