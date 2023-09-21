@@ -14,7 +14,7 @@ from sentry.snuba.metrics_performance import query as metrics_query
 from sentry.utils.snuba import raw_snql_query
 
 
-def query_spans(transaction: str, regression_breakpoint, params):
+def query_spans(transaction, regression_breakpoint, params):
     selected_columns = [
         "count(span_id) as span_count",
         "sumArray(spans_exclusive_time) as total_span_self_time",
@@ -61,6 +61,9 @@ def query_spans(transaction: str, regression_breakpoint, params):
 
     snql_query = builder.get_snql_query()
     results = raw_snql_query(snql_query, "api.organization-events-root-cause-analysis")
+
+    if not results.get("data"):
+        return []
 
     # sumArray is not allowed in equations so we have to calculate this manually
     for result in results.get("data"):
