@@ -1056,21 +1056,3 @@ class SharedProjectSerializer(Serializer):
             "features": feature_list,
             "organization": {"slug": obj.organization.slug, "name": obj.organization.name},
         }
-
-
-class SymbolSourcesSerializer(Serializer):
-    """
-    Serializes a project's custom symbol sources to JSON.
-    """
-
-    def serialize(self, obj: Project, _attrs: Mapping[str, Any], _user: User) -> List[Any]:
-        custom_symbol_sources_json = ProjectOption.objects.get_value(
-            obj, "sentry:symbol_sources", default=[]
-        )
-        try:
-            sources = parse_sources(custom_symbol_sources_json, False)
-        except Exception:
-            # TODO: Handle invalid sources?
-            pass
-        else:
-            return redact_source_secrets(sources)

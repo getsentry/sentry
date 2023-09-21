@@ -7,7 +7,6 @@ from rest_framework.response import Response
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
-from sentry.api.serializers.models.project import SymbolSourcesSerializer
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
 from sentry.apidocs.parameters import GlobalParams
 from sentry.lang.native.sources import (
@@ -35,7 +34,6 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
         parameters=[GlobalParams.ORG_SLUG, GlobalParams.PROJECT_SLUG],
         request=None,
         responses={
-            200: SymbolSourcesSerializer,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
@@ -63,7 +61,6 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
         parameters=[GlobalParams.ORG_SLUG, GlobalParams.PROJECT_SLUG],
         request=None,
         responses={
-            200: SymbolSourcesSerializer,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
