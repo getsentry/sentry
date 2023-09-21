@@ -94,6 +94,7 @@ jobs:
         with:
           kafka: true
           snuba: true
+          symbolicator: true
           # Right now, we run so few bigtable related tests that the
           # overhead of running bigtable in all backend tests
           # is way smaller than the time it would take to run in its own job.
@@ -237,39 +238,6 @@ jobs:
         run: |
           ./.github/workflows/scripts/migration-check.sh
 
-  symbolicator:
-    if: needs.files-changed.outputs.backend == 'true'
-    needs: files-changed
-    name: symbolicator test
-    runs-on: ubuntu-20.04
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8 # v3.1.0
-        with:
-          # Avoid codecov error message related to SHA resolution:
-          # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
-          fetch-depth: '2'
-
-      - name: Setup sentry env
-        uses: ./.github/actions/setup-sentry
-        id: setup
-        with:
-          snuba: true
-          kafka: true
-          symbolicator: true
-
-      - name: Run test
-        run: |
-          make test-symbolicator
-
-      # Upload coverage data even if running the tests step fails since
-      # it reduces large coverage fluctuations
-      - name: Handle artifacts
-        if: ${{ always() }}
-        uses: ./.github/actions/artifacts
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-
   typing:
     if: needs.files-changed.outputs.backend == 'true'
     needs: files-changed
@@ -325,7 +293,6 @@ jobs:
         files-changed,
         requirements,
         migration,
-        symbolicator,
         typing,
       ]
     name: Backend
