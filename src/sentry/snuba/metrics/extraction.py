@@ -628,10 +628,10 @@ DERIVED_METRICS = {
 
 # This is used to map a metric to a function which generates a specification
 _DERIVED_METRICS: Dict[MetricOperationType, TagsSpecsGenerator] = {}
-_HASH_METHOD = {}
 for metric in DERIVED_METRICS.keys():
-    _DERIVED_METRICS[f"on_demand_{metric}"] = DERIVED_METRICS[metric]["tag_spec_func"]
-    _HASH_METHOD[f"on_demand_{metric}"] = DERIVED_METRICS[metric]["hash_method"]
+    _DERIVED_METRICS[cast(MetricOperationType, f"on_demand_{metric}")] = cast(
+        TagsSpecsGenerator, DERIVED_METRICS[metric]["tag_spec_func"]
+    )
 
 # Maps plain Discover functions to derived metric functions which are understood by the metrics layer.
 _SEARCH_TO_DERIVED_METRIC_AGGREGATES: Dict[str, MetricOperationType] = {}
