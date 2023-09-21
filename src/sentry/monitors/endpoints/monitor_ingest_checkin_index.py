@@ -211,7 +211,7 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
             signal_first_checkin(project, monitor)
 
             if checkin.status == CheckInStatus.ERROR:
-                monitor_failed = mark_failed(monitor_environment, last_checkin=checkin.date_added)
+                monitor_failed = mark_failed(checkin, ts=checkin.date_added)
                 if not monitor_failed:
                     if isinstance(request.auth, ProjectKey):
                         return self.respond(status=200)

@@ -14,7 +14,7 @@ from sentry.tasks.assemble import (
     get_assemble_status,
     set_assemble_status,
 )
-from sentry.utils import json
+from sentry.utils import json, metrics
 
 
 @region_silo_endpoint
@@ -68,6 +68,7 @@ class OrganizationReleaseAssembleEndpoint(OrganizationReleasesBaseEndpoint):
         if features.has("organizations:sourcemaps-upload-release-as-artifact-bundle", organization):
             upload_as_artifact_bundle = True
             project_ids = [project.id for project in release.projects.all()]
+            metrics.incr("sourcemaps.upload.release_as_artifact_bundle")
 
         assemble_task = (
             AssembleTask.ARTIFACT_BUNDLE

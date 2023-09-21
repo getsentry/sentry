@@ -334,7 +334,7 @@ function getTotalsEventView(
         ({
           kind: 'function',
           function: ['percentile', vital, VITAL_PERCENTILE.toString(), undefined],
-        } as Column)
+        }) as Column
     ),
   ]);
 }

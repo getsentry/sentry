@@ -54,17 +54,6 @@ export const API_ACCESS_SCOPES = [
   'team:write',
 ] as const;
 
-// Default API scopes when adding a new API token or org API token
-export const DEFAULT_API_ACCESS_SCOPES = [
-  'event:admin',
-  'event:read',
-  'member:read',
-  'org:read',
-  'project:read',
-  'project:releases',
-  'team:read',
-];
-
 // These should only be used in the case where we cannot obtain roles through
 // the members endpoint (primarily in cases where a user is admining a
 // different organization they are not a OrganizationMember of ).
@@ -168,7 +157,10 @@ export const SENTRY_APP_PERMISSIONS: PermissionObj[] = [
       'no-access': {label: 'No Access', scopes: []},
       read: {label: 'Read', scopes: ['org:read']},
       write: {label: 'Read & Write', scopes: ['org:read', 'org:write']},
-      admin: {label: 'Admin', scopes: ['org:read', 'org:write', 'org:admin']},
+      admin: {
+        label: 'Admin',
+        scopes: ['org:read', 'org:write', 'org:admin', 'org:integrations'],
+      },
     },
   },
   {

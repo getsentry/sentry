@@ -231,6 +231,7 @@ export function generateSampleSpan(
     throw new Error('Event entries data is not an array');
   }
 
-  event.entries[0].data.push(span);
+  const data = event.entries[0].data as RawSpanType[];
+  data.push(span);
   return span;
 }

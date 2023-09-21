@@ -66,7 +66,7 @@ const onboardingGuides: Record<string, OnboardingGuide> = {
   php: {
     label: 'PHP',
     Guide: PHPCronQuickStart,
-    platforms: new Set(['php', 'php-monolog', 'php-symfony2']),
+    platforms: new Set(['php', 'php-monolog', 'php-symfony']),
   },
   phpLaravel: {
     label: 'Laravel',
@@ -105,8 +105,8 @@ export default function MonitorQuickStartGuide({monitor}: Props) {
     {label: t('Generic'), options: genericGuides.map(guideToSelectOption)},
   ];
 
-  const platformSpecific = platformGuides.filter(guide =>
-    guide.platforms?.has(monitor.project.platform ?? 'other')
+  const platformSpecific = platformGuides.filter(
+    guide => guide.platforms?.has(monitor.project.platform ?? 'other')
   );
 
   const defaultExample = platformSpecific.length > 0 ? platformSpecific[0].key : 'cli';

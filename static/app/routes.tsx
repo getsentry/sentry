@@ -270,6 +270,18 @@ function buildRoutes() {
         <IndexRedirect to="welcome/" />
         <Route path=":step/" component={make(() => import('sentry/views/onboarding'))} />
       </Route>
+      {usingCustomerDomain && (
+        <Route
+          path="/stories/"
+          component={make(() => import('sentry/views/stories/index'))}
+          key="orgless-stories"
+        />
+      )}
+      <Route
+        path="/organizations/:orgId/stories/"
+        component={withDomainRedirect(make(() => import('sentry/views/stories/index')))}
+        key="org-stories"
+      />
     </Fragment>
   );
 
@@ -1364,11 +1376,11 @@ function buildRoutes() {
       <IndexRoute component={make(() => import('sentry/views/replays/list'))} />
       <Route
         path="dead-clicks/"
-        component={make(() => import('sentry/views/replays/deadClickList'))}
+        component={make(() => import('sentry/views/replays/deadRageClick/deadClickList'))}
       />
       <Route
         path="rage-clicks/"
-        component={make(() => import('sentry/views/replays/rageClickList'))}
+        component={make(() => import('sentry/views/replays/deadRageClick/rageClickList'))}
       />
       <Route
         path=":replaySlug/"
@@ -1662,6 +1674,13 @@ function buildRoutes() {
               import('sentry/views/performance/transactionSummary/transactionProfiles')
           )}
         />
+        <Route
+          path="aggregateWaterfall/"
+          component={make(
+            () =>
+              import('sentry/views/performance/transactionSummary/aggregateSpanWaterfall')
+          )}
+        />
         <Route path="spans/">
           <IndexRoute
             component={make(
@@ -1803,8 +1822,8 @@ function buildRoutes() {
         component={make(() => import('sentry/views/feedback/feedbackListPage'))}
       />
       <Route
-        path=":feedbackId/"
-        component={make(() => import('sentry/views/feedback/details'))}
+        path=":feedbackSlug/"
+        component={make(() => import('sentry/views/feedback/feedbackDetailsPage'))}
       />
     </Fragment>
   );

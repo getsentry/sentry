@@ -1,9 +1,9 @@
 import pytest
 from django.urls import reverse
-from freezegun import freeze_time
 
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.testutils.cases import MetricsAPIBaseTestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import region_silo_test
 
 ROOT_CAUSE_FEATURE_FLAG = "organizations:statistical-detectors-root-cause-analysis"

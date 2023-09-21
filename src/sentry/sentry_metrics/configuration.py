@@ -98,7 +98,7 @@ def get_ingest_config(
             )
         )
 
-    if db_backend == IndexerStorage.MOCK:
+    if (use_case_key, db_backend) == (UseCaseKey.RELEASE_HEALTH, IndexerStorage.MOCK):
         _register_ingest_config(
             MetricsIngestConfiguration(
                 db_backend=IndexerStorage.MOCK,
@@ -108,10 +108,27 @@ def get_ingest_config(
                 use_case_id=use_case_key,
                 internal_metrics_tag="release-health",
                 writes_limiter_cluster_options={},
-                writes_limiter_namespace="test-namespace",
+                writes_limiter_namespace="test-namespace-rh",
                 cardinality_limiter_cluster_options={},
                 cardinality_limiter_namespace=RELEASE_HEALTH_PG_NAMESPACE,
                 should_index_tag_values=True,
+            )
+        )
+
+    if (use_case_key, db_backend) == (UseCaseKey.PERFORMANCE, IndexerStorage.MOCK):
+        _register_ingest_config(
+            MetricsIngestConfiguration(
+                db_backend=IndexerStorage.MOCK,
+                db_backend_options={},
+                input_topic="topic",
+                output_topic="output-topic",
+                use_case_id=use_case_key,
+                internal_metrics_tag="perf",
+                writes_limiter_cluster_options={},
+                writes_limiter_namespace="test-namespace-perf",
+                cardinality_limiter_cluster_options={},
+                cardinality_limiter_namespace=PERFORMANCE_PG_NAMESPACE,
+                should_index_tag_values=False,
             )
         )
 
