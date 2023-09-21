@@ -72,6 +72,7 @@ export interface UnsavedIssueAlertRule {
   frequency: number;
   name: string;
   environment?: null | string;
+
   owner?: string | null;
 }
 
@@ -90,6 +91,11 @@ export interface IssueAlertRule extends UnsavedIssueAlertRule {
   disableReason?: 'noisy';
   errors?: {detail: string}[];
   lastTriggered?: string;
+  /**
+   * Set to true to opt out of the rule being automatically disabled
+   * see also - status=disabled, disableDate, disableReason
+   */
+  optOutEdit?: boolean;
   snoozeCreatedBy?: string;
   snoozeForEveryone?: boolean;
 }
