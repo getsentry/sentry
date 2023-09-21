@@ -8,7 +8,6 @@ import {Button} from 'sentry/components/button';
 import {analyzeFrameForRootCause} from 'sentry/components/events/interfaces/analyzeFrames';
 import LeadHint from 'sentry/components/events/interfaces/frame/line/leadHint';
 import {
-  frameIsFullyResolvedBasedOnDebuggerData,
   FrameSourceMapDebuggerData,
   SourceMapsDebuggerModal,
 } from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
@@ -318,9 +317,7 @@ export class DeprecatedLine extends Component<Props, State> {
     const shouldShowSourceMapDebuggerToggle =
       data.inApp &&
       this.props.frameSourceResolutionResults &&
-      (!frameIsFullyResolvedBasedOnDebuggerData(
-        this.props.frameSourceResolutionResults
-      ) ||
+      (!this.props.frameSourceResolutionResults.frameIsResolved ||
         !hasContextSource(data));
 
     return (

@@ -56,10 +56,83 @@ export function useSourceMapDebuggerData(event: Event, projectSlug: string) {
   return sourceMapDebuggerData;
 }
 
-export function mapSourceMapDebuggerFrameInformation(
+function getDebugIdProgress(
+  sourceMapDebuggerData: SourceMapDebugBlueThunderResponse,
+  debuggerFrame: SourceMapDebugBlueThunderResponseFrame
+) {
+  let debugIdProgress = 0;
+  if (sourceMapDebuggerData.sdk_debug_id_support === 'full') {
+    debugIdProgress++;
+  }
+  if (debuggerFrame.debug_id_process.debug_id !== null) {
+    debugIdProgress++;
+  }
+  if (debuggerFrame.debug_id_process.uploaded_source_file_with_correct_debug_id) {
+    debugIdProgress++;
+  }
+  if (debuggerFrame.debug_id_process.uploaded_source_map_with_correct_debug_id) {
+    debugIdProgress++;
+  }
+  return {debugIdProgress, debugIdProgressPercent: debugIdProgress / 4};
+}
+
+function getReleaseProgress(
+  sourceMapDebuggerData: SourceMapDebugBlueThunderResponse,
+  debuggerFrame: SourceMapDebugBlueThunderResponseFrame
+) {
+  let releaseProgress = 0;
+  if (sourceMapDebuggerData.release !== null) {
+    releaseProgress++;
+  }
+  if (sourceMapDebuggerData.release_has_some_artifact) {
+    releaseProgress++;
+  }
+  if (debuggerFrame.release_process?.source_file_lookup_result === 'found') {
+    releaseProgress++;
+  }
+  if (debuggerFrame.release_process?.source_map_lookup_result === 'found') {
+    releaseProgress++;
+  }
+  return {releaseProgress, releaseProgressPercent: releaseProgress / 4};
+}
+
+function getScrapingProgress() {
+  const scrapingProgress = 0;
+
+  // TODO: Once we have data on scraping uncomment below and add logic to track progress.
+
+  // if (sourceResolutionResults.sourceFileScrapingStatus.status === 'found') {
+  //   scrapingProgress++;
+  // }
+  // if (todo === 'found') {
+  //   // We give this step a relative weight of 4/5ths because this is actually way
+  //   // harder than step 1 and we want do deprioritize this tab over the others
+  //   // because the scraping process comes with a few downsides that aren't immediately
+  //   // obvious.
+  //   scrapingProgress += 4;
+  // }
+  return {scrapingProgress, scrapingProgressPercent: scrapingProgress / 5};
+}
+
+export function prepareSourceMapDebuggerFrameInformation(
   sourceMapDebuggerData: SourceMapDebugBlueThunderResponse,
   debuggerFrame: SourceMapDebugBlueThunderResponseFrame
 ): FrameSourceMapDebuggerData {
+  const {debugIdProgressPercent, debugIdProgress} = getDebugIdProgress(
+    sourceMapDebuggerData,
+    debuggerFrame
+  );
+  const {releaseProgressPercent, releaseProgress} = getReleaseProgress(
+    sourceMapDebuggerData,
+    debuggerFrame
+  );
+  const {scrapingProgressPercent, scrapingProgress} = getScrapingProgress();
+
+  const frameIsResolved =
+    debugIdProgressPercent === 1 ||
+    releaseProgressPercent === 1 ||
+    scrapingProgressPercent === 1;
+
   return {
     dist: sourceMapDebuggerData.dist,
     eventHasDebugIds: sourceMapDebuggerData.has_debug_ids,
@@ -87,5 +160,12 @@ export function mapSourceMapDebuggerFrameInformation(
     sdkVersion: sourceMapDebuggerData.sdk_version,
     matchingSourceMapName:
       debuggerFrame.release_process?.matching_source_map_name ?? null,
+    debugIdProgressPercent,
+    debugIdProgress,
+    releaseProgressPercent,
+    releaseProgress,
+    scrapingProgressPercent,
+    scrapingProgress,
+    frameIsResolved,
   } satisfies FrameSourceMapDebuggerData;
 }

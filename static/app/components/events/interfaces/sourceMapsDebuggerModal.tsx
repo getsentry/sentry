@@ -24,13 +24,20 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
 export interface FrameSourceMapDebuggerData {
+  debugIdProgress: number;
+  debugIdProgressPercent: number;
   dist: string | null;
   eventHasDebugIds: boolean;
+  frameIsResolved: boolean;
   matchingSourceFileNames: string[];
   matchingSourceMapName: string | null;
   release: string | null;
   releaseHasSomeArtifact: boolean;
+  releaseProgress: number;
+  releaseProgressPercent: number;
   releaseSourceMapReference: string | null;
+  scrapingProgress: number;
+  scrapingProgressPercent: number;
   sdkDebugIdSupport: 'full' | 'needs-upgrade' | 'not-supported' | 'unofficial-sdk';
   sdkVersion: string | null;
   sourceFileReleaseNameFetchingResult: 'found' | 'wrong-dist' | 'unsuccessful';
@@ -54,20 +61,6 @@ interface SourceMapsDebuggerModalProps extends ModalRenderProps {
   sourceResolutionResults: FrameSourceMapDebuggerData;
 }
 
-export function frameIsFullyResolvedBasedOnDebuggerData(
-  frameDebuggerData: FrameSourceMapDebuggerData
-): boolean {
-  const {debugIdProgressPercent} = getDebugIdProgress(frameDebuggerData);
-  const {releaseProgressPercent} = getReleaseProgress(frameDebuggerData);
-  const {scrapingProgressPercent} = getScrapingProgress(frameDebuggerData);
-
-  return (
-    debugIdProgressPercent === 1 ||
-    releaseProgressPercent === 1 ||
-    scrapingProgressPercent === 1
-  );
-}
-
 export function SourceMapsDebuggerModal({
   Body,
   Header,
@@ -76,21 +69,11 @@ export function SourceMapsDebuggerModal({
 }: SourceMapsDebuggerModalProps) {
   const theme = useTheme();
 
-  const {debugIdProgress, debugIdProgressPercent} = getDebugIdProgress(
-    sourceResolutionResults
-  );
-  const {releaseProgress, releaseProgressPercent} = getReleaseProgress(
-    sourceResolutionResults
-  );
-  const {scrapingProgress, scrapingProgressPercent} = getScrapingProgress(
-    sourceResolutionResults
-  );
-
   const [activeTab, setActiveTab] = useState<'debug-ids' | 'release' | 'fetching'>(() => {
     const possibleTabs = [
-      {tab: 'debug-ids', progress: debugIdProgressPercent},
-      {tab: 'release', progress: releaseProgressPercent},
-      {tab: 'fetching', progress: scrapingProgressPercent},
+      {tab: 'debug-ids', progress: sourceResolutionResults.debugIdProgressPercent},
+      {tab: 'release', progress: sourceResolutionResults.releaseProgressPercent},
+      {tab: 'fetching', progress: sourceResolutionResults.scrapingProgressPercent},
     ] as const;
 
     // Get the tab with the most progress
@@ -133,14 +116,16 @@ export function SourceMapsDebuggerModal({
           <TabList>
             <TabList.Item
               key="debug-ids"
-              textValue={`${t('Debug IDs')} (${debugIdProgress}/4)`}
+              textValue={`${t('Debug IDs')} (${
+                sourceResolutionResults.debugIdProgress
+              }/4)`}
             >
               <StyledProgressRing
                 progressColor={
                   activeTab === 'debug-ids' ? theme.purple300 : theme.gray300
                 }
                 backgroundColor={theme.gray200}
-                value={debugIdProgressPercent * 100}
+                value={sourceResolutionResults.debugIdProgressPercent * 100}
                 size={16}
                 barWidth={4}
               />
@@ -152,12 +137,14 @@ export function SourceMapsDebuggerModal({
             </TabList.Item>
             <TabList.Item
               key="release"
-              textValue={`${t('Releases')} (${releaseProgress}/4)`}
+              textValue={`${t('Releases')} (${
+                sourceResolutionResults.releaseProgress
+              }/4)`}
             >
               <StyledProgressRing
                 progressColor={activeTab === 'release' ? theme.purple300 : theme.gray300}
                 backgroundColor={theme.gray200}
-                value={releaseProgressPercent * 100}
+                value={sourceResolutionResults.releaseProgressPercent * 100}
                 size={16}
                 barWidth={4}
               />
@@ -166,16 +153,16 @@ export function SourceMapsDebuggerModal({
             <TabList.Item
               key="fetching"
               // TODO: Remove "coming soon" when we add data crawling from symbolicator
-              textValue={`${t('Hosting Publicly')} (${t(
-                'coming soon'
-              )}) (${scrapingProgress}/4)`}
+              textValue={`${t('Hosting Publicly')} (${t('coming soon')}) (${
+                sourceResolutionResults.scrapingProgress
+              }/4)`}
               // TODO: enable when we add crawling data from symbolicator
               disabled
             >
               <StyledProgressRing
                 progressColor={activeTab === 'fetching' ? theme.purple300 : theme.gray300}
                 backgroundColor={theme.gray200}
-                value={scrapingProgressPercent * 100}
+                value={sourceResolutionResults.scrapingProgressPercent * 100}
                 size={16}
                 barWidth={4}
               />
@@ -218,7 +205,11 @@ export function SourceMapsDebuggerModal({
                   sourceResolutionResults={sourceResolutionResults}
                 />
               </CheckList>
-              {debugIdProgressPercent === 1 ? <ChecklistDoneNote /> : <VerifyAgainNote />}
+              {sourceResolutionResults.debugIdProgressPercent === 1 ? (
+                <ChecklistDoneNote />
+              ) : (
+                <VerifyAgainNote />
+              )}
             </TabPanels.Item>
             <TabPanels.Item key="release">
               <p>
@@ -251,7 +242,11 @@ export function SourceMapsDebuggerModal({
                   sourceResolutionResults={sourceResolutionResults}
                 />
               </CheckList>
-              {releaseProgressPercent === 1 ? <ChecklistDoneNote /> : <VerifyAgainNote />}
+              {sourceResolutionResults.releaseProgressPercent === 1 ? (
+                <ChecklistDoneNote />
+              ) : (
+                <VerifyAgainNote />
+              )}
             </TabPanels.Item>
             <TabPanels.Item key="fetching">
               <p>
@@ -275,7 +270,7 @@ export function SourceMapsDebuggerModal({
                   sourceResolutionResults={sourceResolutionResults}
                 />
               </CheckList>
-              {scrapingProgressPercent === 1 ? (
+              {sourceResolutionResults.scrapingProgressPercent === 1 ? (
                 <ChecklistDoneNote />
               ) : (
                 <VerifyAgainNote />
@@ -303,55 +298,6 @@ export function SourceMapsDebuggerModal({
       </Footer>
     </Fragment>
   );
-}
-
-function getDebugIdProgress(sourceResolutionResults: FrameSourceMapDebuggerData) {
-  let debugIdProgress = 0;
-  if (sourceResolutionResults.sdkDebugIdSupport === 'full') {
-    debugIdProgress++;
-  }
-  if (sourceResolutionResults.stackFrameDebugId !== null) {
-    debugIdProgress++;
-  }
-  if (sourceResolutionResults.uploadedSourceFileWithCorrectDebugId) {
-    debugIdProgress++;
-  }
-  if (sourceResolutionResults.uploadedSourceMapWithCorrectDebugId) {
-    debugIdProgress++;
-  }
-  return {debugIdProgress, debugIdProgressPercent: debugIdProgress / 4};
-}
-
-function getReleaseProgress(sourceResolutionResults: FrameSourceMapDebuggerData) {
-  let releaseProgress = 0;
-  if (sourceResolutionResults.release !== null) {
-    releaseProgress++;
-  }
-  if (sourceResolutionResults.releaseHasSomeArtifact) {
-    releaseProgress++;
-  }
-  if (sourceResolutionResults.sourceFileReleaseNameFetchingResult === 'found') {
-    releaseProgress++;
-  }
-  if (sourceResolutionResults.sourceMapReleaseNameFetchingResult === 'found') {
-    releaseProgress++;
-  }
-  return {releaseProgress, releaseProgressPercent: releaseProgress / 4};
-}
-
-function getScrapingProgress(sourceResolutionResults: FrameSourceMapDebuggerData) {
-  let scrapingProgress = 0;
-  if (sourceResolutionResults.sourceFileScrapingStatus.status === 'found') {
-    scrapingProgress++;
-  }
-  if (sourceResolutionResults.sourceMapScrapingStatus.status === 'found') {
-    // We give this step a relative weight of 4/5ths because this is actually way
-    // harder than step 1 and we want do deprioritize this tab over the others
-    // because the scraping process comes with a few downsides that aren't immediately
-    // obvious.
-    scrapingProgress += 4;
-  }
-  return {scrapingProgress, scrapingProgressPercent: scrapingProgress / 5};
 }
 
 function CheckListItem({children, title, status}: PropsWithChildren<CheckListItemProps>) {

@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
 import {
-  mapSourceMapDebuggerFrameInformation,
+  prepareSourceMapDebuggerFrameInformation,
   useSourceMapDebuggerData,
 } from 'sentry/components/events/interfaces/crashContent/exception/useSourceMapDebuggerData';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
@@ -151,7 +151,7 @@ export function Content({
     const frameSourceMapDebuggerData = sourceMapDebuggerData?.exceptions[
       excIdx
     ].frames.map(debuggerFrame =>
-      mapSourceMapDebuggerFrameInformation(sourceMapDebuggerData, debuggerFrame)
+      prepareSourceMapDebuggerFrameInformation(sourceMapDebuggerData, debuggerFrame)
     );
 
     if (exc.mechanism?.parent_id && collapsedExceptions[exc.mechanism.parent_id]) {
