@@ -2,6 +2,7 @@ import {useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useResizeObserver} from '@react-aria/utils';
 
+import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import BufferingOverlay from 'sentry/components/replays/player/bufferingOverlay';
 import FastForwardBadge from 'sentry/components/replays/player/fastForwardBadge';
@@ -113,47 +114,15 @@ function BasePlayerRoot({className, isPreview = false}: Props) {
   }, [windowDimensions, videoDimensions]);
 
   return (
-    <SizingWindow ref={windowEl} className="sentry-block">
+    <NegativeSpaceContainer ref={windowEl} className="sentry-block">
       <div ref={viewEl} className={className} />
       {fastForwardSpeed ? <PositionedFastForward speed={fastForwardSpeed} /> : null}
       {isBuffering ? <PositionedBuffering /> : null}
       {isPreview ? null : <PlayerDOMAlert />}
       {isFetching ? <PositionedLoadingIndicator /> : null}
-    </SizingWindow>
+    </NegativeSpaceContainer>
   );
 }
-
-// Center the viewEl inside the windowEl.
-// This is useful when the window is inside a container that has large fixed
-// dimensions, like when in fullscreen mode.
-// If the container has a dimensions that can grow/shrink then it is
-// important to also set `overflow: hidden` on the container, so that the
-// SizingWindow can calculate size as things shrink.
-const SizingWindow = styled('div')`
-  width: 100%;
-  display: flex;
-  flex-grow: 1;
-  justify-content: center;
-  align-items: center;
-  position: relative;
-  overflow: hidden;
-
-  background-color: ${p => p.theme.backgroundSecondary};
-  background-image: repeating-linear-gradient(
-      -145deg,
-      transparent,
-      transparent 8px,
-      ${p => p.theme.backgroundSecondary} 8px,
-      ${p => p.theme.backgroundSecondary} 11px
-    ),
-    repeating-linear-gradient(
-      -45deg,
-      transparent,
-      transparent 15px,
-      ${p => p.theme.gray100} 15px,
-      ${p => p.theme.gray100} 16px
-    );
-`;
 
 const PositionedFastForward = styled(FastForwardBadge)`
   position: absolute;

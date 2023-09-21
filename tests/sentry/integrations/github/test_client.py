@@ -7,7 +7,6 @@ import pytest
 import responses
 from django.core import mail
 from django.test import override_settings
-from freezegun import freeze_time
 from requests import Request
 from responses import matchers
 
@@ -22,6 +21,7 @@ from sentry.shared_integrations.response.base import BaseApiResponse
 from sentry.silo.base import SiloMode
 from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.utils.cache import cache
 
 GITHUB_CODEOWNERS = {

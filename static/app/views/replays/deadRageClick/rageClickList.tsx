@@ -30,6 +30,8 @@ export default function RageClickList({location}: Props) {
   const {isLoading, isError, data, pageLinks} = useDeadRageSelectors({
     per_page: 50,
     sort: '-count_rage_clicks',
+    cursor: location.query.cursor,
+    prefix: '',
   });
 
   if (!hasRageClickFeature) {
@@ -71,6 +73,7 @@ export default function RageClickList({location}: Props) {
                 isLoading={isLoading}
                 location={location}
                 clickCountColumn={{key: 'count_rage_clicks', name: 'rage clicks'}}
+                clickCountSortable
               />
             </LayoutGap>
             <PaginationNoMargin

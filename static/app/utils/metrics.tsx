@@ -2,9 +2,10 @@ import {useMemo} from 'react';
 import moment from 'moment';
 
 import {getInterval} from 'sentry/components/charts/utils';
-import {parseStatsPeriod} from 'sentry/components/organizations/timeRangeSelector/utils';
 import {ApiQueryKey, useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
+
+import {PageFilters} from '../types/core';
 
 type MetricMeta = {
   mri: string;
@@ -62,8 +63,8 @@ export function useMetricsTagValues(mri: string, tag: string) {
 }
 
 export type MetricsDataProps = {
+  datetime: PageFilters['datetime'];
   mri: string;
-  timeRange: any;
   groupBy?: string[];
   op?: string;
   projects?: string[];
@@ -88,7 +89,7 @@ export type MetricsData = {
 export function useMetricsData({
   mri,
   op,
-  timeRange,
+  datetime,
   projects,
   queryString,
   groupBy,
@@ -97,62 +98,54 @@ export function useMetricsData({
   const useCase = getUseCaseFromMri(mri);
   const field = op ? `${op}(${mri})` : mri;
 
-  const {start, end} = getUTCTimeRange(timeRange);
-  const interval = getMetricsInterval({start, end});
-
   const query = getQueryString({projects, queryString});
 
+  const interval = getInterval(datetime, 'metrics');
+
   const queryToSend = {
+    ...getDateTimeParams(datetime),
     field,
     useCase,
     interval,
     query,
     groupBy,
+
+    // max result groups
+    per_page: 20,
   };
 
   return useApiQuery<MetricsData>(
     [`/organizations/${slug}/metrics/data/`, {query: queryToSend}],
     {
-      staleTime: 60,
       retry: 0,
+      staleTime: 0,
+      refetchOnReconnect: true,
+      refetchOnWindowFocus: true,
+      // auto refetch every 60 seconds
+      refetchInterval: data => {
+        // don't refetch if the request failed
+        if (!data) {
+          return false;
+        }
+        return 60 * 1000;
+      },
     }
   );
+}
+
+function getDateTimeParams({start, end, period}: PageFilters['datetime']) {
+  return period
+    ? {statsPeriod: period}
+    : {start: moment(start).toISOString(), end: moment(end).toISOString()};
 }
 
 function getQueryString({
   projects = [],
   queryString = '',
 }: Pick<MetricsDataProps, 'projects' | 'queryString'>): string {
-  const projectQuery = projects.map(p => `project:${p}`).join(' OR ');
+  const projectQuery = projects.length ? `project:[${projects}]` : '';
   return [projectQuery, queryString].join(' ');
 }
-
-const getUTCTimeRange = (timeRange: Record<string, any>) => {
-  const absoluteTimeRange = timeRange.relative
-    ? parseStatsPeriod(timeRange.relative)
-    : timeRange;
-
-  return {
-    start: moment(absoluteTimeRange.start).utc().toISOString(),
-    end: moment(absoluteTimeRange.end).utc().toISOString(),
-  };
-};
-
-const getMetricsInterval = (timeRange: Record<string, any>) => {
-  const diff = moment(timeRange.end).diff(moment(timeRange.start), 'days');
-
-  if (diff >= 7 && diff <= 16) {
-    return '2h';
-  }
-  if (diff > 16 && diff <= 30) {
-    return '4h';
-  }
-  if (diff > 32 && diff <= 90) {
-    return '12h';
-  }
-
-  return getInterval(timeRange, 'medium');
-};
 
 type UseCase = 'sessions' | 'transactions' | 'custom';
 

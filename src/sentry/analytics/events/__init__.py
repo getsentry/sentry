@@ -61,6 +61,7 @@ from .release_get_previous_commits import *  # noqa: F401,F403
 from .release_set_commits import *  # noqa: F401,F403
 from .repo_linked import *  # noqa: F401,F403
 from .rule_disable_opt_out import *  # noqa: F401,F403
+from .rule_reenable import *  # noqa: F401,F403
 from .rule_snooze import *  # noqa: F401,F403
 from .search_saved import *  # noqa: F401,F403
 from .second_platform_added import *  # noqa: F401,F403
