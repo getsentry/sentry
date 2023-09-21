@@ -1745,14 +1745,18 @@ class OrganizationReplayIndexOptimizedSearchTest(OrganizationReplayIndexTest):
                 f"!x_error_id:{uid3}",
             ]
             for query in queries:
-                response = self.client.get(self.url + f"?field=id&field=x_error_ids&query={query}")
+                response = self.client.get(
+                    self.url + f"?field=id&field=x_error_ids&field=x_count_errors&query={query}"
+                )
                 assert response.status_code == 200
                 response_data = response.json()
                 assert len(response_data["data"]) == 1, query
                 assert len(response_data["data"][0]["x_error_ids"]) == 2, query
+                assert response_data["data"][0]["x_count_errors"] == 2, query
 
             response = self.client.get(
-                self.url + f"?field=id&field=x_error_ids&query=x_error_id:{uid3}"
+                self.url
+                + f"?field=id&field=x_error_ids&field=x_count_errors&query=x_error_id:{uid3}"
             )
             assert response.status_code == 200
             response_data = response.json()
@@ -1783,12 +1787,13 @@ class OrganizationReplayIndexOptimizedSearchTest(OrganizationReplayIndexTest):
             ]
             for query in queries:
                 response = self.client.get(
-                    self.url + f"?field=id&field=x_warning_ids&query={query}"
+                    self.url + f"?field=id&field=x_warning_ids&field=x_count_warnings&query={query}"
                 )
                 assert response.status_code == 200, query
                 response_data = response.json()
                 assert len(response_data["data"]) == 1, query
                 assert len(response_data["data"][0]["x_warning_ids"]) == 1, query
+                assert response_data["data"][0]["x_count_warnings"] == 1, query
 
             response = self.client.get(
                 self.url + f"?field=id&field=x_warning_ids&query=x_warning_id:{uid2}"
@@ -1825,11 +1830,14 @@ class OrganizationReplayIndexOptimizedSearchTest(OrganizationReplayIndexTest):
                 f"!x_info_id:{uid3}",
             ]
             for query in queries:
-                response = self.client.get(self.url + f"?field=id&field=x_info_ids&query={query}")
+                response = self.client.get(
+                    self.url + f"?field=id&field=x_info_ids&field=x_count_infos&query={query}"
+                )
                 assert response.status_code == 200
                 response_data = response.json()
                 assert len(response_data["data"]) == 1, query
                 assert len(response_data["data"][0]["x_info_ids"]) == 2, query
+                assert response_data["data"][0]["x_count_infos"] == 2, query
 
             response = self.client.get(
                 self.url + f"?field=id&field=x_info_ids&query=x_info_id:{uid3}"

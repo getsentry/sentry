@@ -100,6 +100,9 @@ search_config: dict[str, Union[ColumnField, ComputedField, TagField]] = {
     "x_error_ids": ComputedField(parse_uuid, SumOfErrorIdScalar),
     "x_warning_ids": UUIDColumnField("warning_id", parse_uuid, SumOfUUIDScalar),
     "x_info_ids": ComputedField(parse_uuid, SumOfInfoIdScalar),
+    "x_count_infos": sum_field("count_info_events"),
+    "x_count_warnings": sum_field("count_warning_events"),
+    "x_count_errors": sum_field("count_error_events"),
     # Backwards Compat: We pass a simple string to the UUID column. Older versions of ClickHouse
     # do not understand the UUID type.
     "id": ColumnField("replay_id", lambda x: str(parse_uuid(x)), StringScalar),

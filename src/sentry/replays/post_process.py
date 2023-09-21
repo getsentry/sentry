@@ -72,6 +72,9 @@ class ReplayDetailsResponse(TypedDict, total=False):
     x_warning_ids: Optional[List[str]]
     x_error_ids: Optional[List[str]]
     x_info_ids: Optional[List[str]]
+    x_count_errors: Optional[int]
+    x_count_warnings: Optional[int]
+    x_count_infos: Optional[int]
 
 
 def process_raw_response(
@@ -180,6 +183,11 @@ def generate_normalized_output(
         ret_item["x_warning_ids"] = item.pop("x_warning_ids", None)
         ret_item["x_error_ids"] = item.pop("x_error_ids", None)
         ret_item["x_info_ids"] = item.pop("x_info_ids", None)
+
+        ret_item["x_count_infos"] = item.pop("x_count_infos", None)
+        ret_item["x_count_warnings"] = item.pop("x_count_warnings", None)
+        ret_item["x_count_errors"] = item.pop("x_count_errors", None)
+
         yield ret_item
 
 

@@ -535,6 +535,9 @@ replay_url_parser_config = SearchConfig(
         "count_dead_clicks",
         "count_rage_clicks",
         "activity",
+        "x_count_info",
+        "x_count_warnings",
+        "x_count_errors",
     },
 )
 
@@ -617,6 +620,10 @@ class ReplayQueryConfig(QueryConfig):
 
     x_info_ids = ListField(query_alias="x_info_ids")
     x_info_id = ListField(query_alias="x_info_ids")
+
+    x_count_infos = Number(query_alias="x_count_info")
+    x_count_warnings = Number(query_alias="x_count_warnings")
+    x_count_errors = Number(query_alias="x_count_errors")
 
 
 class ReplaySubqueryConfig(QueryConfig):
@@ -891,6 +898,9 @@ FIELD_QUERY_ALIAS_MAP: Dict[str, List[str]] = {
     "x_error_ids": ["x_error_ids"],
     "x_warning_ids": ["x_warning_ids"],
     "x_info_ids": ["x_info_ids"],
+    "x_count_infos": ["x_count_infos"],
+    "x_count_warnings": ["x_count_warnings"],
+    "x_count_errors": ["x_count_errors"],
 }
 
 
@@ -1036,6 +1046,21 @@ QUERY_ALIAS_COLUMN_MAP = {
     "x_error_ids": _exp_event_ids_agg("x_error_ids", ["error_id", "fatal_id"]),
     "x_warning_ids": _exp_event_ids_agg("x_warning_ids", ["warning_id"]),
     "x_info_ids": _exp_event_ids_agg("x_info_ids", ["info_id", "debug_id"]),
+    "x_count_infos": Function(
+        "sum",
+        parameters=[Column("count_info_events")],
+        alias="x_count_infos",
+    ),
+    "x_count_warnings": Function(
+        "sum",
+        parameters=[Column("count_warning_events")],
+        alias="x_count_warnings",
+    ),
+    "x_count_errors": Function(
+        "sum",
+        parameters=[Column("count_error_events")],
+        alias="x_count_errors",
+    ),
 }
 
 

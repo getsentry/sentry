@@ -62,6 +62,9 @@ sort_config = {
     "user.email": any_if("user_email"),
     "user.id": any_if("user_id"),
     "user.username": any_if("user_name"),
+    "x_count_infos": Function("sum", parameters=[Column("x_count_info_events")]),
+    "x_count_warnings": Function("sum", parameters=[Column("x_count_warning_events")]),
+    "x_count_errors": Function("sum", parameters=[Column("x_count_error_events")]),
 }
 
 sort_config["browser"] = sort_config["browser.name"]

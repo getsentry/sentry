@@ -118,6 +118,9 @@ def mock_expected_response(
         "x_error_ids": kwargs.pop("x_error_ids", []),
         "x_warning_ids": kwargs.pop("x_warning_ids", []),
         "x_info_ids": kwargs.pop("x_info_ids", []),
+        "x_count_infos": kwargs.pop("x_count_infos", 1),
+        "x_count_warnings": kwargs.pop("count_warnings", 1),
+        "x_count_errors": kwargs.pop("count_errors", 1),
     }
 
 
