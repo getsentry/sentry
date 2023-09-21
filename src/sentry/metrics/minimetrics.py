@@ -36,7 +36,7 @@ def patch_sentry_sdk():
     @wraps(real_emit)
     def patched_emit(self, flushable_buckets: Iterable[Tuple[int, Dict[Any, Metric]]]):
         flushable_metrics = []
-        stats_by_type = {}
+        stats_by_type: Any = {}
         for buckets_timestamp, buckets in flushable_buckets:
             for bucket_key, metric in buckets.items():
                 flushable_metric = (buckets_timestamp, bucket_key, metric)
@@ -81,8 +81,8 @@ def patch_sentry_sdk():
                 sample_rate=1.0,
             )
 
-    MetricsAggregator.add = tracked_add
-    MetricsAggregator._emit = patched_emit
+    MetricsAggregator.add = tracked_add  # type: ignore
+    MetricsAggregator._emit = patched_emit  # type: ignore
 
 
 class MiniMetricsMetricsBackend(MetricsBackend):
