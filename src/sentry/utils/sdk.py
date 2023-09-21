@@ -479,6 +479,9 @@ def configure_sdk():
         "schedule-digests",
     ]
 
+    # turn on minimetrics
+    sdk_options.setdefault("_experiments", {})["enable_metrics"] = True
+
     sentry_sdk.init(
         # set back the sentry4sentry_dsn popped above since we need a default dsn on the client
         # for dynamic sampling context public_key population
