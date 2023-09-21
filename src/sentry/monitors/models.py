@@ -31,6 +31,7 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.utils import slugify_instance
+from sentry.grouping.utils import hash_from_values
 from sentry.locks import locks
 from sentry.models import Environment, Rule, RuleSource
 from sentry.utils.retries import TimedRetryPolicy
@@ -579,6 +580,15 @@ class MonitorEnvironment(Model):
             .order_by("-date_added")
             .first()
         )
+
+    def get_incident_grouphash(self):
+        fingerprint = [
+            "monitor",
+            str(self.monitor.guid),
+            self.environment.name,
+            str(self.last_state_change),
+        ]
+        return hash_from_values(fingerprint)
 
 
 @receiver(pre_save, sender=MonitorEnvironment)

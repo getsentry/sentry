@@ -7,6 +7,7 @@ from sentry.monitors.models import (
     Monitor,
     MonitorCheckIn,
     MonitorEnvironment,
+    MonitorIncident,
     MonitorStatus,
     MonitorType,
     ScheduleType,
@@ -40,11 +41,19 @@ class MarkOkTestCase(TestCase):
             last_state_change=None,
         )
 
-        MonitorCheckIn.objects.create(
+        checkin = MonitorCheckIn.objects.create(
             monitor=monitor,
             monitor_environment=monitor_environment,
             project_id=self.project.id,
             status=CheckInStatus.ERROR,
+        )
+
+        incident = MonitorIncident.objects.create(
+            monitor=monitor,
+            monitor_environment=monitor_environment,
+            starting_checkin=checkin,
+            starting_timestamp=checkin.date_added,
+            grouphash=monitor_environment.get_incident_grouphash(),
         )
 
         for i in range(0, recovery_threshold - 1):
@@ -73,6 +82,7 @@ class MarkOkTestCase(TestCase):
         # assert occurrence was sent
         assert len(mock_produce_occurrence_to_kafka.mock_calls) == 1
 
+        last_checkin = None
         for i in range(0, recovery_threshold):
             checkin = MonitorCheckIn.objects.create(
                 monitor=monitor,
@@ -80,6 +90,8 @@ class MarkOkTestCase(TestCase):
                 project_id=self.project.id,
                 status=CheckInStatus.OK,
             )
+            if i == (recovery_threshold - 1):
+                last_checkin = checkin
             mark_ok(checkin, checkin.date_added)
 
         # recovery has hit threshold, monitor should be in an ok state
@@ -87,3 +99,8 @@ class MarkOkTestCase(TestCase):
         assert monitor_environment.status == MonitorStatus.OK
         # check that monitor environment has updated timestamp used for fingerprinting
         assert monitor_environment.last_state_change == monitor_environment.last_checkin
+
+        # check that resolving check-in is set on the incident
+        incident = MonitorIncident.objects.get(id=incident.id)
+        assert incident.resolving_checkin == last_checkin
+        assert incident.resolving_timestamp == last_checkin.date_added

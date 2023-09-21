@@ -17,7 +17,13 @@ from sentry.issues.grouptype import (
 )
 from sentry.models import Organization
 from sentry.monitors.constants import SUBTITLE_DATETIME_FORMAT, TIMEOUT
-from sentry.monitors.models import CheckInStatus, MonitorCheckIn, MonitorEnvironment, MonitorStatus
+from sentry.monitors.models import (
+    CheckInStatus,
+    MonitorCheckIn,
+    MonitorEnvironment,
+    MonitorIncident,
+    MonitorStatus,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -70,9 +76,13 @@ def mark_failed_threshold(
 
     # check to see if we need to update the status
     if monitor_env.status == MonitorStatus.OK:
-        previous_checkins = MonitorCheckIn.objects.filter(monitor_environment=monitor_env).order_by(
-            "-date_added"
-        )[:failure_issue_threshold]
+        previous_checkins = list(
+            reversed(
+                MonitorCheckIn.objects.filter(monitor_environment=monitor_env).order_by(
+                    "-date_added"
+                )[:failure_issue_threshold]
+            )
+        )
         # check for successive failed previous check-ins
         if not all(
             [
@@ -86,6 +96,16 @@ def mark_failed_threshold(
         monitor_env.status = MonitorStatus.ERROR
         monitor_env.last_state_change = last_checkin
         monitor_env.save()
+
+        starting_checkin = previous_checkins[0]
+
+        MonitorIncident.objects.create(
+            monitor=monitor_env.monitor,
+            monitor_environment=monitor_env,
+            starting_checkin=starting_checkin,
+            starting_timestamp=starting_checkin.date_added,
+            grouphash=monitor_env.get_incident_grouphash(),
+        )
     elif monitor_env.status in [
         MonitorStatus.ERROR,
         MonitorStatus.MISSED_CHECKIN,
