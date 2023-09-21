@@ -78,7 +78,6 @@ export const steps = ({
       {
         language: 'python',
         code: `import sentry_sdk
-from sentry_sdk.integrations.tornado import TornadoIntegration
 
 sentry_sdk.init(
 ${sentryInitContent}
