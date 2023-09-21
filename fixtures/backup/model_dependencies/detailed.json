@@ -989,10 +989,6 @@
   },
   "sentry.ExternalActor": {
     "foreign_keys": {
-      "actor": {
-        "kind": "FlexibleForeignKey",
-        "model": "sentry.Actor"
-      },
       "integration_id": {
         "kind": "HybridCloudForeignKey",
         "model": "sentry.Integration"

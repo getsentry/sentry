@@ -218,7 +218,6 @@
     "sentry.ExportedData"
   ],
   "sentry.ExternalActor": [
-    "sentry.Actor",
     "sentry.Integration",
     "sentry.Organization",
     "sentry.Team",
