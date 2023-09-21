@@ -164,35 +164,94 @@ def _query_with_pagination(
 ) -> List[GroupsCountResponse]:
     """Query Snuba for event counts for the given list of project ids and groups ids in
     a time range."""
+    organization = Organization.objects.get(id=organization_id)
+
     all_results = []
     offset = 0
+
     while True:
-        query = _generate_query(
-            organization_id, project_ids, group_ids, offset, start_date, end_date, category
+        query = _generate_entity_dataset_query(
+            project_ids, group_ids, offset, start_date, end_date, category
         )
-        if isinstance(query, MetricsQuery):
-            projects = Project.objects.filter(id_in=project_ids)
-            results = get_series(
-                projects=projects, metrics_query=query, use_case_id=UseCaseID.ESCALATING_ISSUES
-            )
-        else:
-            request = Request(
-                dataset=_issue_category_dataset(category),
-                app_id=REFERRER,
-                query=query,
-                tenant_ids={"referrer": REFERRER, "organization_id": organization_id},
-            )
-            results = raw_snql_query(request, referrer=REFERRER)["data"]
+        request = Request(
+            dataset=_issue_category_dataset(category),
+            app_id=REFERRER,
+            query=query,
+            tenant_ids={"referrer": REFERRER, "organization_id": organization_id},
+        )
+        results = raw_snql_query(request, referrer=REFERRER)["data"]
+
         all_results += results
         offset += ELEMENTS_PER_SNUBA_PAGE
         if not results or len(results) < ELEMENTS_PER_SNUBA_PAGE:
             break
 
+    if category == GroupCategory.ERROR and features.has(
+        "organizations:escalating-issues-v2", organization
+    ):
+        # Generate and execute the query to the Generics Metrics Backend
+        metrics_query = _generate_generic_metrics_backend_query(
+            organization_id, project_ids, group_ids, start_date, end_date, category
+        )
+        projects = Project.objects.filter(id_in=project_ids)
+        metrics_results = get_series(
+            projects=projects, metrics_query=metrics_query, use_case_id=UseCaseID.ESCALATING_ISSUES
+        )
+
+        # Log exception if results from the Metrics backend are
+        # not equivalent to the Errors dataset.
+        if metrics_query != all_results:
+            logger.info(
+                "Generics Metrics Backend query results not the same as Errors dataset query.",
+                extra={"metrics_results": metrics_results, "dataset_results": all_results},
+            )
+
     return all_results
 
 
-def _generate_query(
+def _generate_generic_metrics_backend_query(
     organization_id: int,
+    project_ids: Sequence[int],
+    group_ids: Sequence[int],
+    start_date: datetime,
+    end_date: datetime,
+    category: Optional[GroupCategory],
+):
+    """
+    This function generates a query to fetch the hourly events
+    for a group_id through the Generic Metrics Backend.
+
+    The Generic Metrics Backend only contains data for Errors.
+    """
+
+    # Check if category is for Errors, else raise an exception
+    if category is None or category != GroupCategory.ERROR:
+        raise Exception("Invalid category.")
+
+    select = [
+        MetricField(metric_mri=ErrorsMRI.EVENT_INGESTED.value, alias="event_ingested", op=None),
+    ]
+
+    groupby = [MetricGroupByField(field="project_id"), Column(name="tags[group_id]")]
+
+    where = Condition(
+        lhs=Column(name="tags[group_id]"),
+        op=Op.IN,
+        rhs=[str(group_id) for group_id in group_ids],
+    )
+    return MetricsQuery(
+        org_id=organization_id,
+        project_ids=project_ids,
+        select=select,
+        start=start_date,
+        end=end_date,
+        where=where,
+        granularity=Granularity(HOUR),
+        groupby=groupby,
+    )
+
+
+def _generate_entity_dataset_query(
     project_ids: Sequence[int],
     group_ids: Sequence[int],
     offset: int,
@@ -200,32 +259,10 @@ def _generate_query(
     end_date: datetime,
     category: GroupCategory | None = None,
 ) -> Query:
+
     """This simply generates a query based on the passed parameters"""
     group_id_col = Column("group_id")
     proj_id_col = Column("project_id")
-    organization = Organization.objects.get(id=organization_id)
-    if features.has("organizations:escalating-issues-v2", organization):
-        select = [
-            MetricField(metric_mri=ErrorsMRI.EVENT_INGESTED.value, alias="event_ingested", op=None),
-        ]
-
-        groupby = [MetricGroupByField(field="project_id"), Column(name="tags[group_id]")]
-
-        where = Condition(
-            lhs=Column(name="tags[group_id]"),
-            op=Op.IN,
-            rhs=[str(group_id) for group_id in group_ids],
-        )
-        return MetricsQuery(
-            org_id=organization_id,
-            project_ids=project_ids,
-            select=select,
-            start=start_date,
-            end=end_date,
-            where=where,
-            granularity=Granularity(HOUR),
-            groupby=groupby,
-        )
 
     return Query(
         match=Entity(_issue_category_entity(category)),
