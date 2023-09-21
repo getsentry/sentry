@@ -13,7 +13,13 @@ from django.core.management.base import BaseCommand
 from django.urls import URLPattern, URLResolver
 
 from sentry.silo.base import SiloMode
-from sentry.utils import json
+
+# There are a handful of catchall routes
+# that we don't want to handle in controlsilo
+IGNORED_PATTERN_NAMES = {
+    "sentry-api-index",
+    "sentry-api-catchall",
+}
 
 
 @dataclass
@@ -48,7 +54,7 @@ def simplify_regex(pattern: str) -> str:
     for start, end in reversed(named_groups):
         updated = updated[0:start] + "[^/]+" + updated[end:]
 
-    return updated.replace("/", r"\/")
+    return updated.replace("\\", "\\\\")
 
 
 class Command(BaseCommand):
@@ -103,10 +109,7 @@ class Command(BaseCommand):
             try:
                 import_module = importlib.import_module(func.__module__)
                 view_func = getattr(import_module, func_name)
-            except AttributeError as err:
-                self.stdout.write(
-                    f"Unable to import view {func_name} from {func.__module__}: {err}"
-                )
+            except AttributeError:
                 continue
             except ImportError as err:
                 raise CommandError(f"Could not load view in {module}: {err}")
@@ -124,7 +127,6 @@ class Command(BaseCommand):
         contents = self.render(url_patterns, options["format"])
 
         if not options["output"]:
-            self.stdout.write("The following URL patterns exist in control silo URL routes.")
             self.stdout.write(contents)
         else:
             self.stdout.write(f"Writing {options['output']} file..")
@@ -134,11 +136,12 @@ class Command(BaseCommand):
 
     def render(self, url_patterns: List[str], format: str) -> str:
         if format == "text":
-            return json.dumps(url_patterns)
+            return "\n".join(url_patterns)
         if format == "js":
             js_regex = [f"new RegExp('{pattern}')," for pattern in url_patterns]
             pattern_code = "\n  ".join(js_regex)
-            ts_code = f"""
+            ts_code = f"""// This is generated code.
+// To update it run `getsentry django generate_controlsilo_urls --format=js --output=/path/to/thisfile.ts`
 const patterns: RegExp[] = [
   {pattern_code}
 ];
@@ -164,6 +167,10 @@ export default patterns;
                         name = f"{namespace}:{pat.name}"
                     else:
                         name = pat.name
+
+                    if name in IGNORED_PATTERN_NAMES:
+                        continue
+
                     pattern = describe_pattern(pat)
                     views.append(
                         PatternInfo(callable=pat.callback, pattern=base + pattern, name=name)
