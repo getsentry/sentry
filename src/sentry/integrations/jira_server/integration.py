@@ -710,6 +710,17 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
             project_id = jira_projects[0]["id"]
             try_other_projects = True
 
+        logger.info(
+            "get_create_issue_config.start",
+            extra={
+                "organization_id": self.organization_id,
+                "integration_id": self.model.id,
+                "num_jira_projects": len(jira_projects),
+                "project_id": project_id,
+                "try_other_projects": try_other_projects,
+            },
+        )
+
         client = self.get_client()
         try:
             issue_type_choices = client.get_issue_types(project_id)
@@ -719,7 +730,7 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
                 other_projects = list(filter(lambda x: x["id"] != str(project_id), jira_projects))
                 if not other_projects:
                     raise
-                project_id = other_projects[0]["id"]
+                project_id = other_projects[-1]["id"]
                 issue_type_choices = client.get_issue_types(project_id)
             else:
                 raise

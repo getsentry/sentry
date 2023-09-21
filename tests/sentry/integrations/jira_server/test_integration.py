@@ -443,25 +443,15 @@ class JiraServerIntegrationTest(APITestCase):
             status=400,
             body="",
         )
-        # get that projects list fresh (w/o caching)
         responses.add(
             responses.GET,
-            "https://jira.example.org/rest/api/2/project",
-            content_type="json",
-            body="""[
-                {"id": "10001", "key": "SAMP"},
-                {"id": "10002", "key": "SAHM"}
-            ]""",
-        )
-        responses.add(
-            responses.GET,
-            "https://jira.example.org/rest/api/2/issue/createmeta/10001/issuetypes",
+            "https://jira.example.org/rest/api/2/issue/createmeta/10002/issuetypes",
             body=StubService.get_stub_json("jira", "issue_types_response.json"),
             content_type="json",
         )
         responses.add(
             responses.GET,
-            f"https://jira.example.org/rest/api/2/issue/createmeta/10001/issuetypes/{DEFAULT_ISSUE_TYPE_ID}",
+            f"https://jira.example.org/rest/api/2/issue/createmeta/10002/issuetypes/{DEFAULT_ISSUE_TYPE_ID}",
             body=StubService.get_stub_json("jira", "issue_fields_response.json"),
             content_type="json",
         )
@@ -473,7 +463,7 @@ class JiraServerIntegrationTest(APITestCase):
         )
         responses.add(
             responses.GET,
-            "https://jira.example.org/rest/api/2/project/10001/versions",
+            "https://jira.example.org/rest/api/2/project/10002/versions",
             body=StubService.get_stub_json("jira", "versions_response.json"),
             content_type="json",
         )
