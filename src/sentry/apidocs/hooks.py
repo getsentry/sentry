@@ -234,7 +234,7 @@ def custom_postprocessing_hook(result: Any, generator: Any, **kwargs: Any) -> An
                         )
                 except KeyError as e:
                     raise SentryApiBuildError(
-                        f"Unable to parse body parameters due to KeyError {e} for endpoint {endpoint_name}. Please reach out to Enterprise team to fix."
+                        f"Unable to parse body parameters due to KeyError {e} for endpoint {endpoint_name}. Please post in #discuss-apis to fix."
                     )
     return result
 
