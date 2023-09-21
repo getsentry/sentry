@@ -22,7 +22,9 @@ class AccountSettingsTest(AcceptanceTestCase):
         self.login_as(self.user)
 
     def test_account_security_settings(self):
-        with self.feature("organizations:onboarding"):
+        with self.options({"system.url-prefix": self.browser.live_server_url}), self.feature(
+            "organizations:onboarding"
+        ):
             self.browser.get("/settings/account/security/")
             self.browser.wait_until_not('[data-test-id="loading-indicator"]')
 
