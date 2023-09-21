@@ -141,7 +141,7 @@ class Command(BaseCommand):
             js_regex = [f"new RegExp('{pattern}')," for pattern in url_patterns]
             pattern_code = "\n  ".join(js_regex)
             ts_code = f"""// This is generated code.
-// To update it run `sentry django generate_controlsilo_urls --format=js --output=/path/to/thisfile.ts`
+// To update it run `getsentry django generate_controlsilo_urls --format=js --output=/path/to/thisfile.ts`
 const patterns: RegExp[] = [
   {pattern_code}
 ];
