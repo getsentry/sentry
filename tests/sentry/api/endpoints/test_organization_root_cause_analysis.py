@@ -115,7 +115,9 @@ class OrganizationRootCauseAnalysisTest(MetricsAPIBaseTestCase):
                 data={
                     "transaction": "foo",
                     "project": self.project.id,
-                    "breakpoint": (self.now - timedelta(days=1)).isoformat(),
+                    "breakpoint": self.now - timedelta(days=1),
+                    "requestStart": self.now - timedelta(days=3),
+                    "requestEnd": self.now,
                 },
             )
 
@@ -128,6 +130,9 @@ class OrganizationRootCauseAnalysisTest(MetricsAPIBaseTestCase):
                 data={
                     "transaction": "does not exist",
                     "project": self.project.id,
+                    "breakpoint": self.now - timedelta(days=1),
+                    "requestStart": self.now - timedelta(days=3),
+                    "requestEnd": self.now,
                 },
             )
 
