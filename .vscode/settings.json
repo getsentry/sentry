@@ -63,7 +63,7 @@
       "source.organizeImports": true,
       "source.fixAll.eslint": false
     },
-    "editor.defaultFormatter": "ms-python.black-formatter"
+    "editor.defaultFormatter": "ms-python.autopep8"
   },
 
   "[html]": {

@@ -90,6 +90,7 @@ def _get_metrics_for_entity(
         referrer="snuba.metrics.get_metrics_names_for_entity",
         project_ids=project_ids,
         org_id=org_id,
+        use_case_id=use_case_id,
         start=start,
         end=end,
     )
@@ -380,6 +381,7 @@ def _fetch_tags_or_values_for_mri(
             referrer=referrer,
             project_ids=[p.id for p in projects],
             org_id=org_id,
+            use_case_id=use_case_id,
         )
 
         for row in rows:
