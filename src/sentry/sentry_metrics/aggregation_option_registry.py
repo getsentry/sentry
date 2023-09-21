@@ -1,15 +1,20 @@
 from enum import Enum
 from typing import Optional
 
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
+
 
 class AggregationOption(Enum):
     HIST = "hist"
+    TEN_SECOND = "ten_second"
 
 
 METRIC_ID_AGG_OPTION = {
     "d:transactions/measurements.fcp@millisecond": AggregationOption.HIST,
     "d:transactions/measurements.lcp@millisecond": AggregationOption.HIST,
 }
+
+USE_CASE_AGG_OPTION = {UseCaseID.CUSTOM: AggregationOption.TEN_SECOND}
 
 
 def get_aggregation_option(metricId: str) -> Optional[AggregationOption]:
