@@ -9,7 +9,7 @@ import {ChartTooltip} from 'sentry/components/charts/components/tooltip';
 import XAxis from 'sentry/components/charts/components/xAxis';
 import YAxis from 'sentry/components/charts/components/yAxis';
 import EmptyMessage from 'sentry/components/emptyMessage';
-import Placeholder from 'sentry/components/placeholder';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {showPlayerTime} from 'sentry/components/replays/utils';
 import {t} from 'sentry/locale';
@@ -23,7 +23,7 @@ import ReplayReader from 'sentry/utils/replays/replayReader';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 
 interface Props {
-  datapoints: DomNodeChartDatapoint[];
+  datapoints: DomNodeChartDatapoint[] | undefined;
   setCurrentHoverTime: (time: undefined | number) => void;
   setCurrentTime: (time: number) => void;
   startTimestampMs: undefined | number;
@@ -36,6 +36,9 @@ interface DomNodesChartProps extends Props {
 const formatTimestamp = timestamp =>
   getFormattedDate(timestamp, 'MMM D, YYYY hh:mm:ss A z', {local: false});
 
+const formatTimestampTrim = timestamp =>
+  getFormattedDate(timestamp, 'MMM D hh:mm', {local: false});
+
 function DomNodesChart({
   forwardedRef,
   datapoints,
@@ -47,18 +50,18 @@ function DomNodesChart({
 
   if (!datapoints) {
     return (
-      <DomNodesChartWrapper>
-        <Placeholder height="100%" />
-      </DomNodesChartWrapper>
+      <EmptyMessage
+        title={t('No DOM node metrics found')}
+        description={t('No DOM node metrics were found.')}
+      />
     );
   }
 
   if (!datapoints.length) {
     return (
-      <EmptyMessage
-        title={t('No DOM node metrics found')}
-        description={t('No DOM node metrics were found.')}
-      />
+      <DomNodesChartWrapper>
+        <LoadingIndicator style={{margin: '54px auto'}} />
+      </DomNodesChartWrapper>
     );
   }
 
@@ -105,7 +108,7 @@ function DomNodesChart({
     xAxis: XAxis({
       type: 'time',
       axisLabel: {
-        formatter: formatTimestamp,
+        formatter: formatTimestampTrim,
       },
       theme,
     }),
@@ -201,10 +204,8 @@ function DomNodesChart({
 const DomNodesChartWrapper = styled(FluidHeight)`
   border: 1px solid ${p => p.theme.border};
   border-radius: ${space(0.5)};
-  height: 49%;
   justify-content: center;
   padding: ${space(1)};
-  margin-bottom: ${space(1)};
 `;
 
 const MemoizedDomNodesChart = memo(
@@ -214,7 +215,7 @@ const MemoizedDomNodesChart = memo(
 );
 
 function useCountDomNodes({replay}: {replay: null | ReplayReader}) {
-  return useQuery(['countDomNodes', replay], () => replay?.countDomNodes() ?? [], {
+  return useQuery(['countDomNodes', replay], () => replay?.countDomNodes() ?? undefined, {
     enabled: Boolean(replay),
     initialData: [],
     cacheTime: Infinity,

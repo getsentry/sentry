@@ -21,13 +21,7 @@ export default function countDomNodes({
   startTimestampMs,
 }: Args): Promise<DomNodeChartDatapoint[]> {
   return new Promise(resolve => {
-    // if (!frames.length) {
-    //   resolve([]);
-    //   return;
-    // }
-
     const datapoints = new Map<RecordingFrame, DomNodeChartDatapoint>();
-
     const player = createPlayer(rrwebEvents);
 
     const nextFrame = (function () {
@@ -50,24 +44,15 @@ export default function countDomNodes({
 
     type FrameRef = {
       frame: undefined | RecordingFrame;
-      // nodeId: undefined | number;
     };
 
     const nodeIdRef: FrameRef = {
       frame: undefined,
-      // nodeId: undefined,
     };
 
     const handlePause = () => {
-      // if (!nodeIdRef.nodeId && !nodeIdRef.frame) {
-      //   return;
-      // }
       const frame = nodeIdRef.frame as RecordingFrame;
-      // const count = countDomNodes();
-      // const iframe = document.getElementsByTagName('iframe')[0];
-      // const innerDoc = iframe.contentDocument;
-      // const nodeCount = innerDoc?.getElementsByTagName('*').length ?? 0;
-      const idCount = player.getMirror().getIds().length;
+      const idCount = player.getMirror().getIds().length; // gets number of DOM nodes present
       datapoints.set(frame as RecordingFrame, {
         count: idCount,
         timestampMs: frame.timestamp,
@@ -78,18 +63,12 @@ export default function countDomNodes({
     };
 
     const matchFrame = frame => {
-      // nodeIdRef.nodeId =
-      //   frame.data && 'nodeId' in frame.data ? frame.data.nodeId : undefined;
       const shouldSample = Math.random() < 0.1;
       if (!shouldSample || !frame) {
         nextOrDone();
         return;
       }
       nodeIdRef.frame = frame;
-      // if (nodeIdRef.nodeId === undefined || nodeIdRef.nodeId === -1) {
-      //   nextOrDone();
-      //   return;
-      // }
 
       window.setTimeout(() => {
         player.pause(frame.timestamp - startTimestampMs);
@@ -126,10 +105,3 @@ function createPlayer(rrwebEvents): Replayer {
   });
   return replayerRef;
 }
-
-// function countDomNodes(): number {
-//   const iframe = document.getElementsByTagName('iframe')[0];
-//   const innerDoc = iframe.contentDocument;
-//   const count = innerDoc?.getElementsByTagName('*').length ?? 0;
-//   return count;
-// }
