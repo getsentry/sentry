@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import base64
 import logging
+import os
 import random
-import sys
 from copy import deepcopy
 from datetime import datetime
 from typing import Any, Dict, Optional, Tuple
@@ -157,10 +157,13 @@ def get_internal_url_prefix() -> str:
     internal_url_prefix = options.get("system.internal-url-prefix")
     if not internal_url_prefix:
         internal_url_prefix = options.get("system.url-prefix")
-        if sys.platform == "darwin":
-            internal_url_prefix = internal_url_prefix.replace(
-                "localhost", "host.docker.internal"
-            ).replace("127.0.0.1", "host.docker.internal")
+
+        replacements = ["localhost", "127.0.0.1"]
+        if "DJANGO_LIVE_TEST_SERVER_ADDRESS" in os.environ:
+            replacements.append(os.environ["DJANGO_LIVE_TEST_SERVER_ADDRESS"])
+
+        for replacement in replacements:
+            internal_url_prefix = internal_url_prefix.replace(replacement, "host.docker.internal")
 
     assert internal_url_prefix
     return internal_url_prefix.rstrip("/")
