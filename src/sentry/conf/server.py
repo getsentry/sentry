@@ -1319,7 +1319,7 @@ REST_FRAMEWORK = {
 }
 
 
-def custom_parameter_sort(parameter: dict) -> tuple(str, str):
+def custom_parameter_sort(parameter: dict) -> tuple[str, int]:
     """
     Sort parameters by type then if the parameter is required or not.
     It should group path parameters first, then query parameters.
