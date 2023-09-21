@@ -141,6 +141,17 @@ class OrganizationMissingMembersTestCase(APITestCase):
             role="owner",
         )
 
+        # this user has an email domain that is filtered
+        noreply_email_author = self.create_commit_author(
+            project=self.project, email="hi@noreply.github.com"
+        )
+        noreply_email_author.external_id = "hi"
+        noreply_email_author.save()
+        self.create_commit(
+            repo=self.repo,
+            author=noreply_email_author,
+        )
+
         response = self.get_success_response(self.organization.slug)
 
         assert response.data[0]["integration"] == "github"

@@ -31,6 +31,15 @@ if TYPE_CHECKING:
     from django_stubs_ext import WithAnnotations
 
 
+filtered_email_domains = {
+    "gmail.com",
+    "icloud.com",
+    "hotmail.com",
+    "outlook.com",
+    "noreply.github.com",
+}
+
+
 class MissingOrgMemberSerializer(Serializer):
     def serialize(self, obj, attrs, user, **kwargs):
         return {"email": obj.email, "externalId": obj.external_id, "commitCount": obj.commit__count}
@@ -136,6 +145,9 @@ class OrganizationMissingMembersEndpoint(OrganizationEndpoint):
 
             if shared_domain:
                 queryset = queryset.filter(email__endswith=shared_domain)
+            else:
+                for filtered_email in filtered_email_domains:
+                    queryset = queryset.exclude(email__endswith=filtered_email)
 
             if queryset.exists():
                 query = request.GET.get("query")
