@@ -4,6 +4,7 @@ from datetime import datetime
 from django.db.models import DateTimeField, IntegerField, OuterRef, Q, Subquery, Value
 from django.db.models.functions import Coalesce
 from django.utils.timezone import make_aware
+from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -21,6 +22,13 @@ from sentry.api.paginator import (
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.alert_rule import CombinedRuleSerializer
 from sentry.api.utils import InvalidParams
+from sentry.apidocs.constants import (
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_SUCCESS,
+    RESPONSE_UNAUTHORIZED,
+)
+from sentry.apidocs.parameters import GlobalParams
 from sentry.constants import ObjectStatus
 from sentry.incidents.logic import get_slack_actions_with_async_lookups
 from sentry.incidents.models import AlertRule, Incident
@@ -247,14 +255,27 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
         return response
 
 
+@extend_schema(tags=["Events"])
 @region_silo_endpoint
 class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMixin):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
-        "POST": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PUBLIC,
+        "POST": ApiPublishStatus.PUBLIC,
     }
     permission_classes = (OrganizationAlertRulePermission,)
 
+    @extend_schema(
+        operation_id="List an Organization's Metric Alert Rules",
+        parameters=[GlobalParams.ORG_SLUG],
+        request=None,
+        responses={
+            200: RESPONSE_SUCCESS,  # TODO: update
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+        examples=None,  # TODO: make
+    )
     def get(self, request: Request, organization) -> Response:
         """
         Fetches metric alert rules for an organization
