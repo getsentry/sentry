@@ -119,17 +119,25 @@ export function PagePerformanceTables() {
 function GridContent({data, renderBodyCell}) {
   return (
     <GridBody>
-      {data.map(row => {
-        return (
-          <GridRow key={row.transaction}>
-            {columnOrder.map(column => (
-              <GridBodyCell key={`${row.transaction} ${column.key}`}>
-                {renderBodyCell(column, row)}
-              </GridBodyCell>
-            ))}
-          </GridRow>
-        );
-      })}
+      {data ? (
+        data.map(row => {
+          return (
+            <GridRow key={row.transaction}>
+              {columnOrder.map(column => (
+                <GridBodyCell key={`${row.transaction} ${column.key}`}>
+                  {renderBodyCell(column, row)}
+                </GridBodyCell>
+              ))}
+            </GridRow>
+          );
+        })
+      ) : (
+        <GridRow key="no-data">
+          <NoDataGridBodyCell colSpan={columnOrder.length}>
+            {t('None')}
+          </NoDataGridBodyCell>
+        </GridRow>
+      )}
     </GridBody>
   );
 }
@@ -197,4 +205,10 @@ const GridDescription = styled('div')`
 const GridDescriptionHeader = styled('div')`
   font-weight: bold;
   color: ${p => p.theme.textColor};
+`;
+
+const NoDataGridBodyCell = styled(GridBodyCell)`
+  grid-column: 1 / -1;
+  text-align: center;
+  color: ${p => p.theme.gray300};
 `;
