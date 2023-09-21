@@ -1,6 +1,9 @@
 from sentry.rules.conditions.level import LevelCondition
 from sentry.rules.match import MatchType
 from sentry.testutils.cases import RuleTestCase
+from sentry.testutils.skips import requires_snuba
+
+pytestmark = [requires_snuba]
 
 
 class LevelConditionTest(RuleTestCase):

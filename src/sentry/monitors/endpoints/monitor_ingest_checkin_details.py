@@ -121,7 +121,7 @@ class MonitorIngestCheckInDetailsEndpoint(MonitorIngestEndpoint):
             checkin.update(**params)
 
             if checkin.status == CheckInStatus.ERROR:
-                monitor_failed = mark_failed(monitor_environment, current_datetime)
+                monitor_failed = mark_failed(checkin, ts=current_datetime)
                 if not monitor_failed:
                     return self.respond(serialize(checkin, request.user), status=208)
             else:

@@ -419,6 +419,12 @@ urlpatterns += [
         react_page_view,
         name="sentry-admin-overview",
     ),
+    # Story book
+    re_path(
+        r"^stories/",
+        react_page_view,
+        name="stories",
+    ),
     # Legacy Redirects
     re_path(
         r"^docs/?$",
@@ -736,6 +742,12 @@ urlpatterns += [
         react_page_view,
         name="discover",
     ),
+    # DDM
+    re_path(
+        r"^ddm/",
+        react_page_view,
+        name="ddm",
+    ),
     # Request to join an organization
     re_path(
         r"^join-request/",
@@ -790,9 +802,14 @@ urlpatterns += [
     ),
     # User Feedback v2
     re_path(
+        r"^feedback/",
+        react_page_view,
+        name="feedback-list",
+    ),
+    re_path(
         r"^feedback/(?P<feedback_id>\d+)/",
         react_page_view,
-        name="feedback",
+        name="feedback-details",
     ),
     # Data Export
     re_path(
@@ -846,6 +863,11 @@ urlpatterns += [
                     name="sentry-organization-index",
                 ),
                 re_path(
+                    r"^(?P<organization_slug>[\w_-]+)/stories/$",
+                    react_page_view,
+                    name="sentry-organization-stories",
+                ),
+                re_path(
                     r"^(?P<organization_slug>[\w_-]+)/issues/$",
                     react_page_view,
                     name="sentry-organization-issue-list",
@@ -874,9 +896,14 @@ urlpatterns += [
                 ),
                 # User Feedback v2
                 re_path(
+                    r"^(?P<organization_slug>[\w_-]+)/feedback/$",
+                    react_page_view,
+                    name="sentry-organization-feedback-list",
+                ),
+                re_path(
                     r"^(?P<organization_slug>[\w_-]+)/feedback/(?P<feedback_id>\d+)/$",
                     react_page_view,
-                    name="sentry-organization-feedback",
+                    name="sentry-organization-feedback-details",
                 ),
                 re_path(
                     r"^(?P<organization_slug>[\w_-]+)/data-export/(?P<data_export_id>\d+)/$",

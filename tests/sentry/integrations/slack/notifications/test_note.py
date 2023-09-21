@@ -7,7 +7,10 @@ from sentry.notifications.notifications.activity.note import NoteActivityNotific
 from sentry.testutils.cases import PerformanceIssueTestCase, SlackActivityNotificationTest
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
 from sentry.testutils.helpers.slack import get_attachment, send_notification
+from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
+
+pytestmark = [requires_snuba]
 
 
 class SlackNoteNotificationTest(SlackActivityNotificationTest, PerformanceIssueTestCase):

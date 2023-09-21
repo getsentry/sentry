@@ -5,7 +5,6 @@ from unittest import mock
 
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.types import BrokerValue, Message, Partition, Topic
-from freezegun import freeze_time
 
 from sentry.constants import DataCategory
 from sentry.ingest.billing_metrics_consumer import (
@@ -13,6 +12,7 @@ from sentry.ingest.billing_metrics_consumer import (
     MetricsBucket,
 )
 from sentry.sentry_metrics.indexer.strings import TRANSACTION_METRICS_NAMES
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.utils import json
 from sentry.utils.outcomes import Outcome
 
