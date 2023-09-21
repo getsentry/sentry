@@ -22,6 +22,7 @@ __all__ = (
     "DatetimeSafeDjangoJSONEncoder",
     "export_in_user_scope",
     "export_in_organization_scope",
+    "export_in_config_scope",
     "export_in_global_scope",
 )
 
@@ -143,7 +144,8 @@ def export_in_user_scope(
     src, *, user_filter: set[str] | None = None, indent: int = 2, printer=click.echo
 ):
     """
-    Perform an export in the `User` scope, meaning that only models with `RelocationScope.User` will be exported from the provided `src` file.
+    Perform an export in the `User` scope, meaning that only models with `RelocationScope.User` will
+    be exported from the provided `src` file.
     """
 
     # Import here to prevent circular module resolutions.
@@ -162,7 +164,9 @@ def export_in_organization_scope(
     src, *, org_filter: set[str] | None = None, indent: int = 2, printer=click.echo
 ):
     """
-    Perform an export in the `Organization` scope, meaning that only models with `RelocationScope.User` or `RelocationScope.Organization` will be exported from the provided `src` file.
+    Perform an export in the `Organization` scope, meaning that only models with
+    `RelocationScope.User` or `RelocationScope.Organization` will be exported from the provided
+    `src` file.
     """
 
     # Import here to prevent circular module resolutions.
@@ -172,6 +176,31 @@ def export_in_organization_scope(
         src,
         ExportScope.Organization,
         filter_by=Filter(Organization, "slug", org_filter) if org_filter is not None else None,
+        indent=indent,
+        printer=printer,
+    )
+
+
+def export_in_config_scope(src, *, indent: int = 2, printer=click.echo):
+    """
+    Perform an export in the `Config` scope, meaning that only models directly related to the global
+    configuration and administration of an entire Sentry instance will be exported.
+    """
+
+    # Import here to prevent circular module resolutions.
+    from sentry.models.user import User
+    from sentry.models.userpermission import UserPermission
+    from sentry.models.userrole import UserRoleUser
+
+    # Pick out all users with admin privileges.
+    admin_user_pks: set[int] = set()
+    admin_user_pks.update(UserPermission.objects.values_list("user_id", flat=True))
+    admin_user_pks.update(UserRoleUser.objects.values_list("user_id", flat=True))
+
+    return _export(
+        src,
+        ExportScope.Config,
+        filter_by=Filter(User, "pk", admin_user_pks),
         indent=indent,
         printer=printer,
     )

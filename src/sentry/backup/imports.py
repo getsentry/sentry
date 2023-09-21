@@ -60,7 +60,7 @@ def _import(
             # matched orgs, and finally add those pks to a `User.pk` instance of `Filter`.
             filtered_org_pks = set()
             seen_first_org_member_model = False
-            user_filter = Filter(model=User, field="pk")
+            user_filter: Filter[int] = Filter(model=User, field="pk")
             filters.append(user_filter)
 
             # TODO(getsentry#team-ospo/190): It turns out that Django's "streaming" JSON

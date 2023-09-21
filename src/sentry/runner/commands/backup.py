@@ -3,6 +3,7 @@ from __future__ import annotations
 import click
 
 from sentry.backup.exports import (
+    export_in_config_scope,
     export_in_global_scope,
     export_in_organization_scope,
     export_in_user_scope,
@@ -186,6 +187,28 @@ def export_organizations(dest, silent, indent, filter_org_slugs):
         dest,
         indent=indent,
         org_filter=parse_filter_arg(filter_org_slugs),
+        printer=(lambda *args, **kwargs: None) if silent else click.echo,
+    )
+
+
+@export.command(name="config")
+@click.argument("dest", default="-", type=click.File("w"))
+@click.option("--silent", "-q", default=False, is_flag=True, help="Silence all debug output.")
+@click.option(
+    "--indent",
+    default=2,
+    type=int,
+    help="Number of spaces to indent for the JSON output. (default: 2)",
+)
+@configuration
+def export_config(dest, silent, indent):
+    """
+    Export all configuration and administrator accounts needed to set up this Sentry instance.
+    """
+
+    export_in_config_scope(
+        dest,
+        indent=indent,
         printer=(lambda *args, **kwargs: None) if silent else click.echo,
     )
 

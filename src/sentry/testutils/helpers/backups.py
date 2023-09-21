@@ -16,6 +16,7 @@ from sentry_relay.auth import generate_key_pair
 from sentry.backup.comparators import ComparatorMap
 from sentry.backup.dependencies import sorted_dependencies
 from sentry.backup.exports import (
+    export_in_config_scope,
     export_in_global_scope,
     export_in_organization_scope,
     export_in_user_scope,
@@ -103,6 +104,8 @@ def export_to_file(path: Path, scope: ExportScope, filter_by: set[str] | None = 
         # case that ever changes.
         if scope == ExportScope.Global:
             export_in_global_scope(tmp_file, printer=NOOP_PRINTER)
+        elif scope == ExportScope.Config:
+            export_in_config_scope(tmp_file, printer=NOOP_PRINTER)
         elif scope == ExportScope.Organization:
             export_in_organization_scope(tmp_file, org_filter=filter_by, printer=NOOP_PRINTER)
         elif scope == ExportScope.User:
