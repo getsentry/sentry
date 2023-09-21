@@ -16,7 +16,6 @@ from sentry.models.useremail import UserEmail
 from sentry.models.userip import UserIP
 from sentry.testutils.helpers.backups import BackupTestCase, export_to_file
 from sentry.utils.json import JSONData
-from tests.sentry.backup import run_backup_tests_only_on_single_db
 
 
 class ExportTestCase(BackupTestCase):
@@ -25,7 +24,6 @@ class ExportTestCase(BackupTestCase):
         return export_to_file(tmp_path, **kwargs)
 
 
-@run_backup_tests_only_on_single_db
 class ScopingTests(ExportTestCase):
     """
     Ensures that only models with the allowed relocation scopes are actually exported.
@@ -66,7 +64,6 @@ class ScopingTests(ExportTestCase):
                     )
 
 
-@run_backup_tests_only_on_single_db
 class FilteringTests(ExportTestCase):
     """
     Ensures that filtering operations include the correct models.

@@ -1,17 +1,16 @@
 from __future__ import annotations
 
-from io import StringIO
-from typing import Iterator, Type
+from typing import Iterator, Tuple, Type
 
 import click
-from django.apps import apps
-from django.core import management, serializers
+from django.conf import settings
+from django.core import serializers
 from django.core.exceptions import ValidationError as DjangoValidationError
-from django.db import IntegrityError, connection, transaction
+from django.db import IntegrityError, connections, router, transaction
 from django.db.models.base import Model
 from rest_framework.serializers import ValidationError as DjangoRestFrameworkValidationError
 
-from sentry.backup.dependencies import PrimaryKeyMap, normalize_model_name
+from sentry.backup.dependencies import PrimaryKeyMap, get_model, normalize_model_name
 from sentry.backup.helpers import EXCLUDED_APPS, Filter, ImportFlags
 from sentry.backup.scopes import ImportScope
 from sentry.silo import unguarded_write
@@ -43,6 +42,7 @@ def _import(
     from sentry.models.organization import Organization
     from sentry.models.user import User
 
+    flags = flags if flags is not None else ImportFlags()
     start = src.tell()
     filters = []
     if filter_by is not None:
@@ -119,7 +119,7 @@ def _import(
 
     # The input JSON blob should already be ordered by model kind. We simply break up 1 JSON blob
     # with N model kinds into N json blobs with 1 model kind each.
-    def yield_json_models(src) -> Iterator[str]:
+    def yield_json_models(src) -> Iterator[Tuple[str, str]]:
         # TODO(getsentry#team-ospo/190): Better error handling for unparsable JSON.
         models = json.load(src)
         last_seen_model_name: str | None = None
@@ -128,25 +128,30 @@ def _import(
             model_name = model["model"]
             if last_seen_model_name != model_name:
                 if last_seen_model_name is not None and len(batch) > 0:
-                    yield json.dumps(batch)
+                    yield (last_seen_model_name, json.dumps(batch))
 
                 batch = []
                 last_seen_model_name = model_name
 
             batch.append(model)
 
-        if batch:
-            yield json.dumps(batch)
+        if last_seen_model_name is not None and batch:
+            yield (last_seen_model_name, json.dumps(batch))
 
-    try:
-        # Import / export only works in monolith mode with a consolidated db.
-        # TODO(getsentry/team-ospo#185): the `unguarded_write` is temporary until we get an RPC
-        # service up for writing to control silo models.
-        with unguarded_write(using="default"), transaction.atomic("default"):
-            allowed_relocation_scopes = scope.value
-            flags = flags if flags is not None else ImportFlags()
-            pk_map = PrimaryKeyMap()
-            for batch in yield_json_models(src):
+    # Extract some write logic into its own internal function, so that we may call it irrespective
+    # of how we do atomicity: on a per-model (if using multiple dbs) or global (if using a single
+    # db) basis.
+    def do_write():
+        allowed_relocation_scopes = scope.value
+        pk_map = PrimaryKeyMap()
+        for (batch_model_name, batch) in yield_json_models(src):
+            model = get_model(batch_model_name)
+            if model is None:
+                raise ValueError("Unknown model name")
+
+            using = router.db_for_write(model)
+            with transaction.atomic(using=using):
+                count = 0
                 for obj in serializers.deserialize("json", batch, use_natural_keys=False):
                     o = obj.object
                     if o._meta.app_label not in EXCLUDED_APPS or o:
@@ -177,6 +182,22 @@ def _import(
 
                                 new_pk, import_kind = written
                                 pk_map.insert(model_name, old_pk, new_pk, import_kind)
+                                count += 1
+
+                # If we wrote at least one model, make sure to update the sequences too.
+                if count > 0:
+                    table = o._meta.db_table
+                    seq = f"{table}_id_seq"
+                    with connections[using].cursor() as cursor:
+                        cursor.execute(f"SELECT setval(%s, (SELECT MAX(id) FROM {table}))", [seq])
+
+    try:
+        if len(settings.DATABASES) == 1:
+            # TODO(getsentry/team-ospo#185): This is currently untested in single-db mode. Fix ASAP!
+            with unguarded_write(using="default"), transaction.atomic("default"):
+                do_write()
+        else:
+            do_write()
 
     # For all database integrity errors, let's warn users to follow our
     # recommended backup/restore workflow before reraising exception. Most of
@@ -197,19 +218,6 @@ def _import(
     except DjangoValidationError as e:
         errs = {field: error for field, error in e.message_dict.items()}
         raise DjangoRestFrameworkValidationError(errs) from e
-
-    sql = StringIO()
-    err = StringIO()
-    for app in apps.get_app_configs():
-        management.call_command("sqlsequencereset", app.label, "--no-color", stdout=sql, stderr=err)
-    with connection.cursor() as cursor:
-        cursor.execute(sql.getvalue())
-
-    errored = "\n".join(
-        [li for li in err.getvalue().splitlines() if "No sequences found." not in li]
-    ).strip()
-    if errored:
-        raise ValueError(f"Encountered SQL errors:\n\n {errs}")
 
 
 def import_in_user_scope(

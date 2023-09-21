@@ -21,7 +21,7 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.models.organizationmapping import OrganizationMapping
 from sentry.services.hybrid_cloud.orgauthtoken import orgauthtoken_service
 
 MAX_NAME_LENGTH = 255
@@ -96,11 +96,13 @@ class OrgAuthToken(Model):
             token_hashed=self.token_hashed
         ).first()
         if (not self.token_hashed) or matching_token_hashed:
-            org_context = organization_service.get_organization_by_id(id=self.organization_id)
-            if org_context is None:
+            org_mapping = OrganizationMapping.objects.filter(
+                organization_id=self.organization_id
+            ).first()
+            if org_mapping is None:
                 return None
 
-            token_str = generate_token(org_context.organization.slug, generate_region_url())
+            token_str = generate_token(org_mapping.slug, generate_region_url())
             self.token_hashed = hash_token(token_str)
             self.token_last_characters = token_str[-4:]
 

@@ -13,7 +13,7 @@ from sentry.testutils.helpers.backups import (
     clear_database,
     export_to_file,
 )
-from tests.sentry.backup import run_backup_tests_only_on_single_db, targets
+from tests.sentry.backup import targets
 
 EXHAUSTIVELY_TESTED_MODELS = set()
 
@@ -35,7 +35,6 @@ def mark(*marking: Type | Literal["__all__"]):
     return marking
 
 
-@run_backup_tests_only_on_single_db
 class ExhaustiveTests(BackupTestCase):
     """Ensure that a database with all exportable models filled out still works."""
 
@@ -50,7 +49,6 @@ class ExhaustiveTests(BackupTestCase):
         return self.import_export_then_validate(self._testMethodName, reset_pks=False)
 
 
-@run_backup_tests_only_on_single_db
 class UniquenessTests(BackupTestCase):
     """Ensure that required uniqueness (ie, model fields marked `unique=True`) is honored."""
 

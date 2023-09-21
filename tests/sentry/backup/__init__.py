@@ -1,12 +1,10 @@
 from __future__ import annotations
 
-from typing import Any, Callable, Type
+from typing import Type
 
-import pytest
 from django.db import models
 
 from sentry.backup.exports import DatetimeSafeDjangoJSONEncoder
-from sentry.testutils.hybrid_cloud import use_split_dbs
 
 
 def targets(expected_models: list[Type]):
@@ -95,19 +93,3 @@ def targets(expected_models: list[Type]):
         return wrapped
 
     return decorator
-
-
-def run_backup_tests_only_on_single_db(test_case: Type | Callable[..., Any]):
-    """Skip tests on backup functionality if testing on a split DB.
-
-    The backup commands currently are implemented only for a monolithic database.
-    When backup eventually supports importing and exporting JSON for databases in
-    individual Hybrid Cloud silos, update the affected tests and remove all instances
-    of this decorator.
-    """
-    # TODO(getsentry/team-ospo#185)
-
-    delegate = pytest.mark.skipif(
-        use_split_dbs(), reason="backup is currently supported only for single DB"
-    )
-    return delegate(test_case)
