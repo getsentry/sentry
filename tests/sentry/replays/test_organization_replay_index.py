@@ -1717,55 +1717,6 @@ class OrganizationReplayIndexOptimizedSearchTest(OrganizationReplayIndexTest):
             assert "data" in response_data
             assert len(response_data["data"]) == 0
 
-    # def test_event_ids(self):
-
-    #     level_ids_to_add: {
-    #         "warning": {
-    #             "warning": [uuid.uuid4().hex],
-    #         },
-    #         "error": {
-    #             "error": [uuid.uuid4().hex],
-    #             "fatal": [uuid.uuid4().hex],
-    #         }
-    #         "info": {
-    #             "info": [uuid.uuid4().hex],
-    #             "debug": [uuid.uuid4().hex],
-    #         }
-    #     }
-
-    #     for level in ["warning", "error", "fatal"]:
-
-    #     project = self.create_project(teams=[self.team])
-
-    #     uid1 = uuid.uuid4().hex
-    #     uid2 = uuid.uuid4().hex
-
-    #     replay1_id = uuid.uuid4().hex
-    #     seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=22)
-    #     seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=5)
-
-    #     self.store_replays(mock_replay(seq1_timestamp, project.id, replay1_id))
-    #     self.store_replays(mock_replay(seq2_timestamp, project.id, replay1_id))
-    #     self.store_replays(
-    #         self.mock_event_links(seq1_timestamp, project.id, "warning", replay1_id, uid1)
-    #     )
-    #     with self.feature(REPLAYS_FEATURES):
-    #         queries = [f"x_warning_id:{uid1}", f"x_warning_id:[{uid1}]"]
-    #         for query in queries:
-    #             response = self.client.get(
-    #                 self.url + f"?field=id&field=x_warning_ids&query={query}"
-    #             )
-    #             assert response.status_code == 200
-    #             response_data = response.json()
-    #             assert len(response_data["data"]) == 1, query
-
-    #         response = self.client.get(
-    #             self.url + f"?field=id&field=x_warning_ids&query=x_warning_id:{uid2}"
-    #         )
-    #         assert response.status_code == 200
-    #         response_data = response.json()
-    #         assert len(response_data["data"]) == 0, query
-
     def test_exp_ids_errors(self):
         project = self.create_project(teams=[self.team])
 
