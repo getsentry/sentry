@@ -35,6 +35,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
         return {
             constants.SPAN_MODULE_ALIAS: self._resolve_span_module,
             constants.SPAN_DOMAIN_ALIAS: self._resolve_span_domain,
+            constants.UNIQUE_SPAN_DOMAIN_ALIAS: self._resolve_unique_span_domains,
         }
 
     def resolve_metric(self, value: str) -> int:
@@ -394,6 +395,12 @@ class SpansMetricsDatasetConfig(DatasetConfig):
             ],
             alias,
         )
+
+    def _resolve_unique_span_domains(
+        self,
+        alias: Optional[str] = None,
+    ) -> SelectType:
+        return Function("arrayJoin", [self._resolve_span_domain()], alias)
 
     # Query Functions
     def _resolve_count_if(
