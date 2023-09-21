@@ -281,11 +281,13 @@ const CardTitle = styled('h6')`
 
 export const Subtitle = styled('div')`
   display: flex;
+  max-width: 75%;
   align-items: center;
   font-size: ${p => p.theme.fontSizeSmall};
   font-weight: 400;
   color: ${p => p.theme.gray300};
   gap: ${space(0.5)};
+  word-break: break-all;
 `;
 
 const MemberCard = styled(Card)`

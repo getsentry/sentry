@@ -48,7 +48,7 @@ export function InviteMissingMembersModal({
     role: organization.defaultRole,
     teamSlugs: new Set<string>(),
     externalId: member.externalId,
-    selected: false,
+    selected: true,
   }));
   const [memberInvites, setMemberInvites] =
     useState<MissingMemberInvite[]>(initialMemberInvites);
