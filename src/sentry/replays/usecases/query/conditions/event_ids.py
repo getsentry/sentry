@@ -30,7 +30,6 @@ class EventIdScalar(ComputedBase):
         )
 
     @classmethod
-    @staticmethod
     def visit_neq(cls, value: UUID) -> Condition:
         return Condition(
             Function(
