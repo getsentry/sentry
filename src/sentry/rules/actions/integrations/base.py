@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import abc
-from typing import List, Optional
+from typing import List
 
 from django import forms
 
@@ -90,8 +90,8 @@ class IntegrationEventAction(EventAction, abc.ABC):
         self,
         event: GroupEvent,
         external_id: str,
-        rule: Optional[Rule] = None,
-        notification_uuid: Optional[str] = None,
+        rule: Rule | None = None,
+        notification_uuid: str | None = None,
     ) -> None:
         # Currently these actions can only be triggered by issue alerts
         analytics.record(
