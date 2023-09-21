@@ -159,6 +159,7 @@ A list of actions that take place when all required conditions and filters for t
     "account": 92385907,
     "service": 9823924
 }
+```
 
 **Send a Slack notification**
 - `workspace`: The integration ID associated with the Slack workspace.
@@ -316,7 +317,6 @@ A list of filters that determine if a rule fires after the necessary conditions 
 ```
 
 **The issue has happened at least `value` times**
-Note this is approximate.
 - `value`: An integer
 ```json
 {
