@@ -72,7 +72,6 @@ export interface UnsavedIssueAlertRule {
   frequency: number;
   name: string;
   environment?: null | string;
-
   owner?: string | null;
 }
 
