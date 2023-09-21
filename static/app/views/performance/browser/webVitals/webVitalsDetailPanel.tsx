@@ -120,7 +120,7 @@ export function WebVitalsDetailPanel({
     <PageErrorProvider>
       <DetailPanel detailKey={detailKey ?? undefined} onClose={onClose}>
         {project && (
-          <SpanSummaryProjectAvatar
+          <StyledProjectAvatar
             project={project}
             direction="left"
             size={40}
@@ -169,7 +169,7 @@ const mapWebVitalToColumn = (webVital?: WebVitals | null) => {
   }
 };
 
-const SpanSummaryProjectAvatar = styled(ProjectAvatar)`
+const StyledProjectAvatar = styled(ProjectAvatar)`
   padding-top: ${space(1)};
   padding-bottom: ${space(2)};
 `;
