@@ -16,10 +16,10 @@ class Migration(CheckedMigration):
     # - Adding indexes to large tables. Since this can take a long time, we'd generally prefer to
     #   have ops run this and not block the deploy. Note that while adding an index is a schema
     #   change, it's completely safe to run the operation after the code has deployed.
-    is_dangerous = True
+    is_dangerous = False
 
     dependencies = [
-        ("sentry", "0560_add_monitorincident_table"),
+        ("sentry", "0562_drop_xactor_actor_from_state"),
     ]
 
     operations = [
