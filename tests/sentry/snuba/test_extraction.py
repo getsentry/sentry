@@ -8,6 +8,7 @@ from sentry.snuba.metrics.extraction import (
     OnDemandMetricSpec,
     apdex_tag_spec,
     cleanup_query,
+    epm_tag_spec,
     failure_tag_spec,
     query_tokens_to_string,
     should_use_on_demand_metrics,
@@ -280,6 +281,17 @@ def test_spec_apdex(_get_apdex_project_transaction_threshold, default_project):
     assert spec.op == "on_demand_apdex"
     assert spec.condition == {"name": "event.release", "op": "eq", "value": "a"}
     assert spec.tags_conditions(default_project) == apdex_tag_spec(default_project, "10")
+
+
+@django_db_all
+def test_spec_epm(default_project):
+    spec = OnDemandMetricSpec("epm()", "transaction.duration:>1s")
+
+    assert spec._metric_type == "c"
+    assert spec.field_to_extract is None
+    assert spec.op == "on_demand_epm"
+    assert spec.condition == {"name": "event.duration", "op": "gt", "value": 1000.0}
+    assert spec.tags_conditions(default_project) == epm_tag_spec(default_project, "not_used")
 
 
 def test_cleanup_equivalent_specs():

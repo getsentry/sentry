@@ -802,21 +802,13 @@ def max_timestamp(aggregate_filter, org_id, use_case_id, alias=None):
     return timestamp_column_snql("maxIf", aggregate_filter, org_id, use_case_id, alias)
 
 
-def on_demand_epm_snql_factory(
-    aggregate_filter: Function, org_id: int, use_case_id: UseCaseID, alias: str
-) -> Function:
-    """Divide the total count of events by the time period"""
-    # XXX: This whole thing is wrong. Just pushing the code so
-    return Function(
-        "divide",
-        # [
-        #     XXX: Count if within a time range?
-        # ],
-        alias="epm_alias",
-    )
+def total_count(aggregate_filter: Function) -> Function:
+    return Function("sumIf", [Column("value"), aggregate_filter])
 
 
-def on_demand_failure_rate_snql_factory(aggregate_filter, org_id, use_case_id, alias=None):
+def on_demand_failure_rate_snql_factory(
+    aggregate_filter: Function, org_id: int, use_case_id: UseCaseID, alias: Optional[str]
+):
     """Divide the number of transactions that failed from the total."""
     return Function(
         "divide",
@@ -824,14 +816,14 @@ def on_demand_failure_rate_snql_factory(aggregate_filter, org_id, use_case_id, a
             on_demand_failure_count_snql_factory(
                 aggregate_filter, org_id, use_case_id, "failure_count"
             ),
-            Function("sumIf", [Column("value"), aggregate_filter]),
+            total_count(aggregate_filter),
         ],
         alias=alias,
     )
 
 
 def on_demand_failure_count_snql_factory(
-    aggregate_filter: Function, org_id: int, use_case_id: UseCaseID, alias: str
+    aggregate_filter: Function, org_id: int, use_case_id: UseCaseID, alias: Optional[str]
 ) -> Function:
     """Count the number of transactions where the failure tag is set to true."""
     return Function(
@@ -856,7 +848,9 @@ def on_demand_failure_count_snql_factory(
     )
 
 
-def on_demand_apdex_snql_factory(aggregate_filter, org_id, use_case_id, alias=None):
+def on_demand_apdex_snql_factory(
+    aggregate_filter: Function, org_id: int, use_case_id: UseCaseID, alias: Optional[str]
+):
     # For more information about the formula, check https://docs.sentry.io/product/performance/metrics/#apdex.
 
     satisfactory = Function(
@@ -903,10 +897,17 @@ def on_demand_apdex_snql_factory(aggregate_filter, org_id, use_case_id, alias=No
             2,
         ],
     )
-    total = Function("sumIf", [Column("value"), aggregate_filter])
 
     return Function(
         "divide",
-        [Function("plus", [satisfactory, tolerable_divided_by_2]), total],
+        [Function("plus", [satisfactory, tolerable_divided_by_2]), total_count(aggregate_filter)],
         alias=alias,
     )
+
+
+def on_demand_epm_snql_factory(
+    aggregate_filter: Function, org_id: int, use_case_id: UseCaseID, alias: Optional[str]
+) -> Function:
+    """Return the count based on the aggregation."""
+    # Dividing by the time interval happens in a different place
+    return total_count(aggregate_filter)

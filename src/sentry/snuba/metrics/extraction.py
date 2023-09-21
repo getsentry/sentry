@@ -610,13 +610,17 @@ def apdex_tag_spec(project: Project, argument: Optional[str]) -> List[TagSpec]:
 
 
 def epm_tag_spec(_1: Project, _2: Optional[str]) -> List[TagSpec]:
-    pass
+    return []
 
 
 DERIVED_METRICS = {
     "apdex": {
         "tag_spec_func": apdex_tag_spec,
         "hash_method": "op_plus_arg",
+    },
+    "epm": {
+        "tag_spec_func": epm_tag_spec,
+        "hash_method": "op",
     },
     "failure_count": {
         "tag_spec_func": failure_tag_spec,
@@ -717,9 +721,9 @@ class OnDemandMetricSpec:
         # with condition `f` and this will create a problem, since we might already have data for the `count()` and when
         # `apdex()` is created in the UI, we will use that metric but that metric didn't extract in the past the tags
         # that are used for apdex calculation, effectively causing problems with the data.
-        if _HASH_METHOD[self.op] == "op":
+        if _HASH_METHOD.get(self.op) == "op":
             return self.op
-        elif _HASH_METHOD[self.op] == "op_plus_arg":
+        elif _HASH_METHOD.get(self.op) == "op_plus_arg":
             return f"{self.op}:{self._argument}"
 
         return self._argument
