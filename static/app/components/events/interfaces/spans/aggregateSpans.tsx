@@ -61,9 +61,7 @@ type Props = {
 
 export function AggregateSpans({transaction}: Props) {
   const organization = useOrganization();
-  // const location = useLocation();
   const {data} = useAggregateSpans({transaction});
-  // const transactionMethod = location.query.method;
 
   function formatSpan(span, total) {
     const {
