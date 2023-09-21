@@ -1,45 +1,13 @@
 import {Fragment, useEffect, useRef, useState} from 'react';
-import {createPortal} from 'react-dom';
 import styled from '@emotion/styled';
 import Prism from 'prismjs';
 
 import {Button} from 'sentry/components/button';
-import {NODE_ENV} from 'sentry/constants';
 import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {prismStyles} from 'sentry/styles/prism';
 import {space} from 'sentry/styles/space';
 import {loadPrismLanguage} from 'sentry/utils/loadPrismLanguage';
-
-/**
- * Replaces tokens in a DOM element with a span element.
- * @param element DOM element in which the tokens will be replaced
- * @param tokens array of tokens to be replaced
- * @returns object with keys as tokens and values as array of HTMLSpanElement
- */
-export function replaceTokensWithSpan(element: HTMLElement, tokens: string[]) {
-  const replaceRegex = new RegExp(`(${tokens.join('|')})`, 'g');
-  element.innerHTML = element.innerHTML.replace(
-    replaceRegex,
-    '<span data-token="$1"></span>'
-  );
-
-  const nodes = tokens.reduce(
-    (acc, token) => {
-      const tokenNodes = Array.from<HTMLSpanElement>(
-        element.querySelectorAll(`[data-token="${token}"]`)
-      );
-      return tokenNodes.length > 0
-        ? {
-            ...acc,
-            [token]: tokenNodes,
-          }
-        : acc;
-    },
-    {} as Record<string, HTMLSpanElement[]>
-  );
-  return nodes;
-}
 
 interface CodeSnippetProps {
   children: string;
@@ -54,6 +22,11 @@ interface CodeSnippetProps {
   disableUserSelection?: boolean;
   filename?: string;
   hideCopyButton?: boolean;
+  /**
+   * Fires after the code snippet is highlighted and all DOM nodes are available
+   * @param element The root element of the code snippet
+   */
+  onAfterHighlight?: (element: HTMLElement) => void;
   onCopy?: (copiedCode: string) => void;
   /**
    * Fired when the user selects and copies code snippet manually
@@ -65,11 +38,6 @@ interface CodeSnippetProps {
     label: string;
     value: string;
   }[];
-  tokenReplacers?: TokenReplacer;
-}
-
-interface TokenReplacer {
-  [token: string]: React.ComponentType;
 }
 
 export function CodeSnippet({
@@ -82,45 +50,29 @@ export function CodeSnippet({
   className,
   onSelectAndCopy,
   disableUserSelection,
-  tokenReplacers,
+  onAfterHighlight,
   selectedTab,
   onTabClick,
   tabs,
 }: CodeSnippetProps) {
   const ref = useRef<HTMLModElement | null>(null);
-  const [tokenNodes, setTokenNodes] = useState<Record<string, HTMLSpanElement[]>>({});
 
   useEffect(() => {
     const element = ref.current;
     if (!element) {
-      return () => {};
+      return;
     }
 
-    const applyTokenReplacers = () => {
-      if (!tokenReplacers) {
-        return;
-      }
-      const nodes = replaceTokensWithSpan(element, Object.keys(tokenReplacers));
-      if (Object.keys(nodes).length > 0) {
-        setTokenNodes(nodes);
-      }
-    };
-
-    // Don't load languages in test environment as it takes long enough to trigger
-    // console error about updating state without act() when setState is called afterwords
-    if (language in Prism.languages || NODE_ENV === 'test') {
-      Prism.highlightElement(element, false, applyTokenReplacers);
-      return () => {};
+    if (language in Prism.languages) {
+      Prism.highlightElement(element, false, () => onAfterHighlight?.(element));
+      return;
     }
 
     loadPrismLanguage(language, {
-      onLoad: () => Prism.highlightElement(element, false, applyTokenReplacers),
+      onLoad: () =>
+        Prism.highlightElement(element, false, () => onAfterHighlight?.(element)),
     });
-
-    return () => {
-      setTokenNodes({});
-    };
-  }, [children, language, tokenReplacers]);
+  }, [children, language, onAfterHighlight]);
 
   const [tooltipState, setTooltipState] = useState<'copy' | 'copied' | 'error'>('copy');
 
@@ -195,13 +147,6 @@ export function CodeSnippet({
           {children}
         </Code>
       </pre>
-      {tokenReplacers &&
-        Object.entries(tokenNodes).map(([token, nodes]) => {
-          const TokenReplacer = tokenReplacers[token];
-          return nodes.map((node, index) =>
-            createPortal(<TokenReplacer />, node, `${token}_${index}`)
-          );
-        })}
     </Wrapper>
   );
 }
