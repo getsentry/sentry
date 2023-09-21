@@ -62,7 +62,7 @@ def hub():
             dsn="http://foo@example.invalid/42",
             transport=DummyTransport,
             _experiments={
-                "enable_metrics": True,
+                "enable_metrics": True,  # type: ignore
             },
         )
     )
