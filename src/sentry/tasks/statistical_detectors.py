@@ -55,6 +55,8 @@ logger = logging.getLogger("sentry.tasks.statistical_detectors")
 
 FUNCTIONS_PER_PROJECT = 100
 FUNCTIONS_PER_BATCH = 1_000
+TRANSACTIONS_PER_PROJECT = 50
+TRANSACTIONS_PER_BATCH = 1_000
 PROJECTS_PER_BATCH = 1_000
 
 
@@ -123,13 +125,113 @@ def detect_transaction_trends(
 ) -> None:
     if not options.get("statistical_detectors.enable"):
         return
-    # TODO: get the transactions_per_project from an option
-    NUM_TRANSACTIONS_PER_PROJECT = 50
+
+    regressions = filter(
+        lambda trend: trend[0] == TrendType.Regressed,
+        _detect_transaction_trends(org_ids, project_ids, start),
+    )
+    for trends in chunked(regressions, TRANSACTIONS_PER_BATCH):
+        detect_transaction_change_points.delay(
+            [(payload.project_id, payload.group) for _, payload in trends],
+            start,
+        )
+
+
+@instrumented_task(
+    name="sentry.tasks.statistical_detectors.detect_transaction_change_points",
+    queue="performance.statistical_detector",
+    max_retries=0,
+)
+def detect_transaction_change_points(
+    transactions: List[Tuple[int, str | int]], start: datetime, *args, **kwargs
+) -> None:
+    for project_id, transaction in transactions:
+        with sentry_sdk.push_scope() as scope:
+            scope.set_tag("regressed_project_id", project_id)
+            scope.set_tag("regressed_transaction", transaction)
+            scope.set_context(
+                "statistical_detectors",
+                {
+                    "timestamp": start.isoformat(),
+                },
+            )
+            sentry_sdk.capture_message("Potential Transaction Regression")
+
+
+def _detect_transaction_trends(
+    org_ids: List[int], project_ids: List[int], start: datetime
+) -> Generator[Tuple[Optional[TrendType], DetectorPayload], None, None]:
+    transactions_count = 0
+    regressed_count = 0
+    improved_count = 0
+
+    detector_config = MovingAverageRelativeChangeDetectorConfig(
+        min_data_points=6,
+        short_moving_avg_factory=lambda: ExponentialMovingAverage(2 / 21),
+        long_moving_avg_factory=lambda: ExponentialMovingAverage(2 / 41),
+        threshold=0.1,
+    )
+
+    detector_store = redis.TransactionDetectorStore()
+
     start = start - timedelta(hours=1)
     start = start.replace(minute=0, second=0, microsecond=0)
     end = start + timedelta(hours=1)
+    all_transaction_payloads = query_transactions(
+        org_ids, project_ids, start, end, TRANSACTIONS_PER_PROJECT
+    )
 
-    query_transactions(org_ids, project_ids, start, end, NUM_TRANSACTIONS_PER_PROJECT)
+    for payloads in chunked(all_transaction_payloads, 100):
+        transactions_count += len(payloads)
+
+        raw_states = detector_store.bulk_read_states(payloads)
+
+        states = []
+
+        for raw_state, payload in zip(raw_states, payloads):
+            try:
+                state = MovingAverageDetectorState.from_redis_dict(raw_state)
+            except Exception as e:
+                state = MovingAverageDetectorState.empty()
+
+                if raw_state:
+                    # empty raw state implies that there was no
+                    # previous state so no need to capture an exception
+                    sentry_sdk.capture_exception(e)
+
+            detector = MovingAverageRelativeChangeDetector(state, detector_config)
+            trend_type = detector.update(payload)
+            states.append(None if trend_type is None else detector.state.to_redis_dict())
+
+            if trend_type == TrendType.Regressed:
+                regressed_count += 1
+            elif trend_type == TrendType.Improved:
+                improved_count += 1
+
+            yield (trend_type, payload)
+
+        detector_store.bulk_write_states(payloads, states)
+
+    # This is the total number of functions examined in this iteration
+    metrics.incr(
+        "statistical_detectors.total.transactions",
+        amount=transactions_count,
+        sample_rate=1.0,
+    )
+
+    # This is the number of regressed functions found in this iteration
+    metrics.incr(
+        "statistical_detectors.regressed.transactions",
+        amount=regressed_count,
+        sample_rate=1.0,
+    )
+
+    # This is the number of improved functions found in this iteration
+    metrics.incr(
+        "statistical_detectors.improved.transactions",
+        amount=improved_count,
+        sample_rate=1.0,
+    )
 
 
 @instrumented_task(
