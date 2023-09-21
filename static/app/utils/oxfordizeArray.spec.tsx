@@ -29,11 +29,25 @@ describe('Oxfordize', function () {
     expect(screen.getByText(/, and/)).toBeInTheDocument();
   });
 
+  it('correctly formats one element', function () {
+    const items = ['one'];
+    render(<Oxfordize>{items}</Oxfordize>);
+
+    expect(screen.getByText('one')).toBeInTheDocument();
+  });
+
+  it('correctly formats two elements', function () {
+    const items = ['one', 'two'];
+    render(<Oxfordize>{items}</Oxfordize>);
+
+    expect(screen.getByText('one and two')).toBeInTheDocument();
+  });
+
   it('correctly formats mixed lists of nodes', function () {
     const items = [<i key="1">one</i>, 'two'];
     render(<Oxfordize>{items}</Oxfordize>);
 
     expect(screen.getByText('one')).toBeInTheDocument();
-    expect(screen.getByText(/, and two/)).toBeInTheDocument();
+    expect(screen.getByText(/and two/)).toBeInTheDocument();
   });
 });
