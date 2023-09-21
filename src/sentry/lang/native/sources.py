@@ -6,7 +6,7 @@ import random
 import sys
 from copy import deepcopy
 from datetime import datetime
-from typing import Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
 
 import jsonschema
 import sentry_sdk
@@ -19,6 +19,7 @@ from sentry.debug_files.artifact_bundle_indexing import FlatFileIdentifier, Flat
 from sentry.models.artifactbundle import NULL_STRING
 from sentry.models.project import Project
 from sentry.utils import json, redis, safe
+from sentry.utils.http import get_origins
 
 logger = logging.getLogger(__name__)
 
@@ -241,6 +242,28 @@ def get_bundle_index_urls(
         debug_id_index = make_download_url(debug_id_meta)
 
     return debug_id_index, url_index
+
+
+def get_scraping_config(project: Project) -> Dict[str, Any]:
+    allow_scraping_org_level = project.organization.get_option("sentry:scrape_javascript", True)
+    allow_scraping_project_level = project.get_option("sentry:scrape_javascript", True)
+    allow_scraping = allow_scraping_org_level and allow_scraping_project_level
+
+    allowed_origins = []
+    scraping_headers = {}
+    if allow_scraping:
+        allowed_origins = list(get_origins(project))
+
+        token = project.get_option("sentry:token")
+        if token:
+            token_header = project.get_option("sentry:token_header") or "X-Sentry-Token"
+            scraping_headers[token_header] = token
+
+    return {
+        "enabled": allow_scraping,
+        "headers": scraping_headers,
+        "allowed_origins": allowed_origins,
+    }
 
 
 def get_internal_artifact_lookup_source(project: Project):
