@@ -902,8 +902,6 @@ function ReleaseSourceMapMatchingChecklistItem({
     );
   }
 
-  // TODO add instruction for matching source map
-
   return (
     <CheckListItem status="alert" title={itemName}>
       <CheckListInstruction type="muted">
