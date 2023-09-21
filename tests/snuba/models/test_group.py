@@ -1,4 +1,5 @@
 import uuid
+from unittest.mock import patch
 
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType, ProfileFileIOGroupType
 from sentry.issues.occurrence_consumer import process_event_and_issue_occurrence
@@ -222,3 +223,28 @@ class GroupTestSnuba(TestCase, SnubaTestCase, PerformanceIssueTestCase, Occurren
 
         assert group.get_latest_event_for_environments().event_id == occurrence_2.event_id
         assert group.get_oldest_event_for_environments().event_id == occurrence.event_id
+
+    @patch("sentry.quotas.backend.get_event_retention")
+    def test_get_recommended_event_for_environments_retention_limit(self, mock_get_event_retention):
+        """
+        If last_seen is outside of the retention limit, falls back to the latest event behavior.
+        """
+        mock_get_event_retention.return_value = 90
+        project = self.create_project()
+        outside_retention_date = before_now(days=91)
+
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "timestamp": iso_format(outside_retention_date),
+                "fingerprint": ["group-1"],
+                "contexts": {},
+                "errors": [],
+            },
+            project_id=project.id,
+            assert_no_errors=False,
+        )
+
+        group = Group.objects.first()
+        group.last_seen = before_now(days=91)
+        assert group.get_recommended_event_for_environments().event_id == event.event_id
