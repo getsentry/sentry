@@ -53,26 +53,45 @@ export function PerformanceScoreChart({projectScore, webVital}: Props) {
         </PerformanceScoreLabel>
         <PerformanceScoreSubtext>{performanceScoreSubtext}</PerformanceScoreSubtext>
         <ProgressRingContainer>
-          <PerformanceScoreRing
-            values={[
-              lcpScore * LCP_WEIGHT * 0.01,
-              fcpScore * FCP_WEIGHT * 0.01,
-              fidScore * FID_WEIGHT * 0.01,
-              clsScore * CLS_WEIGHT * 0.01,
-              ttfbScore * TTFB_WEIGHT * 0.01,
-            ]}
-            maxValues={[LCP_WEIGHT, FCP_WEIGHT, FID_WEIGHT, CLS_WEIGHT, TTFB_WEIGHT]}
-            text={score}
-            size={140}
-            barWidth={14}
-            textCss={() => css`
-              font-size: 32px;
-              font-weight: bold;
-              color: ${theme.textColor};
-            `}
-            segmentColors={segmentColors}
-            backgroundColors={backgroundColors}
-          />
+          <svg height={180} width={220}>
+            <ProgressRingText x={160} y={30}>
+              LCP
+            </ProgressRingText>
+            <ProgressRingText x={175} y={140}>
+              FCP
+            </ProgressRingText>
+            <ProgressRingText x={20} y={140}>
+              FID
+            </ProgressRingText>
+            <ProgressRingText x={10} y={60}>
+              CLS
+            </ProgressRingText>
+            <ProgressRingText x={50} y={20}>
+              TTFB
+            </ProgressRingText>
+            <PerformanceScoreRing
+              values={[
+                lcpScore * LCP_WEIGHT * 0.01,
+                fcpScore * FCP_WEIGHT * 0.01,
+                fidScore * FID_WEIGHT * 0.01,
+                clsScore * CLS_WEIGHT * 0.01,
+                ttfbScore * TTFB_WEIGHT * 0.01,
+              ]}
+              maxValues={[LCP_WEIGHT, FCP_WEIGHT, FID_WEIGHT, CLS_WEIGHT, TTFB_WEIGHT]}
+              text={score}
+              size={140}
+              barWidth={14}
+              textCss={() => css`
+                font-size: 32px;
+                font-weight: bold;
+                color: ${theme.textColor};
+              `}
+              segmentColors={segmentColors}
+              backgroundColors={backgroundColors}
+              x={40}
+              y={20}
+            />
+          </svg>
         </ProgressRingContainer>
       </PerformanceScoreLabelContainer>
       <ChartContainer>
@@ -83,7 +102,7 @@ export function PerformanceScoreChart({projectScore, webVital}: Props) {
         <PerformanceScoreSubtext>{performanceScoreSubtext}</PerformanceScoreSubtext>
         <Chart
           stacked
-          height={160}
+          height={180}
           data={[
             {
               data: data?.lcp.map(({name, value}) => ({
@@ -148,6 +167,7 @@ export function PerformanceScoreChart({projectScore, webVital}: Props) {
             bottom: 0,
           }}
           dataMax={100}
+          chartColors={segmentColors}
         />
       </ChartContainer>
     </Flex>
@@ -171,7 +191,7 @@ const ChartContainer = styled('div')`
 `;
 
 const PerformanceScoreLabelContainer = styled('div')`
-  padding: ${space(2)};
+  padding: ${space(2)} ${space(2)} 0 ${space(2)};
   min-width: 320px;
   border: 1px solid ${p => p.theme.gray200};
   border-radius: ${p => p.theme.borderRadius};
@@ -195,6 +215,10 @@ const PerformanceScoreSubtext = styled('div')`
   margin-bottom: ${space(1)};
 `;
 
-const ProgressRingContainer = styled('div')`
-  padding-top: ${space(1)};
+const ProgressRingContainer = styled('div')``;
+
+const ProgressRingText = styled('text')`
+  font-size: ${p => p.theme.fontSizeMedium};
+  color: ${p => p.theme.textColor};
+  font-weight: bold;
 `;
