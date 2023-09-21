@@ -171,21 +171,10 @@ def check_missing(current_datetime: datetime):
     current_datetime = current_datetime.replace(second=0, microsecond=0)
 
     qs = (
+        # Monitors that have reached the latest checkin time
         MonitorEnvironment.objects.filter(
             monitor__type__in=[MonitorType.CRON_JOB],
-            # [!!]: Note that we use `lt` here to give a whole minute buffer
-            # for a check-in to be sent.
-            #
-            # As an example, if our next_checkin_latest for a monitor was
-            # 11:00:00, and our task runs at 11:00:05, the time is clamped down
-            # to 11:00:00, and then compared:
-            #
-            #  next_checkin_latest < 11:00:00
-            #
-            # Since they are equal this does not match. When the task is run a
-            # minute later if the check-in still hasn't been sent we will THEN
-            # mark it as missed.
-            next_checkin_latest__lt=current_datetime,
+            next_checkin_latest__lte=current_datetime,
         )
         .exclude(
             status__in=[
@@ -202,8 +191,27 @@ def check_missing(current_datetime: datetime):
             ]
         )[:MONITOR_LIMIT]
     )
-    metrics.gauge("sentry.monitors.tasks.check_missing.count", qs.count(), sample_rate=1.0)
-    for monitor_environment in qs:
+
+    monitor_envs = [
+        monitor_env
+        for monitor_env in qs
+        # As a temporary stop-gap while we fix GH-56526 we are skipping
+        # monitors which have a next_checkin_latest equal to their
+        # next_checkin
+        #
+        # This is due to the fact that the default value of the
+        # `checkin_margin` was 0. With it set to a minimum and default of `1`
+        # future computed `next_checkin_latest`'s will ALWAYS have a minimum of
+        # one minute apart.
+        #
+        # Make sure to run these at the next tick though, which is what the
+        # previous behavior was.
+        if monitor_env.next_checkin != monitor_env.next_checkin_latest
+        or monitor_env.next_checkin_latest != current_datetime
+    ]
+
+    metrics.gauge("sentry.monitors.tasks.check_missing.count", len(monitor_envs), sample_rate=1.0)
+    for monitor_environment in monitor_envs:
         mark_environment_missing.delay(monitor_environment.id)
 
 
