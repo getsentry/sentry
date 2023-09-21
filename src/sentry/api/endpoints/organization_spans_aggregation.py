@@ -67,7 +67,7 @@ class OrganizationSpansAggregationEndpoint(OrganizationEventsEndpointBase):
 
     def get(self, request: Request, organization: Organization) -> Response:
         if not features.has(
-            "organizations:aggregate-span-waterfall", organization, actor=request.user
+            "organizations:starfish-aggregate-span-waterfall", organization, actor=request.user
         ):
             return Response(status=404)
 
