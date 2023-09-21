@@ -43,16 +43,55 @@ class NotificationActionSerializer(CamelSnakeModelSerializer):
     Django Rest Framework serializer for incoming NotificationAction API payloads
     """
 
-    integration_id = serializers.IntegerField(required=False)
-    sentry_app_id = serializers.IntegerField(required=False)
-    projects = serializers.ListField(child=ProjectField(scope="project:read"), required=False)
+    integration_id = serializers.IntegerField(
+        help_text="""ID of integration that will be used to send the notification. For example, Slack integration""",
+        required=False,
+    )
+    sentry_app_id = serializers.IntegerField(
+        help_text="""ID of Sentry App Installation""",
+        required=False,
+    )
+    projects = serializers.ListField(
+        help_text="""List of serialized projects that Notificaton Action is created for""",
+        child=ProjectField(scope="project:read"),
+        required=False,
+    )
 
-    service_type = serializers.CharField()
-    target_type = serializers.CharField()
-    trigger_type = serializers.CharField()
+    service_type = serializers.CharField(
+        help_text="""Service that is used for sending the notification
+            - `email` - works with spike-protection
+            - `slack` - works with spike-protection
+            - `msteams`
+            - `pagerduty` - works with spike-protection
+            - `discord`
+            - `opsgenie` - works with spike-protection
+            - `github`
+            - `gitlab`
+            - `custom_scm`
+          """
+    )
+    target_type = serializers.CharField(
+        help_text="""Type of notification recipient
+            - `specific`
+            - `user`
+            - `team`,
+            - `sentry_app`
+          """
+    )
+    trigger_type = serializers.CharField(
+        help_text="""Type of the trigger that causes the notification
+            - `spike-protection`
+          """
+    )
 
-    target_identifier = serializers.CharField(required=False)
-    target_display = serializers.CharField(required=False)
+    target_identifier = serializers.CharField(
+        help_text="""ID of the notification target. For example, Slack channel ID""",
+        required=False,
+    )
+    target_display = serializers.CharField(
+        help_text="""Name of the notification target. For example, Slack channel name""",
+        required=False,
+    )
 
     def validate_integration_id(self, integration_id: int) -> int:
         organization_integration = integration_service.get_organization_integration(
