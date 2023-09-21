@@ -290,7 +290,7 @@ jobs:
           SENTRY_LIGHT_BUILD=1 pip install --no-deps -e .
           sentry init
 
-      - run: make backend-typing
+      - run: mypy
         id: run
 
       - uses: getsentry/action-github-app-token@97c9e23528286821f97fba885c1b1123284b29cc # v2.0.0
@@ -300,7 +300,7 @@ jobs:
           app_id: ${{ vars.SENTRY_INTERNAL_APP_ID }}
           private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
 
-      # only if `backend-typing` succeeds should we try and trim the blocklist
+      # only if `mypy` succeeds should we try and trim the blocklist
       - run: |
           python3 -m tools.mypy_helpers.make_module_ignores
           git diff --exit-code
