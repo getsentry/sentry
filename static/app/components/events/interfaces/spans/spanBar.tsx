@@ -1132,9 +1132,11 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
           </DurationPill>
         </RowRectangle>
         {subSpans}
-        <PercentageContainer>
-          <Percentage>{frequency && formatPercentage(frequency)}</Percentage>
-        </PercentageContainer>
+        {frequency && (
+          <PercentageContainer>
+            <Percentage>{formatPercentage(frequency)}</Percentage>
+          </PercentageContainer>
+        )}
       </Fragment>
     );
   }
