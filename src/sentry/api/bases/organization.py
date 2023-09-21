@@ -357,7 +357,9 @@ class OrganizationEndpoint(Endpoint):
         except ValueError:
             raise ParseError(detail="Invalid project parameter. Values must be numbers.")
 
-    def get_environments(self, request: Request, organization: Organization) -> list[Environment]:
+    def get_environments(
+        self, request: Request, organization: Organization | RpcOrganization
+    ) -> list[Environment]:
         return get_environments(request, organization)
 
     def get_filter_params(

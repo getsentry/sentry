@@ -28,7 +28,7 @@ class ReleaseThresholdTest(APITestCase):
             self.url,
             data={
                 "threshold_type": "total_error_count",
-                "trigger_type": "absolute_over",
+                "trigger_type": "over",
                 # value is missing
                 "window_in_seconds": 1800,
                 "environment": "canary",
@@ -43,7 +43,7 @@ class ReleaseThresholdTest(APITestCase):
             self.url,
             data={
                 "threshold_type": "indiana_jones_and_the_temple_of_doom",
-                "trigger_type": "absolute_over",
+                "trigger_type": "over",
                 "value": 100,
                 "window_in_seconds": 1800,
                 "environment": "canary",
@@ -80,7 +80,7 @@ class ReleaseThresholdTest(APITestCase):
             url_with_invalid_project,
             data={
                 "threshold_type": "total_error_count",
-                "trigger_type": "absolute_over",
+                "trigger_type": "over",
                 "value": 100,
                 "window_in_seconds": 1800,
                 "environment": "production",
@@ -93,7 +93,7 @@ class ReleaseThresholdTest(APITestCase):
             self.url,
             data={
                 "threshold_type": "total_error_count",
-                "trigger_type": "absolute_over",
+                "trigger_type": "over",
                 "value": 100,
                 "window_in_seconds": 1800,
                 "environment": "Sentry belongs in a museum.",
@@ -107,7 +107,7 @@ class ReleaseThresholdTest(APITestCase):
             self.url,
             data={
                 "threshold_type": "total_error_count",
-                "trigger_type": "absolute_over",
+                "trigger_type": "over",
                 "value": 100,
                 "window_in_seconds": 1800,
             },
@@ -115,7 +115,7 @@ class ReleaseThresholdTest(APITestCase):
         assert response.status_code == 201
         data = response.data
         assert data["threshold_type"] == "total_error_count"
-        assert data["trigger_type"] == "absolute_over"
+        assert data["trigger_type"] == "over"
         assert data["value"] == 100
         assert data["window_in_seconds"] == 1800
         assert data["project"]["id"] == str(self.project.id)
@@ -129,7 +129,7 @@ class ReleaseThresholdTest(APITestCase):
             self.url,
             data={
                 "threshold_type": "total_error_count",
-                "trigger_type": "absolute_over",
+                "trigger_type": "over",
                 "value": 100,
                 "window_in_seconds": 1800,
                 "environment": "canary",
@@ -139,7 +139,7 @@ class ReleaseThresholdTest(APITestCase):
         assert response.status_code == 201
         data = response.data
         assert data["threshold_type"] == "total_error_count"
-        assert data["trigger_type"] == "absolute_over"
+        assert data["trigger_type"] == "over"
         assert data["value"] == 100
         assert data["window_in_seconds"] == 1800
         assert data["project"]["id"] == str(self.project.id)
@@ -171,7 +171,7 @@ class ReleaseThresholdTest(APITestCase):
         assert len(response.data) == 0
         ReleaseThreshold.objects.create(
             threshold_type=0,
-            trigger_type=2,
+            trigger_type=0,
             value=100,
             window_in_seconds=1800,
             project=self.project,
@@ -185,7 +185,7 @@ class ReleaseThresholdTest(APITestCase):
         created_threshold = response.data[0]
 
         assert created_threshold["threshold_type"] == "total_error_count"
-        assert created_threshold["trigger_type"] == "absolute_over"
+        assert created_threshold["trigger_type"] == "over"
         assert created_threshold["value"] == 100
         assert created_threshold["window_in_seconds"] == 1800
         assert created_threshold["project"]["id"] == str(self.project.id)
@@ -201,7 +201,7 @@ class ReleaseThresholdTest(APITestCase):
 
         ReleaseThreshold.objects.create(
             threshold_type=0,
-            trigger_type=2,
+            trigger_type=0,
             value=100,
             window_in_seconds=1800,
             project=self.project,
@@ -210,7 +210,7 @@ class ReleaseThresholdTest(APITestCase):
 
         ReleaseThreshold.objects.create(
             threshold_type=0,
-            trigger_type=2,
+            trigger_type=1,
             value=100,
             window_in_seconds=1800,
             project=self.project,
@@ -224,7 +224,7 @@ class ReleaseThresholdTest(APITestCase):
         created_threshold = response.data[0]
 
         assert created_threshold["threshold_type"] == "total_error_count"
-        assert created_threshold["trigger_type"] == "absolute_over"
+        assert created_threshold["trigger_type"] == "over"
         assert created_threshold["value"] == 100
         assert created_threshold["window_in_seconds"] == 1800
         assert created_threshold["project"]["id"] == str(self.project.id)

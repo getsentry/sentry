@@ -41,32 +41,24 @@ class ReleaseThresholdType:
 
 
 class TriggerType:
-    PERCENT_OVER = 0
-    PERCENT_UNDER = 1
-    ABSOLUTE_OVER = 2
-    ABSOLUTE_UNDER = 3
+    OVER = 0
+    UNDER = 1
 
-    PERCENT_OVER_STR = "percent_over"
-    PERCENT_UNDER_STR = "percent_under"
-    ABSOLUTE_OVER_STR = "absolute_over"
-    ABSOLUTE_UNDER_STR = "absolute_under"
+    OVER_STR = "over"
+    UNDER_STR = "under"
 
     @classmethod
     def as_choices(cls):  # choices for model column
         return (
-            (cls.PERCENT_OVER_STR, cls.PERCENT_OVER),
-            (cls.PERCENT_UNDER_STR, cls.PERCENT_UNDER),
-            (cls.ABSOLUTE_OVER_STR, cls.ABSOLUTE_OVER),
-            (cls.ABSOLUTE_UNDER_STR, cls.ABSOLUTE_UNDER),
+            (cls.OVER_STR, cls.OVER),
+            (cls.UNDER_STR, cls.UNDER),
         )
 
     @classmethod
     def as_str_choices(cls):  # choices for serializer
         return (
-            (cls.PERCENT_OVER_STR, cls.PERCENT_OVER_STR),
-            (cls.PERCENT_UNDER_STR, cls.PERCENT_UNDER_STR),
-            (cls.ABSOLUTE_OVER_STR, cls.ABSOLUTE_OVER_STR),
-            (cls.ABSOLUTE_UNDER_STR, cls.ABSOLUTE_UNDER_STR),
+            (cls.OVER_STR, cls.OVER_STR),
+            (cls.UNDER_STR, cls.UNDER_STR),
         )
 
 
@@ -91,15 +83,11 @@ THRESHOLD_TYPE_STR_TO_INT = {
 }
 
 TRIGGER_TYPE_INT_TO_STR = {
-    TriggerType.PERCENT_OVER: TriggerType.PERCENT_OVER_STR,
-    TriggerType.PERCENT_UNDER: TriggerType.PERCENT_UNDER_STR,
-    TriggerType.ABSOLUTE_OVER: TriggerType.ABSOLUTE_OVER_STR,
-    TriggerType.ABSOLUTE_UNDER: TriggerType.ABSOLUTE_UNDER_STR,
+    TriggerType.OVER: TriggerType.OVER_STR,
+    TriggerType.UNDER: TriggerType.UNDER_STR,
 }
 
 TRIGGER_TYPE_STRING_TO_INT = {
-    TriggerType.PERCENT_OVER_STR: TriggerType.PERCENT_OVER,
-    TriggerType.PERCENT_UNDER_STR: TriggerType.PERCENT_UNDER,
-    TriggerType.ABSOLUTE_OVER_STR: TriggerType.ABSOLUTE_OVER,
-    TriggerType.ABSOLUTE_UNDER_STR: TriggerType.ABSOLUTE_UNDER,
+    TriggerType.OVER_STR: TriggerType.OVER,
+    TriggerType.UNDER_STR: TriggerType.UNDER,
 }

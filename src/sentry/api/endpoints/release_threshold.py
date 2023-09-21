@@ -16,14 +16,14 @@ from sentry.models.release_threshold.constants import (
     THRESHOLD_TYPE_STR_TO_INT,
     TRIGGER_TYPE_STRING_TO_INT,
     ReleaseThresholdType,
-    TriggerType,
 )
+from sentry.models.release_threshold.constants import TriggerType as ReleaseThresholdTriggerType
 from sentry.models.release_threshold.release_threshold import ReleaseThreshold
 
 
 class ReleaseThresholdPOSTSerializer(serializers.Serializer):
     threshold_type = serializers.ChoiceField(choices=ReleaseThresholdType.as_str_choices())
-    trigger_type = serializers.ChoiceField(choices=TriggerType.as_str_choices())
+    trigger_type = serializers.ChoiceField(choices=ReleaseThresholdTriggerType.as_str_choices())
     value = serializers.IntegerField()
     window_in_seconds = serializers.IntegerField()
     environment = EnvironmentField(required=False, allow_null=True)
