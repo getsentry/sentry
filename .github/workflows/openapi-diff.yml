@@ -61,7 +61,6 @@ jobs:
           private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
 
       - name: Apply API Publish Status Changes
-        if: env.SECRET_ACCESS == 'true' && startsWith(github.ref, 'refs/pull') && always()
         uses: getsentry/action-github-commit@748c31dd78cffe76f51bef49a0be856b6effeda7 # v1.1.0
         with:
           github-token: ${{ steps.getsentry.outputs.token }}
