@@ -1,8 +1,7 @@
 from enum import Enum
 from typing import Optional
 
-from sentry.sentry_metrics.consumers.indexer.batch import extract_use_case_id
-from sentry.sentry_metrics.use_case_id_registry import UseCaseID
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID, extract_use_case_id
 
 
 class AggregationOption(Enum):
