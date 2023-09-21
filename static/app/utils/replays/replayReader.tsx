@@ -206,7 +206,7 @@ export default class ReplayReader {
           EventType.FullSnapshot,
           EventType.IncrementalSnapshot,
         ].includes(event.type) &&
-        !('positions' in (event as incrementalSnapshotEvent).data) // filter out mouse move events
+        ('adds' || 'removes') in (event as incrementalSnapshotEvent).data // filter only for mutation events
     );
 
   getErrorFrames = () => this._errors;

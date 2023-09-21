@@ -48,6 +48,14 @@ function MemoryChart({
 
   if (!memoryFrames) {
     return (
+      <MemoryChartWrapper>
+        <LoadingIndicator style={{margin: '54px auto'}} />
+      </MemoryChartWrapper>
+    );
+  }
+
+  if (!memoryFrames.length) {
+    return (
       <EmptyMessage
         data-test-id="replay-details-memory-tab"
         title={t('No memory metrics found')}
@@ -55,14 +63,6 @@ function MemoryChart({
           'Memory metrics are only captured within Chromium based browser sessions.'
         )}
       />
-    );
-  }
-
-  if (!memoryFrames.length) {
-    return (
-      <MemoryChartWrapper>
-        <LoadingIndicator style={{margin: '54px auto'}} />
-      </MemoryChartWrapper>
     );
   }
 

@@ -63,7 +63,8 @@ export default function countDomNodes({
     };
 
     const matchFrame = frame => {
-      const shouldSample = Math.random() < 0.1;
+      // reduce the number of frames we look at
+      const shouldSample = Math.random() < 0.3;
       if (!shouldSample || !frame) {
         nextOrDone();
         return;
