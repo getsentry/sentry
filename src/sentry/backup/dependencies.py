@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections import defaultdict
 from enum import Enum, auto, unique
 from functools import lru_cache
-from typing import NamedTuple, Tuple, Type
+from typing import NamedTuple, Optional, Tuple, Type
 
 from django.db import models
 from django.db.models.fields.related import ForeignKey, OneToOneField
@@ -62,6 +62,16 @@ class ModelRelations(NamedTuple):
 
 def normalize_model_name(model: Type[models.base.Model]):
     return f"{model._meta.app_label}.{model._meta.object_name}"
+
+
+def get_model(model_name: str) -> Optional[Type[models.base.Model]]:
+    """
+    Given a standardized model name string, retrieve the matching Sentry model.
+    """
+    for model in sorted_dependencies():
+        if f"sentry.{str(model.__name__).lower()}" == model_name.lower():
+            return model
+    return None
 
 
 class DependenciesJSONEncoder(json.JSONEncoder):
