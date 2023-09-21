@@ -32,6 +32,11 @@ export type RawSpanType = {
   tags?: {[key: string]: string};
 };
 
+export type AggregateSpanType = RawSpanType & {
+  type: 'aggregate';
+  frequency?: number;
+};
+
 /**
  * Extendeds the Raw type from json with a type for discriminating the union.
  */
@@ -60,7 +65,7 @@ export type OrphanSpanType = RawSpanType & {
   type: 'orphan';
 };
 
-export type SpanType = BaseSpanType | OrphanSpanType;
+export type SpanType = BaseSpanType | OrphanSpanType | AggregateSpanType;
 
 // this type includes natural spans which are part of the transaction event payload,
 // and as well as pseudo-spans (e.g. gap spans)

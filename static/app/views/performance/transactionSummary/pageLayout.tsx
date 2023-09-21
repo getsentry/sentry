@@ -25,6 +25,7 @@ import {PerformanceEventViewProvider} from 'sentry/utils/performance/contexts/pe
 import {decodeScalar} from 'sentry/utils/queryString';
 import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import {aggregateWaterfallRouteWithQuery} from 'sentry/views/performance/transactionSummary/aggregateSpanWaterfall/utils';
 
 import {getSelectedProjectPlatforms, getTransactionName} from '../utils';
 
@@ -138,6 +139,8 @@ function PageLayout(props: Props) {
         case Tab.PROFILING: {
           return profilesRouteWithQuery(routeQuery);
         }
+        case Tab.AGGREGATE_WATERFALL:
+          return aggregateWaterfallRouteWithQuery(routeQuery);
         case Tab.WEB_VITALS:
           return vitalsRouteWithQuery({
             orgSlug: organization.slug,

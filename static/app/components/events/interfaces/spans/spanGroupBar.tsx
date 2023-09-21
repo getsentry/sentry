@@ -34,7 +34,7 @@ import {
   TreeToggle,
   TreeToggleContainer,
 } from 'sentry/components/performance/waterfall/treeConnector';
-import {EventTransaction} from 'sentry/types/event';
+import {AggregateEventTransaction, EventTransaction} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import toPercent from 'sentry/utils/number/toPercent';
 import {PerformanceInteraction} from 'sentry/utils/performanceForSentry';
@@ -56,7 +56,7 @@ const MARGIN_LEFT = 0;
 type Props = {
   addContentSpanBarRef: (instance: HTMLDivElement | null) => void;
   didAnchoredSpanMount: () => boolean;
-  event: Readonly<EventTransaction>;
+  event: Readonly<EventTransaction | AggregateEventTransaction>;
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
   getCurrentLeftPos: () => number;
   onWheel: (deltaX: number) => void;
@@ -129,7 +129,7 @@ function renderDivider(
 }
 
 function renderMeasurements(
-  event: Readonly<EventTransaction>,
+  event: Readonly<EventTransaction | AggregateEventTransaction>,
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType
 ) {
   const measurements = getMeasurements(event, generateBounds);

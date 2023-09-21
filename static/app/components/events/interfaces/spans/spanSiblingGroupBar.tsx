@@ -7,7 +7,7 @@ import {
   TreeConnector,
 } from 'sentry/components/performance/waterfall/treeConnector';
 import {t} from 'sentry/locale';
-import {EventTransaction} from 'sentry/types/event';
+import {AggregateEventTransaction, EventTransaction} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -28,7 +28,7 @@ export type SpanSiblingGroupBarProps = {
   addContentSpanBarRef: (instance: HTMLDivElement | null) => void;
   continuingTreeDepths: Array<TreeDepthType>;
   didAnchoredSpanMount: () => boolean;
-  event: Readonly<EventTransaction>;
+  event: Readonly<EventTransaction | AggregateEventTransaction>;
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
   getCurrentLeftPos: () => number;
   isEmbeddedSpanTree: boolean;

@@ -7,6 +7,7 @@ enum Tab {
   ANOMALIES = 'anomalies',
   REPLAYS = 'replays',
   PROFILING = 'profiling',
+  AGGREGATE_WATERFALL = 'aggregateWaterfall',
 }
 
 export default Tab;
