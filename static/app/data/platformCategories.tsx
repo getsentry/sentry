@@ -104,7 +104,7 @@ export const backend = [
   'php',
   'php-laravel',
   'php-monolog',
-  'php-symfony2',
+  'php-symfony',
   'python',
   'python-django',
   'python-flask',
@@ -274,7 +274,7 @@ export const profiling: PlatformKey[] = [
   // php
   'php',
   'php-laravel',
-  'php-symfony2',
+  'php-symfony',
   // ruby
   'ruby',
   'ruby-rails',
