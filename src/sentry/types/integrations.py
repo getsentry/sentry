@@ -37,6 +37,18 @@ class ExternalProviderEnum(Enum):
     CUSTOM = "custom_scm"
 
 
+EXTERNAL_PROVIDERS_REVERSE = {
+    ExternalProviderEnum.EMAIL: ExternalProviders.EMAIL,
+    ExternalProviderEnum.SLACK: ExternalProviders.SLACK,
+    ExternalProviderEnum.MSTEAMS: ExternalProviders.MSTEAMS,
+    ExternalProviderEnum.PAGERDUTY: ExternalProviders.PAGERDUTY,
+    ExternalProviderEnum.DISCORD: ExternalProviders.DISCORD,
+    ExternalProviderEnum.OPSGENIE: ExternalProviders.OPSGENIE,
+    ExternalProviderEnum.GITHUB: ExternalProviders.GITHUB,
+    ExternalProviderEnum.GITLAB: ExternalProviders.GITLAB,
+    ExternalProviderEnum.CUSTOM: ExternalProviders.CUSTOM,
+}
+
 EXTERNAL_PROVIDERS = {
     ExternalProviders.EMAIL: ExternalProviderEnum.EMAIL.value,
     ExternalProviders.SLACK: ExternalProviderEnum.SLACK.value,

@@ -549,6 +549,7 @@ module = [
     "sentry.net.http",
     "sentry.net.socket",
     "sentry.notifications.additional_attachment_manager",
+    "sentry.notifications.notificationcontroller",
     "sentry.notifications.notifications.activity.base",
     "sentry.notifications.notifications.activity.new_processing_issues",
     "sentry.notifications.notifications.activity.release",
