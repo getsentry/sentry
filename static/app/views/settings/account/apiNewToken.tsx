@@ -43,6 +43,7 @@ export default class ApiNewToken extends Component<{}, State> {
   };
 
   render() {
+    const {permissions} = this.state;
     return (
       <SentryDocumentTitle title={t('Create User Auth Token')}>
         <div>
@@ -72,7 +73,7 @@ export default class ApiNewToken extends Component<{}, State> {
                 marginTop: 0,
                 paddingRight: 20,
               }}
-              submitDisabled={Object.values(this.state.permissions).every(
+              submitDisabled={Object.values(permissions).every(
                 value => value === 'no-access'
               )}
               submitLabel={t('Create Token')}
@@ -80,7 +81,7 @@ export default class ApiNewToken extends Component<{}, State> {
               <PanelBody>
                 <PermissionSelection
                   appPublished={false}
-                  permissions={this.state.permissions}
+                  permissions={permissions}
                   onChange={value => {
                     this.setState({permissions: value});
                   }}
