@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, DefaultDict
 
 from django.db.models import F, Q
 from django.http import HttpResponse
@@ -135,7 +135,7 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
         # Fetch relevant snuba/sessions data
         # Determine which thresholds have succeeded/failed
 
-        release_threshold_health = defaultdict()
+        release_threshold_health: DefaultDict[int, Any] = defaultdict()
         for release in queryset:
             release_project = defaultdict(list)
             if project_ids_list:
