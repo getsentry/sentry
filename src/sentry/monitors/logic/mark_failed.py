@@ -76,6 +76,7 @@ def mark_failed_threshold(
 
     # check to see if we need to update the status
     if monitor_env.status == MonitorStatus.OK:
+        # reverse the list after slicing in order to start with oldest check-in
         previous_checkins = list(
             reversed(
                 MonitorCheckIn.objects.filter(monitor_environment=monitor_env).order_by(
