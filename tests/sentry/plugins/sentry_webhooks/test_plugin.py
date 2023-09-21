@@ -8,7 +8,10 @@ from sentry.models import Rule
 from sentry.plugins.base import Notification
 from sentry.plugins.sentry_webhooks.plugin import WebHooksOptionsForm, WebHooksPlugin, validate_urls
 from sentry.testutils.cases import TestCase
+from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
+
+pytestmark = [requires_snuba]
 
 
 class WebHooksPluginTest(TestCase):

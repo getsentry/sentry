@@ -86,16 +86,6 @@ class PlatformPicker extends Component<PlatformPickerProps, State> {
         return true;
       }
 
-      // Symfony was no appering under the server category
-      // because the php-symfony entry in src/sentry/integration-docs/_platforms.json
-      // does not contain the suffix 2.
-      // This is a temporary fix until we can update that file or completly remove the php-symfony2 occurrences
-      if (
-        (platform.id as any) === 'php-symfony' &&
-        (currentCategory?.platforms as undefined | string[])?.includes('php-symfony2')
-      ) {
-        return true;
-      }
       return (currentCategory?.platforms as undefined | string[])?.includes(platform.id);
     };
 

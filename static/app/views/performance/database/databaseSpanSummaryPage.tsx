@@ -125,7 +125,7 @@ function SpanSummaryPage({params}: Props) {
                 preservePageFilters: true,
               },
               {
-                label: 'Database',
+                label: 'Queries',
                 to: normalizeUrl(
                   `/organizations/${organization.slug}/performance/database`
                 ),
