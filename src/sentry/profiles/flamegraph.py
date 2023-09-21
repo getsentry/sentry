@@ -239,3 +239,38 @@ def get_profile_ids_for_span_op(
     spans = [tup[1] for tup in transaction_to_prof.values()]
 
     return {"profile_ids": profile_ids, "spans": spans}
+
+
+def get_profiles_with_function(
+    organization_id: int,
+    project_id: int,
+    function_fingerprint: str,
+    params: ParamsType,
+):
+    query = Query(
+        match=Entity(EntityKey.Functions.value),
+        select=[
+            Function("groupUniqArrayMerge", [Column("examples")], "profile_ids"),
+        ],
+        where=[
+            Condition(Column("project_id"), Op.EQ, project_id),
+            Condition(Column("timestamp"), Op.GTE, params["start"]),
+            Condition(Column("timestamp"), Op.LT, params["end"]),
+            Condition(Column("fingerprint"), Op.EQ, function_fingerprint),
+        ],
+    )
+
+    request = Request(
+        dataset=Dataset.Functions.value,
+        app_id="default",
+        query=query,
+        tenant_ids={
+            "referrer": Referrer.API_PROFILING_FUNCTION_SCOPED_FLAMEGRAPH.value,
+            "organization_id": organization_id,
+        },
+    )
+    data = raw_snql_query(
+        request,
+        referrer=Referrer.API_PROFILING_FUNCTION_SCOPED_FLAMEGRAPH.value,
+    )["data"]
+    return {"profile_ids": list(map(lambda x: x.replace("-", ""), data[0]["profile_ids"][:100]))}

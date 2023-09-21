@@ -333,6 +333,7 @@ class Referrer(Enum):
     API_PROFILING_PROFILE_SUMMARY_TABLE = "api.profiling.profile-summary-table"
     API_PROFILING_PROFILE_SUMMARY_FUNCTIONS_TABLE = "api.profiling.profile-summary-functions-table"
     API_PROFILING_PROFILE_FLAMEGRAPH = "api.profiling.profile-flamegraph"
+    API_PROFILING_FUNCTION_SCOPED_FLAMEGRAPH = "api.profiling.function-scoped-flamegraph"
     API_PROFILING_TRANSACTION_HOVERCARD_FUNCTIONS = "api.profiling.transaction-hovercard.functions"
     API_PROFILING_TRANSACTION_HOVERCARD_LATEST = "api.profiling.transaction-hovercard.latest"
     API_PROFILING_TRANSACTION_HOVERCARD_SLOWEST = "api.profiling.transaction-hovercard.slowest"
