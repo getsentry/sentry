@@ -78,6 +78,8 @@
   "sentry.EventAttachment",
   "sentry.Environment",
   "sentry.EnvironmentProject",
+  "sentry.CustomDynamicSamplingRule",
+  "sentry.CustomDynamicSamplingRuleProject",
   "sentry.Distribution",
   "sentry.Deploy",
   "sentry.DeletedTeam",
@@ -205,9 +207,11 @@
   "sentry.TeamAvatar",
   "sentry.SentryAppAvatar",
   "sentry.AuthProviderDefaultTeams",
+  "sentry.OrganizationMemberTeamReplica",
   "sentry.PendingIncidentSnapshot",
   "sentry.IncidentSnapshot",
   "sentry.IncidentActivity",
   "sentry.IncidentSubscription",
-  "sentry.IncidentTrigger"
+  "sentry.IncidentTrigger",
+  "sentry.MonitorIncident"
 ]

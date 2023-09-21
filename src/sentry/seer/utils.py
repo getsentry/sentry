@@ -1,8 +1,30 @@
+from typing import List, TypedDict
+
 from django.conf import settings
 from urllib3 import Retry
 
 from sentry.net.http import connection_from_url
 from sentry.utils import json
+
+
+class BreakpointData(TypedDict):
+    project: str
+    # For legacy reasons, the group name is always
+    # transaction even when working with functions.
+    transaction: str
+    aggregate_range_1: float
+    aggregate_range_2: float
+    unweighted_t_value: float
+    unweighted_p_value: float
+    trend_percentage: float
+    absolute_percentage_change: float
+    trend_difference: float
+    breakpoint: int
+
+
+class BreakpointResponse(TypedDict):
+    data: List[BreakpointData]
+
 
 seer_connection_pool = connection_from_url(
     settings.ANOMALY_DETECTION_URL,
@@ -14,7 +36,7 @@ seer_connection_pool = connection_from_url(
 )
 
 
-def detect_breakpoints(breakpoint_request):
+def detect_breakpoints(breakpoint_request) -> BreakpointResponse:
     response = seer_connection_pool.urlopen(
         "POST",
         "/trends/breakpoint-detector",

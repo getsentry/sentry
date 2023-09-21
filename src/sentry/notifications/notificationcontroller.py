@@ -506,3 +506,74 @@ class NotificationController:
                 return True
 
         return False
+
+    def get_notification_value_for_recipient_and_type(
+        self, recipient: Recipient, type: NotificationSettingEnum
+    ) -> NotificationSettingsOptionEnum:
+        """
+        Returns the notification setting value for the given recipient and type.
+
+        Args:
+            recipient: The recipient of the notification settings (user or team).
+            type: The notification type to filter providers and recipients by.
+        """
+        if self.type and type != self.type:
+            raise Exception("Type mismatch: the provided type differs from the controller type")
+
+        setting_options = self._get_layered_setting_options(type=type.value)
+        for _, setting in setting_options[recipient].items():
+            value = setting[type]
+            # Skip notifications that are off
+            if value == NotificationSettingsOptionEnum.NEVER:
+                continue
+            return value
+
+        return NotificationSettingsOptionEnum.NEVER
+
+    def get_notification_provider_value_for_recipient_and_type(
+        self, recipient: Recipient, type: NotificationSettingEnum, provider: ExternalProviderEnum
+    ) -> NotificationSettingsOptionEnum:
+        """
+        Returns the notification setting value for the given recipient and type.
+
+        Args:
+            recipient: The recipient of the notification settings (user or team).
+            type: The notification type to filter providers and recipients by.
+        """
+        if self.type and type != self.type:
+            raise Exception("Type mismatch: the provided type differs from the controller type")
+
+        setting_providers = self._get_layered_setting_providers(type=type.value)
+        for _, recipient_mapping in setting_providers[recipient].items():
+            type_mapping = recipient_mapping[type]
+            value = type_mapping[provider]
+            if value == NotificationSettingsOptionEnum.NEVER:
+                continue
+
+            return value
+
+        return NotificationSettingsOptionEnum.NEVER
+
+    def get_users_for_weekly_reports(self) -> list[int]:
+        if not self.organization_id:
+            raise Exception("Must specify organization_id")
+
+        if self.type != NotificationSettingEnum.REPORTS:
+            raise Exception(f"Type mismatch: the controller was initialized with type: {self.type}")
+
+        enabled_settings = self.get_all_enabled_settings(type=NotificationSettingEnum.REPORTS.value)
+        users = []
+        for recipient, setting in enabled_settings.items():
+            if not recipient_is_user(recipient):
+                continue
+
+            for type_map in setting.values():
+                provider_map = type_map[NotificationSettingEnum.REPORTS]
+                if (
+                    ExternalProviderEnum.EMAIL in provider_map
+                    and provider_map[ExternalProviderEnum.EMAIL]
+                    == NotificationSettingsOptionEnum.ALWAYS
+                ):
+                    users.append(recipient.id)
+
+        return users
