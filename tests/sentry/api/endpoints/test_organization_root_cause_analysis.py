@@ -274,3 +274,97 @@ class OrganizationRootCauseAnalysisTest(MetricsAPIBaseTestCase):
                 "transaction_count": 1,
             },
         ]
+
+    def test_results_per_period_are_limited(self):
+        # Before
+        self.create_transaction(
+            transaction="foo",
+            trace_id=self.trace_id,
+            span_id="a" * 16,
+            parent_span_id="b" * 16,
+            spans=[
+                {
+                    "parent_span_id": "a" * 16,
+                    "span_id": "e" * 16,
+                    "start_timestamp": iso_format(self.now - timedelta(days=2)),
+                    "timestamp": iso_format(self.now - timedelta(days=2)),
+                    "op": "django.middleware",
+                    "description": "middleware span",
+                    "exclusive_time": 60.0,
+                }
+            ],
+            project_id=self.project.id,
+            start_timestamp=self.now - timedelta(days=2),
+            duration=60,
+        )
+
+        # After
+        self.create_transaction(
+            transaction="foo",
+            trace_id=self.trace_id,
+            span_id="a" * 16,
+            parent_span_id="b" * 16,
+            spans=[
+                {
+                    "parent_span_id": "a" * 16,
+                    "span_id": "e" * 16,
+                    "start_timestamp": iso_format(self.now - timedelta(hours=1)),
+                    "timestamp": iso_format(self.now - timedelta(hours=1)),
+                    "op": "django.middleware",
+                    "description": "middleware span",
+                    "exclusive_time": 100.0,
+                },
+                {
+                    "parent_span_id": "a" * 16,
+                    "span_id": "f" * 16,
+                    "start_timestamp": iso_format(self.now - timedelta(hours=1)),
+                    "timestamp": iso_format(self.now - timedelta(hours=1)),
+                    "op": "db",
+                    "description": "db",
+                    "exclusive_time": 100.0,
+                },
+            ],
+            project_id=self.project.id,
+            start_timestamp=self.now - timedelta(hours=1),
+            duration=200,
+        )
+
+        with self.feature(FEATURES):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "transaction": "foo",
+                    "project": self.project.id,
+                    "breakpoint": self.now - timedelta(days=1),
+                    "start": self.now - timedelta(days=3),
+                    "end": self.now,
+                    # Force a small page size and verify the 2 spans from After
+                    # don't dominate the results
+                    "per_page": 2,
+                },
+            )
+
+        assert response.status_code == 200, response.content
+
+        for row in response.data:
+            del row["sample_event_id"]
+
+        assert response.data == [
+            {
+                "period": "after",
+                "span_count": 1,
+                "span_group": "d77d5e503ad1439f",
+                "span_op": "db",
+                "total_span_self_time": 100.0,
+                "transaction_count": 1,
+            },
+            {
+                "span_group": "2b9cbb96dbf59baa",
+                "span_op": "django.middleware",
+                "period": "before",
+                "total_span_self_time": 60.0,
+                "span_count": 1,
+                "transaction_count": 1,
+            },
+        ]

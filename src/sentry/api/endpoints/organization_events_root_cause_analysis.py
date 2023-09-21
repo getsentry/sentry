@@ -1,5 +1,5 @@
 from rest_framework.response import Response
-from snuba_sdk import Column, Function
+from snuba_sdk import Column, Function, LimitBy
 
 from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -12,8 +12,10 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics_performance import query as metrics_query
 from sentry.utils.snuba import raw_snql_query
 
+DEFAULT_LIMIT = 50
 
-def query_spans(transaction, regression_breakpoint, params):
+
+def query_spans(transaction, regression_breakpoint, params, limit):
     selected_columns = [
         "count(span_id) as span_count",
         "sumArray(spans_exclusive_time) as total_span_self_time",
@@ -30,7 +32,7 @@ def query_spans(transaction, regression_breakpoint, params):
         equations=[],
         query=f"transaction:{transaction}",
         orderby=["span_op", "span_group", "total_span_self_time"],
-        limit=10000,
+        limit=limit,
         config=QueryBuilderConfig(
             auto_aggregations=True,
             use_aggregate_conditions=True,
@@ -55,6 +57,7 @@ def query_spans(transaction, regression_breakpoint, params):
     )
     builder.columns.append(Function("countDistinct", [Column("event_id")], "transaction_count"))
     builder.groupby.append(Column("period"))
+    builder.limitby = LimitBy([Column("period")], limit // 2)
 
     snql_query = builder.get_snql_query()
     results = raw_snql_query(snql_query, "api.organization-events-root-cause-analysis")
@@ -104,6 +107,7 @@ class OrganizationEventsRootCauseAnalysisEndpoint(OrganizationEventsEndpointBase
             transaction=transaction_name,
             regression_breakpoint=regression_breakpoint,
             params=params,
+            limit=int(request.GET.get("per_page", DEFAULT_LIMIT)),
         )
 
         return Response(results, status=200)
