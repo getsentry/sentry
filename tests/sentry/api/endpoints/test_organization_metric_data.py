@@ -466,7 +466,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         assert response.status_code == 400
         assert (
             response.data["detail"]
-            == "Failed to parse query: Release Health Queries don't support wildcards"
+            == "Failed to parse conditions: Release Health Queries don't support wildcards"
         )
 
     def test_pagination_offset_without_orderby(self):
