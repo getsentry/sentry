@@ -22,6 +22,7 @@ __all__ = (
     "SpanMRI",
     "MRI_SCHEMA_REGEX",
     "MRI_EXPRESSION_REGEX",
+    "ErrorsMRI",
     "parse_mri",
     "get_available_operations",
 )
@@ -33,7 +34,7 @@ from typing import List, Optional
 
 from sentry.snuba.metrics.utils import AVAILABLE_GENERIC_OPERATIONS, AVAILABLE_OPERATIONS, OP_REGEX
 
-NAMESPACE_REGEX = r"(transactions|errors|issues|sessions|alerts|custom|spans)"
+NAMESPACE_REGEX = r"(transactions|errors|issues|sessions|alerts|custom|spans|escalating_issues)"
 ENTITY_TYPE_REGEX = r"(c|s|d|g|e)"
 # This regex allows for a string of words composed of small letters alphabet characters with
 # allowed the underscore character, optionally separated by a single dot
@@ -162,7 +163,7 @@ class SpanMRI(Enum):
 
 
 class ErrorsMRI(Enum):
-    EVENT_INGESTED = "c:errors/event_ingested@none"
+    EVENT_INGESTED = "c:escalating_issues/event_ingested@none"
 
 
 @dataclass

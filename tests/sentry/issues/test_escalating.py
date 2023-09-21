@@ -18,8 +18,11 @@ from sentry.issues.grouptype import GroupCategory, ProfileFileIOGroupType
 from sentry.models import Group
 from sentry.models.group import GroupStatus
 from sentry.models.groupinbox import GroupInbox
+from sentry.sentry_metrics.client import generic_metrics_backend
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.testutils.cases import PerformanceIssueTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.features import with_feature
 from sentry.types.group import GroupSubStatus
 from sentry.utils.cache import cache
 from sentry.utils.snuba import to_start_of_hour
@@ -54,6 +57,17 @@ class BaseGroupCounts(SnubaTestCase, TestCase):
             data["event_id"] = uuid4().hex
             # assert_no_errors is necessary because of SDK and server time differences due to freeze gun
             last_event = self.store_event(data=data, project_id=proj_id, assert_no_errors=False)
+
+            generic_metrics_backend.counter(
+                UseCaseID.ESCALATING_ISSUES,
+                org_id=last_event.project.organization_id,
+                project_id=last_event.project.id,
+                metric_name="event_ingested",
+                value=1,
+                tags={"group": str(last_event.group_id)},
+                unit=None,
+            )
+
         return last_event
 
 
@@ -74,6 +88,7 @@ class HistoricGroupCounts(
             "project_id": event.project_id,
         }
 
+    @with_feature("organizations:escalating-issues-v2")
     def test_query_single_group(self) -> None:
         event = self._create_events_for_group()
         assert query_groups_past_counts(Group.objects.all()) == [
