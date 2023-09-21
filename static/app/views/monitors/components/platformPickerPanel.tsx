@@ -90,9 +90,9 @@ const Actions = styled('div')`
 `;
 
 const PlatformButton = styled(Button)`
-  width: 64px;
-  height: 64px;
-  padding: ${space(1)};
+  width: 80px;
+  height: 80px;
+  padding: ${space(1.5)};
 `;
 
 const PlatformOption = styled('div')`
