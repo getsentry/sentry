@@ -25,12 +25,15 @@ export function replaceTokensWithSpan(element: HTMLElement) {
   );
 }
 
+/**
+ * Code snippet component that replaces `___ORG_AUTH_TOKEN___` inside snippets with AuthTokenGenerator.
+ */
 export function OnboardingCodeSnippet(props: OnboardingCodeSnippetProps) {
   const [authTokenNodes, setAuthTokenNodes] = useState<HTMLSpanElement[]>([]);
 
   const handleAfterHighlight = useCallback((element: HTMLElement) => {
     // Don't execute this code in tests as it will throw an error
-    // code snippet calls the onAfterHighlight callback too late, so it triggers teh "updates should be wrapped into act(...)" warning
+    // code snippet calls the onAfterHighlight callback too late, so it triggers the "updates should be wrapped into act(...)" error
     if (NODE_ENV !== 'test') {
       setAuthTokenNodes(replaceTokensWithSpan(element));
     }
