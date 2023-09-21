@@ -9038,10 +9038,10 @@ platform@^1.3.3:
   resolved "https://registry.yarnpkg.com/platform/-/platform-1.3.6.tgz#48b4ce983164b209c2d45a107adb31f473a6e7a7"
   integrity sha512-fnWVljUchTro6RiCFvCXBbNhJc2NijN7oIQxbwsyL0buWJPG85v81ehlHI9fXrJsMNgTofEoWIQeClKpgxFLrg==
 
-platformicons@^5.6.1:
-  version "5.6.1"
-  resolved "https://registry.yarnpkg.com/platformicons/-/platformicons-5.6.1.tgz#7222d701aa77c7024cc9cc0856dd4eaddb4b43e8"
-  integrity sha512-Bk117LpG4V9B96G4fEN+lQlHx6w2bWiZn288g7HVxQeNWv0VXezOa1M35Y1xTXoEYe4noWqf1VVKlpwT6d3PLg==
+platformicons@^5.6.5:
+  version "5.6.5"
+  resolved "https://registry.yarnpkg.com/platformicons/-/platformicons-5.6.5.tgz#5cc0a2a39d78c5e71a23cc2f2a69f495947974bc"
+  integrity sha512-S96AArz7t6xMxfVW7BSyLKD+EJrAZ49JhcRVdPfVrmH5meLZxfD+Sc9hXY2kb2cTmQmYnRm/bi04kUt3WR0J3Q==
   dependencies:
     "@types/node" "*"
     "@types/react" "*"
