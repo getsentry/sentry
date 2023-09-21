@@ -725,7 +725,10 @@ def get_series(
     """Get time series for the given query"""
 
     organization_id = projects[0].organization_id if projects else None
-    tenant_ids = tenant_ids or {"organization_id": organization_id} if organization_id else None
+    tenant_ids = dict()
+    if organization_id is not None:
+        tenant_ids["organization_id"] = organization_id
+    tenant_ids["use_case_id"] = use_case_id.value
 
     if metrics_query.interval is not None:
         interval = metrics_query.interval
