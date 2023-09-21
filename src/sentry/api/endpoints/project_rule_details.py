@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import logging
 
-from rest_framework import status
+from drf_spectacular.utils import extend_schema
+from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -11,10 +12,22 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.rule import RuleEndpoint
 from sentry.api.endpoints.project_rules import find_duplicate_rule
+from sentry.api.fields.actor import ActorField
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.rule import RuleSerializer
+from sentry.api.serializers.models.rule import (  # TODO: blocked rn
+    RuleSerializer,
+    RuleSerializerResponse,
+)
+from sentry.api.serializers.rest_framework.rule import RuleNodeField
 from sentry.api.serializers.rest_framework.rule import RuleSerializer as DrfRuleSerializer
-from sentry.apidocs.parameters import IssueAlertParams
+from sentry.apidocs.constants import (
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_SUCCESS,
+    RESPONSE_UNAUTHORIZED,
+)
+from sentry.apidocs.examples.issue_alert_examples import IssueAlertExamples
+from sentry.apidocs.parameters import GlobalParams, IssueAlertParams
 from sentry.constants import ObjectStatus
 from sentry.integrations.slack.utils import RedisRuleStatus
 from sentry.mediators import project_rules
@@ -37,6 +50,43 @@ from sentry.tasks.integrations.slack import find_channel_id_for_rule
 from sentry.web.decorators import transaction_start
 
 logger = logging.getLogger(__name__)
+
+
+class ProjectRuleDetailsPutSerializer(serializers.Serializer):
+    actionMatch = serializers.ChoiceField(
+        choices=(("all", "all"), ("any", "any"), ("none", "none")),
+        required=False,
+        help_text="An operator determining which actions should take place when the rule triggers.",
+    )
+    actions = serializers.ListField(
+        child=RuleNodeField(type="action/event"),
+        required=False,
+        help_text="A list of actions that will occur when all required conditions and filters for the rule are met. See Create an Issue Alert Rule for a list of actions.",
+    )
+    conditions = serializers.ListField(
+        child=RuleNodeField(type="condition/event"),
+        required=False,
+        help_text="A list of triggers that determine when the rule fires. See Create an Issue Alert Rule for a list of conditions.",
+    )
+    environment = GlobalParams.ENVIRONMENT
+    filterMatch = serializers.ChoiceField(
+        choices=(("all", "all"), ("any", "any"), ("none", "none")),
+        required=False,
+        help_text="An operator determining which filters need to hold before any actions take place. Required when `filters` is passed in.",
+    )
+    filters = serializers.ListField(
+        child=RuleNodeField(type="filter/event"),
+        required=False,
+        help_text="A list of filters that determine if a rule fires after the listed conditions have been met. See Create an Issue Alert for a list of filters.",
+    )
+    frequency = serializers.IntegerField(
+        min_value=5,
+        max_value=60 * 24 * 30,
+        required=False,
+        help_text="How often the alert rule can be triggered for a particular issue, in seconds.",
+    )
+    name = GlobalParams.name("The name for the rule")
+    owner = ActorField(required=False, allow_null=True)
 
 
 @extend_schema(tags=["Events"])
@@ -122,7 +172,7 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
             GlobalParams.PROJECT_SLUG,
             IssueAlertParams.ISSUE_RULE_ID,
         ],
-        request=DrfRuleSerializer,
+        request=ProjectRuleDetailsPutSerializer,
         responses={
             200: RuleSerializerResponse,
             401: RESPONSE_UNAUTHORIZED,
