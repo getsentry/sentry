@@ -46,6 +46,7 @@ from sentry.models.dashboard_widget import (
     DashboardWidgetQuery,
     DashboardWidgetTypes,
 )
+from sentry.models.dynamicsampling import CustomDynamicSamplingRule
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.integrations.project_integration import ProjectIntegration
@@ -323,6 +324,15 @@ class BackupTestCase(TransactionTestCase):
             disable_date=datetime.now(),
             sent_initial_email_date=datetime.now(),
             sent_final_email_date=datetime.now(),
+        )
+        CustomDynamicSamplingRule.update_or_create(
+            condition={"op": "equals", "name": "environment", "value": "prod"},
+            start=timezone.now(),
+            end=timezone.now() + timedelta(hours=1),
+            project_ids=[project.id],
+            organization_id=org.id,
+            num_samples=100,
+            sample_rate=0.5,
         )
 
         # Environment*
