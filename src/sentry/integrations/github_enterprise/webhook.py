@@ -18,7 +18,7 @@ from sentry.integrations.github.webhook import (
     get_github_external_id,
 )
 from sentry.integrations.utils.scope import clear_tags_and_context
-from sentry.utils import json
+from sentry.utils import json, metrics
 from sentry.utils.sdk import configure_scope
 
 from .repository import GitHubEnterpriseRepositoryProvider
@@ -44,7 +44,7 @@ def get_installation_metadata(event, host):
         provider="github_enterprise",
     )
     if integration is None:
-        logger.exception("Integration does not exist.")
+        metrics.incr("integrations.github_enterprise.does_not_exist")
         return
     return integration.metadata["installation"]
 
