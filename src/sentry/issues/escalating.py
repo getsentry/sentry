@@ -234,11 +234,13 @@ def _generate_generic_metrics_backend_query(
 
     groupby = [MetricGroupByField(field="project_id"), Column(name="tags[group_id]")]
 
-    where = Condition(
-        lhs=Column(name="tags[group_id]"),
-        op=Op.IN,
-        rhs=[str(group_id) for group_id in group_ids],
-    )
+    where = [
+        Condition(
+            lhs=Column(name="tags[group_id]"),
+            op=Op.IN,
+            rhs=[str(group_id) for group_id in group_ids],
+        )
+    ]
     return MetricsQuery(
         org_id=organization_id,
         project_ids=project_ids,
