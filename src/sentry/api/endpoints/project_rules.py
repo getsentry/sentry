@@ -83,34 +83,186 @@ def find_duplicate_rule(rule_data, project, rule_id=None):
 
 
 class ProjectRulesPostSerializer(serializers.Serializer):
-    name = GlobalParams.name("The name for the rule.")
+    actionMatch = serializers.ChoiceField(
+        choices=(("all", "all"), ("any", "any"), ("none", "none")),
+        help_text="An operator determining which actions should take place when the rule triggers.",
+    )
+    actions = serializers.ListField(
+        child=RuleNodeField(type="action/event"),
+        help_text="""
+A list of actions that will occur when all required conditions and filters for the rule are met. See below for a list of possible filters.
+
+* Send a notification to Suggested Assignees:
+```json
+{
+    "id": "sentry.mail.actions.NotifyEmailAction",
+    "targetType": "IssueOwners",
+    "fallthroughType": <"AllMembers" OR "ActiveMembers" OR "NoOne">
+}
+```
+
+- Send a notification to a Member or a Team:
+```json
+{
+    "id": "sentry.mail.actions.NotifyEmailAction",
+    "targetType": <"Member" OR "Team">,
+    "fallthroughType": <"AllMembers" OR "ActiveMembers" OR "NoOne">,
+    "targetIdentifier": <Number>
+}
+```
+
+- Send a notification (for all legacy integrations):
+```json
+{
+    "id": "sentry.rules.actions.notify_event.NotifyEventAction"
+}
+```
+""",
+    )
     conditions = serializers.ListField(
         child=RuleNodeField(type="condition/event"),
-        help_text="A list of triggers that determine when the rule fires.",
+        help_text="""
+A list of triggers that determine when the rule fires. See below for a list of possible conditions.
+
+- A new issue is created:
+```json
+{
+    "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"
+}
+```
+
+- The issue changes state from resolved to unresolved:
+```json
+{
+    "id": "sentry.rules.conditions.regression_event.RegressionEventCondition"
+}
+```
+
+- The issue is seen more than `value` times in `interval`:
+```json
+{
+    "id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
+    "value": <Number>,
+    "interval": <"1m" OR "5m" OR "15m" OR "1h" OR "1d" OR "1w" OR "30d">
+}
+```
+
+- The issue is seen by more than `value` users in `interval`:
+```json
+{
+    "id": "sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyCondition",
+    "value": <Number>,
+    "interval": <"1m" OR "5m" OR "15m" OR "1h" OR "1d" OR "1w" OR "30d">
+}
+```
+
+- The issue affects more than `value` percent of sessions in `interval`:
+```json
+{
+    "id": "sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition",
+    "value": <Number>,
+    "interval": <"5m" OR "10m" OR "30m" OR "1h">
+}
+```
+""",
     )
-    filters = serializers.ListField(
-        child=RuleNodeField(type="filter/event"),
-        required=False,
-        help_text="A list of filters that determine if a rule fires after the listed conditions have been met.",
+    frequency = serializers.IntegerField(
+        min_value=5,
+        max_value=60 * 24 * 30,
+        help_text="How often the alert rule can be triggered for a particular issue, in seconds.",
     )
+    name = GlobalParams.name("The name for the rule.")
+    environment = GlobalParams.ENVIRONMENT
     filterMatch = serializers.ChoiceField(
         choices=(("all", "all"), ("any", "any"), ("none", "none")),
         required=False,
         help_text="An operator determining which filters need to hold before any actions take place. Required when `filters` is passed in.",
     )
-    actions = serializers.ListField(
-        child=RuleNodeField(type="action/event"),
-        help_text="A list of actions that will occur when all required conditions and filters for the rule are met.",
-    )
-    actionMatch = serializers.ChoiceField(
-        choices=(("all", "all"), ("any", "any"), ("none", "none")),
-        help_text="An operator determining which actions should take place when the rule triggers.",
-    )
-    environment = GlobalParams.ENVIRONMENT
-    frequency = serializers.IntegerField(
-        min_value=5,
-        max_value=60 * 24 * 30,
-        help_text="How often the alert rule can be triggered for a particular issue, in seconds.",
+    filters = serializers.ListField(
+        child=RuleNodeField(type="filter/event"),
+        required=False,
+        help_text="""
+A list of filters that determine if a rule fires after the listed conditions have been met. See below for a list of possible filters.
+
+- The issue is `comparison_type` than `value` `time`:
+```json
+{
+    "id": "sentry.rules.filters.age_comparison.AgeComparisonFilter",
+    "comparison_type": <"older" OR "newer">,
+    "value": <Number>,
+    "time": <"minute" OR "hour" OR "day" OR "week">
+}
+```
+
+- The issue has happened at least `value` times (Note: this is approximate):
+```json
+{
+    "id": "sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter",
+    "value": <Number>
+}
+```
+
+- The issue is assigned to No One:
+```json
+{
+    "id": "sentry.rules.filters.assigned_to.AssignedToFilter",
+    "targetType": "Unassigned"
+}
+```
+
+- The issue is assigned to `targetType`:
+```json
+{
+    "id": "sentry.rules.filters.assigned_to.AssignedToFilter",
+    "targetType": <"Team" OR "Member">,
+    "targetIdentifier": <Number>
+}
+```
+
+- The event is from the latest release:
+```json
+{
+    "id": "sentry.rules.filters.latest_release.LatestReleaseFilter"
+}
+```
+
+- The issue's category is equal to `value`:
+```json
+{
+    "id": "sentry.rules.filters.issue_category.IssueCategoryFilter",
+    "value": <1 OR 2 OR 3 OR 4 OR 5>
+}
+```
+
+- The event's `attribute` value `match` `value`:
+```json
+{
+    "id": "sentry.rules.conditions.event_attribute.EventAttributeCondition",
+    "attribute": <"message" OR "platform" OR "environment" OR "type" OR "error.handled" OR "error.unhandled" OR "error.main_thread" OR "exception.type" OR "exception.value" OR "user.id" OR "user.email" OR "user.username" OR "user.ip_address" OR "http.method" OR "http.url" OR "http.status_code" OR "sdk.name" OR "stacktrace.code" OR "stacktrace.module" OR "stacktrace.filename" OR "stacktrace.abs_path" OR "stacktrace.package" OR "unreal.crashtype" OR "app.in_foreground">
+    "match": <"co" OR "ew" OR "eq" OR "is" OR "nc" OR "new" OR "ne" OR "ns" OR "nsw" OR "sw">
+    "value": <string>
+}
+```
+
+- The event's tags match `key` `match` `value`:
+```json
+{
+    "id": "sentry.rules.filters.tagged_event.TaggedEventFilter",
+    "key": <string>,
+    "match": <"co" OR "ew" OR "eq" OR "is" OR "nc" OR "new" OR "ne" OR "ns" OR "nsw" OR "sw">
+    "value": <string>
+}
+```
+
+- The event's level is `match` `level`:
+```json
+{
+    "id": "sentry.rules.filters.level.LevelFilter",
+    "match": <"eq" OR "gte" OR "lte">
+    "level": <"50" OR "40" OR "30" OR "20" OR "10" OR "0">
+}
+```
+""",
     )
     owner = ActorField(
         required=False, allow_null=True, help_text="The ID of the team or user that owns the rule."
