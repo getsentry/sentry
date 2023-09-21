@@ -1,39 +1,33 @@
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {space} from 'sentry/styles/space';
+import {PERFORMANCE_SCORE_COLORS} from 'sentry/views/performance/browser/webVitals/utils/performanceScoreColors';
+import {
+  scoreToStatus,
+  STATUS_TEXT,
+} from 'sentry/views/performance/browser/webVitals/utils/scoreToStatus';
+
 type Props = {
-  status: 'good' | 'meh' | 'poor';
+  score: number;
 };
 
-export const scoreToStatus = (score: number) => {
-  if (score >= 90) {
-    return 'good';
-  }
-  if (score >= 50) {
-    return 'meh';
-  }
-  return 'poor';
-};
-
-export function PerformanceBadge({status}: Props) {
-  const theme = useTheme();
-  const text = status === 'good' ? 'GOOD' : status === 'meh' ? 'MEH' : 'POOR';
-  const color =
-    status === 'good'
-      ? theme.green300
-      : status === 'meh'
-      ? theme.yellow300
-      : theme.red300;
-  return <Badge color={color}>{text}</Badge>;
+export function PerformanceBadge({score}: Props) {
+  const status = scoreToStatus(score);
+  return (
+    <Badge status={status}>
+      {STATUS_TEXT[status]} {score}
+    </Badge>
+  );
 }
 
-const Badge = styled('div')<{color: string}>`
-  border-radius: 2px;
-  color: ${p => p.theme.white};
-  background-color: ${p => p.color};
+const Badge = styled('div')<{status: string}>`
+  white-space: nowrap;
+  border-radius: 12px;
+  color: ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].normal]};
+  background-color: ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].light]};
+  border: solid 1px ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].normal]};
   font-size: ${p => p.theme.fontSizeExtraSmall};
-  font-weight: bold;
-  padding: 0 4px;
+  padding: 0 ${space(1)};
   display: inline-block;
-  height: 16px;
+  height: 18px;
 `;

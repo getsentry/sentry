@@ -26,6 +26,8 @@ type Props = React.HTMLAttributes<SVGSVGElement> & {
    * styles based on the state of the progress bar.
    */
   textCss?: (p: TextProps) => SerializedStyles;
+  x?: number;
+  y?: number;
 };
 
 const BASE_ROTATE = -90;

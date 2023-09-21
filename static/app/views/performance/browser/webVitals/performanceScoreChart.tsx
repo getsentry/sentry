@@ -1,8 +1,6 @@
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import toUpper from 'lodash/toUpper';
 
-import MarkLine from 'sentry/components/charts/components/markLine';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -55,37 +53,56 @@ export function PerformanceScoreChart({projectScore, webVital}: Props) {
         </PerformanceScoreLabel>
         <PerformanceScoreSubtext>{performanceScoreSubtext}</PerformanceScoreSubtext>
         <ProgressRingContainer>
-          <PerformanceScoreRing
-            values={[
-              lcpScore * LCP_WEIGHT * 0.01,
-              fcpScore * FCP_WEIGHT * 0.01,
-              fidScore * FID_WEIGHT * 0.01,
-              clsScore * CLS_WEIGHT * 0.01,
-              ttfbScore * TTFB_WEIGHT * 0.01,
-            ]}
-            maxValues={[LCP_WEIGHT, FCP_WEIGHT, FID_WEIGHT, CLS_WEIGHT, TTFB_WEIGHT]}
-            text={score}
-            size={140}
-            barWidth={14}
-            textCss={() => css`
-              font-size: 32px;
-              font-weight: bold;
-              color: ${theme.textColor};
-            `}
-            segmentColors={segmentColors}
-            backgroundColors={backgroundColors}
-          />
+          <svg height={180} width={220}>
+            <ProgressRingText x={160} y={30}>
+              LCP
+            </ProgressRingText>
+            <ProgressRingText x={175} y={140}>
+              FCP
+            </ProgressRingText>
+            <ProgressRingText x={20} y={140}>
+              FID
+            </ProgressRingText>
+            <ProgressRingText x={10} y={60}>
+              CLS
+            </ProgressRingText>
+            <ProgressRingText x={50} y={20}>
+              TTFB
+            </ProgressRingText>
+            <PerformanceScoreRing
+              values={[
+                lcpScore * LCP_WEIGHT * 0.01,
+                fcpScore * FCP_WEIGHT * 0.01,
+                fidScore * FID_WEIGHT * 0.01,
+                clsScore * CLS_WEIGHT * 0.01,
+                ttfbScore * TTFB_WEIGHT * 0.01,
+              ]}
+              maxValues={[LCP_WEIGHT, FCP_WEIGHT, FID_WEIGHT, CLS_WEIGHT, TTFB_WEIGHT]}
+              text={score}
+              size={140}
+              barWidth={14}
+              textCss={() => css`
+                font-size: 32px;
+                font-weight: bold;
+                color: ${theme.textColor};
+              `}
+              segmentColors={segmentColors}
+              backgroundColors={backgroundColors}
+              x={40}
+              y={20}
+            />
+          </svg>
         </ProgressRingContainer>
       </PerformanceScoreLabelContainer>
       <ChartContainer>
         <PerformanceScoreLabel>
-          {t('Performance Score Breakdown')}
+          {t('Score Breakdown')}
           <IconChevron size="xs" direction="down" style={{top: 1}} />
         </PerformanceScoreLabel>
         <PerformanceScoreSubtext>{performanceScoreSubtext}</PerformanceScoreSubtext>
         <Chart
           stacked
-          height={160}
+          height={180}
           data={[
             {
               data: data?.lcp.map(({name, value}) => ({
@@ -139,66 +156,18 @@ export function PerformanceScoreChart({projectScore, webVital}: Props) {
               seriesName: 'TTFB',
               color: segmentColors[4],
             },
-            {
-              data: [],
-              seriesName: `${webVital ? toUpper(webVital) : 'Performance'} Score`,
-              markLine: MarkLine({
-                data: [
-                  {
-                    yAxis: 90,
-                    lineStyle: {
-                      color: theme.green200,
-                      type: 'dashed',
-                      width: 1,
-                    },
-                    label: {
-                      position: 'end',
-                      color: theme.green300,
-                    },
-                    emphasis: {
-                      lineStyle: {
-                        color: theme.green300,
-                        type: 'dashed',
-                        width: 1,
-                      },
-                    },
-                  },
-                  {
-                    yAxis: 50,
-                    lineStyle: {
-                      color: theme.yellow200,
-                      type: 'dashed',
-                      width: 1,
-                    },
-                    label: {
-                      position: 'end',
-                      color: theme.yellow300,
-                    },
-                    emphasis: {
-                      lineStyle: {
-                        color: theme.yellow300,
-                        type: 'dashed',
-                        width: 1,
-                      },
-                    },
-                  },
-                ],
-                label: {},
-                symbol: ['none', 'none'],
-                tooltip: {
-                  show: false,
-                },
-              }),
-            },
           ]}
+          disableXAxis
           loading={isLoading}
           utc={false}
           grid={{
             left: 5,
-            right: 20,
+            right: 5,
             top: 5,
             bottom: 0,
           }}
+          dataMax={100}
+          chartColors={segmentColors}
         />
       </ChartContainer>
     </Flex>
@@ -215,14 +184,14 @@ const Flex = styled('div')`
 `;
 
 const ChartContainer = styled('div')`
-  padding: ${space(2)};
+  padding: ${space(2)} ${space(2)} 0 ${space(2)};
   flex: 1;
   border: 1px solid ${p => p.theme.gray200};
   border-radius: ${p => p.theme.borderRadius};
 `;
 
 const PerformanceScoreLabelContainer = styled('div')`
-  padding: ${space(2)};
+  padding: ${space(2)} ${space(2)} 0 ${space(2)};
   min-width: 320px;
   border: 1px solid ${p => p.theme.gray200};
   border-radius: ${p => p.theme.borderRadius};
@@ -246,6 +215,10 @@ const PerformanceScoreSubtext = styled('div')`
   margin-bottom: ${space(1)};
 `;
 
-const ProgressRingContainer = styled('div')`
-  padding-top: ${space(1)};
+const ProgressRingContainer = styled('div')``;
+
+const ProgressRingText = styled('text')`
+  font-size: ${p => p.theme.fontSizeMedium};
+  color: ${p => p.theme.textColor};
+  font-weight: bold;
 `;
