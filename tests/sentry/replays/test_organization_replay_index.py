@@ -1785,7 +1785,7 @@ class OrganizationReplayIndexOptimizedSearchTest(OrganizationReplayIndexTest):
                 response = self.client.get(
                     self.url + f"?field=id&field=x_warning_ids&query={query}"
                 )
-                assert response.status_code == 200
+                assert response.status_code == 200, query
                 response_data = response.json()
                 assert len(response_data["data"]) == 1, query
                 assert len(response_data["data"][0]["x_warning_ids"]) == 1, query
