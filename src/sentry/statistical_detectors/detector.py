@@ -20,6 +20,7 @@ class DetectorPayload:
     count: float
     value: float
     timestamp: datetime
+    description: Optional[str] = None
 
 
 @dataclass(frozen=True)

@@ -163,3 +163,30 @@ def parse_profile_filters(query: str) -> Dict[str, str]:
         profile_filters[term.key.name] = term.value.value
 
     return profile_filters
+
+
+def make_join_with_separator_formatter(separator: str):
+    def join_with_separator_formatter(package: str, function: str) -> str:
+        if not package:
+            return function
+        return f"{package}{separator}{function}"
+
+    return join_with_separator_formatter
+
+
+def default_formatter(package: str, function: str) -> str:
+    return function
+
+
+FUNCTION_FORMATTERS = {
+    "android": default_formatter,
+    "cocoa": default_formatter,
+    "node": make_join_with_separator_formatter("."),
+    "php": default_formatter,
+    "python": make_join_with_separator_formatter("."),
+}
+
+
+def format_profile_function(platform: str, package: str, function: str) -> str:
+    formatter = FUNCTION_FORMATTERS.get(platform, default_formatter)
+    return formatter(package, function)

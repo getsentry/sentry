@@ -362,6 +362,7 @@ class FunctionsTasksTest(ProfilesSnubaTestCase):
                 count=100,
                 value=pytest.approx(100),  # type: ignore[arg-type]
                 timestamp=self.hour_ago,
+                description="foo",
             )
             for project in self.projects
         ]

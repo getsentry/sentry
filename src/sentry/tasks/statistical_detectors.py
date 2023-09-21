@@ -26,6 +26,7 @@ from sentry import options
 from sentry.api.serializers.snuba import SnubaTSResultSerializer
 from sentry.constants import ObjectStatus
 from sentry.models.project import Project
+from sentry.profiles.utils import format_profile_function
 from sentry.search.events.builder import ProfileTopFunctionsTimeseriesQueryBuilder
 from sentry.search.events.fields import get_function_alias
 from sentry.search.events.types import QueryBuilderConfig
@@ -141,9 +142,8 @@ def detect_function_trends(project_ids: List[int], start: datetime, *args, **kwa
     if not options.get("statistical_detectors.enable"):
         return
 
-    regressions = filter(
-        lambda trend: trend[0] == TrendType.Regressed, _detect_function_trends(project_ids, start)
-    )
+    trends = _detect_function_trends(project_ids, start)
+    regressions = filter(lambda trend: trend[0] == TrendType.Regressed, trends)
 
     for trends in chunked(regressions, FUNCTIONS_PER_BATCH):
         detect_function_change_points.delay(
@@ -205,7 +205,7 @@ def _detect_function_trends(
 
     detector_store = redis.RedisDetectorStore()
 
-    for payloads in chunked(all_function_payloads(project_ids, start), 100):
+    for payloads in chunked(_all_function_payloads(project_ids, start), 100):
         functions_count += len(payloads)
 
         raw_states = detector_store.bulk_read_states(payloads)
@@ -291,7 +291,7 @@ def _detect_function_change_points(
         yield from breakpoints
 
 
-def all_function_payloads(
+def _all_function_payloads(
     project_ids: List[int],
     start: datetime,
 ) -> Generator[DetectorPayload, None, None]:
@@ -300,12 +300,10 @@ def all_function_payloads(
 
     for projects in chunked(Project.objects.filter(id__in=project_ids), projects_per_query):
         try:
-            function_payloads = query_functions(projects, start)
+            yield from query_functions(projects, start)
         except Exception as e:
             sentry_sdk.capture_exception(e)
             continue
-
-        yield from function_payloads
 
 
 def query_transactions(
@@ -435,6 +433,9 @@ def query_functions(projects: List[Project], start: datetime) -> List[DetectorPa
             "project.id",
             "timestamp",
             "fingerprint",
+            "platform.name",
+            "package",
+            "function",
             "count()",
             "p95()",
         ],
@@ -456,6 +457,9 @@ def query_functions(projects: List[Project], start: datetime) -> List[DetectorPa
             count=row["count()"],
             value=row["p95()"],
             timestamp=datetime.fromisoformat(row["timestamp"]),
+            description=format_profile_function(
+                row["platform.name"], row["package"], row["function"]
+            ),
         )
         for row in query_results["data"]
     ]
@@ -466,7 +470,7 @@ def query_functions_timeseries(
     start: datetime,
     agg_function: str,
 ) -> Generator[Tuple[int, int, Any], None, None]:
-    project_ids = [project_id for project_id, _ in functions_list]
+    project_ids = [item[0] for item in functions_list]
     projects = Project.objects.filter(id__in=project_ids)
 
     # take the last 14 days as our window
@@ -484,10 +488,10 @@ def query_functions_timeseries(
     for functions_chunk in chunked(functions_list, 25):
         chunk: List[Dict[str, Any]] = [
             {
-                "project.id": project_id,
-                "fingerprint": fingerprint,
+                "project.id": item[0],
+                "fingerprint": item[1],
             }
-            for project_id, fingerprint in functions_chunk
+            for item in functions_chunk
         ]
 
         builder = ProfileTopFunctionsTimeseriesQueryBuilder(
@@ -517,13 +521,13 @@ def query_functions_timeseries(
             result_key_order=["project.id", "fingerprint"],
         )
 
-        for project_id, fingerprint in functions_chunk:
-            key = f"{project_id},{fingerprint}"
+        for item in functions_chunk:
+            key = f"{item[0]},{item[1]}"
             if key not in results:
                 logger.warning(
                     "Missing timeseries for project: {} function: {}",
-                    project_id,
-                    fingerprint,
+                    item[0],
+                    item[1],
                 )
                 continue
-            yield project_id, fingerprint, results[key]
+            yield item[0], item[1], results[key]
