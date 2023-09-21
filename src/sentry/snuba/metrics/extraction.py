@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import hashlib
 import logging
 from dataclasses import dataclass
@@ -81,7 +83,7 @@ _SEARCH_TO_PROTOCOL_FIELDS = {
 }
 
 # Maps from Discover's syntax to Relay rule condition operators.
-_SEARCH_TO_RELAY_OPERATORS: Dict[str, "CompareOp"] = {
+_SEARCH_TO_RELAY_OPERATORS: Dict[str, CompareOp] = {
     "=": "eq",
     "!=": "eq",  # combined with external negation
     "<": "lt",
@@ -93,7 +95,7 @@ _SEARCH_TO_RELAY_OPERATORS: Dict[str, "CompareOp"] = {
 }
 
 # Maps from parsed count_if condition args to Relay rule condition operators.
-_COUNTIF_TO_RELAY_OPERATORS: Dict[str, "CompareOp"] = {
+_COUNTIF_TO_RELAY_OPERATORS: Dict[str, CompareOp] = {
     "equals": "eq",
     "notEquals": "eq",
     "less": "lt",
@@ -634,7 +636,7 @@ for metric in DERIVED_METRICS.keys():
 # Maps plain Discover functions to derived metric functions which are understood by the metrics layer.
 _SEARCH_TO_DERIVED_METRIC_AGGREGATES: Dict[str, MetricOperationType] = {}
 for metric in DERIVED_METRICS.keys():
-    _SEARCH_TO_DERIVED_METRIC_AGGREGATES[metric] = f"on_demand_{metric}"
+    _SEARCH_TO_DERIVED_METRIC_AGGREGATES[metric] = cast(MetricOperationType, f"on_demand_{metric}")
 
 # With on demand metrics, evaluated metrics are actually stored, thus we have to choose a concrete metric type.
 for metric in DERIVED_METRICS:
@@ -713,10 +715,9 @@ class OnDemandMetricSpec:
         # with condition `f` and this will create a problem, since we might already have data for the `count()` and when
         # `apdex()` is created in the UI, we will use that metric but that metric didn't extract in the past the tags
         # that are used for apdex calculation, effectively causing problems with the data.
-        if _HASH_METHOD.get(self.op) == "op":
-            return self.op
-        elif _HASH_METHOD.get(self.op) == "op_plus_arg":
-            return f"{self.op}:{self._argument}"
+        op_info: dict = DERIVED_METRICS.get(self.op, {})
+        if op_info:
+            return self.op if op_info["hash_method"] == "op" else f"{self.op}:{self._argument}"
 
         return self._argument
 
