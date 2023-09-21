@@ -146,9 +146,9 @@ export default function TagFacets({
       return {};
     }
 
-    const keyed = keyBy(data, 'key');
+    let keyed = keyBy(data, 'key');
     if (isStatisticalDetector) {
-      transformTagFacetDataToGroupTagResponseItems(keyed as Record<string, Tag>);
+      keyed = transformTagFacetDataToGroupTagResponseItems(keyed as Record<string, Tag>);
     }
 
     const formatted =
