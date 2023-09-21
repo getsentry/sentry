@@ -137,3 +137,15 @@ def test_gauge_as_counter(backend, hub):
     assert metrics[0][3] == ["42.0"]
 
     assert len(hub.client.metrics_aggregator.buckets) == 0
+
+
+def test_did_you_remove_type_ignore():
+    from importlib.metadata import version
+
+    ver = tuple(map(int, version("sentry-sdk").split(".")[:2]))
+    if ver > (1, 31):
+        raise RuntimeError(
+            "Released SDK version with minimetrics support. Please delete "
+            "this test and follow up instructions in "
+            "https://github.com/getsentry/sentry/issues/56651"
+        )
