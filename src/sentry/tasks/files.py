@@ -48,7 +48,10 @@ def delete_file(file_blob_model, path, checksum, **kwargs):
 
     lock = locks.get(f"fileblob:upload:{checksum}", duration=60 * 10, name="fileblob_upload")
     with TimedRetryPolicy(60)(lock.acquire):
-        if not file_blob_model.objects.filter(checksum=checksum).exists():
+        # check that the fileblob with *this* path exists, as its possible
+        # that a concurrent re-upload added the same chunk once again, with a
+        # different path that time
+        if not file_blob_model.objects.filter(checksum=checksum, path=path).exists():
             get_storage().delete(path)
 
 
