@@ -1,50 +1,72 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 
-import sentry_sdk
 from rest_framework.response import Response
+from snuba_sdk import Column, Function
 
 from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization_events import OrganizationEventsEndpointBase
-from sentry.api.endpoints.organization_events_spans_performance import SpanQueryBuilder
+from sentry.search.events.builder import QueryBuilder
+from sentry.search.events.types import QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics_performance import query as metrics_query
 from sentry.utils.snuba import raw_snql_query
 
 
 def query_spans(transaction: str, regression_breakpoint, params):
-    # Try to center the time period around the breakpoint
-    # but also get the most recent data points
+    selected_columns = [
+        "count(span_id) as span_count",
+        "sumArray(spans_exclusive_time) as total_span_self_time",
+        "array_join(spans_op) as span_op",
+        "array_join(spans_group) as span_group",
+        # want a single event id to fetch from nodestore for the span description
+        "any(id) as sample_event_id",
+    ]
 
-    # Should it be consistent or can I have more data included when
-    # there are more recent data points?
-
-    # Attempt to get 30 days worth of data split by the breakpoint
-    desired_end = regression_breakpoint + timedelta(days=15)
-    desired_start = regression_breakpoint - timedelta(days=15)
-
-    start = max(datetime.now() - timedelta(days=90), desired_start)
-    end = min(desired_end, datetime.now())
-
-    # Keep track of the time period we actually used
-    sentry_sdk.set_tag("start_timestamp", start.isoformat())
-    sentry_sdk.set_tag("end_timestamp", start.isoformat())
-
-    builder = SpanQueryBuilder(
-        dataset=Dataset.Transactions,
-        params={**params, "start": start, "end": end},
-        selected_columns=["id", "transaction"],
-        query="transaction:{transaction}",
-        orderby=[],
+    builder = QueryBuilder(
+        dataset=Dataset.Discover,
+        params=params,
+        selected_columns=selected_columns,
+        equations=[],
+        query=f"transaction:{transaction}",
+        orderby=["span_op", "span_group", "total_span_self_time"],
+        limit=10000,
+        config=QueryBuilderConfig(
+            auto_aggregations=True,
+            use_aggregate_conditions=True,
+            functions_acl=[
+                "array_join",
+                "sumArray",
+                "percentileArray",
+            ],
+        ),
     )
+
+    builder.columns.append(
+        Function(
+            "if",
+            [
+                Function(
+                    "greaterOrEquals", [Column("timestamp"), regression_breakpoint.isoformat()]
+                ),
+                "1",
+                "0",
+            ],
+            "period",
+        )
+    )
+    builder.columns.append(Function("countDistinct", [Column("event_id")], "transaction_count"))
+    builder.groupby.append(Column("period"))
 
     snql_query = builder.get_snql_query()
     results = raw_snql_query(snql_query, "api.organization-events-root-cause-analysis")
 
-    breakpoint()
-    # TODO: Split the spans into pre and post breakpoint
-    return results, results
+    # sumArray is not allowed in equations so we have to calculate this manually
+    for result in results.get("data"):
+        result["average_span_duration"] = result["total_span_self_time"] / result["span_count"]
+
+    return results.get("data")
 
 
 @region_silo_endpoint
@@ -61,22 +83,30 @@ class OrganizationEventsRootCauseAnalysisEndpoint(OrganizationEventsEndpointBase
         ):
             return Response(status=404)
 
-        root_cause_results = {}
-
         # TODO: Extract this into a custom serializer to handle validation
         transaction_name = request.GET.get("transaction")
         project_id = request.GET.get("project")
         regression_breakpoint = request.GET.get("breakpoint")
-        if not transaction_name or not project_id or not regression_breakpoint:
+        request_start = request.GET.get("requestStart")
+        request_end = request.GET.get("requestEnd")
+        if (
+            not transaction_name
+            or not project_id
+            or not regression_breakpoint
+            or not request_start
+            or not request_end
+        ):
             # Project ID is required to ensure the events we query for are
             # the same transaction
             return Response(status=400)
 
         regression_breakpoint = datetime.fromisoformat(regression_breakpoint)
-        params = self.get_snuba_params(request, organization)
+        request_start = datetime.fromisoformat(request_start)
+        request_end = datetime.fromisoformat(request_end)
 
-        if regression_breakpoint > datetime.now():
-            return Response(status=400, data="Breakpoint cannot be in the future")
+        params = self.get_snuba_params(request, organization)
+        params["start"] = request_start
+        params["end"] = request_end
 
         with self.handle_query_errors():
             transaction_count_query = metrics_query(
@@ -89,10 +119,10 @@ class OrganizationEventsRootCauseAnalysisEndpoint(OrganizationEventsEndpointBase
         if transaction_count_query["data"][0]["count"] == 0:
             return Response(status=400, data="Transaction not found")
 
-        pre_breakpoint_spans, post_breakpoint_spans = query_spans(
-            transaction=transaction_name, regression_breakpoint=regression_breakpoint, params=params
+        results = query_spans(
+            transaction=transaction_name,
+            regression_breakpoint=regression_breakpoint,
+            params=params,
         )
 
-        root_cause_results["count_pre_breakpoint_spans"] = len(pre_breakpoint_spans)
-        root_cause_results["count_post_breakpoint_spans"] = len(post_breakpoint_spans)
-        return Response(status=200, data=root_cause_results)
+        return Response(results, status=200)

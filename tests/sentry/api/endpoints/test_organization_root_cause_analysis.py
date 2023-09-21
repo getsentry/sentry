@@ -5,7 +5,7 @@ from django.urls import reverse
 
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.testutils.cases import MetricsAPIBaseTestCase
-from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.datetime import freeze_time, iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.samples import load_data
 
@@ -148,37 +148,77 @@ class OrganizationRootCauseAnalysisTest(MetricsAPIBaseTestCase):
         assert response.status_code == 400, response.content
 
     def test_returns_counts_of_spans_before_and_after_breakpoint(self):
+        before_timestamp = self.now - timedelta(days=2)
+        before_span = {
+            "parent_span_id": "a" * 16,
+            "span_id": "e" * 16,
+            "start_timestamp": iso_format(before_timestamp),
+            "timestamp": iso_format(before_timestamp),
+            "op": "django.middleware",
+            "description": "middleware span",
+            "exclusive_time": 60.0,
+        }
+
         # before
         self.create_transaction(
             transaction="foo",
             trace_id=self.trace_id,
             span_id="a" * 16,
             parent_span_id="b" * 16,
-            spans=None,
+            spans=[before_span],
             project_id=self.project.id,
-            start_timestamp=self.now - timedelta(days=2),
-            duration=100,
+            start_timestamp=before_timestamp,
+            duration=60,
         )
         self.create_transaction(
             transaction="foo",
             trace_id=self.trace_id,
             span_id="b" * 16,
             parent_span_id="b" * 16,
-            spans=None,
+            spans=[{**before_span, "op": "db", "description": "db span"}],
             project_id=self.project.id,
-            start_timestamp=self.now - timedelta(days=2),
-            duration=100,
+            start_timestamp=before_timestamp,
+            duration=60,
         )
 
         # after
+        after_timestamp = self.now - timedelta(hours=1)
         self.create_transaction(
             transaction="foo",
             trace_id=self.trace_id,
             span_id="c" * 16,
             parent_span_id="d" * 16,
-            spans=None,
+            spans=[
+                {
+                    "parent_span_id": "e" * 16,
+                    "span_id": "f" * 16,
+                    "start_timestamp": iso_format(after_timestamp),
+                    "timestamp": iso_format(after_timestamp),
+                    "op": "django.middleware",
+                    "description": "middleware span",
+                    "exclusive_time": 40.0,
+                },
+                {
+                    "parent_span_id": "1" * 16,
+                    "span_id": "2" * 16,
+                    "start_timestamp": iso_format(after_timestamp),
+                    "timestamp": iso_format(after_timestamp),
+                    "op": "django.middleware",
+                    "description": "middleware span",
+                    "exclusive_time": 60.0,
+                },
+                {
+                    "parent_span_id": "1" * 16,
+                    "span_id": "3" * 16,
+                    "start_timestamp": iso_format(after_timestamp),
+                    "timestamp": iso_format(after_timestamp),
+                    "op": "django.middleware",
+                    "description": "middleware span",
+                    "exclusive_time": 60.0,
+                },
+            ],
             project_id=self.project.id,
-            start_timestamp=self.now,
+            start_timestamp=after_timestamp,
             duration=100,
         )
 
@@ -189,10 +229,45 @@ class OrganizationRootCauseAnalysisTest(MetricsAPIBaseTestCase):
                 data={
                     "transaction": "foo",
                     "project": self.project.id,
-                    "breakpoint": (self.now - timedelta(days=1)).isoformat(),
+                    "breakpoint": self.now - timedelta(days=1),
+                    "requestStart": self.now - timedelta(days=3),
+                    "requestEnd": self.now,
                 },
             )
 
         assert response.status_code == 200, response.content
-        assert response.data["before"] == 2
-        assert response.data["after"] == 1
+
+        # Check that sample IDs are gathered, but remove them from the data
+        # for checking since they are randomized
+        assert all("sample_event_id" in row for row in response.data)
+        for row in response.data:
+            del row["sample_event_id"]
+        assert response.data == [
+            {
+                "average_span_duration": 60.0,
+                "period": "0",
+                "span_count": 1,
+                "span_group": "5ad8c5a1e8d0e5f7",
+                "span_op": "db",
+                "total_span_self_time": 60.0,
+                "transaction_count": 1,
+            },
+            {
+                "span_group": "2b9cbb96dbf59baa",
+                "span_op": "django.middleware",
+                "period": "0",
+                "total_span_self_time": 60.0,
+                "span_count": 1,
+                "transaction_count": 1,
+                "average_span_duration": 60.0,
+            },
+            {
+                "span_group": "2b9cbb96dbf59baa",
+                "span_op": "django.middleware",
+                "period": "1",
+                "total_span_self_time": 160.0,
+                "span_count": 3,
+                "transaction_count": 1,
+                "average_span_duration": 53.333333333333336,
+            },
+        ]
