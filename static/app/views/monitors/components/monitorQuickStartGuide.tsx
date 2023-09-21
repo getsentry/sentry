@@ -66,7 +66,7 @@ const onboardingGuides: Record<string, OnboardingGuide> = {
   php: {
     label: 'PHP',
     Guide: PHPCronQuickStart,
-    platforms: new Set(['php', 'php-monolog', 'php-symfony2']),
+    platforms: new Set(['php', 'php-monolog', 'php-symfony']),
   },
   phpLaravel: {
     label: 'Laravel',

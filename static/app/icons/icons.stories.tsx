@@ -104,7 +104,6 @@ const platformToIcon = {
   php: 'php',
   'php-laravel': 'laravel',
   'php-monolog': 'php',
-  'php-symfony2': 'symfony',
   'php-symfony': 'symfony',
   python: 'python',
   'python-aiohttp': 'aiohttp',
