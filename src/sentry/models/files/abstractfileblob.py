@@ -102,7 +102,21 @@ class AbstractFileBlob(Model):
 
         def _save_blob(blob):
             logger.debug("FileBlob.from_files._save_blob.start", extra={"path": blob.path})
-            blob.save()
+            try:
+                blob.save()
+            except IntegrityError:
+                # this means that there was a race inserting a blob
+                # with this checksum. we will fetch the other blob that was
+                # saved, and delete our backing storage to not leave orphaned
+                # chunks behind.
+                # we also won't have to worry about concurrent deletes, as deletions
+                # are only happening for blobs older than 24h.
+                metrics.incr("filestore.upload_race", sample_rate=1.0)
+                saved_path = blob.path
+                blob = cls.objects.get(checksum=blob.checksum)
+                storage = get_storage(cls._storage_config())
+                storage.delete(saved_path)
+
             _ensure_blob_owned(blob)
             logger.debug("FileBlob.from_files._save_blob.end", extra={"path": blob.path})
 
@@ -192,7 +206,14 @@ class AbstractFileBlob(Model):
             blob.path = cls.generate_unique_path()
             storage = get_storage(cls._storage_config())
             storage.save(blob.path, fileobj)
-            blob.save()
+            try:
+                blob.save()
+            except IntegrityError:
+                # see `_save_blob` above
+                metrics.incr("filestore.upload_race", sample_rate=1.0)
+                saved_path = blob.path
+                blob = cls.objects.get(checksum=checksum)  # type:ignore
+                storage.delete(saved_path)
 
         metrics.timing("filestore.blob-size", size)
         logger.debug("FileBlob.from_file.end")
