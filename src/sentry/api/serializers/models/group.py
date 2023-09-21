@@ -883,8 +883,17 @@ class SharedGroupSerializer(GroupSerializer):
         self, obj: Group, attrs: MutableMapping[str, Any], user: Any, **kwargs: Any
     ) -> BaseGroupSerializerResponse:
         result = super().serialize(obj, attrs, user)
-        del result["annotations"]  # type:ignore
-        del result["assignedTo"]  # type:ignore
+
+        ALLOWED_FIELDS = [
+            "culprit",
+            "id",
+            "isUnhandled",
+            "issueCategory",
+            "permalink",
+            "shortId",
+            "title",
+        ]
+        result = {k: v for (k, v) in result.items() if k in ALLOWED_FIELDS}
         return result
 
 
