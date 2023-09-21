@@ -13,9 +13,9 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
 type AggregateSpanRow = {
+  'avg(absolute_offset)': number;
   'avg(duration)': number;
   'avg(exclusive_time)': number;
-  'avg(offset)': number;
   'count()': number;
   description: string;
   group: string;
@@ -71,7 +71,7 @@ export function AggregateSpans({transaction}: Props) {
       parent_node_fingerprint: parent_span_id,
       description: description,
       'avg(exclusive_time)': exclusive_time,
-      'avg(offset)': start_timestamp,
+      'avg(absolute_offset)': start_timestamp,
       'count()': count,
       'avg(duration)': duration,
       ...rest
