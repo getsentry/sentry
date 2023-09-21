@@ -4,8 +4,8 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/button';
 import {
   mapSourceMapDebuggerFrameInformation,
-  useSourceMapDebuggerBlueThunder,
-} from 'sentry/components/events/interfaces/crashContent/exception/useSourceMapDebuggerBlueThunder';
+  useSourceMapDebuggerData,
+} from 'sentry/components/events/interfaces/crashContent/exception/useSourceMapDebuggerData';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {Tooltip} from 'sentry/components/tooltip';
 import {tct, tn} from 'sentry/locale';
@@ -134,7 +134,7 @@ export function Content({
   const {collapsedExceptions, toggleException, expandException} =
     useCollapsedExceptions(values);
 
-  const sourceMapDebuggerData = useSourceMapDebuggerBlueThunder(event, projectSlug);
+  const sourceMapDebuggerData = useSourceMapDebuggerData(event, projectSlug);
 
   // Organization context may be unavailable for the shared event view, so we
   // avoid using the `useOrganization` hook here and directly useContext

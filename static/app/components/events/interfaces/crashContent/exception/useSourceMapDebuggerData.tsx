@@ -33,7 +33,7 @@ interface SourceMapDebugBlueThunderResponse {
   sdk_version: string | null;
 }
 
-export function useSourceMapDebuggerBlueThunder(event: Event, projectSlug: string) {
+export function useSourceMapDebuggerData(event: Event, projectSlug: string) {
   const isSdkThatShouldShowSourceMapsDebugger =
     !!event.sdk?.name.startsWith('sentry.javascript.');
   const organization = useOrganization({allowNull: true});
