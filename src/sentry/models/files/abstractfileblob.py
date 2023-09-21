@@ -210,7 +210,7 @@ class AbstractFileBlob(Model):
                 # see `_save_blob` above
                 metrics.incr("filestore.upload_race", sample_rate=1.0)
                 saved_path = blob.path
-                blob = cls.objects.get(checksum=checksum)
+                blob = cls.objects.get(checksum=checksum)  # type:ignore
                 storage.delete(saved_path)
 
         metrics.timing("filestore.blob-size", size)
