@@ -1,6 +1,6 @@
 import {Replayer} from '@sentry-internal/rrweb';
 
-import type {RecordingFrame, ReplayFrame} from 'sentry/utils/replays/types';
+import type {RecordingFrame} from 'sentry/utils/replays/types';
 
 export type DomNodeChartDatapoint = {
   count: number;
@@ -10,21 +10,23 @@ export type DomNodeChartDatapoint = {
 };
 
 type Args = {
-  frames: ReplayFrame[] | undefined;
+  frames: RecordingFrame[] | undefined;
   rrwebEvents: RecordingFrame[] | undefined;
+  startTimestampMs: number;
 };
 
-export default function countNomNodes({
+export default function countDomNodes({
   frames = [],
   rrwebEvents,
+  startTimestampMs,
 }: Args): Promise<DomNodeChartDatapoint[]> {
   return new Promise(resolve => {
-    if (!frames.length) {
-      resolve([]);
-      return;
-    }
+    // if (!frames.length) {
+    //   resolve([]);
+    //   return;
+    // }
 
-    const datapoints = new Map<ReplayFrame, DomNodeChartDatapoint>();
+    const datapoints = new Map<RecordingFrame, DomNodeChartDatapoint>();
 
     const player = createPlayer(rrwebEvents);
 
@@ -47,42 +49,50 @@ export default function countNomNodes({
     };
 
     type FrameRef = {
-      frame: undefined | ReplayFrame;
-      nodeId: undefined | number;
+      frame: undefined | RecordingFrame;
+      // nodeId: undefined | number;
     };
 
     const nodeIdRef: FrameRef = {
       frame: undefined,
-      nodeId: undefined,
+      // nodeId: undefined,
     };
 
     const handlePause = () => {
-      if (!nodeIdRef.nodeId && !nodeIdRef.frame) {
-        return;
-      }
-      const frame = nodeIdRef.frame as ReplayFrame;
-      const count = countDomNodes();
-      datapoints.set(frame as ReplayFrame, {
-        count,
-        timestampMs: frame.timestampMs,
-        startTimestampMs: frame.timestampMs,
-        endTimestampMs: frame.timestampMs,
+      // if (!nodeIdRef.nodeId && !nodeIdRef.frame) {
+      //   return;
+      // }
+      const frame = nodeIdRef.frame as RecordingFrame;
+      // const count = countDomNodes();
+      // const iframe = document.getElementsByTagName('iframe')[0];
+      // const innerDoc = iframe.contentDocument;
+      // const nodeCount = innerDoc?.getElementsByTagName('*').length ?? 0;
+      const idCount = player.getMirror().getIds().length;
+      datapoints.set(frame as RecordingFrame, {
+        count: idCount,
+        timestampMs: frame.timestamp,
+        startTimestampMs: frame.timestamp,
+        endTimestampMs: frame.timestamp,
       });
       nextOrDone();
     };
 
     const matchFrame = frame => {
-      nodeIdRef.frame = frame;
-      nodeIdRef.nodeId =
-        frame.data && 'nodeId' in frame.data ? frame.data.nodeId : undefined;
-
-      if (nodeIdRef.nodeId === undefined || nodeIdRef.nodeId === -1) {
+      // nodeIdRef.nodeId =
+      //   frame.data && 'nodeId' in frame.data ? frame.data.nodeId : undefined;
+      const shouldSample = Math.random() < 0.1;
+      if (!shouldSample || !frame) {
         nextOrDone();
         return;
       }
+      nodeIdRef.frame = frame;
+      // if (nodeIdRef.nodeId === undefined || nodeIdRef.nodeId === -1) {
+      //   nextOrDone();
+      //   return;
+      // }
 
       window.setTimeout(() => {
-        player.pause(frame.offsetMs);
+        player.pause(frame.timestamp - startTimestampMs);
       }, 0);
     };
 
@@ -117,9 +127,9 @@ function createPlayer(rrwebEvents): Replayer {
   return replayerRef;
 }
 
-function countDomNodes(): number {
-  const iframe = document.getElementsByTagName('iframe')[0];
-  const innerDoc = iframe.contentDocument;
-  const count = innerDoc?.getElementsByTagName('*').length ?? 0;
-  return count;
-}
+// function countDomNodes(): number {
+//   const iframe = document.getElementsByTagName('iframe')[0];
+//   const innerDoc = iframe.contentDocument;
+//   const count = innerDoc?.getElementsByTagName('*').length ?? 0;
+//   return count;
+// }

@@ -28,6 +28,7 @@ import type {
 } from 'sentry/utils/replays/types';
 import {
   BreadcrumbCategories,
+  EventType,
   isDeadClick,
   isDeadRageClick,
   isLCPFrame,
@@ -195,6 +196,16 @@ export default class ReplayReader {
 
   getRRWebFrames = () => this._sortedRRWebEvents;
 
+  getRRWebMutations = () =>
+    this._sortedRRWebEvents.filter(event =>
+      [
+        EventType.DomContentLoaded,
+        EventType.Load,
+        EventType.FullSnapshot,
+        EventType.IncrementalSnapshot,
+      ].includes(event.type)
+    );
+
   getErrorFrames = () => this._errors;
 
   getConsoleFrames = memoize(() =>
@@ -237,8 +248,9 @@ export default class ReplayReader {
 
   countDomNodes = memoize(() =>
     countDomNodes({
-      frames: this.getDOMFrames(),
+      frames: this.getRRWebMutations(),
       rrwebEvents: this.getRRWebFrames(),
+      startTimestampMs: this._replayRecord.started_at.getTime(),
     })
   );
 
