@@ -1,6 +1,7 @@
 from enum import Enum
 from typing import Optional
 
+from sentry.sentry_metrics.consumers.indexer.batch import extract_use_case_id
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 
 
@@ -18,4 +19,8 @@ USE_CASE_AGG_OPTION = {UseCaseID.CUSTOM: AggregationOption.TEN_SECOND}
 
 
 def get_aggregation_option(metricId: str) -> Optional[AggregationOption]:
+    use_case_id: UseCaseID = extract_use_case_id(metricId)
+    if use_case_id in USE_CASE_AGG_OPTION:
+        return USE_CASE_AGG_OPTION[use_case_id]
+
     return METRIC_ID_AGG_OPTION.get(metricId)
