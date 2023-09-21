@@ -383,12 +383,14 @@ class User(BaseModel, AbstractBaseUser):
             request.session["_nonce"] = self.session_nonce
 
     def get_orgs_require_2fa(self):
-        from sentry.models import Organization, OrganizationStatus
+        from sentry.models import OrganizationMapping, OrganizationMemberMapping, OrganizationStatus
 
-        return Organization.objects.filter(
-            flags=models.F("flags").bitor(Organization.flags.require_2fa),
+        return OrganizationMapping.objects.filter(
+            require_2fa=True,
             status=OrganizationStatus.ACTIVE,
-            member_set__user_id=self.id,
+            organization_id__in=OrganizationMemberMapping.objects.filter(
+                user_id=self.id
+            ).values_list("organization_id", flat=True),
         )
 
     def clear_lost_passwords(self):

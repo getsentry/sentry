@@ -188,7 +188,7 @@ class UserAuthenticatorDeviceDetailsTest(UserAuthenticatorDetailsTestBase):
         )
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class UserAuthenticatorDetailsTest(UserAuthenticatorDetailsTestBase):
     endpoint = "sentry-api-0-user-authenticator-details"
 
