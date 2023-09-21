@@ -1,0 +1,35 @@
+---
+created: '2023-09-19T10:00:00Z'
+creator: sentry
+source: tests/sentry/dynamic_sampling/rules/biases/test_custom_rule_bias.py
+---
+- condition:
+    name: environment
+    op: equals
+    value: prod1
+  decayingFn:
+    limit: 100
+    type: reservoir
+  id: 3001
+  samplingValue:
+    type: sampleRate
+    value: 0.5
+  timeRange:
+    end: '2023-09-19T11:00:00.000000Z'
+    start: '2023-09-19T09:00:00.000000Z'
+  type: transaction
+- condition:
+    name: environment
+    op: equals
+    value: prod2
+  decayingFn:
+    limit: 101
+    type: reservoir
+  id: 3002
+  samplingValue:
+    type: sampleRate
+    value: 0.6
+  timeRange:
+    end: '2023-09-19T11:00:00.000000Z'
+    start: '2023-09-19T09:00:00.000000Z'
+  type: transaction

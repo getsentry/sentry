@@ -29,10 +29,12 @@ class CustomRuleBias(Bias):
                         "start": rule.start_date.strftime(CUSTOM_RULE_DATE_FORMAT),
                         "end": rule.end_date.strftime(CUSTOM_RULE_DATE_FORMAT),
                     },
-                    "decayingFn": {
-                        "type": "reservoir",
-                        "limit": rule.num_samples,
-                    },
+                    # TODO: (Raduw) switch to reservoir sampling when available
+                    "decayingFn": {"type": "constant"},
+                    # "decayingFn": {
+                    #     "type": "reservoir",
+                    #     "limit": rule.num_samples,
+                    # },
                 }
             )
 
