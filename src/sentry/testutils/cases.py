@@ -921,6 +921,7 @@ class PermissionTestCase(TestCase):
         self.assert_cannot_access(user, path, **kwargs)
 
 
+@requires_snuba
 class PluginTestCase(TestCase):
     @property
     def plugin(self):
