@@ -9,6 +9,7 @@ import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {PinnedPageFilter} from 'sentry/types';
+import oxfordizeArray from 'sentry/utils/oxfordizeArray';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
@@ -31,10 +32,7 @@ function getReadableDesyncedFilterList(desyncedFilters: Set<PinnedPageFilter>) {
     return `${filterNameMap[filters[0]]} filter`;
   }
 
-  return `${filters
-    .slice(0, -1)
-    .map(value => filterNameMap[value])
-    .join(', ')} and ${filterNameMap[filters[filters.length - 1]]} filters`;
+  return oxfordizeArray(filters.map(value => filterNameMap[value])) + ' filters';
 }
 
 export default function DesyncedFilterAlert({

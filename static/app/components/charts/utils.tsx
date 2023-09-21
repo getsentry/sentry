@@ -8,6 +8,7 @@ import {Series} from 'sentry/types/echarts';
 import {defined, escape} from 'sentry/utils';
 import {getFormattedDate, parsePeriodToHours} from 'sentry/utils/dates';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import oxfordizeArray from 'sentry/utils/oxfordizeArray';
 import {decodeList} from 'sentry/utils/queryString';
 
 const DEFAULT_TRUNCATE_LENGTH = 80;
@@ -321,10 +322,9 @@ export const getPreviousSeriesName = (seriesName: string) => {
 };
 
 function formatList(items: Array<string | number | undefined>) {
-  const filteredItems = items.filter(item => !!item);
-  return [[...filteredItems].slice(0, -1).join(', '), [...filteredItems].slice(-1)]
-    .filter(type => !!type)
-    .join(' and ');
+  const filteredItems = items.filter((item): item is string | number => !!item);
+
+  return oxfordizeArray(filteredItems.map(item => item.toString()));
 }
 
 export function useEchartsAriaLabels(
