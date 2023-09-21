@@ -109,6 +109,8 @@ class AbstractFileBlob(Model):
                 # with this checksum. we will fetch the other blob that was
                 # saved, and delete our backing storage to not leave orphaned
                 # chunks behind.
+                # we also won't have to worry about concurrent deletes, as deletions
+                # are only happening for blobs older than 24h.
                 metrics.incr("filestore.upload_race", sample_rate=1.0)
                 saved_path = blob.path
                 blob = cls.objects.get(checksum=blob.checksum)
