@@ -144,7 +144,13 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
                 project_list = release.projects.all()
             for project in project_list:
                 project_threshold_statuses = []
-                for threshold in project.release_thresholds.all():
+                if environments_list:
+                    thresholds_list = project.release_thresholds.filter(
+                        environment__name__in=environments_list
+                    )
+                else:
+                    thresholds_list = project.release_thresholds.all()
+                for threshold in thresholds_list:
                     is_healthy = self.is_threshold_healthy(threshold)
                     project_threshold_statuses.append(
                         {

@@ -226,7 +226,7 @@ class ReleaseThresholdStatusTest(APITestCase):
         We'll filter for _only_ canary releases, so the response should look like
         {
             [release1]: {
-                [p1.id]: [threshold-p1-canary, threshold2-p1-canary, threshold-p1-prod]
+                [p1.id]: [threshold-p1-canary, threshold2-p1-canary]
                 [p2.id]: [threshold-p2-canary]
             }
         }
@@ -234,15 +234,15 @@ class ReleaseThresholdStatusTest(APITestCase):
         now = str(datetime.now())
         yesterday = str(datetime.now() - timedelta(hours=24))
         response = self.get_success_response(
-            self.organization.slug, start=yesterday, end=now, environment="canary"
+            self.organization.slug, start=yesterday, end=now, environment=["canary"]
         )
 
         assert len(response.data) == 1  # only the canary release
         assert len(response.data.get(self.release1.id)) == 2  # 2 projects (p1 & p2) in release 1
 
         assert (
-            len(response.data.get(self.release1.id, {}).get(self.project1.id)) == 3
-        )  # p1 2x canary, 1x prod
+            len(response.data.get(self.release1.id, {}).get(self.project1.id)) == 2
+        )  # p1 2x canary
         assert (
             response.data.get(self.release1.id, {})
             .get(self.project1.id)[0]  # first threshold
@@ -250,13 +250,6 @@ class ReleaseThresholdStatusTest(APITestCase):
             .get("name")
             == self.canary_environment.name
         )  # assert environment is 'canary'
-        assert (
-            response.data.get(self.release1.id, {})
-            .get(self.project1.id)[2]
-            .get("environment", {})
-            .get("name")
-            == self.production_environment.name
-        )  # assert environment is 'production'
         assert (
             len(response.data.get(self.release1.id, {}).get(self.project2.id)) == 1
         )  # p2 1x canary
