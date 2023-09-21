@@ -218,7 +218,6 @@
     "sentry.ExportedData"
   ],
   "sentry.ExternalActor": [
-    "sentry.Actor",
     "sentry.Integration",
     "sentry.Organization",
     "sentry.Team",
@@ -411,6 +410,11 @@
   "sentry.MonitorEnvironment": [
     "sentry.Environment",
     "sentry.Monitor"
+  ],
+  "sentry.MonitorIncident": [
+    "sentry.Monitor",
+    "sentry.MonitorCheckIn",
+    "sentry.MonitorEnvironment"
   ],
   "sentry.MonitorLocation": [],
   "sentry.NeglectedRule": [
