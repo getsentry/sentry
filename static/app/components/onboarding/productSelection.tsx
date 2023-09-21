@@ -141,7 +141,6 @@ export const platformProductAvailability = {
   'python-pyramid': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-quart': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-rq': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
-  'python-sanic': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-serverless': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
