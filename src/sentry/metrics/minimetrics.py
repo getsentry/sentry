@@ -119,7 +119,9 @@ class MiniMetricsMetricsBackend(MetricsBackend):
         sample_rate: float = 1,
     ) -> None:
         if self._keep_metric(sample_rate):
-            sentry_sdk.metrics.distribution(key=self._get_key(key), value=value, tags=tags)
+            sentry_sdk.metrics.distribution(
+                key=self._get_key(key), value=value, tags=tags, unit="second"
+            )
 
     def gauge(
         self,
