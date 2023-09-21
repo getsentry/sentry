@@ -13,6 +13,7 @@ from sentry.sentry_metrics.indexer.base import (
     metric_path_key_compatible_rev_resolve,
 )
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
+from sentry.utils import metrics
 
 # !!! DO NOT CHANGE THESE VALUES !!!
 #
@@ -238,6 +239,9 @@ class StaticStringIndexer(StringIndexer):
 
     @metric_path_key_compatible_resolve
     def resolve(self, use_case_id: UseCaseID, org_id: int, string: str) -> Optional[int]:
+        # TODO: remove this metric after investigation is over
+        if use_case_id is UseCaseID.ESCALATING_ISSUES:
+            metrics.incr("string_indexer_resolve_escalating_issues")
         if string in SHARED_STRINGS:
             return SHARED_STRINGS[string]
         return self.indexer.resolve(use_case_id, org_id, string)
