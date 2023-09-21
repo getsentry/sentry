@@ -41,6 +41,12 @@ class OrganizationMissingMembersTestCase(APITestCase):
         self.nonmember_commit_author2.external_id = "d"
         self.nonmember_commit_author2.save()
 
+        nonmember_commit_author_invalid_char = self.create_commit_author(
+            project=self.project, email="hi+1@example.com"
+        )
+        nonmember_commit_author_invalid_char.external_id = "hi+1"
+        nonmember_commit_author_invalid_char.save()
+
         self.integration = self.create_integration(
             organization=self.organization, provider="github", name="Github", external_id="github:1"
         )

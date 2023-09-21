@@ -39,6 +39,8 @@ filtered_email_domains = {
     "noreply.github.com",
 }
 
+filtered_characters = {"+"}
+
 
 class MissingOrgMemberSerializer(Serializer):
     def serialize(self, obj, attrs, user, **kwargs):
@@ -148,6 +150,9 @@ class OrganizationMissingMembersEndpoint(OrganizationEndpoint):
             else:
                 for filtered_email in filtered_email_domains:
                     queryset = queryset.exclude(email__endswith=filtered_email)
+
+            for filtered_character in filtered_characters:
+                queryset = queryset.exclude(email__icontains=filtered_character)
 
             if queryset.exists():
                 query = request.GET.get("query")
