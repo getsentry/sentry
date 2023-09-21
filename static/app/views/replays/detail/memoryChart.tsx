@@ -55,7 +55,7 @@ function MemoryChart({
 
   if (!memoryFrames.length) {
     return (
-      <MemoryChartWrapper data-test-id="replay-details-memory-tab">
+      <MemoryChartWrapper>
         <EmptyMessage
           title={t('No memory metrics found')}
           description={t(

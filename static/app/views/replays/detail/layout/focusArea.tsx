@@ -33,7 +33,7 @@ function FocusArea({}: Props) {
       return <DomMutations />;
     case TabKey.MEMORY:
       return (
-        <MemoryTabWrapper>
+        <MemoryTabWrapper data-test-id="replay-details-memory-tab">
           <MemoryChart />
           <DomNodesChart />
         </MemoryTabWrapper>
