@@ -207,6 +207,27 @@ def _detect_transaction_trends(
 
         detector_store.bulk_write_states(payloads, states)
 
+    # This is the total number of functions examined in this iteration
+    metrics.incr(
+        "statistical_detectors.total.transactions",
+        amount=transactions_count,
+        sample_rate=1.0,
+    )
+
+    # This is the number of regressed functions found in this iteration
+    metrics.incr(
+        "statistical_detectors.regressed.transactions",
+        amount=regressed_count,
+        sample_rate=1.0,
+    )
+
+    # This is the number of improved functions found in this iteration
+    metrics.incr(
+        "statistical_detectors.improved.transactions",
+        amount=improved_count,
+        sample_rate=1.0,
+    )
+
 
 @instrumented_task(
     name="sentry.tasks.statistical_detectors.detect_function_trends",
