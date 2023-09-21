@@ -894,6 +894,15 @@ class SharedGroupSerializer(GroupSerializer):
             "title",
         ]
         result = {k: v for (k, v) in result.items() if k in ALLOWED_FIELDS}
+
+        # avoids a circular import
+        from sentry.api.serializers.models import SharedEventSerializer, SharedProjectSerializer
+
+        event = obj.get_latest_event()
+        result["latestEvent"] = serialize(event, user, SharedEventSerializer())
+
+        result["project"] = serialize(obj.project, user, SharedProjectSerializer())
+
         return result
 
 
