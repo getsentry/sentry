@@ -1,18 +1,21 @@
 from __future__ import annotations
 
 from io import StringIO
+from typing import Iterator, Type
 
 import click
 from django.apps import apps
 from django.core import management, serializers
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import IntegrityError, connection, transaction
+from django.db.models.base import Model
 from rest_framework.serializers import ValidationError as DjangoRestFrameworkValidationError
 
 from sentry.backup.dependencies import PrimaryKeyMap, normalize_model_name
 from sentry.backup.helpers import EXCLUDED_APPS, Filter, ImportFlags
 from sentry.backup.scopes import ImportScope
 from sentry.silo import unguarded_write
+from sentry.utils import json
 
 __all__ = (
     "import_in_user_scope",
@@ -60,6 +63,10 @@ def _import(
             user_filter = Filter(model=User, field="pk")
             filters.append(user_filter)
 
+            # TODO(getsentry#team-ospo/190): It turns out that Django's "streaming" JSON
+            # deserializer does no such thing, and actually loads the entire JSON into memory! If we
+            # don't want to choke on large imports, we'll need use a truly "chunkable" JSON
+            # importing library like ijson for this.
             for obj in serializers.deserialize("json", src, stream=True):
                 o = obj.object
                 model_name = normalize_model_name(o)
@@ -109,6 +116,28 @@ def _import(
         filters.append(email_filter)
 
     src.seek(start)
+
+    # The input JSON blob should already be ordered by model kind. We simply break up 1 JSON blob
+    # with N model kinds into N json blobs with 1 model kind each.
+    def yield_json_models(src) -> Iterator[str]:
+        # TODO(getsentry#team-ospo/190): Better error handling for unparsable JSON.
+        models = json.load(src)
+        last_seen_model_name: str | None = None
+        batch: list[Type[Model]] = []
+        for model in models:
+            model_name = model["model"]
+            if last_seen_model_name != model_name:
+                if last_seen_model_name is not None and len(batch) > 0:
+                    yield json.dumps(batch)
+
+                batch = []
+                last_seen_model_name = model_name
+
+            batch.append(model)
+
+        if batch:
+            yield json.dumps(batch)
+
     try:
         # Import / export only works in monolith mode with a consolidated db.
         # TODO(getsentry/team-ospo#185): the `unguarded_write` is temporary until we get an RPC
@@ -117,35 +146,37 @@ def _import(
             allowed_relocation_scopes = scope.value
             flags = flags if flags is not None else ImportFlags()
             pk_map = PrimaryKeyMap()
-            for obj in serializers.deserialize("json", src, stream=True, use_natural_keys=False):
-                o = obj.object
-                if o._meta.app_label not in EXCLUDED_APPS or o:
-                    if o.get_possible_relocation_scopes() & allowed_relocation_scopes:
-                        o = obj.object
-                        model_name = normalize_model_name(o)
-                        for f in filters:
-                            if f.model == type(o) and getattr(o, f.field, None) not in f.values:
-                                break
-                        else:
-                            # We can only be sure `get_relocation_scope()` will be correct if it is
-                            # fired AFTER normalization, as some `get_relocation_scope()` methods
-                            # rely on being able to correctly resolve foreign keys, which is only
-                            # possible after normalization.
-                            old_pk = o.normalize_before_relocation_import(pk_map, scope, flags)
-                            if old_pk is None:
-                                continue
+            for batch in yield_json_models(src):
+                for obj in serializers.deserialize("json", batch, use_natural_keys=False):
+                    o = obj.object
+                    if o._meta.app_label not in EXCLUDED_APPS or o:
+                        if o.get_possible_relocation_scopes() & allowed_relocation_scopes:
+                            o = obj.object
+                            model_name = normalize_model_name(o)
+                            for f in filters:
+                                if f.model == type(o) and getattr(o, f.field, None) not in f.values:
+                                    break
+                            else:
+                                # We can only be sure `get_relocation_scope()` will be correct if it
+                                # is fired AFTER normalization, as some `get_relocation_scope()`
+                                # methods rely on being able to correctly resolve foreign keys,
+                                # which is only possible after normalization.
+                                old_pk = o.normalize_before_relocation_import(pk_map, scope, flags)
+                                if old_pk is None:
+                                    continue
 
-                            # Now that the model has been normalized, we can ensure that this
-                            # particular instance has a `RelocationScope` that permits importing.
-                            if not o.get_relocation_scope() in allowed_relocation_scopes:
-                                continue
+                                # Now that the model has been normalized, we can ensure that this
+                                # particular instance has a `RelocationScope` that permits
+                                # importing.
+                                if not o.get_relocation_scope() in allowed_relocation_scopes:
+                                    continue
 
-                            written = o.write_relocation_import(scope, flags)
-                            if written is None:
-                                continue
+                                written = o.write_relocation_import(scope, flags)
+                                if written is None:
+                                    continue
 
-                            new_pk, import_kind = written
-                            pk_map.insert(model_name, old_pk, new_pk, import_kind)
+                                new_pk, import_kind = written
+                                pk_map.insert(model_name, old_pk, new_pk, import_kind)
 
     # For all database integrity errors, let's warn users to follow our
     # recommended backup/restore workflow before reraising exception. Most of
@@ -167,15 +198,18 @@ def _import(
         errs = {field: error for field, error in e.message_dict.items()}
         raise DjangoRestFrameworkValidationError(errs) from e
 
-    sequence_reset_sql = StringIO()
-
+    sql = StringIO()
+    err = StringIO()
     for app in apps.get_app_configs():
-        management.call_command(
-            "sqlsequencereset", app.label, "--no-color", stdout=sequence_reset_sql
-        )
-
+        management.call_command("sqlsequencereset", app.label, "--no-color", stdout=sql, stderr=err)
     with connection.cursor() as cursor:
-        cursor.execute(sequence_reset_sql.getvalue())
+        cursor.execute(sql.getvalue())
+
+    errored = "\n".join(
+        [li for li in err.getvalue().splitlines() if "No sequences found." not in li]
+    ).strip()
+    if errored:
+        raise ValueError(f"Encountered SQL errors:\n\n {errs}")
 
 
 def import_in_user_scope(
@@ -232,7 +266,7 @@ def import_in_organization_scope(
     )
 
 
-def import_in_global_scope(src, *, printer=click.echo):
+def import_in_global_scope(src, *, flags: ImportFlags | None = None, printer=click.echo):
     """
     Perform an import in the `Global` scope, meaning that all models will be imported from the
     provided source file. Because a `Global` import is really only useful when restoring to a fresh
@@ -240,4 +274,4 @@ def import_in_global_scope(src, *, printer=click.echo):
     superuser privileges are not sanitized.
     """
 
-    return _import(src, ImportScope.Global, printer=printer)
+    return _import(src, ImportScope.Global, flags=flags, printer=printer)

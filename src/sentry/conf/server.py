@@ -895,6 +895,7 @@ CELERY_QUEUES_REGION = [
     Queue("profiling.statistical_detector", routing_key="profiling.statistical_detector"),
     CELERY_ISSUE_STATES_QUEUE,
     Queue("nudge.invite_missing_org_members", routing_key="invite_missing_org_members"),
+    Queue("auto_resolve_issues", routing_key="auto_resolve_issues"),
 ]
 
 from celery.schedules import crontab
@@ -1131,8 +1132,8 @@ CELERYBEAT_SCHEDULE_REGION = {
     },
     "schedule_auto_transition_to_ongoing": {
         "task": "sentry.tasks.schedule_auto_transition_to_ongoing",
-        # Run job every 10 minutes
-        "schedule": crontab(minute="*/10"),
+        # Run job every 5 minutes
+        "schedule": crontab(minute="*/5"),
         "options": {"expires": 3600},
     },
     "github_comment_reactions": {
@@ -1358,8 +1359,6 @@ SENTRY_FEATURES = {
     "organizations:javascript-console-error-tag": False,
     # Enables the cron job to auto-enable codecov integrations.
     "organizations:auto-enable-codecov": False,
-    # Enables automatically linking repositories using commit webhook data
-    "organizations:integrations-auto-repo-linking": False,
     # The overall flag for codecov integration, gated by plans.
     "organizations:codecov-integration": False,
     # Enables getting commit sha from git blame for codecov.
@@ -1668,10 +1667,14 @@ SENTRY_FEATURES = {
     "organizations:session-replay-trial-ended-banner": False,
     # Enable the Replay rage and dead click selector tables in the UI
     "organizations:session-replay-rage-dead-selectors": False,
+    # Enable the new event linking columns to be queried
+    "organizations:session-replay-new-event-counts": False,
     # Enable the new suggested assignees feature
     "organizations:streamline-targeting-context": False,
     # Enable the new experimental starfish view
     "organizations:starfish-view": False,
+    # Enable the aggregate span waterfall view
+    "organizations:starfish-aggregate-span-waterfall": False,
     # Enable starfish endpoint that's used for regressing testing purposes
     "organizations:starfish-test-endpoint": False,
     # Enable starfish dropdown on the webservice view for switching chart visualization

@@ -46,6 +46,7 @@ from sentry.models.dashboard_widget import (
     DashboardWidgetQuery,
     DashboardWidgetTypes,
 )
+from sentry.models.dynamicsampling import CustomDynamicSamplingRule
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.integrations.project_integration import ProjectIntegration
@@ -324,6 +325,15 @@ class BackupTestCase(TransactionTestCase):
             sent_initial_email_date=datetime.now(),
             sent_final_email_date=datetime.now(),
         )
+        CustomDynamicSamplingRule.update_or_create(
+            condition={"op": "equals", "name": "environment", "value": "prod"},
+            start=timezone.now(),
+            end=timezone.now() + timedelta(hours=1),
+            project_ids=[project.id],
+            organization_id=org.id,
+            num_samples=100,
+            sample_rate=0.5,
+        )
 
         # Environment*
         self.create_environment(project=project)
@@ -452,7 +462,7 @@ class BackupTestCase(TransactionTestCase):
 
         return app
 
-    def create_exhaustive_globals(self):
+    def create_exhaustive_global_configs(self):
         # *Options
         Option.objects.create(key="foo", value="a")
         ControlOption.objects.create(key="bar", value="b")
@@ -474,7 +484,7 @@ class BackupTestCase(TransactionTestCase):
         invitee = self.create_exhaustive_user("invitee")
         org = self.create_exhaustive_organization("test-org", owner, invitee)
         self.create_exhaustive_sentry_app("test app", owner, org)
-        self.create_exhaustive_globals()
+        self.create_exhaustive_global_configs()
 
     def import_export_then_validate(self, out_name, *, reset_pks: bool = True) -> JSONData:
         return import_export_then_validate(out_name, reset_pks=reset_pks)

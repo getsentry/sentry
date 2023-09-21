@@ -9,7 +9,10 @@ from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
+
+pytestmark = [requires_snuba]
 
 event_time = before_now(days=3).replace(tzinfo=timezone.utc)
 # external_id is the account name in pagerduty

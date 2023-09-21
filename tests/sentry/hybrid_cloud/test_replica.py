@@ -3,6 +3,7 @@ from sentry.models import (
     AuthIdentityReplica,
     AuthProvider,
     AuthProviderReplica,
+    OrganizationMemberTeamReplica,
     TeamReplica,
     outbox_context,
 )
@@ -179,3 +180,35 @@ def test_replicate_team():
         with assume_test_silo_mode(SiloMode.CONTROL):
             for team, next_slug in zip(teams, [*team_slugs[1:], team_slugs[0]]):
                 assert TeamReplica.objects.get(team_id=team.id).slug == next_slug
+
+
+@django_db_all(transaction=True)
+@all_silo_test(stable=True)
+def test_replicate_organization_member_team():
+    org = Factories.create_organization()
+    team = Factories.create_team(org)
+    user = Factories.create_user()
+    member = Factories.create_member(organization=org, user=user)
+    with assume_test_silo_mode(SiloMode.CONTROL):
+        assert OrganizationMemberTeamReplica.objects.count() == 0
+
+    omt = Factories.create_team_membership(team=team, member=member)
+
+    with assume_test_silo_mode(SiloMode.CONTROL):
+        replicated = OrganizationMemberTeamReplica.objects.get(organizationmemberteam_id=omt.id)
+
+    assert replicated.organization_id == omt.organizationmember.organization_id
+    assert replicated.team_id == omt.team_id
+    assert replicated.organizationmember_id == omt.organizationmember_id
+    assert replicated.organizationmemberteam_id == omt.id
+    assert replicated.is_active == omt.is_active
+    assert replicated.role == omt.role
+
+    with assume_test_silo_mode(SiloMode.REGION):
+        omt.role = "boo"
+        omt.save()
+
+    with assume_test_silo_mode(SiloMode.CONTROL):
+        replicated = OrganizationMemberTeamReplica.objects.get(organizationmemberteam_id=omt.id)
+
+    assert replicated.role == "boo"

@@ -23,8 +23,13 @@ from snuba_sdk import (
 )
 
 from sentry import options
+from sentry.api.serializers.snuba import SnubaTSResultSerializer
 from sentry.constants import ObjectStatus
 from sentry.models.project import Project
+from sentry.search.events.builder import ProfileTopFunctionsTimeseriesQueryBuilder
+from sentry.search.events.fields import get_function_alias
+from sentry.search.events.types import QueryBuilderConfig
+from sentry.seer.utils import BreakpointData, detect_breakpoints
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba import functions
@@ -255,19 +260,35 @@ def detect_function_trends(project_ids: List[int], start: datetime, *args, **kwa
     max_retries=0,
 )
 def detect_function_change_points(
-    functions: List[Tuple[int, str | int]], start: datetime, *args, **kwargs
+    functions_list: List[Tuple[int, int]], start: datetime, *args, **kwargs
 ) -> None:
-    for project_id, function_id in functions:
+    breakpoint_count = 0
+
+    breakpoints = _detect_function_change_points(functions_list, start)
+
+    for entry in breakpoints:
+        breakpoint_count += 1
+
         with sentry_sdk.push_scope() as scope:
-            scope.set_tag("regressed_project_id", project_id)
-            scope.set_tag("regressed_function_id", function_id)
+            scope.set_tag("regressed_project_id", entry["project"])
+            # the service was originally meant for transactions so this
+            # naming is a result of this
+            scope.set_tag("regressed_function_id", entry["transaction"])
             scope.set_context(
                 "statistical_detectors",
                 {
+                    **entry,
                     "timestamp": start.isoformat(),
+                    "breakpoint": datetime.fromtimestamp(entry["breakpoint"]),
                 },
             )
             sentry_sdk.capture_message("Potential Regression")
+
+    metrics.incr(
+        "statistical_detectors.breakpoint.functions",
+        amount=breakpoint_count,
+        sample_rate=1.0,
+    )
 
 
 def _detect_function_trends(
@@ -338,6 +359,38 @@ def _detect_function_trends(
         amount=improved_count,
         sample_rate=1.0,
     )
+
+
+def _detect_function_change_points(
+    functions_list: List[Tuple[int, int]],
+    start: datetime,
+) -> Generator[BreakpointData, None, None]:
+    serializer = SnubaTSResultSerializer(None, None, None)
+
+    trend_function = "p95()"
+
+    for chunk in chunked(query_functions_timeseries(functions_list, start, trend_function), 10):
+        data = {}
+        for project_id, fingerprint, timeseries in chunk:
+            serialized = serializer.serialize(timeseries, get_function_alias(trend_function))
+            data[f"{project_id},{fingerprint}"] = {
+                "data": serialized["data"],
+                "data_start": serialized["start"],
+                "data_end": serialized["end"],
+                # only look at the last 24 hours as the request data
+                "request_start": serialized["end"] - 24 * 60 * 60,
+                "request_end": serialized["end"],
+            }
+
+        request = {
+            "data": data,
+            "sort": "-trend_percentage()",
+            "trendFunction": trend_function,
+        }
+
+        breakpoints = detect_breakpoints(request)["data"]
+
+        yield from breakpoints
 
 
 def all_function_payloads(
@@ -465,7 +518,18 @@ def query_transactions(
 
 
 def query_functions(projects: List[Project], start: datetime) -> List[DetectorPayload]:
-    params = _get_function_query_params(projects, start)
+    # The functions dataset only supports 1 hour granularity.
+    # So we always look back at the last full hour that just elapsed.
+    # And since the timestamps are truncated to the start of the hour
+    # we just need to query for the 1 minute of data.
+    start = start - timedelta(hours=1)
+    start = start.replace(minute=0, second=0, microsecond=0)
+    params: Dict[str, Any] = {
+        "start": start,
+        "end": start + timedelta(minutes=1),
+        "project_id": [project.id for project in projects],
+        "project_objects": projects,
+    }
 
     # TODOs: handle any errors
     query_results = functions.query(
@@ -499,17 +563,69 @@ def query_functions(projects: List[Project], start: datetime) -> List[DetectorPa
     ]
 
 
-def _get_function_query_params(projects: List[Project], start: datetime) -> Dict[str, Any]:
-    # The functions dataset only supports 1 hour granularity.
-    # So we always look back at the last full hour that just elapsed.
-    # And since the timestamps are truncated to the start of the hour
-    # we just need to query for the 1 minute of data.
-    start = start - timedelta(hours=1)
-    start = start.replace(minute=0, second=0, microsecond=0)
+def query_functions_timeseries(
+    functions_list: List[Tuple[int, int]],
+    start: datetime,
+    agg_function: str,
+) -> Generator[Tuple[int, int, Any], None, None]:
+    project_ids = [project_id for project_id, _ in functions_list]
+    projects = Project.objects.filter(id__in=project_ids)
 
-    return {
-        "start": start,
-        "end": start + timedelta(minutes=1),
-        "project_id": [project.id for project in projects],
+    # take the last 14 days as our window
+    end = start.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
+    params: Dict[str, Any] = {
+        "start": end - timedelta(days=14),
+        "end": end,
+        "project_id": project_ids,
         "project_objects": projects,
     }
+    interval = 3600  # 1 hour
+
+    # make sure that each chunk can fit in the 10,000 row limit
+    # imposed by snuba
+    for functions_chunk in chunked(functions_list, 25):
+        chunk: List[Dict[str, Any]] = [
+            {
+                "project.id": project_id,
+                "fingerprint": fingerprint,
+            }
+            for project_id, fingerprint in functions_chunk
+        ]
+
+        builder = ProfileTopFunctionsTimeseriesQueryBuilder(
+            dataset=Dataset.Functions,
+            params=params,
+            interval=interval,
+            top_events=chunk,
+            other=False,
+            query="is_application:1",
+            selected_columns=["project.id", "fingerprint"],
+            timeseries_columns=[agg_function],
+            config=QueryBuilderConfig(
+                skip_tag_resolution=True,
+            ),
+        )
+        raw_results = raw_snql_query(
+            builder.get_snql_query(),
+            referrer=Referrer.API_PROFILING_FUNCTIONS_STATISTICAL_DETECTOR_STATS.value,
+        )
+
+        results = functions.format_top_events_timeseries_results(
+            raw_results,
+            builder,
+            params,
+            interval,
+            top_events={"data": chunk},
+            result_key_order=["project.id", "fingerprint"],
+        )
+
+        for project_id, fingerprint in functions_chunk:
+            key = f"{project_id},{fingerprint}"
+            if key not in results:
+                logger.warning(
+                    "Missing timeseries for project: {} function: {}",
+                    project_id,
+                    fingerprint,
+                )
+                continue
+            yield project_id, fingerprint, results[key]
