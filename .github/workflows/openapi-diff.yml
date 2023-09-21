@@ -47,12 +47,13 @@ jobs:
         if: steps.changes.outputs.api_docs == 'true'
 
       - name: Build OpenAPI Derefed JSON
-        if: steps.changes.outputs.api_docs == 'true'
+        # if: steps.changes.outputs.api_docs == 'true'
         # install ts-node for ts build scripts to execute properly without potentially installing
         # conflicting deps when running scripts locally
         # see: https://github.com/getsentry/sentry/pull/32328/files
         run: |
           yarn add ts-node && make build-api-docs
+
       - name: Getsentry Token
         id: getsentry
         uses: getsentry/action-github-app-token@97c9e23528286821f97fba885c1b1123284b29cc # v2.0.0
@@ -61,6 +62,7 @@ jobs:
           private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
 
       - name: Apply API Publish Status Changes
+        # if: env.SECRET_ACCESS == 'true' && startsWith(github.ref, 'refs/pull') && always()
         uses: getsentry/action-github-commit@748c31dd78cffe76f51bef49a0be856b6effeda7 # v1.1.0
         with:
           github-token: ${{ steps.getsentry.outputs.token }}

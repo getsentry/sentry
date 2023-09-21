@@ -71,10 +71,3 @@ jobs:
           commit_message: Generated
           commit_user_email: bot@getsentry.com
           commit_user_name: openapi-getsentry-bot
-
-      - name: Apply API Publish Status Changes
-        if: env.SECRET_ACCESS == 'true' && startsWith(github.ref, 'refs/pull') && always()
-        uses: getsentry/action-github-commit@748c31dd78cffe76f51bef49a0be856b6effeda7 # v1.1.0
-        with:
-          github-token: ${{ steps.getsentry.outputs.token }}
-          message: ':hammer_and_wrench: apply api publish status changes'
