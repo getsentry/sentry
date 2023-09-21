@@ -256,18 +256,7 @@ jobs:
         with:
           snuba: true
           kafka: true
-
-      - name: Start symbolicator
-        run: |
-          echo $PWD
-          docker run \
-            -d \
-            -v $PWD/config/symbolicator/:/etc/symbolicator \
-            --network host \
-            --name symbolicator \
-            us.gcr.io/sentryio/symbolicator:nightly \
-            run -c /etc/symbolicator/config.yml
-          docker ps -a
+          symbolicator: true
 
       - name: Run test
         run: |
