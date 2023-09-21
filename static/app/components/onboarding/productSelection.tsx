@@ -126,6 +126,7 @@ export const platformProductAvailability = {
   ],
   python: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-aiohttp': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'python-asgi': [ProductSolution.PERFORMANCE_MONITORING],
   'python-awslambda': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-bottle': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-celery': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
