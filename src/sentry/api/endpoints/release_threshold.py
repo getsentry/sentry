@@ -46,6 +46,10 @@ class ReleaseThresholdEndpoint(ProjectEndpoint):
     def post(self, request: Request, project: Project) -> HttpResponse:
         serializer = ReleaseThresholdPOSTSerializer(
             data=request.data,
+            context={
+                "organization": project.organization,
+                "access": request.access,
+            },
         )
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
