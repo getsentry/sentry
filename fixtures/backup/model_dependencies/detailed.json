@@ -609,6 +609,36 @@
       "Region"
     ]
   },
+  "sentry.CustomDynamicSamplingRule": {
+    "foreign_keys": {
+      "organization": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.Organization"
+      }
+    },
+    "model": "sentry.CustomDynamicSamplingRule",
+    "relocation_scope": "Organization",
+    "silos": [
+      "Region"
+    ]
+  },
+  "sentry.CustomDynamicSamplingRuleProject": {
+    "foreign_keys": {
+      "custom_dynamic_sampling_rule": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.CustomDynamicSamplingRule"
+      },
+      "project": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.Project"
+      }
+    },
+    "model": "sentry.CustomDynamicSamplingRuleProject",
+    "relocation_scope": "Organization",
+    "silos": [
+      "Region"
+    ]
+  },
   "sentry.Dashboard": {
     "foreign_keys": {
       "created_by_id": {
@@ -959,10 +989,6 @@
   },
   "sentry.ExternalActor": {
     "foreign_keys": {
-      "actor": {
-        "kind": "FlexibleForeignKey",
-        "model": "sentry.Actor"
-      },
       "integration_id": {
         "kind": "HybridCloudForeignKey",
         "model": "sentry.Integration"
@@ -1795,6 +1821,31 @@
       }
     },
     "model": "sentry.MonitorEnvironment",
+    "relocation_scope": "Excluded",
+    "silos": [
+      "Region"
+    ]
+  },
+  "sentry.MonitorIncident": {
+    "foreign_keys": {
+      "monitor": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.Monitor"
+      },
+      "monitor_environment": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.MonitorEnvironment"
+      },
+      "resolving_checkin": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.MonitorCheckIn"
+      },
+      "starting_checkin": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.MonitorCheckIn"
+      }
+    },
+    "model": "sentry.MonitorIncident",
     "relocation_scope": "Excluded",
     "silos": [
       "Region"

@@ -895,6 +895,7 @@ CELERY_QUEUES_REGION = [
     Queue("profiling.statistical_detector", routing_key="profiling.statistical_detector"),
     CELERY_ISSUE_STATES_QUEUE,
     Queue("nudge.invite_missing_org_members", routing_key="invite_missing_org_members"),
+    Queue("auto_resolve_issues", routing_key="auto_resolve_issues"),
 ]
 
 from celery.schedules import crontab
@@ -1131,8 +1132,8 @@ CELERYBEAT_SCHEDULE_REGION = {
     },
     "schedule_auto_transition_to_ongoing": {
         "task": "sentry.tasks.schedule_auto_transition_to_ongoing",
-        # Run job every 10 minutes
-        "schedule": crontab(minute="*/10"),
+        # Run job every 5 minutes
+        "schedule": crontab(minute="*/5"),
         "options": {"expires": 3600},
     },
     "github_comment_reactions": {
@@ -1358,8 +1359,6 @@ SENTRY_FEATURES = {
     "organizations:javascript-console-error-tag": False,
     # Enables the cron job to auto-enable codecov integrations.
     "organizations:auto-enable-codecov": False,
-    # Enables automatically linking repositories using commit webhook data
-    "organizations:integrations-auto-repo-linking": False,
     # The overall flag for codecov integration, gated by plans.
     "organizations:codecov-integration": False,
     # Enables getting commit sha from git blame for codecov.
@@ -1674,6 +1673,8 @@ SENTRY_FEATURES = {
     "organizations:streamline-targeting-context": False,
     # Enable the new experimental starfish view
     "organizations:starfish-view": False,
+    # Enable the aggregate span waterfall view
+    "organizations:starfish-aggregate-span-waterfall": False,
     # Enable starfish endpoint that's used for regressing testing purposes
     "organizations:starfish-test-endpoint": False,
     # Enable starfish dropdown on the webservice view for switching chart visualization
@@ -1778,7 +1779,7 @@ SENTRY_FEATURES = {
     # Signals that the organization supports the on demand metrics prefill.
     "organizations:on-demand-metrics-prefill": False,
     # Enable writing to the new notification system when updating the old system
-    "organizations:notifications-double-write": False,
+    "organizations:notifications-double-write": True,
     # Excludes measurement config from project config builds.
     "organizations:projconfig-exclude-measurements": False,
     # Enable source maps debugger

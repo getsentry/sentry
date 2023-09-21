@@ -61,6 +61,7 @@ from sentry.snuba.metrics.fields.snql import (
     min_timestamp,
     miserable_users,
     on_demand_apdex_snql_factory,
+    on_demand_failure_count_snql_factory,
     on_demand_failure_rate_snql_factory,
     rate_snql_factory,
     satisfaction_count_transaction,
@@ -1783,6 +1784,12 @@ DERIVED_OPS: Mapping[MetricOperationType, DerivedOp] = {
             default_null_value=None,
         ),
         # Custom operations used for on demand derived metrics.
+        DerivedOp(
+            op="on_demand_failure_count",
+            can_orderby=True,
+            snql_func=on_demand_failure_count_snql_factory,
+            default_null_value=0,
+        ),
         DerivedOp(
             op="on_demand_failure_rate",
             can_orderby=True,

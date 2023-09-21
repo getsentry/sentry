@@ -43,6 +43,10 @@ def save_forecast_per_group(
             )
             escalating_group_forecast.save()
 
+            logger.info(
+                "save_forecast_per_group",
+                extra={"group_id": group_id, "group_counts": group_count},
+            )
     analytics.record("issue_forecasts.saved", num_groups=len(group_counts.keys()))
 
 
