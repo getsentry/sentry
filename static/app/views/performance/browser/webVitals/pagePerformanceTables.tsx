@@ -94,7 +94,7 @@ export function PagePerformanceTables() {
         </GridContainer>
         <GridContainer>
           <GridDescription>
-            <GridDescriptionHeader>{t('Good Score')}</GridDescriptionHeader>
+            <GridDescriptionHeader>{t('Meh Score')}</GridDescriptionHeader>
             {t('Pageload scores greater than or equal to 50')}
           </GridDescription>
           <StyledGrid data-test-id="grid-editable" scrollable={false}>
