@@ -102,7 +102,7 @@ export function PerformanceScoreChart({projectScore, webVital}: Props) {
         <PerformanceScoreSubtext>{performanceScoreSubtext}</PerformanceScoreSubtext>
         <Chart
           stacked
-          height={160}
+          height={180}
           data={[
             {
               data: data?.lcp.map(({name, value}) => ({
@@ -167,6 +167,7 @@ export function PerformanceScoreChart({projectScore, webVital}: Props) {
             bottom: 0,
           }}
           dataMax={100}
+          chartColors={segmentColors}
         />
       </ChartContainer>
     </Flex>
@@ -211,6 +212,7 @@ const PerformanceScoreSubtext = styled('div')`
   width: 100%;
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.gray300};
+  margin-bottom: ${space(1)};
 `;
 
 const ProgressRingContainer = styled('div')``;

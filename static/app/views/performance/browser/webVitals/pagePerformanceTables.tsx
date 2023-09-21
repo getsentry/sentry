@@ -3,6 +3,7 @@ import {Link} from 'react-router';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
+import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import {
   COL_WIDTH_UNDEFINED,
   GridColumnHeader,
@@ -73,6 +74,15 @@ export function PagePerformanceTables() {
       })}`;
       return (
         <NoOverflow>
+          {project && (
+            <StyledProjectAvatar
+              project={project}
+              direction="left"
+              size={16}
+              hasTooltip
+              tooltip={project.slug}
+            />
+          )}
           <Link to={link}>{row.transaction}</Link>
         </NoOverflow>
       );
@@ -151,6 +161,7 @@ const GridContainer = styled('div')`
 const NoOverflow = styled('span')`
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
 `;
 
 const AlignRight = styled('span')<{color?: string}>`
@@ -197,4 +208,10 @@ const GridDescription = styled('div')`
 const GridDescriptionHeader = styled('div')`
   font-weight: bold;
   color: ${p => p.theme.textColor};
+`;
+
+const StyledProjectAvatar = styled(ProjectAvatar)`
+  top: ${space(0.25)};
+  position: relative;
+  padding-right: ${space(1)};
 `;
