@@ -1,18 +1,17 @@
+# mypy: ignore-errors
+
 import random
 from functools import wraps
-from typing import TYPE_CHECKING, Any, Dict, Iterable, Optional, Tuple, Union
+from typing import Any, Dict, Iterable, Optional, Tuple, Union
 
 import sentry_sdk
 
 try:
-    from sentry_sdk.metrics import Metric, MetricsAggregator
+    from sentry_sdk.metrics import Metric, MetricsAggregator  # type: ignore
 
     have_minimetrics = True
 except ImportError:
     have_minimetrics = False
-    if TYPE_CHECKING:
-        Metric = Any
-        MetricsAggregator = Any
 
 from sentry import options
 from sentry.metrics.base import MetricsBackend, Tags
