@@ -85,12 +85,12 @@ def find_duplicate_rule(rule_data, project, rule_id=None):
 class ProjectRulesPostSerializer(serializers.Serializer):
     actionMatch = serializers.ChoiceField(
         choices=(("all", "all"), ("any", "any"), ("none", "none")),
-        help_text="An operator determining which actions should take place when the rule triggers.",
+        help_text="A string determining which of the conditions need to be true before any filters are evaluated.",
     )
     actions = serializers.ListField(
         child=RuleNodeField(type="action/event"),
         help_text="""
-A list of actions that will occur when all required conditions and filters for the rule are met. See below for a list of possible actions.
+A list of actions that take place when all required conditions and filters for the rule are met. See below for a list of possible actions.
 
 **Send a notification to Suggested Assignees**
 - `fallthroughType`: Who the notification should be sent to if there are no suggested assignees. Valid values are `ActiveMembers`, `AllMembers`, and `NoOne`.
@@ -179,20 +179,22 @@ A list of triggers that determine when the rule fires. See below for a list of p
     frequency = serializers.IntegerField(
         min_value=5,
         max_value=60 * 24 * 30,
-        help_text="How often the alert rule can be triggered for a particular issue, in seconds.",
+        help_text="How often to perform the actions once for an issue, in minutes.",
     )
-    name = GlobalParams.name("The name for the rule.")
-    environment = GlobalParams.ENVIRONMENT
+    name = serializers.CharField(max_length=64, help_text="The name for the rule.")
+    environment = serializers.CharField(
+        required=False, allow_null=True, help_text="The name of the environment to filter by."
+    )
     filterMatch = serializers.ChoiceField(
         choices=(("all", "all"), ("any", "any"), ("none", "none")),
         required=False,
-        help_text="An operator determining which filters need to hold before any actions take place. Required when `filters` is passed in.",
+        help_text="A string determining which filters need to be true before any actions take place. Required when a value is provided for `filters`.",
     )
     filters = serializers.ListField(
         child=RuleNodeField(type="filter/event"),
         required=False,
         help_text="""
-A list of filters that determine if a rule fires after the listed conditions have been met. See below for a list of possible filters.
+A list of filters that determine if a rule fires after the necessary conditions have been met. See below for a list of possible filters.
 
 **The issue is `comparison_type` than `value` `time`**
 - `comparison_type`: One of `older` or `newer`
