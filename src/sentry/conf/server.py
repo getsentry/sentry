@@ -1779,7 +1779,7 @@ SENTRY_FEATURES = {
     # Signals that the organization supports the on demand metrics prefill.
     "organizations:on-demand-metrics-prefill": False,
     # Enable writing to the new notification system when updating the old system
-    "organizations:notifications-double-write": False,
+    "organizations:notifications-double-write": True,
     # Excludes measurement config from project config builds.
     "organizations:projconfig-exclude-measurements": False,
     # Enable source maps debugger
