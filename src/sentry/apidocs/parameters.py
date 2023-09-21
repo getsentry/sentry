@@ -1,6 +1,6 @@
 from drf_spectacular.plumbing import build_array_type, build_basic_type
 from drf_spectacular.types import OpenApiTypes
-from drf_spectacular.utils import OpenApiParameter, inline_serializer
+from drf_spectacular.utils import OpenApiParameter
 from rest_framework import serializers
 
 # NOTE: Please add new params by path vs query, then in alphabetical order
@@ -302,78 +302,15 @@ incorrect or missing.
 """,
     )
 
-    BROWSER_SDK_VERSION = OpenApiParameter(
-        name="browserSdkVersion",
+    STATUS = OpenApiParameter(
+        name="status",
         location="query",
         required=False,
         type=str,
         description="""
-The Sentry Javascript SDK version to use. The currently supported options are:
-- `7.x`
-- `latest`
+Filter client keys by `active` or `inactive`. Defaults to returning all
+keys if not specified.
 """,
-    )
-
-    DYNAMIC_SDK_LOADER_OPTIONS = OpenApiParameter(
-        name="dynamicSdkLoaderOptions",
-        location="query",
-        required=False,
-        type=inline_serializer(
-            name="DynamicSDKLoaderOptionsSerializer",
-            fields={
-                "hasReplay": serializers.BooleanField(required=False),
-                "hasPerformance": serializers.BooleanField(required=False),
-                "hasDebug": serializers.BooleanField(required=False),
-            },
-        ),
-        description="""
-Configures multiple options for the Javascript Loader Script.
-- `Performance Monitoring`
-- `Debug Bundles & Logging`
-- `Session Replay`: Note that the loader will load the ES6 bundle instead of the ES5 bundle.
-```json
-{
-    "dynamicSdkLoaderOptions": {
-        "hasReplay": true,
-        "hasPerformance": true,
-        "hasDebug": true
-    }
-}
-```
-""",
-    )
-
-    IS_ACTIVE = OpenApiParameter(
-        name="isActive",
-        location="query",
-        required=False,
-        type=bool,
-        description="Activate or deactivate the client key.",
-    )
-
-    RATE_LIMIT = OpenApiParameter(
-        name="rateLimit",
-        location="query",
-        required=False,
-        type=inline_serializer(
-            name="RateLimitParameterSerializer",
-            fields={
-                "window": serializers.IntegerField(required=False),
-                "count": serializers.IntegerField(required=False),
-            },
-        ),
-        description="""
-Applies a rate limit to cap the number of errors accepted during a given time window. To
-disable entirely set `rateLimit` to null.
-```json
-{
-    "rateLimit": {
-        "window": 7200, // time in seconds
-        "count": 1000 // error cap
-    }
-}
-```
-        """,
     )
 
     @staticmethod
