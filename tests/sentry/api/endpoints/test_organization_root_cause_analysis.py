@@ -250,7 +250,6 @@ class OrganizationRootCauseAnalysisTest(MetricsAPIBaseTestCase):
             del row["sample_event_id"]
         assert response.data == [
             {
-                "average_span_duration": 60.0,
                 "period": "before",
                 "span_count": 1,
                 "span_group": "5ad8c5a1e8d0e5f7",
@@ -265,7 +264,6 @@ class OrganizationRootCauseAnalysisTest(MetricsAPIBaseTestCase):
                 "total_span_self_time": 60.0,
                 "span_count": 1,
                 "transaction_count": 1,
-                "average_span_duration": 60.0,
             },
             {
                 "span_group": "2b9cbb96dbf59baa",
@@ -274,6 +272,5 @@ class OrganizationRootCauseAnalysisTest(MetricsAPIBaseTestCase):
                 "total_span_self_time": 160.0,
                 "span_count": 3,
                 "transaction_count": 1,
-                "average_span_duration": 53.333333333333336,
             },
         ]

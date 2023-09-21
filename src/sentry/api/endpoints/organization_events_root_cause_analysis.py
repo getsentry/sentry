@@ -59,13 +59,7 @@ def query_spans(transaction, regression_breakpoint, params):
     snql_query = builder.get_snql_query()
     results = raw_snql_query(snql_query, "api.organization-events-root-cause-analysis")
 
-    data = results.get("data", [])
-
-    # sumArray is not allowed in equations so we have to calculate this manually
-    for row in data:
-        row["average_span_duration"] = row["total_span_self_time"] / row["span_count"]
-
-    return data
+    return results.get("data", [])
 
 
 @region_silo_endpoint
