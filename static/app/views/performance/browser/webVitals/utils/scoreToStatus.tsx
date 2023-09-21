@@ -1,3 +1,5 @@
+import {t} from 'sentry/locale';
+
 export const scoreToStatus = (score: number) => {
   if (score >= 90) {
     return 'good';
@@ -9,7 +11,7 @@ export const scoreToStatus = (score: number) => {
 };
 
 export const STATUS_TEXT = {
-  good: 'Good',
-  needsImprovement: 'Meh',
-  bad: 'Poor',
+  good: t('Good'),
+  needsImprovement: t('Meh'),
+  bad: t('Poor'),
 };

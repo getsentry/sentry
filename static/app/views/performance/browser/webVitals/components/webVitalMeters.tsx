@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {formatAbbreviatedNumber, getDuration} from 'sentry/utils/formatters';
 import {ProjectScore} from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
@@ -26,7 +27,7 @@ export default function WebVitalMeters({onClick, projectData, projectScore}: Pro
       <Flex>
         <MeterBarContainer key="lcp" onClick={() => onClick?.('lcp')}>
           <MeterBarBody>
-            <MeterHeader>Largest Contentful Paint (P75)</MeterHeader>
+            <MeterHeader>{t('Largest Contentful Paint (P75)')}</MeterHeader>
             <MeterValueText>
               {betterGetDuration(
                 (projectData?.data?.[0]?.['p75(measurements.lcp)'] as number) / 1000
@@ -37,7 +38,7 @@ export default function WebVitalMeters({onClick, projectData, projectScore}: Pro
         </MeterBarContainer>
         <MeterBarContainer key="fcp" onClick={() => onClick?.('fcp')}>
           <MeterBarBody>
-            <MeterHeader>First Contentful Paint (P75)</MeterHeader>
+            <MeterHeader>{t('First Contentful Paint (P75)')}</MeterHeader>
             <MeterValueText>
               {betterGetDuration(
                 (projectData?.data?.[0]?.['p75(measurements.fcp)'] as number) / 1000
@@ -48,7 +49,7 @@ export default function WebVitalMeters({onClick, projectData, projectScore}: Pro
         </MeterBarContainer>
         <MeterBarContainer key="fid" onClick={() => onClick?.('fid')}>
           <MeterBarBody>
-            <MeterHeader>First Input Delay (P75)</MeterHeader>
+            <MeterHeader>{t('First Input Delay (P75)')}</MeterHeader>
             <MeterValueText>
               {betterGetDuration(
                 (projectData?.data?.[0]?.['p75(measurements.fid)'] as number) / 1000
@@ -59,7 +60,7 @@ export default function WebVitalMeters({onClick, projectData, projectScore}: Pro
         </MeterBarContainer>
         <MeterBarContainer key="cls" onClick={() => onClick?.('cls')}>
           <MeterBarBody>
-            <MeterHeader>Cumulative Layout Shift (P75)</MeterHeader>
+            <MeterHeader>{t('Cumulative Layout Shift (P75)')}</MeterHeader>
             <MeterValueText>
               {formatAbbreviatedNumber(
                 projectData?.data?.[0]?.['p75(measurements.cls)'] as number,
@@ -71,7 +72,7 @@ export default function WebVitalMeters({onClick, projectData, projectScore}: Pro
         </MeterBarContainer>
         <MeterBarContainer key="ttfb" onClick={() => onClick?.('ttfb')}>
           <MeterBarBody>
-            <MeterHeader>Time To First Byte (P75)</MeterHeader>
+            <MeterHeader>{t('Time To First Byte (P75)')}</MeterHeader>
             <MeterValueText>
               {betterGetDuration(
                 (projectData?.data?.[0]?.['p75(measurements.ttfb)'] as number) / 1000
