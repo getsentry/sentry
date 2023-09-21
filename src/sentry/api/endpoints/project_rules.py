@@ -90,28 +90,32 @@ class ProjectRulesPostSerializer(serializers.Serializer):
     actions = serializers.ListField(
         child=RuleNodeField(type="action/event"),
         help_text="""
-A list of actions that will occur when all required conditions and filters for the rule are met. See below for a list of possible filters.
+A list of actions that will occur when all required conditions and filters for the rule are met. See below for a list of possible actions.
 
-* Send a notification to Suggested Assignees:
+**Send a notification to Suggested Assignees**
+- `fallthroughType`: Who the notification should be sent to if there are no suggested assignees. Valid values are `ActiveMembers`, `AllMembers`, and `NoOne`.
 ```json
 {
     "id": "sentry.mail.actions.NotifyEmailAction",
     "targetType": "IssueOwners",
-    "fallthroughType": <"AllMembers" OR "ActiveMembers" OR "NoOne">
+    "fallthroughType": "ActiveMembers"
 }
 ```
 
-- Send a notification to a Member or a Team:
+**Send a notification to a Member or a Team**
+- `targetType`: One of `Member` or `Team`.
+- `fallthroughType`: Who the notification should be sent to if it cannot be sent to the original target. Valid values are `ActiveMembers`, `AllMembers`, and `NoOne`.
+- `targetIdentifier`: The ID of the Member or Team the notification should be sent to.
 ```json
 {
     "id": "sentry.mail.actions.NotifyEmailAction",
-    "targetType": <"Member" OR "Team">,
-    "fallthroughType": <"AllMembers" OR "ActiveMembers" OR "NoOne">,
-    "targetIdentifier": <Number>
+    "targetType": "Team"
+    "fallthroughType": "AllMembers"
+    "targetIdentifier": 4524986223
 }
 ```
 
-- Send a notification (for all legacy integrations):
+**Send a notification (for all legacy integrations)**
 ```json
 {
     "id": "sentry.rules.actions.notify_event.NotifyEventAction"
@@ -124,44 +128,50 @@ A list of actions that will occur when all required conditions and filters for t
         help_text="""
 A list of triggers that determine when the rule fires. See below for a list of possible conditions.
 
-- A new issue is created:
+**A new issue is created**
 ```json
 {
     "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"
 }
 ```
 
-- The issue changes state from resolved to unresolved:
+**The issue changes state from resolved to unresolved**
 ```json
 {
     "id": "sentry.rules.conditions.regression_event.RegressionEventCondition"
 }
 ```
 
-- The issue is seen more than `value` times in `interval`:
+**The issue is seen more than `value` times in `interval`**
+- `value`: An integer
+- `interval`: Valid values are `1m`, `5m`, `15m`, `1h`, `1d`, `1w` and `30d` (`m` for minutes, `h` for hours, `d` for days, and `w` for weeks).
 ```json
 {
     "id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
-    "value": <Number>,
-    "interval": <"1m" OR "5m" OR "15m" OR "1h" OR "1d" OR "1w" OR "30d">
+    "value": 500,
+    "interval": "1h"
 }
 ```
 
-- The issue is seen by more than `value` users in `interval`:
+**The issue is seen by more than `value` users in `interval`**
+- `value`: An integer
+- `interval`: Valid values are `1m`, `5m`, `15m`, `1h`, `1d`, `1w` and `30d` (`m` for minutes, `h` for hours, `d` for days, and `w` for weeks).
 ```json
 {
     "id": "sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyCondition",
-    "value": <Number>,
-    "interval": <"1m" OR "5m" OR "15m" OR "1h" OR "1d" OR "1w" OR "30d">
+    "value": 1000,
+    "interval": "15m"
 }
 ```
 
-- The issue affects more than `value` percent of sessions in `interval`:
+**The issue affects more than `value` percent of sessions in `interval`**
+- `value`: An integer from 0 to 100
+- `interval`: Valid values are `5m`, `10m`, `30m`, and `1h` (`m` for minutes, `h` for hours).
 ```json
 {
     "id": "sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition",
-    "value": <Number>,
-    "interval": <"5m" OR "10m" OR "30m" OR "1h">
+    "value": 50,
+    "interval": "10m"
 }
 ```
 """,
@@ -184,25 +194,30 @@ A list of triggers that determine when the rule fires. See below for a list of p
         help_text="""
 A list of filters that determine if a rule fires after the listed conditions have been met. See below for a list of possible filters.
 
-- The issue is `comparison_type` than `value` `time`:
+**The issue is `comparison_type` than `value` `time`**
+- `comparison_type`: One of `older` or `newer`
+- `value`: An integer
+- `time`: The unit of time. Valid values are `minute`, `hour`, `day`, and `week`.
 ```json
 {
     "id": "sentry.rules.filters.age_comparison.AgeComparisonFilter",
-    "comparison_type": <"older" OR "newer">,
-    "value": <Number>,
-    "time": <"minute" OR "hour" OR "day" OR "week">
+    "comparison_type": "older",
+    "value": 3,
+    "time": "week"
 }
 ```
 
-- The issue has happened at least `value` times (Note: this is approximate):
+**The issue has happened at least `value` times**
+Note this is approximate.
+- `value`: An integer
 ```json
 {
     "id": "sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter",
-    "value": <Number>
+    "value": 120
 }
 ```
 
-- The issue is assigned to No One:
+**The issue is assigned to No One**
 ```json
 {
     "id": "sentry.rules.filters.assigned_to.AssignedToFilter",
@@ -210,56 +225,67 @@ A list of filters that determine if a rule fires after the listed conditions hav
 }
 ```
 
-- The issue is assigned to `targetType`:
+**The issue is assigned to `targetType`**
+- `targetType`: One of `Team` or `Member`
+- `targetIdentifier`: The target's ID
 ```json
 {
     "id": "sentry.rules.filters.assigned_to.AssignedToFilter",
-    "targetType": <"Team" OR "Member">,
-    "targetIdentifier": <Number>
+    "targetType": "Member",
+    "targetIdentifier": 895329789
 }
 ```
 
-- The event is from the latest release:
+**The event is from the latest release**
 ```json
 {
     "id": "sentry.rules.filters.latest_release.LatestReleaseFilter"
 }
 ```
 
-- The issue's category is equal to `value`:
+**The issue's category is equal to `value`**
+- `value`: An integer correlated with a category. Valid values are `1` (Error), `2` (Performance), `3` (Profile), `4` (Cron), and `5` (Replay).
 ```json
 {
     "id": "sentry.rules.filters.issue_category.IssueCategoryFilter",
-    "value": <1 OR 2 OR 3 OR 4 OR 5>
+    "value": 2
 }
 ```
 
-- The event's `attribute` value `match` `value`:
+**The event's `attribute` value `match` `value`**
+- `attribute`: Valid values are `message`, `platform`, `environment`, `type`, `error.handled`, `error.unhandled`, `error.main_thread`, `exception.type`, `exception.value`, `user.id`, `user.email`, `user.username`, `user.ip_address`, `http.method`, `http.url`, `http.status_code`, `sdk.name`, `stacktrace.code`, `stacktrace.module`, `stacktrace.filename`, `stacktrace.abs_path`, `stacktrace.package`, `unreal.crashtype`, and `app.in_foreground`.
+- `match`: The comparison operator. Valid values are `eq` (equals), `ne` (does not equal), `sw` (starts with), `ew` (ends with), `co` (contains), `nc` (does not contain), `is` (is set), and `ns` (is not set).
+- `value`: A string. Not required when `match` is `is` or `ns`.
 ```json
 {
     "id": "sentry.rules.conditions.event_attribute.EventAttributeCondition",
-    "attribute": <"message" OR "platform" OR "environment" OR "type" OR "error.handled" OR "error.unhandled" OR "error.main_thread" OR "exception.type" OR "exception.value" OR "user.id" OR "user.email" OR "user.username" OR "user.ip_address" OR "http.method" OR "http.url" OR "http.status_code" OR "sdk.name" OR "stacktrace.code" OR "stacktrace.module" OR "stacktrace.filename" OR "stacktrace.abs_path" OR "stacktrace.package" OR "unreal.crashtype" OR "app.in_foreground">
-    "match": <"co" OR "ew" OR "eq" OR "is" OR "nc" OR "new" OR "ne" OR "ns" OR "nsw" OR "sw">
-    "value": <string>
+    "attribute": "http.url",
+    "match": "nc",
+    "value": "localhost"
 }
 ```
 
-- The event's tags match `key` `match` `value`:
+**The event's tags match `key` `match` `value`**
+- `key`: The tag
+- `match`: The comparison operator. Valid values are `eq` (equals), `ne` (does not equal), `sw` (starts with), `ew` (ends with), `co` (contains), `nc` (does not contain), `is` (is set), and `ns` (is not set).
+- `value`: A string. Not required when `match` is `is` or `ns`.
 ```json
 {
     "id": "sentry.rules.filters.tagged_event.TaggedEventFilter",
-    "key": <string>,
-    "match": <"co" OR "ew" OR "eq" OR "is" OR "nc" OR "new" OR "ne" OR "ns" OR "nsw" OR "sw">
-    "value": <string>
+    "key": "level",
+    "match": "eq"
+    "value": "error"
 }
 ```
 
-- The event's level is `match` `level`:
+**The event's level is `match` `level`**
+- `match`: Valid values are `eq`, `gte`, and `lte`.
+- `level`: Valid values are `50` (fatal), `40` (error), `30` (warning), `20` (info), `10` (debug), `0` (sample).
 ```json
 {
     "id": "sentry.rules.filters.level.LevelFilter",
-    "match": <"eq" OR "gte" OR "lte">
-    "level": <"50" OR "40" OR "30" OR "20" OR "10" OR "0">
+    "match": "gte"
+    "level": "50"
 }
 ```
 """,

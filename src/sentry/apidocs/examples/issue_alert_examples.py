@@ -22,7 +22,6 @@ class IssueAlertExamples:
                             "interval": "1h",
                             "id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
                             "value": 1000,
-                            "comparisonType": "count",
                         }
                     ],
                     "filters": [
