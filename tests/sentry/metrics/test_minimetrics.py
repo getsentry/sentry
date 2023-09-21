@@ -1,3 +1,5 @@
+from typing import Any, Dict
+
 import pytest
 from sentry_sdk import Client, Hub, Transport
 
@@ -14,7 +16,7 @@ def parse_metrics(bytes: bytes):
         values = payload[1:]
         ty = pieces[1]
         ts = None
-        tags = {}
+        tags: Dict[str, Any] = {}
         for piece in pieces[2:]:
             if piece[0] == "#":
                 for pair in piece[1:].split(","):
@@ -104,7 +106,7 @@ def test_incr_called_with_no_tags(backend, hub):
 )
 def test_incr_called_with_tag_value_as_list(backend, hub):
     # The minimetrics backend supports the list type.
-    backend.incr(key="foo", tags={"x": ["bar", "baz"]})  # type: ignore
+    backend.incr(key="foo", tags={"x": ["bar", "baz"]})
     hub.client.flush()
 
     metrics = hub.client.transport.get_metrics()
