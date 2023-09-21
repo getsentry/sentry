@@ -742,6 +742,12 @@ urlpatterns += [
         react_page_view,
         name="discover",
     ),
+    # DDM
+    re_path(
+        r"^ddm/",
+        react_page_view,
+        name="ddm",
+    ),
     # Request to join an organization
     re_path(
         r"^join-request/",

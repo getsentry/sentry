@@ -133,6 +133,7 @@ test-python-ci: create-db
 		tests/relay_integration \
 		tests/sentry \
 		tests/sentry_plugins \
+		tests/symbolicator \
 		--cov . --cov-report="xml:.artifacts/python.coverage.xml"
 	@echo ""
 
@@ -160,11 +161,6 @@ test-snuba-full: create-db
 test-tools:
 	@echo "--> Running tools tests"
 	pytest -c /dev/null --confcutdir tests/tools tests/tools -vv --cov=tools --cov=tests/tools --cov-report="xml:.artifacts/tools.coverage.xml"
-	@echo ""
-
-backend-typing:
-	@echo "--> Running Python typing checks"
-	mypy
 	@echo ""
 
 # JavaScript relay tests are meant to be run within Symbolicator test suite, as they are parametrized to verify both processing pipelines during migration process.
