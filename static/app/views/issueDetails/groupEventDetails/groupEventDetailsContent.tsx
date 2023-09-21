@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
 import {CommitRow} from 'sentry/components/commitRow';
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import {EventContexts} from 'sentry/components/events/contexts';
 import {EventDevice} from 'sentry/components/events/device';
 import {EventAttachments} from 'sentry/components/events/eventAttachments';
@@ -106,9 +107,15 @@ function GroupEventDetailsContent({
       >
         <Fragment>
           <RegressionMessage event={event} />
-          <EventBreakpointChart event={event} />
-          <EventSpanOpBreakdown event={event} />
-          <EventComparison event={event} group={group} project={project} />
+          <ErrorBoundary mini>
+            <EventBreakpointChart event={event} />
+          </ErrorBoundary>
+          <ErrorBoundary mini>
+            <EventSpanOpBreakdown event={event} />
+          </ErrorBoundary>
+          <ErrorBoundary mini>
+            <EventComparison event={event} group={group} project={project} />
+          </ErrorBoundary>
         </Fragment>
       </Feature>
     );

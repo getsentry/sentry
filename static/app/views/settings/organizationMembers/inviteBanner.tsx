@@ -22,6 +22,8 @@ import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import withOrganization from 'sentry/utils/withOrganization';
 
+const MAX_MEMBERS_TO_SHOW = 5;
+
 type Props = {
   allowedRoles: OrgRole[];
   missingMembers: {integration: string; users: MissingMember[]};
@@ -42,6 +44,7 @@ export function InviteBanner({
   const isEligibleForBanner =
     organization.features.includes('integrations-gh-invite') &&
     organization.access.includes('org:write') &&
+    organization.githubNudgeInvite &&
     missingMembers?.users?.length > 0;
   const [sendingInvite, setSendingInvite] = useState<boolean>(false);
   const [showBanner, setShowBanner] = useState<boolean>(false);
@@ -95,6 +98,7 @@ export function InviteBanner({
   if (isEligibleForBanner && showBanner) {
     trackAnalytics('github_invite_banner.viewed', {
       organization,
+      members_shown: missingMembers.users.slice(0, MAX_MEMBERS_TO_SHOW).length,
     });
   }
   if (!isEligibleForBanner || !showBanner) {
@@ -126,7 +130,7 @@ export function InviteBanner({
 
   const users = missingMembers.users;
 
-  const cards = users.slice(0, 5).map(member => {
+  const cards = users.slice(0, MAX_MEMBERS_TO_SHOW).map(member => {
     const username = member.externalId.split(':').pop();
     return (
       <MemberCard

@@ -3,7 +3,6 @@ from unittest import mock
 
 from django.test import override_settings
 from django.utils import timezone
-from freezegun import freeze_time
 
 from sentry import tsdb
 from sentry.issues.grouptype import PerformanceSlowDBQueryGroupType
@@ -24,11 +23,17 @@ from sentry.models import (
     GroupTombstone,
     Release,
 )
+from sentry.notifications.types import GroupSubscriptionReason
 from sentry.plugins.base import plugins
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase, SnubaTestCase
+from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
+
+pytestmark = [requires_snuba]
 
 
 @region_silo_test(stable=True)
@@ -530,6 +535,48 @@ class GroupUpdateTest(APITestCase):
         assert GroupSubscription.objects.filter(
             user_id=self.user.id, group=group, is_active=False
         ).exists()
+
+    @with_feature("organizations:team-workflow-notifications")
+    def test_team_subscription(self):
+        group = self.create_group()
+        team = self.create_team(organization=group.project.organization, members=[self.user])
+
+        # subscribe the team
+        GroupSubscription.objects.create(
+            team=team,
+            group=group,
+            project=group.project,
+            is_active=True,
+            reason=GroupSubscriptionReason.team_mentioned,
+        )
+
+        self.login_as(user=self.user)
+
+        url = f"/api/0/issues/{group.id}/"
+        response = self.client.get(url)
+
+        assert response.status_code == 200
+        assert len(response.data["participants"]) == 1
+        assert response.data["participants"][0]["type"] == "team"
+
+        # add the user as a subscriber
+        GroupSubscription.objects.create(
+            user_id=self.user.id,
+            group=group,
+            project=group.project,
+            is_active=True,
+            reason=GroupSubscriptionReason.comment,
+        )
+
+        response = self.client.get(url)
+        assert response.status_code == 200
+
+        # both the user and their team should be subscribed separately
+        assert len(response.data["participants"]) == 2
+        assert (
+            response.data["participants"][0]["type"] == "user"
+        )  # user participants are processed first
+        assert response.data["participants"][1]["type"] == "team"
 
     def test_discard(self):
         self.login_as(user=self.user)

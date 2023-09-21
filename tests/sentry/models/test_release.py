@@ -4,7 +4,6 @@ from unittest.mock import patch
 import pytest
 from django.core.exceptions import ValidationError
 from django.utils import timezone
-from freezegun import freeze_time
 
 from sentry.api.exceptions import InvalidRepository
 from sentry.api.release_search import INVALID_SEMVER_MESSAGE
@@ -39,6 +38,7 @@ from sentry.signals import receivers_raise_on_send
 from sentry.testutils.cases import SetRefsTestCase, TestCase, TransactionTestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import Feature
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.strings import truncatechars
 

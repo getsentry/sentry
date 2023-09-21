@@ -133,6 +133,7 @@ test-python-ci: create-db
 		tests/relay_integration \
 		tests/sentry \
 		tests/sentry_plugins \
+		tests/symbolicator \
 		--cov . --cov-report="xml:.artifacts/python.coverage.xml"
 	@echo ""
 
@@ -144,15 +145,22 @@ test-snuba: create-db
 		-vv --cov . --cov-report="xml:.artifacts/snuba.coverage.xml"
 	@echo ""
 
+# snuba-full runs on API changes in Snuba
+test-snuba-full: create-db
+	@echo "--> Running full snuba tests"
+	pytest tests/snuba \
+		tests/sentry/eventstream/kafka \
+		tests/sentry/post_process_forwarder \
+		tests/sentry/snuba \
+		tests/sentry/search/events \
+		tests/sentry/event_manager \
+		-vv --cov . --cov-report="xml:.artifacts/snuba.coverage.xml"
+	pytest tests -vv -m snuba_ci
+	@echo ""
 
 test-tools:
 	@echo "--> Running tools tests"
 	pytest -c /dev/null --confcutdir tests/tools tests/tools -vv --cov=tools --cov=tests/tools --cov-report="xml:.artifacts/tools.coverage.xml"
-	@echo ""
-
-backend-typing:
-	@echo "--> Running Python typing checks"
-	mypy
 	@echo ""
 
 # JavaScript relay tests are meant to be run within Symbolicator test suite, as they are parametrized to verify both processing pipelines during migration process.

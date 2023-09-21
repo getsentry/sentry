@@ -5,6 +5,7 @@ export default function hydrateFeedbackRecord(
 ): HydratedFeedbackItem {
   return {
     ...data,
+    feedback_id: data.feedback_id.replaceAll('-', ''),
     timestamp: new Date(data.timestamp),
   };
 }

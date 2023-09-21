@@ -9,7 +9,7 @@ type LocalState = {
 
 export function useOpenAISuggestionLocalStorage(): [
   LocalState,
-  (newState: Partial<LocalState>) => void
+  (newState: Partial<LocalState>) => void,
 ] {
   const user = ConfigStore.get('user');
 

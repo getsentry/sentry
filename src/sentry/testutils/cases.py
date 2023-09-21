@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import inspect
 import os.path
+import re
 import time
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
@@ -704,6 +705,15 @@ class APITestCase(BaseTestCase, BaseAPITestCase):
             )
         ]
 
+    # The analytics event `name` was called with `kwargs` being a subset of its properties
+    def analytics_called_with_args(self, fn, name, **kwargs):
+        for call_args, call_kwargs in fn.call_args_list:
+            event_name = call_args[0]
+            if event_name == name:
+                assert all(call_kwargs.get(key, None) == val for key, val in kwargs.items())
+                return True
+        return False
+
 
 class TwoFactorAPITestCase(APITestCase):
     @cached_property
@@ -911,6 +921,7 @@ class PermissionTestCase(TestCase):
         self.assert_cannot_access(user, path, **kwargs)
 
 
+@requires_snuba
 class PluginTestCase(TestCase):
     @property
     def plugin(self):
@@ -2370,6 +2381,12 @@ class ActivityTestCase(TestCase):
 
         return release, deploy
 
+    def get_notification_uuid(self, text: str) -> str:
+        # Allow notification\\_uuid and notification_uuid
+        result = re.search("notification.*_uuid=([a-zA-Z0-9-]+)", text)
+        assert result is not None
+        return result[1]
+
 
 class SlackActivityNotificationTest(ActivityTestCase):
     @cached_property
@@ -2431,9 +2448,10 @@ class SlackActivityNotificationTest(ActivityTestCase):
             attachment["text"]
             == "db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21"
         )
+        notification_uuid = self.get_notification_uuid(attachment["title_link"])
         assert (
             attachment["footer"]
-            == f"{project_slug} | production | <http://testserver/settings/account/notifications/{alert_type}/?referrer={referrer}|Notification Settings>"
+            == f"{project_slug} | production | <http://testserver/settings/account/notifications/{alert_type}/?referrer={referrer}&notification_uuid={notification_uuid}|Notification Settings>"
         )
 
     def assert_generic_issue_attachments(
@@ -2441,9 +2459,10 @@ class SlackActivityNotificationTest(ActivityTestCase):
     ):
         assert attachment["title"] == TEST_ISSUE_OCCURRENCE.issue_title
         assert attachment["text"] == TEST_ISSUE_OCCURRENCE.evidence_display[0].value
+        notification_uuid = self.get_notification_uuid(attachment["title_link"])
         assert (
             attachment["footer"]
-            == f"{project_slug} | <http://testserver/settings/account/notifications/{alert_type}/?referrer={referrer}|Notification Settings>"
+            == f"{project_slug} | <http://testserver/settings/account/notifications/{alert_type}/?referrer={referrer}&notification_uuid={notification_uuid}|Notification Settings>"
         )
 
 
