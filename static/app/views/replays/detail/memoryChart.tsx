@@ -57,6 +57,7 @@ function MemoryChart({
     return (
       <MemoryChartWrapper>
         <EmptyMessage
+          data-test-id="replay-details-memory-tab"
           title={t('No memory metrics found')}
           description={t(
             'Memory metrics are only captured within Chromium based browser sessions.'

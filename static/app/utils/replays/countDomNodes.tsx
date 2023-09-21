@@ -26,7 +26,9 @@ export default function countDomNodes({
 
     const nextFrame = (function () {
       let i = 0;
-      return () => frames[i++];
+      const len = frames.length;
+      // how many frames we look at depends on the number of total frames
+      return () => frames[(i += Math.max(Math.round(len * 0.007), 1))];
     })();
 
     const onDone = () => {
@@ -63,8 +65,7 @@ export default function countDomNodes({
     };
 
     const matchFrame = frame => {
-      const shouldSample = Math.random() < 0.1;
-      if (!shouldSample || !frame) {
+      if (!frame) {
         nextOrDone();
         return;
       }
