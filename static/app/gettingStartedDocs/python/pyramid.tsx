@@ -2,27 +2,14 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
 import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import {t, tct} from 'sentry/locale';
 
 // Configuration Start
-const performanceConfiguration = `    # Set traces_sample_rate to 1.0 to capture 100%
-    # of transactions for performance monitoring.
-    traces_sample_rate=1.0,`;
-
-const profilingConfiguration = `    # Set profiles_sample_rate to 1.0 to profile 100%
-    # of sampled transactions.
-    # We recommend adjusting this value in production.
-    profiles_sample_rate=1.0,`;
-
 const introduction = (
   <p>
-    {tct(
-      'The Pyramid integration adds support for the [link:Pyramid Web Framework]. It requires Pyramid 1.6 or later.',
-      {
-        link: <ExternalLink href="https://trypyramid.com/" />,
-      }
-    )}
+    {tct('The Pyramid integration adds support for the [link:Pyramid Web Framework].', {
+      link: <ExternalLink href="https://trypyramid.com/" />,
+    })}
   </p>
 );
 
@@ -117,22 +104,10 @@ if __name__ == '__main__':
 ];
 // Configuration End
 
-export function GettingStartedWithPyramid({
-  dsn,
-  activeProductSelection = [],
-  ...props
-}: ModuleProps) {
+export function GettingStartedWithPyramid({dsn, ...props}: ModuleProps) {
   const otherConfigs: string[] = [];
 
   let sentryInitContent: string[] = [`    dsn="${dsn}",`];
-
-  if (activeProductSelection.includes(ProductSolution.PERFORMANCE_MONITORING)) {
-    otherConfigs.push(performanceConfiguration);
-  }
-
-  if (activeProductSelection.includes(ProductSolution.PROFILING)) {
-    otherConfigs.push(profilingConfiguration);
-  }
 
   sentryInitContent = sentryInitContent.concat(otherConfigs);
 
