@@ -75,7 +75,7 @@ class MonitorTaskCheckMissingTest(TestCase):
             environment=self.environment,
             last_checkin=ts - timedelta(minutes=2),
             next_checkin=ts - timedelta(minutes=1),
-            next_checkin_latest=ts,
+            next_checkin_latest=ts - timedelta(minutes=1),
             status=MonitorStatus.OK,
         )
 
@@ -108,49 +108,6 @@ class MonitorTaskCheckMissingTest(TestCase):
             monitor_environment.last_checkin + timedelta(minutes=1)
         ).replace(second=0, microsecond=0)
         assert missed_checkin.monitor_config == monitor.config
-
-    @mock.patch("sentry.monitors.tasks.mark_environment_missing")
-    def test_temp_ingore_next_checkin_equal_latest(self, mark_environment_missing_mock):
-        org = self.create_organization()
-        project = self.create_project(organization=org)
-
-        task_run_ts, ts = make_ref_time()
-
-        monitor = Monitor.objects.create(
-            organization_id=org.id,
-            project_id=project.id,
-            type=MonitorType.CRON_JOB,
-            config={
-                "schedule": "* * * * *",
-                "schedule_type": ScheduleType.CRONTAB,
-                "max_runtime": None,
-                "checkin_margin": None,
-            },
-        )
-
-        # This monitor will be ignored, the next_checkin and
-        # next_checkin_latest are equal. In the future this should never happen
-        # since the `checkin_margin` will have a minimum of `1`.
-        monitor_environment = MonitorEnvironment.objects.create(
-            monitor=monitor,
-            environment=self.environment,
-            last_checkin=ts - timedelta(minutes=2),
-            next_checkin=ts,
-            next_checkin_latest=ts,
-            status=MonitorStatus.OK,
-        )
-
-        # The task to mark the monitor as missed is not called
-        check_missing(task_run_ts)
-        assert mark_environment_missing_mock.delay.call_count == 0
-
-        # A minute later it now correctly is
-        check_missing(task_run_ts + timedelta(minutes=1))
-
-        assert mark_environment_missing_mock.delay.call_count == 1
-        assert mark_environment_missing_mock.delay.mock_calls[0] == mock.call(
-            monitor_environment.id
-        )
 
     @mock.patch("sentry.monitors.tasks.mark_environment_missing")
     def test_missing_checkin_with_margin(self, mark_environment_missing_mock):
@@ -259,7 +216,7 @@ class MonitorTaskCheckMissingTest(TestCase):
             monitor=monitor,
             environment=self.environment,
             next_checkin=ts - timedelta(minutes=1),
-            next_checkin_latest=ts,
+            next_checkin_latest=ts - timedelta(minutes=1),
             status=MonitorStatus.ACTIVE,
         )
 
@@ -295,7 +252,7 @@ class MonitorTaskCheckMissingTest(TestCase):
         project = self.create_project(organization=org)
 
         task_run_ts, ts = make_ref_time()
-        last_checkin_ts = ts - timedelta(minutes=2)
+        last_checkin_ts = ts - timedelta(minutes=1)
 
         monitor = Monitor.objects.create(
             organization_id=org.id,
@@ -308,7 +265,7 @@ class MonitorTaskCheckMissingTest(TestCase):
             monitor=monitor,
             environment=self.environment,
             last_checkin=last_checkin_ts,
-            next_checkin=ts - timedelta(minutes=1),
+            next_checkin=ts,
             next_checkin_latest=ts,
             status=MonitorStatus.OK,
         )
@@ -357,7 +314,7 @@ class MonitorTaskCheckMissingTest(TestCase):
             monitor=exception_monitor,
             environment=self.environment,
             next_checkin=ts - timedelta(minutes=1),
-            next_checkin_latest=ts,
+            next_checkin_latest=ts - timedelta(minutes=1),
             status=MonitorStatus.OK,
         )
 
@@ -371,7 +328,7 @@ class MonitorTaskCheckMissingTest(TestCase):
             monitor=monitor,
             environment=self.environment,
             next_checkin=ts - timedelta(minutes=1),
-            next_checkin_latest=ts,
+            next_checkin_latest=ts - timedelta(minutes=1),
             status=MonitorStatus.OK,
         )
 
@@ -417,7 +374,7 @@ class MonitorTaskCheckTimemoutTest(TestCase):
             environment=self.environment,
             last_checkin=check_in_24hr_ago - timedelta(hours=24),
             next_checkin=check_in_24hr_ago,
-            next_checkin_latest=check_in_24hr_ago + timedelta(minutes=1),
+            next_checkin_latest=check_in_24hr_ago,
             status=MonitorStatus.OK,
         )
         # In progress started 24hr ago
@@ -482,7 +439,7 @@ class MonitorTaskCheckTimemoutTest(TestCase):
             # Next checkin is in the future, we just completed our last checkin
             last_checkin=ts,
             next_checkin=ts + timedelta(hours=24),
-            next_checkin_latest=ts + timedelta(hours=24, minutes=1),
+            next_checkin_latest=ts + timedelta(hours=24),
             status=MonitorStatus.OK,
         )
         # Checkin 24hr ago
@@ -539,7 +496,7 @@ class MonitorTaskCheckTimemoutTest(TestCase):
             environment=self.environment,
             last_checkin=check_in_24hr_ago,
             next_checkin=ts,
-            next_checkin_latest=ts + timedelta(minutes=1),
+            next_checkin_latest=ts,
             status=MonitorStatus.OK,
         )
         checkin = MonitorCheckIn.objects.create(
@@ -593,7 +550,7 @@ class MonitorTaskCheckTimemoutTest(TestCase):
             environment=self.environment,
             last_checkin=ts,
             next_checkin=ts + timedelta(hours=24),
-            next_checkin_latest=ts + timedelta(hours=24, minutes=1),
+            next_checkin_latest=ts + timedelta(hours=24),
             status=MonitorStatus.OK,
         )
         MonitorCheckIn.objects.create(
@@ -619,7 +576,7 @@ class MonitorTaskCheckTimemoutTest(TestCase):
             environment=self.environment,
             last_checkin=ts,
             next_checkin=ts + timedelta(hours=24),
-            next_checkin_latest=ts + timedelta(hours=24, minutes=1),
+            next_checkin_latest=ts + timedelta(hours=24),
             status=MonitorStatus.OK,
         )
         checkin1 = MonitorCheckIn.objects.create(
