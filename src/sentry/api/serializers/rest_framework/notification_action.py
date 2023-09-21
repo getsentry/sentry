@@ -43,12 +43,13 @@ class NotificationActionSerializer(CamelSnakeModelSerializer):
     Django Rest Framework serializer for incoming NotificationAction API payloads
     """
 
+    # Optional and not needed for spike protection so not documenting
     integration_id = serializers.IntegerField(
-        help_text="""ID of integration that will be used to send the notification. For example, Slack integration""",
         required=False,
     )
+
+    # Optional and not needed for spike protection so not documenting
     sentry_app_id = serializers.IntegerField(
-        help_text="""ID of Sentry App Installation""",
         required=False,
     )
     projects = serializers.ListField(
@@ -58,30 +59,22 @@ class NotificationActionSerializer(CamelSnakeModelSerializer):
     )
 
     service_type = serializers.CharField(
-        help_text="""Service that is used for sending the notification
-            - `email` - works with spike-protection
-            - `slack` - works with spike-protection
-            - `msteams`
-            - `pagerduty` - works with spike-protection
-            - `discord`
-            - `opsgenie` - works with spike-protection
-            - `github`
-            - `gitlab`
-            - `custom_scm`
-          """
+        help_text="Service that is used for sending the notification\n"
+        + """- `email`\n"""
+        + """- `slack`\n"""
+        + """- `pagerduty`\n"""
+        + """- `opsgenie`\n"""
+        + """- `sentry_notification`\n"""
     )
     target_type = serializers.CharField(
-        help_text="""Type of notification recipient
-            - `specific`
-            - `user`
-            - `team`,
-            - `sentry_app`
-          """
+        help_text="""Type of notification recipient\n"""
+        + """ - `specific`\n"""
+        + """ - `user`\n"""
+        + """ - `team`\n"""
+        + """ - `sentry_app`\n"""
     )
     trigger_type = serializers.CharField(
-        help_text="""Type of the trigger that causes the notification
-            - `spike-protection`
-          """
+        help_text="""Type of the trigger that causes the notification. The only supported trigger right now is: `spike-protection`"""
     )
 
     target_identifier = serializers.CharField(

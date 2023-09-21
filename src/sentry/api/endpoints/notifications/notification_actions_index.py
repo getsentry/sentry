@@ -66,7 +66,7 @@ class NotificationActionsIndexEndpoint(OrganizationEndpoint):
     permission_classes = (NotificationActionsPermission,)
 
     @extend_schema(
-        operation_id="List Notification Actions",
+        operation_id="List Spike Protection Notifications",
         parameters=[
             GlobalParams.ORG_SLUG,
             OpenApiParameter(
@@ -74,7 +74,7 @@ class NotificationActionsIndexEndpoint(OrganizationEndpoint):
                 location="query",
                 required=False,
                 type=str,
-                description="Available trigger options: spike-protection",
+                description="Type of the trigger that causes the notification. The only supported value right now is: spike-protection",
             ),
         ],
         responses={
@@ -86,7 +86,7 @@ class NotificationActionsIndexEndpoint(OrganizationEndpoint):
     )
     def get(self, request: Request, organization: Organization) -> Response:
         """
-        Returns all Notification Actions for an organization or the ones with the same trigger type.
+        Returns all Spike Protection Notification Actions for an organization.
         Notification Actions notify a set of a member when an action has been triggered
         for example email organization owner when spike protection threshod has been reached.
         """
@@ -120,7 +120,7 @@ class NotificationActionsIndexEndpoint(OrganizationEndpoint):
         )
 
     @extend_schema(
-        operation_id="Create a new Notification Action",
+        operation_id="Create a Spike Protection Notification Action",
         parameters=[
             GlobalParams.ORG_SLUG,
         ],
@@ -134,7 +134,7 @@ class NotificationActionsIndexEndpoint(OrganizationEndpoint):
     )
     def post(self, request: Request, organization: Organization) -> Response:
         """
-        Creates a new Notification Action. Notification Actions notify a set of a member when an action has been triggered
+        Creates a new Notification Action for Spike Protection. Notification Actions notify a set of a member when an action has been triggered
         for example email organization owner when spike protection threshod has been reached.
         """
         # team admins and regular org members don't have project:write on an org level
