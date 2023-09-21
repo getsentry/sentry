@@ -105,9 +105,7 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
         # NOTE: we're only filtering on date ADDED
         # This is not synonymous with a deploy... which may be what we actually want.
         release_query = Q(organization=organization, date_added__gte=start, date_added__lte=end)
-        environments = self.get_environments(request, organization)
-        if environments:
-            environments_list = [env.name for env in environments]
+        if environments_list:
             release_query &= Q(
                 releaseprojectenvironment__environment__name__in=environments_list,
             )

@@ -267,7 +267,7 @@ class ReleaseThresholdStatusTest(APITestCase):
 
     def test_get_success_release_id_filter(self):
         """
-        Tests fetching thresholds within the past 24hrs filtered on environment
+        Tests fetching thresholds within the past 24hrs filtered on release_id's
 
         Set up creates
         - 2 releases
@@ -333,7 +333,10 @@ class ReleaseThresholdStatusTest(APITestCase):
 
     def test_get_success_project_id_filter(self):
         """
-        Tests fetching thresholds within the past 24hrs filtered on environment
+        Tests fetching thresholds within the past 24hrs filtered on project_id's
+        NOTE: in order to determine *release* health, we still need all projects (& thresholds) associated with that release
+        So - filtering on project will give us all the releases associated with that project
+        but we still need all the other projects associated with the release to determine health status
 
         Set up creates
         - 2 releases
