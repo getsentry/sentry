@@ -99,6 +99,7 @@ class MainHandler(tornado.web.RequestHandler):
         language: 'python',
         code: `import asyncio
 import tornado
+import sentry_sdk
 
 sentry_sdk.init(
 ${sentryInitContent}
