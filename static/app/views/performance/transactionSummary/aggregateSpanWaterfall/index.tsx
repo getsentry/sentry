@@ -32,7 +32,7 @@ function AggregateSpanWaterfall(): React.ReactElement {
   const transaction = decodeScalar(location.query.transaction);
   return (
     <Feature
-      features={['aggregate-span-waterfall']}
+      features={['starfish-aggregate-span-waterfall']}
       organization={organization}
       renderDisabled={renderNoAccess}
     >

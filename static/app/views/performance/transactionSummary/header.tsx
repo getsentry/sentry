@@ -78,7 +78,7 @@ function TransactionHeader({
     isProfilingSupportedOrProjectHasProfiles(project);
 
   const hasAggregateWaterfall = organization.features.includes(
-    'aggregate-span-waterfall'
+    'starfish-aggregate-span-waterfall'
   );
 
   const getWebVitals = useCallback(
