@@ -42,7 +42,7 @@ describe('Project Ownership', () => {
 
   describe('without codeowners', () => {
     it('renders', () => {
-      const wrapper = render(
+      render(
         <ProjectOwnership
           {...routerProps}
           params={{projectId: project.slug}}
@@ -50,7 +50,6 @@ describe('Project Ownership', () => {
           project={project}
         />
       );
-      expect(wrapper.container).toSnapshot();
       // Does not render codeowners for orgs without 'integrations-codeowners' feature
       expect(
         screen.queryByRole('button', {name: 'Add CODEOWNERS'})

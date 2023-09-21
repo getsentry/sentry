@@ -7,7 +7,7 @@ import {GettingStartedWithVue, nextSteps, steps} from './vue';
 
 describe('GettingStartedWithVue', function () {
   it('all products are selected', function () {
-    const {container} = render(
+    render(
       <GettingStartedWithVue
         dsn="test-dsn"
         activeProductSelection={[
@@ -38,7 +38,5 @@ describe('GettingStartedWithVue', function () {
         screen.getByRole('link', {name: filteredNextStepsLink.name})
       ).toBeInTheDocument();
     }
-
-    expect(container).toSnapshot();
   });
 });

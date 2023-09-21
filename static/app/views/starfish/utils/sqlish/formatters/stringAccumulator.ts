@@ -40,11 +40,11 @@ export class StringAccumulator {
     this.lastLine.indentTo(level);
   }
 
-  toString() {
+  toString(maxLineLength: number = DEFAULT_MAX_LINE_LENGTH) {
     let output: Line[] = [];
 
     this.lines.forEach(line => {
-      if (line.textLength <= LINE_LENGTH) {
+      if (line.textLength <= maxLineLength) {
         output.push(line);
         return;
       }
@@ -57,7 +57,7 @@ export class StringAccumulator {
 
         const totalLength = (splitLines.at(-1) as Line).textLength + incomingToken.length;
 
-        if (totalLength <= LINE_LENGTH) {
+        if (totalLength <= maxLineLength) {
           splitLines.at(-1)?.add(incomingToken);
         } else {
           splitLines.push(new Line([incomingToken], line.indentation + 1));
@@ -73,7 +73,7 @@ export class StringAccumulator {
   }
 }
 
-const LINE_LENGTH = 100;
+const DEFAULT_MAX_LINE_LENGTH = 100;
 
 class Line {
   tokens: string[];

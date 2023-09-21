@@ -1,5 +1,6 @@
 import type {Location} from 'history';
 
+import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
@@ -13,7 +14,7 @@ import {
   Frame,
 } from 'sentry/types/event';
 import EventView, {EventData} from 'sentry/utils/discover/eventView';
-import {QueryClient, QueryClientProvider} from 'sentry/utils/queryClient';
+import {QueryClientProvider} from 'sentry/utils/queryClient';
 
 import EventContext from './eventContext';
 
@@ -40,18 +41,10 @@ const dataRow: EventData = {
   'project.name': 'sentry',
 };
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: false,
-    },
-  },
-});
-
 const renderEventContext = (location?: Location, eventView?: EventView) => {
   const organization = TestStubs.Organization();
   render(
-    <QueryClientProvider client={queryClient}>
+    <QueryClientProvider client={makeTestQueryClient()}>
       <EventContext
         dataRow={dataRow}
         organization={organization}
@@ -65,7 +58,6 @@ const renderEventContext = (location?: Location, eventView?: EventView) => {
 
 describe('Quick Context Content: Event ID Column', function () {
   afterEach(() => {
-    queryClient.clear();
     MockApiClient.clearMockResponses();
   });
 

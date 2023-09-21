@@ -12,6 +12,7 @@ from sentry.backup.comparators import (
     IgnoredComparator,
     ScrubbedData,
     SecretHexComparator,
+    SubscriptionIDComparator,
     UserPasswordObfuscatingComparator,
     UUID4Comparator,
 )
@@ -181,7 +182,7 @@ def test_good_auto_suffix_comparator_existence():
     assert res[0].left_pk == 1
     assert res[0].right_pk == 1
     assert "left" in res[0].reason
-    assert "auto_suffix_field" in res[0].reason
+    assert "`auto_suffix_field`" in res[0].reason
 
 
 def test_good_auto_suffix_comparator_scrubbed():
@@ -417,7 +418,7 @@ def test_good_email_obfuscating_comparator_existence():
     assert res[0].left_pk == 1
     assert res[0].right_pk == 1
     assert "left" in res[0].reason
-    assert "email_obfuscating_field" in res[0].reason
+    assert "`email_obfuscating_field`" in res[0].reason
 
 
 def test_good_email_obfuscating_comparator_scrubbed():
@@ -555,7 +556,7 @@ def test_good_hash_obfuscating_comparator_existence():
     assert res[0].left_pk == 1
     assert res[0].right_pk == 1
     assert "left" in res[0].reason
-    assert "hash_obfuscating_field" in res[0].reason
+    assert "`hash_obfuscating_field`" in res[0].reason
 
 
 def test_good_hash_obfuscating_comparator_scrubbed():
@@ -678,7 +679,7 @@ def test_good_foreign_key_comparator_existence():
     assert res[0].left_pk == 1
     assert res[0].right_pk == 1
     assert "left" in res[0].reason
-    assert "user" in res[0].reason
+    assert "`user`" in res[0].reason
 
 
 def test_good_foreign_key_comparator_scrubbed():
@@ -894,7 +895,7 @@ def test_good_ignored_comparator_existence():
     assert res[0].left_pk == 1
     assert res[0].right_pk == 1
     assert "left" in res[0].reason
-    assert "ignored_field" in res[0].reason
+    assert "`ignored_field`" in res[0].reason
 
 
 def test_good_ignored_comparator_scrubbed():
@@ -1015,6 +1016,141 @@ def test_good_secret_hex_comparator_scrubbed():
 
     assert right["scrubbed"]
     assert right["scrubbed"]["SecretHexComparator::secret_hex_field"] is ScrubbedData()
+
+
+def test_good_subscription_id_comparator():
+    cmp = SubscriptionIDComparator("subscription_id_field")
+    id = InstanceID("test", 0)
+    left: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "subscription_id_field": "0/12363aae153911eeac590242ac130004",
+        },
+    }
+    right: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "subscription_id_field": "0/45663aae153911eeac590242acabc123",
+        },
+    }
+    assert not cmp.compare(id, left, right)
+
+
+def test_bad_subscription_id_comparator():
+    cmp = SubscriptionIDComparator("same", "invalid_left", "invalid_right")
+    id = InstanceID("test", 0)
+    left: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "same": "0/12363aae153911eeac590242ac130004",
+            "invalid_left": "12363aae153911eeac590242ac130004",
+            "invalid_right": "0/12363aae153911eeac590242ac130004",
+        },
+    }
+    right: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "same": "0/12363aae153911eeac590242ac130004",
+            "invalid_left": "0/12363aae153911eeac590242ac130004",
+            "invalid_right": "0/foobar",
+        },
+    }
+    res = cmp.compare(id, left, right)
+    assert res
+    assert len(res) == 3
+
+    assert res[0]
+    assert res[0].kind == ComparatorFindingKind.SubscriptionIDComparator
+    assert res[0].on == id
+    assert res[0].left_pk == 1
+    assert res[0].right_pk == 1
+    assert "`same`" in res[0].reason
+    assert "equal" in res[0].reason
+    assert "0/12363aae153911eeac590242ac130004" in res[0].reason
+
+    assert res[1]
+    assert res[1].kind == ComparatorFindingKind.SubscriptionIDComparator
+    assert res[1].on == id
+    assert res[1].left_pk == 1
+    assert res[1].right_pk == 1
+    assert "`invalid_left`" in res[1].reason
+    assert "left" in res[1].reason
+    assert "regex" in res[1].reason
+    assert "12363aae153911eeac590242ac130004" in res[1].reason
+
+    assert res[2]
+    assert res[2].kind == ComparatorFindingKind.SubscriptionIDComparator
+    assert res[2].on == id
+    assert res[2].left_pk == 1
+    assert res[2].right_pk == 1
+    assert "`invalid_right`" in res[2].reason
+    assert "right" in res[2].reason
+    assert "regex" in res[2].reason
+    assert "0/foobar" in res[2].reason
+
+
+def test_good_subscription_id_comparator_existence():
+    cmp = SubscriptionIDComparator("subscription_id_field")
+    id = InstanceID("test", 0)
+    present: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "subscription_id_field": "0/45663aae153911eeac590242acabc123",
+        },
+    }
+    missing: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {},
+    }
+    res = cmp.existence(id, missing, present)
+    assert res
+    assert len(res) == 1
+
+    assert res[0]
+    assert res[0].on == id
+    assert res[0].kind == ComparatorFindingKind.SubscriptionIDComparatorExistenceCheck
+    assert res[0].left_pk == 1
+    assert res[0].right_pk == 1
+    assert "left" in res[0].reason
+    assert "`subscription_id_field`" in res[0].reason
+
+
+def test_good_subscription_id_comparator_scrubbed():
+    cmp = SubscriptionIDComparator("subscription_id_field")
+    left: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "subscription_id_field": "0/12363aae153911eeac590242ac130004",
+        },
+    }
+    right: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "subscription_id_field": "0/45663aae153911eeac590242acabc123",
+        },
+    }
+    cmp.scrub(left, right)
+    assert left["scrubbed"]
+    assert left["scrubbed"]["SubscriptionIDComparator::subscription_id_field"] is ScrubbedData()
+
+    assert right["scrubbed"]
+    assert right["scrubbed"]["SubscriptionIDComparator::subscription_id_field"] is ScrubbedData()
 
 
 def test_good_uuid4_comparator():
@@ -1349,7 +1485,7 @@ def test_good_user_password_obfuscating_comparator_existence():
     assert res[0].left_pk == 1
     assert res[0].right_pk == 1
     assert "left" in res[0].reason
-    assert "password" in res[0].reason
+    assert "`password`" in res[0].reason
 
 
 def test_good_user_password_obfuscating_comparator_scrubbed_long():

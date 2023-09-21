@@ -1,3 +1,5 @@
+from typing import Union
+
 from django.http import HttpResponse
 from rest_framework import serializers
 from rest_framework.request import Request
@@ -9,7 +11,6 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.environment import EnvironmentField
-from sentry.api.serializers.rest_framework.project import ProjectField
 from sentry.models import Project
 from sentry.models.release_threshold.constants import (
     THRESHOLD_TYPE_STR_TO_INT,
@@ -17,15 +18,14 @@ from sentry.models.release_threshold.constants import (
     ReleaseThresholdType,
     TriggerType,
 )
-from sentry.models.release_threshold.releasethreshold import ReleaseThreshold
+from sentry.models.release_threshold.release_threshold import ReleaseThreshold
 
 
-class ReleaseThresholdSerializer(serializers.Serializer):
+class ReleaseThresholdPOSTSerializer(serializers.Serializer):
     threshold_type = serializers.ChoiceField(choices=ReleaseThresholdType.as_str_choices())
     trigger_type = serializers.ChoiceField(choices=TriggerType.as_str_choices())
     value = serializers.IntegerField()
     window_in_seconds = serializers.IntegerField()
-    project = ProjectField()
     environment = EnvironmentField(required=False, allow_null=True)
 
     def validate_threshold_type(self, threshold_type: str):
@@ -39,12 +39,12 @@ class ReleaseThresholdSerializer(serializers.Serializer):
 class ReleaseThresholdEndpoint(ProjectEndpoint):
     owner: ApiOwner = ApiOwner.ENTERPRISE
     publish_status = {
+        "GET": ApiPublishStatus.PRIVATE,
         "POST": ApiPublishStatus.PRIVATE,
     }
 
     def post(self, request: Request, project: Project) -> HttpResponse:
-        request.data["project"] = project.slug
-        serializer = ReleaseThresholdSerializer(
+        serializer = ReleaseThresholdPOSTSerializer(
             data=request.data,
             context={
                 "organization": project.organization,
@@ -60,7 +60,15 @@ class ReleaseThresholdEndpoint(ProjectEndpoint):
             trigger_type=result.get("trigger_type"),
             value=result.get("value"),
             window_in_seconds=result.get("window_in_seconds"),
-            project=result.get("project"),
+            project=project,
             environment=result.get("environment"),
         )
         return Response(serialize(release_threshold, request.user), status=201)
+
+    def get(self, request: Request, project: Project) -> HttpResponse:
+        release_thresholds = ReleaseThreshold.objects.filter(project=project)
+        environment_name: Union[str, None] = request.GET.get("environment")
+
+        if environment_name:
+            release_thresholds = release_thresholds.filter(environment__name=environment_name)
+        return Response(serialize(list(release_thresholds), request.user), status=200)

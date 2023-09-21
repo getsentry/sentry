@@ -192,7 +192,10 @@
       }
     },
     "model": "sentry.ApiAuthorization",
-    "relocation_scope": "Global",
+    "relocation_scope": [
+      "Config",
+      "Global"
+    ],
     "silos": [
       "Control"
     ]
@@ -239,7 +242,10 @@
       }
     },
     "model": "sentry.ApiToken",
-    "relocation_scope": "Global",
+    "relocation_scope": [
+      "Config",
+      "Global"
+    ],
     "silos": [
       "Control"
     ]
@@ -569,7 +575,7 @@
   "sentry.ControlOption": {
     "foreign_keys": {},
     "model": "sentry.ControlOption",
-    "relocation_scope": "Global",
+    "relocation_scope": "Config",
     "silos": [
       "Control"
     ]
@@ -598,6 +604,36 @@
       }
     },
     "model": "sentry.Counter",
+    "relocation_scope": "Organization",
+    "silos": [
+      "Region"
+    ]
+  },
+  "sentry.CustomDynamicSamplingRule": {
+    "foreign_keys": {
+      "organization": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.Organization"
+      }
+    },
+    "model": "sentry.CustomDynamicSamplingRule",
+    "relocation_scope": "Organization",
+    "silos": [
+      "Region"
+    ]
+  },
+  "sentry.CustomDynamicSamplingRuleProject": {
+    "foreign_keys": {
+      "custom_dynamic_sampling_rule": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.CustomDynamicSamplingRule"
+      },
+      "project": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.Project"
+      }
+    },
+    "model": "sentry.CustomDynamicSamplingRuleProject",
     "relocation_scope": "Organization",
     "silos": [
       "Region"
@@ -953,10 +989,6 @@
   },
   "sentry.ExternalActor": {
     "foreign_keys": {
-      "actor": {
-        "kind": "FlexibleForeignKey",
-        "model": "sentry.Actor"
-      },
       "integration_id": {
         "kind": "HybridCloudForeignKey",
         "model": "sentry.Integration"
@@ -1471,6 +1503,10 @@
         "kind": "FlexibleForeignKey",
         "model": "sentry.Project"
       },
+      "team": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.Team"
+      },
       "user_id": {
         "kind": "HybridCloudForeignKey",
         "model": "sentry.User"
@@ -1790,10 +1826,52 @@
       "Region"
     ]
   },
+  "sentry.MonitorIncident": {
+    "foreign_keys": {
+      "monitor": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.Monitor"
+      },
+      "monitor_environment": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.MonitorEnvironment"
+      },
+      "resolving_checkin": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.MonitorCheckIn"
+      },
+      "starting_checkin": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.MonitorCheckIn"
+      }
+    },
+    "model": "sentry.MonitorIncident",
+    "relocation_scope": "Excluded",
+    "silos": [
+      "Region"
+    ]
+  },
   "sentry.MonitorLocation": {
     "foreign_keys": {},
     "model": "sentry.MonitorLocation",
     "relocation_scope": "Excluded",
+    "silos": [
+      "Region"
+    ]
+  },
+  "sentry.NeglectedRule": {
+    "foreign_keys": {
+      "organization": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.Organization"
+      },
+      "rule": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.Rule"
+      }
+    },
+    "model": "sentry.NeglectedRule",
+    "relocation_scope": "Organization",
     "silos": [
       "Region"
     ]
@@ -1814,7 +1892,10 @@
       }
     },
     "model": "sentry.NotificationAction",
-    "relocation_scope": "Global",
+    "relocation_scope": [
+      "Organization",
+      "Global"
+    ],
     "silos": [
       "Region"
     ]
@@ -1831,7 +1912,10 @@
       }
     },
     "model": "sentry.NotificationActionProject",
-    "relocation_scope": "Global",
+    "relocation_scope": [
+      "Organization",
+      "Global"
+    ],
     "silos": [
       "Region"
     ]
@@ -1894,7 +1978,7 @@
   "sentry.Option": {
     "foreign_keys": {},
     "model": "sentry.Option",
-    "relocation_scope": "Global",
+    "relocation_scope": "Config",
     "silos": [
       "Region"
     ]
@@ -2057,6 +2141,31 @@
     "relocation_scope": "Organization",
     "silos": [
       "Region"
+    ]
+  },
+  "sentry.OrganizationMemberTeamReplica": {
+    "foreign_keys": {
+      "organization_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.Organization"
+      },
+      "organizationmember_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.OrganizationMember"
+      },
+      "organizationmemberteam_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.OrganizationMemberTeam"
+      },
+      "team_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.Team"
+      }
+    },
+    "model": "sentry.OrganizationMemberTeamReplica",
+    "relocation_scope": "Excluded",
+    "silos": [
+      "Control"
     ]
   },
   "sentry.OrganizationOnboardingTask": {
@@ -2563,7 +2672,7 @@
   "sentry.Relay": {
     "foreign_keys": {},
     "model": "sentry.Relay",
-    "relocation_scope": "Global",
+    "relocation_scope": "Config",
     "silos": [
       "Region"
     ]
@@ -2571,7 +2680,7 @@
   "sentry.RelayUsage": {
     "foreign_keys": {},
     "model": "sentry.RelayUsage",
-    "relocation_scope": "Global",
+    "relocation_scope": "Config",
     "silos": [
       "Region"
     ]
@@ -3213,6 +3322,23 @@
       "Region"
     ]
   },
+  "sentry.TeamReplica": {
+    "foreign_keys": {
+      "organization_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.Organization"
+      },
+      "team_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.Team"
+      }
+    },
+    "model": "sentry.TeamReplica",
+    "relocation_scope": "Excluded",
+    "silos": [
+      "Control"
+    ]
+  },
   "sentry.TimeSeriesSnapshot": {
     "foreign_keys": {},
     "model": "sentry.TimeSeriesSnapshot",
@@ -3305,7 +3431,7 @@
       }
     },
     "model": "sentry.UserPermission",
-    "relocation_scope": "Global",
+    "relocation_scope": "Config",
     "silos": [
       "Control"
     ]
@@ -3338,7 +3464,7 @@
   "sentry.UserRole": {
     "foreign_keys": {},
     "model": "sentry.UserRole",
-    "relocation_scope": "Global",
+    "relocation_scope": "Config",
     "silos": [
       "Control"
     ]
@@ -3355,7 +3481,7 @@
       }
     },
     "model": "sentry.UserRoleUser",
-    "relocation_scope": "Global",
+    "relocation_scope": "Config",
     "silos": [
       "Control"
     ]

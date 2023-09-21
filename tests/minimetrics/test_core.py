@@ -1,12 +1,12 @@
 from unittest.mock import patch
 
-from freezegun import freeze_time
+from minimetrics.core import CounterMetric, DistributionMetric, MiniMetricsClient, SetMetric
+from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.pytest.fixtures import django_db_all
 
-from minimetrics import MiniMetricsClient
-from minimetrics.core import BucketKey, CounterMetric, DistributionMetric, GaugeMetric, SetMetric
 
-
-def test_simple():
+@django_db_all
+def test_envelope_forwarding():
     client = MiniMetricsClient()
     client.incr("button_clicked", 1.0)
     client.aggregator.stop()
@@ -28,26 +28,30 @@ def test_client_incr(_emit):
     client.aggregator.stop()
 
     assert len(client.aggregator.buckets) == 0
-    extracted_metrics_arg = _emit.call_args.args[0]
-    assert len(extracted_metrics_arg) == 1
-    assert extracted_metrics_arg[0][0] == BucketKey(
-        timestamp=1693994400,
-        metric_type="c",
-        metric_key="button_clicked",
-        metric_unit="nanosecond",
-        metric_tags=(
-            ("browser", "Chrome"),
-            ("browser.version", "1.0"),
-            ("user.classes", "1"),
-            ("user.classes", "2"),
-            ("user.classes", "3"),
-            ("user.orgs", "apple"),
-            ("user.orgs", "google"),
-            ("user.orgs", "sentry"),
-        ),
-    )
-    assert isinstance(extracted_metrics_arg[0][1], CounterMetric)
-    assert extracted_metrics_arg[0][1].serialize_value() == 1
+    emit_args = list(_emit.call_args.args[0])
+    assert len(emit_args) == 1
+    assert emit_args[0][0] == 1693994400
+    keys = list(emit_args[0][1].keys())
+    assert keys == [
+        (
+            "c",
+            "button_clicked",
+            "nanosecond",
+            (
+                ("browser", "Chrome"),
+                ("browser.version", "1.0"),
+                ("user.classes", "1"),
+                ("user.classes", "2"),
+                ("user.classes", "3"),
+                ("user.orgs", "apple"),
+                ("user.orgs", "google"),
+                ("user.orgs", "sentry"),
+            ),
+        )
+    ]
+    values = list(emit_args[0][1].values())
+    assert isinstance(values[0], CounterMetric)
+    assert list(values[0].serialize_value()) == [1]
 
 
 @freeze_time("2023-09-06 10:00:00")
@@ -64,27 +68,30 @@ def test_client_timing(_emit):
     client.aggregator.stop()
 
     assert len(client.aggregator.buckets) == 0
-    extracted_metrics_arg = _emit.call_args.args[0]
-    assert len(extracted_metrics_arg) == 1
-    assert extracted_metrics_arg[0][0] == BucketKey(
-        timestamp=1693994400,
-        metric_type="d",
-        metric_key="execution_time",
-        metric_unit="second",
-        metric_tags=(
-            ("browser", "Chrome"),
-            ("browser.version", "1.0"),
-            ("user.classes", "1"),
-            ("user.classes", "2"),
-            ("user.classes", "3"),
-            ("user.orgs", "apple"),
-            ("user.orgs", "google"),
-            ("user.orgs", "sentry"),
-        ),
-    )
-    assert isinstance(extracted_metrics_arg[0][1], DistributionMetric)
-    assert extracted_metrics_arg[0][1].serialize_value() == [1.0]
-    assert len(client.aggregator.buckets) == 0
+    emit_args = list(_emit.call_args.args[0])
+    assert len(emit_args) == 1
+    assert emit_args[0][0] == 1693994400
+    keys = list(emit_args[0][1].keys())
+    assert keys == [
+        (
+            "d",
+            "execution_time",
+            "second",
+            (
+                ("browser", "Chrome"),
+                ("browser.version", "1.0"),
+                ("user.classes", "1"),
+                ("user.classes", "2"),
+                ("user.classes", "3"),
+                ("user.orgs", "apple"),
+                ("user.orgs", "google"),
+                ("user.orgs", "sentry"),
+            ),
+        )
+    ]
+    values = list(emit_args[0][1].values())
+    assert isinstance(values[0], DistributionMetric)
+    assert list(values[0].serialize_value()) == [1.0]
 
 
 @freeze_time("2023-09-06 10:00:00")
@@ -101,32 +108,35 @@ def test_client_set(_emit):
     client.aggregator.stop()
 
     assert len(client.aggregator.buckets) == 0
-    extracted_metrics_arg = _emit.call_args.args[0]
-    assert len(extracted_metrics_arg) == 1
-    assert extracted_metrics_arg[0][0] == BucketKey(
-        timestamp=1693994400,
-        metric_type="s",
-        metric_key="user",
-        metric_unit=None,
-        metric_tags=(
-            ("browser", "Chrome"),
-            ("browser.version", "1.0"),
-            ("user.classes", "1"),
-            ("user.classes", "2"),
-            ("user.classes", "3"),
-            ("user.orgs", "apple"),
-            ("user.orgs", "google"),
-            ("user.orgs", "sentry"),
-        ),
-    )
-    assert isinstance(extracted_metrics_arg[0][1], SetMetric)
-    assert extracted_metrics_arg[0][1].serialize_value() == [3455635177]
-    assert len(client.aggregator.buckets) == 0
+    emit_args = list(_emit.call_args.args[0])
+    assert len(emit_args) == 1
+    assert emit_args[0][0] == 1693994400
+    keys = list(emit_args[0][1].keys())
+    assert keys == [
+        (
+            "s",
+            "user",
+            "none",
+            (
+                ("browser", "Chrome"),
+                ("browser.version", "1.0"),
+                ("user.classes", "1"),
+                ("user.classes", "2"),
+                ("user.classes", "3"),
+                ("user.orgs", "apple"),
+                ("user.orgs", "google"),
+                ("user.orgs", "sentry"),
+            ),
+        )
+    ]
+    values = list(emit_args[0][1].values())
+    assert isinstance(values[0], SetMetric)
+    assert list(values[0].serialize_value()) == [3455635177]
 
 
 @freeze_time("2023-09-06 10:00:00")
 @patch("minimetrics.core.Aggregator._emit")
-def test_client_gauge(_emit):
+def test_client_gauge_as_counter(_emit):
     tags = {
         "browser": "Chrome",
         "browser.version": "1.0",
@@ -138,30 +148,27 @@ def test_client_gauge(_emit):
     client.aggregator.stop()
 
     assert len(client.aggregator.buckets) == 0
-    extracted_metrics_arg = _emit.call_args.args[0]
-    assert len(extracted_metrics_arg) == 1
-    assert extracted_metrics_arg[0][0] == BucketKey(
-        timestamp=1693994400,
-        metric_type="g",
-        metric_key="frontend_time",
-        metric_unit="second",
-        metric_tags=(
-            ("browser", "Chrome"),
-            ("browser.version", "1.0"),
-            ("user.classes", "1"),
-            ("user.classes", "2"),
-            ("user.classes", "3"),
-            ("user.orgs", "apple"),
-            ("user.orgs", "google"),
-            ("user.orgs", "sentry"),
-        ),
-    )
-    assert isinstance(extracted_metrics_arg[0][1], GaugeMetric)
-    assert extracted_metrics_arg[0][1].serialize_value() == {
-        "last": 15.0,
-        "min": 15.0,
-        "max": 15.0,
-        "sum": 15.0,
-        "count": 1,
-    }
-    assert len(client.aggregator.buckets) == 0
+    emit_args = list(_emit.call_args.args[0])
+    assert len(emit_args) == 1
+    assert emit_args[0][0] == 1693994400
+    keys = list(emit_args[0][1].keys())
+    assert keys == [
+        (
+            "c",
+            "frontend_time",
+            "second",
+            (
+                ("browser", "Chrome"),
+                ("browser.version", "1.0"),
+                ("user.classes", "1"),
+                ("user.classes", "2"),
+                ("user.classes", "3"),
+                ("user.orgs", "apple"),
+                ("user.orgs", "google"),
+                ("user.orgs", "sentry"),
+            ),
+        )
+    ]
+    values = list(emit_args[0][1].values())
+    assert isinstance(values[0], CounterMetric)
+    assert list(values[0].serialize_value()) == [15.0]

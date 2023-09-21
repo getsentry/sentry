@@ -405,7 +405,17 @@ def configure_sdk():
                 # install_id = options.get('sentry:install-id')
                 # if install_id:
                 #     event.setdefault('tags', {})['install-id'] = install_id
-                getattr(sentry4sentry_transport, method_name)(*args, **kwargs)
+                s4s_args = args
+                if method_name == "capture_envelope":
+                    args_list = list(args)
+                    envelope = args_list[0]
+                    # Do not forward metrics to s4s
+                    safe_items = [x for x in envelope.items if x.data_category != "statsd"]
+                    if len(safe_items) != len(envelope.items):
+                        relay_envelope = copy.copy(envelope)
+                        relay_envelope.items = safe_items
+                        s4s_args = [relay_envelope, *args_list[1:]]
+                getattr(sentry4sentry_transport, method_name)(*s4s_args, **kwargs)
 
             if sentry_saas_transport and options.get("store.use-relay-dsn-sample-rate") == 1:
                 # If this is an envelope ensure envelope and its items are distinct references
@@ -489,6 +499,10 @@ def configure_sdk():
         ],
         **sdk_options,
     )
+
+    from sentry.metrics.minimetrics import patch_sentry_sdk
+
+    patch_sentry_sdk()
 
 
 class RavenShim:

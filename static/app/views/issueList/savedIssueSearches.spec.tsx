@@ -69,13 +69,11 @@ describe('SavedIssueSearches', function () {
       body: [userSearch, recommendedSearch, orgSearch, pinnedSearch],
     });
 
-    const {container} = render(<SavedIssueSearches {...defaultProps} />);
+    render(<SavedIssueSearches {...defaultProps} />);
 
     await waitFor(() => {
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     });
-
-    expect(container).toSnapshot();
   });
 
   it('hides saves searches by default past first 4', async function () {

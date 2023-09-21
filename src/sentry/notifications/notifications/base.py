@@ -3,12 +3,15 @@ from __future__ import annotations
 import abc
 import uuid
 from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Optional, Sequence
+from urllib.parse import urlencode
 
 import sentry_sdk
 
 from sentry import analytics
 from sentry.db.models import Model
 from sentry.models import Environment, NotificationSetting
+from sentry.notifications.helpers import should_use_notifications_v2
+from sentry.notifications.notificationcontroller import NotificationController
 from sentry.notifications.types import NotificationSettingTypes, get_notification_setting_type_name
 from sentry.notifications.utils.actions import MessageAction
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
@@ -158,6 +161,7 @@ class BaseNotification(abc.ABC):
             self.record_analytics(
                 f"integrations.{provider.name}.notification_sent",
                 category=self.metrics_key,
+                notification_uuid=self.notification_uuid if self.notification_uuid else "",
                 **self.get_log_params(recipient),
             )
             # record an optional second event
@@ -186,7 +190,13 @@ class BaseNotification(abc.ABC):
         If the recipient is not necessarily a user (ex: sending to an email address associated with an account),
         The recipient may be omitted.
         """
-        return f"?referrer={self.get_referrer(provider, recipient)}"
+        query = urlencode(
+            {
+                "referrer": self.get_referrer(provider, recipient),
+                "notification_uuid": self.notification_uuid,
+            }
+        )
+        return f"?{query}"
 
     def get_settings_url(self, recipient: RpcActor, provider: ExternalProviders) -> str:
         # Settings url is dependant on the provider so we know which provider is sending them into Sentry.
@@ -217,6 +227,14 @@ class BaseNotification(abc.ABC):
     def filter_to_accepting_recipients(
         self, recipients: Iterable[RpcActor]
     ) -> Mapping[ExternalProviders, Iterable[RpcActor]]:
+        if should_use_notifications_v2(self.organization):
+            controller = NotificationController(
+                recipients=recipients,
+                organization_id=self.organization.id,
+                type=self.notification_setting_type,
+            )
+            return controller.get_notification_recipients(type=self.notification_setting_type)
+
         accepting_recipients: Mapping[
             ExternalProviders, Iterable[RpcActor]
         ] = NotificationSetting.objects.filter_to_accepting_recipients(

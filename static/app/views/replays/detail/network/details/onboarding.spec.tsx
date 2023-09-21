@@ -21,7 +21,7 @@ const [MOCK_ITEM] = hydrateSpans(TestStubs.ReplayRecord(), [
 describe('Setup', () => {
   jest
     .mocked(useProjectSdkNeedsUpdate)
-    .mockReturnValue({isFetching: false, needsUpdate: false});
+    .mockReturnValue({isError: false, isFetching: false, needsUpdate: false});
 
   describe('Setup is not complete', () => {
     it('should render the full snippet when no setup is done yet', () => {

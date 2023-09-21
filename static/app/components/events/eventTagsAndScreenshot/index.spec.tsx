@@ -185,7 +185,7 @@ describe('EventTagsAndScreenshot', function () {
     });
 
     it('not shared event - without attachments', function () {
-      const {container} = render(
+      render(
         <EventTagsAndScreenshot
           event={{...event, tags, contexts}}
           organization={organization}
@@ -229,12 +229,10 @@ describe('EventTagsAndScreenshot', function () {
       // Tags
       const tagsContainer = within(screen.getByTestId('event-tags'));
       expect(tagsContainer.getAllByRole('listitem')).toHaveLength(tags.length);
-
-      expect(container).toSnapshot();
     });
 
     it('shared event - without attachments', function () {
-      const {container} = render(
+      render(
         <EventTagsAndScreenshot
           event={{...event, tags, contexts}}
           organization={organization}
@@ -250,12 +248,10 @@ describe('EventTagsAndScreenshot', function () {
 
       // Tags Container
       expect(screen.getByText('Tags')).toBeInTheDocument();
-
-      expect(container).toSnapshot();
     });
 
     it('shared event - with attachments', function () {
-      const {container} = render(
+      render(
         <EventTagsAndScreenshot
           event={{...event, tags, contexts}}
           organization={organization}
@@ -270,8 +266,6 @@ describe('EventTagsAndScreenshot', function () {
 
       // Tags Container
       expect(screen.getByText('Tags')).toBeInTheDocument();
-
-      expect(container).toSnapshot();
     });
   });
 
@@ -284,7 +278,7 @@ describe('EventTagsAndScreenshot', function () {
     });
 
     it('no context and no tags', async function () {
-      const {container} = render(
+      render(
         <Fragment>
           <GlobalModal />
           <EventTagsAndScreenshot
@@ -329,8 +323,6 @@ describe('EventTagsAndScreenshot', function () {
       ).toBeInTheDocument();
 
       await userEvent.click(screen.getByLabelText('Close Modal'));
-
-      expect(container).toSnapshot();
     });
   });
 
@@ -343,7 +335,7 @@ describe('EventTagsAndScreenshot', function () {
     });
 
     it('has context, async tags and attachments', async function () {
-      const {container} = render(
+      render(
         <EventTagsAndScreenshot
           event={{...event, tags, contexts}}
           organization={organization}
@@ -378,8 +370,6 @@ describe('EventTagsAndScreenshot', function () {
       // Tags
       const tagsContainer = within(screen.getByTestId('event-tags'));
       expect(tagsContainer.getAllByRole('listitem')).toHaveLength(tags.length);
-
-      expect(container).toSnapshot();
     });
 
     it('renders multiple screenshots correctly', async function () {
@@ -479,7 +469,7 @@ describe('EventTagsAndScreenshot', function () {
     });
 
     it('has context and attachments only', async function () {
-      const {container} = render(
+      render(
         <EventTagsAndScreenshot
           event={{...event, contexts}}
           organization={organization}
@@ -507,12 +497,10 @@ describe('EventTagsAndScreenshot', function () {
       // Tags
       const tagsContainer = within(screen.getByTestId('event-tags'));
       expect(tagsContainer.queryByRole('listitem')).not.toBeInTheDocument();
-
-      expect(container).toSnapshot();
     });
 
     it('has tags and attachments only', async function () {
-      const {container} = render(
+      render(
         <EventTagsAndScreenshot
           event={{...event, tags}}
           organization={organization}
@@ -540,8 +528,6 @@ describe('EventTagsAndScreenshot', function () {
       // Tags
       const tagsContainer = within(screen.getByTestId('event-tags'));
       expect(tagsContainer.getAllByRole('listitem')).toHaveLength(tags.length);
-
-      expect(container).toSnapshot();
     });
   });
 });

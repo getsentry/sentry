@@ -8,18 +8,29 @@ class RelocationScope(Enum):
     # A model that has been purposefully excluded from import/export functionality entirely.
     Excluded = auto()
 
-    # A model related to some global feature of Sentry. `Global` models are best understood via
-    # exclusion: they are all of the exportable `Control`-silo models that are **not** somehow tied
-    # to a specific user.
-    Global = auto()
+    # Any `Control`-silo model that is either a `User*` model, or directly owner by one, is in this
+    # scope. Models that deal with bestowing administration privileges are excluded, and are
+    # included in the `Config` scope instead.
+    User = auto()
 
     # For all models that transitively depend on either `User` or `Organization` root models, and
     # nothing else.
     Organization = auto()
 
-    # Any `Control`-silo model that is either a `User*` model, or directly owner by one, is in this
-    # scope.
-    User = auto()
+    # Models that deal with configuring or administering an entire Sentry instance. Some of these
+    # models transitively rely on `User` models (since their purpose is to mark certain users as
+    # administrators and give them elevated, instance-wide privileges), but otherwise these models
+    # have no dependencies on other scopes.
+    Config = auto()
+
+    # A model that is inextricably tied to a specific Sentry instance. Often, this applies to models
+    # that include the instance domain in their data (ex: OAuth or social login tokens related to
+    # the specific domain), which therefore are completely non-portable.
+    #
+    # In practice, this scope is reserved for models that are only useful when backing up or
+    # restoring an entire Sentry instance, since there is no reasonable way to use them outside of
+    # that specific context.
+    Global = auto()
 
 
 @unique
@@ -32,7 +43,13 @@ class ExportScope(Enum):
 
     User = {RelocationScope.User}
     Organization = {RelocationScope.User, RelocationScope.Organization}
-    Global = {RelocationScope.User, RelocationScope.Organization, RelocationScope.Global}
+    Config = {RelocationScope.User, RelocationScope.Config}
+    Global = {
+        RelocationScope.User,
+        RelocationScope.Organization,
+        RelocationScope.Config,
+        RelocationScope.Global,
+    }
 
 
 @unique
@@ -45,4 +62,10 @@ class ImportScope(Enum):
 
     User = {RelocationScope.User}
     Organization = {RelocationScope.User, RelocationScope.Organization}
-    Global = {RelocationScope.User, RelocationScope.Organization, RelocationScope.Global}
+    Config = {RelocationScope.User, RelocationScope.Config}
+    Global = {
+        RelocationScope.User,
+        RelocationScope.Organization,
+        RelocationScope.Config,
+        RelocationScope.Global,
+    }

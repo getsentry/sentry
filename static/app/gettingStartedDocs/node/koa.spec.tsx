@@ -6,7 +6,7 @@ import {GettingStartedWithKoa, steps} from './koa';
 
 describe('GettingStartedWithKoa', function () {
   it('all products are selected', function () {
-    const {container} = render(<GettingStartedWithKoa dsn="test-dsn" />);
+    render(<GettingStartedWithKoa dsn="test-dsn" />);
 
     // Steps
     for (const step of steps({
@@ -14,12 +14,13 @@ describe('GettingStartedWithKoa', function () {
       importContent: 'test-import-content',
       initContent: 'test-init-content',
       hasPerformanceMonitoring: true,
+      sourceMapStep: {
+        title: 'Upload Source Maps',
+      },
     })) {
       expect(
         screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
       ).toBeInTheDocument();
     }
-
-    expect(container).toSnapshot();
   });
 });

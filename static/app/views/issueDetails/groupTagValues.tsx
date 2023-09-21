@@ -61,13 +61,13 @@ class GroupTagValues extends DeprecatedAsyncComponent<
   State & DeprecatedAsyncComponent['state']
 > {
   getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
-    const {environments: environment} = this.props;
+    const {environments: environment, organization} = this.props;
     const {groupId, tagKey} = this.props.params;
     return [
-      ['tag', `/issues/${groupId}/tags/${tagKey}/`],
+      ['tag', `/organizations/${organization.slug}/issues/${groupId}/tags/${tagKey}/`],
       [
         'tagValueList',
-        `/issues/${groupId}/tags/${tagKey}/values/`,
+        `/organizations/${organization.slug}/issues/${groupId}/tags/${tagKey}/values/`,
         {query: {environment, sort: this.getSort()}},
       ],
     ];

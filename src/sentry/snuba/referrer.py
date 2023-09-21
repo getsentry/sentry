@@ -123,6 +123,7 @@ class Referrer(Enum):
     API_ORGANIZATION_EVENTS_SPANS_PERFORMANCE_EXAMPLES = (
         "api.organization-events-spans-performance-examples"
     )
+    API_ORGANIZATION_SPANS_AGGREGATION = "api.organization-spans-aggregation"
     API_ORGANIZATION_EVENTS_SPANS_PERFORMANCE_STATS = (
         "api.organization-events-spans-performance-stats"
     )
@@ -341,6 +342,9 @@ class Referrer(Enum):
     API_PROFILING_FUNCTION_TRENDS_TOP_EVENTS = "api.profiling.function-trends.top-events"
     API_PROFILING_FUNCTION_TRENDS_STATS = "api.profiling.function-trends.stats"
     API_PROFILING_FUNCTIONS_STATISTICAL_DETECTOR = "api.profiling.functions.statistical-detector"
+    API_PROFILING_FUNCTIONS_STATISTICAL_DETECTOR_STATS = (
+        "api.profiling.functions.statistical-detector.stats"
+    )
     API_PROJECT_EVENTS = "api.project-events"
     API_RELEASES_RELEASE_DETAILS_CHART = "api.releases.release-details-chart"
     API_REPLAY_DETAILS_PAGE = "api.replay.details-page"
@@ -593,6 +597,9 @@ class Referrer(Enum):
     SNUBA_SESSIONS_GET_PROJECT_RELEASES_COUNT = "snuba.sessions.get_project_releases_count"
     SPIKE_PROJECTIONS = "getsentry.get_spike_projections"
     SRC_SENTRY_INGEST_TRANSACTION_CLUSTERER = "src.sentry.ingest.transaction_clusterer"
+    STATISTICAL_DETECTORS_FETCH_TOP_TRANSACTION_NAMES = (
+        "statistical_detectors.distributions.fetch_top_transaction_names"
+    )
     SUBSCRIPTION_PROCESSOR_COMPARISON_QUERY = "subscription_processor.comparison_query"
     SUBSCRIPTIONS_EXECUTOR = "subscriptions_executor"
     TAGSTORE__GET_TAG_KEY_AND_TOP_VALUES = "tagstore.__get_tag_key_and_top_values"

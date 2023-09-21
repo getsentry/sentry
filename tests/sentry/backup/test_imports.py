@@ -8,6 +8,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pytest
+from django.utils import timezone
 from rest_framework.serializers import ValidationError
 
 from sentry.backup.helpers import ImportFlags, get_exportable_sentry_models
@@ -17,8 +18,10 @@ from sentry.backup.imports import (
     import_in_user_scope,
 )
 from sentry.backup.scopes import ExportScope, RelocationScope
+from sentry.models.apitoken import DEFAULT_EXPIRATION, ApiToken, generate_token
 from sentry.models.authenticator import Authenticator
 from sentry.models.email import Email
+from sentry.models.options.option import ControlOption, Option
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization
 from sentry.models.organizationmapping import OrganizationMapping
@@ -27,11 +30,13 @@ from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
+from sentry.models.relay import Relay
 from sentry.models.user import User
 from sentry.models.useremail import UserEmail
 from sentry.models.userip import UserIP
 from sentry.models.userpermission import UserPermission
 from sentry.models.userrole import UserRole, UserRoleUser
+from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.backups import (
     NOOP_PRINTER,
@@ -437,7 +442,7 @@ class ScopingTests(ImportTestCase):
                 import_in_user_scope(tmp_file, printer=NOOP_PRINTER)
                 exportable = get_exportable_sentry_models()
                 for model in exportable:
-                    if model.__relocation_scope__ != RelocationScope.User:
+                    if RelocationScope.User not in model.get_possible_relocation_scopes():
                         assert model.objects.count() == 0
 
     def test_organization_import_scoping(self):
@@ -449,10 +454,10 @@ class ScopingTests(ImportTestCase):
                 import_in_organization_scope(tmp_file, printer=NOOP_PRINTER)
                 exportable = get_exportable_sentry_models()
                 for model in exportable:
-                    if model.__relocation_scope__ not in {
+                    if {
                         RelocationScope.User,
                         RelocationScope.Organization,
-                    }:
+                    } in model.get_possible_relocation_scopes():
                         assert model.objects.count() == 0
 
 
@@ -623,6 +628,124 @@ class CollisionTests(ImportTestCase):
     Ensure that collisions are properly handled in different flag modes.
     """
 
+    def test_colliding_api_token(self):
+        owner = self.create_exhaustive_user("owner")
+        expires_at = timezone.now() + DEFAULT_EXPIRATION
+
+        # Take note of the `ApiTokens` that were created by the exhaustive organization - this is
+        # the one we'll be importing.
+        colliding_no_refresh = ApiToken.objects.create(
+            user=owner, token=generate_token(), expires_at=expires_at
+        )
+        colliding_same_refresh_only = ApiToken.objects.create(
+            user=owner,
+            token=generate_token(),
+            refresh_token=generate_token(),
+            expires_at=expires_at,
+        )
+        colliding_same_token_only = ApiToken.objects.create(
+            user=owner,
+            token=generate_token(),
+            refresh_token=generate_token(),
+            expires_at=expires_at,
+        )
+        colliding_same_both = ApiToken.objects.create(
+            user=owner,
+            token=generate_token(),
+            refresh_token=generate_token(),
+            expires_at=expires_at,
+        )
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
+            owner = self.create_exhaustive_user(username="owner")
+
+            # Re-insert colliding tokens, pointed at the new user.
+            colliding_no_refresh.user_id = owner.id
+            colliding_no_refresh.save()
+
+            colliding_same_refresh_only.token = generate_token()
+            colliding_same_refresh_only.user_id = owner.id
+            colliding_same_refresh_only.save()
+
+            colliding_same_token_only.refresh_token = generate_token()
+            colliding_same_token_only.user_id = owner.id
+            colliding_same_token_only.save()
+
+            colliding_same_both.user_id = owner.id
+            colliding_same_both.save()
+
+            assert ApiToken.objects.count() == 4
+            assert ApiToken.objects.filter(token=colliding_no_refresh.token).count() == 1
+            assert (
+                ApiToken.objects.filter(
+                    refresh_token=colliding_same_refresh_only.refresh_token
+                ).count()
+                == 1
+            )
+            assert ApiToken.objects.filter(token=colliding_same_token_only.token).count() == 1
+            assert (
+                ApiToken.objects.filter(
+                    token=colliding_same_both.token, refresh_token=colliding_same_both.refresh_token
+                ).count()
+                == 1
+            )
+
+            with open(tmp_path) as tmp_file:
+                import_in_global_scope(tmp_file, printer=NOOP_PRINTER)
+
+        # Ensure that old tokens have been replaced.
+        assert ApiToken.objects.count() == 4
+        assert not ApiToken.objects.filter(token=colliding_no_refresh.token).exists()
+        assert not ApiToken.objects.filter(
+            refresh_token=colliding_same_refresh_only.refresh_token
+        ).exists()
+        assert not ApiToken.objects.filter(token=colliding_same_token_only.token).exists()
+        assert not ApiToken.objects.filter(
+            token=colliding_same_both.token, refresh_token=colliding_same_both.refresh_token
+        ).exists()
+
+    def test_colliding_org_auth_token(self):
+        owner = self.create_exhaustive_user("owner")
+        invited = self.create_exhaustive_user("invited")
+        member = self.create_exhaustive_user("member")
+        self.create_exhaustive_organization("some-org", owner, invited, [member])
+
+        # Take note of the `OrgAuthToken` that was created by the exhaustive organization - this is
+        # the one we'll be importing.
+        colliding = OrgAuthToken.objects.filter().first()
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
+
+            # After exporting and clearing the database, insert a copy of the same `OrgAuthToken` as
+            # the one found in the import.
+            org = self.create_organization()
+            colliding.organization_id = org.id
+            colliding.project_last_used_id = self.create_project(organization=org).id
+            colliding.save()
+
+            assert OrgAuthToken.objects.count() == 1
+            assert OrgAuthToken.objects.filter(token_hashed=colliding.token_hashed).count() == 1
+            assert (
+                OrgAuthToken.objects.filter(
+                    token_last_characters=colliding.token_last_characters
+                ).count()
+                == 1
+            )
+
+            with open(tmp_path) as tmp_file:
+                import_in_organization_scope(tmp_file, printer=NOOP_PRINTER)
+
+        assert OrgAuthToken.objects.count() == 2
+        assert OrgAuthToken.objects.filter(token_hashed=colliding.token_hashed).count() == 1
+        assert (
+            OrgAuthToken.objects.filter(
+                token_last_characters=colliding.token_last_characters
+            ).count()
+            == 1
+        )
+
     def test_colliding_project_key(self):
         owner = self.create_exhaustive_user("owner")
         invited = self.create_exhaustive_user("invited")
@@ -632,28 +755,173 @@ class CollisionTests(ImportTestCase):
         # Take note of the `ProjectKey` that was created by the exhaustive organization - this is
         # the one we'll be importing.
         colliding = ProjectKey.objects.filter().first()
-        colliding_public_key = colliding.public_key
-        colliding_secret_key = colliding.secret_key
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
 
             # After exporting and clearing the database, insert a copy of the same `ProjectKey` as
             # the one found in the import.
-            project = self.create_project()
-            ProjectKey.objects.create(
-                project=project,
-                label="Test",
-                public_key=colliding_public_key,
-                secret_key=colliding_secret_key,
-            )
+            colliding.project = self.create_project()
+            colliding.save()
+
+            assert ProjectKey.objects.count() < 4
+            assert ProjectKey.objects.filter(public_key=colliding.public_key).count() == 1
+            assert ProjectKey.objects.filter(secret_key=colliding.secret_key).count() == 1
 
             with open(tmp_path) as tmp_file:
                 import_in_organization_scope(tmp_file, printer=NOOP_PRINTER)
 
         assert ProjectKey.objects.count() == 4
-        assert ProjectKey.objects.filter(public_key=colliding_public_key).count() == 1
-        assert ProjectKey.objects.filter(secret_key=colliding_secret_key).count() == 1
+        assert ProjectKey.objects.filter(public_key=colliding.public_key).count() == 1
+        assert ProjectKey.objects.filter(secret_key=colliding.secret_key).count() == 1
+
+    def test_colliding_query_subscription(self):
+        # We need a celery task running to properly test the `subscription_id` assignment, otherwise
+        # its value just defaults to `None`.
+        with self.tasks():
+            owner = self.create_exhaustive_user("owner")
+            invited = self.create_exhaustive_user("invited")
+            member = self.create_exhaustive_user("member")
+            self.create_exhaustive_organization("some-org", owner, invited, [member])
+
+            # Take note of the `QuerySubscription` that was created by the exhaustive organization -
+            # this is the one we'll be importing.
+            colliding_snuba_query = SnubaQuery.objects.all().first()
+            colliding_query_subscription = QuerySubscription.objects.filter(
+                snuba_query=colliding_snuba_query
+            ).first()
+
+            with tempfile.TemporaryDirectory() as tmp_dir:
+                tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
+
+                # After exporting and clearing the database, insert a copy of the same
+                # `QuerySubscription.subscription_id` as the one found in the import.
+                colliding_snuba_query.save()
+                colliding_query_subscription.project = self.create_project()
+                colliding_query_subscription.snuba_query = colliding_snuba_query
+                colliding_query_subscription.save()
+
+                assert SnubaQuery.objects.count() == 1
+                assert QuerySubscription.objects.count() == 1
+                assert (
+                    QuerySubscription.objects.filter(
+                        subscription_id=colliding_query_subscription.subscription_id
+                    ).count()
+                    == 1
+                )
+
+                with open(tmp_path) as tmp_file:
+                    import_in_organization_scope(tmp_file, printer=NOOP_PRINTER)
+
+            assert SnubaQuery.objects.count() > 1
+            assert QuerySubscription.objects.count() > 1
+            assert (
+                QuerySubscription.objects.filter(
+                    subscription_id=colliding_query_subscription.subscription_id
+                ).count()
+                == 1
+            )
+
+    def test_colliding_configs_overwrite_configs_enabled(self):
+        self.create_exhaustive_global_configs()
+        self.create_exhaustive_user("owner", is_admin=True)
+
+        # Take note of the configs we want to track - this is the one we'll be importing.
+        colliding_option = Option.objects.all().first()
+        colliding_control_option = ControlOption.objects.all().first()
+        colliding_relay = Relay.objects.all().first()
+        colliding_user_role = UserRole.objects.all().first()
+        old_relay_public_key = colliding_relay.public_key
+        old_user_role_permissions = colliding_user_role.permissions
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
+
+            colliding_option.value = "y"
+            colliding_option.save()
+            colliding_control_option.value = "z"
+            colliding_control_option.save()
+            colliding_relay.public_key = "invalid"
+            colliding_relay.save()
+            colliding_user_role.permissions = ["other.admin"]
+            colliding_user_role.save()
+
+            assert Option.objects.count() == 1
+            assert ControlOption.objects.count() == 1
+            assert Relay.objects.count() == 1
+            assert UserRole.objects.count() == 1
+
+            with open(tmp_path) as tmp_file:
+                import_in_global_scope(
+                    tmp_file, flags=ImportFlags(overwrite_configs=True), printer=NOOP_PRINTER
+                )
+
+        assert Option.objects.count() == 1
+        assert Option.objects.filter(value__exact="a").exists()
+        assert not Option.objects.filter(value__exact="y").exists()
+
+        assert ControlOption.objects.count() == 1
+        assert ControlOption.objects.filter(value__exact="b").exists()
+        assert not ControlOption.objects.filter(value__exact="z").exists()
+
+        assert Relay.objects.count() == 1
+        assert Relay.objects.filter(public_key__exact=old_relay_public_key).exists()
+        assert not Relay.objects.filter(public_key__exact="invalid").exists()
+
+        actual_user_role = UserRole.objects.first()
+        assert len(actual_user_role.permissions) == len(old_user_role_permissions)
+        for i, actual_permission in enumerate(actual_user_role.permissions):
+            assert actual_permission == old_user_role_permissions[i]
+
+    def test_colliding_configs_overwrite_configs_disabled(self):
+        self.create_exhaustive_global_configs()
+        self.create_exhaustive_user("owner", is_admin=True)
+
+        # Take note of the configs we want to track - this is the one we'll be importing.
+        colliding_option = Option.objects.all().first()
+        colliding_control_option = ControlOption.objects.all().first()
+        colliding_relay = Relay.objects.all().first()
+        colliding_user_role = UserRole.objects.all().first()
+        old_relay_public_key = colliding_relay.public_key
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
+
+            colliding_option.value = "y"
+            colliding_option.save()
+            colliding_control_option.value = "z"
+            colliding_control_option.save()
+            colliding_relay.public_key = "invalid"
+            colliding_relay.save()
+            colliding_user_role.permissions = ["other.admin"]
+            colliding_user_role.save()
+
+            assert Option.objects.count() == 1
+            assert ControlOption.objects.count() == 1
+            assert Relay.objects.count() == 1
+            assert UserRole.objects.count() == 1
+
+            with open(tmp_path) as tmp_file:
+                import_in_global_scope(
+                    tmp_file, flags=ImportFlags(overwrite_configs=False), printer=NOOP_PRINTER
+                )
+
+        assert Option.objects.count() == 1
+        assert not Option.objects.filter(value__exact="a").exists()
+        assert Option.objects.filter(value__exact="y").exists()
+
+        assert ControlOption.objects.count() == 1
+        assert not ControlOption.objects.filter(value__exact="b").exists()
+        assert ControlOption.objects.filter(value__exact="z").exists()
+
+        assert Relay.objects.count() == 1
+        assert not Relay.objects.filter(public_key__exact=old_relay_public_key).exists()
+        assert Relay.objects.filter(public_key__exact="invalid").exists()
+
+        assert UserRole.objects.count() == 1
+        actual_user_role = UserRole.objects.first()
+        assert len(actual_user_role.permissions) == 1
+        assert actual_user_role.permissions[0] == "other.admin"
 
     def test_colliding_user_with_merging_enabled_in_user_scope(self):
         self.create_exhaustive_user(username="owner", email="owner@example.com")

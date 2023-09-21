@@ -35,7 +35,7 @@ class ScopingTests(ExportTestCase):
     def get_models_for_scope(scope: ExportScope) -> set[str]:
         matching_models = set()
         for model in get_exportable_sentry_models():
-            if model.__relocation_scope__ in scope.value:
+            if model.get_possible_relocation_scopes() & scope.value:
                 obj_name = model._meta.object_name
                 if obj_name is not None:
                     matching_models.add("sentry." + obj_name.lower())

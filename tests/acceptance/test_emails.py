@@ -59,6 +59,10 @@ def redact_ids(text: str) -> str:
     return text
 
 
+def redact_ips(text: str) -> str:
+    return re.sub(r"IP: [0-9]{1,3}(\.[0-9]{1,3}){3}\b", "IP: <IP_ADDRESS>", text)
+
+
 def redact_notification_uuid(text: str) -> str:
     return re.sub("uuid=[A-Za-z0-9_-]+", "uuid=x", text)
 
@@ -81,7 +85,6 @@ class EmailTestCase(AcceptanceTestCase):
             # HTML output is captured as a snapshot
             self.browser.get(build_url(url, "html"))
             self.browser.wait_until("#preview")
-            self.browser.snapshot(f"{name} email html")
 
             # Text output is asserted against static fixture files
             self.browser.get(build_url(url, "txt"))
@@ -90,7 +93,7 @@ class EmailTestCase(AcceptanceTestCase):
             text_src = elem.get_attribute("innerHTML")
 
             # Avoid relying on IDs as this can cause flakey tests
-            text_src = redact_ids(replace_amp(text_src))
+            text_src = redact_ips(redact_ids(replace_amp(text_src)))
 
             fixture_src = read_txt_email_fixture(name)
             assert redact_notification_uuid(fixture_src) == redact_notification_uuid(text_src)

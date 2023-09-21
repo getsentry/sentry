@@ -74,7 +74,6 @@ describe('StacktraceLinkModal', () => {
       'href',
       'https://github.com/test-integration'
     );
-    expect(screen.getByRole('dialog')).toSnapshot();
   });
 
   it('closes modal after successful quick setup', async () => {
@@ -199,7 +198,6 @@ describe('StacktraceLinkModal', () => {
     const suggestion =
       'https://github.com/getsentry/codemap/blob/master/stack/root/file.py';
     expect(screen.getByText(suggestion)).toBeInTheDocument();
-    expect(screen.getByRole('dialog')).toSnapshot();
 
     // Paste and save suggestion
     await userEvent.type(

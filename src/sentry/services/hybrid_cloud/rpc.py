@@ -170,7 +170,12 @@ class RpcMethodSignature:
         return region_resolution
 
     def serialize_arguments(self, raw_arguments: ArgumentDict) -> ArgumentDict:
-        model_instance = self._parameter_model(**raw_arguments)
+        try:
+            model_instance = self._parameter_model(**raw_arguments)
+        except Exception as e:
+            raise RpcArgumentException(
+                self.service_name, self.method_name, "Could not serialize arguments"
+            ) from e
         return model_instance.dict()
 
     def deserialize_arguments(self, serial_arguments: ArgumentDict) -> pydantic.BaseModel:
