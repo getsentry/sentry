@@ -758,9 +758,9 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         )
         response = self.do_request(
             {
-                "field": ["unique_span_domains", "count()"],
+                "field": ["unique.span_domains", "count()"],
                 "query": "",
-                "orderby": "unique_span_domains",
+                "orderby": "unique.span_domains",
                 "project": self.project.id,
                 "dataset": "spansMetrics",
             }
@@ -769,10 +769,10 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         data = response.data["data"]
         meta = response.data["meta"]
         assert len(data) == 3
-        assert data[0]["unique_span_domains"] == "sentry_table1"
-        assert data[1]["unique_span_domains"] == "sentry_table2"
-        assert data[2]["unique_span_domains"] == "sentry_table3"
-        assert meta["fields"]["unique_span_domains"] == "string"
+        assert data[0]["unique.span_domains"] == "sentry_table1"
+        assert data[1]["unique.span_domains"] == "sentry_table2"
+        assert data[2]["unique.span_domains"] == "sentry_table3"
+        assert meta["fields"]["unique.span_domains"] == "string"
 
     def test_unique_values_span_domain_with_filter(self):
         self.store_span_metric(
@@ -789,9 +789,9 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         )
         response = self.do_request(
             {
-                "field": ["unique_span_domains", "count()"],
+                "field": ["unique.span_domains", "count()"],
                 "query": "span.domain_array:sentry_tab*",
-                "orderby": "unique_span_domains",
+                "orderby": "unique.span_domains",
                 "project": self.project.id,
                 "dataset": "spansMetrics",
             }
@@ -800,9 +800,9 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         data = response.data["data"]
         meta = response.data["meta"]
         assert len(data) == 2
-        assert data[0]["unique_span_domains"] == "sentry_table2"
-        assert data[1]["unique_span_domains"] == "sentry_table3"
-        assert meta["fields"]["unique_span_domains"] == "string"
+        assert data[0]["unique.span_domains"] == "sentry_table2"
+        assert data[1]["unique.span_domains"] == "sentry_table3"
+        assert meta["fields"]["unique.span_domains"] == "string"
 
 
 @region_silo_test
