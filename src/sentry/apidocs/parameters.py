@@ -73,7 +73,7 @@ For example `24h`, to mean query data starting from 24 hours ago to now.""",
         required=False,
         many=True,
         type=int,
-        description="The IDs of projects to filter by. `-1` means all available projects. If this parameter is omitted, the request will default to using 'My Projects'.",
+        description="The IDs of projects to filter by. `-1` means all available projects. For example, `/?project=87361412&project=22387642",
     )
     ENVIRONMENT = OpenApiParameter(
         name="environment",
