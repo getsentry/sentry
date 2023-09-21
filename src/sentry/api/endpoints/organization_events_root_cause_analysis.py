@@ -1,5 +1,3 @@
-from datetime import datetime
-
 from rest_framework.response import Response
 from snuba_sdk import Column, Function
 
@@ -9,6 +7,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization_events import OrganizationEventsEndpointBase
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.types import QueryBuilderConfig
+from sentry.search.utils import parse_datetime_string
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics_performance import query as metrics_query
 from sentry.utils.snuba import raw_snql_query
@@ -47,11 +46,9 @@ def query_spans(transaction, regression_breakpoint, params):
         Function(
             "if",
             [
-                Function(
-                    "greaterOrEquals", [Column("timestamp"), regression_breakpoint.isoformat()]
-                ),
-                "1",
-                "0",
+                Function("greaterOrEquals", [Column("timestamp"), regression_breakpoint]),
+                "after",
+                "before",
             ],
             "period",
         )
@@ -89,26 +86,14 @@ class OrganizationEventsRootCauseAnalysisEndpoint(OrganizationEventsEndpointBase
         transaction_name = request.GET.get("transaction")
         project_id = request.GET.get("project")
         regression_breakpoint = request.GET.get("breakpoint")
-        request_start = request.GET.get("requestStart")
-        request_end = request.GET.get("requestEnd")
-        if (
-            not transaction_name
-            or not project_id
-            or not regression_breakpoint
-            or not request_start
-            or not request_end
-        ):
+        if not transaction_name or not project_id or not regression_breakpoint:
             # Project ID is required to ensure the events we query for are
             # the same transaction
             return Response(status=400)
 
-        regression_breakpoint = datetime.fromisoformat(regression_breakpoint)
-        request_start = datetime.fromisoformat(request_start)
-        request_end = datetime.fromisoformat(request_end)
+        regression_breakpoint = parse_datetime_string(regression_breakpoint)
 
         params = self.get_snuba_params(request, organization)
-        params["start"] = request_start
-        params["end"] = request_end
 
         with self.handle_query_errors():
             transaction_count_query = metrics_query(
