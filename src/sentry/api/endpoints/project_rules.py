@@ -115,10 +115,116 @@ A list of actions that take place when all required conditions and filters for t
 }
 ```
 
+**Send a Discord notification**
+- `server`: The integration ID associated with the Discord server.
+- `channel_id`: The ID of the channel to send the notification to.
+- `tags`: A string of tags to show in the notification, separated by commas (e.g., "environment, user, my_tag").
+```json
+{
+    "id": "sentry.integrations.discord.notify_action.DiscordNotifyServiceAction",
+    "server": 63408298,
+    "channel_id": 94732897,
+    "tags": "browser,user"
+}
+```
+
+**Send a Microsoft Teams notification**
+- `team`: The integration ID associated with the Microsoft Teams team.
+- `channel`: The name of the channel to send the notification to.
+```json
+{
+    "id": "sentry.integrations.msteams.notify_action.MsTeamsNotifyServiceAction",
+    "team": 23465424,
+    "channel": "General"
+}
+```
+
+**Send an Opsgenie notification**
+- `account`: The integration ID associated with the Opsgenie account.
+- `team`: The ID of the Opsgenie team to send the notification to.
+```json
+{
+    "id": "sentry.integrations.opsgenie.notify_action.OpsgenieNotifyTeamAction",
+    "account": 8723897589,
+    "team": "9438930258-fairy"
+}
+```
+
+**Send a PagerDuty notification**
+- `account`: The integration ID associated with the PagerDuty account.
+- `service`: The ID of the service to send the notification to.
+```json
+{
+    "id": "sentry.integrations.pagerduty.notify_action.PagerDutyNotifyServiceAction",
+    "account": 92385907,
+    "service": 9823924
+}
+
+**Send a Slack notification**
+- `workspace`: The integration ID associated with the Slack workspace.
+- `channel`: The name of the channel to send the notification to (e.g., #critical, Jane Schmidt).
+- `channel_id`: The ID of the channel to send the notification to (optional).
+- `tags`: A string of tags to show in the notification, separated by commas (e.g., "environment, user, my_tag").
+```json
+{
+    "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
+    "workspace": 293854098,
+    "channel": "#warning",
+    "tags": "environment,level"
+}
+```
+
+**Send a notification to a service**
+- `service`: The plugin slug.
+```json
+{
+    "id": "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
+    "service": "mail"
+}
+```
+
+**Send a notification to a sentry app with a custom webhook payload**
+- `settings`: A list of objects
+- `sentryAppInstallationUuid`: The ID for the Sentry app
+- `hasSchemaFormConfig: A boolean
+```json
+{
+    "id": "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction",
+    "settings": [
+        {"name": "title", "value": "Team Rocket"},
+        {"name": "summary", "value": "We're blasting off again."},
+    ],
+    "sentryAppInstallationUuid": 643522
+    "hasSchemaFormConfig": true
+}
+```
+
 **Send a notification (for all legacy integrations)**
 ```json
 {
     "id": "sentry.rules.actions.notify_event.NotifyEventAction"
+}
+```
+
+**Create an Azure DevOps work item**
+- `integration`: The integration ID.
+```json
+{
+    "id": "sentry.integrations.vsts.notify_action.AzureDevopsCreateTicketAction",
+    "integration": 294838
+}
+```
+
+**Create a Jira Ticket**
+- `integration`: The integration ID associated with Jira.
+- `issueType`: The index (as a string) of the type of issue that the ticket should be created as.
+- `project`: The ID of the Jira project.
+```json
+{
+    "id": "sentry.integrations.jira.notify_action.JiraCreateTicketAction",
+    "integration": 321424,
+    "issueType": "1",
+    "project": "349719"
 }
 ```
 """,
