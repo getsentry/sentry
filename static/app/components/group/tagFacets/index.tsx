@@ -73,6 +73,40 @@ export function TAGS_FORMATTER(tagsData: Record<string, GroupTagResponseItem>) {
   return transformedTagsData;
 }
 
+// Statistical detector issues need to use a Discover query
+// which means we need to massage the values to fit the component API
+function transformTagFacetDataToGroupTagResponseItems(
+  tagFacetData: Record<string, Tag>
+): Record<string, GroupTagResponseItem> {
+  const keyedResponse = {};
+  Object.keys(tagFacetData).forEach(tagKey => {
+    if (tagKey === 'transaction') {
+      // Statistical detectors are scoped to a single transaction so
+      // this tag doesn't add anything to the user experience
+      return;
+    }
+
+    const tagData = tagFacetData[tagKey];
+    keyedResponse[tagKey] = {
+      ...tagData,
+      name: tagData.key,
+      totalValues: tagData.topValues.reduce((acc, {count}) => acc + count, 0),
+      topValues: tagData.topValues.map(({name, count}) => ({
+        key: tagData.key,
+        name,
+        value: name,
+        count,
+
+        // These values aren't displayed in the sidebar
+        firstSeen: '',
+        lastSeen: '',
+      })),
+    };
+  });
+
+  return keyedResponse;
+}
+
 type Props = {
   environments: string[];
   groupId: string;
@@ -113,33 +147,8 @@ export default function TagFacets({
     }
 
     const keyed = keyBy(data, 'key');
-    // Statistical detector issues need to use a Discover query
-    // which means we need to massage the values to fit the component API
     if (isStatisticalDetector) {
-      Object.keys(keyed).forEach(tagKey => {
-        const tagData = keyed[tagKey] as Tag;
-        keyed[tagKey] = {
-          ...tagData,
-          name: tagData.key,
-          totalValues: tagData.topValues.reduce((acc, {count}) => acc + count, 0),
-          topValues: tagData.topValues.map(({name, count}) => ({
-            key: tagData.key,
-            name,
-            value: name,
-            count,
-
-            // These values aren't displayed in the sidebar
-            firstSeen: '',
-            lastSeen: '',
-          })),
-        };
-      });
-
-      if ('transaction' in keyed) {
-        // Statistical detectors are scoped to a single transaction so
-        // this tag doesn't add anything to the user experience
-        delete keyed.transaction;
-      }
+      transformTagFacetDataToGroupTagResponseItems(keyed as Record<string, Tag>);
     }
 
     const formatted =
