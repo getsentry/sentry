@@ -284,6 +284,10 @@ def _detect_function_change_points(
             "data": data,
             "sort": "-trend_percentage()",
             "trendFunction": trend_function,
+            # Disable the fall back to use the midpoint as the breakpoint
+            # which was originally intended to detect a gradual regression
+            # for the trends use case. That does not apply here.
+            "allow_midpoint": "0",
         }
 
         breakpoints = detect_breakpoints(request)["data"]
