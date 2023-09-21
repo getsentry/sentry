@@ -45,7 +45,6 @@ function MemoryChart({
   setCurrentHoverTime,
 }: MemoryChartProps) {
   const theme = useTheme();
-
   if (!memoryFrames) {
     return (
       <MemoryChartWrapper>
@@ -56,13 +55,14 @@ function MemoryChart({
 
   if (!memoryFrames.length) {
     return (
-      <EmptyMessage
-        data-test-id="replay-details-memory-tab"
-        title={t('No memory metrics found')}
-        description={t(
-          'Memory metrics are only captured within Chromium based browser sessions.'
-        )}
-      />
+      <MemoryChartWrapper data-test-id="replay-details-memory-tab">
+        <EmptyMessage
+          title={t('No memory metrics found')}
+          description={t(
+            'Memory metrics are only captured within Chromium based browser sessions.'
+          )}
+        />
+      </MemoryChartWrapper>
     );
   }
 

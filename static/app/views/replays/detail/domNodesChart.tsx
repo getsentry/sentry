@@ -50,17 +50,19 @@ function DomNodesChart({
 
   if (!datapoints) {
     return (
-      <EmptyMessage
-        title={t('No DOM node metrics found')}
-        description={t('No DOM node metrics were found.')}
-      />
+      <DomNodesChartWrapper>
+        <LoadingIndicator style={{margin: '54px auto'}} />
+      </DomNodesChartWrapper>
     );
   }
 
   if (!datapoints.length) {
     return (
       <DomNodesChartWrapper>
-        <LoadingIndicator style={{margin: '54px auto'}} />
+        <EmptyMessage
+          title={t('No DOM node metrics found')}
+          description={t('No DOM node metrics were found.')}
+        />
       </DomNodesChartWrapper>
     );
   }
@@ -217,7 +219,7 @@ const MemoizedDomNodesChart = memo(
 function useCountDomNodes({replay}: {replay: null | ReplayReader}) {
   return useQuery(['countDomNodes', replay], () => replay?.countDomNodes() ?? undefined, {
     enabled: Boolean(replay),
-    initialData: [],
+    initialData: undefined,
     cacheTime: Infinity,
   });
 }
