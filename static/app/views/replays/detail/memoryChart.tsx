@@ -9,7 +9,7 @@ import {ChartTooltip} from 'sentry/components/charts/components/tooltip';
 import XAxis from 'sentry/components/charts/components/xAxis';
 import YAxis from 'sentry/components/charts/components/yAxis';
 import EmptyMessage from 'sentry/components/emptyMessage';
-import Placeholder from 'sentry/components/placeholder';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {showPlayerTime} from 'sentry/components/replays/utils';
 import {t} from 'sentry/locale';
@@ -34,6 +34,9 @@ interface MemoryChartProps extends Props {
 const formatTimestamp = timestamp =>
   getFormattedDate(timestamp, 'MMM D, YYYY hh:mm:ss A z', {local: false});
 
+const formatTimestampTrim = timestamp =>
+  getFormattedDate(timestamp, 'MMM D hh:mm', {local: false});
+
 function MemoryChart({
   forwardedRef,
   memoryFrames,
@@ -45,14 +48,6 @@ function MemoryChart({
 
   if (!memoryFrames) {
     return (
-      <MemoryChartWrapper>
-        <Placeholder height="100%" />
-      </MemoryChartWrapper>
-    );
-  }
-
-  if (!memoryFrames.length) {
-    return (
       <EmptyMessage
         data-test-id="replay-details-memory-tab"
         title={t('No memory metrics found')}
@@ -60,6 +55,14 @@ function MemoryChart({
           'Memory metrics are only captured within Chromium based browser sessions.'
         )}
       />
+    );
+  }
+
+  if (!memoryFrames.length) {
+    return (
+      <MemoryChartWrapper>
+        <LoadingIndicator style={{margin: '54px auto'}} />
+      </MemoryChartWrapper>
     );
   }
 
@@ -110,7 +113,7 @@ function MemoryChart({
     xAxis: XAxis({
       type: 'time',
       axisLabel: {
-        formatter: formatTimestamp,
+        formatter: formatTimestampTrim,
       },
       theme,
     }),
@@ -119,7 +122,7 @@ function MemoryChart({
       name: t('Heap Size'),
       theme,
       nameTextStyle: {
-        padding: 8,
+        padding: [8, 8, 8, -25],
         fontSize: theme.fontSizeLarge,
         fontWeight: 600,
         lineHeight: 1.2,
@@ -227,10 +230,8 @@ function MemoryChart({
 const MemoryChartWrapper = styled(FluidHeight)`
   border: 1px solid ${p => p.theme.border};
   border-radius: ${space(0.5)};
-  height: 49%;
   justify-content: center;
   padding: ${space(1)};
-  margin-bottom: ${space(1)};
 `;
 
 const MemoizedMemoryChart = memo(
