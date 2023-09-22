@@ -31,7 +31,7 @@ from django.test import TestCase as DjangoTestCase
 from django.test import TransactionTestCase as DjangoTransactionTestCase
 from django.test import override_settings
 from django.test.utils import CaptureQueriesContext
-from django.urls import reverse
+from django.urls import resolve, reverse
 from django.utils import timezone as django_timezone
 from django.utils.functional import cached_property
 from pkg_resources import iter_entry_points
@@ -174,6 +174,8 @@ __all__ = (
     "MonitorTestCase",
     "MonitorIngestTestCase",
 )
+
+from ..types.region import get_region_by_name
 
 DEFAULT_USER_AGENT = "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36"
 
@@ -445,6 +447,42 @@ class _AssertQueriesContext(CaptureQueriesContext):
 class TestCase(BaseTestCase, DjangoTestCase):
     # We need Django to flush all databases.
     databases: set[str] | str = "__all__"
+
+    @contextmanager
+    def auto_select_silo_mode_on_redirects(self):
+        """
+        Tests that utilize follow=True may follow redirects between silo modes.  This isn't ideal but convenient for
+        testing certain work flows.  Using this context manager, the silo mode in the test will swap automatically
+        for each view's decorator in order to prevent otherwise unavoidable SiloAvailability errors.
+        """
+        old_request = self.client.request
+        try:
+
+            def request(**request: Any) -> Any:
+                resolved = resolve(request["PATH_INFO"])
+                view_class = getattr(resolved.func, "view_class", None)
+                if view_class is not None:
+                    endpoint_silo_limit = getattr(view_class, "silo_limit", None)
+                    if endpoint_silo_limit:
+                        for mode in endpoint_silo_limit.modes:
+                            if mode is SiloMode.MONOLITH or mode is SiloMode.get_current_mode():
+                                continue
+                            region = None
+                            if mode is SiloMode.REGION:
+                                # TODO: Can we infer the correct region here?  would need to package up the
+                                # the request dictionary into a higher level object, which also involves invoking
+                                # _base_environ and maybe other logic burried in Client.....
+                                region = get_region_by_name(settings.SENTRY_MONOLITH_REGION)
+                            with SiloMode.exit_single_process_silo_context(), SiloMode.enter_single_process_silo_context(
+                                mode, region
+                            ):
+                                return old_request(**request)
+                return old_request(**request)
+
+            self.client.request = request
+            yield
+        finally:
+            self.client.request = old_request
 
     # Ensure that testcases that ask for DB setup actually make use of the
     # DB. If they don't, they're wasting CI time.

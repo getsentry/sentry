@@ -20,7 +20,6 @@ from sentry.models import UserIP
 from sentry.services.hybrid_cloud.auth import auth_service, authentication_request_from
 from sentry.silo import SiloMode
 from sentry.utils.auth import AuthUserPasswordExpired, logger
-from sentry.utils.linksign import process_signature
 
 
 def get_user(request):
@@ -59,11 +58,22 @@ class AuthenticationMiddleware(MiddlewareMixin):
         return HybridCloudAuthenticationMiddleware(self.get_response)
 
     def process_request(self, request: HttpRequest) -> None:
+        request.user_from_signed_request = False
+
         if request.path.startswith("/api/0/internal/rpc/"):
             # Avoid doing RPC authentication when we're already
             # in an RPC request.
             request.user = AnonymousUser()
             return
+
+        # If there is a valid signature on the request we override the
+        # user with the user contained within the signature.
+        # user = process_signature(request)
+
+        # if user is not None:
+        #     request.user = user
+        #     request.user_from_signed_request = True
+        #     return
 
         return self.impl.process_request(request)
 
@@ -75,17 +85,7 @@ class AuthenticationMiddleware(MiddlewareMixin):
 
 class RequestAuthenticationMiddleware(MiddlewareMixin):
     def process_request(self, request: HttpRequest) -> None:
-        request.user_from_signed_request = False
-
-        # If there is a valid signature on the request we override the
-        # user with the user contained within the signature.
-        user = process_signature(request)
         auth = get_authorization_header(request).split()
-
-        if user is not None:
-            request.user = user
-            request.user_from_signed_request = True
-            return
 
         if auth:
             for authenticator_class in [
@@ -126,7 +126,6 @@ class HybridCloudAuthenticationMiddleware(MiddlewareMixin):
         from sentry.web.frontend.accounts import expired
 
         auth_result = auth_service.authenticate(request=authentication_request_from(request))
-        request.user_from_signed_request = auth_result.user_from_signed_request
 
         # Simulate accessing attributes on the session to trigger side effects related to doing so.
         for attr in auth_result.accessed:
