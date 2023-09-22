@@ -6,6 +6,7 @@ import sentry_sdk
 from arroyo import Topic
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
 from django.conf import settings
+from django.db.models import F, Q
 from django.utils import timezone
 
 from sentry.constants import ObjectStatus
@@ -171,21 +172,27 @@ def check_missing(current_datetime: datetime):
     current_datetime = current_datetime.replace(second=0, microsecond=0)
 
     qs = (
+        # Monitors that have reached the latest checkin time
         MonitorEnvironment.objects.filter(
             monitor__type__in=[MonitorType.CRON_JOB],
-            # [!!]: Note that we use `lt` here to give a whole minute buffer
-            # for a check-in to be sent.
+            next_checkin_latest__lte=current_datetime,
+        )
+        # TODO(epurkhiser): Exclusion to be removed after GH-56526 is complete.
+        .exclude(
+            # As a temporary stop-gap while we fix GH-56526 we are skipping
+            # monitors which have a next_checkin_latest equal to their
+            # next_checkin
             #
-            # As an example, if our next_checkin_latest for a monitor was
-            # 11:00:00, and our task runs at 11:00:05, the time is clamped down
-            # to 11:00:00, and then compared:
-            #
-            #  next_checkin_latest < 11:00:00
-            #
-            # Since they are equal this does not match. When the task is run a
-            # minute later if the check-in still hasn't been sent we will THEN
-            # mark it as missed.
-            next_checkin_latest__lt=current_datetime,
+            # This is due to the fact that the default value of the
+            # `checkin_margin` was 0. With it set to a minimum and default of `1`
+            # future computed `next_checkin_latest`'s will ALWAYS have a minimum of
+            # one minute apart.
+            Q(next_checkin=F("next_checkin_latest"))
+            # Make sure to run these at the next tick though, which is what the
+            # previous behavior was. If the next_checkin{,_latest} values
+            # are equal ONLY exclude them when next_checkin_latest is the
+            # current time.
+            & Q(next_checkin_latest=current_datetime)
         )
         .exclude(
             status__in=[
@@ -202,41 +209,16 @@ def check_missing(current_datetime: datetime):
             ]
         )[:MONITOR_LIMIT]
     )
+
     metrics.gauge("sentry.monitors.tasks.check_missing.count", qs.count(), sample_rate=1.0)
     for monitor_environment in qs:
-        try:
-            logger.info(
-                "monitor.missed-checkin", extra={"monitor_environment_id": monitor_environment.id}
-            )
-
-            monitor = monitor_environment.monitor
-            expected_time = monitor_environment.next_checkin
-
-            # add missed checkin.
-            #
-            # XXX(epurkhiser): The date_added is backdated so that this missed
-            # check-in correctly reflects the time of when the checkin SHOULD
-            # have happened. It is the same as the expected_time.
-            checkin = MonitorCheckIn.objects.create(
-                project_id=monitor_environment.monitor.project_id,
-                monitor=monitor_environment.monitor,
-                monitor_environment=monitor_environment,
-                status=CheckInStatus.MISSED,
-                date_added=expected_time,
-                expected_time=expected_time,
-                monitor_config=monitor.get_validated_config(),
-            )
-            # TODO(epurkhiser): To properly fix GH-55874 we need to actually
-            # pass a timestamp here. But I'm not 100% sure what that should
-            # look like yet.
-            mark_failed(checkin, ts=None)
-        except Exception:
-            logger.exception("Exception in check_monitors - mark missed", exc_info=True)
+        mark_environment_missing.delay(monitor_environment.id)
 
 
 @instrumented_task(
     name="sentry.monitors.tasks.mark_environment_missing",
     max_retries=0,
+    record_timing=True,
 )
 def mark_environment_missing(monitor_environment_id: int):
     logger.info("monitor.missed-checkin", extra={"monitor_environment_id": monitor_environment_id})

@@ -9,7 +9,13 @@ import moment from 'moment';
 
 import {lightenBarColor} from 'sentry/components/performance/waterfall/utils';
 import {Organization} from 'sentry/types';
-import {EntrySpans, EntryType, EventTransaction} from 'sentry/types/event';
+import {
+  AggregateEntrySpans,
+  AggregateEventTransaction,
+  EntrySpans,
+  EntryType,
+  EventTransaction,
+} from 'sentry/types/event';
 import {assert} from 'sentry/types/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {MobileVital, WebVital} from 'sentry/utils/fields';
@@ -19,6 +25,7 @@ import {VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import {MERGE_LABELS_THRESHOLD_PERCENT} from './constants';
 import SpanTreeModel from './spanTreeModel';
 import {
+  AggregateSpanType,
   EnhancedSpan,
   GapSpanType,
   OrphanSpanType,
@@ -441,17 +448,21 @@ export function formatSpanTreeLabel(span: ProcessedSpanType): string | undefined
 }
 
 export function getTraceContext(
-  event: Readonly<EventTransaction>
+  event: Readonly<EventTransaction | AggregateEventTransaction>
 ): TraceContextType | undefined {
   return event?.contexts?.trace;
 }
 
-export function parseTrace(event: Readonly<EventTransaction>): ParsedTraceType {
-  const spanEntry = event.entries.find((entry: EntrySpans | any): entry is EntrySpans => {
-    return entry.type === EntryType.SPANS;
-  });
+export function parseTrace(
+  event: Readonly<EventTransaction | AggregateEventTransaction>
+): ParsedTraceType {
+  const spanEntry = event.entries.find(
+    (entry: EntrySpans | AggregateEntrySpans | any): entry is EntrySpans => {
+      return entry.type === EntryType.SPANS;
+    }
+  );
 
-  const spans: Array<RawSpanType> = spanEntry?.data ?? [];
+  const spans: Array<RawSpanType | AggregateSpanType> = spanEntry?.data ?? [];
 
   const traceContext = getTraceContext(event);
   const traceID = (traceContext && traceContext.trace_id) || '';
@@ -622,7 +633,9 @@ export function unwrapTreeDepth(treeDepth: TreeDepthType): number {
   return treeDepth;
 }
 
-export function isEventFromBrowserJavaScriptSDK(event: EventTransaction): boolean {
+export function isEventFromBrowserJavaScriptSDK(
+  event: EventTransaction | AggregateEventTransaction
+): boolean {
   const sdkName = event.sdk?.name;
   if (!sdkName) {
     return false;
@@ -678,7 +691,7 @@ function hasFailedThreshold(marks: Measurements): boolean {
 }
 
 export function getMeasurements(
-  event: EventTransaction | TraceFullDetailed,
+  event: EventTransaction | TraceFullDetailed | AggregateEventTransaction,
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType
 ): Map<number, VerticalMark> {
   const startTimestamp =

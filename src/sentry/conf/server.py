@@ -895,6 +895,7 @@ CELERY_QUEUES_REGION = [
     Queue("profiling.statistical_detector", routing_key="profiling.statistical_detector"),
     CELERY_ISSUE_STATES_QUEUE,
     Queue("nudge.invite_missing_org_members", routing_key="invite_missing_org_members"),
+    Queue("auto_resolve_issues", routing_key="auto_resolve_issues"),
 ]
 
 from celery.schedules import crontab
@@ -1131,8 +1132,8 @@ CELERYBEAT_SCHEDULE_REGION = {
     },
     "schedule_auto_transition_to_ongoing": {
         "task": "sentry.tasks.schedule_auto_transition_to_ongoing",
-        # Run job every minute
-        "schedule": crontab(minute="*/1"),
+        # Run job every 5 minutes
+        "schedule": crontab(minute="*/5"),
         "options": {"expires": 3600},
     },
     "github_comment_reactions": {
@@ -1319,6 +1320,17 @@ REST_FRAMEWORK = {
 }
 
 
+def custom_parameter_sort(parameter: dict) -> tuple[str, int]:
+    """
+    Sort parameters by type then if the parameter is required or not.
+    It should group path parameters first, then query parameters.
+    In each group, required parameters should come before optional parameters.
+    """
+    param_type = parameter["in"]
+    required = parameter.get("required", False)
+    return (param_type, 0 if required else 1)
+
+
 if os.environ.get("OPENAPIGENERATE", False):
     OLD_OPENAPI_JSON_PATH = "tests/apidocs/openapi-deprecated.json"
     from sentry.apidocs.build import OPENAPI_TAGS, get_old_json_components, get_old_json_paths
@@ -1341,7 +1353,7 @@ if os.environ.get("OPENAPIGENERATE", False):
         "PARSER_WHITELIST": ["rest_framework.parsers.JSONParser"],
         "APPEND_PATHS": get_old_json_paths(OLD_OPENAPI_JSON_PATH),
         "APPEND_COMPONENTS": get_old_json_components(OLD_OPENAPI_JSON_PATH),
-        "SORT_OPERATION_PARAMETERS": False,
+        "SORT_OPERATION_PARAMETERS": custom_parameter_sort,
     }
 
 CRISPY_TEMPLATE_PACK = "bootstrap3"
@@ -1358,8 +1370,6 @@ SENTRY_FEATURES = {
     "organizations:javascript-console-error-tag": False,
     # Enables the cron job to auto-enable codecov integrations.
     "organizations:auto-enable-codecov": False,
-    # Enables automatically linking repositories using commit webhook data
-    "organizations:integrations-auto-repo-linking": False,
     # The overall flag for codecov integration, gated by plans.
     "organizations:codecov-integration": False,
     # Enables getting commit sha from git blame for codecov.
@@ -1656,8 +1666,6 @@ SENTRY_FEATURES = {
     "organizations:session-replay-slack-new-issue": False,
     # Enable linking from 'new issue' email notifs to the issue replay list
     "organizations:session-replay-issue-emails": False,
-    # Enable optimized serach feature.
-    "organizations:session-replay-optimized-search": False,
     # Enable replay event linking in event processing
     "organizations:session-replay-event-linking": False,
     # Enable linking from 'weekly email' summaries to the issue replay list
@@ -1674,6 +1682,8 @@ SENTRY_FEATURES = {
     "organizations:streamline-targeting-context": False,
     # Enable the new experimental starfish view
     "organizations:starfish-view": False,
+    # Enable the aggregate span waterfall view
+    "organizations:starfish-aggregate-span-waterfall": False,
     # Enable starfish endpoint that's used for regressing testing purposes
     "organizations:starfish-test-endpoint": False,
     # Enable starfish dropdown on the webservice view for switching chart visualization
@@ -1778,7 +1788,7 @@ SENTRY_FEATURES = {
     # Signals that the organization supports the on demand metrics prefill.
     "organizations:on-demand-metrics-prefill": False,
     # Enable writing to the new notification system when updating the old system
-    "organizations:notifications-double-write": False,
+    "organizations:notifications-double-write": True,
     # Excludes measurement config from project config builds.
     "organizations:projconfig-exclude-measurements": False,
     # Enable source maps debugger

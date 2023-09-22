@@ -6,7 +6,7 @@ import {GettingStartedWithUnreal, steps} from './unreal';
 
 describe('GettingStartedWithUnreal', function () {
   it('renders doc correctly', function () {
-    render(<GettingStartedWithUnreal dsn="test-dsn" />);
+    render(<GettingStartedWithUnreal dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps()) {

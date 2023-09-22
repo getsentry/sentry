@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from enum import Enum
 from functools import lru_cache
-from typing import NamedTuple, Type
+from typing import Generic, NamedTuple, Type, TypeVar
 
 from django.db import models
 
@@ -48,16 +48,19 @@ class Side(Enum):
     right = 2
 
 
-class Filter:
+T = TypeVar("T")
+
+
+class Filter(Generic[T]):
     """Specifies a field-based filter when performing an import or export operation. This is an
     allowlist based filtration: models of the given type whose specified field matches ANY of the
     supplied values will be allowed through."""
 
     model: Type[models.base.Model]
     field: str
-    values: set[str]
+    values: set[T]
 
-    def __init__(self, model: Type[models.base.Model], field: str, values: set[str] | None = None):
+    def __init__(self, model: Type[models.base.Model], field: str, values: set[T] | None = None):
         self.model = model
         self.field = field
         self.values = values if values is not None else set()

@@ -10,12 +10,12 @@ import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import WebVitalMeters from 'sentry/views/performance/browser/webVitals/components/webVitalMeters';
 import {PagePerformanceTables} from 'sentry/views/performance/browser/webVitals/pagePerformanceTables';
 import {PerformanceScoreChart} from 'sentry/views/performance/browser/webVitals/performanceScoreChart';
 import {calculatePerformanceScore} from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
 import {WebVitals} from 'sentry/views/performance/browser/webVitals/utils/types';
 import {useProjectWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/useProjectWebVitalsQuery';
-import WebVitalMeters from 'sentry/views/performance/browser/webVitals/webVitalMeters';
 import {WebVitalsDetailPanel} from 'sentry/views/performance/browser/webVitals/webVitalsDetailPanel';
 import {ModulePageProviders} from 'sentry/views/performance/database/modulePageProviders';
 
@@ -30,12 +30,11 @@ export default function WebVitalsLandingPage() {
   const {data: projectData} = useProjectWebVitalsQuery({pageFilters});
 
   const projectScore = calculatePerformanceScore({
-    'p75(measurements.lcp)': projectData?.data[0]['p75(measurements.lcp)'] as number,
-    'p75(measurements.fcp)': projectData?.data[0]['p75(measurements.fcp)'] as number,
-    'p75(measurements.cls)': projectData?.data[0]['p75(measurements.cls)'] as number,
-    'p75(measurements.app_init_long_tasks)': projectData?.data[0][
-      'p75(measurements.app_init_long_tasks)'
-    ] as number,
+    lcp: projectData?.data[0]['p75(measurements.lcp)'] as number,
+    fcp: projectData?.data[0]['p75(measurements.fcp)'] as number,
+    cls: projectData?.data[0]['p75(measurements.cls)'] as number,
+    ttfb: projectData?.data[0]['p75(measurements.ttfb)'] as number,
+    fid: projectData?.data[0]['p75(measurements.fid)'] as number,
   });
 
   return (

@@ -6,7 +6,7 @@ import {GettingStartedWithAIOHTTP, steps} from './aiohttp';
 
 describe('GettingStartedWithAIOHTTP', function () {
   it('renders doc correctly', function () {
-    render(<GettingStartedWithAIOHTTP dsn="test-dsn" />);
+    render(<GettingStartedWithAIOHTTP dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps({sentryInitContent: 'test-init-content'})) {

@@ -113,7 +113,7 @@ describe('TwoFactorRequired', function () {
     Cookies.remove(INVITE_COOKIE);
   });
 
-  it('renders when 2FA is disabled and has pendingInvite cookie', function () {
+  it('renders when 2FA is disabled and has pendingInvite cookie', async function () {
     Cookies.set(INVITE_COOKIE, '/accept/5/abcde/');
     MockApiClient.addMockResponse({
       url: ORG_ENDPOINT,
@@ -127,7 +127,7 @@ describe('TwoFactorRequired', function () {
       {context: routerContext}
     );
 
-    expect(screen.getByTestId('require-2fa')).toBeInTheDocument();
+    expect(await screen.findByTestId('require-2fa')).toBeInTheDocument();
     Cookies.remove(INVITE_COOKIE);
   });
 });
