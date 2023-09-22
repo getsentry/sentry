@@ -29,7 +29,7 @@ _DEV_METRICS_INDEXER_ARGS = [
 # subcommand. Instead, use sentry.consumers.
 _DEFAULT_DAEMONS = {
     "worker": ["sentry", "run", "worker", "-c", "1", "--autoreload"],
-    "cron": ["sentry", "run", "cron", "--autoreload"],
+    "celery-beat": ["sentry", "run", "cron", "--autoreload"],
     "server": ["sentry", "run", "web"],
 }
 
@@ -63,7 +63,7 @@ def _get_daemon(name: str) -> tuple[str, list[str]]:
 @click.option(
     "--workers/--no-workers", default=False, help="Run celery workers (excluding celerybeat)."
 )
-@click.option("--crons/--no-crons", default=False, help="Run celerybeat workers.")
+@click.option("--celery-beat/--no-celery-beat", default=False, help="Run celerybeat workers.")
 @click.option("--ingest/--no-ingest", default=False, help="Run ingest services (including Relay).")
 @click.option(
     "--occurrence-ingest/--no-occurrence-ingest",
@@ -107,7 +107,7 @@ def devserver(
     reload: bool,
     watchers: bool,
     workers: bool,
-    crons: bool,
+    celery_beat: bool,
     ingest: bool,
     occurrence_ingest: bool,
     experimental_spa: bool,
@@ -257,14 +257,14 @@ def devserver(
         click.echo("--ingest was provided, implicitly enabling --workers")
         workers = True
 
-    if workers and not crons:
+    if workers and not celery_beat:
         click.secho(
-            "If you want to run celery crons (celerybeat workers), you need to also pass --crons.",
+            "If you want to run celery crons (celerybeat workers), you need to also pass --celery-beat.",
             fg="yellow",
         )
 
-    if crons:
-        daemons.append(_get_daemon("cron"))
+    if celery_beat:
+        daemons.append(_get_daemon("celery-beat"))
 
     if workers:
         kafka_consumers.update(settings.DEVSERVER_START_KAFKA_CONSUMERS)
@@ -456,8 +456,8 @@ Alternatively, run without --workers.
         control_services = ["server"]
         if workers:
             control_services.append("worker")
-        if crons:
-            control_services.append("cron")
+        if celery_beat:
+            control_services.append("celery-beat")
 
         for service in control_services:
             name, cmd = _get_daemon(service)
