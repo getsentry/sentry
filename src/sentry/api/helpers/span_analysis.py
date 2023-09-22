@@ -64,10 +64,25 @@ def span_analysis(data):
 
         # Merge the rows from df1 and df2 into a single dictionary and get the delta between period 0/1
         score_delta = (row2["score"] - row1["score"]) / row1["score"] if row1["score"] != 0 else 0
-        freq_delta = (row2["relative_freq"] - row1["relative_freq"]) / row1["relative_freq"] if row1["relative_freq"] != 0 else 0
-        duration_delta = (row2["avg_duration"] - row1["avg_duration"]) / row1["avg_duration"] if row1["avg_duration"] != 0 else 0
+        freq_delta = (
+            (row2["relative_freq"] - row1["relative_freq"]) / row1["relative_freq"]
+            if row1["relative_freq"] != 0
+            else 0
+        )
+        duration_delta = (
+            (row2["avg_duration"] - row1["avg_duration"]) / row1["avg_duration"]
+            if row1["avg_duration"] != 0
+            else 0
+        )
 
-        problem_spans.append({"span_id": key, "score_delta": score_delta, "freq_delta": freq_delta, "duration_delta": duration_delta})
+        problem_spans.append(
+            {
+                "span_id": key,
+                "score_delta": score_delta,
+                "freq_delta": freq_delta,
+                "duration_delta": duration_delta,
+            }
+        )
 
     problem_spans.sort(key=lambda x: x["score_delta"], reverse=True)
 
