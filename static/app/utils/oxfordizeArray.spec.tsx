@@ -37,17 +37,10 @@ describe('Oxfordize', function () {
   });
 
   it('correctly formats two elements', function () {
-    const items = ['one', 'two'];
+    const items = ['one', <i key="2">two</i>];
     render(<Oxfordize>{items}</Oxfordize>);
 
-    expect(screen.getByText('one and two')).toBeInTheDocument();
-  });
-
-  it('correctly formats mixed lists of nodes', function () {
-    const items = [<i key="1">one</i>, 'two'];
-    render(<Oxfordize>{items}</Oxfordize>);
-
-    expect(screen.getByText('one')).toBeInTheDocument();
-    expect(screen.getByText(/and two/)).toBeInTheDocument();
+    expect(screen.getByText(/one and/)).toBeInTheDocument();
+    expect(screen.getByText(/two/)).toBeInTheDocument();
   });
 });

@@ -11,30 +11,6 @@ const oxfordizeArray = (strings: string[]) =>
     ? strings.join(' and ')
     : [strings.slice(0, -1).join(', '), strings.slice(-1)[0]].join(', and ');
 
-export const oxfordizeElements = (elements: JSX.Element[]): JSX.Element => {
-  if (elements.length === 0) {
-    return <span />;
-  }
-  if (elements.length === 1) {
-    return elements[0];
-  }
-  if (elements.length === 2) {
-    return (
-      <span>
-        {elements[0]} and {elements[1]}
-      </span>
-    );
-  }
-  const joinedElements: JSX.Element[] = [];
-  for (const [i, element] of elements.slice(0, -1).entries()) {
-    joinedElements.push(<Fragment key={i}>{element}, </Fragment>);
-  }
-  joinedElements.push(
-    <Fragment key={elements.length - 1}>and {elements[elements.length - 1]}</Fragment>
-  );
-  return <span>{joinedElements}</span>;
-};
-
 type Props = {
   children: React.ReactNode;
 };
