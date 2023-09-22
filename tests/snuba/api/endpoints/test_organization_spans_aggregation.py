@@ -143,7 +143,7 @@ MOCK_SNUBA_RESPONSE = {
                     "D",
                     "resolve_orderby",
                     "discover.snql",
-                    "2023-09-13 17:12:39",
+                    "2023-09-13 17:12:40",
                     155,
                     0,
                     20.0,
@@ -170,7 +170,7 @@ MOCK_SNUBA_RESPONSE = {
 class OrganizationSpansAggregationTest(APITestCase, SnubaTestCase):
     url_name = "sentry-api-0-organization-spans-aggregation"
     FEATURES = [
-        "organizations:starfish-view",
+        "organizations:starfish-aggregate-span-waterfall",
         "organizations:performance-view",
     ]
 
@@ -240,7 +240,7 @@ class OrganizationSpansAggregationTest(APITestCase, SnubaTestCase):
             assert data[fingerprint]["avg(absolute_offset)"] == 53.5
 
             fingerprint = hashlib.md5(b"A-C-D2").hexdigest()[:16]
-            assert data[fingerprint]["avg(absolute_offset)"] == 75.0
+            assert data[fingerprint]["avg(absolute_offset)"] == 1075.0
 
     @mock.patch("sentry.api.endpoints.organization_spans_aggregation.raw_snql_query")
     def test_null_group_falls_back_to_span_op(self, mock_query):
