@@ -259,7 +259,7 @@ def devserver(
 
     if workers and not celery_beat:
         click.secho(
-            "If you want to run celery crons (celerybeat workers), you need to also pass --celery-beat.",
+            "If you want to run periodic tasks from celery (celerybeat), you need to also pass --celery-beat.",
             fg="yellow",
         )
 
