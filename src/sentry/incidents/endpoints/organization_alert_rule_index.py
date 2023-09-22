@@ -257,19 +257,34 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
 
 
 class OrganizationAlertRuleIndexPostSerializer(serializers.Serializer):
+    aggregate = serializers.CharField(
+        help_text="A string representing the aggregate used in this alert rule."
+    )  # TODO: how are we going to enforce what aggregates users use? need to list each possible aggregate?? there are 68 with the custom metric options. additionally, some aggregates are not compatible with event type
     name = serializers.CharField(max_length=64, help_text="The name for the rule.")
-    owner = ActorField(
-        required=False, allow_null=True, help_text="The ID of the team or user that owns the rule."
+    query = serializers.CharField(
+        help_text="An event search query to subscribe to and monitor for alerts. Use an empty string for no filter."
     )
-    environment = serializers.CharField(
-        required=False, allow_null=True, help_text="The name of the environment to filter by."
+    thresholdPeriod = serializers.IntegerField(
+        help_text="How many times an alert value must exceed the threshold to fire/resolve the alert."
+    )  # TODO: check if this is in the ui?
+    thresholdType = serializers.ChoiceField(
+        choices=((0, "Above"), (1, "Below")),
+        help_text="The comparison operator for the critical and warning thresholds. The comparison operator for the resolved threshold is automatically set to the opposite operator.",
     )
-    projects = serializers.ListField(
-        child=ProjectField(scope="project:read"),
-        required=False,
-        help_text="The names of the projects to filter by.",
+    timeWindow = serializers.ChoiceField(
+        choices=(
+            ("1", "1 minute"),
+            ("5", "5 minutes"),
+            ("10", "10 minutes"),
+            ("15", "15 minutes"),
+            ("30", "30 minutes"),
+            ("60", "1 hour"),
+            ("120", "2 hours"),
+            ("240", "4 hours"),
+            ("1440", "24 hours"),
+        ),
+        help_text="The time period to aggregate over.",
     )
-    # includeAllProjects, excludedProjects TODO: left out because these don't seem to exist on the ui
     triggers = serializers.ListField(
         help_text="""
     A list of triggers, where each trigger is an object with the following fields:
@@ -298,40 +313,6 @@ class OrganizationAlertRuleIndexPostSerializer(serializers.Serializer):
     - `integration`: The integration ID. This is required for every action type excluding `email` and `sentry_app.`
     - `sentryAppId`: The ID of the Sentry app. This is required when `type` is `sentry_app`.
 """
-    )  # TODO: add possible actions
-    aggregate = serializers.CharField(
-        help_text="A string representing the aggregate used in this alert rule."
-    )  # TODO: how are we going to enforce what aggregates users use? need to list each possible aggregate?? there are 68 with the custom metric options
-    queryType = serializers.CharField(
-        required=False, help_text="The `SnubaQuery.Type` of the query"
-    )
-    query = serializers.CharField(
-        help_text="An event search query to subscribe to and monitor for alerts. Use an empty string for no filter."
-    )
-    timeWindow = serializers.ChoiceField(
-        choices=(
-            ("1", "1 minute"),
-            ("5", "5 minutes"),
-            ("10", "10 minutes"),
-            ("15", "15 minutes"),
-            ("30", "30 minutes"),
-            ("60", "1 hour"),
-            ("120", "2 hours"),
-            ("240", "4 hours"),
-            ("1440", "24 hours"),
-        ),
-        help_text="The time period to aggregate over.",
-    )
-    thresholdType = serializers.ChoiceField(
-        choices=((0, "Above"), (1, "Below")),
-        help_text="The comparison operator for the critical and warning thresholds. The comparison operator for the resolved threshold is automatically set to the opposite operator.",
-    )
-    thresholdPeriod = serializers.IntegerField(
-        help_text="How many times an alert value must exceed the threshold to fire/resolve the alert."
-    )  # TODO: check if this is in the ui?
-    resolveThreshold = serializers.FloatField(
-        required=False,
-        help_text="Optional value that the subscription needs to reach to resolve the alert",
     )
     comparisonDelta = serializers.IntegerField(
         required=False,
@@ -340,10 +321,29 @@ class OrganizationAlertRuleIndexPostSerializer(serializers.Serializer):
     dataset = serializers.CharField(
         required=False, help_text="The dataset that this query will be executed on."
     )  # TODO: determine if this should be included (confirm ui equivalent)
+    environment = serializers.CharField(
+        required=False, allow_null=True, help_text="The name of the environment to filter by."
+    )
     eventTypes = serializers.ListField(
         child=serializers.CharField(),
         required=False,
         help_text="List of event types that this alert will be related to.",
+    )
+    owner = ActorField(
+        required=False, allow_null=True, help_text="The ID of the team or user that owns the rule."
+    )
+    projects = serializers.ListField(
+        child=ProjectField(scope="project:read"),
+        required=False,
+        help_text="The names of the projects to filter by.",
+    )
+    # includeAllProjects, excludedProjects TODO: left out because these don't seem to exist on the ui
+    queryType = serializers.CharField(
+        required=False, help_text="The `SnubaQuery.Type` of the query"
+    )
+    resolveThreshold = serializers.FloatField(
+        required=False,
+        help_text="Optional value that the subscription needs to reach to resolve the alert",
     )
 
 
