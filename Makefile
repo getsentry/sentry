@@ -129,7 +129,6 @@ test-python-ci: create-db
 	@echo "--> Running CI Python tests"
 	pytest \
 		tests/integration \
-		tests/minimetrics \
 		tests/relay_integration \
 		tests/sentry \
 		tests/sentry_plugins \
