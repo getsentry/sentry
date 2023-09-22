@@ -6,7 +6,7 @@ import {useEffect, useState} from 'react';
 const useKeyPress = (
   targetKey: string,
   target?: HTMLElement,
-  preventDefault?: boolean
+  captureAndStop: boolean = false
 ) => {
   const [keyPressed, setKeyPressed] = useState(false);
   const current = target ?? document.body;
@@ -15,8 +15,9 @@ const useKeyPress = (
     const downHandler = (event: KeyboardEvent) => {
       if (event.key === targetKey) {
         setKeyPressed(true);
-        if (preventDefault) {
+        if (captureAndStop) {
           event.preventDefault();
+          event.stopPropagation();
         }
       }
     };
@@ -24,20 +25,21 @@ const useKeyPress = (
     const upHandler = (event: KeyboardEvent) => {
       if (event.key === targetKey) {
         setKeyPressed(false);
-        if (preventDefault) {
+        if (captureAndStop) {
           event.preventDefault();
+          event.stopPropagation();
         }
       }
     };
 
-    current.addEventListener('keydown', downHandler);
-    current.addEventListener('keyup', upHandler);
+    current.addEventListener('keydown', downHandler, captureAndStop);
+    current.addEventListener('keyup', upHandler, captureAndStop);
 
     return () => {
-      current.removeEventListener('keydown', downHandler);
-      current.removeEventListener('keyup', upHandler);
+      current.removeEventListener('keydown', downHandler, captureAndStop);
+      current.removeEventListener('keyup', upHandler, captureAndStop);
     };
-  }, [targetKey, current, preventDefault]);
+  }, [targetKey, current, captureAndStop]);
 
   return keyPressed;
 };

@@ -150,6 +150,7 @@ export function GettingStartedWithGatsby({
   newOrg,
   platformKey,
   projectId,
+  ...props
 }: ModuleProps) {
   const integrations: string[] = [];
   const otherConfigs: string[] = [];
@@ -193,6 +194,7 @@ export function GettingStartedWithGatsby({
       nextSteps={nextStepDocs}
       platformKey={platformKey}
       newOrg={newOrg}
+      {...props}
     />
   );
 }

@@ -1,5 +1,6 @@
 import hashlib
 from collections import defaultdict, namedtuple
+from datetime import datetime
 from typing import Any, Dict, List, Mapping, TypedDict
 
 from rest_framework import status
@@ -27,6 +28,7 @@ EventSpan = namedtuple(
         "group_raw",
         "description",
         "op",
+        "start_timestamp",
         "start_ms",
         "duration",
         "exclusive_time",
@@ -47,6 +49,7 @@ AggregateSpanRow = TypedDict(
         "group": str,
         "description": str,
         "op": str,
+        "start_timestamp": int,
         "start_ms": int,
         "avg(exclusive_time)": float,
         "avg(duration)": float,
@@ -84,6 +87,10 @@ class AggregateSpans:
                         if spans_dict["group"] == NULL_GROUP
                         else spans_dict["group"]
                     )
+                    spans_dict["start_timestamp_ms"] = (
+                        int(datetime.fromisoformat(spans_dict["start_timestamp"]).timestamp())
+                        * 1000
+                    ) + (spans_dict["start_ms"])
                     span_tree[span_id] = spans_dict
                     span_tree[span_id]["children"] = []
 
@@ -96,7 +103,7 @@ class AggregateSpans:
 
             if root_span_id in span_tree:
                 root_span = span_tree[root_span_id]
-                self.fingerprint_nodes(root_span, root_span["start_ms"])
+                self.fingerprint_nodes(root_span, root_span["start_timestamp_ms"])
 
         return self.aggregated_tree
 
@@ -133,7 +140,7 @@ class AggregateSpans:
         """
         key = span_tree["key"]
         description = span_tree["description"]
-        start_ms = span_tree["start_ms"]
+        start_timestamp = span_tree["start_timestamp_ms"]
         if root_prefix is None:
             prefix = key
         else:
@@ -156,7 +163,7 @@ class AggregateSpans:
             node["avg(relative_offset)"] = incremental_average(
                 node["avg(relative_offset)"],
                 count,
-                start_ms - parent_timestamp,
+                start_timestamp - parent_timestamp,
             )
             # Calculates the absolute offset by the average offset of parent and average
             # relative offset of current span from parent so we can more accurately
@@ -178,21 +185,22 @@ class AggregateSpans:
                 "description": f"<<unparametrized>> {description}"
                 if span_tree["group"] == NULL_GROUP
                 else description,
-                "start_ms": start_ms,
+                "start_timestamp": start_timestamp,
+                "start_ms": start_timestamp,  # TODO: Remove after updating frontend, duplicated for backward compatibility
                 "avg(exclusive_time)": span_tree["exclusive_time"],
                 "avg(duration)": span_tree["duration"],
                 "is_segment": span_tree["is_segment"],
-                "avg(relative_offset)": start_ms - parent_timestamp,
+                "avg(relative_offset)": start_timestamp - parent_timestamp,
                 "avg(absolute_offset)": parent_node["avg(absolute_offset)"]
-                + start_ms
+                + start_timestamp
                 - parent_timestamp
                 if parent_node
-                else start_ms - parent_timestamp,
+                else start_timestamp - parent_timestamp,
                 "count()": 1,
             }
 
         # Handles sibling spans that have the same group
-        span_tree["children"].sort(key=lambda s: s["start_ms"])
+        span_tree["children"].sort(key=lambda s: s["start_timestamp_ms"])
         span_hash_seen: Dict[str, int] = defaultdict(lambda: 0)
 
         for child in span_tree["children"]:
@@ -200,7 +208,7 @@ class AggregateSpans:
             span_hash_seen[child_span_hash] += 1
             self.fingerprint_nodes(
                 child,
-                span_tree["start_ms"],
+                span_tree["start_timestamp_ms"],
                 prefix,
                 node_fingerprint,
                 span_hash_seen[child_span_hash],
@@ -251,6 +259,7 @@ class OrganizationSpansAggregationEndpoint(OrganizationEventsEndpointBase):
                             Column("group_raw"),
                             Column("description"),
                             Column("op"),
+                            Column("start_timestamp"),
                             Column("start_ms"),
                             Column("duration"),
                             Column("exclusive_time"),
