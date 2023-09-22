@@ -66,11 +66,6 @@ function DDM() {
                       value: MetricDisplayType.BAR,
                       label: t('Bar Chart'),
                     },
-                    // TODO(ddm): Skipping this one for now
-                    // {
-                    //   value: MetricDisplayType.TABLE,
-                    //   label: t('Table Chart'),
-                    // },
                   ]}
                   onChange={({value}) => {
                     router.push({
