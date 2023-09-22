@@ -25,10 +25,7 @@ import {space} from 'sentry/styles/space';
 import {MissingMember, Organization, OrgRole} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useApi from 'sentry/utils/useApi';
-import {
-  StyledExternalLink,
-  Subtitle,
-} from 'sentry/views/settings/organizationMembers/inviteBanner';
+import {StyledExternalLink} from 'sentry/views/settings/organizationMembers/inviteBanner';
 
 export interface InviteMissingMembersModalProps extends ModalRenderProps {
   allowedRoles: OrgRole[];
@@ -48,7 +45,7 @@ export function InviteMissingMembersModal({
     role: organization.defaultRole,
     teamSlugs: new Set<string>(),
     externalId: member.externalId,
-    selected: false,
+    selected: true,
   }));
   const [memberInvites, setMemberInvites] =
     useState<MissingMemberInvite[]>(initialMemberInvites);
@@ -243,7 +240,7 @@ export function InviteMissingMembersModal({
                     @{username}
                   </StyledExternalLink>
                 </ContentRow>
-                <Subtitle>{member.email}</Subtitle>
+                <MemberEmail>{member.email}</MemberEmail>
               </StyledPanelItem>
               <ContentRow>
                 <IconCommit size="sm" />
@@ -339,6 +336,16 @@ const ContentRow = styled('div')`
   align-items: center;
   font-size: ${p => p.theme.fontSizeMedium};
   gap: ${space(0.75)};
+`;
+
+const MemberEmail = styled('div')`
+  display: block;
+  max-width: 150px;
+  font-size: ${p => p.theme.fontSizeSmall};
+  font-weight: 400;
+  color: ${p => p.theme.gray300};
+  text-overflow: ellipsis;
+  overflow: hidden;
 `;
 
 export const modalCss = css`
