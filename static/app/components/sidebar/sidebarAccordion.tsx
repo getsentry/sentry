@@ -1,6 +1,8 @@
+import {Children, isValidElement} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
+import {isItemActive} from 'sentry/components/sidebar/isItemActive';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -22,11 +24,21 @@ function SidebarAccordion({children, ...itemProps}: SidebarAccordionProps) {
   const mainItemId = `sidebar-accordion-${id}-item`;
   const contentId = `sidebar-accordion-${id}-content`;
 
+  const isActive = isItemActive(itemProps);
+  const hasActiveChildren = Children.toArray(children).some(child => {
+    if (isValidElement(child)) {
+      return isItemActive(child.props);
+    }
+
+    return false;
+  });
+
   return (
     <SidebarAccordionWrapper>
       <SidebarAccordionHeaderWrap>
         <SidebarItem
           {...itemProps}
+          active={isActive && !hasActiveChildren}
           id={mainItemId}
           aria-expanded={expanded}
           aria-owns={contentId}
