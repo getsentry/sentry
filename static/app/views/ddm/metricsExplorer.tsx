@@ -22,6 +22,7 @@ import {space} from 'sentry/styles/space';
 import {MetricsTag, TagCollection} from 'sentry/types';
 import {
   defaultMetricDisplayType,
+  formatMetricsUsingUnitAndOp,
   getNameFromMRI,
   getReadableMetricType,
   getUnitFromMRI,
@@ -29,7 +30,6 @@ import {
   MetricDisplayType,
   MetricsData,
   MetricsDataProps,
-  tooltipFormatterUsingUnit,
   useMetricsData,
   useMetricsMeta,
   useMetricsTags,
@@ -363,9 +363,14 @@ function MetricsExplorerDisplay({displayType, ...metricsDataProps}: DisplayProps
       <Chart
         series={chartSeries}
         displayType={displayType}
+        operation={metricsDataProps.op}
         {...normalizeChartTimeParams(sorted)}
       />
-      <SummaryTable series={chartSeries} onClick={toggleSeriesVisibility} />
+      <SummaryTable
+        series={chartSeries}
+        operation={metricsDataProps.op}
+        onClick={toggleSeriesVisibility}
+      />
     </DisplayWrapper>
   );
 }
@@ -442,12 +447,13 @@ type ChartProps = {
   displayType: MetricDisplayType;
   series: Series[];
   end?: string;
+  operation?: string;
   period?: string;
   start?: string;
   utc?: boolean;
 };
 
-function Chart({series, displayType, start, end, period, utc}: ChartProps) {
+function Chart({series, displayType, start, end, period, utc, operation}: ChartProps) {
   const unit = series[0].unit;
 
   const seriesToShow = series.filter(s => !s.hidden);
@@ -459,12 +465,16 @@ function Chart({series, displayType, start, end, period, utc}: ChartProps) {
     colors: seriesToShow.map(s => s.color),
     grid: {top: 20, bottom: 20, left: 20, right: 20},
     tooltip: {
-      valueFormatter: (value: number) => tooltipFormatterUsingUnit(value, unit),
+      valueFormatter: (value: number) => {
+        return formatMetricsUsingUnitAndOp(value, unit, operation);
+      },
       nameFormatter: mri => getNameFromMRI(mri),
     },
     yAxis: {
       axisLabel: {
-        formatter: (value: number) => tooltipFormatterUsingUnit(value, unit),
+        formatter: (value: number) => {
+          return formatMetricsUsingUnitAndOp(value, unit, operation);
+        },
       },
     },
   };

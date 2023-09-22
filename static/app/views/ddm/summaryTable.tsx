@@ -2,15 +2,17 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
-import {getNameFromMRI, tooltipFormatterUsingUnit} from 'sentry/utils/metrics';
+import {formatMetricsUsingUnitAndOp, getNameFromMRI} from 'sentry/utils/metrics';
 import {Series} from 'sentry/views/ddm/metricsExplorer';
 
 export function SummaryTable({
   series,
+  operation,
   onClick,
 }: {
   onClick: (seriesName: string) => void;
   series: Series[];
+  operation?: string;
 }) {
   return (
     <SummaryTableWrapper>
@@ -31,10 +33,10 @@ export function SummaryTable({
             </FlexCell>
             <Cell onClick={() => onClick(seriesName)}>{getNameFromMRI(seriesName)}</Cell>
             {/* TODO(ddm): Add a tooltip with the full value, don't add on click in case users want to copy the value */}
-            <Cell>{tooltipFormatterUsingUnit(avg, unit)}</Cell>
-            <Cell>{tooltipFormatterUsingUnit(min, unit)}</Cell>
-            <Cell>{tooltipFormatterUsingUnit(max, unit)}</Cell>
-            <Cell>{tooltipFormatterUsingUnit(sum, unit)}</Cell>
+            <Cell>{formatMetricsUsingUnitAndOp(avg, unit, operation)}</Cell>
+            <Cell>{formatMetricsUsingUnitAndOp(min, unit, operation)}</Cell>
+            <Cell>{formatMetricsUsingUnitAndOp(max, unit, operation)}</Cell>
+            <Cell>{formatMetricsUsingUnitAndOp(sum, unit, operation)}</Cell>
           </Fragment>
         );
       })}
