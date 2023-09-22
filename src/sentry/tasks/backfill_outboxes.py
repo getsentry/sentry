@@ -50,8 +50,8 @@ def get_processing_state(table_name: str) -> Tuple[int, int]:
             result = lower, version
         metrics.gauge(
             "backfill_outboxes.low_bound",
-            result[1],
-            tags=dict(table_name=table_name, version=result[0]),
+            result[0],
+            tags=dict(table_name=table_name, version=result[1]),
             sample_rate=1.0,
         )
         return result
