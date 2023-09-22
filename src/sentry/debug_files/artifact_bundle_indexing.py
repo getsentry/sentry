@@ -458,11 +458,11 @@ def update_artifact_bundle_index(
 MAX_BUNDLES_PER_INDEX = 7_500
 # Older `sentry-cli` used to generate fully random DebugIds, and uploads can end up
 # having over 400_000 unique ids that do not have mutual sharing among them.
-MAX_DEBUGIDS_PER_INDEX = 100_000
-# We have seen uploads with over 25_000 unique files.
-MAX_URLS_PER_INDEX = 100_000
+MAX_DEBUGIDS_PER_INDEX = 75_000
+# We have seen (legitimate) uploads with over 25_000 unique files.
+MAX_URLS_PER_INDEX = 75_000
 # Some highly joint bundles will have thousands of bundles matching a file
-MAX_BUNDLES_PER_ENTRY = 100
+MAX_BUNDLES_PER_ENTRY = 50
 
 
 Bundles = List[BundleMeta]
