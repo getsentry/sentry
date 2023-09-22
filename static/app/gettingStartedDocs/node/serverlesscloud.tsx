@@ -107,6 +107,7 @@ export function GettingStartedWithServerlesscloud({
   dsn,
   newOrg,
   platformKey,
+  ...props
 }: ModuleProps) {
   let sentryInitContent: string[] = [`dsn: "${dsn}",`];
 
@@ -128,6 +129,7 @@ export function GettingStartedWithServerlesscloud({
       })}
       newOrg={newOrg}
       platformKey={platformKey}
+      {...props}
     />
   );
 }

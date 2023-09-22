@@ -6,7 +6,7 @@ import {GettingStartedWithUnity, steps} from './unity';
 
 describe('GettingStartedWithUnity', function () {
   it('renders doc correctly', function () {
-    render(<GettingStartedWithUnity dsn="test-dsn" />);
+    render(<GettingStartedWithUnity dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps()) {

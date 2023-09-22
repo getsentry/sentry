@@ -6,7 +6,7 @@ import {GettingStartedWithQuart, steps} from './quart';
 
 describe('GettingStartedWithDjango', function () {
   it('renders doc correctly', function () {
-    render(<GettingStartedWithQuart dsn="test-dsn" />);
+    render(<GettingStartedWithQuart dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps({sentryInitContent: 'test-init-content'})) {

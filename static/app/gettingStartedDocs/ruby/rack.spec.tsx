@@ -6,7 +6,7 @@ import {GettingStartedWithRubyRack, steps} from './rack';
 
 describe('GettingStartedWithRubyRack', function () {
   it('renders doc correctly', function () {
-    render(<GettingStartedWithRubyRack dsn="test-dsn" />);
+    render(<GettingStartedWithRubyRack dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps()) {

@@ -6,7 +6,7 @@ import {GettingStartedWithAspnet, steps} from './aspnet';
 
 describe('GettingStartedWithAspnet', function () {
   it('renders doc correctly', function () {
-    render(<GettingStartedWithAspnet dsn="test-dsn" />);
+    render(<GettingStartedWithAspnet dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps()) {

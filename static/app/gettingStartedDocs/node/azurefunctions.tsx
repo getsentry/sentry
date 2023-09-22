@@ -89,6 +89,7 @@ export function GettingStartedWithAzurefunctions({
   activeProductSelection = [],
   organization,
   projectId,
+  ...props
 }: ModuleProps) {
   const productSelection = getProductSelectionMap(activeProductSelection);
 
@@ -124,6 +125,7 @@ export function GettingStartedWithAzurefunctions({
       })}
       newOrg={newOrg}
       platformKey={platformKey}
+      {...props}
     />
   );
 }

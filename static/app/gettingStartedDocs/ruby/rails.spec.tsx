@@ -6,7 +6,7 @@ import {GettingStartedWithRubyRails, steps} from './rails';
 
 describe('GettingStartedWithRubyRails', function () {
   it('renders doc correctly', function () {
-    render(<GettingStartedWithRubyRails dsn="test-dsn" />);
+    render(<GettingStartedWithRubyRails dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps()) {

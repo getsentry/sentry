@@ -6,7 +6,7 @@ import {GettingStartedWithFastHttp, steps} from './fasthttp';
 
 describe('GettingStartedWithFastHttp', function () {
   it('renders doc correctly', function () {
-    render(<GettingStartedWithFastHttp dsn="test-dsn" />);
+    render(<GettingStartedWithFastHttp dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps()) {

@@ -6,7 +6,7 @@ import {GettingStartedWithGCPFunctions, steps} from './gcpfunctions';
 
 describe('GettingStartedWithGCPFunctions', function () {
   it('all products are selected', function () {
-    render(<GettingStartedWithGCPFunctions dsn="test-dsn" />);
+    render(<GettingStartedWithGCPFunctions dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps({

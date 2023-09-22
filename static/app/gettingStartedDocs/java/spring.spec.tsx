@@ -6,7 +6,7 @@ import {GettingStartedWithSpring, steps} from './spring';
 
 describe('GettingStartedWithSpring', function () {
   it('renders doc correctly', function () {
-    render(<GettingStartedWithSpring dsn="test-dsn" />);
+    render(<GettingStartedWithSpring dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps({

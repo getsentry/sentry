@@ -6,7 +6,7 @@ import {GettingStartedWithAspnetcore, steps} from './aspnetcore';
 
 describe('GettingStartedWithAspnetcore', function () {
   it('renders doc correctly', function () {
-    render(<GettingStartedWithAspnetcore dsn="test-dsn" />);
+    render(<GettingStartedWithAspnetcore dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps()) {

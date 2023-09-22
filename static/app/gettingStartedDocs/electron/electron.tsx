@@ -109,6 +109,7 @@ export function GettingStartedWithElectron({
   platformKey,
   projectId,
   newOrg,
+  ...props
 }: ModuleProps) {
   const sentryInitContent: string[] = [`dsn: "${dsn}",`];
 
@@ -124,6 +125,7 @@ export function GettingStartedWithElectron({
       nextSteps={[]}
       newOrg={newOrg}
       platformKey={platformKey}
+      {...props}
     />
   );
 }

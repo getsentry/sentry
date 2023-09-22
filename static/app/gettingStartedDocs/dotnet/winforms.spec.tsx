@@ -6,7 +6,7 @@ import {GettingStartedWithWinForms, steps} from './winforms';
 
 describe('GettingStartedWithWinForms', function () {
   it('renders doc correctly', function () {
-    render(<GettingStartedWithWinForms dsn="test-dsn" />);
+    render(<GettingStartedWithWinForms dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps()) {

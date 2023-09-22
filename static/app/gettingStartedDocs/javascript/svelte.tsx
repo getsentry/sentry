@@ -146,6 +146,7 @@ export function GettingStartedWithSvelte({
   projectId,
   organization,
   newOrg,
+  ...props
 }: ModuleProps) {
   const integrations: string[] = [];
   const otherConfigs: string[] = [];
@@ -189,6 +190,7 @@ export function GettingStartedWithSvelte({
       nextSteps={nextStepDocs}
       newOrg={newOrg}
       platformKey={platformKey}
+      {...props}
     />
   );
 }

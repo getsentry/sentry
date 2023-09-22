@@ -6,7 +6,7 @@ import {GettingStartedWithRust, steps} from './rust';
 
 describe('GettingStartedWithRust', function () {
   it('renders doc correctly', function () {
-    render(<GettingStartedWithRust dsn="test-dsn" />);
+    render(<GettingStartedWithRust dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps()) {

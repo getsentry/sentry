@@ -6,7 +6,7 @@ import {GettingStartedWithGin, steps} from './gin';
 
 describe('GettingStartedWithGin', function () {
   it('renders doc correctly', function () {
-    render(<GettingStartedWithGin dsn="test-dsn" />);
+    render(<GettingStartedWithGin dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps()) {

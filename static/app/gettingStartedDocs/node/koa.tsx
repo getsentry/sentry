@@ -179,6 +179,7 @@ export function GettingStartedWithKoa({
   activeProductSelection = [],
   organization,
   projectId,
+  ...props
 }: ModuleProps) {
   const productSelection = getProductSelectionMap(activeProductSelection);
 
@@ -225,6 +226,7 @@ export function GettingStartedWithKoa({
       })}
       newOrg={newOrg}
       platformKey={platformKey}
+      {...props}
     />
   );
 }

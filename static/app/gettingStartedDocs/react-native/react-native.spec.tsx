@@ -6,7 +6,7 @@ import {GettingStartedWithReactNative, steps} from './react-native';
 
 describe('GettingStartedWithDjango', function () {
   it('renders doc correctly', function () {
-    render(<GettingStartedWithReactNative dsn="test-dsn" />);
+    render(<GettingStartedWithReactNative dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps()) {

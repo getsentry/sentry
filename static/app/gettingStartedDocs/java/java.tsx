@@ -303,6 +303,7 @@ export function GettingStartedWithJava({
       })}
       nextSteps={nextStepDocs}
       introduction={introduction}
+      projectSlug={projectSlug}
       {...props}
     />
   );

@@ -6,7 +6,7 @@ import {GettingStartedWithNextJs, steps} from './nextjs';
 
 describe('GettingStartedWithNextJs', function () {
   it('renders doc correctly', function () {
-    render(<GettingStartedWithNextJs dsn="test-dsn" />);
+    render(<GettingStartedWithNextJs dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps()) {

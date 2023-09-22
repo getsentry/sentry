@@ -336,6 +336,7 @@ export function GettingStartedWithLog4j2({
       })}
       nextSteps={nextStepDocs}
       introduction={introduction}
+      projectSlug={projectSlug}
       {...props}
     />
   );

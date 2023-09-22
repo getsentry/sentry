@@ -6,7 +6,7 @@ import {GettingStartedWithPython, steps} from './python';
 
 describe('GettingStartedWithPython', function () {
   it('renders doc correctly', function () {
-    render(<GettingStartedWithPython dsn="test-dsn" />);
+    render(<GettingStartedWithPython dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps()) {

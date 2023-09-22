@@ -6,7 +6,7 @@ import {GettingStartedAwsLambda, steps} from './awslambda';
 
 describe('GettingStartedAwsLambda', function () {
   it('renders doc correctly', function () {
-    render(<GettingStartedAwsLambda dsn="test-dsn" />);
+    render(<GettingStartedAwsLambda dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps()) {

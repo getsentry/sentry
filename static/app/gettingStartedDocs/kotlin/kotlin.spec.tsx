@@ -6,7 +6,7 @@ import {GettingStartedWithKotlin, steps} from './kotlin';
 
 describe('GettingStartedWithKotlin', function () {
   it('renders doc correctly', function () {
-    render(<GettingStartedWithKotlin dsn="test-dsn" />);
+    render(<GettingStartedWithKotlin dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps()) {

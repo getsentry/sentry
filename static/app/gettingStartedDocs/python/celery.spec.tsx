@@ -6,7 +6,7 @@ import {GettingStartedWithCelery, steps} from './celery';
 
 describe('GettingStartedWithCelery', function () {
   it('renders doc correctly', function () {
-    render(<GettingStartedWithCelery dsn="test-dsn" />);
+    render(<GettingStartedWithCelery dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps({sentryInitContent: 'test-init-content'})) {

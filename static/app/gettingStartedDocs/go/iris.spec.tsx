@@ -6,7 +6,7 @@ import {GettingStartedWithIris, steps} from './iris';
 
 describe('GettingStartedWithIris', function () {
   it('renders doc correctly', function () {
-    render(<GettingStartedWithIris dsn="test-dsn" />);
+    render(<GettingStartedWithIris dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps()) {

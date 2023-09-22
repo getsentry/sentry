@@ -6,7 +6,7 @@ import {GettingStartedWithElectron, steps} from './electron';
 
 describe('GettingStartedWithElectron', function () {
   it('renders doc correctly', function () {
-    render(<GettingStartedWithElectron dsn="test-dsn" />);
+    render(<GettingStartedWithElectron dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps()) {

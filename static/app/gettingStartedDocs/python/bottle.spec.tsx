@@ -6,7 +6,7 @@ import {GettingStartedWithBottle, steps} from './bottle';
 
 describe('GettingStartedWithBottle', function () {
   it('renders doc correctly', function () {
-    render(<GettingStartedWithBottle dsn="test-dsn" />);
+    render(<GettingStartedWithBottle dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps({sentryInitContent: 'test-init-content'})) {

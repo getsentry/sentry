@@ -6,7 +6,7 @@ import {GettingStartedWithXamarin, steps} from './xamarin';
 
 describe('GettingStartedWithXamarin', function () {
   it('renders doc correctly', function () {
-    render(<GettingStartedWithXamarin dsn="test-dsn" />);
+    render(<GettingStartedWithXamarin dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps()) {

@@ -6,7 +6,7 @@ import {GettingStartedWithGo, steps} from './go';
 
 describe('GettingStartedWithGo', function () {
   it('renders doc correctly', function () {
-    render(<GettingStartedWithGo dsn="test-dsn" />);
+    render(<GettingStartedWithGo dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps()) {
