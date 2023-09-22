@@ -48,9 +48,6 @@ class OrganizationSlugReservation(ReplicatedControlModel):
 
     __repr__ = sane_repr("slug", "organization_id")
 
-    def __str__(self):
-        return self.slug
-
     def save(self, *args: Any, **kwds: Any) -> None:
         assert kwds.get(
             "unsafe_write", None
