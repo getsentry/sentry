@@ -26,6 +26,15 @@ class MockUseCaseID(Enum):
     USE_CASE_2 = "use_case_2"
 
 
+MOCK_METRIC_ID_AGG_OPTION = {
+    "d:transactions/measurements.fcp@millisecond": AggregationOption.HIST,
+    "d:transactions/measurements.lcp@millisecond": AggregationOption.HIST,
+    "d:transactions/alert@none": AggregationOption.TEN_SECOND,
+}
+
+MOCK_USE_CASE_AGG_OPTION = {MockUseCaseID.TRANSACTIONS: AggregationOption.TEN_SECOND}
+
+
 pytestmark = pytest.mark.sentry_metrics
 BROKER_TIMESTAMP = datetime.now(tz=timezone.utc)
 ts = int(datetime.now(tz=timezone.utc).timestamp())
@@ -685,6 +694,14 @@ def test_extract_strings_with_multiple_use_case_ids_and_org_ids():
 
 @pytest.mark.django_db
 @patch("sentry.sentry_metrics.use_case_id_registry.UseCaseID", MockUseCaseID)
+@patch(
+    "sentry.sentry_metrics.aggregation_option_registry.METRIC_ID_AGG_OPTION",
+    MOCK_METRIC_ID_AGG_OPTION,
+)
+@patch(
+    "sentry.sentry_metrics.aggregation_option_registry.USE_CASE_AGG_OPTION",
+    MOCK_USE_CASE_AGG_OPTION,
+)
 def test_resolved_with_aggregation_options(caplog, settings):
     settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
     counter_metric_id = "c:transactions/alert@none"
@@ -773,6 +790,7 @@ def test_resolved_with_aggregation_options(caplog, settings):
                 "type": "c",
                 "use_case_id": "transactions",
                 "value": 1.0,
+                "aggregation_option": AggregationOption.TEN_SECOND.value,
                 "sentry_received_timestamp": BROKER_TIMESTAMP.timestamp(),
                 "version": 2,
             },
@@ -820,6 +838,7 @@ def test_resolved_with_aggregation_options(caplog, settings):
                 "type": "s",
                 "use_case_id": "transactions",
                 "value": [3],
+                "aggregation_option": AggregationOption.TEN_SECOND.value,
                 "sentry_received_timestamp": BROKER_TIMESTAMP.timestamp(),
                 "version": 2,
             },
