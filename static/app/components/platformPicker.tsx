@@ -14,9 +14,9 @@ import categoryList, {
   filterAliases,
   PlatformKey,
 } from 'sentry/data/platformCategories';
-import platforms from 'sentry/data/platforms';
+import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {IconClose, IconProject} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, PlatformIntegration} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -171,8 +171,20 @@ class PlatformPicker extends Component<PlatformPickerProps, State> {
             icon={<IconProject size="xl" />}
             title={t("We don't have an SDK for that yet!")}
           >
-            {t(
-              "Make sure you've typed the platform correctly. If that doesn't help, we have several SDKs that are still useful if you use a lesser-known platform. For example, Browser JavaScript, Python, Node, .NET & Java."
+            {tct(
+              `Sure you haven't misspelled? If you're using a lesser-known platform, consider choosing a more generic SDK like Browser JavaScript, Python, Node, .NET & Java or create a generic project, by selecting [linkOther:“Other”].`,
+              {
+                linkOther: (
+                  <Button
+                    aria-label={t("Select 'Other'")}
+                    priority="link"
+                    onClick={() => {
+                      this.setState({filter: otherPlatform.name});
+                      setPlatform({...otherPlatform, category});
+                    }}
+                  />
+                ),
+              }
             )}
           </EmptyMessage>
         )}
