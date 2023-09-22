@@ -626,6 +626,11 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
           delete filter.name;
         }
         transaction.setData('actions', rule.actions);
+
+        // Check if rule is currently disabled or going to be disabled
+        if ('status' in rule && (rule.status === 'disabled' || !!rule.disableDate)) {
+          rule.optOutEdit = true;
+        }
       }
       const [data, , resp] = await this.api.requestPromise(endpoint, {
         includeAllArgs: true,
