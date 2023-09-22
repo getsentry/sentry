@@ -2,7 +2,7 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import beautify from 'js-beautify';
 
-import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {OnboardingCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
@@ -55,7 +55,7 @@ function TabbedCodeSnippet({
   const {code, language} = selectedTab;
 
   return (
-    <CodeSnippet
+    <OnboardingCodeSnippet
       dark
       language={language}
       onCopy={onCopy}
@@ -73,7 +73,7 @@ function TabbedCodeSnippet({
             brace_style: 'preserve-inline',
           })
         : code.trim()}
-    </CodeSnippet>
+    </OnboardingCodeSnippet>
   );
 }
 
@@ -157,7 +157,7 @@ function getConfiguration({
       ) : (
         language &&
         code && (
-          <CodeSnippet
+          <OnboardingCodeSnippet
             dark
             language={language}
             onCopy={onCopy}
@@ -172,7 +172,7 @@ function getConfiguration({
                   brace_style: 'preserve-inline',
                 })
               : code.trim()}
-          </CodeSnippet>
+          </OnboardingCodeSnippet>
         )
       )}
       {additionalInfo && <AdditionalInfo>{additionalInfo}</AdditionalInfo>}

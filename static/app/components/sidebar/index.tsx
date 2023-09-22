@@ -234,7 +234,9 @@ function Sidebar({location, organization}: Props) {
                 isBeta={RELEASE_LEVEL === 'beta'}
                 isNew={RELEASE_LEVEL === 'new'}
                 label={
-                  <GuideAnchor target="performance-database">{t('Database')}</GuideAnchor>
+                  <GuideAnchor target="performance-database">
+                    {t('Query Insights')}
+                  </GuideAnchor>
                 }
                 to={`/organizations/${organization.slug}/performance/database/`}
                 id="performance-database"
@@ -469,6 +471,7 @@ function Sidebar({location, organization}: Props) {
                 {performance}
                 {starfish}
                 {profiling}
+                {ddm}
                 {replays}
                 {monitors}
                 {alerts}
@@ -476,7 +479,6 @@ function Sidebar({location, organization}: Props) {
 
               <SidebarSection>
                 {discover2}
-                {ddm}
                 {dashboards}
                 {releases}
                 {userFeedback}
