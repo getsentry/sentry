@@ -1541,6 +1541,12 @@ register(
 )
 
 register(
+    "delightful_metrics.enable_common_tags",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
     "outbox_replication.sentry_team.replication_version",
     type=Int,
     default=0,

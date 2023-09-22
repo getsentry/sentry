@@ -87,6 +87,14 @@ def patch_sentry_sdk():
     MetricsAggregator._emit = patched_emit  # type: ignore
 
 
+def before_emit_metric(key: str, tags: Dict[str, Any]) -> bool:
+    if not options.get("delightful_metrics.enable_common_tags"):
+        tags.pop("transaction", None)
+        tags.pop("release", None)
+        tags.pop("environment", None)
+    return True
+
+
 class MiniMetricsMetricsBackend(MetricsBackend):
     def __init__(self, prefix: Optional[str] = None):
         super().__init__(prefix=prefix)

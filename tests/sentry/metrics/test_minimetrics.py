@@ -3,7 +3,11 @@ from typing import Any, Dict
 import pytest
 from sentry_sdk import Client, Hub, Transport
 
-from sentry.metrics.minimetrics import MiniMetricsMetricsBackend, have_minimetrics
+from sentry.metrics.minimetrics import (
+    MiniMetricsMetricsBackend,
+    before_emit_metric,
+    have_minimetrics,
+)
 from sentry.testutils.helpers import override_options
 
 
@@ -63,6 +67,7 @@ def hub():
             transport=DummyTransport,
             _experiments={
                 "enable_metrics": True,  # type: ignore
+                "before_emit_metric": before_emit_metric,
             },
         )
     )
@@ -79,6 +84,7 @@ def backend():
 @override_options(
     {
         "delightful_metrics.enable_capture_envelope": True,
+        "delightful_metrics.enable_common_tags": True,
     }
 )
 def test_incr_called_with_no_tags(backend, hub):
@@ -102,6 +108,31 @@ def test_incr_called_with_no_tags(backend, hub):
 @override_options(
     {
         "delightful_metrics.enable_capture_envelope": True,
+        "delightful_metrics.enable_common_tags": False,
+    }
+)
+def test_incr_called_with_no_tags_and_no_common_tags(backend, hub):
+    backend.incr(key="foo", tags={"x": "y"})
+    hub.client.flush()
+
+    metrics = hub.client.transport.get_metrics()
+
+    assert len(metrics) == 1
+    assert metrics[0][1] == "sentrytest.foo@none"
+    assert metrics[0][2] == "c"
+    assert metrics[0][3] == ["1.0"]
+    assert metrics[0][4].get("release") is None
+    assert metrics[0][4].get("environment") is None
+    assert metrics[0][4]["x"] == "y"
+
+    assert len(hub.client.metrics_aggregator.buckets) == 0
+
+
+@pytest.mark.skipif(not have_minimetrics, reason="no minimetrics")
+@override_options(
+    {
+        "delightful_metrics.enable_capture_envelope": True,
+        "delightful_metrics.enable_common_tags": True,
     }
 )
 def test_incr_called_with_tag_value_as_list(backend, hub):
@@ -122,6 +153,7 @@ def test_incr_called_with_tag_value_as_list(backend, hub):
 @override_options(
     {
         "delightful_metrics.enable_capture_envelope": True,
+        "delightful_metrics.enable_common_tags": True,
     }
 )
 def test_gauge_as_counter(backend, hub):
