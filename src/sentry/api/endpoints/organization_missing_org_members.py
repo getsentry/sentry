@@ -24,7 +24,6 @@ from sentry.models import Repository
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.organization import Organization
-from sentry.search.utils import tokenize_query
 from sentry.services.hybrid_cloud.integration import integration_service
 
 if TYPE_CHECKING:
@@ -68,9 +67,13 @@ def _get_missing_organization_members(
         integration_id__in=integration_ids,
     ).values_list("id", flat=True)
 
-    recent_commits = Commit.objects.filter(
-        repository_id__in=set(org_repos), date_added__gte=timezone.now() - timedelta(days=30)
-    ).values_list("id", flat=True)
+    recent_commits = set(
+        Commit.objects.filter(
+            organization_id=organization.id,
+            repository_id__in=set(org_repos),
+            date_added__gte=timezone.now() - timedelta(days=30),
+        ).values_list("id", flat=True)
+    )
 
     return (
         nonmember_authors.filter(commit__id__in=recent_commits)
@@ -153,16 +156,6 @@ class OrganizationMissingMembersEndpoint(OrganizationEndpoint):
 
             for filtered_character in filtered_characters:
                 queryset = queryset.exclude(email__icontains=filtered_character)
-
-            if queryset.exists():
-                query = request.GET.get("query")
-                if query:
-                    tokens = tokenize_query(query)
-                    if "query" in tokens:
-                        query_value = " ".join(tokens["query"])
-                        queryset = queryset.filter(
-                            Q(email__icontains=query_value) | Q(external_id__icontains=query_value)
-                        )
 
             missing_members_for_integration = {
                 "integration": integration_provider,
