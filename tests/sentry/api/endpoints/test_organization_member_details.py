@@ -724,7 +724,7 @@ class DeleteOrganizationMemberTest(OrganizationMemberTestBase):
         ).exists()
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ResetOrganizationMember2faTest(APITestCase):
     def setUp(self):
         self.owner = self.create_user()
