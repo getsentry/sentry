@@ -30,7 +30,7 @@ class OrganizationSlugReservationType(IntEnum):
 class OrganizationSlugReservation(ReplicatedControlModel):
     __relocation_scope__ = RelocationScope.Excluded
     category = OutboxCategory.ORGANIZATION_SLUG_RESERVATION_UPDATE
-    replication_version = 2
+    replication_version = 1
 
     slug = models.SlugField(unique=True, null=False)
     organization_id = BoundedBigIntegerField(db_index=True, null=False)
