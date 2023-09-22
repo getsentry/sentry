@@ -12,7 +12,6 @@ class CustomRuleBias(Bias):
     """
 
     def generate_rules(self, project: Project, base_sample_rate: float) -> List[PolymorphicRule]:
-
         rules = CustomDynamicSamplingRule.get_project_rules(project)
 
         ret_val: List[PolymorphicRule] = []

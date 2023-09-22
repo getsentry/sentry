@@ -121,7 +121,7 @@ class DecayingFn(TypedDict):
 
 class DecayingRule(Rule):
     timeRange: TimeRange
-    decayingFn: DecayingFn
+    decayingFn: NotRequired[DecayingFn]  # const decaying doesn't require a decayingFn
 
 
 # Type defining the all the possible rules types that can exist.
