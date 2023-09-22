@@ -18,7 +18,7 @@ def test_detailed():
     with open(fixture_path) as fixture:
         expect = fixture.read().splitlines()
 
-    actual = encoder.encode(dependencies()).splitlines()
+    actual = encoder.encode({str(k): v for k, v in dependencies().items()}).splitlines()
     diff = list(unified_diff(expect, actual, n=3))
     if diff:
         raise AssertionError(
@@ -32,7 +32,7 @@ def test_flat():
     with open(fixture_path) as fixture:
         expect = fixture.read().splitlines()
 
-    actual = encoder.encode({k: v.flatten() for k, v in dependencies().items()}).splitlines()
+    actual = encoder.encode({str(k): v.flatten() for k, v in dependencies().items()}).splitlines()
     diff = list(unified_diff(expect, actual, n=3))
     if diff:
         raise AssertionError(

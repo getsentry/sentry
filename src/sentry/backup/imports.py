@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Iterator, Tuple, Type
+from typing import Iterator, Optional, Tuple, Type
 
 import click
 from django.conf import settings
@@ -10,7 +10,7 @@ from django.db import IntegrityError, connections, router, transaction
 from django.db.models.base import Model
 from rest_framework.serializers import ValidationError as DjangoRestFrameworkValidationError
 
-from sentry.backup.dependencies import PrimaryKeyMap, get_model, normalize_model_name
+from sentry.backup.dependencies import NormalizedModelName, PrimaryKeyMap, get_model, get_model_name
 from sentry.backup.helpers import EXCLUDED_APPS, Filter, ImportFlags
 from sentry.backup.scopes import ImportScope
 from sentry.silo import unguarded_write
@@ -41,9 +41,14 @@ def _import(
     # Import here to prevent circular module resolutions.
     from sentry.models.email import Email
     from sentry.models.organization import Organization
+    from sentry.models.organizationmember import OrganizationMember
     from sentry.models.user import User
 
     flags = flags if flags is not None else ImportFlags()
+    user_model_name = get_model_name(User)
+    org_model_name = get_model_name(Organization)
+    org_member_model_name = get_model_name(OrganizationMember)
+
     start = src.tell()
     filters = []
     if filter_by is not None:
@@ -70,18 +75,18 @@ def _import(
             # importing library like ijson for this.
             for obj in serializers.deserialize("json", src, stream=True):
                 o = obj.object
-                model_name = normalize_model_name(o)
-                if model_name == "sentry.User":
+                model_name = get_model_name(o)
+                if model_name == user_model_name:
                     username = getattr(o, "username", None)
                     email = getattr(o, "email", None)
                     if username is not None and email is not None:
                         user_to_email[username] = email
-                elif model_name == "sentry.Organization":
+                elif model_name == org_model_name:
                     pk = getattr(o, "pk", None)
                     slug = getattr(o, "slug", None)
                     if pk is not None and slug in filter_by.values:
                         filtered_org_pks.add(pk)
-                elif model_name == "sentry.OrganizationMember":
+                elif model_name == org_member_model_name:
                     seen_first_org_member_model = True
                     user = getattr(o, "user_id", None)
                     org = getattr(o, "organization_id", None)
@@ -95,8 +100,8 @@ def _import(
             seen_first_user_model = False
             for obj in serializers.deserialize("json", src, stream=True):
                 o = obj.object
-                model_name = normalize_model_name(o)
-                if model_name == "sentry.User":
+                model_name = get_model_name(o)
+                if model_name == user_model_name:
                     seen_first_user_model = False
                     username = getattr(o, "username", None)
                     email = getattr(o, "email", None)
@@ -120,13 +125,13 @@ def _import(
 
     # The input JSON blob should already be ordered by model kind. We simply break up 1 JSON blob
     # with N model kinds into N json blobs with 1 model kind each.
-    def yield_json_models(src) -> Iterator[Tuple[str, str]]:
+    def yield_json_models(src) -> Iterator[Tuple[NormalizedModelName, str]]:
         # TODO(getsentry#team-ospo/190): Better error handling for unparsable JSON.
         models = json.load(src)
-        last_seen_model_name: str | None = None
+        last_seen_model_name: Optional[NormalizedModelName] = None
         batch: list[Type[Model]] = []
         for model in models:
-            model_name = model["model"]
+            model_name = NormalizedModelName(model["model"])
             if last_seen_model_name != model_name:
                 if last_seen_model_name is not None and len(batch) > 0:
                     yield (last_seen_model_name, json.dumps(batch))
@@ -158,7 +163,7 @@ def _import(
                     if o._meta.app_label not in EXCLUDED_APPS or o:
                         if o.get_possible_relocation_scopes() & allowed_relocation_scopes:
                             o = obj.object
-                            model_name = normalize_model_name(o)
+                            model_name = get_model_name(o)
                             for f in filters:
                                 if f.model == type(o) and getattr(o, f.field, None) not in f.values:
                                     break

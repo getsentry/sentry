@@ -10,7 +10,7 @@ from sentry.backup.dependencies import (
     ImportKind,
     PrimaryKeyMap,
     dependencies,
-    normalize_model_name,
+    get_model_name,
     sorted_dependencies,
 )
 from sentry.backup.helpers import Filter
@@ -94,7 +94,7 @@ def _export(
                 continue
 
             model = type(item)
-            model_name = normalize_model_name(model)
+            model_name = get_model_name(model)
 
             # Make sure this model is not explicitly being filtered.
             for f in filters:
@@ -103,7 +103,7 @@ def _export(
             else:
                 # Now make sure its not transitively filtered either.
                 for field, foreign_field in deps[model_name].foreign_keys.items():
-                    dependency_model_name = normalize_model_name(foreign_field.model)
+                    dependency_model_name = get_model_name(foreign_field.model)
                     field_id = field if field.endswith("_id") else f"{field}_id"
                     fk = getattr(item, field_id, None)
                     if fk is None:
@@ -118,16 +118,19 @@ def _export(
                     yield item
 
     def yield_objects():
+        from sentry.db.models.base import BaseModel
+
         # Collate the objects to be serialized.
         for model in sorted_dependencies():
-            includable = (
-                hasattr(model, "__relocation_scope__")
-                and model.get_possible_relocation_scopes() & allowed_relocation_scopes
-            )
+            if not issubclass(model, BaseModel):
+                continue
+
+            possible_relocation_scopes = model.get_possible_relocation_scopes()
+            includable = possible_relocation_scopes & allowed_relocation_scopes  # type: ignore
             if not includable or model._meta.proxy:
                 continue
 
-            queryset = model._base_manager.order_by(model._meta.pk.name)
+            queryset = model._base_manager.order_by(model._meta.pk.name)  # type: ignore
             yield from filter_objects(queryset.iterator())
 
     serialize(

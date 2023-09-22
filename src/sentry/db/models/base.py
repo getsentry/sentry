@@ -7,7 +7,7 @@ from django.db import models
 from django.db.models import signals
 from django.utils import timezone
 
-from sentry.backup.dependencies import ImportKind, PrimaryKeyMap, dependencies, normalize_model_name
+from sentry.backup.dependencies import ImportKind, PrimaryKeyMap, dependencies, get_model_name
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.silo import SiloLimit, SiloMode
@@ -147,12 +147,12 @@ class BaseModel(models.Model):
         """
 
         deps = dependencies()
-        model_name = normalize_model_name(self)
+        model_name = get_model_name(self)
         for field, model_relation in deps[model_name].foreign_keys.items():
             field_id = field if field.endswith("_id") else f"{field}_id"
             fk = getattr(self, field_id, None)
             if fk is not None:
-                new_fk = pk_map.get_pk(normalize_model_name(model_relation.model), fk)
+                new_fk = pk_map.get_pk(get_model_name(model_relation.model), fk)
                 if new_fk is None:
                     return None
 
