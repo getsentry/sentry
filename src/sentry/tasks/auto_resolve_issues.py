@@ -26,7 +26,7 @@ ONE_HOUR = 3600
 
 @instrumented_task(
     name="sentry.tasks.schedule_auto_resolution",
-    queue="auto_transition_issue_states",
+    queue="auto_resolve_issues",
     time_limit=75,
     soft_time_limit=60,
     silo_mode=SiloMode.REGION,
@@ -57,7 +57,7 @@ def schedule_auto_resolution():
 
 @instrumented_task(
     name="sentry.tasks.auto_resolve_project_issues",
-    queue="auto_transition_issue_states",
+    queue="auto_resolve_issues",
     time_limit=75,
     soft_time_limit=60,
     silo_mode=SiloMode.REGION,
