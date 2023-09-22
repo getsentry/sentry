@@ -97,7 +97,7 @@ describe('MessageFormatter', () => {
     expect(screen.getByText('{}')).toBeInTheDocument();
   });
 
-  it('Should style "%c" placheholder and print the console message correctly', () => {
+  it('Should style "%c" placeholder and print the console message correctly', () => {
     const [frame] = hydrateBreadcrumbs(TestStubs.ReplayRecord(), [
       TestStubs.Replay.ConsoleFrame({
         data: {
