@@ -148,7 +148,6 @@ class AuthenticationRequest(RpcModel):
     nonce: Optional[str] = None
 
     remote_addr: Optional[str] = None
-    signature: Optional[str] = None
     absolute_url: str = ""
     absolute_url_root: str = ""
     path: str = ""
@@ -176,13 +175,10 @@ class AuthenticationRequest(RpcModel):
 
 
 def authentication_request_from(request: Request) -> AuthenticationRequest:
-    from sentry.utils.linksign import find_signature
-
     return AuthenticationRequest(
         sentry_relay_id=get_header_relay_id(request),
         sentry_relay_signature=get_header_relay_signature(request),
         remote_addr=request.META["REMOTE_ADDR"],
-        signature=find_signature(request),
         absolute_url=request.build_absolute_uri(),
         absolute_url_root=request.build_absolute_uri("/"),
         path=request.path,
@@ -314,7 +310,6 @@ class AuthenticationContext(RpcModel):
 
 class MiddlewareAuthenticationResponse(AuthenticationContext):
     expired: bool = False
-    user_from_signed_request: bool = False
     accessed: Set[str] = Field(default_factory=set)
 
 

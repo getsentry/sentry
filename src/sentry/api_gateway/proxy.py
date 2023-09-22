@@ -61,15 +61,14 @@ def proxy_request(request: HttpRequest, org_slug: str) -> StreamingHttpResponse:
     header_dict = clean_proxy_headers(request.headers)
     # TODO: use requests session for connection pooling capabilities
     assert request.method is not None
-    query_params = getattr(request, request.method, None)
+    query_params = request.GET
     try:
         resp = external_request(
             request.method,
             url=target_url,
             headers=header_dict,
             params=dict(query_params) if query_params is not None else None,
-            files=getattr(request, "FILES", None),
-            data=getattr(request, "body", None) if not getattr(request, "FILES", None) else None,
+            data=request,
             stream=True,
             timeout=settings.GATEWAY_PROXY_TIMEOUT,
         )
