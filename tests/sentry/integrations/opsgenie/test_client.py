@@ -92,7 +92,7 @@ class OpsgenieClientTest(APITestCase):
                 "Logger": "",
                 "Level": "warning",
                 "Project ID": "bar",
-                "Issue URL": "http://example.com/organizations/baz/issues/%s/" % group_id,
+                "Issue URL": f"http://example.com/organizations/baz/issues/{group_id}/?referrer=opsgenie",
                 "Release": event.release,
             },
             "message": "Hello world",
