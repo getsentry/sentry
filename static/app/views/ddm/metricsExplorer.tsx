@@ -344,7 +344,9 @@ function getSeriesName(group: Group, isOnlyGroup = false) {
     return Object.keys(group.series)?.[0] ?? '(none)';
   }
 
-  return Object.values(group.by).join('-') ?? '(none)';
+  return Object.entries(group.by)
+    .map(([key, value]) => `${key}:${String(value).length ? value : t('none')}`)
+    .join(', ');
 }
 
 function sortData(data: MetricsData): MetricsData {
