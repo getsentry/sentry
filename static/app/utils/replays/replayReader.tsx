@@ -1,5 +1,5 @@
 import * as Sentry from '@sentry/react';
-import {incrementalSnapshotEvent} from '@sentry-internal/rrweb';
+import {incrementalSnapshotEvent, IncrementalSource} from '@sentry-internal/rrweb';
 import memoize from 'lodash/memoize';
 import {duration} from 'moment';
 
@@ -200,14 +200,10 @@ export default class ReplayReader {
   getRRWebMutations = () =>
     this._sortedRRWebEvents.filter(
       event =>
-        [
-          EventType.DomContentLoaded,
-          EventType.Load,
-          EventType.FullSnapshot,
-          EventType.IncrementalSnapshot,
-        ].includes(event.type) &&
-        ('removes' in (event as incrementalSnapshotEvent).data ||
-          'adds' in (event as incrementalSnapshotEvent).data) // filter only for mutation events
+        [EventType.IncrementalSnapshot].includes(event.type) &&
+        [IncrementalSource.Mutation].includes(
+          (event as incrementalSnapshotEvent).data.source
+        ) // filter only for mutation events
     );
 
   getErrorFrames = () => this._errors;
