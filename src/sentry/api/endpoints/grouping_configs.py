@@ -14,7 +14,7 @@ class GroupingConfigsEndpoint(Endpoint):
     }
     permission_classes = ()
 
-    def get(self, request: Request) -> Response:
+    def get(self, request: Request, **kwargs) -> Response:
         return Response(
             serialize(
                 [config.as_dict() for config in sorted(CONFIGURATIONS.values(), key=lambda x: x.id)]

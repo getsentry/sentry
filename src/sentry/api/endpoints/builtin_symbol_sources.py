@@ -23,7 +23,7 @@ class BuiltinSymbolSourcesEndpoint(Endpoint):
     }
     permission_classes = ()
 
-    def get(self, request: Request) -> Response:
+    def get(self, request: Request, **kwargs) -> Response:
         sources = [
             normalize_symbol_source(key, source)
             for key, source in settings.SENTRY_BUILTIN_SOURCES.items()
