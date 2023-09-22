@@ -58,7 +58,7 @@ def verify_request_body(body, headers):
     """Wrapper for a callback function for responses.add_callback"""
 
     def request_callback(request):
-        if request.headers["content-type"] == "application/json":
+        if request.headers.get("content-type") == "application/json":
             assert json.load(request.body) == body
         else:
             assert request.body.read() == body

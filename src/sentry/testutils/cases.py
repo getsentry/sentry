@@ -456,33 +456,30 @@ class TestCase(BaseTestCase, DjangoTestCase):
         for each view's decorator in order to prevent otherwise unavoidable SiloAvailability errors.
         """
         old_request = self.client.request
-        try:
 
-            def request(**request: Any) -> Any:
-                resolved = resolve(request["PATH_INFO"])
-                view_class = getattr(resolved.func, "view_class", None)
-                if view_class is not None:
-                    endpoint_silo_limit = getattr(view_class, "silo_limit", None)
-                    if endpoint_silo_limit:
-                        for mode in endpoint_silo_limit.modes:
-                            if mode is SiloMode.MONOLITH or mode is SiloMode.get_current_mode():
-                                continue
-                            region = None
-                            if mode is SiloMode.REGION:
-                                # TODO: Can we infer the correct region here?  would need to package up the
-                                # the request dictionary into a higher level object, which also involves invoking
-                                # _base_environ and maybe other logic buried in Client.....
-                                region = get_region_by_name(settings.SENTRY_MONOLITH_REGION)
-                            with SiloMode.exit_single_process_silo_context(), SiloMode.enter_single_process_silo_context(
-                                mode, region
-                            ):
-                                return old_request(**request)
-                return old_request(**request)
+        def request(**request: Any) -> Any:
+            resolved = resolve(request["PATH_INFO"])
+            view_class = getattr(resolved.func, "view_class", None)
+            if view_class is not None:
+                endpoint_silo_limit = getattr(view_class, "silo_limit", None)
+                if endpoint_silo_limit:
+                    for mode in endpoint_silo_limit.modes:
+                        if mode is SiloMode.MONOLITH or mode is SiloMode.get_current_mode():
+                            continue
+                        region = None
+                        if mode is SiloMode.REGION:
+                            # TODO: Can we infer the correct region here?  would need to package up the
+                            # the request dictionary into a higher level object, which also involves invoking
+                            # _base_environ and maybe other logic buried in Client.....
+                            region = get_region_by_name(settings.SENTRY_MONOLITH_REGION)
+                        with SiloMode.exit_single_process_silo_context(), SiloMode.enter_single_process_silo_context(
+                            mode, region
+                        ):
+                            return old_request(**request)
+            return old_request(**request)
 
-            self.client.request = request
+        with mock.patch.object(self.client, "request", new=request):
             yield
-        finally:
-            self.client.request = old_request
 
     # Ensure that testcases that ask for DB setup actually make use of the
     # DB. If they don't, they're wasting CI time.
