@@ -11,12 +11,13 @@ from sentry.replays.lib.new_query.utils import (
     translate_condition_to_function,
 )
 from sentry.replays.usecases.query.conditions.base import ComputedBase
+from sentry.replays.usecases.query.conditions.error_ids import ErrorIdsArray, has_error_id
 
 
-class EventIdScalar(ComputedBase):
-    """Duration scalar condition class."""
+class InfoIdScalar(ComputedBase):
+    """Look at both debug_id and info_id if info_id is queried"""
 
-    event_id_columns: list[str] = []
+    event_id_columns: list[str] = ["info_id", "debug_id"]
 
     @classmethod
     def visit_eq(cls, value: UUID) -> Condition:
@@ -67,12 +68,62 @@ class EventIdScalar(ComputedBase):
         )
 
 
-class ErrorIdScalar(EventIdScalar):
-    event_id_columns = ["error_id", "fatal_id"]
+class ErrorIdScalar(ComputedBase):
+    """
+    Look at fatal_id, error_id and the old error_ids array column if error_id is queried
+    Note in the below functions we must nest our 'or' and 'and' functions because SnQL/snuba doesn't
+    currently support passing more than 2 parameters to these functions
+    (see https://getsentry.atlassian.net/browse/REQ3S-69)
+    """
 
+    event_id_columns: list[str] = ["error_id", "fatal_id"]
 
-class InfoIdScalar(EventIdScalar):
-    event_id_columns = ["info_id", "debug_id"]
+    @classmethod
+    def visit_eq(cls, value: UUID) -> Condition:
+        conds = _make_conditions_from_column_names(cls.event_id_columns, Op.EQ, to_uuid(value))
+        deprec_error_cond = has_error_id(value)
+
+        return Condition(
+            Function("or", [Function("or", parameters=conds), deprec_error_cond]),
+            Op.EQ,
+            1,
+        )
+
+    @classmethod
+    def visit_neq(cls, value: UUID) -> Condition:
+
+        conds = _make_conditions_from_column_names(cls.event_id_columns, Op.NEQ, to_uuid(value))
+        deprec_error_cond = translate_condition_to_function(ErrorIdsArray.visit_neq(value))
+
+        return Condition(
+            Function("and", [Function("and", conds), deprec_error_cond]),
+            Op.EQ,
+            1,
+        )
+
+    @classmethod
+    def visit_in(cls, value: list[UUID]) -> Condition:
+        conds = _make_conditions_from_column_names(
+            cls.event_id_columns, Op.IN, [str(v) for v in value]
+        )
+        deprec_error_cond = translate_condition_to_function(ErrorIdsArray.visit_in(value))
+        return Condition(
+            Function("or", [Function("or", conds), deprec_error_cond]),
+            Op.EQ,
+            1,
+        )
+
+    @classmethod
+    def visit_not_in(cls, value: list[UUID]) -> Condition:
+        conds = _make_conditions_from_column_names(
+            cls.event_id_columns, Op.NOT_IN, [str(v) for v in value]
+        )
+        deprec_error_cond = translate_condition_to_function(ErrorIdsArray.visit_not_in(value))
+        return Condition(
+            Function("and", [Function("and", conds), deprec_error_cond]),
+            Op.EQ,
+            1,
+        )
 
 
 class SumOfErrorIdScalar(ComputedBase):

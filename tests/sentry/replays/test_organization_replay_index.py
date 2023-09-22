@@ -1722,8 +1722,10 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
         seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=22)
         seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=5)
 
-        self.store_replays(mock_replay(seq1_timestamp, project.id, replay1_id))
-        self.store_replays(mock_replay(seq2_timestamp, project.id, replay1_id))
+        self.store_replays(
+            mock_replay(seq1_timestamp, project.id, replay1_id, error_ids=[uid1, uid2])
+        )
+        self.store_replays(mock_replay(seq2_timestamp, project.id, replay1_id, error_ids=[]))
         self.store_replays(
             self.mock_event_links(seq1_timestamp, project.id, "error", replay1_id, uid1)
         )
@@ -1831,3 +1833,33 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             assert response.status_code == 200
             response_data = response.json()
             assert len(response_data["data"]) == 0, query
+
+    def test_exp_query_branches_error_ids_conditions(self):
+        """
+        Test that the new columns work the same w/ only the previous errors populated
+        """
+        project = self.create_project(teams=[self.team])
+
+        uid1 = uuid.uuid4().hex
+        uid2 = uuid.uuid4().hex
+
+        replay1_id = uuid.uuid4().hex
+        seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=22)
+        seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=5)
+
+        self.store_replays(mock_replay(seq1_timestamp, project.id, replay1_id, error_ids=[uid1]))
+        self.store_replays(mock_replay(seq2_timestamp, project.id, replay1_id, error_ids=[]))
+
+        with self.feature(REPLAYS_FEATURES):
+            queries = [
+                f"x_error_ids:{uid1}",
+                f"!x_error_ids:{uid2}",
+                f"x_error_ids:[{uid1},{uid2}]",
+                f"!x_error_ids:[{uid2}]",
+            ]
+            for query in queries:
+                response = self.client.get(self.url + f"?field=id&field=x_error_ids&query={query}")
+                assert response.status_code == 200
+                response_data = response.json()
+                assert len(response_data["data"]) == 1, query
+                assert len(response_data["data"][0]["x_error_ids"]) == 1, query

@@ -406,6 +406,72 @@ def _exp_event_ids_agg(alias, ids_type_list):
     )
 
 
+def _exp_errors():
+    def _collect_non_empty_error_and_fatals():
+        return [
+            Function(
+                "arrayFilter",
+                parameters=[
+                    Lambda(
+                        ["id"],
+                        Function(
+                            "notEquals",
+                            parameters=[
+                                Identifier("id"),
+                                "00000000-0000-0000-0000-000000000000",
+                            ],
+                        ),
+                    ),
+                    Function("groupArray", parameters=[Column("error_id")]),
+                ],
+            ),
+            Function(
+                "arrayFilter",
+                parameters=[
+                    Lambda(
+                        ["id"],
+                        Function(
+                            "notEquals",
+                            parameters=[
+                                Identifier("id"),
+                                "00000000-0000-0000-0000-000000000000",
+                            ],
+                        ),
+                    ),
+                    Function("groupArray", parameters=[Column("fatal_id")]),
+                ],
+            ),
+        ]
+
+    return Function(
+        "arrayMap",
+        parameters=[
+            Lambda(
+                ["error_id_no_dashes"],
+                _strip_uuid_dashes("error_id_no_dashes", Identifier("error_id_no_dashes")),
+            ),
+            Function(
+                "arrayDistinct",
+                parameters=[
+                    Function(
+                        "flatten",
+                        [
+                            [
+                                Function(
+                                    "groupArrayArray",
+                                    parameters=[Column("error_ids")],
+                                ),
+                                *_collect_non_empty_error_and_fatals(),
+                            ]
+                        ],
+                    ),
+                ],
+            ),
+        ],
+        alias="x_error_ids",
+    )
+
+
 # A mapping of marshalable fields and theirs dependencies represented as query aliases.  If a
 # column is added which depends on another column, you must add it to this mapping.
 #
@@ -643,7 +709,7 @@ QUERY_ALIAS_COLUMN_MAP = {
     ),
     "click.text": Function("groupArray", parameters=[Column("click_text")], alias="click_text"),
     "click.title": Function("groupArray", parameters=[Column("click_title")], alias="click_title"),
-    "x_error_ids": _exp_event_ids_agg("x_error_ids", ["error_id", "fatal_id"]),
+    "x_error_ids": _exp_errors(),
     "x_warning_ids": _exp_event_ids_agg("x_warning_ids", ["warning_id"]),
     "x_info_ids": _exp_event_ids_agg("x_info_ids", ["info_id", "debug_id"]),
 }
