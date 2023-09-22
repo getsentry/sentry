@@ -442,7 +442,7 @@ function Chart({
     tooltip: {
       valueFormatter: (value: number) => {
         if (operation === 'count') {
-          // if the operation is count, we want to ignore the unit and alwats format the value as a number
+          // if the operation is count, we want to ignore the unit and always format the value as a number
           return value.toLocaleString();
         }
         return formatMetricUsingUnit(value, unit);
@@ -453,7 +453,7 @@ function Chart({
       axisLabel: {
         formatter: (value: number) => {
           if (operation === 'count') {
-            // if the operation is count, we want to ignore the unit and alwats format the value as a number
+            // if the operation is count, we want to ignore the unit and always format the value as a number
             return value.toLocaleString();
           }
           return formatMetricUsingUnit(value, unit);
