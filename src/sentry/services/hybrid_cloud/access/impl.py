@@ -51,7 +51,7 @@ class ControlAccessService(AccessService):
         owner_teams = list(
             TeamReplica.objects.filter(
                 organization_id=organization_id, org_role=roles.get_top_dog().id
-            ).values_list("id", flat=True)
+            ).values_list("team_id", flat=True)
         )
         return list(
             OrganizationMemberTeamReplica.objects.filter(team_id__in=owner_teams).values_list(
