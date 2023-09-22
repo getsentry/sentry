@@ -7,6 +7,7 @@ import FeatureBadge from 'sentry/components/featureBadge';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link from 'sentry/components/links/link';
+import {isItemActive} from 'sentry/components/sidebar/isItemActive';
 import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
@@ -14,7 +15,6 @@ import {Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import localStorage from 'sentry/utils/localStorage';
 import useRouter from 'sentry/utils/useRouter';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 import {SidebarOrientation} from './types';
 
@@ -122,26 +122,9 @@ function SidebarItem({
   if (isValidElement(label)) {
     labelString = label?.props?.children ?? label;
   }
-  // take off the query params for matching
-  const toPathWithoutReferrer = to?.split('?')[0];
   // If there is no active panel open and if path is active according to react-router
   const isActiveRouter =
-    (!hasPanel &&
-      router &&
-      toPathWithoutReferrer &&
-      (exact
-        ? location.pathname === normalizeUrl(toPathWithoutReferrer)
-        : location.pathname.startsWith(normalizeUrl(toPathWithoutReferrer)))) ||
-    (labelString === 'Discover' && location.pathname.includes('/discover/')) ||
-    (labelString === 'Dashboards' &&
-      (location.pathname.includes('/dashboards/') ||
-        location.pathname.includes('/dashboard/')) &&
-      !location.pathname.startsWith('/settings/')) ||
-    // TODO: this won't be necessary once we remove settingsHome
-    (labelString === 'Settings' && location.pathname.startsWith('/settings/')) ||
-    (labelString === 'Alerts' &&
-      location.pathname.includes('/alerts/') &&
-      !location.pathname.startsWith('/settings/'));
+    !hasPanel && router && isItemActive({to, label: labelString}, exact);
 
   const isActive = active || isActiveRouter;
   const isTop = orientation === 'top';
