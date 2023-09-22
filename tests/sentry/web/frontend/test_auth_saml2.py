@@ -104,8 +104,7 @@ class AuthSAML2Test(AuthProviderTestCase):
         # Disable validation of the SAML2 mock response
         is_valid = "onelogin.saml2.response.OneLogin_Saml2_Response.is_valid"
 
-        with contextlib.ExitStack() as stack:
-            stack.enter_context(mock.patch(is_valid, return_value=True))
+        with mock.patch(is_valid, return_value=True), contextlib.ExitStack() as stack:
             if follow:
                 stack.enter_context(self.auto_select_silo_mode_on_redirects())
             return self.client.post(
