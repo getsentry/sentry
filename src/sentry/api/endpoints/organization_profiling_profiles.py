@@ -96,14 +96,13 @@ class OrganizationProfilingFlamegraphEndpoint(OrganizationProfilingBaseEndpoint)
                 backend,
                 request.query_params.get("query", None),
             )
+        elif "fingerprint" in request.query_params:
+            function_fingerprint = int(request.query_params["fingerprint"])
+            profile_ids = get_profiles_with_function(
+                organization.id, project_ids[0], function_fingerprint, params
+            )
         else:
-            if "fingerprint" in request.query_params:
-                function_fingerprint = request.query_params["fingerprint"]
-                profile_ids = get_profiles_with_function(
-                    organization.id, project_ids[0], function_fingerprint, params
-                )
-            else:
-                profile_ids = get_profile_ids(params, request.query_params.get("query", None))
+            profile_ids = get_profile_ids(params, request.query_params.get("query", None))
 
         kwargs: Dict[str, Any] = {
             "method": "POST",
