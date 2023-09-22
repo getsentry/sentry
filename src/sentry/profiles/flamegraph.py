@@ -244,7 +244,7 @@ def get_profile_ids_for_span_op(
 def get_profiles_with_function(
     organization_id: int,
     project_id: int,
-    function_fingerprint: str,
+    function_fingerprint: int,
     params: ParamsType,
 ):
     query = Query(
