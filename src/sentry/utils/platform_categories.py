@@ -95,7 +95,7 @@ BACKEND = [
     "php",
     "php-laravel",
     "php-monolog",
-    "php-symfony2",
+    "php-symfony",
     "python",
     "python-django",
     "python-flask",

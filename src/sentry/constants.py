@@ -397,7 +397,7 @@ MARKETING_SLUG_TO_INTEGRATION_ID = {
     "pyramid": "python-pyramid",
     "pylons": "python-pylons",
     "laravel": "php-laravel",
-    "symfony": "php-symfony2",
+    "symfony": "php-symfony",
     "rails": "ruby-rails",
     "sinatra": "ruby-sinatra",
     "dotnet": "csharp",
