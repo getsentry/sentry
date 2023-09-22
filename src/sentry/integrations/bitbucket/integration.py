@@ -143,8 +143,23 @@ class BitbucketIntegration(IntegrationInstallation, BitbucketIssueBasicMixin, Re
     def reinstall(self):
         self.reinstall_repositories()
 
+    def source_url_matches(self, url: str) -> bool:
+        return url.startswith(f'https://{self.model.metadata["domain_name"]}') or url.startswith(
+            "https://bitbucket.org",
+        )
+
     def format_source_url(self, repo: Repository, filepath: str, branch: str) -> str:
         return f"https://bitbucket.org/{repo.name}/src/{branch}/{filepath}"
+
+    def extract_branch_from_source_url(self, repo: Repository, url: str) -> str:
+        url = url.replace(f"{repo.url}/src/", "")
+        branch, _, _ = url.partition("/")
+        return branch
+
+    def extract_source_path_from_source_url(self, repo: Repository, url: str) -> str:
+        url = url.replace(f"{repo.url}/src/", "")
+        _, _, source_path = url.partition("/")
+        return source_path
 
 
 class BitbucketIntegrationProvider(IntegrationProvider):
