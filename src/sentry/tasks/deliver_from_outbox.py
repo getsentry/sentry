@@ -12,6 +12,7 @@ from sentry.models import ControlOutboxBase, OutboxBase, RegionOutboxBase
 from sentry.silo.base import SiloMode
 from sentry.tasks.backfill_outboxes import backfill_outboxes_for
 from sentry.tasks.base import instrumented_task
+from sentry.utils import metrics
 from sentry.utils.env import in_test_environment
 
 
@@ -71,6 +72,13 @@ def schedule_batch(
 
             scheduled_count += hi - lo + 1
             batch_size = math.ceil((hi - lo + 1) / concurrency)
+
+            metrics.gauge(
+                "deliver_from_outbox.queued_batch_size",
+                value=batch_size,
+                tags=dict(silo_mode=silo_mode.name),
+                sample_rate=1.0,
+            )
 
             # Notably, when l and h are close, this will result in creating tasks that are processing future ids --
             # that's totally fine.
