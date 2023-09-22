@@ -23,6 +23,7 @@ export enum MetricDisplayType {
   LINE = 'line',
   AREA = 'area',
   BAR = 'bar',
+  TABLE = 'table',
 }
 
 export const defaultMetricDisplayType = MetricDisplayType.LINE;
