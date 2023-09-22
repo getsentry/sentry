@@ -4,15 +4,19 @@ from typing import List, Optional, cast
 
 import pytest
 from django.utils import timezone
-from freezegun import freeze_time
 
 from sentry.api.endpoints.organization_metrics_estimation_stats import (
     CountResult,
+    MetricVolumeRow,
+    StatsQualityEstimation,
+    _count_non_zero_intervals,
     _should_scale,
+    estimate_stats_quality,
     estimate_volume,
 )
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.testutils.cases import APITestCase, BaseMetricsLayerTestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.samples import load_data
 
@@ -239,3 +243,47 @@ def test_should_scale(metric: str, should_scale: bool):
     Tests the _should_scale function
     """
     assert _should_scale(metric) == should_scale
+
+
+@pytest.mark.parametrize(
+    "zero_samples, expected_result",
+    [
+        (10, StatsQualityEstimation.GOOD_INDEXED_DATA),
+        (50, StatsQualityEstimation.ACCEPTABLE_INDEXED_DATA),
+        (70, StatsQualityEstimation.POOR_INDEXED_DATA),
+        (100, StatsQualityEstimation.NO_INDEXED_DATA),
+    ],
+)
+def test_estimate_stats_quality(zero_samples, expected_result):
+    num_samples = 100
+
+    start_timestamp = 1_500_000_000
+
+    one: CountResult = {"count": 1}
+    zero: CountResult = {"count": 0}
+
+    data = cast(
+        List[MetricVolumeRow],
+        [[start_timestamp + idx * 100, [zero]] for idx in range(zero_samples)]
+        + [[start_timestamp + idx * 100, [one]] for idx in range(zero_samples, num_samples)],
+    )
+
+    assert estimate_stats_quality(data) == expected_result
+
+
+@pytest.mark.parametrize("zero_samples", [0, 1, 5, 9, 10])
+def test_count_non_zero_intervals(zero_samples):
+    num_samples = 10
+
+    start_timestamp = 1_500_000_000
+
+    one: CountResult = {"count": 1}
+    zero: CountResult = {"count": 0}
+
+    data = cast(
+        List[MetricVolumeRow],
+        [[start_timestamp + idx * 100, [zero]] for idx in range(zero_samples)]
+        + [[start_timestamp + idx * 100, [one]] for idx in range(zero_samples, num_samples)],
+    )
+
+    assert _count_non_zero_intervals(data) == num_samples - zero_samples

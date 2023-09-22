@@ -69,7 +69,7 @@ class MarkOkTestCase(TestCase):
             project_id=self.project.id,
             status=CheckInStatus.ERROR,
         )
-        mark_failed(monitor_environment, failed_checkin.date_added)
+        mark_failed(failed_checkin, ts=failed_checkin.date_added)
         # assert occurrence was sent
         assert len(mock_produce_occurrence_to_kafka.mock_calls) == 1
 

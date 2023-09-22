@@ -11,6 +11,7 @@ import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {ModulePageProviders} from 'sentry/views/performance/database/modulePageProviders';
+import {RELEASE_LEVEL} from 'sentry/views/performance/database/settings';
 import {ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {ActionSelector} from 'sentry/views/starfish/views/spans/selectors/actionSelector';
@@ -39,14 +40,14 @@ function DatabaseLandingPage() {
                 preservePageFilters: true,
               },
               {
-                label: 'Database',
+                label: 'Queries',
               },
             ]}
           />
 
           <Layout.Title>
-            {t('Database')}
-            <FeatureBadge type="alpha" />
+            {t('Queries')}
+            <FeatureBadge type={RELEASE_LEVEL} />
           </Layout.Title>
         </Layout.HeaderContent>
       </Layout.Header>

@@ -471,7 +471,20 @@ function HasDebugIdChecklistItem({
           <h6>Uploaded Files Not Deployed</h6>
           <p>
             {t(
-              "It seems you already uploaded artifacts with Debug IDs, however, this event doesn't contain any Debug IDs yet. Make sure to also deploy the artifacts you uploaded to Sentry. For Sentry to be able to show your original source code, it is required that you deploy the exact same files that you uploaded to Sentry."
+              "It seems you already uploaded artifacts with Debug IDs, however, this event doesn't contain any Debug IDs yet. Make sure the files you deployed are exactly the files you uploaded to Sentry. For Sentry to be able to show your original source code, it is required that you deploy the exact same files that you uploaded to Sentry."
+            )}
+          </p>
+          <p>
+            {t(
+              'If you are using a bundler plugin, you need to use the plugin when you build your production app. It is not possible to build your app once with the plugin, just to upload, and then once without. The plugin needs to be active for every build!'
+            )}
+          </p>
+          <p>
+            {tct(
+              'If you are using Sentry CLI, make sure to deploy the files you ran [injectCommand] on!',
+              {
+                injectCommand: <MonoBlock>sentry-cli sourcemaps inject</MonoBlock>,
+              }
             )}
           </p>
           <p>
@@ -1173,7 +1186,7 @@ const ListItemTitle = styled('p')<{status: 'none' | 'checked' | 'alert' | 'quest
       question: p.theme.gray300,
       checked: p.theme.green300,
       alert: p.theme.yellow400,
-    }[p.status])};
+    })[p.status]};
 `;
 
 const CheckListInstruction = styled(Alert)`

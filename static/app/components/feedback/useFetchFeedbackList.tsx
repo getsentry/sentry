@@ -1,44 +1,35 @@
-import {useEffect, useState} from 'react';
-
 import hydrateFeedbackRecord from 'sentry/components/feedback/hydrateFeedbackRecord';
-import {exampleListResponse} from 'sentry/utils/feedback/example';
 import {
   FeedbackListQueryParams,
   FeedbackListResponse,
-  HydratedFeedbackList,
+  HydratedFeedbackItem,
 } from 'sentry/utils/feedback/types';
-import type {UseApiQueryOptions} from 'sentry/utils/queryClient';
+import {useApiQuery, type UseApiQueryOptions} from 'sentry/utils/queryClient';
+import useOrganization from 'sentry/utils/useOrganization';
 
-type MockState = {
-  data: undefined | FeedbackListResponse;
-  isError: false;
+type Response = {
+  data: HydratedFeedbackItem[] | undefined;
+  isError: boolean;
   isLoading: boolean;
+  pageLinks: string | undefined;
 };
 
 export default function useFetchFeedbackList(
-  _params: FeedbackListQueryParams,
-  _options: Partial<UseApiQueryOptions<HydratedFeedbackList>> = {}
-) {
-  // Mock some state to simulate `useApiQuery` while the backend is being constructed
-  const [state, setState] = useState<MockState>({
-    isLoading: true,
-    isError: false,
-    data: undefined,
-  });
-
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      setState({
-        isLoading: false,
-        isError: false,
-        data: exampleListResponse,
-      });
-    }, Math.random() * 1000);
-    return () => clearTimeout(timeout);
-  }, []);
+  params: {query: FeedbackListQueryParams} = {
+    query: {},
+  },
+  options: undefined | Partial<UseApiQueryOptions<FeedbackListResponse>> = {}
+): Response {
+  const organization = useOrganization();
+  const {data, isError, isLoading, getResponseHeader} = useApiQuery<FeedbackListResponse>(
+    [`/organizations/${organization.slug}/feedback/`, params],
+    {staleTime: 0, ...options}
+  );
 
   return {
-    ...state,
-    data: state.data?.map(hydrateFeedbackRecord),
+    data: data?.map(hydrateFeedbackRecord),
+    isError,
+    isLoading,
+    pageLinks: getResponseHeader?.('Link') ?? undefined,
   };
 }

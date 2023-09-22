@@ -31,6 +31,10 @@ test_data = {
         "name": "user",
         "username": "user2270129",
     },
+    "contexts": {
+        "BrowserContext": {"name": "Chrome", "version": "116.0.0"},
+        "DeviceContext": {"family": "Mac", "model": "Mac", "brand": "Apple", "type": "device"},
+    },
 }
 
 
@@ -108,9 +112,9 @@ class FeedbackIngestTest(MonitorIngestTestCase):
                 ]
             }
 
-    def test_no_environment(self):
-        # Environment field is required for a successful post
-        missing_environment_test_data = {
+    def test_no_timestamp(self):
+        # Timestamp field is required for a successful post
+        missing_timestamp_test_data = {
             "dist": "abc123",
             "feedback": {
                 "contact_email": "colton.allen@sentry.io",
@@ -127,17 +131,16 @@ class FeedbackIngestTest(MonitorIngestTestCase):
             },
             "sdk": {"name": "sentry.javascript.react", "version": "6.18.1"},
             "tags": {"key": "value"},
-            "timestamp": 1234456,
         }
 
         with self.feature({"organizations:user-feedback-ingest": True}):
             path = reverse(self.endpoint)
             response = self.client.post(
-                path, data=missing_environment_test_data, **self.dsn_auth_headers
+                path, data=missing_timestamp_test_data, **self.dsn_auth_headers
             )
             assert response.status_code == 400
             assert response.data == {
-                "environment": [ErrorDetail(string="This field is required.", code="required")]
+                "timestamp": [ErrorDetail(string="This field is required.", code="required")]
             }
 
     def test_wrong_type(self):
@@ -149,11 +152,10 @@ class FeedbackIngestTest(MonitorIngestTestCase):
                 "replay_id": "ec3b4dc8b79f417596f7a1aa4fcca5d2",
                 "url": "https://docs.sentry.io/platforms/javascript/",
             },
-            "environment": {},
             "platform": "javascript",
             "release": "1",
             "sdk": {"name": "sentry.javascript.react", "version": "6.18.1"},
-            "timestamp": 123456,
+            "timestamp": {},
         }
 
         with self.feature({"organizations:user-feedback-ingest": True}):
@@ -161,7 +163,7 @@ class FeedbackIngestTest(MonitorIngestTestCase):
             response = self.client.post(path, data=wrong_type_test_data, **self.dsn_auth_headers)
             assert response.status_code == 400
             assert response.data == {
-                "environment": [ErrorDetail(string="Not a valid string.", code="invalid")]
+                "timestamp": [ErrorDetail(string="A valid number is required.", code="invalid")]
             }
 
     def test_bad_slug_path(self):
@@ -174,14 +176,12 @@ class FeedbackIngestTest(MonitorIngestTestCase):
     def test_missing_optional_fields(self):
         # Optional fields missing should still result in successful save
         test_data_missing_optional_fields = {
-            "environment": "production",
             "feedback": {
                 "contact_email": "colton.allen@sentry.io",
                 "message": "I really like this user-feedback feature!",
                 "url": "https://docs.sentry.io/platforms/javascript/",
             },
             "platform": "javascript",
-            "release": "version@1.3",
             "sdk": {"name": "sentry.javascript.react", "version": "6.18.1"},
             "timestamp": 1234456,
         }
@@ -189,6 +189,8 @@ class FeedbackIngestTest(MonitorIngestTestCase):
         with self.feature({"organizations:user-feedback-ingest": True}):
             path = reverse(self.endpoint)
             response = self.client.post(
-                path, data=test_data_missing_optional_fields, **self.dsn_auth_headers
+                path,
+                data=test_data_missing_optional_fields,
+                **self.dsn_auth_headers,
             )
-            assert response.status_code == 201
+            assert response.status_code == 201, response.content

@@ -728,6 +728,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.files",
     "sentry.tasks.groupowner",
     "sentry.tasks.integrations",
+    "sentry.tasks.invite_missing_org_members",
     "sentry.tasks.low_priority_symbolication",
     "sentry.tasks.merge",
     "sentry.tasks.options",
@@ -893,6 +894,8 @@ CELERY_QUEUES_REGION = [
     Queue("performance.statistical_detector", routing_key="performance.statistical_detector"),
     Queue("profiling.statistical_detector", routing_key="profiling.statistical_detector"),
     CELERY_ISSUE_STATES_QUEUE,
+    Queue("nudge.invite_missing_org_members", routing_key="invite_missing_org_members"),
+    Queue("auto_resolve_issues", routing_key="auto_resolve_issues"),
 ]
 
 from celery.schedules import crontab
@@ -1047,6 +1050,15 @@ CELERYBEAT_SCHEDULE_REGION = {
         ),
         "options": {"expires": 60 * 60 * 3},
     },
+    "schedule-monthly-invite-missing-org-members": {
+        "task": "sentry.tasks.invite_missing_org_members.schedule_organizations",
+        "schedule": crontab(
+            minute=0,
+            hour=7,
+            day_of_month="1",  # 00:00 PDT, 03:00 EDT, 7:00 UTC
+        ),
+        "options": {"expires": 60 * 25},
+    },
     "schedule-hybrid-cloud-foreign-key-jobs": {
         "task": "sentry.tasks.deletion.hybrid_cloud.schedule_hybrid_cloud_foreign_key_jobs",
         # Run every 15 minutes
@@ -1120,8 +1132,8 @@ CELERYBEAT_SCHEDULE_REGION = {
     },
     "schedule_auto_transition_to_ongoing": {
         "task": "sentry.tasks.schedule_auto_transition_to_ongoing",
-        # Run job every 10 minutes
-        "schedule": crontab(minute="*/10"),
+        # Run job every 5 minutes
+        "schedule": crontab(minute="*/5"),
         "options": {"expires": 3600},
     },
     "github_comment_reactions": {
@@ -1308,6 +1320,17 @@ REST_FRAMEWORK = {
 }
 
 
+def custom_parameter_sort(parameter: dict) -> tuple[str, int]:
+    """
+    Sort parameters by type then if the parameter is required or not.
+    It should group path parameters first, then query parameters.
+    In each group, required parameters should come before optional parameters.
+    """
+    param_type = parameter["in"]
+    required = parameter.get("required", False)
+    return (param_type, 0 if required else 1)
+
+
 if os.environ.get("OPENAPIGENERATE", False):
     OLD_OPENAPI_JSON_PATH = "tests/apidocs/openapi-deprecated.json"
     from sentry.apidocs.build import OPENAPI_TAGS, get_old_json_components, get_old_json_paths
@@ -1330,7 +1353,7 @@ if os.environ.get("OPENAPIGENERATE", False):
         "PARSER_WHITELIST": ["rest_framework.parsers.JSONParser"],
         "APPEND_PATHS": get_old_json_paths(OLD_OPENAPI_JSON_PATH),
         "APPEND_COMPONENTS": get_old_json_components(OLD_OPENAPI_JSON_PATH),
-        "SORT_OPERATION_PARAMETERS": False,
+        "SORT_OPERATION_PARAMETERS": custom_parameter_sort,
     }
 
 CRISPY_TEMPLATE_PACK = "bootstrap3"
@@ -1347,8 +1370,6 @@ SENTRY_FEATURES = {
     "organizations:javascript-console-error-tag": False,
     # Enables the cron job to auto-enable codecov integrations.
     "organizations:auto-enable-codecov": False,
-    # Enables automatically linking repositories using commit webhook data
-    "organizations:integrations-auto-repo-linking": False,
     # The overall flag for codecov integration, gated by plans.
     "organizations:codecov-integration": False,
     # Enables getting commit sha from git blame for codecov.
@@ -1377,6 +1398,8 @@ SENTRY_FEATURES = {
     "organizations:crons-new-onboarding": False,
     # Enable usage of customer domains on the frontend
     "organizations:customer-domains": False,
+    # Delightful Developer Metrics (DDM): Enable sidebar menu item and all UI (requires custom-metrics flag as well)
+    "organizations:ddm-ui": False,
     # Enable the 'discover' interface.
     "organizations:discover": False,
     # Enables events endpoint rate limit
@@ -1433,8 +1456,6 @@ SENTRY_FEATURES = {
     "organizations:profiling-battery-usage-chart": False,
     # Enable profiling summary redesign view
     "organizations:profiling-summary-redesign": False,
-    # Enable disabling github integrations when broken is detected
-    "organizations:github-disable-on-broken": False,
     # Enable disabling gitlab integrations when broken is detected
     "organizations:gitlab-disable-on-broken": False,
     # Enable multi project selection
@@ -1453,6 +1474,8 @@ SENTRY_FEATURES = {
     "organizations:incidents": False,
     # Enable issue platform
     "organizations:issue-platform": False,
+    # Enable additional logging for issue platform
+    "organizations:issue-platform-extra-logging": False,
     # Whether to allow issue only search on the issue list
     "organizations:issue-search-allow-postgres-only-search": False,
     # Flags for enabling CdcEventsDatasetSnubaSearchBackend in sentry.io. No effect in open-source
@@ -1643,8 +1666,6 @@ SENTRY_FEATURES = {
     "organizations:session-replay-slack-new-issue": False,
     # Enable linking from 'new issue' email notifs to the issue replay list
     "organizations:session-replay-issue-emails": False,
-    # Enable optimized serach feature.
-    "organizations:session-replay-optimized-search": False,
     # Enable replay event linking in event processing
     "organizations:session-replay-event-linking": False,
     # Enable linking from 'weekly email' summaries to the issue replay list
@@ -1653,10 +1674,16 @@ SENTRY_FEATURES = {
     "organizations:session-replay-trace-table": False,
     # Enable the AM1 trial ended banner on sentry.io
     "organizations:session-replay-trial-ended-banner": False,
+    # Enable the Replay rage and dead click selector tables in the UI
+    "organizations:session-replay-rage-dead-selectors": False,
+    # Enable the new event linking columns to be queried
+    "organizations:session-replay-new-event-counts": False,
     # Enable the new suggested assignees feature
     "organizations:streamline-targeting-context": False,
     # Enable the new experimental starfish view
     "organizations:starfish-view": False,
+    # Enable the aggregate span waterfall view
+    "organizations:starfish-aggregate-span-waterfall": False,
     # Enable starfish endpoint that's used for regressing testing purposes
     "organizations:starfish-test-endpoint": False,
     # Enable starfish dropdown on the webservice view for switching chart visualization
@@ -1671,6 +1698,8 @@ SENTRY_FEATURES = {
     "organizations:performance-issues-dev": False,
     # Enable performance issues detector threshold configuration
     "organizations:project-performance-settings-admin": False,
+    # Enable feature to load more than 100 rows in performance trace view.
+    "organizations:trace-view-load-more": False,
     # Enables updated all events tab in a performance issue
     "organizations:performance-issues-all-events-tab": False,
     # Temporary flag to test search performance that's running slow in S4S
@@ -1759,9 +1788,11 @@ SENTRY_FEATURES = {
     # Signals that the organization supports the on demand metrics prefill.
     "organizations:on-demand-metrics-prefill": False,
     # Enable writing to the new notification system when updating the old system
-    "organizations:notifications-double-write": False,
+    "organizations:notifications-double-write": True,
     # Excludes measurement config from project config builds.
     "organizations:projconfig-exclude-measurements": False,
+    # Enable source maps debugger
+    "organizations:source-maps-debugger-blue-thunder-edition": False,
     # Enable data forwarding functionality for projects.
     "projects:data-forwarding": True,
     # Enable functionality to discard groups.
@@ -1787,6 +1818,8 @@ SENTRY_FEATURES = {
     "projects:auto-associate-commits-to-release": False,
     # Starfish: extract metrics from the spans
     "projects:span-metrics-extraction": False,
+    "projects:span-metrics-extraction-ga-modules": False,
+    "projects:span-metrics-extraction-all-modules": False,
     # Metrics: Enable ingestion, storage, and rendering of custom metrics
     "organizations:custom-metrics": False,
     # Metrics: Enable creation of investigation dynamic sampling rules (rules that

@@ -27,7 +27,7 @@ describe('Issues -> Merged View', function () {
     GroupingStore.init();
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
-      url: '/issues/groupId/hashes/?limit=50&query=',
+      url: '/organizations/org-slug/issues/groupId/hashes/?limit=50&query=',
       body: mockData.merged,
     });
   });

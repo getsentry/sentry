@@ -7,6 +7,7 @@ from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.helpers.environments import get_environments
 from sentry.api.paginator import OffsetPaginator
@@ -25,7 +26,9 @@ from .base import MonitorEndpoint
 @region_silo_endpoint
 @extend_schema(tags=["Crons"])
 class OrganizationMonitorCheckInIndexEndpoint(MonitorEndpoint):
-    public = {"GET"}
+    publish_status = {
+        "GET": ApiPublishStatus.PUBLIC,
+    }
 
     @extend_schema(
         operation_id="Retrieve Check-Ins for a Monitor",

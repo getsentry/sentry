@@ -6,7 +6,7 @@ import {GettingStartedWithUwp, steps} from './uwp';
 
 describe('GettingStartedWithUwp', function () {
   it('renders doc correctly', function () {
-    render(<GettingStartedWithUwp dsn="test-dsn" />);
+    render(<GettingStartedWithUwp dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps()) {

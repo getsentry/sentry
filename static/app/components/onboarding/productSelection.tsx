@@ -119,13 +119,10 @@ export const platformProductAvailability = {
   'node-koa': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   php: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'php-laravel': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
-  // TODO(arthur): cleanup naming missmatch between php-symfony and php-symfony2
-  ['php-symfony' as 'php-symfony2']: [
-    ProductSolution.PERFORMANCE_MONITORING,
-    ProductSolution.PROFILING,
-  ],
+  ['php-symfony']: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   python: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-aiohttp': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'python-asgi': [ProductSolution.PERFORMANCE_MONITORING],
   'python-awslambda': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-bottle': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-celery': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
@@ -150,6 +147,7 @@ export const platformProductAvailability = {
   'python-starlette': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-tryton': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-wsgi': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'java-spring-boot': [ProductSolution.PERFORMANCE_MONITORING],
 } as Record<PlatformKey, ProductSolution[]>;
 
 type ProductProps = {
@@ -269,7 +267,6 @@ export function ProductSelection({
   platform,
   productsPerPlatform = platformProductAvailability,
   skipLazyLoader,
-  withBottomMargin,
 }: ProductSelectionProps) {
   const router = useRouter();
   const urlProducts = decodeList(router.location.query.product);
@@ -416,7 +413,6 @@ export function ProductSelection({
           })}
         </AlternativeInstallationAlert>
       )}
-      <Divider withBottomMargin={withBottomMargin} />
     </Fragment>
   );
 }
@@ -469,14 +465,6 @@ const ProductButtonInner = styled('div')`
   grid-template-columns: repeat(3, max-content);
   gap: ${space(1)};
   align-items: center;
-`;
-
-const Divider = styled('hr')<{withBottomMargin?: boolean}>`
-  height: 1px;
-  width: 100%;
-  background: ${p => p.theme.border};
-  border: none;
-  ${p => p.withBottomMargin && `margin-bottom: ${space(3)}`}
 `;
 
 const TooltipDescription = styled('div')`

@@ -36,7 +36,6 @@ import {ActionableItemsResponse, useActionableItems} from './useActionableItems'
 
 interface ErrorMessage {
   desc: React.ReactNode;
-  expandTitle: string;
   title: string;
   data?: {
     absPath?: string;
@@ -72,7 +71,6 @@ function getErrorMessage(
         {
           title: t('A proguard mapping file does not contain line info'),
           desc: null,
-          expandTitle: t('Fix Proguard Processing Error'),
           data: errorData,
           meta: metaData,
         },
@@ -82,7 +80,6 @@ function getErrorMessage(
         {
           title: t('A proguard mapping file was missing'),
           desc: null,
-          expandTitle: t('Fix Proguard Processing Error'),
           data: errorData,
           meta: metaData,
         },
@@ -92,7 +89,6 @@ function getErrorMessage(
         {
           title: t('An optional debug information file was missing'),
           desc: null,
-          expandTitle: t('Fix Native Processing Error'),
           data: errorData,
           meta: metaData,
         },
@@ -103,7 +99,6 @@ function getErrorMessage(
         {
           title: t('A required debug information file was missing'),
           desc: null,
-          expandTitle: t('Fix Native Processing Error'),
           data: errorData,
           meta: metaData,
         },
@@ -113,17 +108,15 @@ function getErrorMessage(
         {
           title: t('The debug information file used was broken'),
           desc: null,
-          expandTitle: t('Fix Native Processing Error'),
           data: errorData,
           meta: metaData,
         },
       ];
-    case JavascriptProcessingErrors.JS_MISSING_SOURCES_CONTEXT:
+    case JavascriptProcessingErrors.JS_MISSING_SOURCES_CONTENT:
       return [
         {
           title: t('Missing Sources Context'),
           desc: null,
-          expandTitle: t('Fix Processing Error'),
           data: errorData,
           meta: metaData,
         },
@@ -133,7 +126,6 @@ function getErrorMessage(
         {
           title: t('Unable to fetch HTTP resource'),
           desc: null,
-          expandTitle: t('Fix Processing Error'),
           data: errorData,
           meta: metaData,
         },
@@ -143,7 +135,6 @@ function getErrorMessage(
         {
           title: t('Cannot fetch resource due to restricted IP address'),
           desc: null,
-          expandTitle: t('Fix Processing Error'),
           data: errorData,
           meta: metaData,
         },
@@ -153,7 +144,6 @@ function getErrorMessage(
         {
           title: t('Cannot fetch resource due to security violation'),
           desc: null,
-          expandTitle: t('Fix Processing Error'),
           data: errorData,
           meta: metaData,
         },
@@ -163,7 +153,6 @@ function getErrorMessage(
         {
           title: t('Invalid timestamp (in future)'),
           desc: null,
-          expandTitle: t('Fix Processing Error'),
           data: errorData,
           meta: metaData,
         },
@@ -174,7 +163,6 @@ function getErrorMessage(
         {
           title: t('Clock drift detected in SDK'),
           desc: null,
-          expandTitle: t('Fix Processing Error'),
           data: errorData,
           meta: metaData,
         },
@@ -184,7 +172,6 @@ function getErrorMessage(
         {
           title: t('Invalid timestamp (too old)'),
           desc: null,
-          expandTitle: t('Fix Processing Error'),
           data: errorData,
           meta: metaData,
         },
@@ -194,7 +181,6 @@ function getErrorMessage(
         {
           title: t('Discarded value due to exceeding maximum length'),
           desc: null,
-          expandTitle: t('Fix Processing Error'),
           data: errorData,
           meta: metaData,
         },
@@ -205,7 +191,6 @@ function getErrorMessage(
         {
           title: t('Discarded invalid value'),
           desc: null,
-          expandTitle: t('Fix Processing Error'),
           data: errorData,
           meta: metaData,
         },
@@ -215,7 +200,6 @@ function getErrorMessage(
         {
           title: t('Environment cannot contain "/" or newlines'),
           desc: null,
-          expandTitle: t('Fix Processing Error'),
           data: errorData,
           meta: metaData,
         },
@@ -225,7 +209,6 @@ function getErrorMessage(
         {
           title: t('Discarded unknown attribute'),
           desc: null,
-          expandTitle: t('Fix Processing Error'),
           data: errorData,
           meta: metaData,
         },
@@ -244,17 +227,13 @@ interface ExpandableErrorListProps {
 function ExpandableErrorList({handleExpandClick, errorList}: ExpandableErrorListProps) {
   const [expanded, setExpanded] = useState(false);
   const firstError = errorList[0];
-  const {title, desc, expandTitle, type} = firstError;
+  const {title, desc, type} = firstError;
   const numErrors = errorList.length;
   const errorDataList = errorList.map(error => error.data ?? {});
 
   const cleanedData = useMemo(() => {
     const cleaned = errorDataList.map(errorData => {
       const data = {...errorData};
-      // The name is rendered as path in front of the message
-      if (typeof data.name === 'string') {
-        delete data.name;
-      }
 
       if (data.message === 'None') {
         // Python ensures a message string, but "None" doesn't make sense here
@@ -310,7 +289,7 @@ function ExpandableErrorList({handleExpandClick, errorList}: ExpandableErrorList
               handleExpandClick(type);
             }}
           >
-            {expandTitle}
+            {expanded ? t('Collapse') : t('Expand')}
           </ToggleButton>
         </ErrorTitleFlex>
         {expanded && (
@@ -433,10 +412,11 @@ export function ActionableItems({event, project, isShare}: ActionableItemsProps)
     });
   };
 
-  const hasErrorAlert = Object.keys(errorMessages).some(error =>
-    ActionableItemWarning.includes(
-      error as ProguardProcessingErrors | NativeProcessingErrors | GenericSchemaErrors
-    )
+  const hasErrorAlert = Object.keys(errorMessages).some(
+    error =>
+      !ActionableItemWarning.includes(
+        error as ProguardProcessingErrors | NativeProcessingErrors | GenericSchemaErrors
+      )
   );
 
   for (const errorKey in Object.keys(errorMessages)) {
@@ -469,7 +449,9 @@ export function ActionableItems({event, project, isShare}: ActionableItemsProps)
         </Fragment>
       }
     >
-      {t("There are problems you'll need to fix for future events")}
+      {hasErrorAlert
+        ? t('Sentry has identified the following problems for you to fix')
+        : t('Sentry has identified the following problems for you to monitor')}
     </StyledAlert>
   );
 }

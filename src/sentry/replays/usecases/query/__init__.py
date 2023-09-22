@@ -192,7 +192,7 @@ def query_using_optimized_search(
         query = query.set_limit(pagination.limit)
         query = query.set_offset(pagination.offset)
 
-    subquery_response = _execute_query(query, tenant_id, referrer)
+    subquery_response = execute_query(query, tenant_id, referrer)
 
     # These replay_ids are ordered by the OrderBy expression in the query above.
     replay_ids = [row["replay_id"] for row in subquery_response.get("data", [])]
@@ -204,7 +204,7 @@ def query_using_optimized_search(
     #
     # If this step runs out of memory your pagination size is about 1,000,000 rows too large.
     # That's a joke.  This will complete very quickly at normal pagination sizes.
-    results = _execute_query(
+    results = execute_query(
         make_full_aggregation_query(
             fields=fields,
             replay_ids=replay_ids,
@@ -226,6 +226,13 @@ def make_scalar_search_conditions_query(
     period_start: datetime,
     period_stop: datetime,
 ) -> Query:
+    # NOTE: This query may return replay-ids which do not have a segment_id 0 row. These replays
+    # will be removed from the final output and could lead to pagination peculiarities. In
+    # practice, this is not expected to be noticable by the end-user.
+    #
+    # To fix this issue remove the ability to search against "varying" columns and apply a
+    # "segment_id = 0" condition to the WHERE clause.
+
     where = handle_search_filters(scalar_search_config, search_filters)
     orderby = handle_ordering(sort)
 
@@ -251,8 +258,10 @@ def make_aggregate_search_conditions_query(
     period_start: datetime,
     period_stop: datetime,
 ) -> Query:
-    having: list[Condition] = handle_search_filters(agg_search_config, search_filters)
     orderby = handle_ordering(sort)
+
+    having: list[Condition] = handle_search_filters(agg_search_config, search_filters)
+    having.append(Condition(Function("min", parameters=[Column("segment_id")]), Op.EQ, 0))
 
     return Query(
         match=Entity("replays"),
@@ -299,12 +308,16 @@ def make_full_aggregation_query(
             Condition(Column("timestamp"), Op.GTE, period_start - timedelta(hours=1)),
             Condition(Column("timestamp"), Op.LT, period_end + timedelta(hours=1)),
         ],
+        # NOTE: Refer to this note: "make_scalar_search_conditions_query".
+        #
+        # This condition ensures that every replay shown to the user is valid.
+        having=[Condition(Function("min", parameters=[Column("segment_id")]), Op.EQ, 0)],
         groupby=[Column("project_id"), Column("replay_id")],
         granularity=Granularity(3600),
     )
 
 
-def _execute_query(query: Query, tenant_id: dict[str, int], referrer: str) -> Mapping[str, Any]:
+def execute_query(query: Query, tenant_id: dict[str, int], referrer: str) -> Mapping[str, Any]:
     return raw_snql_query(
         Request(
             dataset="replays",

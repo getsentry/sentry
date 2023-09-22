@@ -7,7 +7,6 @@ from django.contrib.sessions.backends.base import SessionBase
 from django.db.models import F
 from django.test import RequestFactory
 from django.utils import timezone
-from freezegun import freeze_time
 from rest_framework.exceptions import PermissionDenied
 
 from sentry.api.bases.organization import NoProjects, OrganizationEndpoint, OrganizationPermission
@@ -29,6 +28,7 @@ from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.silo import SiloMode
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 
@@ -166,8 +166,7 @@ class OrganizationPermissionTest(OrganizationPermissionBase):
             }
         }
 
-    @mock.patch("sentry.api.utils.get_cached_organization_member")
-    def test_member_limit_with_superuser(self, mock_get_org_member):
+    def test_member_limit_with_superuser(self):
         user = self.create_user(is_superuser=True)
         self.create_member(
             user=user,
@@ -176,15 +175,12 @@ class OrganizationPermissionTest(OrganizationPermissionBase):
             flags=OrganizationMember.flags["member-limit:restricted"],
         )
         assert self.has_object_perm("GET", self.org, user=user, is_superuser=True)
-        assert mock_get_org_member.call_count == 0
 
-    @mock.patch("sentry.api.utils.get_cached_organization_member")
-    def test_member_limit_sentry_app(self, mock_get_org_member):
+    def test_member_limit_sentry_app(self):
         app = self.create_internal_integration(
             name="integration", organization=self.org, scopes=("org:admin",)
         )
         assert self.has_object_perm("GET", self.org, user=app.proxy_user)
-        assert mock_get_org_member.call_count == 0
 
     def test_sso_required(self):
         user = self.create_user()

@@ -5,7 +5,7 @@ import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import {t, tct} from 'sentry/locale';
 
-interface StepProps {
+interface StepsParams {
   dsn: string;
   hasPerformance: boolean;
   hasProfiling: boolean;
@@ -16,7 +16,7 @@ export const steps = ({
   dsn,
   hasPerformance,
   hasProfiling,
-}: StepProps): LayoutProps['steps'] => [
+}: StepsParams): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
     configurations: [
@@ -57,18 +57,18 @@ export const steps = ({
         language: 'php',
         code: `\\Sentry\\init([
     'dsn' => '${dsn}',${
-          hasPerformance
-            ? `
+      hasPerformance
+        ? `
     // Specify a fixed sample rate
     'traces_sample_rate' => 1.0,`
-            : ''
-        }${
-          hasProfiling
-            ? `
+        : ''
+    }${
+      hasProfiling
+        ? `
     // Set a sampling rate for profiling - this is relative to traces_sample_rate
     'profiles_sample_rate' => 1.0,`
-            : ''
-        }
+        : ''
+    }
 ]);`,
         additionalInfo: hasPerformance && (
           <p>

@@ -17,6 +17,7 @@ from sentry.types.region import find_regions_for_orgs
 class AuthIdentity(ReplicatedControlModel):
     __relocation_scope__ = RelocationScope.Global
     category = OutboxCategory.AUTH_IDENTITY_UPDATE
+    replication_version = 2
 
     # NOTE: not a fk to sentry user
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL)
@@ -32,10 +33,10 @@ class AuthIdentity(ReplicatedControlModel):
 
     def handle_async_replication(self, region_name: str, shard_identifier: int) -> None:
         from sentry.services.hybrid_cloud.auth.serial import serialize_auth_identity
-        from sentry.services.hybrid_cloud.organization.service import organization_service
+        from sentry.services.hybrid_cloud.replica.service import region_replica_service
 
         serialized = serialize_auth_identity(self)
-        organization_service.upsert_replicated_auth_identity(
+        region_replica_service.upsert_replicated_auth_identity(
             auth_identity=serialized, region_name=region_name
         )
 

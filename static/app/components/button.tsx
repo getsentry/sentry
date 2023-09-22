@@ -498,7 +498,10 @@ const StyledButton = styled(
   ${getBoxShadow};
   cursor: ${p => (p.disabled ? 'not-allowed' : 'pointer')};
   opacity: ${p => (p.busy || p.disabled) && '0.65'};
-  transition: background 0.1s, border 0.1s, box-shadow 0.1s;
+  transition:
+    background 0.1s,
+    border 0.1s,
+    box-shadow 0.1s;
 
   ${p =>
     p.priority === 'link' &&

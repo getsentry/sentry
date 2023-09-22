@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections import defaultdict
 from enum import Enum, auto, unique
 from functools import lru_cache
-from typing import NamedTuple, Tuple, Type
+from typing import NamedTuple, Optional, Tuple, Type
 
 from django.db import models
 from django.db.models.fields.related import ForeignKey, OneToOneField
@@ -51,7 +51,7 @@ class ModelRelations(NamedTuple):
 
     model: Type[models.base.Model]
     foreign_keys: dict[str, ForeignField]
-    relocation_scope: RelocationScope
+    relocation_scope: RelocationScope | set[RelocationScope]
     silos: list[SiloMode]
 
     def flatten(self) -> set[Type[models.base.Model]]:
@@ -62,6 +62,16 @@ class ModelRelations(NamedTuple):
 
 def normalize_model_name(model: Type[models.base.Model]):
     return f"{model._meta.app_label}.{model._meta.object_name}"
+
+
+def get_model(model_name: str) -> Optional[Type[models.base.Model]]:
+    """
+    Given a standardized model name string, retrieve the matching Sentry model.
+    """
+    for model in sorted_dependencies():
+        if f"sentry.{str(model.__name__).lower()}" == model_name.lower():
+            return model
+    return None
 
 
 class DependenciesJSONEncoder(json.JSONEncoder):
@@ -75,6 +85,9 @@ class DependenciesJSONEncoder(json.JSONEncoder):
             return obj.name
         if isinstance(obj, RelocationScope):
             return obj.name
+        if isinstance(obj, set) and all(isinstance(rs, RelocationScope) for rs in obj):
+            # Order by enum value, which should correspond to `RelocationScope` breadth.
+            return sorted(list(obj), key=lambda obj: obj.value)
         if isinstance(obj, SiloMode):
             return obj.name.lower().capitalize()
         if isinstance(obj, set):
@@ -84,11 +97,17 @@ class DependenciesJSONEncoder(json.JSONEncoder):
 
 class ImportKind(Enum):
     """
-    When importing a given model, we may either create a new copy of it (`Inserted`) or merely re-use an `Existing` copy that has the same already-used globally unique identifier (ex: `username` for users, `slug` for orgs, etc). This information can then be saved alongside the new `pk` for the model in the `PrimaryKeyMap`, so that models that depend on this one can know if they are dealing with a new or re-used model.
+    When importing a given model, we may create a new copy of it (`Inserted`), merely re-use an
+    `Existing` copy that has the same already-used globally unique identifier (ex: `username` for
+    users, `slug` for orgs, etc), or do an `Overwrite` that merges the new data into an existing
+    model that already has a `pk` assigned to it. This information can then be saved alongside the
+    new `pk` for the model in the `PrimaryKeyMap`, so that models that depend on this one can know
+    if they are dealing with a new or re-used model.
     """
 
     Inserted = auto()
     Existing = auto()
+    Overwrite = auto()
 
 
 class PrimaryKeyMap:

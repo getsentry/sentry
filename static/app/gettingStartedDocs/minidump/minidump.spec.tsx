@@ -6,7 +6,7 @@ import {GettingStartedWithMinidump, steps} from './minidump';
 
 describe('GettingStartedWithMinidump', function () {
   it('renders doc correctly', function () {
-    render(<GettingStartedWithMinidump dsn="test-dsn" />);
+    render(<GettingStartedWithMinidump dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps()) {

@@ -2,8 +2,7 @@ import itertools
 from datetime import datetime, timedelta, timezone
 from unittest import TestCase
 
-from freezegun import freeze_time
-
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.tsdb.base import ONE_DAY, ONE_HOUR, ONE_MINUTE, BaseTSDB
 from sentry.utils.dates import to_timestamp
 
