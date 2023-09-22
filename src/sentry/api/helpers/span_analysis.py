@@ -13,7 +13,7 @@ import collections
 def span_analysis(data):
 
     # create a unique identifier for each span
-    span_groups = [row["span_op"] + "," + row["span_group"] for row in data]
+    span_keys = [row["span_op"] + "," + row["span_group"] for row in data]
 
     # number of occurrences of a span/transaction
     count_col = [row["span_count"] for row in data]
