@@ -1,4 +1,4 @@
-import hydrateFeedbackRecord from 'sentry/components/feedback/hydrateFeedbackRecord';
+import hydrateFeedbackRecord from 'sentry/components/bugReports/hydrateFeedbackRecord';
 import {Organization, Project} from 'sentry/types';
 import {FeedbackItemResponse} from 'sentry/utils/feedback/types';
 import {useApiQuery, type UseApiQueryOptions} from 'sentry/utils/queryClient';

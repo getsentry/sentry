@@ -1,4 +1,4 @@
-import hydrateFeedbackRecord from 'sentry/components/feedback/hydrateFeedbackRecord';
+import hydrateFeedbackRecord from 'sentry/components/bugReports/hydrateFeedbackRecord';
 import {
   FeedbackListQueryParams,
   FeedbackListResponse,

@@ -2,9 +2,9 @@ import {Fragment, ReactNode, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import renderSortableHeaderCell from 'sentry/components/feedback/table/renderSortableHeaderCell';
-import useQueryBasedColumnResize from 'sentry/components/feedback/table/useQueryBasedColumnResize';
-import useQueryBasedSorting from 'sentry/components/feedback/table/useQueryBasedSorting';
+import renderSortableHeaderCell from 'sentry/components/bugReports/table/renderSortableHeaderCell';
+import useQueryBasedColumnResize from 'sentry/components/bugReports/table/useQueryBasedColumnResize';
+import useQueryBasedSorting from 'sentry/components/bugReports/table/useQueryBasedSorting';
 import GridEditable, {GridColumnOrder} from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
 import TextOverflow from 'sentry/components/textOverflow';

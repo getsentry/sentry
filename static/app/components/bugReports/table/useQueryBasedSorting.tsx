@@ -2,7 +2,7 @@ import {useMemo} from 'react';
 import type {Location} from 'history';
 import first from 'lodash/first';
 
-import queryBasedSortLinkGenerator from 'sentry/components/feedback/table/queryBasedSortLinkGenerator';
+import queryBasedSortLinkGenerator from 'sentry/components/bugReports/table/queryBasedSortLinkGenerator';
 import {GridColumnOrder} from 'sentry/components/gridEditable';
 import {fromSorts} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';

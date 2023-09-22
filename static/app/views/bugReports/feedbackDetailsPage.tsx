@@ -1,7 +1,7 @@
 import {RouteComponentProps} from 'react-router';
 
 import {Alert} from 'sentry/components/alert';
-import useFetchFeedbackItem from 'sentry/components/feedback/useFetchFeedbackItem';
+import useFetchFeedbackItem from 'sentry/components/bugReports/useFetchFeedbackItem';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';

@@ -1816,36 +1816,36 @@ function buildRoutes() {
     </Fragment>
   );
 
-  const feedbackChildRoutes = (
+  const bugReportsChildRoutes = (
     <Fragment>
       <IndexRoute
-        component={make(() => import('sentry/views/feedback/feedbackListPage'))}
+        component={make(() => import('sentry/views/bugReports/bugReportsMainPage'))}
       />
       <Route
         path=":feedbackSlug/"
-        component={make(() => import('sentry/views/feedback/feedbackDetailsPage'))}
+        component={make(() => import('sentry/views/bugReports/feedbackDetailsPage'))}
       />
     </Fragment>
   );
-  const feedbackv2Routes = (
+  const bugReportsRoutes = (
     <Fragment>
       {usingCustomerDomain && (
         <Route
-          path="/feedback/"
+          path="/bug-reports/"
           component={withDomainRequired(
-            make(() => import('sentry/views/feedback/index'))
+            make(() => import('sentry/views/bugReports/index'))
           )}
-          key="orgless-feedback-list-route"
         >
-          {feedbackChildRoutes}
+          {bugReportsChildRoutes}
         </Route>
       )}
       <Route
-        path="/organizations/:orgId/feedback/"
-        component={withDomainRedirect(make(() => import('sentry/views/feedback/index')))}
-        key="org-feedback-list-route"
+        path="/organizations/:orgId/bug-reports/"
+        component={withDomainRedirect(
+          make(() => import('sentry/views/bugReports/index'))
+        )}
       >
-        {feedbackChildRoutes}
+        {bugReportsChildRoutes}
       </Route>
     </Fragment>
   );
@@ -2264,7 +2264,7 @@ function buildRoutes() {
       {projectsRoutes}
       {dashboardRoutes}
       {userFeedbackRoutes}
-      {feedbackv2Routes}
+      {bugReportsRoutes}
       {issueListRoutes}
       {issueDetailsRoutes}
       {alertRoutes}

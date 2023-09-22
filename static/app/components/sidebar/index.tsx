@@ -17,6 +17,7 @@ import {
   IconGraph,
   IconIssues,
   IconLightning,
+  IconMegaphone,
   IconPlay,
   IconProfiling,
   IconProject,
@@ -28,7 +29,6 @@ import {
   IconSupport,
   IconTelescope,
   IconTimer,
-  IconUser,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -324,10 +324,10 @@ function Sidebar({location, organization}: Props) {
     <Feature features={['user-feedback-ui']} organization={organization}>
       <SidebarItem
         {...sidebarItemProps}
-        icon={<IconUser />}
-        label={t('Feedback')}
-        to={`/organizations/${organization.slug}/feedback/`}
-        id="feedback"
+        icon={<IconMegaphone />}
+        label={t('Bug Reports')}
+        to={`/organizations/${organization.slug}/bug-reports/`}
+        id="bug-reports"
         isAlpha
       />
     </Feature>

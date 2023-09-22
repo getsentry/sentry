@@ -1,11 +1,11 @@
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
+import FeedbackTable from 'sentry/components/bugReports/table/feedbackTable';
+import useFeedbackListQueryParams from 'sentry/components/bugReports/useFeedbackListQueryParams';
+import useFetchFeedbackList from 'sentry/components/bugReports/useFetchFeedbackList';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
-import FeedbackTable from 'sentry/components/feedback/table/feedbackTable';
-import useFeedbackListQueryParams from 'sentry/components/feedback/useFeedbackListQueryParams';
-import useFetchFeedbackList from 'sentry/components/feedback/useFetchFeedbackList';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
@@ -20,21 +20,21 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 interface Props extends RouteComponentProps<{}, {}, FeedbackListQueryParams> {}
 
-export default function FeedbackListPage({location}: Props) {
+export default function BugReportsMainPage({location}: Props) {
   const organization = useOrganization();
 
   const query = useFeedbackListQueryParams({
     location,
-    queryReferrer: 'feedback_list_page',
+    queryReferrer: 'bugreports_list_page',
   });
   const {isLoading, isError, data, pageLinks} = useFetchFeedbackList({query}, {});
 
   return (
-    <SentryDocumentTitle title={t(`Feedback v2`)} orgSlug={organization.slug}>
+    <SentryDocumentTitle title={t(`Bug Reports`)} orgSlug={organization.slug}>
       <Layout.Header>
         <Layout.HeaderContent>
           <Layout.Title>
-            {t('Feedback v2')}
+            {t('Bug Reports')}
             <PageHeadingQuestionTooltip
               title={t(
                 'Feedback submitted by users who experienced an error while using your application, including their name, email address, and any additional comments.'
