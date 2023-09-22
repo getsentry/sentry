@@ -17,80 +17,81 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
 import PanelTable from 'sentry/components/panels/panelTable';
-import {TimeRangeSelector} from 'sentry/components/timeRangeSelector';
+import Tag from 'sentry/components/tag';
 import {IconSearch} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {MetricsTag, Project, TagCollection} from 'sentry/types';
-import getDynamicText from 'sentry/utils/getDynamicText';
+import {MetricsTag, TagCollection} from 'sentry/types';
 import {
+  defaultMetricDisplayType,
+  getNameFromMRI,
+  getReadableMetricType,
+  getUnitFromMRI,
   getUseCaseFromMri,
+  MetricDisplayType,
   MetricsData,
   MetricsDataProps,
+  tooltipFormatterUsingUnit,
   useMetricsData,
   useMetricsMeta,
   useMetricsTags,
 } from 'sentry/utils/metrics';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import theme from 'sentry/utils/theme';
 import useApi from 'sentry/utils/useApi';
+import useKeyPress from 'sentry/utils/useKeyPress';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
+import useProjects from 'sentry/utils/useProjects';
+import useRouter from 'sentry/utils/useRouter';
 
-const displayTypes = ['Line Chart', 'Bar Chart', 'Area Chart', 'Table'] as const;
-type DisplayType = (typeof displayTypes)[number];
+const useProjectSelectionSlugs = () => {
+  const {selection} = usePageFilters();
+  const {projects} = useProjects();
+
+  return useMemo(
+    () =>
+      selection.projects
+        .map(id => projects.find(p => p.id === id.toString())?.slug)
+        .filter(Boolean) as string[],
+    [projects, selection.projects]
+  );
+};
 
 function MetricsExplorer() {
-  const [query, setQuery] = useState<MetricsDataProps>();
-  const [displayType, setDisplayType] = useState<DisplayType>('Line Chart');
+  const {selection} = usePageFilters();
+
+  const slugs = useProjectSelectionSlugs();
+  const router = useRouter();
+
+  const [query, setQuery] = useState<QueryBuilderState>();
 
   return (
     <MetricsExplorerPanel>
-      <MetricsExplorerHeader displayType={displayType} setDisplayType={setDisplayType} />
       <PanelBody>
         <QueryBuilder setQuery={setQuery} />
-        {query && <MetricsExplorerDisplayOuter displayType={displayType} {...query} />}
+        {query && (
+          <MetricsExplorerDisplayOuter
+            displayType={router.location.query.display ?? defaultMetricDisplayType}
+            datetime={selection.datetime}
+            projects={slugs}
+            {...query}
+          />
+        )}
       </PanelBody>
     </MetricsExplorerPanel>
   );
 }
 
-type MetricsExplorerHeaderProps = {
-  displayType: DisplayType;
-  setDisplayType: (displayType: DisplayType) => void;
-};
-
-function MetricsExplorerHeader({
-  displayType,
-  setDisplayType,
-}: MetricsExplorerHeaderProps) {
-  return (
-    <PanelHeader>
-      <div>Metrics Explorer</div>
-      <CompactSelect
-        triggerProps={{size: 'xs', prefix: 'Display'}}
-        value={displayType}
-        options={displayTypes.map(opt => ({
-          value: opt,
-          label: opt,
-        }))}
-        onChange={opt => setDisplayType(opt.value as DisplayType)}
-      />
-    </PanelHeader>
-  );
-}
-
 type QueryBuilderProps = {
-  setQuery: (query: MetricsDataProps) => void;
+  setQuery: (query: QueryBuilderState) => void;
 };
 
 type QueryBuilderState = {
   groupBy: string[];
   mri: string;
   op: string;
-  projects: string[];
   queryString: string;
-  timeRange: Record<string, any>;
 };
 
 type QueryBuilderAction =
@@ -103,16 +104,8 @@ type QueryBuilderAction =
       value: string;
     }
   | {
-      type: 'projects';
-      value: string[];
-    }
-  | {
       type: 'groupBy';
       value: string[];
-    }
-  | {
-      type: 'timeRange';
-      value: Record<string, any>;
     }
   | {
       type: 'queryString';
@@ -120,15 +113,16 @@ type QueryBuilderAction =
     };
 
 function QueryBuilder({setQuery}: QueryBuilderProps) {
-  const {slug} = useOrganization();
   const meta = useMetricsMeta();
+  const mriModeKeyPressed = useKeyPress('`', undefined, true);
+  const [mriMode, setMriMode] = useState(false);
 
-  const {data: projects = []} = useApiQuery<Project[]>(
-    [`/organizations/${slug}/projects/`],
-    {
-      staleTime: Infinity,
+  useEffect(() => {
+    if (mriModeKeyPressed) {
+      setMriMode(!mriMode);
     }
-  );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mriModeKeyPressed]);
 
   const isAllowedOp = (op: string) =>
     !['max_timestamp', 'min_timestamp', 'histogram'].includes(op);
@@ -139,7 +133,7 @@ function QueryBuilder({setQuery}: QueryBuilderProps) {
       const selectedOp = availableOps.includes(state.op) ? state.op : availableOps[0];
       return {...state, mri: action.value, op: selectedOp};
     }
-    if (['op', 'groupBy', 'projects', 'timeRange', 'queryString'].includes(action.type)) {
+    if (['op', 'groupBy', 'queryString'].includes(action.type)) {
       return {...state, [action.type]: action.value};
     }
 
@@ -150,12 +144,7 @@ function QueryBuilder({setQuery}: QueryBuilderProps) {
     mri: '',
     op: '',
     queryString: '',
-    projects: [],
     groupBy: [],
-    timeRange: {
-      relative: '24h',
-      statsPeriod: '24h',
-    },
   });
 
   const {data: tags = []} = useMetricsTags(state.mri);
@@ -176,18 +165,28 @@ function QueryBuilder({setQuery}: QueryBuilderProps) {
         <PageFilterBar condensed>
           <CompactSelect
             searchable
-            triggerProps={{prefix: 'MRI', size: 'sm'}}
-            options={Object.keys(meta).map(mri => ({
-              label: mri,
-              value: mri,
-            }))}
+            triggerProps={{prefix: t('Metric'), size: 'sm'}}
+            options={Object.values(meta)
+              .filter(metric => (mriMode ? true : metric.mri.includes(':custom/')))
+              .map(metric => ({
+                label: mriMode ? metric.mri : metric.name,
+                value: metric.mri,
+                trailingItems: mriMode ? undefined : (
+                  <Fragment>
+                    <Tag tooltipText={t('Type')}>
+                      {getReadableMetricType(metric.type)}
+                    </Tag>
+                    <Tag tooltipText={t('Unit')}>{metric.unit}</Tag>
+                  </Fragment>
+                ),
+              }))}
             value={state.mri}
             onChange={option => {
               dispatch({type: 'mri', value: option.value});
             }}
           />
           <CompactSelect
-            triggerProps={{prefix: 'Operation', size: 'sm'}}
+            triggerProps={{prefix: t('Operation'), size: 'sm'}}
             options={selectedMetric.operations.filter(isAllowedOp).map(op => ({
               label: op,
               value: op,
@@ -196,21 +195,8 @@ function QueryBuilder({setQuery}: QueryBuilderProps) {
             onChange={option => dispatch({type: 'op', value: option.value})}
           />
           <CompactSelect
-            searchable
             multiple
-            triggerProps={{prefix: 'Project', size: 'sm'}}
-            options={projects.map(project => ({
-              label: project.slug,
-              value: project.slug,
-            }))}
-            value={state.projects}
-            onChange={options =>
-              dispatch({type: 'projects', value: options.map(o => o.value)})
-            }
-          />
-          <CompactSelect
-            multiple
-            triggerProps={{prefix: 'Group by', size: 'sm'}}
+            triggerProps={{prefix: t('Group by'), size: 'sm'}}
             options={tags.map(tag => ({
               label: tag.key,
               value: tag.key,
@@ -218,16 +204,6 @@ function QueryBuilder({setQuery}: QueryBuilderProps) {
             value={state.groupBy}
             onChange={options => {
               dispatch({type: 'groupBy', value: options.map(o => o.value)});
-            }}
-          />
-          <TimeRangeSelector
-            relative={state.timeRange.relative}
-            utc={state.timeRange.utc}
-            start={state.timeRange.start}
-            end={state.timeRange.end}
-            size="sm"
-            onChange={data => {
-              dispatch({type: 'timeRange', value: normalizeDateTimeParams(data)});
             }}
           />
         </PageFilterBar>
@@ -293,7 +269,7 @@ function MetricSearchBar({tags, mri, disabled, onChange}: MetricSearchBarProps) 
       supportedTags={supportedTags}
       onClose={handleChange}
       onSearch={handleChange}
-      placeholder="Search for tags"
+      placeholder={t('Filter by tags')}
     />
   );
 }
@@ -320,20 +296,21 @@ type Group = {
 };
 
 type DisplayProps = MetricsDataProps & {
-  displayType: DisplayType;
+  displayType: MetricDisplayType;
 };
 
 function MetricsExplorerDisplayOuter(props?: DisplayProps) {
   if (!props?.mri) {
     return (
       <DisplayWrapper>
-        <EmptyMessage icon={<IconSearch size="xxl" />}>
-          Nothing to show. Choose an MRI to display data!
-        </EmptyMessage>
+        <EmptyMessage
+          icon={<IconSearch size="xxl" />}
+          title={t('Nothing to show!')}
+          description={t('Choose a metric to display data.')}
+        />
       </DisplayWrapper>
     );
   }
-
   return <MetricsExplorerDisplay {...props} />;
 }
 
@@ -344,7 +321,7 @@ function MetricsExplorerDisplay({displayType, ...metricsDataProps}: DisplayProps
     return (
       <DisplayWrapper>
         {isLoading && <LoadingIndicator />}
-        {isError && <Alert type="error">Error while fetching metrics data</Alert>}
+        {isError && <Alert type="error">{t('Error while fetching metrics data')}</Alert>}
       </DisplayWrapper>
     );
   }
@@ -353,7 +330,7 @@ function MetricsExplorerDisplay({displayType, ...metricsDataProps}: DisplayProps
 
   return (
     <DisplayWrapper>
-      {displayType === 'Table' ? (
+      {displayType === MetricDisplayType.TABLE ? (
         <Table data={sorted} />
       ) : (
         <Chart data={sorted} displayType={displayType} />
@@ -367,7 +344,9 @@ function getSeriesName(group: Group, isOnlyGroup = false) {
     return Object.keys(group.series)?.[0] ?? '(none)';
   }
 
-  return Object.values(group.by).join('-') ?? '(none)';
+  return Object.entries(group.by)
+    .map(([key, value]) => `${key}:${String(value).length ? value : t('none')}`)
+    .join(', ');
 }
 
 function sortData(data: MetricsData): MetricsData {
@@ -420,8 +399,10 @@ function normalizeChartTimeParams(data: MetricsData) {
   };
 }
 
-function Chart({data, displayType}: {data: MetricsData; displayType: DisplayType}) {
+function Chart({data, displayType}: {data: MetricsData; displayType: MetricDisplayType}) {
   const {start, end, period, utc} = normalizeChartTimeParams(data);
+
+  const unit = getUnitFromMRI(Object.keys(data.groups[0].series)[0]); // this assumes that all series have the same unit
 
   const series = data.groups.map(g => {
     return {
@@ -447,29 +428,32 @@ function Chart({data, displayType}: {data: MetricsData; displayType: DisplayType
       bottom: 20,
       data: chartSeries.map(s => s.seriesName),
       theme: theme as Theme,
+      formatter: mri => getNameFromMRI(mri),
     }),
     grid: {top: 30, bottom: 40, left: 20, right: 20},
+    tooltip: {
+      valueFormatter: (value: number) => tooltipFormatterUsingUnit(value, unit),
+      nameFormatter: mri => getNameFromMRI(mri),
+    },
+    yAxis: {
+      axisLabel: {
+        formatter: (value: number) => tooltipFormatterUsingUnit(value, unit),
+      },
+    },
   };
 
   return (
-    <Fragment>
-      {getDynamicText({
-        value: (
-          <ChartZoom period={period} start={start} end={end} utc={utc}>
-            {zoomRenderProps =>
-              displayType === 'Line Chart' ? (
-                <LineChart {...chartProps} {...zoomRenderProps} />
-              ) : displayType === 'Area Chart' ? (
-                <AreaChart {...chartProps} {...zoomRenderProps} />
-              ) : (
-                <BarChart stacked {...chartProps} {...zoomRenderProps} />
-              )
-            }
-          </ChartZoom>
-        ),
-        fixed: 'Metrics Chart',
-      })}
-    </Fragment>
+    <ChartZoom period={period} start={start} end={end} utc={utc}>
+      {zoomRenderProps =>
+        displayType === MetricDisplayType.LINE ? (
+          <LineChart {...chartProps} {...zoomRenderProps} />
+        ) : displayType === MetricDisplayType.AREA ? (
+          <AreaChart {...chartProps} {...zoomRenderProps} />
+        ) : (
+          <BarChart stacked {...chartProps} {...zoomRenderProps} />
+        )
+      }
+    </ChartZoom>
   );
 }
 

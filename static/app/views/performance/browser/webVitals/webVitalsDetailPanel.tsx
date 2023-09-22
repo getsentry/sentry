@@ -20,20 +20,18 @@ import {
 } from 'sentry/utils/performance/contexts/pageError';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
-import {PerformanceScoreChart} from 'sentry/views/performance/browser/webVitals/performanceScoreChart';
-import {calculatePerformanceScore} from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
 import {getScoreColor} from 'sentry/views/performance/browser/webVitals/utils/getScoreColor';
 import {
   Row,
   RowWithScore,
   WebVitals,
 } from 'sentry/views/performance/browser/webVitals/utils/types';
-import {useProjectWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/useProjectWebVitalsQuery';
 import {useTransactionWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/useTransactionWebVitalsQuery';
 import {ClsDescription} from 'sentry/views/performance/browser/webVitals/webVitalsDescriptions/cls';
 import {FcpDescription} from 'sentry/views/performance/browser/webVitals/webVitalsDescriptions/fcp';
+import {FidDescription} from 'sentry/views/performance/browser/webVitals/webVitalsDescriptions/fid';
 import {LcpDescription} from 'sentry/views/performance/browser/webVitals/webVitalsDescriptions/lcp';
-import {TbtDescription} from 'sentry/views/performance/browser/webVitals/webVitalsDescriptions/tbt';
+import {TtfbDescription} from 'sentry/views/performance/browser/webVitals/webVitalsDescriptions/ttfb';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
 
 type Column = GridColumnHeader;
@@ -94,7 +92,7 @@ export function WebVitalsDetailPanel({
     }
     if (col.key === 'webVital') {
       let value: string | number = row[mapWebVitalToColumn(webVital)];
-      if (webVital && ['lcp', 'fcp', 'tbt'].includes(webVital)) {
+      if (webVital && ['lcp', 'fcp', 'ttfb', 'fid'].includes(webVital)) {
         value = getDuration(value / 1000, 2, true);
       } else if (webVital === 'cls') {
         value = value?.toFixed(2);
@@ -118,28 +116,11 @@ export function WebVitalsDetailPanel({
     return <NoOverflow>{row[key]}</NoOverflow>;
   };
 
-  const {data: projectWebVitalsData} = useProjectWebVitalsQuery({});
-
-  const projectScore = calculatePerformanceScore({
-    'p75(measurements.lcp)': projectWebVitalsData?.data[0][
-      'p75(measurements.lcp)'
-    ] as number,
-    'p75(measurements.fcp)': projectWebVitalsData?.data[0][
-      'p75(measurements.fcp)'
-    ] as number,
-    'p75(measurements.cls)': projectWebVitalsData?.data[0][
-      'p75(measurements.cls)'
-    ] as number,
-    'p75(measurements.app_init_long_tasks)': projectWebVitalsData?.data[0][
-      'p75(measurements.app_init_long_tasks)'
-    ] as number,
-  });
-
   return (
     <PageErrorProvider>
       <DetailPanel detailKey={detailKey ?? undefined} onClose={onClose}>
         {project && (
-          <SpanSummaryProjectAvatar
+          <StyledProjectAvatar
             project={project}
             direction="left"
             size={40}
@@ -149,11 +130,9 @@ export function WebVitalsDetailPanel({
         )}
         {webVital === 'lcp' && <LcpDescription />}
         {webVital === 'fcp' && <FcpDescription />}
-        {webVital === 'tbt' && <TbtDescription />}
+        {webVital === 'ttfb' && <TtfbDescription />}
         {webVital === 'cls' && <ClsDescription />}
-        <PerformanceScoreChartContainer>
-          <PerformanceScoreChart projectScore={projectScore} webVital={webVital} />
-        </PerformanceScoreChartContainer>
+        {webVital === 'fid' && <FidDescription />}
 
         <h5>{t('Pages to Improve')}</h5>
         <GridEditable
@@ -181,14 +160,16 @@ const mapWebVitalToColumn = (webVital?: WebVitals | null) => {
       return 'p75(measurements.fcp)';
     case 'cls':
       return 'p75(measurements.cls)';
-    case 'tbt':
-      return 'p75(measurements.app_init_long_tasks)';
+    case 'ttfb':
+      return 'p75(measurements.ttfb)';
+    case 'fid':
+      return 'p75(measurements.fid)';
     default:
       return 'count()';
   }
 };
 
-const SpanSummaryProjectAvatar = styled(ProjectAvatar)`
+const StyledProjectAvatar = styled(ProjectAvatar)`
   padding-top: ${space(1)};
   padding-bottom: ${space(2)};
 `;
@@ -202,9 +183,4 @@ const AlignRight = styled('span')<{color?: string}>`
   text-align: right;
   width: 100%;
   ${p => (p.color ? `color: ${p.color};` : '')}
-`;
-
-const PerformanceScoreChartContainer = styled('div')`
-  margin-top: ${space(2)};
-  margin-bottom: ${space(4)};
 `;

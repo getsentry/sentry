@@ -9,7 +9,7 @@ describe('GettingStartedWithASGI', function () {
     render(<GettingStartedWithASGI dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
-    for (const step of steps()) {
+    for (const step of steps({sentryInitContent: 'test-init-content'})) {
       expect(
         screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
       ).toBeInTheDocument();
