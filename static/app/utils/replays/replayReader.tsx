@@ -1,9 +1,11 @@
 import * as Sentry from '@sentry/react';
+import {incrementalSnapshotEvent, IncrementalSource} from '@sentry-internal/rrweb';
 import memoize from 'lodash/memoize';
 import {duration} from 'moment';
 
 import domId from 'sentry/utils/domId';
 import localStorageWrapper from 'sentry/utils/localStorage';
+import countDomNodes from 'sentry/utils/replays/countDomNodes';
 import extractDomNodes from 'sentry/utils/replays/extractDomNodes';
 import hydrateBreadcrumbs, {
   replayInitBreadcrumb,
@@ -27,6 +29,7 @@ import type {
 } from 'sentry/utils/replays/types';
 import {
   BreadcrumbCategories,
+  EventType,
   isDeadClick,
   isDeadRageClick,
   isLCPFrame,
@@ -194,6 +197,15 @@ export default class ReplayReader {
 
   getRRWebFrames = () => this._sortedRRWebEvents;
 
+  getRRWebMutations = () =>
+    this._sortedRRWebEvents.filter(
+      event =>
+        [EventType.IncrementalSnapshot].includes(event.type) &&
+        [IncrementalSource.Mutation].includes(
+          (event as incrementalSnapshotEvent).data.source
+        ) // filter only for mutation events
+    );
+
   getErrorFrames = () => this._errors;
 
   getConsoleFrames = memoize(() =>
@@ -232,6 +244,14 @@ export default class ReplayReader {
       ),
       ...this._sortedSpanFrames.filter(frame => 'nodeId' in (frame.data ?? {})),
     ].sort(sortFrames)
+  );
+
+  countDomNodes = memoize(() =>
+    countDomNodes({
+      frames: this.getRRWebMutations(),
+      rrwebEvents: this.getRRWebFrames(),
+      startTimestampMs: this._replayRecord.started_at.getTime(),
+    })
   );
 
   getDomNodes = memoize(() =>
