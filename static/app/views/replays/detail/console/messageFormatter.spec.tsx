@@ -97,13 +97,13 @@ describe('MessageFormatter', () => {
     expect(screen.getByText('{}')).toBeInTheDocument();
   });
 
-  it('Should ignore the "%c" placheholder and print the console message correctly', () => {
+  it('Should style "%c" placeholder and print the console message correctly', () => {
     const [frame] = hydrateBreadcrumbs(TestStubs.ReplayRecord(), [
       TestStubs.Replay.ConsoleFrame({
         data: {
           arguments: [
             '%c prev state',
-            'color: #9E9E9E; font-weight: bold',
+            'color: #9E9E9E; font-weight: bold; background-image: url(foo);',
             {
               cart: [],
             },
@@ -111,14 +111,19 @@ describe('MessageFormatter', () => {
           logger: 'console',
         },
         level: BreadcrumbLevelType.LOG,
-        message: '%c prev state color: #9E9E9E; font-weight: bold [object Object]',
+        message:
+          '%c prev state color: #9E9E9E; font-weight: bold; background-image: url(foo); [object Object]',
         timestamp: new Date('2022-06-09T00:50:25.273Z'),
       }),
     ]);
 
     render(<MessageFormatter frame={frame} />);
 
-    expect(screen.getByText(/%c prev state/)).toBeInTheDocument();
+    const styledEl = screen.getByText('prev state');
+    expect(styledEl).toBeInTheDocument();
+    expect(styledEl).toHaveStyle('color: #9E9E9E;');
+    expect(styledEl).toHaveStyle('font-weight: bold;');
+    expect(styledEl).not.toHaveStyle('background-image: url(foo);');
     expect(screen.getByText('cart')).toBeInTheDocument();
     expect(screen.getByText('Array(0)')).toBeInTheDocument();
   });
