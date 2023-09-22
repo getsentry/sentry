@@ -6,7 +6,7 @@ import {GettingStartedWithAndroid, steps} from './android';
 
 describe('GettingStartedWithAndroid', function () {
   it('renders doc correctly', function () {
-    render(<GettingStartedWithAndroid dsn="test-dsn" />);
+    render(<GettingStartedWithAndroid dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps({

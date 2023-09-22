@@ -24,7 +24,6 @@ __all__ = (
     "MRI_EXPRESSION_REGEX",
     "parse_mri",
     "get_available_operations",
-    "get_known_mris",
 )
 
 import re
@@ -32,7 +31,6 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import List, Optional
 
-from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics.utils import AVAILABLE_GENERIC_OPERATIONS, AVAILABLE_OPERATIONS, OP_REGEX
 
 NAMESPACE_REGEX = r"(transactions|errors|issues|sessions|alerts|custom|spans)"
@@ -208,12 +206,3 @@ def get_available_operations(parsed_mri: ParsedMRI) -> List[str]:
     else:
         entity_key = f"generic_metrics_{entity_name_suffixes[parsed_mri.entity]}"
         return AVAILABLE_GENERIC_OPERATIONS[entity_key]
-
-
-def get_known_mris(use_case_id: UseCaseID) -> List[str]:
-    if use_case_id is UseCaseID.SESSIONS:
-        return [m.value for m in SessionMRI]
-    elif use_case_id is UseCaseID.TRANSACTIONS:
-        return [m.value for m in TransactionMRI]
-    else:
-        return []
