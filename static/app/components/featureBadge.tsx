@@ -14,10 +14,11 @@ export type BadgeType = 'alpha' | 'beta' | 'new' | 'experimental';
 
 type BadgeProps = {
   type: BadgeType;
+  condensed?: boolean;
   expiresAt?: Date;
   title?: string;
   tooltipProps?: Partial<TooltipProps>;
-  variant?: 'indicator' | 'badge';
+  variant?: 'badge' | 'indicator' | 'short';
 };
 
 type Props = Omit<React.HTMLAttributes<HTMLDivElement>, keyof BadgeProps> & BadgeProps;
@@ -36,6 +37,13 @@ const labels: Record<BadgeType, string> = {
   beta: t('beta'),
   new: t('new'),
   experimental: t('experimental'),
+};
+
+const shortLabels: Record<BadgeType, string> = {
+  alpha: 'a',
+  beta: 'b',
+  new: 'n',
+  experimental: 'e',
 };
 
 function BaseFeatureBadge({
@@ -65,6 +73,7 @@ function BaseFeatureBadge({
       <Tooltip title={title ?? defaultTitles[type]} position="right" {...tooltipProps}>
         <Fragment>
           {variant === 'badge' && <StyledBadge type={type} text={labels[type]} />}
+          {variant === 'short' && <StyledBadge type={type} text={shortLabels[type]} />}
           {variant === 'indicator' && (
             <CircleIndicator color={theme.badge[type].indicatorColor} size={8} />
           )}
