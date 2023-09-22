@@ -6,7 +6,7 @@ from django.db.models import DateTimeField, IntegerField, OuterRef, Q, Subquery,
 from django.db.models.functions import Coalesce
 from django.utils.timezone import make_aware
 from drf_spectacular.utils import extend_schema
-from rest_framework import status
+from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -15,6 +15,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.bases.organization import OrganizationAlertRulePermission, OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.fields.actor import ActorField
 from sentry.api.paginator import (
     CombinedQuerysetIntermediary,
     CombinedQuerysetPaginator,
@@ -22,6 +23,7 @@ from sentry.api.paginator import (
 )
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.alert_rule import CombinedRuleSerializer
+from sentry.api.serializers.rest_framework.project import ProjectField
 from sentry.api.utils import InvalidParams
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.examples.metric_alert_examples import MetricAlertExamples
@@ -254,6 +256,97 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
         return response
 
 
+class OrganizationAlertRuleIndexPostSerializer(serializers.Serializer):
+    name = serializers.CharField(max_length=64, help_text="The name for the rule.")
+    owner = ActorField(
+        required=False, allow_null=True, help_text="The ID of the team or user that owns the rule."
+    )
+    environment = serializers.CharField(
+        required=False, allow_null=True, help_text="The name of the environment to filter by."
+    )
+    projects = serializers.ListField(
+        child=ProjectField(scope="project:read"),
+        required=False,
+        help_text="The names of the projects to filter by.",
+    )
+    # includeAllProjects, excludedProjects TODO: left out because these don't seem to exist on the ui
+    triggers = serializers.ListField(
+        help_text="""
+    A list of triggers, where each trigger is an object with the following fields:
+    - `label`: One of `critical` or `warning`. A `critical` trigger is always required.
+    - `alertThreshold`: The value that the subscription needs to reach to trigger the
+    alert rule.
+    - `actions`: A list of actions that take place when the threshold is met.
+    ```json
+    {
+        "label": "critical",
+        "alertThreshold": 50,
+        "actions": [
+            {
+                "type": "slack",
+                "targetIdentifier": "#get-crit",
+                "targetType": "specific",
+                "integration": 653532,
+            }
+        ]
+    }
+    ```
+    Metric alert rule trigger actions follow the following structure:
+    - `type`: The type of trigger action. Valid values are `email`, `slack`, `msteams`, `pagerduty`, `sentry_app`, `sentry_notification`, and `opsgenie`.
+    - `targetType`: The type of target the notification will be sent to. Valid values are `specific`, `user`, `team`, and `sentry_app`.
+    - `targetIdentifier`: The ID of the target. This is required as an integer for PagerDuty and Sentry apps, and as a string for all others. Examples of appropriate values include a Slack channel name (`#my-channel`), a user ID, a team ID, a Sentry app ID, etc.
+    - `integration`: The integration ID. This is required for every action type excluding `email` and `sentry_app.`
+    - `sentryAppId`: The ID of the Sentry app. This is required when `type` is `sentry_app`.
+"""
+    )  # TODO: add possible actions
+    aggregate = serializers.CharField(
+        help_text="A string representing the aggregate used in this alert rule."
+    )  # TODO: how are we going to enforce what aggregates users use? need to list each possible aggregate?? there are 68 with the custom metric options
+    queryType = serializers.CharField(
+        required=False, help_text="The `SnubaQuery.Type` of the query"
+    )
+    query = serializers.CharField(
+        help_text="An event search query to subscribe to and monitor for alerts. Use an empty string for no filter."
+    )
+    timeWindow = serializers.ChoiceField(
+        choices=(
+            ("1", "1 minute"),
+            ("5", "5 minutes"),
+            ("10", "10 minutes"),
+            ("15", "15 minutes"),
+            ("30", "30 minutes"),
+            ("60", "1 hour"),
+            ("120", "2 hours"),
+            ("240", "4 hours"),
+            ("1440", "24 hours"),
+        ),
+        help_text="The time period to aggregate over.",
+    )
+    thresholdType = serializers.ChoiceField(
+        choices=((0, "Above"), (1, "Below")),
+        help_text="The comparison operator for the critical and warning thresholds. The comparison operator for the resolved threshold is automatically set to the opposite operator.",
+    )
+    thresholdPeriod = serializers.IntegerField(
+        help_text="How many times an alert value must exceed the threshold to fire/resolve the alert."
+    )  # TODO: check if this is in the ui?
+    resolveThreshold = serializers.FloatField(
+        required=False,
+        help_text="Optional value that the subscription needs to reach to resolve the alert",
+    )
+    comparisonDelta = serializers.IntegerField(
+        required=False,
+        help_text="An optional int representing the time delta to use to determine the comparison period. In minutes.",
+    )
+    dataset = serializers.CharField(
+        required=False, help_text="The dataset that this query will be executed on."
+    )  # TODO: determine if this should be included (confirm ui equivalent)
+    eventTypes = serializers.ListField(
+        child=serializers.CharField(),
+        required=False,
+        help_text="List of event types that this alert will be related to.",
+    )
+
+
 @extend_schema(tags=["Events"])
 @region_silo_endpoint
 class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMixin):
@@ -283,6 +376,20 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMix
         """
         return self.fetch_metric_alert(request, organization)
 
+    @extend_schema(
+        operation_id="Create a Metric Alert Rule for an Organization",
+        parameters=[GlobalParams.ORG_SLUG],
+        request=OrganizationAlertRuleIndexPostSerializer,
+        responses={
+            201: inline_sentry_response_serializer(
+                "MetricAlertRuleCreated", AlertRuleSerializerResponse
+            ),
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+        examples=MetricAlertExamples.CREATE_METRIC_ALERT_RULE,
+    )
     def post(self, request: Request, organization) -> Response:
         """
         Create a metric alert rule
