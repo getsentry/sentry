@@ -3,7 +3,6 @@
 from django.db import migrations
 
 from sentry.new_migrations.migrations import CheckedMigration
-
 from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 
 
