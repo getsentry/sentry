@@ -499,6 +499,26 @@ def test_dont_store_inexisting_rules(_, default_organization):
 
 
 @django_db_all
+def test_record_span_descriptions_no_databag(default_organization):
+    """Verify a `None` databag doesn't break the span description clusterer."""
+    with Feature("projects:span-metrics-extraction"), override_options(
+        {"span_descs.bump-lifetime-sample-rate": 1.0}
+    ):
+        payload = {
+            "spans": [
+                {
+                    "description": "GET a",
+                    "op": "http.client",
+                    "data": None,
+                }
+            ],
+        }
+
+        project = Project(id=123, name="project", organization_id=default_organization.id)
+        record_span_descriptions(project, payload)
+
+
+@django_db_all
 def test_stale_rules_arent_saved(default_project):
     assert len(get_sorted_rules(ClustererNamespace.SPANS, default_project)) == 0
 
