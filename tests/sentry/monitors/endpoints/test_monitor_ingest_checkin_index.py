@@ -244,7 +244,7 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
             resp = self.client.post(path, {"status": "error"}, **self.token_auth_headers)
             assert resp.status_code == 404
 
-    def test_monitor_creation_and_update_via_checkin(self):
+    def test_monitor_upsert_via_checkin(self):
         for i, path_func in enumerate(self._get_path_functions()):
             slug = f"my-new-monitor-{i}"
             path = path_func(slug)
@@ -286,6 +286,31 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
 
             checkins = MonitorCheckIn.objects.filter(monitor=monitor)
             assert len(checkins) == 2
+
+    def test_monitor_upsert_checkin_margin_zero(self):
+        """
+        As part of GH-56526 we changed the minimum value allowed for the
+        checkin_margin to 1 from 0. Some monitors may still be upserting with a
+        0 set, we transform it to None in those cases.
+        """
+        for i, path_func in enumerate(self._get_path_functions()):
+            slug = f"my-new-monitor-{i}"
+            path = path_func(slug)
+
+            resp = self.client.post(
+                path,
+                {
+                    "status": "ok",
+                    "monitor_config": {
+                        "schedule_type": "crontab",
+                        "schedule": "5 * * * *",
+                        "checkin_margin": 0,
+                    },
+                },
+                **self.dsn_auth_headers,
+            )
+            assert resp.status_code == 201, resp.content
+            assert Monitor.objects.get(slug=slug).config["checkin_margin"] == 1
 
     def test_monitor_creation_invalid_slug(self):
         for i, path_func in enumerate(self._get_path_functions()):

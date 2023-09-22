@@ -279,3 +279,19 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
         )
         assert rule is not None
         assert rule.environment_id == self.environment.id
+
+    def test_checkin_margin_zero(self):
+        # Invalid checkin margin
+        #
+        # XXX(epurkhiser): We currently transform 0 -> 1 for backwards
+        # compatability. If we remove the custom transformer in the config
+        # validator this test will chagne to a get_error_response test.
+        data = {
+            "project": self.project.slug,
+            "name": "My Monitor",
+            "slug": "cron_job",
+            "type": "cron_job",
+            "config": {"schedule_type": "crontab", "schedule": "@daily", "checkin_margin": 0},
+        }
+        response = self.get_success_response(self.organization.slug, **data)
+        assert Monitor.objects.get(slug=response.data["slug"]).config["checkin_margin"] == 1
