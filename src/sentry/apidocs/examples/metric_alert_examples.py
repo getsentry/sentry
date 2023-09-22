@@ -43,3 +43,7 @@ class MetricAlertExamples:
             ],
         )
     ]
+
+    CREATE_METRIC_ALERT_RULE = [
+        OpenApiExample("Create a metric alert rule for an organization", value={})
+    ]
