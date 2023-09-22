@@ -5,6 +5,7 @@ from typing import Any, Collection, List, Mapping
 
 from django.db import models
 from django.utils import timezone
+from sentry_sdk import capture_exception
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models.base import control_silo_only_model, sane_repr
@@ -12,6 +13,7 @@ from sentry.db.models.fields import BoundedBigIntegerField
 from sentry.db.models.outboxes import ReplicatedControlModel
 from sentry.models.outbox import ControlOutboxBase, OutboxCategory
 from sentry.services.hybrid_cloud import REGION_NAME_LENGTH
+from sentry.utils.env import in_test_environment
 
 
 class OrganizationSlugReservationType(IntEnum):
@@ -93,6 +95,13 @@ class OrganizationSlugReservation(ReplicatedControlModel):
         shard_identifier: int,
         payload: Mapping[str, Any] | None,
     ) -> None:
+        if payload is None:
+            capture_exception(Exception("Attempted async deletion on org slug without a payload"))
+
+            if in_test_environment():
+                raise
+
+            return
         org_id = payload.get("organization_id", None)
         slug = payload.get("slug", None)
 
