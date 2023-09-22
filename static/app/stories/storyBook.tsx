@@ -45,6 +45,10 @@ export default function storyBook(rootName: string, setup: SetupFn) {
 
 const Story = styled('section')`
   margin-bottom: ${space(4)};
+
+  & > p {
+    margin: ${space(3)} 0;
+  }
 `;
 
 const StoryTitle = styled('h4')`
