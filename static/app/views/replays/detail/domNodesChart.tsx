@@ -23,7 +23,7 @@ import ReplayReader from 'sentry/utils/replays/replayReader';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 
 interface Props {
-  datapoints: DomNodeChartDatapoint[] | undefined;
+  datapoints: DomNodeChartDatapoint[];
   setCurrentHoverTime: (time: undefined | number) => void;
   setCurrentTime: (time: number) => void;
   startTimestampMs: undefined | number;
