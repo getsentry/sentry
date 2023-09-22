@@ -413,7 +413,7 @@ class User(BaseModel, AbstractBaseUser):
             "".join(secrets.choice(RANDOM_PASSWORD_ALPHABET) for _ in range(RANDOM_PASSWORD_LENGTH))
         )
 
-        if scope != ImportScope.Global:
+        if scope not in {ImportScope.Config, ImportScope.Global}:
             self.is_staff = False
             self.is_superuser = False
             self.is_managed = False
@@ -433,7 +433,7 @@ class User(BaseModel, AbstractBaseUser):
             from sentry.services.hybrid_cloud.lost_password_hash import lost_password_hash_service
 
             serializer_cls = BaseUserSerializer
-            if scope != ImportScope.Global:
+            if scope not in {ImportScope.Config, ImportScope.Global}:
                 serializer_cls = UserSerializer
             else:
                 serializer_cls = SuperuserUserSerializer
