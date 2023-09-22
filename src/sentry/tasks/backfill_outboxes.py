@@ -36,17 +36,25 @@ def get_backfill_key(table_name: str) -> str:
 
 
 def get_processing_state(table_name: str) -> Tuple[int, int]:
+    result: Tuple[int, int]
     with redis.clusters.get("default").get_local_client_for_key("backfill_outboxes") as client:
         key = get_backfill_key(table_name)
         v = client.get(key)
         if v is None:
             result = (0, 1)
             client.set(key, json.dumps(result))
-            return result
-        lower, version = json.loads(v)
-        if not (isinstance(lower, int) and isinstance(version, int)):
-            raise TypeError("Expected processing data to be a tuple of (int, int)")
-        return lower, version
+        else:
+            lower, version = json.loads(v)
+            if not (isinstance(lower, int) and isinstance(version, int)):
+                raise TypeError("Expected processing data to be a tuple of (int, int)")
+            result = lower, version
+        metrics.gauge(
+            "backfill_outboxes.low_bound",
+            result[1],
+            tags=dict(table_name=table_name, version=result[0]),
+            sample_rate=1.0,
+        )
+        return result
 
 
 def set_processing_state(table_name: str, value: int, version: int) -> None:
@@ -149,28 +157,37 @@ def backfill_outboxes_for(
     # from an expected rate.
     remaining_to_backfill = max_batch_rate - scheduled_count
     backfilled = 0
-    if remaining_to_backfill <= 0:
-        return False
 
-    for app, app_models in apps.all_models.items():
-        for model in app_models.values():
-            if not hasattr(model._meta, "silo_limit"):
-                continue
+    if remaining_to_backfill > 0:
+        for app, app_models in apps.all_models.items():
+            for model in app_models.values():
+                if not hasattr(model._meta, "silo_limit"):
+                    continue
 
-            # Only process models local this operational mode.
-            if silo_mode is not SiloMode.MONOLITH and silo_mode not in model._meta.silo_limit.modes:
-                continue
+                # Only process models local this operational mode.
+                if (
+                    silo_mode is not SiloMode.MONOLITH
+                    and silo_mode not in model._meta.silo_limit.modes
+                ):
+                    continue
 
-            # If we find some backfill work to perform, do it.
-            batch = process_outbox_backfill_batch(
-                model, batch_size=remaining_to_backfill, force_synchronous=force_synchronous
-            )
-            if batch is None:
-                continue
+                # If we find some backfill work to perform, do it.
+                batch = process_outbox_backfill_batch(
+                    model, batch_size=remaining_to_backfill, force_synchronous=force_synchronous
+                )
+                if batch is None:
+                    continue
 
-            remaining_to_backfill -= batch.count
-            backfilled += batch.count
-            if remaining_to_backfill <= 0:
-                break
+                remaining_to_backfill -= batch.count
+                backfilled += batch.count
+                if remaining_to_backfill <= 0:
+                    break
 
+    metrics.incr(
+        "backfill_outboxes.backfilled",
+        amount=backfilled,
+        tags=dict(silo_mode=silo_mode.name, force_synchronous=force_synchronous),
+        skip_internal=True,
+        sample_rate=1.0,
+    )
     return backfilled > 0

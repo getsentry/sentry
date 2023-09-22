@@ -287,6 +287,9 @@ register("filestore.options", default={"location": "/tmp/sentry-files"}, flags=F
 register("filestore.control.backend", default="", flags=FLAG_NOSTORE)
 register("filestore.control.options", default={}, flags=FLAG_NOSTORE)
 
+# Whether to use a redis lock on fileblob uploads and deletes
+register("fileblob.upload.use_lock", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
 # Symbol server
 register(
     "symbolserver.enabled",
@@ -1577,6 +1580,12 @@ register(
 
 register(
     "delightful_metrics.enable_capture_envelope",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "delightful_metrics.enable_common_tags",
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

@@ -16,7 +16,6 @@ from sentry.models.useremail import UserEmail
 from sentry.models.userip import UserIP
 from sentry.testutils.helpers.backups import BackupTestCase, export_to_file
 from sentry.utils.json import JSONData
-from tests.sentry.backup import run_backup_tests_only_on_single_db
 
 
 class ExportTestCase(BackupTestCase):
@@ -25,7 +24,6 @@ class ExportTestCase(BackupTestCase):
         return export_to_file(tmp_path, **kwargs)
 
 
-@run_backup_tests_only_on_single_db
 class ScopingTests(ExportTestCase):
     """
     Ensures that only models with the allowed relocation scopes are actually exported.
@@ -50,7 +48,7 @@ class ScopingTests(ExportTestCase):
                 model_name = entry["model"]
                 if model_name not in matching_models:
                     raise AssertionError(
-                        f"Model `${model_name}` was included in export despite not being `Relocation.User`"
+                        f"Model `${model_name}` was included in export despite not being `RelocationScope.User`"
                     )
 
     def test_organization_export_scoping(self):
@@ -62,11 +60,34 @@ class ScopingTests(ExportTestCase):
                 model_name = entry["model"]
                 if model_name not in matching_models:
                     raise AssertionError(
-                        f"Model `${model_name}` was included in export despite not being `Relocation.User` or `Relocation.Organization`"
+                        f"Model `${model_name}` was included in export despite not being `RelocationScope.User` or `RelocationScope.Organization`"
+                    )
+
+    def test_config_export_scoping(self):
+        matching_models = self.get_models_for_scope(ExportScope.Config)
+        self.create_exhaustive_instance(is_superadmin=True)
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            data = self.export(tmp_dir, scope=ExportScope.Config)
+            for entry in data:
+                model_name = entry["model"]
+                if model_name not in matching_models:
+                    raise AssertionError(
+                        f"Model `${model_name}` was included in export despite not being `RelocationScope.User` or `RelocationScope.Config`"
+                    )
+
+    def test_global_export_scoping(self):
+        matching_models = self.get_models_for_scope(ExportScope.Global)
+        self.create_exhaustive_instance(is_superadmin=True)
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            data = self.export(tmp_dir, scope=ExportScope.Global)
+            for entry in data:
+                model_name = entry["model"]
+                if model_name not in matching_models:
+                    raise AssertionError(
+                        f"Model `${model_name}` was included in export despite being labeled `RelocationScope.Excluded"
                     )
 
 
-@run_backup_tests_only_on_single_db
 class FilteringTests(ExportTestCase):
     """
     Ensures that filtering operations include the correct models.
