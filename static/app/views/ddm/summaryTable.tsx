@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {formatMetricsUsingUnitAndOp, getNameFromMRI} from 'sentry/utils/metrics';
 import {Series} from 'sentry/views/ddm/metricsExplorer';
@@ -17,11 +18,11 @@ export function SummaryTable({
   return (
     <SummaryTableWrapper>
       <HeaderCell />
-      <HeaderCell>Name</HeaderCell>
-      <HeaderCell>Avg</HeaderCell>
-      <HeaderCell>Min</HeaderCell>
-      <HeaderCell>Max</HeaderCell>
-      <HeaderCell>Sum</HeaderCell>
+      <HeaderCell>{t('Name')}</HeaderCell>
+      <HeaderCell>{t('Avg')}</HeaderCell>
+      <HeaderCell>{t('Min')}</HeaderCell>
+      <HeaderCell>{t('Max')}</HeaderCell>
+      <HeaderCell>{t('Sum')}</HeaderCell>
 
       {series.map(({seriesName, color, hidden, unit, data}) => {
         const {avg, min, max, sum} = getValues(data);

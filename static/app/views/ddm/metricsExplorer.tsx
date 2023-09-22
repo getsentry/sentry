@@ -336,7 +336,7 @@ function MetricsExplorerDisplay({displayType, ...metricsDataProps}: DisplayProps
 
   // TODO(ddm): we should move this into the useMetricsData hook
   const sorted = sortData(data);
-  const unit = getUnitFromMRI(Object.keys(data.groups[0].series)[0]); // this assumes that all series have the same unit
+  const unit = getUnitFromMRI(Object.keys(data.groups[0]?.series ?? {})[0]); // this assumes that all series have the same unit
 
   const series = sorted.groups.map(g => {
     return {
