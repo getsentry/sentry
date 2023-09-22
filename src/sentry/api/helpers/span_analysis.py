@@ -89,7 +89,7 @@ def span_analysis(data):
                 "freq_delta": freq_delta,
                 "duration_delta": duration_delta,
                 "duration_before": row1["avg_duration"],
-                "duration_after": row2["avg_duration"]
+                "duration_after": row2["avg_duration"],
             }
         )
 
