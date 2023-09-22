@@ -7,8 +7,6 @@ source: tests/sentry/dynamic_sampling/rules/biases/test_custom_rule_bias.py
     name: environment
     op: equals
     value: prod1
-  decayingFn:
-    type: constant
   id: 3001
   samplingValue:
     type: sampleRate
@@ -21,8 +19,6 @@ source: tests/sentry/dynamic_sampling/rules/biases/test_custom_rule_bias.py
     name: environment
     op: equals
     value: prod2
-  decayingFn:
-    type: constant
   id: 3002
   samplingValue:
     type: sampleRate
