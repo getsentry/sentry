@@ -1,5 +1,6 @@
 from copy import deepcopy
 from datetime import datetime
+from typing import List
 
 from django.db.models import DateTimeField, IntegerField, OuterRef, Q, Subquery, Value
 from django.db.models.functions import Coalesce
@@ -22,17 +23,15 @@ from sentry.api.paginator import (
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.alert_rule import CombinedRuleSerializer
 from sentry.api.utils import InvalidParams
-from sentry.apidocs.constants import (
-    RESPONSE_FORBIDDEN,
-    RESPONSE_NOT_FOUND,
-    RESPONSE_SUCCESS,
-    RESPONSE_UNAUTHORIZED,
-)
+from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
+from sentry.apidocs.examples.metric_alert_examples import MetricAlertExamples
 from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
 from sentry.incidents.logic import get_slack_actions_with_async_lookups
 from sentry.incidents.models import AlertRule, Incident
 from sentry.incidents.serializers import AlertRuleSerializer
+from sentry.incidents.serializers.alert_rule import AlertRuleSerializerResponse
 from sentry.incidents.utils.sentry_apps import trigger_sentry_app_action_creators_for_incidents
 from sentry.integrations.slack.utils import RedisRuleStatus
 from sentry.models import OrganizationMemberTeam, Project, Rule, Team
@@ -269,16 +268,18 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMix
         parameters=[GlobalParams.ORG_SLUG],
         request=None,
         responses={
-            200: RESPONSE_SUCCESS,  # TODO: update
+            200: inline_sentry_response_serializer(
+                "ListMetricAlertRules", List[AlertRuleSerializerResponse]
+            ),
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
-        examples=None,  # TODO: make
+        examples=MetricAlertExamples.LIST_METRIC_ALERT_RULES,  # TODO: make
     )
     def get(self, request: Request, organization) -> Response:
         """
-        Fetches metric alert rules for an organization
+        Return a list of active metric alert rules bound to an organization.
         """
         return self.fetch_metric_alert(request, organization)
 
