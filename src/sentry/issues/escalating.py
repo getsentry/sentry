@@ -193,7 +193,7 @@ def _query_with_pagination(
         metrics_query = _generate_generic_metrics_backend_query(
             organization_id, project_ids, group_ids, start_date, end_date, category
         )
-        projects = Project.objects.filter(id_in=project_ids)
+        projects = Project.objects.filter(id__in=project_ids)
         metrics_results = get_series(
             projects=projects, metrics_query=metrics_query, use_case_id=UseCaseID.ESCALATING_ISSUES
         )
@@ -232,7 +232,7 @@ def _generate_generic_metrics_backend_query(
         MetricField(metric_mri=ErrorsMRI.EVENT_INGESTED.value, alias="event_ingested", op=None),
     ]
 
-    groupby = [MetricGroupByField(field="project_id"), Column(name="tags[group_id]")]
+    groupby = [MetricGroupByField(field="project_id"), MetricGroupByField(field="tags[group_id]")]
 
     where = [
         Condition(
