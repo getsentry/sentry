@@ -214,7 +214,7 @@ class NotificationActionSerializer(CamelSnakeModelSerializer):
             target_identifier: Discord channel id
         NOTE: Reaches out to via discord integration to verify channel
         """
-        from sentry.integrations.discord.utils.channel import validate_channel_id_discord
+        from sentry.integrations.discord.utils.channel import validate_channel_id
 
         if (
             data["service_type"] != ActionService.DISCORD.value
@@ -231,7 +231,7 @@ class NotificationActionSerializer(CamelSnakeModelSerializer):
             )
 
         try:
-            validate_channel_id_discord(
+            validate_channel_id(
                 channel_id=channel_id,
                 guild_id=self.integration.external_id,
                 integration_id=self.integration.id,

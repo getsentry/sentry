@@ -74,7 +74,8 @@ class DiscordClient(IntegrationProxyClient):
 
     def get_channel(self, channel_id: str) -> object | None:
         """
-        Get a channel by id.
+        Get a channel by id. Returns the guild_id and the channel name.
+        NOTE: guild id maps directly to the integration id
         """
         return self.get(self.CHANNEL_URL.format(channel_id=channel_id))
 

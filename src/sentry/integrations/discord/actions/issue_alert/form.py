@@ -6,11 +6,13 @@ from django import forms
 from django.core.exceptions import ValidationError
 from django.forms.fields import ChoiceField
 
-from sentry.integrations.discord.utils.channel import validate_channel_id_discord
+from sentry.integrations.discord.utils.channel import validate_channel_id
 from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.shared_integrations.exceptions import IntegrationError
 
 
 class DiscordNotifyServiceForm(forms.Form):
+    # NOTE: server (guild id) maps directly to the integration ID
     server = forms.ChoiceField(choices=(), widget=forms.Select())
     channel_id = forms.CharField(widget=forms.TextInput())
     tags = forms.CharField(required=False, widget=forms.TextInput())
@@ -41,17 +43,19 @@ class DiscordNotifyServiceForm(forms.Form):
                 code="invalid",
             )
 
-        if channel_id and isinstance(channel_id, str):
-            try:
-                validate_channel_id_discord(
-                    channel_id=channel_id,
-                    guild_id=integration.external_id,
-                    integration_id=integration.id,
-                )
-            except ValidationError as e:
-                raise forms.ValidationError(
-                    self._format_discord_error_message("; ".join(e.messages)),
-                    code="invalid",
-                )
-
-        return cleaned_data
+        try:
+            validate_channel_id(
+                channel_id=channel_id,
+                integration_id=integration.id,
+            )
+        except ValidationError as e:
+            raise forms.ValidationError(
+                self._format_discord_error_message("; ".join(e.messages)),
+                code="invalid",
+            )
+        except IntegrationError as e:
+            raise forms.ValidationError(
+                self._format_discord_error_message("; ".join(str(e))),
+                code="invalid",
+            )
+        return cleaned_data  # maybe put in the try catch
