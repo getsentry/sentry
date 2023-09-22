@@ -422,13 +422,15 @@ def query_transactions(
     transactions_per_project: int,
 ) -> List[DetectorPayload]:
 
+    use_case_id = UseCaseID.TRANSACTIONS
+
     # both the metric and tag that we are using are hardcoded values in sentry_metrics.indexer.strings
     # so the org_id that we are using does not actually matter here, we only need to pass in an org_id
     duration_metric_id = indexer.resolve(
-        UseCaseID.TRANSACTIONS, org_ids[0], str(TransactionMRI.DURATION.value)
+        use_case_id, org_ids[0], str(TransactionMRI.DURATION.value)
     )
     transaction_name_metric_id = indexer.resolve(
-        UseCaseID.TRANSACTIONS,
+        use_case_id,
         org_ids[0],
         "transaction",
     )
@@ -504,6 +506,7 @@ def query_transactions(
             # As it is now (09-13-2023), this query will likely be throttled (i.e be slower) by the allocation
             # policy as soon as we start scanning more than just the sentry org
             "organization_id": -42069,
+            "use_case_id": use_case_id.value,
         },
     )
     data = raw_snql_query(
