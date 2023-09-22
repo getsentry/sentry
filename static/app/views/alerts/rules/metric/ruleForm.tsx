@@ -1034,7 +1034,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
 }
 
 const Main = styled(Layout.Main)`
-  padding: ${space(2)} ${space(4)};
+  max-width: 1000px;
 `;
 
 const StyledListItem = styled(ListItem)`

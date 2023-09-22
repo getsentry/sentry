@@ -1,6 +1,5 @@
 import {Component, Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
-import styled from '@emotion/styled';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -80,7 +79,7 @@ class ProjectAlertsEditor extends Component<Props, State> {
             <Layout.Title>{this.getTitle()}</Layout.Title>
           </Layout.HeaderContent>
         </Layout.Header>
-        <EditConditionsBody>
+        <Layout.Body>
           <Teams provideUserTeams>
             {({teams, initiallyLoaded}) =>
               initiallyLoaded ? (
@@ -108,16 +107,10 @@ class ProjectAlertsEditor extends Component<Props, State> {
               )
             }
           </Teams>
-        </EditConditionsBody>
+        </Layout.Body>
       </Fragment>
     );
   }
 }
-
-const EditConditionsBody = styled(Layout.Body)`
-  *:not(img) {
-    max-width: 1000px;
-  }
-`;
 
 export default ProjectAlertsEditor;
