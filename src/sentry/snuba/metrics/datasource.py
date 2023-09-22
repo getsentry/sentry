@@ -42,7 +42,6 @@ from sentry.snuba.metrics.naming_layer.mapping import get_mri
 from sentry.snuba.metrics.naming_layer.mri import (
     MRI_SCHEMA_REGEX,
     get_available_operations,
-    get_known_mris,
     is_custom_measurement,
     parse_mri,
 )
@@ -150,9 +149,8 @@ def get_metrics_meta(projects: Sequence[Project], use_case_id: UseCaseID) -> Seq
     metas = []
 
     stored_mris = get_stored_mris(projects, use_case_id) if projects else []
-    unique_mris = set(get_known_mris(use_case_id) + stored_mris)
 
-    for mri in sorted(unique_mris):
+    for mri in stored_mris:
         parsed_mri = parse_mri(mri)
 
         # TODO(ogi): check how is this possible
