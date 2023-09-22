@@ -22,6 +22,11 @@ interface CodeSnippetProps {
   disableUserSelection?: boolean;
   filename?: string;
   hideCopyButton?: boolean;
+  /**
+   * Fires after the code snippet is highlighted and all DOM nodes are available
+   * @param element The root element of the code snippet
+   */
+  onAfterHighlight?: (element: HTMLElement) => void;
   onCopy?: (copiedCode: string) => void;
   /**
    * Fired when the user selects and copies code snippet manually
@@ -45,6 +50,7 @@ export function CodeSnippet({
   className,
   onSelectAndCopy,
   disableUserSelection,
+  onAfterHighlight,
   selectedTab,
   onTabClick,
   tabs,
@@ -58,18 +64,21 @@ export function CodeSnippet({
     }
 
     if (language in Prism.languages) {
-      Prism.highlightElement(element);
+      Prism.highlightElement(element, false, () => onAfterHighlight?.(element));
       return;
     }
 
-    loadPrismLanguage(language, {onLoad: () => Prism.highlightElement(element)});
-  }, [children, language]);
+    loadPrismLanguage(language, {
+      onLoad: () =>
+        Prism.highlightElement(element, false, () => onAfterHighlight?.(element)),
+    });
+  }, [children, language, onAfterHighlight]);
 
   const [tooltipState, setTooltipState] = useState<'copy' | 'copied' | 'error'>('copy');
 
   const handleCopy = () => {
     navigator.clipboard
-      .writeText(children)
+      .writeText(ref.current?.textContent ?? '')
       .then(() => {
         setTooltipState('copied');
       })
