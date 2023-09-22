@@ -20,6 +20,7 @@ from sentry.models import UserIP
 from sentry.services.hybrid_cloud.auth import auth_service, authentication_request_from
 from sentry.silo import SiloMode
 from sentry.utils.auth import AuthUserPasswordExpired, logger
+from sentry.utils.linksign import process_signature
 
 
 def get_user(request):
@@ -68,12 +69,12 @@ class AuthenticationMiddleware(MiddlewareMixin):
 
         # If there is a valid signature on the request we override the
         # user with the user contained within the signature.
-        # user = process_signature(request)
+        user = process_signature(request)
 
-        # if user is not None:
-        #     request.user = user
-        #     request.user_from_signed_request = True
-        #     return
+        if user is not None:
+            request.user = user
+            request.user_from_signed_request = True
+            return
 
         return self.impl.process_request(request)
 
