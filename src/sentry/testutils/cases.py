@@ -471,7 +471,7 @@ class TestCase(BaseTestCase, DjangoTestCase):
                             if mode is SiloMode.REGION:
                                 # TODO: Can we infer the correct region here?  would need to package up the
                                 # the request dictionary into a higher level object, which also involves invoking
-                                # _base_environ and maybe other logic burried in Client.....
+                                # _base_environ and maybe other logic buried in Client.....
                                 region = get_region_by_name(settings.SENTRY_MONOLITH_REGION)
                             with SiloMode.exit_single_process_silo_context(), SiloMode.enter_single_process_silo_context(
                                 mode, region
