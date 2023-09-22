@@ -19,6 +19,7 @@ from sentry.utils import json
 __all__ = (
     "import_in_user_scope",
     "import_in_organization_scope",
+    "import_in_config_scope",
     "import_in_global_scope",
 )
 
@@ -274,12 +275,42 @@ def import_in_organization_scope(
     )
 
 
+def import_in_config_scope(
+    src,
+    *,
+    flags: ImportFlags | None = None,
+    user_filter: set[str] | None = None,
+    printer=click.echo,
+):
+    """
+    Perform an import in the `Config` scope, meaning that we will import all models required to
+    globally configure and administrate a Sentry instance from the provided `src` file. This
+    requires importing all users in the supplied file, including those with administrator
+    privileges.
+
+    Like imports in the `Global` scope, superuser and administrator privileges are not sanitized.
+    Unlike the `Global` scope, however, user-specific authentication information 2FA methods and
+    social login connections are not retained.
+    """
+
+    # Import here to prevent circular module resolutions.
+    from sentry.models.user import User
+
+    return _import(
+        src,
+        ImportScope.Config,
+        flags=flags,
+        filter_by=Filter(User, "username", user_filter) if user_filter is not None else None,
+        printer=printer,
+    )
+
+
 def import_in_global_scope(src, *, flags: ImportFlags | None = None, printer=click.echo):
     """
     Perform an import in the `Global` scope, meaning that all models will be imported from the
     provided source file. Because a `Global` import is really only useful when restoring to a fresh
     Sentry instance, some behaviors in this scope are different from the others. In particular,
-    superuser privileges are not sanitized.
+    superuser privileges are not sanitized. This method can be thought of as a "pure" backup/restore, simply serializing and deserializing a (partial) snapshot of the database state.
     """
 
     return _import(src, ImportScope.Global, flags=flags, printer=printer)
