@@ -195,6 +195,30 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
     }
   }
 
+  async function handleReEnable() {
+    try {
+      await api.requestPromise(
+        `/projects/${organization.slug}/${projectSlug}/rules/${ruleId}/enable/`,
+        {method: 'PUT'}
+      );
+
+      // Update alert rule to remove disableDate
+      setApiQueryData<IssueAlertRule>(
+        queryClient,
+        getIssueAlertDetailsQueryKey({orgSlug: organization.slug, projectSlug, ruleId}),
+        alertRule => ({...alertRule, disableDate: undefined})
+      );
+
+      addSuccessMessage(t('Successfully re-enabled'));
+    } catch (err) {
+      addErrorMessage(
+        typeof err.responseJSON?.detail === 'string'
+          ? err.responseJSON.detail
+          : t('Unable to update alert rule')
+      );
+    }
+  }
+
   function handleUpdateDatetime(datetime: ChangeData) {
     const {start, end, relative, utc} = datetime;
 
@@ -280,6 +304,25 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
   }
 
   function renderDisabledAlertBanner() {
+    // Rule has been disabled and has a disabled date indicating it was disabled due to lack of activity
+    if (rule?.status === 'disabled' && moment(new Date()).isAfter(rule.disableDate)) {
+      return (
+        <Alert type="warning" showIcon>
+          {tct(
+            'This alert was disabled due to lack of activity. Please [keepAlive] to enable this alert.',
+            {
+              keepAlive: (
+                <BoldButton priority="link" size="sm" onClick={handleReEnable}>
+                  {t('click here')}
+                </BoldButton>
+              ),
+            }
+          )}
+        </Alert>
+      );
+    }
+
+    // Generic rule disabled banner
     if (rule?.status === 'disabled') {
       return (
         <Alert type="warning" showIcon>
@@ -294,6 +337,7 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
       );
     }
 
+    // Rule to be disabled soon
     if (rule?.disableDate && moment(rule.disableDate).isAfter(new Date())) {
       return (
         <Alert type="warning" showIcon>
@@ -302,9 +346,9 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
             {
               date: <TimeSince date={rule.disableDate} />,
               keepAlive: (
-                <Button priority="link" size="sm" onClick={handleKeepAlertAlive}>
-                  {t('Click Here')}
-                </Button>
+                <BoldButton priority="link" size="sm" onClick={handleKeepAlertAlive}>
+                  {t('click here')}
+                </BoldButton>
               ),
               docs: <ExternalLink href="https://docs.sentry.io/product/alerts/" />,
             }
@@ -460,4 +504,8 @@ const StyledPageTimeRangeSelector = styled(PageTimeRangeSelector)`
 
 const StyledLoadingError = styled(LoadingError)`
   margin: ${space(2)};
+`;
+
+const BoldButton = styled(Button)`
+  font-weight: 600;
 `;

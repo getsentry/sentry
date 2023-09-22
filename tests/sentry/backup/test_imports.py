@@ -45,7 +45,6 @@ from sentry.testutils.helpers.backups import (
     export_to_file,
 )
 from sentry.utils import json
-from tests.sentry.backup import run_backup_tests_only_on_single_db
 
 
 class ImportTestCase(BackupTestCase):
@@ -56,7 +55,6 @@ class ImportTestCase(BackupTestCase):
         return tmp_path
 
 
-@run_backup_tests_only_on_single_db
 class SanitizationTests(ImportTestCase):
     """
     Ensure that potentially damaging data is properly scrubbed at import time.
@@ -366,7 +364,6 @@ class SanitizationTests(ImportTestCase):
                     import_in_user_scope(tmp_file, printer=NOOP_PRINTER)
 
 
-@run_backup_tests_only_on_single_db
 class SignalingTests(ImportTestCase):
     """
     Some models are automatically created via signals and similar automagic from related models. We
@@ -427,7 +424,6 @@ class SignalingTests(ImportTestCase):
         assert ProjectOption.objects.filter(key="sentry:option-epoch").exists()
 
 
-@run_backup_tests_only_on_single_db
 class ScopingTests(ImportTestCase):
     """
     Ensures that only models with the allowed relocation scopes are actually imported.
@@ -461,7 +457,6 @@ class ScopingTests(ImportTestCase):
                         assert model.objects.count() == 0
 
 
-@run_backup_tests_only_on_single_db
 class FilterTests(ImportTestCase):
     """
     Ensures that filtering operations include the correct models.
@@ -622,7 +617,6 @@ class FilterTests(ImportTestCase):
         assert Email.objects.count() == 0
 
 
-@run_backup_tests_only_on_single_db
 class CollisionTests(ImportTestCase):
     """
     Ensure that collisions are properly handled in different flag modes.

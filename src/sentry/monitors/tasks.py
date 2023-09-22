@@ -210,6 +210,7 @@ def check_missing(current_datetime: datetime):
 @instrumented_task(
     name="sentry.monitors.tasks.mark_environment_missing",
     max_retries=0,
+    record_timing=True,
 )
 def mark_environment_missing(monitor_environment_id: int):
     logger.info("monitor.missed-checkin", extra={"monitor_environment_id": monitor_environment_id})

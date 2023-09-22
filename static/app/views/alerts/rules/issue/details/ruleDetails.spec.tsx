@@ -241,7 +241,7 @@ describe('AlertRuleDetails', () => {
       await screen.findByText(/This alert is scheduled to be disabled/)
     ).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Click Here'}));
+    await userEvent.click(screen.getByRole('button', {name: 'click here'}));
 
     expect(updateMock).toHaveBeenCalledWith(
       expect.anything(),
@@ -249,6 +249,34 @@ describe('AlertRuleDetails', () => {
     );
     expect(
       screen.queryByText(/This alert is scheduled to be disabled/)
+    ).not.toBeInTheDocument();
+  });
+
+  it('disabled rule can be re-enabled', async () => {
+    const disabledRule = TestStubs.ProjectAlertRule({
+      status: 'disabled',
+      disableDate: moment().subtract(1, 'day').format(),
+      disableReason: 'noisy',
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/rules/${disabledRule.id}/`,
+      body: disabledRule,
+      match: [MockApiClient.matchQuery({expand: 'lastTriggered'})],
+    });
+    const enableMock = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/rules/${disabledRule.id}/enable/`,
+      method: 'PUT',
+    });
+    createWrapper();
+    expect(
+      await screen.findByText(/This alert was disabled due to lack of activity/)
+    ).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'click here'}));
+
+    expect(enableMock).toHaveBeenCalled();
+    expect(
+      screen.queryByText(/This alert was disabled due to lack of activity/)
     ).not.toBeInTheDocument();
   });
 
