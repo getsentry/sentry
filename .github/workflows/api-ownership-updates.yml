@@ -1,0 +1,43 @@
+name: api-ownership-updates
+on:
+  pull_request:
+
+# Cancel in progress workflows on pull_requests.
+# https://docs.github.com/en/actions/using-jobs/using-concurrency#example-using-a-fallback-value
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  check-diff:
+    name: build api
+    runs-on: ubuntu-20.04
+    timeout-minutes: 90
+    steps:
+      - name: Checkout getsentry/sentry
+        uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8 # v3.1.0
+        with:
+          # Avoid codecov error message related to SHA resolution:
+          # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
+          fetch-depth: '2'
+
+      - name: Setup sentry env
+        uses: ./.github/actions/setup-sentry
+
+      - name: Generate API Ownership
+        run: |
+          yarn add ts-node && make build-api-docs
+
+      - name: Getsentry Token
+        id: getsentry
+        uses: getsentry/action-github-app-token@97c9e23528286821f97fba885c1b1123284b29cc # v2.0.0
+        with:
+          app_id: ${{ vars.SENTRY_INTERNAL_APP_ID }}
+          private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
+
+      - name: Apply API Publish Status or Ownership Changes
+        # if: env.SECRET_ACCESS == 'true' && startsWith(github.ref, 'refs/pull') && always()
+        uses: getsentry/action-github-commit@748c31dd78cffe76f51bef49a0be856b6effeda7 # v1.1.0
+        with:
+          github-token: ${{ steps.getsentry.outputs.token }}
+          message: ':hammer_and_wrench: apply api publish status changes'
