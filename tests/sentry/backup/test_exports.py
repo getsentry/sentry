@@ -4,7 +4,7 @@ import tempfile
 from pathlib import Path
 from typing import Any, Type
 
-from sentry.backup.dependencies import normalize_model_name
+from sentry.backup.dependencies import get_model_name
 from sentry.backup.helpers import get_exportable_sentry_models
 from sentry.backup.scopes import ExportScope
 from sentry.db import models
@@ -95,14 +95,14 @@ class FilteringTests(ExportTestCase):
 
     @staticmethod
     def count(data: JSONData, model: Type[models.base.BaseModel]) -> int:
-        return len(list(filter(lambda d: d["model"] == normalize_model_name(model).lower(), data)))
+        return len(list(filter(lambda d: d["model"] == str(get_model_name(model)), data)))
 
     @staticmethod
     def exists(
         data: JSONData, model: Type[models.base.BaseModel], key: str, value: Any | None = None
     ) -> bool:
         for d in data:
-            if d["model"] == normalize_model_name(model).lower():
+            if d["model"] == str(get_model_name(model)):
                 field = d["fields"].get(key)
                 if field is None:
                     continue
