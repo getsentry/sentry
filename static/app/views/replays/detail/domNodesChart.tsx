@@ -8,7 +8,6 @@ import Grid from 'sentry/components/charts/components/grid';
 import {ChartTooltip} from 'sentry/components/charts/components/tooltip';
 import XAxis from 'sentry/components/charts/components/xAxis';
 import YAxis from 'sentry/components/charts/components/yAxis';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Placeholder from 'sentry/components/placeholder';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {showPlayerTime} from 'sentry/components/replays/utils';
@@ -49,17 +48,13 @@ function DomNodesChart({
   const theme = useTheme();
 
   if (!datapoints) {
-    return (
-      <DomNodesChartWrapper>
-        <Placeholder height="100%" />
-      </DomNodesChartWrapper>
-    );
+    return null;
   }
 
   if (!datapoints.length) {
     return (
       <DomNodesChartWrapper>
-        <LoadingIndicator style={{margin: '54px auto'}} />
+        <Placeholder height="100%" />
       </DomNodesChartWrapper>
     );
   }
