@@ -209,7 +209,7 @@ class NotificationActionSerializer(CamelSnakeModelSerializer):
         self, data: NotificationActionInputData
     ) -> NotificationActionInputData:
         """
-        Validates that SPECIFIC targets for DISCORD service has the following target data:
+        Validates that SPECIFIC targets for DISCORD service have the following target data:
             target_display: Discord channel id
             target_identifier: Discord channel id
         NOTE: Reaches out to via discord integration to verify channel
