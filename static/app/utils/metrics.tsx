@@ -263,3 +263,15 @@ export function formatMetricUsingUnit(value: number | null, unit: string) {
       return value.toLocaleString();
   }
 }
+
+export function formatMetricsUsingUnitAndOp(
+  value: number | null,
+  unit: string,
+  operation?: string
+) {
+  if (operation === 'count') {
+    // if the operation is count, we want to ignore the unit and always format the value as a number
+    return value?.toLocaleString() ?? '';
+  }
+  return formatMetricUsingUnit(value, unit);
+}
