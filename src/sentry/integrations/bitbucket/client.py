@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import datetime
 import logging
-from typing import Any, Optional
+from typing import Any
 from urllib.parse import parse_qs, urlparse, urlsplit
 
 from requests import PreparedRequest
@@ -11,6 +11,7 @@ from sentry.integrations.utils import get_query_hash
 from sentry.models import Repository
 from sentry.services.hybrid_cloud.integration.model import RpcIntegration
 from sentry.services.hybrid_cloud.util import control_silo_function
+from sentry.shared_integrations.client.base import BaseApiResponseX
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient, infer_org_integration
 from sentry.utils import jwt
 from sentry.utils.http import absolute_uri
@@ -176,7 +177,7 @@ class BitbucketApiClient(IntegrationProxyClient):
 
         return self.zip_commit_data(repo, commits)
 
-    def check_file(self, repo: Repository, path: str, version: str) -> Optional[str]:
+    def check_file(self, repo: Repository, path: str, version: str) -> BaseApiResponseX:
         return self.head_cached(
             path=BitbucketAPIPath.source.format(
                 repo=repo.name,

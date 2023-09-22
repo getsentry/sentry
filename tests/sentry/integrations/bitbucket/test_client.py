@@ -7,14 +7,16 @@ from django.test import override_settings
 from requests import Request
 
 from sentry.integrations.bitbucket.client import BitbucketApiClient, BitbucketAPIPath
+from sentry.integrations.bitbucket.integration import BitbucketIntegration
 from sentry.integrations.utils.atlassian_connect import get_query_hash
 from sentry.models import Repository
 from sentry.shared_integrations.exceptions import ApiError
+from sentry.shared_integrations.response.base import BaseApiResponse
 from sentry.silo.base import SiloMode
 from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
 from sentry.testutils.cases import BaseTestCase, TestCase
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 control_address = "http://controlserver"
 secret = "hush-hush-im-invisible"
@@ -43,16 +45,19 @@ class BitbucketApiClientTest(TestCase, BaseTestCase):
                 "type": "team",
             },
         )
-        self.install = self.integration.get_installation(self.organization.id)
+        install = self.integration.get_installation(self.organization.id)
+        assert isinstance(install, BitbucketIntegration)
+        self.install = install
         self.bitbucket_client: BitbucketApiClient = self.install.get_client()
 
-        self.repo = Repository.objects.create(
-            provider="bitbucket",
-            name="sentryuser/newsdiffs",
-            organization_id=self.organization.id,
-            config={"name": "sentryuser/newsdiffs"},
-            integration_id=self.integration.id,
-        )
+        with assume_test_silo_mode(SiloMode.REGION):
+            self.repo = Repository.objects.create(
+                provider="bitbucket",
+                name="sentryuser/newsdiffs",
+                organization_id=self.organization.id,
+                config={"name": "sentryuser/newsdiffs"},
+                integration_id=self.integration.id,
+            )
 
     @freeze_time("2023-01-01 01:01:01")
     def test_authorize_request(self):
@@ -93,6 +98,7 @@ class BitbucketApiClientTest(TestCase, BaseTestCase):
         )
 
         resp = self.bitbucket_client.check_file(self.repo, path, version)
+        assert isinstance(resp, BaseApiResponse)
         assert resp.status_code == 200
 
     @responses.activate
