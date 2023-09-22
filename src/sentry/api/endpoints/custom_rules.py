@@ -52,9 +52,7 @@ class CustomRulesInputSerializer(serializers.Serializer):
         invalid_projects = []
 
         requested_projects = data["projects"]
-        available_projects = {
-            p.id for p in Project.objects.get_many_from_cache(ids=data["projects"])
-        }
+        available_projects = {p.id for p in Project.objects.get_many_from_cache(data["projects"])}
         for project_id in requested_projects:
             if project_id not in available_projects:
                 invalid_projects.append(f"invalid project id: {project_id}")
@@ -148,11 +146,16 @@ class CustomRulesEndpoint(OrganizationEndpoint):
         requested_projects = request.GET.getlist("project")
         query = request.GET.get("query")
 
+        try:
+            requested_projects = [int(project_id) for project_id in requested_projects]
+        except ValueError:
+            return Response({"projects": ["Invalid project id"]}, status=400)
+
         if requested_projects:
             org_rule = False
             invalid_projects = []
             available_projects = {
-                p.id for p in Project.objects.get_many_from_cache(ids=requested_projects)
+                p.id for p in Project.objects.get_many_from_cache(requested_projects)
             }
             for project_id in requested_projects:
                 if project_id not in available_projects:
