@@ -12,6 +12,7 @@ import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
+import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import localStorage from 'sentry/utils/localStorage';
 import useRouter from 'sentry/utils/useRouter';
@@ -126,7 +127,7 @@ function SidebarItem({
   const isActiveRouter =
     !hasPanel && router && isItemActive({to, label: labelString}, exact);
 
-  const isActive = active || isActiveRouter;
+  const isActive = defined(active) ? active : isActiveRouter;
   const isTop = orientation === 'top';
   const placement = isTop ? 'bottom' : 'right';
 
