@@ -5,6 +5,7 @@ import HookOrDefault from 'sentry/components/hookOrDefault';
 import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
+import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {Step, StepProps} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {PlatformOptionsControl} from 'sentry/components/onboarding/platformOptionsControl';
 import {ProductSelection} from 'sentry/components/onboarding/productSelection';
@@ -25,6 +26,7 @@ type NextStep = {
 };
 
 export type LayoutProps = {
+  projectSlug: string;
   steps: StepProps[];
   /**
    * An introduction displayed before the steps
@@ -43,41 +45,44 @@ export function Layout({
   nextSteps = [],
   platformOptions,
   introduction,
+  projectSlug,
 }: LayoutProps) {
   const organization = useOrganization();
 
   return (
-    <Wrapper>
-      {introduction && <Introduction>{introduction}</Introduction>}
-      <ProductSelectionAvailabilityHook
-        organization={organization}
-        platform={platformKey}
-      />
-      {platformOptions ? (
-        <PlatformOptionsControl platformOptions={platformOptions} />
-      ) : null}
-      <Divider withBottomMargin={newOrg} />
-      <Steps>
-        {steps.map(step => (
-          <Step key={step.title ?? step.type} {...step} />
-        ))}
-      </Steps>
-      {nextSteps.length > 0 && (
-        <Fragment>
-          <Divider />
-          <h4>{t('Next Steps')}</h4>
-          <List symbol="bullet">
-            {nextSteps.map(step => (
-              <ListItem key={step.name}>
-                <ExternalLink href={step.link}>{step.name}</ExternalLink>
-                {': '}
-                {step.description}
-              </ListItem>
-            ))}
-          </List>
-        </Fragment>
-      )}
-    </Wrapper>
+    <AuthTokenGeneratorProvider projectSlug={projectSlug}>
+      <Wrapper>
+        {introduction && <Introduction>{introduction}</Introduction>}
+        <ProductSelectionAvailabilityHook
+          organization={organization}
+          platform={platformKey}
+        />
+        {platformOptions ? (
+          <PlatformOptionsControl platformOptions={platformOptions} />
+        ) : null}
+        <Divider withBottomMargin={newOrg} />
+        <Steps>
+          {steps.map(step => (
+            <Step key={step.title ?? step.type} {...step} />
+          ))}
+        </Steps>
+        {nextSteps.length > 0 && (
+          <Fragment>
+            <Divider />
+            <h4>{t('Next Steps')}</h4>
+            <List symbol="bullet">
+              {nextSteps.map(step => (
+                <ListItem key={step.name}>
+                  <ExternalLink href={step.link}>{step.name}</ExternalLink>
+                  {': '}
+                  {step.description}
+                </ListItem>
+              ))}
+            </List>
+          </Fragment>
+        )}
+      </Wrapper>
+    </AuthTokenGeneratorProvider>
   );
 }
 
