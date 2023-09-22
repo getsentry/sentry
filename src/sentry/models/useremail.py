@@ -94,9 +94,9 @@ class UserEmail(Model):
         if old_pk is None:
             return None
 
-        # Only preserve validation hashes in global scope - in all others, have the user verify
-        # their email again.
-        if scope != ImportScope.Global:
+        # Only preserve validation hashes in backup/restore scopes - in all others, have the user
+        # verify their email again.
+        if scope not in {ImportScope.Config, ImportScope.Global}:
             self.is_verified = False
             self.validation_hash = get_secure_token()
             self.date_hash_added = timezone.now()

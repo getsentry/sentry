@@ -62,6 +62,7 @@ class ImportScope(Enum):
 
     User = {RelocationScope.User}
     Organization = {RelocationScope.User, RelocationScope.Organization}
+    Config = {RelocationScope.User, RelocationScope.Config}
     Global = {
         RelocationScope.User,
         RelocationScope.Organization,

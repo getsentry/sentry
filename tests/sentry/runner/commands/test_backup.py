@@ -42,6 +42,21 @@ def test_global_scope_import_overwrite_configs():
 
 
 @django_db_all(transaction=True)
+def test_config_scope():
+    cli_import_then_export("config")
+
+
+@django_db_all(transaction=True)
+def test_config_scope_import_overwrite_configs():
+    cli_import_then_export("config", import_args=["--overwrite_configs"])
+
+
+@django_db_all(transaction=True)
+def test_config_scope_export_merge_users():
+    cli_import_then_export("config", import_args=["--merge_users"])
+
+
+@django_db_all(transaction=True)
 def test_organization_scope_import_filter_org_slugs():
     cli_import_then_export("organizations", import_args=["--filter_org_slugs", "testing"])
 

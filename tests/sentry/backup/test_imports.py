@@ -13,6 +13,7 @@ from rest_framework.serializers import ValidationError
 
 from sentry.backup.helpers import ImportFlags, get_exportable_sentry_models
 from sentry.backup.imports import (
+    import_in_config_scope,
     import_in_global_scope,
     import_in_organization_scope,
     import_in_user_scope,
@@ -174,7 +175,47 @@ class SanitizationTests(ImportTestCase):
         assert UserRole.objects.count() == 0
         assert UserRoleUser.objects.count() == 0
 
-    def test_users_sanitized_in_global_scope(self):
+    def test_users_unsanitized_in_config_scope(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
+            self.generate_tmp_json_file(tmp_path)
+            with open(tmp_path) as tmp_file:
+                import_in_config_scope(tmp_file, printer=NOOP_PRINTER)
+
+        assert User.objects.count() == 4
+        assert User.objects.filter(is_unclaimed=True).count() == 4
+        assert User.objects.filter(is_managed=True).count() == 1
+        assert User.objects.filter(is_staff=True).count() == 2
+        assert User.objects.filter(is_superuser=True).count() == 2
+        assert (
+            User.objects.filter(is_managed=False, is_staff=False, is_superuser=False).count() == 2
+        )
+        assert UserEmail.objects.count() == 4
+
+        # Unlike the "global" scope, we do not keep authentication information for the "config"
+        # scope.
+        assert Authenticator.objects.count() == 0
+
+        # Every user except `max_user` shares an email.
+        assert Email.objects.count() == 2
+
+        # All `UserEmail`s must keep their imported verification status reset in this scope.
+        assert UserEmail.objects.count() == 4
+        assert UserEmail.objects.filter(is_verified=True).count() == 4
+        assert UserEmail.objects.filter(date_hash_added__lt=datetime(2023, 7, 1, 0, 0)).count() == 4
+        assert (
+            UserEmail.objects.filter(validation_hash="mCnWesSVvYQcq7qXQ36AZHwosAd6cghE").count()
+            == 4
+        )
+
+        # 1 from `max_user`, 1 from `permission_user`.
+        assert UserPermission.objects.count() == 2
+
+        # 1 from `max_user`.
+        assert UserRole.objects.count() == 1
+        assert UserRoleUser.objects.count() == 1
+
+    def test_users_unsanitized_in_global_scope(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
             self.generate_tmp_json_file(tmp_path)
@@ -189,8 +230,10 @@ class SanitizationTests(ImportTestCase):
         assert (
             User.objects.filter(is_managed=False, is_staff=False, is_superuser=False).count() == 2
         )
-        assert Authenticator.objects.count() == 4
         assert UserEmail.objects.count() == 4
+
+        # Unlike the "config" scope, we keep authentication information for the "global" scope.
+        assert Authenticator.objects.count() == 4
 
         # Every user except `max_user` shares an email.
         assert Email.objects.count() == 2
@@ -816,7 +859,108 @@ class CollisionTests(ImportTestCase):
                 == 1
             )
 
-    def test_colliding_configs_overwrite_configs_enabled(self):
+    def test_colliding_configs_overwrite_configs_enabled_in_config_scope(self):
+        self.create_exhaustive_global_configs()
+        self.create_exhaustive_user("owner", is_admin=True)
+
+        # Take note of the configs we want to track - this is the one we'll be importing.
+        colliding_option = Option.objects.all().first()
+        colliding_control_option = ControlOption.objects.all().first()
+        colliding_relay = Relay.objects.all().first()
+        colliding_user_role = UserRole.objects.all().first()
+        old_relay_public_key = colliding_relay.public_key
+        old_user_role_permissions = colliding_user_role.permissions
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
+
+            colliding_option.value = "y"
+            colliding_option.save()
+            colliding_control_option.value = "z"
+            colliding_control_option.save()
+            colliding_relay.public_key = "invalid"
+            colliding_relay.save()
+            colliding_user_role.permissions = ["other.admin"]
+            colliding_user_role.save()
+
+            assert Option.objects.count() == 1
+            assert ControlOption.objects.count() == 1
+            assert Relay.objects.count() == 1
+            assert UserRole.objects.count() == 1
+
+            with open(tmp_path) as tmp_file:
+                import_in_config_scope(
+                    tmp_file, flags=ImportFlags(overwrite_configs=True), printer=NOOP_PRINTER
+                )
+
+        assert Option.objects.count() == 1
+        assert Option.objects.filter(value__exact="a").exists()
+        assert not Option.objects.filter(value__exact="y").exists()
+
+        assert ControlOption.objects.count() == 1
+        assert ControlOption.objects.filter(value__exact="b").exists()
+        assert not ControlOption.objects.filter(value__exact="z").exists()
+
+        assert Relay.objects.count() == 1
+        assert Relay.objects.filter(public_key__exact=old_relay_public_key).exists()
+        assert not Relay.objects.filter(public_key__exact="invalid").exists()
+
+        actual_user_role = UserRole.objects.first()
+        assert len(actual_user_role.permissions) == len(old_user_role_permissions)
+        for i, actual_permission in enumerate(actual_user_role.permissions):
+            assert actual_permission == old_user_role_permissions[i]
+
+    def test_colliding_configs_overwrite_configs_disabled_in_config_scope(self):
+        self.create_exhaustive_global_configs()
+        self.create_exhaustive_user("owner", is_admin=True)
+
+        # Take note of the configs we want to track - this is the one we'll be importing.
+        colliding_option = Option.objects.all().first()
+        colliding_control_option = ControlOption.objects.all().first()
+        colliding_relay = Relay.objects.all().first()
+        colliding_user_role = UserRole.objects.all().first()
+        old_relay_public_key = colliding_relay.public_key
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
+
+            colliding_option.value = "y"
+            colliding_option.save()
+            colliding_control_option.value = "z"
+            colliding_control_option.save()
+            colliding_relay.public_key = "invalid"
+            colliding_relay.save()
+            colliding_user_role.permissions = ["other.admin"]
+            colliding_user_role.save()
+
+            assert Option.objects.count() == 1
+            assert ControlOption.objects.count() == 1
+            assert Relay.objects.count() == 1
+            assert UserRole.objects.count() == 1
+
+            with open(tmp_path) as tmp_file:
+                import_in_config_scope(
+                    tmp_file, flags=ImportFlags(overwrite_configs=False), printer=NOOP_PRINTER
+                )
+
+        assert Option.objects.count() == 1
+        assert not Option.objects.filter(value__exact="a").exists()
+        assert Option.objects.filter(value__exact="y").exists()
+
+        assert ControlOption.objects.count() == 1
+        assert not ControlOption.objects.filter(value__exact="b").exists()
+        assert ControlOption.objects.filter(value__exact="z").exists()
+
+        assert Relay.objects.count() == 1
+        assert not Relay.objects.filter(public_key__exact=old_relay_public_key).exists()
+        assert Relay.objects.filter(public_key__exact="invalid").exists()
+
+        assert UserRole.objects.count() == 1
+        actual_user_role = UserRole.objects.first()
+        assert len(actual_user_role.permissions) == 1
+        assert actual_user_role.permissions[0] == "other.admin"
+
+    def test_colliding_configs_overwrite_configs_enabled_in_global_scope(self):
         self.create_exhaustive_global_configs()
         self.create_exhaustive_user("owner", is_admin=True)
 
@@ -867,7 +1011,7 @@ class CollisionTests(ImportTestCase):
         for i, actual_permission in enumerate(actual_user_role.permissions):
             assert actual_permission == old_user_role_permissions[i]
 
-    def test_colliding_configs_overwrite_configs_disabled(self):
+    def test_colliding_configs_overwrite_configs_disabled_in_global_scope(self):
         self.create_exhaustive_global_configs()
         self.create_exhaustive_user("owner", is_admin=True)
 
@@ -1077,3 +1221,53 @@ class CollisionTests(ImportTestCase):
             ).count()
             == 1
         )
+
+    def test_colliding_user_with_merging_enabled_in_config_scope(self):
+        self.create_exhaustive_user(username="owner", email="owner@example.com")
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
+            with open(tmp_path) as tmp_file:
+                self.create_exhaustive_user(username="owner", email="owner@example.com")
+                import_in_config_scope(
+                    tmp_file,
+                    flags=ImportFlags(merge_users=True),
+                    printer=NOOP_PRINTER,
+                )
+
+        assert User.objects.count() == 1
+        assert UserIP.objects.count() == 1
+        assert UserEmail.objects.count() == 1
+        assert Authenticator.objects.count() == 1
+        assert Email.objects.count() == 1
+
+        assert User.objects.filter(username__iexact="owner").exists()
+        assert not User.objects.filter(username__iexact="owner-").exists()
+
+        assert User.objects.filter(is_unclaimed=True).count() == 0
+        assert User.objects.filter(is_unclaimed=False).count() == 1
+
+    def test_colliding_user_with_merging_disabled_in_config_scope(self):
+        self.create_exhaustive_user(username="owner", email="owner@example.com")
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
+            with open(tmp_path) as tmp_file:
+                self.create_exhaustive_user(username="owner", email="owner@example.com")
+                import_in_config_scope(
+                    tmp_file,
+                    flags=ImportFlags(merge_users=False),
+                    printer=NOOP_PRINTER,
+                )
+
+        assert User.objects.count() == 2
+        assert UserIP.objects.count() == 2
+        assert UserEmail.objects.count() == 2
+        assert Authenticator.objects.count() == 1  # Only imported in global scope
+        assert Email.objects.count() == 1  # The two users still share the same email
+
+        assert User.objects.filter(username__iexact="owner").exists()
+        assert User.objects.filter(username__icontains="owner-").exists()
+
+        assert User.objects.filter(is_unclaimed=True).count() == 1
+        assert User.objects.filter(is_unclaimed=False).count() == 1
