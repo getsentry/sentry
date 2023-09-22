@@ -111,7 +111,6 @@ class ReplayDetailTest(ReplaysAcceptanceTestCase):
     def test_memory_tab(self):
         with self.feature(FEATURE_NAME):
             self.browser.get(self.path)
-            self.browser.wait_until_not('[data-test-id="loading-indicator"]')
             self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
             self.browser.click('[data-test-id="replay-details-memory-btn"]')
             self.browser.wait_until_test_id("replay-details-memory-tab")
