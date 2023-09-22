@@ -885,6 +885,7 @@ disable_error_code = [
     "has-type",
     "index",
     "list-item",
+    "method-assign",
     "misc",
     "operator",
     "override",
