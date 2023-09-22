@@ -84,8 +84,12 @@ def span_analysis(data):
                 "span_group": key.split(",")[1],
                 "sample_event_id": row1["sample_event_id"],
                 "score_delta": score_delta,
+                "freq_before": row1["relative_freq"],
+                "freq_after": row2["relative_freq"],
                 "freq_delta": freq_delta,
                 "duration_delta": duration_delta,
+                "duration_before": row1["avg_duration"],
+                "duration_after": row2["avg_duration"]
             }
         )
 
