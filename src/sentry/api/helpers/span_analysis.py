@@ -12,20 +12,20 @@ import collections
 
 def span_analysis(data):
 
-    #create a unique identifier for each span
+    # create a unique identifier for each span
     span_groups = [row["span_op"] + "," + row["span_group"] for row in data]
 
-    #number of occurrences of a span/transaction
+    # number of occurrences of a span/transaction
     count_col = [row["span_count"] for row in data]
     txn_count = [row["transaction_count"] for row in data]
 
-    #total self time of a span
+    # total self time of a span
     sum_col = [row["total_span_self_time"] for row in data]
 
-    #add in three new fields
-    #1. relative freq - the avg number of times a span occurs per transaction
-    #2. avg duration - average duration of a span (total self time / span count)
-    #3. score - a nondescriptive metric to evaluate the span (relative freq * avg duration)
+    # add in three new fields
+    # 1. relative freq - the avg number of times a span occurs per transaction
+    # 2. avg duration - average duration of a span (total self time / span count)
+    # 3. score - a nondescriptive metric to evaluate the span (relative freq * avg duration)
     relative_freq = [count_col[x] / txn_count[x] for x in range(len(count_col))]
     avg_col = [sum_col[x] / count_col[x] for x in range(len(sum_col))]
     score_col = [relative_freq[x] * avg_col[x] for x in range(len(relative_freq))]
@@ -42,13 +42,17 @@ def span_analysis(data):
     spans_after = {row["span_id"] for row in data if row["period"] == 1}
     constant_spans = spans_before.intersection(spans_after)
 
-    #removed_spans = [x for x in spans_before if x not in spans_after]
-    #new_spans = [x for x in spans_after if x not in spans_before]
+    # removed_spans = [x for x in spans_before if x not in spans_after]
+    # new_spans = [x for x in spans_after if x not in spans_before]
 
     # create two dataframes for period 0 and 1 and keep only the same spans in both periods
 
-    span_data_p0 = {row["span_id"]: row for row in data if row['period'] == 0 and row['k'] in constant_spans}
-    span_data_p1 = {row["span_id"]: row for row in data if row['period'] == 1 and row['k'] in constant_spans}
+    span_data_p0 = {
+        row["span_id"]: row for row in data if row["period"] == 0 and row["k"] in constant_spans
+    }
+    span_data_p1 = {
+        row["span_id"]: row for row in data if row["period"] == 1 and row["k"] in constant_spans
+    }
 
     # merge the dataframes to do span analysis
     problem_spans = []
@@ -60,10 +64,23 @@ def span_analysis(data):
 
         # Merge the rows from df1 and df2 into a single dictionary and get the delta between period 0/1
         score_delta = (row2["score"] - row1["score"]) / row1["score"] if row1["score"] != 0 else 0
-        freq_delta = (row2["relative_freq"] - row1["relative_freq"]) / row1["relative_freq"] if row1["relative_freq"] != 0 else 0
-        duration_delta = (row2["avg_v"] - row1["avg_v"]) / row1["avg_v"] if row1["avg_v"] != 0 else 0
+        freq_delta = (
+            (row2["relative_freq"] - row1["relative_freq"]) / row1["relative_freq"]
+            if row1["relative_freq"] != 0
+            else 0
+        )
+        duration_delta = (
+            (row2["avg_v"] - row1["avg_v"]) / row1["avg_v"] if row1["avg_v"] != 0 else 0
+        )
 
-        problem_spans.append({'span_id': key, 'score_delta': score_delta, 'freq_delta': freq_delta, 'duration_delta': duration_delta})
+        problem_spans.append(
+            {
+                "span_id": key,
+                "score_delta": score_delta,
+                "freq_delta": freq_delta,
+                "duration_delta": duration_delta,
+            }
+        )
 
     problem_spans.sort(key=lambda x: x["score_delta"], reverse=True)
 
