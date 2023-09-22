@@ -154,7 +154,6 @@ class DatabaseBackedAuthService(AuthService):
 
         result = MiddlewareAuthenticationResponse(
             auth=auth,
-            user_from_signed_request=fake_request.user_from_signed_request,
             accessed=fake_request.session._accessed,
         )
 
@@ -272,14 +271,11 @@ class FakeAuthenticationRequest:
     """
 
     session: FakeRequestDict
-    GET: FakeRequestDict
-    POST: FakeRequestDict
     req: AuthenticationRequest
 
     # These attributes are expected to be mutated when we call into the authentication middleware.  The result of those
     # mutations becomes, the result of authentication.
     user: User | AnonymousUser | None
-    user_from_signed_request: bool = False
     auth: Any
 
     def build_absolute_uri(self, path: str | None = None) -> str:
@@ -296,18 +292,10 @@ class FakeAuthenticationRequest:
             _auth_user_hash=req.user_hash,
             _nonce=req.nonce,
         )
-        self.POST = FakeRequestDict(
-            _sentry_request_signature=req.signature,
-        )
-
-        self.GET = FakeRequestDict(
-            _=req.signature,
-        )
 
         self.META = FakeRequestDict(
             HTTP_AUTHORIZATION=_unwrap_b64(req.authorization_b64), REMOTE_ADDR=req.remote_addr
         )
-        self.user_from_signed_request = False
 
     @property
     def path(self) -> str:
