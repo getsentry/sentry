@@ -175,6 +175,30 @@ class SumOfClickSelectorComposite(ComputedBase):
         return does_not_contain(ClickSelectorComposite.visit_eq(value))
 
 
+class SumOfDeadClickSelectorComposite(ComputedBase):
+    """Click selector composite condition class."""
+
+    @staticmethod
+    def visit_eq(value: list[QueryType]) -> Condition:
+        return contains(is_dead_click(ClickSelectorComposite.visit_eq(value)))
+
+    @staticmethod
+    def visit_neq(value: list[QueryType]) -> Condition:
+        return does_not_contain(is_dead_click(ClickSelectorComposite.visit_eq(value)))
+
+
+class SumOfRageClickSelectorComposite(ComputedBase):
+    """Click selector composite condition class."""
+
+    @staticmethod
+    def visit_eq(value: list[QueryType]) -> Condition:
+        return contains(is_rage_click(ClickSelectorComposite.visit_eq(value)))
+
+    @staticmethod
+    def visit_neq(value: list[QueryType]) -> Condition:
+        return does_not_contain(is_rage_click(ClickSelectorComposite.visit_eq(value)))
+
+
 # We are not targetting an aggregated result set.  We are targetting a row.  We're asking does
 # this row match the selector and *if it does* record a hit represented as a "1" or a miss
 # represented as a "0".
@@ -253,3 +277,19 @@ def and_is_click_row(condition: Condition) -> Condition:
         ],
     )
     return Condition(expression, Op.EQ, 1)
+
+
+def is_dead_click(condition: Condition) -> Condition:
+    return Condition(
+        Function("and", parameters=[condition.lhs, equals(Column("click_is_dead"), 1)]),
+        Op.EQ,
+        1,
+    )
+
+
+def is_rage_click(condition: Condition) -> Condition:
+    return Condition(
+        Function("and", parameters=[condition.lhs, equals(Column("click_is_rage"), 1)]),
+        Op.EQ,
+        1,
+    )
