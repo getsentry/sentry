@@ -853,6 +853,9 @@ class MetricsQueryBuilder(QueryBuilder):
                 )
             }
 
+        self.tenant_ids = self.tenant_ids or dict()
+        self.tenant_ids["use_case_id"] = self.use_case_id
+
         if self.builder_config.use_metrics_layer or self._on_demand_metric_spec:
             from sentry.snuba.metrics.datasource import get_series
             from sentry.snuba.metrics.mqb_query_transformer import (
