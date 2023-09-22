@@ -460,6 +460,7 @@ def _exp_errors():
                                 Function(
                                     "groupArrayArray",
                                     parameters=[Column("error_ids")],
+                                    alias="old_err_ids_for_new_query",
                                 ),
                                 *_collect_non_empty_error_and_fatals(),
                             ]
