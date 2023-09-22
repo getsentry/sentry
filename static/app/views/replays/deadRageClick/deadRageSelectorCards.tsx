@@ -4,6 +4,7 @@ import {Location} from 'history';
 
 import {LinkButton} from 'sentry/components/button';
 import {hydratedSelectorData} from 'sentry/components/replays/utils';
+import ShowHidePanel from 'sentry/components/showHidePanel';
 import {IconCursorArrow, IconShow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -17,10 +18,17 @@ function DeadRageSelectorCards() {
   const location = useLocation();
 
   return (
-    <SplitCardContainer>
-      <DeadClickTable location={location} />
-      <RageClickTable location={location} />
-    </SplitCardContainer>
+    <ShowHidePanel
+      headerShow={() => t('Show Actionable Replay Insights')}
+      headerHide={() => t('Hide Actionable Replay Insights')}
+      content={() => (
+        <SplitCardContainer>
+          <DeadClickTable location={location} />
+          <RageClickTable location={location} />
+        </SplitCardContainer>
+      )}
+      expandedByDefault
+    />
   );
 }
 
