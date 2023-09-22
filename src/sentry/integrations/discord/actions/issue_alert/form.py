@@ -43,19 +43,20 @@ class DiscordNotifyServiceForm(forms.Form):
                 code="invalid",
             )
 
-        try:
-            validate_channel_id(
-                channel_id=channel_id,
-                integration_id=integration.id,
-            )
-        except ValidationError as e:
-            raise forms.ValidationError(
-                self._format_discord_error_message("; ".join(e.messages)),
-                code="invalid",
-            )
-        except IntegrationError as e:
-            raise forms.ValidationError(
-                self._format_discord_error_message("; ".join(str(e))),
-                code="invalid",
-            )
+        if channel_id and isinstance(channel_id, str):
+            try:
+                validate_channel_id(
+                    channel_id=channel_id,
+                    integration_id=integration.id,
+                )
+            except ValidationError as e:
+                raise forms.ValidationError(
+                    self._format_discord_error_message("; ".join(e.messages)),
+                    code="invalid",
+                )
+            except IntegrationError as e:
+                raise forms.ValidationError(
+                    self._format_discord_error_message("; ".join(str(e))),
+                    code="invalid",
+                )
         return cleaned_data  # maybe put in the try catch
