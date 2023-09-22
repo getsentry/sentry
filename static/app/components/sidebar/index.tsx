@@ -471,6 +471,7 @@ function Sidebar({location, organization}: Props) {
                 {performance}
                 {starfish}
                 {profiling}
+                {ddm}
                 {replays}
                 {monitors}
                 {alerts}
@@ -478,7 +479,6 @@ function Sidebar({location, organization}: Props) {
 
               <SidebarSection>
                 {discover2}
-                {ddm}
                 {dashboards}
                 {releases}
                 {userFeedback}
