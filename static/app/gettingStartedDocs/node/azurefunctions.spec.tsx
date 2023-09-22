@@ -6,7 +6,9 @@ import {GettingStartedWithAzurefunctions, steps} from './azurefunctions';
 
 describe('GettingStartedWithAzurefunctions', function () {
   it('renders doc correctly', function () {
-    render(<GettingStartedWithAzurefunctions dsn="test-dsn" />);
+    render(
+      <GettingStartedWithAzurefunctions dsn="test-dsn" projectSlug="test-project" />
+    );
 
     // Steps
     for (const step of steps({
