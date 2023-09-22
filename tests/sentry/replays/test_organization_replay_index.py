@@ -980,6 +980,8 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 aria_label="AriaLabel",
                 title="MyTitle",
                 text="Hello",
+                is_dead=1,
+                is_rage=1,
             )
         )
         self.store_replays(
@@ -1015,6 +1017,8 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "click.selector:div[data-test-id='1']",
                 "click.selector:div[role=button]",
                 "click.selector:div#myid.class1.class2",
+                "dead.selector:div#myid",
+                "rage.selector:div#myid",
                 # Single quotes around attribute value.
                 "click.selector:div[role='button']",
                 "click.selector:div#myid.class1.class2[role=button][aria-label='AriaLabel']",
@@ -1037,6 +1041,8 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "click.title:NotMyTitle",
                 "!click.selector:div#myid",
                 "click.selector:div#notmyid",
+                "dead.selector:button#myid",
+                "rage.selector:button#myid",
                 # Assert all classes must match.
                 "click.selector:div#myid.class1.class2.class3",
                 # Invalid selectors return no rows.
@@ -1707,65 +1713,3 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             response_data = response.json()
             assert "data" in response_data
             assert len(response_data["data"]) == 0
-
-    def test_get_replays_filter_clicks_new(self):
-        """Test replays conform to the interchange format."""
-        project = self.create_project(teams=[self.team])
-
-        replay1_id = uuid.uuid4().hex
-        seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=22)
-        seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=5)
-
-        self.store_replays(mock_replay(seq1_timestamp, project.id, replay1_id))
-        self.store_replays(mock_replay(seq2_timestamp, project.id, replay1_id))
-        self.store_replays(
-            mock_replay_click(
-                seq2_timestamp,
-                project.id,
-                replay1_id,
-                node_id=1,
-                tag="div",
-                id="myid",
-                class_=["class1", "class2"],
-                role="button",
-                testid="1",
-                alt="Alt",
-                aria_label="AriaLabel",
-                title="MyTitle",
-                text="Hello",
-                is_dead=1,
-                is_rage=1,
-            )
-        )
-        self.store_replays(
-            mock_replay_click(
-                seq2_timestamp,
-                project.id,
-                replay1_id,
-                node_id=2,
-                tag="button",
-                id="myid",
-                class_=["class1", "class3"],
-            )
-        )
-
-        with self.feature(REPLAYS_FEATURES):
-            queries = [
-                "dead.selector:div#myid",
-                "rage.selector:div#myid",
-            ]
-            for query in queries:
-                response = self.client.get(self.url + f"?field=id&query={query}")
-                assert response.status_code == 200, query
-                response_data = response.json()
-                assert len(response_data["data"]) == 1, query
-
-            queries = [
-                "dead.selector:button#myid",
-                "rage.selector:button#myid",
-            ]
-            for query in queries:
-                response = self.client.get(self.url + f"?query={query}")
-                assert response.status_code == 200, query
-                response_data = response.json()
-                assert len(response_data["data"]) == 0, query
