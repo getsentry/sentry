@@ -1,5 +1,4 @@
 import {Fragment, useCallback, useEffect, useMemo, useReducer, useState} from 'react';
-import {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import moment from 'moment';
 
@@ -7,7 +6,6 @@ import Alert from 'sentry/components/alert';
 import {AreaChart} from 'sentry/components/charts/areaChart';
 import {BarChart} from 'sentry/components/charts/barChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
-import Legend from 'sentry/components/charts/components/legend';
 import {LineChart} from 'sentry/components/charts/lineChart';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import EmptyMessage from 'sentry/components/emptyMessage';
@@ -17,7 +15,6 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
-import PanelTable from 'sentry/components/panels/panelTable';
 import Tag from 'sentry/components/tag';
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -25,7 +22,7 @@ import {space} from 'sentry/styles/space';
 import {MetricsTag, TagCollection} from 'sentry/types';
 import {
   defaultMetricDisplayType,
-  formatMetricUsingUnit,
+  formatMetricsUsingUnitAndOp,
   getNameFromMRI,
   getReadableMetricType,
   getUnitFromMRI,
@@ -44,6 +41,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
+import {SummaryTable} from 'sentry/views/ddm/summaryTable';
 
 const useProjectSelectionSlugs = () => {
   const {selection} = usePageFilters();
@@ -316,6 +314,16 @@ function MetricsExplorerDisplayOuter(props?: DisplayProps) {
 
 function MetricsExplorerDisplay({displayType, ...metricsDataProps}: DisplayProps) {
   const {data, isLoading, isError} = useMetricsData(metricsDataProps);
+  // TODO(ddm): maybe it is nicer to use a set here, or to keep state of shown series instead
+  const [hiddenSeries, setHiddenSeries] = useState<string[]>([]);
+
+  const toggleSeriesVisibility = (seriesName: string) => {
+    if (hiddenSeries.includes(seriesName)) {
+      setHiddenSeries(hiddenSeries.filter(s => s !== seriesName));
+    } else {
+      setHiddenSeries([...hiddenSeries, seriesName]);
+    }
+  };
 
   if (!data) {
     return (
@@ -326,15 +334,43 @@ function MetricsExplorerDisplay({displayType, ...metricsDataProps}: DisplayProps
     );
   }
 
+  // TODO(ddm): we should move this into the useMetricsData hook
   const sorted = sortData(data);
+  const unit = getUnitFromMRI(Object.keys(data.groups[0]?.series ?? {})[0]); // this assumes that all series have the same unit
+
+  const series = sorted.groups.map(g => {
+    return {
+      values: Object.values(g.series)[0],
+      name: getSeriesName(g, data.groups.length === 1),
+    };
+  });
+
+  const colors = theme.charts.getColorPalette(series.length);
+
+  const chartSeries = series.map((item, i) => ({
+    seriesName: item.name,
+    unit,
+    color: colors[i],
+    hidden: hiddenSeries.includes(item.name),
+    data: item.values.map((value, index) => ({
+      name: sorted.intervals[index],
+      value,
+    })),
+  }));
 
   return (
     <DisplayWrapper>
-      {displayType === MetricDisplayType.TABLE ? (
-        <Table data={sorted} />
-      ) : (
-        <Chart data={sorted} displayType={displayType} operation={metricsDataProps.op} />
-      )}
+      <Chart
+        series={chartSeries}
+        displayType={displayType}
+        operation={metricsDataProps.op}
+        {...normalizeChartTimeParams(sorted)}
+      />
+      <SummaryTable
+        series={chartSeries}
+        operation={metricsDataProps.op}
+        onClick={toggleSeriesVisibility}
+      />
     </DisplayWrapper>
   );
 }
@@ -399,123 +435,66 @@ function normalizeChartTimeParams(data: MetricsData) {
   };
 }
 
-function Chart({
-  data,
-  displayType,
-  operation,
-}: {
-  data: MetricsData;
+export type Series = {
+  color: string;
+  data: {name: string; value: number}[];
+  seriesName: string;
+  unit: string;
+  hidden?: boolean;
+};
+
+type ChartProps = {
   displayType: MetricDisplayType;
+  series: Series[];
+  end?: string;
   operation?: string;
-}) {
-  const {start, end, period, utc} = normalizeChartTimeParams(data);
+  period?: string;
+  start?: string;
+  utc?: boolean;
+};
 
-  const unit = getUnitFromMRI(Object.keys(data.groups[0]?.series ?? {})[0]); // this assumes that all series have the same unit
+function Chart({series, displayType, start, end, period, utc, operation}: ChartProps) {
+  const unit = series[0].unit;
 
-  const series = data.groups.map(g => {
-    return {
-      values: Object.values(g.series)[0],
-      name: getSeriesName(g, data.groups.length === 1),
-    };
-  });
-
-  const chartSeries = series.map(item => ({
-    seriesName: item.name,
-    data: item.values.map((value, index) => ({
-      name: data.intervals[index],
-      value,
-    })),
-  }));
+  const seriesToShow = series.filter(s => !s.hidden);
 
   const chartProps = {
     isGroupedByDate: true,
-    series: chartSeries,
+    series: seriesToShow,
     height: 300,
-    legend: Legend({
-      itemGap: 20,
-      bottom: 20,
-      data: chartSeries.map(s => s.seriesName),
-      theme: theme as Theme,
-      formatter: mri => getNameFromMRI(mri),
-    }),
-    grid: {top: 30, bottom: 40, left: 20, right: 20},
+    colors: seriesToShow.map(s => s.color),
+    grid: {top: 20, bottom: 20, left: 20, right: 20},
     tooltip: {
       valueFormatter: (value: number) => {
-        if (operation === 'count') {
-          // if the operation is count, we want to ignore the unit and always format the value as a number
-          return value.toLocaleString();
-        }
-        return formatMetricUsingUnit(value, unit);
+        return formatMetricsUsingUnitAndOp(value, unit, operation);
       },
       nameFormatter: mri => getNameFromMRI(mri),
     },
     yAxis: {
       axisLabel: {
         formatter: (value: number) => {
-          if (operation === 'count') {
-            // if the operation is count, we want to ignore the unit and always format the value as a number
-            return value.toLocaleString();
-          }
-          return formatMetricUsingUnit(value, unit);
+          return formatMetricsUsingUnitAndOp(value, unit, operation);
         },
       },
     },
   };
 
   return (
-    <ChartZoom period={period} start={start} end={end} utc={utc}>
-      {zoomRenderProps =>
-        displayType === MetricDisplayType.LINE ? (
-          <LineChart {...chartProps} {...zoomRenderProps} />
-        ) : displayType === MetricDisplayType.AREA ? (
-          <AreaChart {...chartProps} {...zoomRenderProps} />
-        ) : (
-          <BarChart stacked {...chartProps} {...zoomRenderProps} />
-        )
-      }
-    </ChartZoom>
+    <Fragment>
+      <ChartZoom period={period} start={start} end={end} utc={utc}>
+        {zoomRenderProps =>
+          displayType === MetricDisplayType.LINE ? (
+            <LineChart {...chartProps} {...zoomRenderProps} />
+          ) : displayType === MetricDisplayType.AREA ? (
+            <AreaChart {...chartProps} {...zoomRenderProps} />
+          ) : (
+            <BarChart stacked {...chartProps} {...zoomRenderProps} />
+          )
+        }
+      </ChartZoom>
+    </Fragment>
   );
 }
-
-function Table({data}: {data: MetricsData}) {
-  const rows = data.intervals.map((interval, index) => {
-    const row = {
-      id: moment(interval).utc().format(),
-    };
-
-    data.groups.forEach(group => {
-      const seriesName = getSeriesName(group, data.groups.length === 1);
-      Object.values(group.series).forEach(values => {
-        row[seriesName] = values[index];
-      });
-    });
-    return row;
-  });
-
-  return (
-    <SeriesTable headers={Object.keys(rows[0])}>
-      {rows.map(row => (
-        <Fragment key={row.id}>
-          {Object.values(row).map((value, idx) => (
-            <Cell key={`${row.id}-${idx}`}>{value}</Cell>
-          ))}
-        </Fragment>
-      ))}
-    </SeriesTable>
-  );
-}
-
-const SeriesTable = styled(PanelTable)`
-  max-height: 290px;
-  margin-bottom: 0;
-  border: none;
-  border-radius: 0;
-  border-bottom: 1px;
-`;
-
-const Cell = styled('div')`
-  padding: ${space(0.5)} 0 ${space(0.5)} ${space(1)};
-`;
 
 const MetricsExplorerPanel = styled(Panel)`
   padding-bottom: 0;
@@ -523,7 +502,6 @@ const MetricsExplorerPanel = styled(Panel)`
 
 const DisplayWrapper = styled('div')`
   padding: ${space(1)};
-  height: 300px;
   display: flex;
   flex-direction: column;
   justify-content: center;
