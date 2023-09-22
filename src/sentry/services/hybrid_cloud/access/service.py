@@ -48,7 +48,7 @@ class AccessService(abc.ABC):
 
         if not auth_identity.last_verified:
             return False
-        if auth_identity.last_verified < timezone.now() - timedelta(hours=24):
+        if auth_identity.last_verified < timezone.now() - timedelta(hours=24 * 7):
             return False
         return True
 
