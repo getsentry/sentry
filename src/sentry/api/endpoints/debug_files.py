@@ -21,6 +21,7 @@ from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
+from sentry.auth.access import Access
 from sentry.auth.superuser import is_active_superuser
 from sentry.auth.system import is_system_auth
 from sentry.constants import DEBUG_FILES_ROLE_DEFAULT, KNOWN_DIF_FORMATS
@@ -35,6 +36,7 @@ from sentry.models import (
     create_files_from_dif_zip,
 )
 from sentry.models.debugfile import ProguardArtifactRelease
+from sentry.models.project import Project
 from sentry.models.release import get_artifact_counts
 from sentry.tasks.assemble import (
     AssembleTask,
@@ -85,6 +87,12 @@ def has_download_permission(request, project):
         return False
 
     return roles.get(current_role).priority >= roles.get(required_role).priority
+
+
+def _has_delete_permission(access: Access, project: Project) -> bool:
+    if access.has_scope("project:write"):
+        return True
+    return access.has_project_scope(project, "project:write")
 
 
 @region_silo_endpoint
@@ -296,7 +304,7 @@ class DebugFilesEndpoint(ProjectEndpoint):
             on_results=on_results,
         )
 
-    def delete(self, request: Request, project) -> Response:
+    def delete(self, request: Request, project: Project) -> Response:
         """
         Delete a specific Project's Debug Information File
         ```````````````````````````````````````````````````
@@ -310,8 +318,7 @@ class DebugFilesEndpoint(ProjectEndpoint):
         :qparam string id: The id of the DIF to delete.
         :auth: required
         """
-
-        if request.GET.get("id") and (request.access.has_scope("project:write")):
+        if request.GET.get("id") and _has_delete_permission(request.access, project):
             with atomic_transaction(using=router.db_for_write(File)):
                 debug_file = (
                     ProjectDebugFile.objects.filter(id=request.GET.get("id"), project_id=project.id)

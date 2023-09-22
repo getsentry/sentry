@@ -91,7 +91,6 @@ from sentry.models import (
     UserEmail,
     UserPermission,
     UserReport,
-    get_actor_id_for_user,
 )
 from sentry.models.apikey import ApiKey
 from sentry.models.apitoken import ApiToken
@@ -426,23 +425,27 @@ class Factories:
     def create_project_rule(
         project,
         action_data=None,
+        allow_no_action_data=False,
         condition_data=None,
         name="",
         action_match="all",
         filter_match="all",
         **kwargs,
     ):
-        action_data = action_data or [
-            {
-                "id": "sentry.rules.actions.notify_event.NotifyEventAction",
-                "name": "Send a notification (for all legacy integrations)",
-            },
-            {
-                "id": "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
-                "service": "mail",
-                "name": "Send a notification via mail",
-            },
-        ]
+        actions = None
+        if not allow_no_action_data:
+            action_data = action_data or [
+                {
+                    "id": "sentry.rules.actions.notify_event.NotifyEventAction",
+                    "name": "Send a notification (for all legacy integrations)",
+                },
+                {
+                    "id": "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
+                    "service": "mail",
+                    "name": "Send a notification via mail",
+                },
+            ]
+            actions = action_data
         condition_data = condition_data or [
             {
                 "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
@@ -453,15 +456,18 @@ class Factories:
                 "name": "The event occurs",
             },
         ]
+        data = {
+            "conditions": condition_data,
+            "action_match": action_match,
+            "filter_match": filter_match,
+        }
+        if actions:
+            data["actions"] = actions
+
         return Rule.objects.create(
             label=name,
             project=project,
-            data={
-                "conditions": condition_data,
-                "actions": action_data,
-                "action_match": action_match,
-                "filter_match": filter_match,
-            },
+            data=data,
             **kwargs,
         )
 
@@ -1427,8 +1433,7 @@ class Factories:
         kwargs.setdefault("provider", ExternalProviders.GITHUB.value)
         kwargs.setdefault("external_name", "")
 
-        actor_id = get_actor_id_for_user(user)
-        return ExternalActor.objects.create(user_id=user.id, actor_id=actor_id, **kwargs)
+        return ExternalActor.objects.create(user_id=user.id, **kwargs)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
@@ -1436,7 +1441,7 @@ class Factories:
         kwargs.setdefault("provider", ExternalProviders.GITHUB.value)
         kwargs.setdefault("external_name", "@getsentry/ecosystem")
 
-        return ExternalActor.objects.create(team_id=team.id, actor_id=team.actor_id, **kwargs)
+        return ExternalActor.objects.create(team_id=team.id, **kwargs)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)

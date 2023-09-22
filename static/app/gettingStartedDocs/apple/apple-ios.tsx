@@ -9,7 +9,7 @@ import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import {t, tct} from 'sentry/locale';
 
-interface StepProps {
+interface StepsParams {
   dsn: string;
   hasPerformance: boolean;
   hasProfiling: boolean;
@@ -21,7 +21,7 @@ export const steps = ({
   dsn,
   hasPerformance,
   hasProfiling,
-}: StepProps): LayoutProps['steps'] => [
+}: StepsParams): LayoutProps['steps'] => [
   {
     title: t('Auto-Install'),
     description: (
@@ -200,13 +200,13 @@ struct SwiftUIApp: App {
             options.tracesSampleRate = 1.0`
                 : ''
             }${
-          hasProfiling
-            ? `
+              hasProfiling
+                ? `
             // Set profilesSampleRate to 1.0 to profile 100% of sampled transactions.
             // We recommend adjusting this value in production
             options.profilesSampleRate = 1.0`
-            : ''
-        }
+                : ''
+            }
         }
     }
 }

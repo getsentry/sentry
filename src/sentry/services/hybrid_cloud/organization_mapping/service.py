@@ -73,14 +73,7 @@ class OrganizationMappingService(RpcService):
 
     @rpc_method
     @abstractmethod
-    def update(self, *, organization_id: int, update: RpcOrganizationMappingUpdate) -> None:
-        pass
-
-    @rpc_method
-    @abstractmethod
-    def upsert(
-        self, *, organization_id: int, update: RpcOrganizationMappingUpdate
-    ) -> RpcOrganizationMapping:
+    def upsert(self, *, organization_id: int, update: RpcOrganizationMappingUpdate) -> None:
         pass
 
     @rpc_method

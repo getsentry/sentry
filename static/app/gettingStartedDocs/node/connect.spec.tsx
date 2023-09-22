@@ -6,13 +6,16 @@ import {GettingStartedWithConnect, steps} from './connect';
 
 describe('GettingStartedWithConnect', function () {
   it('renders doc correctly', function () {
-    render(<GettingStartedWithConnect dsn="test-dsn" />);
+    render(<GettingStartedWithConnect dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps({
       installSnippet: 'test-install-snippet',
       importContent: 'test-import-content',
       initContent: 'test-init-content',
+      sourceMapStep: {
+        title: 'Upload Source Maps',
+      },
     })) {
       expect(
         screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})

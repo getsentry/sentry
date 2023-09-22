@@ -218,11 +218,11 @@ function PerformanceCardTable({
                 organization,
                 location,
               });
-              const allReleasesWebVitals = webVitalsRenderer?.map(renderer =>
-                renderer?.(dataRow, {organization, location})
+              const allReleasesWebVitals = webVitalsRenderer?.map(
+                renderer => renderer?.(dataRow, {organization, location})
               );
-              const allReleasesSpans = spansRenderer?.map(renderer =>
-                renderer?.(dataRow, {organization, location})
+              const allReleasesSpans = spansRenderer?.map(
+                renderer => renderer?.(dataRow, {organization, location})
               );
 
               return (
@@ -246,11 +246,11 @@ function PerformanceCardTable({
                 organization,
                 location,
               });
-              const thisReleasesWebVitals = webVitalsRenderer?.map(renderer =>
-                renderer?.(dataRow, {organization, location})
+              const thisReleasesWebVitals = webVitalsRenderer?.map(
+                renderer => renderer?.(dataRow, {organization, location})
               );
-              const thisReleasesSpans = spansRenderer?.map(renderer =>
-                renderer?.(dataRow, {organization, location})
+              const thisReleasesSpans = spansRenderer?.map(
+                renderer => renderer?.(dataRow, {organization, location})
               );
 
               return (
@@ -390,8 +390,8 @@ function PerformanceCardTable({
                 location,
               });
               const allReleasesApdex = apdexRenderer?.(dataRow, {organization, location});
-              const allReleasesSpans = spansRenderer?.map(renderer =>
-                renderer?.(dataRow, {organization, location})
+              const allReleasesSpans = spansRenderer?.map(
+                renderer => renderer?.(dataRow, {organization, location})
               );
 
               return (
@@ -416,8 +416,8 @@ function PerformanceCardTable({
                 organization,
                 location,
               });
-              const thisReleasesSpans = spansRenderer?.map(renderer =>
-                renderer?.(dataRow, {organization, location})
+              const thisReleasesSpans = spansRenderer?.map(
+                renderer => renderer?.(dataRow, {organization, location})
               );
 
               return (
@@ -513,8 +513,8 @@ function PerformanceCardTable({
                 organization,
                 location,
               });
-              const allReleasesMobile = mobileVitalsRenderer?.map(renderer =>
-                renderer?.(dataRow, {organization, location})
+              const allReleasesMobile = mobileVitalsRenderer?.map(
+                renderer => renderer?.(dataRow, {organization, location})
               );
 
               return (
@@ -533,8 +533,8 @@ function PerformanceCardTable({
                 organization,
                 location,
               });
-              const thisReleasesMobile = mobileVitalsRenderer?.map(renderer =>
-                renderer?.(dataRow, {organization, location})
+              const thisReleasesMobile = mobileVitalsRenderer?.map(
+                renderer => renderer?.(dataRow, {organization, location})
               );
 
               return (

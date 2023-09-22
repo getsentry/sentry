@@ -42,7 +42,6 @@ from sentry.models import (
     EventError,
     Group,
     GroupLink,
-    Integration,
     Organization,
     Project,
     Release,
@@ -53,6 +52,7 @@ from sentry.models import (
 from sentry.notifications.notify import notify
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.services.hybrid_cloud.util import region_silo_function
 from sentry.utils.committers import get_serialized_event_file_committers
 from sentry.utils.performance_issues.base import get_url_from_span
 from sentry.utils.performance_issues.performance_detection import PerformanceProblem
@@ -207,9 +207,16 @@ def get_group_settings_link(
     return str(group.get_absolute_url() + extra_params)
 
 
-def get_integration_link(organization: Organization, integration_slug: str) -> str:
+def get_integration_link(
+    organization: Organization, integration_slug: str, notification_uuid: Optional[str] = None
+) -> str:
+    query_params = {"referrer": "alert_email"}
+    if notification_uuid:
+        query_params.update({"notification_uuid": notification_uuid})
+
     return organization.absolute_url(
-        f"/settings/{organization.slug}/integrations/{integration_slug}/?referrer=alert_email"
+        f"/settings/{organization.slug}/integrations/{integration_slug}/",
+        query=urlencode(query_params),
     )
 
 
@@ -265,13 +272,14 @@ def get_commits(project: Project, event: Event) -> Sequence[Mapping[str, Any]]:
     return sorted(commits.values(), key=lambda x: float(x.get("score", 0)), reverse=True)
 
 
+@region_silo_function
 def has_integrations(organization: Organization, project: Project) -> bool:
     from sentry.plugins.base import plugins
 
     project_plugins = plugins.for_project(project, version=1)
-    organization_integrations = Integration.objects.filter(
-        organizationintegration__organization_id=organization.id
-    ).first()
+    organization_integrations = integration_service.get_integrations(
+        organization_id=organization.id, limit=1
+    )
     # TODO: fix because project_plugins is an iterator and thus always truthy
     return bool(project_plugins or organization_integrations)
 
@@ -433,7 +441,7 @@ def send_activity_notification(notification: ActivityNotification | UserReportNo
     shared_context = notification.get_context()
 
     split = participants_by_provider.split_participants_and_context()
-    for (provider, participants, extra_context) in split:
+    for provider, participants, extra_context in split:
         notify(provider, notification, participants, shared_context, extra_context)
 
 

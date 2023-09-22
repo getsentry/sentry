@@ -6,7 +6,7 @@ import {GettingStartedWithNativeQT, steps} from './native-qt';
 
 describe('GettingStartedWithNativeQT', function () {
   it('renders doc correctly', function () {
-    render(<GettingStartedWithNativeQT dsn="test-dsn" />);
+    render(<GettingStartedWithNativeQT dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps()) {

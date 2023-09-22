@@ -1,4 +1,5 @@
 import {useState} from 'react';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
 import onboardingImg from 'sentry-images/spot/onboarding-preview.svg';
@@ -13,6 +14,10 @@ import {PlatformKey} from 'sentry/data/platformCategories';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import useOrganization from 'sentry/utils/useOrganization';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import MonitorForm from 'sentry/views/monitors/components/monitorForm';
+import {Monitor} from 'sentry/views/monitors/types';
 
 import {NewMonitorButton} from './newMonitorButton';
 import {
@@ -20,7 +25,13 @@ import {
   PlatformPickerPanel,
   SupportedPlatform,
 } from './platformPickerPanel';
-import {CeleryBeatAutoDiscovery, QuickStartProps} from './quickStartEntries';
+import {
+  CeleryBeatAutoDiscovery,
+  LaravelUpsertPlatformGuide,
+  NodeJsUpsertPlatformGuide,
+  PHPUpsertPlatformGuide,
+  QuickStartProps,
+} from './quickStartEntries';
 
 interface PlatformGuide {
   Guide: React.ComponentType<QuickStartProps>;
@@ -36,26 +47,27 @@ const platformGuides: Record<SupportedPlatform, PlatformGuide[]> = {
   ],
   php: [
     {
-      Guide: () => null,
+      Guide: PHPUpsertPlatformGuide,
       title: 'Upsert',
     },
   ],
   'php-laravel': [
     {
-      Guide: () => null,
+      Guide: LaravelUpsertPlatformGuide,
       title: 'Upsert',
     },
   ],
   python: [],
   node: [
     {
-      Guide: () => null,
+      Guide: NodeJsUpsertPlatformGuide,
       title: 'Upsert',
     },
   ],
 };
 
 export function CronsLandingPanel() {
+  const organization = useOrganization();
   const [platform, setPlatform] = useState<PlatformKey | null>(null);
 
   if (!platform) {
@@ -67,6 +79,11 @@ export function CronsLandingPanel() {
   )?.label;
 
   const guides = platformGuides[platform];
+
+  function onCreateMonitor(data: Monitor) {
+    const url = normalizeUrl(`/organizations/${organization.slug}/crons/${data.slug}/`);
+    browserHistory.push(url);
+  }
 
   return (
     <Panel>
@@ -97,7 +114,16 @@ export function CronsLandingPanel() {
                   </GuideContainer>
                 </TabPanels.Item>
               )),
-              <TabPanels.Item key="manual">Manual</TabPanels.Item>,
+              <TabPanels.Item key="manual">
+                <GuideContainer>
+                  <MonitorForm
+                    apiMethod="POST"
+                    apiEndpoint={`/organizations/${organization.slug}/monitors/`}
+                    onSubmitSuccess={onCreateMonitor}
+                    submitLabel={t('Next')}
+                  />
+                </GuideContainer>
+              </TabPanels.Item>,
             ]}
           </TabPanels>
         </Tabs>

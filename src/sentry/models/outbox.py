@@ -100,6 +100,7 @@ class OutboxCategory(IntEnum):
 
     AUTH_PROVIDER_UPDATE = 24
     AUTH_IDENTITY_UPDATE = 25
+    ORGANIZATION_MEMBER_TEAM_UPDATE = 26
 
     @classmethod
     def as_choices(cls):
@@ -182,6 +183,7 @@ class OutboxCategory(IntEnum):
         Outbox = outbox or RegionOutbox
 
         return Outbox(
+            shard_scope=scope,
             shard_identifier=shard_identifier,
             category=self,
             object_identifier=object_identifier,
@@ -242,6 +244,8 @@ class OutboxCategory(IntEnum):
                     shard_identifier = model.id
                 elif hasattr(model, "organization_id"):
                     shard_identifier = model.organization_id
+                elif hasattr(model, "auth_provider_id"):
+                    shard_identifier = model.auth_provider_id
             if scope == OutboxScope.USER_SCOPE:
                 if isinstance(model, User):
                     shard_identifier = model.id
@@ -280,7 +284,10 @@ class OutboxScope(IntEnum):
             OutboxCategory.POST_ORGANIZATION_PROVISION,
             OutboxCategory.DISABLE_AUTH_PROVIDER,
             OutboxCategory.ORGANIZATION_MAPPING_CUSTOMER_ID_UPDATE,
+            OutboxCategory.TEAM_UPDATE,
             OutboxCategory.AUTH_PROVIDER_UPDATE,
+            OutboxCategory.AUTH_IDENTITY_UPDATE,
+            OutboxCategory.ORGANIZATION_MEMBER_TEAM_UPDATE,
         },
     )
     USER_SCOPE = scope_categories(
@@ -290,7 +297,6 @@ class OutboxScope(IntEnum):
             OutboxCategory.UNUSED_ONE,
             OutboxCategory.UNUSED_TWO,
             OutboxCategory.UNUSUED_THREE,
-            OutboxCategory.AUTH_IDENTITY_UPDATE,
         },
     )
     WEBHOOK_SCOPE = scope_categories(2, {OutboxCategory.WEBHOOK_PROXY})
@@ -314,11 +320,10 @@ class OutboxScope(IntEnum):
             OutboxCategory.SENTRY_APP_INSTALLATION_UPDATE,
         },
     )
+    # Deprecate?
     TEAM_SCOPE = scope_categories(
         7,
-        {
-            OutboxCategory.TEAM_UPDATE,
-        },
+        set(),
     )
     PROVISION_SCOPE = scope_categories(
         8,
@@ -341,8 +346,6 @@ class OutboxScope(IntEnum):
             return "organization_id"
         if scope == OutboxScope.USER_SCOPE:
             return "user_id"
-        if scope == OutboxScope.TEAM_SCOPE:
-            return "team_id"
         if scope == OutboxScope.APP_SCOPE:
             return "app_id"
 
@@ -541,21 +544,39 @@ class OutboxBase(Model):
     @contextlib.contextmanager
     def process_coalesced(self) -> Generator[OutboxBase | None, None, None]:
         coalesced: OutboxBase | None = self.select_coalesced_messages().last()
+        first_coalesced: OutboxBase | None = self.select_coalesced_messages().first() or coalesced
+        tags = {"category": "None"}
+
+        if coalesced is not None:
+            tags["category"] = OutboxCategory(self.category).name
+            assert first_coalesced, "first_coalesced incorrectly set for non-empty coalesce group"
+            metrics.timing(
+                "outbox.coalesced_net_queue_time",
+                datetime.datetime.now(tz=datetime.timezone.utc).timestamp()
+                - first_coalesced.date_added.timestamp(),
+                tags=tags,
+            )
+
         yield coalesced
 
         # If the context block didn't raise we mark messages as completed by deleting them.
         if coalesced is not None:
-            first_coalesced: OutboxBase = self.select_coalesced_messages().first() or coalesced
+            assert first_coalesced, "first_coalesced incorrectly set for non-empty coalesce group"
             deleted_count, _ = (
                 self.select_coalesced_messages().filter(id__lte=coalesced.id).delete()
             )
 
-            tags = {"category": OutboxCategory(self.category).name}
-
             metrics.incr("outbox.processed", deleted_count, tags=tags)
             metrics.timing(
                 "outbox.processing_lag",
-                datetime.datetime.now().timestamp() - first_coalesced.scheduled_from.timestamp(),
+                datetime.datetime.now(tz=datetime.timezone.utc).timestamp()
+                - first_coalesced.scheduled_from.timestamp(),
+                tags=tags,
+            )
+            metrics.timing(
+                "outbox.coalesced_net_processing_time",
+                datetime.datetime.now(tz=datetime.timezone.utc).timestamp()
+                - first_coalesced.date_added.timestamp(),
                 tags=tags,
             )
 

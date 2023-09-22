@@ -7,7 +7,7 @@ import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDoc
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {t, tct} from 'sentry/locale';
 
-interface StepProps {
+interface StepsParams {
   dsn: string;
   organizationSlug?: string;
   projectSlug?: string;
@@ -33,7 +33,7 @@ export const steps = ({
   sourcePackageRegistries,
   projectSlug,
   organizationSlug,
-}: StepProps): LayoutProps['steps'] => [
+}: StepsParams): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
     description: t(
@@ -410,6 +410,7 @@ export function GettingStartedWithSpring({
       })}
       nextSteps={nextStepDocs}
       introduction={introduction}
+      projectSlug={projectSlug}
       {...props}
     />
   );

@@ -331,6 +331,59 @@ class UserNotificationFineTuningTest(UserNotificationFineTuningTestBase):
             == set()
         )
 
+    @with_feature("organizations:notifications-double-write")
+    def test_double_write_weekly_report(self):
+        data = {str(self.organization.id): 1, str(self.organization2.id): "1"}
+        self.get_success_response("me", "reports", status_code=204, **data)
+
+        assert (
+            set(UserOption.objects.get(user=self.user, key="reports:disabled-organizations").value)
+            == set()
+        )
+        assert NotificationSettingOption.objects.filter(
+            user_id=self.user.id,
+            scope_type="organization",
+            scope_identifier=self.organization.id,
+            value="always",
+            type="reports",
+        ).exists()
+        assert NotificationSettingOption.objects.filter(
+            user_id=self.user.id,
+            scope_type="organization",
+            scope_identifier=self.organization2.id,
+            value="always",
+            type="reports",
+        ).exists()
+
+        # can disable
+        data = {str(self.organization.id): 0}
+        self.get_success_response("me", "reports", status_code=204, **data)
+        assert set(
+            UserOption.objects.get(user=self.user, key="reports:disabled-organizations").value
+        ) == {self.organization.id}
+        assert NotificationSettingOption.objects.filter(
+            user_id=self.user.id,
+            scope_type="organization",
+            scope_identifier=self.organization.id,
+            value="never",
+            type="reports",
+        ).exists()
+
+        # re-enable
+        data = {str(self.organization.id): 1}
+        self.get_success_response("me", "reports", status_code=204, **data)
+        assert (
+            set(UserOption.objects.get(user=self.user, key="reports:disabled-organizations").value)
+            == set()
+        )
+        assert NotificationSettingOption.objects.filter(
+            user_id=self.user.id,
+            scope_type="organization",
+            scope_identifier=self.organization.id,
+            value="always",
+            type="reports",
+        ).exists()
+
     def test_permissions(self):
         new_user = self.create_user(email="b@example.com")
         new_org = self.create_organization(name="New Org")

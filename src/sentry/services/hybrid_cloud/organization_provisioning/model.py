@@ -7,6 +7,7 @@ class OrganizationOptions(pydantic.BaseModel):
     name: str
     slug: str
     owning_user_id: int
+    create_default_team: bool = True
 
 
 class PostProvisionOptions(pydantic.BaseModel):
