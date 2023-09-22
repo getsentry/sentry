@@ -19,6 +19,7 @@ export type MetricsApiResponse = {
     totals?: Record<string, number | null>;
   }[];
   intervals: string[];
+  meta: MetricsMeta[];
   query: string;
   start: string;
 };
@@ -35,9 +36,11 @@ export type MetricsTagValue = {
 };
 
 export type MetricsMeta = {
+  mri: string;
   name: string;
   operations: MetricsOperation[];
-  type: MetricsType;
+  type: MetricsType; // TODO(ddm): I think this is wrong, api returns "c" instead of "counter"
+  unit: string;
 };
 
 export type MetricsMetaCollection = Record<string, MetricsMeta>;
