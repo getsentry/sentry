@@ -2233,6 +2233,23 @@
       "Control"
     ]
   },
+  "sentry.organizationslugreservationreplica": {
+    "foreign_keys": {
+      "organization_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.organization"
+      },
+      "user_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.user"
+      }
+    },
+    "model": "sentry.organizationslugreservationreplica",
+    "relocation_scope": "Excluded",
+    "silos": [
+      "Region"
+    ]
+  },
   "sentry.orgauthtoken": {
     "foreign_keys": {
       "created_by": {

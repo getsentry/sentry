@@ -502,6 +502,10 @@
     "sentry.organization",
     "sentry.user"
   ],
+  "sentry.organizationslugreservationreplica": [
+    "sentry.organization",
+    "sentry.user"
+  ],
   "sentry.orgauthtoken": [
     "sentry.organization",
     "sentry.project",

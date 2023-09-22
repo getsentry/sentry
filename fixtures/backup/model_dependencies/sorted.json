@@ -22,6 +22,7 @@
   "sentry.integrationfeature",
   "sentry.user",
   "sentry.organizationslugreservation",
+  "sentry.organizationslugreservationreplica",
   "sentry.project",
   "sentry.projectbookmark",
   "sentry.projectkey",
