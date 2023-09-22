@@ -202,7 +202,7 @@ default_manager.add(
 )
 default_manager.add(
     AuditLogEvent(
-        event_id=83,
+        event_id=84,
         name="RULE_DISABLE",
         api_name="rule.disable",
         template='disabled rule "{label}"',
