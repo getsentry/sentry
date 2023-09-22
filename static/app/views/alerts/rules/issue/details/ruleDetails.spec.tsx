@@ -278,6 +278,7 @@ describe('AlertRuleDetails', () => {
     expect(
       screen.queryByText(/This alert was disabled due to lack of activity/)
     ).not.toBeInTheDocument();
+    expect(screen.queryByText(/This alert is disabled/)).not.toBeInTheDocument();
   });
 
   it('renders the mute button and can mute/unmute alerts', async () => {
