@@ -206,7 +206,8 @@ export default class ReplayReader {
           EventType.FullSnapshot,
           EventType.IncrementalSnapshot,
         ].includes(event.type) &&
-        ('adds' || 'removes') in (event as incrementalSnapshotEvent).data // filter only for mutation events
+        ('removes' in (event as incrementalSnapshotEvent).data ||
+          'adds' in (event as incrementalSnapshotEvent).data) // filter only for mutation events
     );
 
   getErrorFrames = () => this._errors;

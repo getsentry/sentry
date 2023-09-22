@@ -50,7 +50,6 @@ const MemoryTabWrapper = styled(FluidHeight)`
   gap: ${space(1)};
   height: 100%;
   display: flex;
-  grid-template-rows: 1fr 1fr;
 `;
 
 export default FocusArea;
