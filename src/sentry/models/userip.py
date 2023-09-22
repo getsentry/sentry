@@ -8,7 +8,7 @@ from django.db import models
 from django.forms import model_to_dict
 from django.utils import timezone
 
-from sentry.backup.dependencies import ImportKind, PrimaryKeyMap
+from sentry.backup.dependencies import ImportKind, PrimaryKeyMap, get_model_name
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, control_silo_only_model, sane_repr
@@ -48,8 +48,10 @@ class UserIP(Model):
     def normalize_before_relocation_import(
         self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
     ) -> Optional[int]:
+        from sentry.models.user import User
+
         # If we are merging users, ignore this import and use the merged user's data.
-        if pk_map.get_kind("sentry.User", self.user_id) == ImportKind.Existing:
+        if pk_map.get_kind(get_model_name(User), self.user_id) == ImportKind.Existing:
             return None
 
         old_pk = super().normalize_before_relocation_import(pk_map, scope, flags)
