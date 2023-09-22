@@ -25,6 +25,7 @@ import {space} from 'sentry/styles/space';
 import {MetricsTag, TagCollection} from 'sentry/types';
 import {
   defaultMetricDisplayType,
+  formatMetricUsingUnit,
   getNameFromMRI,
   getReadableMetricType,
   getUnitFromMRI,
@@ -32,7 +33,6 @@ import {
   MetricDisplayType,
   MetricsData,
   MetricsDataProps,
-  tooltipFormatterUsingUnit,
   useMetricsData,
   useMetricsMeta,
   useMetricsTags,
@@ -333,7 +333,7 @@ function MetricsExplorerDisplay({displayType, ...metricsDataProps}: DisplayProps
       {displayType === MetricDisplayType.TABLE ? (
         <Table data={sorted} />
       ) : (
-        <Chart data={sorted} displayType={displayType} />
+        <Chart data={sorted} displayType={displayType} operation={metricsDataProps.op} />
       )}
     </DisplayWrapper>
   );
@@ -399,10 +399,18 @@ function normalizeChartTimeParams(data: MetricsData) {
   };
 }
 
-function Chart({data, displayType}: {data: MetricsData; displayType: MetricDisplayType}) {
+function Chart({
+  data,
+  displayType,
+  operation,
+}: {
+  data: MetricsData;
+  displayType: MetricDisplayType;
+  operation?: string;
+}) {
   const {start, end, period, utc} = normalizeChartTimeParams(data);
 
-  const unit = getUnitFromMRI(Object.keys(data.groups[0].series)[0]); // this assumes that all series have the same unit
+  const unit = getUnitFromMRI(Object.keys(data.groups[0]?.series ?? {})[0]); // this assumes that all series have the same unit
 
   const series = data.groups.map(g => {
     return {
@@ -432,12 +440,24 @@ function Chart({data, displayType}: {data: MetricsData; displayType: MetricDispl
     }),
     grid: {top: 30, bottom: 40, left: 20, right: 20},
     tooltip: {
-      valueFormatter: (value: number) => tooltipFormatterUsingUnit(value, unit),
+      valueFormatter: (value: number) => {
+        if (operation === 'count') {
+          // if the operation is count, we want to ignore the unit and alwats format the value as a number
+          return value.toLocaleString();
+        }
+        return formatMetricUsingUnit(value, unit);
+      },
       nameFormatter: mri => getNameFromMRI(mri),
     },
     yAxis: {
       axisLabel: {
-        formatter: (value: number) => tooltipFormatterUsingUnit(value, unit),
+        formatter: (value: number) => {
+          if (operation === 'count') {
+            // if the operation is count, we want to ignore the unit and alwats format the value as a number
+            return value.toLocaleString();
+          }
+          return formatMetricUsingUnit(value, unit);
+        },
       },
     },
   };
