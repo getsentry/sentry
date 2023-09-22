@@ -9,7 +9,7 @@ import {ChartTooltip} from 'sentry/components/charts/components/tooltip';
 import XAxis from 'sentry/components/charts/components/xAxis';
 import YAxis from 'sentry/components/charts/components/yAxis';
 import EmptyMessage from 'sentry/components/emptyMessage';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import Placeholder from 'sentry/components/placeholder';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {showPlayerTime} from 'sentry/components/replays/utils';
 import {t} from 'sentry/locale';
@@ -48,7 +48,7 @@ function MemoryChart({
   if (!memoryFrames) {
     return (
       <MemoryChartWrapper>
-        <LoadingIndicator style={{margin: '54px auto'}} />
+        <Placeholder height="100%" />
       </MemoryChartWrapper>
     );
   }
