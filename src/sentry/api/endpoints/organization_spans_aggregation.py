@@ -186,7 +186,7 @@ class AggregateSpans:
                 if span_tree["group"] == NULL_GROUP
                 else description,
                 "start_timestamp": start_timestamp,
-                "start_ms": start_timestamp,  # TODO: Reome after updating frontend, duplicated for backward compatibility
+                "start_ms": start_timestamp,  # TODO: Remove after updating frontend, duplicated for backward compatibility
                 "avg(exclusive_time)": span_tree["exclusive_time"],
                 "avg(duration)": span_tree["duration"],
                 "is_segment": span_tree["is_segment"],
