@@ -196,8 +196,12 @@ def test_should_log_rules_if_same_rule_has_different_sample_rate():
                     "condition": {
                         "op": "and",
                         "inner": [
-                            {"op": "eq", "name": "trace.release", "value": ["1.0"]},
-                            {"op": "eq", "name": "trace.environment", "value": ["dev"]},
+                            {"op": "eq", "name": "trace.release", "value": ["1.0"]},  # type:ignore
+                            {
+                                "op": "eq",
+                                "name": "trace.environment",
+                                "value": ["dev"],
+                            },  # type:ignore
                         ],
                     },
                     "id": 1501,
