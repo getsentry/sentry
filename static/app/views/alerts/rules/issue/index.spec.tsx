@@ -348,7 +348,7 @@ describe('IssueRuleEditor', function () {
       MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/rules/1/',
         body: TestStubs.ProjectAlertRule({
-          status: 'enabled',
+          status: 'disabled',
           disabledDate: moment().add(1, 'day').toISOString(),
         }),
       });
