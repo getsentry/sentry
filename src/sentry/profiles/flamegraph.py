@@ -250,7 +250,7 @@ def get_profiles_with_function(
     query = Query(
         match=Entity(EntityKey.Functions.value),
         select=[
-            Function("groupUniqArrayMerge", [Column("examples")], "profile_ids"),
+            Function("groupUniqArrayMerge(100)", [Column("examples")], "profile_ids"),
         ],
         where=[
             Condition(Column("project_id"), Op.EQ, project_id),
@@ -273,4 +273,4 @@ def get_profiles_with_function(
         request,
         referrer=Referrer.API_PROFILING_FUNCTION_SCOPED_FLAMEGRAPH.value,
     )["data"]
-    return {"profile_ids": list(map(lambda x: x.replace("-", ""), data[0]["profile_ids"][:100]))}
+    return {"profile_ids": list(map(lambda x: x.replace("-", ""), data[0]["profile_ids"]))}
