@@ -217,7 +217,7 @@ const MemoizedDomNodesChart = memo(
 );
 
 function useCountDomNodes({replay}: {replay: null | ReplayReader}) {
-  return useQuery(['countDomNodes', replay], () => replay?.countDomNodes() ?? undefined, {
+  return useQuery(['countDomNodes', replay], () => replay?.countDomNodes() ?? [], {
     enabled: Boolean(replay),
     initialData: undefined,
     cacheTime: Infinity,
