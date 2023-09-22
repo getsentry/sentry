@@ -22,6 +22,7 @@ __all__ = (
     "DatetimeSafeDjangoJSONEncoder",
     "export_in_user_scope",
     "export_in_organization_scope",
+    "export_in_config_scope",
     "export_in_global_scope",
 )
 
@@ -84,11 +85,14 @@ def _export(
         filters.append(Filter(Email, "email", set(emails)))
 
     def filter_objects(queryset_iterator):
-        # Intercept each value from the queryset iterator and ensure that all of its dependencies
-        # have already been exported. If they have, store it in the `pk_map`, and then yield it
-        # again. If they have not, we know that some upstream model was filtered out, so we ignore
-        # this one as well.
+        # Intercept each value from the queryset iterator, ensure that it has the correct relocation
+        # scope and that all of its dependencies have already been exported. If they have, store it
+        # in the `pk_map`, and then yield it again. If they have not, we know that some upstream
+        # model was filtered out, so we ignore this one as well.
         for item in queryset_iterator:
+            if not item.get_relocation_scope() in allowed_relocation_scopes:
+                continue
+
             model = type(item)
             model_name = normalize_model_name(model)
 
@@ -116,15 +120,10 @@ def _export(
     def yield_objects():
         # Collate the objects to be serialized.
         for model in sorted_dependencies():
-            includable = False
-
-            # TODO(getsentry/team-ospo#186): This won't be sufficient once we're trying to get
-            # relocation scopes that may vary on a per-instance, rather than
-            # per-model-definition, basis. We'll probably need to make use of something like
-            # Django annotations to efficiently filter down models.
-            if getattr(model, "__relocation_scope__", None) in allowed_relocation_scopes:
-                includable = True
-
+            includable = (
+                hasattr(model, "__relocation_scope__")
+                and model.get_possible_relocation_scopes() & allowed_relocation_scopes
+            )
             if not includable or model._meta.proxy:
                 continue
 
@@ -145,7 +144,8 @@ def export_in_user_scope(
     src, *, user_filter: set[str] | None = None, indent: int = 2, printer=click.echo
 ):
     """
-    Perform an export in the `User` scope, meaning that only models with `RelocationScope.User` will be exported from the provided `src` file.
+    Perform an export in the `User` scope, meaning that only models with `RelocationScope.User` will
+    be exported from the provided `src` file.
     """
 
     # Import here to prevent circular module resolutions.
@@ -164,7 +164,9 @@ def export_in_organization_scope(
     src, *, org_filter: set[str] | None = None, indent: int = 2, printer=click.echo
 ):
     """
-    Perform an export in the `Organization` scope, meaning that only models with `RelocationScope.User` or `RelocationScope.Organization` will be exported from the provided `src` file.
+    Perform an export in the `Organization` scope, meaning that only models with
+    `RelocationScope.User` or `RelocationScope.Organization` will be exported from the provided
+    `src` file.
     """
 
     # Import here to prevent circular module resolutions.
@@ -174,6 +176,31 @@ def export_in_organization_scope(
         src,
         ExportScope.Organization,
         filter_by=Filter(Organization, "slug", org_filter) if org_filter is not None else None,
+        indent=indent,
+        printer=printer,
+    )
+
+
+def export_in_config_scope(src, *, indent: int = 2, printer=click.echo):
+    """
+    Perform an export in the `Config` scope, meaning that only models directly related to the global
+    configuration and administration of an entire Sentry instance will be exported.
+    """
+
+    # Import here to prevent circular module resolutions.
+    from sentry.models.user import User
+    from sentry.models.userpermission import UserPermission
+    from sentry.models.userrole import UserRoleUser
+
+    # Pick out all users with admin privileges.
+    admin_user_pks: set[int] = set()
+    admin_user_pks.update(UserPermission.objects.values_list("user_id", flat=True))
+    admin_user_pks.update(UserRoleUser.objects.values_list("user_id", flat=True))
+
+    return _export(
+        src,
+        ExportScope.Config,
+        filter_by=Filter(User, "pk", admin_user_pks),
         indent=indent,
         printer=printer,
     )

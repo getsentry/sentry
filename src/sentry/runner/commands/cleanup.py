@@ -209,6 +209,7 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
             # used this index instead of a more appropriate one. This was causing a lot of postgres
             # load, so we had to remove it.
             (models.Group, "last_seen", "last_seen"),
+            (models.ProjectDebugFile, "date_accessed", "date_accessed"),
         ]
 
         if not silent:

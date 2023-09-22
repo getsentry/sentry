@@ -100,6 +100,7 @@ class OutboxCategory(IntEnum):
 
     AUTH_PROVIDER_UPDATE = 24
     AUTH_IDENTITY_UPDATE = 25
+    ORGANIZATION_MEMBER_TEAM_UPDATE = 26
 
     @classmethod
     def as_choices(cls):
@@ -243,6 +244,8 @@ class OutboxCategory(IntEnum):
                     shard_identifier = model.id
                 elif hasattr(model, "organization_id"):
                     shard_identifier = model.organization_id
+                elif hasattr(model, "auth_provider_id"):
+                    shard_identifier = model.auth_provider_id
             if scope == OutboxScope.USER_SCOPE:
                 if isinstance(model, User):
                     shard_identifier = model.id
@@ -281,7 +284,10 @@ class OutboxScope(IntEnum):
             OutboxCategory.POST_ORGANIZATION_PROVISION,
             OutboxCategory.DISABLE_AUTH_PROVIDER,
             OutboxCategory.ORGANIZATION_MAPPING_CUSTOMER_ID_UPDATE,
+            OutboxCategory.TEAM_UPDATE,
             OutboxCategory.AUTH_PROVIDER_UPDATE,
+            OutboxCategory.AUTH_IDENTITY_UPDATE,
+            OutboxCategory.ORGANIZATION_MEMBER_TEAM_UPDATE,
         },
     )
     USER_SCOPE = scope_categories(
@@ -291,7 +297,6 @@ class OutboxScope(IntEnum):
             OutboxCategory.UNUSED_ONE,
             OutboxCategory.UNUSED_TWO,
             OutboxCategory.UNUSUED_THREE,
-            OutboxCategory.AUTH_IDENTITY_UPDATE,
         },
     )
     WEBHOOK_SCOPE = scope_categories(2, {OutboxCategory.WEBHOOK_PROXY})
@@ -315,11 +320,10 @@ class OutboxScope(IntEnum):
             OutboxCategory.SENTRY_APP_INSTALLATION_UPDATE,
         },
     )
+    # Deprecate?
     TEAM_SCOPE = scope_categories(
         7,
-        {
-            OutboxCategory.TEAM_UPDATE,
-        },
+        set(),
     )
     PROVISION_SCOPE = scope_categories(
         8,
@@ -342,8 +346,6 @@ class OutboxScope(IntEnum):
             return "organization_id"
         if scope == OutboxScope.USER_SCOPE:
             return "user_id"
-        if scope == OutboxScope.TEAM_SCOPE:
-            return "team_id"
         if scope == OutboxScope.APP_SCOPE:
             return "app_id"
 

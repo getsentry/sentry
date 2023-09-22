@@ -7,8 +7,6 @@ from django.contrib.auth.models import AnonymousUser
 from django.http.request import HttpRequest
 from django.test import RequestFactory, override_settings
 from django.urls import re_path, reverse
-from freezegun import freeze_time
-from freezegun.api import FrozenDateTimeFactory
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
@@ -19,6 +17,7 @@ from sentry.models import ApiKey, ApiToken, SentryAppInstallation, User
 from sentry.ratelimits.config import RateLimitConfig, get_default_rate_limits_for_group
 from sentry.ratelimits.utils import get_rate_limit_config, get_rate_limit_key, get_rate_limit_value
 from sentry.testutils.cases import APITestCase, TestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import control_silo_test
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
@@ -110,10 +109,9 @@ class RatelimitMiddlewareTest(TestCase):
         # Requests outside the current window should not be rate limited
         default_rate_limit_mock.return_value = RateLimit(1, 1)
         with freeze_time("2000-01-01") as frozen_time:
-            assert isinstance(frozen_time, FrozenDateTimeFactory)
             self.middleware.process_view(request, self._test_endpoint, [], {})
             assert not request.will_be_rate_limited
-            frozen_time.tick(1)
+            frozen_time.shift(1)
             self.middleware.process_view(request, self._test_endpoint, [], {})
             assert not request.will_be_rate_limited
 
@@ -128,10 +126,9 @@ class RatelimitMiddlewareTest(TestCase):
 
         default_rate_limit_mock.return_value = RateLimit(1, 1)
         with freeze_time("2000-01-01") as frozen_time:
-            assert isinstance(frozen_time, FrozenDateTimeFactory)
             self.middleware.process_view(request, self._test_endpoint, [], {})
             assert not request.will_be_rate_limited
-            frozen_time.tick(1)
+            frozen_time.shift(1)
             self.middleware.process_view(request, self._test_endpoint, [], {})
             assert not request.will_be_rate_limited
 

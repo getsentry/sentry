@@ -11,6 +11,7 @@ export function MetricsField(
     start: '2021-12-01T16:15:00Z',
     end: '2021-12-02T16:15:00Z',
     query: '',
+    meta: [],
     intervals: [
       '2021-12-01T16:15:00Z',
       '2021-12-01T16:30:00Z',
@@ -155,6 +156,7 @@ export function MetricsTotalCountByReleaseIn24h(): MetricsApiResponse {
     end: '2021-12-02T16:15:00Z',
     query:
       'release:7a82c130be9143361f20bc77252df783cf91e4fc OR release:e102abb2c46e7fe8686441091005c12aed90da99',
+    meta: [],
     intervals: [
       '2021-03-17T10:00:00Z',
       '2021-03-17T11:00:00Z',
@@ -211,6 +213,7 @@ export function MetricsSessionUserCountByStatusByRelease(): MetricsApiResponse {
     start: '2022-01-15T00:00:00Z',
     end: '2022-01-29T00:00:00Z',
     query: '',
+    meta: [],
     intervals: [
       '2022-01-15T00:00:00Z',
       '2022-01-16T00:00:00Z',

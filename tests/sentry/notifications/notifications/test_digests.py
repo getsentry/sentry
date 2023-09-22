@@ -5,6 +5,7 @@ from urllib.parse import parse_qs
 
 import responses
 from django.core import mail
+from django.core.mail.message import EmailMultiAlternatives
 
 import sentry
 from sentry.digests.backends.base import Backend
@@ -17,8 +18,11 @@ from sentry.tasks.digests import deliver_digest
 from sentry.testutils.cases import PerformanceIssueTestCase, SlackActivityNotificationTest, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.slack import send_notification
+from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
+
+pytestmark = [requires_snuba]
 
 USER_COUNT = 2
 
@@ -103,6 +107,10 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
         assert "N+1 Query" in mail.outbox[0].body
         assert "oh no" in mail.outbox[0].body
         assert self.build_occurrence_data()["issue_title"] in mail.outbox[0].body
+        message = mail.outbox[0]
+        assert isinstance(message, EmailMultiAlternatives)
+        assert isinstance(message.alternatives[0][0], str)
+        assert "notification_uuid" in message.alternatives[0][0]
         mock_record.assert_any_call(
             "integrations.email.notification_sent",
             category="digest",
@@ -135,6 +143,10 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
 
         # It is an alert rule notification, not a digest
         assert "new alerts since" not in mail.outbox[0].subject
+        message = mail.outbox[0]
+        assert isinstance(message, EmailMultiAlternatives)
+        assert isinstance(message.alternatives[0][0], str)
+        assert "notification_uuid" in message.alternatives[0][0]
 
 
 class DigestSlackNotification(SlackActivityNotificationTest):
@@ -174,8 +186,19 @@ class DigestSlackNotification(SlackActivityNotificationTest):
             },
             project_id=self.project.id,
         )
-        backend.add(key, event_to_record(event, [rule]), increment_delay=0, maximum_delay=0)
-        backend.add(key, event_to_record(event2, [rule]), increment_delay=0, maximum_delay=0)
+        notification_uuid = str(uuid.uuid4())
+        backend.add(
+            key,
+            event_to_record(event, [rule], notification_uuid),
+            increment_delay=0,
+            maximum_delay=0,
+        )
+        backend.add(
+            key,
+            event_to_record(event2, [rule], notification_uuid),
+            increment_delay=0,
+            maximum_delay=0,
+        )
         with self.tasks():
             deliver_digest(key)
 
@@ -189,3 +212,5 @@ class DigestSlackNotification(SlackActivityNotificationTest):
             == f"<!date^{timestamp_secs}^2 issues detected {{date_pretty}} in| Digest Report for> <http://testserver/organizations/{self.organization.slug}/projects/{self.project.slug}/|{self.project.name}>"
         )
         assert len(attachments) == 2
+        assert "notification_uuid" in attachments[0]["title_link"]
+        assert "notification_uuid" in attachments[1]["title_link"]

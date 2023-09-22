@@ -7,7 +7,6 @@ from uuid import UUID
 from django.conf import settings
 from django.test.utils import override_settings
 from django.urls import reverse
-from freezegun import freeze_time
 
 from sentry.api.base import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.constants import ObjectStatus
@@ -23,6 +22,7 @@ from sentry.monitors.models import (
     ScheduleType,
 )
 from sentry.testutils.cases import MonitorIngestTestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import region_silo_test
 
 

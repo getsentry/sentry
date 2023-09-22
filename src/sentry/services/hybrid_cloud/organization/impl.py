@@ -11,8 +11,6 @@ from sentry.api.serializers import serialize
 from sentry.db.postgres.transactions import enforce_constraints
 from sentry.models import (
     Activity,
-    AuthIdentityReplica,
-    AuthProviderReplica,
     ControlOutbox,
     GroupAssignee,
     GroupBookmark,
@@ -29,8 +27,9 @@ from sentry.models import (
     outbox_context,
 )
 from sentry.models.organizationmember import InviteStatus
+from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.services.hybrid_cloud import OptionValue, logger
-from sentry.services.hybrid_cloud.auth import RpcAuthIdentity, RpcAuthProvider
+from sentry.services.hybrid_cloud.app import app_service
 from sentry.services.hybrid_cloud.organization import (
     OrganizationService,
     OrganizationSignalService,
@@ -45,15 +44,24 @@ from sentry.services.hybrid_cloud.organization import (
     RpcUserInviteContext,
     RpcUserOrganizationContext,
 )
+from sentry.services.hybrid_cloud.organization.model import (
+    RpcAuditLogEntryActor,
+    RpcOrganizationDeleteResponse,
+    RpcOrganizationDeleteState,
+)
 from sentry.services.hybrid_cloud.organization.serial import (
     serialize_member,
     serialize_organization_summary,
     serialize_rpc_organization,
 )
+from sentry.services.hybrid_cloud.organization_actions.impl import (
+    mark_organization_as_pending_deletion_with_outbox_message,
+)
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.util import flags_to_bits
 from sentry.silo import unguarded_write
 from sentry.types.region import find_regions_for_orgs
+from sentry.utils.audit import create_org_delete_log
 
 
 class DatabaseBackedOrganizationService(OrganizationService):
@@ -537,69 +545,44 @@ class DatabaseBackedOrganizationService(OrganizationService):
         for member in member_list:
             member.send_sso_link_email(sending_user_email, provider)
 
-    def upsert_replicated_auth_provider(
-        self, *, auth_provider: RpcAuthProvider, region_name: str
+    def delete_organization(
+        self, *, organization_id: int, user: RpcUser
+    ) -> RpcOrganizationDeleteResponse:
+        orm_organization = Organization.objects.get(id=organization_id)
+        if orm_organization.is_default:
+            return RpcOrganizationDeleteResponse(
+                response_state=RpcOrganizationDeleteState.CANNOT_REMOVE_DEFAULT_ORG
+            )
+
+        published_sentry_apps = app_service.get_published_sentry_apps_for_organization(
+            organization_id=orm_organization.id
+        )
+
+        if len(published_sentry_apps) > 0:
+            return RpcOrganizationDeleteResponse(
+                response_state=RpcOrganizationDeleteState.OWNS_PUBLISHED_INTEGRATION
+            )
+
+        with transaction.atomic(router.db_for_write(RegionScheduledDeletion)):
+            updated_organization = mark_organization_as_pending_deletion_with_outbox_message(
+                org_id=orm_organization.id
+            )
+
+            if updated_organization is not None:
+                schedule = RegionScheduledDeletion.schedule(orm_organization, days=1, actor=user)
+
+                Organization.objects.uncache_object(updated_organization.id)
+                return RpcOrganizationDeleteResponse(
+                    response_state=RpcOrganizationDeleteState.PENDING_DELETION,
+                    updated_organization=serialize_rpc_organization(updated_organization),
+                    schedule_guid=schedule.guid,
+                )
+        return RpcOrganizationDeleteResponse(response_state=RpcOrganizationDeleteState.NO_OP)
+
+    def create_org_delete_log(
+        self, *, organization_id: int, audit_log_actor: RpcAuditLogEntryActor
     ) -> None:
-        try:
-            with enforce_constraints(transaction.atomic(router.db_for_write(AuthProviderReplica))):
-                organization = Organization.objects.get(id=auth_provider.organization_id)
-                # Deletes do not cascade immediately -- if we removed and add a new provider
-                # we should just clear that older provider.
-                AuthProviderReplica.objects.filter(organization=organization).exclude(
-                    auth_provider_id=auth_provider.id
-                ).delete()
-                existing = AuthProviderReplica.objects.filter(
-                    auth_provider_id=auth_provider.id
-                ).first()
-                update = {
-                    "organization": organization,
-                    "provider": auth_provider.provider,
-                    "config": auth_provider.config,
-                    "default_role": auth_provider.default_role,
-                    "default_global_access": auth_provider.default_global_access,
-                    "allow_unlinked": auth_provider.flags.allow_unlinked,
-                    "scim_enabled": auth_provider.flags.scim_enabled,
-                }
-
-                if not existing:
-                    AuthProviderReplica.objects.create(auth_provider_id=auth_provider.id, **update)
-                    return
-
-                existing.update(**update)
-        except Organization.DoesNotExist:
-            return
-
-    def upsert_replicated_auth_identity(
-        self, *, auth_identity: RpcAuthIdentity, region_name: str
-    ) -> None:
-        with enforce_constraints(transaction.atomic(router.db_for_write(AuthIdentityReplica))):
-            # Since coalesced outboxes won't replicate the precise ordering of changes, these
-            # unique keys can cause a deadlock in updates.  To address this, we just delete
-            # any conflicting items and allow future outboxes to carry the updates
-            # for the auth identities that should follow (given they will share the same shard).
-            AuthIdentityReplica.objects.filter(
-                ident=auth_identity.ident,
-                auth_provider_id=auth_identity.auth_provider_id,
-            ).exclude(auth_identity_id=auth_identity.id).delete()
-            AuthIdentityReplica.objects.filter(
-                user_id=auth_identity.user_id,
-                auth_provider_id=auth_identity.auth_provider_id,
-            ).exclude(auth_identity_id=auth_identity.id).delete()
-
-            existing = AuthIdentityReplica.objects.filter(auth_identity_id=auth_identity.id).first()
-            update = {
-                "user_id": auth_identity.user_id,
-                "auth_provider_id": auth_identity.auth_provider_id,
-                "ident": auth_identity.ident,
-                "data": auth_identity.data,
-                "last_verified": auth_identity.last_verified,
-            }
-
-            if not existing:
-                AuthIdentityReplica.objects.create(auth_identity_id=auth_identity.id, **update)
-                return
-
-            existing.update(**update)
+        create_org_delete_log(organization_id=organization_id, audit_log_actor=audit_log_actor)
 
     def send_signal(
         self,

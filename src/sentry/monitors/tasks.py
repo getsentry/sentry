@@ -9,8 +9,7 @@ from django.conf import settings
 from django.utils import timezone
 
 from sentry.constants import ObjectStatus
-from sentry.monitors.constants import SUBTITLE_DATETIME_FORMAT, TIMEOUT
-from sentry.monitors.logic.mark_failed import MonitorFailure, mark_failed
+from sentry.monitors.logic.mark_failed import mark_failed
 from sentry.monitors.types import ClockPulseMessage
 from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -205,39 +204,41 @@ def check_missing(current_datetime: datetime):
     )
     metrics.gauge("sentry.monitors.tasks.check_missing.count", qs.count(), sample_rate=1.0)
     for monitor_environment in qs:
-        try:
-            logger.info(
-                "monitor.missed-checkin", extra={"monitor_environment_id": monitor_environment.id}
-            )
+        mark_environment_missing.delay(monitor_environment.id)
 
-            monitor = monitor_environment.monitor
-            expected_time = monitor_environment.next_checkin
 
-            # add missed checkin.
-            #
-            # XXX(epurkhiser): The date_added is backdated so that this missed
-            # check-in correctly reflects the time of when the checkin SHOULD
-            # have happened. It is the same as the expected_time.
-            MonitorCheckIn.objects.create(
-                project_id=monitor_environment.monitor.project_id,
-                monitor=monitor_environment.monitor,
-                monitor_environment=monitor_environment,
-                status=CheckInStatus.MISSED,
-                date_added=expected_time,
-                expected_time=expected_time,
-                monitor_config=monitor.get_validated_config(),
-            )
-            mark_failed(
-                monitor_environment,
-                reason=MonitorFailure.MISSED_CHECKIN,
-                occurrence_context={
-                    "expected_time": expected_time.strftime(SUBTITLE_DATETIME_FORMAT)
-                    if expected_time
-                    else expected_time
-                },
-            )
-        except Exception:
-            logger.exception("Exception in check_monitors - mark missed", exc_info=True)
+@instrumented_task(
+    name="sentry.monitors.tasks.mark_environment_missing",
+    max_retries=0,
+    record_timing=True,
+)
+def mark_environment_missing(monitor_environment_id: int):
+    logger.info("monitor.missed-checkin", extra={"monitor_environment_id": monitor_environment_id})
+
+    monitor_environment = MonitorEnvironment.objects.select_related("monitor").get(
+        id=monitor_environment_id
+    )
+    monitor = monitor_environment.monitor
+    expected_time = monitor_environment.next_checkin
+
+    # add missed checkin.
+    #
+    # XXX(epurkhiser): The date_added is backdated so that this missed
+    # check-in correctly reflects the time of when the checkin SHOULD
+    # have happened. It is the same as the expected_time.
+    checkin = MonitorCheckIn.objects.create(
+        project_id=monitor_environment.monitor.project_id,
+        monitor=monitor_environment.monitor,
+        monitor_environment=monitor_environment,
+        status=CheckInStatus.MISSED,
+        date_added=expected_time,
+        expected_time=expected_time,
+        monitor_config=monitor.get_validated_config(),
+    )
+    # TODO(epurkhiser): To properly fix GH-55874 we need to actually
+    # pass a timestamp here. But I'm not 100% sure what that should
+    # look like yet.
+    mark_failed(checkin, ts=None)
 
 
 @instrumented_task(
@@ -273,14 +274,9 @@ def check_timeout(current_datetime: datetime):
                 status__in=[CheckInStatus.OK, CheckInStatus.ERROR],
             ).exists()
             if not has_newer_result:
-                mark_failed(
-                    monitor_environment,
-                    reason=MonitorFailure.DURATION,
-                    occurrence_context={
-                        "duration": (checkin.monitor.config or {}).get("max_runtime") or TIMEOUT,
-                        "trace_id": checkin.trace_id,
-                    },
-                )
+                # TODO(epurkhiser): We also need a timestamp here, but not sure
+                # what we want it to be
+                mark_failed(checkin, ts=None)
         except Exception:
             logger.exception("Exception in check_monitors - mark timeout", exc_info=True)
 

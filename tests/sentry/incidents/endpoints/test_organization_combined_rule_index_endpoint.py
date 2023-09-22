@@ -1,7 +1,6 @@
 from datetime import datetime, timezone
 
 import requests
-from freezegun import freeze_time
 
 from sentry.constants import ObjectStatus
 from sentry.incidents.models import AlertRuleThresholdType, IncidentTrigger, TriggerStatus
@@ -10,13 +9,13 @@ from sentry.models.rule import RuleSource
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 from tests.sentry.api.serializers.test_alert_rule import BaseAlertRuleSerializerTest
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, APITestCase):
     endpoint = "sentry-api-0-organization-combined-rules"
 
@@ -861,7 +860,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         assert resp.data[0]["lastTriggered"] == datetime.now().replace(tzinfo=timezone.utc)
 
     def test_project_deleted(self):
-        from sentry.models import ScheduledDeletion
+        from sentry.models import RegionScheduledDeletion
         from sentry.tasks.deletion.scheduled import run_deletion
 
         org = self.create_organization(owner=self.user, name="Rowdy Tiger")
@@ -870,7 +869,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         self.login_as(self.user)
         self.create_project_rule(project=delete_project)
 
-        deletion = ScheduledDeletion.schedule(delete_project, days=0)
+        deletion = RegionScheduledDeletion.schedule(delete_project, days=0)
         deletion.update(in_progress=True)
 
         with self.tasks():

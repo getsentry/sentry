@@ -21,7 +21,10 @@ from sentry.api.endpoints.organization_missing_org_members import OrganizationMi
 from sentry.api.endpoints.organization_projects_experiment import (
     OrganizationProjectsExperimentEndpoint,
 )
+from sentry.api.endpoints.organization_spans_aggregation import OrganizationSpansAggregationEndpoint
 from sentry.api.endpoints.release_threshold import ReleaseThresholdEndpoint
+from sentry.api.endpoints.release_threshold_details import ReleaseThresholdDetailsEndpoint
+from sentry.api.endpoints.release_threshold_status_index import ReleaseThresholdStatusIndexEndpoint
 from sentry.api.endpoints.source_map_debug_blue_thunder_edition import (
     SourceMapDebugBlueThunderEditionEndpoint,
 )
@@ -160,6 +163,7 @@ from .endpoints.codeowners import (
     ProjectCodeOwnersDetailsEndpoint,
     ProjectCodeOwnersEndpoint,
 )
+from .endpoints.custom_rules import CustomRulesEndpoint
 from .endpoints.data_scrubbing_selector_suggestions import DataScrubbingSelectorSuggestionsEndpoint
 from .endpoints.debug_files import (
     AssociateDSymFilesEndpoint,
@@ -1329,6 +1333,11 @@ ORGANIZATION_URLS = [
         OrganizationEventsTrendsStatsEndpoint.as_view(),
         name="sentry-api-0-organization-events-trends-stats",
     ),
+    re_path(
+        r"^(?P<organization_slug>[^\/]+)/spans-aggregation/$",
+        OrganizationSpansAggregationEndpoint.as_view(),
+        name="sentry-api-0-organization-spans-aggregation",
+    ),
     # This endpoint is for experimentation only
     # Once this feature is developed, the endpoint will replace /events-trends-stats
     re_path(
@@ -1606,6 +1615,12 @@ ORGANIZATION_URLS = [
         OrganizationReleasesEndpoint.as_view(),
         name="sentry-api-0-organization-releases",
     ),
+    # TODO: also integrate release threshold status into the releases response?
+    re_path(
+        r"^(?P<organization_slug>[^\/]+)/release-threshold-statuses/$",
+        ReleaseThresholdStatusIndexEndpoint.as_view(),
+        name="sentry-api-0-organization-release-threshold-statuses",
+    ),
     re_path(
         r"^(?P<organization_slug>[^\/]+)/releases/stats/$",
         OrganizationReleasesStatsEndpoint.as_view(),
@@ -1882,6 +1897,18 @@ ORGANIZATION_URLS = [
             ],
         ),
     ),
+    re_path(
+        r"^(?P<organization_slug>[^/]+)/dynamic-sampling/",
+        include(
+            [
+                re_path(
+                    r"^custom-rules/$",
+                    CustomRulesEndpoint.as_view(),
+                    name="sentry-api-0-organization-dynamic_sampling-custom_rules",
+                ),
+            ],
+        ),
+    ),
 ]
 
 PROJECT_URLS: list[URLPattern | URLResolver] = [
@@ -2128,6 +2155,11 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/thresholds/$",
         ReleaseThresholdEndpoint.as_view(),
         name="sentry-api-0-project-release-thresholds",
+    ),
+    re_path(
+        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/thresholds/(?P<release_threshold>[^/]+)/$",
+        ReleaseThresholdDetailsEndpoint.as_view(),
+        name="sentry-api-0-project-release-thresholds-details",
     ),
     re_path(
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/commits/$",
