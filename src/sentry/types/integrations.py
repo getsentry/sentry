@@ -34,6 +34,7 @@ class ExternalProviderEnum(Enum):
     DISCORD = "discord"
     OPSGENIE = "opsgenie"
     GITHUB = "github"
+    GITHUB_ENTERPRISE = "github_enterprise"
     GITLAB = "gitlab"
     CUSTOM = "custom_scm"
 
@@ -46,6 +47,7 @@ EXTERNAL_PROVIDERS_REVERSE = {
     ExternalProviderEnum.DISCORD: ExternalProviders.DISCORD,
     ExternalProviderEnum.OPSGENIE: ExternalProviders.OPSGENIE,
     ExternalProviderEnum.GITHUB: ExternalProviders.GITHUB,
+    ExternalProviderEnum.GITHUB_ENTERPRISE: ExternalProviders.GITHUB_ENTERPRISE,
     ExternalProviderEnum.GITLAB: ExternalProviders.GITLAB,
     ExternalProviderEnum.CUSTOM: ExternalProviders.CUSTOM,
 }
