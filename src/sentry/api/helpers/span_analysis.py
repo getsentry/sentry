@@ -47,10 +47,14 @@ def span_analysis(data):
     # create two dataframes for period 0 and 1 and keep only the same spans in both periods
 
     span_data_p0 = {
-        row["span_key"]: row for row in data if row["period"] == 0 and row["span_key"] in constant_spans
+        row["span_key"]: row
+        for row in data
+        if row["period"] == 0 and row["span_key"] in constant_spans
     }
     span_data_p1 = {
-        row["span_key"]: row for row in data if row["period"] == 1 and row["span_key"] in constant_spans
+        row["span_key"]: row
+        for row in data
+        if row["period"] == 1 and row["span_key"] in constant_spans
     }
 
     # merge the dataframes to do span analysis
