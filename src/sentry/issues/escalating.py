@@ -229,14 +229,14 @@ def _generate_generic_metrics_backend_query(
         raise Exception("Invalid category.")
 
     select = [
-        MetricField(metric_mri=ErrorsMRI.EVENT_INGESTED.value, alias="event_ingested", op=None),
+        MetricField(metric_mri=ErrorsMRI.EVENT_INGESTED.value, alias="event_ingested", op="count"),
     ]
 
-    groupby = [MetricGroupByField(field="project_id"), MetricGroupByField(field="tags[group_id]")]
+    groupby = [MetricGroupByField(field="project_id"), MetricGroupByField(field="tags[group]")]
 
     where = [
         Condition(
-            lhs=Column(name="tags[group_id]"),
+            lhs=Column(name="tags[group]"),
             op=Op.IN,
             rhs=[str(group_id) for group_id in group_ids],
         )

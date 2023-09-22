@@ -222,6 +222,14 @@ def _get_entity_of_metric_mri(
         entity_keys_set = frozenset(
             {EntityKey.MetricsCounters, EntityKey.MetricsSets, EntityKey.MetricsDistributions}
         )
+    elif use_case_id is UseCaseID.ESCALATING_ISSUES:
+        entity_keys_set = frozenset(
+            {
+                EntityKey.GenericMetricsCounters,
+                EntityKey.GenericMetricsSets,
+                EntityKey.GenericMetricsDistributions,
+            }
+        )
     else:
         raise InvalidParams
 

@@ -124,6 +124,10 @@ class SpanMetricKey(Enum):
     HTTP_ERROR_RATE_LIGHT = "span.http_error_rate_light"
 
 
+class ErrorsMetricKey(Enum):
+    EVENT_INGESTED = "errors.event_ingested"
+
+
 class SpanTagsKey(Enum):
     HTTP_STATUS_CODE = "span.status_code"
 

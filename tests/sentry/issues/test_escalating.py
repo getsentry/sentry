@@ -18,9 +18,8 @@ from sentry.issues.grouptype import GroupCategory, ProfileFileIOGroupType
 from sentry.models import Group
 from sentry.models.group import GroupStatus
 from sentry.models.groupinbox import GroupInbox
-from sentry.sentry_metrics.client import generic_metrics_backend
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
-from sentry.testutils.cases import PerformanceIssueTestCase, SnubaTestCase, TestCase
+from sentry.testutils.cases import BaseMetricsTestCase, PerformanceIssueTestCase, TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.types.group import GroupSubStatus
@@ -31,7 +30,7 @@ from tests.sentry.issues.test_utils import SearchIssueTestMixin
 TIME_YESTERDAY = (datetime.now() - timedelta(hours=24)).replace(hour=6)
 
 
-class BaseGroupCounts(SnubaTestCase, TestCase):
+class BaseGroupCounts(BaseMetricsTestCase, TestCase):
     def _create_events_for_group(
         self,
         project_id: Optional[int] = None,
@@ -58,14 +57,15 @@ class BaseGroupCounts(SnubaTestCase, TestCase):
             # assert_no_errors is necessary because of SDK and server time differences due to freeze gun
             last_event = self.store_event(data=data, project_id=proj_id, assert_no_errors=False)
 
-            generic_metrics_backend.counter(
-                UseCaseID.ESCALATING_ISSUES,
+            self.store_metric(
+                type="counter",
+                use_case_id=UseCaseID.ESCALATING_ISSUES,
                 org_id=last_event.project.organization_id,
                 project_id=last_event.project.id,
-                metric_name="event_ingested",
+                name="event_ingested",
                 value=1,
                 tags={"group": str(last_event.group_id)},
-                unit=None,
+                timestamp=data["timestamp"],
             )
 
         return last_event
