@@ -28,7 +28,7 @@ def run_query(request: Request) -> None:
     assert len(metrics_query.scope.org_ids) == 1  # Initially only allow 1 org id
     organization_id = metrics_query.scope.org_ids[0]
     tenant_ids = request.tenant_ids or {"organization_id": organization_id}
-    if "use_case_id" not in tenant_ids:
+    if "use_case_id" not in tenant_ids and metrics_query.scope.use_case_id is not None:
         tenant_ids["use_case_id"] = metrics_query.scope.use_case_id
     request.tenant_ids = tenant_ids
 
@@ -38,8 +38,7 @@ def run_query(request: Request) -> None:
         start, end, _num_intervals = to_intervals(
             metrics_query.start, metrics_query.end, metrics_query.rollup.interval
         )
-        metrics_query = metrics_query.set_start(start)
-        metrics_query = metrics_query.set_end(end)
+        metrics_query = metrics_query.set_start(start).set_end(end)
 
     # Resolves MRI or public name in metrics_query
     resolved_metrics_query = resolve_metrics_query(metrics_query)
@@ -58,7 +57,7 @@ def resolve_metrics_query(metrics_query: MetricsQuery) -> MetricsQuery:
         metrics_query = metrics_query.set_query(
             metrics_query.query.set_metric(metrics_query.query.metric.set_public_name(public_name))
         )
-    if not metric.mri and metric.public_name:
+    elif not metric.mri and metric.public_name:
         mri = get_mri(metric.public_name)
         metrics_query = metrics_query.set_query(
             metrics_query.query.set_metric(metrics_query.query.metric.set_mri(mri))

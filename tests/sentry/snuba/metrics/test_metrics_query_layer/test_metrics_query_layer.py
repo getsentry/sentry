@@ -34,7 +34,7 @@ class MetricsQueryLayerTest(BaseMetricsLayerTestCase, TestCase):
             scope=MetricScope(
                 org_ids=[self.project.organization_id],
                 project_ids=[self.project.id],
-                use_case_id="transactions",
+                use_case_id=UseCaseID.TRANSACTIONS.value,
             ),
         )
 
