@@ -1,4 +1,5 @@
 from datetime import timezone
+from unittest.mock import patch
 
 import responses
 
@@ -50,7 +51,8 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         self.installation = self.integration.get_installation(self.organization.id)
 
     @responses.activate
-    def test_applies_correctly(self):
+    @patch("sentry.analytics.record")
+    def test_applies_correctly(self, mock_record):
         event = self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -65,7 +67,11 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
             data={"account": self.integration.id, "service": str(self.service["id"])}
         )
 
-        results = list(rule.after(event=event, state=self.get_state()))
+        notification_uuid = "123e4567-e89b-12d3-a456-426614174000"
+
+        results = list(
+            rule.after(event=event, state=self.get_state(), notification_uuid=notification_uuid)
+        )
         assert len(results) == 1
 
         responses.add(
@@ -83,6 +89,29 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         assert data["event_action"] == "trigger"
         assert data["payload"]["summary"] == event.message
         assert data["payload"]["custom_details"]["message"] == event.message
+        assert data["links"][0]["href"] == event.group.get_absolute_url(
+            params={"referrer": "pagerduty_integration", "notification_uuid": notification_uuid}
+        )
+
+        mock_record.assert_called_with(
+            "alert.sent",
+            provider="pagerduty",
+            alert_id="",
+            alert_type="issue_alert",
+            organization_id=self.organization.id,
+            project_id=event.project_id,
+            external_id=str(self.service["id"]),
+            notification_uuid=notification_uuid,
+        )
+        mock_record.assert_any_call(
+            "integrations.pagerduty.notification_sent",
+            category="issue_alert",
+            organization_id=self.organization.id,
+            project_id=event.project_id,
+            group_id=event.group_id,
+            notification_uuid=notification_uuid,
+            alert_id=None,
+        )
 
     @responses.activate
     def test_applies_correctly_performance_issue(self):
