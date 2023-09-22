@@ -197,12 +197,14 @@ export function getAriaLabel(str: string) {
 }
 
 export function hydratedSelectorData(data, clickType): DeadRageSelectorItem[] {
-  return data.map(d => {
-    return {
-      [clickType]: d[clickType],
-      dom_element: d.dom_element,
-      element: d.dom_element.split(/[#.]+/)[0],
-      aria_label: getAriaLabel(d.dom_element),
-    };
-  });
+  return data
+    .filter(d => d[clickType] > 0)
+    .map(d => {
+      return {
+        [clickType]: d[clickType],
+        dom_element: d.dom_element,
+        element: d.dom_element.split(/[#.]+/)[0],
+        aria_label: getAriaLabel(d.dom_element),
+      };
+    });
 }

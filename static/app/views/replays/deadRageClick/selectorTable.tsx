@@ -1,4 +1,4 @@
-import {Fragment, ReactNode, useCallback, useMemo} from 'react';
+import {ReactNode, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -91,24 +91,22 @@ export default function SelectorTable({
   );
 
   return (
-    <Fragment>
-      <GridEditable
-        error={isError}
-        isLoading={isLoading}
-        data={data ?? []}
-        columnOrder={columns}
-        columnSortBy={[]}
-        stickyHeader
-        grid={{
-          onResizeColumn: customHandleResize ?? handleResizeColumn,
-          renderHeadCell,
-          renderBodyCell,
-        }}
-        location={location as Location<any>}
-        title={title}
-        headerButtons={() => headerButtons}
-      />
-    </Fragment>
+    <GridEditable
+      error={isError}
+      isLoading={isLoading}
+      data={data ?? []}
+      columnOrder={columns}
+      columnSortBy={[]}
+      stickyHeader
+      grid={{
+        onResizeColumn: customHandleResize ?? handleResizeColumn,
+        renderHeadCell,
+        renderBodyCell,
+      }}
+      location={location as Location<any>}
+      title={title}
+      headerButtons={() => headerButtons}
+    />
   );
 }
 
