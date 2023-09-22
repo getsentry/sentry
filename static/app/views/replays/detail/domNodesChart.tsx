@@ -51,7 +51,7 @@ function DomNodesChart({
   if (!datapoints) {
     return (
       <DomNodesChartWrapper>
-        <LoadingIndicator style={{margin: '54px auto'}} />
+        <Placeholder height="100%" />
       </DomNodesChartWrapper>
     );
   }
@@ -59,7 +59,7 @@ function DomNodesChart({
   if (!datapoints.length) {
     return (
       <DomNodesChartWrapper>
-        <Placeholder height="100%" />
+        <LoadingIndicator style={{margin: '54px auto'}} />
       </DomNodesChartWrapper>
     );
   }
@@ -216,7 +216,7 @@ const MemoizedDomNodesChart = memo(
 function useCountDomNodes({replay}: {replay: null | ReplayReader}) {
   return useQuery(['countDomNodes', replay], () => replay?.countDomNodes() ?? [], {
     enabled: Boolean(replay),
-    initialData: undefined,
+    initialData: [],
     cacheTime: Infinity,
   });
 }
