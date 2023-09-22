@@ -73,11 +73,10 @@ def schedule_batch(
             scheduled_count += hi - lo + 1
             batch_size = math.ceil((hi - lo + 1) / concurrency)
 
-            metrics.incr(
+            metrics.gauge(
                 "deliver_from_outbox.queued_batch_size",
-                amount=batch_size,
+                value=batch_size,
                 tags=dict(silo_mode=silo_mode.name),
-                skip_internal=True,
                 sample_rate=1.0,
             )
 
