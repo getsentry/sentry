@@ -14,7 +14,6 @@ from sentry.models import (
     Organization,
     OrganizationMemberTeam,
     OrganizationMemberTeamReplica,
-    OrganizationSlugReservationReplica,
     OutboxCategory,
     Team,
     User,
@@ -159,20 +158,24 @@ class DatabaseBackedRegionReplicaService(RegionReplicaService):
     def upsert_replicated_org_slug_reservation(
         self, *, slug_reservation: RpcOrganizationSlugReservation, region_name: str
     ) -> None:
-        with enforce_constraints(
-            transaction.atomic(router.db_for_write(OrganizationSlugReservationReplica))
-        ):
-            OrganizationSlugReservationReplica.objects.filter(slug=slug_reservation.slug).delete()
-            OrganizationSlugReservationReplica.objects.create(**slug_reservation.dict())
+        pass
+        # TODO(Gabe): Enable this when the replica model is online
+        # with enforce_constraints(
+        #     transaction.atomic(router.db_for_write(OrganizationSlugReservationReplica))
+        # ):
+        #     OrganizationSlugReservationReplica.objects.filter(slug=slug_reservation.slug).delete()
+        #     OrganizationSlugReservationReplica.objects.create(**slug_reservation.dict())
 
     def delete_replicated_org_slug_reservation(self, *, slug: str, organization_id: int) -> None:
-        with enforce_constraints(
-            transaction.atomic(router.db_for_write(OrganizationSlugReservationReplica))
-        ):
-            org_slug_qs = OrganizationSlugReservationReplica.objects.filter(
-                slug=slug, organization_id=organization_id
-            )
-            org_slug_qs.delete()
+        pass
+        # TODO(Gabe): Enable this when the replica model is online
+        # with enforce_constraints(
+        #     transaction.atomic(router.db_for_write(OrganizationSlugReservationReplica))
+        # ):
+        #     org_slug_qs = OrganizationSlugReservationReplica.objects.filter(
+        #         slug=slug, organization_id=organization_id
+        #     )
+        #     org_slug_qs.delete()
 
 
 class DatabaseBackedControlReplicaService(ControlReplicaService):
