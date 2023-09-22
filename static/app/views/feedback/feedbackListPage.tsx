@@ -1,22 +1,22 @@
-import {browserHistory, RouteComponentProps} from 'react-router';
+import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import DatePageFilter from 'sentry/components/datePageFilter';
-import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
+import FeedbackDetails from 'sentry/components/feedback/details/feedbackDetails';
+import FeedbackFilters from 'sentry/components/feedback/feedbackFilters';
+import FeedbackSearch from 'sentry/components/feedback/feedbackSearch';
 import FeedbackTable from 'sentry/components/feedback/table/feedbackTable';
 import useFeedbackListQueryParams from 'sentry/components/feedback/useFeedbackListQueryParams';
 import useFetchFeedbackList from 'sentry/components/feedback/useFetchFeedbackList';
+import FullViewport from 'sentry/components/layouts/fullViewport';
 import * as Layout from 'sentry/components/layouts/thirds';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
-import Pagination from 'sentry/components/pagination';
-import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {FeedbackListQueryParams} from 'sentry/utils/feedback/types';
 import useOrganization from 'sentry/utils/useOrganization';
+import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 
 interface Props extends RouteComponentProps<{}, {}, FeedbackListQueryParams> {}
 
@@ -27,60 +27,58 @@ export default function FeedbackListPage({location}: Props) {
     location,
     queryReferrer: 'feedback_list_page',
   });
-  const {isLoading, isError, data, pageLinks} = useFetchFeedbackList({query}, {});
+  const {isLoading, isError, data, pageLinks: _} = useFetchFeedbackList({query}, {});
 
   return (
-    <SentryDocumentTitle title={t(`Feedback v2`)} orgSlug={organization.slug}>
-      <Layout.Header>
-        <Layout.HeaderContent>
-          <Layout.Title>
-            {t('Feedback v2')}
-            <PageHeadingQuestionTooltip
-              title={t(
-                'Feedback submitted by users who experienced an error while using your application, including their name, email address, and any additional comments.'
-              )}
-              docsUrl="https://docs.sentry.io/product/user-feedback/"
-            />
-          </Layout.Title>
-        </Layout.HeaderContent>
-      </Layout.Header>
-      <PageFiltersContainer>
-        <Layout.Body>
-          <Layout.Main fullWidth>
-            <LayoutGap>
-              <PageFilterBar condensed>
-                <ProjectPageFilter resetParamsOnChange={['cursor']} />
-                <EnvironmentPageFilter resetParamsOnChange={['cursor']} />
-                <DatePageFilter alignDropdown="left" resetParamsOnChange={['cursor']} />
-              </PageFilterBar>
+    <SentryDocumentTitle title={t(`Bug Reports`)} orgSlug={organization.slug}>
+      <FullViewport>
+        <Layout.Header>
+          <Layout.HeaderContent>
+            <Layout.Title>
+              {t('Bug Reports')}
+              <PageHeadingQuestionTooltip
+                title={t(
+                  'Feedback submitted by users who experienced an error while using your application, including their name, email address, and any additional comments.'
+                )}
+                docsUrl="https://docs.sentry.io/product/user-feedback/"
+              />
+            </Layout.Title>
+          </Layout.HeaderContent>
+        </Layout.Header>
+        <PageFiltersContainer>
+          <LayoutGrid>
+            <FeedbackFilters style={{gridArea: 'filters'}} />
+            <FeedbackSearch style={{gridArea: 'search'}} />
+            <FluidHeight style={{gridArea: 'list'}}>
               <FeedbackTable
                 data={data ?? []}
                 isError={isError}
                 isLoading={isLoading}
                 location={location}
               />
-            </LayoutGap>
-            <PaginationNoMargin
-              pageLinks={pageLinks}
-              onCursor={(cursor, path, searchQuery) => {
-                browserHistory.push({
-                  pathname: path,
-                  query: {...searchQuery, cursor},
-                });
-              }}
-            />
-          </Layout.Main>
-        </Layout.Body>
-      </PageFiltersContainer>
+            </FluidHeight>
+            <FeedbackDetails style={{gridArea: 'body'}} />
+          </LayoutGrid>
+        </PageFiltersContainer>
+      </FullViewport>
     </SentryDocumentTitle>
   );
 }
 
-const LayoutGap = styled('div')`
-  display: grid;
-  gap: ${space(2)};
-`;
+const LayoutGrid = styled('div')`
+  background: ${p => p.theme.background};
 
-const PaginationNoMargin = styled(Pagination)`
-  margin: 0;
+  height: 100%;
+  width: 100%;
+  padding: ${space(2)};
+  overflow: hidden;
+
+  display: grid;
+  grid-template-columns: minmax(390px, 1fr) 2fr;
+  grid-template-rows: max-content 1fr;
+  grid-template-areas:
+    'filters search'
+    'list body';
+  gap: ${space(2)};
+  place-items: stretch;
 `;

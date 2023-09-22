@@ -13,14 +13,13 @@ export default function useFetchFeedbackItem(
   {feedbackId, organization, project}: Props,
   options: undefined | Partial<UseApiQueryOptions<FeedbackItemResponse>> = {}
 ) {
-  const {data, isError, isLoading} = useApiQuery<FeedbackItemResponse>(
+  const {data, ...result} = useApiQuery<FeedbackItemResponse>(
     [`/projects/${organization.slug}/${project.slug}/feedback/${feedbackId}/`],
     {staleTime: 0, ...options}
   );
 
   return {
     data: data ? hydrateFeedbackRecord(data) : undefined,
-    isError,
-    isLoading,
+    ...result,
   };
 }
