@@ -68,7 +68,7 @@ class AlertRuleSerializerResponse(TypedDict, total=False):
     timeWindow: str
     thresholdType: int
     thresholdPeriod: int
-    resolveThreshold: Optional[int]
+    resolveThreshold: Optional[float]
     comparisonDelta: Optional[int]
     dataset: Optional[str]
     eventTypes: Optional[List[str]]
