@@ -206,7 +206,7 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
       setApiQueryData<IssueAlertRule>(
         queryClient,
         getIssueAlertDetailsQueryKey({orgSlug: organization.slug, projectSlug, ruleId}),
-        alertRule => ({...alertRule, disableDate: undefined})
+        alertRule => ({...alertRule, disableDate: undefined, status: 'active'})
       );
 
       addSuccessMessage(t('Successfully re-enabled'));
