@@ -109,7 +109,7 @@ class Condition(TypedDict):
 class Rule(TypedDict):
     samplingValue: SamplingValue
     type: str
-    condition: Condition
+    condition: Union[Condition, GlobCondition, EqCondition]
     id: int
 
 
