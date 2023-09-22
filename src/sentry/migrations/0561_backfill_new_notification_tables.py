@@ -217,7 +217,9 @@ def backfill_notification_settings(apps, schema_editor):
     NotificationSettingOption = apps.get_model("sentry", "NotificationSettingOption")
     NotificationSettingProvider = apps.get_model("sentry", "NotificationSettingProvider")
 
-    for setting in RangeQuerySetWrapperWithProgressBar(NotificationSetting.objects.all()):
+    for setting in RangeQuerySetWrapperWithProgressBar(
+        NotificationSetting.objects.filter(is_migrated__is_null=True)
+    ):
         # find all the related settings regardless of the provider
         # note that we will end up setting the settings N times for N provider options
         related_settings = NotificationSetting.objects.filter(
@@ -226,6 +228,7 @@ def backfill_notification_settings(apps, schema_editor):
             user_id=setting.user_id,
             team_id=setting.team_id,
             type=setting.type,
+            is_migrated__is_null=True,
         )
 
         enabled_providers = []
@@ -283,6 +286,8 @@ def backfill_notification_settings(apps, schema_editor):
                         "value": NotificationSettingsOptionEnum.NEVER.value,
                     },
                 )
+
+        related_settings.update(is_migrated=True)
 
 
 class Migration(CheckedMigration):
