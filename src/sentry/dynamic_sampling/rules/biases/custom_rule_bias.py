@@ -12,7 +12,6 @@ class CustomRuleBias(Bias):
     """
 
     def generate_rules(self, project: Project, base_sample_rate: float) -> List[PolymorphicRule]:
-
         rules = CustomDynamicSamplingRule.get_project_rules(project)
 
         ret_val: List[PolymorphicRule] = []
@@ -29,11 +28,11 @@ class CustomRuleBias(Bias):
                         "start": rule.start_date.strftime(CUSTOM_RULE_DATE_FORMAT),
                         "end": rule.end_date.strftime(CUSTOM_RULE_DATE_FORMAT),
                     },
-                    "decayingFn": {
-                        "type": "reservoir",
-                        "limit": rule.num_samples,
-                    },
+                    # TODO: (Raduw) switch to reservoir sampling when available
+                    # "decayingFn": {
+                    #     "type": "reservoir",
+                    #     "limit": rule.num_samples,
+                    # },
                 }
             )
-
         return ret_val

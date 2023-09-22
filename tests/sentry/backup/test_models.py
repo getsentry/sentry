@@ -85,7 +85,7 @@ from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventTy
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.helpers.backups import import_export_then_validate
 from sentry.utils.json import JSONData
-from tests.sentry.backup import run_backup_tests_only_on_single_db, targets
+from tests.sentry.backup import targets
 
 UNIT_TESTED_MODELS = set()
 
@@ -109,7 +109,6 @@ def mark(*marking: Type | Literal["__all__"]):
     return marking
 
 
-@run_backup_tests_only_on_single_db
 class ModelBackupTests(TransactionTestCase):
     """
     Test the JSON-ification of models marked `__relocation_scope__ != RelocationScope.Excluded`.
@@ -226,6 +225,19 @@ class ModelBackupTests(TransactionTestCase):
     def test_counter(self):
         project = self.create_project()
         Counter.increment(project, 1)
+        return self.import_export_then_validate()
+
+    @targets(mark(CustomDynamicSamplingRule, CustomDynamicSamplingRuleProject))
+    def test_custom_dynamic_sampling(self):
+        CustomDynamicSamplingRule.update_or_create(
+            condition={"op": "equals", "name": "environment", "value": "prod"},
+            start=timezone.now(),
+            end=timezone.now() + timedelta(hours=1),
+            project_ids=[self.project.id],
+            organization_id=self.organization.id,
+            num_samples=100,
+            sample_rate=0.5,
+        )
         return self.import_export_then_validate()
 
     @targets(mark(Dashboard))
@@ -526,27 +538,7 @@ class ModelBackupTests(TransactionTestCase):
         UserRoleUser.objects.create(user=user, role=role)
         return self.import_export_then_validate()
 
-    @targets(mark(CustomDynamicSamplingRule, CustomDynamicSamplingRuleProject))
-    def test_custom_dynamic_sampling_rule(self):
-        condition = {"op": "equals", "name": "environment", "value": "prod"}
 
-        rule = CustomDynamicSamplingRule.update_or_create(
-            condition=condition,
-            start=timezone.now(),
-            end=timezone.now() + timedelta(hours=1),
-            project_ids=[self.project.id],
-            organization_id=self.organization.id,
-            num_samples=100,
-            sample_rate=0.5,
-        )
-
-        CustomDynamicSamplingRuleProject.objects.create(
-            rule=rule, project=self.project, organization=self.organization
-        )
-        return self.import_export_then_validate()
-
-
-@run_backup_tests_only_on_single_db
 class DynamicRelocationScopeTests(TransactionTestCase):
     """
     For models that support different relocation scopes depending on properties of the model instance itself (ie, they have a set for their `__relocation_scope__`, rather than a single value), make sure that this dynamic deduction works correctly.

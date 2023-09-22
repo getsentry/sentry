@@ -46,7 +46,7 @@ from sentry.snuba.metrics import (
     SnubaResultConverter,
     get_date_range,
     get_intervals,
-    parse_query,
+    parse_conditions,
     resolve_tags,
     translate_meta_results,
 )
@@ -247,7 +247,7 @@ def get_entity_of_metric_mocked(_, metric_name, use_case_id):
         ),
     ],
 )
-def test_parse_query(query_string, expected):
+def test_parse_conditions(query_string, expected):
     org_id = ORG_ID
     use_case_id = UseCaseID.SESSIONS
     for s in ("myapp@2.0.0", "/bar/:orgId/"):
@@ -256,7 +256,7 @@ def test_parse_query(query_string, expected):
     parsed = resolve_tags(
         use_case_id,
         org_id,
-        parse_query(query_string, []),
+        parse_conditions(query_string, [], []),
         [],
     )
     assert parsed == expected()
@@ -476,6 +476,7 @@ def test_build_snuba_query(mock_now, mock_now2):
     }
 
 
+@django_db_all
 @mock.patch("sentry.snuba.sessions_v2.get_now", return_value=MOCK_NOW)
 @mock.patch("sentry.api.utils.timezone.now", return_value=MOCK_NOW)
 @mock.patch(
@@ -558,6 +559,7 @@ def test_build_snuba_query_mri(mock_now, mock_now2):
         )
 
 
+@django_db_all
 @mock.patch("sentry.snuba.sessions_v2.get_now", return_value=MOCK_NOW)
 @mock.patch("sentry.api.utils.timezone.now", return_value=MOCK_NOW)
 @mock.patch(
@@ -944,6 +946,7 @@ def test_build_snuba_query_with_derived_alias(mock_now, mock_now2):
     )
 
 
+@django_db_all
 @mock.patch("sentry.snuba.sessions_v2.get_now", return_value=MOCK_NOW)
 @mock.patch("sentry.api.utils.timezone.now", return_value=MOCK_NOW)
 def test_translate_results_derived_metrics(_1, _2):
@@ -1065,6 +1068,7 @@ def test_translate_results_derived_metrics(_1, _2):
     ]
 
 
+@django_db_all
 @mock.patch("sentry.snuba.sessions_v2.get_now", return_value=MOCK_NOW)
 @mock.patch("sentry.api.utils.timezone.now", return_value=MOCK_NOW)
 def test_translate_results_missing_slots(_1, _2):
@@ -1503,11 +1507,54 @@ class QueryDefinitionTestCase(TestCase):
             }
         )
         query = QueryDefinition([self.project], query_params)
-        assert query.parsed_query == [
+        assert query.where == [
             Condition(
                 Column(name="release"),
                 Op.IN,
                 rhs=["bar"],
+            )
+        ]
+
+    def test_single_environment_is_passed_through_to_metrics_query(self):
+        self.create_environment(name="alpha", project=self.project)
+        query_params = MultiValueDict(
+            {
+                "environment": ["alpha"],
+                "query": [""],
+                "field": [
+                    "sum(sentry.sessions.session)",
+                ],
+            }
+        )
+        query = QueryDefinition([self.project], query_params)
+        actual_result = query.to_metrics_query()
+        assert actual_result.where == [
+            Condition(
+                Column(name="environment"),
+                Op.EQ,
+                rhs="alpha",
+            )
+        ]
+
+    def test_multiple_environments_are_passed_through_to_metrics_query(self):
+        self.create_environment(name="alpha", project=self.project)
+        self.create_environment(name="beta", project=self.project)
+        query_params = MultiValueDict(
+            {
+                "environment": ["alpha", "beta"],
+                "query": [""],
+                "field": [
+                    "sum(sentry.sessions.session)",
+                ],
+            }
+        )
+        query = QueryDefinition([self.project], query_params)
+        actual_result = query.to_metrics_query()
+        assert actual_result.where == [
+            Condition(
+                Column(name="environment"),
+                Op.IN,
+                rhs=["alpha", "beta"],
             )
         ]
 

@@ -65,12 +65,6 @@ def _requires_snuba() -> None:
 
 
 @pytest.fixture(scope="session")
-def _requires_relay() -> None:
-    if not _service_available("127.0.0.1", settings.SENTRY_RELAY_PORT):
-        pytest.skip("requires relay server running")
-
-
-@pytest.fixture(scope="session")
 def _requires_kafka() -> None:
     kafka_conf = settings.SENTRY_DEVSERVICES["kafka"](settings, {})
     (port,) = kafka_conf["ports"].values()
@@ -89,6 +83,5 @@ def _requires_symbolicator() -> None:
 
 
 requires_snuba = pytest.mark.usefixtures("_requires_snuba")
-requires_relay = pytest.mark.usefixtures("_requires_relay")
 requires_symbolicator = pytest.mark.usefixtures("_requires_symbolicator")
 requires_kafka = pytest.mark.usefixtures("_requires_kafka")
