@@ -26,7 +26,7 @@ class OrganizationSlugReservationType(IntEnum):
 
 @control_silo_only_model
 class OrganizationSlugReservation(ReplicatedControlModel):
-    __relocation_scope__ = RelocationScope.Organization
+    __relocation_scope__ = RelocationScope.Excluded
     category = OutboxCategory.ORGANIZATION_SLUG_RESERVATION_UPDATE
     replication_version = 2
 
