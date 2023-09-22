@@ -17,9 +17,14 @@ METRIC_ID_AGG_OPTION = {
 USE_CASE_AGG_OPTION = {UseCaseID.CUSTOM: AggregationOption.TEN_SECOND}
 
 
-def get_aggregation_option(metricId: str) -> Optional[AggregationOption]:
-    use_case_id: UseCaseID = extract_use_case_id(metricId)
-    if use_case_id in USE_CASE_AGG_OPTION:
+def get_aggregation_option(metric_id: str) -> Optional[AggregationOption]:
+    use_case_id: UseCaseID = extract_use_case_id(metric_id)
+
+    # We check first if the particular metric ID has a specified aggregation
+    if metric_id in METRIC_ID_AGG_OPTION:
+        return METRIC_ID_AGG_OPTION.get(metric_id)
+    # And move to the use case if not
+    elif use_case_id in USE_CASE_AGG_OPTION:
         return USE_CASE_AGG_OPTION[use_case_id]
 
-    return METRIC_ID_AGG_OPTION.get(metricId)
+    return None
