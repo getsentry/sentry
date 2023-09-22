@@ -112,7 +112,7 @@ class ProjectRuleEnableTestCase(APITestCase):
         prod_env = self.create_environment(
             self.project, name="prod", organization=self.organization
         )
-        rule = self.create_project_rule(
+        self.create_project_rule(
             project=self.project,
             action_match=actions,
             condition_match=conditions,
@@ -128,15 +128,50 @@ class ProjectRuleEnableTestCase(APITestCase):
         rule2.status = ObjectStatus.DISABLED
         rule2.save()
 
-        response = self.get_error_response(
+        self.get_success_response(
             self.organization.slug,
             self.project.slug,
             rule2.id,
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=status.HTTP_202_ACCEPTED,
         )
-        assert (
-            response.data["detail"]
-            == f"This rule is an exact duplicate of '{rule.label}' in this project and may not be enabled unless it's edited."
+
+    def test_duplicate_rule_one_env_one_not(self):
+        """Test that we do allow enabling a rule that's the exact duplicate of another
+        rule in the same project EXCEPT that the environment is set for only one"""
+        conditions = [
+            {
+                "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
+            }
+        ]
+        actions = [
+            {
+                "targetType": "IssueOwners",
+                "fallthroughType": "ActiveMembers",
+                "id": "sentry.mail.actions.NotifyEmailAction",
+                "targetIdentifier": "",
+            }
+        ]
+        dev_env = self.create_environment(self.project, name="dev", organization=self.organization)
+        self.create_project_rule(
+            project=self.project,
+            action_match=actions,
+            condition_match=conditions,
+            environment_id=dev_env.id,
+        )
+
+        rule2 = self.create_project_rule(
+            project=self.project,
+            action_match=actions,
+            condition_match=conditions,
+        )
+        rule2.status = ObjectStatus.DISABLED
+        rule2.save()
+
+        self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            rule2.id,
+            status_code=status.HTTP_202_ACCEPTED,
         )
 
     def test_no_action_rule(self):
