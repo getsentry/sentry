@@ -106,6 +106,7 @@ class NotificationSetting(Model):
     )
     is_migrated = models.BooleanField(
         default=False,
+        null=True,
         help_text="Indicates whether this notification setting has been migrated to the new tables.",
     )
 

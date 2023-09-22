@@ -16,7 +16,7 @@ class Migration(CheckedMigration):
     # - Adding indexes to large tables. Since this can take a long time, we'd generally prefer to
     #   have ops run this and not block the deploy. Note that while adding an index is a schema
     #   change, it's completely safe to run the operation after the code has deployed.
-    is_dangerous = True
+    is_dangerous = False
 
     dependencies = [
         ("sentry", "0564_commitfilechange_delete_language_column"),
@@ -39,7 +39,7 @@ class Migration(CheckedMigration):
                 migrations.AddField(
                     model_name="notificationsetting",
                     name="is_migrated",
-                    field=models.BooleanField(default=False),
+                    field=models.BooleanField(default=False, null=True),
                 ),
             ],
         )
