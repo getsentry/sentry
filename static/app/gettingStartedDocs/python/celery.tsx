@@ -110,7 +110,7 @@ ${sentryInitContent}
               }
             )}
             <CodeSnippet dark language="python">
-              {t(`import sentry_sdk
+              {`import sentry_sdk
 from celery import Celery, signals
 
 app = Celery("myapp")
@@ -119,7 +119,7 @@ app = Celery("myapp")
 @signals.celeryd_init.connect
 def init_sentry(**_kwargs):
     sentry_sdk.init(...)  # same as above
-              `)}
+              `}
             </CodeSnippet>
           </li>
         </ul>
