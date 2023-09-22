@@ -58,6 +58,7 @@ FUNCTIONS_PER_BATCH = 1_000
 TRANSACTIONS_PER_PROJECT = 50
 TRANSACTIONS_PER_BATCH = 1_000
 PROJECTS_PER_BATCH = 1_000
+TIMESERIES_PER_BATCH = 10
 
 
 @instrumented_task(
@@ -243,13 +244,12 @@ def detect_function_trends(project_ids: List[int], start: datetime, *args, **kwa
     if not options.get("statistical_detectors.enable"):
         return
 
-    regressions = filter(
-        lambda trend: trend[0] == TrendType.Regressed, _detect_function_trends(project_ids, start)
-    )
+    trends = _detect_function_trends(project_ids, start)
+    regressions = filter(lambda trend: trend[0] == TrendType.Regressed, trends)
 
-    for trends in chunked(regressions, FUNCTIONS_PER_BATCH):
+    for regression_chunk in chunked(regressions, FUNCTIONS_PER_BATCH):
         detect_function_change_points.delay(
-            [(payload.project_id, payload.group) for _, payload in trends],
+            [(payload.project_id, payload.group) for _, payload in regression_chunk],
             start,
         )
 
@@ -266,23 +266,24 @@ def detect_function_change_points(
 
     breakpoints = _detect_function_change_points(functions_list, start)
 
-    for entry in breakpoints:
-        breakpoint_count += 1
+    for breakpoint_chunk in chunked(breakpoints, 100):
+        for entry in breakpoint_chunk:
+            breakpoint_count += 1
 
-        with sentry_sdk.push_scope() as scope:
-            scope.set_tag("regressed_project_id", entry["project"])
-            # the service was originally meant for transactions so this
-            # naming is a result of this
-            scope.set_tag("regressed_function_id", entry["transaction"])
-            scope.set_context(
-                "statistical_detectors",
-                {
-                    **entry,
-                    "timestamp": start.isoformat(),
-                    "breakpoint": datetime.fromtimestamp(entry["breakpoint"]),
-                },
-            )
-            sentry_sdk.capture_message("Potential Regression")
+            with sentry_sdk.push_scope() as scope:
+                scope.set_tag("regressed_project_id", entry["project"])
+                # the service was originally meant for transactions so this
+                # naming is a result of this
+                scope.set_tag("regressed_function_id", entry["transaction"])
+                scope.set_context(
+                    "statistical_detectors",
+                    {
+                        **entry,
+                        "timestamp": start.isoformat(),
+                        "breakpoint": datetime.fromtimestamp(entry["breakpoint"]),
+                    },
+                )
+                sentry_sdk.capture_message("Potential Regression")
 
     metrics.incr(
         "statistical_detectors.breakpoint.functions",
@@ -369,7 +370,9 @@ def _detect_function_change_points(
 
     trend_function = "p95()"
 
-    for chunk in chunked(query_functions_timeseries(functions_list, start, trend_function), 10):
+    for chunk in chunked(
+        all_function_timeseries(functions_list, start, trend_function), TIMESERIES_PER_BATCH
+    ):
         data = {}
         for project_id, fingerprint, timeseries in chunk:
             serialized = serializer.serialize(timeseries, get_function_alias(trend_function))
@@ -392,9 +395,11 @@ def _detect_function_change_points(
             "allow_midpoint": "0",
         }
 
-        breakpoints = detect_breakpoints(request)["data"]
-
-        yield from breakpoints
+        try:
+            yield from detect_breakpoints(request)["data"]
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+            continue
 
 
 def all_function_payloads(
@@ -406,12 +411,24 @@ def all_function_payloads(
 
     for projects in chunked(Project.objects.filter(id__in=project_ids), projects_per_query):
         try:
-            function_payloads = query_functions(projects, start)
+            yield from query_functions(projects, start)
         except Exception as e:
             sentry_sdk.capture_exception(e)
             continue
 
-        yield from function_payloads
+
+def all_function_timeseries(
+    functions_list: List[Tuple[int, int]],
+    start: datetime,
+    trend_function: str,
+) -> Generator[Tuple[int, int, Any], None, None]:
+    # make sure that each chunk can fit in the 10,000 row limit imposed by snuba
+    for functions_chunk in chunked(functions_list, 25):
+        try:
+            yield from query_functions_timeseries(functions_chunk, start, trend_function)
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+            continue
 
 
 def query_transactions(
@@ -585,51 +602,48 @@ def query_functions_timeseries(
     }
     interval = 3600  # 1 hour
 
-    # make sure that each chunk can fit in the 10,000 row limit
-    # imposed by snuba
-    for functions_chunk in chunked(functions_list, 25):
-        chunk: List[Dict[str, Any]] = [
-            {
-                "project.id": project_id,
-                "fingerprint": fingerprint,
-            }
-            for project_id, fingerprint in functions_chunk
-        ]
+    chunk: List[Dict[str, Any]] = [
+        {
+            "project.id": project_id,
+            "fingerprint": fingerprint,
+        }
+        for project_id, fingerprint in functions_list
+    ]
 
-        builder = ProfileTopFunctionsTimeseriesQueryBuilder(
-            dataset=Dataset.Functions,
-            params=params,
-            interval=interval,
-            top_events=chunk,
-            other=False,
-            query="is_application:1",
-            selected_columns=["project.id", "fingerprint"],
-            timeseries_columns=[agg_function],
-            config=QueryBuilderConfig(
-                skip_tag_resolution=True,
-            ),
-        )
-        raw_results = raw_snql_query(
-            builder.get_snql_query(),
-            referrer=Referrer.API_PROFILING_FUNCTIONS_STATISTICAL_DETECTOR_STATS.value,
-        )
+    builder = ProfileTopFunctionsTimeseriesQueryBuilder(
+        dataset=Dataset.Functions,
+        params=params,
+        interval=interval,
+        top_events=chunk,
+        other=False,
+        query="is_application:1",
+        selected_columns=["project.id", "fingerprint"],
+        timeseries_columns=[agg_function],
+        config=QueryBuilderConfig(
+            skip_tag_resolution=True,
+        ),
+    )
+    raw_results = raw_snql_query(
+        builder.get_snql_query(),
+        referrer=Referrer.API_PROFILING_FUNCTIONS_STATISTICAL_DETECTOR_STATS.value,
+    )
 
-        results = functions.format_top_events_timeseries_results(
-            raw_results,
-            builder,
-            params,
-            interval,
-            top_events={"data": chunk},
-            result_key_order=["project.id", "fingerprint"],
-        )
+    results = functions.format_top_events_timeseries_results(
+        raw_results,
+        builder,
+        params,
+        interval,
+        top_events={"data": chunk},
+        result_key_order=["project.id", "fingerprint"],
+    )
 
-        for project_id, fingerprint in functions_chunk:
-            key = f"{project_id},{fingerprint}"
-            if key not in results:
-                logger.warning(
-                    "Missing timeseries for project: {} function: {}",
-                    project_id,
-                    fingerprint,
-                )
-                continue
-            yield project_id, fingerprint, results[key]
+    for project_id, fingerprint in functions_list:
+        key = f"{project_id},{fingerprint}"
+        if key not in results:
+            logger.warning(
+                "Missing timeseries for project: {} function: {}",
+                project_id,
+                fingerprint,
+            )
+            continue
+        yield project_id, fingerprint, results[key]
