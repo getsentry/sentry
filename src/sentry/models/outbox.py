@@ -44,7 +44,7 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
-from sentry.db.models.outboxes import ReplicatedControlModel, ReplicatedRegionModel
+from sentry.db.models.outboxes import HasControlReplicationHandlers, ReplicatedRegionModel
 from sentry.db.postgres.transactions import (
     django_test_transaction_water_mark,
     enforce_constraints,
@@ -128,7 +128,7 @@ class OutboxCategory(IntEnum):
 
         process_region_outbox.connect(receiver, weak=False, sender=self)
 
-    def connect_control_model_updates(self, model: Type[ReplicatedControlModel]) -> None:
+    def connect_control_model_updates(self, model: Type[HasControlReplicationHandlers]) -> None:
         def receiver(
             object_identifier: int,
             payload: Optional[Mapping[str, Any]],
@@ -139,7 +139,7 @@ class OutboxCategory(IntEnum):
         ):
             from sentry.receivers.outbox import maybe_process_tombstone
 
-            maybe_instance: ReplicatedControlModel | None = maybe_process_tombstone(
+            maybe_instance: HasControlReplicationHandlers | None = maybe_process_tombstone(
                 cast(Any, model), object_identifier, region_name=region_name
             )
             if maybe_instance is None:
