@@ -17,9 +17,10 @@ class ApiKeyReplica(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
     apikey_id = HybridCloudForeignKey("sentry.ApiKey", on_delete="cascade")
-    organization_id = FlexibleForeignKey("sentry.Organization", on_delete=models.CASCADE)
+    organization = FlexibleForeignKey("sentry.Organization", on_delete=models.CASCADE)
     label = models.CharField(max_length=64, blank=True)
-    key = models.CharField(max_length=32, unique=True)
+    # Not unique to simplify replication -- use last()
+    key = models.CharField(max_length=32)
     status = BoundedPositiveIntegerField(db_index=True)
     date_added = models.DateTimeField(default=timezone.now)
     allowed_origins = models.TextField(blank=True, null=True)
@@ -27,5 +28,6 @@ class ApiKeyReplica(Model):
     class Meta:
         app_label = "hybridcloud"
         db_table = "hybridcloud_apikeyreplica"
+        unique_together = [("organization", "key")]
 
     __repr__ = sane_repr("organization_id", "key")

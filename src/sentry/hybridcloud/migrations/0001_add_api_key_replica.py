@@ -26,7 +26,7 @@ class Migration(CheckedMigration):
     initial = True
 
     dependencies = [
-        ("sentry", "0565_fix_diff_env_dupe_alerts"),
+        # ("sentry", "0565_fix_diff_env_dupe_alerts"),
     ]
 
     operations = [
@@ -46,7 +46,7 @@ class Migration(CheckedMigration):
                     ),
                 ),
                 ("label", models.CharField(blank=True, max_length=64)),
-                ("key", models.CharField(max_length=32, unique=True)),
+                ("key", models.CharField(max_length=32)),
                 (
                     "status",
                     sentry.db.models.fields.bounded.BoundedPositiveIntegerField(db_index=True),
@@ -54,7 +54,7 @@ class Migration(CheckedMigration):
                 ("date_added", models.DateTimeField(default=django.utils.timezone.now)),
                 ("allowed_origins", models.TextField(blank=True, null=True)),
                 (
-                    "organization_id",
+                    "organization",
                     sentry.db.models.fields.foreignkey.FlexibleForeignKey(
                         on_delete=django.db.models.deletion.CASCADE, to="sentry.organization"
                     ),

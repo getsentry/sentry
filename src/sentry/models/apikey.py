@@ -51,7 +51,9 @@ class ApiKey(ReplicatedControlModel, HasApiScopes):
     def handle_async_replication(self, region_name: str, shard_identifier: int) -> None:
         from sentry.services.hybrid_cloud.auth.serial import serialize_api_key
 
-        region_replica_service.upsert_replicated_api_key(api_key=serialize_api_key(self))
+        region_replica_service.upsert_replicated_api_key(
+            api_key=serialize_api_key(self), region_name=region_name
+        )
 
     def __str__(self):
         return str(self.key)
