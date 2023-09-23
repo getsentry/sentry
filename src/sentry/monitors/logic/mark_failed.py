@@ -9,46 +9,144 @@ from django.utils import timezone
 
 from sentry import features
 from sentry.constants import ObjectStatus
+from sentry.grouping.utils import hash_from_values
 from sentry.issues.grouptype import (
     MonitorCheckInFailure,
     MonitorCheckInMissed,
     MonitorCheckInTimeout,
 )
 from sentry.models import Organization
-from sentry.monitors.models import MonitorEnvironment, MonitorStatus
+from sentry.monitors.constants import SUBTITLE_DATETIME_FORMAT, TIMEOUT
+from sentry.monitors.models import CheckInStatus, MonitorCheckIn, MonitorEnvironment, MonitorStatus
 
 logger = logging.getLogger(__name__)
 
 
-class MonitorFailure:
-    UNKNOWN = "unknown"
-    MISSED_CHECKIN = "missed_checkin"
-    DURATION = "duration"
-
-
 def mark_failed(
-    monitor_env: MonitorEnvironment,
-    last_checkin=None,
-    reason=MonitorFailure.UNKNOWN,
-    occurrence_context=None,
+    failed_checkin: MonitorCheckIn,
+    ts: datetime | None,
+):
+    monitor_env = failed_checkin.monitor_environment
+    failure_issue_threshold = monitor_env.monitor.config.get("failure_issue_threshold", 0)
+
+    if failure_issue_threshold:
+        return mark_failed_threshold(failed_checkin, ts, failure_issue_threshold)
+    else:
+        return mark_failed_no_threshold(failed_checkin, ts)
+
+
+def mark_failed_threshold(
+    failed_checkin: MonitorCheckIn,
+    ts: datetime | None,
+    failure_issue_threshold: int,
 ):
     from sentry.signals import monitor_environment_failed
 
-    if last_checkin is None:
+    monitor_env = failed_checkin.monitor_environment
+
+    # update monitor environment timestamps on every check-in
+    if ts is None:
         next_checkin_base = timezone.now()
         last_checkin = monitor_env.last_checkin or timezone.now()
     else:
-        next_checkin_base = last_checkin
-
-    new_status = MonitorStatus.ERROR
-    if reason == MonitorFailure.MISSED_CHECKIN:
-        new_status = MonitorStatus.MISSED_CHECKIN
-    elif reason == MonitorFailure.DURATION:
-        new_status = MonitorStatus.TIMEOUT
+        next_checkin_base = ts
+        last_checkin = ts
 
     next_checkin = monitor_env.monitor.get_next_expected_checkin(next_checkin_base)
     next_checkin_latest = monitor_env.monitor.get_next_expected_checkin_latest(next_checkin_base)
 
+    # update monitor environment timestamps without updating status
+    # affected returns number of rows returned from the filter() call
+    # not the number of rows that actually modify their values via update()
+    affected = MonitorEnvironment.objects.filter(
+        Q(last_checkin__lte=last_checkin) | Q(last_checkin__isnull=True), id=monitor_env.id
+    ).update(
+        next_checkin=next_checkin,
+        next_checkin_latest=next_checkin_latest,
+        last_checkin=last_checkin,
+    )
+    if not affected:
+        return False
+
+    # check to see if we need to update the status
+    if monitor_env.status == MonitorStatus.OK:
+        previous_checkins = MonitorCheckIn.objects.filter(monitor_environment=monitor_env).order_by(
+            "-date_added"
+        )[:failure_issue_threshold]
+        # check for successive failed previous check-ins
+        if not all(
+            [
+                checkin.status not in [CheckInStatus.IN_PROGRESS, CheckInStatus.OK]
+                for checkin in previous_checkins
+            ]
+        ):
+            return False
+
+        # change monitor status + update fingerprint timestamp
+        monitor_env.status = MonitorStatus.ERROR
+        monitor_env.last_state_change = last_checkin
+        monitor_env.save()
+    elif monitor_env.status in [
+        MonitorStatus.ERROR,
+        MonitorStatus.MISSED_CHECKIN,
+        MonitorStatus.TIMEOUT,
+    ]:
+        # if monitor environment has a failed status, get the most recent
+        # check-in and send occurrence
+        previous_checkins = [
+            MonitorCheckIn.objects.filter(monitor_environment=monitor_env)
+            .order_by("-date_added")
+            .first()
+        ]
+    else:
+        # don't send occurrence for other statuses
+        return False
+
+    # Do not create event if monitor is disabled
+    if monitor_env.monitor.status == ObjectStatus.DISABLED:
+        return True
+
+    fingerprint = [
+        "monitor",
+        str(monitor_env.monitor.guid),
+        monitor_env.environment.name,
+        str(monitor_env.last_state_change),
+    ]
+
+    for previous_checkin in previous_checkins:
+        create_issue_platform_occurrence(previous_checkin, fingerprint)
+
+    monitor_environment_failed.send(monitor_environment=monitor_env, sender=type(monitor_env))
+
+    return True
+
+
+def mark_failed_no_threshold(
+    failed_checkin: MonitorCheckIn,
+    ts: datetime | None,
+):
+    from sentry.signals import monitor_environment_failed
+
+    monitor_env = failed_checkin.monitor_environment
+
+    if ts is None:
+        next_checkin_base = timezone.now()
+        last_checkin = monitor_env.last_checkin or timezone.now()
+    else:
+        next_checkin_base = ts
+        last_checkin = ts
+
+    failed_status_map = {
+        CheckInStatus.MISSED: MonitorStatus.MISSED_CHECKIN,
+        CheckInStatus.TIMEOUT: MonitorStatus.TIMEOUT,
+    }
+    new_status = failed_status_map.get(failed_checkin.status, MonitorStatus.ERROR)
+
+    next_checkin = monitor_env.monitor.get_next_expected_checkin(next_checkin_base)
+    next_checkin_latest = monitor_env.monitor.get_next_expected_checkin_latest(next_checkin_base)
+
+    # affected returns number of rows returned from the filter() call
+    # not the number of rows that actually modify their values via update()
     affected = MonitorEnvironment.objects.filter(
         Q(last_checkin__lte=last_checkin) | Q(last_checkin__isnull=True), id=monitor_env.id
     ).update(
@@ -75,21 +173,29 @@ def mark_failed(
         pass
 
     if use_issue_platform:
-        create_issue_platform_issue(monitor_env, reason, occurrence_context)
+        create_issue_platform_occurrence(failed_checkin)
     else:
-        create_legacy_issue(monitor_env, reason)
+        create_legacy_event(failed_checkin)
 
     monitor_environment_failed.send(monitor_environment=monitor_env, sender=type(monitor_env))
 
     return True
 
 
-def create_legacy_issue(monitor_env: MonitorEnvironment, reason: str):
+def create_legacy_event(failed_checkin: MonitorCheckIn):
     from sentry.coreapi import insert_data_to_database_legacy
     from sentry.event_manager import EventManager
     from sentry.models import Project
 
+    monitor_env = failed_checkin.monitor_environment
     context = get_monitor_environment_context(monitor_env)
+
+    # XXX(epurkhiser): This matches up with the occurrence_data reason
+    reason_map = {
+        CheckInStatus.MISSED: "missed_checkin",
+        CheckInStatus.TIMEOUT: "duration",
+    }
+    reason = reason_map.get(failed_checkin.status, "unknown")
 
     event_manager = EventManager(
         {
@@ -111,21 +217,17 @@ def create_legacy_issue(monitor_env: MonitorEnvironment, reason: str):
     insert_data_to_database_legacy(data)
 
 
-def create_issue_platform_issue(
-    monitor_env: MonitorEnvironment,
-    reason: str,
-    occurrence_context=None,
+def create_issue_platform_occurrence(
+    failed_checkin: MonitorCheckIn,
+    fingerprint=None,
 ):
-    from sentry.grouping.utils import hash_from_values
     from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
     from sentry.issues.producer import produce_occurrence_to_kafka
 
+    monitor_env = failed_checkin.monitor_environment
     current_timestamp = datetime.utcnow().replace(tzinfo=timezone.utc)
 
-    if not occurrence_context:
-        occurrence_context = {}
-
-    occurrence_data = get_occurrence_data(reason, **occurrence_context)
+    occurrence_data = get_occurrence_data(failed_checkin)
 
     # Get last successful check-in to show in evidence display
     last_successful_checkin_timestamp = "None"
@@ -139,7 +241,11 @@ def create_issue_platform_issue(
         project_id=monitor_env.monitor.project_id,
         event_id=uuid.uuid4().hex,
         fingerprint=[
-            hash_from_values(["monitor", str(monitor_env.monitor.guid), occurrence_data["reason"]])
+            hash_from_values(fingerprint)
+            if fingerprint
+            else hash_from_values(
+                ["monitor", str(monitor_env.monitor.guid), occurrence_data["reason"]]
+            )
         ],
         type=occurrence_data["group_type"],
         issue_title=f"Monitor failure: {monitor_env.monitor.name}",
@@ -159,13 +265,20 @@ def create_issue_platform_issue(
         level=occurrence_data["level"],
     )
 
+    if failed_checkin.trace_id:
+        trace_id = failed_checkin.trace_id.hex
+    else:
+        trace_id = None
+
     produce_occurrence_to_kafka(
         occurrence,
         {
             "contexts": {"monitor": get_monitor_environment_context(monitor_env)},
             "environment": monitor_env.environment.name,
             "event_id": occurrence.event_id,
-            "fingerprint": [
+            "fingerprint": fingerprint
+            if fingerprint
+            else [
                 "monitor",
                 str(monitor_env.monitor.guid),
                 occurrence_data["reason"],
@@ -178,13 +291,13 @@ def create_issue_platform_issue(
                 "monitor.id": str(monitor_env.monitor.guid),
                 "monitor.slug": monitor_env.monitor.slug,
             },
-            "trace_id": occurrence_context.get("trace_id"),
+            "trace_id": trace_id,
             "timestamp": current_timestamp.isoformat(),
         },
     )
 
 
-def get_monitor_environment_context(monitor_environment):
+def get_monitor_environment_context(monitor_environment: MonitorEnvironment):
     config = monitor_environment.monitor.config.copy()
     if "schedule_type" in config:
         config["schedule_type"] = monitor_environment.monitor.get_schedule_type_display()
@@ -199,17 +312,22 @@ def get_monitor_environment_context(monitor_environment):
     }
 
 
-def get_occurrence_data(reason: str, **kwargs):
-    if reason == MonitorFailure.MISSED_CHECKIN:
-        expected_time = kwargs.get("expected_time", "the expected time")
+def get_occurrence_data(checkin: MonitorCheckIn):
+    if checkin.status == CheckInStatus.MISSED:
+        expected_time = (
+            checkin.expected_time.strftime(SUBTITLE_DATETIME_FORMAT)
+            if checkin.expected_time
+            else "the expected time"
+        )
         return {
             "group_type": MonitorCheckInMissed,
             "level": "warning",
             "reason": "missed_checkin",
             "subtitle": f"No check-in reported on {expected_time}.",
         }
-    elif reason == MonitorFailure.DURATION:
-        duration = kwargs.get("duration", 30)
+
+    if checkin.status == CheckInStatus.TIMEOUT:
+        duration = (checkin.monitor.config or {}).get("max_runtime") or TIMEOUT
         return {
             "group_type": MonitorCheckInTimeout,
             "level": "error",

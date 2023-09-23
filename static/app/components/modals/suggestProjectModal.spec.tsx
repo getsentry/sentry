@@ -5,7 +5,7 @@ import SuggestProjectModal from 'sentry/components/modals/suggestProjectModal';
 
 describe('SuggestProjectModal', function () {
   it('renders', function () {
-    const {container} = renderGlobalModal();
+    renderGlobalModal();
 
     act(() =>
       openModal(modalProps => (
@@ -16,7 +16,5 @@ describe('SuggestProjectModal', function () {
         />
       ))
     );
-
-    expect(container).toSnapshot();
   });
 });

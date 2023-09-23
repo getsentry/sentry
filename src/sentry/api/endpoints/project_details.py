@@ -6,12 +6,13 @@ from uuid import uuid4
 
 from django.db import IntegrityError, router, transaction
 from django.utils import timezone
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import extend_schema, inline_serializer
 from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log, features
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import (
     DEFAULT_SLUG_ERROR_MESSAGE,
     DEFAULT_SLUG_PATTERN,
@@ -27,7 +28,7 @@ from sentry.api.serializers.rest_framework.list import EmptyListField, ListField
 from sentry.api.serializers.rest_framework.origin import OriginField
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NO_CONTENT, RESPONSE_NOT_FOUND
 from sentry.apidocs.examples.project_examples import ProjectExamples
-from sentry.apidocs.parameters import GlobalParams, ProjectParams
+from sentry.apidocs.parameters import GlobalParams
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import RESERVED_PROJECT_SLUGS, ObjectStatus
 from sentry.datascrubbing import validate_pii_config_update
@@ -67,6 +68,24 @@ from sentry.utils import json
 #: Relay compiles this list into a regex which cannot exceed a certain size.
 #: Limit determined experimentally here: https://github.com/getsentry/relay/blob/3105d8544daca3a102c74cefcd77db980306de71/relay-general/src/pii/convert.rs#L289
 MAX_SENSITIVE_FIELD_CHARS = 4000
+
+_options_description = """
+Configure various project filters:
+- `Hydration Errors`: Filter out react hydration errors that are often unactionable
+- `IP Addresses`: Filter events from these IP addresses separated with newlines.
+- `Releases`: Filter events from these releases separated with newlines. Allows [glob pattern matching](https://docs.sentry.io/product/data-management-settings/filtering/#glob-matching).
+- `Error Message`: Filter events by error messages separated with newlines. Allows [glob pattern matching](https://docs.sentry.io/product/data-management-settings/filtering/#glob-matching).
+```json
+{
+    options: {
+        filters:react-hydration-errors: true,
+        filters:blacklisted_ips: "127.0.0.1\\n192.168. 0.1"
+        filters:releases: "[!3]\\n4"
+        filters:error_messages: "TypeError*\\n*ConnectionError*"
+    }
+}
+```
+"""
 
 
 def clean_newline_inputs(value, case_insensitive=True):
@@ -382,7 +401,11 @@ class RelaxedProjectPermission(ProjectPermission):
 @extend_schema(tags=["Projects"])
 @region_silo_endpoint
 class ProjectDetailsEndpoint(ProjectEndpoint):
-    public = {"GET", "PUT", "DELETE"}
+    publish_status = {
+        "DELETE": ApiPublishStatus.PUBLIC,
+        "GET": ApiPublishStatus.PUBLIC,
+        "PUT": ApiPublishStatus.PUBLIC,
+    }
     permission_classes = [RelaxedProjectPermission]
 
     def _get_unresolved_count(self, project):
@@ -452,13 +475,35 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         parameters=[
             GlobalParams.ORG_SLUG,
             GlobalParams.PROJECT_SLUG,
-            GlobalParams.name("The name for the project."),
-            GlobalParams.slug("The slug for the project."),
-            ProjectParams.platform("The platform for the project."),
-            ProjectParams.IS_BOOKMARKED,
-            ProjectParams.OPTIONS,
         ],
-        request=ProjectAdminSerializer,
+        request=inline_serializer(
+            "UpdateProject",
+            fields={
+                "slug": serializers.RegexField(
+                    DEFAULT_SLUG_PATTERN,
+                    help_text="Uniquely identifies a project and is used for the interface.",
+                    required=False,
+                    max_length=50,
+                    error_messages={"invalid": DEFAULT_SLUG_ERROR_MESSAGE},
+                ),
+                "name": serializers.CharField(
+                    help_text="The name for the project.",
+                    required=False,
+                    max_length=200,
+                ),
+                "platform": serializers.CharField(
+                    help_text="The platform for the project.",
+                    required=False,
+                    allow_null=True,
+                    allow_blank=True,
+                ),
+                "isBookmarked": serializers.BooleanField(
+                    help_text="Enables starring the project within the projects tab.",
+                    required=False,
+                ),
+                "options": serializers.DictField(help_text=_options_description, required=False),
+            },
+        ),
         responses={
             200: DetailedProjectSerializer,
             403: RESPONSE_FORBIDDEN,

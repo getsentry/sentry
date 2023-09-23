@@ -1,5 +1,6 @@
 import {browserHistory, PlainRoute} from 'react-router';
 import selectEvent from 'react-select-event';
+import moment from 'moment';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -108,6 +109,7 @@ const createWrapper = (props = {}) => {
     organization,
     project,
     onChangeTitleMock,
+    router,
   };
 };
 
@@ -341,6 +343,27 @@ describe('IssueRuleEditor', function () {
         screen.getByText('Post to a Threads channel with these')
       ).toBeInTheDocument();
     });
+
+    it('opts out of the alert being disabled', async function () {
+      MockApiClient.addMockResponse({
+        url: '/projects/org-slug/project-slug/rules/1/',
+        body: TestStubs.ProjectAlertRule({
+          status: 'disabled',
+          disabledDate: moment().add(1, 'day').toISOString(),
+        }),
+      });
+      createWrapper();
+      await userEvent.click(screen.getByText('Save Rule'));
+
+      await waitFor(() =>
+        expect(mock).toHaveBeenCalledWith(
+          endpoint,
+          expect.objectContaining({
+            data: expect.objectContaining({optOutEdit: true}),
+          })
+        )
+      );
+    });
   });
 
   describe('Edit Rule: Slack Channel Look Up', function () {
@@ -366,7 +389,7 @@ describe('IssueRuleEditor', function () {
         statusCode: 202,
         body: {uuid},
       });
-      createWrapper();
+      const {router} = createWrapper();
       await userEvent.click(screen.getByText('Save Rule'), {delay: null});
 
       await waitFor(() => expect(addLoadingMessage).toHaveBeenCalledTimes(2));
@@ -375,7 +398,9 @@ describe('IssueRuleEditor', function () {
       await waitFor(() => expect(mockSuccess).toHaveBeenCalledTimes(1));
       jest.advanceTimersByTime(1000);
       await waitFor(() => expect(addSuccessMessage).toHaveBeenCalledTimes(1));
-      expect(screen.getByDisplayValue('Slack Rule')).toBeInTheDocument();
+      expect(router.push).toHaveBeenCalledWith({
+        pathname: '/organizations/org-slug/alerts/rules/project-slug/1/details/',
+      });
     });
 
     it('pending status keeps loading true', async function () {

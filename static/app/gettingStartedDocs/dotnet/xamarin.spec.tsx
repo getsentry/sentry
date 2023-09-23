@@ -6,7 +6,7 @@ import {GettingStartedWithXamarin, steps} from './xamarin';
 
 describe('GettingStartedWithXamarin', function () {
   it('renders doc correctly', function () {
-    const {container} = render(<GettingStartedWithXamarin dsn="test-dsn" />);
+    render(<GettingStartedWithXamarin dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps()) {
@@ -14,7 +14,5 @@ describe('GettingStartedWithXamarin', function () {
         screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
       ).toBeInTheDocument();
     }
-
-    expect(container).toSnapshot();
   });
 });

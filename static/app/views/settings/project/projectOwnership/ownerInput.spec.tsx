@@ -28,7 +28,7 @@ describe('Project Ownership Input', function () {
   });
 
   it('renders', async function () {
-    const {container} = render(
+    render(
       <OwnerInput
         page="issue_details"
         onCancel={() => {}}
@@ -53,8 +53,6 @@ describe('Project Ownership Input', function () {
     await userEvent.click(submitButton);
 
     expect(put).toHaveBeenCalled();
-
-    expect(container).toSnapshot();
   });
 
   it('updates on add preserving existing text', async function () {

@@ -6,7 +6,7 @@ import {GettingStartedWithUnity, steps} from './unity';
 
 describe('GettingStartedWithUnity', function () {
   it('renders doc correctly', function () {
-    const {container} = render(<GettingStartedWithUnity dsn="test-dsn" />);
+    render(<GettingStartedWithUnity dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps()) {
@@ -14,7 +14,5 @@ describe('GettingStartedWithUnity', function () {
         screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
       ).toBeInTheDocument();
     }
-
-    expect(container).toSnapshot();
   });
 });

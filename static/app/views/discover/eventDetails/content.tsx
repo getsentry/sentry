@@ -289,15 +289,12 @@ class EventDetailsContent extends DeprecatedAsyncComponent<Props, State> {
           {isSidebarVisible && (
             <Layout.Side>
               <EventVitals event={event} />
-              {(organization.features.includes('dashboards-mep') ||
-                organization.features.includes('mep-rollout-flag')) && (
-                <EventCustomPerformanceMetrics
-                  event={event}
-                  location={location}
-                  organization={organization}
-                  isHomepage={isHomepage}
-                />
-              )}
+              <EventCustomPerformanceMetrics
+                event={event}
+                location={location}
+                organization={organization}
+                isHomepage={isHomepage}
+              />
               {event.groupID && (
                 <LinkedIssue groupId={event.groupID} eventId={event.eventID} />
               )}

@@ -6,7 +6,7 @@ import {GettingStartedWithKotlin, steps} from './kotlin';
 
 describe('GettingStartedWithKotlin', function () {
   it('renders doc correctly', function () {
-    const {container} = render(<GettingStartedWithKotlin dsn="test-dsn" />);
+    render(<GettingStartedWithKotlin dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps()) {
@@ -14,7 +14,5 @@ describe('GettingStartedWithKotlin', function () {
         screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
       ).toBeInTheDocument();
     }
-
-    expect(container).toSnapshot();
   });
 });

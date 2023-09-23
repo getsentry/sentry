@@ -3,7 +3,6 @@ from sentry.api.serializers.models.alert_rule import (
     CombinedRuleSerializer,
     DetailedAlertRuleSerializer,
 )
-from sentry.constants import ObjectStatus
 from sentry.incidents.logic import create_alert_rule_trigger
 from sentry.incidents.models import AlertRule, AlertRuleThresholdType
 from sentry.models import Rule
@@ -221,6 +220,32 @@ class CombinedRuleSerializerTest(BaseAlertRuleSerializerTest, APITestCase, TestC
 
         self.assert_alert_rule_serialized(alert_rule, result[0])
         assert result[1]["id"] == str(issue_rule.id)
-        assert result[1]["status"] == ObjectStatus.ACTIVE
+        assert result[1]["status"] == "active"
+        assert not result[1]["snooze"]
+        self.assert_alert_rule_serialized(other_alert_rule, result[2])
+
+    def test_alert_snoozed(self):
+        projects = [self.project, self.create_project()]
+        alert_rule = self.create_alert_rule(projects=projects)
+        issue_rule = self.create_issue_alert_rule(
+            data={
+                "project": self.project,
+                "name": "Issue Rule Test",
+                "conditions": [],
+                "actions": [],
+                "actionMatch": "all",
+            }
+        )
+        self.snooze_rule(owner_id=self.user.id, alert_rule=alert_rule)
+        other_alert_rule = self.create_alert_rule()
+
+        result = serialize(
+            [alert_rule, issue_rule, other_alert_rule], serializer=CombinedRuleSerializer()
+        )
+
+        self.assert_alert_rule_serialized(alert_rule, result[0])
+        assert result[0]["snooze"]
+        assert result[1]["id"] == str(issue_rule.id)
+        assert result[1]["status"] == "active"
         assert not result[1]["snooze"]
         self.assert_alert_rule_serialized(other_alert_rule, result[2])

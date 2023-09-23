@@ -12,7 +12,10 @@ from sentry.models import (
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import get_attachment, install_slack, link_team
+from sentry.testutils.skips import requires_snuba
 from sentry.types.integrations import ExternalProviders
+
+pytestmark = [requires_snuba]
 
 
 class AssignedNotificationAPITest(APITestCase):
@@ -78,6 +81,7 @@ class AssignedNotificationAPITest(APITestCase):
             NotificationSettingTypes.WORKFLOW,
             NotificationSettingOptionValues.ALWAYS,
             team_id=self.team.id,
+            organization_id_for_team=self.organization.id,
         )
 
         url = f"/api/0/issues/{self.group.id}/"

@@ -13,6 +13,7 @@ from rest_framework.response import Response
 from typing_extensions import TypedDict
 
 from sentry import audit_log
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.endpoints.organization_teams import CONFLICTING_SLUG_ERROR, TeamPostSerializer
 from sentry.api.endpoints.team_details import TeamDetailsEndpoint, TeamSerializer
@@ -97,8 +98,11 @@ class SCIMListResponseDict(TypedDict):
 @extend_schema(tags=["SCIM"])
 @region_silo_endpoint
 class OrganizationSCIMTeamIndex(SCIMEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.PUBLIC,
+        "POST": ApiPublishStatus.PUBLIC,
+    }
     permission_classes = (OrganizationSCIMTeamPermission,)
-    public = {"GET", "POST"}
 
     @extend_schema(
         operation_id="List an Organization's Paginated Teams",
@@ -228,8 +232,13 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint):
 @extend_schema(tags=["SCIM"])
 @region_silo_endpoint
 class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
+    publish_status = {
+        "DELETE": ApiPublishStatus.PUBLIC,
+        "GET": ApiPublishStatus.PUBLIC,
+        "PUT": ApiPublishStatus.EXPERIMENTAL,
+        "PATCH": ApiPublishStatus.PUBLIC,
+    }
     permission_classes = (OrganizationSCIMTeamPermission,)
-    public = {"GET", "PATCH", "DELETE"}
 
     def convert_args(self, request: Request, organization_slug: str, team_id, *args, **kwargs):
         args, kwargs = super().convert_args(request, organization_slug)
@@ -431,8 +440,10 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
                             # delete all the current team members
                             # and replace with the ones in the operation list
                             with transaction.atomic(router.db_for_write(OrganizationMember)):
-                                queryset = OrganizationMemberTeam.objects.filter(team_id=team.id)
-                                queryset.delete()
+                                existing = list(
+                                    OrganizationMemberTeam.objects.filter(team_id=team.id)
+                                )
+                                OrganizationMemberTeam.objects.bulk_delete(existing)
                                 self._add_members_operation(request, operation, team)
                         # azure and okta handle team name change operation differently
                         elif path is None:

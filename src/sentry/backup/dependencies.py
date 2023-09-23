@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections import defaultdict
 from enum import Enum, auto, unique
 from functools import lru_cache
-from typing import NamedTuple, Type
+from typing import Dict, NamedTuple, Optional, Tuple, Type
 
 from django.db import models
 from django.db.models.fields.related import ForeignKey, OneToOneField
@@ -51,7 +51,7 @@ class ModelRelations(NamedTuple):
 
     model: Type[models.base.Model]
     foreign_keys: dict[str, ForeignField]
-    relocation_scope: RelocationScope
+    relocation_scope: RelocationScope | set[RelocationScope]
     silos: list[SiloMode]
 
     def flatten(self) -> set[Type[models.base.Model]]:
@@ -60,8 +60,53 @@ class ModelRelations(NamedTuple):
         return {ff.model for ff in self.foreign_keys.values()}
 
 
-def normalize_model_name(model: Type[models.base.Model]):
-    return f"{model._meta.app_label}.{model._meta.object_name}"
+class NormalizedModelName:
+    """
+    A wrapper type that ensures that the contained model name has been properly normalized. A "normalized" model name is one that is identical to the name as it appears in an exported JSON backup, so a string of the form `{app_label.lower()}.{model_name.lower()}`.
+    """
+
+    __model_name: str
+
+    def __init__(self, model_name: str):
+        if "." not in model_name:
+            raise TypeError("cannot create NormalizedModelName from invalid input string")
+        self.__model_name = model_name.lower()
+
+    def __hash__(self):
+        return hash(self.__model_name)
+
+    def __eq__(self, other) -> bool:
+        if other is None:
+            return False
+        if not isinstance(other, self.__class__):
+            raise TypeError(
+                "NormalizedModelName can only be compared with other NormalizedModelName"
+            )
+        return self.__model_name == other.__model_name
+
+    def __lt__(self, other) -> bool:
+        if not isinstance(other, self.__class__):
+            raise TypeError(
+                "NormalizedModelName can only be compared with other NormalizedModelName"
+            )
+        return self.__model_name < other.__model_name
+
+    def __str__(self) -> str:
+        return self.__model_name
+
+
+def get_model_name(model: Type[models.base.Model]) -> NormalizedModelName:
+    return NormalizedModelName(f"{model._meta.app_label}.{model._meta.object_name}")
+
+
+def get_model(model_name: NormalizedModelName) -> Optional[Type[models.base.Model]]:
+    """
+    Given a standardized model name string, retrieve the matching Sentry model.
+    """
+    for model in sorted_dependencies():
+        if get_model_name(model) == model_name:
+            return model
+    return None
 
 
 class DependenciesJSONEncoder(json.JSONEncoder):
@@ -70,16 +115,34 @@ class DependenciesJSONEncoder(json.JSONEncoder):
 
     def default(self, obj):
         if meta := getattr(obj, "_meta", None):
-            return f"{meta.app_label}.{meta.object_name}"
+            return f"{meta.app_label}.{meta.object_name}".lower()
         if isinstance(obj, ForeignFieldKind):
             return obj.name
         if isinstance(obj, RelocationScope):
             return obj.name
+        if isinstance(obj, set) and all(isinstance(rs, RelocationScope) for rs in obj):
+            # Order by enum value, which should correspond to `RelocationScope` breadth.
+            return sorted(list(obj), key=lambda obj: obj.value)
         if isinstance(obj, SiloMode):
             return obj.name.lower().capitalize()
         if isinstance(obj, set):
-            return sorted(list(obj), key=lambda obj: normalize_model_name(obj))
+            return sorted(list(obj), key=lambda obj: get_model_name(obj))
         return super().default(obj)
+
+
+class ImportKind(Enum):
+    """
+    When importing a given model, we may create a new copy of it (`Inserted`), merely re-use an
+    `Existing` copy that has the same already-used globally unique identifier (ex: `username` for
+    users, `slug` for orgs, etc), or do an `Overwrite` that merges the new data into an existing
+    model that already has a `pk` assigned to it. This information can then be saved alongside the
+    new `pk` for the model in the `PrimaryKeyMap`, so that models that depend on this one can know
+    if they are dealing with a new or re-used model.
+    """
+
+    Inserted = auto()
+    Existing = auto()
+    Overwrite = auto()
 
 
 class PrimaryKeyMap:
@@ -94,28 +157,53 @@ class PrimaryKeyMap:
     keys are not supported!
     """
 
-    mapping: dict[str, dict[int, int]]
+    # Pydantic duplicates global default models on a per-instance basis, so using `{}` here is safe.
+    mapping: Dict[str, Dict[int, Tuple[int, ImportKind]]]
 
     def __init__(self):
         self.mapping = defaultdict(dict)
 
-    def get(self, model: str, old: int) -> int | None:
-        """Get the new, post-mapping primary key from an old primary key."""
+    def get_pk(self, model_name: NormalizedModelName, old: int) -> Optional[int]:
+        """
+        Get the new, post-mapping primary key from an old primary key.
+        """
 
-        pk_map = self.mapping.get(model)
+        pk_map = self.mapping.get(str(model_name))
         if pk_map is None:
             return None
-        return pk_map.get(old)
 
-    def insert(self, model: str, old: int, new: int):
-        """Create a new OLD_PK -> NEW_PK mapping for the given model."""
+        entry = pk_map.get(old)
+        if entry is None:
+            return None
 
-        self.mapping[model][old] = new
+        return entry[0]
+
+    def get_kind(self, model_name: NormalizedModelName, old: int) -> Optional[ImportKind]:
+        """
+        Is the mapped entry a newly inserted model, or an already existing one that has been merged in?
+        """
+
+        pk_map = self.mapping.get(str(model_name))
+        if pk_map is None:
+            return None
+
+        entry = pk_map.get(old)
+        if entry is None:
+            return None
+
+        return entry[1]
+
+    def insert(self, model_name: NormalizedModelName, old: int, new: int, kind: ImportKind) -> None:
+        """
+        Create a new OLD_PK -> NEW_PK mapping for the given model.
+        """
+
+        self.mapping[str(model_name)][old] = (new, kind)
 
 
 # No arguments, so we lazily cache the result after the first calculation.
 @lru_cache(maxsize=1)
-def dependencies() -> dict[str, ModelRelations]:
+def dependencies() -> dict[NormalizedModelName, ModelRelations]:
     """Produce a dictionary mapping model type definitions to a `ModelDeps` describing their dependencies."""
 
     from django.apps import apps
@@ -133,27 +221,24 @@ def dependencies() -> dict[str, ModelRelations]:
     from sentry.models.team import Team
 
     # Process the list of models, and get the list of dependencies
-    model_dependencies_list: dict[str, ModelRelations] = {}
-    for app_config in apps.get_app_configs():
+    model_dependencies_list: Dict[NormalizedModelName, ModelRelations] = {}
+    app_configs = apps.get_app_configs()
+    for app_config in app_configs:
         if app_config.label in EXCLUDED_APPS:
             continue
 
-        models_from_names = {
-            model._meta.object_name.lower(): model  # type: ignore[union-attr]
-            for model in app_config.get_models()
-        }
+        models_from_names = {get_model_name(model): model for model in app_config.get_models()}
         model_iterator = app_config.get_models()
 
         for model in model_iterator:
-            foreign_keys: dict[str, ForeignField] = dict()
+            foreign_keys: Dict[str, ForeignField] = dict()
 
-            # Now add a dependency for any FK relation with a model that defines a natural key.
+            # Now add a dependency for any FK relation visible to Django.
             for field in model._meta.get_fields():
                 rel_model = getattr(field.remote_field, "model", None)
                 if rel_model is not None and rel_model != model:
-                    # TODO(hybrid-cloud): actor refactor.
-                    # Add cludgy conditional preventing walking actor.team_id, actor.user_id
-                    # Which avoids circular imports
+                    # TODO(hybrid-cloud): actor refactor. Add kludgy conditional preventing walking
+                    # actor.team_id, which avoids circular imports
                     if model == Actor and rel_model == Team:
                         continue
 
@@ -168,7 +253,7 @@ def dependencies() -> dict[str, ModelRelations]:
                             kind=ForeignFieldKind.DefaultForeignKey,
                         )
                 elif isinstance(field, HybridCloudForeignKey):
-                    rel_model = models_from_names[field.foreign_model_name[7:].lower()]
+                    rel_model = models_from_names[NormalizedModelName(field.foreign_model_name)]
                     foreign_keys[field.name] = ForeignField(
                         model=rel_model,
                         kind=ForeignFieldKind.HybridCloudForeignKey,
@@ -209,14 +294,14 @@ def dependencies() -> dict[str, ModelRelations]:
                 # `Actor` model. Because of this, we avoid assuming that it is a dependency into
                 # `Actor` and just ignore it.
                 if field.name.endswith("_id") and field.name != "actor_id":
-                    candidate = field.name[:-3].replace("_", "")
+                    candidate = NormalizedModelName("sentry." + field.name[:-3].replace("_", ""))
                     if candidate and candidate in models_from_names:
                         foreign_keys[field.name] = ForeignField(
                             model=models_from_names[candidate],
                             kind=ForeignFieldKind.ImplicitForeignKey,
                         )
 
-            model_dependencies_list[normalize_model_name(model)] = ModelRelations(
+            model_dependencies_list[get_model_name(model)] = ModelRelations(
                 model=model,
                 foreign_keys=foreign_keys,
                 relocation_scope=getattr(model, "__relocation_scope__", RelocationScope.Excluded),
@@ -229,7 +314,7 @@ def dependencies() -> dict[str, ModelRelations]:
 
 # No arguments, so we lazily cache the result after the first calculation.
 @lru_cache(maxsize=1)
-def sorted_dependencies():
+def sorted_dependencies() -> list[Type[models.base.Model]]:
     """Produce a list of model definitions such that, for every item in the list, all of the other models it mentions in its fields and/or natural key (ie, its "dependencies") have already appeared in the list.
 
     Similar to Django's algorithm except that we discard the importance of natural keys
@@ -272,8 +357,8 @@ def sorted_dependencies():
             raise RuntimeError(
                 "Can't resolve dependencies for %s in serialized app list."
                 % ", ".join(
-                    normalize_model_name(m.model)
-                    for m in sorted(skipped, key=lambda mr: normalize_model_name(mr.model))
+                    str(get_model_name(m.model))
+                    for m in sorted(skipped, key=lambda mr: get_model_name(mr.model))
                 )
             )
         model_dependencies_list = skipped

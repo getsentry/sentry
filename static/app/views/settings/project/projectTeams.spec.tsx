@@ -67,7 +67,7 @@ describe('ProjectTeams', function () {
   });
 
   it('renders', function () {
-    const {container} = render(
+    render(
       <ProjectTeams
         {...TestStubs.routeComponentProps()}
         params={{projectId: project.slug}}
@@ -75,8 +75,6 @@ describe('ProjectTeams', function () {
         project={project}
       />
     );
-
-    expect(container).toSnapshot();
   });
 
   it('can remove a team from project', async function () {

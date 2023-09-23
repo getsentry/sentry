@@ -4,7 +4,7 @@ __all__ = (
     "SnubaResultConverter",
     "get_date_range",
     "parse_field",
-    "parse_query",
+    "parse_conditions",
     "resolve_tags",
     "translate_meta_results",
     "QUERY_PROJECT_LIMIT",
@@ -87,6 +87,27 @@ from sentry.utils.dates import parse_stats_period, to_datetime
 from sentry.utils.snuba import parse_snuba_datetime
 
 QUERY_PROJECT_LIMIT = 10
+
+
+def _strip_project_id(condition: Condition) -> Optional[Condition]:
+    if isinstance(condition, BooleanCondition):
+        new_boolean_condition = BooleanCondition()
+        for nested_condition in condition.conditions:
+            stripped_condition = _strip_project_id(nested_condition)
+            # Only if we have a condition object we append, since if its None it means that we directly had a
+            # project.id.
+            if stripped_condition is not None:
+                new_boolean_condition.conditions.append(stripped_condition)
+
+        return new_boolean_condition if new_boolean_condition.conditions else None
+    elif isinstance(condition, Condition):
+        if isinstance(condition.lhs, Column):
+            if condition.lhs.name == "project_id":
+                return None
+
+            return condition
+
+    return None
 
 
 def parse_field(field: str, allow_mri: bool = False, allow_private: bool = False) -> MetricField:
@@ -406,24 +427,28 @@ def is_tag_key_allowed(tag_key: str, allowed_tag_keys: Optional[Dict[str, str]])
     return allowed_tag_keys.get(f"tags[{tag_key}]") is not None
 
 
-def parse_query(query_string: str, projects: Sequence[Project]) -> Sequence[Condition]:
-    """Parse given filter query into a list of snuba conditions"""
+def parse_conditions(
+    query_string: str, projects: Sequence[Project], environments: Sequence[str]
+) -> Sequence[Condition]:
+    """Parse given filter query and query params into a list of snuba conditions"""
     # HACK: Parse a sessions query, validate / transform afterwards.
     # We will want to write our own grammar + interpreter for this later.
     try:
         query_builder = ReleaseHealthQueryBuilder(
             Dataset.Sessions,
             params={
+                "environment": environments,
                 "project_id": [project.id for project in projects],
                 "organization_id": org_id_from_projects(projects) if projects else None,
             },
             config=QueryBuilderConfig(use_aggregate_conditions=True),
         )
         where, _ = query_builder.resolve_conditions(query_string)
+        param_conditions = list(filter(_strip_project_id, query_builder.resolve_params()))
     except InvalidSearchQuery as e:
-        raise InvalidParams(f"Failed to parse query: {e}")
+        raise InvalidParams(f"Failed to parse conditions: {e}")
 
-    return where
+    return where + param_conditions
 
 
 class ReleaseHealthQueryBuilder(UnresolvedQuery):
@@ -469,7 +494,6 @@ class QueryDefinition:
         paginator_kwargs = paginator_kwargs or {}
 
         self.query = query_params.get("query", "")
-        self.parsed_query = parse_query(self.query, projects) if self.query else None
         self.groupby = [
             MetricGroupByField(groupby_col) for groupby_col in query_params.getlist("groupBy", [])
         ]
@@ -485,6 +509,9 @@ class QueryDefinition:
         self.limit: Optional[Limit] = self._parse_limit(paginator_kwargs)
         self.offset: Optional[Offset] = self._parse_offset(paginator_kwargs)
         self.having: Optional[ConditionGroup] = query_params.getlist("having")
+        self.where = parse_conditions(
+            self.query, projects, environments=query_params.getlist("environment")
+        )
 
         start, end, rollup = get_date_range(query_params)
         self.rollup = rollup
@@ -502,7 +529,7 @@ class QueryDefinition:
             select=self.fields,
             start=self.start,
             end=self.end,
-            where=self.parsed_query,
+            where=self.where,
             having=self.having,
             groupby=self.groupby,
             orderby=self.orderby,
@@ -925,6 +952,37 @@ class SnubaQueryBuilder:
 
         return orderby_fields
 
+    def _build_having(self) -> List[Union[BooleanCondition, Condition]]:
+        """
+        This function makes a lot of assumptions about what the HAVING clause allows, mostly
+        because HAVING is not a fully supported function of metrics.
+
+        It is assumed that the having clause is a list of simple conditions, where the LHS is an aggregated
+        metric e.g. p50(duration) and the RHS is a literal value being compared too.
+        """
+        resolved_having = []
+        if not self._metrics_query.having:
+            return []
+
+        for condition in self._metrics_query.having:
+            lhs_expression = condition.lhs
+            if isinstance(lhs_expression, Function):
+                metric = lhs_expression.parameters[0]
+                assert isinstance(metric, Column)
+                metrics_field_obj = metric_object_factory(lhs_expression.function, metric.name)
+
+                resolved_lhs = metrics_field_obj.generate_select_statements(
+                    projects=self._projects,
+                    use_case_id=self._use_case_id,
+                    alias=lhs_expression.alias,
+                    params=None,
+                )
+                resolved_having.append(Condition(resolved_lhs[0], condition.op, condition.rhs))
+            else:
+                resolved_having.append(condition)
+
+        return resolved_having
+
     def __build_totals_and_series_queries(
         self,
         entity,
@@ -1098,13 +1156,14 @@ class SnubaQueryBuilder:
                 ),
             ]
             orderby = self._build_orderby()
+            having = self._build_having()
 
             # Functionally [] and None will be the same and the same applies for Offset(0) and None.
             queries_dict[entity] = self.__build_totals_and_series_queries(
                 entity=entity,
                 select=select,
                 where=where + where_for_entity,
-                having=self._metrics_query.having,
+                having=having,
                 groupby=groupby,  # Empty group by is set to None.
                 orderby=orderby,  # Empty order by is set to None.
                 limit=self._metrics_query.limit,

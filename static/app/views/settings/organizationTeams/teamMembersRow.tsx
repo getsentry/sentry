@@ -50,7 +50,7 @@ function TeamMembersRow({
       <div>
         <RemoveButton
           hasWriteAccess={hasWriteAccess}
-          hasOrgRoleFromTeam={team.orgRole !== null}
+          hasOrgRoleFromTeam={!!team.orgRole}
           isOrgOwner={isOrgOwner}
           isSelf={isSelf}
           onClick={() => removeMember(member)}
@@ -130,7 +130,7 @@ const RoleSelectWrapper = styled('div')`
 
 export const GRID_TEMPLATE = `
   display: grid;
-  grid-template-columns: minmax(100px, 1fr) 200px 95px;
+  grid-template-columns: minmax(100px, 1fr) 200px 150px;
   gap: ${space(1)};
 `;
 

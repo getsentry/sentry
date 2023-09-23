@@ -1,11 +1,13 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Mapping, Sequence
+from typing import TYPE_CHECKING, Any, Mapping, Optional, Sequence, Tuple
 
 from django.db import models
 
 from sentry import projectoptions
-from sentry.backup.scopes import RelocationScope
+from sentry.backup.dependencies import ImportKind
+from sentry.backup.helpers import ImportFlags
+from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, region_silo_only_model, sane_repr
 from sentry.db.models.fields import PickledObjectField
 from sentry.db.models.manager import OptionManager, ValidateFunction, Value
@@ -159,3 +161,15 @@ class ProjectOption(Model):
         unique_together = (("project", "key"),)
 
     __repr__ = sane_repr("project_id", "key", "value")
+
+    def write_relocation_import(
+        self, _s: ImportScope, _f: ImportFlags
+    ) -> Optional[Tuple[int, ImportKind]]:
+        (key, created) = self.__class__.objects.get_or_create(
+            project=self.project, key=self.key, defaults={"value": self.value}
+        )
+        if key:
+            self.pk = key.pk
+            self.save()
+
+        return (self.pk, ImportKind.Inserted if created else ImportKind.Existing)

@@ -6,6 +6,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import eventstore, features
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import EventSerializer, SimpleEventSerializer, serialize
@@ -14,6 +15,9 @@ from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 @region_silo_endpoint
 class ProjectEventsEndpoint(ProjectEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     enforce_rate_limit = True
     rate_limits = {
         "GET": {
@@ -25,7 +29,7 @@ class ProjectEventsEndpoint(ProjectEndpoint):
 
     def get(self, request: Request, project) -> Response:
         """
-        List a Project's Events
+        List a Project's Error Events
         ```````````````````````
 
         Return a list of events bound to a project.

@@ -19,6 +19,9 @@ from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organizationonboardingtask import OnboardingTask, OnboardingTaskStatus
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
+from sentry.testutils.skips import requires_snuba
+
+pytestmark = [requires_snuba]
 
 non_default_owner_scopes = ["org:ci", "openid", "email", "profile"]
 default_owner_scopes = frozenset(
@@ -69,6 +72,8 @@ class OrganizationSerializerTest(TestCase):
             "integrations-alert-rule",
             "integrations-chat-unfurl",
             "integrations-deployment",
+            "integrations-enterprise-alert-rule",
+            "integrations-enterprise-incident-management",
             "integrations-event-hooks",
             "integrations-incident-management",
             "integrations-issue-basic",
@@ -77,6 +82,7 @@ class OrganizationSerializerTest(TestCase):
             "invite-members",
             "invite-members-rate-limits",
             "minute-resolution-sessions",
+            "notifications-double-write",
             "open-membership",
             "project-stats",
             "relay",

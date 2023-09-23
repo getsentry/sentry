@@ -4,7 +4,7 @@ import math
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
-from snuba_sdk import Column, Condition, Function, Limit, Op
+from snuba_sdk import BooleanCondition, Column, Condition, Function, Limit, Op
 
 from sentry.api.utils import get_date_range_from_params
 from sentry.release_health.base import AllowedResolution, SessionsQueryConfig
@@ -341,7 +341,10 @@ class QueryDefinition:
         conditions = SessionsV2QueryBuilder(**self.to_query_builder_dict()).where
         filter_conditions = []
         for condition in conditions:
-            # Exclude sessions "started" timestamp condition and org_id condition, as it is not needed for metrics queries.
+            self._check_supported_condition(condition)
+
+            # Exclude sessions "started" timestamp condition and org_id condition, as it is not needed for metrics
+            # queries.
             if (
                 isinstance(condition, Condition)
                 and isinstance(condition.lhs, Column)
@@ -349,7 +352,22 @@ class QueryDefinition:
             ):
                 continue
             filter_conditions.append(condition)
+
         return filter_conditions
+
+    @classmethod
+    def _check_supported_condition(cls, condition):
+        if isinstance(condition, BooleanCondition):
+            for nested_condition in condition.conditions:
+                cls._check_supported_condition(nested_condition)
+        elif isinstance(condition, Condition):
+            if isinstance(condition.lhs, Function):
+                # Since we moved to metrics backed sessions, we don't allow wildcard search anymore. The reason for this
+                # is that we don't store tag values as strings in the database, this makes wildcard match on the
+                # db impossible. The solution would be to lift it out at the application level, but it will impact
+                # performance.
+                if condition.lhs.function == "match":
+                    raise InvalidField("Invalid condition: wildcard search is not supported")
 
     def __repr__(self):
         return f"{self.__class__.__name__}({repr(self.__dict__)})"

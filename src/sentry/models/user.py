@@ -1,6 +1,8 @@
 import logging
+import secrets
 import warnings
-from typing import List
+from string import ascii_letters, digits
+from typing import List, Optional, Tuple
 
 from django.contrib.auth.models import AbstractBaseUser
 from django.contrib.auth.models import UserManager as DjangoUserManager
@@ -9,13 +11,16 @@ from django.db import IntegrityError, models, router, transaction
 from django.db.models import Count, Subquery
 from django.db.models.query import QuerySet
 from django.dispatch import receiver
+from django.forms import model_to_dict
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from bitfield import TypedClassBitField
 from sentry.auth.authenticators import available_authenticators
-from sentry.backup.scopes import RelocationScope
+from sentry.backup.dependencies import ImportKind, PrimaryKeyMap
+from sentry.backup.helpers import ImportFlags
+from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import (
     BaseManager,
     BaseModel,
@@ -23,6 +28,8 @@ from sentry.db.models import (
     control_silo_only_model,
     sane_repr,
 )
+from sentry.db.models.utils import unique_db_instance
+from sentry.locks import locks
 from sentry.models.authenticator import Authenticator
 from sentry.models.avatars import UserAvatar
 from sentry.models.lostpasswordhash import LostPasswordHash
@@ -32,8 +39,13 @@ from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.types.region import find_regions_for_user
 from sentry.utils.http import absolute_uri
+from sentry.utils.retries import TimedRetryPolicy
 
 audit_logger = logging.getLogger("sentry.audit.user")
+
+MAX_USERNAME_LENGTH = 128
+RANDOM_PASSWORD_ALPHABET = ascii_letters + digits
+RANDOM_PASSWORD_LENGTH = 32
 
 
 class UserManager(BaseManager, DjangoUserManager):
@@ -72,7 +84,7 @@ class User(BaseModel, AbstractBaseUser):
     __relocation_scope__ = RelocationScope.User
 
     id = BoundedBigAutoField(primary_key=True)
-    username = models.CharField(_("username"), max_length=128, unique=True)
+    username = models.CharField(_("username"), max_length=MAX_USERNAME_LENGTH, unique=True)
     # this column is called first_name for legacy reasons, but it is the entire
     # display name
     name = models.CharField(_("name"), max_length=200, blank=True, db_column="first_name")
@@ -88,6 +100,16 @@ class User(BaseModel, AbstractBaseUser):
         help_text=_(
             "Designates whether this user should be treated as "
             "active. Unselect this instead of deleting accounts."
+        ),
+    )
+    is_unclaimed = models.BooleanField(
+        _("unclaimed"),
+        default=False,
+        help_text=_(
+            "Designates that this user was imported via the relocation tool, but has not yet been "
+            "claimed by the owner of the associated email. Users in this state have randomized "
+            "passwords - when email owners claim the account, they are prompted to reset their "
+            "password and do a one-time update to their username."
         ),
     )
     is_superuser = models.BooleanField(
@@ -333,17 +355,20 @@ class User(BaseModel, AbstractBaseUser):
         AuditLogEntry.objects.filter(actor=from_user).update(actor=to_user)
         AuditLogEntry.objects.filter(target_user=from_user).update(target_user=to_user)
 
-        # remove any SSO identities that exist on from_user that might conflict
-        # with to_user's existing identities (only applies if both users have
-        # SSO identities in the same org), then pass the rest on to to_user
-        # NOTE: This could, become calls to identity_service.delete_ide
-        AuthIdentity.objects.filter(
-            user=from_user,
-            auth_provider__organization_id__in=AuthIdentity.objects.filter(user=to_user).values(
-                "auth_provider__organization_id"
-            ),
-        ).delete()
-        AuthIdentity.objects.filter(user=from_user).update(user=to_user)
+        with outbox_context(flush=False):
+            # remove any SSO identities that exist on from_user that might conflict
+            # with to_user's existing identities (only applies if both users have
+            # SSO identities in the same org), then pass the rest on to to_user
+            # NOTE: This could, become calls to identity_service.delete_ide
+            for ai in AuthIdentity.objects.filter(
+                user=from_user,
+                auth_provider__organization_id__in=AuthIdentity.objects.filter(user=to_user).values(
+                    "auth_provider__organization_id"
+                ),
+            ):
+                ai.delete()
+            for ai in AuthIdentity.objects.filter(user=from_user):
+                ai.update(user=to_user)
 
     def set_password(self, raw_password):
         super().set_password(raw_password)
@@ -368,6 +393,89 @@ class User(BaseModel, AbstractBaseUser):
 
     def clear_lost_passwords(self):
         LostPasswordHash.objects.filter(user=self).delete()
+
+    def normalize_before_relocation_import(
+        self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
+    ) -> Optional[int]:
+        old_pk = super().normalize_before_relocation_import(pk_map, scope, flags)
+        if old_pk is None:
+            return None
+
+        # New users are always unclaimed.
+        self.is_unclaimed = True
+
+        # Give the user a cryptographically secure random password. The purpose here is to have a
+        # password that NO ONE knows - the only way to log into this account is to use the "claim
+        # your account" flow to create a new password (or to click "lost password" and end up there
+        # anyway), at which point we'll detect the user's `is_unclaimed`` status and prompt them to
+        # change their `username` as well.
+        self.set_password(
+            "".join(secrets.choice(RANDOM_PASSWORD_ALPHABET) for _ in range(RANDOM_PASSWORD_LENGTH))
+        )
+
+        if scope not in {ImportScope.Config, ImportScope.Global}:
+            self.is_staff = False
+            self.is_superuser = False
+            self.is_managed = False
+
+        return old_pk
+
+    def write_relocation_import(
+        self, scope: ImportScope, flags: ImportFlags
+    ) -> Optional[Tuple[int, ImportKind]]:
+        # Internal function that factors our some common logic.
+        def do_write():
+            from sentry.api.endpoints.user_details import (
+                BaseUserSerializer,
+                SuperuserUserSerializer,
+                UserSerializer,
+            )
+            from sentry.services.hybrid_cloud.lost_password_hash import lost_password_hash_service
+
+            serializer_cls = BaseUserSerializer
+            if scope not in {ImportScope.Config, ImportScope.Global}:
+                serializer_cls = UserSerializer
+            else:
+                serializer_cls = SuperuserUserSerializer
+
+            serializer_user = serializer_cls(instance=self, data=model_to_dict(self), partial=True)
+            serializer_user.is_valid(raise_exception=True)
+
+            self.save(force_insert=True)
+
+            # TODO(getsentry/team-ospo#190): the following is an RPC call which could fail for
+            # transient reasons (network etc). How do we handle that?
+            lost_password_hash_service.get_or_create(user_id=self.id)
+
+            # TODO(getsentry/team-ospo#191): we need to send an email informing the user of their
+            # new account with a resettable password - we'll need to figure out where in the process
+            # that actually goes, and how to prevent it from happening during the validation pass.
+
+            return (self.pk, ImportKind.Inserted)
+
+        # If there is no existing user with this `username`, no special renaming or merging
+        # shenanigans are needed, as we can just insert this exact model directly.
+        existing = User.objects.filter(username=self.username).first()
+        if not existing:
+            return do_write()
+
+        # Re-use the existing user if merging is enabled.
+        if flags.merge_users:
+            return (existing.pk, ImportKind.Existing)
+
+        # We already have a user with this `username`, but merging users has not been enabled. In
+        # this case, add a random suffix to the importing username.
+        lock = locks.get(f"user:username:{self.id}", duration=10, name="username")
+        with TimedRetryPolicy(10)(lock.acquire):
+            unique_db_instance(
+                self,
+                self.username,
+                max_length=MAX_USERNAME_LENGTH,
+                field_name="username",
+            )
+
+            # Perform the remainder of the write while we're still holding the lock.
+            return do_write()
 
 
 # HACK(dcramer): last_login needs nullable for Django 1.8

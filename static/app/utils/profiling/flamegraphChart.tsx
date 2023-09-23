@@ -16,6 +16,19 @@ export interface ProfileSeriesMeasurement extends Profiling.Measurement {
   name: string;
 }
 
+function computeLabelPrecision(min: number, max: number): number {
+  const range = max - min;
+  if (range === 0) {
+    return 0;
+  }
+
+  const precision = Math.ceil(-Math.log10(range));
+  if (precision < 0) {
+    return 0;
+  }
+  return precision;
+}
+
 interface ChartOptions {
   type?: 'line' | 'area';
 }
@@ -34,6 +47,7 @@ export class FlamegraphChart {
     y: [0, 0],
   };
 
+  static MIN_RENDERABLE_POINTS = 3;
   static Empty = new FlamegraphChart(Rect.Empty(), [], [[0, 0, 0, 0]]);
 
   constructor(
@@ -64,7 +78,10 @@ export class FlamegraphChart {
         points: new Array(measurement?.values?.length ?? 0).fill(0),
       };
 
-      if (!measurement?.values?.length) {
+      if (
+        !measurement?.values?.length ||
+        measurement?.values.length < FlamegraphChart.MIN_RENDERABLE_POINTS
+      ) {
         continue;
       }
 
@@ -97,9 +114,16 @@ export class FlamegraphChart {
       return bAvg - aAvg;
     });
 
-    this.domains.y[1] = this.domains.y[1] + 5;
+    this.domains.y[1] = this.domains.y[1] + this.domains.y[1] * 0.1;
     this.configSpace = configSpace.withHeight(this.domains.y[1] - this.domains.y[0]);
-    this.formatter = makeFormatter(measurements[0].unit, 0);
-    this.tooltipFormatter = makeFormatter(measurements[0].unit, 2);
+
+    this.formatter = makeFormatter(
+      measurements[0].unit,
+      computeLabelPrecision(this.domains.y[0], this.domains.y[1])
+    );
+    this.tooltipFormatter = makeFormatter(
+      measurements[0].unit,
+      computeLabelPrecision(this.domains.y[0], this.domains.y[1])
+    );
   }
 }

@@ -184,7 +184,7 @@ class AllTeamsRow extends Component<Props, State> {
     // TODO(team-roles): team admins can also manage membership
     // org:admin is a unique scope that only org owners have
     const isOrgOwner = access.includes('org:admin');
-    const isPermissionGroup = (team.orgRole && (!canEditTeam || !isOrgOwner)) as boolean;
+    const isPermissionGroup = !!team.orgRole && (!canEditTeam || !isOrgOwner);
     const isIdpProvisioned = team.flags['idp:provisioned'];
 
     const buttonHelpText = getButtonHelpText(isIdpProvisioned, isPermissionGroup);

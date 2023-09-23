@@ -1,14 +1,15 @@
+import uuid
 from datetime import timedelta
 
 import pytest
 from django.utils import timezone
-from freezegun import freeze_time
 
 from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL
 from sentry.incidents.models import IncidentStatus, IncidentTrigger
 from sentry.integrations.metric_alerts import incident_attachment_info
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import BaseIncidentsTest, BaseMetricsTestCase, SnubaTestCase, TestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.utils.dates import to_timestamp
 
 pytestmark = pytest.mark.sentry_metrics
@@ -31,7 +32,15 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
             alert_rule_trigger=trigger, triggered_for_incident=incident
         )
         metric_value = 123
-        data = incident_attachment_info(incident, IncidentStatus.CLOSED, metric_value)
+        referrer = "metric_alert_custom"
+        notification_uuid = str(uuid.uuid4())
+        data = incident_attachment_info(
+            incident,
+            IncidentStatus.CLOSED,
+            metric_value,
+            notification_uuid=notification_uuid,
+            referrer=referrer,
+        )
 
         assert data["title"] == f"Resolved: {alert_rule.name}"
         assert data["status"] == "Resolved"
@@ -39,7 +48,7 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
         assert data["ts"] == date_started
         assert (
             data["title_link"]
-            == f"http://testserver/organizations/baz/alerts/rules/details/{alert_rule.id}/?alert={incident.identifier}"
+            == f"http://testserver/organizations/baz/alerts/rules/details/{alert_rule.id}/?alert={incident.identifier}&referrer={referrer}&notification_uuid={notification_uuid}"
         )
         assert (
             data["logo_url"]
@@ -86,7 +95,7 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
         assert data["ts"] == date_started
         assert (
             data["title_link"]
-            == f"http://testserver/organizations/baz/alerts/rules/details/{alert_rule.id}/?alert={incident.identifier}"
+            == f"http://testserver/organizations/baz/alerts/rules/details/{alert_rule.id}/?alert={incident.identifier}&referrer=metric_alert"
         )
         assert (
             data["logo_url"]
@@ -101,7 +110,7 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
         assert data["ts"] == date_started
         assert (
             data["title_link"]
-            == f"http://testserver/organizations/baz/alerts/rules/details/{alert_rule.id}/?alert={incident.identifier}"
+            == f"http://testserver/organizations/baz/alerts/rules/details/{alert_rule.id}/?alert={incident.identifier}&referrer=metric_alert"
         )
         assert (
             data["logo_url"]
@@ -116,7 +125,7 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
         assert data["ts"] == date_started
         assert (
             data["title_link"]
-            == f"http://testserver/organizations/baz/alerts/rules/details/{alert_rule.id}/?alert={incident.identifier}"
+            == f"http://testserver/organizations/baz/alerts/rules/details/{alert_rule.id}/?alert={incident.identifier}&referrer=metric_alert"
         )
         assert (
             data["logo_url"]

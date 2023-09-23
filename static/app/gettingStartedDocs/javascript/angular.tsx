@@ -35,7 +35,7 @@ replaysOnErrorSampleRate: 1.0, // If you're not already sampling the entire sess
 const performanceIntegration = `
 new Sentry.BrowserTracing({
   // Set 'tracePropagationTargets' to control for which URLs distributed tracing should be enabled
-  tracePropagationTargets: ["localhost", "https:yourserver.io/api/"],
+  tracePropagationTargets: ["localhost", /^https:\\/\\/yourserver\\.io\\/api/],
   routingInstrumentation: Sentry.routingInstrumentation,
 }),
 `;
@@ -218,6 +218,7 @@ export function GettingStartedWithAngular({
   newOrg,
   platformKey,
   projectId,
+  ...props
 }: ModuleProps) {
   const integrations: string[] = [];
   const otherConfigs: string[] = [];
@@ -265,6 +266,7 @@ export function GettingStartedWithAngular({
       nextSteps={nextStepDocs}
       newOrg={newOrg}
       platformKey={platformKey}
+      {...props}
     />
   );
 }

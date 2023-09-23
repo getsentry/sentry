@@ -980,6 +980,8 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 aria_label="AriaLabel",
                 title="MyTitle",
                 text="Hello",
+                is_dead=1,
+                is_rage=1,
             )
         )
         self.store_replays(
@@ -1015,6 +1017,8 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "click.selector:div[data-test-id='1']",
                 "click.selector:div[role=button]",
                 "click.selector:div#myid.class1.class2",
+                "dead.selector:div#myid",
+                "rage.selector:div#myid",
                 # Single quotes around attribute value.
                 "click.selector:div[role='button']",
                 "click.selector:div#myid.class1.class2[role=button][aria-label='AriaLabel']",
@@ -1037,6 +1041,8 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "click.title:NotMyTitle",
                 "!click.selector:div#myid",
                 "click.selector:div#notmyid",
+                "dead.selector:button#myid",
+                "rage.selector:button#myid",
                 # Assert all classes must match.
                 "click.selector:div#myid.class1.class2.class3",
                 # Invalid selectors return no rows.
@@ -1327,12 +1333,6 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             assert item["count_dead_clicks"] == 1, item["count_dead_clicks"]
             assert item["count_rage_clicks"] == 1, item["count_rage_clicks"]
 
-
-@apply_feature_flag_on_cls("organizations:session-replay-optimized-search")
-class OrganizationReplayIndexOptimizedSearchTest(OrganizationReplayIndexTest):
-
-    # Currently only available on the newest query engine so the test is defined within this
-    # subclass.
     def test_get_replays_filter_clicks_non_click_rows(self):
         project = self.create_project(teams=[self.team])
 
@@ -1695,3 +1695,21 @@ class OrganizationReplayIndexOptimizedSearchTest(OrganizationReplayIndexTest):
             assert response.status_code == 200
             response_data = response.json()
             assert len(response_data["data"]) == 1
+
+    def test_get_replays_missing_segment_0(self):
+        """Test fetching replays when the 0th segment is missing."""
+        project = self.create_project(teams=[self.team])
+
+        replay1_id = uuid.uuid4().hex
+        seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=22)
+        seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=5)
+        self.store_replays(mock_replay(seq1_timestamp, project.id, replay1_id, segment_id=2))
+        self.store_replays(mock_replay(seq2_timestamp, project.id, replay1_id, segment_id=1))
+
+        with self.feature(REPLAYS_FEATURES):
+            response = self.client.get(self.url)
+            assert response.status_code == 200
+
+            response_data = response.json()
+            assert "data" in response_data
+            assert len(response_data["data"]) == 0

@@ -6,7 +6,7 @@ import {GettingStartedWithFlutter, steps} from './flutter';
 
 describe('GettingStartedWithFlutter', function () {
   it('renders doc correctly', function () {
-    const {container} = render(<GettingStartedWithFlutter dsn="test-dsn" />);
+    render(<GettingStartedWithFlutter dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps()) {
@@ -14,7 +14,5 @@ describe('GettingStartedWithFlutter', function () {
         screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
       ).toBeInTheDocument();
     }
-
-    expect(container).toSnapshot();
   });
 });

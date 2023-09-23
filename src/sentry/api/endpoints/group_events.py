@@ -10,6 +10,7 @@ from rest_framework.response import Response
 
 from sentry import eventstore
 from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases import GroupEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -37,6 +38,9 @@ class GroupEventsError(Exception):
 
 @region_silo_endpoint
 class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     owner = ApiOwner.ISSUES
 
     def get(self, request: Request, group: Group) -> Response:

@@ -139,6 +139,9 @@ yarn.lock                                                @getsentry/owners-js-de
 /src/sentry/middleware/subdomain.py                      @getsentry/hybrid-cloud
 /src/sentry/middleware/integration/                      @getsentry/hybrid-cloud
 /src/sentry/api/endpoints/rpc.py                         @getsentry/hybrid-cloud
+/src/sentry/models/outbox.py                             @getsentry/hybrid-cloud
+/src/sentry/tasks/deliver_from_outbox.py                 @getsentry/hybrid-cloud
+/src/sentry/tasks/deletion/hybrid_cloud.py               @getsentry/hybrid-cloud
 ## End of Hybrid Cloud
 
 ## Workflow
@@ -218,6 +221,7 @@ yarn.lock                                                @getsentry/owners-js-de
 
 /static/app/views/performance/                                            @getsentry/performance
 /static/app/utils/performance/                                            @getsentry/performance
+/static/app/components/events/eventStatisticalDetector/                   @getsentry/performance
 /static/app/components/events/interfaces/spans/                           @getsentry/performance
 /static/app/components/performance/                                       @getsentry/performance
 /static/app/components/quickTrace/                                        @getsentry/performance
@@ -256,6 +260,7 @@ yarn.lock                                                @getsentry/owners-js-de
 
 ## Starfish
 /src/sentry/api/endpoints/organization_events_facets_stats_performance.py           @getsentry/team-starfish
+/src/sentry/api/endpoints/organization_spans_aggregation.py                         @getsentry/team-starfish
 /src/sentry/api/endpoints/organization_events_starfish.py                           @getsentry/team-starfish
 /tests/snuba/api/endpoints/test_organization_events_facets_stats_performance.py     @getsentry/team-starfish
 
@@ -289,6 +294,15 @@ yarn.lock                                                @getsentry/owners-js-de
 ## End of Replays
 
 
+## Feedback v2
+/static/app/components/feedback/   @getsentry/feedback-frontend
+/static/app/utils/feedback/        @getsentry/feedback-frontend
+/static/app/views/feedback/        @getsentry/feedback-frontend
+/src/sentry/feedback/              @getsentry/feedback-backend
+/tests/sentry/feedback/            @getsentry/feedback-backend
+## End of Feedback v2
+
+
 ## Integrations
 /src/sentry/api/endpoints/integrations/                              @getsentry/issues
 /src/sentry/api/endpoints/project_stacktrace_link.py                 @getsentry/issues
@@ -296,6 +310,7 @@ yarn.lock                                                @getsentry/owners-js-de
 /src/sentry/api/endpoints/organization_release_previous_commits.py   @getsentry/issues
 /src/sentry/api/endpoints/sentry_app/                                @getsentry/issues
 /src/sentry/api/endpoints/project_rule*.py                           @getsentry/issues
+/src/sentry/api/serializers/models/rule.py 							 @getsentry/issues
 
 /static/app/views/organizationIntegrations                           @getsentry/issues
 /static/app/views/settings/project/projectOwnership/                 @getsentry/issues
@@ -371,8 +386,14 @@ yarn.lock                                                @getsentry/owners-js-de
 /src/sentry/scim/                                                       @getsentry/enterprise
 /tests/sentry/api/test_scim*.py                                         @getsentry/enterprise
 /src/sentry/tasks/integrations/github/pr_comment.py                     @getsentry/enterprise
+/src/sentry/api/endpoints/organization_missing_org_members.py           @getsentry/enterprise
+/src/sentry/tasks/invite_missing_org_members.py                         @getsentry/enterprise
+/static/app/components/modals/inviteMissingMembersModal/                @getsentry/enterprise
+/static/app/views/settings/organizationMembers/inviteBanner.tsx         @getsentry/enterprise
 /src/sentry/api/endpoints/organization_projects_experiment.py           @getsentry/enterprise
 /tests/sentry/api/endpoints/test_organization_projects_experiment.py    @getsentry/enterprise
+/src/sentry/models/release_threshold                                    @getsentry/enterprise
+/src/sentry/api/endpoints/release_threshold*.py                         @getsentry/enterprise
 ## End of Enterprise
 
 
@@ -405,7 +426,8 @@ yarn.lock                                                @getsentry/owners-js-de
 
 
 ## SDK
-/src/sentry/utils/sdk.py   @getsentry/team-web-sdk-backend
+/src/sentry/utils/sdk.py                                             @getsentry/team-web-sdk-backend
+/src/sentry/api/endpoints/source_map_debug_blue_thunder_edition.py   @getsentry/team-web-sdk-frontend
 ## End of SDK
 
 
@@ -463,4 +485,5 @@ yarn.lock                                                @getsentry/owners-js-de
 /src/sentry/api/helpers/source_map_helper.py                  @getsentry/issues
 /src/sentry/api/endpoints/actionable_items.py                @getsentry/issues
 /src/sentry/api/helpers/actionable_items_helper.py                  @getsentry/issues
+/static/app/components/events/interfaces/crashContent/exception/actionableItems   @getsentry/issues
 ## End of Issues

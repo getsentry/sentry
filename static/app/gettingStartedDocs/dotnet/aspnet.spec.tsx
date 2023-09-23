@@ -6,7 +6,7 @@ import {GettingStartedWithAspnet, steps} from './aspnet';
 
 describe('GettingStartedWithAspnet', function () {
   it('renders doc correctly', function () {
-    const {container} = render(<GettingStartedWithAspnet dsn="test-dsn" />);
+    render(<GettingStartedWithAspnet dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps()) {
@@ -14,7 +14,5 @@ describe('GettingStartedWithAspnet', function () {
         screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
       ).toBeInTheDocument();
     }
-
-    expect(container).toSnapshot();
   });
 });

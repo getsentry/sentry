@@ -3,6 +3,7 @@ from unittest.mock import patch
 from django.db import router
 from django.urls import reverse
 
+from sentry.integrations.utils.code_mapping import FrameFilename, _get_code_mapping_source_path
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.repository import Repository
@@ -41,6 +42,29 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
                 "repo_branch": "master",
                 "stacktrace_root": "/stack/root",
                 "source_path": "/source/root/",
+            }
+        ]
+        with patch(
+            "sentry.integrations.utils.code_mapping.CodeMappingTreesHelper.list_file_matches",
+            return_value=expected_matches,
+        ):
+            response = self.client.get(self.url, data=config_data, format="json")
+            assert mock_get_trees_for_org.call_count == 1
+            assert response.status_code == 200, response.content
+            assert response.data == expected_matches
+
+    @patch("sentry.integrations.github.GitHubIntegration.get_trees_for_org")
+    def test_get_start_with_backslash(self, mock_get_trees_for_org):
+        file = "stack/root/file.py"
+        frame_info = FrameFilename(f"/{file}")
+        config_data = {"stacktraceFilename": f"/{file}"}
+        expected_matches = [
+            {
+                "filename": file,
+                "repo_name": "getsentry/codemap",
+                "repo_branch": "master",
+                "stacktrace_root": f"{frame_info.root}",
+                "source_path": _get_code_mapping_source_path(file, frame_info),
             }
         ]
         with patch(
@@ -150,6 +174,8 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
             default_branch="master",
             repository=self.repo,
             organization_integration_id=self.organization_integration.id,
+            organization_id=self.organization_integration.organization_id,
+            integration_id=self.organization_integration.integration_id,
         )
 
         config_data = {

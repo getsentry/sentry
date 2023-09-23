@@ -269,6 +269,13 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+register(
+    "api.prevent-numeric-slugs",
+    default=False,
+    type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Beacon
 register("beacon.anonymous", type=Bool, flags=FLAG_REQUIRED)
 
@@ -279,6 +286,9 @@ register("filestore.options", default={"location": "/tmp/sentry-files"}, flags=F
 # Filestore for control silo
 register("filestore.control.backend", default="", flags=FLAG_NOSTORE)
 register("filestore.control.options", default={}, flags=FLAG_NOSTORE)
+
+# Whether to use a redis lock on fileblob uploads and deletes
+register("fileblob.upload.use_lock", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Symbol server
 register(
@@ -702,6 +712,13 @@ register(
     "processing.view-hierarchies-dart-deobfuscation", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
 )
 
+# Enable calling the severity modeling API on group creation
+register(
+    "processing.calculate-severity-on-group-creation",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 
 # ## sentry.killswitches
 #
@@ -990,6 +1007,11 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "sentry-metrics.writes-limiter.limits.custom.per-org",
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "sentry-metrics.writes-limiter.limits.generic-metrics.per-org",
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -1017,6 +1039,11 @@ register(
 )
 register(
     "sentry-metrics.writes-limiter.limits.releasehealth.global",
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "sentry-metrics.writes-limiter.limits.custom.global",
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
@@ -1067,6 +1094,11 @@ register(
 )
 register(
     "sentry-metrics.cardinality-limiter.limits.spans.per-org",
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "sentry-metrics.cardinality-limiter.limits.custom.per-org",
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
@@ -1243,7 +1275,48 @@ register(
 register(
     "performance.issues.http_overhead.ga-rollout", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
 )
-
+# Experimental issue
+register(
+    "performance.issues.duration_regression.problem-creation",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "performance.issues.duration_regression.la-rollout",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "performance.issues.duration_regression.ea-rollout",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "performance.issues.duration_regression.ga-rollout",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Actual duration regression issue
+register(
+    "performance.issues.p95_duration_regression.problem-creation",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "performance.issues.p95_duration_regression.la-rollout",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "performance.issues.p95_duration_regression.ea-rollout",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "performance.issues.p95_duration_regression.ga-rollout",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # System-wide options for default performance detection settings for any org opted into the performance-issues-ingest feature. Meant for rollout.
 register(
@@ -1484,5 +1557,70 @@ register(
 register(
     "on_demand.max_widget_specs",
     default=100,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "delightful_metrics.minimetrics_sample_rate",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "delightful_metrics.enable_envelope_forwarding",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "delightful_metrics.enable_envelope_serialization",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "delightful_metrics.enable_capture_envelope",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "delightful_metrics.enable_common_tags",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "outbox_replication.sentry_team.replication_version",
+    type=Int,
+    default=0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "outbox_replication.sentry_organization.replication_version",
+    type=Int,
+    default=0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "outbox_replication.sentry_authidentity.replication_version",
+    type=Int,
+    default=0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "outbox_replication.sentry_authprovider.replication_version",
+    type=Int,
+    default=0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "outbox_replication.sentry_organizationmember_teams.replication_version",
+    type=Int,
+    default=0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

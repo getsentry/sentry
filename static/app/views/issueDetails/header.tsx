@@ -21,7 +21,7 @@ import {TabList} from 'sentry/components/tabs';
 import {IconChat} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Event, Group, Organization, Project} from 'sentry/types';
+import {Event, Group, IssueType, Organization, Project} from 'sentry/types';
 import {getMessage} from 'sentry/utils/events';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {projectCanLinkToReplay} from 'sentry/utils/replays/projectSupportsReplay';
@@ -59,6 +59,7 @@ function GroupHeaderTabs({
   const organization = useOrganization();
 
   const replaysCount = useReplaysCount({
+    issueCategory: group.issueCategory,
     groupIds: group.id,
     organization,
   })[group.id];
@@ -274,26 +275,30 @@ function GroupHeader({
               <EventMessage message={message} />
             </StyledTagAndMessageWrapper>
           </TitleWrapper>
-          <StatsWrapper>
+          <StatsWrapper
+            hasGrid={group.issueType !== IssueType.PERFORMANCE_DURATION_REGRESSION}
+          >
             <div className="count">
               <h6 className="nav-header">{t('Events')}</h6>
               <Link disabled={disableActions} to={eventRoute}>
                 <Count className="count" value={group.count} />
               </Link>
             </div>
-            <div className="count">
-              <h6 className="nav-header">{t('Users')}</h6>
-              {userCount !== 0 ? (
-                <Link
-                  disabled={disableActions}
-                  to={`${baseUrl}tags/user/${location.search}`}
-                >
-                  <Count className="count" value={userCount} />
-                </Link>
-              ) : (
-                <span>0</span>
-              )}
-            </div>
+            {group.issueType !== IssueType.PERFORMANCE_DURATION_REGRESSION && (
+              <div className="count">
+                <h6 className="nav-header">{t('Users')}</h6>
+                {userCount !== 0 ? (
+                  <Link
+                    disabled={disableActions}
+                    to={`${baseUrl}tags/user/${location.search}`}
+                  >
+                    <Count className="count" value={userCount} />
+                  </Link>
+                ) : (
+                  <span>0</span>
+                )}
+              </div>
+            )}
           </StatsWrapper>
         </HeaderRow>
         {/* Environment picker for mobile */}
@@ -343,10 +348,14 @@ const StyledEventOrGroupTitle = styled(EventOrGroupTitle)`
   font-size: inherit;
 `;
 
-const StatsWrapper = styled('div')`
-  display: grid;
-  grid-template-columns: repeat(2, min-content);
-  gap: calc(${space(3)} + ${space(3)});
+const StatsWrapper = styled('div')<{hasGrid?: boolean}>`
+  ${p =>
+    p.hasGrid &&
+    `
+    display: grid;
+    grid-template-columns: repeat(2, min-content);
+    gap: calc(${space(3)} + ${space(3)});
+    `}
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     justify-content: flex-end;

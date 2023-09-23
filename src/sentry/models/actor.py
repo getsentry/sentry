@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict, namedtuple
-from typing import TYPE_CHECKING, Sequence, Union, overload
+from typing import TYPE_CHECKING, Optional, Sequence, Union, overload
 
 import sentry_sdk
 from django.conf import settings
@@ -9,7 +9,9 @@ from django.db import IntegrityError, models, router, transaction
 from django.db.models.signals import post_save
 from rest_framework import serializers
 
-from sentry.backup.scopes import RelocationScope
+from sentry.backup.dependencies import PrimaryKeyMap
+from sentry.backup.helpers import ImportFlags
+from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import Model, region_silo_only_model
 from sentry.db.models.fields.foreignkey import FlexibleForeignKey
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
@@ -140,6 +142,28 @@ class Actor(Model):
         # Returns a string like "team:1"
         # essentially forwards request to ActorTuple.get_actor_identifier
         return self.get_actor_tuple().get_actor_identifier()
+
+    # TODO(hybrid-cloud): actor refactor. Remove this method when done.
+    def normalize_before_relocation_import(
+        self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
+    ) -> Optional[int]:
+        old_pk = super().normalize_before_relocation_import(pk_map, scope, flags)
+        if old_pk is None:
+            return None
+
+        # `Actor` and `Team` have a direct circular dependency between them for the time being due
+        # to an ongoing refactor (that is, `Actor` foreign keys directly into `Team`, and `Team`
+        # foreign keys directly into `Actor`). If we use `INSERT` database calls naively, they will
+        # always fail, because one half of the cycle will always be missing.
+        #
+        # Because `Actor` ends up first in the dependency sorting (see:
+        # fixtures/backup/model_dependencies/sorted.json), a viable solution here is to always null
+        # out the `team_id` field of the `Actor` when we import it, and then make sure to circle
+        # back and update the relevant `Actor` after we create the `Team` models later on (see the
+        # `write_relocation_import` method override on that class for details).
+        self.team_id = None
+
+        return old_pk
 
 
 def get_actor_id_for_user(user: Union[User, RpcUser]) -> int:

@@ -4,17 +4,26 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
 import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import {t, tct} from 'sentry/locale';
 
 // Configuration Start
 
-// It is recommended to use an integration for your particular serverless environment if available, as those are easier to use and capture more useful information.
+const profilingConfiguration = `    # Set profiles_sample_rate to 1.0 to profile 100%
+    # of sampled transactions.
+    # We recommend adjusting this value in production.
+    profiles_sample_rate=1.0,`;
 
-// If you use a serverless provider not directly supported by the SDK, you can use this generic integration.
+const performanceConfiguration = `    # Set traces_sample_rate to 1.0 to capture 100%
+    # of transactions for performance monitoring.
+    # We recommend adjusting this value in production.
+    traces_sample_rate=1.0,`;
 
 export const steps = ({
-  dsn,
-}: Partial<Pick<ModuleProps, 'dsn'>> = {}): LayoutProps['steps'] => [
+  sentryInitContent,
+}: {
+  sentryInitContent: string;
+}): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
     description: (
@@ -50,12 +59,7 @@ import sentry_sdk
 from sentry_sdk.integrations.serverless import serverless_function
 
 sentry_sdk.init(
-    dsn="${dsn}",
-
-    # Set traces_sample_rate to 1.0 to capture 100%
-    # of transactions for performance monitoring.
-    # We recommend adjusting this value in production,
-    traces_sample_rate=1.0,
+${sentryInitContent}
 )
 
 @serverless_function
@@ -67,8 +71,33 @@ def my_function(...): ...
 ];
 // Configuration End
 
-export function GettingStartedWithServerless({dsn, ...props}: ModuleProps) {
-  return <Layout steps={steps({dsn})} {...props} />;
+export function GettingStartedWithServerless({
+  dsn,
+  activeProductSelection = [],
+  ...props
+}: ModuleProps) {
+  const otherConfigs: string[] = [];
+
+  let sentryInitContent: string[] = [`    dsn="${dsn}",`];
+
+  if (activeProductSelection.includes(ProductSolution.PERFORMANCE_MONITORING)) {
+    otherConfigs.push(performanceConfiguration);
+  }
+
+  if (activeProductSelection.includes(ProductSolution.PROFILING)) {
+    otherConfigs.push(profilingConfiguration);
+  }
+
+  sentryInitContent = sentryInitContent.concat(otherConfigs);
+
+  return (
+    <Layout
+      steps={steps({
+        sentryInitContent: sentryInitContent.join('\n'),
+      })}
+      {...props}
+    />
+  );
 }
 
 export default GettingStartedWithServerless;

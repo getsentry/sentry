@@ -5,7 +5,7 @@ from sentry.constants import ObjectStatus
 from sentry.models import Environment, RegionScheduledDeletion, Rule, RuleActivity, RuleActivityType
 from sentry.monitors.models import Monitor, MonitorEnvironment, ScheduleType
 from sentry.testutils.cases import MonitorTestCase
-from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import region_silo_test
 
 
@@ -98,7 +98,7 @@ class UpdateMonitorTest(MonitorTestCase):
             self.organization.slug, monitor.slug, method="PUT", status_code=400, **{"slug": None}
         )
 
-    @with_feature("app:enterprise-prevent-numeric-slugs")
+    @override_options({"api.prevent-numeric-slugs": True})
     def test_invalid_numeric_slug(self):
         monitor = self._create_monitor()
         resp = self.get_error_response(
@@ -318,6 +318,13 @@ class UpdateMonitorTest(MonitorTestCase):
             method="PUT",
             status_code=400,
             **{"config": {"schedule": "* * * *"}},
+        )
+        self.get_error_response(
+            self.organization.slug,
+            monitor.slug,
+            method="PUT",
+            status_code=400,
+            **{"config": {"schedule": "* * 31 9 *"}},
         )
 
     def test_crontab_unsupported(self):

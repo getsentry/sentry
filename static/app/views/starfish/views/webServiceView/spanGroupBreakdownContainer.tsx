@@ -16,12 +16,12 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {SpanMetricsFields} from 'sentry/views/starfish/types';
+import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
 import {useEventsStatsQuery} from 'sentry/views/starfish/utils/useEventsStatsQuery';
 import {SpanGroupBreakdown} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdown';
 
-const {SPAN_SELF_TIME} = SpanMetricsFields;
+const {SPAN_SELF_TIME} = SpanMetricsField;
 
 const OTHER_SPAN_GROUP_MODULE = 'Other';
 export const NULL_SPAN_CATEGORY = t('custom');

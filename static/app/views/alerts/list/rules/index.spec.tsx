@@ -298,7 +298,7 @@ describe('AlertRulesList', () => {
     );
   });
 
-  it('displays alert status', async () => {
+  it('displays metric alert status', async () => {
     createWrapper();
     const rules = await screen.findAllByText('My Incident Rule');
 
@@ -308,6 +308,76 @@ describe('AlertRulesList', () => {
     expect(screen.getByText('Above 70')).toBeInTheDocument();
     expect(screen.getByText('Below 36')).toBeInTheDocument();
     expect(screen.getAllByTestId('alert-badge')[0]).toBeInTheDocument();
+  });
+
+  it('displays issue alert disabled', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/combined-rules/',
+      headers: {Link: pageLinks},
+      body: [
+        TestStubs.ProjectAlertRule({
+          name: 'First Issue Alert',
+          projects: ['earth'],
+          status: 'disabled',
+        }),
+      ],
+    });
+    createWrapper();
+    expect(await screen.findByText('First Issue Alert')).toBeInTheDocument();
+    expect(screen.getByText('Disabled')).toBeInTheDocument();
+  });
+
+  it('displays issue alert disabled instead of muted', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/combined-rules/',
+      headers: {Link: pageLinks},
+      body: [
+        TestStubs.ProjectAlertRule({
+          name: 'First Issue Alert',
+          projects: ['earth'],
+          // both disabled and muted
+          status: 'disabled',
+          snooze: true,
+        }),
+      ],
+    });
+    createWrapper();
+    expect(await screen.findByText('First Issue Alert')).toBeInTheDocument();
+    expect(screen.getByText('Disabled')).toBeInTheDocument();
+    expect(screen.queryByText('Muted')).not.toBeInTheDocument();
+  });
+
+  it('displays issue alert muted', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/combined-rules/',
+      headers: {Link: pageLinks},
+      body: [
+        TestStubs.ProjectAlertRule({
+          name: 'First Issue Alert',
+          projects: ['earth'],
+          snooze: true,
+        }),
+      ],
+    });
+    createWrapper();
+    expect(await screen.findByText('First Issue Alert')).toBeInTheDocument();
+    expect(screen.getByText('Muted')).toBeInTheDocument();
+  });
+
+  it('displays metric alert muted', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/combined-rules/',
+      headers: {Link: pageLinks},
+      body: [
+        TestStubs.MetricRule({
+          projects: ['earth'],
+          snooze: true,
+        }),
+      ],
+    });
+    createWrapper();
+    expect(await screen.findByText('My Incident Rule')).toBeInTheDocument();
+    expect(screen.getByText('Muted')).toBeInTheDocument();
   });
 
   it('sorts by alert rule', async () => {

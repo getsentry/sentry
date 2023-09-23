@@ -10,6 +10,7 @@ from django.conf import settings
 from django.db.utils import OperationalError, ProgrammingError
 from django.utils import timezone
 
+from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.options.manager import UpdateChannel
 
 CACHE_FETCH_ERR = "Unable to fetch option cache for %s"
@@ -184,7 +185,12 @@ class OptionsStore:
         is limited at the moment.
         """
         try:
-            value = self.model.objects.get(key=key.name).value
+            # NOTE: To greatly reduce test bugs due to cache leakage, we don't enforce cross db constraints
+            # because in practice the option query is consistent with the process level silo mode.
+            # If you do change the way the option class model is picked, keep in mind it may not be deeply
+            # tested due to the core assumption it should be stable per process in practice.
+            with in_test_hide_transaction_boundary():
+                value = self.model.objects.get(key=key.name).value
         except (self.model.DoesNotExist, ProgrammingError, OperationalError):
             value = None
         except Exception:

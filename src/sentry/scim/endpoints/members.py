@@ -15,6 +15,7 @@ from rest_framework.response import Response
 from typing_extensions import TypedDict
 
 from sentry import audit_log, roles
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organizationmember import OrganizationMemberEndpoint
 from sentry.api.endpoints.organization_member.index import OrganizationMemberSerializer
@@ -118,10 +119,10 @@ def _scim_member_serializer_with_expansion(organization):
     care about this and rely on the behavior of setting "active" to false
     to delete a member.
     """
-    auth_providers = auth_service.get_auth_providers(organization_id=organization.id)
+    auth_provider = auth_service.get_auth_provider(organization_id=organization.id)
     expand = ["active"]
 
-    if any(ap.provider == ACTIVE_DIRECTORY_PROVIDER_NAME for ap in auth_providers):
+    if auth_provider and auth_provider.provider == ACTIVE_DIRECTORY_PROVIDER_NAME:
         expand = []
     return OrganizationMemberSCIMSerializer(expand=expand)
 
@@ -141,8 +142,13 @@ def resolve_maybe_bool_value(value):
 
 @region_silo_endpoint
 class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
+    publish_status = {
+        "DELETE": ApiPublishStatus.PUBLIC,
+        "GET": ApiPublishStatus.PUBLIC,
+        "PUT": ApiPublishStatus.EXPERIMENTAL,
+        "PATCH": ApiPublishStatus.PUBLIC,
+    }
     permission_classes = (OrganizationSCIMMemberPermission,)
-    public = {"GET", "DELETE", "PATCH"}
 
     def convert_args(
         self,
@@ -367,8 +373,11 @@ class SCIMListResponseDict(TypedDict):
 
 @region_silo_endpoint
 class OrganizationSCIMMemberIndex(SCIMEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.PUBLIC,
+        "POST": ApiPublishStatus.PUBLIC,
+    }
     permission_classes = (OrganizationSCIMMemberPermission,)
-    public = {"GET", "POST"}
 
     @extend_schema(
         operation_id="List an Organization's Members",

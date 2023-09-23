@@ -23,6 +23,7 @@ class NotificationDefaultTest(APITestCase):
                 "quotaSpendAllocations": "always",
                 "quotaTransactions": "always",
                 "quotaWarnings": "always",
+                "reports": "always",
                 "spikeProtection": "always",
                 "workflow": "subscribe_only",
             },

@@ -30,11 +30,9 @@ class IssueTagValuesTest(AcceptanceTestCase, SnubaTestCase):
         self.page.visit_tag_values(self.org.slug, event.group_id, "user")
 
         assert self.browser.element_exists_by_test_id("group-tag-mail")
-        self.browser.snapshot("issue details tag values - user")
 
     def test_url_tag(self):
         event = self.create_issue()
         self.page.visit_tag_values(self.org.slug, event.group_id, "url")
 
         assert self.browser.element_exists_by_test_id("group-tag-url")
-        self.browser.snapshot("issue details tag values - url")

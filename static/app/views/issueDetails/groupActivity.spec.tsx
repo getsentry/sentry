@@ -331,7 +331,7 @@ describe('GroupActivity', function () {
 
     beforeEach(function () {
       deleteMock = MockApiClient.addMockResponse({
-        url: '/issues/1337/comments/note-1/',
+        url: '/organizations/org-slug/issues/1337/comments/note-1/',
         method: 'DELETE',
       });
       ConfigStore.set('user', TestStubs.User({id: '123', isSuperuser: true}));

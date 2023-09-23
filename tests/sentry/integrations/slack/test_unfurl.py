@@ -1,7 +1,6 @@
 from datetime import datetime, timedelta
 from unittest.mock import patch
 
-import freezegun
 import pytest
 from django.http.request import QueryDict
 from django.test import RequestFactory
@@ -18,7 +17,10 @@ from sentry.services.hybrid_cloud.integration.serial import serialize_integratio
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import install_slack
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
+from sentry.testutils.skips import requires_snuba
+
+pytestmark = [requires_snuba]
 
 INTERVAL_COUNT = 300
 INTERVALS_PER_DAY = int(60 * 60 * 24 / INTERVAL_COUNT)
@@ -178,7 +180,7 @@ class UnfurlTest(TestCase):
         self.integration = serialize_integration(self._integration)
 
         self.request = RequestFactory().get("slack/event")
-        self.frozen_time = freezegun.freeze_time(datetime.now() - timedelta(days=1))
+        self.frozen_time = freeze_time(datetime.now() - timedelta(days=1))
         self.frozen_time.start()
 
     def tearDown(self):

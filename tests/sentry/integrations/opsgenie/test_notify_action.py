@@ -9,7 +9,10 @@ from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.silo import SiloMode
 from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
+
+pytestmark = [requires_snuba]
 
 METADATA = {
     "api_key": "1234-ABCD",
@@ -42,7 +45,8 @@ class OpsgenieNotifyTeamTest(RuleTestCase, PerformanceIssueTestCase):
         self.installation = self.integration.get_installation(self.organization.id)
 
     @responses.activate
-    def test_applies_correctly(self):
+    @patch("sentry.analytics.record")
+    def test_applies_correctly(self, mock_record):
         event = self.store_event(
             data={
                 "message": "Hello world",
@@ -54,7 +58,10 @@ class OpsgenieNotifyTeamTest(RuleTestCase, PerformanceIssueTestCase):
         )
 
         rule = self.get_rule(data={"account": self.integration.id, "team": self.team1["id"]})
-        results = list(rule.after(event=event, state=self.get_state()))
+        notification_uuid = "123e4567-e89b-12d3-a456-426614174000"
+        results = list(
+            rule.after(event=event, state=self.get_state(), notification_uuid=notification_uuid)
+        )
         assert len(results) == 1
 
         responses.add(
@@ -70,6 +77,25 @@ class OpsgenieNotifyTeamTest(RuleTestCase, PerformanceIssueTestCase):
         assert event.group is not None
         assert data["message"] == event.message
         assert data["details"]["Sentry ID"] == str(event.group.id)
+        mock_record.assert_called_with(
+            "alert.sent",
+            provider="opsgenie",
+            alert_id="",
+            alert_type="issue_alert",
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            external_id=self.team1["id"],
+            notification_uuid=notification_uuid,
+        )
+        mock_record.assert_any_call(
+            "integrations.opsgenie.notification_sent",
+            category="issue_alert",
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            group_id=event.group_id,
+            notification_uuid=notification_uuid,
+            alert_id=None,
+        )
 
     def test_render_label(self):
         rule = self.get_rule(data={"account": self.integration.id, "team": self.team1["id"]})

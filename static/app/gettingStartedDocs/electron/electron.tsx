@@ -73,19 +73,30 @@ npm install --save @sentry/electron
   {
     type: StepType.VERIFY,
     description: t(
-      `One way to verify your setup is by intentionally causing an error that breaks your application.
-      Calling an undefined function will throw an exception:`
+      `One way to verify your setup is by intentionally causing an error that breaks your application.`
     ),
     configurations: [
       {
+        description: t(
+          `Calling an undefined function will throw a JavaScript exception:`
+        ),
         language: 'javascript',
         code: `
         myUndefinedFunction();
         `,
       },
+      {
+        description: t(
+          `With Electron you can test native crash reporting by triggering a crash:`
+        ),
+        language: 'javascript',
+        code: `
+        process.crash();
+      `,
+      },
     ],
     additionalInfo: t(
-      'You may want to try inserting this code snippet into both your main and any renderer processes to verify Sentry is operational in both.'
+      'You may want to try inserting these code snippets into both your main and any renderer processes to verify Sentry is operational in both.'
     ),
   },
 ];
@@ -98,6 +109,7 @@ export function GettingStartedWithElectron({
   platformKey,
   projectId,
   newOrg,
+  ...props
 }: ModuleProps) {
   const sentryInitContent: string[] = [`dsn: "${dsn}",`];
 
@@ -113,6 +125,7 @@ export function GettingStartedWithElectron({
       nextSteps={[]}
       newOrg={newOrg}
       platformKey={platformKey}
+      {...props}
     />
   );
 }

@@ -6,15 +6,15 @@ import {GettingStartedWithJava, steps} from './java';
 
 describe('GettingStartedWithJava', function () {
   it('renders doc correctly', function () {
-    const {container} = render(<GettingStartedWithJava dsn="test-dsn" />);
+    render(<GettingStartedWithJava dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
-    for (const step of steps()) {
+    for (const step of steps({
+      dsn: 'test-dsn',
+    })) {
       expect(
         screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
       ).toBeInTheDocument();
     }
-
-    expect(container).toSnapshot();
   });
 });

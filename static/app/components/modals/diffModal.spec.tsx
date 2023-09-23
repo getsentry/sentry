@@ -6,7 +6,7 @@ import DiffModal from 'sentry/components/modals/diffModal';
 
 describe('DiffModal', function () {
   it('renders', function () {
-    const project = TestStubs.ProjectDetails();
+    const project = TestStubs.Project();
     MockApiClient.addMockResponse({
       url: '/issues/123/events/latest/',
       body: {

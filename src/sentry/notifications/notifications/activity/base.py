@@ -88,7 +88,11 @@ class GroupActivityNotification(ActivityNotification, abc.ABC):
         # method only used for emails
         # TODO: pass in recipient so we can add that to the referrer
         referrer = self.get_referrer(ExternalProviders.EMAIL)
-        return str(self.group.get_absolute_url(params={"referrer": referrer}))
+        return str(
+            self.group.get_absolute_url(
+                params={"referrer": referrer, "notification_uuid": self.notification_uuid}
+            )
+        )
 
     @cached_property
     def user(self) -> RpcUser | None:
@@ -161,7 +165,12 @@ class GroupActivityNotification(ActivityNotification, abc.ABC):
 
         issue_name = self.group.qualified_short_id or "an issue"
         if url and self.group.qualified_short_id:
-            group_url = self.group.get_absolute_url(params={"referrer": "activity_notification"})
+            group_url = self.group.get_absolute_url(
+                params={
+                    "referrer": "activity_notification",
+                    "notification_uuid": self.notification_uuid,
+                }
+            )
             issue_name = f"{self.format_url(text=self.group.qualified_short_id, url=group_url, provider=provider)}"
 
         context = {"author": name, "an issue": issue_name}

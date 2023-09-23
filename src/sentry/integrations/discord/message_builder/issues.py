@@ -45,7 +45,7 @@ class DiscordIssuesMessageBuilder(DiscordMessageBuilder):
         self.issue_details = issue_details
         self.notification = notification
 
-    def build(self) -> dict[str, object]:
+    def build(self, notification_uuid: str | None = None) -> dict[str, object]:
         project = Project.objects.get_from_cache(id=self.group.project_id)
         event_for_tags = self.event or self.group.get_latest_event()
         timestamp = (
@@ -68,6 +68,7 @@ class DiscordIssuesMessageBuilder(DiscordMessageBuilder):
                     self.notification,
                     ExternalProviders.DISCORD,
                     rule_id,
+                    notification_uuid=notification_uuid,
                 ),
                 color=LEVEL_TO_COLOR[get_color(event_for_tags, self.notification, self.group)],
                 # We can't embed urls in Discord embed footers.
