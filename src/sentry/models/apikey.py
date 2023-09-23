@@ -8,12 +8,15 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BaseManager,
     BoundedPositiveIntegerField,
-    Model,
     control_silo_only_model,
     sane_repr,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.db.models.outboxes import ReplicatedControlModel
+from sentry.models import OutboxCategory
 from sentry.models.apiscopes import HasApiScopes
+from sentry.services.hybrid_cloud.auth.serial import serialize_api_key
+from sentry.services.hybrid_cloud.replica import region_replica_service
 
 
 # TODO(dcramer): pull in enum library
@@ -23,8 +26,9 @@ class ApiKeyStatus:
 
 
 @control_silo_only_model
-class ApiKey(Model, HasApiScopes):
+class ApiKey(ReplicatedControlModel, HasApiScopes):
     __relocation_scope__ = RelocationScope.Global
+    category = OutboxCategory.API_KEY_UPDATE
 
     organization_id = HybridCloudForeignKey("sentry.Organization", on_delete="cascade")
     label = models.CharField(max_length=64, blank=True, default="Default")
@@ -44,6 +48,9 @@ class ApiKey(Model, HasApiScopes):
         db_table = "sentry_apikey"
 
     __repr__ = sane_repr("organization_id", "key")
+
+    def handle_async_replication(self, region_name: str, shard_identifier: int) -> None:
+        region_replica_service.upsert_replicated_api_key(api_key=serialize_api_key(self))
 
     def __str__(self):
         return str(self.key)
