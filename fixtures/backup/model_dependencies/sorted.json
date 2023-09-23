@@ -193,6 +193,7 @@
   "sentry.teamkeytransaction",
   "sentry.monitorenvironment",
   "sentry.releasethreshold",
+  "hybridcloud.apikeyreplica",
   "sentry.monitorcheckin",
   "sentry.alertruleexcludedprojects",
   "sentry.incident",
