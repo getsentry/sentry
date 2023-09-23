@@ -17,7 +17,9 @@ import {
 import {updateOnboardingTask} from 'sentry/actionCreators/onboardingTasks';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {Alert} from 'sentry/components/alert';
+import AlertLink from 'sentry/components/alertLink';
 import {Button} from 'sentry/components/button';
+import Checkbox from 'sentry/components/checkbox';
 import Confirm from 'sentry/components/confirm';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
@@ -38,7 +40,7 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import TeamSelector from 'sentry/components/teamSelector';
 import {Tooltip} from 'sentry/components/tooltip';
 import {ALL_ENVIRONMENTS_KEY} from 'sentry/constants';
-import {IconChevron} from 'sentry/icons';
+import {IconChevron, IconNot} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';
@@ -167,6 +169,7 @@ type State = DeprecatedAsyncView['state'] & {
   project: Project;
   sendingNotification: boolean;
   uuid: null | string;
+  acceptedNoisyAlert?: boolean;
   duplicateTargetRule?: UnsavedIssueAlertRule | IssueAlertRule | null;
   ownership?: null | IssueOwnership;
   rule?: UnsavedIssueAlertRule | IssueAlertRule | null;
@@ -176,9 +179,15 @@ function isSavedAlertRule(rule: State['rule']): rule is IssueAlertRule {
   return rule?.hasOwnProperty('id') ?? false;
 }
 
+/**
+ * Expecting "This rule is an exact duplicate of '{duplicate_rule.label}' in this project and may not be created."
+ */
+const isExactDuplicateExp = /duplicate of '(.*)'/;
+
 class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
   pollingTimeout: number | undefined = undefined;
   trackIncompatibleAnalytics: boolean = false;
+  trackNoisyWarningViewed: boolean = false;
   isUnmounted = false;
 
   get isDuplicateRule(): boolean {
@@ -518,7 +527,7 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
   testNotifications = () => {
     const {organization} = this.props;
     const {project, rule} = this.state;
-    this.setState({sendingNotification: true});
+    this.setState({detailedError: null, sendingNotification: true});
     const actions = rule?.actions ? rule?.actions.length : 0;
     addLoadingMessage(
       tn('Sending a test notification...', 'Sending test notifications...', actions)
@@ -537,8 +546,9 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
           success: true,
         });
       })
-      .catch(() => {
+      .catch(error => {
         addErrorMessage(tn('Notification failed', 'Notifications failed', actions));
+        this.setState({detailedError: error.responseJSON || null});
         trackAnalytics('edit_alert_rule.notification_test', {
           organization,
           success: false,
@@ -552,8 +562,6 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
   handleRuleSuccess = (isNew: boolean, rule: IssueAlertRule) => {
     const {organization, router} = this.props;
     const {project} = this.state;
-    this.setState({detailedError: null, loading: false, rule});
-
     // The onboarding task will be completed on the server side when the alert
     // is created
     updateOnboardingTask(null, organization, {
@@ -588,6 +596,12 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
       delete rule.environment;
     }
 
+    // Check conditions exist or they've accepted a noisy alert
+    if (this.displayNoConditionsWarning() && !this.state.acceptedNoisyAlert) {
+      this.setState({detailedError: {acceptedNoisyAlert: [t('Required')]}});
+      return;
+    }
+
     addLoadingMessage();
 
     try {
@@ -612,6 +626,11 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
           delete filter.name;
         }
         transaction.setData('actions', rule.actions);
+
+        // Check if rule is currently disabled or going to be disabled
+        if ('status' in rule && (rule.status === 'disabled' || !!rule.disableDate)) {
+          rule.optOutEdit = true;
+        }
       }
       const [data, , resp] = await this.api.requestPromise(endpoint, {
         includeAllArgs: true,
@@ -895,11 +914,16 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
     const {rule, detailedError} = this.state;
     const {name} = rule || {};
 
+    // Duplicate errors display on the "name" field but we're showing them in a banner
+    // Remove them from the name detailed error
+    const filteredDetailedError =
+      detailedError?.name?.filter(str => !isExactDuplicateExp.test(str)) ?? [];
+
     return (
       <StyledField
         label={null}
         help={null}
-        error={detailedError?.name?.[0]}
+        error={filteredDetailedError[0]}
         disabled={disabled}
         required
         stacked
@@ -939,6 +963,102 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
           disabled={disabled}
         />
       </StyledField>
+    );
+  }
+
+  renderDuplicateErrorAlert() {
+    const {organization} = this.props;
+    const {detailedError, project} = this.state;
+    const duplicateName = isExactDuplicateExp.exec(detailedError?.name?.[0] ?? '')?.[1];
+    const duplicateRuleId = detailedError?.ruleId?.[0] ?? '';
+
+    // We want this to open in a new tab to not lose the current state of the rule editor
+    return (
+      <AlertLink
+        openInNewTab
+        priority="error"
+        icon={<IconNot color="red300" />}
+        href={normalizeUrl(
+          `/organizations/${organization.slug}/alerts/rules/${project.slug}/${duplicateRuleId}/details/`
+        )}
+      >
+        {tct(
+          'This rule fully duplicates "[alertName]" in the project [projectName] and cannot be saved.',
+          {
+            alertName: duplicateName,
+            projectName: project.name,
+          }
+        )}
+      </AlertLink>
+    );
+  }
+
+  displayNoConditionsWarning(): boolean {
+    const {rule} = this.state;
+    const acceptedNoisyActionIds = [
+      // Webhooks
+      'sentry.rules.actions.notify_event_service.NotifyEventServiceAction',
+      // Legacy integrations
+      'sentry.rules.actions.notify_event.NotifyEventAction',
+    ];
+
+    return (
+      this.props.organization.features.includes('noisy-alert-warning') &&
+      !!rule &&
+      !isSavedAlertRule(rule) &&
+      rule.conditions.length === 0 &&
+      rule.filters.length === 0 &&
+      !rule.actions.every(action => acceptedNoisyActionIds.includes(action.id))
+    );
+  }
+
+  renderAcknowledgeNoConditions(disabled: boolean) {
+    const {detailedError, acceptedNoisyAlert} = this.state;
+
+    // Bit goofy to do in render but should only track onceish
+    if (!this.trackNoisyWarningViewed) {
+      this.trackNoisyWarningViewed = true;
+      trackAnalytics('alert_builder.noisy_warning_viewed', {
+        organization: this.props.organization,
+      });
+    }
+
+    return (
+      <Alert type="warning" showIcon>
+        <div>
+          {t(
+            'Alerts without conditions can fire too frequently. Are you sure you want to save this alert rule?'
+          )}
+        </div>
+        <AcknowledgeField
+          label={null}
+          help={null}
+          error={detailedError?.acceptedNoisyAlert?.[0]}
+          disabled={disabled}
+          required
+          stacked
+          flexibleControlStateSize
+          inline
+        >
+          <AcknowledgeLabel>
+            <Checkbox
+              size="sm"
+              name="acceptedNoisyAlert"
+              checked={acceptedNoisyAlert}
+              onChange={() => {
+                this.setState({acceptedNoisyAlert: !acceptedNoisyAlert});
+                if (!acceptedNoisyAlert) {
+                  trackAnalytics('alert_builder.noisy_warning_agreed', {
+                    organization: this.props.organization,
+                  });
+                }
+              }}
+              disabled={disabled}
+            />
+            {t('Yes, I don’t mind if this alert gets noisy')}
+          </AcknowledgeLabel>
+        </AcknowledgeField>
+      </Alert>
     );
   }
 
@@ -1167,12 +1287,14 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
 
     const canCreateAlert = hasEveryAccess(['alerts:write'], {organization, project});
     const disabled = loading || !(canCreateAlert || isActiveSuperuser());
+    const displayDuplicateError =
+      detailedError?.name?.some(str => isExactDuplicateExp.test(str)) ?? false;
 
     // Note `key` on `<Form>` below is so that on initial load, we show
     // the form with a loading mask on top of it, but force a re-render by using
     // a different key when we have fetched the rule so that form inputs are filled in
     return (
-      <Main>
+      <Main fullWidth>
         <PermissionAlert access={['alerts:write']} project={project} />
 
         <StyledForm
@@ -1470,6 +1592,9 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
                 {this.renderRuleName(disabled)}
                 {this.renderTeamSelect(disabled)}
               </StyledFieldWrapper>
+              {displayDuplicateError && this.renderDuplicateErrorAlert()}
+              {this.displayNoConditionsWarning() &&
+                this.renderAcknowledgeNoConditions(disabled)}
             </ContentIndent>
           </List>
         </StyledForm>
@@ -1570,6 +1695,10 @@ export const findIncompatibleRules = (
   }
   return {conditionIndices: null, filterIndices: null};
 };
+
+const Main = styled(Layout.Main)`
+  max-width: 1000px;
+`;
 
 // TODO(ts): Understand why styled is not correctly inheriting props here
 const StyledForm = styled(Form)<FormProps>`
@@ -1705,7 +1834,6 @@ const StyledFieldWrapper = styled('div')`
     grid-template-columns: 2fr 1fr;
     gap: ${space(1)};
   }
-  margin-bottom: 60px;
 `;
 
 const ContentIndent = styled('div')`
@@ -1714,6 +1842,25 @@ const ContentIndent = styled('div')`
   }
 `;
 
-const Main = styled(Layout.Main)`
-  padding: ${space(2)} ${space(4)};
+const AcknowledgeLabel = styled('label')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
+  line-height: 2;
+  font-weight: normal;
+`;
+
+const AcknowledgeField = styled(FieldGroup)`
+  padding: 0;
+  display: flex;
+  align-items: center;
+  margin-top: ${space(1)};
+
+  & > div {
+    padding-left: 0;
+    display: flex;
+    align-items: baseline;
+    flex: unset;
+    gap: ${space(1)};
+  }
 `;

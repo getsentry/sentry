@@ -1,23 +1,27 @@
 __all__ = (
     "create_name_mapping_layers",
     "get_mri",
-    "get_all_mris",
     "get_public_name_from_mri",
     "parse_expression",
     "get_operation_with_public_name",
 )
 
 from enum import Enum
-from typing import Dict, List, Optional, Tuple, Union, cast
+from typing import Dict, Optional, Tuple, Union, cast
 
 from sentry.api.utils import InvalidParams
 from sentry.snuba.metrics.naming_layer.mri import (
     MRI_EXPRESSION_REGEX,
     MRI_SCHEMA_REGEX,
     SessionMRI,
+    SpanMRI,
     TransactionMRI,
 )
-from sentry.snuba.metrics.naming_layer.public import SessionMetricKey, TransactionMetricKey
+from sentry.snuba.metrics.naming_layer.public import (
+    SessionMetricKey,
+    SpanMetricKey,
+    TransactionMetricKey,
+)
 
 
 def create_name_mapping_layers() -> None:
@@ -36,6 +40,7 @@ def create_name_mapping_layers() -> None:
     for (MetricKey, MRI) in (
         (SessionMetricKey, SessionMRI),
         (TransactionMetricKey, TransactionMRI),
+        (SpanMetricKey, SpanMRI),
     ):
         # Adds new names at the end, so that when the reverse mapping is created
         for metric_key in MetricKey:
@@ -65,12 +70,6 @@ def get_mri(external_name: Union[Enum, str]) -> str:
         )
 
 
-def get_all_mris() -> List[str]:
-    if not len(NAME_TO_MRI):
-        create_name_mapping_layers()
-    return [entry.value for entry in NAME_TO_MRI.values()]
-
-
 def get_public_name_from_mri(internal_name: Union[TransactionMRI, SessionMRI, str]) -> str:
     """Returns the public name from a MRI if it has a mapping to a public metric name, otherwise raise an exception"""
     if not len(MRI_TO_NAME):
@@ -82,7 +81,7 @@ def get_public_name_from_mri(internal_name: Union[TransactionMRI, SessionMRI, st
 
     if internal_name in MRI_TO_NAME:
         return MRI_TO_NAME[internal_name]
-    elif (alias := extract_custom_measurement_alias(internal_name)) is not None:
+    elif (alias := extract_custom_metric_alias(internal_name)) is not None:
         return alias
     else:
         raise InvalidParams(f"Unable to find a mri reverse mapping for '{internal_name}'.")
@@ -96,13 +95,15 @@ def is_private_mri(internal_name: Union[TransactionMRI, SessionMRI, str]) -> boo
         return True
 
 
-def extract_custom_measurement_alias(internal_name: str) -> Optional[str]:
+def extract_custom_metric_alias(internal_name: str) -> Optional[str]:
     match = MRI_SCHEMA_REGEX.match(internal_name)
     if (
         match is not None
         and match.group("entity") == "d"
         and match.group("namespace") == "transactions"
     ):
+        return match.group("name")
+    elif match is not None and match.group("namespace") == "custom":
         return match.group("name")
     else:
         return None

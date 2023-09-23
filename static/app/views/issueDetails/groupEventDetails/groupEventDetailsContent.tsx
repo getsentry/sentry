@@ -1,7 +1,9 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import Feature from 'sentry/components/acl/feature';
 import {CommitRow} from 'sentry/components/commitRow';
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import {EventContexts} from 'sentry/components/events/contexts';
 import {EventDevice} from 'sentry/components/events/device';
 import {EventAttachments} from 'sentry/components/events/eventAttachments';
@@ -13,9 +15,15 @@ import {EventEvidence} from 'sentry/components/events/eventEvidence';
 import {EventExtraData} from 'sentry/components/events/eventExtraData';
 import EventReplay from 'sentry/components/events/eventReplay';
 import {EventSdk} from 'sentry/components/events/eventSdk';
+import EventSpanOpBreakdown from 'sentry/components/events/eventStatisticalDetector/aggregateSpanOps/spanOpBreakdown';
+import EventBreakpointChart from 'sentry/components/events/eventStatisticalDetector/breakpointChart';
+import EventComparison from 'sentry/components/events/eventStatisticalDetector/eventComparison';
+import RegressionMessage from 'sentry/components/events/eventStatisticalDetector/regressionMessage';
 import {EventTagsAndScreenshot} from 'sentry/components/events/eventTagsAndScreenshot';
 import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
 import {EventGroupingInfo} from 'sentry/components/events/groupingInfo';
+import {ActionableItems} from 'sentry/components/events/interfaces/crashContent/exception/actionableItems';
+import {actionableItemsEnabled} from 'sentry/components/events/interfaces/crashContent/exception/useActionableItems';
 import {CronTimelineSection} from 'sentry/components/events/interfaces/crons/cronTimelineSection';
 import {AnrRootCause} from 'sentry/components/events/interfaces/performance/anrRootCause';
 import {SpanEvidenceSection} from 'sentry/components/events/interfaces/performance/spanEvidence';
@@ -24,7 +32,7 @@ import {EventRRWebIntegration} from 'sentry/components/events/rrwebIntegration';
 import {EventUserFeedback} from 'sentry/components/events/userFeedback';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Event, Group, IssueCategory, Project} from 'sentry/types';
+import {Event, Group, IssueCategory, IssueType, Project} from 'sentry/types';
 import {EntryType, EventTransaction} from 'sentry/types/event';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -68,6 +76,7 @@ function GroupEventDetailsContent({
 }: GroupEventDetailsContentProps) {
   const organization = useOrganization();
   const location = useLocation();
+  const projectSlug = project.slug;
   const hasReplay = Boolean(event?.tags?.find(({key}) => key === 'replayId')?.value);
   const mechanism = event?.tags?.find(({key}) => key === 'mechanism')?.value;
   const isANR = mechanism === 'ANR' || mechanism === 'AppExitInfo';
@@ -83,9 +92,43 @@ function GroupEventDetailsContent({
 
   const eventEntryProps = {group, event, project};
 
+  const hasActionableItems = actionableItemsEnabled({
+    eventId: event.id,
+    organization,
+    projectSlug,
+  });
+
+  if (group.issueType === IssueType.PERFORMANCE_DURATION_REGRESSION) {
+    return (
+      <Feature
+        features={['performance-duration-regression-visible']}
+        organization={organization}
+        renderDisabled
+      >
+        <Fragment>
+          <RegressionMessage event={event} />
+          <ErrorBoundary mini>
+            <EventBreakpointChart event={event} />
+          </ErrorBoundary>
+          <ErrorBoundary mini>
+            <EventSpanOpBreakdown event={event} />
+          </ErrorBoundary>
+          <ErrorBoundary mini>
+            <EventComparison event={event} group={group} project={project} />
+          </ErrorBoundary>
+        </Fragment>
+      </Feature>
+    );
+  }
+
   return (
     <Fragment>
-      <EventErrors event={event} project={project} isShare={false} />
+      {!hasActionableItems && (
+        <EventErrors event={event} project={project} isShare={false} />
+      )}
+      {hasActionableItems && (
+        <ActionableItems event={event} project={project} isShare={false} />
+      )}
       <EventCause
         project={project}
         eventId={event.id}

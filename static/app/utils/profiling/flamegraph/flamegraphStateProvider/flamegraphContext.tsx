@@ -19,6 +19,7 @@ export const DEFAULT_FLAMEGRAPH_STATE: FlamegraphState = {
   },
   preferences: {
     timelines: {
+      battery_chart: true,
       ui_frames: true,
       minimap: true,
       transaction_spans: true,
@@ -56,7 +57,7 @@ export type FlamegraphStateValue = [
   {
     nextState: FlamegraphState | undefined;
     previousState: FlamegraphState | undefined;
-  }
+  },
 ];
 
 export type FlamegraphStateDispatch = React.Dispatch<

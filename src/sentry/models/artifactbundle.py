@@ -114,7 +114,24 @@ class ArtifactBundle(Model):
 
 
 def delete_file_for_artifact_bundle(instance, **kwargs):
-    instance.file.delete()
+    from sentry.models.files import File
+    from sentry.tasks.assemble import AssembleTask, delete_assemble_status
+
+    checksum = None
+    try:
+        checksum = instance.file.checksum
+    except File.DoesNotExist:
+        pass
+    else:
+        if instance.organization_id is not None and checksum is not None:
+            delete_assemble_status(
+                AssembleTask.ARTIFACT_BUNDLE,
+                instance.organization_id,
+                checksum,
+            )
+
+    finally:
+        instance.file.delete()
 
 
 def delete_bundle_from_index(instance, **kwargs):
@@ -146,10 +163,6 @@ class ArtifactBundleFlatFileIndex(Model):
     dist_name = models.CharField(max_length=64, default=NULL_STRING)
     date_added = models.DateTimeField(default=timezone.now)
 
-    # TODO: This column is in the process of being removed.
-    # For now, it still exists only to facilitate deleting all existing files.
-    flat_file_index = FlexibleForeignKey("sentry.File", null=True)
-
     class Meta:
         app_label = "sentry"
         db_table = "sentry_artifactbundleflatfileindex"
@@ -162,7 +175,7 @@ class ArtifactBundleFlatFileIndex(Model):
     def update_flat_file_index(self, data: str):
         encoded_data = data.encode()
 
-        metric_name = "debug_id_index" if self.dist_name == NULL_STRING else "url_index"
+        metric_name = "debug_id_index" if self.release_name == NULL_STRING else "url_index"
         metrics.timing(
             f"artifact_bundle_flat_file_indexing.{metric_name}.size_in_bytes",
             value=len(encoded_data),
@@ -181,7 +194,9 @@ class FlatFileIndexState(Model):
 
     flat_file_index = FlexibleForeignKey("sentry.ArtifactBundleFlatFileIndex")
     artifact_bundle = FlexibleForeignKey("sentry.ArtifactBundle")
-    indexing_state = models.IntegerField(choices=ArtifactBundleIndexingState.choices())
+    indexing_state = models.IntegerField(
+        choices=ArtifactBundleIndexingState.choices(), db_index=True
+    )
     date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:

@@ -1,7 +1,7 @@
 """Scalar query filtering configuration module."""
 from __future__ import annotations
 
-from typing import Tuple, Union
+from typing import Union
 
 from sentry.api.event_search import ParenExpression, SearchFilter
 from sentry.replays.lib.new_query.conditions import IPv4Scalar, StringArray, StringScalar, UUIDArray
@@ -51,7 +51,7 @@ scalar_search_config = {**static_search_config, **varying_search_config}
 
 def can_scalar_search_subquery(
     search_filters: list[Union[ParenExpression, SearchFilter, str]]
-) -> Tuple[bool, bool]:
+) -> bool:
     """Return "True" if a scalar event search can be performed."""
     has_seen_varying_field = False
 
@@ -62,29 +62,29 @@ def can_scalar_search_subquery(
         # ParenExpressions are recursive.  So we recursively call our own function and return early
         # if any of the fields fail.
         elif isinstance(search_filter, ParenExpression):
-            is_ok, has_seen_varying_field = can_scalar_search_subquery(search_filter.children)
+            is_ok = can_scalar_search_subquery(search_filter.children)
             if not is_ok:
-                return (False, False)
+                return False
         else:
             name = search_filter.key.name
 
             # If the search-filter does not exist in either configuration then return false.
             if name not in static_search_config and name not in varying_search_config:
-                return (False, False)
+                return False
 
             if name in varying_search_config:
                 # If a varying field has been seen before then we can't use a row-based sub-query. We
                 # need to use an aggregation query to ensure the two values are found or not found
                 # within the context of the aggregate replay.
                 if has_seen_varying_field:
-                    return (False, False)
+                    return False
 
                 # Negated conditionals require knowledge of the aggregate state to determine if the
                 # value truly does not exist in the aggregate replay result.
                 if search_filter.operator in ("!=", "NOT IN"):
-                    return (False, False)
+                    return False
 
                 has_seen_varying_field = True
 
     # The set of filters are considered valid if the function did not return early.
-    return (True, has_seen_varying_field)
+    return True

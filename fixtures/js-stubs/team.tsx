@@ -8,7 +8,7 @@ export function Team(params: Partial<TeamType> = {}): TeamType {
     slug: 'team-slug',
     name: 'Team Name',
     access: ['team:read'],
-    orgRole: null, // TODO(cathy): Rename this
+    orgRole: undefined, // TODO(cathy): Rename this
     teamRole: null,
     isMember: true,
     memberCount: 0,

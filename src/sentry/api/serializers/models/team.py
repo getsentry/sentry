@@ -299,8 +299,9 @@ class BaseTeamSerializer(Serializer):
                 result[team]["projects"] = project_map[team.id]
 
         if self._expand("externalTeams"):
-            actor_mapping = {team.actor_id: team for team in item_list}
-            external_actors = list(ExternalActor.objects.filter(actor_id__in=actor_mapping.keys()))
+            external_actors = list(
+                ExternalActor.objects.filter(team_id__in={team.id for team in item_list})
+            )
 
             external_teams_map = defaultdict(list)
             serialized_list = serialize(external_actors, user, key="team")

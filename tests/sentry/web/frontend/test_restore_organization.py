@@ -1,6 +1,6 @@
 from django.urls import reverse
 
-from sentry.models import Organization, OrganizationStatus, ScheduledDeletion
+from sentry.models import Organization, OrganizationStatus, RegionScheduledDeletion
 from sentry.services.hybrid_cloud.organization.serial import serialize_rpc_organization
 from sentry.tasks.deletion.scheduled import run_deletion
 from sentry.testutils.cases import PermissionTestCase, TestCase
@@ -112,11 +112,11 @@ class RemoveOrganizationTest(TestCase):
         assert org.status == OrganizationStatus.ACTIVE
 
     def test_org_already_deleted(self):
-        assert ScheduledDeletion.objects.count() == 0
+        assert RegionScheduledDeletion.objects.count() == 0
 
         org_id = self.organization.id
         self.organization.update(status=OrganizationStatus.PENDING_DELETION)
-        deletion = ScheduledDeletion.schedule(self.organization, days=0)
+        deletion = RegionScheduledDeletion.schedule(self.organization, days=0)
         deletion.update(in_progress=True)
 
         with self.tasks():

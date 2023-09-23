@@ -216,6 +216,7 @@ export type FieldObject = Field | Function;
 
 export type JsonFormObject = {
   fields: FieldObject[];
+  initiallyCollapsed?: boolean;
   title?: React.ReactNode;
 };
 

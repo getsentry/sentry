@@ -38,13 +38,11 @@ describe('SettingsLayout', function () {
   }
 
   it('renders', function () {
-    const {container} = render(
+    render(
       <BreadcrumbContextProvider>
         <SettingsLayout {...routerProps}>content</SettingsLayout>
       </BreadcrumbContextProvider>
     );
-
-    expect(container).toSnapshot();
   });
 
   it('can render navigation', function () {

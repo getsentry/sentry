@@ -21,9 +21,6 @@ describe('ProjectHpkpReports', function () {
   });
 
   it('renders', function () {
-    const {container} = render(
-      <ProjectHpkpReports {...routerProps} organization={org} />
-    );
-    expect(container).toSnapshot();
+    render(<ProjectHpkpReports {...routerProps} organization={org} />);
   });
 });

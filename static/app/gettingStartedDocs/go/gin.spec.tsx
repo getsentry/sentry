@@ -6,7 +6,7 @@ import {GettingStartedWithGin, steps} from './gin';
 
 describe('GettingStartedWithGin', function () {
   it('renders doc correctly', function () {
-    const {container} = render(<GettingStartedWithGin dsn="test-dsn" />);
+    render(<GettingStartedWithGin dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps()) {
@@ -14,7 +14,5 @@ describe('GettingStartedWithGin', function () {
         screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
       ).toBeInTheDocument();
     }
-
-    expect(container).toSnapshot();
   });
 });

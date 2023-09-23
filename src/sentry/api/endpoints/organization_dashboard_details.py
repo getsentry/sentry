@@ -7,6 +7,7 @@ from rest_framework.response import Response
 
 from sentry import features
 from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.endpoints.organization_dashboards import OrganizationDashboardsPermission
@@ -43,6 +44,12 @@ class OrganizationDashboardBase(OrganizationEndpoint):
 
 @region_silo_endpoint
 class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
+    publish_status = {
+        "DELETE": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.UNKNOWN,
+        "PUT": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, organization, dashboard) -> Response:
         """
         Retrieve an Organization's Dashboard
@@ -141,6 +148,10 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
 
 @region_silo_endpoint
 class OrganizationDashboardVisitEndpoint(OrganizationDashboardBase):
+    publish_status = {
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
+
     def post(self, request: Request, organization, dashboard) -> Response:
         """
         Update last_visited and increment visits counter

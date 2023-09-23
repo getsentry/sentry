@@ -15,6 +15,7 @@ import {
   LineCoverage,
   Organization,
   SentryAppComponent,
+  SentryAppSchemaStacktraceLink,
 } from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
@@ -32,7 +33,7 @@ import {OpenInContextLine} from './openInContextLine';
 import useStacktraceLink from './useStacktraceLink';
 
 type Props = {
-  components: Array<SentryAppComponent>;
+  components: SentryAppComponent<SentryAppSchemaStacktraceLink>[];
   event: Event;
   frame: Frame;
   registers: {[key: string]: string};

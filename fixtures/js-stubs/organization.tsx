@@ -55,6 +55,7 @@ export function Organization(params: Partial<TOrganization> = {}): TOrganization
     eventsMemberAdmin: false,
     githubOpenPRBot: false,
     githubPRBot: false,
+    githubNudgeInvite: false,
     isDefault: false,
     isDynamicallySampled: true,
     isEarlyAdopter: false,

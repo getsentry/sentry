@@ -241,7 +241,7 @@ describe('Performance GridEditable Table', function () {
       initialData.router.location
     );
 
-    const {container} = render(
+    render(
       <EventsTable
         eventView={eventView}
         organization={organization}
@@ -258,7 +258,6 @@ describe('Performance GridEditable Table', function () {
     expect(screen.queryByText(SPAN_OP_RELATIVE_BREAKDOWN_FIELD)).not.toBeInTheDocument();
     expect(screen.queryByTestId('relative-ops-breakdown')).not.toBeInTheDocument();
     expect(screen.queryByTestId('grid-head-cell-static')).not.toBeInTheDocument();
-    expect(container).toSnapshot();
   });
 
   it('renders event id and trace id url', async function () {
@@ -321,7 +320,7 @@ describe('Performance GridEditable Table', function () {
       initialData.router.location
     );
 
-    const {container} = render(
+    render(
       <EventsTable
         eventView={eventView}
         organization={organization}
@@ -336,7 +335,6 @@ describe('Performance GridEditable Table', function () {
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
     expect(screen.getAllByRole('columnheader')).toHaveLength(7);
-    expect(container).toSnapshot();
   });
 
   it('renders profile id', async function () {
@@ -360,7 +358,7 @@ describe('Performance GridEditable Table', function () {
       initialData.router.location
     );
 
-    const {container} = render(
+    render(
       <EventsTable
         eventView={eventView}
         organization={organization}
@@ -375,6 +373,5 @@ describe('Performance GridEditable Table', function () {
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
     expect(screen.getAllByRole('columnheader')).toHaveLength(7);
-    expect(container).toSnapshot();
   });
 });

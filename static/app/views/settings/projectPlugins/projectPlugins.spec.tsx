@@ -7,7 +7,7 @@ describe('ProjectPlugins', function () {
   it('renders', async function () {
     const {organization, routerProps, project} = initializeOrg();
 
-    const {container} = render(
+    render(
       <ProjectPlugins
         {...routerProps}
         organization={organization}
@@ -25,8 +25,6 @@ describe('ProjectPlugins', function () {
     await waitFor(() =>
       expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument()
     );
-
-    expect(container).toSnapshot();
   });
 
   it('has error state when plugins=[]', async function () {

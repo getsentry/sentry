@@ -2,6 +2,7 @@ from django.http import Http404
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectSettingPermission
 from sentry.api.serializers import serialize
@@ -12,6 +13,9 @@ from sentry.models import Rule
 
 @region_silo_endpoint
 class ProjectRuleTaskDetailsEndpoint(ProjectEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = [ProjectSettingPermission]
 
     def get(self, request: Request, project, task_uuid) -> Response:

@@ -18,6 +18,7 @@ type SdkDocumentationProps = {
 
 export type ModuleProps = {
   dsn: string;
+  projectSlug: Project['slug'];
   activeProductSelection?: ProductSolution[];
   newOrg?: boolean;
   organization?: Organization;
@@ -108,6 +109,7 @@ export function SdkDocumentation({
       platformKey={platform?.id}
       organization={organization}
       projectId={projectId}
+      projectSlug={projectSlug}
       sourcePackageRegistries={sourcePackageRegistries}
     />
   );

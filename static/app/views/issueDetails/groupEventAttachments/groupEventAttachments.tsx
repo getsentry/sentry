@@ -74,7 +74,7 @@ class GroupEventAttachments extends DeprecatedAsyncComponent<Props, State> {
       return [
         [
           'eventAttachments',
-          `/issues/${params.groupId}/attachments/`,
+          `/organizations/${params.orgId}/issues/${params.groupId}/attachments/`,
           {
             query: {
               ...location.query,
@@ -90,7 +90,7 @@ class GroupEventAttachments extends DeprecatedAsyncComponent<Props, State> {
     return [
       [
         'eventAttachments',
-        `/issues/${params.groupId}/attachments/`,
+        `/organizations/${params.orgId}/issues/${params.groupId}/attachments/`,
         {
           query: {
             ...pick(location.query, ['cursor', 'environment', 'types']),

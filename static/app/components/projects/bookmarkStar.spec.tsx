@@ -16,11 +16,7 @@ describe('BookmarkStar', function () {
   });
 
   it('renders', function () {
-    const {container} = render(
-      <BookmarkStar organization={TestStubs.Organization()} project={project} />
-    );
-
-    expect(container).toSnapshot();
+    render(<BookmarkStar organization={TestStubs.Organization()} project={project} />);
   });
 
   it('can star', async function () {

@@ -28,7 +28,7 @@ class ApiGrant(Model):
     of the OAuth 2 spec.
     """
 
-    __relocation_scope__ = RelocationScope.Excluded
+    __relocation_scope__ = RelocationScope.Global
 
     user = FlexibleForeignKey("sentry.User")
     application = FlexibleForeignKey("sentry.ApiApplication")

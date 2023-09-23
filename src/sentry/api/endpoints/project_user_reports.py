@@ -2,6 +2,7 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import DSNAuthentication
 from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
@@ -20,6 +21,10 @@ class UserReportSerializer(serializers.ModelSerializer):
 
 @region_silo_endpoint
 class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     authentication_classes = ProjectEndpoint.authentication_classes + (DSNAuthentication,)
 
     def get(self, request: Request, project) -> Response:

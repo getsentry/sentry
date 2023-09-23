@@ -144,6 +144,7 @@ def get_user_actions(
                 is_target_tagname = payload["data"].get("node", {}).get("tagName") in (
                     "a",
                     "button",
+                    "input",
                 )
                 timeout = payload["data"].get("timeAfterClickMs", 0) or payload["data"].get(
                     "timeafterclickms", 0

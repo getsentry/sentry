@@ -17,6 +17,7 @@ export interface OrganizationSummary {
   codecovAccess: boolean;
   dateCreated: string;
   features: string[];
+  githubNudgeInvite: boolean;
   githubOpenPRBot: boolean;
   githubPRBot: boolean;
   id: string;
@@ -89,9 +90,9 @@ export interface Team {
   isPending: boolean;
   memberCount: number;
   name: string;
-  orgRole: string | null;
   slug: string;
   teamRole: string | null;
+  orgRole?: string | null;
 }
 
 // TODO: Rename to BaseRole

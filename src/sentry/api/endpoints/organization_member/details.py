@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import List
+
 from django.db import router, transaction
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
@@ -7,6 +9,7 @@ from rest_framework.response import Response
 from rest_framework.serializers import ValidationError
 
 from sentry import audit_log, features, ratelimits, roles
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationMemberEndpoint
 from sentry.api.bases.organization import OrganizationPermission
@@ -27,7 +30,6 @@ from sentry.apidocs.examples.organization_examples import OrganizationExamples
 from sentry.apidocs.parameters import GlobalParams, OrganizationParams
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
-    AuthProvider,
     InviteStatus,
     Organization,
     OrganizationMember,
@@ -35,6 +37,7 @@ from sentry.models import (
     Project,
 )
 from sentry.roles import organization_roles, team_roles
+from sentry.services.hybrid_cloud.auth import auth_service
 from sentry.services.hybrid_cloud.user_option import user_option_service
 from sentry.utils import metrics
 
@@ -68,7 +71,11 @@ class RelaxedMemberPermission(OrganizationPermission):
 @extend_schema(tags=["Organizations"])
 @region_silo_endpoint
 class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
-    public = {"GET", "PUT", "DELETE"}
+    publish_status = {
+        "DELETE": ApiPublishStatus.PUBLIC,
+        "GET": ApiPublishStatus.PUBLIC,
+        "PUT": ApiPublishStatus.PUBLIC,
+    }
     permission_classes = [RelaxedMemberPermission]
 
     def _get_member(
@@ -157,11 +164,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         if not serializer.is_valid():
             raise ValidationError(serializer.errors)
 
-        try:
-            auth_provider = AuthProvider.objects.get(organization_id=organization.id)
-            auth_provider = auth_provider.get_provider()
-        except AuthProvider.DoesNotExist:
-            auth_provider = None
+        auth_provider = auth_service.get_auth_provider(organization_id=organization.id)
 
         result = serializer.validated_data
 
@@ -284,10 +287,13 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
             # null. We do this because such a team role would be effectively
             # invisible in the UI, and would be surprising if it were left behind
             # after the user's org role is lowered again.
-            omt_update_count = OrganizationMemberTeam.objects.filter(
+            omts: List[OrganizationMemberTeam] = []
+            for omt in OrganizationMemberTeam.objects.filter(
                 organizationmember=member, role__in=lesser_team_roles
-            ).update(role=None)
-
+            ):
+                omt.role = None
+            OrganizationMemberTeam.objects.bulk_update(omts, fields=["role"])
+            omt_update_count = len(omts)
             member.role = role
             member.save()
         if omt_update_count > 0:

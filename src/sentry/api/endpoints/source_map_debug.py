@@ -7,6 +7,7 @@ from rest_framework.response import Response
 from typing_extensions import TypedDict
 
 from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.helpers.source_map_helper import source_map_debug
@@ -29,7 +30,9 @@ class SourceMapProcessingResponse(TypedDict):
 @region_silo_endpoint
 @extend_schema(tags=["Events"])
 class SourceMapDebugEndpoint(ProjectEndpoint):
-    public = {"GET"}
+    publish_status = {
+        "GET": ApiPublishStatus.PUBLIC,
+    }
     owner = ApiOwner.ISSUES
 
     @extend_schema(

@@ -82,8 +82,21 @@ export interface IssueAlertRule extends UnsavedIssueAlertRule {
   id: string;
   projects: string[];
   snooze: boolean;
+  status: 'active' | 'disabled';
+  /**
+   * Date alert is set to be disabled unless action is taken
+   */
+  disableDate?: string;
+  disableReason?: 'noisy';
   errors?: {detail: string}[];
   lastTriggered?: string;
+  /**
+   * Set to true to opt out of the rule being automatically disabled
+   * see also - status=disabled, disableDate, disableReason
+   * TODO(scttcper): This is only used in the edit request and we should
+   *  move it to its own interface
+   */
+  optOutEdit?: boolean;
   snoozeCreatedBy?: string;
   snoozeForEveryone?: boolean;
 }

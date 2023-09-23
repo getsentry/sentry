@@ -23,5 +23,4 @@ class OrganizationDocumentIntegrationDetailView(AcceptanceTestCase):
 
     def test_view_doc(self):
         self.load_page(self.doc.slug)
-        self.browser.snapshot("integrations - document-based detail overview")
         assert self.browser.element_exists('[data-test-id="learn-more"]')

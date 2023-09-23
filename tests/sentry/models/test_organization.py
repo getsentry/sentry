@@ -29,7 +29,10 @@ from sentry.notifications.types import (
     NotificationSettingTypes,
 )
 from sentry.silo import SiloMode
-from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
+from sentry.tasks.deletion.hybrid_cloud import (
+    schedule_hybrid_cloud_foreign_key_jobs,
+    schedule_hybrid_cloud_foreign_key_jobs_control,
+)
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
@@ -469,9 +472,11 @@ class OrganizationDeletionTest(TestCase):
             # cascade is asynchronous, ensure there is still related search,
             assert UserOption.objects.filter(organization_id=org_id).exists()
 
-        # Assume monolith silo mode to ensure all tasks are run correctly
-        with self.tasks(), assume_test_silo_mode(SiloMode.MONOLITH):
+        # Run cascades in the region, and then in control
+        with self.tasks(), assume_test_silo_mode(SiloMode.REGION):
             schedule_hybrid_cloud_foreign_key_jobs()
+        with self.tasks(), assume_test_silo_mode(SiloMode.CONTROL):
+            schedule_hybrid_cloud_foreign_key_jobs_control()
 
         with assume_test_silo_mode(SiloMode.CONTROL):
             # Ensure they are all now gone.

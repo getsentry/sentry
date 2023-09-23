@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import datetime
 import math
 from datetime import timezone
@@ -2091,29 +2093,60 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             ],
         )
 
-    def test_run_query_with_on_demand_apdex(self):
-        field = "apdex(10)"
+    def test_run_query_with_on_demand_failure_count(self):
+        field = "failure_count()"
+        query = "transaction.duration:>=100"
+        spec = OnDemandMetricSpec(field=field, query=query)
+        timestamp = self.start
+        self.store_transaction_metric(
+            value=1,
+            metric=TransactionMetricKey.COUNT_ON_DEMAND.value,
+            internal_metric=TransactionMRI.COUNT_ON_DEMAND.value,
+            entity="metrics_counters",
+            tags={"query_hash": spec.query_hash, "failure": "true"},
+            timestamp=timestamp,
+        )
+        query = TimeseriesMetricQueryBuilder(
+            self.params,
+            dataset=Dataset.PerformanceMetrics,
+            interval=3600,
+            query=query,
+            selected_columns=[field],
+            config=QueryBuilderConfig(on_demand_metrics_enabled=True),
+        )
+        result = query.run_query("test_query")
+        assert result["data"][:1] == [{"time": timestamp.isoformat(), "failure_count": 1.0}]
+        assert result["meta"] == [
+            {"name": "time", "type": "DateTime('Universal')"},
+            {"name": "failure_count", "type": "Float64"},
+        ]
+
+    def test_run_query_with_on_demand_failure_rate(self):
+        field = "failure_rate()"
         query = "transaction.duration:>=100"
         spec = OnDemandMetricSpec(field=field, query=query)
 
         for hour in range(0, 5):
+            # 1 per hour failed
             self.store_transaction_metric(
                 value=1,
                 metric=TransactionMetricKey.COUNT_ON_DEMAND.value,
                 internal_metric=TransactionMRI.COUNT_ON_DEMAND.value,
                 entity="metrics_counters",
-                tags={"query_hash": spec.query_hash, "satisfaction": "satisfactory"},
+                tags={"query_hash": spec.query_hash, "failure": "true"},
                 timestamp=self.start + datetime.timedelta(hours=hour),
             )
 
-            self.store_transaction_metric(
-                value=1,
-                metric=TransactionMetricKey.COUNT_ON_DEMAND.value,
-                internal_metric=TransactionMRI.COUNT_ON_DEMAND.value,
-                entity="metrics_counters",
-                tags={"query_hash": spec.query_hash, "satisfaction": "tolerable"},
-                timestamp=self.start + datetime.timedelta(hours=hour),
-            )
+            # 4 per hour successful
+            for j in range(0, 4):
+                self.store_transaction_metric(
+                    value=1,
+                    metric=TransactionMetricKey.COUNT_ON_DEMAND.value,
+                    internal_metric=TransactionMRI.COUNT_ON_DEMAND.value,
+                    entity="metrics_counters",
+                    tags={"query_hash": spec.query_hash},
+                    timestamp=self.start + datetime.timedelta(hours=hour),
+                )
 
         query = TimeseriesMetricQueryBuilder(
             self.params,
@@ -2129,23 +2162,89 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         assert result["data"][:5] == [
             {
                 "time": self.start.isoformat(),
-                "apdex_10": 0.75,
+                "failure_rate": 0.2,
             },
             {
                 "time": (self.start + datetime.timedelta(hours=1)).isoformat(),
-                "apdex_10": 0.75,
+                "failure_rate": 0.2,
             },
             {
                 "time": (self.start + datetime.timedelta(hours=2)).isoformat(),
-                "apdex_10": 0.75,
+                "failure_rate": 0.2,
             },
             {
                 "time": (self.start + datetime.timedelta(hours=3)).isoformat(),
-                "apdex_10": 0.75,
+                "failure_rate": 0.2,
             },
             {
                 "time": (self.start + datetime.timedelta(hours=4)).isoformat(),
-                "apdex_10": 0.75,
+                "failure_rate": 0.2,
+            },
+        ]
+        self.assertCountEqual(
+            result["meta"],
+            [
+                {"name": "time", "type": "DateTime('Universal')"},
+                {"name": "failure_rate", "type": "Float64"},
+            ],
+        )
+
+    def test_run_query_with_on_demand_apdex(self):
+        field = "apdex(10)"
+        query = "transaction.duration:>=100"
+        spec = OnDemandMetricSpec(field=field, query=query)
+
+        for hour in range(0, 5):
+            self.store_transaction_metric(
+                value=1,
+                metric=TransactionMetricKey.COUNT_ON_DEMAND.value,
+                internal_metric=TransactionMRI.COUNT_ON_DEMAND.value,
+                entity="metrics_counters",
+                tags={"query_hash": spec.query_hash, "satisfaction": "satisfactory"},
+                timestamp=self.start + datetime.timedelta(hours=hour),
+            )
+
+            for j in range(0, 4):
+                self.store_transaction_metric(
+                    value=1,
+                    metric=TransactionMetricKey.COUNT_ON_DEMAND.value,
+                    internal_metric=TransactionMRI.COUNT_ON_DEMAND.value,
+                    entity="metrics_counters",
+                    tags={"query_hash": spec.query_hash, "satisfaction": "tolerable"},
+                    timestamp=self.start + datetime.timedelta(hours=hour),
+                )
+
+        query = TimeseriesMetricQueryBuilder(
+            self.params,
+            dataset=Dataset.PerformanceMetrics,
+            interval=3600,
+            query=query,
+            selected_columns=[field],
+            config=QueryBuilderConfig(
+                on_demand_metrics_enabled=True,
+            ),
+        )
+        result = query.run_query("test_query")
+        assert result["data"][:5] == [
+            {
+                "time": self.start.isoformat(),
+                "apdex_10": 0.6,
+            },
+            {
+                "time": (self.start + datetime.timedelta(hours=1)).isoformat(),
+                "apdex_10": 0.6,
+            },
+            {
+                "time": (self.start + datetime.timedelta(hours=2)).isoformat(),
+                "apdex_10": 0.6,
+            },
+            {
+                "time": (self.start + datetime.timedelta(hours=3)).isoformat(),
+                "apdex_10": 0.6,
+            },
+            {
+                "time": (self.start + datetime.timedelta(hours=4)).isoformat(),
+                "apdex_10": 0.6,
             },
         ]
         self.assertCountEqual(

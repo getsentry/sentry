@@ -523,8 +523,6 @@ if (
 
   appConfig.devServer = {
     headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Credentials': 'true',
       'Document-Policy': 'js-profiling',
     },
     // Cover the various environments we use (vercel, getsentry-dev, localhost)
@@ -650,6 +648,8 @@ if (IS_UI_DEV_ONLY) {
       options: httpsOptions,
     },
     headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Credentials': 'true',
       'Document-Policy': 'js-profiling',
     },
     static: {

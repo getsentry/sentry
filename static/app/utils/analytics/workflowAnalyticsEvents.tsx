@@ -57,6 +57,8 @@ type ReleasesTour = BaseTour & {project_id: string};
 
 export type TeamInsightsEventParameters = {
   'alert_builder.filter': {query: string; session_id?: string};
+  'alert_builder.noisy_warning_agreed': {};
+  'alert_builder.noisy_warning_viewed': {};
   'alert_details.viewed': {alert_id: number};
   'alert_rule_details.viewed': {alert: string; has_chartcuterie: string; rule_id: number};
   'alert_rules.viewed': {sort: string};
@@ -136,6 +138,8 @@ export type TeamInsightsEventKey = keyof TeamInsightsEventParameters;
 
 export const workflowEventMap: Record<TeamInsightsEventKey, string | null> = {
   'alert_builder.filter': 'Alert Builder: Filter',
+  'alert_builder.noisy_warning_viewed': 'Alert Builder: Noisy Warning Viewed',
+  'alert_builder.noisy_warning_agreed': 'Alert Builder: Noisy Warning Agreed',
   'alert_details.viewed': 'Alert Details: Viewed',
   'alert_rule_details.viewed': 'Alert Rule Details: Viewed',
   'alert_rules.viewed': 'Alert Rules: Viewed',

@@ -11,6 +11,7 @@ from rest_framework.response import Response
 
 from sentry import options
 from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationReleasePermission
 from sentry.models import FileBlob
@@ -46,6 +47,10 @@ class GzipChunk(BytesIO):
 
 @region_silo_endpoint
 class ChunkUploadEndpoint(OrganizationEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     owner = ApiOwner.OWNERS_NATIVE
     permission_classes = (OrganizationReleasePermission,)
     rate_limits = RateLimitConfig(group="CLI")
@@ -63,12 +68,11 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
         # User-Agent: sentry-cli/1.70.1
         user_agent = request.headers.get("User-Agent", "")
         sentrycli_version = SENTRYCLI_SEMVER_RE.search(user_agent)
-        supports_relative_url = (
-            (sentrycli_version is not None)
-            and (int(sentrycli_version.group("major")) >= 1)
-            and (int(sentrycli_version.group("minor")) >= 70)
-            and (int(sentrycli_version.group("patch")) >= 1)
-        )
+        supports_relative_url = (sentrycli_version is not None) and (
+            int(sentrycli_version.group("major")),
+            int(sentrycli_version.group("minor")),
+            int(sentrycli_version.group("patch")),
+        ) >= (1, 70, 1)
 
         # If user do not overwritten upload url prefix
         if len(endpoint) == 0:

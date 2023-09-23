@@ -18,7 +18,14 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconArrow, IconChevron, IconEllipsis, IconUser} from 'sentry/icons';
+import {
+  IconArrow,
+  IconChevron,
+  IconEllipsis,
+  IconMute,
+  IconNot,
+  IconUser,
+} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Actor, Project} from 'sentry/types';
@@ -107,9 +114,33 @@ function RuleListRow({
     );
   }
 
+  function renderSnoozeStatus(): React.ReactNode {
+    return (
+      <IssueAlertStatusWrapper>
+        <IconMute size="sm" color="subText" />
+        {t('Muted')}
+      </IssueAlertStatusWrapper>
+    );
+  }
+
   function renderAlertRuleStatus(): React.ReactNode {
     if (isIssueAlert(rule)) {
+      if (rule.status === 'disabled') {
+        return (
+          <IssueAlertStatusWrapper>
+            <IconNot size="sm" color="subText" />
+            {t('Disabled')}
+          </IssueAlertStatusWrapper>
+        );
+      }
+      if (rule.snooze) {
+        return renderSnoozeStatus();
+      }
       return null;
+    }
+
+    if (rule.snooze) {
+      return renderSnoozeStatus();
     }
 
     const criticalTrigger = rule.triggers.find(
@@ -402,6 +433,13 @@ function RuleListRow({
 const FlexCenter = styled('div')`
   display: flex;
   align-items: center;
+`;
+
+const IssueAlertStatusWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
+  line-height: 2;
 `;
 
 const AlertNameWrapper = styled('div')<{isIssueAlert?: boolean}>`

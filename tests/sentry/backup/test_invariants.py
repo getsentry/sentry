@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from django.db.models.fields.related import ManyToManyField
 
-from sentry.backup.helpers import get_exportable_final_derivations_of, get_final_derivations_of
+from sentry.backup.dependencies import ModelRelations, dependencies, get_model_name
+from sentry.backup.helpers import get_exportable_sentry_models, get_final_derivations_of
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import BaseModel
 
 
@@ -22,7 +24,7 @@ def test_all_many_to_many_fields_explicitly_set_through_attribute():
     # Make sure we are visiting the field definitions correctly.
     visited = 0
 
-    for model in get_exportable_final_derivations_of(BaseModel):
+    for model in get_exportable_sentry_models():
         many_to_many_fields = [
             field for field in model._meta.get_fields() if isinstance(field, ManyToManyField)
         ]
@@ -36,3 +38,43 @@ def test_all_many_to_many_fields_explicitly_set_through_attribute():
                     visited += 1
 
     assert visited > 0
+
+
+def relocation_scopes_as_set(mr: ModelRelations):
+    return mr.relocation_scope if isinstance(mr.relocation_scope, set) else {mr.relocation_scope}
+
+
+def validate_dependency_scopes(allowed: set[RelocationScope]):
+    deps = dependencies()
+    models_being_validated = [
+        mr.model
+        for mr in filter((lambda mr: relocation_scopes_as_set(mr) & allowed), deps.values())
+    ]
+    for model in models_being_validated:
+        model_name = get_model_name(model)
+        own_scopes = relocation_scopes_as_set(deps[model_name])
+        for ff in deps[model_name].foreign_keys.values():
+            dependency_name = get_model_name(ff.model)
+            dependency_scopes = relocation_scopes_as_set(deps[dependency_name])
+            if own_scopes.issuperset(dependency_scopes):
+                AssertionError(
+                    f"Model `{model_name}`, which has a relocation scope set of `{own_scopes}`, has a dependency on model `{dependency_name}`, which has a relocation scope set of `{dependency_scopes}; the former must be a super set of the latter`"
+                )
+
+
+def test_user_relocation_scope_validity():
+    # Models with a `User` relocation scope are only allowed to transitively depend on other
+    # similarly-scoped models.
+    validate_dependency_scopes({RelocationScope.User})
+
+
+def test_organization_relocation_scope_validity():
+    # Models with an `Organization` or `User` relocation scope are only allowed to transitively
+    # depend on other similarly-scoped models.
+    validate_dependency_scopes({RelocationScope.Organization, RelocationScope.User})
+
+
+def test_config_relocation_scope_validity():
+    # Models with a `Config` or `User` relocation scope are only allowed to transitively depend on
+    # other similarly-scoped models.
+    validate_dependency_scopes({RelocationScope.Config, RelocationScope.User})

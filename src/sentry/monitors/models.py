@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any, Dict, Optional
+from uuid import uuid4
 
 import jsonschema
 import pytz
@@ -14,7 +15,9 @@ from django.db.models.signals import pre_save
 from django.dispatch import receiver
 from django.utils import timezone
 
-from sentry.backup.scopes import RelocationScope
+from sentry.backup.dependencies import PrimaryKeyMap
+from sentry.backup.helpers import ImportFlags
+from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.constants import ObjectStatus
 from sentry.db.models import (
     BaseManager,
@@ -78,16 +81,31 @@ class MonitorEnvironmentValidationFailed(Exception):
     pass
 
 
-def get_next_schedule(last_checkin, schedule_type, schedule):
+def get_next_schedule(reference_ts: datetime, schedule_type, schedule):
+    """
+    Given the schedule type and schedule, determine the next timestamp for a
+    schedule from the reference_ts
+
+    Examples:
+
+    >>> get_next_schedule('05:30', ScheduleType.CRONTAB, '0 * * * *')
+    >>> 06:00
+
+    >>> get_next_schedule('05:30', ScheduleType.CRONTAB, '30 * * * *')
+    >>> 06:30
+
+    >>> get_next_schedule('05:35', ScheduleType.INTERVAL, [2, 'hour'])
+    >>> 07:35
+    """
     if schedule_type == ScheduleType.CRONTAB:
-        itr = croniter(schedule, last_checkin)
+        itr = croniter(schedule, reference_ts)
         next_schedule = itr.get_next(datetime)
     elif schedule_type == ScheduleType.INTERVAL:
         interval, unit_name = schedule
         rule = rrule.rrule(
-            freq=SCHEDULE_INTERVAL_MAP[unit_name], interval=interval, dtstart=last_checkin, count=2
+            freq=SCHEDULE_INTERVAL_MAP[unit_name], interval=interval, dtstart=reference_ts, count=2
         )
-        if rule[0] > last_checkin:
+        if rule[0] > reference_ts:
             next_schedule = rule[0]
         else:
             next_schedule = rule[1]
@@ -342,6 +360,17 @@ class Monitor(Model):
 
         return None
 
+    def normalize_before_relocation_import(
+        self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
+    ) -> Optional[int]:
+        old_pk = super().normalize_before_relocation_import(pk_map, scope, flags)
+        if old_pk is None:
+            return None
+
+        # Generate a new UUID.
+        self.guid = uuid4()
+        return old_pk
+
 
 @receiver(pre_save, sender=Monitor)
 def check_organization_monitor_limits(sender, instance, **kwargs):
@@ -452,7 +481,7 @@ class MonitorCheckIn(Model):
 
 @region_silo_only_model
 class MonitorLocation(Model):
-    __relocation_scope__ = RelocationScope.Organization
+    __relocation_scope__ = RelocationScope.Excluded
 
     guid = UUIDField(unique=True, auto_add=True)
     name = models.CharField(max_length=128)
@@ -490,7 +519,7 @@ class MonitorEnvironmentManager(BaseManager):
 
 @region_silo_only_model
 class MonitorEnvironment(Model):
-    __relocation_scope__ = RelocationScope.Organization
+    __relocation_scope__ = RelocationScope.Excluded
 
     monitor = FlexibleForeignKey("sentry.Monitor")
     environment = FlexibleForeignKey("sentry.Environment")
@@ -524,6 +553,11 @@ class MonitorEnvironment(Model):
     auto-generated missed check-ins.
     """
 
+    last_state_change = models.DateTimeField(null=True)
+    """
+    The last time that the monitor changed state. Used for issue fingerprinting.
+    """
+
     objects = MonitorEnvironmentManager()
 
     class Meta:
@@ -546,20 +580,6 @@ class MonitorEnvironment(Model):
             .first()
         )
 
-    def mark_ok(self, checkin: MonitorCheckIn, ts: datetime):
-        next_checkin = self.monitor.get_next_expected_checkin(ts)
-        next_checkin_latest = self.monitor.get_next_expected_checkin_latest(ts)
-
-        params = {
-            "last_checkin": ts,
-            "next_checkin": next_checkin,
-            "next_checkin_latest": next_checkin_latest,
-        }
-        if checkin.status == CheckInStatus.OK and self.monitor.status != ObjectStatus.DISABLED:
-            params["status"] = MonitorStatus.OK
-
-        MonitorEnvironment.objects.filter(id=self.id).exclude(last_checkin__gt=ts).update(**params)
-
 
 @receiver(pre_save, sender=MonitorEnvironment)
 def check_monitor_environment_limits(sender, instance, **kwargs):
@@ -571,3 +591,25 @@ def check_monitor_environment_limits(sender, instance, **kwargs):
         raise MonitorEnvironmentLimitsExceeded(
             f"You may not exceed {settings.MAX_ENVIRONMENTS_PER_MONITOR} environments per monitor"
         )
+
+
+@region_silo_only_model
+class MonitorIncident(Model):
+    __relocation_scope__ = RelocationScope.Excluded
+
+    monitor = FlexibleForeignKey("sentry.Monitor")
+    monitor_environment = FlexibleForeignKey("sentry.MonitorEnvironment")
+    starting_checkin = FlexibleForeignKey(
+        "sentry.MonitorCheckIn", null=True, related_name="created_incidents"
+    )
+    starting_timestamp = models.DateTimeField(null=True)
+    resolving_checkin = FlexibleForeignKey(
+        "sentry.MonitorCheckIn", null=True, related_name="resolved_incidents"
+    )
+    resolving_timestamp = models.DateTimeField(null=True)
+    grouphash = models.CharField(max_length=32)
+    date_added = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_monitorincident"

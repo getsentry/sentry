@@ -5,6 +5,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases.organization import OrganizationDataExportPermission, OrganizationEndpoint
 from sentry.api.serializers import serialize
@@ -112,6 +113,9 @@ class DataExportQuerySerializer(serializers.Serializer):
 
 @region_silo_endpoint
 class DataExportEndpoint(OrganizationEndpoint, EnvironmentMixin):
+    publish_status = {
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (OrganizationDataExportPermission,)
 
     def post(self, request: Request, organization) -> Response:

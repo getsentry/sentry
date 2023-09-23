@@ -26,10 +26,6 @@ with open(
 
 UNSUPPORTED_FRAME_FILENAMES = [
     "async https://s1.sentry-cdn.com/_static/dist/sentry/entrypoints/app.js",
-    "/_static/dist/sentry/entrypoints/app.js",
-    "/node_modules/@wix/wix-one-app-rich-content/src/rich-content-native/plugin-video/video.js",  # 3rd party
-    "/_static/dist/sentry/entrypoints/app.js",
-    "/_static/dist/sentry/chunks/node_modules_emotion_unitless_dist_emotion-unitless_esm_js-app_bootstrap_initializeMain_tsx-n-f02164.80704e8e56b0b331c4e2.js",
     "/gtm.js",  # Top source; starts with backslash
     "<anonymous>",
     "<frozen importlib._bootstrap>",
@@ -86,11 +82,13 @@ def test_buckets_logic():
         "app://foo.js",
         "./app/utils/handleXhrErrorResponse.tsx",
         "getsentry/billing/tax/manager.py",
+        "/cronscripts/monitoringsync.php",
     ] + UNSUPPORTED_FRAME_FILENAMES
     buckets = stacktrace_buckets(stacktraces)
     assert buckets == {
         "./app": [FrameFilename("./app/utils/handleXhrErrorResponse.tsx")],
         "app:": [FrameFilename("app://foo.js")],
+        "cronscripts": [FrameFilename("/cronscripts/monitoringsync.php")],
         "getsentry": [FrameFilename("getsentry/billing/tax/manager.py")],
     }
 

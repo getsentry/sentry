@@ -7,6 +7,7 @@ from django.dispatch import Signal
 from django.http import HttpResponse, StreamingHttpResponse
 
 from sentry import eventstore, features
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -274,6 +275,9 @@ def reduce_stream(response):
 
 @region_silo_endpoint
 class EventAiSuggestedFixEndpoint(ProjectEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.PRIVATE,
+    }
     # go away
     private = True
     enforce_rate_limit = True

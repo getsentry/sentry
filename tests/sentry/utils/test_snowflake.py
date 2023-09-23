@@ -3,10 +3,10 @@ from datetime import datetime
 import pytest
 from django.conf import settings
 from django.test import override_settings
-from freezegun import freeze_time
 
 from sentry.silo import SiloMode
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.region import override_regions
 from sentry.types.region import Region, RegionCategory
 from sentry.utils import snowflake

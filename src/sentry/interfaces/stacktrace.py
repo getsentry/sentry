@@ -150,6 +150,7 @@ class Frame(Interface):
             "platform",
             "post_context",
             "pre_context",
+            "source_link",
             "symbol",
             "symbol_addr",
             "trust",
@@ -187,6 +188,7 @@ class Frame(Interface):
                 "lineno": self.lineno,
                 "colno": self.colno,
                 "lock": self.lock,
+                "source_link": self.source_link or None,
             }
         )
 
@@ -217,7 +219,9 @@ class Frame(Interface):
             "trust": self.trust,
             "errors": self.errors,
             "lock": self.lock,
+            "sourceLink": self.source_link,
         }
+
         if not is_public:
             data["vars"] = self.vars
 
@@ -279,6 +283,7 @@ class Frame(Interface):
             "trust": meta.get("trust"),
             "errors": meta.get("errors"),
             "lock": meta.get("lock"),
+            "sourceLink": meta.get("source_link"),
         }
 
     def is_url(self):

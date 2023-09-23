@@ -4,7 +4,6 @@ from unittest import mock
 from unittest.mock import ANY, patch
 
 import pytest
-from freezegun import freeze_time
 from sentry_relay.processing import validate_project_config
 
 from sentry.constants import HEALTH_CHECK_GLOBS, ObjectStatus
@@ -24,6 +23,7 @@ from sentry.relay.config import ProjectConfig, get_project_config
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import Feature
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import region_silo_test
@@ -422,6 +422,7 @@ def test_project_config_with_breakdown(default_project, insta_snapshot, transact
     with Feature(
         {
             "organizations:transaction-metrics-extraction": transaction_metrics == "with_metrics",
+            "organizations:projconfig-exclude-measurements": True,
         }
     ):
         project_cfg = get_project_config(default_project, full_config=True)

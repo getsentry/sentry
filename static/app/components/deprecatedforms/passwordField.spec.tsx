@@ -6,22 +6,19 @@ import PasswordField from 'sentry/components/deprecatedforms/passwordField';
 describe('PasswordField', function () {
   describe('render()', function () {
     it('renders', function () {
-      const {container} = render(<PasswordField name="fieldName" />);
-      expect(container).toSnapshot();
+      render(<PasswordField name="fieldName" />);
     });
 
     it('renders with value', function () {
-      const {container} = render(<PasswordField name="fieldName" value="foobar" />);
-      expect(container).toSnapshot();
+      render(<PasswordField name="fieldName" value="foobar" />);
     });
 
     it('renders with form context', function () {
-      const {container} = render(
+      render(
         <Form initialData={{fieldName: 'foobar'}}>
           <PasswordField name="fieldName" />
         </Form>
       );
-      expect(container).toSnapshot();
     });
   });
 });
