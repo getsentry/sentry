@@ -28,6 +28,5 @@ class ApiKeyReplica(Model):
     class Meta:
         app_label = "hybridcloud"
         db_table = "hybridcloud_apikeyreplica"
-        unique_together = [("organization", "key")]
 
     __repr__ = sane_repr("organization_id", "key")
