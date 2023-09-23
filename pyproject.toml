@@ -675,7 +675,6 @@ module = [
     "sentry.tasks.commit_context",
     "sentry.tasks.commits",
     "sentry.tasks.deliver_from_outbox",
-    "sentry.tasks.derive_code_mappings",
     "sentry.tasks.digests",
     "sentry.tasks.groupowner",
     "sentry.tasks.integrations",
