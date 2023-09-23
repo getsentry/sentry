@@ -668,7 +668,6 @@ module = [
     "sentry.tagstore.snuba.backend",
     "sentry.tagstore.types",
     "sentry.tasks.auth",
-    "sentry.tasks.auto_resolve_issues",
     "sentry.tasks.base",
     "sentry.tasks.beacon",
     "sentry.tasks.check_auth",
