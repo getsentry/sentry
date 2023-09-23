@@ -1,3 +1,6 @@
+import {AccountEmails} from 'sentry-fixture/accountEmails';
+import {Authenticators} from 'sentry-fixture/authenticators';
+
 import {
   render,
   renderGlobalModal,
@@ -27,7 +30,7 @@ describe('AccountSecurity', function () {
     });
     MockApiClient.addMockResponse({
       url: ACCOUNT_EMAILS_ENDPOINT,
-      body: TestStubs.AccountEmails(),
+      body: AccountEmails(),
     });
   });
 
@@ -81,7 +84,7 @@ describe('AccountSecurity', function () {
   it('renders a primary interface that is enrolled', async function () {
     MockApiClient.addMockResponse({
       url: ENDPOINT,
-      body: [TestStubs.Authenticators().Totp({configureButton: 'Info'})],
+      body: [Authenticators().Totp({configureButton: 'Info'})],
     });
 
     renderComponent();
@@ -99,7 +102,7 @@ describe('AccountSecurity', function () {
     MockApiClient.addMockResponse({
       url: ENDPOINT,
       body: [
-        TestStubs.Authenticators().Totp({
+        Authenticators().Totp({
           authId: '15',
           configureButton: 'Info',
         }),
@@ -123,7 +126,7 @@ describe('AccountSecurity', function () {
     const authenticatorsMock = MockApiClient.addMockResponse({
       url: ENDPOINT,
       body: [
-        TestStubs.Authenticators().Totp({
+        Authenticators().Totp({
           isEnrolled: false,
           authId: '15',
           configureButton: 'Info',
@@ -149,11 +152,11 @@ describe('AccountSecurity', function () {
     MockApiClient.addMockResponse({
       url: ENDPOINT,
       body: [
-        TestStubs.Authenticators().Totp({
+        Authenticators().Totp({
           authId: '15',
           configureButton: 'Info',
         }),
-        TestStubs.Authenticators().U2f(),
+        Authenticators().U2f(),
       ],
     });
     MockApiClient.addMockResponse({
@@ -185,7 +188,7 @@ describe('AccountSecurity', function () {
     MockApiClient.addMockResponse({
       url: ENDPOINT,
       body: [
-        TestStubs.Authenticators().Totp({
+        Authenticators().Totp({
           authId: '15',
           configureButton: 'Info',
         }),
@@ -221,7 +224,7 @@ describe('AccountSecurity', function () {
   it('cannot enroll without verified email', async function () {
     MockApiClient.addMockResponse({
       url: ENDPOINT,
-      body: [TestStubs.Authenticators().Totp({isEnrolled: false})],
+      body: [Authenticators().Totp({isEnrolled: false})],
     });
     MockApiClient.addMockResponse({
       url: ACCOUNT_EMAILS_ENDPOINT,
@@ -250,7 +253,7 @@ describe('AccountSecurity', function () {
   it('renders a backup interface that is not enrolled', async function () {
     MockApiClient.addMockResponse({
       url: ENDPOINT,
-      body: [TestStubs.Authenticators().Recovery({isEnrolled: false})],
+      body: [Authenticators().Recovery({isEnrolled: false})],
     });
 
     renderComponent();
@@ -265,7 +268,7 @@ describe('AccountSecurity', function () {
   it('renders a primary interface that is not enrolled', async function () {
     MockApiClient.addMockResponse({
       url: ENDPOINT,
-      body: [TestStubs.Authenticators().Totp({isEnrolled: false})],
+      body: [Authenticators().Totp({isEnrolled: false})],
     });
 
     renderComponent();
@@ -281,9 +284,9 @@ describe('AccountSecurity', function () {
     MockApiClient.addMockResponse({
       url: ENDPOINT,
       body: [
-        TestStubs.Authenticators().Totp({disallowNewEnrollment: false}),
-        TestStubs.Authenticators().U2f({disallowNewEnrollment: null}),
-        TestStubs.Authenticators().Sms({disallowNewEnrollment: true}),
+        Authenticators().Totp({disallowNewEnrollment: false}),
+        Authenticators().U2f({disallowNewEnrollment: null}),
+        Authenticators().Sms({disallowNewEnrollment: true}),
       ],
     });
 
@@ -297,9 +300,7 @@ describe('AccountSecurity', function () {
   it('renders primary interface if new enrollments are disallowed, but we are enrolled', async function () {
     MockApiClient.addMockResponse({
       url: ENDPOINT,
-      body: [
-        TestStubs.Authenticators().Sms({isEnrolled: true, disallowNewEnrollment: true}),
-      ],
+      body: [Authenticators().Sms({isEnrolled: true, disallowNewEnrollment: true})],
     });
 
     renderComponent();
@@ -311,7 +312,7 @@ describe('AccountSecurity', function () {
   it('renders a backup interface that is enrolled', async function () {
     MockApiClient.addMockResponse({
       url: ENDPOINT,
-      body: [TestStubs.Authenticators().Recovery({isEnrolled: true})],
+      body: [Authenticators().Recovery({isEnrolled: true})],
     });
 
     renderComponent();
@@ -323,7 +324,7 @@ describe('AccountSecurity', function () {
   it('can change password', async function () {
     MockApiClient.addMockResponse({
       url: ENDPOINT,
-      body: [TestStubs.Authenticators().Recovery({isEnrolled: false})],
+      body: [Authenticators().Recovery({isEnrolled: false})],
     });
 
     const url = '/users/me/password/';
@@ -365,7 +366,7 @@ describe('AccountSecurity', function () {
   it('requires current password to be entered', async function () {
     MockApiClient.addMockResponse({
       url: ENDPOINT,
-      body: [TestStubs.Authenticators().Recovery({isEnrolled: false})],
+      body: [Authenticators().Recovery({isEnrolled: false})],
     });
     const url = '/users/me/password/';
     const mock = MockApiClient.addMockResponse({
@@ -392,7 +393,7 @@ describe('AccountSecurity', function () {
   it('can expire all sessions', async function () {
     MockApiClient.addMockResponse({
       url: ENDPOINT,
-      body: [TestStubs.Authenticators().Recovery({isEnrolled: false})],
+      body: [Authenticators().Recovery({isEnrolled: false})],
     });
     const mock = MockApiClient.addMockResponse({
       url: AUTH_ENDPOINT,
