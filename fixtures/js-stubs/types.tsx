@@ -1,4 +1,4 @@
-import {EntryException, ReleaseMeta} from 'sentry/types';
+import {EntryException} from 'sentry/types';
 import type {
   ReplayError,
   ReplayListRecord,
@@ -42,42 +42,16 @@ type TestStubFixtures = {
   Member: OverridableStub;
   Members: OverridableStubList;
   MetricRule: OverridableStub;
-  MetricsField: (field: string, params?: Partial<any>) => any;
-  MetricsMeta: OverridableStub;
-  MetricsSessionUserCountByStatusByRelease: SimpleStub;
-  MetricsTotalCountByReleaseIn24h: SimpleStub;
-  MissingMembers: OverridableStubList;
-  NotificationDefaults: SimpleStub;
-  OpsgenieIntegration: OverridableStub;
-  OpsgenieIntegrationProvider: OverridableStub;
-  OrgOwnedApps: SimpleStub;
   OrgRoleList: OverridableStub;
   Organization: OverridableStub;
-  OrganizationEvent: OverridableStub;
-  OrganizationIntegrations: OverridableStub;
-  Organizations: OverridableStub;
-  Outcomes: SimpleStub;
-  OutcomesWithLowProcessedEvents: SimpleStub;
-  OutcomesWithReason: SimpleStub;
-  OutcomesWithoutClientDiscarded: SimpleStub;
   PageFilters: OverridableStub;
-  PhabricatorCreate: SimpleStub;
-  PhabricatorPlugin: SimpleStub;
   PlatformExternalIssue: OverridableStub;
   Plugin: OverridableStub;
-  PluginListConfig: SimpleStub;
   Plugins: OverridableStubList;
   Project: OverridableStub;
   ProjectAlertRule: OverridableStub;
-  ProjectAlertRuleConfiguration: OverridableStub;
-  ProjectDetails: OverridableStub;
-  ProjectFilters: OverridableStubList;
   ProjectKeys: OverridableStubList;
-  ProviderList: SimpleStub;
-  PublishedApps: SimpleStub;
-  PullRequest: OverridableStub;
   Release: (params?: any, healthParams?: any) => any;
-  ReleaseMeta: OverridableStub<ReleaseMeta>;
   Replay: typeof Replay;
   ReplayError: OverridableStub<ReplayError>;
   ReplayList: OverridableStubList<ReplayListRecord>;

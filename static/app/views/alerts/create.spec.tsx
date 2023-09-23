@@ -1,5 +1,7 @@
 import selectEvent from 'react-select-event';
 import {Groups} from 'sentry-fixture/groups';
+import {ProjectAlertRule} from 'sentry-fixture/projectAlertRule';
+import {ProjectAlertRuleConfiguration} from 'sentry-fixture/projectAlertRuleConfiguration';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -40,11 +42,11 @@ describe('ProjectAlertsCreate', function () {
     TeamStore.loadInitialData([], false, null);
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/rules/configuration/',
-      body: TestStubs.ProjectAlertRuleConfiguration(),
+      body: ProjectAlertRuleConfiguration(),
     });
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/rules/1/',
-      body: TestStubs.ProjectAlertRule(),
+      body: ProjectAlertRule(),
     });
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/environments/',
@@ -145,7 +147,7 @@ describe('ProjectAlertsCreate', function () {
       const mock = MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/rules/',
         method: 'POST',
-        body: TestStubs.ProjectAlertRule(),
+        body: ProjectAlertRule(),
       });
 
       // Change name of alert rule
@@ -188,7 +190,7 @@ describe('ProjectAlertsCreate', function () {
       const mock = MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/rules/',
         method: 'POST',
-        body: TestStubs.ProjectAlertRule(),
+        body: ProjectAlertRule(),
       });
       // delete node
       await userEvent.click(screen.getByLabelText('Delete Node'));
@@ -238,7 +240,7 @@ describe('ProjectAlertsCreate', function () {
       const mock = MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/rules/',
         method: 'POST',
-        body: TestStubs.ProjectAlertRule(),
+        body: ProjectAlertRule(),
       });
 
       // Change name of alert rule
@@ -283,7 +285,7 @@ describe('ProjectAlertsCreate', function () {
         mock = MockApiClient.addMockResponse({
           url: '/projects/org-slug/project-slug/rules/',
           method: 'POST',
-          body: TestStubs.ProjectAlertRule(),
+          body: ProjectAlertRule(),
         });
       });
 
@@ -650,7 +652,7 @@ describe('ProjectAlertsCreate', function () {
     const mock = MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/rules/',
       method: 'POST',
-      body: TestStubs.ProjectAlertRule(),
+      body: ProjectAlertRule(),
     });
 
     createWrapper({organization: {features: ['noisy-alert-warning']}});
