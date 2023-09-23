@@ -101,15 +101,14 @@ def _chunk_processing_batch(
         lower = 0
         version = target_version
     lower = max(model.objects.aggregate(Min("id"))["id__min"] or 0, lower)
-    upper = model.objects.aggregate(Max("id"))["id__max"] or 0
-    batch_upper = min(upper, lower + batch_size)
+    upper = (
+        model.objects.filter(id__gte=lower)
+        .order_by("id")[: batch_size + 1]
+        .aggregate(Max("id"))["id__max"]
+        or 0
+    )
 
-    # cap to batch size so that query timeouts don't get us.
-    capped = upper
-    if upper >= batch_upper:
-        capped = batch_upper
-
-    return BackfillBatch(low=lower, up=capped, version=version, has_more=upper > capped)
+    return BackfillBatch(low=lower, up=upper, version=version, has_more=upper > lower)
 
 
 def process_outbox_backfill_batch(
