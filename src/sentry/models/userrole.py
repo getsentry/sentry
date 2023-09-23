@@ -44,7 +44,7 @@ class UserRole(OverwritableConfigMixin, ControlOutboxProducingModel):
         regions = list(find_all_region_names())
         return [
             outbox
-            for user_id in self.users.values_list("user_id", flat=True)
+            for user_id in self.users.values_list("id", flat=True)
             for outbox in OutboxCategory.USER_UPDATE.as_control_outboxes(
                 region_names=regions,
                 shard_identifier=user_id,
