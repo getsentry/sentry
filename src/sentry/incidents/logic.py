@@ -1137,7 +1137,6 @@ def create_alert_rule_trigger_action(
             target_identifier,
             trigger.alert_rule.organization,
             integration_id,
-            organization_flag=trigger.alert_rule.organization,
             use_async_lookup=use_async_lookup,
             input_channel_id=input_channel_id,
             integrations=integrations,
@@ -1207,7 +1206,6 @@ def update_alert_rule_trigger_action(
                 target_identifier,
                 organization,
                 integration_id,
-                organization_flag=organization,
                 use_async_lookup=use_async_lookup,
                 input_channel_id=input_channel_id,
                 integrations=integrations,
@@ -1229,7 +1227,6 @@ def update_alert_rule_trigger_action(
 
 
 def get_target_identifier_display_for_integration(type, target_value, *args, **kwargs):
-    organization = kwargs.pop("organization_flag")
     # target_value is the Slack username or channel name
     if type == AlertRuleTriggerAction.Type.SLACK.value:
         # if we have a value for input_channel_id, just set target_identifier to that
@@ -1247,11 +1244,10 @@ def get_target_identifier_display_for_integration(type, target_value, *args, **k
         target_identifier = get_alert_rule_trigger_action_msteams_channel_id(
             target_value, *args, **kwargs
         )
-    # target_value is the Discord channel ID
-    elif features.has("organizations:integrations-discord-metric-alerts", organization):
-        if type == AlertRuleTriggerAction.Type.DISCORD.value:
-            # Since we don't have a name associated with Discord channels, identifier and value are both the channel id
-            target_identifier = target_value
+
+    elif type == AlertRuleTriggerAction.Type.DISCORD.value:
+        # Since we don't have a name associated with Discord channels, identifier and value are both the channel id
+        target_identifier = target_value
 
     # target_value is the ID of the PagerDuty service
     elif type == AlertRuleTriggerAction.Type.PAGERDUTY.value:
