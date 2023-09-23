@@ -1,10 +1,12 @@
 """This module has the logic for querying Snuba for the hourly event count for a list of groups.
 This is later used for generating group forecasts for determining when a group may be escalating.
 """
+from __future__ import annotations
+
 import logging
 from collections import defaultdict
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, TypedDict
+from typing import Any, Dict, List, Mapping, Sequence, Tuple, TypedDict
 
 import jsonschema
 from django.db.models.signals import post_save
@@ -103,7 +105,7 @@ def _process_groups(
     groups: Sequence[Group],
     start_date: datetime,
     end_date: datetime,
-    category: Optional[GroupCategory] = None,
+    category: GroupCategory | None = None,
 ) -> List[GroupsCountResponse]:
     """Given a list of groups, query Snuba for their hourly bucket count.
     The category defines which Snuba dataset and entity we query."""
@@ -150,7 +152,7 @@ def _query_with_pagination(
     group_ids: Sequence[int],
     start_date: datetime,
     end_date: datetime,
-    category: Optional[GroupCategory],
+    category: GroupCategory | None = None,
 ) -> List[GroupsCountResponse]:
     """Query Snuba for event counts for the given list of project ids and groups ids in
     a time range."""
@@ -179,7 +181,7 @@ def _generate_query(
     offset: int,
     start_date: datetime,
     end_date: datetime,
-    category: Optional[GroupCategory],
+    category: GroupCategory | None = None,
 ) -> Query:
     """This simply generates a query based on the passed parameters"""
     group_id_col = Column("group_id")
@@ -260,7 +262,7 @@ def get_group_hourly_count(group: Group) -> int:
     return int(hourly_count)
 
 
-def is_escalating(group: Group) -> Tuple[bool, Optional[int]]:
+def is_escalating(group: Group) -> Tuple[bool, int | None]:
     """
     Return whether the group is escalating and the daily forecast if it exists.
     """
@@ -294,11 +296,11 @@ def parse_groups_past_counts(response: Sequence[GroupsCountResponse]) -> ParsedG
     return group_counts
 
 
-def _issue_category_dataset(category: Optional[GroupCategory]) -> Dataset:
+def _issue_category_dataset(category: GroupCategory | None = None) -> Dataset | str:
     return Dataset.Events.value if category == GroupCategory.ERROR else Dataset.IssuePlatform.value
 
 
-def _issue_category_entity(category: Optional[GroupCategory]) -> EntityKey:
+def _issue_category_entity(category: GroupCategory | None = None) -> EntityKey | str:
     return (
         EntityKey.Events.value if category == GroupCategory.ERROR else EntityKey.IssuePlatform.value
     )
@@ -307,16 +309,18 @@ def _issue_category_entity(category: Optional[GroupCategory]) -> EntityKey:
 def manage_issue_states(
     group: Group,
     group_inbox_reason: GroupInboxReason,
-    event: Optional[GroupEvent] = None,
-    snooze_details: Optional[Mapping[str, Any]] = None,
-    activity_data: Optional[Mapping[str, Any]] = None,
+    event: GroupEvent | None = None,
+    snooze_details: Mapping[str, Any] | None = None,
+    activity_data: Mapping[str, Any] | None = None,
 ) -> None:
     """
     Handles the downstream changes to the status/substatus of GroupInbox and Group for each GroupInboxReason
 
     `activity_data`: Additional activity data, such as escalating forecast
     """
-    data = {"event_id": event.event_id} if event else None
+    data: Dict[str, str | Mapping[str, Any]] | None = (
+        {"event_id": event.event_id} if event else None
+    )
     if group_inbox_reason == GroupInboxReason.ESCALATING:
         updated = Group.objects.filter(id=group.id, status=GroupStatus.IGNORED).update(
             status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ESCALATING

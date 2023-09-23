@@ -507,7 +507,6 @@ module = [
     "sentry.integrations.vsts.issues",
     "sentry.integrations.vsts.repository",
     "sentry.integrations.vsts_extension.integration",
-    "sentry.issues.escalating",
     "sentry.issues.escalating_group_forecast",
     "sentry.issues.ingest",
     "sentry.issues.issue_occurrence",
