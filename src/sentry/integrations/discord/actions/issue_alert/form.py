@@ -59,4 +59,4 @@ class DiscordNotifyServiceForm(forms.Form):
                     self._format_discord_error_message("; ".join(str(e))),
                     code="invalid",
                 )
-        return cleaned_data  # maybe put in the try catch
+        return cleaned_data

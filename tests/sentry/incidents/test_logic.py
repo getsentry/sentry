@@ -71,6 +71,7 @@ from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.testutils.cases import BaseIncidentsTest, BaseMetricsTestCase, SnubaTestCase, TestCase
+from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.utils import json
 
@@ -1426,6 +1427,7 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
             )
 
     @responses.activate
+    @with_feature("organizations:integrations-discord-metric-alerts")
     def test_discord(self):
         base_url: str = "https://discord.com/api/v10"
         channel_id = "channel-id"
@@ -1552,6 +1554,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
             )
 
     @responses.activate
+    @with_feature("organizations:integrations-discord-metric-alerts")
     def test_discord(self):
         base_url: str = "https://discord.com/api/v10"
         channel_id = "channel-id"
