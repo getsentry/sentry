@@ -15,7 +15,6 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 from sentry.db.models.outboxes import ReplicatedControlModel
 from sentry.models import OutboxCategory
 from sentry.models.apiscopes import HasApiScopes
-from sentry.services.hybrid_cloud.auth.serial import serialize_api_key
 from sentry.services.hybrid_cloud.replica import region_replica_service
 
 
@@ -50,6 +49,8 @@ class ApiKey(ReplicatedControlModel, HasApiScopes):
     __repr__ = sane_repr("organization_id", "key")
 
     def handle_async_replication(self, region_name: str, shard_identifier: int) -> None:
+        from sentry.services.hybrid_cloud.auth.serial import serialize_api_key
+
         region_replica_service.upsert_replicated_api_key(api_key=serialize_api_key(self))
 
     def __str__(self):
