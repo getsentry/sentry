@@ -1,3 +1,5 @@
+import {Incident} from 'sentry-fixture/incident';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   act,
@@ -42,7 +44,7 @@ describe('AlertRulesList', () => {
         TestStubs.MetricRule({
           id: '345',
           projects: ['earth'],
-          latestIncident: TestStubs.Incident({
+          latestIncident: Incident({
             status: IncidentStatus.CRITICAL,
           }),
         }),

@@ -6,7 +6,6 @@ import type {
 } from 'sentry/views/replays/types';
 
 import type {Replay} from './replay';
-import {MockRuleCondition} from './ruleConditions';
 
 type SimpleStub<T = any> = () => T;
 
@@ -31,38 +30,14 @@ type TestStubFixtures = {
   DocIntegration: OverridableStub;
   Environments: SimpleStub;
   Event: OverridableStub;
-  EventAttachment: OverridableStub;
   EventEntry: OverridableStub;
   EventEntryDebugMeta: OverridableStub;
   EventEntryExceptionGroup: SimpleStub<EntryException>;
-  EventEntryStacktrace: OverridableStub;
-  EventIdQueryResult: OverridableStub;
   EventStacktraceException: OverridableStub;
-  EventStacktraceMessage: OverridableStub;
-  EventsStats: OverridableStub;
-  ExceptionWithRawStackTrace: OverridableStub;
   Frame: OverridableStub;
   GitHubIntegration: OverridableStub;
-  GitHubIntegrationConfig: SimpleStub;
-  GitHubIntegrationProvider: OverridableStub;
-  GlobalSelection: OverridableStub;
   Group: OverridableStub;
-  GroupStats: OverridableStub;
-  GroupingConfigs: SimpleStub;
-  Groups: SimpleStub;
-  HiddenEnvironments: SimpleStub;
   Incident: OverridableStub;
-  IncidentActivity: OverridableStub;
-  IncidentStats: OverridableStub;
-  IncidentTrigger: OverridableStub;
-  InstallWizard: OverridableStub;
-  JiraIntegration: OverridableStub;
-  JiraIntegrationProvider: OverridableStub;
-  MOCK_RESP_INCONSISTENT_INTERVALS: MockRuleCondition;
-  MOCK_RESP_INCONSISTENT_PLACEHOLDERS: MockRuleCondition;
-  MOCK_RESP_ONLY_IGNORED_CONDITIONS_INVALID: MockRuleCondition;
-  MOCK_RESP_PLACEHOLDERS: MockRuleCondition;
-  MOCK_RESP_VERBOSE: MockRuleCondition;
   Member: OverridableStub;
   Members: OverridableStubList;
   MetricRule: OverridableStub;
