@@ -26,7 +26,7 @@ class Migration(CheckedMigration):
     initial = True
 
     dependencies = [
-        # ("sentry", "0565_fix_diff_env_dupe_alerts"),
+        ("sentry", "0565_fix_diff_env_dupe_alerts"),
     ]
 
     operations = [
