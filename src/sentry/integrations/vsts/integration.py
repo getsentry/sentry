@@ -4,7 +4,7 @@ import logging
 import re
 from time import time
 from typing import Any, Collection, Mapping, MutableMapping, Sequence
-from urllib.parse import quote, urlencode
+from urllib.parse import parse_qs, quote, urlencode, urlparse
 
 from django import forms
 from django.http import HttpRequest, HttpResponse
@@ -29,6 +29,7 @@ from sentry.models import (
     IntegrationExternalProject,
     Organization,
     OrganizationIntegration,
+    Repository,
     generate_token,
 )
 from sentry.pipeline import NestedPipelineView, Pipeline, PipelineView
@@ -337,6 +338,9 @@ class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync):
         config["sync_status_forward"] = sync_status_forward
         return config
 
+    def source_url_matches(self, url: str) -> bool:
+        return url.startswith(self.model.metadata["domain_name"])
+
     def format_source_url(self, repo: Repository, filepath: str, branch: str) -> str:
         filepath = filepath.lstrip("/")
         project = quote(repo.config["project"])
@@ -348,6 +352,20 @@ class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync):
             }
         )
         return f"{self.instance}{project}/_git/{repo_id}?{query_string}"
+
+    def extract_branch_from_source_url(self, repo: Repository, url: str) -> str:
+        parsed_url = urlparse(url)
+        qs = parse_qs(parsed_url.query)
+        if "version" in qs and len(qs["version"]) == 1 and qs["version"][0].startswith("GB"):
+            return qs["version"][0][2:]
+        return ""
+
+    def extract_source_path_from_source_url(self, repo: Repository, url: str) -> str:
+        parsed_url = urlparse(url)
+        qs = parse_qs(parsed_url.query)
+        if "path" in qs and len(qs["path"]) == 1:
+            return qs["path"][0].lstrip("/")
+        return ""
 
     @property
     def instance(self) -> str:
