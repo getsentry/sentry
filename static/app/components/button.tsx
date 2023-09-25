@@ -219,8 +219,27 @@ function BaseButton({
   const accessibleLabel =
     ariaLabel ?? (typeof children === 'string' ? children : undefined);
 
-  const useButtonTracking = HookStore.get('react-hook:use-button-tracking')[0];
-  const buttonTracking = useButtonTracking?.({
+  const useButtonTrackingLogger = () => {
+    const hasAnalyticsDebug = window.localStorage?.getItem('DEBUG_ANALYTICS') === '1';
+    if (!analyticsEventName || !hasAnalyticsDebug) {
+      return () => {};
+    }
+
+    return () => {
+      // eslint-disable-next-line no-console
+      console.log('buttonAnalyticsEvent', {
+        eventKey: analyticsEventKey,
+        eventName: analyticsEventName,
+        priority,
+        href,
+        ...analyticsParams,
+      });
+    };
+  };
+
+  const useButtonTracking =
+    HookStore.get('react-hook:use-button-tracking')[0] ?? useButtonTrackingLogger;
+  const buttonTracking = useButtonTracking({
     analyticsEventName,
     analyticsEventKey,
     analyticsParams: {
@@ -240,7 +259,7 @@ function BaseButton({
         return;
       }
 
-      buttonTracking?.();
+      buttonTracking();
       onClick?.(e);
     },
     [disabled, busy, onClick, buttonTracking]
