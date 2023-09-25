@@ -1787,6 +1787,12 @@ DERIVED_OPS: Mapping[MetricOperationType, DerivedOp] = {
         ),
         # Custom operations used for on demand derived metrics.
         DerivedOp(
+            op="on_demand_apdex",
+            can_orderby=True,
+            snql_func=on_demand_apdex_snql_factory,
+            default_null_value=0,
+        ),
+        DerivedOp(
             op="on_demand_failure_count",
             can_orderby=True,
             snql_func=on_demand_failure_count_snql_factory,
@@ -1796,12 +1802,6 @@ DERIVED_OPS: Mapping[MetricOperationType, DerivedOp] = {
             op="on_demand_failure_rate",
             can_orderby=True,
             snql_func=on_demand_failure_rate_snql_factory,
-            default_null_value=0,
-        ),
-        DerivedOp(
-            op="on_demand_apdex",
-            can_orderby=True,
-            snql_func=on_demand_apdex_snql_factory,
             default_null_value=0,
         ),
     ]
