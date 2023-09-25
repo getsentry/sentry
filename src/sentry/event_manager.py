@@ -57,6 +57,7 @@ from sentry.culprit import generate_culprit
 from sentry.dynamic_sampling import LatestReleaseBias, LatestReleaseParams
 from sentry.eventstore.processing import event_processing_store
 from sentry.eventtypes import EventType
+from sentry.eventtypes.error import ErrorEvent
 from sentry.eventtypes.transaction import TransactionEvent
 from sentry.grouping.api import (
     BackgroundGroupingConfigLoader,
@@ -148,6 +149,8 @@ SECURITY_REPORT_INTERFACES = ("csp", "hpkp", "expectct", "expectstaple")
 
 # Timeout for cached group crash report counts
 CRASH_REPORT_TIMEOUT = 24 * 3600  # one day
+
+NON_TITLE_EVENT_TITLES = ["<untitled>", "<unknown>"]
 
 
 @dataclass
@@ -2048,46 +2051,51 @@ def _get_severity_score(event: Event) -> float | None:
     logger_data = {"event_id": event.data["event_id"], "op": op}
     severity = None
 
-    metadata = event.get_event_metadata()
-    error_type = metadata.get("type")
-    error_msg = metadata.get("value")
-    message = ""
-    if error_type:
-        message = error_type if not error_msg else f"{error_type}: {error_msg}"
+    # We're using the title (which truncates the error message) rather than the full error type and
+    # message here because the `exception` property in event data (where they live) isn't mirrored
+    # to BigQuery for storage space reasons (stacktraces can be enormous). Since the ML model is
+    # trained on BQ data, we have to use the title to match.
+    #
+    # TODO: Figure out if there's a way to get the full error message to the model.
+    title = event.title
+    if title in NON_TITLE_EVENT_TITLES:
+        title = ErrorEvent().compute_title(dict(event.get_event_metadata()))
 
-    if message:
-        logger_data["event_message"] = message
-        with metrics.timer(op):
-            with sentry_sdk.start_span(op=op):
-                try:
-                    response = severity_connection_pool.urlopen(
-                        "POST",
-                        "/issues/severity-score",
-                        body=json.dumps({"message": message or "<unknown event>"}),
-                        headers={"content-type": "application/json;charset=utf-8"},
-                    )
-                    severity = json.loads(response.data).get("severity")
-                except MaxRetryError as e:
-                    logger.warning(
-                        f"Unable to get severity score from microservice after {SEVERITY_DETECTION_RETRIES} retr{'ies' if SEVERITY_DETECTION_RETRIES >1 else 'y'}. Got MaxRetryError caused by: {repr(e.reason)}.",
-                        extra=logger_data,
-                    )
-                except Exception as e:
-                    logger.warning(
-                        f"Unable to get severity score from microservice. Got: {repr(e)}.",
-                        extra=logger_data,
-                    )
-                else:
-                    logger.info(
-                        f"Got severity score of {severity} for event {event.data['event_id']}",
-                        extra=logger_data,
-                    )
-    else:
-        logger_data.update({"error_type": error_type, "error_msg": error_msg})
+    if title in NON_TITLE_EVENT_TITLES:
+        logger_data.update({"event_title": event.title, "computed_title": title})
         logger.warning(
-            "Unable to get severity score because event has no message",
+            f"Unable to get severity score because of unusable `message` value '{title}'",
             extra=logger_data,
         )
+        return None
+
+    logger_data["event_message"] = title
+
+    with metrics.timer(op):
+        with sentry_sdk.start_span(op=op):
+            try:
+                response = severity_connection_pool.urlopen(
+                    "POST",
+                    "/issues/severity-score",
+                    body=json.dumps({"message": title}),
+                    headers={"content-type": "application/json;charset=utf-8"},
+                )
+                severity = json.loads(response.data).get("severity")
+            except MaxRetryError as e:
+                logger.warning(
+                    f"Unable to get severity score from microservice after {SEVERITY_DETECTION_RETRIES} retr{'ies' if SEVERITY_DETECTION_RETRIES >1 else 'y'}. Got MaxRetryError caused by: {repr(e.reason)}.",
+                    extra=logger_data,
+                )
+            except Exception as e:
+                logger.warning(
+                    f"Unable to get severity score from microservice. Got: {repr(e)}.",
+                    extra=logger_data,
+                )
+            else:
+                logger.info(
+                    f"Got severity score of {severity} for event {event.data['event_id']}",
+                    extra=logger_data,
+                )
 
     return severity
 
