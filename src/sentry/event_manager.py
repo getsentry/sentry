@@ -57,7 +57,6 @@ from sentry.culprit import generate_culprit
 from sentry.dynamic_sampling import LatestReleaseBias, LatestReleaseParams
 from sentry.eventstore.processing import event_processing_store
 from sentry.eventtypes import EventType
-from sentry.eventtypes.error import ErrorEvent
 from sentry.eventtypes.transaction import TransactionEvent
 from sentry.grouping.api import (
     BackgroundGroupingConfigLoader,
@@ -150,7 +149,7 @@ SECURITY_REPORT_INTERFACES = ("csp", "hpkp", "expectct", "expectstaple")
 # Timeout for cached group crash report counts
 CRASH_REPORT_TIMEOUT = 24 * 3600  # one day
 
-NON_TITLE_EVENT_TITLES = ["<untitled>", "<unknown>"]
+NON_TITLE_EVENT_TITLES = ["<untitled>", "<unknown>", "<unlabeled event>"]
 
 
 @dataclass
@@ -2056,13 +2055,19 @@ def _get_severity_score(event: Event) -> float | None:
     # to BigQuery for storage space reasons (stacktraces can be enormous). Since the ML model is
     # trained on BQ data, we have to use the title to match.
     #
-    # TODO: Figure out if there's a way to get the full error message to the model.
+    # TODO: Figure out if there's a way to get the full error message to the model. (If we do that,
+    # though, it'll only work for `ErrorEvent`-type events. We'll still have to use `title` for
+    # `DefaultEvent`-type events - like those which come from `capture_message` calls - or find the
+    # message data elsewhere in the event.)
     title = event.title
+    event_type = get_event_type(event.data)
     if title in NON_TITLE_EVENT_TITLES:
-        title = ErrorEvent().compute_title(dict(event.get_event_metadata()))
+        title = event_type.get_title(event_type.get_metadata(event.data))
 
     if title in NON_TITLE_EVENT_TITLES:
-        logger_data.update({"event_title": event.title, "computed_title": title})
+        logger_data.update(
+            {"event_type": event_type.key, "event_title": event.title, "computed_title": title}
+        )
         logger.warning(
             f"Unable to get severity score because of unusable `message` value '{title}'",
             extra=logger_data,
