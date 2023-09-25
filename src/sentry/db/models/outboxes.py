@@ -10,6 +10,7 @@ from typing import (
     List,
     Mapping,
     Optional,
+    Protocol,
     Tuple,
     Type,
     TypeVar,
@@ -418,6 +419,26 @@ class ReplicatedControlModel(ControlOutboxProducingModel):
         Also keep in mind that any errors or failures will force a retry of processing, so be certain all
         operations are idempotent!
         """
+        pass
+
+
+class HasControlReplicationHandlers(Protocol):
+    """
+    Helps cover the interface of ReplicatedControlModel and User (which cannot subclass) that allows them
+    to use OutboxCategory.connect_control_model_updates.
+    """
+
+    @classmethod
+    def handle_async_deletion(
+        cls,
+        identifier: int,
+        region_name: str,
+        shard_identifier: int,
+        payload: Mapping[str, Any] | None,
+    ) -> None:
+        pass
+
+    def handle_async_replication(self, region_name: str, shard_identifier: int) -> None:
         pass
 
 
