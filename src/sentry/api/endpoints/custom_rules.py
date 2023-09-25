@@ -147,17 +147,17 @@ class CustomRulesEndpoint(OrganizationEndpoint):
         query = request.GET.get("query")
 
         try:
-            requested_projects = [int(project_id) for project_id in requested_projects]
+            requested_projects_ids = [int(project_id) for project_id in requested_projects]
         except ValueError:
             return Response({"projects": ["Invalid project id"]}, status=400)
 
-        if requested_projects:
+        if requested_projects_ids:
             org_rule = False
             invalid_projects = []
             available_projects = {
-                p.id for p in Project.objects.get_many_from_cache(requested_projects)
+                p.id for p in Project.objects.get_many_from_cache(requested_projects_ids)
             }
-            for project_id in requested_projects:
+            for project_id in requested_projects_ids:
                 if project_id not in available_projects:
                     invalid_projects.append(f"invalid project id: {project_id}")
 
@@ -195,7 +195,7 @@ class CustomRulesEndpoint(OrganizationEndpoint):
 
         # project rule request and project rule found # see if we have all projects
         available_projects = {p.id for p in rule.projects.all()}
-        for project_id in requested_projects:
+        for project_id in requested_projects_ids:
             if project_id not in available_projects:
                 return Response(status=204)
 
