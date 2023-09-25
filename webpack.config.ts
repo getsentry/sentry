@@ -476,6 +476,13 @@ const appConfig: Configuration = {
   devtool: IS_PRODUCTION ? 'source-map' : 'eval-cheap-module-source-map',
 };
 
+if (IS_TEST) {
+  appConfig.resolve!.alias!['sentry-fixture'] = path.join(
+    __dirname,
+    'fixtures',
+    'js-stubs'
+  );
+}
 if (IS_TEST || IS_ACCEPTANCE_TEST) {
   appConfig.resolve!.alias!['integration-docs-platforms'] = path.join(
     __dirname,
