@@ -395,7 +395,6 @@ class ProfileFrameDropType(GroupType):
     description = "Frame Drop"
     category = GroupCategory.PERFORMANCE.value
     noise_config = NoiseConfig(ignore_limit=25)
-    released = True
 
 
 @dataclass(frozen=True)
