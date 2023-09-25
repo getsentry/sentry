@@ -98,7 +98,7 @@ def get_entity_of_metric_mocked(_, metric_name, use_case_id):
         "sentry.sessions.session": EntityKey.MetricsCounters,
         SessionMRI.RAW_SESSION.value: EntityKey.MetricsCounters,
         "sentry.sessions.session.error": EntityKey.MetricsSets,
-        SessionMRI.ERROR.value: EntityKey.MetricsSets,
+        SessionMRI.RAW_ERROR.value: EntityKey.MetricsSets,
     }[metric_name]
 
 
@@ -357,7 +357,7 @@ def test_build_snuba_query(mock_now, mock_now2):
         project_ids=[1],
         select=[
             MetricField("sum", SessionMRI.RAW_SESSION.value),
-            MetricField("count_unique", SessionMRI.USER.value),
+            MetricField("count_unique", SessionMRI.RAW_USER.value),
             MetricField("p95", SessionMRI.RAW_DURATION.value),
         ],
         start=MOCK_NOW - timedelta(days=90),
@@ -699,7 +699,7 @@ def test_build_snuba_query_derived_metrics(mock_now, mock_now2):
                 match=Entity("metrics_sets"),
                 select=[
                     uniq_aggregation_on_metric(
-                        metric_ids=[resolve_weak(use_case_id, org_id, SessionMRI.ERROR.value)],
+                        metric_ids=[resolve_weak(use_case_id, org_id, SessionMRI.RAW_ERROR.value)],
                         alias=f"{SessionMRI.ERRORED_SET.value}{COMPOSITE_ENTITY_CONSTITUENT_ALIAS}{SessionMetricKey.ERRORED.value}",
                     ),
                 ],
@@ -716,7 +716,7 @@ def test_build_snuba_query_derived_metrics(mock_now, mock_now2):
                     Condition(
                         Column("metric_id"),
                         Op.IN,
-                        [resolve_weak(use_case_id, org_id, SessionMRI.ERROR.value)],
+                        [resolve_weak(use_case_id, org_id, SessionMRI.RAW_ERROR.value)],
                     ),
                 ],
                 having=[],
@@ -1309,7 +1309,7 @@ def test_translate_meta_result_type_composite_entity_derived_metric(_):
         pytest.param(
             [
                 MetricField("sum", SessionMRI.RAW_SESSION.value),
-                MetricField("count_unique", SessionMRI.USER.value),
+                MetricField("count_unique", SessionMRI.RAW_USER.value),
                 MetricField("p95", SessionMRI.RAW_DURATION.value),
             ],
             [
@@ -1404,7 +1404,7 @@ def test_only_can_groupby_operations_can_be_added_to_groupby(
         pytest.param(
             [
                 MetricField("sum", SessionMRI.RAW_SESSION.value),
-                MetricField("count_unique", SessionMRI.USER.value),
+                MetricField("count_unique", SessionMRI.RAW_USER.value),
                 MetricField("p95", SessionMRI.RAW_DURATION.value),
             ],
             [

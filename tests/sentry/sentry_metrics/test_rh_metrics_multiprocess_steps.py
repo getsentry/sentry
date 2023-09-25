@@ -253,7 +253,7 @@ distribution_payload: dict[str, Any] = {
 }
 
 set_payload: dict[str, Any] = {
-    "name": SessionMRI.ERROR.value,
+    "name": SessionMRI.RAW_ERROR.value,
     "tags": {
         "environment": "production",
         "session.status": "errored",
@@ -341,7 +341,7 @@ def test_process_messages() -> None:
 invalid_payloads = [
     (
         {
-            "name": SessionMRI.ERROR.value,
+            "name": SessionMRI.RAW_ERROR.value,
             "tags": {
                 "environment": "production" * 21,
                 "session.status": "errored",
@@ -358,7 +358,7 @@ invalid_payloads = [
     ),
     (
         {
-            "name": SessionMRI.ERROR.value * 21,
+            "name": SessionMRI.RAW_ERROR.value * 21,
             "tags": {
                 "environment": "production",
                 "session.status": "errored",

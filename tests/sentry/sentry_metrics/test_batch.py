@@ -60,7 +60,7 @@ distribution_payload = {
 distribution_headers = [("namespace", b"sessions")]
 
 set_payload = {
-    "name": SessionMRI.ERROR.value,
+    "name": SessionMRI.RAW_ERROR.value,
     "tags": {
         "environment": "production",
         "session.status": "errored",

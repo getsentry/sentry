@@ -53,7 +53,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         org_id = self.organization.id
         self.session_metric = rh_indexer_record(org_id, SessionMRI.RAW_SESSION.value)
         self.session_duration = rh_indexer_record(org_id, SessionMRI.DURATION.value)
-        self.session_error_metric = rh_indexer_record(org_id, SessionMRI.ERROR.value)
+        self.session_error_metric = rh_indexer_record(org_id, SessionMRI.RAW_ERROR.value)
 
     @property
     def now(self):
@@ -1260,7 +1260,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         ):
             for value in numbers:
                 self.store_release_health_metric(
-                    name=SessionMRI.ERROR.value,
+                    name=SessionMRI.RAW_ERROR.value,
                     tags={tag: tag_value},
                     value=value,
                 )
@@ -1318,7 +1318,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         ):
             for value in numbers:
                 self.store_release_health_metric(
-                    name=SessionMRI.ERROR.value,
+                    name=SessionMRI.RAW_ERROR.value,
                     tags={tag: tag_value},
                     value=value,
                 )
@@ -1506,8 +1506,8 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         org_id = self.organization.id
         self.session_duration_metric = rh_indexer_record(org_id, SessionMRI.RAW_DURATION.value)
         self.session_metric = rh_indexer_record(org_id, SessionMRI.RAW_SESSION.value)
-        self.session_user_metric = rh_indexer_record(org_id, SessionMRI.USER.value)
-        self.session_error_metric = rh_indexer_record(org_id, SessionMRI.ERROR.value)
+        self.session_user_metric = rh_indexer_record(org_id, SessionMRI.RAW_USER.value)
+        self.session_error_metric = rh_indexer_record(org_id, SessionMRI.RAW_ERROR.value)
         self.session_status_tag = rh_indexer_record(org_id, "session.status")
         self.release_tag = rh_indexer_record(self.organization.id, "release")
         self.tx_metric = perf_indexer_record(org_id, TransactionMRI.DURATION.value)
@@ -1693,7 +1693,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
             )
         for value in range(3):
             self.store_release_health_metric(
-                name=SessionMRI.ERROR.value,
+                name=SessionMRI.RAW_ERROR.value,
                 tags={"release": "foo"},
                 value=value,
             )
@@ -1763,7 +1763,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         ):
             for value in values:
                 self.store_release_health_metric(
-                    name=SessionMRI.USER.value,
+                    name=SessionMRI.RAW_USER.value,
                     tags={"session.status": "crashed", "release": tag_value},
                     value=value,
                 )
@@ -1787,7 +1787,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
     def test_all_user_sessions(self):
         for value in [1, 2, 4]:
             self.store_release_health_metric(
-                name=SessionMRI.USER.value,
+                name=SessionMRI.RAW_USER.value,
                 tags={},
                 value=value,
             )
@@ -1810,7 +1810,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         for tags, values in cases:
             for value in values:
                 self.store_release_health_metric(
-                    name=SessionMRI.USER.value,
+                    name=SessionMRI.RAW_USER.value,
                     tags=tags,
                     value=value,
                 )
@@ -1833,7 +1833,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         ):
             for value in values:
                 self.store_release_health_metric(
-                    name=SessionMRI.USER.value,
+                    name=SessionMRI.RAW_USER.value,
                     tags=tags,
                     value=value,
                 )
@@ -1867,7 +1867,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         ):
             for value in values:
                 self.store_release_health_metric(
-                    name=SessionMRI.USER.value,
+                    name=SessionMRI.RAW_USER.value,
                     tags=tags,
                     value=value,
                 )
@@ -1928,7 +1928,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
 
         for value in range(3):
             self.store_release_health_metric(
-                name=SessionMRI.ERROR.value,
+                name=SessionMRI.RAW_ERROR.value,
                 tags={"release": "foo"},
                 value=value,
             )
@@ -1982,7 +1982,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         ):
             for value in values:
                 self.store_release_health_metric(
-                    name=SessionMRI.USER.value,
+                    name=SessionMRI.RAW_USER.value,
                     tags={"session.status": tag_value},
                     value=value,
                 )
@@ -2003,7 +2003,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         # Errored = -3
         for value in [1, 2, 4]:
             self.store_release_health_metric(
-                name=SessionMRI.USER.value,
+                name=SessionMRI.RAW_USER.value,
                 tags={"session.status": "crashed"},
                 value=value,
             )
@@ -2027,7 +2027,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         for tags, values in cases:
             for value in values:
                 self.store_release_health_metric(
-                    name=SessionMRI.USER.value,
+                    name=SessionMRI.RAW_USER.value,
                     tags=tags,
                     value=value,
                 )
@@ -2046,7 +2046,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         # init = 0
         # errored_all = 1
         self.store_release_health_metric(
-            name=SessionMRI.USER.value,
+            name=SessionMRI.RAW_USER.value,
             tags={"session.status": "errored"},
             value=1,
         )

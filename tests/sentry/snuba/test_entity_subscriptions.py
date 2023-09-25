@@ -40,7 +40,7 @@ class EntitySubscriptionTestCase(TestCase):
         super().setUp()
         for tag in [
             SessionMRI.RAW_SESSION.value,
-            SessionMRI.USER.value,
+            SessionMRI.RAW_USER.value,
             "session.status",
             "init",
             "crashed",

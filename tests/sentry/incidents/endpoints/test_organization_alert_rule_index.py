@@ -859,7 +859,7 @@ class MetricsCrashRateAlertCreationTest(AlertRuleCreateEndpointTestCrashRateAler
         self.valid_alert_rule["dataset"] = Dataset.Metrics.value
         for tag in [
             SessionMRI.RAW_SESSION.value,
-            SessionMRI.USER.value,
+            SessionMRI.RAW_USER.value,
             "session.status",
             "init",
             "crashed",

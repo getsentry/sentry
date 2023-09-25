@@ -352,7 +352,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
         def _count_users(total: bool, referrer: str) -> Dict[Any, int]:
             select = [
-                MetricField(metric_mri=SessionMRI.USER.value, alias="value", op="count_unique")
+                MetricField(metric_mri=SessionMRI.RAW_USER.value, alias="value", op="count_unique")
             ]
             query = MetricsQuery(
                 org_id=org_id,
@@ -812,7 +812,9 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             MetricField(metric_mri=SessionMRI.CRASHED.value, alias="crashed", op=None),
             MetricField(metric_mri=SessionMRI.ALL.value, alias="init", op=None),
             MetricField(
-                metric_mri=SessionMRI.ERRORED_PREAGGREGATED.value, alias="errored_preaggr", op=None
+                metric_mri=SessionMRI.ERRORED_PREAGGREGATED.value,
+                alias="errored_preaggr",
+                op=None,
             ),
         ]
 
