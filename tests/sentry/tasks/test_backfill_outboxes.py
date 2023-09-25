@@ -27,7 +27,12 @@ from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import override_options
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, no_silo_test
+from sentry.testutils.silo import (
+    assume_test_silo_mode,
+    control_silo_test,
+    no_silo_test,
+    region_silo_test,
+)
 from sentry.utils import redis
 
 
@@ -53,6 +58,24 @@ def test_processing_awaits_options():
         }
     ):
         assert backfill_outboxes_for(SiloMode.CONTROL, 0, 1)
+
+
+@django_db_all
+@region_silo_test(stable=True)
+def test_region_processing(task_runner):
+    with outbox_context(flush=False):
+        for i in range(5):
+            Factories.create_organization()
+    RegionOutbox.objects.all().delete()
+
+    with outbox_runner(), task_runner():
+        while backfill_outboxes_for(SiloMode.REGION, 0, 1, force_synchronous=True):
+            pass
+        assert RegionOutbox.objects.all().count() == 5
+
+    assert RegionOutbox.objects.all().count() == 0
+    with assume_test_silo_mode(SiloMode.CONTROL):
+        assert OrganizationMapping.objects.all().count() == 5
 
 
 @django_db_all
@@ -114,6 +137,8 @@ def test_control_processing(task_runner):
     with outbox_runner(), task_runner():
         while backfill_outboxes_for(SiloMode.CONTROL, 0, 1, force_synchronous=True):
             pass
+
+    assert OrganizationMapping.objects.all().count() == 2
 
     # Does not process these new objects since we already completed all available work for this version.
     with assume_test_silo_mode(SiloMode.REGION):
