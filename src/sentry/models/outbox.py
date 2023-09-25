@@ -61,7 +61,9 @@ _M = TypeVar("_M", bound=BaseModel)
 
 
 class OutboxFlushError(Exception):
-    pass
+    def __init__(self, message: str, outbox: OutboxBase) -> None:
+        super().__init__(message)
+        self.outbox = outbox
 
 
 class InvalidOutboxError(Exception):
@@ -601,7 +603,9 @@ class OutboxBase(Model):
                     try:
                         coalesced.send_signal()
                     except Exception as e:
-                        raise OutboxFlushError(f"Could not flush shard {repr(coalesced)}") from e
+                        raise OutboxFlushError(
+                            f"Could not flush shard category={coalesced.category}", coalesced
+                        ) from e
 
                 return True
         return False
@@ -621,7 +625,7 @@ class OutboxBase(Model):
         latest_shard_row: OutboxBase | None = None
         if not flush_all:
             latest_shard_row = self.selected_messages_in_shard().last()
-            # If we're not flushing all possible shards, and we don't see any immediately values,
+            # If we're not flushing all possible shards, and we don't see any immediate values,
             # drop.
             if latest_shard_row is None:
                 return
