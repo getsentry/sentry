@@ -14,7 +14,7 @@ from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.auth")
 
-AUTH_CHECK_INTERVAL = 3600
+AUTH_CHECK_INTERVAL = 3600 * 24
 
 
 @instrumented_task(name="sentry.tasks.check_auth", queue="auth.control", silo_mode=SiloMode.CONTROL)

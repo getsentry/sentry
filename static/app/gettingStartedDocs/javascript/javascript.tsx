@@ -123,6 +123,7 @@ export function GettingStartedWithJavaScript({
   newOrg,
   platformKey,
   projectId,
+  ...props
 }: ModuleProps) {
   const integrations: string[] = [];
   const otherConfigs: string[] = [];
@@ -166,6 +167,7 @@ export function GettingStartedWithJavaScript({
       nextSteps={nextStepDocs}
       platformKey={platformKey}
       newOrg={newOrg}
+      {...props}
     />
   );
 }

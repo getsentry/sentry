@@ -1,4 +1,5 @@
-import {Fragment, ReactNode, useCallback, useMemo} from 'react';
+import {ReactNode, useCallback, useMemo} from 'react';
+import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import renderSortableHeaderCell from 'sentry/components/feedback/table/renderSortableHeaderCell';
@@ -16,6 +17,27 @@ export interface UrlState {
   widths: string[];
 }
 
+export function getAriaLabel(str: string) {
+  const pre = str.split('aria="')[1];
+  if (!pre) {
+    return '';
+  }
+  return pre.substring(0, pre.lastIndexOf('"]'));
+}
+
+export function hydratedSelectorData(data, clickType): DeadRageSelectorItem[] {
+  return data
+    .filter(d => d[clickType] > 0)
+    .map(d => {
+      return {
+        [clickType]: d[clickType],
+        dom_element: d.dom_element,
+        element: d.dom_element.split(/[#.]+/)[0],
+        aria_label: getAriaLabel(d.dom_element),
+      };
+    });
+}
+
 interface Props {
   clickCountColumn: {key: string; name: string};
   clickCountSortable: boolean;
@@ -25,7 +47,7 @@ interface Props {
   location: Location<any>;
   customHandleResize?: () => void;
   headerButtons?: ReactNode;
-  title?: string;
+  title?: ReactNode;
 }
 
 const BASE_COLUMNS: GridColumnOrder<string>[] = [
@@ -90,24 +112,22 @@ export default function SelectorTable({
   );
 
   return (
-    <Fragment>
-      <GridEditable
-        error={isError}
-        isLoading={isLoading}
-        data={data ?? []}
-        columnOrder={columns}
-        columnSortBy={[]}
-        stickyHeader
-        grid={{
-          onResizeColumn: customHandleResize ?? handleResizeColumn,
-          renderHeadCell,
-          renderBodyCell,
-        }}
-        location={location as Location<any>}
-        title={title}
-        headerButtons={() => headerButtons}
-      />
-    </Fragment>
+    <GridEditable
+      error={isError}
+      isLoading={isLoading}
+      data={data ?? []}
+      columnOrder={columns}
+      columnSortBy={[]}
+      stickyHeader
+      grid={{
+        onResizeColumn: customHandleResize ?? handleResizeColumn,
+        renderHeadCell,
+        renderBodyCell,
+      }}
+      location={location as Location<any>}
+      title={title}
+      headerButtons={() => headerButtons}
+    />
   );
 }
 
@@ -130,5 +150,19 @@ function SelectorLink({
 }
 
 function renderSimpleBodyCell<T>(column: GridColumnOrder<string>, dataRow: T) {
+  if (column.key === 'count_dead_clicks') {
+    return <DeadClickCount>{dataRow[column.key]}</DeadClickCount>;
+  }
+  if (column.key === 'count_rage_clicks') {
+    return <RageClickCount>{dataRow[column.key]}</RageClickCount>;
+  }
   return <TextOverflow>{dataRow[column.key]}</TextOverflow>;
 }
+
+const DeadClickCount = styled(TextOverflow)`
+  color: ${p => p.theme.yellow300};
+`;
+
+const RageClickCount = styled(TextOverflow)`
+  color: ${p => p.theme.red300};
+`;

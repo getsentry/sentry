@@ -1,14 +1,16 @@
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import toUpper from 'lodash/toUpper';
 
-import MarkLine from 'sentry/components/charts/components/markLine';
-import ProgressRing from 'sentry/components/progressRing';
-import {IconQuestion} from 'sentry/icons';
+import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
+import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {ProjectScore} from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
-import {getScoreColor} from 'sentry/views/performance/browser/webVitals/utils/getScoreColor';
+import usePageFilters from 'sentry/utils/usePageFilters';
+import PerformanceScoreRing from 'sentry/views/performance/browser/webVitals/components/performanceScoreRing';
+import {
+  PERFORMANCE_SCORE_WEIGHTS,
+  ProjectScore,
+} from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
 import {WebVitals} from 'sentry/views/performance/browser/webVitals/utils/types';
 import {useProjectWebVitalsTimeseriesQuery} from 'sentry/views/performance/browser/webVitals/utils/useProjectWebVitalsTimeseriesQuery';
 import Chart from 'sentry/views/starfish/components/chart';
@@ -18,84 +20,154 @@ type Props = {
   webVital?: WebVitals | null;
 };
 
+const {
+  lcp: LCP_WEIGHT,
+  fcp: FCP_WEIGHT,
+  fid: FID_WEIGHT,
+  cls: CLS_WEIGHT,
+  ttfb: TTFB_WEIGHT,
+} = PERFORMANCE_SCORE_WEIGHTS;
+
 export function PerformanceScoreChart({projectScore, webVital}: Props) {
   const theme = useTheme();
-  const {data, isLoading} = useProjectWebVitalsTimeseriesQuery({webVital});
+  const pageFilters = usePageFilters();
+
+  const {data, isLoading} = useProjectWebVitalsTimeseriesQuery();
   const score = webVital ? projectScore[`${webVital}Score`] : projectScore.totalScore;
+  const {lcpScore, fcpScore, fidScore, clsScore, ttfbScore} = projectScore;
+
+  const segmentColors = theme.charts.getColorPalette(3);
+  const backgroundColors = segmentColors.map(color => `${color}33`);
+
+  const period = pageFilters.selection.datetime.period;
+  const performanceScoreSubtext =
+    period && Object.keys(DEFAULT_RELATIVE_PERIODS).includes(period)
+      ? DEFAULT_RELATIVE_PERIODS[period]
+      : '';
   return (
     <Flex>
       <PerformanceScoreLabelContainer>
         <PerformanceScoreLabel>
-          {`${webVital ? `${toUpper(webVital)} Score` : t('Performance Score')}`}{' '}
-          {!webVital && <StyledIconQuestion size="xs" />}
+          {t('Performance Score')}
+          <IconChevron size="xs" direction="down" style={{top: 1}} />
         </PerformanceScoreLabel>
+        <PerformanceScoreSubtext>{performanceScoreSubtext}</PerformanceScoreSubtext>
         <ProgressRingContainer>
-          <ProgressRing
-            value={score}
-            text={score}
-            size={120}
-            barWidth={12}
-            progressEndcaps="round"
-            textCss={() => css`
-              font-size: ${theme.fontSizeExtraLarge};
-              font-weight: bold;
-            `}
-            progressColor={getScoreColor(score, theme)}
-          />
+          <svg height={180} width={220}>
+            <ProgressRingText x={160} y={30}>
+              LCP
+            </ProgressRingText>
+            <ProgressRingText x={175} y={140}>
+              FCP
+            </ProgressRingText>
+            <ProgressRingText x={20} y={140}>
+              FID
+            </ProgressRingText>
+            <ProgressRingText x={10} y={60}>
+              CLS
+            </ProgressRingText>
+            <ProgressRingText x={50} y={20}>
+              TTFB
+            </ProgressRingText>
+            <PerformanceScoreRing
+              values={[
+                lcpScore * LCP_WEIGHT * 0.01,
+                fcpScore * FCP_WEIGHT * 0.01,
+                fidScore * FID_WEIGHT * 0.01,
+                clsScore * CLS_WEIGHT * 0.01,
+                ttfbScore * TTFB_WEIGHT * 0.01,
+              ]}
+              maxValues={[LCP_WEIGHT, FCP_WEIGHT, FID_WEIGHT, CLS_WEIGHT, TTFB_WEIGHT]}
+              text={score}
+              size={140}
+              barWidth={14}
+              textCss={() => css`
+                font-size: 32px;
+                font-weight: bold;
+                color: ${theme.textColor};
+              `}
+              segmentColors={segmentColors}
+              backgroundColors={backgroundColors}
+              x={40}
+              y={20}
+            />
+          </svg>
         </ProgressRingContainer>
       </PerformanceScoreLabelContainer>
       <ChartContainer>
+        <PerformanceScoreLabel>
+          {t('Score Breakdown')}
+          <IconChevron size="xs" direction="down" style={{top: 1}} />
+        </PerformanceScoreLabel>
+        <PerformanceScoreSubtext>{performanceScoreSubtext}</PerformanceScoreSubtext>
         <Chart
-          height={200}
+          stacked
+          height={180}
           data={[
             {
-              data,
-              seriesName: `${webVital ? toUpper(webVital) : 'Performance'} Score`,
-              markLine: MarkLine({
-                data: [
-                  {
-                    yAxis: 90,
-                    lineStyle: {
-                      color: theme.green200,
-                      type: 'dashed',
-                      width: 1,
-                    },
-                    label: {
-                      position: 'end',
-                      color: theme.green300,
-                    },
-                  },
-                  {
-                    yAxis: 50,
-                    lineStyle: {
-                      color: theme.yellow200,
-                      type: 'dashed',
-                      width: 1,
-                    },
-                    label: {
-                      position: 'end',
-                      color: theme.yellow300,
-                    },
-                  },
-                ],
-                label: {},
-                symbol: ['none', 'none'],
-                tooltip: {
-                  show: false,
-                },
-              }),
+              data: data?.lcp.map(({name, value}) => ({
+                name,
+                value: value * LCP_WEIGHT * 0.01,
+              })),
+              seriesName: 'LCP',
+              color: segmentColors[0],
+            },
+            {
+              data: data?.fcp.map(
+                ({name, value}) => ({
+                  name,
+                  value: value * FCP_WEIGHT * 0.01,
+                }),
+                []
+              ),
+              seriesName: 'FCP',
+              color: segmentColors[1],
+            },
+            {
+              data: data?.fid.map(
+                ({name, value}) => ({
+                  name,
+                  value: value * FID_WEIGHT * 0.01,
+                }),
+                []
+              ),
+              seriesName: 'FID',
+              color: segmentColors[2],
+            },
+            {
+              data: data?.cls.map(
+                ({name, value}) => ({
+                  name,
+                  value: value * CLS_WEIGHT * 0.01,
+                }),
+                []
+              ),
+              seriesName: 'CLS',
+              color: segmentColors[3],
+            },
+            {
+              data: data?.ttfb.map(
+                ({name, value}) => ({
+                  name,
+                  value: value * TTFB_WEIGHT * 0.01,
+                }),
+                []
+              ),
+              seriesName: 'TTFB',
+              color: segmentColors[4],
             },
           ]}
+          disableXAxis
           loading={isLoading}
           utc={false}
-          chartColors={[getScoreColor(score, theme)]}
-          isLineChart
           grid={{
-            left: 20,
-            right: 50,
-            top: 30,
-            bottom: 10,
+            left: 5,
+            right: 5,
+            top: 5,
+            bottom: 0,
           }}
+          dataMax={100}
+          chartColors={segmentColors}
         />
       </ChartContainer>
     </Flex>
@@ -111,20 +183,16 @@ const Flex = styled('div')`
   margin-top: ${space(2)};
 `;
 
-const StyledIconQuestion = styled(IconQuestion)`
-  position: relative;
-  top: 1px;
-`;
-
 const ChartContainer = styled('div')`
+  padding: ${space(2)} ${space(2)} 0 ${space(2)};
   flex: 1;
   border: 1px solid ${p => p.theme.gray200};
   border-radius: ${p => p.theme.borderRadius};
 `;
 
 const PerformanceScoreLabelContainer = styled('div')`
-  padding: ${space(2)};
-  min-width: 200px;
+  padding: ${space(2)} ${space(2)} 0 ${space(2)};
+  min-width: 320px;
   border: 1px solid ${p => p.theme.gray200};
   border-radius: ${p => p.theme.borderRadius};
   display: flex;
@@ -133,9 +201,24 @@ const PerformanceScoreLabelContainer = styled('div')`
 `;
 
 const PerformanceScoreLabel = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  width: 100%;
+  font-size: ${p => p.theme.fontSizeLarge};
+  color: ${p => p.theme.textColor};
+  font-weight: bold;
+  margin-right: ${space(1)};
+`;
+
+const PerformanceScoreSubtext = styled('div')`
+  width: 100%;
+  font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.gray300};
   margin-bottom: ${space(1)};
 `;
 
 const ProgressRingContainer = styled('div')``;
+
+const ProgressRingText = styled('text')`
+  font-size: ${p => p.theme.fontSizeMedium};
+  color: ${p => p.theme.textColor};
+  font-weight: bold;
+`;

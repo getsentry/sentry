@@ -15,7 +15,10 @@ from sentry.models import AuditLogEntry, Integration
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
+
+pytestmark = [requires_snuba]
 
 control_address = "http://controlserver"
 secret = "hush-hush-im-invisible"

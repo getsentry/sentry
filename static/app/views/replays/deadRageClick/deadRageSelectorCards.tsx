@@ -1,10 +1,10 @@
-import {ComponentProps, ReactNode} from 'react';
+import {ComponentProps, Fragment, ReactNode} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import {LinkButton} from 'sentry/components/button';
-import {hydratedSelectorData} from 'sentry/components/replays/utils';
-import {IconShow} from 'sentry/icons';
+import OpenClosePanel from 'sentry/components/openClosePanel';
+import {IconCursorArrow, IconShow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useDeadRageSelectors from 'sentry/utils/replays/hooks/useDeadRageSelectors';
@@ -16,17 +16,25 @@ import SelectorTable from 'sentry/views/replays/deadRageClick/selectorTable';
 function DeadRageSelectorCards() {
   const location = useLocation();
 
+  function header(isOpen: boolean) {
+    return isOpen
+      ? t('Hide Actionable Replay Insights')
+      : t('Show Actionable Replay Insights');
+  }
+
   return (
-    <SplitCardContainer>
-      <DeadClickTable location={location} />
-      <RageClickTable location={location} />
-    </SplitCardContainer>
+    <OpenClosePanel header={header} openByDefault>
+      <SplitCardContainer>
+        <DeadClickTable location={location} />
+        <RageClickTable location={location} />
+      </SplitCardContainer>
+    </OpenClosePanel>
   );
 }
 
 function DeadClickTable({location}: {location: Location<any>}) {
   const {isLoading, isError, data} = useDeadRageSelectors({
-    per_page: 3,
+    per_page: 4,
     sort: '-count_dead_clicks',
     cursor: undefined,
     prefix: 'selector_',
@@ -34,13 +42,20 @@ function DeadClickTable({location}: {location: Location<any>}) {
 
   return (
     <SelectorTable
-      data={hydratedSelectorData(data, 'count_dead_clicks')}
+      data={data}
       isError={isError}
       isLoading={isLoading}
       location={location}
       clickCountColumn={{key: 'count_dead_clicks', name: 'dead clicks'}}
       clickCountSortable={false}
-      title={t('Most Dead Clicks')}
+      title={
+        <Fragment>
+          <IconContainer>
+            <IconCursorArrow size="xs" color="yellow300" />
+          </IconContainer>
+          {t('Most Dead Clicks')}
+        </Fragment>
+      }
       headerButtons={
         <SearchButton
           label={t('Show all')}
@@ -55,7 +70,7 @@ function DeadClickTable({location}: {location: Location<any>}) {
 
 function RageClickTable({location}: {location: Location<any>}) {
   const {isLoading, isError, data} = useDeadRageSelectors({
-    per_page: 3,
+    per_page: 4,
     sort: '-count_rage_clicks',
     cursor: undefined,
     prefix: 'selector_',
@@ -63,13 +78,20 @@ function RageClickTable({location}: {location: Location<any>}) {
 
   return (
     <SelectorTable
-      data={hydratedSelectorData(data, 'count_rage_clicks')}
+      data={data}
       isError={isError}
       isLoading={isLoading}
       location={location}
       clickCountColumn={{key: 'count_rage_clicks', name: 'rage clicks'}}
       clickCountSortable={false}
-      title={t('Most Rage Clicks')}
+      title={
+        <Fragment>
+          <IconContainer>
+            <IconCursorArrow size="xs" color="red300" />
+          </IconContainer>
+          {t('Most Rage Clicks')}
+        </Fragment>
+      }
       headerButtons={
         <SearchButton
           label={t('Show all')}
@@ -98,7 +120,7 @@ function SearchButton({
   return (
     <LinkButton
       {...props}
-      size="sm"
+      size="xs"
       to={{
         pathname: normalizeUrl(`/organizations/${organization.slug}/replays/${path}/`),
         query: {
@@ -123,6 +145,10 @@ const SplitCardContainer = styled('div')`
   gap: 0 ${space(2)};
   align-items: stretch;
   padding-top: ${space(1)};
+`;
+
+const IconContainer = styled('span')`
+  margin-right: ${space(1)};
 `;
 
 export default DeadRageSelectorCards;

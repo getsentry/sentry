@@ -32,6 +32,7 @@ from sentry.dynamic_sampling import (
     get_redis_client_for_ds,
 )
 from sentry.event_manager import (
+    NON_TITLE_EVENT_TITLES,
     EventManager,
     HashDiscarded,
     _get_event_instance,
@@ -94,6 +95,7 @@ from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_forma
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.performance_issues.event_generators import get_event
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.skips import requires_snuba
 from sentry.tsdb.base import TSDBModel
 from sentry.types.activity import ActivityType
 from sentry.utils import json
@@ -101,6 +103,8 @@ from sentry.utils.cache import cache_key_for_event
 from sentry.utils.outcomes import Outcome
 from sentry.utils.samples import load_data
 from tests.sentry.integrations.github.test_repository import stub_installation_token
+
+pytestmark = [requires_snuba]
 
 
 def make_event(**kwargs):
@@ -2535,28 +2539,54 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         "sentry.event_manager.severity_connection_pool.urlopen",
         return_value=HTTPResponse(body=json.dumps({"severity": 0.1231})),
     )
+    def test_get_severity_score_usable_event_title(
+        self,
+        mock_urlopen: MagicMock,
+    ) -> None:
+        manager = EventManager(
+            make_event(
+                exception={"values": [{"type": "NopeError", "value": "Nopey McNopeface"}]},
+            )
+        )
+        event = manager.save(self.project.id)
+        # `title` is a property with no setter, but it pulls from `metadata`, so it's equivalent
+        # to set it there. (We have to ignore mypy because `metadata` isn't supposed to be mutable.)
+        event.get_event_metadata()["title"] = "Dogs are great!"  # type: ignore[index]
+
+        _get_severity_score(event)
+
+        assert mock_urlopen.call_args.kwargs["body"] == '{"message":"Dogs are great!"}'
+
+    @patch(
+        "sentry.event_manager.severity_connection_pool.urlopen",
+        return_value=HTTPResponse(body=json.dumps({"severity": 0.1231})),
+    )
     @patch("sentry.event_manager.logger.warning")
-    def test_get_severity_score_no_message(
+    def test_get_severity_score_unusable_event_title(
         self,
         mock_logger_warning: MagicMock,
         mock_urlopen: MagicMock,
     ) -> None:
-        manager = EventManager(make_event())
-        event = manager.save(self.project.id)
+        for title in NON_TITLE_EVENT_TITLES:
+            manager = EventManager(make_event())
+            event = manager.save(self.project.id)
+            # `title` is a property with no setter, but it pulls from `metadata`, so it's equivalent
+            # to set it there. (We have to ignore mypy because `metadata` isn't supposed to be mutable.)
+            event.get_event_metadata()["title"] = title  # type: ignore[index]
 
-        severity = _get_severity_score(event)
+            severity = _get_severity_score(event)
 
-        mock_urlopen.assert_not_called()
-        mock_logger_warning.assert_called_with(
-            "Unable to get severity score because event has no message",
-            extra={
-                "event_id": event.event_id,
-                "op": "event_manager._get_severity_score",
-                "error_type": None,
-                "error_msg": None,
-            },
-        )
-        assert severity is None
+            mock_urlopen.assert_not_called()
+            mock_logger_warning.assert_called_with(
+                "Unable to get severity score because of unusable `message` value '<unknown>'",
+                extra={
+                    "event_id": event.event_id,
+                    "op": "event_manager._get_severity_score",
+                    "event_title": title,
+                    "computed_title": "<unknown>",
+                },
+            )
+            assert severity is None
 
     @patch(
         "sentry.event_manager.severity_connection_pool.urlopen",

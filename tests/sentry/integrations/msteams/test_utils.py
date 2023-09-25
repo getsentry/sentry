@@ -5,7 +5,10 @@ import responses
 from sentry.integrations.msteams.utils import get_channel_id
 from sentry.models import Integration
 from sentry.testutils.cases import TestCase
+from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
+
+pytestmark = [requires_snuba]
 
 
 class GetChannelIdTest(TestCase):

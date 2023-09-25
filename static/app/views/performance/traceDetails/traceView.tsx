@@ -58,6 +58,7 @@ type Props = Pick<RouteComponentProps<{}, {}>, 'location'> & {
   traceSlug: string;
   traces: TraceFullDetailed[];
   filteredEventIds?: Set<string>;
+  handleLimitChange?: (newLimit: number) => void;
   orphanErrors?: TraceError[];
   traceInfo?: TraceInfo;
 };
@@ -139,6 +140,7 @@ export default function TraceView({
   traceEventView,
   filteredEventIds,
   orphanErrors,
+  handleLimitChange,
   ...props
 }: Props) {
   const sentryTransaction = Sentry.getCurrentHub().getScope()?.getTransaction();
@@ -454,6 +456,7 @@ export default function TraceView({
                     organization={organization}
                     traceEventView={traceEventView}
                     meta={meta}
+                    handleLimitChange={handleLimitChange}
                   />
                 </TraceViewContainer>
               </StyledTracePanel>

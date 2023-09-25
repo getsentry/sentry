@@ -1,4 +1,5 @@
 from unittest import mock
+from uuid import uuid4
 
 import responses
 from django.core.exceptions import ValidationError
@@ -14,8 +15,11 @@ from sentry.models.release import Release
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.testutils.cases import RuleTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.skips import requires_snuba
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
+
+pytestmark = [requires_snuba]
 
 
 class DiscordIssueAlertTest(RuleTestCase):
@@ -59,8 +63,12 @@ class DiscordIssueAlertTest(RuleTestCase):
         )
 
     @responses.activate
-    def test_basic(self):
-        results = list(self.rule.after(self.event, self.get_state()))
+    @mock.patch("sentry.analytics.record")
+    def test_basic(self, mock_record):
+        notification_uuid = str(uuid4())
+        results = list(
+            self.rule.after(self.event, self.get_state(), notification_uuid=notification_uuid)
+        )
         assert len(results) == 1
 
         with self.feature("organizations:integrations-discord-notifications"):
@@ -79,6 +87,7 @@ class DiscordIssueAlertTest(RuleTestCase):
                 False,
                 None,
                 ExternalProviders.DISCORD,
+                notification_uuid=notification_uuid,
             ),
             "color": LEVEL_TO_COLOR["error"],
             "footer": {"text": build_footer(self.event.group, self.event.project, None, "{text}")},
@@ -96,6 +105,25 @@ class DiscordIssueAlertTest(RuleTestCase):
         assert (
             buttons[2]["custom_id"]
             == f"{DiscordComponentCustomIds.ASSIGN_DIALOG}:{self.event.group.id}"
+        )
+        mock_record.assert_any_call(
+            "integrations.discord.notification_sent",
+            category="issue_alert",
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            group_id=self.event.group_id,
+            notification_uuid=notification_uuid,
+            alert_id=None,
+        )
+        mock_record.assert_called_with(
+            "alert.sent",
+            provider="discord",
+            alert_id="",
+            alert_type="issue_alert",
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            external_id=self.channel_id,
+            notification_uuid=notification_uuid,
         )
 
     @responses.activate

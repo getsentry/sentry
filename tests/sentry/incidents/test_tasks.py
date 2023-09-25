@@ -38,9 +38,10 @@ from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscrip
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import region_silo_test
+from sentry.testutils.skips import requires_snuba
 from sentry.utils.http import absolute_uri
 
-pytestmark = pytest.mark.sentry_metrics
+pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
 
 
 class BaseIncidentActivityTest(TestCase):
