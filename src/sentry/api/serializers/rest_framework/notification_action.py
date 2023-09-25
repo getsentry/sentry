@@ -3,7 +3,6 @@ from typing import Dict, List, Tuple, TypedDict
 from django.db import router, transaction
 from rest_framework import serializers
 
-from sentry import features
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.api.serializers.rest_framework.project import ProjectField
 from sentry.constants import SentryAppInstallationStatus
@@ -215,9 +214,7 @@ class NotificationActionSerializer(CamelSnakeModelSerializer):
             target_identifier: Discord channel id
         NOTE: Reaches out to via discord integration to verify channel
         """
-        from sentry.integrations.discord.utils.channel import (
-            validate_channel_id as validate_channel_id_discord,
-        )
+        from sentry.integrations.discord.utils.channel import validate_channel_id
 
         if (
             data["service_type"] != ActionService.DISCORD.value
@@ -234,7 +231,7 @@ class NotificationActionSerializer(CamelSnakeModelSerializer):
             )
 
         try:
-            validate_channel_id_discord(
+            validate_channel_id(
                 channel_id=channel_id,
                 integration_id=self.integration.id,
             )
@@ -301,10 +298,7 @@ class NotificationActionSerializer(CamelSnakeModelSerializer):
 
         data = self.validate_slack_channel(data)
         data = self.validate_pagerduty_service(data)
-        if features.has(
-            "organizations:integrations-discord-metric-alerts", self.context["organization"]
-        ):
-            data = self.validate_discord_channel(data)
+        data = self.validate_discord_channel(data)
 
         return data
 

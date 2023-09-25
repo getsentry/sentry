@@ -1548,7 +1548,6 @@ def get_slack_channel_ids(organization, user, data):
                 action["target_identifier"],
                 organization,
                 action["integration_id"],
-                organization_flag=organization,
                 use_async_lookup=True,
                 input_channel_id=None,
                 integrations=None,
