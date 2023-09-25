@@ -6,13 +6,12 @@ import JSXProperty from 'sentry/components/stories/jsxProperty';
 import SizingWindow from 'sentry/components/stories/sizingWindow';
 import {space} from 'sentry/styles/space';
 
+export type PropMatrix<E extends ElementType> = Partial<{
+  [Prop in keyof ComponentProps<E>]: Array<ComponentProps<E>[Prop]>;
+}>;
+
 interface Props<E extends ElementType> {
-  propMatrix: Partial<
-    Record<
-      keyof ComponentProps<E>,
-      keyof ComponentProps<E> extends string ? unknown[] : never
-    >
-  >;
+  propMatrix: PropMatrix<E>;
   render: ElementType<ComponentProps<E>>;
   selectedProps: [keyof ComponentProps<E>, keyof ComponentProps<E>];
   sizingWindowProps?: Partial<ComponentProps<typeof SizingWindow>>;
