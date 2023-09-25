@@ -35,7 +35,7 @@ interface SourceMapDebugBlueThunderResponse {
 
 export function useSourceMapDebuggerData(event: Event, projectSlug: string) {
   const isSdkThatShouldShowSourceMapsDebugger =
-    !!event.sdk?.name.startsWith('sentry.javascript.');
+    !!event.sdk?.name?.startsWith('sentry.javascript.');
   const organization = useOrganization({allowNull: true});
   const {data: sourceMapDebuggerData} = useApiQuery<SourceMapDebugBlueThunderResponse>(
     [
