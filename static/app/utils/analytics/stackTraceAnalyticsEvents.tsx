@@ -1,4 +1,16 @@
+export interface SourceMapWizardBlueThunderAnalyticsParams {
+  event_id: string;
+  project_id: string;
+  event_platform?: string;
+  event_runtime?: string;
+  sdk_name?: string;
+  sdk_version?: string;
+}
+
 export type StackTraceEventParameters = {
+  'source_map_debug_blue_thunder.modal_closed': SourceMapWizardBlueThunderAnalyticsParams;
+  'source_map_debug_blue_thunder.modal_opened': SourceMapWizardBlueThunderAnalyticsParams;
+  'source_map_debug_blue_thunder.source_map_wizard_command_copied': SourceMapWizardBlueThunderAnalyticsParams;
   'stack-trace.display_option_absolute_addresses_clicked': {
     checked: boolean;
     is_mobile: boolean;
@@ -63,6 +75,10 @@ export type StackTraceEventParameters = {
 };
 
 export const stackTraceEventMap: Record<keyof StackTraceEventParameters, string> = {
+  'source_map_debug_blue_thunder.modal_closed': 'Source Map Debugger Modal Closed',
+  'source_map_debug_blue_thunder.modal_opened': 'Source Map Debugger Modal Opened',
+  'source_map_debug_blue_thunder.source_map_wizard_command_copied':
+    'Source Map Wizard Command Copied in Source Map Debugger Modal',
   'stack-trace.display_option_absolute_addresses_clicked':
     'Stack Trace: Display Option - Absolute Addresses - Clicked',
   'stack-trace.display_option_absolute_file_paths_clicked':
