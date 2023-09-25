@@ -342,6 +342,7 @@ export function GettingStartedWithLogBack({
       })}
       nextSteps={nextStepDocs}
       introduction={introduction}
+      projectSlug={projectSlug}
       {...props}
     />
   );

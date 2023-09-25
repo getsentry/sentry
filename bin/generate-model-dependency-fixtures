@@ -28,7 +28,7 @@ def main():
 
     # Do all of the calculation before any file writes, so that we don't end up with partial
     # overwrites.
-    detailed = dependencies()
+    detailed = {str(k): v for k, v in dependencies().items()}
     flat = {k: v.flatten() for k, v in detailed.items()}
     sorted = sorted_dependencies()
 

@@ -3,31 +3,43 @@ import {useEffect, useState} from 'react';
 /**
  * Hook to detect when a specific key is being pressed
  */
-const useKeyPress = (targetKey: string, target?: HTMLElement) => {
+const useKeyPress = (
+  targetKey: string,
+  target?: HTMLElement,
+  captureAndStop: boolean = false
+) => {
   const [keyPressed, setKeyPressed] = useState(false);
   const current = target ?? document.body;
 
   useEffect(() => {
-    const downHandler = ({key}: KeyboardEvent) => {
-      if (key === targetKey) {
+    const downHandler = (event: KeyboardEvent) => {
+      if (event.key === targetKey) {
         setKeyPressed(true);
+        if (captureAndStop) {
+          event.preventDefault();
+          event.stopPropagation();
+        }
       }
     };
 
-    const upHandler = ({key}: KeyboardEvent) => {
-      if (key === targetKey) {
+    const upHandler = (event: KeyboardEvent) => {
+      if (event.key === targetKey) {
         setKeyPressed(false);
+        if (captureAndStop) {
+          event.preventDefault();
+          event.stopPropagation();
+        }
       }
     };
 
-    current.addEventListener('keydown', downHandler);
-    current.addEventListener('keyup', upHandler);
+    current.addEventListener('keydown', downHandler, captureAndStop);
+    current.addEventListener('keyup', upHandler, captureAndStop);
 
     return () => {
-      current.removeEventListener('keydown', downHandler);
-      current.removeEventListener('keyup', upHandler);
+      current.removeEventListener('keydown', downHandler, captureAndStop);
+      current.removeEventListener('keyup', upHandler, captureAndStop);
     };
-  }, [targetKey, current]);
+  }, [targetKey, current, captureAndStop]);
 
   return keyPressed;
 };

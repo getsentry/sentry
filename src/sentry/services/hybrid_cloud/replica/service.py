@@ -2,7 +2,8 @@ import abc
 from typing import cast
 
 from sentry.services.hybrid_cloud.auth import RpcAuthIdentity, RpcAuthProvider
-from sentry.services.hybrid_cloud.organization import RpcTeam
+from sentry.services.hybrid_cloud.organization import RpcOrganizationMemberTeam, RpcTeam
+from sentry.services.hybrid_cloud.organization_provisioning import RpcOrganizationSlugReservation
 from sentry.services.hybrid_cloud.region import ByRegionName
 from sentry.services.hybrid_cloud.rpc import RpcService, regional_rpc_method, rpc_method
 from sentry.silo import SiloMode
@@ -15,6 +16,18 @@ class ControlReplicaService(RpcService):
     @rpc_method
     @abc.abstractmethod
     def upsert_replicated_team(self, *, team: RpcTeam) -> None:
+        pass
+
+    @rpc_method
+    @abc.abstractmethod
+    def upsert_replicated_organization_member_team(self, *, omt: RpcOrganizationMemberTeam) -> None:
+        pass
+
+    @rpc_method
+    @abc.abstractmethod
+    def remove_replicated_organization_member_team(
+        self, *, organization_id: int, organization_member_team_id: int
+    ) -> None:
         pass
 
     @classmethod
@@ -40,6 +53,18 @@ class RegionReplicaService(RpcService):
     def upsert_replicated_auth_identity(
         self, *, auth_identity: RpcAuthIdentity, region_name: str
     ) -> None:
+        pass
+
+    @regional_rpc_method(resolve=ByRegionName())
+    @abc.abstractmethod
+    def upsert_replicated_org_slug_reservation(
+        self, *, slug_reservation: RpcOrganizationSlugReservation, region_name: str
+    ) -> None:
+        pass
+
+    @regional_rpc_method(resolve=ByRegionName())
+    @abc.abstractmethod
+    def delete_replicated_org_slug_reservation(self, *, slug: str, organization_id: int) -> None:
         pass
 
     @classmethod

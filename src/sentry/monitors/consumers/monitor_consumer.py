@@ -68,7 +68,6 @@ LOCK_EXP_BASE = 2.0
 def _ensure_monitor_with_config(
     project: Project,
     monitor_slug: str,
-    monitor_slug_from_param: str,
     config: Optional[Dict],
 ):
     try:
@@ -79,21 +78,6 @@ def _ensure_monitor_with_config(
         )
     except Monitor.DoesNotExist:
         monitor = None
-
-    # XXX(epurkhiser): Temporary dual-read logic to handle some monitors
-    # that were created before we correctly slugified slugs on upsert in
-    # this consumer.
-    #
-    # Once all slugs are correctly slugified we can remove this.
-    if not monitor:
-        try:
-            monitor = Monitor.objects.get(
-                slug=monitor_slug_from_param,
-                project_id=project.id,
-                organization_id=project.organization_id,
-            )
-        except Monitor.DoesNotExist:
-            pass
 
     if not config:
         return monitor
@@ -241,9 +225,6 @@ def _process_checkin(
     source_sdk: str,
     txn: Transaction | Span,
 ):
-
-    # Ensure the monitor_slug is slugified, since we are not running this
-    # through the MonitorValidator we must do this here.
     monitor_slug = slugify(params["monitor_slug"])[:MAX_SLUG_LENGTH].strip("-")
 
     environment = params.get("environment")
@@ -353,59 +334,46 @@ def _process_checkin(
 
         return
 
+    monitor_config = params.pop("monitor_config", None)
+
+    params["duration"] = (
+        # Duration is specified in seconds from the client, it is
+        # stored in the checkin model as milliseconds
+        int(params["duration"] * 1000)
+        if params.get("duration") is not None
+        else None
+    )
+
+    validator = MonitorCheckInValidator(
+        data=params,
+        partial=True,
+        context={
+            "project": project,
+        },
+    )
+
+    if not validator.is_valid():
+        metrics.incr(
+            "monitors.checkin.result",
+            tags={**metric_kwargs, "status": "failed_checkin_validation"},
+        )
+        txn.set_tag("result", "failed_checkin_validation")
+        logger.info(
+            "monitors.consumer.checkin_validation_failed",
+            extra={"guid": guid.hex, **params},
+        )
+        return
+
+    validated_params = validator.validated_data
+
     # 01
     # Retrieve or upsert monitor for this check-in
     try:
-        monitor_config = params.pop("monitor_config", None)
-
-        params["duration"] = (
-            # Duration is specified in seconds from the client, it is
-            # stored in the checkin model as milliseconds
-            int(params["duration"] * 1000)
-            if params.get("duration") is not None
-            else None
-        )
-
-        validator = MonitorCheckInValidator(
-            data=params,
-            partial=True,
-            context={
-                "project": project,
-            },
-        )
-
-        if not validator.is_valid():
-            metrics.incr(
-                "monitors.checkin.result",
-                tags={**metric_kwargs, "status": "failed_checkin_validation"},
-            )
-            txn.set_tag("result", "failed_checkin_validation")
-            logger.info(
-                "monitors.consumer.checkin_validation_failed",
-                extra={"guid": guid.hex, **params},
-            )
-            return
-
-        validated_params = validator.validated_data
-
         monitor = _ensure_monitor_with_config(
             project,
             monitor_slug,
-            params["monitor_slug"],
             monitor_config,
         )
-
-        if not monitor:
-            metrics.incr(
-                "monitors.checkin.result",
-                tags={**metric_kwargs, "status": "failed_validation"},
-            )
-            txn.set_tag("result", "failed_validation")
-            logger.info(
-                "monitors.consumer.monitor_validation_failed",
-                extra={"guid": guid.hex, **params},
-            )
-            return
     except MonitorLimitsExceeded:
         metrics.incr(
             "monitors.checkin.result",
@@ -415,6 +383,18 @@ def _process_checkin(
         logger.info(
             "monitors.consumer.monitor_limit_exceeded",
             extra={"guid": guid.hex, "project": project.id, "slug": monitor_slug},
+        )
+        return
+
+    if not monitor:
+        metrics.incr(
+            "monitors.checkin.result",
+            tags={**metric_kwargs, "status": "failed_validation"},
+        )
+        txn.set_tag("result", "failed_validation")
+        logger.info(
+            "monitors.consumer.monitor_validation_failed",
+            extra={"guid": guid.hex, **params},
         )
         return
 
@@ -562,13 +542,9 @@ def _process_checkin(
             # 04
             # Update monitor status
             if check_in.status == CheckInStatus.ERROR:
-                mark_failed(
-                    monitor_environment,
-                    start_time,
-                    occurrence_context={"trace_id": trace_id},
-                )
+                mark_failed(check_in, ts=start_time)
             else:
-                mark_ok(check_in, start_time)
+                mark_ok(check_in, ts=start_time)
 
             metrics.incr(
                 "monitors.checkin.result",
