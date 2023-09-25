@@ -1,7 +1,9 @@
+import {Project} from 'sentry-fixture/project';
+
 import type {ReleaseMeta as ReleaseMetaType} from 'sentry/types';
 
 export function ReleaseMeta(params: Partial<ReleaseMetaType>): ReleaseMetaType {
-  const project = TestStubs.Project();
+  const project = Project();
   return {
     version: 'sentry-android-shop@1.2.0',
     versionInfo: {
@@ -20,11 +22,11 @@ export function ReleaseMeta(params: Partial<ReleaseMetaType>): ReleaseMetaType {
     },
     projects: [
       {
-        id: project.id,
+        id: Number(project.id),
         slug: project.slug,
         name: project.name,
         newGroups: 0,
-        platform: project.platform,
+        platform: project.platform ?? 'android',
         platforms: ['javascript'],
       },
     ],
