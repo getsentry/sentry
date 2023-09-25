@@ -121,35 +121,39 @@ def _process_groups(
     if not groups:
         return all_results
 
-    group_ids_by_project = _extract_project_and_group_ids(groups)
+    # group_ids_by_project = _extract_project_and_group_ids(groups)
+    group_ids_by_project_by_organization = _extract_organization_and_project_and_group_ids(groups)
     proj_ids, group_ids = [], []
     processed_projects = 0
-    total_projects_count = len(group_ids_by_project)
-    organization_id = groups[0].project.organization.id
 
     # This iteration guarantees that all groups for a project will be queried in the same call
     # and only one page where the groups could be mixed with groups from another project
     # Iterating over the sorted keys guarantees results for tests
-    for proj_id in sorted(group_ids_by_project.keys()):
-        _group_ids = group_ids_by_project[proj_id]
-        # Add them to the list of projects and groups to query
-        proj_ids.append(proj_id)
-        group_ids += _group_ids
-        processed_projects += 1
-        potential_num_elements = len(_group_ids) * BUCKETS_PER_GROUP
-        # This is trying to maximize the number of groups on the first page
-        if (
-            processed_projects < total_projects_count
-            and potential_num_elements < ELEMENTS_PER_SNUBA_PAGE
-        ):
-            continue
+    for organization_id in sorted(group_ids_by_project_by_organization.keys()):
+        group_ids_by_project = group_ids_by_project_by_organization[organization_id]
+        total_projects_count = len(group_ids_by_project)
 
-        # TODO: Write this as a dispatcher type task and fire off a separate task per proj_ids
-        all_results += _query_with_pagination(
-            organization_id, proj_ids, group_ids, start_date, end_date, category
-        )
-        # We're ready for a new set of projects and ids
-        proj_ids, group_ids = [], []
+        for proj_id in sorted(group_ids_by_project.keys()):
+            _group_ids = group_ids_by_project[proj_id]
+            # Add them to the list of projects and groups to query
+            proj_ids.append(proj_id)
+            group_ids += _group_ids
+            processed_projects += 1
+            potential_num_elements = len(_group_ids) * BUCKETS_PER_GROUP
+            # This is trying to maximize the number of groups on the first page
+            if (
+                processed_projects < total_projects_count
+                and potential_num_elements < ELEMENTS_PER_SNUBA_PAGE
+            ):
+                continue
+
+            # TODO: Write this as a dispatcher type task and fire off a separate task per proj_ids
+            all_results += _query_with_pagination(
+                organization_id, proj_ids, group_ids, start_date, end_date, category
+            )
+
+            # We're ready for a new set of projects and ids
+            proj_ids, group_ids = [], []
 
     return all_results
 
@@ -165,7 +169,6 @@ def _query_with_pagination(
     """Query Snuba for event counts for the given list of project ids and groups ids in
     a time range."""
     organization = Organization.objects.get(id=organization_id)
-
     all_results = []
     offset = 0
 
@@ -194,19 +197,51 @@ def _query_with_pagination(
             organization_id, project_ids, group_ids, start_date, end_date, category
         )
         projects = Project.objects.filter(id__in=project_ids)
-        metrics_results = get_series(
+        metrics_series_results = get_series(
             projects=projects, metrics_query=metrics_query, use_case_id=UseCaseID.ESCALATING_ISSUES
         )
+        metrics_results = transform_to_groups_count_response(metrics_series_results)
 
         # Log exception if results from the Metrics backend are
         # not equivalent to the Errors dataset.
-        if metrics_query != all_results:
+        if not compare_lists(metrics_results, all_results):
             logger.info(
                 "Generics Metrics Backend query results not the same as Errors dataset query.",
                 extra={"metrics_results": metrics_results, "dataset_results": all_results},
             )
 
     return all_results
+
+
+def transform_to_groups_count_response(data: dict) -> List[GroupsCountResponse]:
+    """
+    Transforms results from `get_series` metrics query to List[GroupsCountResponse]
+    """
+    result = []
+
+    for group in data["groups"]:
+        project_id = group["by"]["project_id"]
+        group_id = int(group["by"]["group"])
+        for interval, count in zip(data["intervals"], group["series"]["event_ingested"]):
+            if count > 0:
+                result.append(
+                    {
+                        "project_id": project_id,
+                        "group_id": group_id,
+                        "hourBucket": interval.isoformat(),
+                        "count()": count,
+                    }
+                )
+
+    return result
+
+
+def compare_lists(list1, list2):
+    # Convert each dictionary in the list to a frozenset so it's hashable
+    set1 = set(map(lambda x: frozenset(x.items()), list1))
+    set2 = set(map(lambda x: frozenset(x.items()), list2))
+
+    return set1 == set2
 
 
 def _generate_generic_metrics_backend_query(
@@ -229,10 +264,10 @@ def _generate_generic_metrics_backend_query(
         raise Exception("Invalid category.")
 
     select = [
-        MetricField(metric_mri=ErrorsMRI.EVENT_INGESTED.value, alias="event_ingested", op="count"),
+        MetricField(metric_mri=ErrorsMRI.EVENT_INGESTED.value, alias="event_ingested", op="sum"),
     ]
 
-    groupby = [MetricGroupByField(field="project_id"), MetricGroupByField(field="tags[group]")]
+    groupby = [MetricGroupByField(field="project_id"), MetricGroupByField(field="group")]
 
     where = [
         Condition(
@@ -304,6 +339,19 @@ def _extract_project_and_group_ids(groups: Sequence[Group]) -> Dict[int, List[in
         group_ids_by_project[group.project_id].append(group.id)
 
     return group_ids_by_project
+
+
+def _extract_organization_and_project_and_group_ids(
+    groups: Sequence[Group],
+) -> Dict[int, Dict[int, List[int]]]:
+    """Returns an object of organization by project by list of group ids from a list of Group"""
+    group_ids_by_project = _extract_project_and_group_ids(groups)
+    group_ids_by_organization: Dict[int, Dict[int, List[int]]] = defaultdict(dict)
+    for group in groups:
+        group_ids_by_organization[group.project.organization_id].update(
+            {group.project_id: group_ids_by_project[group.project_id]}
+        )
+    return group_ids_by_organization
 
 
 def get_group_hourly_count(group: Group) -> int:

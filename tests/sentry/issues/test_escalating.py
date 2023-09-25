@@ -2,8 +2,11 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 from typing import Any, List, Optional
+from unittest import mock
 from unittest.mock import patch
 from uuid import uuid4
+
+import pytest
 
 from sentry.eventstore.models import Event
 from sentry.issues.escalating import (
@@ -18,6 +21,7 @@ from sentry.issues.grouptype import GroupCategory, ProfileFileIOGroupType
 from sentry.models import Group
 from sentry.models.group import GroupStatus
 from sentry.models.groupinbox import GroupInbox
+from sentry.sentry_metrics.client.snuba import build_mri
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.testutils.cases import BaseMetricsTestCase, PerformanceIssueTestCase, TestCase
 from sentry.testutils.helpers.datetime import freeze_time
@@ -26,6 +30,8 @@ from sentry.types.group import GroupSubStatus
 from sentry.utils.cache import cache
 from sentry.utils.snuba import to_start_of_hour
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
+
+pytestmark = pytest.mark.sentry_metrics
 
 TIME_YESTERDAY = (datetime.now() - timedelta(hours=24)).replace(hour=6)
 
@@ -62,7 +68,7 @@ class BaseGroupCounts(BaseMetricsTestCase, TestCase):
                 use_case_id=UseCaseID.ESCALATING_ISSUES,
                 org_id=last_event.project.organization_id,
                 project_id=last_event.project.id,
-                name="event_ingested",
+                name=build_mri("event_ingested", "c", UseCaseID.ESCALATING_ISSUES, None),
                 value=1,
                 tags={"group": str(last_event.group_id)},
                 timestamp=data["timestamp"],
@@ -89,23 +95,39 @@ class HistoricGroupCounts(
         }
 
     @with_feature("organizations:escalating-issues-v2")
-    def test_query_single_group(self) -> None:
+    @mock.patch("sentry.issues.escalating.logger")
+    def test_query_single_group(self, mock_logger) -> None:
         event = self._create_events_for_group()
         assert query_groups_past_counts(Group.objects.all()) == [
             self._create_hourly_bucket(1, event)
         ]
+        assert mock_logger.info.call_count == 0
 
+    @with_feature("organizations:escalating-issues-v2")
     @freeze_time(TIME_YESTERDAY)
-    def test_query_different_group_categories(self) -> None:
+    @mock.patch("sentry.issues.escalating.logger")
+    def test_query_different_group_categories(self, mock_logger) -> None:
         from django.utils import timezone
 
+        timestamp = timezone.now() - timedelta(minutes=1)
         # This builds an error group and a profiling group
         profile_error_event, _, profile_issue_occurrence = self.store_search_issue(
             project_id=self.project.id,
             user_id=0,
             fingerprints=[f"{ProfileFileIOGroupType.type_id}-group1"],
-            insert_time=timezone.now() - timedelta(minutes=1),
+            insert_time=timestamp,
         )
+        self.store_metric(
+            type="counter",
+            use_case_id=UseCaseID.ESCALATING_ISSUES,
+            org_id=profile_error_event.project.organization_id,
+            project_id=profile_error_event.project.id,
+            name=build_mri("event_ingested", "c", UseCaseID.ESCALATING_ISSUES, None),
+            value=1,
+            tags={"group": str(profile_error_event.group_id)},
+            timestamp=profile_error_event.data["timestamp"],
+        )
+
         assert profile_error_event.group is not None
         assert profile_issue_occurrence is not None
         assert len(Group.objects.all()) == 2
@@ -137,8 +159,11 @@ class HistoricGroupCounts(
             profile_issue_occurrence_bucket,
             self._create_hourly_bucket(1, perf_event),
         ]
+        assert mock_logger.info.call_count == 0
 
-    def test_pagination(self) -> None:
+    @with_feature("organizations:escalating-issues-v2")
+    @mock.patch("sentry.issues.escalating.logger")
+    def test_pagination(self, mock_logger) -> None:
         group1_bucket1_event = self._create_events_for_group(count=2, hours_ago=1, group="group-1")
         group2_bucket1_event = self._create_events_for_group(count=1, hours_ago=2, group="group-2")
         group2_bucket2_event = self._create_events_for_group(count=2, hours_ago=1, group="group-2")
@@ -150,6 +175,8 @@ class HistoricGroupCounts(
                 self._create_hourly_bucket(1, group2_bucket1_event),
                 self._create_hourly_bucket(2, group2_bucket2_event),
             ]
+
+        assert mock_logger.info.call_count == 0
 
     def test_query_optimization(self) -> None:
         px = self.create_project(organization=self.project.organization)
@@ -177,7 +204,9 @@ class HistoricGroupCounts(
             # Proj Y and Z will be grouped together
             assert query_mock.call_count == 2
 
-    def test_query_multiple_projects(self) -> None:
+    @with_feature("organizations:escalating-issues-v2")
+    @mock.patch("sentry.issues.escalating.logger")
+    def test_query_multiple_projects(self, mock_logger) -> None:
         proj_x = self.create_project(organization=self.project.organization)
         proj_y = self.create_project(organization=self.project.organization)
 
@@ -190,14 +219,17 @@ class HistoricGroupCounts(
         event_y_2 = self._create_events_for_group(project_id=proj_y.id, group="group-1")
         # Increases the count of group-1
         self._create_events_for_group(project_id=proj_y.id, group="group-1")
-
         assert query_groups_past_counts(Group.objects.all()) == [
             self._create_hourly_bucket(1, event1),
             self._create_hourly_bucket(1, event_y_1),
             self._create_hourly_bucket(2, event_y_2),
         ]
 
-    def test_query_different_orgs(self) -> None:
+        assert mock_logger.info.call_count == 0
+
+    @with_feature("organizations:escalating-issues-v2")
+    @mock.patch("sentry.issues.escalating.logger")
+    def test_query_different_orgs(self, mock_logger) -> None:
         proj_a = self.create_project(organization=self.project.organization)
         org_b = self.create_organization()
         proj_b = self.create_project(organization=org_b)
@@ -210,6 +242,7 @@ class HistoricGroupCounts(
             self._create_hourly_bucket(1, event1),
             self._create_hourly_bucket(1, event_proj_org_b_1),
         ]
+        assert mock_logger.info.call_count == 0
 
     def test_query_no_groups(self) -> None:
         assert query_groups_past_counts([]) == []
