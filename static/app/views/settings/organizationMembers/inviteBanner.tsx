@@ -22,6 +22,8 @@ import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import withOrganization from 'sentry/utils/withOrganization';
 
+const MAX_MEMBERS_TO_SHOW = 5;
+
 type Props = {
   allowedRoles: OrgRole[];
   missingMembers: {integration: string; users: MissingMember[]};
@@ -96,6 +98,7 @@ export function InviteBanner({
   if (isEligibleForBanner && showBanner) {
     trackAnalytics('github_invite_banner.viewed', {
       organization,
+      members_shown: missingMembers.users.slice(0, MAX_MEMBERS_TO_SHOW).length,
     });
   }
   if (!isEligibleForBanner || !showBanner) {
@@ -127,7 +130,7 @@ export function InviteBanner({
 
   const users = missingMembers.users;
 
-  const cards = users.slice(0, 5).map(member => {
+  const cards = users.slice(0, MAX_MEMBERS_TO_SHOW).map(member => {
     const username = member.externalId.split(':').pop();
     return (
       <MemberCard
@@ -146,7 +149,7 @@ export function InviteBanner({
             <IconCommit size="xs" />
             {tct('[commitCount] Recent Commits', {commitCount: member.commitCount})}
           </MemberCardContentRow>
-          <Subtitle>{member.email}</Subtitle>
+          <MemberEmail>{member.email}</MemberEmail>
         </MemberCardContent>
         <Button
           size="sm"
@@ -276,13 +279,23 @@ const CardTitle = styled('h6')`
   color: ${p => p.theme.gray400};
 `;
 
-export const Subtitle = styled('div')`
+const Subtitle = styled('div')`
   display: flex;
   align-items: center;
   font-size: ${p => p.theme.fontSizeSmall};
   font-weight: 400;
   color: ${p => p.theme.gray300};
   gap: ${space(0.5)};
+`;
+
+const MemberEmail = styled('div')`
+  display: block;
+  max-width: 70%;
+  font-size: ${p => p.theme.fontSizeSmall};
+  font-weight: 400;
+  color: ${p => p.theme.gray300};
+  text-overflow: ellipsis;
+  overflow: hidden;
 `;
 
 const MemberCard = styled(Card)`
@@ -300,7 +313,8 @@ const MemberCardContent = styled('div')`
   display: flex;
   flex-direction: column;
   flex: 1 1;
-  width: 75%;
+  min-width: 50%;
+  max-width: 75%;
 `;
 
 const MemberCardContentRow = styled('div')`

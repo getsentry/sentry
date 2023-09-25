@@ -4,7 +4,6 @@ from unittest.mock import patch
 import pytest
 import responses
 from django.utils import timezone
-from freezegun import freeze_time
 
 from sentry.integrations.github.integration import GitHubIntegrationProvider
 from sentry.models import Commit, Group, GroupOwner, GroupOwnerType, PullRequest
@@ -26,9 +25,12 @@ from sentry.tasks.integrations.github.pr_comment import (
     safe_for_comment,
 )
 from sentry.testutils.cases import IntegrationTestCase, SnubaTestCase, TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
 from sentry.testutils.silo import region_silo_test
+from sentry.testutils.skips import requires_snuba
 from sentry.utils.cache import cache
+
+pytestmark = [requires_snuba]
 
 
 class GithubCommentTestCase(IntegrationTestCase):

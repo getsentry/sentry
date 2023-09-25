@@ -6,7 +6,7 @@ import {GettingStartedWithPHP, steps} from './php';
 
 describe('GettingStartedWithPHP', function () {
   it('renders doc correctly', function () {
-    render(<GettingStartedWithPHP dsn="test-dsn" />);
+    render(<GettingStartedWithPHP dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps({

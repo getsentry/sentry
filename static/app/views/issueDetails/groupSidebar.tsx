@@ -239,6 +239,9 @@ export default function GroupSidebar({
         event={event}
         tagFormatter={TAGS_FORMATTER}
         project={project}
+        isStatisticalDetector={
+          group.issueType === IssueType.PERFORMANCE_DURATION_REGRESSION
+        }
       />
       {renderParticipantData()}
       {renderSeenByList()}

@@ -218,6 +218,7 @@ export function GettingStartedWithAngular({
   newOrg,
   platformKey,
   projectId,
+  ...props
 }: ModuleProps) {
   const integrations: string[] = [];
   const otherConfigs: string[] = [];
@@ -265,6 +266,7 @@ export function GettingStartedWithAngular({
       nextSteps={nextStepDocs}
       newOrg={newOrg}
       platformKey={platformKey}
+      {...props}
     />
   );
 }

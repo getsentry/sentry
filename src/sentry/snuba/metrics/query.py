@@ -7,7 +7,6 @@ from datetime import datetime, timedelta
 from functools import cached_property
 from typing import Dict, Literal, Optional, Sequence, Set, Tuple, Union
 
-from django.db.models import QuerySet
 from snuba_sdk import Column, Direction, Granularity, Limit, Offset, Op
 from snuba_sdk.conditions import BooleanCondition, Condition, ConditionGroup
 
@@ -28,6 +27,7 @@ from .utils import (
     OPERATIONS,
     UNALLOWED_TAGS,
     DerivedMetricParseException,
+    MetricEntity,
     MetricOperationType,
     get_num_intervals,
 )
@@ -70,7 +70,7 @@ class MetricField:
         return bool(self.__hash__() == other.__hash__())
 
     def __hash__(self) -> int:
-        hashable_list = []
+        hashable_list: list[MetricOperationType | str] = []
         if self.op is not None:
             hashable_list.append(self.op)
         hashable_list.append(self.metric_mri)
@@ -170,7 +170,7 @@ class MetricsQuery(MetricsQueryValidationRunner):
     is_alerts_query: bool = False
 
     @cached_property
-    def projects(self) -> QuerySet:
+    def projects(self) -> list[Project]:
         return Project.objects.filter(id__in=self.project_ids)
 
     @cached_property
@@ -243,7 +243,7 @@ class MetricsQuery(MetricsQueryValidationRunner):
                 self._validate_field(metric_order_by_field.field)
 
         orderby_metric_fields: Set[MetricField] = set()
-        metric_entities: Set[MetricField] = set()
+        metric_entities: Set[MetricEntity] = set()
         group_by_str_fields: Set[str] = self.action_by_str_fields(on_group_by=True)
         for metric_order_by_field in self.orderby:
             if isinstance(metric_order_by_field.field, MetricField):

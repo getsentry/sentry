@@ -1,5 +1,6 @@
 import {browserHistory, PlainRoute} from 'react-router';
 import selectEvent from 'react-select-event';
+import moment from 'moment';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -341,6 +342,27 @@ describe('IssueRuleEditor', function () {
       expect(
         screen.getByText('Post to a Threads channel with these')
       ).toBeInTheDocument();
+    });
+
+    it('opts out of the alert being disabled', async function () {
+      MockApiClient.addMockResponse({
+        url: '/projects/org-slug/project-slug/rules/1/',
+        body: TestStubs.ProjectAlertRule({
+          status: 'disabled',
+          disabledDate: moment().add(1, 'day').toISOString(),
+        }),
+      });
+      createWrapper();
+      await userEvent.click(screen.getByText('Save Rule'));
+
+      await waitFor(() =>
+        expect(mock).toHaveBeenCalledWith(
+          endpoint,
+          expect.objectContaining({
+            data: expect.objectContaining({optOutEdit: true}),
+          })
+        )
+      );
     });
   });
 

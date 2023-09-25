@@ -18,8 +18,11 @@ from sentry.tasks.digests import deliver_digest
 from sentry.testutils.cases import PerformanceIssueTestCase, SlackActivityNotificationTest, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.slack import send_notification
+from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
+
+pytestmark = [requires_snuba]
 
 USER_COUNT = 2
 

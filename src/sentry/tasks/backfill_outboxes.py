@@ -14,7 +14,7 @@ from django.db.models import Max, Min, Model
 
 from sentry import options
 from sentry.db.models.outboxes import ControlOutboxProducingModel, RegionOutboxProducingModel
-from sentry.models import outbox_context
+from sentry.models import User, outbox_context
 from sentry.silo import SiloMode
 from sentry.utils import json, metrics, redis
 
@@ -36,17 +36,25 @@ def get_backfill_key(table_name: str) -> str:
 
 
 def get_processing_state(table_name: str) -> Tuple[int, int]:
+    result: Tuple[int, int]
     with redis.clusters.get("default").get_local_client_for_key("backfill_outboxes") as client:
         key = get_backfill_key(table_name)
         v = client.get(key)
         if v is None:
             result = (0, 1)
             client.set(key, json.dumps(result))
-            return result
-        lower, version = json.loads(v)
-        if not (isinstance(lower, int) and isinstance(version, int)):
-            raise TypeError("Expected processing data to be a tuple of (int, int)")
-        return lower, version
+        else:
+            lower, version = json.loads(v)
+            if not (isinstance(lower, int) and isinstance(version, int)):
+                raise TypeError("Expected processing data to be a tuple of (int, int)")
+            result = lower, version
+        metrics.gauge(
+            "backfill_outboxes.low_bound",
+            result[0],
+            tags=dict(table_name=table_name, version=result[1]),
+            sample_rate=1.0,
+        )
+        return result
 
 
 def set_processing_state(table_name: str, value: int, version: int) -> None:
@@ -60,7 +68,7 @@ def set_processing_state(table_name: str, value: int, version: int) -> None:
 
 
 def find_replication_version(
-    model: Union[Type[ControlOutboxProducingModel], Type[RegionOutboxProducingModel]],
+    model: Union[Type[ControlOutboxProducingModel], Type[RegionOutboxProducingModel], Type[User]],
     force_synchronous=False,
 ) -> int:
     """
@@ -80,7 +88,7 @@ def find_replication_version(
 
 
 def _chunk_processing_batch(
-    model: Union[Type[ControlOutboxProducingModel], Type[RegionOutboxProducingModel]],
+    model: Union[Type[ControlOutboxProducingModel], Type[RegionOutboxProducingModel], Type[User]],
     *,
     batch_size: int,
     force_synchronous=False,
@@ -93,22 +101,23 @@ def _chunk_processing_batch(
         lower = 0
         version = target_version
     lower = max(model.objects.aggregate(Min("id"))["id__min"] or 0, lower)
-    upper = model.objects.aggregate(Max("id"))["id__max"] or 0
-    batch_upper = min(upper, lower + batch_size)
+    upper = (
+        model.objects.filter(id__gte=lower)
+        .order_by("id")[: batch_size + 1]
+        .aggregate(Max("id"))["id__max"]
+        or 0
+    )
 
-    # cap to batch size so that query timeouts don't get us.
-    capped = upper
-    if upper >= batch_upper:
-        capped = batch_upper
-
-    return BackfillBatch(low=lower, up=capped, version=version, has_more=upper > capped)
+    return BackfillBatch(low=lower, up=upper, version=version, has_more=upper > lower)
 
 
 def process_outbox_backfill_batch(
     model: Type[Model], batch_size: int, force_synchronous=False
 ) -> BackfillBatch | None:
-    if not issubclass(model, RegionOutboxProducingModel) and not issubclass(
-        model, ControlOutboxProducingModel
+    if (
+        not issubclass(model, RegionOutboxProducingModel)
+        and not issubclass(model, ControlOutboxProducingModel)
+        and not issubclass(model, User)
     ):
         return None
 
@@ -122,7 +131,7 @@ def process_outbox_backfill_batch(
         with outbox_context(transaction.atomic(router.db_for_write(model)), flush=False):
             if isinstance(inst, RegionOutboxProducingModel):
                 inst.outbox_for_update().save()
-            if isinstance(inst, ControlOutboxProducingModel):
+            if isinstance(inst, ControlOutboxProducingModel) or isinstance(inst, User):
                 for outbox in inst.outboxes_for_update():
                     outbox.save()
 
@@ -149,28 +158,37 @@ def backfill_outboxes_for(
     # from an expected rate.
     remaining_to_backfill = max_batch_rate - scheduled_count
     backfilled = 0
-    if remaining_to_backfill <= 0:
-        return False
 
-    for app, app_models in apps.all_models.items():
-        for model in app_models.values():
-            if not hasattr(model._meta, "silo_limit"):
-                continue
+    if remaining_to_backfill > 0:
+        for app, app_models in apps.all_models.items():
+            for model in app_models.values():
+                if not hasattr(model._meta, "silo_limit"):
+                    continue
 
-            # Only process models local this operational mode.
-            if silo_mode is not SiloMode.MONOLITH and silo_mode not in model._meta.silo_limit.modes:
-                continue
+                # Only process models local this operational mode.
+                if (
+                    silo_mode is not SiloMode.MONOLITH
+                    and silo_mode not in model._meta.silo_limit.modes
+                ):
+                    continue
 
-            # If we find some backfill work to perform, do it.
-            batch = process_outbox_backfill_batch(
-                model, batch_size=remaining_to_backfill, force_synchronous=force_synchronous
-            )
-            if batch is None:
-                continue
+                # If we find some backfill work to perform, do it.
+                batch = process_outbox_backfill_batch(
+                    model, batch_size=remaining_to_backfill, force_synchronous=force_synchronous
+                )
+                if batch is None:
+                    continue
 
-            remaining_to_backfill -= batch.count
-            backfilled += batch.count
-            if remaining_to_backfill <= 0:
-                break
+                remaining_to_backfill -= batch.count
+                backfilled += batch.count
+                if remaining_to_backfill <= 0:
+                    break
 
+    metrics.incr(
+        "backfill_outboxes.backfilled",
+        amount=backfilled,
+        tags=dict(silo_mode=silo_mode.name, force_synchronous=force_synchronous),
+        skip_internal=True,
+        sample_rate=1.0,
+    )
     return backfilled > 0

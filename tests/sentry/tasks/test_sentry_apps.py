@@ -7,7 +7,6 @@ from celery import Task
 from django.core import mail
 from django.test import override_settings
 from django.urls import reverse
-from freezegun import freeze_time
 from requests.exceptions import Timeout
 
 from sentry import audit_log
@@ -38,14 +37,17 @@ from sentry.tasks.sentry_apps import (
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
 from sentry.testutils.helpers.eventprocessing import write_event_to_cache
 from sentry.testutils.silo import region_silo_test
+from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.types.rules import RuleFuture
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
 from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
+
+pytestmark = [requires_snuba]
 
 
 def raiseStatusFalse():
