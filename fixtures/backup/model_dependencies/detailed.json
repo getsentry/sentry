@@ -2181,6 +2181,23 @@
       "Region"
     ]
   },
+  "sentry.organizationslugreservation": {
+    "foreign_keys": {
+      "organization_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.organization"
+      },
+      "user_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.user"
+      }
+    },
+    "model": "sentry.organizationslugreservation",
+    "relocation_scope": "Excluded",
+    "silos": [
+      "Control"
+    ]
+  },
   "sentry.orgauthtoken": {
     "foreign_keys": {
       "created_by": {

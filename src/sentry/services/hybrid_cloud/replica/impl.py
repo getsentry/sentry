@@ -21,6 +21,7 @@ from sentry.models import (
 from sentry.models.teamreplica import TeamReplica
 from sentry.services.hybrid_cloud.auth import RpcAuthIdentity, RpcAuthProvider
 from sentry.services.hybrid_cloud.organization import RpcOrganizationMemberTeam, RpcTeam
+from sentry.services.hybrid_cloud.organization_provisioning import RpcOrganizationSlugReservation
 from sentry.services.hybrid_cloud.replica.service import ControlReplicaService, RegionReplicaService
 
 
@@ -153,6 +154,28 @@ class DatabaseBackedRegionReplicaService(RegionReplicaService):
         )
 
         handle_replication(AuthIdentity, destination)
+
+    def upsert_replicated_org_slug_reservation(
+        self, *, slug_reservation: RpcOrganizationSlugReservation, region_name: str
+    ) -> None:
+        pass
+        # TODO(Gabe): Enable this when the replica model is online
+        # with enforce_constraints(
+        #     transaction.atomic(router.db_for_write(OrganizationSlugReservationReplica))
+        # ):
+        #     OrganizationSlugReservationReplica.objects.filter(slug=slug_reservation.slug).delete()
+        #     OrganizationSlugReservationReplica.objects.create(**slug_reservation.dict())
+
+    def delete_replicated_org_slug_reservation(self, *, slug: str, organization_id: int) -> None:
+        pass
+        # TODO(Gabe): Enable this when the replica model is online
+        # with enforce_constraints(
+        #     transaction.atomic(router.db_for_write(OrganizationSlugReservationReplica))
+        # ):
+        #     org_slug_qs = OrganizationSlugReservationReplica.objects.filter(
+        #         slug=slug, organization_id=organization_id
+        #     )
+        #     org_slug_qs.delete()
 
 
 class DatabaseBackedControlReplicaService(ControlReplicaService):
