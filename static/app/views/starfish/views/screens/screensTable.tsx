@@ -1,12 +1,10 @@
 import {Fragment} from 'react';
 
 import {getInterval} from 'sentry/components/charts/utils';
-import GridEditable, {
-  COL_WIDTH_UNDEFINED,
-  GridColumnHeader,
-} from 'sentry/components/gridEditable';
+import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import Pagination from 'sentry/components/pagination';
+import {t} from 'sentry/locale';
 import {NewQuery} from 'sentry/types';
 import {
   TableData,
@@ -18,37 +16,50 @@ import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {TableColumn} from 'sentry/views/discover/table/types';
+import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
+import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
-
-type Row = {
-  'avg(measurements.time_to_full_display)': number;
-  'avg(measurements.time_to_initial_display)': number;
-  'count()': number;
-  transaction: string;
-};
-
-type Column = GridColumnHeader<keyof Row>;
 
 export function ScreensTable() {
   const {selection} = usePageFilters();
   const location = useLocation();
   const organization = useOrganization();
   const {query} = location;
+  const {
+    primaryRelease,
+    secondaryRelease,
+    isLoading: isReleasesLoading,
+  } = useReleaseSelection();
+
+  const searchQuery = new MutableSearch([
+    'event.type:transaction',
+    'transaction.op:ui.load',
+  ]);
+  const queryStringPrimary = appendReleaseFilters(
+    searchQuery,
+    primaryRelease,
+    secondaryRelease
+  );
+
   const orderby = decodeScalar(query.sort, `-count`);
   const newQuery: NewQuery = {
     name: '',
     fields: [
       'transaction',
-      'count()',
-      'avg(measurements.time_to_initial_display)',
+      'avg(measurements.time_to_initial_display)', // TODO: Update these to avgIf with primary release when available
+      `avg_compare(measurements.time_to_initial_display,release,${primaryRelease},${secondaryRelease})`,
       'avg(measurements.time_to_full_display)',
+      `avg_compare(measurements.time_to_full_display,release,${primaryRelease},${secondaryRelease})`,
+      'count()',
     ],
     topEvents: '6',
-    query: 'transaction.op:ui.load',
+    query: queryStringPrimary,
     dataset: DiscoverDatasets.METRICS,
     version: 2,
     projects: selection.projects,
@@ -57,29 +68,22 @@ export function ScreensTable() {
   newQuery.orderby = orderby;
   const eventView = EventView.fromNewQueryWithLocation(newQuery, location);
 
-  const {data, isLoading, pageLinks} = useScreensList({eventView});
-  const columnOrder: Column[] = [
-    {
-      key: 'transaction',
-      name: 'Screen',
-      width: COL_WIDTH_UNDEFINED,
-    },
-    {
-      key: 'avg(measurements.time_to_initial_display)',
-      name: DataTitles.ttid,
-      width: COL_WIDTH_UNDEFINED,
-    },
-    {
-      key: 'avg(measurements.time_to_full_display)',
-      name: DataTitles.ttfd,
-      width: COL_WIDTH_UNDEFINED,
-    },
-    {
-      key: 'count()',
-      name: DataTitles.count,
-      width: COL_WIDTH_UNDEFINED,
-    },
-  ];
+  const {data, isLoading, pageLinks} = useScreensList({
+    eventView,
+    enabled: !isReleasesLoading,
+  });
+  const eventViewColumns = eventView.getColumns();
+
+  const columnNameMap = {
+    transaction: t('Screen'),
+    'avg(measurements.time_to_initial_display)': DataTitles.ttid,
+    'avg(measurements.time_to_full_display)': DataTitles.ttfd,
+    'count()': DataTitles.count,
+    [`avg_compare(measurements.time_to_initial_display,release,${primaryRelease},${secondaryRelease})`]:
+      DataTitles.change,
+    [`avg_compare(measurements.time_to_full_display,release,${primaryRelease},${secondaryRelease})`]:
+      DataTitles.change,
+  };
 
   function renderBodyCell(column, row): React.ReactNode {
     if (!data?.meta || !data?.meta.fields) {
@@ -141,7 +145,9 @@ export function ScreensTable() {
       <GridEditable
         isLoading={isLoading}
         data={data?.data as TableDataRow[]}
-        columnOrder={columnOrder}
+        columnOrder={eventViewColumns.map((col: TableColumn<React.ReactText>) => {
+          return {...col, name: columnNameMap[col.key]};
+        })}
         columnSortBy={[
           {
             key: 'count()',

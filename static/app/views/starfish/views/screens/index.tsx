@@ -15,14 +15,13 @@ import {tooltipFormatterUsingAggregateOutputType} from 'sentry/utils/discover/ch
 import EventView from 'sentry/utils/discover/eventView';
 import {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import MiniChartPanel from 'sentry/views/starfish/components/miniChartPanel';
-import {useReleases} from 'sentry/views/starfish/queries/useReleases';
+import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
+import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
 import {useEventsStatsQuery} from 'sentry/views/starfish/utils/useEventsStatsQuery';
 
 export enum YAxis {
@@ -78,36 +77,17 @@ const DEVICE_CLASS_BREAKDOWN_INDEX = {
 
 export function ScreensView({yAxes}: {yAxes: YAxis[]}) {
   const pageFilter = usePageFilters();
-  const location = useLocation();
-
-  const {data: releases, isLoading: isReleasesLoading} = useReleases();
 
   const yAxisCols = yAxes.map(val => YAXIS_COLUMNS[val]);
 
-  const primaryRelease =
-    decodeScalar(location.query.primaryRelease) ?? releases?.[0]?.version ?? undefined;
-
-  const secondaryRelease =
-    decodeScalar(location.query.secondaryRelease) ?? releases?.[0]?.version ?? undefined;
+  const {
+    primaryRelease,
+    secondaryRelease,
+    isLoading: isReleasesLoading,
+  } = useReleaseSelection();
 
   const query = new MutableSearch(['event.type:transaction', 'transaction.op:ui.load']);
-
-  let queryString: string = query.formatString();
-  if (
-    defined(primaryRelease) &&
-    defined(secondaryRelease) &&
-    primaryRelease !== secondaryRelease
-  ) {
-    queryString = query
-      .copy()
-      .addStringFilter(`release:[${primaryRelease},${secondaryRelease}]`)
-      .formatString();
-  } else if (defined(primaryRelease)) {
-    queryString = query
-      .copy()
-      .addStringFilter(`release:${primaryRelease}`)
-      .formatString();
-  }
+  const queryString = appendReleaseFilters(query, primaryRelease, secondaryRelease);
 
   useSynchronizeCharts();
   const {
