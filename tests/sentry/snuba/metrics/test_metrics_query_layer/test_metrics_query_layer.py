@@ -3,7 +3,6 @@ Metrics Service Layer Tests for Performance
 """
 
 import pytest
-from freezegun import freeze_time
 from snuba_sdk.metrics_query import MetricScope, MetricsQuery
 from snuba_sdk.timeseries import Metric, Timeseries
 
@@ -12,6 +11,7 @@ from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics.naming_layer import TransactionMRI
 from sentry.snuba.metrics_layer.query import resolve_metrics_query
 from sentry.testutils.cases import BaseMetricsLayerTestCase, TestCase
+from sentry.testutils.helpers.datetime import freeze_time
 
 pytestmark = pytest.mark.sentry_metrics
 
