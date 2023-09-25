@@ -8,28 +8,22 @@ import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import {t, tct} from 'sentry/locale';
 
 // Configuration Start
+const performanceConfiguration = `    # Set traces_sample_rate to 1.0 to capture 100%
+    # of transactions for performance monitoring.
+    traces_sample_rate=1.0,`;
 
 const profilingConfiguration = `    # Set profiles_sample_rate to 1.0 to profile 100%
     # of sampled transactions.
     # We recommend adjusting this value in production.
     profiles_sample_rate=1.0,`;
 
-const performanceConfiguration = `    # Set traces_sample_rate to 1.0 to capture 100%
-    # of transactions for performance monitoring.
-    # We recommend adjusting this value in production.
-    traces_sample_rate=1.0,`;
-
 const introduction = (
   <Fragment>
     <p>
-      {tct(
-        'The Quart integration adds support for the Quart Web Framework. We support Quart versions 0.16.1 and higher.',
-        {
-          link: <ExternalLink href="https://gitlab.com/pgjones/quart" />,
-        }
-      )}
+      {tct('The Quart integration adds support for the [link:Quart Web Framework].', {
+        link: <ExternalLink href="https://quart.palletsprojects.com/" />,
+      })}
     </p>
-    {t('A Python version of "3.7" or higher is also required.')}
   </Fragment>
 );
 
@@ -40,11 +34,21 @@ export const steps = ({
 }): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
-    description: <p>{tct('Install [code:sentry-sdk] from PyPI:', {code: <code />})}</p>,
+    description: (
+      <p>
+        {tct(
+          'Install [sentrySdkCode:sentry-sdk] from PyPI with the [sentryQuartCode:quart] extra:',
+          {
+            sentrySdkCode: <code />,
+            sentryQuartCode: <code />,
+          }
+        )}
+      </p>
+    ),
     configurations: [
       {
         language: 'bash',
-        code: '$ pip install --upgrade sentry-sdk',
+        code: '$ pip install --upgrade sentry-sdk[quart]',
       },
     ],
   },
@@ -69,6 +73,51 @@ app = Quart(__name__)
       `,
       },
     ],
+  },
+  {
+    type: StepType.VERIFY,
+    description: t(
+      'You can easily verify your Sentry installation by creating a route that triggers an error:'
+    ),
+    configurations: [
+      {
+        language: 'python',
+        code: `from quart import Quart
+import sentry_sdk
+
+sentry_sdk.init(
+${sentryInitContent}
+)
+
+app = Quart(__name__)
+
+@app.route("/")
+async def hello():
+    1/0  # raises an error
+    return {"hello": "world"}
+
+app.run()
+        `,
+      },
+    ],
+    additionalInfo: (
+      <span>
+        <p>
+          {tct(
+            'When you point your browser to [link:http://localhost:5000/] a transaction in the Performance section of Sentry will be created.',
+            {
+              link: <ExternalLink href="http://localhost:5000/" />,
+            }
+          )}
+        </p>
+        <p>
+          {t(
+            'Additionally, an error event will be sent to Sentry and will be connected to the transaction.'
+          )}
+        </p>
+        <p>{t('It takes a couple of moments for the data to appear in Sentry.')}</p>
+      </span>
+    ),
   },
 ];
 // Configuration End
