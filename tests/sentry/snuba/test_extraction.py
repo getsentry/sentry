@@ -8,7 +8,6 @@ from sentry.snuba.metrics.extraction import (
     OnDemandMetricSpec,
     apdex_tag_spec,
     cleanup_query,
-    epm_tag_spec,
     failure_tag_spec,
     query_tokens_to_string,
     should_use_on_demand_metrics,
@@ -341,7 +340,7 @@ def test_spec_epm(default_project):
     assert spec.field_to_extract is None
     assert spec.op == "on_demand_epm"
     assert spec.condition == {"name": "event.duration", "op": "gt", "value": 1000.0}
-    assert spec.tags_conditions(default_project) == epm_tag_spec(default_project, "not_used")
+    assert spec.tags_conditions(default_project) == []
 
 
 def test_cleanup_equivalent_specs():

@@ -609,7 +609,12 @@ def histogram_snql_factory(
     )
 
 
-def rate_snql_factory(aggregate_filter, numerator, denominator=1.0, alias=None):
+def rate_snql_factory(
+    aggregate_filter: Function,
+    numerator: float,
+    denominator: float = 1.0,
+    alias: Optional[str] = None,
+):
     return Function(
         "divide",
         [

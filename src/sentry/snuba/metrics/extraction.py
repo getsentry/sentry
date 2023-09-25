@@ -624,16 +624,12 @@ def apdex_tag_spec(project: Project, argument: Optional[str]) -> List[TagSpec]:
     ]
 
 
-def epm_tag_spec(_1: Project, _2: Optional[str]) -> List[TagSpec]:
-    return []
-
-
 # This is used to map a metric to a function which generates a specification
-_DERIVED_METRICS: Dict[MetricOperationType, TagsSpecsGenerator] = {
+_DERIVED_METRICS: Dict[MetricOperationType, TagsSpecsGenerator | None] = {
     "on_demand_failure_count": failure_tag_spec,
     "on_demand_failure_rate": failure_tag_spec,
     "on_demand_apdex": apdex_tag_spec,
-    "on_demand_epm": epm_tag_spec,
+    "on_demand_epm": None,
 }
 
 
