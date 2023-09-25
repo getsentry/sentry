@@ -27,6 +27,7 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
         "DELETE": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
+        "PUT": ApiPublishStatus.PUBLIC,
     }
 
     @extend_schema(
@@ -119,7 +120,6 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
 
         custom_symbol_sources_json = project.get_option("sentry:symbol_sources") or []
         sources = parse_sources(custom_symbol_sources_json, False)
-        sources_by_id = {src["id"]: src for src in sources}
 
         if id is None:
             return Response(data={"error": "Missing source id"}, status=404)
@@ -128,8 +128,11 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
             source["id"] = str(uuid4())
 
         try:
+            sources_by_id = {src["id"]: src for src in sources}
             backfill_source(source, sources_by_id)
         except InvalidSourcesError as e:
+            return Response(data={"error": str(e)}, status=400)
+        except KeyError as e:
             return Response(data={"error": str(e)}, status=400)
 
         found = False
