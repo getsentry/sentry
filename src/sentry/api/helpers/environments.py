@@ -9,6 +9,7 @@ from sentry.models import Environment
 
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
+    from sentry.services.hybrid_cloud.organization import RpcOrganization
 
 environment_visibility_filter_options = {
     "all": lambda queryset: queryset,
@@ -17,7 +18,9 @@ environment_visibility_filter_options = {
 }
 
 
-def get_environments(request: Request, organization: Organization) -> list[Environment]:
+def get_environments(
+    request: Request, organization: Organization | RpcOrganization
+) -> list[Environment]:
     requested_environments = set(request.GET.getlist("environment"))
 
     if not requested_environments:

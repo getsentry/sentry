@@ -19,6 +19,7 @@ import WaterfallModel from './waterfallModel';
 type Props = {
   organization: Organization;
   waterfallModel: WaterfallModel;
+  isAggregate?: boolean;
   isEmbedded?: boolean;
   performanceIssues?: TracePerformanceIssue[];
 };

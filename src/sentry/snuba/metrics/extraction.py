@@ -896,7 +896,7 @@ def _map_field_name(search_key: str) -> str:
 
     # Measurements support generic access.
     if search_key.startswith("measurements."):
-        return f"event.{search_key}"
+        return f"event.{search_key}.value"
 
     # Run a schema-aware check for tags. Always use the resolver output,
     # since it accounts for passing `tags[foo]` as key.
@@ -1040,9 +1040,11 @@ class SearchQueryConverter:
                 "value": [value],
             }
         else:
-            # Special case: `x != ""` is the result of a `has:x` query, which
-            # needs to be translated as `not(x == null)`.
-            if token.operator == "!=" and value == "":
+            # Special case for the `has` and `!has` operators which are parsed as follows:
+            # - `has:x` -> `x != ""`
+            # - `!has:x` -> `x = ""`
+            # They both need to be translated to `x not eq null` and `x eq null`.
+            if token.operator in ("!=", "=") and value == "":
                 value = None
 
             if isinstance(value, str):

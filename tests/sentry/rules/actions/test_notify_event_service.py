@@ -6,6 +6,9 @@ from sentry.rules.actions.notify_event_service import NotifyEventServiceAction
 from sentry.tasks.sentry_apps import notify_sentry_app
 from sentry.testutils.cases import RuleTestCase
 from sentry.testutils.silo import region_silo_test
+from sentry.testutils.skips import requires_snuba
+
+pytestmark = [requires_snuba]
 
 
 @region_silo_test

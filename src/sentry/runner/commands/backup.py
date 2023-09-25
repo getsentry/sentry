@@ -3,12 +3,14 @@ from __future__ import annotations
 import click
 
 from sentry.backup.exports import (
+    export_in_config_scope,
     export_in_global_scope,
     export_in_organization_scope,
     export_in_user_scope,
 )
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.imports import (
+    import_in_config_scope,
     import_in_global_scope,
     import_in_organization_scope,
     import_in_user_scope,
@@ -102,6 +104,34 @@ def import_organizations(src, filter_org_slugs, merge_users, silent):
     )
 
 
+@import_.command(name="config")
+@click.argument("src", type=click.File("rb"))
+@click.option("--silent", "-q", default=False, is_flag=True, help="Silence all debug output.")
+@click.option(
+    "--merge_users",
+    default=False,
+    is_flag=True,
+    help=MERGE_USERS_HELP,
+)
+@click.option(
+    "--overwrite_configs",
+    default=False,
+    is_flag=True,
+    help=OVERWRITE_CONFIGS_HELP,
+)
+@configuration
+def import_config(src, merge_users, overwrite_configs, silent):
+    """
+    Import all configuration and administrator accounts needed to set up this Sentry instance.
+    """
+
+    import_in_config_scope(
+        src,
+        flags=ImportFlags(merge_users=merge_users, overwrite_configs=overwrite_configs),
+        printer=(lambda *args, **kwargs: None) if silent else click.echo,
+    )
+
+
 @import_.command(name="global")
 @click.argument("src", type=click.File("rb"))
 @click.option(
@@ -186,6 +216,28 @@ def export_organizations(dest, silent, indent, filter_org_slugs):
         dest,
         indent=indent,
         org_filter=parse_filter_arg(filter_org_slugs),
+        printer=(lambda *args, **kwargs: None) if silent else click.echo,
+    )
+
+
+@export.command(name="config")
+@click.argument("dest", default="-", type=click.File("w"))
+@click.option("--silent", "-q", default=False, is_flag=True, help="Silence all debug output.")
+@click.option(
+    "--indent",
+    default=2,
+    type=int,
+    help="Number of spaces to indent for the JSON output. (default: 2)",
+)
+@configuration
+def export_config(dest, silent, indent):
+    """
+    Export all configuration and administrator accounts needed to set up this Sentry instance.
+    """
+
+    export_in_config_scope(
+        dest,
+        indent=indent,
         printer=(lambda *args, **kwargs: None) if silent else click.echo,
     )
 

@@ -77,6 +77,10 @@ function TransactionHeader({
     organization.features.includes('profiling') &&
     isProfilingSupportedOrProjectHasProfiles(project);
 
+  const hasAggregateWaterfall = organization.features.includes(
+    'starfish-aggregate-span-waterfall'
+  );
+
   const getWebVitals = useCallback(
     (hasMeasurements: boolean) => {
       switch (hasWebVitals) {
@@ -223,6 +227,13 @@ function TransactionHeader({
                 hidden={!hasProfiling}
               >
                 {t('Profiles')}
+              </TabList.Item>
+              <TabList.Item
+                key={Tab.AGGREGATE_WATERFALL}
+                textValue={t('Aggregate Waterfall')}
+                hidden={!hasAggregateWaterfall}
+              >
+                {t('Aggregate Waterfall')}
               </TabList.Item>
             </TabList>
           );
