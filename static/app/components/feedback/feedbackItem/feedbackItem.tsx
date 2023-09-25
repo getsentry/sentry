@@ -1,20 +1,25 @@
-import {Fragment} from 'react';
+import {Fragment, ReactNode, useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import AvatarList from 'sentry/components/avatar/avatarList';
 import {Button} from 'sentry/components/button';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import DateTime from 'sentry/components/dateTime';
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
+import LazyLoad from 'sentry/components/lazyLoad';
+import ObjectInspector from 'sentry/components/objectInspector';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {Flex} from 'sentry/components/profiling/flex';
+import ReplayIdCountProvider from 'sentry/components/replays/replayIdCountProvider';
 import TextCopyInput from 'sentry/components/textCopyInput';
-import {IconArchive} from 'sentry/icons';
+import {IconArchive, IconJson, IconLink, IconPlay, IconTag} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {AvatarUser} from 'sentry/types';
 import type {HydratedFeedbackItem} from 'sentry/utils/feedback/types';
 import {userDisplayName} from 'sentry/utils/formatters';
+import useOrganization from 'sentry/utils/useOrganization';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 
 interface Props {
@@ -22,38 +27,54 @@ interface Props {
 }
 
 export default function FeedbackItem({feedbackItem}: Props) {
+  const organization = useOrganization();
+
   return (
     <FeedbackItemContainer>
       <HeaderPanelItem>
         <Flex gap={space(2)} justify="space-between">
           <Username feedbackItem={feedbackItem} />
+
           <Flex gap={space(1)} align="center">
-            <Viewers feedbackItem={feedbackItem} />
-            <ResolveButton feedbackItem={feedbackItem} />
+            <ErrorBoundary mini>
+              <Viewers feedbackItem={feedbackItem} />
+            </ErrorBoundary>
+            <ErrorBoundary mini>
+              <ResolveButton feedbackItem={feedbackItem} />
+            </ErrorBoundary>
           </Flex>
         </Flex>
       </HeaderPanelItem>
       <OverflowPanelItem>
         <Section title={t('Description')}>
           <Blockquote>
-            <p>{feedbackItem.message}</p>
+            <p>
+              <pre>{feedbackItem.message}</pre>
+            </p>
           </Blockquote>
         </Section>
 
-        <Section title={t('Url')}>
-          <TextCopyInput size="sm">{feedbackItem.url}</TextCopyInput>
+        <Section icon={<IconLink size="xs" />} title={t('Url')}>
+          <ErrorBoundary mini>
+            <TextCopyInput size="sm">{feedbackItem.url}</TextCopyInput>
+          </ErrorBoundary>
         </Section>
 
-        <Section title={t('Tags')}>
-          <KeyValueTable noMargin>
-            {Object.entries(feedbackItem.tags).map(([key, value]) => (
-              <KeyValueTableRow key={key} keyName={key} value={value} />
-            ))}
-          </KeyValueTable>
-        </Section>
+        {feedbackItem.replay_id ? (
+          <ReplaySection organization={organization} replayId={feedbackItem.replay_id} />
+        ) : null}
 
-        <Section title={t('Raw')}>
-          <pre>{JSON.stringify(feedbackItem, null, '\t')}</pre>
+        <TagsSection tags={feedbackItem.tags} />
+
+        <Section icon={<IconJson size="xs" />} title={t('Raw')}>
+          <ObjectInspector
+            data={feedbackItem}
+            expandLevel={3}
+            theme={{
+              TREENODE_FONT_SIZE: '0.7rem',
+              ARROW_FONT_SIZE: '0.5rem',
+            }}
+          />
         </Section>
       </OverflowPanelItem>
     </FeedbackItemContainer>
@@ -71,8 +92,10 @@ const HeaderPanelItem = styled(PanelItem)`
 `;
 
 const OverflowPanelItem = styled(PanelItem)`
-  flex-direction: column;
   overflow: scroll;
+
+  flex-direction: column;
+  gap: ${space(3)};
 `;
 
 function Username({feedbackItem}: {feedbackItem: HydratedFeedbackItem}) {
@@ -153,42 +176,121 @@ function ResolveButton({feedbackItem}: {feedbackItem: HydratedFeedbackItem}) {
   );
 }
 
-function Section({children, title}: {children; title: string}) {
+const SectionWrapper = styled('section')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(3)};
+`;
+
+const SectionTitle = styled('h3')`
+  margin: 0;
+  color: ${p => p.theme.gray300};
+  font-size: ${p => p.theme.fontSizeMedium};
+  text-transform: capitalize;
+
+  display: flex;
+  gap: ${space(0.5)};
+  align-items: center;
+`;
+
+function Section({
+  children,
+  icon,
+  title,
+}: {
+  children: ReactNode;
+  title: string;
+  icon?: ReactNode;
+}) {
   return (
-    <section style={{marginInline: space(1)}}>
-      <SectionTitle>{title}</SectionTitle>
+    <SectionWrapper>
+      <SectionTitle>
+        {icon}
+        <span>{title}</span>
+      </SectionTitle>
       {children}
-    </section>
+    </SectionWrapper>
   );
 }
 
-const SectionTitle = styled('h3')`
-  margin-top: ${space(3)};
-  color: ${p => p.theme.gray300};
-  font-size: ${p => p.theme.fontSizeSmall};
-  text-transform: capitalize;
-`;
+function ReplaySection({organization, replayId}) {
+  const replayPreview = useCallback(
+    () => import('sentry/components/events/eventReplay/replayPreview'),
+    []
+  );
+
+  return (
+    <Section icon={<IconPlay size="xs" />} title={t('Linked Replay')}>
+      <ErrorBoundary mini>
+        <ReplayIdCountProvider organization={organization} replayIds={[replayId]}>
+          <LazyLoad
+            component={replayPreview}
+            replaySlug={replayId}
+            orgSlug={organization.slug}
+            eventTimestampMs={0}
+            buttonProps={{
+              analyticsEventKey: 'issue_details.open_replay_details_clicked',
+              analyticsEventName: 'Issue Details: Open Replay Details Clicked',
+              analyticsParams: {
+                organization,
+              },
+            }}
+          />
+        </ReplayIdCountProvider>
+      </ErrorBoundary>
+    </Section>
+  );
+}
+
+function TagsSection({tags}) {
+  const entries = Object.entries(tags);
+  if (!entries.length) {
+    return null;
+  }
+
+  return (
+    <Section icon={<IconTag size="xs" />} t title={t('Tags')}>
+      <ErrorBoundary mini>
+        <KeyValueTable noMargin>
+          {entries.map(([key, value]) => (
+            <KeyValueTableRow key={key} keyName={key} value={value} />
+          ))}
+        </KeyValueTable>
+      </ErrorBoundary>
+    </Section>
+  );
+}
 
 const Blockquote = styled('blockquote')`
-  margin-left: ${space(1.5)};
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  margin: 0 ${space(4)};
   position: relative;
 
-  quotes: '❝' '❞' '‘' '’';
-  &::before,
+  &::before {
+    position: absolute;
+    color: ${p => p.theme.purple300};
+    content: '❝';
+    font-size: ${space(4)};
+    left: -${space(4)};
+    top: -0.4rem;
+  }
   &::after {
     position: absolute;
-    color: ${p => p.theme.purple400};
-    font-size: ${p => p.theme.fontSizeExtraLarge};
-  }
-  &::before {
-    content: open-quote;
-    top: -0.2rem;
-    left: -0.8rem;
-  }
-  &::after {
-    content: close-quote;
+    border: 1px solid ${p => p.theme.purple300};
     bottom: 0;
-    right: -0.4rem;
+    content: '';
+    left: -${space(1)};
+    top: 0;
+  }
+
+  & > p,
+  & > p > pre {
+    margin: 0;
+  }
+  & > p > pre {
+    background: none;
+    font-family: inherit;
+    font-size: ${p => p.theme.fontSizeMedium};
+    line-height: 1.6;
+    padding: 0;
   }
 `;

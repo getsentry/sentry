@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {ComponentProps, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/alert';
@@ -12,7 +12,6 @@ import ReplayPlayer from 'sentry/components/replays/replayPlayer';
 import {IconPlay} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Event} from 'sentry/types/event';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import useReplayReader from 'sentry/utils/replays/hooks/useReplayReader';
 import {useRoutes} from 'sentry/utils/useRoutes';
@@ -20,26 +19,20 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 
 type Props = {
-  event: Event;
+  eventTimestampMs: number;
   orgSlug: string;
   replaySlug: string;
-  onClickOpenReplay?: () => void;
+  buttonProps?: Partial<ComponentProps<typeof Button>>;
 };
 
-function ReplayPreview({orgSlug, replaySlug, event, onClickOpenReplay}: Props) {
+function ReplayPreview({orgSlug, replaySlug, eventTimestampMs, buttonProps}: Props) {
   const routes = useRoutes();
   const {fetching, replay, replayRecord, fetchError, replayId} = useReplayReader({
     orgSlug,
     replaySlug,
   });
 
-  const timeOfEvent = event.dateCreated ?? event.dateReceived;
-  const eventTimestampMs = timeOfEvent
-    ? Math.floor(new Date(timeOfEvent).getTime() / 1000) * 1000
-    : 0;
-
   const startTimestampMs = replayRecord?.started_at.getTime() ?? 0;
-
   const initialTimeOffsetMs = useMemo(() => {
     if (eventTimestampMs && startTimestampMs) {
       return Math.abs(eventTimestampMs - startTimestampMs);
@@ -120,7 +113,7 @@ function ReplayPreview({orgSlug, replaySlug, event, onClickOpenReplay}: Props) {
         </StaticPanel>
         <CTAOverlay>
           <Button
-            onClick={onClickOpenReplay}
+            {...buttonProps}
             icon={<IconPlay />}
             priority="primary"
             to={fullReplayUrl}
@@ -138,7 +131,6 @@ function ReplayPreview({orgSlug, replaySlug, event, onClickOpenReplay}: Props) {
 
 const PlayerContainer = styled(FluidHeight)`
   position: relative;
-  margin-bottom: ${space(2)};
   background: ${p => p.theme.background};
   gap: ${space(1)};
   max-height: 448px;

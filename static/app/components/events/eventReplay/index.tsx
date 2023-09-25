@@ -5,7 +5,6 @@ import {EventReplaySection} from 'sentry/components/events/eventReplay/eventRepl
 import LazyLoad from 'sentry/components/lazyLoad';
 import {Group} from 'sentry/types';
 import {Event} from 'sentry/types/event';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForEvent, getAnalyticsDataForGroup} from 'sentry/utils/events';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import {useHasOrganizationSentAnyReplayEvents} from 'sentry/utils/replays/hooks/useReplayOnboarding';
@@ -19,7 +18,7 @@ type Props = {
   group?: Group;
 };
 
-function EventReplayContent({projectSlug, event, group}: Props) {
+function EventReplayContent({event, group}: Props) {
   const organization = useOrganization();
   const {hasOrgSentReplays, fetching} = useHasOrganizationSentAnyReplayEvents();
   const replayId = getReplayIdFromEvent(event);
@@ -43,20 +42,27 @@ function EventReplayContent({projectSlug, event, group}: Props) {
     return null;
   }
 
+  const timeOfEvent = event?.dateCreated ?? event.dateReceived;
+  const eventTimestampMs = timeOfEvent
+    ? Math.floor(new Date(timeOfEvent).getTime() / 1000) * 1000
+    : 0;
+
   return (
     <EventReplaySection>
       <ErrorBoundary mini>
         <LazyLoad
           component={replayPreview}
-          replaySlug={`${projectSlug}:${replayId}`}
+          replaySlug={replayId}
           orgSlug={organization.slug}
-          event={event}
-          onClickOpenReplay={() => {
-            trackAnalytics('issue_details.open_replay_details_clicked', {
+          eventTimestampMs={eventTimestampMs}
+          buttonProps={{
+            analyticsEventKey: 'issue_details.open_replay_details_clicked',
+            analyticsEventName: 'Issue Details: Open Replay Details Clicked',
+            analyticsParams: {
               ...getAnalyticsDataForEvent(event),
               ...getAnalyticsDataForGroup(group),
               organization,
-            });
+            },
           }}
         />
       </ErrorBoundary>
