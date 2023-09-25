@@ -227,9 +227,7 @@ def up(
 
     configure()
 
-    containers = _prepare_containers(
-        project, skip_only_if=(skip_only_if or len(services) > 0), silent=True
-    )
+    containers = _prepare_containers(project, skip_only_if=skip_only_if, silent=True)
     selected_services = set()
 
     if services:
@@ -471,8 +469,11 @@ def down(project: str, service: list[str]) -> None:
 
 @devservices.command()
 @click.option("--project", default="sentry")
+@click.option(
+    "--skip-only-if", is_flag=True, default=False, help="Skip 'only_if' checks for services"
+)
 @click.argument("services", nargs=-1)
-def rm(project: str, services: list[str]) -> None:
+def rm(project: str, skip_only_if: bool, services: list[str]) -> None:
     """
     Shut down and delete all services and associated data.
     Useful if you'd like to start with a fresh slate.
@@ -486,7 +487,7 @@ def rm(project: str, services: list[str]) -> None:
 
     configure()
 
-    containers = _prepare_containers(project, skip_only_if=len(services) > 0, silent=True)
+    containers = _prepare_containers(project, skip_only_if=skip_only_if, silent=True)
 
     if services:
         selected_containers = {}
@@ -494,7 +495,7 @@ def rm(project: str, services: list[str]) -> None:
             # XXX: This code is also fairly duplicated in here at this point, so dedupe in the future.
             if service not in containers:
                 click.secho(
-                    f"Service `{service}` is not known or not enabled.\n",
+                    f"Service `{service}` is not known or not enabled. Use --skip-only-if to force removal.\n",
                     err=True,
                     fg="red",
                 )
