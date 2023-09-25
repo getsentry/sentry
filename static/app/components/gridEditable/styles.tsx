@@ -6,7 +6,7 @@ import {space} from 'sentry/styles/space';
 
 export const GRID_HEAD_ROW_HEIGHT = 45;
 export const GRID_BODY_ROW_HEIGHT = 40;
-export const GRID_STATUS_MESSAGE_HEIGHT = GRID_BODY_ROW_HEIGHT * 4;
+export const GRID_STATUS_MESSAGE_HEIGHT = GRID_BODY_ROW_HEIGHT * 3;
 
 /**
  * Local z-index stacking context
@@ -242,7 +242,6 @@ const GridStatusFloat = styled('div')`
   width: 100%;
   height: ${GRID_STATUS_MESSAGE_HEIGHT}px;
   overflow: hidden;
-
   z-index: ${Z_INDEX_GRID_STATUS};
   background: ${p => p.theme.background};
 `;

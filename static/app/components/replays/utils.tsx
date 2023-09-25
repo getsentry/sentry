@@ -1,6 +1,5 @@
 import {formatSecondsToClock} from 'sentry/utils/formatters';
 import type {ReplayFrame, SpanFrame} from 'sentry/utils/replays/types';
-import {DeadRageSelectorItem} from 'sentry/views/replays/types';
 
 const SECOND = 1000;
 const MINUTE = 60 * SECOND;
@@ -186,25 +185,4 @@ export function divide(numerator: number, denominator: number | undefined) {
     return 0;
   }
   return numerator / denominator;
-}
-
-export function getAriaLabel(str: string) {
-  const pre = str.split('aria="')[1];
-  if (!pre) {
-    return '';
-  }
-  return pre.substring(0, pre.lastIndexOf('"]'));
-}
-
-export function hydratedSelectorData(data, clickType): DeadRageSelectorItem[] {
-  return data
-    .filter(d => d[clickType] > 0)
-    .map(d => {
-      return {
-        [clickType]: d[clickType],
-        dom_element: d.dom_element,
-        element: d.dom_element.split(/[#.]+/)[0],
-        aria_label: getAriaLabel(d.dom_element),
-      };
-    });
 }

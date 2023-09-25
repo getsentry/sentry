@@ -415,7 +415,7 @@ class GridEditable<
     return (
       <GridRow>
         <GridBodyCellStatus>
-          <EmptyStateWarning>
+          <EmptyStateWarning small>
             <p>{t('No results found for your query')}</p>
           </EmptyStateWarning>
         </GridBodyCellStatus>
