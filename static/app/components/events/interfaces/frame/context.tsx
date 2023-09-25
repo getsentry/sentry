@@ -2,7 +2,7 @@ import {useMemo} from 'react';
 import styled from '@emotion/styled';
 import keyBy from 'lodash/keyBy';
 
-import ClippedBox from 'sentry/components/clippedBox';
+import ClippedBox from 'sentry/components/container/clippedBox';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {StacktraceLink} from 'sentry/components/events/interfaces/frame/stacktraceLink';
 import {IconFlag} from 'sentry/icons';

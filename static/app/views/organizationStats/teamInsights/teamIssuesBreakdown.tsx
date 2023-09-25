@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {BarChart, BarChartSeries} from 'sentry/components/charts/barChart';
 import {DateTimeObject} from 'sentry/components/charts/utils';
-import CollapsePanel, {COLLAPSE_COUNT} from 'sentry/components/collapsePanel';
+import CollapsePanel, {COLLAPSE_COUNT} from 'sentry/components/container/collapsePanel';
 import LoadingError from 'sentry/components/loadingError';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import PanelTable from 'sentry/components/panels/panelTable';

@@ -5,7 +5,7 @@ import {Location} from 'history';
 
 import {Button} from 'sentry/components/button';
 import {DateTimeObject} from 'sentry/components/charts/utils';
-import CollapsePanel, {COLLAPSE_COUNT} from 'sentry/components/collapsePanel';
+import CollapsePanel, {COLLAPSE_COUNT} from 'sentry/components/container/collapsePanel';
 import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import PanelTable from 'sentry/components/panels/panelTable';

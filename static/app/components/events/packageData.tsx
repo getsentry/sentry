@@ -1,4 +1,4 @@
-import ClippedBox from 'sentry/components/clippedBox';
+import ClippedBox from 'sentry/components/container/clippedBox';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';

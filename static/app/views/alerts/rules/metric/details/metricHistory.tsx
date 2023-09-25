@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import capitalize from 'lodash/capitalize';
 import moment from 'moment-timezone';
 
-import CollapsePanel from 'sentry/components/collapsePanel';
+import CollapsePanel from 'sentry/components/container/collapsePanel';
 import DateTime from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
 import Link from 'sentry/components/links/link';

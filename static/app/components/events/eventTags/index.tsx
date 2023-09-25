@@ -2,7 +2,7 @@ import {useEffect} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import ClippedBox from 'sentry/components/clippedBox';
+import ClippedBox from 'sentry/components/container/clippedBox';
 import Pills from 'sentry/components/pills';
 import {Organization} from 'sentry/types';
 import {Event} from 'sentry/types/event';

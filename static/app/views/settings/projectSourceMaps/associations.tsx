@@ -1,7 +1,7 @@
 import {Link} from 'react-router';
 import styled from '@emotion/styled';
 
-import ClippedBox from 'sentry/components/clippedBox';
+import ClippedBox from 'sentry/components/container/clippedBox';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {Hovercard} from 'sentry/components/hovercard';
 import Placeholder from 'sentry/components/placeholder';

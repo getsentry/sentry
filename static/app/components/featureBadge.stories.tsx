@@ -33,8 +33,8 @@ export default storyBook('FeatureBadge', story => {
         When using an indicator you might want to position it manually using{' '}
         <kbd>styled(FeatureBadge)</kbd>.
       </p>
-      <Matrix
-        component={props => (
+      <Matrix<typeof FeatureBadge>
+        render={props => (
           <span>
             Feature X
             <FeatureBadge {...props} />

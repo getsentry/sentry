@@ -6,7 +6,7 @@ import partition from 'lodash/partition';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Button} from 'sentry/components/button';
-import Collapsible from 'sentry/components/collapsible';
+import Collapsible from 'sentry/components/container/collapsible';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import Panel from 'sentry/components/panels/panel';
 import PanelHeader from 'sentry/components/panels/panelHeader';

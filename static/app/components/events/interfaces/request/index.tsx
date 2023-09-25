@@ -1,8 +1,8 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
-import ClippedBox from 'sentry/components/clippedBox';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
+import ClippedBox from 'sentry/components/container/clippedBox';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {GraphQlRequestBody} from 'sentry/components/events/interfaces/request/graphQlRequestBody';

@@ -4,8 +4,8 @@ import kebabCase from 'lodash/kebabCase';
 import mapValues from 'lodash/mapValues';
 
 import {Button} from 'sentry/components/button';
-import ClippedBox from 'sentry/components/clippedBox';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
+import ClippedBox from 'sentry/components/container/clippedBox';
 import {getSpanInfoFromTransactionEvent} from 'sentry/components/events/interfaces/performance/utils';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import Link from 'sentry/components/links/link';
