@@ -318,7 +318,7 @@ def manage_issue_states(
 
     `activity_data`: Additional activity data, such as escalating forecast
     """
-    data: Dict[str, str | Mapping[str, Any]] | None = (
+    data: dict[str, str | Mapping[str, Any]] | None = (
         {"event_id": event.event_id} if event else None
     )
     if group_inbox_reason == GroupInboxReason.ESCALATING:
