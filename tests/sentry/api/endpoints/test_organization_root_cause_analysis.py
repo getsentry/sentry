@@ -266,7 +266,7 @@ class OrganizationRootCauseAnalysisTest(MetricsAPIBaseTestCase):
             }
         ]
 
-    def test_results_per_period_are_limited(self):
+    def test_results_are_limited(self):
         # Before
         self.create_transaction(
             transaction="foo",
@@ -330,9 +330,7 @@ class OrganizationRootCauseAnalysisTest(MetricsAPIBaseTestCase):
                     "breakpoint": self.now - timedelta(days=1),
                     "start": self.now - timedelta(days=3),
                     "end": self.now,
-                    # Force a small page size and verify the 2 spans from After
-                    # don't dominate the results
-                    "per_page": 2,
+                    "per_page": 1,
                 },
             )
 
@@ -341,21 +339,18 @@ class OrganizationRootCauseAnalysisTest(MetricsAPIBaseTestCase):
         for row in response.data:
             del row["sample_event_id"]
 
+        assert len(response.data) == 1
         assert response.data == [
             {
-                "period": "after",
-                "span_count": 1,
-                "span_group": "d77d5e503ad1439f",
-                "span_op": "db",
-                "total_span_self_time": 100.0,
-                "transaction_count": 1,
-            },
-            {
-                "span_group": "2b9cbb96dbf59baa",
                 "span_op": "django.middleware",
-                "period": "before",
-                "total_span_self_time": 60.0,
-                "span_count": 1,
-                "transaction_count": 1,
-            },
+                "span_group": "2b9cbb96dbf59baa",
+                "score_delta": 0.6666666666666666,
+                "freq_before": 1.0,
+                "freq_after": 1.0,
+                "freq_delta": 0.0,
+                "duration_delta": 0.6666666666666666,
+                "duration_before": 60.0,
+                "duration_after": 100.0,
+                "span_description": "middleware span",
+            }
         ]
