@@ -45,6 +45,33 @@ class SharedGroupDetailsTest(APITestCase):
             assert response.data["project"]["slug"] == group.project.slug
             assert response.data["project"]["organization"]["slug"] == group.organization.slug
 
+    def test_does_not_leak_assigned_to(self):
+        self.login_as(user=self.user)
+
+        min_ago = iso_format(before_now(minutes=1))
+        event = self.store_event(data={"timestamp": min_ago}, project_id=self.project.id)
+        assert event.group is not None
+        group = event.group
+
+        share_id = group.get_share_id()
+        assert share_id is None
+
+        GroupShare.objects.create(project_id=group.project_id, group=group)
+
+        share_id = group.get_share_id()
+        assert share_id is not None
+
+        for path_func in self._get_path_functions():
+            path = path_func(share_id)
+            response = self.client.get(path, format="json")
+
+            assert response.status_code == 200, response.content
+            assert response.data["id"] == str(group.id)
+            assert response.data["latestEvent"]["id"] == str(event.event_id)
+            assert response.data["project"]["slug"] == group.project.slug
+            assert response.data["project"]["organization"]["slug"] == group.organization.slug
+            assert "assignedTo" not in response.data
+
     def test_feature_disabled(self):
         self.login_as(user=self.user)
 
@@ -87,6 +114,7 @@ class SharedGroupDetailsTest(APITestCase):
 
         self.login_as(user=self.user)
         for path_func in self._get_path_functions():
+            path = path_func(share_id)
             response = self.client.get(path, format="json")
 
             assert response.status_code == 200, response.content
