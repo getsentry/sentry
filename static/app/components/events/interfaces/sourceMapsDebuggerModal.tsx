@@ -1151,7 +1151,7 @@ const ListItemTitle = styled('p')<{status: 'none' | 'checked' | 'alert' | 'quest
       question: p.theme.gray300,
       checked: p.theme.green300,
       alert: p.theme.yellow400,
-    }[p.status])};
+    })[p.status]};
 `;
 
 const CheckListInstruction = styled(Alert)`
