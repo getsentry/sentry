@@ -15,8 +15,9 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectAlertRulePermission, ProjectEndpoint
 from sentry.api.fields.actor import ActorField
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.rule import RuleSerializerResponse
-from sentry.api.serializers.rest_framework.rule import RuleNodeField, RuleSerializer
+from sentry.api.serializers.models.rule import RuleSerializer, RuleSerializerResponse
+from sentry.api.serializers.rest_framework.rule import RuleNodeField
+from sentry.api.serializers.rest_framework.rule import RuleSerializer as DrfRuleSerializer
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.examples.issue_alert_examples import IssueAlertExamples
 from sentry.apidocs.parameters import GlobalParams
@@ -84,7 +85,11 @@ def find_duplicate_rule(rule_data, project, rule_id=None):
 
 class ProjectRulesPostSerializer(serializers.Serializer):
     actionMatch = serializers.ChoiceField(
-        choices=(("all", "all"), ("any", "any"), ("none", "none")),
+        choices=(
+            ("all", "All conditions must evaluate to true."),
+            ("any", "At least one of the conditions must evaluate to true."),
+            ("none", "All conditions must evaluate to false."),
+        ),
         help_text="A string determining which of the conditions need to be true before any filters are evaluated.",
     )
     actions = serializers.ListField(
@@ -298,7 +303,11 @@ A list of triggers that determine when the rule fires. See below for a list of p
         required=False, allow_null=True, help_text="The name of the environment to filter by."
     )
     filterMatch = serializers.ChoiceField(
-        choices=(("all", "all"), ("any", "any"), ("none", "none")),
+        choices=(
+            ("all", "All filters must evaluate to true."),
+            ("any", "At least one of the filters must evaluate to true."),
+            ("none", "All filters must evaluate to false."),
+        ),
         required=False,
         help_text="A string determining which filters need to be true before any actions take place. Required when a value is provided for `filters`.",
     )
@@ -460,7 +469,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
         ],
         request=ProjectRulesPostSerializer,
         responses={
-            201: inline_sentry_response_serializer("RuleCreated", RuleSerializerResponse),
+            201: RuleSerializer,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
@@ -478,7 +487,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
         - Actions: specify what should happen when the trigger conditions are met and the filters match.
         """
 
-        serializer = RuleSerializer(
+        serializer = DrfRuleSerializer(
             context={"project": project, "organization": project.organization}, data=request.data
         )
         if not serializer.is_valid():
