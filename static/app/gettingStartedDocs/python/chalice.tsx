@@ -80,16 +80,14 @@ def index():
       },
     ],
     additionalInfo: (
-      <span>
-        <p>
-          {tct(
-            'When you enter the [code:"/"] route or the scheduled task is run, an error event will be sent to Sentry.',
-            {
-              code: <code />,
-            }
-          )}
-        </p>
-      </span>
+      <p>
+        {tct(
+          'When you enter the [code:"/"] route or the scheduled task is run, an error event will be sent to Sentry.',
+          {
+            code: <code />,
+          }
+        )}
+      </p>
     ),
   },
 ];

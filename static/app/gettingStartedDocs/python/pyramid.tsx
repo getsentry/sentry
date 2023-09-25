@@ -89,16 +89,14 @@ if __name__ == '__main__':
       },
     ],
     additionalInfo: (
-      <span>
-        <p>
-          {tct(
-            'When you point your browser to [link:http://localhost:6543/] an error event will be sent to Sentry.',
-            {
-              link: <ExternalLink href="http://localhost:6543/" />,
-            }
-          )}
-        </p>
-      </span>
+      <p>
+        {tct(
+          'When you point your browser to [link:http://localhost:6543/] an error event will be sent to Sentry.',
+          {
+            link: <ExternalLink href="http://localhost:6543/" />,
+          }
+        )}
+      </p>
     ),
   },
 ];

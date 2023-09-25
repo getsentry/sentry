@@ -78,9 +78,7 @@ api = falcon.API()
   },
   {
     type: StepType.VERIFY,
-    description: (
-      <p>{t('To verify that everything is working trigger an error on purpose:')}</p>
-    ),
+    description: t('To verify that everything is working trigger an error on purpose:'),
     configurations: [
       {
         language: 'python',
@@ -105,7 +103,7 @@ app.add_route('/', HelloWorldResource())
       },
     ],
     additionalInfo: (
-      <span>
+      <div>
         <p>
           {tct(
             'When you point your browser to [link:http://localhost:8000/] a transaction in the Performance section of Sentry will be created.',
@@ -120,7 +118,7 @@ app.add_route('/', HelloWorldResource())
           )}
         </p>
         <p>{t('It takes a couple of moments for the data to appear in Sentry.')}</p>
-      </span>
+      </div>
     ),
   },
 ];

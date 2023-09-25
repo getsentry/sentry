@@ -6,7 +6,7 @@ import {GettingStartedWithIonic, steps} from './ionic';
 
 describe('GettingStartedWithIonic', function () {
   it('renders doc correctly', function () {
-    render(<GettingStartedWithIonic dsn="test-dsn" />);
+    render(<GettingStartedWithIonic dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps()) {
