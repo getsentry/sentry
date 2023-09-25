@@ -7,7 +7,7 @@ import SizingWindow from 'sentry/components/stories/sizingWindow';
 import {TabList, TabPanels, Tabs} from 'sentry/components/tabs';
 import storyBook from 'sentry/stories/storyBook';
 
-export default storyBook('Tabs', story => {
+export default storyBook(Tabs, story => {
   const TABS = [
     {key: 'one', label: 'One', content: 'This is the first Panel.'},
     {key: 'two', label: 'Two', content: 'This is the second panel'},
