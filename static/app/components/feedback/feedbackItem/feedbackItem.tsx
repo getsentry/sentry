@@ -1,24 +1,20 @@
-import {Fragment, ReactNode, useCallback} from 'react';
 import styled from '@emotion/styled';
 
-import AvatarList from 'sentry/components/avatar/avatarList';
-import {Button} from 'sentry/components/button';
-import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import DateTime from 'sentry/components/dateTime';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
-import LazyLoad from 'sentry/components/lazyLoad';
+import Section from 'sentry/components/feedback/feedbackItem/feedbackItemSection';
+import FeedbackItemUsername from 'sentry/components/feedback/feedbackItem/feedbackItemUsername';
+import FeedbackViewers from 'sentry/components/feedback/feedbackItem/feedbackViewers';
+import ReplaySection from 'sentry/components/feedback/feedbackItem/replaySection';
+import ResolveButton from 'sentry/components/feedback/feedbackItem/resolveButton';
+import TagsSection from 'sentry/components/feedback/feedbackItem/tagsSection';
 import ObjectInspector from 'sentry/components/objectInspector';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {Flex} from 'sentry/components/profiling/flex';
-import ReplayIdCountProvider from 'sentry/components/replays/replayIdCountProvider';
 import TextCopyInput from 'sentry/components/textCopyInput';
-import {IconArchive, IconJson, IconLink, IconPlay, IconTag} from 'sentry/icons';
+import {IconJson, IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {AvatarUser} from 'sentry/types';
 import type {HydratedFeedbackItem} from 'sentry/utils/feedback/types';
-import {userDisplayName} from 'sentry/utils/formatters';
 import useOrganization from 'sentry/utils/useOrganization';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 
@@ -33,11 +29,11 @@ export default function FeedbackItem({feedbackItem}: Props) {
     <FeedbackItemContainer>
       <HeaderPanelItem>
         <Flex gap={space(2)} justify="space-between">
-          <Username feedbackItem={feedbackItem} />
+          <FeedbackItemUsername feedbackItem={feedbackItem} />
 
           <Flex gap={space(1)} align="center">
             <ErrorBoundary mini>
-              <Viewers feedbackItem={feedbackItem} />
+              <FeedbackViewers feedbackItem={feedbackItem} />
             </ErrorBoundary>
             <ErrorBoundary mini>
               <ResolveButton feedbackItem={feedbackItem} />
@@ -97,169 +93,6 @@ const OverflowPanelItem = styled(PanelItem)`
   flex-direction: column;
   gap: ${space(3)};
 `;
-
-function Username({feedbackItem}: {feedbackItem: HydratedFeedbackItem}) {
-  const displayValue = feedbackItem.user.display_name || feedbackItem.contact_email;
-  const hasBoth = feedbackItem.user.display_name && feedbackItem.contact_email;
-  if (!displayValue) {
-    <strong>{t('Unknown User')}</strong>;
-  }
-
-  const Purple = styled('span')`
-    color: ${p => p.theme.purple300};
-  `;
-
-  return (
-    <Flex gap={space(1)} align="center">
-      <strong>
-        {hasBoth ? (
-          <Fragment>
-            {feedbackItem.user.display_name}
-            <Purple>•</Purple>
-            {feedbackItem.contact_email}
-          </Fragment>
-        ) : (
-          displayValue
-        )}
-      </strong>
-      {feedbackItem.contact_email ? (
-        <CopyToClipboardButton
-          size="xs"
-          iconSize="xs"
-          text={feedbackItem.contact_email}
-        />
-      ) : null}
-    </Flex>
-  );
-}
-
-function Viewers({feedbackItem: _}: {feedbackItem: HydratedFeedbackItem}) {
-  const displayUsers = [
-    {
-      email: 'colton.allen@sentry.io',
-      id: '1',
-      ip_address: '',
-      name: 'Colton Allen',
-      username: 'cmanallen',
-    },
-  ];
-
-  return (
-    <AvatarList
-      users={displayUsers}
-      avatarSize={28}
-      maxVisibleAvatars={13}
-      renderTooltip={user => (
-        <Fragment>
-          {userDisplayName(user)}
-          <br />
-          <DateTime date={(user as AvatarUser).lastSeen} />
-        </Fragment>
-      )}
-    />
-  );
-}
-
-function ResolveButton({feedbackItem}: {feedbackItem: HydratedFeedbackItem}) {
-  if (feedbackItem.status === 'unresolved') {
-    return (
-      <Button priority="primary" size="xs" icon={<IconArchive />}>
-        {t('Resolve')}
-      </Button>
-    );
-  }
-
-  return (
-    <Button size="xs" icon={<IconArchive />}>
-      {t('Un-Resolve')}
-    </Button>
-  );
-}
-
-const SectionWrapper = styled('section')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(3)};
-`;
-
-const SectionTitle = styled('h3')`
-  margin: 0;
-  color: ${p => p.theme.gray300};
-  font-size: ${p => p.theme.fontSizeMedium};
-  text-transform: capitalize;
-
-  display: flex;
-  gap: ${space(0.5)};
-  align-items: center;
-`;
-
-function Section({
-  children,
-  icon,
-  title,
-}: {
-  children: ReactNode;
-  title: string;
-  icon?: ReactNode;
-}) {
-  return (
-    <SectionWrapper>
-      <SectionTitle>
-        {icon}
-        <span>{title}</span>
-      </SectionTitle>
-      {children}
-    </SectionWrapper>
-  );
-}
-
-function ReplaySection({organization, replayId}) {
-  const replayPreview = useCallback(
-    () => import('sentry/components/events/eventReplay/replayPreview'),
-    []
-  );
-
-  return (
-    <Section icon={<IconPlay size="xs" />} title={t('Linked Replay')}>
-      <ErrorBoundary mini>
-        <ReplayIdCountProvider organization={organization} replayIds={[replayId]}>
-          <LazyLoad
-            component={replayPreview}
-            replaySlug={replayId}
-            orgSlug={organization.slug}
-            eventTimestampMs={0}
-            buttonProps={{
-              analyticsEventKey: 'issue_details.open_replay_details_clicked',
-              analyticsEventName: 'Issue Details: Open Replay Details Clicked',
-              analyticsParams: {
-                organization,
-              },
-            }}
-          />
-        </ReplayIdCountProvider>
-      </ErrorBoundary>
-    </Section>
-  );
-}
-
-function TagsSection({tags}) {
-  const entries = Object.entries(tags);
-  if (!entries.length) {
-    return null;
-  }
-
-  return (
-    <Section icon={<IconTag size="xs" />} t title={t('Tags')}>
-      <ErrorBoundary mini>
-        <KeyValueTable noMargin>
-          {entries.map(([key, value]) => (
-            <KeyValueTableRow key={key} keyName={key} value={value} />
-          ))}
-        </KeyValueTable>
-      </ErrorBoundary>
-    </Section>
-  );
-}
 
 const Blockquote = styled('blockquote')`
   margin: 0 ${space(4)};

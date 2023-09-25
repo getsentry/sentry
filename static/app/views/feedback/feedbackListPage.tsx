@@ -4,9 +4,7 @@ import styled from '@emotion/styled';
 import FeedbackDetails from 'sentry/components/feedback/details/feedbackDetails';
 import FeedbackFilters from 'sentry/components/feedback/feedbackFilters';
 import FeedbackSearch from 'sentry/components/feedback/feedbackSearch';
-import FeedbackTable from 'sentry/components/feedback/table/feedbackTable';
-import useFeedbackListQueryParams from 'sentry/components/feedback/useFeedbackListQueryParams';
-import useFetchFeedbackList from 'sentry/components/feedback/useFetchFeedbackList';
+import FeedbackList from 'sentry/components/feedback/list/feedbackList';
 import FullViewport from 'sentry/components/layouts/fullViewport';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
@@ -14,20 +12,12 @@ import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionT
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {FeedbackListQueryParams} from 'sentry/utils/feedback/types';
 import useOrganization from 'sentry/utils/useOrganization';
-import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 
-interface Props extends RouteComponentProps<{}, {}, FeedbackListQueryParams> {}
+interface Props extends RouteComponentProps<{}, {}, {}> {}
 
-export default function FeedbackListPage({location}: Props) {
+export default function FeedbackListPage({}: Props) {
   const organization = useOrganization();
-
-  const query = useFeedbackListQueryParams({
-    location,
-    queryReferrer: 'feedback_list_page',
-  });
-  const {isLoading, isError, data, pageLinks: _} = useFetchFeedbackList({query}, {});
 
   return (
     <SentryDocumentTitle title={t(`Bug Reports`)} orgSlug={organization.slug}>
@@ -49,15 +39,8 @@ export default function FeedbackListPage({location}: Props) {
           <LayoutGrid>
             <FeedbackFilters style={{gridArea: 'filters'}} />
             <FeedbackSearch style={{gridArea: 'search'}} />
-            <FluidHeight style={{gridArea: 'list'}}>
-              <FeedbackTable
-                data={data ?? []}
-                isError={isError}
-                isLoading={isLoading}
-                location={location}
-              />
-            </FluidHeight>
-            <FeedbackDetails style={{gridArea: 'body'}} />
+            <FeedbackList style={{gridArea: 'list'}} />
+            <FeedbackDetails style={{gridArea: 'details'}} />
           </LayoutGrid>
         </PageFiltersContainer>
       </FullViewport>
@@ -78,7 +61,7 @@ const LayoutGrid = styled('div')`
   grid-template-rows: max-content 1fr;
   grid-template-areas:
     'filters search'
-    'list body';
+    'list details';
   gap: ${space(2)};
   place-items: stretch;
 `;
