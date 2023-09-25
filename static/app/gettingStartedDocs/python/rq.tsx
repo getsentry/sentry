@@ -1,4 +1,3 @@
-import {CodeSnippet} from 'sentry/components/codeSnippet';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
 import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
@@ -92,30 +91,32 @@ rq worker \
         )}
       </p>
     ),
-    additionalInfo: (
-      <span>
-        <h5>Job definition</h5>
-        <CodeSnippet dark language="python">
-          {t(`# jobs.py
+    configurations: [
+      {
+        description: <h5>{t('Job definition')}</h5>,
+        language: 'python',
+        code: `# jobs.py
 def hello(name):
     1/0  # raises an error
     return "Hello %s!" % name
-          `)}
-        </CodeSnippet>
-        <h5>Settings for worker</h5>
-        <CodeSnippet dark language="python">
-          {`# mysettings.py
+        `,
+      },
+      {
+        description: <h5>{t('Settings for worker')}</h5>,
+        language: 'python',
+        code: `# mysettings.py
 import sentry_sdk
 
 # Sentry configuration for RQ worker processes
 sentry_sdk.init(
 ${sentryInitContent}
 )
-            `}
-        </CodeSnippet>
-        <h5>Main Python Script</h5>
-        <CodeSnippet dark language="python">
-          {`# main.py
+        `,
+      },
+      {
+        description: <h5>{t('Main Python Script')}</h5>,
+        language: 'python',
+        code: `# main.py
 from redis import Redis
 from rq import Queue
 
@@ -131,9 +132,11 @@ ${sentryInitContent}
 q = Queue(connection=Redis())
 with sentry_sdk.start_transaction(name="testing_sentry"):
     result = q.enqueue(hello, "World")
-          `}
-        </CodeSnippet>
-
+        `,
+      },
+    ],
+    additionalInfo: (
+      <div>
         <p>
           {tct(
             'When you run [codeMain:python main.py] a transaction named [codeTrxName:testing_sentry] in the Performance section of Sentry will be created.',
@@ -153,7 +156,7 @@ with sentry_sdk.start_transaction(name="testing_sentry"):
           )}
         </p>
         <p>{t('It takes a couple of moments for the data to appear in Sentry.')}</p>
-      </span>
+      </div>
     ),
   },
 ];
