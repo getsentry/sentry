@@ -2061,39 +2061,41 @@ def _get_severity_score(event: Event) -> float | None:
     if title in NON_TITLE_EVENT_TITLES:
         title = ErrorEvent().compute_title(dict(event.get_event_metadata()))
 
-    if title not in NON_TITLE_EVENT_TITLES:
-        logger_data["event_message"] = title
-        with metrics.timer(op):
-            with sentry_sdk.start_span(op=op):
-                try:
-                    response = severity_connection_pool.urlopen(
-                        "POST",
-                        "/issues/severity-score",
-                        body=json.dumps({"message": title}),
-                        headers={"content-type": "application/json;charset=utf-8"},
-                    )
-                    severity = json.loads(response.data).get("severity")
-                except MaxRetryError as e:
-                    logger.warning(
-                        f"Unable to get severity score from microservice after {SEVERITY_DETECTION_RETRIES} retr{'ies' if SEVERITY_DETECTION_RETRIES >1 else 'y'}. Got MaxRetryError caused by: {repr(e.reason)}.",
-                        extra=logger_data,
-                    )
-                except Exception as e:
-                    logger.warning(
-                        f"Unable to get severity score from microservice. Got: {repr(e)}.",
-                        extra=logger_data,
-                    )
-                else:
-                    logger.info(
-                        f"Got severity score of {severity} for event {event.data['event_id']}",
-                        extra=logger_data,
-                    )
-    else:
+    if title in NON_TITLE_EVENT_TITLES:
         logger_data.update({"event_title": event.title, "computed_title": title})
         logger.warning(
             f"Unable to get severity score because of unusable `message` value '{title}'",
             extra=logger_data,
         )
+        return None
+
+    logger_data["event_message"] = title
+
+    with metrics.timer(op):
+        with sentry_sdk.start_span(op=op):
+            try:
+                response = severity_connection_pool.urlopen(
+                    "POST",
+                    "/issues/severity-score",
+                    body=json.dumps({"message": title}),
+                    headers={"content-type": "application/json;charset=utf-8"},
+                )
+                severity = json.loads(response.data).get("severity")
+            except MaxRetryError as e:
+                logger.warning(
+                    f"Unable to get severity score from microservice after {SEVERITY_DETECTION_RETRIES} retr{'ies' if SEVERITY_DETECTION_RETRIES >1 else 'y'}. Got MaxRetryError caused by: {repr(e.reason)}.",
+                    extra=logger_data,
+                )
+            except Exception as e:
+                logger.warning(
+                    f"Unable to get severity score from microservice. Got: {repr(e)}.",
+                    extra=logger_data,
+                )
+            else:
+                logger.info(
+                    f"Got severity score of {severity} for event {event.data['event_id']}",
+                    extra=logger_data,
+                )
 
     return severity
 
