@@ -656,6 +656,22 @@ def check_postgres(containers: dict[str, Any]) -> None:
     )
 
 
+def check_redis(containers: dict[str, Any]) -> None:
+    redis_options = containers["redis"]
+    subprocess.run(
+        (
+            "docker",
+            "exec",
+            redis_options["name"],
+            "redis-cli",
+            "ping",
+        ),
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+
 class ServiceHealthcheck(TypedDict):
     check: Callable[[dict[str, Any]], None]
 
@@ -666,5 +682,8 @@ service_healthchecks: dict[str, ServiceHealthcheck] = {
     },
     "kafka": {
         "check": check_kafka,
+    },
+    "redis": {
+        "check": check_redis,
     },
 }
