@@ -92,9 +92,8 @@ class ProjectFeedbackDetailTest(APITestCase):
 
     def test_get_feedback_item(self):
         # Successful GET
-        self.mock_feedback()
-
         with self.feature({"organizations:user-feedback-ingest": True}):
+            self.mock_feedback()
             # Get one feedback
             path = reverse(
                 self.endpoint,
@@ -179,7 +178,6 @@ class ProjectFeedbackDetailTest(APITestCase):
         # Should not be able to query for another project's feedback
         with self.feature({"organizations:user-feedback-ingest": True}):
             self.mock_feedback()
-
             path = reverse(
                 self.endpoint,
                 args=[
@@ -192,8 +190,8 @@ class ProjectFeedbackDetailTest(APITestCase):
             assert response.status_code == 404
 
     def test_successful_delete(self):
-        self.mock_feedback()
         with self.feature({"organizations:user-feedback-ingest": True}):
+            self.mock_feedback()
             # Delete first feedback
             path = reverse(
                 self.endpoint,
@@ -219,8 +217,8 @@ class ProjectFeedbackDetailTest(APITestCase):
             assert response.status_code == 200
 
     def test_unsuccessful_delete(self):
-        self.mock_feedback()
         with self.feature({"organizations:user-feedback-ingest": True}):
+            self.mock_feedback()
             # The feedback does not exist
             path = reverse(
                 self.endpoint,
