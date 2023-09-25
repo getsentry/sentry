@@ -14,7 +14,7 @@ from sentry.db.models import (
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.fields.jsonfield import JSONField
-from sentry.db.models.outboxes import ReplicatedControlModel
+from sentry.db.models.outboxes import ControlOutboxProducingManager, ReplicatedControlModel
 from sentry.models.outbox import OutboxCategory
 
 
@@ -37,6 +37,8 @@ class OrganizationIntegration(ReplicatedControlModel):
     )
     # After the grace period, we will mark the status as disabled.
     grace_period_end = models.DateTimeField(null=True, blank=True, db_index=True)
+
+    objects = ControlOutboxProducingManager["OrganizationIntegration"]()
 
     class Meta:
         app_label = "sentry"

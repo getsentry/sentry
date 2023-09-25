@@ -5,6 +5,7 @@ from unittest.mock import patch
 
 import pytest
 import responses
+from django.db import router
 from django.urls import reverse
 
 from fixtures.integrations.jira.stub_client import StubJiraApiClient
@@ -21,6 +22,7 @@ from sentry.models import (
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
 from sentry.shared_integrations.exceptions import IntegrationError
+from sentry.silo import unguarded_write
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -1042,7 +1044,8 @@ class JiraMigrationIntegrationTest(APITestCase):
             key=f"{self.plugin.slug}:tid", group_id=group2.id, value="BAR-1"
         )
         org_integration = OrganizationIntegration.objects.get(integration_id=self.integration.id)
-        org_integration.config.update({"issues_ignored_fields": ["reporter", "test"]})
+        with unguarded_write(router.db_for_write(OrganizationIntegration)):
+            org_integration.config.update({"issues_ignored_fields": ["reporter", "test"]})
         org_integration.save()
 
         with self.tasks():
