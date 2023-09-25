@@ -53,7 +53,7 @@ export const steps = ({
   {
     type: StepType.CONFIGURE,
     description: (
-      <span>
+      <div>
         <p>
           {tct(
             'If you have the [code:celery] package in your dependencies, the Celery integration will be enabled automatically when you initialize the Sentry SDK.',
@@ -70,7 +70,7 @@ export const steps = ({
             }
           )}
         </p>
-      </span>
+      </div>
     ),
     configurations: [
       {
@@ -143,7 +143,7 @@ def init_sentry(**_kwargs):
   {
     type: StepType.VERIFY,
     description: (
-      <span>
+      <div>
         <p>
           {t(
             "To verify if your SDK is initialized on worker start, you can pass `debug=True` to `sentry_sdk.init()` to see extra output when the SDK is initialized. If the output appears during worker startup and not only after a task has started, then it's working properly."
@@ -165,7 +165,7 @@ def init_sentry(**_kwargs):
             }
           )}
         </AlertWithMarginBottom>
-      </span>
+      </div>
     ),
   },
 ];
