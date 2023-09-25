@@ -7,6 +7,7 @@ import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {PaddedContainer} from 'sentry/views/performance/browser/interactionsLandingPage';
+import {InteractionBreakdownChart} from 'sentry/views/performance/browser/interactionSummary/interactionBreakdownChart';
 import InteractionSampleTable from 'sentry/views/performance/browser/interactionSummary/sampleTable';
 import {getActionName} from 'sentry/views/performance/browser/interactionTable';
 import {useBrowserModuleFilters} from 'sentry/views/performance/browser/useBrowserFilters';
@@ -55,6 +56,7 @@ function InteractionSummary() {
               <DatePageFilter alignDropdown="left" />
             </PageFilterBar>
           </PaddedContainer>
+          <InteractionBreakdownChart />
           <InteractionSampleTable />
         </Layout.Main>
       </Layout.Body>
