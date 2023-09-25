@@ -64,9 +64,13 @@ class OrganizationReleaseAssembleEndpoint(OrganizationReleasesBaseEndpoint):
         chunks = data.get("chunks", [])
 
         upload_as_artifact_bundle = False
+        is_release_bundle_migration = False
         project_ids = []
         if features.has("organizations:sourcemaps-upload-release-as-artifact-bundle", organization):
             upload_as_artifact_bundle = True
+            is_release_bundle_migration = True
+            # NOTE: this list of projects can be further refined based on the
+            # `project` embedded in the bundle manifest.
             project_ids = [project.id for project in release.projects.all()]
             metrics.incr("sourcemaps.upload.release_as_artifact_bundle")
 
@@ -102,6 +106,7 @@ class OrganizationReleaseAssembleEndpoint(OrganizationReleasesBaseEndpoint):
                 # It will be backfilled from the manifest within the `assemble_artifacts` task.
                 "project_ids": project_ids,
                 "upload_as_artifact_bundle": upload_as_artifact_bundle,
+                "is_release_bundle_migration": is_release_bundle_migration,
             }
         )
 
