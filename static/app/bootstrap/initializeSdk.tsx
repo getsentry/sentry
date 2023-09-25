@@ -1,8 +1,6 @@
 // eslint-disable-next-line simple-import-sort/imports
-import {browserHistory, createRoutes, match} from 'react-router';
 import {ExtraErrorData} from '@sentry/integrations';
 import * as Sentry from '@sentry/react';
-import {BrowserTracing} from '@sentry/react';
 import {_browserPerformanceTimeOriginMode} from '@sentry/utils';
 import {Event} from '@sentry/types';
 
@@ -44,28 +42,29 @@ const shouldEnableBrowserProfiling = window?.__initialData?.user?.isSuperuser;
  * having routing instrumentation in order to have a smaller bundle size.
  * (e.g.  `static/views/integrationPipeline`)
  */
-function getSentryIntegrations(routes?: Function) {
+function getSentryIntegrations(_routes?: Function) {
   const integrations = [
     new ExtraErrorData({
       // 6 is arbitrary, seems like a nice number
       depth: 6,
     }),
-    new BrowserTracing({
-      ...(typeof routes === 'function'
-        ? {
-            routingInstrumentation: Sentry.reactRouterV3Instrumentation(
-              browserHistory as any,
-              createRoutes(routes()),
-              match
-            ),
-          }
-        : {}),
-      _experiments: {
-        enableInteractions: true,
-        onStartRouteTransaction: Sentry.onProfilingStartRouteTransaction,
-      },
-    }),
-    new Sentry.BrowserProfilingIntegration(),
+    // new BrowserTracing({
+    //   ...(typeof routes === 'function'
+    //     ? {
+    //         routingInstrumentation: Sentry.reactRouterV3Instrumentation(
+    //           browserHistory as any,
+    //           createRoutes(routes()),
+    //           match
+    //         ),
+    //       }
+    //     : {}),
+    //   _experiments: {
+    //     enableInteractions: true,
+    //     onStartRouteTransaction: Sentry.onProfilingStartRouteTransaction,
+    //   },
+    // }),
+    // new Sentry.BrowserProfilingIntegration(),
+    new Sentry.Replay(),
   ];
 
   return integrations;
@@ -100,6 +99,7 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
     allowUrls: SPA_DSN ? SPA_MODE_ALLOW_URLS : sentryConfig?.allowUrls,
     integrations: getSentryIntegrations(routes),
     tracesSampleRate,
+    replaysSessionSampleRate: 1,
     profilesSampleRate: shouldEnableBrowserProfiling ? 1 : 0,
     tracePropagationTargets: ['localhost', /^\//, ...extraTracePropagationTargets],
     tracesSampler: context => {
