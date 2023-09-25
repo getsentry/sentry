@@ -102,6 +102,9 @@ def cluster_projects(projects: Sequence[Project]) -> None:
                 tags={"clustered": False},
                 sample_rate=1.0,
             )
+            sentry_sdk.capture_message(
+                f"Transaction clusterer missed projects: {unclustered}", level="error"
+            )
 
 
 @instrumented_task(
