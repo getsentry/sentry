@@ -75,6 +75,8 @@ const DEVICE_CLASS_BREAKDOWN_INDEX = {
   low: 2,
 };
 
+const EMPTY = '';
+
 export function ScreensView({yAxes}: {yAxes: YAxis[]}) {
   const pageFilter = usePageFilters();
 
@@ -145,26 +147,30 @@ export function ScreensView({yAxes}: {yAxes: YAxis[]}) {
         const release = releaseArray.join(',');
         const isPrimary = release === primaryRelease;
 
-        Object.keys(releaseSeries[seriesName]).forEach(yAxis => {
-          const label = `${deviceClass}, ${release}`;
-          if (yAxis in transformedReleaseSeries) {
-            const data =
-              releaseSeries[seriesName][yAxis]?.data.map(datum => {
-                return {
-                  name: datum[0] * 1000,
-                  value: datum[1][0].count,
-                } as SeriesDataUnit;
-              }) ?? [];
+        if (release !== EMPTY) {
+          Object.keys(releaseSeries[seriesName]).forEach(yAxis => {
+            const label = `${deviceClass}, ${release}`;
+            if (yAxis in transformedReleaseSeries) {
+              const data =
+                releaseSeries[seriesName][yAxis]?.data.map(datum => {
+                  return {
+                    name: datum[0] * 1000,
+                    value: datum[1][0].count,
+                  } as SeriesDataUnit;
+                }) ?? [];
 
-            transformedReleaseSeries[yAxis][release][deviceClass] = {
-              seriesName: label,
-              color: isPrimary
-                ? CHART_PALETTE[5][index]
-                : Color(CHART_PALETTE[5][index]).lighten(0.5).string(),
-              data,
-            };
-          }
-        });
+              transformedReleaseSeries[yAxis][release][
+                deviceClass === EMPTY ? 'unknown' : deviceClass
+              ] = {
+                seriesName: label,
+                color: isPrimary
+                  ? CHART_PALETTE[5][index]
+                  : Color(CHART_PALETTE[5][index]).lighten(0.5).string(),
+                data,
+              };
+            }
+          });
+        }
       });
     }
 
