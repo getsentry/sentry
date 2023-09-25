@@ -1,4 +1,4 @@
-import {ReactNode, useState} from 'react';
+import {Fragment, ReactNode, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
@@ -15,7 +15,7 @@ export default function OpenClosePanel(props: Props) {
   const [isOpen, setIsOpen] = useState(props.openByDefault);
 
   return (
-    <PanelContainer>
+    <Fragment>
       <ListItemContainer>
         <Button
           icon={<IconChevron size="xs" direction={isOpen ? 'up' : 'down'} />}
@@ -31,18 +31,10 @@ export default function OpenClosePanel(props: Props) {
         </Button>
       </ListItemContainer>
       {isOpen ? props.children : null}
-    </PanelContainer>
+    </Fragment>
   );
 }
 
-const PanelContainer = styled('ul')`
-  line-height: ${p => p.theme.text.lineHeightBody};
-  margin: 0;
-  padding: 0;
-  list-style-type: none;
-`;
-
 const ListItemContainer = styled('div')`
   display: flex;
-  font-size: ${p => p.theme.fontSizeMedium};
 `;
