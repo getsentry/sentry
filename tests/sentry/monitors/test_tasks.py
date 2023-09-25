@@ -40,7 +40,11 @@ def make_ref_time():
     #
     # This is testing that the task correctly clamps its reference time
     # down to the minute.
-    task_run_ts = ts.replace(second=12, microsecond=0)
+    #
+    # NOTE: We also remove the timezone info from the task run timestamp, since
+    # it recieves a date time object from the kafka producer. This helps test
+    # for bad timezone
+    task_run_ts = ts.replace(second=12, microsecond=0, tzinfo=None)
 
     # We truncate down to the minute when we mark the next_checkin, do the
     # same here.
@@ -134,7 +138,7 @@ class MonitorTaskCheckMissingTest(TestCase):
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
             environment=self.environment,
-            last_checkin=ts - timedelta(minutes=2),
+            last_checkin=ts - timedelta(minutes=1),
             next_checkin=ts,
             next_checkin_latest=ts,
             status=MonitorStatus.OK,

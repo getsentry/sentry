@@ -10,6 +10,7 @@ describe('GettingStartedWithEmber', function () {
     render(
       <GettingStartedWithEmber
         dsn="test-dsn"
+        projectSlug="test-project"
         activeProductSelection={[
           ProductSolution.PERFORMANCE_MONITORING,
           ProductSolution.SESSION_REPLAY,

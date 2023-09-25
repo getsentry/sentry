@@ -6,7 +6,7 @@ import {GettingStartedWithExpress, steps} from './express';
 
 describe('GettingStartedWithExpress', function () {
   it('renders doc correctly', function () {
-    render(<GettingStartedWithExpress dsn="test-dsn" />);
+    render(<GettingStartedWithExpress dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps({

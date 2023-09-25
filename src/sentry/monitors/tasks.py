@@ -6,6 +6,7 @@ import sentry_sdk
 from arroyo import Topic
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
 from django.conf import settings
+from django.db.models import F, Q
 from django.utils import timezone
 
 from sentry.constants import ObjectStatus
@@ -176,6 +177,23 @@ def check_missing(current_datetime: datetime):
             monitor__type__in=[MonitorType.CRON_JOB],
             next_checkin_latest__lte=current_datetime,
         )
+        # TODO(epurkhiser): Exclusion to be removed after GH-56526 is complete.
+        .exclude(
+            # As a temporary stop-gap while we fix GH-56526 we are skipping
+            # monitors which have a next_checkin_latest equal to their
+            # next_checkin
+            #
+            # This is due to the fact that the default value of the
+            # `checkin_margin` was 0. With it set to a minimum and default of `1`
+            # future computed `next_checkin_latest`'s will ALWAYS have a minimum of
+            # one minute apart.
+            Q(next_checkin=F("next_checkin_latest"))
+            # Make sure to run these at the next tick though, which is what the
+            # previous behavior was. If the next_checkin{,_latest} values
+            # are equal ONLY exclude them when next_checkin_latest is the
+            # current time.
+            & Q(next_checkin_latest=current_datetime)
+        )
         .exclude(
             status__in=[
                 MonitorStatus.DISABLED,
@@ -192,26 +210,8 @@ def check_missing(current_datetime: datetime):
         )[:MONITOR_LIMIT]
     )
 
-    monitor_envs = [
-        monitor_env
-        for monitor_env in qs
-        # As a temporary stop-gap while we fix GH-56526 we are skipping
-        # monitors which have a next_checkin_latest equal to their
-        # next_checkin
-        #
-        # This is due to the fact that the default value of the
-        # `checkin_margin` was 0. With it set to a minimum and default of `1`
-        # future computed `next_checkin_latest`'s will ALWAYS have a minimum of
-        # one minute apart.
-        #
-        # Make sure to run these at the next tick though, which is what the
-        # previous behavior was.
-        if monitor_env.next_checkin != monitor_env.next_checkin_latest
-        or monitor_env.next_checkin_latest != current_datetime
-    ]
-
-    metrics.gauge("sentry.monitors.tasks.check_missing.count", len(monitor_envs), sample_rate=1.0)
-    for monitor_environment in monitor_envs:
+    metrics.gauge("sentry.monitors.tasks.check_missing.count", qs.count(), sample_rate=1.0)
+    for monitor_environment in qs:
         mark_environment_missing.delay(monitor_environment.id)
 
 
