@@ -96,7 +96,7 @@ class ReleaseHealthMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             ("init", 15),
         ):
             self.store_release_health_metric(
-                name=SessionMRI.SESSION.value,
+                name=SessionMRI.RAW_SESSION.value,
                 tags={"session.status": tag_value},
                 value=count_value,
                 minutes_before_now=4,

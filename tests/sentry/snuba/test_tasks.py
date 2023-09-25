@@ -187,7 +187,7 @@ class CreateSubscriptionInSnubaTest(BaseSnubaTaskTest, TestCase):
 
     @responses.activate
     def test_granularity_on_metrics_crash_rate_alerts(self):
-        for tag in [SessionMRI.SESSION.value, SessionMRI.USER.value, "session.status"]:
+        for tag in [SessionMRI.RAW_SESSION.value, SessionMRI.USER.value, "session.status"]:
             rh_indexer_record(self.organization.id, tag)
         for (time_window, expected_granularity) in [
             (30, 10),
@@ -969,7 +969,7 @@ class BuildSnqlQueryTest(TestCase):
     def test_simple_sessions_for_metrics(self):
         with Feature("organizations:use-metrics-layer"):
             org_id = self.organization.id
-            for tag in [SessionMRI.SESSION.value, "session.status", "crashed", "init"]:
+            for tag in [SessionMRI.RAW_SESSION.value, "session.status", "crashed", "init"]:
                 rh_indexer_record(org_id, tag)
             expected_conditions = [
                 Condition(Column(name="org_id"), Op.EQ, self.organization.id),
@@ -995,7 +995,7 @@ class BuildSnqlQueryTest(TestCase):
                         resolve(
                             UseCaseKey.RELEASE_HEALTH,
                             self.organization.id,
-                            SessionMRI.SESSION.value,
+                            SessionMRI.RAW_SESSION.value,
                         )
                     ],
                 ),
@@ -1009,7 +1009,7 @@ class BuildSnqlQueryTest(TestCase):
                 entity_extra_fields={"org_id": self.organization.id},
                 granularity=10,
                 use_none_clauses=True,
-                aggregate_kwargs={"metric_mri": SessionMRI.SESSION.value},
+                aggregate_kwargs={"metric_mri": SessionMRI.RAW_SESSION.value},
             )
 
     def test_simple_users_for_metrics(self):
@@ -1048,7 +1048,7 @@ class BuildSnqlQueryTest(TestCase):
             env = self.create_environment(self.project, name="development")
             org_id = self.organization.id
             for tag in [
-                SessionMRI.SESSION.value,
+                SessionMRI.RAW_SESSION.value,
                 "session.status",
                 "environment",
                 "development",
@@ -1103,7 +1103,7 @@ class BuildSnqlQueryTest(TestCase):
                         resolve(
                             UseCaseKey.RELEASE_HEALTH,
                             self.organization.id,
-                            SessionMRI.SESSION.value,
+                            SessionMRI.RAW_SESSION.value,
                         )
                     ],
                 ),
@@ -1119,7 +1119,7 @@ class BuildSnqlQueryTest(TestCase):
                 granularity=10,
                 use_none_clauses=True,
                 aggregate_kwargs={
-                    "metric_mri": SessionMRI.SESSION.value,
+                    "metric_mri": SessionMRI.RAW_SESSION.value,
                 },
             )
 

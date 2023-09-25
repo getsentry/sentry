@@ -1300,7 +1300,7 @@ DERIVED_METRICS = {
     for derived_metric in [
         SingularEntityDerivedMetric(
             metric_mri=SessionMRI.ALL.value,
-            metrics=[SessionMRI.SESSION.value],
+            metrics=[SessionMRI.RAW_SESSION.value],
             unit="sessions",
             snql=lambda project_ids, org_id, metric_ids, alias=None: all_sessions(
                 org_id, metric_ids, alias=alias
@@ -1316,7 +1316,7 @@ DERIVED_METRICS = {
         ),
         SingularEntityDerivedMetric(
             metric_mri=SessionMRI.ABNORMAL.value,
-            metrics=[SessionMRI.SESSION.value],
+            metrics=[SessionMRI.RAW_SESSION.value],
             unit="sessions",
             snql=lambda project_ids, org_id, metric_ids, alias=None: abnormal_sessions(
                 org_id, metric_ids, alias=alias
@@ -1332,7 +1332,7 @@ DERIVED_METRICS = {
         ),
         SingularEntityDerivedMetric(
             metric_mri=SessionMRI.CRASHED.value,
-            metrics=[SessionMRI.SESSION.value],
+            metrics=[SessionMRI.RAW_SESSION.value],
             unit="sessions",
             snql=lambda project_ids, org_id, metric_ids, alias=None: crashed_sessions(
                 org_id, metric_ids, alias=alias
@@ -1440,7 +1440,7 @@ DERIVED_METRICS = {
         ),
         SingularEntityDerivedMetric(
             metric_mri=SessionMRI.ERRORED_PREAGGREGATED.value,
-            metrics=[SessionMRI.SESSION.value],
+            metrics=[SessionMRI.RAW_SESSION.value],
             unit="sessions",
             snql=lambda project_ids, org_id, metric_ids, alias=None: errored_preaggr_sessions(
                 org_id, metric_ids, alias=alias

@@ -46,9 +46,12 @@ MRI_EXPRESSION_REGEX = re.compile(rf"^{OP_REGEX}\(({MRI_SCHEMA_REGEX_STRING})\)$
 
 class SessionMRI(Enum):
     # Ingested
-    SESSION = "c:sessions/session@none"
-    ERROR = "s:sessions/error@none"
-    USER = "s:sessions/user@none"
+    # Do *not* use these metrics in product queries. Use the derived metrics below instead.
+    # The raw metrics do not necessarily add up in intuitive ways. For example, `RAW_SESSION`
+    # double-counts crashed sessions.
+    RAW_SESSION = "c:sessions/session@none"
+    RAW_ERROR = "s:sessions/error@none"
+    RAW_USER = "s:sessions/user@none"
     RAW_DURATION = "d:sessions/duration@second"
 
     # Derived

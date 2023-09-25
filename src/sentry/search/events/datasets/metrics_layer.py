@@ -266,7 +266,7 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
                         "sum_if_column",
                         # We use the metric mri specified in
                         # sentry.snuba.entity_subscription.MetricsCountersEntitySubscription.metric_key.
-                        [Column(SessionMRI.SESSION.value), args["if_col"], args["if_val"]],
+                        [Column(SessionMRI.RAW_SESSION.value), args["if_col"], args["if_val"]],
                         alias,
                     ),
                     default_result_type="integer",

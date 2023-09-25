@@ -39,7 +39,7 @@ class EntitySubscriptionTestCase(TestCase):
     def setUp(self) -> None:
         super().setUp()
         for tag in [
-            SessionMRI.SESSION.value,
+            SessionMRI.RAW_SESSION.value,
             SessionMRI.USER.value,
             "session.status",
             "init",

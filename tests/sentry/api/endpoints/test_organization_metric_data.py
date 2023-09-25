@@ -51,7 +51,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             self.project.organization.id, TransactionMRI.MEASUREMENTS_LCP.value
         )
         org_id = self.organization.id
-        self.session_metric = rh_indexer_record(org_id, SessionMRI.SESSION.value)
+        self.session_metric = rh_indexer_record(org_id, SessionMRI.RAW_SESSION.value)
         self.session_duration = rh_indexer_record(org_id, SessionMRI.DURATION.value)
         self.session_error_metric = rh_indexer_record(org_id, SessionMRI.ERROR.value)
 
@@ -1205,7 +1205,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         within the limit, and that are also with complete data from across the entities
         """
         self.store_release_health_metric(
-            name=SessionMRI.SESSION.value,
+            name=SessionMRI.RAW_SESSION.value,
             tags={"tag3": "value1"},
             value=10,
         )
@@ -1249,7 +1249,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         """
         for tag, tag_value in (("tag1", "group1"), ("tag1", "group2")):
             self.store_release_health_metric(
-                name=SessionMRI.SESSION.value,
+                name=SessionMRI.RAW_SESSION.value,
                 tags={tag: tag_value},
                 value=10,
             )
@@ -1304,7 +1304,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             ("tag2", "C1"),
         ):
             self.store_release_health_metric(
-                name=SessionMRI.SESSION.value,
+                name=SessionMRI.RAW_SESSION.value,
                 tags={tag: tag_value},
                 value=10,
                 minutes_before_now=4,
@@ -1505,7 +1505,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         self.login_as(user=self.user)
         org_id = self.organization.id
         self.session_duration_metric = rh_indexer_record(org_id, SessionMRI.RAW_DURATION.value)
-        self.session_metric = rh_indexer_record(org_id, SessionMRI.SESSION.value)
+        self.session_metric = rh_indexer_record(org_id, SessionMRI.RAW_SESSION.value)
         self.session_user_metric = rh_indexer_record(org_id, SessionMRI.USER.value)
         self.session_error_metric = rh_indexer_record(org_id, SessionMRI.ERROR.value)
         self.session_status_tag = rh_indexer_record(org_id, "session.status")
@@ -1686,7 +1686,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
             ("init", 15),
         ):
             self.store_release_health_metric(
-                name=SessionMRI.SESSION.value,
+                name=SessionMRI.RAW_SESSION.value,
                 tags={"session.status": tag_value},
                 value=value,
                 minutes_before_now=4,
@@ -1734,7 +1734,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
             ("bar", 3, 2),
         ):
             self.store_release_health_metric(
-                name=SessionMRI.SESSION.value,
+                name=SessionMRI.RAW_SESSION.value,
                 tags={"session.status": "abnormal", "release": tag_value},
                 value=value,
                 minutes_before_now=minutes,
@@ -1883,7 +1883,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
             ("crashed", "foobar@2.0", 3, 2),
         ):
             self.store_release_health_metric(
-                name=SessionMRI.SESSION.value,
+                name=SessionMRI.RAW_SESSION.value,
                 tags={"session.status": tag_value, "release": release_tag_value},
                 value=value,
             )
@@ -1921,7 +1921,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
             ({"session.status": "init", "release": "foo"}, 10),
         ):
             self.store_release_health_metric(
-                name=SessionMRI.SESSION.value,
+                name=SessionMRI.RAW_SESSION.value,
                 tags=tags,
                 value=value,
             )
@@ -1950,7 +1950,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
             ("init", 10),
         ):
             self.store_release_health_metric(
-                name=SessionMRI.SESSION.value,
+                name=SessionMRI.RAW_SESSION.value,
                 tags={"session.status": tag_value, "release": "foo"},
                 value=value,
             )
