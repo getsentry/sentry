@@ -68,7 +68,7 @@ def schedule_batch(
             lo = outbox_model.objects.all().aggregate(Min("id"))["id__min"] or 0
             hi = outbox_model.objects.all().aggregate(Max("id"))["id__max"] or -1
             if hi < lo:
-                return
+                continue
 
             scheduled_count += hi - lo + 1
             batch_size = math.ceil((hi - lo + 1) / concurrency)
