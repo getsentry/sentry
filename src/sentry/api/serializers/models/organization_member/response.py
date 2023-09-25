@@ -32,6 +32,21 @@ class OrganizationMemberSCIMSerializerOptional(TypedDict, total=False):
     active: bool
 
 
+class OrganizationMemberSCIMSerializerResponse(OrganizationMemberSCIMSerializerOptional):
+    """
+    Conforming to the SCIM RFC, this represents a Sentry Org Member
+    as a SCIM user object.
+    """
+
+    schemas: List[str]
+    id: str
+    userName: str
+    name: SCIMName
+    emails: List[SCIMEmail]
+    meta: SCIMMeta
+    sentryOrgRole: str
+
+
 # We must use alternative TypedDict syntax because of dashes/colons in names.
 _OrganizationMemberFlags = TypedDict(
     "_OrganizationMemberFlags",
@@ -55,21 +70,6 @@ class OrganizationMemberResponseOptional(TypedDict, total=False):
     groupOrgRoles: List[OrganizationRoleSerializerResponse]
     role: str  # Deprecated: use orgRole
     roleName: str  # Deprecated
-
-
-class OrganizationMemberSCIMSerializerResponse(OrganizationMemberSCIMSerializerOptional):
-    """
-    Conforming to the SCIM RFC, this represents a Sentry Org Member
-    as a SCIM user object.
-    """
-
-    schemas: List[str]
-    id: str
-    userName: str
-    name: SCIMName
-    emails: List[SCIMEmail]
-    meta: SCIMMeta
-    sentryOrgRole: str
 
 
 class OrganizationMemberResponse(OrganizationMemberResponseOptional):
