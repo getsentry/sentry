@@ -889,7 +889,7 @@ def _map_field_name(search_key: str) -> str:
 
     # Measurements support generic access.
     if search_key.startswith("measurements."):
-        return f"event.{search_key}"
+        return f"event.{search_key}.value"
 
     # Run a schema-aware check for tags. Always use the resolver output,
     # since it accounts for passing `tags[foo]` as key.

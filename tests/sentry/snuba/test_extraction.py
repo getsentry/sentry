@@ -137,7 +137,7 @@ def test_spec_simple_query_distribution():
     spec = OnDemandMetricSpec("p75(measurements.fp)", "transaction.duration:>1s")
 
     assert spec._metric_type == "d"
-    assert spec.field_to_extract == "event.measurements.fp"
+    assert spec.field_to_extract == "event.measurements.fp.value"
     assert spec.op == "p75"
     assert spec.condition == {"name": "event.duration", "op": "gt", "value": 1000.0}
 
@@ -253,6 +253,19 @@ def test_spec_in_operator():
     assert not_in_spec.condition == {
         "inner": {"name": "event.duration", "op": "eq", "value": [1.0, 2.0, 3.0]},
         "op": "not",
+    }
+
+
+def test_spec_with_custom_measurements():
+    spec = OnDemandMetricSpec("avg(measurements.memoryUsed)", "measurements.memoryUsed:>100")
+
+    assert spec._metric_type == "d"
+    assert spec.field_to_extract == "event.measurements.memoryUsed.value"
+    assert spec.op == "avg"
+    assert spec.condition == {
+        "name": "event.measurements.memoryUsed.value",
+        "op": "gt",
+        "value": 100.0,
     }
 
 
