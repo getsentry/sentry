@@ -2,13 +2,12 @@ import {Children, isValidElement} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
-import {isItemActive} from 'sentry/components/sidebar/isItemActive';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 
-import SidebarItem, {SidebarItemProps} from './sidebarItem';
+import SidebarItem, {isItemActive, SidebarItemProps} from './sidebarItem';
 
 type SidebarAccordionProps = SidebarItemProps & {
   children?: React.ReactNode;
