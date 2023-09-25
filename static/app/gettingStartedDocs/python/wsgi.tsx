@@ -89,7 +89,7 @@ make_server('', 8000, app).serve_forever()
       },
     ],
     additionalInfo: (
-      <span>
+      <div>
         <p>
           {tct(
             'When you point your browser to [link:http://localhost:8000/] a transaction in the Performance section of Sentry will be created.',
@@ -104,7 +104,7 @@ make_server('', 8000, app).serve_forever()
           )}
         </p>
         <p>{t('It takes a couple of moments for the data to appear in Sentry.')}</p>
-      </span>
+      </div>
     ),
   },
 ];

@@ -123,7 +123,7 @@ async def main():
 asyncio.run(main())
     `,
         additionalInfo: (
-          <span>
+          <div>
             <p>
               {tct(
                 'When you point your browser to [link:http://localhost:8888/] a transaction in the Performance section of Sentry will be created.',
@@ -138,7 +138,7 @@ asyncio.run(main())
               )}
             </p>
             <p>{t('It takes a couple of moments for the data to appear in Sentry.')}</p>
-          </span>
+          </div>
         ),
       },
     ],

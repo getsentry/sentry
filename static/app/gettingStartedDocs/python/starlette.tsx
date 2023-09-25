@@ -97,7 +97,7 @@ app = Starlette(routes=[
 ])
     `,
         additionalInfo: (
-          <span>
+          <div>
             <p>
               {tct(
                 'When you point your browser to [link:http://localhost:8000/sentry-debug/] a transaction in the Performance section of Sentry will be created.',
@@ -112,7 +112,7 @@ app = Starlette(routes=[
               )}
             </p>
             <p>{t('It takes a couple of moments for the data to appear in Sentry.')}</p>
-          </span>
+          </div>
         ),
       },
     ],
