@@ -4,7 +4,7 @@ import logging
 import secrets
 import warnings
 from string import ascii_letters, digits
-from typing import Any, List, Mapping, Optional, Tuple, Type
+from typing import Any, List, Mapping, Optional, Tuple
 
 from django.contrib.auth.models import AbstractBaseUser
 from django.contrib.auth.models import UserManager as DjangoUserManager
@@ -12,7 +12,6 @@ from django.contrib.auth.signals import user_logged_out
 from django.db import IntegrityError, models, router, transaction
 from django.db.models import Count, Subquery
 from django.db.models.query import QuerySet
-from django.db.models.signals import class_prepared
 from django.dispatch import receiver
 from django.forms import model_to_dict
 from django.urls import reverse
@@ -519,6 +518,4 @@ def refresh_api_user_nonce(sender, request, user, **kwargs):
     refresh_user_nonce(sender, request, user, **kwargs)
 
 
-@receiver(class_prepared, sender=User)
-def connect_control_model_updates(sender: Type[User], **kwargs: Any) -> None:
-    OutboxCategory.USER_UPDATE.connect_control_model_updates(sender)
+OutboxCategory.USER_UPDATE.connect_control_model_updates(User)
