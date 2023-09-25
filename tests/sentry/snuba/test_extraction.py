@@ -256,7 +256,7 @@ def test_spec_in_operator():
     }
 
 
-def test_spec_with_custom_measurements():
+def test_spec_with_custom_measurement():
     spec = OnDemandMetricSpec("avg(measurements.memoryUsed)", "measurements.memoryUsed:>100")
 
     assert spec._metric_type == "d"
