@@ -2061,9 +2061,12 @@ def _get_severity_score(event: Event) -> float | None:
     # message data elsewhere in the event.)
     title = event.title
     event_type = get_event_type(event.data)
+
+    # If the event hasn't yet been given a helpful title, attempt to calculate one
     if title in NON_TITLE_EVENT_TITLES:
         title = event_type.get_title(event_type.get_metadata(event.data))
 
+    # If there's still nothing helpful to be had, bail
     if title in NON_TITLE_EVENT_TITLES:
         logger_data.update(
             {"event_type": event_type.key, "event_title": event.title, "computed_title": title}
