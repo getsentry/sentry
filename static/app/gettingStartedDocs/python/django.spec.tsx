@@ -6,7 +6,7 @@ import {GettingStartedWithDjango, steps} from './django';
 
 describe('GettingStartedWithDjango', function () {
   it('renders doc correctly', function () {
-    render(<GettingStartedWithDjango dsn="test-dsn" />);
+    render(<GettingStartedWithDjango dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps()) {

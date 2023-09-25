@@ -21,6 +21,7 @@ from sentry.models import (
     OrganizationStatus,
     UserEmail,
 )
+from sentry.models.authidentity import AuthIdentity
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.auth import AuthenticationContext
 from sentry.services.hybrid_cloud.filter_query import (
@@ -37,6 +38,7 @@ from sentry.services.hybrid_cloud.user import (
 )
 from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
 from sentry.services.hybrid_cloud.user.service import UserService
+from sentry.signals import user_signup
 
 logger = logging.getLogger("user:provisioning")
 
@@ -167,12 +169,14 @@ class DatabaseBackedUserService(UserService):
         return serialize_rpc_user(user)
 
     def get_first_superuser(self) -> Optional[RpcUser]:
-        user = User.objects.filter(is_superuser=True).first()
+        user = User.objects.filter(is_superuser=True, is_active=True).first()
         if user is None:
             return None
         return serialize_rpc_user(user)
 
-    def get_or_create_user_by_email(self, *, email: str) -> RpcUser:
+    def get_or_create_user_by_email(
+        self, *, email: str, ident: Optional[str] = None, referrer: Optional[str] = None
+    ) -> RpcUser:
         with transaction.atomic(router.db_for_write(User)):
             user_query = User.objects.filter(email__iexact=email, is_active=True)
             # Create User if it doesn't exist
@@ -182,12 +186,28 @@ class DatabaseBackedUserService(UserService):
                     email=email,
                     name=email,
                 )
+                user_signup.send_robust(
+                    sender=self, user=user, source="api", referrer=referrer or "unknown"
+                )
             else:
                 # Users are not supposed to have the same email but right now our auth pipeline let this happen
-                # So let's not break the user experience
+                # So let's not break the user experience. Instead return the user with auth identity of ident or
+                # the first user if ident is None
+                user = user_query[0]
                 if user_query.count() > 1:
                     logger.warning("Email has multiple users", extra={"email": email})
-                user = user_query[0]
+                    if ident:
+                        identity_query = AuthIdentity.objects.filter(
+                            user__in=user_query, ident=ident
+                        )
+                        if identity_query.exists():
+                            user = identity_query[0].user
+                        if identity_query.count() > 1:
+                            logger.warning(
+                                "Email has two auth identity for the same ident",
+                                extra={"email": email},
+                            )
+
             return serialize_rpc_user(user)
 
     def verify_any_email(self, *, email: str) -> bool:

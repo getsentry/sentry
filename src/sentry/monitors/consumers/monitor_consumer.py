@@ -68,7 +68,6 @@ LOCK_EXP_BASE = 2.0
 def _ensure_monitor_with_config(
     project: Project,
     monitor_slug: str,
-    monitor_slug_from_param: str,
     config: Optional[Dict],
 ):
     try:
@@ -79,21 +78,6 @@ def _ensure_monitor_with_config(
         )
     except Monitor.DoesNotExist:
         monitor = None
-
-    # XXX(epurkhiser): Temporary dual-read logic to handle some monitors
-    # that were created before we correctly slugified slugs on upsert in
-    # this consumer.
-    #
-    # Once all slugs are correctly slugified we can remove this.
-    if not monitor:
-        try:
-            monitor = Monitor.objects.get(
-                slug=monitor_slug_from_param,
-                project_id=project.id,
-                organization_id=project.organization_id,
-            )
-        except Monitor.DoesNotExist:
-            pass
 
     if not config:
         return monitor
@@ -241,9 +225,6 @@ def _process_checkin(
     source_sdk: str,
     txn: Transaction | Span,
 ):
-
-    # Ensure the monitor_slug is slugified, since we are not running this
-    # through the MonitorValidator we must do this here.
     monitor_slug = slugify(params["monitor_slug"])[:MAX_SLUG_LENGTH].strip("-")
 
     environment = params.get("environment")
@@ -391,7 +372,6 @@ def _process_checkin(
         monitor = _ensure_monitor_with_config(
             project,
             monitor_slug,
-            params["monitor_slug"],
             monitor_config,
         )
     except MonitorLimitsExceeded:

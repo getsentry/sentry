@@ -10,7 +10,7 @@ from typing import Callable, Dict, List, Type
 from dateutil import parser
 from django.db import models
 
-from sentry.backup.dependencies import PrimaryKeyMap, dependencies
+from sentry.backup.dependencies import PrimaryKeyMap, dependencies, get_model_name
 from sentry.backup.findings import ComparatorFinding, ComparatorFindingKind, InstanceID
 from sentry.backup.helpers import Side, get_exportable_sentry_models
 from sentry.models.team import Team
@@ -262,8 +262,7 @@ class ForeignKeyComparator(JSONScrubbingComparator):
         findings = []
         fields = sorted(self.fields)
         for f in fields:
-            obj_name = self.foreign_fields[f]._meta.object_name.lower()  # type: ignore[union-attr]
-            field_model_name = "sentry." + obj_name
+            field_model_name = get_model_name(self.foreign_fields[f])
             if left["fields"].get(f) is None and right["fields"].get(f) is None:
                 continue
 
@@ -597,7 +596,7 @@ def auto_assign_datetime_equality_comparators(comps: ComparatorMap) -> None:
 
     exportable = get_exportable_sentry_models()
     for e in exportable:
-        name = "sentry." + e.__name__.lower()
+        name = str(get_model_name(e))
         fields = e._meta.get_fields()
         assign = set()
         for f in fields:
@@ -623,7 +622,7 @@ def auto_assign_email_obfuscating_comparators(comps: ComparatorMap) -> None:
 
     exportable = get_exportable_sentry_models()
     for e in exportable:
-        name = "sentry." + e.__name__.lower()
+        name = str(get_model_name(e))
         fields = e._meta.get_fields()
         assign = set()
         for f in fields:
@@ -632,7 +631,8 @@ def auto_assign_email_obfuscating_comparators(comps: ComparatorMap) -> None:
 
         if len(assign):
             found = next(
-                filter(lambda e: isinstance(e, EmailObfuscatingComparator), comps[name]), None
+                filter(lambda e: isinstance(e, EmailObfuscatingComparator), comps[name]),
+                None,
             )
             if found:
                 found.fields.update(assign)
@@ -645,7 +645,7 @@ def auto_assign_foreign_key_comparators(comps: ComparatorMap) -> None:
     dependencies.py for more on what "appropriate" means in this context)."""
 
     for model_name, rels in dependencies().items():
-        comps[model_name.lower()].append(
+        comps[str(model_name)].append(
             ForeignKeyComparator({k: v.model for k, v in rels.foreign_keys.items()})
         )
 

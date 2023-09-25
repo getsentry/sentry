@@ -1,6 +1,7 @@
-import {Children, Fragment, ReactNode} from 'react';
+import {Children, JSXElementConstructor, ReactNode} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from 'sentry/components/profiling/flex';
 import SideBySide from 'sentry/components/stories/sideBySide';
 import {space} from 'sentry/styles/space';
 
@@ -13,7 +14,10 @@ type Context = {
   render: RenderFn;
 };
 
-export default function storyBook(rootName: string, setup: SetupFn) {
+export default function storyBook(
+  bookContext: string | JSXElementConstructor<any>,
+  setup: SetupFn
+) {
   const contexts: Context[] = [];
 
   const storyFn: StoryFn = (name: string, render: RenderFn) => {
@@ -24,8 +28,8 @@ export default function storyBook(rootName: string, setup: SetupFn) {
 
   return function RenderStory() {
     return (
-      <Fragment>
-        {rootName ? <h3>{rootName}</h3> : null}
+      <Flex column gap={space(4)}>
+        <BookHeading bookContext={bookContext} />
         {contexts.map(({name, render}, i) => {
           const children = render();
           const isOneChild = Children.count(children) === 1;
@@ -38,13 +42,38 @@ export default function storyBook(rootName: string, setup: SetupFn) {
             </Story>
           );
         })}
-      </Fragment>
+      </Flex>
     );
   };
 }
 
+function BookHeading({bookContext}) {
+  if (typeof bookContext === 'string') {
+    return <BookTitle>{bookContext}</BookTitle>;
+  }
+
+  const componentName =
+    bookContext.displayName ?? bookContext.name ?? bookContext.constructor.name;
+
+  if (!componentName) {
+    return null;
+  }
+
+  return (
+    <BookTitle>
+      <code>{`<${componentName}/>`}</code>
+    </BookTitle>
+  );
+}
+
+const BookTitle = styled('h3')`
+  margin: 0;
+`;
+
 const Story = styled('section')`
-  margin-bottom: ${space(4)};
+  & > p {
+    margin: ${space(3)} 0;
+  }
 `;
 
 const StoryTitle = styled('h4')`

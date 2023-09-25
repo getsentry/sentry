@@ -137,7 +137,12 @@ class NotificationSettingsByTypeV2 extends DeprecatedAsyncComponent<Props, State
     // if we have child types, map the default
     const childTypes: string[] = typeMappedChildren[notificationType] || [];
     const childTypesDefaults = Object.fromEntries(
-      childTypes.map(childType => [childType, defaultValue])
+      childTypes.map(childType => {
+        const childMatchedOption = notificationOptions.find(
+          option => option.type === childType && option.scopeType === 'user'
+        );
+        return [childType, childMatchedOption ? childMatchedOption.value : defaultValue];
+      })
     );
 
     return {
@@ -147,13 +152,18 @@ class NotificationSettingsByTypeV2 extends DeprecatedAsyncComponent<Props, State
   }
 
   getProviderInitialData(): {[key: string]: string[]} {
+    const {notificationType} = this.props;
     const {notificationProviders, defaultSettings} = this.state;
+
+    const relevantProviderSettings = notificationProviders.filter(
+      option => option.scopeType === 'user' && option.type === notificationType
+    );
     // user has no settings saved so use default
-    if (notificationProviders.length === 0 && defaultSettings) {
+    if (relevantProviderSettings.length === 0 && defaultSettings) {
       return {provider: defaultSettings.providerDefaults};
     }
-    const providers = notificationProviders
-      .filter(option => option.scopeType === 'user' && option.value === 'always')
+    const providers = relevantProviderSettings
+      .filter(option => option.value === 'always')
       .map(option => option.provider);
     return {provider: providers};
   }
