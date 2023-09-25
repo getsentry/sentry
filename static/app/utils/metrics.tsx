@@ -78,7 +78,6 @@ export function useMetricsTagValues(mri: string, tag: string) {
   );
 }
 
-// TODO(ddm): reuse from types/metrics.tsx
 export type MetricsDataProps = {
   datetime: PageFilters['datetime'];
   mri: string;
@@ -205,7 +204,7 @@ export function getNameFromMRI(mri: string) {
   return mri.match(/^[a-z]:\w+\/(.+)(?:@\w+)$/)?.[1] ?? mri;
 }
 
-export function tooltipFormatterUsingUnit(value: number | null, unit: string) {
+export function formatMetricUsingUnit(value: number | null, unit: string) {
   if (!defined(value)) {
     return '\u2014';
   }
@@ -263,4 +262,16 @@ export function tooltipFormatterUsingUnit(value: number | null, unit: string) {
     default:
       return value.toLocaleString();
   }
+}
+
+export function formatMetricsUsingUnitAndOp(
+  value: number | null,
+  unit: string,
+  operation?: string
+) {
+  if (operation === 'count') {
+    // if the operation is count, we want to ignore the unit and always format the value as a number
+    return value?.toLocaleString() ?? '';
+  }
+  return formatMetricUsingUnit(value, unit);
 }
