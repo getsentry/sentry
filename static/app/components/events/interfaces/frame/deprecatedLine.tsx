@@ -378,13 +378,23 @@ export class DeprecatedLine extends Component<Props, State> {
                     sourceMapDebuggerAmplitudeData
                   );
 
-                  openModal(modalProps => (
-                    <SourceMapsDebuggerModal
-                      analyticsParams={sourceMapDebuggerAmplitudeData}
-                      sourceResolutionResults={this.props.frameSourceResolutionResults!}
-                      {...modalProps}
-                    />
-                  ));
+                  openModal(
+                    modalProps => (
+                      <SourceMapsDebuggerModal
+                        analyticsParams={sourceMapDebuggerAmplitudeData}
+                        sourceResolutionResults={this.props.frameSourceResolutionResults!}
+                        {...modalProps}
+                      />
+                    ),
+                    {
+                      onClose: () => {
+                        trackAnalytics(
+                          'source_map_debug_blue_thunder.modal_closed',
+                          sourceMapDebuggerAmplitudeData
+                        );
+                      },
+                    }
+                  );
                 }}
               >
                 {hasContextSource(data)
