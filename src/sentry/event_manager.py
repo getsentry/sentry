@@ -561,9 +561,9 @@ class EventManager:
 
         _materialize_metadata_many(jobs)
 
-        kwargs = _create_kwargs(job)
+        group_creation_kwargs = _get_group_creation_kwargs(job)
 
-        kwargs["culprit"] = job["culprit"]
+        group_creation_kwargs["culprit"] = job["culprit"]
 
         # Load attachments first, but persist them at the very last after
         # posting to eventstream to make sure all counters and eventstream are
@@ -582,7 +582,7 @@ class EventManager:
                     metadata=dict(job["event_metadata"]),
                     received_timestamp=job["received_timestamp"],
                     migrate_off_hierarchical=migrate_off_hierarchical,
-                    **kwargs,
+                    **group_creation_kwargs,
                 )
                 job["groups"] = [group_info]
         except HashDiscarded as err:
@@ -1096,7 +1096,7 @@ def _materialize_metadata_many(jobs: Sequence[Job]) -> None:
         job["culprit"] = data["culprit"]
 
 
-def _create_kwargs(job: Union[Job, PerformanceJob]) -> dict[str, Any]:
+def _get_group_creation_kwargs(job: Union[Job, PerformanceJob]) -> dict[str, Any]:
     kwargs = {
         "platform": job["platform"],
         "message": job["event"].search_message,
@@ -1733,7 +1733,7 @@ def _save_aggregate(
         ).update(group=group)
 
     is_regression = _process_existing_aggregate(
-        group=group, event=event, data=kwargs, release=release
+        group=group, event=event, new_group_data=kwargs, release=release
     )
 
     return GroupInfo(group, is_new, is_regression)
@@ -2001,20 +2001,20 @@ def _handle_regression(group: Group, event: Event, release: Optional[Release]) -
 
 
 def _process_existing_aggregate(
-    group: Group, event: Event, data: Mapping[str, Any], release: Optional[Release]
+    group: Group, event: Event, new_group_data: Mapping[str, Any], release: Optional[Release]
 ) -> bool:
-    date = max(event.datetime, group.last_seen)
-    extra = {"last_seen": date, "data": data["data"]}
+    last_seen = max(event.datetime, group.last_seen)
+    extra = {"last_seen": last_seen, "data": new_group_data["data"]}
     if (
         event.search_message
         and event.search_message != group.message
         and event.get_event_type() != TransactionEvent.key
     ):
         extra["message"] = event.search_message
-    if group.level != data["level"]:
-        extra["level"] = data["level"]
-    if group.culprit != data["culprit"]:
-        extra["culprit"] = data["culprit"]
+    if group.level != new_group_data["level"]:
+        extra["level"] = new_group_data["level"]
+    if group.culprit != new_group_data["culprit"]:
+        extra["culprit"] = new_group_data["culprit"]
     if group.first_seen > event.datetime:
         extra["first_seen"] = event.datetime
 
