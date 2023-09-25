@@ -68,7 +68,7 @@ class OrganizationSlugReservation(ReplicatedControlModel):
         return super().update(*args, **kwds)
 
     def outbox_region_names(self) -> Collection[str]:
-        return self.region_name
+        return [self.region_name]
 
     def outboxes_for_update(self, shard_identifier: int | None = None) -> List[ControlOutboxBase]:
         outboxes = super().outboxes_for_update()
@@ -109,5 +109,5 @@ class OrganizationSlugReservation(ReplicatedControlModel):
         from sentry.services.hybrid_cloud.replica import region_replica_service
 
         region_replica_service.delete_replicated_org_slug_reservation(
-            slug=slug, organization_id=org_id
+            slug=slug, organization_id=org_id, region_name=region_name
         )

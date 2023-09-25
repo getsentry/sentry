@@ -3,6 +3,7 @@ from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import BoundedBigIntegerField, Model, region_silo_only_model, sane_repr
+from sentry.models import OrganizationSlugReservationType
 from sentry.services.hybrid_cloud import REGION_NAME_LENGTH
 
 
@@ -12,15 +13,18 @@ class OrganizationSlugReservationReplica(Model):
 
     slug = models.SlugField(unique=True, db_index=True)
     organization_id = BoundedBigIntegerField(db_index=True)
-    region_name = models.CharField(max_length=REGION_NAME_LENGTH)
-    user_id = BoundedBigIntegerField(db_index=True)
-    date_added = models.DateTimeField(default=timezone.now)
+    user_id = BoundedBigIntegerField(db_index=True, null=False)
+    region_name = models.CharField(max_length=REGION_NAME_LENGTH, null=False)
+    reservation_type = BoundedBigIntegerField(
+        choices=OrganizationSlugReservationType.as_choices(),
+        null=False,
+        default=OrganizationSlugReservationType.PRIMARY.value,
+    )
+    date_added = models.DateTimeField(null=False, default=timezone.now, editable=False)
 
     class Meta:
         app_label = "sentry"
         db_table = "sentry_organizationslugreservationreplica"
+        unique_together = (("organization_id", "reservation_type"),)
 
     __repr__ = sane_repr("organization_id", "slug")
-
-    def __str__(self):
-        return self.slug

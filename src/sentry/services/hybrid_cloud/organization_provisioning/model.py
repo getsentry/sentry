@@ -26,3 +26,4 @@ class RpcOrganizationSlugReservation(pydantic.BaseModel):
     user_id: int
     slug: str
     region_name: str
+    reservation_type: int
