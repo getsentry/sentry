@@ -242,6 +242,7 @@ const GridStatusFloat = styled('div')`
   width: 100%;
   height: ${GRID_STATUS_MESSAGE_HEIGHT}px;
   overflow: hidden;
+
   z-index: ${Z_INDEX_GRID_STATUS};
   background: ${p => p.theme.background};
 `;
