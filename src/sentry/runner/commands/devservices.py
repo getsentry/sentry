@@ -656,6 +656,23 @@ def check_postgres(containers: dict[str, Any]) -> None:
     )
 
 
+def check_rabbitmq(containers: dict[str, Any]) -> None:
+    options = containers["rabbitmq"]
+    subprocess.run(
+        (
+            "docker",
+            "exec",
+            options["name"],
+            "rabbitmq-diagnostics",
+            "-q",
+            "ping",
+        ),
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+
 class ServiceHealthcheck(TypedDict):
     check: Callable[[dict[str, Any]], None]
 
@@ -666,5 +683,8 @@ service_healthchecks: dict[str, ServiceHealthcheck] = {
     },
     "kafka": {
         "check": check_kafka,
+    },
+    "rabbitmq": {
+        "check": check_rabbitmq,
     },
 }
