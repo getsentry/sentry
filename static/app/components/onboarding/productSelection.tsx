@@ -134,17 +134,14 @@ export const platformProductAvailability = {
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
   ],
-  'python-pyramid': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-quart': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-rq': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
-  'python-sanic': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-serverless': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
   ],
   'python-tornado': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-starlette': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
-  'python-tryton': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-wsgi': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'java-spring-boot': [ProductSolution.PERFORMANCE_MONITORING],
 } as Record<PlatformKey, ProductSolution[]>;
