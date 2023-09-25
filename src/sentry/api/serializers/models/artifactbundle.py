@@ -69,6 +69,7 @@ class ArtifactBundleFilesSerializer(Serializer):
 
         headers = self.archive.normalize_headers(info.get("headers", {}))
         debug_id = self.archive.normalize_debug_id(headers.get("debug-id"))
+        sourcemap = headers.get("sourcemap")
 
         return {
             "file_type": SourceFileType.from_lowercase_key(info.get("type")),
@@ -76,6 +77,7 @@ class ArtifactBundleFilesSerializer(Serializer):
             "file_url": self.archive.get_file_url_by_file_path(file_path),
             "file_info": self.archive.get_file_info(file_path),
             "debug_id": debug_id,
+            "sourcemap": sourcemap,
         }
 
     def serialize(self, obj, attrs, user):
@@ -91,4 +93,5 @@ class ArtifactBundleFilesSerializer(Serializer):
             "filePath": attrs["file_url"],
             "fileSize": attrs["file_info"].file_size if attrs["file_info"] is not None else None,
             "debugId": attrs["debug_id"],
+            "sourcemap": attrs["sourcemap"],
         }
