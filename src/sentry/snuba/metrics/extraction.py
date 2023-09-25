@@ -1033,9 +1033,11 @@ class SearchQueryConverter:
                 "value": [value],
             }
         else:
-            # Special case: `x != ""` is the result of a `has:x` query, which
-            # needs to be translated as `not(x == null)`.
-            if token.operator == "!=" and value == "":
+            # Special case for the `has` and `!has` operators which are parsed as follows:
+            # - `has:x` -> `x != ""`
+            # - `!has:x` -> `x = ""`
+            # They both need to be translated to `x not eq null` and `x eq null`.
+            if token.operator in ("!=", "=") and value == "":
                 value = None
 
             if isinstance(value, str):

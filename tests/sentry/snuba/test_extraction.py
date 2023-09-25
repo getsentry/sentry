@@ -269,6 +269,26 @@ def test_spec_with_custom_measurement():
     }
 
 
+def test_spec_with_has():
+    spec = OnDemandMetricSpec(
+        "avg(measurements.lcp)", "has:measurements.lcp AND !has:measurements.memoryUsage"
+    )
+
+    assert spec._metric_type == "d"
+    assert spec.field_to_extract == "event.measurements.lcp.value"
+    assert spec.op == "avg"
+    assert spec.condition == {
+        "inner": [
+            {
+                "inner": {"name": "event.measurements.lcp.value", "op": "eq", "value": None},
+                "op": "not",
+            },
+            {"name": "event.measurements.memoryUsage.value", "op": "eq", "value": None},
+        ],
+        "op": "and",
+    }
+
+
 def test_spec_ignore_fields():
     with_ignored_field = OnDemandMetricSpec("count()", "transaction.duration:>=1 project:sentry")
     without_ignored_field = OnDemandMetricSpec("count()", "transaction.duration:>=1")
