@@ -21,6 +21,7 @@ from sentry.models.project import Project
 class ProjectFeedbackDetailsEndpoint(ProjectEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
+        "DELETE": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.FEEDBACK
 
@@ -36,3 +37,17 @@ class ProjectFeedbackDetailsEndpoint(ProjectEndpoint):
             raise ResourceDoesNotExist
 
         return self.respond(serialize(feedback, request.user, FeedbackSerializer()))
+
+    def delete(self, request: Request, project: Project, feedback_id: UUID) -> Response:
+        if not features.has(
+            "organizations:user-feedback-ingest", project.organization, actor=request.user
+        ):
+            return Response(status=404)
+
+        try:
+            feedback = Feedback.objects.get(feedback_id=feedback_id, project_id=project.id)
+        except Feedback.DoesNotExist:
+            raise ResourceDoesNotExist
+
+        feedback.delete()
+        return Response(status=204)
