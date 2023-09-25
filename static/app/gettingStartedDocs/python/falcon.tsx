@@ -78,9 +78,7 @@ api = falcon.API()
   },
   {
     type: StepType.VERIFY,
-    description: (
-      <p>{t('To verify that everything is working trigger an error on purpose:')}</p>
-    ),
+    description: t('To verify that everything is working trigger an error on purpose:'),
     configurations: [
       {
         language: 'python',
