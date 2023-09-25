@@ -50,4 +50,4 @@ class ProjectFeedbackDetailsEndpoint(ProjectEndpoint):
             raise ResourceDoesNotExist
 
         feedback.delete()
-        return Response(serialize(feedback, request.user, FeedbackSerializer()), status=200)
+        return Response(status=204)
