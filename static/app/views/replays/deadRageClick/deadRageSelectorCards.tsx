@@ -4,7 +4,6 @@ import {Location} from 'history';
 
 import {LinkButton} from 'sentry/components/button';
 import OpenClosePanel from 'sentry/components/openClosePanel';
-import {hydratedSelectorData} from 'sentry/components/replays/utils';
 import {IconCursorArrow, IconShow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -35,7 +34,7 @@ function DeadRageSelectorCards() {
 
 function DeadClickTable({location}: {location: Location<any>}) {
   const {isLoading, isError, data} = useDeadRageSelectors({
-    per_page: 3,
+    per_page: 4,
     sort: '-count_dead_clicks',
     cursor: undefined,
     prefix: 'selector_',
@@ -43,7 +42,7 @@ function DeadClickTable({location}: {location: Location<any>}) {
 
   return (
     <SelectorTable
-      data={hydratedSelectorData(data, 'count_dead_clicks')}
+      data={data}
       isError={isError}
       isLoading={isLoading}
       location={location}
@@ -71,7 +70,7 @@ function DeadClickTable({location}: {location: Location<any>}) {
 
 function RageClickTable({location}: {location: Location<any>}) {
   const {isLoading, isError, data} = useDeadRageSelectors({
-    per_page: 3,
+    per_page: 4,
     sort: '-count_rage_clicks',
     cursor: undefined,
     prefix: 'selector_',
@@ -79,7 +78,7 @@ function RageClickTable({location}: {location: Location<any>}) {
 
   return (
     <SelectorTable
-      data={hydratedSelectorData(data, 'count_rage_clicks')}
+      data={data}
       isError={isError}
       isLoading={isLoading}
       location={location}
