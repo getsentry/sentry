@@ -18,9 +18,9 @@ from sentry.api.serializers.models.rule import RuleSerializer
 from sentry.api.serializers.rest_framework.rule import RuleNodeField
 from sentry.api.serializers.rest_framework.rule import RuleSerializer as DrfRuleSerializer
 from sentry.apidocs.constants import (
+    RESPONSE_ACCEPTED,
     RESPONSE_FORBIDDEN,
     RESPONSE_NOT_FOUND,
-    RESPONSE_SUCCESS,
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.examples.issue_alert_examples import IssueAlertExamples
@@ -348,7 +348,7 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
         ],
         request=None,
         responses={
-            202: RESPONSE_SUCCESS,
+            202: RESPONSE_ACCEPTED,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
