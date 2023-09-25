@@ -57,18 +57,18 @@ export const steps = ({
         language: 'php',
         code: `\\Sentry\\init([
     'dsn' => '${dsn}',${
-          hasPerformance
-            ? `
+      hasPerformance
+        ? `
     // Specify a fixed sample rate
     'traces_sample_rate' => 1.0,`
-            : ''
-        }${
-          hasProfiling
-            ? `
+        : ''
+    }${
+      hasProfiling
+        ? `
     // Set a sampling rate for profiling - this is relative to traces_sample_rate
     'profiles_sample_rate' => 1.0,`
-            : ''
-        }
+        : ''
+    }
 ]);`,
         additionalInfo: hasPerformance && (
           <p>

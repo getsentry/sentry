@@ -32,8 +32,11 @@ from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
 from tests.sentry.incidents.endpoints.test_organization_alert_rule_index import AlertRuleBase
+
+pytestmark = [requires_snuba]
 
 
 class AlertRuleDetailsBase(AlertRuleBase):
@@ -1194,3 +1197,31 @@ class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase, APITestCase):
         self.create_team_membership(team=self.team, member=om)
         with self.feature("organizations:incidents"):
             resp = self.get_success_response(self.organization.slug, alert_rule.id, status_code=204)
+
+    def test_project_permission(self):
+        """Test that a user can't delete an alert in a project they do not have access to"""
+        # disable Open Membership
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        team = self.create_team(organization=self.organization, members=[self.user])
+        project = self.create_project(name="boo", organization=self.organization, teams=[team])
+        alert_rule = self.create_alert_rule(projects=[project])
+        alert_rule.owner = team.actor
+        alert_rule.save()
+
+        other_user = self.create_user()
+        self.login_as(other_user)
+        other_team = self.create_team(organization=self.organization, members=[other_user])
+        other_project = self.create_project(
+            name="ahh", organization=self.organization, teams=[other_team]
+        )
+        other_alert_rule = self.create_alert_rule(projects=[other_project])
+        other_alert_rule.owner = other_team.actor
+        other_alert_rule.save()
+
+        with self.feature("organizations:incidents"):
+            self.get_error_response(self.organization.slug, alert_rule.id, status_code=403)
+
+        with self.feature("organizations:incidents"):
+            self.get_success_response(self.organization.slug, other_alert_rule.id, status_code=204)

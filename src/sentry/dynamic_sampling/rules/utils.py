@@ -2,7 +2,9 @@ from enum import Enum
 from typing import Any, Dict, List, Literal, Optional, Set, Tuple, TypedDict, Union
 
 from django.conf import settings
+from typing_extensions import NotRequired
 
+from sentry.models import CUSTOM_RULE_START
 from sentry.utils import json, redis
 
 BOOSTED_RELEASES_LIMIT = 10
@@ -11,7 +13,6 @@ LATEST_RELEASES_BOOST_FACTOR = 1.5
 LATEST_RELEASES_BOOST_DECAYED_FACTOR = 1.0
 
 IGNORE_HEALTH_CHECKS_FACTOR = 5
-
 
 ProjectId = int
 DecisionDropCount = int
@@ -41,6 +42,7 @@ class RuleType(Enum):
     BOOST_KEY_TRANSACTIONS_RULE = "boostKeyTransactions"
     BOOST_LOW_VOLUME_TRANSACTIONS_RULE = "boostLowVolumeTransactions"
     BOOST_REPLAY_ID_RULE = "boostReplayId"
+    CUSTOM_RULE = "customRule"
 
 
 DEFAULT_BIASES: List[ActivatableBias] = [
@@ -64,6 +66,7 @@ RESERVED_IDS = {
     RuleType.BOOST_REPLAY_ID_RULE: 1005,
     RuleType.BOOST_LOW_VOLUME_TRANSACTIONS_RULE: 1400,
     RuleType.BOOST_LATEST_RELEASES_RULE: 1500,
+    RuleType.CUSTOM_RULE: CUSTOM_RULE_START,
 }
 REVERSE_RESERVED_IDS = {value: key for key, value in RESERVED_IDS.items()}
 
@@ -106,18 +109,19 @@ class Condition(TypedDict):
 class Rule(TypedDict):
     samplingValue: SamplingValue
     type: str
-    condition: Condition
+    condition: Union[Condition, GlobCondition, EqCondition]
     id: int
 
 
 class DecayingFn(TypedDict):
     type: str
-    decayedValue: Optional[str]
+    decayedValue: NotRequired[Optional[str]]
+    limit: NotRequired[int]
 
 
 class DecayingRule(Rule):
     timeRange: TimeRange
-    decayingFn: DecayingFn
+    decayingFn: NotRequired[DecayingFn]  # const decaying doesn't require a decayingFn
 
 
 # Type defining the all the possible rules types that can exist.

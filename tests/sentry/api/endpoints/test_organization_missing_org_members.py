@@ -41,6 +41,12 @@ class OrganizationMissingMembersTestCase(APITestCase):
         self.nonmember_commit_author2.external_id = "d"
         self.nonmember_commit_author2.save()
 
+        nonmember_commit_author_invalid_char = self.create_commit_author(
+            project=self.project, email="hi+1@example.com"
+        )
+        nonmember_commit_author_invalid_char.external_id = "hi+1"
+        nonmember_commit_author_invalid_char.save()
+
         self.integration = self.create_integration(
             organization=self.organization, provider="github", name="Github", external_id="github:1"
         )
@@ -139,6 +145,17 @@ class OrganizationMissingMembersTestCase(APITestCase):
             organization=self.organization,
             user=user,
             role="owner",
+        )
+
+        # this user has an email domain that is filtered
+        noreply_email_author = self.create_commit_author(
+            project=self.project, email="hi@noreply.github.com"
+        )
+        noreply_email_author.external_id = "hi"
+        noreply_email_author.save()
+        self.create_commit(
+            repo=self.repo,
+            author=noreply_email_author,
         )
 
         response = self.get_success_response(self.organization.slug)
@@ -257,3 +274,18 @@ class OrganizationMissingMembersTestCase(APITestCase):
             {"email": "c@example.com", "externalId": "c", "commitCount": 2},
             {"email": "d@example.com", "externalId": "d", "commitCount": 1},
         ]
+
+    def test_limit_50_missing_members(self):
+        repo = self.create_repo(
+            project=self.project, provider="integrations:github", integration_id=self.integration.id
+        )
+        for i in range(50):
+            nonmember_commit_author = self.create_commit_author(
+                project=self.project, email=str(i) + "@example.com"
+            )
+            nonmember_commit_author.external_id = str(i)
+            nonmember_commit_author.save()
+            self.create_commit(repo=repo, author=nonmember_commit_author)
+
+        response = self.get_success_response(self.organization.slug)
+        assert len(response.data[0]["users"]) == 50

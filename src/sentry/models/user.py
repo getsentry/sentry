@@ -394,10 +394,10 @@ class User(BaseModel, AbstractBaseUser):
     def clear_lost_passwords(self):
         LostPasswordHash.objects.filter(user=self).delete()
 
-    def _normalize_before_relocation_import(
+    def normalize_before_relocation_import(
         self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
     ) -> Optional[int]:
-        old_pk = super()._normalize_before_relocation_import(pk_map, scope, flags)
+        old_pk = super().normalize_before_relocation_import(pk_map, scope, flags)
         if old_pk is None:
             return None
 
@@ -413,12 +413,59 @@ class User(BaseModel, AbstractBaseUser):
             "".join(secrets.choice(RANDOM_PASSWORD_ALPHABET) for _ in range(RANDOM_PASSWORD_LENGTH))
         )
 
-        if scope != ImportScope.Global:
+        if scope not in {ImportScope.Config, ImportScope.Global}:
             self.is_staff = False
             self.is_superuser = False
             self.is_managed = False
 
-        lock = locks.get(f"user:username:{self.id}", duration=5, name="username")
+        return old_pk
+
+    def write_relocation_import(
+        self, scope: ImportScope, flags: ImportFlags
+    ) -> Optional[Tuple[int, ImportKind]]:
+        # Internal function that factors our some common logic.
+        def do_write():
+            from sentry.api.endpoints.user_details import (
+                BaseUserSerializer,
+                SuperuserUserSerializer,
+                UserSerializer,
+            )
+            from sentry.services.hybrid_cloud.lost_password_hash import lost_password_hash_service
+
+            serializer_cls = BaseUserSerializer
+            if scope not in {ImportScope.Config, ImportScope.Global}:
+                serializer_cls = UserSerializer
+            else:
+                serializer_cls = SuperuserUserSerializer
+
+            serializer_user = serializer_cls(instance=self, data=model_to_dict(self), partial=True)
+            serializer_user.is_valid(raise_exception=True)
+
+            self.save(force_insert=True)
+
+            # TODO(getsentry/team-ospo#190): the following is an RPC call which could fail for
+            # transient reasons (network etc). How do we handle that?
+            lost_password_hash_service.get_or_create(user_id=self.id)
+
+            # TODO(getsentry/team-ospo#191): we need to send an email informing the user of their
+            # new account with a resettable password - we'll need to figure out where in the process
+            # that actually goes, and how to prevent it from happening during the validation pass.
+
+            return (self.pk, ImportKind.Inserted)
+
+        # If there is no existing user with this `username`, no special renaming or merging
+        # shenanigans are needed, as we can just insert this exact model directly.
+        existing = User.objects.filter(username=self.username).first()
+        if not existing:
+            return do_write()
+
+        # Re-use the existing user if merging is enabled.
+        if flags.merge_users:
+            return (existing.pk, ImportKind.Existing)
+
+        # We already have a user with this `username`, but merging users has not been enabled. In
+        # this case, add a random suffix to the importing username.
+        lock = locks.get(f"user:username:{self.id}", duration=10, name="username")
         with TimedRetryPolicy(10)(lock.acquire):
             unique_db_instance(
                 self,
@@ -427,47 +474,8 @@ class User(BaseModel, AbstractBaseUser):
                 field_name="username",
             )
 
-        return old_pk
-
-    def write_relocation_import(
-        self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
-    ) -> Optional[Tuple[int, int, ImportKind]]:
-        from sentry.api.endpoints.user_details import (
-            BaseUserSerializer,
-            SuperuserUserSerializer,
-            UserSerializer,
-        )
-        from sentry.services.hybrid_cloud.lost_password_hash import lost_password_hash_service
-
-        if flags.merge_users:
-            existing = User.objects.filter(username=self.username).first()
-            if existing:
-                return (self.pk, existing.pk, ImportKind.Existing)
-
-        old_pk = self._normalize_before_relocation_import(pk_map, scope, flags)
-        if old_pk is None:
-            return None
-
-        serializer_cls = BaseUserSerializer
-        if scope != ImportScope.Global:
-            serializer_cls = UserSerializer
-        else:
-            serializer_cls = SuperuserUserSerializer
-
-        serializer_user = serializer_cls(instance=self, data=model_to_dict(self), partial=True)
-        serializer_user.is_valid(raise_exception=True)
-
-        self.save(force_insert=True)
-
-        # TODO(getsentry/team-ospo#190): the following is an RPC call which could fail for transient
-        # reasons (network etc). How do we handle that?
-        lost_password_hash_service.get_or_create(user_id=self.id)
-
-        # TODO(getsentry/team-ospo#191): we need to send an email informing the user of their new
-        # account with a resettable password - we'll need to figure out where in the process that
-        # actually goes, and how to prevent it from happening during the validation pass.
-
-        return (old_pk, self.pk, ImportKind.Inserted)
+            # Perform the remainder of the write while we're still holding the lock.
+            return do_write()
 
 
 # HACK(dcramer): last_login needs nullable for Django 1.8

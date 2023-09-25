@@ -252,6 +252,8 @@ function ActionSet({
           anySelected={anySelected}
           params={{
             hasRelease: false,
+            multipleProjectsSelected: true,
+            disabled: true,
             confirm,
             label,
           }}

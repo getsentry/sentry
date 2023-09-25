@@ -1,7 +1,6 @@
 from unittest import mock
 
 import pytest
-from freezegun import freeze_time
 
 from sentry.ingest.transaction_clusterer import ClustererNamespace
 from sentry.ingest.transaction_clusterer.base import ReplacementRule
@@ -29,6 +28,7 @@ from sentry.ingest.transaction_clusterer.tasks import (
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.relay.config import get_project_config
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import Feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -496,6 +496,26 @@ def test_dont_store_inexisting_rules(_, default_organization):
         )
 
         assert get_rules(ClustererNamespace.SPANS, project1) == {"**/user/*/**": 1}
+
+
+@django_db_all
+def test_record_span_descriptions_no_databag(default_organization):
+    """Verify a `None` databag doesn't break the span description clusterer."""
+    with Feature("projects:span-metrics-extraction"), override_options(
+        {"span_descs.bump-lifetime-sample-rate": 1.0}
+    ):
+        payload = {
+            "spans": [
+                {
+                    "description": "GET a",
+                    "op": "http.client",
+                    "data": None,
+                }
+            ],
+        }
+
+        project = Project(id=123, name="project", organization_id=default_organization.id)
+        record_span_descriptions(project, payload)
 
 
 @django_db_all

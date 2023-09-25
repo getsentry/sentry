@@ -1,7 +1,7 @@
 from django.urls import reverse
 
 from sentry.models.environment import Environment
-from sentry.models.release_threshold.releasethreshold import ReleaseThreshold
+from sentry.models.release_threshold.release_threshold import ReleaseThreshold
 from sentry.testutils.cases import APITestCase
 
 
@@ -67,7 +67,7 @@ class ReleaseThresholdDetailsTest(APITestCase):
         assert response.status_code == 200
         assert response.data["id"] == str(self.basic_threshold.id)
         assert response.data["threshold_type"] == "total_error_count"
-        assert response.data["trigger_type"] == "percent_over"
+        assert response.data["trigger_type"] == "over"
         assert response.data["value"] == 100
         assert response.data["window_in_seconds"] == 1800
         assert response.data["environment"]["name"] == "canary"
