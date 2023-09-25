@@ -14,10 +14,7 @@ from sentry.api.bases.rule import RuleEndpoint
 from sentry.api.endpoints.project_rules import find_duplicate_rule
 from sentry.api.fields.actor import ActorField
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.rule import (  # TODO: blocked rn
-    RuleSerializer,
-    RuleSerializerResponse,
-)
+from sentry.api.serializers.models.rule import RuleSerializer
 from sentry.api.serializers.rest_framework.rule import RuleNodeField
 from sentry.api.serializers.rest_framework.rule import RuleSerializer as DrfRuleSerializer
 from sentry.apidocs.constants import (
@@ -54,41 +51,51 @@ logger = logging.getLogger(__name__)
 
 class ProjectRuleDetailsPutSerializer(serializers.Serializer):
     actionMatch = serializers.ChoiceField(
-        choices=(("all", "all"), ("any", "any"), ("none", "none")),
+        choices=(
+            ("all", "All conditions must evaluate to true."),
+            ("any", "At least one of the conditions must evaluate to true."),
+            ("none", "All conditions must evaluate to false."),
+        ),
         required=False,
-        help_text="An operator determining which actions should take place when the rule triggers.",
+        help_text="A string determining which of the conditions need to be true before any filters are evaluated.",
     )
     actions = serializers.ListField(
         child=RuleNodeField(type="action/event"),
         required=False,
-        help_text="A list of actions that will occur when all required conditions and filters for the rule are met. See Create an Issue Alert Rule for a list of actions.",
+        help_text="A list of actions that take place when all required conditions and filters for the rule are met. See [Create an Issue Alert Rule](/api/events/create-an-issue-alert-rule-for-a-project) for valid actions.",
     )
     conditions = serializers.ListField(
         child=RuleNodeField(type="condition/event"),
         required=False,
-        help_text="A list of triggers that determine when the rule fires. See Create an Issue Alert Rule for a list of conditions.",
+        help_text="A list of triggers that determine when the rule fires. See [Create an Issue Alert Rule](/api/events/create-an-issue-alert-rule-for-a-project) for valid conditions.",
     )
     environment = serializers.CharField(
         required=False, allow_null=True, help_text="The name of the environment to filter by."
     )
     filterMatch = serializers.ChoiceField(
-        choices=(("all", "all"), ("any", "any"), ("none", "none")),
+        choices=(
+            ("all", "All filters must evaluate to true."),
+            ("any", "At least one of the filters must evaluate to true."),
+            ("none", "All filters must evaluate to false."),
+        ),
         required=False,
-        help_text="An operator determining which filters need to hold before any actions take place. Required when `filters` is passed in.",
+        help_text="A string determining which filters need to be true before any actions take place.",
     )
     filters = serializers.ListField(
         child=RuleNodeField(type="filter/event"),
         required=False,
-        help_text="A list of filters that determine if a rule fires after the listed conditions have been met. See Create an Issue Alert for a list of filters.",
+        help_text="A list of filters that determine if a rule fires after the necessary conditions have been met. See [Create an Issue Alert Rule](/api/events/create-an-issue-alert-rule-for-a-project) for valid filters.",
     )
     frequency = serializers.IntegerField(
         min_value=5,
         max_value=60 * 24 * 30,
         required=False,
-        help_text="How often the alert rule can be triggered for a particular issue, in seconds.",
+        help_text="How often to perform the actions once for an issue, in minutes.",
     )
     name = serializers.CharField(max_length=64, required=False, help_text="The name for the rule.")
-    owner = ActorField(required=False, allow_null=True)
+    owner = ActorField(
+        required=False, allow_null=True, help_text="The ID of the team or user that owns the rule."
+    )
 
 
 @extend_schema(tags=["Events"])
@@ -109,7 +116,7 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
         ],
         request=None,
         responses={
-            200: RuleSerializerResponse,
+            200: RuleSerializer,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
@@ -119,8 +126,12 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
     @transaction_start("ProjectRuleDetailsEndpoint")
     def get(self, request: Request, project, rule) -> Response:
         """
-        Return details on an individual rule.
+        Return details on an individual issue alert rule.
 
+        An issue alert rule triggers whenever a new event is received for any issue in a project that matches the specified alert conditions. These conditions can include a resolved issue re-appearing or an issue affecting many users. Alert conditions have three parts:
+        - Triggers: specify what type of activity you'd like monitored or when an alert should be triggered.
+        - Filters: help control noise by triggering an alert only if the issue matches the specified criteria.
+        - Actions: specify what should happen when the trigger conditions are met and the filters match.
         """
         # Serialize Rule object
         serialized_rule = serialize(
@@ -176,7 +187,7 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
         ],
         request=ProjectRuleDetailsPutSerializer,
         responses={
-            200: RuleSerializerResponse,
+            200: RuleSerializer,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
@@ -186,8 +197,12 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
     @transaction_start("ProjectRuleDetailsEndpoint")
     def put(self, request: Request, project, rule) -> Response:
         """
-        Updates an individual rule's attributes. Only the attributes submitted are modified.
+        Updates an individual issue alert rule's attributes. Only the attributes submitted are modified.
 
+        An issue alert rule triggers whenever a new event is received for any issue in a project that matches the specified alert conditions. These conditions can include a resolved issue re-appearing or an issue affecting many users. Alert conditions have three parts:
+        - Triggers: specify what type of activity you'd like monitored or when an alert should be triggered.
+        - Filters: help control noise by triggering an alert only if the issue matches the specified criteria.
+        - Actions: specify what should happen when the trigger conditions are met and the filters match.
         """
         serializer = DrfRuleSerializer(
             context={"project": project, "organization": project.organization},
@@ -342,7 +357,12 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
     @transaction_start("ProjectRuleDetailsEndpoint")
     def delete(self, request: Request, project, rule) -> Response:
         """
-        Delete a rule
+        Delete a specific issue alert rule.
+
+        An issue alert rule triggers whenever a new event is received for any issue in a project that matches the specified alert conditions. These conditions can include a resolved issue re-appearing or an issue affecting many users. Alert conditions have three parts:
+        - Triggers: specify what type of activity you'd like monitored or when an alert should be triggered.
+        - Filters: help control noise by triggering an alert only if the issue matches the specified criteria.
+        - Actions: specify what should happen when the trigger conditions are met and the filters match.
         """
         rule.update(status=ObjectStatus.PENDING_DELETION)
         RuleActivity.objects.create(
