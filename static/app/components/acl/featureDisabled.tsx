@@ -1,7 +1,7 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/alert';
+import {Alert, AlertProps} from 'sentry/components/alert';
 import {Button, ButtonLabel} from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {CONFIG_DOCS_URL} from 'sentry/constants';
@@ -34,7 +34,7 @@ type Props = {
    * Attaches additional styles to the FeatureDisabled component to make it
    * look consistent within the Alert.
    */
-  alert?: boolean | React.ElementType;
+  alert?: boolean | React.ComponentType<AlertProps>;
   /**
    * Do not show the help toggle. The description will always be rendered.
    */

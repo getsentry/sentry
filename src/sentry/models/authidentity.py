@@ -1,4 +1,3 @@
-from datetime import timedelta
 from typing import Collection
 
 from django.conf import settings
@@ -33,10 +32,10 @@ class AuthIdentity(ReplicatedControlModel):
 
     def handle_async_replication(self, region_name: str, shard_identifier: int) -> None:
         from sentry.services.hybrid_cloud.auth.serial import serialize_auth_identity
-        from sentry.services.hybrid_cloud.organization.service import organization_service
+        from sentry.services.hybrid_cloud.replica.service import region_replica_service
 
         serialized = serialize_auth_identity(self)
-        organization_service.upsert_replicated_auth_identity(
+        region_replica_service.upsert_replicated_auth_identity(
             auth_identity=serialized, region_name=region_name
         )
 
@@ -52,20 +51,6 @@ class AuthIdentity(ReplicatedControlModel):
 
     def get_audit_log_data(self):
         return {"user_id": self.user_id, "data": self.data}
-
-    # TODO(dcramer): we'd like to abstract this so there's a central Role object
-    # and it doesnt require two composite db objects to talk to each other
-    def is_valid(self, member):
-        if getattr(member.flags, "sso:invalid"):
-            return False
-        if not getattr(member.flags, "sso:linked"):
-            return False
-
-        if not self.last_verified:
-            return False
-        if self.last_verified < timezone.now() - timedelta(hours=24):
-            return False
-        return True
 
     def get_display_name(self):
         return self.user.get_display_name()

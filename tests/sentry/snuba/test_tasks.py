@@ -36,10 +36,11 @@ from sentry.snuba.tasks import (
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import Feature
+from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
 from sentry.utils.snuba import _snuba_pool
 
-pytestmark = pytest.mark.sentry_metrics
+pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
 
 
 def indexer_record(use_case_id: UseCaseID, org_id: int, string: str) -> int:
@@ -262,6 +263,18 @@ class DeleteSubscriptionFromSnubaTest(BaseSnubaTaskTest, TestCase):
             QuerySubscription.Status.DELETING,
             subscription_id=subscription_id,
             query="issue:INVALID-1",
+        )
+        delete_subscription_from_snuba(sub.id)
+        assert not QuerySubscription.objects.filter(id=sub.id).exists()
+
+    def test_invalid_metrics_subscription_query(self):
+        subscription_id = f"1/{uuid4().hex}"
+        sub = self.create_subscription(
+            QuerySubscription.Status.DELETING,
+            dataset=Dataset.Metrics,
+            subscription_id=subscription_id,
+            query="release:1",
+            aggregate="percentage(sessions_crashed, sessions) as _crash_rate_alert_aggregate",
         )
         delete_subscription_from_snuba(sub.id)
         assert not QuerySubscription.objects.filter(id=sub.id).exists()

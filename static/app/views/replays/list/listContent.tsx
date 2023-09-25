@@ -9,6 +9,7 @@ import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyti
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjectSdkNeedsUpdate from 'sentry/utils/useProjectSdkNeedsUpdate';
+import DeadRageSelectorCards from 'sentry/views/replays/deadRageClick/deadRageSelectorCards';
 import ReplaysFilters from 'sentry/views/replays/list/filters';
 import ReplayOnboardingPanel from 'sentry/views/replays/list/replayOnboardingPanel';
 import ReplaysErroneousDeadRageCards from 'sentry/views/replays/list/replaysErroneousDeadRageCards';
@@ -17,10 +18,11 @@ import ReplaysSearch from 'sentry/views/replays/list/search';
 
 export default function ListContent() {
   const organization = useOrganization();
-
   const hasSessionReplay = organization.features.includes('session-replay');
-
   const hasSentReplays = useHaveSelectedProjectsSentAnyReplayEvents();
+  const hasdeadRageClickFeature = organization.features.includes(
+    'session-replay-rage-dead-selectors'
+  );
 
   const {
     selection: {projects},
@@ -70,11 +72,13 @@ export default function ListContent() {
     <Fragment>
       <FiltersContainer>
         <ReplaysFilters />
-      </FiltersContainer>
-      <ReplaysErroneousDeadRageCards />
-      <FiltersContainer>
         <ReplaysSearch />
       </FiltersContainer>
+      {hasdeadRageClickFeature ? (
+        <DeadRageSelectorCards />
+      ) : (
+        <ReplaysErroneousDeadRageCards />
+      )}
       <ReplaysList />
     </Fragment>
   );

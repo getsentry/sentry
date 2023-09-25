@@ -231,12 +231,6 @@
             "MetricRuleSnoozeEndpoint::DELETE",
             "MetricRuleSnoozeEndpoint::POST",
             "MsTeamsWebhookEndpoint::POST",
-            "NotificationActionsAvailableEndpoint::GET",
-            "NotificationActionsDetailsEndpoint::DELETE",
-            "NotificationActionsDetailsEndpoint::GET",
-            "NotificationActionsDetailsEndpoint::PUT",
-            "NotificationActionsIndexEndpoint::GET",
-            "NotificationActionsIndexEndpoint::POST",
             "OAuthUserInfoEndpoint::GET",
             "OrganizationAccessRequestDetailsEndpoint::GET",
             "OrganizationAccessRequestDetailsEndpoint::PUT",
@@ -301,7 +295,6 @@
             "OrganizationMemberTeamDetailsEndpoint::GET",
             "OrganizationMemberTeamDetailsEndpoint::PUT",
             "OrganizationMemberUnreleasedCommitsEndpoint::GET",
-            "OrganizationMissingMembersEndpoint::GET",
             "OrganizationMonitorIndexStatsEndpoint::GET",
             "OrganizationMonitorStatsEndpoint::GET",
             "OrganizationOnboardingTaskEndpoint::POST",
@@ -560,7 +553,7 @@
         ]
     },
     "owners-native": {
-        "block_start": 562,
+        "block_start": 555,
         "public": [],
         "private": [],
         "experimental": [],
@@ -575,12 +568,14 @@
         ]
     },
     "performance": {
-        "block_start": 577,
+        "block_start": 570,
         "public": [
             "OrganizationEventsEndpoint::GET"
         ],
         "private": [],
-        "experimental": [],
+        "experimental": [
+            "OrganizationSpansAggregationEndpoint::GET"
+        ],
         "unknown": [
             "KeyTransactionEndpoint::DELETE",
             "KeyTransactionEndpoint::GET",
@@ -628,7 +623,7 @@
         ]
     },
     "discover-n-dashboards": {
-        "block_start": 630,
+        "block_start": 625,
         "public": [],
         "private": [],
         "experimental": [],
@@ -643,7 +638,7 @@
         ]
     },
     "enterprise": {
-        "block_start": 645,
+        "block_start": 640,
         "public": [
             "OrganizationSCIMMemberDetails::DELETE",
             "OrganizationSCIMMemberDetails::GET",
@@ -658,10 +653,22 @@
             "OrganizationStatsEndpointV2::GET"
         ],
         "private": [
+            "ReleaseThresholdDetailsEndpoint::GET",
             "ReleaseThresholdEndpoint::GET",
             "ReleaseThresholdEndpoint::POST"
         ],
-        "experimental": [],
+        "experimental": [
+            "NotificationActionsAvailableEndpoint::GET",
+            "NotificationActionsDetailsEndpoint::DELETE",
+            "NotificationActionsDetailsEndpoint::GET",
+            "NotificationActionsDetailsEndpoint::PUT",
+            "NotificationActionsIndexEndpoint::GET",
+            "NotificationActionsIndexEndpoint::POST",
+            "OrganizationAuditLogsEndpoint::GET",
+            "OrganizationMissingMembersEndpoint::GET",
+            "OrganizationSCIMMemberDetails::PUT",
+            "OrganizationSCIMTeamDetails::PUT"
+        ],
         "unknown": [
             "ApiAuthorizationsEndpoint::DELETE",
             "ApiAuthorizationsEndpoint::GET",
@@ -677,15 +684,12 @@
             "OrgAuthTokenDetailsEndpoint::PUT",
             "OrgAuthTokensEndpoint::GET",
             "OrgAuthTokensEndpoint::POST",
-            "OrganizationAuditLogsEndpoint::GET",
             "OrganizationAuthProviderDetailsEndpoint::GET",
             "OrganizationAuthProviderSendRemindersEndpoint::POST",
             "OrganizationAuthProvidersEndpoint::GET",
             "OrganizationIntegrationMigrateOpsgenieEndpoint::PUT",
             "OrganizationProjectsExperimentEndpoint::POST",
-            "OrganizationSCIMMemberDetails::PUT",
             "OrganizationSCIMSchemaIndex::GET",
-            "OrganizationSCIMTeamDetails::PUT",
             "OrganizationStatsEndpoint::GET",
             "UserAuthenticatorDetailsEndpoint::DELETE",
             "UserAuthenticatorDetailsEndpoint::GET",
@@ -701,10 +705,12 @@
         ]
     },
     "telemetry-experience": {
-        "block_start": 703,
+        "block_start": 707,
         "public": [],
         "private": [],
-        "experimental": [],
+        "experimental": [
+            "CustomRulesEndpoint::POST"
+        ],
         "unknown": [
             "OrganizationMetricDetailsEndpoint::GET",
             "OrganizationMetricsDataEndpoint::GET",
@@ -718,7 +724,7 @@
         ]
     },
     "team-starfish": {
-        "block_start": 720,
+        "block_start": 726,
         "public": [],
         "private": [],
         "experimental": [],
@@ -728,7 +734,7 @@
         ]
     },
     "growth": {
-        "block_start": 730,
+        "block_start": 736,
         "public": [],
         "private": [],
         "experimental": [],
@@ -737,17 +743,18 @@
         ]
     },
     "feedback-backend": {
-        "block_start": 739,
+        "block_start": 745,
         "public": [],
         "private": [],
         "experimental": [
             "FeedbackIngestEndpoint::POST",
-            "OrganizationFeedbackIndexEndpoint::GET"
+            "OrganizationFeedbackIndexEndpoint::GET",
+            "ProjectFeedbackDetailsEndpoint::GET"
         ],
         "unknown": []
     },
     "replay-backend": {
-        "block_start": 749,
+        "block_start": 756,
         "public": [],
         "private": [],
         "experimental": [],
@@ -756,7 +763,7 @@
         ]
     },
     "profiling": {
-        "block_start": 758,
+        "block_start": 765,
         "public": [],
         "private": [],
         "experimental": [],
@@ -771,8 +778,17 @@
             "ProjectProfilingTransactionIDProfileIDEndpoint::GET"
         ]
     },
+    "team-web-sdk-frontend": {
+        "block_start": 781,
+        "public": [],
+        "private": [
+            "SourceMapDebugBlueThunderEditionEndpoint::GET"
+        ],
+        "experimental": [],
+        "unknown": []
+    },
     "hybrid-cloud": {
-        "block_start": 774,
+        "block_start": 790,
         "public": [],
         "private": [],
         "experimental": [],
