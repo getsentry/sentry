@@ -19,7 +19,7 @@ from sentry.api.serializers.models.notification_action import OutgoingNotificati
 from sentry.api.serializers.rest_framework.notification_action import NotificationActionSerializer
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN
 from sentry.apidocs.examples import notification_examples
-from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.parameters import GlobalParams, build_typed_list
 from sentry.models.notificationaction import NotificationAction
 from sentry.models.organization import Organization
 
@@ -69,6 +69,13 @@ class NotificationActionsIndexEndpoint(OrganizationEndpoint):
         operation_id="List Spike Protection Notifications",
         parameters=[
             GlobalParams.ORG_SLUG,
+            OpenApiParameter(
+                name="projectIDs",
+                location="query",
+                required=False,
+                type=build_typed_list(int),
+                description="List of project IDs to get notification actions for",
+            ),
             OpenApiParameter(
                 name="triggerType",
                 location="query",
