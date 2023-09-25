@@ -49,8 +49,8 @@ ERR_RATE_LIMITED = "You are being rate limited for too many invitations."
 
 _team_roles_description = """
 Configures the team role of the member. The two roles are:
-- `contributor`: Can view and act on issues. Depending on organization settings, they can also add team members.
-- `admin`: Has full management access to their team's membership and projects.
+- `contributor` - Can view and act on issues. Depending on organization settings, they can also add team members.
+- `admin` - Has full management access to their team's membership and projects.
 ```json
 {
     "teamRoles": [
