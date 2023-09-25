@@ -46,7 +46,16 @@ class RuleCreatedBy(TypedDict):
     email: str
 
 
-class RuleSerializerResponse(TypedDict, total=False):
+class RuleSerializerResponseOptional(TypedDict, total=False):
+    owner: Optional[str]
+    createdBy: Optional[RuleCreatedBy]
+    environment: Optional[str]
+    lastTriggered: Optional[str]
+    snoozeCreatedBy: Optional[str]
+    snoozeForEveryone: Optional[bool]
+
+
+class RuleSerializerResponse(RuleSerializerResponseOptional):
     """
     This represents a Sentry Rule.
     """
@@ -60,15 +69,9 @@ class RuleSerializerResponse(TypedDict, total=False):
     frequency: int
     name: str
     dateCreated: str
-    owner: Optional[str]
-    createdBy: Optional[RuleCreatedBy]
-    environment: Optional[str]
     projects: List[str]
     status: str
-    lastTriggered: Optional[str]
     snooze: bool
-    snoozeCreatedBy: Optional[str]
-    snoozeForEveryone: Optional[bool]
 
 
 @register(Rule)
