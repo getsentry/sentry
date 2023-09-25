@@ -807,7 +807,10 @@ def total_count(aggregate_filter: Function) -> Function:
 
 
 def on_demand_failure_rate_snql_factory(
-    aggregate_filter: Function, org_id: int, use_case_id: UseCaseID, alias: Optional[str]
+    aggregate_filter: Function,
+    org_id: int,
+    use_case_id: UseCaseID,
+    alias: Optional[str] = None,
 ):
     """Divide the number of transactions that failed from the total."""
     return Function(
