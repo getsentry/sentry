@@ -51,17 +51,14 @@ export default storyBook(Tabs, story => {
     return (
       <Fragment>
         <p>When there are many items, they will overflow into a dropdown menu.</p>
-        <SizingWindow style={{height: '210px', width: '400px'}}>
-          {/* The inner <div> is needed because SizingWindow has overflow:hidden */}
-          <div style={{height: '100%', width: '100%'}}>
-            <Tabs defaultValue="two">
-              <TabList>
-                {tabs.map(tab => (
-                  <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
-                ))}
-              </TabList>
-            </Tabs>
-          </div>
+        <SizingWindow display="block" style={{height: '210px', width: '400px'}}>
+          <Tabs defaultValue="two">
+            <TabList>
+              {tabs.map(tab => (
+                <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
+              ))}
+            </TabList>
+          </Tabs>
         </SizingWindow>
       </Fragment>
     );
@@ -122,8 +119,8 @@ export default storyBook(Tabs, story => {
   });
 
   story('Rendering', () => (
-    <Matrix
-      component={props => (
+    <Matrix<typeof Tabs & typeof TabList>
+      render={props => (
         <Tabs orientation={props.orientation}>
           <TabList hideBorder={props.hideBorder}>
             {TABS.map(tab => (

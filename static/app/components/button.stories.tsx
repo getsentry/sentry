@@ -5,7 +5,7 @@ import Matrix from 'sentry/components/stories/matrix';
 import {IconDelete} from 'sentry/icons';
 import storyBook from 'sentry/stories/storyBook';
 
-export default storyBook('Button', story => {
+export default storyBook(Button, story => {
   const sizes = ['md' as const, 'sm' as const, 'xs' as const, 'zero' as const];
   const priorities = [
     'default' as const,
@@ -40,23 +40,23 @@ export default storyBook('Button', story => {
   };
   story('Props', () => (
     <div>
-      <Matrix
-        component={Button}
+      <Matrix<typeof Button>
+        render={Button}
         propMatrix={propMatrix}
         selectedProps={['priority', 'size']}
       />
-      <Matrix
-        component={Button}
+      <Matrix<typeof Button>
+        render={Button}
         propMatrix={propMatrix}
         selectedProps={['children', 'icon']}
       />
-      <Matrix
-        component={Button}
+      <Matrix<typeof Button>
+        render={Button}
         propMatrix={propMatrix}
         selectedProps={['borderless', 'translucentBorder']}
       />
-      <Matrix
-        component={Button}
+      <Matrix<typeof Button>
+        render={Button}
         propMatrix={propMatrix}
         selectedProps={['disabled', 'busy']}
       />

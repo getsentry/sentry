@@ -1,38 +1,54 @@
-import {type ElementType} from 'react';
-import {isValidElement} from 'react';
+import {ComponentProps, type ElementType} from 'react';
 import styled from '@emotion/styled';
+import first from 'lodash/first';
 
+import JSXProperty from 'sentry/components/stories/jsxProperty';
 import SizingWindow from 'sentry/components/stories/sizingWindow';
 import {space} from 'sentry/styles/space';
 
-interface Props {
-  component: ElementType;
-  propMatrix: Record<string, unknown[]>;
-  selectedProps: [string, string];
+interface Props<E extends ElementType> {
+  propMatrix: Partial<
+    Record<
+      keyof ComponentProps<E>,
+      keyof ComponentProps<E> extends string ? unknown[] : never
+    >
+  >;
+  render: ElementType<ComponentProps<E>>;
+  selectedProps: [keyof ComponentProps<E>, keyof ComponentProps<E>];
+  sizingWindowProps?: Partial<ComponentProps<typeof SizingWindow>>;
 }
 
-export default function Matrix({component, propMatrix, selectedProps}: Props) {
+export default function Matrix<E extends ElementType>({
+  propMatrix,
+  render,
+  selectedProps,
+  sizingWindowProps,
+}: Props<E>) {
   const defaultValues = Object.fromEntries(
     Object.entries(propMatrix).map(([key, values]) => {
-      return [key, values[0]];
+      return [key, first(values)];
     })
   );
 
-  const values1 = propMatrix[selectedProps[0]];
-  const values2 = propMatrix[selectedProps[1]];
+  const values1 = propMatrix[selectedProps[0]] ?? [];
+  const values2 = propMatrix[selectedProps[1]] ?? [];
 
   const items = values1.flatMap(value1 => {
     const label = (
       <div>
-        <samp>{selectedProps[0]}</samp>=<PropValue value={value1} />
+        <JSXProperty name={String(selectedProps[0])} value={value1} />
       </div>
     );
     const content = values2.map(value2 => {
-      return item(component, {
-        ...defaultValues,
-        [selectedProps[0]]: value1,
-        [selectedProps[1]]: value2,
-      });
+      return item(
+        render,
+        {
+          ...defaultValues,
+          [selectedProps[0]]: value1,
+          [selectedProps[1]]: value2,
+        },
+        sizingWindowProps
+      );
     });
     return [label, ...content];
   });
@@ -50,7 +66,7 @@ export default function Matrix({component, propMatrix, selectedProps}: Props) {
         <div key="space-head" />
         {values2.map(value2 => (
           <div key={`title-2-${value2}`}>
-            <samp>{selectedProps[1]}</samp>=<PropValue value={value2} />
+            <JSXProperty name={String(selectedProps[1])} value={value2} />
           </div>
         ))}
         {items}
@@ -59,31 +75,18 @@ export default function Matrix({component, propMatrix, selectedProps}: Props) {
   );
 }
 
-function item(Component, props) {
+function item(Component, props, sizingWindowProps) {
   const hasChildren = 'children' in props;
 
   return hasChildren ? (
-    <SizingWindow key={JSON.stringify(props)}>
+    <SizingWindow key={JSON.stringify(props)} {...sizingWindowProps}>
       <Component {...props}>{props.children}</Component>
     </SizingWindow>
   ) : (
-    <SizingWindow key={JSON.stringify(props)}>
+    <SizingWindow key={JSON.stringify(props)} {...sizingWindowProps}>
       <Component {...props} />
     </SizingWindow>
   );
-}
-
-function PropValue({value}: {value: unknown}) {
-  if (['string', 'boolean', 'number'].includes(typeof value)) {
-    return <kbd>{String(value)}</kbd>;
-  }
-  if (value === null || value === undefined) {
-    return <var>{String(value)}</var>;
-  }
-  if (isValidElement(value)) {
-    return value;
-  }
-  return <var>{JSON.stringify(value)}</var>;
 }
 
 const Grid = styled('section')`
