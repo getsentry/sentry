@@ -1,6 +1,7 @@
 from collections import defaultdict
 from datetime import datetime, timedelta
 from time import time
+from typing import Mapping
 
 from django.utils import timezone
 
@@ -36,7 +37,7 @@ def schedule_auto_resolution():
     options = ProjectOption.objects.filter(
         key__in=["sentry:resolve_age", "sentry:_last_auto_resolve"]
     )
-    opts_by_project = defaultdict(dict)
+    opts_by_project: Mapping[int, dict] = defaultdict(dict)
     for opt in options:
         opts_by_project[opt.project_id][opt.key] = opt.value
 
