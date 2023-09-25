@@ -206,7 +206,7 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
       setApiQueryData<IssueAlertRule>(
         queryClient,
         getIssueAlertDetailsQueryKey({orgSlug: organization.slug, projectSlug, ruleId}),
-        alertRule => ({...alertRule, disableDate: undefined})
+        alertRule => ({...alertRule, disableDate: undefined, status: 'active'})
       );
 
       addSuccessMessage(t('Successfully re-enabled'));
@@ -342,7 +342,7 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
       return (
         <Alert type="warning" showIcon>
           {tct(
-            'This alert is scheduled to be disabled in [date] due to lack of activity. Please [keepAlive] to keep this alert active. [docs:Learn more]',
+            'This alert is scheduled to be disabled [date] due to lack of activity. Please [keepAlive] to keep this alert active. [docs:Learn more]',
             {
               date: <TimeSince date={rule.disableDate} />,
               keepAlive: (
@@ -350,7 +350,9 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
                   {t('click here')}
                 </BoldButton>
               ),
-              docs: <ExternalLink href="https://docs.sentry.io/product/alerts/" />,
+              docs: (
+                <ExternalLink href="https://docs.sentry.io/product/alerts/#disabled-alerts" />
+              ),
             }
           )}
         </Alert>
