@@ -89,6 +89,7 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         assert data["event_action"] == "trigger"
         assert data["payload"]["summary"] == event.message
         assert data["payload"]["custom_details"]["message"] == event.message
+        assert event.group is not None
         assert data["links"][0]["href"] == event.group.get_absolute_url(
             params={"referrer": "pagerduty_integration", "notification_uuid": notification_uuid}
         )
