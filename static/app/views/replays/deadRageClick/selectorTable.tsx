@@ -1,4 +1,4 @@
-import {Fragment, ReactNode, useCallback, useMemo} from 'react';
+import {ReactNode, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -15,6 +15,27 @@ import {DeadRageSelectorItem} from 'sentry/views/replays/types';
 
 export interface UrlState {
   widths: string[];
+}
+
+export function getAriaLabel(str: string) {
+  const pre = str.split('aria="')[1];
+  if (!pre) {
+    return '';
+  }
+  return pre.substring(0, pre.lastIndexOf('"]'));
+}
+
+export function hydratedSelectorData(data, clickType): DeadRageSelectorItem[] {
+  return data
+    .filter(d => d[clickType] > 0)
+    .map(d => {
+      return {
+        [clickType]: d[clickType],
+        dom_element: d.dom_element,
+        element: d.dom_element.split(/[#.]+/)[0],
+        aria_label: getAriaLabel(d.dom_element),
+      };
+    });
 }
 
 interface Props {
@@ -91,24 +112,22 @@ export default function SelectorTable({
   );
 
   return (
-    <Fragment>
-      <GridEditable
-        error={isError}
-        isLoading={isLoading}
-        data={data ?? []}
-        columnOrder={columns}
-        columnSortBy={[]}
-        stickyHeader
-        grid={{
-          onResizeColumn: customHandleResize ?? handleResizeColumn,
-          renderHeadCell,
-          renderBodyCell,
-        }}
-        location={location as Location<any>}
-        title={title}
-        headerButtons={() => headerButtons}
-      />
-    </Fragment>
+    <GridEditable
+      error={isError}
+      isLoading={isLoading}
+      data={data ?? []}
+      columnOrder={columns}
+      columnSortBy={[]}
+      stickyHeader
+      grid={{
+        onResizeColumn: customHandleResize ?? handleResizeColumn,
+        renderHeadCell,
+        renderBodyCell,
+      }}
+      location={location as Location<any>}
+      title={title}
+      headerButtons={() => headerButtons}
+    />
   );
 }
 
