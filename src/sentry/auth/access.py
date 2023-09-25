@@ -39,11 +39,7 @@ from sentry.roles import organization_roles
 from sentry.roles.manager import OrganizationRole, TeamRole
 from sentry.services.hybrid_cloud.access.service import access_service
 from sentry.services.hybrid_cloud.auth import RpcAuthState, RpcMemberSsoState
-from sentry.services.hybrid_cloud.organization import (
-    RpcTeamMember,
-    RpcUserOrganizationContext,
-    organization_service,
-)
+from sentry.services.hybrid_cloud.organization import RpcTeamMember, RpcUserOrganizationContext
 from sentry.services.hybrid_cloud.organization.serial import summarize_member
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.utils import metrics
@@ -479,7 +475,7 @@ class RpcBackedAccess(Access):
     def roles(self) -> Iterable[str] | None:
         if self.rpc_user_organization_context.member is None:
             return None
-        return organization_service.get_all_org_roles(
+        return access_service.get_all_org_roles(
             member_id=self.rpc_user_organization_context.member.id,
             organization_id=self.rpc_user_organization_context.organization.id,
         )

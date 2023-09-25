@@ -4,7 +4,7 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 import abc
 from abc import abstractmethod
-from typing import Any, Iterable, List, Mapping, Optional, Union, cast
+from typing import Any, Iterable, Mapping, Optional, Union, cast
 
 from django.dispatch import Signal
 
@@ -231,21 +231,6 @@ class OrganizationService(RpcService):
     @regional_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
     def merge_users(self, *, organization_id: int, from_user_id: int, to_user_id: int) -> None:
-        pass
-
-    @regional_rpc_method(resolve=ByOrganizationId())
-    @abstractmethod
-    def get_all_org_roles(
-        self,
-        *,
-        organization_id: int,
-        member_id: int,
-    ) -> List[str]:
-        pass
-
-    @regional_rpc_method(resolve=ByOrganizationId())
-    @abstractmethod
-    def get_top_dog_team_member_ids(self, *, organization_id: int) -> List[int]:
         pass
 
     @regional_rpc_method(resolve=ByOrganizationId())

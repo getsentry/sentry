@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Iterable, List, Mapping, Optional, Set, Union, cast
+from typing import Any, Iterable, List, Mapping, Optional, Union, cast
 
 from django.db import IntegrityError, models, router, transaction
 from django.db.models.expressions import F
@@ -23,7 +23,6 @@ from sentry.models import (
     OrganizationStatus,
     OutboxCategory,
     OutboxScope,
-    Team,
     outbox_context,
 )
 from sentry.models.organizationmember import InviteStatus
@@ -376,39 +375,6 @@ class DatabaseBackedOrganizationService(OrganizationService):
     @classmethod
     def _serialize_invite(cls, om: OrganizationMember) -> RpcOrganizationInvite:
         return RpcOrganizationInvite(id=om.id, token=om.token, email=om.email)
-
-    def get_all_org_roles(
-        self,
-        *,
-        organization_id: int,
-        member_id: int,
-    ) -> List[str]:
-        member = OrganizationMember.objects.get(id=member_id)
-        organization_member = serialize_member(member)
-
-        org_roles: List[str] = []
-        if organization_member:
-            team_ids = [mt.team_id for mt in organization_member.member_teams]
-            all_roles: Set[str] = set(
-                Team.objects.filter(id__in=team_ids)
-                .exclude(org_role=None)
-                .values_list("org_role", flat=True)
-            )
-            all_roles.add(organization_member.role)
-            org_roles.extend(list(all_roles))
-        return org_roles
-
-    def get_top_dog_team_member_ids(self, organization_id: int) -> List[int]:
-        owner_teams = list(
-            Team.objects.filter(
-                organization_id=organization_id, org_role=roles.get_top_dog().id
-            ).values_list("id", flat=True)
-        )
-        return list(
-            OrganizationMemberTeam.objects.filter(team_id__in=owner_teams).values_list(
-                "organizationmember_id", flat=True
-            )
-        )
 
     def update_default_role(self, *, organization_id: int, default_role: str) -> RpcOrganization:
         org = Organization.objects.get(id=organization_id)
