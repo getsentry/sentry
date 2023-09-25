@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import {LinkButton} from 'sentry/components/button';
+import OpenClosePanel from 'sentry/components/openClosePanel';
 import {IconCursorArrow, IconShow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -15,11 +16,19 @@ import SelectorTable from 'sentry/views/replays/deadRageClick/selectorTable';
 function DeadRageSelectorCards() {
   const location = useLocation();
 
+  function header(isOpen: boolean) {
+    return isOpen
+      ? t('Hide Actionable Replay Insights')
+      : t('Show Actionable Replay Insights');
+  }
+
   return (
-    <SplitCardContainer>
-      <DeadClickTable location={location} />
-      <RageClickTable location={location} />
-    </SplitCardContainer>
+    <OpenClosePanel header={header} openByDefault>
+      <SplitCardContainer>
+        <DeadClickTable location={location} />
+        <RageClickTable location={location} />
+      </SplitCardContainer>
+    </OpenClosePanel>
   );
 }
 
