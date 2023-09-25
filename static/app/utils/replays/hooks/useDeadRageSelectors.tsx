@@ -1,12 +1,13 @@
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {hydratedSelectorData} from 'sentry/views/replays/deadRageClick/selectorTable';
 import {
   DeadRageSelectorListResponse,
   DeadRageSelectorQueryParams,
 } from 'sentry/views/replays/types';
 
-export default function useRageDeadSelectors(params: DeadRageSelectorQueryParams) {
+export default function useDeadRageSelectors(params: DeadRageSelectorQueryParams) {
   const organization = useOrganization();
   const location = useLocation();
   const {query} = location;
@@ -32,7 +33,7 @@ export default function useRageDeadSelectors(params: DeadRageSelectorQueryParams
   return {
     isLoading,
     isError,
-    data: data ? data.data : [],
+    data: hydratedSelectorData(data ? data.data : [], params.sort?.replace(/^-/, '')),
     pageLinks: getResponseHeader?.('Link') ?? undefined,
   };
 }

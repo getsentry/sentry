@@ -10,7 +10,6 @@ import PageFiltersContainer from 'sentry/components/organizations/pageFilters/co
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import Pagination from 'sentry/components/pagination';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
-import {hydratedSelectorData} from 'sentry/components/replays/utils';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -68,7 +67,7 @@ export default function RageClickList({location}: Props) {
                 <DatePageFilter alignDropdown="left" resetParamsOnChange={['cursor']} />
               </PageFilterBar>
               <SelectorTable
-                data={hydratedSelectorData(data, 'count_rage_clicks')}
+                data={data}
                 isError={isError}
                 isLoading={isLoading}
                 location={location}
