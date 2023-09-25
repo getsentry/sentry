@@ -1,4 +1,5 @@
 import EmptyMessage from 'sentry/components/emptyMessage';
+import {FrameSourceMapDebuggerData} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
 import Panel from 'sentry/components/panels/panel';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -20,6 +21,7 @@ type Props = {
   platform: PlatformType;
   stacktrace: ExceptionValue['stacktrace'];
   expandFirstFrame?: boolean;
+  frameSourceMapDebuggerData?: FrameSourceMapDebuggerData[];
   groupingCurrentLevel?: Group['metadata']['current_level'];
   meta?: Record<any, any>;
   newestFirst?: boolean;
@@ -40,6 +42,7 @@ function StackTrace({
   event,
   meta,
   threadId,
+  frameSourceMapDebuggerData,
 }: Props) {
   if (!defined(stacktrace)) {
     return null;
@@ -121,6 +124,7 @@ function StackTrace({
       event={event}
       meta={meta}
       threadId={threadId}
+      frameSourceMapDebuggerData={frameSourceMapDebuggerData}
     />
   );
 }
