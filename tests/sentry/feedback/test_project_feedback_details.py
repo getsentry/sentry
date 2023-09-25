@@ -221,3 +221,110 @@ class ProjectFeedbackDetailTest(APITestCase):
             )
             response = self.client.get(path)
             assert response.status_code == 404
+
+    def test_successful_delete(self):
+        Feedback.objects.create(
+            data={
+                "environment": "production",
+                "feedback": {
+                    "contact_email": "colton.allen@sentry.io",
+                    "message": "I really like this user-feedback feature!",
+                    "replay_id": "ec3b4dc8b79f417596f7a1aa4fcca5d2",
+                    "url": "https://docs.sentry.io/platforms/javascript/",
+                },
+                "platform": "javascript",
+                "release": "version@1.3",
+                "sdk": {"name": "sentry.javascript.react", "version": "6.18.1"},
+                "tags": {"key": "value"},
+                "user": {
+                    "email": "username@example.com",
+                    "id": "123",
+                    "ip_address": "127.0.0.1",
+                    "name": "user",
+                    "username": "user2270129",
+                },
+                "dist": "abc123",
+                "contexts": {},
+            },
+            date_added=datetime.datetime.fromtimestamp(1234456),
+            feedback_id=self.feedback_id_1,
+            url="https://docs.sentry.io/platforms/javascript/",
+            message="I really like this user-feedback feature!",
+            replay_id=self.replay_id_1,
+            project_id=self.project.id,
+            organization_id=self.organization.id,
+        )
+
+        Feedback.objects.create(
+            data={
+                "environment": "prod",
+                "feedback": {
+                    "contact_email": "michelle.zhang@sentry.io",
+                    "message": "I also really like this user-feedback feature!",
+                    "replay_id": "zc3b5xy8b79f417596f7a1tt4fffa5d2",
+                    "url": "https://docs.sentry.io/platforms/electron/",
+                },
+                "platform": "electron",
+                "release": "version@1.3",
+                "request": {
+                    "headers": {
+                        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36"
+                    }
+                },
+                "sdk": {"name": "sentry.javascript.react", "version": "5.18.1"},
+                "tags": {"key": "value"},
+                "user": {
+                    "email": "username@example.com",
+                    "id": "123",
+                    "ip_address": "127.0.0.1",
+                    "name": "user",
+                    "username": "user2270129",
+                },
+                "dist": "abc123",
+                "contexts": {},
+            },
+            date_added=datetime.datetime.fromtimestamp(12344100333),
+            feedback_id=self.feedback_id_2,
+            url="https://docs.sentry.io/platforms/electron/",
+            message="I also really like this user-feedback feature!",
+            replay_id=self.replay_id_2,
+            project_id=self.project.id,
+            organization_id=self.organization.id,
+        )
+
+        with self.feature({"organizations:user-feedback-ingest": True}):
+            # Delete first feedback
+            path = reverse(
+                self.endpoint,
+                args=[
+                    self.organization.slug,
+                    self.project.slug,
+                    self.feedback_id_1,
+                ],
+            )
+            response = self.client.delete(path)
+            assert response.status_code == 200, response.content
+
+            # The other feedback still exists
+            path = reverse(
+                self.endpoint,
+                args=[
+                    self.organization.slug,
+                    self.project.slug,
+                    self.feedback_id_2,
+                ],
+            )
+            response = self.client.get(path)
+            assert response.status_code == 200
+
+            # The first feedback does not exist
+            path = reverse(
+                self.endpoint,
+                args=[
+                    self.organization.slug,
+                    self.project.slug,
+                    self.feedback_id_1,
+                ],
+            )
+            response = self.client.get(path)
+            assert response.status_code == 404
