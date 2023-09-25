@@ -78,13 +78,16 @@ export function useMetricsTagValues(mri: string, tag: string) {
   );
 }
 
-export type MetricsDataProps = {
-  datetime: PageFilters['datetime'];
+export type MetricsQuery = {
   mri: string;
   groupBy?: string[];
   op?: string;
-  projects?: string[];
-  queryString?: string;
+  query?: string;
+};
+
+export type MetricsDataProps = MetricsQuery & {
+  datetime: PageFilters['datetime'];
+  projects: PageFilters['projects'];
 };
 
 // TODO(ddm): reuse from types/metrics.tsx
@@ -109,23 +112,22 @@ export function useMetricsData({
   op,
   datetime,
   projects,
-  queryString,
+  query,
   groupBy,
 }: MetricsDataProps) {
   const {slug} = useOrganization();
   const useCase = getUseCaseFromMri(mri);
   const field = op ? `${op}(${mri})` : mri;
 
-  const query = getQueryString({projects, queryString});
-
   const interval = getInterval(datetime, 'metrics');
 
   const queryToSend = {
     ...getDateTimeParams(datetime),
+    query,
+    project: projects,
     field,
     useCase,
     interval,
-    query,
     groupBy,
 
     // max result groups
@@ -155,14 +157,6 @@ function getDateTimeParams({start, end, period}: PageFilters['datetime']) {
   return period
     ? {statsPeriod: period}
     : {start: moment(start).toISOString(), end: moment(end).toISOString()};
-}
-
-function getQueryString({
-  projects = [],
-  queryString = '',
-}: Pick<MetricsDataProps, 'projects' | 'queryString'>): string {
-  const projectQuery = projects.length ? `project:[${projects}]` : '';
-  return [projectQuery, queryString].join(' ');
 }
 
 type UseCase = 'sessions' | 'transactions' | 'custom';
@@ -274,4 +268,8 @@ export function formatMetricsUsingUnitAndOp(
     return value?.toLocaleString() ?? '';
   }
   return formatMetricUsingUnit(value, unit);
+}
+
+export function isAllowedOp(op: string) {
+  return !['max_timestamp', 'min_timestamp', 'histogram'].includes(op);
 }

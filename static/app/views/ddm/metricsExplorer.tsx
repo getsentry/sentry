@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useMemo, useReducer, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment';
 
@@ -27,93 +27,60 @@ import {
   getReadableMetricType,
   getUnitFromMRI,
   getUseCaseFromMri,
+  isAllowedOp,
   MetricDisplayType,
   MetricsData,
   MetricsDataProps,
+  MetricsQuery,
   useMetricsData,
   useMetricsMeta,
   useMetricsTags,
 } from 'sentry/utils/metrics';
+import {decodeList} from 'sentry/utils/queryString';
 import theme from 'sentry/utils/theme';
 import useApi from 'sentry/utils/useApi';
 import useKeyPress from 'sentry/utils/useKeyPress';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {SummaryTable} from 'sentry/views/ddm/summaryTable';
-
-const useProjectSelectionSlugs = () => {
-  const {selection} = usePageFilters();
-  const {projects} = useProjects();
-
-  return useMemo(
-    () =>
-      selection.projects
-        .map(id => projects.find(p => p.id === id.toString())?.slug)
-        .filter(Boolean) as string[],
-    [projects, selection.projects]
-  );
-};
 
 function MetricsExplorer() {
   const {selection} = usePageFilters();
 
-  const slugs = useProjectSelectionSlugs();
   const router = useRouter();
 
-  const [query, setQuery] = useState<QueryBuilderState>();
+  const metricsQuery: MetricsQuery = {
+    mri: router.location.query.mri,
+    op: router.location.query.op,
+    query: router.location.query.query,
+    groupBy: decodeList(router.location.query.groupBy),
+  };
 
   return (
     <MetricsExplorerPanel>
       <PanelBody>
-        <QueryBuilder setQuery={setQuery} />
-        {query && (
-          <MetricsExplorerDisplayOuter
-            displayType={router.location.query.display ?? defaultMetricDisplayType}
-            datetime={selection.datetime}
-            projects={slugs}
-            {...query}
-          />
-        )}
+        <QueryBuilder metricsQuery={metricsQuery} />
+        <MetricsExplorerDisplayOuter
+          displayType={router.location.query.display ?? defaultMetricDisplayType}
+          datetime={selection.datetime}
+          projects={selection.projects}
+          {...metricsQuery}
+        />
       </PanelBody>
     </MetricsExplorerPanel>
   );
 }
 
 type QueryBuilderProps = {
-  setQuery: (query: QueryBuilderState) => void;
+  metricsQuery: MetricsQuery;
 };
 
-type QueryBuilderState = {
-  groupBy: string[];
-  mri: string;
-  op: string;
-  queryString: string;
-};
-
-type QueryBuilderAction =
-  | {
-      type: 'mri';
-      value: string;
-    }
-  | {
-      type: 'op';
-      value: string;
-    }
-  | {
-      type: 'groupBy';
-      value: string[];
-    }
-  | {
-      type: 'queryString';
-      value: string;
-    };
-
-function QueryBuilder({setQuery}: QueryBuilderProps) {
+function QueryBuilder({metricsQuery}: QueryBuilderProps) {
+  const router = useRouter();
   const meta = useMetricsMeta();
   const mriModeKeyPressed = useKeyPress('`', undefined, true);
-  const [mriMode, setMriMode] = useState(false);
+  const [mriMode, setMriMode] = useState(false); // power user mode that shows raw MRI instead of metrics names
 
   useEffect(() => {
     if (mriModeKeyPressed) {
@@ -122,40 +89,11 @@ function QueryBuilder({setQuery}: QueryBuilderProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mriModeKeyPressed]);
 
-  const isAllowedOp = (op: string) =>
-    !['max_timestamp', 'min_timestamp', 'histogram'].includes(op);
-
-  const reducer = (state: QueryBuilderState, action: QueryBuilderAction) => {
-    if (action.type === 'mri') {
-      const availableOps = meta[`${action.value}`]?.operations.filter(isAllowedOp);
-      const selectedOp = availableOps.includes(state.op) ? state.op : availableOps[0];
-      return {...state, mri: action.value, op: selectedOp};
-    }
-    if (['op', 'groupBy', 'queryString'].includes(action.type)) {
-      return {...state, [action.type]: action.value};
-    }
-
-    return state;
-  };
-
-  const [state, dispatch] = useReducer(reducer, {
-    mri: '',
-    op: '',
-    queryString: '',
-    groupBy: [],
-  });
-
-  const {data: tags = []} = useMetricsTags(state.mri);
-
-  useEffect(() => {
-    setQuery(state);
-  }, [state, setQuery]);
+  const {data: tags = []} = useMetricsTags(metricsQuery.mri);
 
   if (!meta) {
     return null;
   }
-
-  const selectedMetric = meta[state.mri] || {operations: []};
 
   return (
     <QueryBuilderWrapper>
@@ -165,7 +103,11 @@ function QueryBuilder({setQuery}: QueryBuilderProps) {
             searchable
             triggerProps={{prefix: t('Metric'), size: 'sm'}}
             options={Object.values(meta)
-              .filter(metric => (mriMode ? true : metric.mri.includes(':custom/')))
+              .filter(metric =>
+                mriMode
+                  ? true
+                  : metric.mri.includes(':custom/') || metric.mri === metricsQuery.mri
+              )
               .map(metric => ({
                 label: mriMode ? metric.mri : metric.name,
                 value: metric.mri,
@@ -178,19 +120,42 @@ function QueryBuilder({setQuery}: QueryBuilderProps) {
                   </Fragment>
                 ),
               }))}
-            value={state.mri}
+            value={metricsQuery.mri}
             onChange={option => {
-              dispatch({type: 'mri', value: option.value});
+              const availableOps = meta[option.value]?.operations.filter(isAllowedOp);
+              const selectedOp = availableOps.includes(metricsQuery.op ?? '')
+                ? metricsQuery.op
+                : availableOps[0];
+              router.push({
+                ...router.location,
+                query: {
+                  ...router.location.query,
+                  mri: option.value,
+                  op: selectedOp,
+                  groupBy: undefined,
+                },
+              });
             }}
           />
           <CompactSelect
             triggerProps={{prefix: t('Operation'), size: 'sm'}}
-            options={selectedMetric.operations.filter(isAllowedOp).map(op => ({
-              label: op,
-              value: op,
-            }))}
-            value={state.op}
-            onChange={option => dispatch({type: 'op', value: option.value})}
+            options={
+              meta[metricsQuery.mri]?.operations.filter(isAllowedOp).map(op => ({
+                label: op,
+                value: op,
+              })) ?? []
+            }
+            disabled={!metricsQuery.mri}
+            value={metricsQuery.op}
+            onChange={option => {
+              router.push({
+                ...router.location,
+                query: {
+                  ...router.location.query,
+                  op: option.value,
+                },
+              });
+            }}
           />
           <CompactSelect
             multiple
@@ -199,9 +164,16 @@ function QueryBuilder({setQuery}: QueryBuilderProps) {
               label: tag.key,
               value: tag.key,
             }))}
-            value={state.groupBy}
+            disabled={!metricsQuery.mri}
+            value={metricsQuery.groupBy}
             onChange={options => {
-              dispatch({type: 'groupBy', value: options.map(o => o.value)});
+              router.push({
+                ...router.location,
+                query: {
+                  ...router.location.query,
+                  groupBy: options.map(o => o.value),
+                },
+              });
             }}
           />
         </PageFilterBar>
@@ -209,10 +181,16 @@ function QueryBuilder({setQuery}: QueryBuilderProps) {
       <QueryBuilderRow>
         <MetricSearchBar
           tags={tags}
-          mri={state.mri}
-          disabled={!state.mri}
-          onChange={data => {
-            dispatch({type: 'queryString', value: data});
+          mri={metricsQuery.mri}
+          disabled={!metricsQuery.mri}
+          onChange={query => {
+            router.push({
+              ...router.location,
+              query: {
+                ...router.location.query,
+                query,
+              },
+            });
           }}
         />
       </QueryBuilderRow>
@@ -287,6 +265,7 @@ const WideSearchBar = styled(SearchBar)`
   opacity: ${p => (p.disabled ? '0.6' : '1')};
 `;
 
+// TODO(ddm): reuse from types/metrics.tsx
 type Group = {
   by: Record<string, unknown>;
   series: Record<string, number[]>;
@@ -313,15 +292,27 @@ function MetricsExplorerDisplayOuter(props?: DisplayProps) {
 }
 
 function MetricsExplorerDisplay({displayType, ...metricsDataProps}: DisplayProps) {
+  const router = useRouter();
   const {data, isLoading, isError} = useMetricsData(metricsDataProps);
-  // TODO(ddm): maybe it is nicer to use a set here, or to keep state of shown series instead
-  const [hiddenSeries, setHiddenSeries] = useState<string[]>([]);
+  const hiddenSeries = decodeList(router.location.query.hiddenSeries);
 
   const toggleSeriesVisibility = (seriesName: string) => {
     if (hiddenSeries.includes(seriesName)) {
-      setHiddenSeries(hiddenSeries.filter(s => s !== seriesName));
+      router.push({
+        ...router.location,
+        query: {
+          ...router.location.query,
+          hiddenSeries: hiddenSeries.filter(s => s !== seriesName),
+        },
+      });
     } else {
-      setHiddenSeries([...hiddenSeries, seriesName]);
+      router.push({
+        ...router.location,
+        query: {
+          ...router.location.query,
+          hiddenSeries: [...hiddenSeries, seriesName],
+        },
+      });
     }
   };
 
