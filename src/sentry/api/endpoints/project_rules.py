@@ -35,13 +35,17 @@ def pre_save_rule(instance, sender, *args, **kwargs):
     clean_rule_data(instance.data.get("actions", []))
 
 
-def find_duplicate_rule(rule_data, project, rule_id=None):
+def find_duplicate_rule(project, rule_data=None, rule_id=None, rule=None):
+    if rule:
+        rule_data = rule.data
+
     matchers = {key for key in list(rule_data.keys()) if key not in ("name", "user_id")}
     extra_fields = ["actions", "environment"]
     matchers.update(extra_fields)
     existing_rules = Rule.objects.exclude(id=rule_id).filter(
         project=project, status=ObjectStatus.ACTIVE
     )
+
     for existing_rule in existing_rules:
         keys = 0
         matches = 0
@@ -53,17 +57,37 @@ def find_duplicate_rule(rule_data, project, rule_id=None):
                     matches += 1
 
             elif matcher in extra_fields:
-                if not existing_rule.data.get(matcher) and not rule_data.get(matcher):
+                if matcher == "environment":
+                    if rule:
+                        # we have to compare env data differently if coming from db rather than app
+                        if existing_rule.environment_id and rule.environment_id:
+                            keys += 1
+                            if existing_rule.environment_id == rule.environment_id:
+                                matches += 1
+                        elif (
+                            existing_rule.environment_id
+                            and not rule.environment_id
+                            or not existing_rule.environment_id
+                            and rule.environment_id
+                        ):
+                            keys += 1
+
+                    else:
+                        if existing_rule.environment_id and rule_data.get(matcher):
+                            keys += 1
+                            if existing_rule.environment_id == rule_data.get(matcher):
+                                matches += 1
+                        elif (
+                            existing_rule.environment_id
+                            and not rule_data.get(matcher)
+                            or not existing_rule.environment_id
+                            and rule_data.get(matcher)
+                        ):
+                            keys += 1
+                elif not existing_rule.data.get(matcher) and not rule_data.get(matcher):
                     # neither rule has the matcher
                     continue
 
-                elif matcher == "environment":
-                    if existing_rule.environment_id and rule_data.get(matcher):
-                        keys += 1
-                        if existing_rule.environment_id == rule_data.get(matcher):
-                            matches += 1
-                    else:
-                        keys += 1
                 else:
                     # one rule has the matcher and the other one doesn't
                     keys += 1
@@ -197,7 +221,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
             "frequency": data.get("frequency"),
             "user_id": request.user.id,
         }
-        duplicate_rule = find_duplicate_rule(kwargs, project)
+        duplicate_rule = find_duplicate_rule(project=project, rule_data=kwargs)
         if duplicate_rule:
             return Response(
                 {
