@@ -6,20 +6,22 @@ import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import {t, tct} from 'sentry/locale';
 
 // Configuration Start
+const performanceConfiguration = `    # Set traces_sample_rate to 1.0 to capture 100%
+    # of transactions for performance monitoring.
+    traces_sample_rate=1.0,`;
 
 const profilingConfiguration = `    # Set profiles_sample_rate to 1.0 to profile 100%
     # of sampled transactions.
     # We recommend adjusting this value in production.
     profiles_sample_rate=1.0,`;
 
-const performanceConfiguration = `    # Set traces_sample_rate to 1.0 to capture 100%
-    # of transactions for performance monitoring.
-    # We recommend adjusting this value in production.
-    traces_sample_rate=1.0,`;
-
-const piiConfiguration = `    # If you wish to associate users to errors (assuming you are using
-    # django.contrib.auth) you may enable sending PII data.
-    send_default_pii=True,`;
+const introduction = (
+  <p>
+    {tct('The Django integration adds support for the [link:Django Web Framework].', {
+      link: <ExternalLink href="https://www.djangoproject.com/" />,
+    })}
+  </p>
+);
 
 export const steps = ({
   sentryInitContent,
@@ -30,17 +32,26 @@ export const steps = ({
     type: StepType.INSTALL,
     description: (
       <p>
-        {tct(
-          'The Django integration adds support for the [link:Django Web Framework] from Version 1.6 upwards.',
-          {link: <ExternalLink href="https://www.djangoproject.com/" />}
-        )}
+        {tct('The Django integration adds support for the [link:Django Web Framework].', {
+          link: <ExternalLink href="https://www.djangoproject.com/" />,
+        })}
       </p>
     ),
     configurations: [
       {
         language: 'bash',
-        description: <p>{tct('Install [code:sentry-sdk]:', {code: <code />})}</p>,
-        code: 'pip install --upgrade sentry-sdk',
+        description: (
+          <p>
+            {tct(
+              'Install [code:sentry-sdk] from PyPI with the [sentryDjangoCode:django] extra:',
+              {
+                code: <code />,
+                sentryDjangoCode: <code />,
+              }
+            )}
+          </p>
+        ),
+        code: 'pip install --upgrade sentry-sdk[django]',
       },
     ],
   },
@@ -49,17 +60,19 @@ export const steps = ({
     description: (
       <p>
         {tct(
-          'To configure the SDK, initialize it with the Django integration in your [code:settings.py] file:',
-          {code: <code />}
+          'If you have the [codeDjango:django] package in your dependencies, the Django integration will be enabled automatically when you initialize the Sentry SDK. Initialize the Sentry SDK in your Django [codeSettings:settings.py] file:',
+          {
+            codeDjango: <code />,
+            codeSettings: <code />,
+          }
         )}
       </p>
     ),
     configurations: [
       {
         language: 'python',
-        code: `
+        code: `# settings.py
 import sentry_sdk
-from sentry_sdk.integrations.django import DjangoIntegration
 
 sentry_sdk.init(
 ${sentryInitContent}
@@ -76,21 +89,36 @@ ${sentryInitContent}
       {
         language: 'python',
 
-        code: `
+        code: `# urls.py
 from django.urls import path
 
 def trigger_error(request):
     division_by_zero = 1 / 0
 
-    urlpatterns = [
-        path('sentry-debug/', trigger_error),
-        # ...
-    ]
+urlpatterns = [
+    path('sentry-debug/', trigger_error),
+    # ...
+]
         `,
       },
     ],
-    additionalInfo: t(
-      'Visiting this route will trigger an error that will be captured by Sentry.'
+    additionalInfo: (
+      <div>
+        <p>
+          {tct(
+            'When you point your browser to [link:http://localhost:8000/sentry-debug/] a transaction in the Performance section of Sentry will be created.',
+            {
+              link: <ExternalLink href="http://localhost:8000/" />,
+            }
+          )}
+        </p>
+        <p>
+          {t(
+            'Additionally, an error event will be sent to Sentry and will be connected to the transaction.'
+          )}
+        </p>
+        <p>{t('It takes a couple of moments for the data to appear in Sentry.')}</p>
+      </div>
     ),
   },
 ];
@@ -103,11 +131,7 @@ export function GettingStartedWithDjango({
 }: ModuleProps) {
   const otherConfigs: string[] = [];
 
-  let sentryInitContent: string[] = [
-    `    dsn="${dsn}",`,
-    `    integrations=[DjangoIntegration()],`,
-    piiConfiguration,
-  ];
+  let sentryInitContent: string[] = [`    dsn="${dsn}",`];
 
   if (activeProductSelection.includes(ProductSolution.PERFORMANCE_MONITORING)) {
     otherConfigs.push(performanceConfiguration);
@@ -121,6 +145,7 @@ export function GettingStartedWithDjango({
 
   return (
     <Layout
+      introduction={introduction}
       steps={steps({
         sentryInitContent: sentryInitContent.join('\n'),
       })}
