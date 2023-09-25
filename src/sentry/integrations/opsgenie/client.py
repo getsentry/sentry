@@ -52,7 +52,14 @@ class OpsgenieClient(IntegrationProxyClient):
             rule_urls.append(organization.absolute_url(path))
         return rule_urls
 
-    def _get_issue_alert_payload(self, data, rules, event: Event | GroupEvent, group: Group | None):
+    def _get_issue_alert_payload(
+        self,
+        data,
+        rules,
+        event: Event | GroupEvent,
+        group: Group | None,
+        notification_uuid: str | None = None,
+    ):
         payload = {
             "message": event.message or event.title,
             "source": "Sentry",
@@ -66,6 +73,9 @@ class OpsgenieClient(IntegrationProxyClient):
             rule_urls = self._get_rule_urls(group, rules)
             payload["alias"] = f"sentry: {group.id}"
             payload["entity"] = group.culprit if group.culprit else ""
+            group_params = {"referrer": "opsgenie"}
+            if notification_uuid:
+                group_params["notification_uuid"] = notification_uuid
             payload["details"] = {
                 "Sentry ID": str(group.id),
                 "Sentry Group": getattr(group, "title", group.message).encode("utf-8"),
@@ -73,19 +83,19 @@ class OpsgenieClient(IntegrationProxyClient):
                 "Project Name": group.project.name,
                 "Logger": group.logger,
                 "Level": group.get_level_display(),
-                "Issue URL": group.get_absolute_url(),
+                "Issue URL": group.get_absolute_url(params=group_params),
                 "Triggering Rules": ", ".join([rule.label for rule in rules]),
                 "Triggering Rule URLs": "\n".join(rule_urls),
                 "Release": data.release,
             }
         return payload
 
-    def send_notification(self, data, rules=None):
+    def send_notification(self, data, rules=None, notification_uuid: str | None = None):
         headers = {"Authorization": "GenieKey " + self.integration_key}
         if isinstance(data, (Event, GroupEvent)):
             group = data.group
             event = data
-            payload = self._get_issue_alert_payload(data, rules, event, group)
+            payload = self._get_issue_alert_payload(data, rules, event, group, notification_uuid)
         else:
             # if we're acknowledging the alert—meaning that the Sentry alert was resolved
             if data.get("identifier"):

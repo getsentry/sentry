@@ -89,6 +89,7 @@ def _get_metrics_for_entity(
         referrer="snuba.metrics.get_metrics_names_for_entity",
         project_ids=project_ids,
         org_id=org_id,
+        use_case_id=use_case_id,
         start=start,
         end=end,
     )
@@ -378,6 +379,7 @@ def _fetch_tags_or_values_for_mri(
             referrer=referrer,
             project_ids=[p.id for p in projects],
             org_id=org_id,
+            use_case_id=use_case_id,
         )
 
         for row in rows:
@@ -721,7 +723,10 @@ def get_series(
     """Get time series for the given query"""
 
     organization_id = projects[0].organization_id if projects else None
-    tenant_ids = tenant_ids or {"organization_id": organization_id} if organization_id else None
+    tenant_ids = dict()
+    if organization_id is not None:
+        tenant_ids["organization_id"] = organization_id
+    tenant_ids["use_case_id"] = use_case_id.value
 
     if metrics_query.interval is not None:
         interval = metrics_query.interval
