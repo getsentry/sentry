@@ -3,8 +3,8 @@ Metrics Service Layer Tests for Performance
 """
 
 import pytest
-from snuba_sdk.metrics_query import MetricScope, MetricsQuery
-from snuba_sdk.timeseries import Metric, Timeseries
+from snuba_sdk.metrics_query import MetricsQuery
+from snuba_sdk.timeseries import Metric, MetricsScope, Timeseries
 
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
@@ -31,7 +31,7 @@ class MetricsQueryLayerTest(BaseMetricsLayerTestCase, TestCase):
         )
         metrics_query = MetricsQuery(
             query=Timeseries(Metric(mri=TransactionMRI.DURATION.value), aggregate="count"),
-            scope=MetricScope(
+            scope=MetricsScope(
                 org_ids=[self.project.organization_id],
                 project_ids=[self.project.id],
                 use_case_id=UseCaseID.TRANSACTIONS.value,
