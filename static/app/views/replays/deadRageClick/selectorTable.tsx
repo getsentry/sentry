@@ -40,7 +40,6 @@ export function hydratedSelectorData(data, clickType): DeadRageSelectorItem[] {
 
 interface Props {
   clickCountColumn: {key: string; name: string};
-  clickCountSortable: boolean;
   data: DeadRageSelectorItem[];
   isError: boolean;
   isLoading: boolean;
@@ -58,7 +57,6 @@ const BASE_COLUMNS: GridColumnOrder<string>[] = [
 
 export default function SelectorTable({
   clickCountColumn,
-  clickCountSortable,
   data,
   isError,
   isLoading,
@@ -86,9 +84,9 @@ export default function SelectorTable({
         makeSortLinkGenerator,
         onClick: () => {},
         rightAlignedColumns: [],
-        sortableColumns: clickCountSortable ? [clickCountColumn] : [],
+        sortableColumns: [],
       }),
-    [clickCountColumn, currentSort, makeSortLinkGenerator, clickCountSortable]
+    [currentSort, makeSortLinkGenerator]
   );
 
   const renderBodyCell = useCallback(
