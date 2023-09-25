@@ -6,7 +6,7 @@ import {GettingStartedWithRq, steps} from './rq';
 
 describe('GettingStartedWithRq', function () {
   it('renders doc correctly', function () {
-    render(<GettingStartedWithRq dsn="test-dsn" />);
+    render(<GettingStartedWithRq dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps({sentryInitContent: 'test-init-content'})) {

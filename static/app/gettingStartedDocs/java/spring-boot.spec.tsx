@@ -11,7 +11,7 @@ import {
 
 describe('GettingStartedWithSpringBoot', function () {
   it('renders doc correctly', function () {
-    render(<GettingStartedWithSpringBoot dsn="test-dsn" />);
+    render(<GettingStartedWithSpringBoot dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps({
