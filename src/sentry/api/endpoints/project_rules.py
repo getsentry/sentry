@@ -122,19 +122,19 @@ class ProjectRulesPostSerializer(serializers.Serializer):
 A list of actions that take place when all required conditions and filters for the rule are met. See below for a list of possible actions.
 
 **Send a notification to Suggested Assignees**
-- `fallthroughType`: Who the notification should be sent to if there are no suggested assignees. Valid values are `ActiveMembers`, `AllMembers`, and `NoOne`.
+- `fallthroughType` - Who the notification should be sent to if there are no suggested assignees. Valid values are `ActiveMembers`, `AllMembers`, and `NoOne`.
 ```json
 {
-    "id": "sentry.mail.actions.NotifyEmailAction",
-    "targetType": "IssueOwners",
-    "fallthroughType": "ActiveMembers"
+    "id" - "sentry.mail.actions.NotifyEmailAction",
+    "targetType" - "IssueOwners",
+    "fallthroughType" - "ActiveMembers"
 }
 ```
 
 **Send a notification to a Member or a Team**
-- `targetType`: One of `Member` or `Team`.
-- `fallthroughType`: Who the notification should be sent to if it cannot be sent to the original target. Valid values are `ActiveMembers`, `AllMembers`, and `NoOne`.
-- `targetIdentifier`: The ID of the Member or Team the notification should be sent to.
+- `targetType` - One of `Member` or `Team`.
+- `fallthroughType` - Who the notification should be sent to if it cannot be sent to the original target. Valid values are `ActiveMembers`, `AllMembers`, and `NoOne`.
+- `targetIdentifier` - The ID of the Member or Team the notification should be sent to.
 ```json
 {
     "id": "sentry.mail.actions.NotifyEmailAction",
@@ -145,9 +145,9 @@ A list of actions that take place when all required conditions and filters for t
 ```
 
 **Send a Discord notification**
-- `server`: The integration ID associated with the Discord server.
-- `channel_id`: The ID of the channel to send the notification to.
-- `tags`: A string of tags to show in the notification, separated by commas (e.g., "environment, user, my_tag").
+- `server` - The integration ID associated with the Discord server.
+- `channel_id` - The ID of the channel to send the notification to.
+- `tags` - A string of tags to show in the notification, separated by commas (e.g., "environment, user, my_tag").
 ```json
 {
     "id": "sentry.integrations.discord.notify_action.DiscordNotifyServiceAction",
@@ -158,8 +158,8 @@ A list of actions that take place when all required conditions and filters for t
 ```
 
 **Send a Microsoft Teams notification**
-- `team`: The integration ID associated with the Microsoft Teams team.
-- `channel`: The name of the channel to send the notification to.
+- `team` - The integration ID associated with the Microsoft Teams team.
+- `channel` - The name of the channel to send the notification to.
 ```json
 {
     "id": "sentry.integrations.msteams.notify_action.MsTeamsNotifyServiceAction",
@@ -169,8 +169,8 @@ A list of actions that take place when all required conditions and filters for t
 ```
 
 **Send an Opsgenie notification**
-- `account`: The integration ID associated with the Opsgenie account.
-- `team`: The ID of the Opsgenie team to send the notification to.
+- `account` - The integration ID associated with the Opsgenie account.
+- `team` - The ID of the Opsgenie team to send the notification to.
 ```json
 {
     "id": "sentry.integrations.opsgenie.notify_action.OpsgenieNotifyTeamAction",
@@ -180,8 +180,8 @@ A list of actions that take place when all required conditions and filters for t
 ```
 
 **Send a PagerDuty notification**
-- `account`: The integration ID associated with the PagerDuty account.
-- `service`: The ID of the service to send the notification to.
+- `account` - The integration ID associated with the PagerDuty account.
+- `service` - The ID of the service to send the notification to.
 ```json
 {
     "id": "sentry.integrations.pagerduty.notify_action.PagerDutyNotifyServiceAction",
@@ -191,10 +191,10 @@ A list of actions that take place when all required conditions and filters for t
 ```
 
 **Send a Slack notification**
-- `workspace`: The integration ID associated with the Slack workspace.
-- `channel`: The name of the channel to send the notification to (e.g., #critical, Jane Schmidt).
-- `channel_id` (optional): The ID of the channel to send the notification to.
-- `tags`: A string of tags to show in the notification, separated by commas (e.g., "environment, user, my_tag").
+- `workspace` - The integration ID associated with the Slack workspace.
+- `channel` - The name of the channel to send the notification to (e.g., #critical, Jane Schmidt).
+- `channel_id` (optional) - The ID of the channel to send the notification to.
+- `tags` - A string of tags to show in the notification, separated by commas (e.g., "environment, user, my_tag").
 ```json
 {
     "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
@@ -205,7 +205,7 @@ A list of actions that take place when all required conditions and filters for t
 ```
 
 **Send a notification to a service**
-- `service`: The plugin slug.
+- `service` - The plugin slug.
 ```json
 {
     "id": "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
@@ -214,8 +214,8 @@ A list of actions that take place when all required conditions and filters for t
 ```
 
 **Send a notification to a Sentry app with a custom webhook payload**
-- `settings`: A list of objects denoting the settings each action will be created with. All required fields must be included.
-- `sentryAppInstallationUuid`: The ID for the Sentry app
+- `settings` - A list of objects denoting the settings each action will be created with. All required fields must be included.
+- `sentryAppInstallationUuid` - The ID for the Sentry app
 ```json
 {
     "id": "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction",
@@ -236,10 +236,10 @@ A list of actions that take place when all required conditions and filters for t
 ```
 
 **Create an Azure DevOps work item**
-- `integration`: The integration ID.
-- `project`: The ID of the Azure DevOps project.
-- `work_item_type`: The type of work item to create.
-- `dynamic_form_fields` (optional): A list of any custom fields you want to include in the work item as objects.
+- `integration` - The integration ID.
+- `project` - The ID of the Azure DevOps project.
+- `work_item_type` - The type of work item to create.
+- `dynamic_form_fields` (optional) - A list of any custom fields you want to include in the work item as objects.
 ```json
 {
     "id": "sentry.integrations.vsts.notify_action.AzureDevopsCreateTicketAction",
@@ -250,10 +250,10 @@ A list of actions that take place when all required conditions and filters for t
 ```
 
 **Create a Jira Ticket**
-- `integration`: The integration ID associated with Jira.
-- `project`: The ID of the Jira project.
-- `issuetype`: The ID of the type of issue that the ticket should be created as.
-- `dynamic_form_fields` (optional): A list of any custom fields you want to include in the ticket as objects.
+- `integration` - The integration ID associated with Jira.
+- `project` - The ID of the Jira project.
+- `issuetype` - The ID of the type of issue that the ticket should be created as.
+- `dynamic_form_fields` (optional) - A list of any custom fields you want to include in the ticket as objects.
 ```json
 {
     "id": "sentry.integrations.jira.notify_action.JiraCreateTicketAction",
@@ -284,8 +284,8 @@ A list of triggers that determine when the rule fires. See below for a list of p
 ```
 
 **The issue is seen more than `value` times in `interval`**
-- `value`: An integer
-- `interval`: Valid values are `1m`, `5m`, `15m`, `1h`, `1d`, `1w` and `30d` (`m` for minutes, `h` for hours, `d` for days, and `w` for weeks).
+- `value` - An integer
+- `interval` - Valid values are `1m`, `5m`, `15m`, `1h`, `1d`, `1w` and `30d` (`m` for minutes, `h` for hours, `d` for days, and `w` for weeks).
 ```json
 {
     "id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
@@ -295,8 +295,8 @@ A list of triggers that determine when the rule fires. See below for a list of p
 ```
 
 **The issue is seen by more than `value` users in `interval`**
-- `value`: An integer
-- `interval`: Valid values are `1m`, `5m`, `15m`, `1h`, `1d`, `1w` and `30d` (`m` for minutes, `h` for hours, `d` for days, and `w` for weeks).
+- `value` - An integer
+- `interval` - Valid values are `1m`, `5m`, `15m`, `1h`, `1d`, `1w` and `30d` (`m` for minutes, `h` for hours, `d` for days, and `w` for weeks).
 ```json
 {
     "id": "sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyCondition",
@@ -306,8 +306,8 @@ A list of triggers that determine when the rule fires. See below for a list of p
 ```
 
 **The issue affects more than `value` percent of sessions in `interval`**
-- `value`: An integer from 0 to 100
-- `interval`: Valid values are `5m`, `10m`, `30m`, and `1h` (`m` for minutes, `h` for hours).
+- `value` - An integer from 0 to 100
+- `interval` - Valid values are `5m`, `10m`, `30m`, and `1h` (`m` for minutes, `h` for hours).
 ```json
 {
     "id": "sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition",
@@ -342,9 +342,9 @@ A list of triggers that determine when the rule fires. See below for a list of p
 A list of filters that determine if a rule fires after the necessary conditions have been met. See below for a list of possible filters.
 
 **The issue is `comparison_type` than `value` `time`**
-- `comparison_type`: One of `older` or `newer`
-- `value`: An integer
-- `time`: The unit of time. Valid values are `minute`, `hour`, `day`, and `week`.
+- `comparison_type` - One of `older` or `newer`
+- `value` - An integer
+- `time` - The unit of time. Valid values are `minute`, `hour`, `day`, and `week`.
 ```json
 {
     "id": "sentry.rules.filters.age_comparison.AgeComparisonFilter",
@@ -355,7 +355,7 @@ A list of filters that determine if a rule fires after the necessary conditions 
 ```
 
 **The issue has happened at least `value` times**
-- `value`: An integer
+- `value` - An integer
 ```json
 {
     "id": "sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter",
@@ -372,8 +372,8 @@ A list of filters that determine if a rule fires after the necessary conditions 
 ```
 
 **The issue is assigned to `targetType`**
-- `targetType`: One of `Team` or `Member`
-- `targetIdentifier`: The target's ID
+- `targetType` - One of `Team` or `Member`
+- `targetIdentifier` - The target's ID
 ```json
 {
     "id": "sentry.rules.filters.assigned_to.AssignedToFilter",
@@ -390,7 +390,7 @@ A list of filters that determine if a rule fires after the necessary conditions 
 ```
 
 **The issue's category is equal to `value`**
-- `value`: An integer correlated with a category. Valid values are `1` (Error), `2` (Performance), `3` (Profile), `4` (Cron), and `5` (Replay).
+- `value` - An integer correlated with a category. Valid values are `1` (Error), `2` (Performance), `3` (Profile), `4` (Cron), and `5` (Replay).
 ```json
 {
     "id": "sentry.rules.filters.issue_category.IssueCategoryFilter",
@@ -399,9 +399,9 @@ A list of filters that determine if a rule fires after the necessary conditions 
 ```
 
 **The event's `attribute` value `match` `value`**
-- `attribute`: Valid values are `message`, `platform`, `environment`, `type`, `error.handled`, `error.unhandled`, `error.main_thread`, `exception.type`, `exception.value`, `user.id`, `user.email`, `user.username`, `user.ip_address`, `http.method`, `http.url`, `http.status_code`, `sdk.name`, `stacktrace.code`, `stacktrace.module`, `stacktrace.filename`, `stacktrace.abs_path`, `stacktrace.package`, `unreal.crashtype`, and `app.in_foreground`.
-- `match`: The comparison operator. Valid values are `eq` (equals), `ne` (does not equal), `sw` (starts with), `ew` (ends with), `co` (contains), `nc` (does not contain), `is` (is set), and `ns` (is not set).
-- `value`: A string. Not required when `match` is `is` or `ns`.
+- `attribute` - Valid values are `message`, `platform`, `environment`, `type`, `error.handled`, `error.unhandled`, `error.main_thread`, `exception.type`, `exception.value`, `user.id`, `user.email`, `user.username`, `user.ip_address`, `http.method`, `http.url`, `http.status_code`, `sdk.name`, `stacktrace.code`, `stacktrace.module`, `stacktrace.filename`, `stacktrace.abs_path`, `stacktrace.package`, `unreal.crashtype`, and `app.in_foreground`.
+- `match` - The comparison operator. Valid values are `eq` (equals), `ne` (does not equal), `sw` (starts with), `ew` (ends with), `co` (contains), `nc` (does not contain), `is` (is set), and `ns` (is not set).
+- `value` - A string. Not required when `match` is `is` or `ns`.
 ```json
 {
     "id": "sentry.rules.conditions.event_attribute.EventAttributeCondition",
@@ -412,9 +412,9 @@ A list of filters that determine if a rule fires after the necessary conditions 
 ```
 
 **The event's tags match `key` `match` `value`**
-- `key`: The tag
-- `match`: The comparison operator. Valid values are `eq` (equals), `ne` (does not equal), `sw` (starts with), `ew` (ends with), `co` (contains), `nc` (does not contain), `is` (is set), and `ns` (is not set).
-- `value`: A string. Not required when `match` is `is` or `ns`.
+- `key` - The tag
+- `match` - The comparison operator. Valid values are `eq` (equals), `ne` (does not equal), `sw` (starts with), `ew` (ends with), `co` (contains), `nc` (does not contain), `is` (is set), and `ns` (is not set).
+- `value` - A string. Not required when `match` is `is` or `ns`.
 ```json
 {
     "id": "sentry.rules.filters.tagged_event.TaggedEventFilter",
@@ -425,8 +425,8 @@ A list of filters that determine if a rule fires after the necessary conditions 
 ```
 
 **The event's level is `match` `level`**
-- `match`: Valid values are `eq`, `gte`, and `lte`.
-- `level`: Valid values are `50` (fatal), `40` (error), `30` (warning), `20` (info), `10` (debug), `0` (sample).
+- `match` - Valid values are `eq`, `gte`, and `lte`.
+- `level` - Valid values are `50` (fatal), `40` (error), `30` (warning), `20` (info), `10` (debug), `0` (sample).
 ```json
 {
     "id": "sentry.rules.filters.level.LevelFilter",
