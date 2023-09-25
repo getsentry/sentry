@@ -10,7 +10,7 @@ from sentry.backup.dependencies import (
     ImportKind,
     PrimaryKeyMap,
     dependencies,
-    normalize_model_name,
+    get_model_name,
     sorted_dependencies,
 )
 from sentry.backup.helpers import Filter
@@ -22,6 +22,7 @@ __all__ = (
     "DatetimeSafeDjangoJSONEncoder",
     "export_in_user_scope",
     "export_in_organization_scope",
+    "export_in_config_scope",
     "export_in_global_scope",
 )
 
@@ -93,7 +94,7 @@ def _export(
                 continue
 
             model = type(item)
-            model_name = normalize_model_name(model)
+            model_name = get_model_name(model)
 
             # Make sure this model is not explicitly being filtered.
             for f in filters:
@@ -102,7 +103,7 @@ def _export(
             else:
                 # Now make sure its not transitively filtered either.
                 for field, foreign_field in deps[model_name].foreign_keys.items():
-                    dependency_model_name = normalize_model_name(foreign_field.model)
+                    dependency_model_name = get_model_name(foreign_field.model)
                     field_id = field if field.endswith("_id") else f"{field}_id"
                     fk = getattr(item, field_id, None)
                     if fk is None:
@@ -117,16 +118,19 @@ def _export(
                     yield item
 
     def yield_objects():
+        from sentry.db.models.base import BaseModel
+
         # Collate the objects to be serialized.
         for model in sorted_dependencies():
-            includable = (
-                hasattr(model, "__relocation_scope__")
-                and model.get_possible_relocation_scopes() & allowed_relocation_scopes
-            )
+            if not issubclass(model, BaseModel):
+                continue
+
+            possible_relocation_scopes = model.get_possible_relocation_scopes()
+            includable = possible_relocation_scopes & allowed_relocation_scopes  # type: ignore
             if not includable or model._meta.proxy:
                 continue
 
-            queryset = model._base_manager.order_by(model._meta.pk.name)
+            queryset = model._base_manager.order_by(model._meta.pk.name)  # type: ignore
             yield from filter_objects(queryset.iterator())
 
     serialize(
@@ -143,7 +147,8 @@ def export_in_user_scope(
     src, *, user_filter: set[str] | None = None, indent: int = 2, printer=click.echo
 ):
     """
-    Perform an export in the `User` scope, meaning that only models with `RelocationScope.User` will be exported from the provided `src` file.
+    Perform an export in the `User` scope, meaning that only models with `RelocationScope.User` will
+    be exported from the provided `src` file.
     """
 
     # Import here to prevent circular module resolutions.
@@ -162,7 +167,9 @@ def export_in_organization_scope(
     src, *, org_filter: set[str] | None = None, indent: int = 2, printer=click.echo
 ):
     """
-    Perform an export in the `Organization` scope, meaning that only models with `RelocationScope.User` or `RelocationScope.Organization` will be exported from the provided `src` file.
+    Perform an export in the `Organization` scope, meaning that only models with
+    `RelocationScope.User` or `RelocationScope.Organization` will be exported from the provided
+    `src` file.
     """
 
     # Import here to prevent circular module resolutions.
@@ -172,6 +179,31 @@ def export_in_organization_scope(
         src,
         ExportScope.Organization,
         filter_by=Filter(Organization, "slug", org_filter) if org_filter is not None else None,
+        indent=indent,
+        printer=printer,
+    )
+
+
+def export_in_config_scope(src, *, indent: int = 2, printer=click.echo):
+    """
+    Perform an export in the `Config` scope, meaning that only models directly related to the global
+    configuration and administration of an entire Sentry instance will be exported.
+    """
+
+    # Import here to prevent circular module resolutions.
+    from sentry.models.user import User
+    from sentry.models.userpermission import UserPermission
+    from sentry.models.userrole import UserRoleUser
+
+    # Pick out all users with admin privileges.
+    admin_user_pks: set[int] = set()
+    admin_user_pks.update(UserPermission.objects.values_list("user_id", flat=True))
+    admin_user_pks.update(UserRoleUser.objects.values_list("user_id", flat=True))
+
+    return _export(
+        src,
+        ExportScope.Config,
+        filter_by=Filter(User, "pk", admin_user_pks),
         indent=indent,
         printer=printer,
     )

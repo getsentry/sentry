@@ -2,7 +2,7 @@ import abc
 from typing import cast
 
 from sentry.services.hybrid_cloud.auth import RpcAuthIdentity, RpcAuthProvider
-from sentry.services.hybrid_cloud.organization import RpcTeam
+from sentry.services.hybrid_cloud.organization import RpcOrganizationMemberTeam, RpcTeam
 from sentry.services.hybrid_cloud.region import ByRegionName
 from sentry.services.hybrid_cloud.rpc import RpcService, regional_rpc_method, rpc_method
 from sentry.silo import SiloMode
@@ -15,6 +15,18 @@ class ControlReplicaService(RpcService):
     @rpc_method
     @abc.abstractmethod
     def upsert_replicated_team(self, *, team: RpcTeam) -> None:
+        pass
+
+    @rpc_method
+    @abc.abstractmethod
+    def upsert_replicated_organization_member_team(self, *, omt: RpcOrganizationMemberTeam) -> None:
+        pass
+
+    @rpc_method
+    @abc.abstractmethod
+    def remove_replicated_organization_member_team(
+        self, *, organization_id: int, organization_member_team_id: int
+    ) -> None:
         pass
 
     @classmethod

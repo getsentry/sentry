@@ -2,7 +2,10 @@ import responses
 
 from sentry.models import Integration, Rule
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
+
+pytestmark = [requires_snuba]
 
 EXTERNAL_ID = "test-app"
 METADATA = {
@@ -89,7 +92,7 @@ class OpsgenieClientTest(APITestCase):
                 "Logger": "",
                 "Level": "warning",
                 "Project ID": "bar",
-                "Issue URL": "http://example.com/organizations/baz/issues/%s/" % group_id,
+                "Issue URL": f"http://example.com/organizations/baz/issues/{group_id}/?referrer=opsgenie",
                 "Release": event.release,
             },
             "message": "Hello world",

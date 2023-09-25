@@ -30,6 +30,8 @@ export default function DeadClickList({location}: Props) {
   const {isLoading, isError, data, pageLinks} = useDeadRageSelectors({
     per_page: 50,
     sort: '-count_dead_clicks',
+    cursor: location.query.cursor,
+    prefix: '',
   });
 
   if (!hasDeadClickFeature) {
@@ -71,6 +73,7 @@ export default function DeadClickList({location}: Props) {
                 isLoading={isLoading}
                 location={location}
                 clickCountColumn={{key: 'count_dead_clicks', name: 'dead clicks'}}
+                clickCountSortable
               />
             </LayoutGap>
             <PaginationNoMargin

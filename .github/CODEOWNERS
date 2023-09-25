@@ -387,8 +387,14 @@ yarn.lock                                                @getsentry/owners-js-de
 /src/sentry/scim/                                                       @getsentry/enterprise
 /tests/sentry/api/test_scim*.py                                         @getsentry/enterprise
 /src/sentry/tasks/integrations/github/pr_comment.py                     @getsentry/enterprise
+/src/sentry/api/endpoints/organization_missing_org_members.py           @getsentry/enterprise
+/src/sentry/tasks/invite_missing_org_members.py                         @getsentry/enterprise
+/static/app/components/modals/inviteMissingMembersModal/                @getsentry/enterprise
+/static/app/views/settings/organizationMembers/inviteBanner.tsx         @getsentry/enterprise
 /src/sentry/api/endpoints/organization_projects_experiment.py           @getsentry/enterprise
 /tests/sentry/api/endpoints/test_organization_projects_experiment.py    @getsentry/enterprise
+/src/sentry/models/release_threshold                                    @getsentry/enterprise
+/src/sentry/api/endpoints/release_threshold*.py                         @getsentry/enterprise
 ## End of Enterprise
 
 

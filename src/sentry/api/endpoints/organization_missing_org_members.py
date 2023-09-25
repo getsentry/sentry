@@ -13,6 +13,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import roles
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
@@ -28,6 +29,17 @@ from sentry.services.hybrid_cloud.integration import integration_service
 
 if TYPE_CHECKING:
     from django_stubs_ext import WithAnnotations
+
+
+filtered_email_domains = {
+    "gmail.com",
+    "icloud.com",
+    "hotmail.com",
+    "outlook.com",
+    "noreply.github.com",
+}
+
+filtered_characters = {"+"}
 
 
 class MissingOrgMemberSerializer(Serializer):
@@ -93,8 +105,11 @@ def _get_shared_email_domain(organization: Organization) -> str | None:
 @region_silo_endpoint
 class OrganizationMissingMembersEndpoint(OrganizationEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.EXPERIMENTAL,
     }
+
+    owner = ApiOwner.ENTERPRISE
+
     permission_classes = (MissingMembersPermission,)
 
     def get(self, request: Request, organization: Organization) -> Response:
@@ -132,6 +147,12 @@ class OrganizationMissingMembersEndpoint(OrganizationEndpoint):
 
             if shared_domain:
                 queryset = queryset.filter(email__endswith=shared_domain)
+            else:
+                for filtered_email in filtered_email_domains:
+                    queryset = queryset.exclude(email__endswith=filtered_email)
+
+            for filtered_character in filtered_characters:
+                queryset = queryset.exclude(email__icontains=filtered_character)
 
             if queryset.exists():
                 query = request.GET.get("query")

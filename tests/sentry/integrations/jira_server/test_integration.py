@@ -24,11 +24,14 @@ from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
 from sentry_plugins.jira.plugin import JiraPlugin
 
 from . import get_integration
+
+pytestmark = [requires_snuba]
 
 DEFAULT_PROJECT_ID = 10000
 DEFAULT_ISSUE_TYPE_ID = 10000
@@ -440,25 +443,15 @@ class JiraServerIntegrationTest(APITestCase):
             status=400,
             body="",
         )
-        # get that projects list fresh (w/o caching)
         responses.add(
             responses.GET,
-            "https://jira.example.org/rest/api/2/project",
-            content_type="json",
-            body="""[
-                {"id": "10001", "key": "SAMP"},
-                {"id": "10002", "key": "SAHM"}
-            ]""",
-        )
-        responses.add(
-            responses.GET,
-            "https://jira.example.org/rest/api/2/issue/createmeta/10001/issuetypes",
+            "https://jira.example.org/rest/api/2/issue/createmeta/10002/issuetypes",
             body=StubService.get_stub_json("jira", "issue_types_response.json"),
             content_type="json",
         )
         responses.add(
             responses.GET,
-            f"https://jira.example.org/rest/api/2/issue/createmeta/10001/issuetypes/{DEFAULT_ISSUE_TYPE_ID}",
+            f"https://jira.example.org/rest/api/2/issue/createmeta/10002/issuetypes/{DEFAULT_ISSUE_TYPE_ID}",
             body=StubService.get_stub_json("jira", "issue_fields_response.json"),
             content_type="json",
         )
@@ -470,7 +463,7 @@ class JiraServerIntegrationTest(APITestCase):
         )
         responses.add(
             responses.GET,
-            "https://jira.example.org/rest/api/2/project/10001/versions",
+            "https://jira.example.org/rest/api/2/project/10002/versions",
             body=StubService.get_stub_json("jira", "versions_response.json"),
             content_type="json",
         )
