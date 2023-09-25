@@ -409,6 +409,14 @@ class ProfileFrameDropType(GroupType):
 
 
 @dataclass(frozen=True)
+class ProfileFunctionRegressionExperimentalType(GroupType):
+    type_id = 2010
+    slug = "profile_function_regression_exp"
+    description = "Frame Regression"
+    category = GroupCategory.PERFORMANCE.value
+
+
+@dataclass(frozen=True)
 class MonitorCheckInFailure(GroupType):
     type_id = 4001
     slug = "monitor_check_in_failure"
