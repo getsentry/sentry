@@ -425,6 +425,21 @@ detailed_project = {
     "symbolSources": "[]",
 }
 
+symbol_sources = [
+    {
+        "id": "honk",
+        "name": "honk source",
+        "layout": {
+            "type": "native",
+        },
+        "filetypes": ["pe"],
+        "type": "http",
+        "url": "http://honk.beep",
+        "username": {"hidden-secret": True},
+        "password": {"hidden-secret": True},
+    }
+]
+
 
 def project_with_team(extra_team: bool = False):
     teams = [
@@ -553,6 +568,15 @@ class ProjectExamples:
         OpenApiExample(
             "Revoke a Team's Access to a Project",
             value=project_with_team(),
+            status_codes=["200"],
+            response_only=True,
+        ),
+    ]
+
+    SYMBOL_SOURCES = [
+        OpenApiExample(
+            "Get a Project's symbol sources",
+            value=detailed_project,
             status_codes=["200"],
             response_only=True,
         ),

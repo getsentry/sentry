@@ -8,6 +8,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
+from sentry.apidocs.examples.project_examples import ProjectExamples
 from sentry.apidocs.parameters import GlobalParams
 from sentry.lang.native.sources import (
     InvalidSourcesError,
@@ -38,11 +39,18 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
-        # examples=ProjectExamples.DETAILED_PROJECT,
+        examples=ProjectExamples.SYMBOL_SOURCES,
     )
     def get(self, request: Request, project: Project) -> Response:
         """
-        Return custom symbol sources configured for an individual project.
+        List custom symbol sources configured for a project.
+        ````````````````````````````````````````
+
+        :pparam string organization_slug: the slug of the organization to query.
+        :pparam string project_slug: the slug of the project to query.
+        :qparam string id: if given, only the configuration of the source with this id will be returned.
+
+        :auth: required
         """
         id = request.GET.get("id")
         custom_symbol_sources_json = project.get_option("sentry:symbol_sources") or []
@@ -58,18 +66,24 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
         return Response(redacted)
 
     @extend_schema(
-        operation_id="Retrieve a Project's symbol sources",
+        operation_id="Deletes a symbol source from a project",
         parameters=[GlobalParams.ORG_SLUG, GlobalParams.PROJECT_SLUG],
         request=None,
         responses={
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
-        # examples=ProjectExamples.DETAILED_PROJECT,
     )
     def delete(self, request: Request, project: Project) -> Response:
         """
-        Return custom symbol sources configured for an individual project.
+        Delete a custom symbol source from a project.
+        ````````````````````````````````````````
+
+        :pparam string organization_slug: the slug of the organization to query.
+        :pparam string project_slug: the slug of the project to query.
+        :qparam string id: the id of the source to delete.
+
+        :auth: required
         """
         id = request.GET.get("id")
         custom_symbol_sources_json = project.get_option("sentry:symbol_sources") or []
@@ -87,9 +101,24 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
 
         return Response(data={"error": "Missing source id"}, status=404)
 
+    @extend_schema(
+        operation_id="Adds a symbol source to a project",
+        parameters=[GlobalParams.ORG_SLUG, GlobalParams.PROJECT_SLUG],
+        request=None,
+        responses={
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
     def post(self, request: Request, project: Project) -> Response:
         """
-        Return custom symbol sources configured for an individual project.
+        Add a custom symbol source to a project.
+        ````````````````````````````````````````
+
+        :pparam string organization_slug: the slug of the organization to query.
+        :pparam string project_slug: the slug of the project to query.
+
+        :auth: required
         """
         custom_symbol_sources_json = project.get_option("sentry:symbol_sources") or []
         sources = parse_sources(custom_symbol_sources_json, False)
@@ -114,7 +143,26 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
 
         return Response(data={"id": id}, status=200)
 
+    @extend_schema(
+        operation_id="Edits a symbol source in a project",
+        parameters=[GlobalParams.ORG_SLUG, GlobalParams.PROJECT_SLUG],
+        request=None,
+        responses={
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
     def put(self, request: Request, project: Project) -> Response:
+        """
+        Edit a custom symbol source in a project.
+        ````````````````````````````````````````
+
+        :pparam string organization_slug: the slug of the organization to query.
+        :pparam string project_slug: the slug of the project to query.
+        :qparam string id: the id of the source to edit.
+
+        :auth: required
+        """
         id = request.GET.get("id")
         source = request.data
 
