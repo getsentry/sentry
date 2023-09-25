@@ -484,7 +484,7 @@ class ArtifactBundlePostAssembler(PostAssembler[ArtifactBundleArchive]):
         release: Optional[str],
         dist: Optional[str],
         project_ids: List[int],
-        is_release_bundle_migration: bool,
+        is_release_bundle_migration: bool = False,
     ):
         super().__init__(assemble_result)
         self.organization = organization
