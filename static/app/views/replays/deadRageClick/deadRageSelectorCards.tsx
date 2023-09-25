@@ -25,7 +25,7 @@ function DeadRageSelectorCards() {
 
 function DeadClickTable({location}: {location: Location<any>}) {
   const {isLoading, isError, data} = useDeadRageSelectors({
-    per_page: 3,
+    per_page: 4,
     sort: '-count_dead_clicks',
     cursor: undefined,
     prefix: 'selector_',
@@ -61,7 +61,7 @@ function DeadClickTable({location}: {location: Location<any>}) {
 
 function RageClickTable({location}: {location: Location<any>}) {
   const {isLoading, isError, data} = useDeadRageSelectors({
-    per_page: 3,
+    per_page: 4,
     sort: '-count_rage_clicks',
     cursor: undefined,
     prefix: 'selector_',
