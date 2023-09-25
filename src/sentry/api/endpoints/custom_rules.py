@@ -14,6 +14,7 @@ from sentry.api.bases import OrganizationEndpoint
 from sentry.api.event_search import parse_search_query
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import CustomDynamicSamplingRule, TooManyRules
+from sentry.models.dynamicsampling import CUSTOM_RULE_DATE_FORMAT
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.snuba.metrics.extraction import SearchQueryConverter
@@ -25,7 +26,6 @@ MAX_RULE_PERIOD = parse_stats_period(MAX_RULE_PERIOD_STRING)
 DEFAULT_PERIOD_STRING = "1h"
 # the number of samples to collect per custom rule
 NUM_SAMPLES_PER_CUSTOM_RULE = 100
-_DATE_FORMAT = "%Y-%m-%dT%H:%M:%S.%fZ"
 
 
 class CustomRulesInputSerializer(serializers.Serializer):
@@ -125,11 +125,11 @@ class CustomRulesEndpoint(OrganizationEndpoint):
             response_data = {
                 "ruleId": rule.external_rule_id,
                 "condition": json.loads(rule.condition),
-                "startDate": rule.start_date.strftime(_DATE_FORMAT),
-                "endDate": rule.end_date.strftime(_DATE_FORMAT),
+                "startDate": rule.start_date.strftime(CUSTOM_RULE_DATE_FORMAT),
+                "endDate": rule.end_date.strftime(CUSTOM_RULE_DATE_FORMAT),
                 "numSamples": rule.num_samples,
                 "sampleRate": rule.sample_rate,
-                "dateAdded": rule.date_added.strftime(_DATE_FORMAT),
+                "dateAdded": rule.date_added.strftime(CUSTOM_RULE_DATE_FORMAT),
                 "projects": [project.id for project in rule.projects.all()],
                 "orgId": rule.organization_id,
             }

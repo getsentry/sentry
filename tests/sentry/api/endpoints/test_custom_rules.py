@@ -3,11 +3,11 @@ from datetime import datetime, timedelta
 import pytest
 
 from sentry.api.endpoints.custom_rules import (
-    _DATE_FORMAT,
     DEFAULT_PERIOD_STRING,
     MAX_RULE_PERIOD_STRING,
     CustomRulesInputSerializer,
 )
+from sentry.models.dynamicsampling import CUSTOM_RULE_DATE_FORMAT
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.helpers import Feature
 from sentry.testutils.silo import region_silo_test
@@ -41,8 +41,8 @@ class CustomRulesEndpoint(APITestCase):
 
         data = resp.data
 
-        start_date = datetime.strptime(data["startDate"], _DATE_FORMAT)
-        end_date = datetime.strptime(data["endDate"], _DATE_FORMAT)
+        start_date = datetime.strptime(data["startDate"], CUSTOM_RULE_DATE_FORMAT)
+        end_date = datetime.strptime(data["endDate"], CUSTOM_RULE_DATE_FORMAT)
         assert end_date - start_date == timedelta(hours=1)
         projects = data["projects"]
         assert projects == [self.project.id]
@@ -79,8 +79,8 @@ class CustomRulesEndpoint(APITestCase):
         data = resp.data
 
         rule_id = data["ruleId"]
-        start_date = datetime.strptime(data["startDate"], _DATE_FORMAT)
-        end_date = datetime.strptime(data["endDate"], _DATE_FORMAT)
+        start_date = datetime.strptime(data["startDate"], CUSTOM_RULE_DATE_FORMAT)
+        end_date = datetime.strptime(data["endDate"], CUSTOM_RULE_DATE_FORMAT)
         assert end_date - start_date == timedelta(hours=1)
 
         request_data = {
@@ -97,8 +97,8 @@ class CustomRulesEndpoint(APITestCase):
         assert resp.status_code == 200
         data = resp.data
 
-        start_date = datetime.strptime(data["startDate"], _DATE_FORMAT)
-        end_date = datetime.strptime(data["endDate"], _DATE_FORMAT)
+        start_date = datetime.strptime(data["startDate"], CUSTOM_RULE_DATE_FORMAT)
+        end_date = datetime.strptime(data["endDate"], CUSTOM_RULE_DATE_FORMAT)
         assert end_date - start_date >= timedelta(hours=2)
 
         projects = data["projects"]
