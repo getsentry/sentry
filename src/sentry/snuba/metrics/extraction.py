@@ -118,6 +118,13 @@ _SEARCH_TO_METRIC_AGGREGATES: Dict[str, MetricOperationType] = {
     # generic percentile is not supported by metrics layer.
 }
 
+# Maps plain Discover functions to derived metric functions which are understood by the metrics layer.
+_SEARCH_TO_DERIVED_METRIC_AGGREGATES: Dict[str, MetricOperationType] = {
+    "failure_count": "on_demand_failure_count",
+    "failure_rate": "on_demand_failure_rate",
+    "apdex": "on_demand_apdex",
+}
+
 # Mapping to infer metric type from Discover function.
 _AGGREGATE_TO_METRIC_TYPE = {
     "count": "c",
@@ -128,6 +135,10 @@ _AGGREGATE_TO_METRIC_TYPE = {
     "p75": "d",
     "p95": "d",
     "p99": "d",
+    # With on demand metrics, evaluated metrics are actually stored, thus we have to choose a concrete metric type.
+    "failure_count": "c",
+    "failure_rate": "c",
+    "apdex": "c",
 }
 
 # Query fields that on their own do not require on-demand metric extraction but if present in an on-demand query
@@ -611,36 +622,12 @@ def apdex_tag_spec(project: Project, argument: Optional[str]) -> List[TagSpec]:
     ]
 
 
-DERIVED_METRICS = {
-    "apdex": {
-        "tag_spec_func": apdex_tag_spec,
-        "hash_method": "op_plus_arg",
-    },
-    "failure_count": {
-        "tag_spec_func": failure_tag_spec,
-        "hash_method": "op",
-    },
-    "failure_rate": {
-        "tag_spec_func": failure_tag_spec,
-        "hash_method": "op",
-    },
-}
-
 # This is used to map a metric to a function which generates a specification
-_DERIVED_METRICS: Dict[MetricOperationType, TagsSpecsGenerator] = {}
-for metric in DERIVED_METRICS.keys():
-    _DERIVED_METRICS[cast(MetricOperationType, f"on_demand_{metric}")] = cast(
-        TagsSpecsGenerator, DERIVED_METRICS[metric]["tag_spec_func"]
-    )
-
-# Maps plain Discover functions to derived metric functions which are understood by the metrics layer.
-_SEARCH_TO_DERIVED_METRIC_AGGREGATES: Dict[str, MetricOperationType] = {}
-for metric in DERIVED_METRICS.keys():
-    _SEARCH_TO_DERIVED_METRIC_AGGREGATES[metric] = cast(MetricOperationType, f"on_demand_{metric}")
-
-# With on demand metrics, evaluated metrics are actually stored, thus we have to choose a concrete metric type.
-for metric in DERIVED_METRICS:
-    _AGGREGATE_TO_METRIC_TYPE[metric] = "c"
+_DERIVED_METRICS: Dict[MetricOperationType, TagsSpecsGenerator] = {
+    "on_demand_failure_count": failure_tag_spec,
+    "on_demand_failure_rate": failure_tag_spec,
+    "on_demand_apdex": apdex_tag_spec,
+}
 
 
 @dataclass(frozen=True)
@@ -715,9 +702,10 @@ class OnDemandMetricSpec:
         # with condition `f` and this will create a problem, since we might already have data for the `count()` and when
         # `apdex()` is created in the UI, we will use that metric but that metric didn't extract in the past the tags
         # that are used for apdex calculation, effectively causing problems with the data.
-        op_info: dict = DERIVED_METRICS.get(self.op, {})
-        if op_info:
-            return self.op if op_info["hash_method"] == "op" else f"{self.op}:{self._argument}"
+        if self.op in ["on_demand_failure_count", "on_demand_failure_rate"]:
+            return self.op
+        elif self.op == "on_demand_apdex":
+            return f"{self.op}:{self._argument}"
 
         return self._argument
 
