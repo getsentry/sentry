@@ -50,6 +50,10 @@ logger = logging.getLogger(__name__)
 
 
 class ProjectRuleDetailsPutSerializer(serializers.Serializer):
+    name = serializers.CharField(max_length=64, required=False, help_text="The name for the rule.")
+    environment = serializers.CharField(
+        required=False, allow_null=True, help_text="The name of the environment to filter by."
+    )
     actionMatch = serializers.ChoiceField(
         choices=(
             ("all", "All conditions must evaluate to true."),
@@ -59,18 +63,10 @@ class ProjectRuleDetailsPutSerializer(serializers.Serializer):
         required=False,
         help_text="A string determining which of the conditions need to be true before any filters are evaluated.",
     )
-    actions = serializers.ListField(
-        child=RuleNodeField(type="action/event"),
-        required=False,
-        help_text="A list of actions that take place when all required conditions and filters for the rule are met. See [Create an Issue Alert Rule](/api/events/create-an-issue-alert-rule-for-a-project) for valid actions.",
-    )
     conditions = serializers.ListField(
         child=RuleNodeField(type="condition/event"),
         required=False,
         help_text="A list of triggers that determine when the rule fires. See [Create an Issue Alert Rule](/api/events/create-an-issue-alert-rule-for-a-project) for valid conditions.",
-    )
-    environment = serializers.CharField(
-        required=False, allow_null=True, help_text="The name of the environment to filter by."
     )
     filterMatch = serializers.ChoiceField(
         choices=(
@@ -86,13 +82,17 @@ class ProjectRuleDetailsPutSerializer(serializers.Serializer):
         required=False,
         help_text="A list of filters that determine if a rule fires after the necessary conditions have been met. See [Create an Issue Alert Rule](/api/events/create-an-issue-alert-rule-for-a-project) for valid filters.",
     )
+    actions = serializers.ListField(
+        child=RuleNodeField(type="action/event"),
+        required=False,
+        help_text="A list of actions that take place when all required conditions and filters for the rule are met. See [Create an Issue Alert Rule](/api/events/create-an-issue-alert-rule-for-a-project) for valid actions.",
+    )
     frequency = serializers.IntegerField(
         min_value=5,
         max_value=60 * 24 * 30,
         required=False,
-        help_text="How often to perform the actions once for an issue, in minutes.",
+        help_text="How often to perform the actions once for an issue, in minutes. The minimum valid value is `5` and the maximum valid value is `43200`.",
     )
-    name = serializers.CharField(max_length=64, required=False, help_text="The name for the rule.")
     owner = ActorField(
         required=False, allow_null=True, help_text="The ID of the team or user that owns the rule."
     )
@@ -114,7 +114,6 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
             GlobalParams.PROJECT_SLUG,
             IssueAlertParams.ISSUE_RULE_ID,
         ],
-        request=None,
         responses={
             200: RuleSerializer,
             401: RESPONSE_UNAUTHORIZED,
@@ -346,7 +345,6 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
             GlobalParams.PROJECT_SLUG,
             IssueAlertParams.ISSUE_RULE_ID,
         ],
-        request=None,
         responses={
             202: RESPONSE_ACCEPTED,
             401: RESPONSE_UNAUTHORIZED,
