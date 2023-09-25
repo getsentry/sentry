@@ -44,9 +44,7 @@ export default function FeedbackItem({feedbackItem}: Props) {
       <OverflowPanelItem>
         <Section title={t('Description')}>
           <Blockquote>
-            <p>
-              <pre>{feedbackItem.message}</pre>
-            </p>
+            <pre>{feedbackItem.message}</pre>
           </Blockquote>
         </Section>
 
@@ -115,11 +113,8 @@ const Blockquote = styled('blockquote')`
     top: 0;
   }
 
-  & > p,
-  & > p > pre {
+  & > pre {
     margin: 0;
-  }
-  & > p > pre {
     background: none;
     font-family: inherit;
     font-size: ${p => p.theme.fontSizeMedium};
