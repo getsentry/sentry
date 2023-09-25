@@ -52,9 +52,7 @@ class CustomRulesInputSerializer(serializers.Serializer):
         invalid_projects = []
 
         requested_projects = data["projects"]
-        available_projects = {
-            p.id for p in Project.objects.get_many_from_cache(ids=data["projects"])
-        }
+        available_projects = {p.id for p in Project.objects.get_many_from_cache(data["projects"])}
         for project_id in requested_projects:
             if project_id not in available_projects:
                 invalid_projects.append(f"invalid project id: {project_id}")
