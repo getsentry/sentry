@@ -5,6 +5,8 @@ from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization_events import OrganizationEventsEndpointBase
+from sentry.api.endpoints.organization_events_spans_performance import EventID, get_span_description
+from sentry.api.helpers.span_analysis import span_analysis
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.types import QueryBuilderConfig
 from sentry.search.utils import parse_datetime_string
@@ -103,11 +105,20 @@ class OrganizationEventsRootCauseAnalysisEndpoint(OrganizationEventsEndpointBase
         if transaction_count_query["data"][0]["count"] == 0:
             return Response(status=400, data="Transaction not found")
 
-        results = query_spans(
+        span_data = query_spans(
             transaction=transaction_name,
             regression_breakpoint=regression_breakpoint,
             params=params,
             limit=int(request.GET.get("per_page", DEFAULT_LIMIT)),
         )
 
-        return Response(results, status=200)
+        span_analysis_results = span_analysis(span_data)
+
+        for result in span_analysis_results:
+            result["span_description"] = get_span_description(
+                EventID(project_id, result["sample_event_id"]),
+                result["span_op"],
+                result["span_group"],
+            )
+
+        return Response(span_analysis_results, status=200)

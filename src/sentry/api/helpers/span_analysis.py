@@ -36,8 +36,8 @@ def span_analysis(data):
         row["span_key"] = span_keys[i]
 
     # get constant, removed, and new spans
-    spans_before = {row["span_key"] for row in data if row["period"] == 0}
-    spans_after = {row["span_key"] for row in data if row["period"] == 1}
+    spans_before = {row["span_key"] for row in data if row["period"] == "before"}
+    spans_after = {row["span_key"] for row in data if row["period"] == "after"}
     constant_spans = spans_before.intersection(spans_after)
 
     # TODO: Add logic to surface removed/new spans
@@ -49,12 +49,12 @@ def span_analysis(data):
     span_data_p0 = {
         row["span_key"]: row
         for row in data
-        if row["period"] == 0 and row["span_key"] in constant_spans
+        if row["period"] == "before" and row["span_key"] in constant_spans
     }
     span_data_p1 = {
         row["span_key"]: row
         for row in data
-        if row["period"] == 1 and row["span_key"] in constant_spans
+        if row["period"] == "after" and row["span_key"] in constant_spans
     }
 
     # merge the dataframes to do span analysis
@@ -78,20 +78,22 @@ def span_analysis(data):
             else 0
         )
 
-        problem_spans.append(
-            {
-                "span_op": key.split(",")[0],
-                "span_group": key.split(",")[1],
-                "sample_event_id": row1["sample_event_id"],
-                "score_delta": score_delta,
-                "freq_before": row1["relative_freq"],
-                "freq_after": row2["relative_freq"],
-                "freq_delta": freq_delta,
-                "duration_delta": duration_delta,
-                "duration_before": row1["avg_duration"],
-                "duration_after": row2["avg_duration"],
-            }
-        )
+        # We're only interested in span changes if they positively impacted duration
+        if score_delta > 0:
+            problem_spans.append(
+                {
+                    "span_op": key.split(",")[0],
+                    "span_group": key.split(",")[1],
+                    "sample_event_id": row1["sample_event_id"],
+                    "score_delta": score_delta,
+                    "freq_before": row1["relative_freq"],
+                    "freq_after": row2["relative_freq"],
+                    "freq_delta": freq_delta,
+                    "duration_delta": duration_delta,
+                    "duration_before": row1["avg_duration"],
+                    "duration_after": row2["avg_duration"],
+                }
+            )
 
     problem_spans.sort(key=lambda x: x["score_delta"], reverse=True)
 
