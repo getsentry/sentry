@@ -26,7 +26,7 @@ import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/char
 import MiniChartPanel from 'sentry/views/starfish/components/miniChartPanel';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
-import {SpanGroupBreakdownContainer} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
+import {SpanGroupBar} from 'sentry/views/starfish/views/webServiceView/spanGroupBar';
 import {BaseStarfishViewProps} from 'sentry/views/starfish/views/webServiceView/starfishLanding';
 
 import EndpointList from './endpointList';
@@ -169,7 +169,7 @@ export function StarfishView(props: BaseStarfishViewProps) {
 
   return (
     <div data-test-id="starfish-view">
-      <SpanGroupBreakdownContainer />
+      <SpanGroupBar />
       <StyledRow minSize={300}>
         <ChartsContainer>
           <ChartsContainerItem2>{renderCharts()}</ChartsContainerItem2>
