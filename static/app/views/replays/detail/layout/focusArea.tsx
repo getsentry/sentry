@@ -1,8 +1,10 @@
 import styled from '@emotion/styled';
 
+import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {space} from 'sentry/styles/space';
 import useActiveReplayTab, {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import A11y from 'sentry/views/replays/detail/accessibility/index';
+import Breadcrumbs from 'sentry/views/replays/detail/breadcrumbs';
 import Console from 'sentry/views/replays/detail/console';
 import DomMutations from 'sentry/views/replays/detail/domMutations';
 import DomNodesChart from 'sentry/views/replays/detail/domNodesChart';
@@ -11,12 +13,14 @@ import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import MemoryChart from 'sentry/views/replays/detail/memoryChart';
 import NetworkList from 'sentry/views/replays/detail/network';
 import PerfTable from 'sentry/views/replays/detail/perfTable/index';
+import TagPanel from 'sentry/views/replays/detail/tagPanel';
 import Trace from 'sentry/views/replays/detail/trace/index';
 
 type Props = {};
 
 function FocusArea({}: Props) {
   const {getActiveTab} = useActiveReplayTab();
+  const {replay} = useReplayContext();
 
   switch (getActiveTab()) {
     case TabKey.A11Y:
@@ -39,8 +43,17 @@ function FocusArea({}: Props) {
         </MemoryTabWrapper>
       );
     case TabKey.CONSOLE:
-    default: {
       return <Console />;
+    case TabKey.TAGS:
+      return <TagPanel />;
+    case TabKey.BREADCRUMB:
+    default: {
+      return (
+        <Breadcrumbs
+          frames={replay?.getChapterFrames()}
+          startTimestampMs={replay?.getReplay()?.started_at?.getTime() || 0}
+        />
+      );
     }
   }
 }

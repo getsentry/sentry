@@ -5,15 +5,21 @@ import {
   List as ReactVirtualizedList,
   ListRowProps,
 } from 'react-virtualized';
+import {useQuery} from '@tanstack/react-query';
 
 import Placeholder from 'sentry/components/placeholder';
+import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {t} from 'sentry/locale';
 import getFrameDetails from 'sentry/utils/replays/getFrameDetails';
 import useActiveReplayTab from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
+import type ReplayReader from 'sentry/utils/replays/replayReader';
 import type {ReplayFrame} from 'sentry/utils/replays/types';
+import BreadcrumbFilters from 'sentry/views/replays/detail/breadcrumbs/breadcrumbFilters';
 import BreadcrumbRow from 'sentry/views/replays/detail/breadcrumbs/breadcrumbRow';
+import useBreadcrumbFilters from 'sentry/views/replays/detail/breadcrumbs/useBreadcrumbFilters';
 import useScrollToCurrentItem from 'sentry/views/replays/detail/breadcrumbs/useScrollToCurrentItem';
+import FilterLoadingIndicator from 'sentry/views/replays/detail/filterLoadingIndicator';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import NoRowRenderer from 'sentry/views/replays/detail/noRowRenderer';
 import TabItemContainer from 'sentry/views/replays/detail/tabItemContainer';
@@ -47,6 +53,17 @@ function Breadcrumbs({frames, startTimestampMs}: Props) {
   // Note that this is intentionally not in state because we do not want to
   // re-render when items are expanded/collapsed, though it may work in state as well.
   const expandPathsRef = useRef(new Map<number, Set<string>>());
+
+  function useExtractedDomNodes({replay}: {replay: null | ReplayReader}) {
+    return useQuery(['getDomNodes', replay], () => replay?.getDomNodes() ?? [], {
+      enabled: Boolean(replay),
+      initialData: [],
+      cacheTime: Infinity,
+    });
+  }
+  const {replay} = useReplayContext();
+  const {data: actions, isFetching} = useExtractedDomNodes({replay});
+  const filterProps = useBreadcrumbFilters({actions: actions || []});
 
   const deps = useMemo(() => [frames], [frames]);
   const {cache, updateList} = useVirtualizedList({
@@ -94,6 +111,9 @@ function Breadcrumbs({frames, startTimestampMs}: Props) {
 
   return (
     <FluidHeight>
+      <FilterLoadingIndicator isLoading={isFetching}>
+        <BreadcrumbFilters actions={actions} {...filterProps} />
+      </FilterLoadingIndicator>
       <TabItemContainer>
         {frames ? (
           <AutoSizer onResize={updateList}>

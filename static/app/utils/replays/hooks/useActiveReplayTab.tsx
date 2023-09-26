@@ -16,6 +16,8 @@ export enum TabKey {
   NETWORK = 'network',
   PERF = 'perf',
   TRACE = 'trace',
+  BREADCRUMB = 'breadscrumb',
+  TAGS = 'tags',
 }
 
 function isReplayTab(tab: string, organization: Organization): tab is TabKey {
