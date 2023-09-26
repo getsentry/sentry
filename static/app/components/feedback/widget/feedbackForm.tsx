@@ -23,12 +23,11 @@ export function FeedbackForm({onClose, onSubmit}: FeedbackFormProps) {
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.target as HTMLFormElement);
-    const comment = retrieveStringValue(formData, 'comment');
 
     onSubmit({
       name: retrieveStringValue(formData, 'name'),
       email: retrieveStringValue(formData, 'email'),
-      comment,
+      comment: retrieveStringValue(formData, 'comment'),
     });
   };
 

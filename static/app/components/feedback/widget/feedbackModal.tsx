@@ -60,9 +60,7 @@ function stopPropagation(e: React.MouseEvent) {
  */
 export function FeedbackModal({title, children}: FeedbackModalProps) {
   const [open, setOpen] = useState(false);
-  const [errorMessage, setError] = useState(
-    'There was an error submitting feedback, please wait and try again.'
-  );
+  const [errorMessage, setError] = useState('');
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const escapePressed = useKeyPress('Escape');
