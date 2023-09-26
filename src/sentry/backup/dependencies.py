@@ -223,11 +223,16 @@ def dependencies() -> dict[NormalizedModelName, ModelRelations]:
     # Process the list of models, and get the list of dependencies
     model_dependencies_list: Dict[NormalizedModelName, ModelRelations] = {}
     app_configs = apps.get_app_configs()
+    models_from_names = {
+        get_model_name(model): model
+        for app_config in app_configs
+        for model in app_config.get_models()
+    }
+
     for app_config in app_configs:
         if app_config.label in EXCLUDED_APPS:
             continue
 
-        models_from_names = {get_model_name(model): model for model in app_config.get_models()}
         model_iterator = app_config.get_models()
 
         for model in model_iterator:

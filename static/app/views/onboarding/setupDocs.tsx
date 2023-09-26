@@ -5,7 +5,7 @@ import {motion} from 'framer-motion';
 
 import {SdkDocumentation} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
-import platforms from 'sentry/data/platforms';
+import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -14,6 +14,7 @@ import {decodeList} from 'sentry/utils/queryString';
 import useOrganization from 'sentry/utils/useOrganization';
 import SetupIntroduction from 'sentry/views/onboarding/components/setupIntroduction';
 import {SetupDocsLoader} from 'sentry/views/onboarding/setupDocsLoader';
+import {OtherPlatformsInfo} from 'sentry/views/projectInstall/otherPlatformsInfo';
 
 import FirstEventFooter from './components/firstEventFooter';
 import IntegrationSetup from './integrationSetup';
@@ -30,7 +31,8 @@ function SetupDocs({location, recentCreatedProject: project}: StepProps) {
   );
 
   const currentPlatformKey = project?.platform ?? 'other';
-  const currentPlatform = platforms.find(p => p.id === currentPlatformKey);
+  const currentPlatform =
+    platforms.find(p => p.id === currentPlatformKey) ?? otherPlatform;
 
   const [showLoaderOnboarding, setShowLoaderOnboarding] = useState(
     currentPlatformKey === 'javascript'
@@ -80,7 +82,12 @@ function SetupDocs({location, recentCreatedProject: project}: StepProps) {
                 stepHeaderText={t('Configure %s SDK', platformName)}
                 platform={currentPlatformKey}
               />
-              {showLoaderOnboarding ? (
+              {currentPlatformKey === 'other' ? (
+                <OtherPlatformsInfo
+                  projectSlug={project.slug}
+                  platform={currentPlatform.name}
+                />
+              ) : showLoaderOnboarding ? (
                 <SetupDocsLoader
                   organization={organization}
                   project={project}

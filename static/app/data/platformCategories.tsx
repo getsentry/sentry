@@ -81,6 +81,7 @@ export const mobile = [
 ] as const;
 
 export const backend = [
+  'bun',
   'dotnet',
   'dotnet-aspnetcore',
   'dotnet-aspnet',
@@ -194,6 +195,7 @@ export const tracing = [
 ] as const;
 
 export const performance = [
+  'bun',
   'javascript',
   'javascript-ember',
   'javascript-react',
@@ -304,6 +306,7 @@ export const releaseHealth: PlatformKey[] = [
   'flutter',
   'dart-flutter',
   // backend
+  'bun',
   'native',
   'node',
   'node-express',

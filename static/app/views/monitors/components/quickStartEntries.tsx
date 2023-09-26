@@ -266,6 +266,57 @@ Sentry.captureCheckIn({
   );
 }
 
+export function GoCronQuickStart(props: QuickStartProps) {
+  const {slug} = withDefaultProps(props);
+
+  const checkInSuccessCode = `// 🟡 Notify Sentry your job is running:
+checkinId := sentry.CaptureCheckIn(
+  &sentry.CheckIn{
+    MonitorSlug: "${slug}",
+    Status:      sentry.CheckInStatusInProgress,
+  },
+  nil,
+)
+
+// Execute your scheduled task here...
+
+// 🟢 Notify Sentry your job has completed successfully:
+sentry.CaptureCheckIn(
+  &sentry.CheckIn{
+    ID:          *checkinId,
+    MonitorSlug: "${slug}",
+    Status:      sentry.CheckInStatusOK,
+  },
+  nil,
+)`;
+
+  const checkInFailCode = `// 🔴 Notify Sentry your job has failed:
+sentry.CaptureCheckIn(
+  &sentry.CheckIn{
+    ID:          *checkinId,
+    MonitorSlug: "${slug}",
+    Status:      sentry.CheckInStatusError,
+  },
+  nil,
+)`;
+
+  return (
+    <Fragment>
+      <div>
+        {tct(
+          '[installLink:Install and configure] the Sentry Go SDK (min v0.23.0), then instrument your monitor:',
+          {
+            installLink: <ExternalLink href="https://docs.sentry.io/platforms/go/" />,
+          }
+        )}
+      </div>
+      <CodeSnippet language="go">{checkInSuccessCode}</CodeSnippet>
+      <div>{t('To notify Sentry if your job execution fails')}</div>
+      <CodeSnippet language="go">{checkInFailCode}</CodeSnippet>
+    </Fragment>
+  );
+}
+
 export function CeleryBeatAutoDiscovery(props: QuickStartProps) {
   const {dsnKey} = props;
 
@@ -439,6 +490,59 @@ Sentry.captureCheckIn({
         )}
       </div>
       <CodeSnippet language="javascript">{upsertCode}</CodeSnippet>
+    </Fragment>
+  );
+}
+
+export function GoUpsertPlatformGuide() {
+  const scheduleCode = `// Create a crontab schedule object (every 10 minutes)
+monitorSchedule := sentry.CrontabSchedule("*/10 * * * *")
+
+// Or create an interval schedule object (every 10 minutes)
+monitorSchedule := sentry.IntervalSchedule(10, sentry.MonitorScheduleUnitMinute)
+  `;
+
+  const upsertCode = `// Create a monitor config object
+monitorConfig := &sentry.MonitorConfig{
+  Schedule:      monitorSchedule,
+  MaxRuntime:    2,
+  CheckInMargin: 1,
+}
+
+// 🟡 Notify Sentry your job is running:
+checkinId := sentry.CaptureCheckIn(
+  &sentry.CheckIn{
+    MonitorSlug: "<monitor-slug>",
+    Status:      sentry.CheckInStatusInProgress,
+  },
+  monitorConfig,
+)
+
+// Execute your scheduled task here...
+
+// 🟢 Notify Sentry your job has completed successfully:
+sentry.CaptureCheckIn(
+  &sentry.CheckIn{
+    MonitorSlug: "<monitor-slug>",
+    Status:      sentry.CheckInStatusOK,
+  },
+  monitorConfig,
+)`;
+
+  return (
+    <Fragment>
+      <div>
+        {tct(
+          'You can use the [additionalDocs: Go SDK] to create and update your Monitors programmatically with code rather than creating them manually.',
+          {
+            additionalDocs: (
+              <ExternalLink href="https://docs.sentry.io/platforms/go/crons/#upserting-cron-monitors" />
+            ),
+          }
+        )}
+      </div>
+      <CodeSnippet language="go">{scheduleCode}</CodeSnippet>
+      <CodeSnippet language="go">{upsertCode}</CodeSnippet>
     </Fragment>
   );
 }
