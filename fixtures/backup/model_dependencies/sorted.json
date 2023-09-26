@@ -58,6 +58,7 @@
   "nodestore.node",
   "replays.replayrecordingsegment",
   "social_auth.usersocialauth",
+  "hybridcloud.organizationslugreservationreplica",
   "sentry.discoversavedqueryproject",
   "sentry.processingissue",
   "sentry.orgauthtoken",
