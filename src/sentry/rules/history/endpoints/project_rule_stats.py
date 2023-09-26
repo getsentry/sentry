@@ -7,6 +7,7 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.rule import RuleEndpoint
 from sentry.api.serializers import Serializer, serialize
@@ -37,6 +38,10 @@ class TimeSeriesValueSerializer(Serializer):
 @extend_schema(tags=["issue_alerts"])
 @region_silo_endpoint
 class ProjectRuleStatsIndexEndpoint(RuleEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     @extend_schema(
         operation_id="Retrieve firing starts for an issue alert rule for a given time range. Results are returned in hourly buckets.",
         parameters=[GlobalParams.ORG_SLUG, GlobalParams.PROJECT_SLUG, IssueAlertParams],

@@ -58,7 +58,7 @@ export default function SourceMapsWizard({analyticsParams}: Props) {
   }
 
   return (
-    <Panel dashedBorder data-test-id="sourcemaps-wizard">
+    <StyledPanel dashedBorder data-test-id="sourcemaps-wizard">
       <CloseButton
         onClick={() => {
           setIsHidden(true);
@@ -106,7 +106,7 @@ export default function SourceMapsWizard({analyticsParams}: Props) {
           {wizardCommand}
         </StyledCodeSnippet>
       </EmptyMessage>
-    </Panel>
+    </StyledPanel>
   );
 }
 
@@ -118,6 +118,10 @@ const StyledCodeSnippet = styled(CodeSnippet)<{isDarkMode: boolean}>`
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     width: 100%;
   }
+`;
+
+const StyledPanel = styled(Panel)`
+  margin: 0 30px;
 `;
 
 const CloseButton = styled(Button)`

@@ -1,5 +1,5 @@
 import EmptyMessage from 'sentry/components/emptyMessage';
-import type {StacktraceFilenameQuery} from 'sentry/components/events/interfaces/crashContent/exception/useSourceMapDebug';
+import {FrameSourceMapDebuggerData} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
 import Panel from 'sentry/components/panels/panel';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -20,8 +20,8 @@ type Props = {
   hasHierarchicalGrouping: boolean;
   platform: PlatformType;
   stacktrace: ExceptionValue['stacktrace'];
-  debugFrames?: StacktraceFilenameQuery[];
   expandFirstFrame?: boolean;
+  frameSourceMapDebuggerData?: FrameSourceMapDebuggerData[];
   groupingCurrentLevel?: Group['metadata']['current_level'];
   meta?: Record<any, any>;
   newestFirst?: boolean;
@@ -33,7 +33,6 @@ function StackTrace({
   stackView,
   stacktrace,
   chainedException,
-  debugFrames,
   platform,
   newestFirst,
   groupingCurrentLevel,
@@ -43,6 +42,7 @@ function StackTrace({
   event,
   meta,
   threadId,
+  frameSourceMapDebuggerData,
 }: Props) {
   if (!defined(stacktrace)) {
     return null;
@@ -110,7 +110,6 @@ function StackTrace({
         newestFirst={newestFirst}
         event={event}
         meta={meta}
-        debugFrames={debugFrames}
       />
     );
   }
@@ -124,8 +123,8 @@ function StackTrace({
       newestFirst={newestFirst}
       event={event}
       meta={meta}
-      debugFrames={debugFrames}
       threadId={threadId}
+      frameSourceMapDebuggerData={frameSourceMapDebuggerData}
     />
   );
 }

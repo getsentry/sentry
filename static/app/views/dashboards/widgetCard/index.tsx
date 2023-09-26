@@ -1,4 +1,4 @@
-import React, {Component, Fragment} from 'react';
+import {Component, Fragment} from 'react';
 import LazyLoad from 'react-lazyload';
 import {WithRouterProps} from 'react-router';
 import {useSortable} from '@dnd-kit/sortable';
@@ -274,8 +274,8 @@ class WidgetCard extends Component<Props, State> {
         ERROR_FIELDS.some(
           errorField =>
             columns.includes(errorField) ||
-            aggregates.some(aggregate =>
-              parseFunction(aggregate)?.arguments.includes(errorField)
+            aggregates.some(
+              aggregate => parseFunction(aggregate)?.arguments.includes(errorField)
             ) ||
             parseSearch(conditions)?.some(
               filter => (filter as SearchFilterKey).key?.value === errorField
@@ -288,7 +288,7 @@ class WidgetCard extends Component<Props, State> {
         customComponent={<ErrorCard>{t('Error loading widget data')}</ErrorCard>}
       >
         {conditionalWrapWithDashboardsMEPProvider(
-          <React.Fragment>
+          <Fragment>
             <VisuallyCompleteWithData
               id="DashboardList-FirstWidgetCard"
               hasData={
@@ -382,45 +382,43 @@ class WidgetCard extends Component<Props, State> {
                 {this.renderToolbar()}
               </WidgetCardPanel>
             </VisuallyCompleteWithData>
-            {!organization.features.includes('performance-mep-bannerless-ui') &&
-              (organization.features.includes('dashboards-mep') ||
-                organization.features.includes('mep-rollout-flag')) && (
-                <MEPConsumer>
-                  {metricSettingContext => {
-                    return (
-                      <DashboardsMEPConsumer>
-                        {({isMetricsData}) => {
-                          if (
-                            showStoredAlert &&
-                            isMetricsData === false &&
-                            widget.widgetType === WidgetType.DISCOVER &&
-                            metricSettingContext &&
-                            metricSettingContext.metricSettingState !==
-                              MEPState.TRANSACTIONS_ONLY
-                          ) {
-                            if (!widgetContainsErrorFields) {
-                              return (
-                                <StoredDataAlert showIcon>
-                                  {tct(
-                                    "Your selection is only applicable to [indexedData: indexed event data]. We've automatically adjusted your results.",
-                                    {
-                                      indexedData: (
-                                        <ExternalLink href="https://docs.sentry.io/product/dashboards/widget-builder/#errors--transactions" />
-                                      ),
-                                    }
-                                  )}
-                                </StoredDataAlert>
-                              );
-                            }
+            {!organization.features.includes('performance-mep-bannerless-ui') && (
+              <MEPConsumer>
+                {metricSettingContext => {
+                  return (
+                    <DashboardsMEPConsumer>
+                      {({isMetricsData}) => {
+                        if (
+                          showStoredAlert &&
+                          isMetricsData === false &&
+                          widget.widgetType === WidgetType.DISCOVER &&
+                          metricSettingContext &&
+                          metricSettingContext.metricSettingState !==
+                            MEPState.TRANSACTIONS_ONLY
+                        ) {
+                          if (!widgetContainsErrorFields) {
+                            return (
+                              <StoredDataAlert showIcon>
+                                {tct(
+                                  "Your selection is only applicable to [indexedData: indexed event data]. We've automatically adjusted your results.",
+                                  {
+                                    indexedData: (
+                                      <ExternalLink href="https://docs.sentry.io/product/dashboards/widget-builder/#errors--transactions" />
+                                    ),
+                                  }
+                                )}
+                              </StoredDataAlert>
+                            );
                           }
-                          return null;
-                        }}
-                      </DashboardsMEPConsumer>
-                    );
-                  }}
-                </MEPConsumer>
-              )}
-          </React.Fragment>
+                        }
+                        return null;
+                      }}
+                    </DashboardsMEPConsumer>
+                  );
+                }}
+              </MEPConsumer>
+            )}
+          </Fragment>
         )}
       </ErrorBoundary>
     );

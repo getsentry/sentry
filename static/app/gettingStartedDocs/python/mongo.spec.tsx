@@ -6,7 +6,7 @@ import {GettingStartedWithMongo, steps} from './mongo';
 
 describe('GettingStartedWithMongo', function () {
   it('renders doc correctly', function () {
-    const {container} = render(<GettingStartedWithMongo dsn="test-dsn" />);
+    render(<GettingStartedWithMongo dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps()) {
@@ -14,7 +14,5 @@ describe('GettingStartedWithMongo', function () {
         screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
       ).toBeInTheDocument();
     }
-
-    expect(container).toSnapshot();
   });
 });

@@ -5,7 +5,9 @@ ahead of you.
 To resolve this, rebase against latest master and regenerate your migration. This file
 will then be regenerated, and you should be able to merge without conflicts.
 
+feedback: 0002_feedback_add_org_id_and_rename_event_id
 nodestore: 0002_nodestore_no_dictfield
 replays: 0003_add_size_to_recording_segment
-sentry: 0536_backfill_tombstones
+sentry: 0568_monitors_fix_next_checkin_latest
 social_auth: 0002_default_auto_field
+hybridcloud: 0001_add_api_key_replica

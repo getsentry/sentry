@@ -2,6 +2,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import eventstore
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEventsEndpointBase
 from sentry.api.serializers import serialize
@@ -12,6 +13,10 @@ from sentry.models.project import Project
 
 @region_silo_endpoint
 class OrganizationEventDetailsEndpoint(OrganizationEventsEndpointBase):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, organization, project_slug, event_id) -> Response:
         """event_id is validated by a regex in the URL"""
         if not self.has_feature(organization, request):

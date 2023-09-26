@@ -67,7 +67,7 @@ function trackChartSettingChange(
   });
 }
 
-const _WidgetContainer = (props: Props) => {
+function _WidgetContainer(props: Props) {
   const {
     organization,
     index,
@@ -131,18 +131,19 @@ const _WidgetContainer = (props: Props) => {
     ...chartDefinition,
     chartSetting,
     chartDefinition,
-    InteractiveTitle: showNewWidgetDesign
-      ? containerProps => (
-          <WidgetInteractiveTitle
-            {...containerProps}
-            eventView={widgetEventView}
-            allowedCharts={allowedCharts}
-            chartSetting={chartSetting}
-            setChartSetting={setChartSetting}
-            rowChartSettings={rowChartSettings}
-          />
-        )
-      : null,
+    InteractiveTitle:
+      showNewWidgetDesign && allowedCharts.length > 2
+        ? containerProps => (
+            <WidgetInteractiveTitle
+              {...containerProps}
+              eventView={widgetEventView}
+              allowedCharts={allowedCharts}
+              chartSetting={chartSetting}
+              setChartSetting={setChartSetting}
+              rowChartSettings={rowChartSettings}
+            />
+          )
+        : null,
     ContainerActions: !showNewWidgetDesign
       ? containerProps => (
           <WidgetContainerActions
@@ -201,7 +202,7 @@ const _WidgetContainer = (props: Props) => {
     default:
       throw new Error(`Widget type "${widgetProps.dataType}" has no implementation.`);
   }
-};
+}
 
 export function WidgetInteractiveTitle({
   chartSetting,
@@ -359,7 +360,7 @@ const makeEventViewForWidget = (
   widgetEventView.yAxis = chartDefinition.fields[0]; // All current widgets only have one field
   widgetEventView.display = DisplayModes.PREVIOUS;
   widgetEventView.fields = ['transaction', 'project', ...chartDefinition.fields].map(
-    fieldName => ({field: fieldName} as Field)
+    fieldName => ({field: fieldName}) as Field
   );
 
   return widgetEventView;

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from typing import Optional
 
 from sentry.integrations.opsgenie.actions import OpsgenieNotifyTeamForm
 from sentry.integrations.opsgenie.client import OpsgenieClient
@@ -30,7 +31,7 @@ class OpsgenieNotifyTeamAction(IntegrationEventAction):
             "team": {"type": "choice", "choices": self.get_teams()},
         }
 
-    def after(self, event, state):
+    def after(self, event, state, notification_uuid: Optional[str] = None):
         integration = self.get_integration()
         if not integration:
             logger.error("Integration removed, but the rule still refers to it")
@@ -61,7 +62,7 @@ class OpsgenieNotifyTeamAction(IntegrationEventAction):
             )
             try:
                 rules = [f.rule for f in futures]
-                resp = client.send_notification(event, rules)
+                resp = client.send_notification(event, rules, notification_uuid)
             except ApiError as e:
                 logger.info(
                     "rule.fail.opsgenie_notification",
@@ -85,6 +86,8 @@ class OpsgenieNotifyTeamAction(IntegrationEventAction):
                     "team_id": team["id"],
                 },
             )
+            rule = rules[0] if rules else None
+            self.record_notification_sent(event, team["id"], rule, notification_uuid)
 
         key = f"opsgenie:{integration.id}:{team['id']}"
         yield self.future(send_notification, key=key)

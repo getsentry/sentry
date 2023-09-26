@@ -2,6 +2,7 @@ import os
 from typing import MutableMapping
 
 import pytest
+import responses
 from django.db import connections
 
 from sentry.silo import SiloMode
@@ -96,36 +97,6 @@ def _escape(s):
     return s.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
 
 
-_MODEL_MANIFEST_FILE_PATH = "./model-manifest.json"  # os.getenv("SENTRY_MODEL_MANIFEST_FILE_PATH")
-_model_manifest = None
-
-
-@pytest.fixture(scope="session", autouse=True)
-def create_model_manifest_file():
-    """Audit which models are touched by each test case and write it to file."""
-
-    # We have to construct the ModelManifest lazily, because importing
-    # sentry.testutils.modelmanifest too early causes a dependency cycle.
-    from sentry.testutils.modelmanifest import ModelManifest
-
-    if _MODEL_MANIFEST_FILE_PATH:
-        global _model_manifest
-        _model_manifest = ModelManifest.open(_MODEL_MANIFEST_FILE_PATH)
-        with _model_manifest.write():
-            yield
-    else:
-        yield
-
-
-@pytest.fixture(scope="class", autouse=True)
-def register_class_in_model_manifest(request: pytest.FixtureRequest):
-    if _model_manifest:
-        with _model_manifest.register(request.node.nodeid):
-            yield
-    else:
-        yield
-
-
 @pytest.fixture(autouse=True)
 def validate_silo_mode():
     # NOTE!  Hybrid cloud uses many mechanisms to simulate multiple different configurations of the application
@@ -195,3 +166,17 @@ def audit_hybrid_cloud_writes_and_deletes(request):
             conn.force_debug_cursor = debug_cursor_state[conn.alias]
 
             validate_protected_queries(conn.queries)
+
+
+@pytest.fixture(autouse=True)
+def check_leaked_responses_mocks():
+    yield
+    leaked = responses.registered()
+    if leaked:
+        responses.reset()
+
+        leaked_s = "".join(f"- {item}\n" for item in leaked)
+        raise AssertionError(
+            f"`responses` were leaked outside of the test context:\n{leaked_s}"
+            f"(make sure to use `@responses.activate` or `with responses.mock:`)"
+        )

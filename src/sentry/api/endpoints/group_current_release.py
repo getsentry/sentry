@@ -2,6 +2,7 @@ import sentry_sdk
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases import GroupEndpoint
 from sentry.api.helpers.environments import get_environments
@@ -12,6 +13,10 @@ from sentry.models import GroupRelease, ReleaseEnvironment, ReleaseProject
 
 @region_silo_endpoint
 class GroupCurrentReleaseEndpoint(GroupEndpoint, EnvironmentMixin):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def _get_current_release(self, group, environments):
         release_projects = ReleaseProject.objects.filter(project_id=group.project_id).values_list(
             "release_id", flat=True

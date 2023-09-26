@@ -139,6 +139,7 @@ class TestAccountConfigView(TestCase):
         assert accounts["value"][0]["accountName"] == "sentry"
         assert accounts["value"][1]["accountName"] == "sentry2"
 
+    @responses.activate
     def test_account_form(self):
         account_form = AccountForm(self.accounts)
         field = account_form.fields["account"]

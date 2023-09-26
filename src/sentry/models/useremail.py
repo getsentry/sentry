@@ -2,14 +2,16 @@ from __future__ import annotations
 
 from collections import defaultdict
 from datetime import timedelta
-from typing import TYPE_CHECKING, Iterable, Mapping
+from typing import TYPE_CHECKING, Iterable, Mapping, Optional, Tuple
 
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
-from sentry.backup.scopes import RelocationScope
+from sentry.backup.dependencies import ImportKind, PrimaryKeyMap, get_model_name
+from sentry.backup.helpers import ImportFlags
+from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import (
     BaseManager,
     FlexibleForeignKey,
@@ -80,3 +82,36 @@ class UserEmail(Model):
     def get_primary_email(cls, user: User) -> UserEmail:
         """@deprecated"""
         return cls.objects.get_primary_email(user)
+
+    def normalize_before_relocation_import(
+        self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
+    ) -> Optional[int]:
+        from sentry.models.user import User
+
+        # If we are merging users, ignore this import and use the merged user's data.
+        if pk_map.get_kind(get_model_name(User), self.user_id) == ImportKind.Existing:
+            return None
+
+        old_pk = super().normalize_before_relocation_import(pk_map, scope, flags)
+        if old_pk is None:
+            return None
+
+        # Only preserve validation hashes in backup/restore scopes - in all others, have the user
+        # verify their email again.
+        if scope not in {ImportScope.Config, ImportScope.Global}:
+            self.is_verified = False
+            self.validation_hash = get_secure_token()
+            self.date_hash_added = timezone.now()
+
+        return old_pk
+
+    def write_relocation_import(
+        self, _s: ImportScope, _f: ImportFlags
+    ) -> Optional[Tuple[int, ImportKind]]:
+        useremail = self.__class__.objects.get(user=self.user, email=self.email)
+        for f in self._meta.fields:
+            if f.name not in ["id", "pk"]:
+                setattr(useremail, f.name, getattr(self, f.name))
+        useremail.save()
+
+        return (useremail.pk, ImportKind.Existing)

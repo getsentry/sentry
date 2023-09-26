@@ -9,13 +9,10 @@ from sentry.db.models import (
     region_silo_only_model,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-from sentry.models.integrations.organization_integrity_backfill_mixin import (
-    OrganizationIntegrityBackfillMixin,
-)
 
 
 @region_silo_only_model
-class RepositoryProjectPathConfig(OrganizationIntegrityBackfillMixin, DefaultFieldsModel):
+class RepositoryProjectPathConfig(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Excluded
 
     repository = FlexibleForeignKey("sentry.Repository")

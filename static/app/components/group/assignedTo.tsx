@@ -108,7 +108,7 @@ function getSuggestedReason(owner: IssueOwner) {
 function getOwnerList(
   committers: Committer[],
   eventOwners: EventOwners | null,
-  assignedTo: Actor
+  assignedTo: Actor | null
 ): Omit<SuggestedAssignee, 'assignee'>[] {
   const owners: IssueOwner[] = committers.map(commiter => ({
     actor: {...commiter.author, type: 'user'},

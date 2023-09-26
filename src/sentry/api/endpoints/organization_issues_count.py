@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from sentry_sdk import start_span
 
 from sentry import features, search
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEventsEndpointBase
 from sentry.api.helpers.group_index import ValidationError, validate_search_filter_permissions
@@ -20,6 +21,9 @@ ISSUES_COUNT_MAX_HITS_LIMIT = 100
 
 @region_silo_endpoint
 class OrganizationIssuesCountEndpoint(OrganizationEventsEndpointBase):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     enforce_rate_limit = True
     rate_limits = {
         "GET": {

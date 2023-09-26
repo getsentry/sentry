@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 import sentry_sdk
 
@@ -11,7 +11,7 @@ from sentry.search.events.builder import (
     ProfileTopFunctionsTimeseriesQueryBuilder,
 )
 from sentry.search.events.fields import get_json_meta_type
-from sentry.search.events.types import ParamsType, SnubaParams
+from sentry.search.events.types import ParamsType, QueryBuilderConfig, SnubaParams
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.discover import transform_tips, zerofill
 from sentry.utils.snuba import SnubaTSResult
@@ -28,6 +28,7 @@ def query(
     orderby: Optional[List[str]] = None,
     offset: int = 0,
     limit: int = 50,
+    limitby: Optional[Tuple[str, int]] = None,
     referrer: str = "",
     auto_fields: bool = False,
     auto_aggregations: bool = False,
@@ -49,13 +50,16 @@ def query(
         snuba_params=snuba_params,
         selected_columns=selected_columns,
         orderby=orderby,
-        auto_fields=False,
-        auto_aggregations=auto_aggregations,
-        use_aggregate_conditions=use_aggregate_conditions,
-        transform_alias_to_input_format=transform_alias_to_input_format,
-        functions_acl=functions_acl,
         limit=limit,
+        limitby=limitby,
         offset=offset,
+        config=QueryBuilderConfig(
+            auto_fields=False,
+            auto_aggregations=auto_aggregations,
+            use_aggregate_conditions=use_aggregate_conditions,
+            transform_alias_to_input_format=transform_alias_to_input_format,
+            functions_acl=functions_acl,
+        ),
     )
     result = builder.process_results(builder.run_query(referrer))
     result["meta"]["tips"] = transform_tips(builder.tips)
@@ -82,7 +86,9 @@ def timeseries_query(
         query=query,
         interval=rollup,
         selected_columns=selected_columns,
-        functions_acl=functions_acl,
+        config=QueryBuilderConfig(
+            functions_acl=functions_acl,
+        ),
     )
     results = builder.run_query(referrer)
 
@@ -143,8 +149,10 @@ def top_events_timeseries(
         selected_columns=selected_columns,
         timeseries_columns=timeseries_columns,
         equations=equations,
-        functions_acl=functions_acl,
-        skip_tag_resolution=True,
+        config=QueryBuilderConfig(
+            functions_acl=functions_acl,
+            skip_tag_resolution=True,
+        ),
     )
 
     if len(top_events["data"]) == limit and include_other:

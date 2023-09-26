@@ -84,7 +84,7 @@ describe('ProjectKeys', function () {
       name: 'Minidump Endpoint URL',
     });
     const unrealEndpoint = screen.queryByRole('textbox', {
-      name: 'Unreal Engine 4 Endpoint URL',
+      name: 'Unreal Engine Endpoint URL',
     });
     const securityHeaderEndpoint = screen.queryByRole('textbox', {
       name: 'Security Header Endpoint URL',
@@ -114,7 +114,7 @@ describe('ProjectKeys', function () {
       name: 'Minidump Endpoint URL',
     });
     const unrealEndpoint = screen.queryByRole('textbox', {
-      name: 'Unreal Engine 4 Endpoint URL',
+      name: 'Unreal Engine Endpoint URL',
     });
     const securityHeaderEndpoint = screen.queryByRole('textbox', {
       name: 'Security Header Endpoint URL',
@@ -152,7 +152,7 @@ describe('ProjectKeys', function () {
       name: 'Minidump Endpoint URL',
     });
     const unrealEndpoint = screen.queryByRole('textbox', {
-      name: 'Unreal Engine 4 Endpoint URL',
+      name: 'Unreal Engine Endpoint URL',
     });
     const securityHeaderEndpoint = screen.queryByRole('textbox', {
       name: 'Security Header Endpoint URL',

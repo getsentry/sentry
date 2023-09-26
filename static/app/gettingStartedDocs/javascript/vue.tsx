@@ -29,7 +29,7 @@ replaysOnErrorSampleRate: 1.0, // If you're not already sampling the entire sess
 const performanceIntegration = `
 new Sentry.BrowserTracing({
   // Set 'tracePropagationTargets' to control for which URLs distributed tracing should be enabled
-  tracePropagationTargets: ["localhost", "https:yourserver.io/api/"],
+  tracePropagationTargets: ["localhost", /^https:\\/\\/yourserver\\.io\\/api/],
   routingInstrumentation:  Sentry.vueRouterInstrumentation(router),
 }),
 `;
@@ -68,7 +68,7 @@ npm install --save @sentry/vue
     ),
     configurations: [
       {
-        description: <h5>V2</h5>,
+        description: <h5>Vue 3</h5>,
         language: 'javascript',
         code: `
         import { createApp } from "vue";
@@ -92,7 +92,7 @@ npm install --save @sentry/vue
         `,
       },
       {
-        description: <h5>V3</h5>,
+        description: <h5>Vue 2</h5>,
         language: 'javascript',
         code: `
         import Vue from "vue";
@@ -177,6 +177,7 @@ export function GettingStartedWithVue({
   newOrg,
   platformKey,
   projectId,
+  ...props
 }: ModuleProps) {
   const integrations: string[] = [];
   const otherConfigs: string[] = [];
@@ -221,6 +222,7 @@ export function GettingStartedWithVue({
       nextSteps={nextStepDocs}
       newOrg={newOrg}
       platformKey={platformKey}
+      {...props}
     />
   );
 }

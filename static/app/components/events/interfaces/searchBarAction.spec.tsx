@@ -70,7 +70,7 @@ describe('SearchBarAction', () => {
   });
 
   it('default render', async () => {
-    const {container} = render(
+    render(
       <SearchBarAction
         filterOptions={options}
         onFilterChange={handleFilter}
@@ -96,8 +96,6 @@ describe('SearchBarAction', () => {
     expect(screen.getByText('Levels')).toBeInTheDocument();
     expect(screen.getByText('info')).toBeInTheDocument();
     expect(screen.getAllByText('Error')[1]).toBeInTheDocument();
-
-    expect(container).toSnapshot();
   });
 
   it('Without Options', () => {

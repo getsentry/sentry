@@ -16,12 +16,14 @@ from typing import (
     cast,
 )
 
+from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 from sentry_relay.auth import PublicKey
 from sentry_relay.exceptions import RelayError
 from typing_extensions import TypedDict
 
 from sentry import features, onboarding_tasks, quotas, roles
+from sentry.api.base import PreventNumericSlugMixin
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.project import ProjectSerializerResponse
 from sentry.api.serializers.models.role import (
@@ -98,9 +100,23 @@ ORGANIZATION_OPTIONS_AS_FEATURES: Mapping[str, List[OptionFeature]] = {
 }
 
 
-class BaseOrganizationSerializer(serializers.Serializer):
+class BaseOrganizationSerializer(serializers.Serializer, PreventNumericSlugMixin):
     name = serializers.CharField(max_length=64)
-    slug = serializers.RegexField(r"^[a-zA-Z0-9][a-zA-Z0-9-]*(?<!-)$", max_length=50)
+
+    # The slug pattern consists of the following:
+    # [a-zA-Z0-9]   - The slug must start with a letter or number
+    # [a-zA-Z0-9-]* - The slug can contain letters, numbers, and dashes
+    # (?<!-)        - Negative lookbehind to ensure the slug does not end with a dash
+    slug = serializers.RegexField(
+        r"^[a-zA-Z0-9][a-zA-Z0-9-]*(?<!-)$",
+        max_length=50,
+        error_messages={
+            "invalid": _(
+                "Enter a valid slug consisting of lowercase letters, numbers, or hyphens. "
+                "It cannot be entirely numeric or start/end with a hyphen."
+            )
+        },
+    )
 
     def validate_slug(self, value: str) -> str:
         # Historically, the only check just made sure there was more than 1
@@ -124,6 +140,7 @@ class BaseOrganizationSerializer(serializers.Serializer):
             raise serializers.ValidationError(
                 f'The slug "{value}" should not contain any whitespace.'
             )
+        value = super().validate_slug(value)
         return value
 
 
@@ -425,6 +442,7 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     aiSuggestedSolution: bool
     githubPRBot: bool
     githubOpenPRBot: bool
+    githubNudgeInvite: bool
     isDynamicallySampled: bool
 
 
@@ -536,6 +554,9 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 ),
                 "githubOpenPRBot": bool(
                     obj.get_option("sentry:github_open_pr_bot", GITHUB_COMMENT_BOT_DEFAULT)
+                ),
+                "githubNudgeInvite": bool(
+                    obj.get_option("sentry:github_nudge_invite", GITHUB_COMMENT_BOT_DEFAULT)
                 ),
             }
         )

@@ -74,9 +74,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
     jest.useFakeTimers().setSystemTime(new Date('2022-08-02'));
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/metrics/data/',
-      body: TestStubs.MetricsField({
-        field: `sum(sentry.sessions.session)`,
-      }),
+      body: TestStubs.MetricsField(`sum(sentry.sessions.session)`),
     });
     const children = jest.fn(() => <div />);
 
@@ -184,9 +182,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
   it('calls session api when session.status is a group by', function () {
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/sessions/',
-      body: TestStubs.MetricsField({
-        field: `count_unique(user)`,
-      }),
+      body: TestStubs.MetricsField(`count_unique(user)`),
     });
     const children = jest.fn(() => <div />);
     const queries = [
@@ -560,9 +556,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
     jest.useFakeTimers().setSystemTime(new Date('2022-08-02'));
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/metrics/data/',
-      body: TestStubs.MetricsField({
-        field: `count_unique(sentry.sessions.user)`,
-      }),
+      body: TestStubs.MetricsField(`count_unique(sentry.sessions.user)`),
     });
     const children = jest.fn(() => <div />);
 
@@ -608,9 +602,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
     jest.useFakeTimers().setSystemTime(new Date('2022-08-02'));
     const metricsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/metrics/data/',
-      body: TestStubs.SessionsField({
-        field: `sum(sentry.sessions.session)`,
-      }),
+      body: TestStubs.SessionsField(`sum(sentry.sessions.session)`),
       match: [
         MockApiClient.matchQuery({
           field: [`sum(sentry.sessions.session)`],
@@ -705,9 +697,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
     jest.useFakeTimers().setSystemTime(new Date('2022-08-02'));
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/metrics/data/',
-      body: TestStubs.SessionsField({
-        field: `sum(sentry.sessions.session)`,
-      }),
+      body: TestStubs.SessionsField(`sum(sentry.sessions.session)`),
     });
 
     render(
@@ -739,9 +729,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
   it('does not re-fetch when renaming legend alias / adding falsy fields', () => {
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/metrics/data/',
-      body: TestStubs.SessionsField({
-        field: `sum(sentry.sessions.session)`,
-      }),
+      body: TestStubs.SessionsField(`sum(sentry.sessions.session)`),
     });
     const children = jest.fn(() => <div />);
 
@@ -785,9 +773,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
   it('does not re-fetch when dashboard filter remains the same', () => {
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/metrics/data/',
-      body: TestStubs.SessionsField({
-        field: `sum(sentry.sessions.session)`,
-      }),
+      body: TestStubs.SessionsField(`sum(sentry.sessions.session)`),
     });
     const children = jest.fn(() => <div />);
 

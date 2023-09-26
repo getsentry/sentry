@@ -48,6 +48,8 @@ def test_get_org_auth_config():
                     scim_enabled=False,
                 ),
                 config=ap.config,
+                default_role=ap.default_role,
+                default_global_access=ap.default_global_access,
             ),
             has_api_key=False,
         ),

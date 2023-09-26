@@ -5,6 +5,7 @@
 
 import base64
 import contextlib
+import datetime
 from enum import IntEnum
 from typing import (
     TYPE_CHECKING,
@@ -31,6 +32,15 @@ from sentry.services.hybrid_cloud.user import RpcUser
 
 if TYPE_CHECKING:
     from django.contrib.auth.models import AnonymousUser
+
+
+class RpcApiKey(RpcModel):
+    id: int
+    organization_id: int
+    key: str
+    status: int
+    allowed_origins: List[str]
+    label: str
 
 
 class RpcAuthenticatorType(IntEnum):
@@ -138,7 +148,6 @@ class AuthenticationRequest(RpcModel):
     nonce: Optional[str] = None
 
     remote_addr: Optional[str] = None
-    signature: Optional[str] = None
     absolute_url: str = ""
     absolute_url_root: str = ""
     path: str = ""
@@ -166,13 +175,10 @@ class AuthenticationRequest(RpcModel):
 
 
 def authentication_request_from(request: Request) -> AuthenticationRequest:
-    from sentry.utils.linksign import find_signature
-
     return AuthenticationRequest(
         sentry_relay_id=get_header_relay_id(request),
         sentry_relay_signature=get_header_relay_signature(request),
         remote_addr=request.META["REMOTE_ADDR"],
-        signature=find_signature(request),
         absolute_url=request.build_absolute_uri(),
         absolute_url_root=request.build_absolute_uri("/"),
         path=request.path,
@@ -304,7 +310,6 @@ class AuthenticationContext(RpcModel):
 
 class MiddlewareAuthenticationResponse(AuthenticationContext):
     expired: bool = False
-    user_from_signed_request: bool = False
     accessed: Set[str] = Field(default_factory=set)
 
 
@@ -319,6 +324,8 @@ class RpcAuthProvider(RpcModel):
     provider: str = ""
     flags: RpcAuthProviderFlags = Field(default_factory=lambda: RpcAuthProviderFlags())
     config: Mapping[str, Any]
+    default_role: int = -1
+    default_global_access: bool = False
 
     def __hash__(self) -> int:
         return hash((self.id, self.organization_id, self.provider))
@@ -340,8 +347,10 @@ class RpcAuthProvider(RpcModel):
 class RpcAuthIdentity(RpcModel):
     id: int = -1
     user_id: int = -1
-    provider_id: int = -1
+    auth_provider_id: int = -1
     ident: str = ""
+    data: Mapping[str, Any] = Field(default_factory=dict)
+    last_verified: datetime.datetime = Field(default_factory=datetime.datetime.now)
 
 
 class RpcOrganizationAuthConfig(RpcModel):

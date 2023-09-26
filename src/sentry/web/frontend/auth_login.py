@@ -37,7 +37,7 @@ from sentry.utils.http import absolute_uri
 from sentry.utils.sdk import capture_exception
 from sentry.utils.urls import add_params_to_url
 from sentry.web.forms.accounts import AuthenticationForm, RegistrationForm
-from sentry.web.frontend.base import BaseView
+from sentry.web.frontend.base import BaseView, control_silo_view
 
 ERR_NO_SSO = _("The organization does not exist or does not have Single Sign-On enabled.")
 
@@ -71,6 +71,7 @@ additional_context = AdditionalContext()
 
 
 # TODO(hybridcloud) Make this view control silo only.
+@control_silo_view
 class AuthLoginView(BaseView):
     auth_required = False
 

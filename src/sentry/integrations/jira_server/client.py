@@ -119,7 +119,9 @@ class JiraServerClient(IntegrationProxyClient):
     def update_comment(self, issue_key, comment_id, comment):
         return self.put(self.COMMENT_URL % (issue_key, comment_id), data={"body": comment})
 
-    def get_projects_list(self):
+    def get_projects_list(self, cached=True):
+        if not cached:
+            return self.get(self.PROJECT_URL)
         return self.get_cached(self.PROJECT_URL)
 
     def get_issue_types(self, project_id):

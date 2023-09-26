@@ -9,6 +9,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.bases.organization import OrganizationAlertRulePermission, OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -120,6 +121,10 @@ class AlertRuleIndexMixin(Endpoint):
 
 @region_silo_endpoint
 class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, organization) -> Response:
         """
         Fetches (metric) alert rules and legacy (issue alert) rules for an organization
@@ -162,7 +167,7 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
             # Filter to only error alert rules
             alert_rules = alert_rules.filter(snuba_query__dataset=Dataset.Events.value)
         issue_rules = Rule.objects.filter(
-            status=ObjectStatus.ACTIVE,
+            status__in=[ObjectStatus.ACTIVE, ObjectStatus.DISABLED],
             source__in=[RuleSource.ISSUE],
             project__in=projects,
         )
@@ -244,6 +249,10 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
 
 @region_silo_endpoint
 class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMixin):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (OrganizationAlertRulePermission,)
 
     def get(self, request: Request, organization) -> Response:

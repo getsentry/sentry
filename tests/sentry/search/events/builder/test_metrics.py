@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import datetime
 import math
 from datetime import timezone
@@ -15,7 +17,7 @@ from sentry.search.events.builder import (
     MetricsQueryBuilder,
     TimeseriesMetricQueryBuilder,
 )
-from sentry.search.events.types import HistogramParams
+from sentry.search.events.types import HistogramParams, QueryBuilderConfig
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.aggregation_option_registry import AggregationOption
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
@@ -1223,7 +1225,9 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                     "p95(transaction.duration)",
                     "count_unique(user)",
                 ],
-                use_aggregate_conditions=True,
+                config=QueryBuilderConfig(
+                    use_aggregate_conditions=True,
+                ),
             )
             query.run_query("test_query")
 
@@ -1240,7 +1244,9 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                     "count_unique(user)",
                 ],
                 orderby=["p95(transaction.duration)"],
-                use_aggregate_conditions=True,
+                config=QueryBuilderConfig(
+                    use_aggregate_conditions=True,
+                ),
             )
             query.run_query("test_query")
 
@@ -1280,8 +1286,10 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                 "p95(transaction.duration)",
                 "count_unique(user)",
             ],
-            allow_metric_aggregates=True,
-            use_aggregate_conditions=True,
+            config=QueryBuilderConfig(
+                allow_metric_aggregates=True,
+                use_aggregate_conditions=True,
+            ),
         )
         result = query.run_query("test_query")
         assert len(result["data"]) == 1
@@ -1334,8 +1342,10 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                 "count_unique(user)",
             ],
             orderby=["p95(transaction.duration)"],
-            allow_metric_aggregates=True,
-            use_aggregate_conditions=True,
+            config=QueryBuilderConfig(
+                allow_metric_aggregates=True,
+                use_aggregate_conditions=True,
+            ),
         )
         result = query.run_query("test_query")
         assert len(result["data"]) == 1
@@ -1415,8 +1425,10 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                         "count_unique(user)",
                     ],
                     query=query,
-                    allow_metric_aggregates=False,
-                    use_aggregate_conditions=use_aggregate_conditions,
+                    config=QueryBuilderConfig(
+                        allow_metric_aggregates=False,
+                        use_aggregate_conditions=use_aggregate_conditions,
+                    ),
                 )
 
         queries = [
@@ -1438,8 +1450,10 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                 "count_unique(user)",
             ],
             query="transaction:foo_transaction",
-            allow_metric_aggregates=False,
-            use_aggregate_conditions=True,
+            config=QueryBuilderConfig(
+                allow_metric_aggregates=False,
+                use_aggregate_conditions=True,
+            ),
         )
 
         MetricsQueryBuilder(
@@ -1451,8 +1465,10 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                 "count_unique(user)",
             ],
             query="transaction:foo_transaction",
-            allow_metric_aggregates=False,
-            use_aggregate_conditions=False,
+            config=QueryBuilderConfig(
+                allow_metric_aggregates=False,
+                use_aggregate_conditions=False,
+            ),
         )
 
     def test_multiple_dataset_but_no_data(self):
@@ -1464,8 +1480,10 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                 "p50()",
                 "count_unique(user)",
             ],
-            allow_metric_aggregates=False,
-            use_aggregate_conditions=True,
+            config=QueryBuilderConfig(
+                allow_metric_aggregates=False,
+                use_aggregate_conditions=True,
+            ),
         ).run_query("test")
         assert len(result["data"]) == 1
         data = result["data"][0]
@@ -1524,8 +1542,10 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                 "count_unique(user)",
             ],
             query="transaction:foo_transaction",
-            allow_metric_aggregates=False,
-            use_aggregate_conditions=True,
+            config=QueryBuilderConfig(
+                allow_metric_aggregates=False,
+                use_aggregate_conditions=True,
+            ),
         )
 
     def test_group_by_not_in_select(self):
@@ -1737,7 +1757,9 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             interval=900,
             query="p50(transaction.duration):>100",
             selected_columns=["p50(transaction.duration)", "count_unique(user)"],
-            allow_metric_aggregates=True,
+            config=QueryBuilderConfig(
+                allow_metric_aggregates=True,
+            ),
         )
         # Aggregate conditions should be dropped
         assert query.having == []
@@ -1934,7 +1956,9 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
                     dataset=Dataset.PerformanceMetrics,
                     query=query,
                     selected_columns=["p50(transaction.duration)"],
-                    allow_metric_aggregates=False,
+                    config=QueryBuilderConfig(
+                        allow_metric_aggregates=False,
+                    ),
                 )
 
         queries = [
@@ -1952,7 +1976,9 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             dataset=Dataset.PerformanceMetrics,
             selected_columns=["p50(transaction.duration)"],
             query="transaction:foo_transaction",
-            allow_metric_aggregates=False,
+            config=QueryBuilderConfig(
+                allow_metric_aggregates=False,
+            ),
         )
 
     def test_run_query_with_on_demand_count(self):
@@ -1976,7 +2002,9 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             interval=3600,
             query=query,
             selected_columns=[field],
-            on_demand_metrics_enabled=True,
+            config=QueryBuilderConfig(
+                on_demand_metrics_enabled=True,
+            ),
         )
         result = query.run_query("test_query")
         assert result["data"][:5] == [
@@ -2030,36 +2058,134 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             interval=3600,
             query=query,
             selected_columns=[field],
-            on_demand_metrics_enabled=True,
+            config=QueryBuilderConfig(
+                on_demand_metrics_enabled=True,
+            ),
         )
         result = query.run_query("test_query")
         assert result["data"][:5] == [
             {
                 "time": self.start.isoformat(),
-                "count": 0.0,
+                "p75_measurements_fp": 0.0,
             },
             {
                 "time": (self.start + datetime.timedelta(hours=1)).isoformat(),
-                "count": 100.0,
+                "p75_measurements_fp": 100.0,
             },
             {
                 "time": (self.start + datetime.timedelta(hours=2)).isoformat(),
-                "count": 200.0,
+                "p75_measurements_fp": 200.0,
             },
             {
                 "time": (self.start + datetime.timedelta(hours=3)).isoformat(),
-                "count": 300.0,
+                "p75_measurements_fp": 300.0,
             },
             {
                 "time": (self.start + datetime.timedelta(hours=4)).isoformat(),
-                "count": 400.0,
+                "p75_measurements_fp": 400.0,
             },
         ]
         self.assertCountEqual(
             result["meta"],
             [
                 {"name": "time", "type": "DateTime('Universal')"},
-                {"name": "count", "type": "Float64"},
+                {"name": "p75_measurements_fp", "type": "Float64"},
+            ],
+        )
+
+    def test_run_query_with_on_demand_failure_count(self):
+        field = "failure_count()"
+        query = "transaction.duration:>=100"
+        spec = OnDemandMetricSpec(field=field, query=query)
+        timestamp = self.start
+        self.store_transaction_metric(
+            value=1,
+            metric=TransactionMetricKey.COUNT_ON_DEMAND.value,
+            internal_metric=TransactionMRI.COUNT_ON_DEMAND.value,
+            entity="metrics_counters",
+            tags={"query_hash": spec.query_hash, "failure": "true"},
+            timestamp=timestamp,
+        )
+        query = TimeseriesMetricQueryBuilder(
+            self.params,
+            dataset=Dataset.PerformanceMetrics,
+            interval=3600,
+            query=query,
+            selected_columns=[field],
+            config=QueryBuilderConfig(on_demand_metrics_enabled=True),
+        )
+        result = query.run_query("test_query")
+        assert result["data"][:1] == [{"time": timestamp.isoformat(), "failure_count": 1.0}]
+        assert result["meta"] == [
+            {"name": "time", "type": "DateTime('Universal')"},
+            {"name": "failure_count", "type": "Float64"},
+        ]
+
+    def test_run_query_with_on_demand_failure_rate(self):
+        field = "failure_rate()"
+        query = "transaction.duration:>=100"
+        spec = OnDemandMetricSpec(field=field, query=query)
+
+        for hour in range(0, 5):
+            # 1 per hour failed
+            self.store_transaction_metric(
+                value=1,
+                metric=TransactionMetricKey.COUNT_ON_DEMAND.value,
+                internal_metric=TransactionMRI.COUNT_ON_DEMAND.value,
+                entity="metrics_counters",
+                tags={"query_hash": spec.query_hash, "failure": "true"},
+                timestamp=self.start + datetime.timedelta(hours=hour),
+            )
+
+            # 4 per hour successful
+            for j in range(0, 4):
+                self.store_transaction_metric(
+                    value=1,
+                    metric=TransactionMetricKey.COUNT_ON_DEMAND.value,
+                    internal_metric=TransactionMRI.COUNT_ON_DEMAND.value,
+                    entity="metrics_counters",
+                    tags={"query_hash": spec.query_hash},
+                    timestamp=self.start + datetime.timedelta(hours=hour),
+                )
+
+        query = TimeseriesMetricQueryBuilder(
+            self.params,
+            dataset=Dataset.PerformanceMetrics,
+            interval=3600,
+            query=query,
+            selected_columns=[field],
+            config=QueryBuilderConfig(
+                on_demand_metrics_enabled=True,
+            ),
+        )
+        result = query.run_query("test_query")
+        assert result["data"][:5] == [
+            {
+                "time": self.start.isoformat(),
+                "failure_rate": 0.2,
+            },
+            {
+                "time": (self.start + datetime.timedelta(hours=1)).isoformat(),
+                "failure_rate": 0.2,
+            },
+            {
+                "time": (self.start + datetime.timedelta(hours=2)).isoformat(),
+                "failure_rate": 0.2,
+            },
+            {
+                "time": (self.start + datetime.timedelta(hours=3)).isoformat(),
+                "failure_rate": 0.2,
+            },
+            {
+                "time": (self.start + datetime.timedelta(hours=4)).isoformat(),
+                "failure_rate": 0.2,
+            },
+        ]
+        self.assertCountEqual(
+            result["meta"],
+            [
+                {"name": "time", "type": "DateTime('Universal')"},
+                {"name": "failure_rate", "type": "Float64"},
             ],
         )
 
@@ -2078,14 +2204,15 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
                 timestamp=self.start + datetime.timedelta(hours=hour),
             )
 
-            self.store_transaction_metric(
-                value=1,
-                metric=TransactionMetricKey.COUNT_ON_DEMAND.value,
-                internal_metric=TransactionMRI.COUNT_ON_DEMAND.value,
-                entity="metrics_counters",
-                tags={"query_hash": spec.query_hash, "satisfaction": "tolerable"},
-                timestamp=self.start + datetime.timedelta(hours=hour),
-            )
+            for j in range(0, 4):
+                self.store_transaction_metric(
+                    value=1,
+                    metric=TransactionMetricKey.COUNT_ON_DEMAND.value,
+                    internal_metric=TransactionMRI.COUNT_ON_DEMAND.value,
+                    entity="metrics_counters",
+                    tags={"query_hash": spec.query_hash, "satisfaction": "tolerable"},
+                    timestamp=self.start + datetime.timedelta(hours=hour),
+                )
 
         query = TimeseriesMetricQueryBuilder(
             self.params,
@@ -2093,36 +2220,38 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             interval=3600,
             query=query,
             selected_columns=[field],
-            on_demand_metrics_enabled=True,
+            config=QueryBuilderConfig(
+                on_demand_metrics_enabled=True,
+            ),
         )
         result = query.run_query("test_query")
         assert result["data"][:5] == [
             {
                 "time": self.start.isoformat(),
-                "count": 0.75,
+                "apdex_10": 0.6,
             },
             {
                 "time": (self.start + datetime.timedelta(hours=1)).isoformat(),
-                "count": 0.75,
+                "apdex_10": 0.6,
             },
             {
                 "time": (self.start + datetime.timedelta(hours=2)).isoformat(),
-                "count": 0.75,
+                "apdex_10": 0.6,
             },
             {
                 "time": (self.start + datetime.timedelta(hours=3)).isoformat(),
-                "count": 0.75,
+                "apdex_10": 0.6,
             },
             {
                 "time": (self.start + datetime.timedelta(hours=4)).isoformat(),
-                "count": 0.75,
+                "apdex_10": 0.6,
             },
         ]
         self.assertCountEqual(
             result["meta"],
             [
                 {"name": "time", "type": "DateTime('Universal')"},
-                {"name": "count", "type": "Float64"},
+                {"name": "apdex_10", "type": "Float64"},
             ],
         )
 
@@ -2248,13 +2377,15 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
 
         query = AlertMetricsQueryBuilder(
             self.params,
-            use_metrics_layer=False,
             granularity=3600,
             query=query,
             dataset=Dataset.PerformanceMetrics,
             selected_columns=[field],
-            on_demand_metrics_enabled=True,
-            skip_time_conditions=False,
+            config=QueryBuilderConfig(
+                use_metrics_layer=False,
+                on_demand_metrics_enabled=True,
+                skip_time_conditions=False,
+            ),
         )
 
         result = query.run_query("test_query")
@@ -2280,13 +2411,15 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
 
         query = AlertMetricsQueryBuilder(
             self.params,
-            use_metrics_layer=False,
             granularity=3600,
             query=query,
             dataset=Dataset.PerformanceMetrics,
             selected_columns=[field],
-            on_demand_metrics_enabled=True,
-            skip_time_conditions=False,
+            config=QueryBuilderConfig(
+                use_metrics_layer=False,
+                on_demand_metrics_enabled=True,
+                skip_time_conditions=False,
+            ),
         )
 
         result = query.run_query("test_query")
@@ -2321,13 +2454,15 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
 
         query = AlertMetricsQueryBuilder(
             self.params,
-            use_metrics_layer=False,
             granularity=3600,
             query=query,
             dataset=Dataset.PerformanceMetrics,
             selected_columns=[field],
-            on_demand_metrics_enabled=True,
-            skip_time_conditions=False,
+            config=QueryBuilderConfig(
+                use_metrics_layer=False,
+                on_demand_metrics_enabled=True,
+                skip_time_conditions=False,
+            ),
         )
 
         result = query.run_query("test_query")
@@ -2363,13 +2498,15 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
 
         query = AlertMetricsQueryBuilder(
             self.params,
-            use_metrics_layer=False,
             granularity=3600,
             query=query,
             dataset=Dataset.PerformanceMetrics,
             selected_columns=[field],
-            on_demand_metrics_enabled=True,
-            skip_time_conditions=False,
+            config=QueryBuilderConfig(
+                use_metrics_layer=False,
+                on_demand_metrics_enabled=True,
+                skip_time_conditions=False,
+            ),
         )
 
         result = query.run_query("test_query")
@@ -2388,15 +2525,17 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
 
         query = AlertMetricsQueryBuilder(
             params,
-            use_metrics_layer=False,
             granularity=3600,
             query="transaction.duration:>=100",
             dataset=Dataset.PerformanceMetrics,
             selected_columns=["count(transaction.duration)"],
-            on_demand_metrics_enabled=True,
-            # We set here the skipping of conditions, since this is true for alert subscriptions, but we want to verify
-            # whether our secondary error barrier works.
-            skip_time_conditions=True,
+            config=QueryBuilderConfig(
+                use_metrics_layer=False,
+                on_demand_metrics_enabled=True,
+                # We set here the skipping of conditions, since this is true for alert subscriptions, but we want to verify
+                # whether our secondary error barrier works.
+                skip_time_conditions=True,
+            ),
         )
 
         with pytest.raises(IncompatibleMetricsQuery):
@@ -2411,15 +2550,17 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
         }
         query = AlertMetricsQueryBuilder(
             params,
-            use_metrics_layer=False,
             granularity=3600,
             query="transaction.duration:>=100",
             dataset=Dataset.PerformanceMetrics,
             selected_columns=["p75(measurements.fp)"],
-            on_demand_metrics_enabled=True,
-            # We want to test the snql generation when a time range is not supplied, which is the case for alert
-            # subscriptions.
-            skip_time_conditions=True,
+            config=QueryBuilderConfig(
+                use_metrics_layer=False,
+                on_demand_metrics_enabled=True,
+                # We want to test the snql generation when a time range is not supplied, which is the case for alert
+                # subscriptions.
+                skip_time_conditions=True,
+            ),
         )
 
         snql_request = query.get_snql_query()
@@ -2458,7 +2599,7 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
         query_hash_index = indexer.resolve(UseCaseID.TRANSACTIONS, None, QUERY_HASH_KEY)
 
         query_hash_clause = Condition(
-            lhs=Column(name=f"tags_raw[{query_hash_index}]"), op=Op.EQ, rhs="3b902501"
+            lhs=Column(name=f"tags_raw[{query_hash_index}]"), op=Op.EQ, rhs="62b395db"
         )
 
         assert query_hash_clause in snql_query.where
@@ -2466,14 +2607,16 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
     def test_get_snql_query_with_on_demand_count_and_time_range_required_and_supplied(self):
         query = AlertMetricsQueryBuilder(
             self.params,
-            use_metrics_layer=False,
             granularity=3600,
             query="transaction.duration:>=100",
             dataset=Dataset.PerformanceMetrics,
             selected_columns=["count(transaction.duration)"],
-            on_demand_metrics_enabled=True,
-            # We want to test the snql generation when a time range is supplied.
-            skip_time_conditions=False,
+            config=QueryBuilderConfig(
+                use_metrics_layer=False,
+                on_demand_metrics_enabled=True,
+                # We want to test the snql generation when a time range is supplied.
+                skip_time_conditions=False,
+            ),
         )
 
         snql_request = query.get_snql_query()

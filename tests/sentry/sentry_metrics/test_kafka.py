@@ -1,6 +1,7 @@
 from datetime import datetime
 from unittest import TestCase
 
+import pytest
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.backends.local.backend import LocalBroker, LocalProducer
 from arroyo.backends.local.storages.memory import MemoryMessageStorage
@@ -13,6 +14,7 @@ from sentry.utils import json
 
 
 class KafkaMetricsInterfaceTest(GenericMetricsTestMixIn, TestCase):
+    @pytest.mark.django_db
     def test_produce_metrics(self) -> None:
         generic_metrics_backend = KafkaMetricsBackend()
         # For testing, we are calling close() here because we

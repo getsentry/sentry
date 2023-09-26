@@ -38,9 +38,13 @@ from sentry.models.organizationmapping import OrganizationMapping
 from sentry.signals import project_created
 from sentry.silo import SiloMode, unguarded_write
 from sentry.testutils.cases import APITestCase, TwoFactorAPITestCase
+from sentry.testutils.helpers import override_options
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
+
+pytestmark = [requires_snuba]
 
 # some relay keys
 _VALID_RELAY_KEYS = [
@@ -352,6 +356,8 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         self.get_error_response(self.organization.slug, slug="canada-", status_code=400)
         self.get_error_response(self.organization.slug, slug="-canada", status_code=400)
         self.get_error_response(self.organization.slug, slug="----", status_code=400)
+        with override_options({"api.prevent-numeric-slugs": True}):
+            self.get_error_response(self.organization.slug, slug="1234", status_code=400)
 
     def test_upload_avatar(self):
         data = {
@@ -388,6 +394,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             "codecovAccess": True,
             "aiSuggestedSolution": False,
             "githubOpenPRBot": False,
+            "githubNudgeInvite": False,
             "githubPRBot": False,
             "allowSharedIssues": False,
             "enhancedPrivacy": True,
@@ -463,6 +470,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert "to {}".format(data["aiSuggestedSolution"]) in log.data["aiSuggestedSolution"]
         assert "to {}".format(data["githubPRBot"]) in log.data["githubPRBot"]
         assert "to {}".format(data["githubOpenPRBot"]) in log.data["githubOpenPRBot"]
+        assert "to {}".format(data["githubNudgeInvite"]) in log.data["githubNudgeInvite"]
 
     @responses.activate
     @patch(
@@ -871,7 +879,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
         # Ensure that the organization update has been flushed, but it collides when attempting an upsert
         with pytest.raises(OutboxFlushError):
-            Organization.outbox_for_update(org_id=self.organization.id).drain_shard()
+            self.organization.outbox_for_update().drain_shard()
 
         with assume_test_silo_mode(SiloMode.CONTROL):
             organization_mapping = OrganizationMapping.objects.get(
@@ -880,12 +888,12 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert organization_mapping.slug == previous_slug
 
         # Flush the colliding org slug change
-        Organization.outbox_for_update(org_id=org_with_colliding_slug.id).drain_shard()
+        org_with_colliding_slug.outbox_for_update().drain_shard()
         colliding_org_mapping.refresh_from_db()
         assert colliding_org_mapping.slug == "unique-slug"
 
         # Flush the desired slug change and assert the correct slug was resolved
-        Organization.outbox_for_update(org_id=self.organization.id).drain_shard()
+        self.organization.outbox_for_update().drain_shard()
         organization_mapping.refresh_from_db()
         assert organization_mapping.slug == desired_slug
 

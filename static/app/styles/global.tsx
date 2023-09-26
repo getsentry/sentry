@@ -1,6 +1,5 @@
 import {css, Global, Theme} from '@emotion/react';
 
-import {IS_ACCEPTANCE_TEST} from 'sentry/constants';
 import {prismStyles} from 'sentry/styles/prism';
 
 const styles = (theme: Theme, isDark: boolean) => css`
@@ -65,15 +64,6 @@ const styles = (theme: Theme, isDark: boolean) => css`
       transition-delay: 0s !important;
     }
   }
-
-  ${IS_ACCEPTANCE_TEST
-    ? css`
-        input,
-        select {
-          caret-color: transparent;
-        }
-      `
-    : ''}
 
   /* Override css in LESS files here as we want to manually control dark mode for now */
   ${isDark

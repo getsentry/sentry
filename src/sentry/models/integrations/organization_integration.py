@@ -20,7 +20,7 @@ from sentry.types.region import find_regions_for_orgs
 
 @control_silo_only_model
 class OrganizationIntegration(DefaultFieldsModel):
-    __relocation_scope__ = RelocationScope.Excluded
+    __relocation_scope__ = RelocationScope.Global
 
     organization_id = HybridCloudForeignKey("sentry.Organization", on_delete="cascade")
     integration = FlexibleForeignKey("sentry.Integration")

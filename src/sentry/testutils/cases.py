@@ -3,11 +3,12 @@ from __future__ import annotations
 import hashlib
 import inspect
 import os.path
+import re
 import time
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from io import BytesIO
-from typing import Dict, List, Literal, Optional, Sequence, Union
+from typing import Any, Dict, List, Literal, Optional, Sequence, Union
 from unittest import mock
 from urllib.parse import urlencode
 from uuid import uuid4
@@ -30,7 +31,7 @@ from django.test import TestCase as DjangoTestCase
 from django.test import TransactionTestCase as DjangoTransactionTestCase
 from django.test import override_settings
 from django.test.utils import CaptureQueriesContext
-from django.urls import reverse
+from django.urls import resolve, reverse
 from django.utils import timezone as django_timezone
 from django.utils.functional import cached_property
 from pkg_resources import iter_entry_points
@@ -93,6 +94,7 @@ from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorType, Sch
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.plugins.base import plugins
 from sentry.replays.models import ReplayRecordingSegment
+from sentry.rules.base import RuleBase
 from sentry.search.events.constants import (
     METRIC_FRUSTRATED_TAG_VALUE,
     METRIC_SATISFACTION_TAG_KEY,
@@ -113,6 +115,7 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
 from sentry.testutils.helpers.slack import install_slack
 from sentry.testutils.pytest.selenium import Browser
+from sentry.types.condition_activity import ConditionActivity, ConditionActivityType
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 from sentry.utils.auth import SsoSession
@@ -171,6 +174,8 @@ __all__ = (
     "MonitorTestCase",
     "MonitorIngestTestCase",
 )
+
+from ..types.region import get_region_by_name
 
 DEFAULT_USER_AGENT = "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36"
 
@@ -443,6 +448,39 @@ class TestCase(BaseTestCase, DjangoTestCase):
     # We need Django to flush all databases.
     databases: set[str] | str = "__all__"
 
+    @contextmanager
+    def auto_select_silo_mode_on_redirects(self):
+        """
+        Tests that utilize follow=True may follow redirects between silo modes.  This isn't ideal but convenient for
+        testing certain work flows.  Using this context manager, the silo mode in the test will swap automatically
+        for each view's decorator in order to prevent otherwise unavoidable SiloAvailability errors.
+        """
+        old_request = self.client.request
+
+        def request(**request: Any) -> Any:
+            resolved = resolve(request["PATH_INFO"])
+            view_class = getattr(resolved.func, "view_class", None)
+            if view_class is not None:
+                endpoint_silo_limit = getattr(view_class, "silo_limit", None)
+                if endpoint_silo_limit:
+                    for mode in endpoint_silo_limit.modes:
+                        if mode is SiloMode.MONOLITH or mode is SiloMode.get_current_mode():
+                            continue
+                        region = None
+                        if mode is SiloMode.REGION:
+                            # TODO: Can we infer the correct region here?  would need to package up the
+                            # the request dictionary into a higher level object, which also involves invoking
+                            # _base_environ and maybe other logic buried in Client.....
+                            region = get_region_by_name(settings.SENTRY_MONOLITH_REGION)
+                        with SiloMode.exit_single_process_silo_context(), SiloMode.enter_single_process_silo_context(
+                            mode, region
+                        ):
+                            return old_request(**request)
+            return old_request(**request)
+
+        with mock.patch.object(self.client, "request", new=request):
+            yield
+
     # Ensure that testcases that ask for DB setup actually make use of the
     # DB. If they don't, they're wasting CI time.
     if DETECT_TESTCASE_MISUSE:
@@ -702,6 +740,15 @@ class APITestCase(BaseTestCase, BaseAPITestCase):
             )
         ]
 
+    # The analytics event `name` was called with `kwargs` being a subset of its properties
+    def analytics_called_with_args(self, fn, name, **kwargs):
+        for call_args, call_kwargs in fn.call_args_list:
+            event_name = call_args[0]
+            if event_name == name:
+                assert all(call_kwargs.get(key, None) == val for key, val in kwargs.items())
+                return True
+        return False
+
 
 class TwoFactorAPITestCase(APITestCase):
     @cached_property
@@ -789,6 +836,24 @@ class RuleTestCase(TestCase):
         kwargs.setdefault("is_new_group_environment", True)
         kwargs.setdefault("has_reappeared", True)
         return EventState(**kwargs)
+
+    def get_condition_activity(self, **kwargs) -> ConditionActivity:
+        kwargs.setdefault("group_id", self.event.group.id)
+        kwargs.setdefault("type", ConditionActivityType.CREATE_ISSUE)
+        kwargs.setdefault("timestamp", self.event.datetime)
+        return ConditionActivity(**kwargs)
+
+    def passes_activity(
+        self,
+        rule: RuleBase,
+        condition_activity: Optional[ConditionActivity] = None,
+        event_map: Optional[Dict[str, Any]] = None,
+    ):
+        if condition_activity is None:
+            condition_activity = self.get_condition_activity()
+        if event_map is None:
+            event_map = {}
+        return rule.passes_activity(condition_activity, event_map)
 
     def assertPasses(self, rule, event=None, **kwargs):
         if event is None:
@@ -891,6 +956,7 @@ class PermissionTestCase(TestCase):
         self.assert_cannot_access(user, path, **kwargs)
 
 
+@requires_snuba
 class PluginTestCase(TestCase):
     @property
     def plugin(self):
@@ -1986,6 +2052,11 @@ class IntegrationRepositoryTestCase(APITestCase):
         super().setUp()
         self.login_as(self.user)
 
+    @pytest.fixture(autouse=True)
+    def responses_context(self):
+        with responses.mock:
+            yield
+
     def add_create_repository_responses(self, repository_config):
         raise NotImplementedError(f"implement for {type(self).__module__}.{type(self).__name__}")
 
@@ -2225,8 +2296,6 @@ class TestMigrations(TransactionTestCase):
         self.migrate_to = [(self.app, self.migrate_to)]
 
         connection = connections[self.connection]
-        with connection.cursor() as cursor:
-            cursor.execute("SET ROLE 'postgres'")
 
         self.setup_initial_state()
 
@@ -2347,6 +2416,12 @@ class ActivityTestCase(TestCase):
 
         return release, deploy
 
+    def get_notification_uuid(self, text: str) -> str:
+        # Allow notification\\_uuid and notification_uuid
+        result = re.search("notification.*_uuid=([a-zA-Z0-9-]+)", text)
+        assert result is not None
+        return result[1]
+
 
 class SlackActivityNotificationTest(ActivityTestCase):
     @cached_property
@@ -2395,6 +2470,11 @@ class SlackActivityNotificationTest(ActivityTestCase):
         self.name = self.user.get_display_name()
         self.short_id = self.group.qualified_short_id
 
+    @pytest.fixture(autouse=True)
+    def responses_context(self):
+        with responses.mock:
+            yield
+
     def assert_performance_issue_attachments(
         self, attachment, project_slug, referrer, alert_type="workflow"
     ):
@@ -2403,9 +2483,10 @@ class SlackActivityNotificationTest(ActivityTestCase):
             attachment["text"]
             == "db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21"
         )
+        notification_uuid = self.get_notification_uuid(attachment["title_link"])
         assert (
             attachment["footer"]
-            == f"{project_slug} | production | <http://testserver/settings/account/notifications/{alert_type}/?referrer={referrer}|Notification Settings>"
+            == f"{project_slug} | production | <http://testserver/settings/account/notifications/{alert_type}/?referrer={referrer}&notification_uuid={notification_uuid}|Notification Settings>"
         )
 
     def assert_generic_issue_attachments(
@@ -2413,33 +2494,35 @@ class SlackActivityNotificationTest(ActivityTestCase):
     ):
         assert attachment["title"] == TEST_ISSUE_OCCURRENCE.issue_title
         assert attachment["text"] == TEST_ISSUE_OCCURRENCE.evidence_display[0].value
+        notification_uuid = self.get_notification_uuid(attachment["title_link"])
         assert (
             attachment["footer"]
-            == f"{project_slug} | <http://testserver/settings/account/notifications/{alert_type}/?referrer={referrer}|Notification Settings>"
+            == f"{project_slug} | <http://testserver/settings/account/notifications/{alert_type}/?referrer={referrer}&notification_uuid={notification_uuid}|Notification Settings>"
         )
 
 
 class MSTeamsActivityNotificationTest(ActivityTestCase):
     def setUp(self):
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.MSTEAMS,
-            NotificationSettingTypes.WORKFLOW,
-            NotificationSettingOptionValues.ALWAYS,
-            user_id=self.user.id,
-        )
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.MSTEAMS,
-            NotificationSettingTypes.ISSUE_ALERTS,
-            NotificationSettingOptionValues.ALWAYS,
-            user_id=self.user.id,
-        )
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.MSTEAMS,
-            NotificationSettingTypes.DEPLOY,
-            NotificationSettingOptionValues.ALWAYS,
-            user_id=self.user.id,
-        )
-        UserOption.objects.create(user=self.user, key="self_notifications", value="1")
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            NotificationSetting.objects.update_settings(
+                ExternalProviders.MSTEAMS,
+                NotificationSettingTypes.WORKFLOW,
+                NotificationSettingOptionValues.ALWAYS,
+                user_id=self.user.id,
+            )
+            NotificationSetting.objects.update_settings(
+                ExternalProviders.MSTEAMS,
+                NotificationSettingTypes.ISSUE_ALERTS,
+                NotificationSettingOptionValues.ALWAYS,
+                user_id=self.user.id,
+            )
+            NotificationSetting.objects.update_settings(
+                ExternalProviders.MSTEAMS,
+                NotificationSettingTypes.DEPLOY,
+                NotificationSettingOptionValues.ALWAYS,
+                user_id=self.user.id,
+            )
+            UserOption.objects.create(user=self.user, key="self_notifications", value="1")
 
         self.tenant_id = "50cccd00-7c9c-4b32-8cda-58a084f9334a"
         self.integration = self.create_integration(

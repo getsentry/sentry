@@ -1,8 +1,10 @@
+from unittest.mock import patch
+
 import responses
-from freezegun import freeze_time
 
 from sentry.incidents.action_handlers import SentryAppActionHandler
 from sentry.incidents.models import AlertRuleTriggerAction, IncidentStatus
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 
@@ -106,7 +108,7 @@ class SentryAppAlertRuleUIComponentActionHandlerTest(FireTest):
         from sentry.rules.actions.notify_event_service import build_incident_attachment
 
         trigger = self.create_alert_rule_trigger(self.alert_rule, "hi", 1000)
-        action = self.create_alert_rule_trigger_action(
+        self.action = self.create_alert_rule_trigger_action(
             alert_rule_trigger=trigger,
             target_identifier=self.sentry_app.id,
             type=AlertRuleTriggerAction.Type.SENTRY_APP,
@@ -129,7 +131,7 @@ class SentryAppAlertRuleUIComponentActionHandlerTest(FireTest):
             body=json.dumps({"ok": "true"}),
         )
 
-        handler = SentryAppActionHandler(action, incident, self.project)
+        handler = SentryAppActionHandler(self.action, incident, self.project)
         metric_value = 1000
         with self.tasks():
             getattr(handler, method)(metric_value, IncidentStatus(incident.status))
@@ -156,3 +158,17 @@ class SentryAppAlertRuleUIComponentActionHandlerTest(FireTest):
 
     def test_resolve_metric_alert(self):
         self.run_fire_test("resolve")
+
+    @patch("sentry.analytics.record")
+    def test_alert_sent_recorded(self, mock_record):
+        self.run_fire_test()
+        mock_record.assert_called_with(
+            "alert.sent",
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            provider="sentry_app",
+            alert_id=self.alert_rule.id,
+            alert_type="metric_alert",
+            external_id=str(self.action.sentry_app_id),
+            notification_uuid="",
+        )

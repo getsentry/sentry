@@ -8,6 +8,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useUrlParams from 'sentry/utils/useUrlParams';
 
 export enum TabKey {
+  A11Y = 'a11y',
   CONSOLE = 'console',
   DOM = 'dom',
   ERRORS = 'errors',
@@ -18,11 +19,16 @@ export enum TabKey {
 }
 
 function isReplayTab(tab: string, organization: Organization): tab is TabKey {
+  const hasA11yTab = organization.features.includes('session-replay-a11y-tab');
   const hasPerfTab = organization.features.includes('session-replay-trace-table');
 
+  if (tab === TabKey.A11Y) {
+    return hasA11yTab;
+  }
   if (tab === TabKey.PERF) {
     return hasPerfTab;
   }
+
   return Object.values<string>(TabKey).includes(tab);
 }
 

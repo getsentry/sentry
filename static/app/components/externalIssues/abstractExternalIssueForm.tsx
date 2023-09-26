@@ -51,7 +51,7 @@ const DEBOUNCE_MS = 200;
  */
 export default class AbstractExternalIssueForm<
   P extends Props = Props,
-  S extends State = State
+  S extends State = State,
 > extends DeprecatedAsyncComponent<P, S> {
   shouldRenderBadRequests = true;
   model = new FormModel();

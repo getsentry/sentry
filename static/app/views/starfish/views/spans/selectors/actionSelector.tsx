@@ -8,7 +8,7 @@ import {t} from 'sentry/locale';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
-import {ModuleName, SpanMetricsFields} from 'sentry/views/starfish/types';
+import {ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
 import {buildEventViewQuery} from 'sentry/views/starfish/utils/buildEventViewQuery';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 import {
@@ -16,7 +16,7 @@ import {
   EmptyContainer,
 } from 'sentry/views/starfish/views/spans/selectors/emptyOption';
 
-const {SPAN_ACTION} = SpanMetricsFields;
+const {SPAN_ACTION} = SpanMetricsField;
 
 type Props = {
   moduleName?: ModuleName;

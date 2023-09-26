@@ -7,7 +7,6 @@ import pytest
 import responses
 from django.core import mail
 from django.test import override_settings
-from freezegun import freeze_time
 from requests import Request
 from responses import matchers
 
@@ -22,7 +21,7 @@ from sentry.shared_integrations.response.base import BaseApiResponse
 from sentry.silo.base import SiloMode
 from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers import with_feature
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.utils.cache import cache
 
 GITHUB_CODEOWNERS = {
@@ -94,6 +93,7 @@ class GitHubAppsClientTest(TestCase):
             assert gh_rate_limit.used == 7
             assert gh_rate_limit.next_window() == "17:39:49"
 
+    @responses.activate
     def test_get_rate_limit_non_existant_resouce(self):
         with pytest.raises(AssertionError):
             self.github_client.get_rate_limit("foo")
@@ -594,7 +594,6 @@ class GithubProxyClientTest(TestCase):
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value=ApiError)
     @responses.activate
-    @with_feature("organizations:github-disable-on-broken")
     def test_fatal_and_disable_integration(self, get_jwt):
         """
         fatal fast shut off with disable flag on, integration should be broken and disabled
@@ -620,7 +619,6 @@ class GithubProxyClientTest(TestCase):
         assert len(buffer._get_all_from_buffer()) == 0
 
     @responses.activate
-    @with_feature("organizations:github-disable-on-broken")
     def test_disable_email(self):
         with self.tasks():
             notify_disable(
@@ -646,7 +644,7 @@ class GithubProxyClientTest(TestCase):
     @responses.activate
     def test_fatal_integration(self, get_jwt):
         """
-        fatal fast shut off with disable flag off, integration should be broken but not disabled
+        fatal fast shut off with disable flag on, integration should be broken and disabled
         """
         responses.add(
             responses.POST,
@@ -661,10 +659,8 @@ class GithubProxyClientTest(TestCase):
         self.gh_client.integration = None
         with pytest.raises(Exception):
             self.gh_client.get_blame_for_file(self.repo, "foo.py", "main", 1)
-        buffer = IntegrationRequestBuffer(self.gh_client._get_redis_key())
-        assert buffer.is_integration_broken() is True
         integration = Integration.objects.get(id=self.integration.id)
-        assert integration.status == ObjectStatus.ACTIVE
+        assert integration.status == ObjectStatus.DISABLED
 
     @responses.activate
     def test_error_integration(self):
@@ -697,7 +693,6 @@ class GithubProxyClientTest(TestCase):
         assert buffer.is_integration_broken() is False
 
     @responses.activate
-    @with_feature("organizations:github-disable-on-broken")
     @freeze_time("2022-01-01 03:30:00")
     def test_slow_integration_is_not_broken_or_disabled(self):
         """
@@ -729,8 +724,8 @@ class GithubProxyClientTest(TestCase):
     @freeze_time("2022-01-01 03:30:00")
     def test_a_slow_integration_is_broken(self):
         """
-        slow shut off with disable flag off
-        put errors in buffer for 10 days, assert integration is broken but not disabled
+        slow shut off with disable flag on
+        put errors in buffer for 10 days, assert integration is broken and disabled
         """
         responses.add(
             responses.POST,
@@ -746,7 +741,7 @@ class GithubProxyClientTest(TestCase):
             with freeze_time(now - timedelta(days=i)):
                 buffer.record_error()
         self.gh_client.integration = None
+        assert Integration.objects.get(id=self.integration.id).status == ObjectStatus.ACTIVE
         with pytest.raises(Exception):
             self.gh_client.get_blame_for_file(self.repo, "foo.py", "main", 1)
-        assert buffer.is_integration_broken() is True
-        assert Integration.objects.get(id=self.integration.id).status == ObjectStatus.ACTIVE
+        assert Integration.objects.get(id=self.integration.id).status == ObjectStatus.DISABLED

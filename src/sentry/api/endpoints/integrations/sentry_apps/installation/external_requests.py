@@ -1,6 +1,7 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import SentryAppInstallationBaseEndpoint
 from sentry.mediators import external_requests
@@ -9,6 +10,10 @@ from sentry.models import Project
 
 @region_silo_endpoint
 class SentryAppInstallationExternalRequestsEndpoint(SentryAppInstallationBaseEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, installation) -> Response:
         try:
             project = Project.objects.get(

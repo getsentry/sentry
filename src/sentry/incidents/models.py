@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from collections import namedtuple
 from enum import Enum
+from typing import Optional
+from uuid import uuid4
 
 from django.conf import settings
 from django.core.cache import cache
@@ -9,7 +11,9 @@ from django.db import IntegrityError, models, router, transaction
 from django.db.models.signals import post_delete, post_save
 from django.utils import timezone
 
-from sentry.backup.scopes import RelocationScope
+from sentry.backup.dependencies import PrimaryKeyMap
+from sentry.backup.helpers import ImportFlags
+from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import (
     ArrayField,
     FlexibleForeignKey,
@@ -212,6 +216,18 @@ class Incident(Model):
     def duration(self):
         return self.current_end_date - self.date_started
 
+    def normalize_before_relocation_import(
+        self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
+    ) -> Optional[int]:
+        old_pk = super().normalize_before_relocation_import(pk_map, scope, flags)
+        if old_pk is None:
+            return None
+
+        # Generate a new UUID, if one exists.
+        if self.detection_uuid:
+            self.detection_uuid = uuid4()
+        return old_pk
+
 
 @region_silo_only_model
 class PendingIncidentSnapshot(Model):
@@ -279,6 +295,18 @@ class IncidentActivity(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_incidentactivity"
+
+    def normalize_before_relocation_import(
+        self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
+    ) -> Optional[int]:
+        old_pk = super().normalize_before_relocation_import(pk_map, scope, flags)
+        if old_pk is None:
+            return None
+
+        # Generate a new UUID, if one exists.
+        if self.notification_uuid:
+            self.notification_uuid = uuid4()
+        return old_pk
 
 
 @region_silo_only_model
@@ -612,15 +640,15 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
         else:
             metrics.incr(f"alert_rule_trigger.unhandled_type.{self.type}")
 
-    def fire(self, action, incident, project, metric_value, new_status):
+    def fire(self, action, incident, project, metric_value, new_status, notification_uuid=None):
         handler = self.build_handler(action, incident, project)
         if handler:
-            return handler.fire(metric_value, new_status)
+            return handler.fire(metric_value, new_status, notification_uuid)
 
-    def resolve(self, action, incident, project, metric_value, new_status):
+    def resolve(self, action, incident, project, metric_value, new_status, notification_uuid=None):
         handler = self.build_handler(action, incident, project)
         if handler:
-            return handler.resolve(metric_value, new_status)
+            return handler.resolve(metric_value, new_status, notification_uuid)
 
     @classmethod
     def register_type(cls, slug, type, supported_target_types, integration_provider=None):

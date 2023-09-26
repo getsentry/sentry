@@ -16,18 +16,20 @@ from sentry.exceptions import PluginError
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.killswitches import killswitch_matches_context
+from sentry.replays.lib.event_linking import transform_event_for_linking_payload
+from sentry.replays.lib.kafka import initialize_replays_publisher
 from sentry.sentry_metrics.client import generic_metrics_backend
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.signals import event_processed, issue_unignored, transaction_processed
 from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.utils import metrics
+from sentry.utils import json, metrics
 from sentry.utils.cache import cache
 from sentry.utils.event_frames import get_sdk_name
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.locking.manager import LockManager
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
-from sentry.utils.safe import safe_execute
+from sentry.utils.safe import get_path, safe_execute
 from sentry.utils.sdk import bind_organization_context, set_current_event_project
 from sentry.utils.services import build_instance_from_options
 
@@ -590,7 +592,10 @@ def post_process_group(
         update_event_groups(event, group_states)
         bind_organization_context(event.project.organization)
         _capture_event_stats(event)
-        if features.has("organizations:escalating-metrics-backend", event.project.organization):
+        if (
+            features.has("organizations:escalating-metrics-backend", event.project.organization)
+            and not is_transaction_event
+        ):
             _update_escalating_metrics(event)
 
         group_events: Mapping[int, GroupEvent] = {
@@ -684,6 +689,8 @@ def update_event_groups(event: Event, group_states: Optional[GroupStates] = None
         # deprecated event.group and event.group_id usage, kept here for backwards compatibility
         event.group, _ = get_group_with_redirect(event.group_id)
         event.group_id = event.group.id
+        # We buffer updates to last_seen, assume its at least >= the event datetime
+        event.group.last_seen = max(event.datetime, event.group.last_seen)
 
     # Re-bind Group since we're reading the Event object
     # from cache, which may contain a stale group and project
@@ -691,6 +698,8 @@ def update_event_groups(event: Event, group_states: Optional[GroupStates] = None
     rebound_groups = []
     for group_state in group_states:
         rebound_group = get_group_with_redirect(group_state["id"])[0]
+        # We buffer updates to last_seen, assume its at least >= the event datetime
+        rebound_group.last_seen = max(event.datetime, rebound_group.last_seen)
 
         # We fetch buffered updates to group aggregates here and populate them on the Group. This
         # helps us avoid problems with processing group ignores and alert rules that rely on these
@@ -837,6 +846,48 @@ def process_snoozes(job: PostProcessJob) -> None:
 
         job["has_reappeared"] = False
         return
+
+
+def process_replay_link(job: PostProcessJob) -> None:
+    def _get_replay_id(event):
+        # replay ids can either come as a context, or a tag.
+        # right now they come as a context on non-js events,
+        # and javascript transaction (through DSC context)
+        # It comes as a tag on js errors.
+        # TODO: normalize this upstream in relay and javascript SDK. and eventually remove the tag
+        # logic.
+
+        context_replay_id = get_path(event.data, "contexts", "replay", "replay_id")
+        return context_replay_id or event.get_tag("replayId")
+
+    if job["is_reprocessed"]:
+        return
+
+    if not features.has(
+        "organizations:session-replay-event-linking", job["event"].project.organization
+    ):
+        metrics.incr("post_process.process_replay_link.feature_not_enabled")
+        return
+
+    metrics.incr("post_process.process_replay_link.id_sampled")
+
+    group_event = job["event"]
+    replay_id = _get_replay_id(group_event)
+    if not replay_id:
+        return
+
+    metrics.incr("post_process.process_replay_link.id_exists")
+
+    publisher = initialize_replays_publisher(is_async=True)
+    try:
+        kafka_payload = transform_event_for_linking_payload(replay_id, group_event)
+    except ValueError:
+        metrics.incr("post_process.process_replay_link.id_invalid")
+
+    publisher.publish(
+        "ingest-replay-events",
+        json.dumps(kafka_payload),
+    )
 
 
 def process_rules(job: PostProcessJob) -> None:
@@ -1150,6 +1201,7 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
         update_existing_attachments,
         fire_error_processed,
         sdk_crash_monitoring,
+        process_replay_link,
     ],
 }
 

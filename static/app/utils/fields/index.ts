@@ -162,6 +162,29 @@ export enum MobileVital {
   TIME_TO_INITIAL_DISPLAY = 'measurements.time_to_initial_display',
 }
 
+export enum StackTags {
+  STACK_ABS_PATH = 'stack.abs_path',
+  STACK_COLNO = 'stack.colno',
+  STACK_FILENAME = 'stack.filename',
+  STACK_FUNCTION = 'stack.function',
+  STACK_IN_APP = 'stack.in_app',
+  STACK_LINENO = 'stack.lineno',
+  STACK_MODULE = 'stack.module',
+  STACK_PACKAGE = 'stack.package',
+  STACK_RESOURCE = 'stack.resource',
+  STACK_STACK_LEVEL = 'stack.stack_level',
+}
+
+export enum ErrorTags {
+  ERROR_HANDLED = 'error.handled',
+  ERROR_MECHANISM = 'error.mechanism',
+  ERROR_TYPE = 'error.type',
+  ERROR_UNHANDLED = 'error.unhandled',
+  ERROR_VALUE = 'error.value',
+  ERROR_RECEIVED = 'error.received',
+  ERROR_MAIN_THREAD = 'error.main_thread',
+}
+
 export enum SpanOpBreakdown {
   SPANS_BROWSER = 'spans.browser',
   SPANS_DB = 'spans.db',

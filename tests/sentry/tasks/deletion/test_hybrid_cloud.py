@@ -4,20 +4,20 @@ from unittest.mock import patch
 import pytest
 from django.apps import apps
 from django.db.models import Max, QuerySet
-from django.test import override_settings
 
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.models import ControlOutbox, OutboxScope, SavedSearch
 from sentry.silo import SiloMode
 from sentry.tasks.deletion.hybrid_cloud import (
-    deletion_silo_modes,
     get_watermark,
     schedule_hybrid_cloud_foreign_key_jobs,
+    schedule_hybrid_cloud_foreign_key_jobs_control,
     set_watermark,
 )
 from sentry.testutils.factories import Factories
+from sentry.testutils.helpers.task_runner import BurstTaskRunner
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.testutils.silo import assume_test_silo_mode, no_silo_test, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, region_silo_test
 from sentry.types.region import find_regions_for_user
 
 
@@ -37,19 +37,19 @@ def reset_watermarks():
     we also mock the batch size to 1 in this module we run out of stack
     frames spawning celery jobs inside of each other (which are run immediately).
     """
-    for silo_mode in deletion_silo_modes():
-        for app_models in apps.all_models.values():
-            for model in app_models.values():
-                if not hasattr(model._meta, "silo_limit"):
+    silo_mode = SiloMode.get_current_mode()
+    for app_models in apps.all_models.values():
+        for model in app_models.values():
+            if not hasattr(model._meta, "silo_limit"):
+                continue
+            if silo_mode not in model._meta.silo_limit.modes:
+                continue
+            for field in model._meta.fields:
+                if not isinstance(field, HybridCloudForeignKey):
                     continue
-                if silo_mode not in model._meta.silo_limit.modes:
-                    continue
-                for field in model._meta.fields:
-                    if not isinstance(field, HybridCloudForeignKey):
-                        continue
-                    max_val = model.objects.aggregate(Max("id"))["id__max"] or 0
-                    set_watermark("tombstone", field, max_val, "abc123")
-                    set_watermark("row", field, max_val, "abc123")
+                max_val = model.objects.aggregate(Max("id"))["id__max"] or 0
+                set_watermark("tombstone", field, max_val, "abc123")
+                set_watermark("row", field, max_val, "abc123")
 
 
 @pytest.fixture
@@ -57,7 +57,8 @@ def saved_search_owner_id_field():
     return SavedSearch._meta.get_field("owner_id")
 
 
-@django_db_all(transaction=True)
+@django_db_all
+@region_silo_test(stable=True)
 def test_no_work_is_no_op(task_runner, saved_search_owner_id_field):
     reset_watermarks()
 
@@ -72,7 +73,7 @@ def test_no_work_is_no_op(task_runner, saved_search_owner_id_field):
     assert get_watermark("tombstone", saved_search_owner_id_field) == (0, tid)
 
 
-@django_db_all(transaction=True)
+@django_db_all
 def test_watermark_and_transaction_id(task_runner, saved_search_owner_id_field):
     _, tid1 = get_watermark("tombstone", saved_search_owner_id_field)
     # TODO: Add another test to validate the tid is unique per field
@@ -115,7 +116,7 @@ def setup_deletable_objects(
     assert False, "find_regions_for_user could not determine a region for production."
 
 
-@django_db_all(transaction=True)
+@django_db_all
 @region_silo_test(stable=True)
 def test_region_processing(task_runner):
     reset_watermarks()
@@ -130,8 +131,11 @@ def test_region_processing(task_runner):
     assert results2.exists()
 
     # Processing now only removes the first set
-    with task_runner():
+    with BurstTaskRunner() as burst:
         schedule_hybrid_cloud_foreign_key_jobs()
+
+    burst()
+
     assert not results1.exists()
     assert results2.exists()
 
@@ -150,16 +154,17 @@ def test_region_processing(task_runner):
     assert not results3.exists()
 
 
-# No need to run both saas and control tests for this logic, the silo testing is baked in directly.
-@django_db_all(transaction=True)
-@no_silo_test(stable=True)
+@django_db_all
+@control_silo_test(stable=True)
 def test_control_processing(task_runner):
     reset_watermarks()
 
-    with override_settings(SILO_MODE=SiloMode.CONTROL):
+    with assume_test_silo_mode(SiloMode.CONTROL):
         results, _ = setup_deletable_objects(10)
-        with task_runner():
-            schedule_hybrid_cloud_foreign_key_jobs()
+        with BurstTaskRunner() as burst:
+            schedule_hybrid_cloud_foreign_key_jobs_control()
+
+        burst()
 
         # Do not process
         assert results.exists()

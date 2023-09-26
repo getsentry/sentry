@@ -10,6 +10,7 @@ from rest_framework.response import Response
 
 from sentry import features, tagstore, tsdb
 from sentry.api import client
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases import GroupEndpoint
 from sentry.api.helpers.environments import get_environments
@@ -21,12 +22,14 @@ from sentry.api.helpers.group_index import (
 )
 from sentry.api.serializers import GroupSerializer, GroupSerializerSnuba, serialize
 from sentry.api.serializers.models.plugin import PluginSerializer, is_plugin_deprecated
+from sentry.api.serializers.models.team import TeamSerializer
 from sentry.issues.constants import get_issue_tsdb_group_model
 from sentry.issues.escalating_group_forecast import EscalatingGroupForecast
 from sentry.issues.grouptype import GroupCategory
 from sentry.models import Activity, Group, GroupSeen, GroupSubscriptionManager, UserReport
 from sentry.models.groupinbox import get_inbox_details
 from sentry.models.groupowner import get_owner_details
+from sentry.models.team import Team
 from sentry.plugins.base import plugins
 from sentry.plugins.bases.issue2 import IssueTrackingPlugin2
 from sentry.services.hybrid_cloud.user.service import user_service
@@ -39,6 +42,11 @@ delete_logger = logging.getLogger("sentry.deletions.api")
 
 @region_silo_endpoint
 class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
+    publish_status = {
+        "DELETE": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.UNKNOWN,
+        "PUT": ApiPublishStatus.UNKNOWN,
+    }
     enforce_rate_limit = True
     rate_limits = {
         "GET": {
@@ -153,6 +161,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         the issue (title, last seen, first seen), some overall numbers (number
         of comments, user reports) as well as the summarized event data.
 
+        :pparam string organization_slug: The slug of the organization.
         :pparam string issue_id: the ID of the issue to retrieve.
         :auth: required
         """
@@ -239,12 +248,6 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                 {
                     "activity": serialize(activity, request.user),
                     "seenBy": seen_by,
-                    "participants": user_service.serialize_many(
-                        filter={
-                            "user_ids": GroupSubscriptionManager.get_participating_user_ids(group)
-                        },
-                        as_user=request.user,
-                    ),
                     "pluginActions": action_list,
                     "pluginIssues": self._get_available_issue_plugins(request, group),
                     "pluginContexts": self._get_context_plugins(request, group),
@@ -252,6 +255,30 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                     "stats": {"24h": hourly_stats, "30d": daily_stats},
                 }
             )
+
+            participants = user_service.serialize_many(
+                filter={"user_ids": GroupSubscriptionManager.get_participating_user_ids(group)},
+                as_user=request.user,
+            )
+
+            for participant in participants:
+                participant["type"] = "user"
+
+            if features.has("organizations:team-workflow-notifications", group.organization):
+                team_ids = GroupSubscriptionManager.get_participating_team_ids(group)
+
+                teams = Team.objects.filter(id__in=team_ids)
+                team_serializer = TeamSerializer()
+
+                serialized_teams = []
+                for team in teams:
+                    serialized_team = serialize(team, request.user, team_serializer)
+                    serialized_team["type"] = "team"
+                    serialized_teams.append(serialized_team)
+
+                participants.extend(serialized_teams)
+
+            data.update({"participants": participants})
 
             metrics.incr(
                 "group.update.http_response",

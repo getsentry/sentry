@@ -8,6 +8,7 @@ import {
 } from 'sentry/actionCreators/developmentAlerts';
 import {fetchGuides} from 'sentry/actionCreators/guides';
 import {openCommandPalette} from 'sentry/actionCreators/modal';
+import {fetchOrganizations} from 'sentry/actionCreators/organizations';
 import {initApiClientErrorHandling} from 'sentry/api';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import GlobalModal from 'sentry/components/globalModal';
@@ -75,7 +76,7 @@ function App({children, params}: Props) {
    */
   const loadOrganizations = useCallback(async () => {
     try {
-      const data = await api.requestPromise('/organizations/', {query: {member: '1'}});
+      const data = await fetchOrganizations(api, {member: '1'});
       OrganizationsStore.load(data);
     } catch {
       // TODO: do something?

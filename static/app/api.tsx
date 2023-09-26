@@ -10,11 +10,15 @@ import {
   SUDO_REQUIRED,
   SUPERUSER_REQUIRED,
 } from 'sentry/constants/apiErrorCodes';
+import controlsilopatterns from 'sentry/data/controlsiloUrlPatterns';
 import {metric} from 'sentry/utils/analytics';
 import getCsrfToken from 'sentry/utils/getCsrfToken';
 import {uniqueId} from 'sentry/utils/guid';
 import RequestError from 'sentry/utils/requestError/requestError';
 import {sanitizePath} from 'sentry/utils/requestError/sanitizePath';
+
+import ConfigStore from './stores/configStore';
+import OrganizationStore from './stores/organizationStore';
 
 export class Request {
   /**
@@ -47,7 +51,7 @@ export class Request {
 export type ApiResult<Data = any> = [
   data: Data,
   statusText: string | undefined,
-  resp: ResponseMeta | undefined
+  resp: ResponseMeta | undefined,
 ];
 
 export type ResponseMeta<R = any> = {
@@ -146,21 +150,24 @@ export const initApiClientErrorHandling = () =>
 /**
  * Construct a full request URL
  */
-function buildRequestUrl(baseUrl: string, path: string, query: RequestOptions['query']) {
+function buildRequestUrl(baseUrl: string, path: string, options: RequestOptions) {
   let params: string;
   try {
-    params = qs.stringify(query ?? []);
+    params = qs.stringify(options.query ?? []);
   } catch (err) {
     Sentry.withScope(scope => {
       scope.setExtra('path', path);
-      scope.setExtra('query', query);
+      scope.setExtra('query', options.query);
       Sentry.captureException(err);
     });
     throw err;
   }
 
-  // Append the baseUrl
+  // Append the baseUrl if required
   let fullUrl = path.includes(baseUrl) ? path : baseUrl + path;
+
+  // Apply path and domain transforms for hybrid-cloud
+  fullUrl = resolveHostname(fullUrl, options.host);
 
   // Append query parameters
   if (params) {
@@ -222,6 +229,10 @@ export type RequestOptions = RequestCallbacks & {
    * Headers add to the request.
    */
   headers?: Record<string, string>;
+  /**
+   * The host the request should be made to.
+   */
+  host?: string;
   /**
    * The HTTP method to use when making the API request
    */
@@ -364,7 +375,7 @@ export class Client {
   request(path: string, options: Readonly<RequestOptions> = {}): Request {
     const method = options.method || (options.data ? 'POST' : 'GET');
 
-    let fullUrl = buildRequestUrl(this.baseUrl, path, options.query);
+    let fullUrl = buildRequestUrl(this.baseUrl, path, options);
 
     let data = options.data;
 
@@ -626,4 +637,56 @@ export class Client {
       })
     );
   }
+}
+
+export function resolveHostname(path: string, hostname?: string): string {
+  const storeState = OrganizationStore.get();
+  const configLinks = ConfigStore.get('links');
+
+  hostname = hostname ?? '';
+  if (!hostname && storeState.organization?.features.includes('frontend-domainsplit')) {
+    const isControlSilo = detectControlSiloPath(path);
+    if (!isControlSilo && configLinks.regionUrl) {
+      hostname = configLinks.regionUrl;
+    }
+    if (isControlSilo && configLinks.sentryUrl) {
+      hostname = configLinks.sentryUrl;
+    }
+  }
+
+  // If we're making a request to the applications' root
+  // domain, we can drop the domain as webpack devserver will add one.
+  // TODO(hybridcloud) This can likely be removed when sentry.types.region.Region.to_url()
+  // loses the monolith mode condition.
+  if (window.__SENTRY_DEV_UI && hostname === configLinks.sentryUrl) {
+    hostname = '';
+  }
+
+  // When running as yarn dev-ui we can't spread requests across domains because
+  // of CORS. Instead we extract the subdomain from the hostname
+  // and prepend the URL with `/region/$name` so that webpack-devserver proxy
+  // can route requests to the regions.
+  if (hostname && window.__SENTRY_DEV_UI) {
+    const domainpattern = /https?\:\/\/([^.]*)\.sentry\.io/;
+    const domainmatch = hostname.match(domainpattern);
+    if (domainmatch) {
+      hostname = '';
+      path = `/region/${domainmatch[1]}${path}`;
+    }
+  }
+  if (hostname) {
+    path = `${hostname}${path}`;
+  }
+
+  return path;
+}
+
+function detectControlSiloPath(path: string): boolean {
+  path = path.startsWith('/') ? path.substring(1) : path;
+  for (const pattern of controlsilopatterns) {
+    if (pattern.test(path)) {
+      return true;
+    }
+  }
+  return false;
 }

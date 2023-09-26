@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 
 import {render} from 'sentry-test/reactTestingLibrary';
 
@@ -74,12 +74,61 @@ describe('SQLishFormatter', function () {
         LIMIT 1"
       `);
     });
+
+    it('Reflows long lines to a max length', () => {
+      expect(
+        formatter.toString(
+          'SELECT "sentry_organization"."id", "sentry_organization"."name", "sentry_organization"."slug", "sentry_organization"."status", "sentry_organization"."date_added", "sentry_organization"."default_role", "sentry_organization"."is_test", "sentry_organization"."flags" FROM "sentry_organization" WHERE "sentry_organization"."id" = %s LIMIT 21'
+        )
+      ).toMatchInlineSnapshot(`
+        "SELECT "sentry_organization"."id", "sentry_organization"."name", "sentry_organization"."slug",
+          "sentry_organization"."status", "sentry_organization"."date_added",
+          "sentry_organization"."default_role", "sentry_organization"."is_test", "sentry_organization"."flags"
+        FROM "sentry_organization"
+        WHERE "sentry_organization"."id" = %s
+        LIMIT 21"
+      `);
+    });
+
+    it('Reflows to specified width', () => {
+      expect(
+        formatter.toString(
+          'SELECT "sentry_organization"."id", "sentry_organization"."name", "sentry_organization"."slug", "sentry_organization"."status", "sentry_organization"."date_added" FROM "sentry_organization" WHERE "sentry_organization"."id" = %s LIMIT 21',
+          {maxLineLength: 40}
+        )
+      ).toMatchInlineSnapshot(`
+        "SELECT "sentry_organization"."id",
+          "sentry_organization"."name",
+          "sentry_organization"."slug",
+          "sentry_organization"."status",
+          "sentry_organization"."date_added"
+        FROM "sentry_organization"
+        WHERE "sentry_organization"."id" = %s
+        LIMIT 21"
+      `);
+    });
+
+    it('Reflows avoid unnecessary newlines', () => {
+      expect(
+        formatter.toString(
+          'SELECT "sentry_team"."org_role" FROM "sentry_team" INNER JOIN "sentry_organizationmember_teams" ON ("sentry_team"."id" = "sentry_organizationmember_teams"."team_id" WHERE ( "sentry_organizationmember_teams"."organizationmember_id" = %s AND NOT ("sentry_team"."org_role" IS NULL)'
+        )
+      ).toMatchInlineSnapshot(`
+        "SELECT "sentry_team"."org_role"
+        FROM "sentry_team"
+        INNER JOIN "sentry_organizationmember_teams" ON ("sentry_team"."id" =
+          "sentry_organizationmember_teams"."team_id"
+        WHERE (
+           "sentry_organizationmember_teams"."organizationmember_id" = %s AND NOT ("sentry_team"."org_role" IS
+            NULL)"
+      `);
+    });
   });
 
   describe('SQLishFormatter.toSimpleMarkup()', () => {
     const formatter = new SQLishFormatter();
     const getMarkup = (markup: any): string => {
-      const {container} = render(<React.Fragment>{markup}</React.Fragment>);
+      const {container} = render(<Fragment>{markup}</Fragment>);
 
       return container.innerHTML;
     };

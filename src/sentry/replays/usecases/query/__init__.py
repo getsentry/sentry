@@ -4,10 +4,10 @@ For now, this is the search and sort entry-point.  Some of this code may be move
 replays/query.py when the pre-existing query module is deprecated.
 
 There are two important functions in this module: "search_filter_to_condition" and
-"query_using_aggregated_search".  "search_filter_to_condition" is responsible for transforming a
+"query_using_optimized_search".  "search_filter_to_condition" is responsible for transforming a
 SearchFilter into a Condition.  This is the only entry-point into the Field system.
 
-"query_using_aggregated_search" is the request processing engine.  It accepts raw data from an
+"query_using_optimized_search" is the request processing engine.  It accepts raw data from an
 external source, makes decisions around what to query and when, and is responsible for returning
 intelligible output for the "post_process" module.  More information on its implementation can be
 found in the function.
@@ -16,7 +16,7 @@ from __future__ import annotations
 
 from collections import namedtuple
 from datetime import datetime, timedelta
-from typing import Union, cast
+from typing import Any, Mapping, Union, cast
 
 from rest_framework.exceptions import ParseError
 from snuba_sdk import (
@@ -137,11 +137,16 @@ def search_filter_to_condition(
 # Leaving it here for now so this is easier to review/remove.
 from sentry.replays.usecases.query.configs.aggregate import search_config as agg_search_config
 from sentry.replays.usecases.query.configs.aggregate_sort import sort_config as agg_sort_config
+from sentry.replays.usecases.query.configs.aggregate_sort import sort_is_scalar_compatible
+from sentry.replays.usecases.query.configs.scalar import (
+    can_scalar_search_subquery,
+    scalar_search_config,
+)
 
 Paginators = namedtuple("Paginators", ("limit", "offset"))
 
 
-def query_using_aggregated_search(
+def query_using_optimized_search(
     fields: list[str],
     search_filters: list[Union[SearchFilter, str, ParenExpression]],
     environments: list[str],
@@ -152,14 +157,7 @@ def query_using_aggregated_search(
     period_start: datetime,
     period_stop: datetime,
 ):
-    tenant_ids = _make_tenant_id(organization)
-
-    if sort is None:
-        sorting = [OrderBy(_get_sort_column("started_at"), Direction.DESC)]
-    elif sort.startswith("-"):
-        sorting = [OrderBy(_get_sort_column(sort[1:]), Direction.DESC)]
-    else:
-        sorting = [OrderBy(_get_sort_column(sort), Direction.ASC)]
+    tenant_id = _make_tenant_id(organization)
 
     # Environments is provided to us outside of the ?query= url parameter. It's stil filtered like
     # the values in that parameter so let's shove it inside and process it like any other filter.
@@ -168,93 +166,102 @@ def query_using_aggregated_search(
             SearchFilter(SearchKey("environment"), "IN", SearchValue(environments))
         )
 
-    # First aggregation step.
+    can_scalar_sort = sort_is_scalar_compatible(sort or "started_at")
+    can_scalar_search = can_scalar_search_subquery(search_filters)
 
-    simple_aggregation_query = make_simple_aggregation_query(
-        search_filters=search_filters,
-        orderby=sorting,
-        project_ids=project_ids,
-        period_start=period_start,
-        period_stop=period_stop,
-    )
+    if can_scalar_sort and can_scalar_search:
+        query = make_scalar_search_conditions_query(
+            search_filters=search_filters,
+            sort=sort,
+            project_ids=project_ids,
+            period_start=period_start,
+            period_stop=period_stop,
+        )
+        referrer = "replays.query.browse_scalar_conditions_subquery"
+    else:
+        query = make_aggregate_search_conditions_query(
+            search_filters=search_filters,
+            sort=sort,
+            project_ids=project_ids,
+            period_start=period_start,
+            period_stop=period_stop,
+        )
+        referrer = "replays.query.browse_aggregated_conditions_subquery"
+
     if pagination:
-        simple_aggregation_query = simple_aggregation_query.set_limit(pagination.limit)
-        simple_aggregation_query = simple_aggregation_query.set_offset(pagination.offset)
+        query = query.set_limit(pagination.limit)
+        query = query.set_offset(pagination.offset)
 
-    # The simple aggregation query does not select by anything other than replay_id.  Every filter
-    # is applies is ephemeral and calculated for its own purpose.  These filters _should_ be
-    # optimized to be memory sensitive in cases where its required.
-    #
-    # This query will aggregate the entire data-set contained within the period's start and end
-    # times.
-    simple_aggregation_response = raw_snql_query(
-        Request(
-            dataset="replays",
-            app_id="replay-backend-web",
-            query=simple_aggregation_query,
-            tenant_ids=tenant_ids,
-        ),
-        "replays.query.browse_simple_aggregation",
-    )
+    subquery_response = execute_query(query, tenant_id, referrer)
 
     # These replay_ids are ordered by the OrderBy expression in the query above.
-    replay_ids = [row["replay_id"] for row in simple_aggregation_response.get("data", [])]
+    replay_ids = [row["replay_id"] for row in subquery_response.get("data", [])]
+    if not replay_ids:
+        return []
 
     # The final aggregation step.  Here we pass the replay_ids as the only filter.  In this step
     # we select everything and use as much memory as we need to complete the operation.
     #
     # If this step runs out of memory your pagination size is about 1,000,000 rows too large.
     # That's a joke.  This will complete very quickly at normal pagination sizes.
-    results = raw_snql_query(
-        Request(
-            dataset="replays",
-            app_id="replay-backend-web",
-            query=make_full_aggregation_query(
-                fields=fields,
-                replay_ids=replay_ids,
-                project_ids=project_ids,
-                period_start=period_start,
-                period_end=period_stop,
-            ),
-            tenant_ids=tenant_ids,
+    results = execute_query(
+        make_full_aggregation_query(
+            fields=fields,
+            replay_ids=replay_ids,
+            project_ids=project_ids,
+            period_start=period_start,
+            period_end=period_stop,
         ),
-        "replays.query.browse_points",
+        tenant_id,
+        referrer="replays.query.browse_query",
     )["data"]
 
-    # A weird snuba-ism.  You can't sort by an aggregation that is also present in the select.
-    # Even if the aggregations are different.  So we have to fallback to sorting on the
-    # application server.
-    #
-    # For example these are all examples of valid SQL that are not possible with Snuba.
-    #
-    #   SELECT any(os_name)
-    #   FROM replays_local
-    #   GROUP BY replay_id
-    #   ORDER BY any(os_name)
-    #
-    #   SELECT anyIf(os_name, notEmpty(os_name))
-    #   FROM replays_local
-    #   GROUP BY replay_id
-    #   ORDER BY any(os_name)
-    ordered_results = [None] * len(replay_ids)
-    replay_id_to_index = {replay_id: index for index, replay_id in enumerate(replay_ids)}
-    for result in results:
-        index = replay_id_to_index[result["replay_id"]]
-        ordered_results[index] = result
-
-    return ordered_results
+    return _make_ordered(replay_ids, results)
 
 
-def make_simple_aggregation_query(
+def make_scalar_search_conditions_query(
     search_filters: list[Union[SearchFilter, str, ParenExpression]],
-    orderby: list[OrderBy],
+    sort: str | None,
     project_ids: list[int],
     period_start: datetime,
     period_stop: datetime,
 ) -> Query:
-    # This is our entry-point to the SearchFilter to Condition transformation process.  We do not
-    # filter at any other step in this process.
+    # NOTE: This query may return replay-ids which do not have a segment_id 0 row. These replays
+    # will be removed from the final output and could lead to pagination peculiarities. In
+    # practice, this is not expected to be noticable by the end-user.
+    #
+    # To fix this issue remove the ability to search against "varying" columns and apply a
+    # "segment_id = 0" condition to the WHERE clause.
+
+    where = handle_search_filters(scalar_search_config, search_filters)
+    orderby = handle_ordering(sort)
+
+    return Query(
+        match=Entity("replays"),
+        select=[Column("replay_id")],
+        where=[
+            Condition(Column("project_id"), Op.IN, project_ids),
+            Condition(Column("timestamp"), Op.LT, period_stop),
+            Condition(Column("timestamp"), Op.GTE, period_start),
+            *where,
+        ],
+        orderby=orderby,
+        groupby=[Column("replay_id")],
+        granularity=Granularity(3600),
+    )
+
+
+def make_aggregate_search_conditions_query(
+    search_filters: list[Union[SearchFilter, str, ParenExpression]],
+    sort: str | None,
+    project_ids: list[int],
+    period_start: datetime,
+    period_stop: datetime,
+) -> Query:
+    orderby = handle_ordering(sort)
+
     having: list[Condition] = handle_search_filters(agg_search_config, search_filters)
+    having.append(Condition(Function("min", parameters=[Column("segment_id")]), Op.EQ, 0))
 
     return Query(
         match=Entity("replays"),
@@ -301,9 +308,34 @@ def make_full_aggregation_query(
             Condition(Column("timestamp"), Op.GTE, period_start - timedelta(hours=1)),
             Condition(Column("timestamp"), Op.LT, period_end + timedelta(hours=1)),
         ],
+        # NOTE: Refer to this note: "make_scalar_search_conditions_query".
+        #
+        # This condition ensures that every replay shown to the user is valid.
+        having=[Condition(Function("min", parameters=[Column("segment_id")]), Op.EQ, 0)],
         groupby=[Column("project_id"), Column("replay_id")],
         granularity=Granularity(3600),
     )
+
+
+def execute_query(query: Query, tenant_id: dict[str, int], referrer: str) -> Mapping[str, Any]:
+    return raw_snql_query(
+        Request(
+            dataset="replays",
+            app_id="replay-backend-web",
+            query=query,
+            tenant_ids=tenant_id,
+        ),
+        referrer,
+    )
+
+
+def handle_ordering(sort: str | None) -> list[OrderBy]:
+    if sort is None:
+        return [OrderBy(_get_sort_column("started_at"), Direction.DESC)]
+    elif sort.startswith("-"):
+        return [OrderBy(_get_sort_column(sort[1:]), Direction.DESC)]
+    else:
+        return [OrderBy(_get_sort_column(sort), Direction.ASC)]
 
 
 def _get_sort_column(column_name: str) -> Function:
@@ -318,3 +350,24 @@ def _make_tenant_id(organization: Organization | None) -> dict[str, int]:
         return {}
     else:
         return {"organization_id": organization.id}
+
+
+def _make_ordered(replay_ids: list[str], results: Any) -> list[Any]:
+    if not replay_ids:
+        return []
+    elif not results:
+        return []
+
+    replay_id_to_index = {}
+    i = 0
+    for replay_id in replay_ids:
+        if replay_id not in replay_id_to_index:
+            replay_id_to_index[replay_id] = i
+            i += 1
+
+    ordered_results = [None] * len(replay_id_to_index)
+    for result in results:
+        index = replay_id_to_index[result["replay_id"]]
+        ordered_results[index] = result
+
+    return list(filter(None, ordered_results))

@@ -6,7 +6,7 @@ import {GettingStartedWithCapacitor, steps} from './capacitor';
 
 describe('GettingStartedWithCapacitor', function () {
   it('renders doc correctly', function () {
-    const {container} = render(<GettingStartedWithCapacitor dsn="test-dsn" />);
+    render(<GettingStartedWithCapacitor dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps()) {
@@ -14,7 +14,5 @@ describe('GettingStartedWithCapacitor', function () {
         screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
       ).toBeInTheDocument();
     }
-
-    expect(container).toSnapshot();
   });
 });

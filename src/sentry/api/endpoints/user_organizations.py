@@ -5,6 +5,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from typing_extensions import override
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.bases.user import UserPermission
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -17,6 +18,9 @@ from sentry.services.hybrid_cloud.user.service import user_service
 
 @region_silo_endpoint
 class UserOrganizationsEndpoint(Endpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (UserPermission,)
 
     @override

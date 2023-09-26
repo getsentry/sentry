@@ -46,6 +46,7 @@ const accountNotifications = [
   'approval',
   'quota',
   'spikeProtection',
+  'reports',
 ];
 
 type ANBPProps = {
@@ -141,7 +142,7 @@ type State = DeprecatedAsyncView['state'] & {
   projects: Project[] | null;
 };
 
-class AccountNotificationFineTuning extends DeprecatedAsyncView<Props, State> {
+class AccountNotificationFineTuningV2 extends DeprecatedAsyncView<Props, State> {
   getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     const {fineTuneType: pathnameType} = this.props.params;
     const fineTuneType = getNotificationTypeFromPathname(pathnameType);
@@ -235,22 +236,19 @@ class AccountNotificationFineTuning extends DeprecatedAsyncView<Props, State> {
         <SettingsPageHeader title={title} />
         {description && <TextBlock>{description}</TextBlock>}
 
-        {field &&
-          field.defaultFieldName &&
-          // not implemented yet
-          field.defaultFieldName !== 'weeklyReports' && (
-            <Form
-              saveOnBlur
-              apiMethod="PUT"
-              apiEndpoint="/users/me/notifications/"
-              initialData={notifications}
-            >
-              <JsonForm
-                title={`Default ${title}`}
-                fields={[fields[field.defaultFieldName]]}
-              />
-            </Form>
-          )}
+        {field && field.defaultFieldName && (
+          <Form
+            saveOnBlur
+            apiMethod="PUT"
+            apiEndpoint="/users/me/notifications/"
+            initialData={notifications}
+          >
+            <JsonForm
+              title={`Default ${title}`}
+              fields={[fields[field.defaultFieldName]]}
+            />
+          </Form>
+        )}
         <Panel>
           <StyledPanelHeader hasButtons={isProject}>
             {isProject ? (
@@ -274,7 +272,7 @@ class AccountNotificationFineTuning extends DeprecatedAsyncView<Props, State> {
             <Form
               saveOnBlur
               apiMethod="PUT"
-              apiEndpoint={`/users/me/notifications-v2/${fineTuneType}/`}
+              apiEndpoint={`/users/me/notifications/${fineTuneType}/`}
               initialData={fineTuneData}
             >
               {isProject && hasProjects && (
@@ -312,4 +310,4 @@ const StyledPanelHeader = styled(PanelHeader)`
   }
 `;
 
-export default withOrganizations(AccountNotificationFineTuning);
+export default withOrganizations(AccountNotificationFineTuningV2);

@@ -24,7 +24,7 @@ import isObject from 'lodash/isObject';
 
 import ObjectInspector, {OnExpandCallback} from 'sentry/components/objectInspector';
 
-const formatRegExp = /%[sdj%]/g;
+const formatRegExp = /%[csdj%]/g;
 
 function isNull(arg: unknown) {
   return arg === null;
@@ -61,10 +61,10 @@ export default function Format({onExpand, expandPaths, args}: FormatProps) {
   }
 
   let i = 1;
+  let styling: string | undefined;
   const len = args.length;
   const pieces: any[] = [];
 
-  // @ts-expect-error ts does not like that this can return an integer (e.g. for `%d`)
   const str = String(f).replace(formatRegExp, function (x) {
     if (x === '%%') {
       return '%';
@@ -73,8 +73,16 @@ export default function Format({onExpand, expandPaths, args}: FormatProps) {
       return x;
     }
     switch (x) {
+      case '%c':
+        styling = args[i++];
+        return '';
       case '%s':
-        return String(args[i++]);
+        const val = args[i++];
+        try {
+          return String(val);
+        } catch {
+          return 'toString' in val ? val.toString : JSON.stringify(val);
+        }
       case '%d':
         return Number(args[i++]);
       case '%j':
@@ -88,7 +96,30 @@ export default function Format({onExpand, expandPaths, args}: FormatProps) {
     }
   });
 
-  pieces.push(str);
+  if (styling) {
+    const tempEl = document.createElement('div');
+    tempEl.setAttribute('style', styling);
+
+    // Only allow certain CSS attributes
+    const styleObj = Object.fromEntries(
+      [
+        ['color', 'color'],
+        ['font-weight', 'fontWeight'],
+        ['font-style', 'fontStyle'],
+      ]
+        .map(([attr, reactAttr]) => [reactAttr, tempEl.style.getPropertyValue(attr)])
+        .filter(([, val]) => !!val)
+    );
+
+    pieces.push(
+      <span key={`%c-${i - 1}`} style={styleObj}>
+        {str}
+      </span>
+    );
+  } else {
+    pieces.push(str);
+  }
+
   for (let x = args[i]; i < len; x = args[++i]) {
     if (isNull(x) || !isObject(x)) {
       pieces.push(' ' + x);
@@ -99,5 +130,6 @@ export default function Format({onExpand, expandPaths, args}: FormatProps) {
       );
     }
   }
+
   return <Fragment>{pieces}</Fragment>;
 }

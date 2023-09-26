@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import {memo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import uniqBy from 'lodash/uniqBy';
@@ -130,7 +130,7 @@ function Chart({data, type, transactionDuration}: ChartProps) {
 }
 
 // Memoized to prevent re-rendering when the cursor guide is displayed
-const MemoizedChart = React.memo(
+const MemoizedChart = memo(
   Chart,
   (prevProps, nextProps) => prevProps.type === nextProps.type
 );
