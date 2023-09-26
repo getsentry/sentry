@@ -30,7 +30,10 @@ FEATURES = [
         "Assign, ignore, and resolve issues by interacting with chat messages.",
         IntegrationFeatures.CHAT_UNFURL,
     ),
-    # We'll add IntegrationFeatures.ALERT_RULE here in milestone 2
+    FeatureDescription(
+        "Configure rule based Discord notifications to automatically be posted into a specific channel.",
+        IntegrationFeatures.ALERT_RULE,
+    ),
 ]
 
 metadata = IntegrationMetadata(
@@ -95,7 +98,7 @@ class DiscordIntegrationProvider(IntegrationProvider):
     name = "Discord"
     metadata = metadata
     integration_cls = DiscordIntegration
-    features = frozenset([IntegrationFeatures.CHAT_UNFURL])
+    features = frozenset([IntegrationFeatures.CHAT_UNFURL, IntegrationFeatures.ALERT_RULE])
     requires_feature_flag = True  # remove this when we remove the discord feature flag
 
     # https://discord.com/developers/docs/topics/oauth2#shared-resources-oauth2-scopes
