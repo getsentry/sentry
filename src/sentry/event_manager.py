@@ -1733,7 +1733,10 @@ def _save_aggregate(
         ).update(group=group)
 
     is_regression = _process_existing_aggregate(
-        group=group, event=event, new_group_data=kwargs, release=release
+        group=group,
+        event=event,
+        incoming_group_values=kwargs,
+        release=release,
     )
 
     return GroupInfo(group, is_new, is_regression)
@@ -2001,20 +2004,20 @@ def _handle_regression(group: Group, event: Event, release: Optional[Release]) -
 
 
 def _process_existing_aggregate(
-    group: Group, event: Event, new_group_data: Mapping[str, Any], release: Optional[Release]
+    group: Group, event: Event, incoming_group_values: Mapping[str, Any], release: Optional[Release]
 ) -> bool:
     last_seen = max(event.datetime, group.last_seen)
-    extra = {"last_seen": last_seen, "data": new_group_data["data"]}
+    extra = {"last_seen": last_seen, "data": incoming_group_values["data"]}
     if (
         event.search_message
         and event.search_message != group.message
         and event.get_event_type() != TransactionEvent.key
     ):
         extra["message"] = event.search_message
-    if group.level != new_group_data["level"]:
-        extra["level"] = new_group_data["level"]
-    if group.culprit != new_group_data["culprit"]:
-        extra["culprit"] = new_group_data["culprit"]
+    if group.level != incoming_group_values["level"]:
+        extra["level"] = incoming_group_values["level"]
+    if group.culprit != incoming_group_values["culprit"]:
+        extra["culprit"] = incoming_group_values["culprit"]
     if group.first_seen > event.datetime:
         extra["first_seen"] = event.datetime
 
