@@ -25,6 +25,7 @@ def validate_channel_id(channel_id: str, guild_id: str, integration_id: int | No
                 "rule.discord.channel_info_failed",
                 extra={
                     "channel_id": channel_id,
+                    "reason": e.code,
                 },
             )
             raise ValidationError("Discord channel id is missing or not formatted correctly")
@@ -33,6 +34,7 @@ def validate_channel_id(channel_id: str, guild_id: str, integration_id: int | No
                 "rule.discord.channel_info_failed",
                 extra={
                     "channel_id": channel_id,
+                    "reason": e.code,
                 },
             )
             raise ValidationError("Discord channel exists but access is not allowed")
@@ -42,6 +44,7 @@ def validate_channel_id(channel_id: str, guild_id: str, integration_id: int | No
                 extra={
                     "channel_id": channel_id,
                     "integration_id": integration_id,
+                    "reason": e.code,
                 },
             )
             raise ValidationError("Discord channel can not be found.")
@@ -52,6 +55,7 @@ def validate_channel_id(channel_id: str, guild_id: str, integration_id: int | No
                     "guild_id": guild_id,
                     "channel_id": channel_id,
                     "integration_id": integration_id,
+                    "reason": e.code,
                 },
             )
             raise IntegrationError("Discord channel does not belong to the server indicated.")
