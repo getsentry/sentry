@@ -2007,27 +2007,27 @@ def _process_existing_aggregate(
     group: Group, event: Event, incoming_group_values: Mapping[str, Any], release: Optional[Release]
 ) -> bool:
     last_seen = max(event.datetime, group.last_seen)
-    extra = {"last_seen": last_seen, "data": incoming_group_values["data"]}
+    updated_group_values = {"last_seen": last_seen, "data": incoming_group_values["data"]}
     if (
         event.search_message
         and event.search_message != group.message
         and event.get_event_type() != TransactionEvent.key
     ):
-        extra["message"] = event.search_message
+        updated_group_values["message"] = event.search_message
     if group.level != incoming_group_values["level"]:
-        extra["level"] = incoming_group_values["level"]
+        updated_group_values["level"] = incoming_group_values["level"]
     if group.culprit != incoming_group_values["culprit"]:
-        extra["culprit"] = incoming_group_values["culprit"]
+        updated_group_values["culprit"] = incoming_group_values["culprit"]
     if group.first_seen > event.datetime:
-        extra["first_seen"] = event.datetime
+        updated_group_values["first_seen"] = event.datetime
 
     is_regression = _handle_regression(group, event, release)
 
-    group.last_seen = extra["last_seen"]
+    group.last_seen = updated_group_values["last_seen"]
 
     update_kwargs = {"times_seen": 1}
 
-    buffer_incr(Group, update_kwargs, {"id": group.id}, extra)
+    buffer_incr(Group, update_kwargs, {"id": group.id}, updated_group_values)
 
     return bool(is_regression)
 
