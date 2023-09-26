@@ -17,13 +17,9 @@ from sentry.api.endpoints.notifications.notification_actions_index import (
 )
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
+from sentry.api.serializers.models.notification_action import OutgoingNotificationActionSerializer
 from sentry.api.serializers.rest_framework.notification_action import NotificationActionSerializer
-from sentry.apidocs.constants import (
-    RESPONSE_ACCEPTED,
-    RESPONSE_BAD_REQUEST,
-    RESPONSE_NO_CONTENT,
-    RESPONSE_SUCCESS,
-)
+from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_NO_CONTENT
 from sentry.apidocs.examples import notification_examples
 from sentry.apidocs.parameters import GlobalParams
 from sentry.models.notificationaction import NotificationAction
@@ -101,10 +97,8 @@ class NotificationActionsDetailsEndpoint(OrganizationEndpoint):
                 description="ID of the notification action to retreive",
             ),
         ],
-        request=NotificationActionSerializer,
-        responses={
-            200: RESPONSE_SUCCESS,
-        },
+        request=None,
+        responses={200: OutgoingNotificationActionSerializer},
         examples=notification_examples.GET_NOTIFICATION_ACTION,
     )
     def get(
@@ -135,7 +129,7 @@ class NotificationActionsDetailsEndpoint(OrganizationEndpoint):
         ],
         request=NotificationActionSerializer,
         responses={
-            202: RESPONSE_ACCEPTED,
+            202: OutgoingNotificationActionSerializer,
             400: RESPONSE_BAD_REQUEST,
         },
         examples=notification_examples.UPDATE_NOTIFICATION_ACTION,
@@ -186,7 +180,7 @@ class NotificationActionsDetailsEndpoint(OrganizationEndpoint):
                 description="ID of the notification action to delete",
             ),
         ],
-        request=NotificationActionSerializer,
+        request=None,
         responses={
             204: RESPONSE_NO_CONTENT,
         },
