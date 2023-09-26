@@ -202,13 +202,13 @@ class DatabaseBackedRegionReplicaService(RegionReplicaService):
             )
 
     def delete_replicated_org_slug_reservation(
-        self, *, slug: str, organization_id: int, region_name: str
+        self, *, organization_slug_reservation_id: int, region_name: str
     ) -> None:
         with enforce_constraints(
             transaction.atomic(router.db_for_write(OrganizationSlugReservationReplica))
         ):
             org_slug_qs = OrganizationSlugReservationReplica.objects.filter(
-                slug=slug, organization_id=organization_id
+                organization_slug_reservation_id=organization_slug_reservation_id
             )
             org_slug_qs.delete()
 

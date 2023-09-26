@@ -112,6 +112,26 @@ class TestOrganizationSlugReservationReplication(TestCase):
 
         self.assert_all_replicas_match_slug_reservations()
 
+    def test_replica_deletion_with_pending_changes(self):
+        org_slug_reservation = self.create_org_slug_reservation(
+            slug="santry",
+            user_id=self.user.id,
+            organization_id=42,
+            region_name="us",
+            reservation_type=OrganizationSlugReservationType.PRIMARY,
+        )
+
+        with outbox_context(flush=False):
+            org_slug_reservation.update(slug="newsantry", unsafe_write=True)
+            org_slug_reservation.update(slug="newsantry", unsafe_write=True)
+
+        with outbox_context(
+            transaction.atomic(using=router.db_for_write(OrganizationSlugReservation))
+        ):
+            org_slug_reservation.delete()
+
+        self.assert_all_replicas_match_slug_reservations()
+
     def test_replica_update(self):
         org_slug_reservation = self.create_org_slug_reservation(
             slug="santry",
