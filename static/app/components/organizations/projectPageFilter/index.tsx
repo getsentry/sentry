@@ -378,7 +378,6 @@ export function ProjectPageFilter({
       menuFooter={
         hasProjectWrite && (
           <ProjectPageFilterMenuFooter
-            selectedProjects={value}
             handleChange={handleChange}
             showNonMemberProjects={showNonMemberProjects}
           />
