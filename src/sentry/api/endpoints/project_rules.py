@@ -321,7 +321,7 @@ A list of actions that take place when all required conditions and filters for t
     frequency = serializers.IntegerField(
         min_value=5,
         max_value=60 * 24 * 30,
-        help_text="How often to perform the actions once for an issue, in minutes. The minimum valid value is `5` and the maximum valid value is `43200`.",
+        help_text="How often to perform the actions once for an issue, in minutes. The valid range is `5` to `43200`.",
     )
     environment = serializers.CharField(
         required=False, allow_null=True, help_text="The name of the environment to filter by."

@@ -91,7 +91,7 @@ class ProjectRuleDetailsPutSerializer(serializers.Serializer):
         min_value=5,
         max_value=60 * 24 * 30,
         required=False,
-        help_text="How often to perform the actions once for an issue, in minutes. The minimum valid value is `5` and the maximum valid value is `43200`.",
+        help_text="How often to perform the actions once for an issue, in minutes. The valid range is `5` to `43200`.",
     )
     owner = ActorField(
         required=False, allow_null=True, help_text="The ID of the team or user that owns the rule."
@@ -128,9 +128,9 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
         Return details on an individual issue alert rule.
 
         An issue alert rule triggers whenever a new event is received for any issue in a project that matches the specified alert conditions. These conditions can include a resolved issue re-appearing or an issue affecting many users. Alert conditions have three parts:
-        - Triggers: specify what type of activity you'd like monitored or when an alert should be triggered.
-        - Filters: help control noise by triggering an alert only if the issue matches the specified criteria.
-        - Actions: specify what should happen when the trigger conditions are met and the filters match.
+        - Triggers - specify what type of activity you'd like monitored or when an alert should be triggered.
+        - Filters - help control noise by triggering an alert only if the issue matches the specified criteria.
+        - Actions - specify what should happen when the trigger conditions are met and the filters match.
         """
         # Serialize Rule object
         serialized_rule = serialize(
@@ -199,9 +199,9 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
         Updates an issue alert rule. Only the attributes submitted are modified.
 
         An issue alert rule triggers whenever a new event is received for any issue in a project that matches the specified alert conditions. These conditions can include a resolved issue re-appearing or an issue affecting many users. Alert conditions have three parts:
-        - Triggers: specify what type of activity you'd like monitored or when an alert should be triggered.
-        - Filters: help control noise by triggering an alert only if the issue matches the specified criteria.
-        - Actions: specify what should happen when the trigger conditions are met and the filters match.
+        - Triggers - specify what type of activity you'd like monitored or when an alert should be triggered.
+        - Filters - help control noise by triggering an alert only if the issue matches the specified criteria.
+        - Actions - specify what should happen when the trigger conditions are met and the filters match.
         """
         serializer = DrfRuleSerializer(
             context={"project": project, "organization": project.organization},
