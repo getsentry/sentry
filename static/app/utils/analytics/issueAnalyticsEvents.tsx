@@ -79,7 +79,6 @@ export type IssueEventParameters = {
   'issue_details.external_issue_modal_opened': ExternalIssueParams;
   'issue_details.header_view_replay_clicked': GroupEventParams;
   'issue_details.issue_status_docs_clicked': {};
-  'issue_details.open_replay_details_clicked': GroupEventParams;
   'issue_details.performance.autogrouped_siblings_toggle': {};
   'issue_details.performance.hidden_spans_expanded': {};
   'issue_details.sourcemap_wizard_copy': SourceMapWizardParam;
@@ -311,6 +310,4 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_details.sourcemap_wizard_copy': 'Issue Details: Sourcemap Wizard Copy',
   'issue_details.sourcemap_wizard_learn_more':
     'Issue Details: Sourcemap Wizard Learn More',
-  'issue_details.open_replay_details_clicked':
-    'Issue Details: Open Replay Details Clicked',
 };
