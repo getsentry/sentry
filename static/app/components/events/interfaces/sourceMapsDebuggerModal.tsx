@@ -98,7 +98,7 @@ export function SourceMapsDebuggerModal({
       <Body>
         <p>
           {t(
-            "It looks like the original source code for this Stack Frame couldn't be determined when this event was captured. To get the original code for this Stack Frame, Sentry needs source maps to be configured."
+            "It looks like the original source code for this stack frame couldn't be determined when this error was captured. To get the original code for this stack frame, Sentry needs source maps to be configured."
           )}
         </p>
         <WizardInstructionParagraph>
@@ -126,10 +126,9 @@ export function SourceMapsDebuggerModal({
         </InstructionCodeSnippet>
         <p>
           {t(
-            "There are three different ways to configure source maps. Once you're getting started with source maps, the following checklists will help you set them up correctly."
+            'There are multiple ways to configure source maps. The checklists below will help you set them up correctly. Choose one of the following processes:'
           )}
         </p>
-        <p>{t('Complete any one of the following processes:')}</p>
         <Tabs<'debug-ids' | 'release' | 'fetching'>
           value={activeTab}
           onChange={tab => {
@@ -181,6 +180,7 @@ export function SourceMapsDebuggerModal({
               }/4)`}
               // TODO: enable when we add crawling data from symbolicator
               disabled
+              hidden
             >
               <StyledProgressRing
                 progressColor={activeTab === 'fetching' ? theme.purple300 : theme.gray300}
