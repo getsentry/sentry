@@ -3,10 +3,12 @@ from __future__ import annotations
 import os
 import time
 from contextlib import contextmanager
+from datetime import timedelta
 from hashlib import sha1
 
 from django.conf import settings
 from django.core.files.storage import get_storage_class
+from django.utils import timezone
 
 from sentry import options
 from sentry.locks import locks
@@ -33,8 +35,8 @@ class nooplogger:
     exception = staticmethod(lambda *a, **kw: None)
 
 
-def _get_size_and_checksum(fileobj, logger=nooplogger):
-    logger.debug("_get_size_and_checksum.start")
+def get_size_and_checksum(fileobj, logger=nooplogger):
+    logger.debug("get_size_and_checksum.start")
     size = 0
     checksum = sha1()
     while True:
@@ -44,7 +46,7 @@ def _get_size_and_checksum(fileobj, logger=nooplogger):
         size += len(chunk)
         checksum.update(chunk)
 
-    logger.debug("_get_size_and_checksum.end")
+    logger.debug("get_size_and_checksum.end")
     return size, checksum.hexdigest()
 
 
@@ -59,19 +61,37 @@ def lock_blob(checksum: str, name: str, metric_instance: str | None = None):
         yield
 
 
+def TODO_get_cached_blob_id(file_blob_model, checksum):
+    return None
+
+
+def TODO_cache_blob_id(file_blob_model, checksum, id):
+    pass
+
+
 @contextmanager
-def locked_blob(file_blob_model, checksum, logger=nooplogger):
-    logger.debug("_locked_blob.start", extra={"checksum": checksum})
+def locked_blob(file_blob_model, size, checksum, logger=nooplogger):
+    if cached_id := TODO_get_cached_blob_id(file_blob_model, checksum):
+        yield file_blob_model(id=cached_id, size=size, checksum=checksum)
+        return
+
+    logger.debug("locked_blob.start", extra={"checksum": checksum})
     lock = lock_blob(checksum, "fileblob_upload_model", metric_instance="lock.fileblob.upload")
     with lock:
-        logger.debug("_locked_blob.acquired", extra={"checksum": checksum})
+        logger.debug("locked_blob.acquired", extra={"checksum": checksum})
         # test for presence
         try:
             existing = file_blob_model.objects.get(checksum=checksum)
+            TODO_cache_blob_id(file_blob_model, checksum, existing.id)
+
+            now = timezone.now()
+            threshold = now - timedelta(hours=12)
+            if existing.timestamp <= threshold:
+                existing.update(timestamp=now)
         except file_blob_model.DoesNotExist:
             existing = None
         yield existing
-    logger.debug("_locked_blob.end", extra={"checksum": checksum})
+    logger.debug("locked_blob.end", extra={"checksum": checksum})
 
 
 class AssembleChecksumMismatch(Exception):
