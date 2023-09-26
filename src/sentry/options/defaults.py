@@ -1074,7 +1074,9 @@ register(
 # effectively reset it, as the previous data can't/won't be converted.
 register(
     "sentry-metrics.cardinality-limiter.limits.performance.per-org",
-    default=[],
+    default=[
+        {"window_seconds": 3600, "granularity_seconds": 600, "limit": 10000},
+    ],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -1084,7 +1086,9 @@ register(
 )
 register(
     "sentry-metrics.cardinality-limiter.limits.transactions.per-org",
-    default=[],
+    default=[
+        {"window_seconds": 3600, "granularity_seconds": 600, "limit": 10000},
+    ],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -1094,22 +1098,28 @@ register(
 )
 register(
     "sentry-metrics.cardinality-limiter.limits.spans.per-org",
-    default=[],
+    default=[
+        {"window_seconds": 3600, "granularity_seconds": 600, "limit": 10000},
+    ],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "sentry-metrics.cardinality-limiter.limits.custom.per-org",
-    default=[],
+    default=[
+        {"window_seconds": 3600, "granularity_seconds": 600, "limit": 10000},
+    ],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "sentry-metrics.cardinality-limiter.limits.generic-metrics.per-org",
-    default=[],
+    default=[
+        {"window_seconds": 3600, "granularity_seconds": 600, "limit": 10000},
+    ],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "sentry-metrics.cardinality-limiter.orgs-rollout-rate",
-    default=0.0,
+    default=1.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(

@@ -2154,8 +2154,16 @@ SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 0.01
 
 # Cardinality limits during metric bucket ingestion.
 # Which cluster to use. Example: {"cluster": "default"}
-SENTRY_METRICS_INDEXER_CARDINALITY_LIMITER_OPTIONS: dict[str, Any] = {}
-SENTRY_METRICS_INDEXER_CARDINALITY_LIMITER_OPTIONS_PERFORMANCE: dict[str, Any] = {}
+SENTRY_METRICS_INDEXER_CARDINALITY_LIMITER_OPTIONS: dict[str, Any] = {
+    "cluster": "default",
+    "num_shards": 1,
+    "num_physical_shards": 1,
+}
+SENTRY_METRICS_INDEXER_CARDINALITY_LIMITER_OPTIONS_PERFORMANCE: dict[str, Any] = {
+    "cluster": "default",
+    "num_shards": 1,
+    "num_physical_shards": 1,
+}
 SENTRY_METRICS_INDEXER_ENABLE_SLICED_PRODUCER = False
 
 # Release Health
@@ -2245,13 +2253,39 @@ SENTRY_SCOPES = {
     "event:read",
     "event:write",
     "event:admin",
-    "alerts:write",
     "alerts:read",
+    "alerts:write",
     # openid, profile, and email aren't prefixed to maintain compliance with the OIDC spec.
     # https://auth0.com/docs/get-started/apis/scopes/openid-connect-scopes.
     "openid",
     "profile",
     "email",
+}
+
+SENTRY_SCOPE_HIERARCHY_MAPPING = {
+    "org:read": {"org:read"},
+    "org:write": {"org:read", "org:write"},
+    "org:admin": {"org:read", "org:write", "org:admin", "org:integrations"},
+    "org:integrations": {"org:integrations"},
+    "org:ci": {"org:ci"},
+    "member:read": {"member:read"},
+    "member:write": {"member:read", "member:write"},
+    "member:admin": {"member:read", "member:write", "member:admin"},
+    "team:read": {"team:read"},
+    "team:write": {"team:read", "team:write"},
+    "team:admin": {"team:read", "team:write", "team:admin"},
+    "project:read": {"project:read"},
+    "project:write": {"project:read", "project:write"},
+    "project:admin": {"project:read", "project:write", "project:admin"},
+    "project:releases": {"project:releases"},
+    "event:read": {"event:read"},
+    "event:write": {"event:read", "event:write"},
+    "event:admin": {"event:read", "event:write", "event:admin"},
+    "alerts:read": {"alerts:read"},
+    "alerts:write": {"alerts:read", "alerts:write"},
+    "openid": {"openid"},
+    "profile": {"profile"},
+    "email": {"email"},
 }
 
 SENTRY_SCOPE_SETS = (
