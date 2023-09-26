@@ -32,7 +32,7 @@ class ApiGatewayTest(ApiGatewayTestCase):
         assert resp_json["proxy"]
 
     @responses.activate
-    def test_proxy_check(self):
+    def test_proxy_check_org_slug_url(self):
         """Test the logic of when a request should be proxied"""
         responses.add(
             responses.GET,
@@ -48,6 +48,34 @@ class ApiGatewayTest(ApiGatewayTestCase):
         region_url = reverse(
             "region-endpoint", kwargs={"organization_slug": self.organization.slug}
         )
+        control_url = reverse(
+            "control-endpoint", kwargs={"organization_slug": self.organization.slug}
+        )
+
+        with override_settings(SILO_MODE=SiloMode.CONTROL, MIDDLEWARE=tuple(self.middleware)):
+            resp = self.client.get(region_url)
+            assert resp.status_code == 200
+            resp_json = json.loads(close_streaming_response(resp))
+            assert resp_json["proxy"]
+
+            resp = self.client.get(control_url)
+            assert resp.status_code == 200
+            assert not resp.data["proxy"]
+
+        with override_settings(SILO_MODE=SiloMode.REGION, MIDDLEWARE=tuple(self.middleware)):
+            resp = self.client.get(region_url)
+            assert resp.status_code == 200
+            assert not resp.data["proxy"]
+
+    @responses.activate
+    def test_proxy_check_region_url(self):
+        responses.add(
+            responses.GET,
+            "http://region.internal.sentry.io/api/0/builtin-symbol-sources/",
+            json={"proxy": True},
+        )
+
+        region_url = reverse("no-org-region-endpoint")
         control_url = reverse(
             "control-endpoint", kwargs={"organization_slug": self.organization.slug}
         )
