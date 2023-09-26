@@ -4,13 +4,14 @@ from dataclasses import asdict
 from functools import cached_property
 
 import pytest
+from django.db import router
 from django.http import HttpRequest
 from pytest_django.live_server_helper import LiveServer
 
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.middleware.proxy import SetRemoteAddrFromForwardedFor
 from sentry.models import ApiKey, Organization, Team, User
-from sentry.silo import SiloMode
+from sentry.silo import SiloMode, unguarded_write
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.region import override_regions
@@ -73,6 +74,17 @@ class EndToEndAPIProxyTest(APITestCase):
                 organization=cls.organization, scope_list=["org:write", "org:admin", "team:write"]
             )
             super().setUpClass()
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        with unguarded_write(router.db_for_write(User)), in_test_hide_transaction_boundary():
+            User.objects.filter(id=cls.user.id).delete()
+            ApiKey.objects.filter(id=cls.api_key.id).delete()
+        with unguarded_write(
+            router.db_for_write(Organization)
+        ), in_test_hide_transaction_boundary():
+            Organization.objects.filter(id=cls.organization.id).delete()
+        super().tearDownClass()
 
     def test_through_api_gateway(self):
         if SiloMode.get_current_mode() == SiloMode.MONOLITH:
