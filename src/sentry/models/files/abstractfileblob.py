@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from abc import abstractmethod
 from concurrent.futures import ThreadPoolExecutor
+from datetime import timedelta
 from threading import Semaphore
 from typing import Any, ClassVar
 from uuid import uuid4
@@ -13,18 +14,16 @@ from typing_extensions import Self
 from sentry.backup.scopes import RelocationScope
 from sentry.celery import SentryTask
 from sentry.db.models import BoundedPositiveIntegerField, Model
-from sentry.locks import locks
 from sentry.models.files.abstractfileblobowner import AbstractFileBlobOwner
 from sentry.models.files.utils import (
-    UPLOAD_RETRY_TIME,
     _get_size_and_checksum,
     get_storage,
+    lock_blob,
     locked_blob,
     nooplogger,
 )
 from sentry.utils import metrics
 from sentry.utils.db import atomic_transaction
-from sentry.utils.retries import TimedRetryPolicy
 
 MULTI_BLOB_UPLOAD_CONCURRENCY = 8
 
@@ -157,7 +156,10 @@ class AbstractFileBlob(Model):
                     lock = locked_blob(cls, checksum, logger=logger)
                     existing = lock.__enter__()
                     if existing is not None:
-                        existing.update(timestamp=timezone.now())
+                        now = timezone.now()
+                        threshold = now - timedelta(hours=12)
+                        if existing.timestamp <= threshold:
+                            existing.update(timestamp=timezone.now())
                         lock.__exit__(None, None, None)
                         blobs_created.append(existing)
                         _ensure_blob_owned(existing)
@@ -199,7 +201,10 @@ class AbstractFileBlob(Model):
         # and duplicate files are uploaded then we need to prune one
         with locked_blob(cls, checksum, logger=logger) as existing:
             if existing is not None:
-                existing.update(timestamp=timezone.now())
+                now = timezone.now()
+                threshold = now - timedelta(hours=12)
+                if existing.timestamp <= threshold:
+                    existing.update(timestamp=timezone.now())
                 return existing
 
             blob = cls(size=size, checksum=checksum)
@@ -236,14 +241,10 @@ class AbstractFileBlob(Model):
             self.DELETE_FILE_TASK.apply_async(
                 kwargs={"path": self.path, "checksum": self.checksum}, countdown=60
             )
-        lock = locks.get(
-            f"fileblob:upload:{self.checksum}",
-            duration=UPLOAD_RETRY_TIME,
-            name="fileblob_upload_delete",
+        lock = lock_blob(
+            self.checksum, "fileblob_upload_delete", metric_instance="lock.fileblob.delete"
         )
-        with TimedRetryPolicy(UPLOAD_RETRY_TIME, metric_instance="lock.fileblob.delete")(
-            lock.acquire
-        ):
+        with lock:
             super().delete(*args, **kwargs)
 
     def getfile(self):

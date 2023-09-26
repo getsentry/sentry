@@ -38,7 +38,7 @@ class LostPasswordHash(Model):
         self.hash = get_secure_token()
 
     def is_valid(self) -> bool:
-        return self.date_added > timezone.now() - timedelta(hours=48)
+        return self.date_added > timezone.now() - timedelta(hours=1)
 
     @classmethod
     def send_email(cls, user, hash, request, mode="recover") -> None:

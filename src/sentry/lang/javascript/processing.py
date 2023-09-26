@@ -198,11 +198,14 @@ def _normalize_nonhandled_frame(frame, data):
     return frame
 
 
-def _normalize_frame(frame: Any) -> dict:
-    frame = dict(frame)
+FRAME_FIELDS = ("abs_path", "lineno", "colno", "function")
 
-    # Symbolicator will *output* `data`, but never use it from the input
-    frame.pop("data", None)
+
+def _normalize_frame(raw_frame: Any) -> dict:
+    frame = {}
+    for key in FRAME_FIELDS:
+        if (value := raw_frame.get(key)) is not None:
+            frame[key] = value
 
     return frame
 

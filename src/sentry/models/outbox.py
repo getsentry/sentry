@@ -44,7 +44,7 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
-from sentry.db.models.outboxes import ReplicatedControlModel, ReplicatedRegionModel
+from sentry.db.models.outboxes import HasControlReplicationHandlers, ReplicatedRegionModel
 from sentry.db.postgres.transactions import (
     django_test_transaction_water_mark,
     enforce_constraints,
@@ -61,7 +61,9 @@ _M = TypeVar("_M", bound=BaseModel)
 
 
 class OutboxFlushError(Exception):
-    pass
+    def __init__(self, message: str, outbox: OutboxBase) -> None:
+        super().__init__(message)
+        self.outbox = outbox
 
 
 class InvalidOutboxError(Exception):
@@ -101,6 +103,8 @@ class OutboxCategory(IntEnum):
     AUTH_PROVIDER_UPDATE = 24
     AUTH_IDENTITY_UPDATE = 25
     ORGANIZATION_MEMBER_TEAM_UPDATE = 26
+    ORGANIZATION_SLUG_RESERVATION_UPDATE = 27
+    API_KEY_UPDATE = 28
 
     @classmethod
     def as_choices(cls):
@@ -128,7 +132,7 @@ class OutboxCategory(IntEnum):
 
         process_region_outbox.connect(receiver, weak=False, sender=self)
 
-    def connect_control_model_updates(self, model: Type[ReplicatedControlModel]) -> None:
+    def connect_control_model_updates(self, model: Type[HasControlReplicationHandlers]) -> None:
         def receiver(
             object_identifier: int,
             payload: Optional[Mapping[str, Any]],
@@ -139,7 +143,7 @@ class OutboxCategory(IntEnum):
         ):
             from sentry.receivers.outbox import maybe_process_tombstone
 
-            maybe_instance: ReplicatedControlModel | None = maybe_process_tombstone(
+            maybe_instance: HasControlReplicationHandlers | None = maybe_process_tombstone(
                 cast(Any, model), object_identifier, region_name=region_name
             )
             if maybe_instance is None:
@@ -288,6 +292,8 @@ class OutboxScope(IntEnum):
             OutboxCategory.AUTH_PROVIDER_UPDATE,
             OutboxCategory.AUTH_IDENTITY_UPDATE,
             OutboxCategory.ORGANIZATION_MEMBER_TEAM_UPDATE,
+            OutboxCategory.API_KEY_UPDATE,
+            OutboxCategory.ORGANIZATION_SLUG_RESERVATION_UPDATE,
         },
     )
     USER_SCOPE = scope_categories(
@@ -599,7 +605,9 @@ class OutboxBase(Model):
                     try:
                         coalesced.send_signal()
                     except Exception as e:
-                        raise OutboxFlushError(f"Could not flush shard {repr(coalesced)}") from e
+                        raise OutboxFlushError(
+                            f"Could not flush shard category={coalesced.category}", coalesced
+                        ) from e
 
                 return True
         return False
@@ -619,7 +627,7 @@ class OutboxBase(Model):
         latest_shard_row: OutboxBase | None = None
         if not flush_all:
             latest_shard_row = self.selected_messages_in_shard().last()
-            # If we're not flushing all possible shards, and we don't see any immediately values,
+            # If we're not flushing all possible shards, and we don't see any immediate values,
             # drop.
             if latest_shard_row is None:
                 return

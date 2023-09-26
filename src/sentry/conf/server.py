@@ -409,6 +409,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "django.contrib.staticfiles",
     "sentry.issues.apps.Config",
     "sentry.feedback",
+    "sentry.hybridcloud",
 )
 
 # Silence internal hints from Django's system checks
@@ -1320,6 +1321,17 @@ REST_FRAMEWORK = {
 }
 
 
+def custom_parameter_sort(parameter: dict) -> tuple[str, int]:
+    """
+    Sort parameters by type then if the parameter is required or not.
+    It should group path parameters first, then query parameters.
+    In each group, required parameters should come before optional parameters.
+    """
+    param_type = parameter["in"]
+    required = parameter.get("required", False)
+    return (param_type, 0 if required else 1)
+
+
 if os.environ.get("OPENAPIGENERATE", False):
     OLD_OPENAPI_JSON_PATH = "tests/apidocs/openapi-deprecated.json"
     from sentry.apidocs.build import OPENAPI_TAGS, get_old_json_components, get_old_json_paths
@@ -1342,7 +1354,7 @@ if os.environ.get("OPENAPIGENERATE", False):
         "PARSER_WHITELIST": ["rest_framework.parsers.JSONParser"],
         "APPEND_PATHS": get_old_json_paths(OLD_OPENAPI_JSON_PATH),
         "APPEND_COMPONENTS": get_old_json_components(OLD_OPENAPI_JSON_PATH),
-        "SORT_OPERATION_PARAMETERS": False,
+        "SORT_OPERATION_PARAMETERS": custom_parameter_sort,
     }
 
 CRISPY_TEMPLATE_PACK = "bootstrap3"
@@ -1655,8 +1667,6 @@ SENTRY_FEATURES = {
     "organizations:session-replay-slack-new-issue": False,
     # Enable linking from 'new issue' email notifs to the issue replay list
     "organizations:session-replay-issue-emails": False,
-    # Enable optimized serach feature.
-    "organizations:session-replay-optimized-search": False,
     # Enable replay event linking in event processing
     "organizations:session-replay-event-linking": False,
     # Enable linking from 'weekly email' summaries to the issue replay list
@@ -1691,6 +1701,8 @@ SENTRY_FEATURES = {
     "organizations:project-performance-settings-admin": False,
     # Enable feature to load more than 100 rows in performance trace view.
     "organizations:trace-view-load-more": False,
+    # Enable dashboard widget indicators.
+    "organizations:dashboard-widget-indicators": False,
     # Enables updated all events tab in a performance issue
     "organizations:performance-issues-all-events-tab": False,
     # Temporary flag to test search performance that's running slow in S4S
@@ -1779,9 +1791,7 @@ SENTRY_FEATURES = {
     # Signals that the organization supports the on demand metrics prefill.
     "organizations:on-demand-metrics-prefill": False,
     # Enable writing to the new notification system when updating the old system
-    "organizations:notifications-double-write": False,
-    # Excludes measurement config from project config builds.
-    "organizations:projconfig-exclude-measurements": False,
+    "organizations:notifications-double-write": True,
     # Enable source maps debugger
     "organizations:source-maps-debugger-blue-thunder-edition": False,
     # Enable data forwarding functionality for projects.

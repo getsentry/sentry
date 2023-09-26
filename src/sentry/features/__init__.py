@@ -139,6 +139,7 @@ default_manager.add("organizations:performance-issues-http-overhead-detector", O
 default_manager.add("organizations:performance-issues-m-n-plus-one-db-detector", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:performance-issues-dev", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:trace-view-load-more", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+default_manager.add("organizations:dashboard-widget-indicators", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:project-performance-settings-admin", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:performance-issues-all-events-tab", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:performance-issues-search", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
@@ -187,7 +188,6 @@ default_manager.add("organizations:sentry-functions", OrganizationFeature, Featu
 default_manager.add("organizations:session-replay", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:session-replay-a11y-tab", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:session-replay-issue-emails", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
-default_manager.add("organizations:session-replay-optimized-search", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:session-replay-recording-scrubbing", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:session-replay-sdk-errors-only", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:session-replay-sdk", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
@@ -288,7 +288,6 @@ default_manager.add("organizations:on-demand-metrics-prefill", OrganizationFeatu
 default_manager.add("organizations:notifications-double-write", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:custom-metrics", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:release-ui-v2", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-default_manager.add("organizations:projconfig-exclude-measurements", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:source-maps-debugger-blue-thunder-edition", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 
 # Project scoped features

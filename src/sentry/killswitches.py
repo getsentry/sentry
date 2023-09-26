@@ -130,12 +130,6 @@ ALL_KILLSWITCH_OPTIONS = {
             "platform": "The event platform as defined in the event payload's platform field, or 'none'",
         },
     ),
-    "store.save-event-highcpu-platforms": KillswitchInfo(
-        description="Send highcpu platform events to save_event highcpu queue",
-        fields={
-            "platform": "The event platform as defined in the event payload's platform field, or 'none'",
-        },
-    ),
     "store.symbolicate-event-lpq-never": KillswitchInfo(
         description="""
         Never allow a project's symbolication events to be demoted to symbolicator's low priority queue.

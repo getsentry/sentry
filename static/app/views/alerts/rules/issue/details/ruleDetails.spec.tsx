@@ -241,7 +241,7 @@ describe('AlertRuleDetails', () => {
       await screen.findByText(/This alert is scheduled to be disabled/)
     ).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Click Here'}));
+    await userEvent.click(screen.getByRole('button', {name: 'click here'}));
 
     expect(updateMock).toHaveBeenCalledWith(
       expect.anything(),
@@ -272,12 +272,13 @@ describe('AlertRuleDetails', () => {
       await screen.findByText(/This alert was disabled due to lack of activity/)
     ).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Click Here'}));
+    await userEvent.click(screen.getByRole('button', {name: 'click here'}));
 
     expect(enableMock).toHaveBeenCalled();
     expect(
       screen.queryByText(/This alert was disabled due to lack of activity/)
     ).not.toBeInTheDocument();
+    expect(screen.queryByText(/This alert is disabled/)).not.toBeInTheDocument();
   });
 
   it('renders the mute button and can mute/unmute alerts', async () => {

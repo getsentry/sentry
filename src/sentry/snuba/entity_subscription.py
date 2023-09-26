@@ -387,6 +387,7 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
 
         query = apply_dataset_query_conditions(self.query_type, query, None)
         params["project_id"] = project_ids
+        params["use_case_id"] = self._get_use_case_id().value
         qb = AlertMetricsQueryBuilder(
             dataset=Dataset(self.dataset.value),
             query=query,
