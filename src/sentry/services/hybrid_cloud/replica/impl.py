@@ -1,6 +1,7 @@
 from typing import Any, Iterator, List, Mapping, Optional, Type, Union
 
 from django.db import router, transaction
+from django.db.models import Q
 
 from sentry.db.models import BaseModel, FlexibleForeignKey
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
@@ -181,11 +182,24 @@ class DatabaseBackedRegionReplicaService(RegionReplicaService):
         with enforce_constraints(
             transaction.atomic(router.db_for_write(OrganizationSlugReservationReplica))
         ):
+            # Delete any slug reservation that can possibly conflict
             OrganizationSlugReservationReplica.objects.filter(
-                organization_id=slug_reservation.organization_id,
-                reservation_type=slug_reservation.reservation_type,
+                Q(organization_slug_reservation_id=slug_reservation.id)
+                or Q(
+                    organization_id=slug_reservation.organization_id,
+                    reservation_type=slug_reservation.reservation_type,
+                )
+                or Q(slug=slug_reservation.slug)
             ).delete()
-            OrganizationSlugReservationReplica.objects.create(**slug_reservation.dict())
+
+            OrganizationSlugReservationReplica.objects.create(
+                slug=slug_reservation.slug,
+                organization_id=slug_reservation.organization_id,
+                user_id=slug_reservation.user_id,
+                region_name=slug_reservation.region_name,
+                reservation_type=slug_reservation.reservation_type,
+                organization_slug_reservation_id=slug_reservation.id,
+            )
 
     def delete_replicated_org_slug_reservation(
         self, *, slug: str, organization_id: int, region_name: str

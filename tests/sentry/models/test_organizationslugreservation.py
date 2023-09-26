@@ -14,14 +14,55 @@ from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 @control_silo_test(stable=True)
 class TestOrganizationSlugReservationReplication(TestCase):
-    def assert_replica_matches_slug_reservation(self, slug_res: OrganizationSlugReservation):
+    def does_replica_match_original_reservation(
+        self,
+        slug_reservation: OrganizationSlugReservation,
+        slug_replica: OrganizationSlugReservationReplica,
+    ):
+        matches = slug_replica.organization_id == slug_reservation.organization_id
+        matches = matches and slug_replica.region_name == slug_reservation.region_name
+        matches = matches and slug_replica.reservation_type == slug_reservation.reservation_type
+
+        return matches
+
+    def assert_all_replicas_match_slug_reservations(self):
+        org_slug_reservations = {
+            org_slug.slug: org_slug for org_slug in list(OrganizationSlugReservation.objects.all())
+        }
+
         with assume_test_silo_mode(SiloMode.REGION):
-            org_slug_reservation_replica = OrganizationSlugReservationReplica.objects.get(
-                slug=slug_res.slug, organization_id=slug_res.organization_id
+            org_slug_replicas = {
+                org_slug_r.slug: org_slug_r
+                for org_slug_r in list(OrganizationSlugReservationReplica.objects.all())
+            }
+
+        mismatched_slug_res_replicas = []
+        for slug in org_slug_reservations:
+            slug_res = org_slug_reservations.get(slug)
+            org_slug_reservation_replica = org_slug_replicas.pop(slug, None)
+
+            if org_slug_reservation_replica is None:
+                mismatched_slug_res_replicas.append(org_slug_reservation_replica)
+                continue
+
+            matches = self.does_replica_match_original_reservation(
+                slug_reservation=slug_res, slug_replica=org_slug_reservation_replica
             )
 
-        assert org_slug_reservation_replica.region_name == slug_res.region_name
-        assert org_slug_reservation_replica.reservation_type == slug_res.reservation_type
+            if not matches:
+                mismatched_slug_res_replicas.append(org_slug_reservation_replica)
+
+        # Push the remaining replicas to the mismatch list as they are extraneous
+        extraneous_replicas = []
+        for slug in org_slug_replicas:
+            extraneous_replicas.append(org_slug_replicas.get(slug))
+
+        if len(mismatched_slug_res_replicas) > 0 or len(extraneous_replicas) > 0:
+            raise Exception(
+                "One or more org slug replicas did not match\n"
+                + f"mismatched replicas: {mismatched_slug_res_replicas}\n"
+                + f"extraneous replicas: {extraneous_replicas}"
+            )
 
     def assert_no_slug_replica(self, slug_res):
         with assume_test_silo_mode(SiloMode.REGION):
@@ -42,7 +83,7 @@ class TestOrganizationSlugReservationReplication(TestCase):
                 reservation_type=OrganizationSlugReservationType.PRIMARY,
             )
             org_slug_reservation.save(unsafe_write=True)
-        self.assert_replica_matches_slug_reservation(org_slug_reservation)
+        self.assert_all_replicas_match_slug_reservations()
 
     def test_replica_deletion(self):
         with outbox_context(
@@ -57,7 +98,7 @@ class TestOrganizationSlugReservationReplication(TestCase):
             )
             org_slug_reservation.save(unsafe_write=True)
 
-        self.assert_replica_matches_slug_reservation(org_slug_reservation)
+        self.assert_all_replicas_match_slug_reservations()
 
         with outbox_context(
             transaction.atomic(using=router.db_for_write(OrganizationSlugReservation))
@@ -79,7 +120,7 @@ class TestOrganizationSlugReservationReplication(TestCase):
             )
             org_slug_reservation.save(unsafe_write=True)
 
-        self.assert_replica_matches_slug_reservation(org_slug_reservation)
+        self.assert_all_replicas_match_slug_reservations()
         org_slug_reservation.slug = "newslug"
         org_slug_reservation.reservation_type = OrganizationSlugReservationType.VANITY_ALIAS
 
@@ -88,4 +129,4 @@ class TestOrganizationSlugReservationReplication(TestCase):
         ):
             org_slug_reservation.save(unsafe_write=True)
 
-        self.assert_replica_matches_slug_reservation(org_slug_reservation)
+        self.assert_all_replicas_match_slug_reservations()

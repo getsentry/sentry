@@ -97,10 +97,11 @@ class OrganizationSlugReservation(ReplicatedControlModel):
         payload: Mapping[str, Any] | None,
     ) -> None:
         if payload is None:
-            capture_exception(Exception("Attempted async deletion on org slug without a payload"))
+            exception = Exception("Attempted async deletion on org slug without a payload")
+            capture_exception(exception)
 
             if in_test_environment():
-                raise
+                raise exception
 
             return
         org_id = payload.get("organization_id", None)
