@@ -4,7 +4,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 const TABS = [
   {key: '', label: 'Replays'},
-  {key: 'dead-clicks', label: 'Selectors'},
+  {key: 'dead-rage-clicks', label: 'Selectors'},
 ];
 
 export default function ReplayTabs() {
@@ -15,10 +15,10 @@ export default function ReplayTabs() {
 
   const location = useLocation();
   const {pathname} = location;
-  const isSelectorIndex = pathname.includes('dead-clicks');
+  const isSelectorIndex = pathname.includes('dead-rage-clicks');
 
   return hasDeadClickFeature ? (
-    <Tabs value={isSelectorIndex ? 'dead-clicks' : ''}>
+    <Tabs value={isSelectorIndex ? 'dead-rage-clicks' : ''}>
       <TabList hideBorder>
         {TABS.map(tab => (
           <TabList.Item
