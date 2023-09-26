@@ -62,7 +62,7 @@ class _body_with_length:
 
     def __len__(self) -> int:
         # Allow a TypeError when the header is unset -- requests library handles this
-        return int(self.request.headers.get("Content-Length", None))
+        return int(self.request.headers.get("Content-Length", None))  # type: ignore
 
 
 def proxy_request(request: HttpRequest, org_slug: str) -> StreamingHttpResponse:
@@ -85,7 +85,7 @@ def proxy_request(request: HttpRequest, org_slug: str) -> StreamingHttpResponse:
             url=target_url,
             headers=header_dict,
             params=dict(query_params) if query_params is not None else None,
-            data=_body_with_length(request),
+            data=_body_with_length(request),  # type: ignore
             stream=True,
             timeout=settings.GATEWAY_PROXY_TIMEOUT,
         )
