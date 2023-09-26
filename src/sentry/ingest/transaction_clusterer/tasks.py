@@ -102,8 +102,8 @@ def cluster_projects(projects: Sequence[Project]) -> None:
                 tags={"clustered": False},
                 sample_rate=1.0,
             )
-            sentry_sdk.set_tag("projs.total", len(projects))
-            sentry_sdk.set_tag("projs.unclustered", unclustered)
+            sentry_sdk.set_tag("projects.total", len(projects))
+            sentry_sdk.set_tag("projects.unclustered", unclustered)
             sentry_sdk.capture_message("Transaction clusterer missed projects", level="error")
 
 
