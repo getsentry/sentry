@@ -345,12 +345,14 @@ class UserNotificationFineTuningTest(UserNotificationFineTuningTestBase):
             scope_type="organization",
             scope_identifier=self.organization.id,
             value="always",
+            type="reports",
         ).exists()
         assert NotificationSettingOption.objects.filter(
             user_id=self.user.id,
             scope_type="organization",
             scope_identifier=self.organization2.id,
             value="always",
+            type="reports",
         ).exists()
 
         # can disable
@@ -364,6 +366,7 @@ class UserNotificationFineTuningTest(UserNotificationFineTuningTestBase):
             scope_type="organization",
             scope_identifier=self.organization.id,
             value="never",
+            type="reports",
         ).exists()
 
         # re-enable
@@ -378,6 +381,7 @@ class UserNotificationFineTuningTest(UserNotificationFineTuningTestBase):
             scope_type="organization",
             scope_identifier=self.organization.id,
             value="always",
+            type="reports",
         ).exists()
 
     def test_permissions(self):

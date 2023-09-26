@@ -9,7 +9,6 @@ from confluent_kafka.admin import AdminClient
 from django.conf import settings
 from django.core import mail
 from django.test.utils import override_settings
-from freezegun import freeze_time
 
 from sentry.incidents.action_handlers import (
     EmailActionHandler,
@@ -35,8 +34,12 @@ from sentry.snuba.query_subscriptions.constants import topic_to_dataset
 from sentry.snuba.query_subscriptions.consumer import subscriber_registry
 from sentry.snuba.query_subscriptions.run import get_query_subscription_consumer
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.skips import requires_kafka
 from sentry.utils import json, kafka_config
 from sentry.utils.batching_kafka_consumer import create_topics
+
+pytestmark = [requires_kafka]
 
 
 @freeze_time()

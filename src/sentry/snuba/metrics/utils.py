@@ -96,6 +96,7 @@ MetricOperationType = Literal[
     "min_timestamp",
     "max_timestamp",
     # Custom operations used for on demand derived metrics.
+    "on_demand_failure_count",
     "on_demand_failure_rate",
     "on_demand_apdex",
 ]
@@ -285,8 +286,9 @@ DERIVED_OPERATIONS = (
     "min_timestamp",
     "max_timestamp",
     # Custom operations used for on demand derived metrics.
-    "on_demand_failure_rate",
     "on_demand_apdex",
+    "on_demand_failure_count",
+    "on_demand_failure_rate",
 )
 OPERATIONS = (
     (
@@ -430,7 +432,7 @@ def to_intervals(
 
 def get_num_intervals(
     start: Optional[datetime],
-    end: datetime,
+    end: Optional[datetime],
     granularity: int,
     interval: Optional[int] = None,
 ) -> int:

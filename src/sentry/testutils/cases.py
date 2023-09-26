@@ -24,15 +24,14 @@ from django.contrib.auth import login
 from django.contrib.auth.models import AnonymousUser
 from django.core import signing
 from django.core.cache import cache
-from django.db import DEFAULT_DB_ALIAS, connection, connections, router
+from django.db import DEFAULT_DB_ALIAS, connection, connections
 from django.db.migrations.executor import MigrationExecutor
-from django.db.migrations.loader import MigrationLoader
 from django.http import HttpRequest
 from django.test import TestCase as DjangoTestCase
 from django.test import TransactionTestCase as DjangoTransactionTestCase
 from django.test import override_settings
 from django.test.utils import CaptureQueriesContext
-from django.urls import reverse
+from django.urls import resolve, reverse
 from django.utils import timezone as django_timezone
 from django.utils.functional import cached_property
 from pkg_resources import iter_entry_points
@@ -175,6 +174,8 @@ __all__ = (
     "MonitorTestCase",
     "MonitorIngestTestCase",
 )
+
+from ..types.region import get_region_by_name
 
 DEFAULT_USER_AGENT = "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36"
 
@@ -446,6 +447,39 @@ class _AssertQueriesContext(CaptureQueriesContext):
 class TestCase(BaseTestCase, DjangoTestCase):
     # We need Django to flush all databases.
     databases: set[str] | str = "__all__"
+
+    @contextmanager
+    def auto_select_silo_mode_on_redirects(self):
+        """
+        Tests that utilize follow=True may follow redirects between silo modes.  This isn't ideal but convenient for
+        testing certain work flows.  Using this context manager, the silo mode in the test will swap automatically
+        for each view's decorator in order to prevent otherwise unavoidable SiloAvailability errors.
+        """
+        old_request = self.client.request
+
+        def request(**request: Any) -> Any:
+            resolved = resolve(request["PATH_INFO"])
+            view_class = getattr(resolved.func, "view_class", None)
+            if view_class is not None:
+                endpoint_silo_limit = getattr(view_class, "silo_limit", None)
+                if endpoint_silo_limit:
+                    for mode in endpoint_silo_limit.modes:
+                        if mode is SiloMode.MONOLITH or mode is SiloMode.get_current_mode():
+                            continue
+                        region = None
+                        if mode is SiloMode.REGION:
+                            # TODO: Can we infer the correct region here?  would need to package up the
+                            # the request dictionary into a higher level object, which also involves invoking
+                            # _base_environ and maybe other logic buried in Client.....
+                            region = get_region_by_name(settings.SENTRY_MONOLITH_REGION)
+                        with SiloMode.exit_single_process_silo_context(), SiloMode.enter_single_process_silo_context(
+                            mode, region
+                        ):
+                            return old_request(**request)
+            return old_request(**request)
+
+        with mock.patch.object(self.client, "request", new=request):
+            yield
 
     # Ensure that testcases that ask for DB setup actually make use of the
     # DB. If they don't, they're wasting CI time.
@@ -922,6 +956,7 @@ class PermissionTestCase(TestCase):
         self.assert_cannot_access(user, path, **kwargs)
 
 
+@requires_snuba
 class PluginTestCase(TestCase):
     @property
     def plugin(self):
@@ -2252,25 +2287,7 @@ class TestMigrations(TransactionTestCase):
 
     @property
     def connection(self):
-        # Infer connection from table_name
-        m = MigrationLoader(connections["default"]).get_migration(self.app, self.migrate_to[0][1])
-        hinted_tables = {
-            table
-            for op in m.operations
-            for tables in op.hints.get("tables", [])
-            for table in tables
-        }
-
-        hinted_migrations = set()
-        for table_name in hinted_tables:
-            for connection_name in connections:
-                if router.allow_migrate(connection_name, self.app, table_name=table_name):
-                    hinted_migrations.add(connection_name)
-
-        assert (
-            len(hinted_migrations) == 1
-        ), f"Could not determine migration test connection from tables hints  Found {hinted_migrations}"
-        return next(iter(hinted_migrations))
+        return "default"
 
     def setUp(self):
         super().setUp()

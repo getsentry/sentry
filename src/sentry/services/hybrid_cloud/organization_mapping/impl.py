@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 from django.db import router
 
@@ -61,23 +61,21 @@ class DatabaseBackedOrganizationMappingService(OrganizationMappingService):
         org_mappings = OrganizationMapping.objects.filter(organization_id__in=organization_ids)
         return [serialize_organization_mapping(om) for om in org_mappings]
 
-    def update(self, organization_id: int, update: RpcOrganizationMappingUpdate) -> None:
-        # TODO: REMOVE FROM GETSENTRY!
-        with unguarded_write(using=router.db_for_write(OrganizationMapping)):
-            try:
-                OrganizationMapping.objects.get(organization_id=organization_id).update(**update)
-            except OrganizationMapping.DoesNotExist:
-                pass
+    def upsert(self, organization_id: int, update: RpcOrganizationMappingUpdate) -> None:
+        update_dict: Dict[str, Any] = dict(
+            name=update.name,
+            status=update.status,
+            slug=update.slug,
+            region_name=update.region_name,
+            require_2fa=update.requires_2fa,
+        )
+        if update.customer_id is not None:
+            update_dict["customer_id"] = update.customer_id[0]
 
-    def upsert(
-        self, organization_id: int, update: RpcOrganizationMappingUpdate
-    ) -> RpcOrganizationMapping:
         with unguarded_write(using=router.db_for_write(OrganizationMapping)):
-            org_mapping, _created = OrganizationMapping.objects.update_or_create(
-                organization_id=organization_id, defaults=update
+            OrganizationMapping.objects.update_or_create(
+                organization_id=organization_id, defaults=update_dict
             )
-
-            return serialize_organization_mapping(org_mapping)
 
     def verify_mappings(self, organization_id: int, slug: str) -> None:
         try:

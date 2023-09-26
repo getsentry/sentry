@@ -4,6 +4,9 @@ from django.urls import reverse
 
 from sentry.testutils.helpers import Feature
 from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.testutils.skips import requires_snuba
+
+pytestmark = [requires_snuba]
 
 
 @pytest.fixture(autouse=True)

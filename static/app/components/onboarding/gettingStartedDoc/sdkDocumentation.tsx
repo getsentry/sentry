@@ -18,12 +18,12 @@ type SdkDocumentationProps = {
 
 export type ModuleProps = {
   dsn: string;
+  projectSlug: Project['slug'];
   activeProductSelection?: ProductSolution[];
   newOrg?: boolean;
   organization?: Organization;
   platformKey?: PlatformKey;
   projectId?: Project['id'];
-  projectSlug?: Project['slug'];
   sourcePackageRegistries?: ReturnType<typeof useSourcePackageRegistries>;
 };
 

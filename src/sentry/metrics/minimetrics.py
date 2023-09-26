@@ -1,71 +1,105 @@
+# mypy: ignore-errors
+
 import random
-from typing import Optional, Union, cast
+from functools import wraps
+from typing import Any, Dict, Iterable, Optional, Tuple, Union
 
 import sentry_sdk
 
-from minimetrics import MetricTagsExternal, MiniMetricsClient
+try:
+    from sentry_sdk.metrics import Metric, MetricsAggregator  # type: ignore
+
+    have_minimetrics = True
+except ImportError:
+    have_minimetrics = False
+
+from sentry import options
 from sentry.metrics.base import MetricsBackend, Tags
-
-
-def _to_minimetrics_external_metric_tags(tags: Optional[Tags]) -> Optional[MetricTagsExternal]:
-    # We remove all `None` values, since then the types will be compatible.
-    casted_tags = None
-    if tags is not None:
-        casted_tags = {
-            tag_key: str(tag_value) for tag_key, tag_value in tags.items() if tag_value is not None
-        }
-
-    return cast(Optional[MetricTagsExternal], casted_tags)
-
-
-# This is needed to pass data between the sdk patcher and the
-# minimetrics backend.  This is not super clean but it allows us to
-# initialize these things in arbitrary order.
-minimetrics_client: Optional[MiniMetricsClient] = None
+from sentry.utils import metrics
 
 
 def patch_sentry_sdk():
-    client = sentry_sdk.Hub.main.client
-    if client is None:
+    if not have_minimetrics:
         return
 
-    old_flush = client.flush
+    real_add = MetricsAggregator.add
+    real_emit = MetricsAggregator._emit
 
-    def new_flush(*args, **kwargs):
-        client = minimetrics_client
-        if client is not None:
-            client.aggregator.consider_force_flush()
-        return old_flush(*args, **kwargs)
+    @wraps(real_add)
+    def tracked_add(self, ty, *args, **kwargs):
+        real_add(self, ty, *args, **kwargs)
+        metrics.incr(
+            key="minimetrics.add",
+            amount=1,
+            tags={"metric_type": ty},
+            sample_rate=1.0,
+        )
 
-    client.flush = new_flush  # type:ignore
+    @wraps(real_emit)
+    def patched_emit(self, flushable_buckets: Iterable[Tuple[int, Dict[Any, Metric]]]):
+        flushable_metrics = []
+        stats_by_type: Any = {}
+        for buckets_timestamp, buckets in flushable_buckets:
+            for bucket_key, metric in buckets.items():
+                flushable_metric = (buckets_timestamp, bucket_key, metric)
+                flushable_metrics.append(flushable_metric)
+                (prev_buckets_count, prev_buckets_weight) = stats_by_type.get(bucket_key[0], (0, 0))
+                stats_by_type[bucket_key[0]] = (
+                    prev_buckets_count + 1,
+                    prev_buckets_weight + metric.weight,
+                )
 
-    old_close = client.close
+        for metric_type, (buckets_count, buckets_weight) in stats_by_type.items():
+            metrics.timing(
+                key="minimetrics.flushed_buckets",
+                value=buckets_count,
+                tags={"metric_type": metric_type},
+                sample_rate=1.0,
+            )
+            metrics.incr(
+                key="minimetrics.flushed_buckets_counter",
+                amount=buckets_count,
+                tags={"metric_type": metric_type},
+                sample_rate=1.0,
+            )
+            metrics.timing(
+                key="minimetrics.flushed_buckets_weight",
+                value=buckets_weight,
+                tags={"metric_type": metric_type},
+                sample_rate=1.0,
+            )
+            metrics.incr(
+                key="minimetrics.flushed_buckets_weight_counter",
+                amount=buckets_weight,
+                tags={"metric_type": metric_type},
+                sample_rate=1.0,
+            )
 
-    def new_close(*args, **kwargs):
-        client = minimetrics_client
-        if client is not None:
-            client.aggregator.stop()
-        return old_close(*args, **kwargs)
+        if options.get("delightful_metrics.enable_capture_envelope"):
+            envelope = real_emit(self, flushable_buckets)
+            metrics.timing(
+                key="minimetrics.encoded_metrics_size",
+                value=len(envelope.items[0].payload.get_bytes()),
+                sample_rate=1.0,
+            )
 
-    client.close = new_close  # type:ignore
+    MetricsAggregator.add = tracked_add  # type: ignore
+    MetricsAggregator._emit = patched_emit  # type: ignore
 
-    old_data_category = sentry_sdk.envelope.Item.data_category.fget  # type:ignore
 
-    @property  # type:ignore
-    def data_category(self):
-        if self.headers.get("type") == "statsd":
-            return "statsd"
-        return old_data_category(self)
-
-    sentry_sdk.envelope.Item.data_category = data_category  # type:ignore
+def before_emit_metric(key: str, tags: Dict[str, Any]) -> bool:
+    if not options.get("delightful_metrics.enable_common_tags"):
+        tags.pop("transaction", None)
+        tags.pop("release", None)
+        tags.pop("environment", None)
+    return True
 
 
 class MiniMetricsMetricsBackend(MetricsBackend):
     def __init__(self, prefix: Optional[str] = None):
         super().__init__(prefix=prefix)
-        global minimetrics_client
-        self.client = MiniMetricsClient()
-        minimetrics_client = self.client
+        if not have_minimetrics:
+            raise RuntimeError("Sentry SDK too old (no minimetrics)")
 
     @staticmethod
     def _keep_metric(sample_rate: float) -> bool:
@@ -80,10 +114,10 @@ class MiniMetricsMetricsBackend(MetricsBackend):
         sample_rate: float = 1,
     ) -> None:
         if self._keep_metric(sample_rate):
-            self.client.incr(
+            sentry_sdk.metrics.incr(
                 key=self._get_key(key),
                 value=amount,
-                tags=_to_minimetrics_external_metric_tags(tags),
+                tags=tags,
             )
 
     def timing(
@@ -95,8 +129,8 @@ class MiniMetricsMetricsBackend(MetricsBackend):
         sample_rate: float = 1,
     ) -> None:
         if self._keep_metric(sample_rate):
-            self.client.timing(
-                key=self._get_key(key), value=value, tags=_to_minimetrics_external_metric_tags(tags)
+            sentry_sdk.metrics.distribution(
+                key=self._get_key(key), value=value, tags=tags, unit="second"
             )
 
     def gauge(
@@ -108,6 +142,5 @@ class MiniMetricsMetricsBackend(MetricsBackend):
         sample_rate: float = 1,
     ) -> None:
         if self._keep_metric(sample_rate):
-            self.client.gauge(
-                key=self._get_key(key), value=value, tags=_to_minimetrics_external_metric_tags(tags)
-            )
+            # XXX: make this into a gauge later
+            sentry_sdk.metrics.incr(key=self._get_key(key), value=value, tags=tags)

@@ -184,4 +184,23 @@ describe('ResolveActions', function () {
     await userEvent.click(screen.getByLabelText('More resolve options'));
     expect(screen.getByText('Resolving is better with Releases')).toBeInTheDocument();
   });
+
+  it('does not prompt to setup releases when multiple projects are selected', async function () {
+    render(
+      <ResolveActions
+        onUpdate={spy}
+        hasRelease={false}
+        projectSlug="proj-1"
+        multipleProjectsSelected
+      />
+    );
+
+    await userEvent.click(screen.getByLabelText('More resolve options'));
+    expect(
+      screen.getByRole('menuitemradio', {name: 'The current release'})
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText('Resolving is better with Releases')
+    ).not.toBeInTheDocument();
+  });
 });
