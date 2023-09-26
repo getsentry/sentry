@@ -8,8 +8,10 @@ __all__ = [
     "SumOfClickArray",
     "SumOfClickScalar",
     "SumOfClickSelectorComposite",
+    "SumOfDeadClickSelectorComposite",
     "SumOfErrorIdsArray",
     "SumOfIPv4Scalar",
+    "SumOfRageClickSelectorComposite",
     "SumOfStringArray",
     "SumOfStringScalar",
     "SumOfTagScalar",
@@ -29,5 +31,7 @@ from .selector import (
     SumOfClickArray,
     SumOfClickScalar,
     SumOfClickSelectorComposite,
+    SumOfDeadClickSelectorComposite,
+    SumOfRageClickSelectorComposite,
 )
 from .tags import SumOfTagScalar, TagScalar

@@ -81,6 +81,7 @@ export const mobile = [
 ] as const;
 
 export const backend = [
+  'bun',
   'dotnet',
   'dotnet-aspnetcore',
   'dotnet-aspnet',
@@ -104,7 +105,7 @@ export const backend = [
   'php',
   'php-laravel',
   'php-monolog',
-  'php-symfony2',
+  'php-symfony',
   'python',
   'python-django',
   'python-flask',
@@ -118,6 +119,7 @@ export const backend = [
   'python-quart',
   'python-tryton',
   'python-wsgi',
+  'python-asgi',
   'python-bottle',
   'python-pylons',
   'python-pyramid',
@@ -173,7 +175,11 @@ const categoryList = [
   {id: 'serverless', name: t('Serverless'), platforms: serverless},
 ] as const;
 
-export const deprecatedPlatforms = new Set(['node-serverlesscloud']);
+export const deprecatedPlatforms = new Set([
+  'node-serverlesscloud',
+  'python-pylons',
+  'python-pymongo',
+]);
 
 export const sourceMaps: PlatformKey[] = [
   ...frontend,
@@ -189,6 +195,7 @@ export const tracing = [
 ] as const;
 
 export const performance = [
+  'bun',
   'javascript',
   'javascript-ember',
   'javascript-react',
@@ -269,7 +276,7 @@ export const profiling: PlatformKey[] = [
   // php
   'php',
   'php-laravel',
-  'php-symfony2',
+  'php-symfony',
   // ruby
   'ruby',
   'ruby-rails',
@@ -299,6 +306,7 @@ export const releaseHealth: PlatformKey[] = [
   'flutter',
   'dart-flutter',
   // backend
+  'bun',
   'native',
   'node',
   'node-express',

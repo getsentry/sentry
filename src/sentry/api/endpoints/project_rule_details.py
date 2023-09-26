@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import logging
+
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import audit_log
+from sentry import analytics, audit_log
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.rule import RuleEndpoint
@@ -16,6 +18,7 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.slack.utils import RedisRuleStatus
 from sentry.mediators import project_rules
 from sentry.models import (
+    NeglectedRule,
     RegionScheduledDeletion,
     RuleActivity,
     RuleActivityType,
@@ -31,6 +34,8 @@ from sentry.rules.actions import trigger_sentry_app_action_creators_for_issues
 from sentry.signals import alert_rule_edited
 from sentry.tasks.integrations.slack import find_channel_id_for_rule
 from sentry.web.decorators import transaction_start
+
+logger = logging.getLogger(__name__)
 
 
 @region_silo_endpoint
@@ -51,7 +56,6 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
             {method} {path}
 
         """
-
         # Serialize Rule object
         serialized_rule = serialize(
             rule, request.user, RuleSerializer(request.GET.getlist("expand", []))
@@ -124,6 +128,46 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
         if serializer.is_valid():
             data = serializer.validated_data
 
+            # this is temporary for opting out of a migration of rules that haven't been
+            # interacted with by the user for x period of time
+            explicit_opt_out = request.data.get("optOutExplicit")
+            edit_opt_out = request.data.get("optOutEdit")
+            if explicit_opt_out or edit_opt_out:
+                try:
+                    neglected_rule = NeglectedRule.objects.get(
+                        rule=rule.id, organization=project.organization, opted_out=False
+                    )
+                    neglected_rule.opted_out = True
+                    neglected_rule.save()
+
+                    analytics_data = {
+                        "rule_id": rule.id,
+                        "user_id": request.user.id,
+                        "organization_id": project.organization.id,
+                    }
+
+                    if explicit_opt_out:
+                        analytics.record(
+                            "rule_disable_opt_out.explicit",
+                            **analytics_data,
+                        )
+                    if edit_opt_out:
+                        analytics.record(
+                            "rule_disable_opt_out.edit",
+                            **analytics_data,
+                        )
+                except NeglectedRule.DoesNotExist:
+                    pass
+
+                except NeglectedRule.MultipleObjectsReturned:
+                    logger.info(
+                        "rule_disable_opt_out.multiple",
+                        extra={
+                            "rule_id": rule.id,
+                            "org_id": project.organization.id,
+                        },
+                    )
+
             if not data.get("actions", []):
                 return Response(
                     {
@@ -149,7 +193,7 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
                 "actions": data["actions"],
                 "frequency": data.get("frequency"),
             }
-            duplicate_rule = find_duplicate_rule(kwargs, project, rule.id)
+            duplicate_rule = find_duplicate_rule(project=project, rule_data=kwargs, rule_id=rule.id)
             if duplicate_rule:
                 return Response(
                     {

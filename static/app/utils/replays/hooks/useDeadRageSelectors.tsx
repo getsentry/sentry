@@ -1,29 +1,39 @@
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {hydratedSelectorData} from 'sentry/views/replays/deadRageClick/selectorTable';
 import {
   DeadRageSelectorListResponse,
   DeadRageSelectorQueryParams,
 } from 'sentry/views/replays/types';
 
-export default function useRageDeadSelectors(
-  params: DeadRageSelectorQueryParams = {per_page: 10, sort: '-count_dead_clicks'}
-) {
+export default function useDeadRageSelectors(params: DeadRageSelectorQueryParams) {
   const organization = useOrganization();
   const location = useLocation();
   const {query} = location;
 
-  return useApiQuery<DeadRageSelectorListResponse>(
-    [
-      `/organizations/${organization.slug}/replay-selectors/`,
-      {
-        query: {
-          ...query,
-          per_page: params.per_page,
-          sort: params.sort,
+  const {isLoading, isError, data, getResponseHeader} =
+    useApiQuery<DeadRageSelectorListResponse>(
+      [
+        `/organizations/${organization.slug}/replay-selectors/`,
+        {
+          query: {
+            cursor: params.cursor,
+            environment: query.environment,
+            project: query.project,
+            statsPeriod: query.statsPeriod,
+            per_page: params.per_page,
+            sort: query[params.prefix + 'sort'] ?? params.sort,
+          },
         },
-      },
-    ],
-    {staleTime: Infinity}
-  );
+      ],
+      {staleTime: Infinity}
+    );
+
+  return {
+    isLoading,
+    isError,
+    data: hydratedSelectorData(data ? data.data : [], params.sort?.replace(/^-/, '')),
+    pageLinks: getResponseHeader?.('Link') ?? undefined,
+  };
 }

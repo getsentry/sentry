@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Callable, Mapping, Optional, Union
 
 import sentry_sdk
-from snuba_sdk import AliasedExpression, Column, Function, OrderBy
+from snuba_sdk import AliasedExpression, Column, Condition, Function, Identifier, Op, OrderBy
 
 from sentry.api.event_search import SearchFilter
 from sentry.exceptions import IncompatibleMetricsQuery
@@ -26,11 +26,17 @@ class SpansMetricsDatasetConfig(DatasetConfig):
     def search_filter_converter(
         self,
     ) -> Mapping[str, Callable[[SearchFilter], Optional[WhereType]]]:
-        return {}
+        return {
+            constants.SPAN_DOMAIN_ALIAS: self._span_domain_filter_converter,
+        }
 
     @property
     def field_alias_converter(self) -> Mapping[str, Callable[[str], SelectType]]:
-        return {constants.SPAN_MODULE_ALIAS: self._resolve_span_module}
+        return {
+            constants.SPAN_MODULE_ALIAS: self._resolve_span_module,
+            constants.SPAN_DOMAIN_ALIAS: self._resolve_span_domain,
+            constants.UNIQUE_SPAN_DOMAIN_ALIAS: self._resolve_unique_span_domains,
+        }
 
     def resolve_metric(self, value: str) -> int:
         metric_id = self.builder.resolve_metric_index(constants.SPAN_METRICS_MAP.get(value, value))
@@ -337,8 +343,64 @@ class SpansMetricsDatasetConfig(DatasetConfig):
 
         return function_converter
 
+    def _span_domain_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+        value = search_filter.value.value
+        if search_filter.value.is_wildcard():
+            value = search_filter.value.value[1:-1]
+            return Condition(
+                Function(
+                    "arrayExists",
+                    [
+                        Function(
+                            "lambda",
+                            [
+                                Function("tuple", [Identifier("x")]),
+                                Function("match", [Identifier("x"), f"(?i){value}"]),
+                            ],
+                        ),
+                        self._resolve_span_domain(),
+                    ],
+                ),
+                Op(search_filter.operator),
+                1,
+            )
+        elif value == "":
+            operator = Op.LTE if search_filter.operator == "=" else Op.GT
+            return Condition(Function("length", [self._resolve_span_domain()]), operator, 0)
+        else:
+            return Condition(
+                Function("has", [self._resolve_span_domain(), value]),
+                Op.NEQ if search_filter.operator in constants.EQUALITY_OPERATORS else Op.EQ,
+                0,
+            )
+
     def _resolve_span_module(self, alias: str) -> SelectType:
         return field_aliases.resolve_span_module(self.builder, alias)
+
+    def _resolve_span_domain(self, alias: Optional[str] = None) -> SelectType:
+        return Function(
+            "arrayFilter",
+            [
+                Function(
+                    "lambda",
+                    [Function("tuple", [Identifier("x")]), Function("notEmpty", [Identifier("x")])],
+                ),
+                Function(
+                    "splitByChar",
+                    [
+                        constants.SPAN_DOMAIN_SEPARATOR,
+                        self.builder.column("span.domain"),
+                    ],
+                ),
+            ],
+            alias,
+        )
+
+    def _resolve_unique_span_domains(
+        self,
+        alias: Optional[str] = None,
+    ) -> SelectType:
+        return Function("arrayJoin", [self._resolve_span_domain()], alias)
 
     # Query Functions
     def _resolve_count_if(

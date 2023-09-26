@@ -79,6 +79,8 @@ export enum IssueType {
   PROFILE_IMAGE_DECODE_MAIN_THREAD = 'profile_image_decode_main_thread',
   PROFILE_JSON_DECODE_MAIN_THREAD = 'profile_json_decode_main_thread',
   PROFILE_REGEX_MAIN_THREAD = 'profile_regex_main_thread',
+  PROFILE_FRAME_DROP = 'profile_frame_drop',
+  PROFILE_FRAME_DROP_EXPERIMENTAL = 'profile_frame_drop_experimental',
 }
 
 export enum IssueTitle {
@@ -555,6 +557,14 @@ interface ReprocessingStatusDetails {
   pendingEvents: number;
 }
 
+export interface UserParticipant extends User {
+  type: 'user';
+}
+
+export interface TeamParticipant extends Team {
+  type: 'team';
+}
+
 /**
  * The payload sent when marking reviewed
  */
@@ -564,6 +574,7 @@ export interface MarkReviewed {
 /**
  * The payload sent when updating a group's status
  */
+
 export interface GroupStatusResolution {
   status: GroupStatus.RESOLVED | GroupStatus.UNRESOLVED | GroupStatus.IGNORED;
   statusDetails: ResolvedStatusDetails | IgnoredStatusDetails | {};
@@ -607,7 +618,7 @@ export interface BaseGroup {
   logger: string | null;
   metadata: EventMetadata;
   numComments: number;
-  participants: User[];
+  participants: Array<UserParticipant | TeamParticipant>;
   permalink: string;
   platform: PlatformKey;
   pluginActions: any[]; // TODO(ts)

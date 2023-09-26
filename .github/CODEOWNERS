@@ -26,6 +26,7 @@
 /tests/sentry/sentry_metrics/                            @getsentry/owners-snuba
 /src/sentry/snuba/metrics/                               @getsentry/owners-snuba @getsentry/telemetry-experience
 /src/sentry/snuba/metrics/query.py                       @getsentry/owners-snuba @getsentry/telemetry-experience
+/src/sentry/snuba/metrics_layer/                         @getsentry/owners-snuba
 /src/sentry/search/events/datasets/metrics_layer.py      @getsentry/owners-snuba
 
 ## Event Ingestion
@@ -260,6 +261,7 @@ yarn.lock                                                @getsentry/owners-js-de
 
 ## Starfish
 /src/sentry/api/endpoints/organization_events_facets_stats_performance.py           @getsentry/team-starfish
+/src/sentry/api/endpoints/organization_spans_aggregation.py                         @getsentry/team-starfish
 /src/sentry/api/endpoints/organization_events_starfish.py                           @getsentry/team-starfish
 /tests/snuba/api/endpoints/test_organization_events_facets_stats_performance.py     @getsentry/team-starfish
 
@@ -385,8 +387,14 @@ yarn.lock                                                @getsentry/owners-js-de
 /src/sentry/scim/                                                       @getsentry/enterprise
 /tests/sentry/api/test_scim*.py                                         @getsentry/enterprise
 /src/sentry/tasks/integrations/github/pr_comment.py                     @getsentry/enterprise
+/src/sentry/api/endpoints/organization_missing_org_members.py           @getsentry/enterprise
+/src/sentry/tasks/invite_missing_org_members.py                         @getsentry/enterprise
+/static/app/components/modals/inviteMissingMembersModal/                @getsentry/enterprise
+/static/app/views/settings/organizationMembers/inviteBanner.tsx         @getsentry/enterprise
 /src/sentry/api/endpoints/organization_projects_experiment.py           @getsentry/enterprise
 /tests/sentry/api/endpoints/test_organization_projects_experiment.py    @getsentry/enterprise
+/src/sentry/models/release_threshold                                    @getsentry/enterprise
+/src/sentry/api/endpoints/release_threshold*.py                         @getsentry/enterprise
 ## End of Enterprise
 
 
@@ -478,4 +486,5 @@ yarn.lock                                                @getsentry/owners-js-de
 /src/sentry/api/helpers/source_map_helper.py                  @getsentry/issues
 /src/sentry/api/endpoints/actionable_items.py                @getsentry/issues
 /src/sentry/api/helpers/actionable_items_helper.py                  @getsentry/issues
+/static/app/components/events/interfaces/crashContent/exception/actionableItems   @getsentry/issues
 ## End of Issues

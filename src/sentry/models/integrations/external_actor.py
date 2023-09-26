@@ -22,7 +22,6 @@ logger = logging.getLogger(__name__)
 class ExternalActor(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Excluded
 
-    actor = FlexibleForeignKey("sentry.Actor", db_index=True, null=True, on_delete=models.CASCADE)
     team = FlexibleForeignKey("sentry.Team", null=True, db_index=True, on_delete=models.CASCADE)
     user_id = HybridCloudForeignKey("sentry.User", null=True, db_index=True, on_delete="CASCADE")
     organization = FlexibleForeignKey("sentry.Organization")
@@ -69,6 +68,7 @@ class ExternalActor(DefaultFieldsModel):
                 install = integration.get_installation(organization_id=self.organization.id)
                 team = self.team
                 install.notify_remove_external_team(external_team=self, team=team)
+                # Does the provider need to be an input?
                 notifications_service.remove_notification_settings_for_team(
                     team_id=team.id, provider=ExternalProviders(self.provider)
                 )

@@ -114,7 +114,7 @@ class VersionHoverCard extends Component<Props, State> {
                 users={release.authors}
                 avatarSize={25}
                 tooltipOptions={{container: 'body'} as any}
-                typeMembers="authors"
+                typeAvatars="authors"
               />
             </div>
           </div>

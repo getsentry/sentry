@@ -3,7 +3,6 @@ import {createStore} from 'reflux';
 
 import getGuidesContent from 'sentry/components/assistant/getGuidesContent';
 import {Guide, GuidesContent, GuidesServerData} from 'sentry/components/assistant/types';
-import {IS_ACCEPTANCE_TEST} from 'sentry/constants';
 import ConfigStore from 'sentry/stores/configStore';
 import HookStore from 'sentry/stores/hookStore';
 import {Organization} from 'sentry/types';
@@ -246,7 +245,7 @@ const storeConfig: GuideStoreDefinition = {
         if (seen) {
           return false;
         }
-        if (user?.isSuperuser && !IS_ACCEPTANCE_TEST) {
+        if (user?.isSuperuser) {
           return true;
         }
         if (dateThreshold) {

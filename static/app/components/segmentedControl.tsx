@@ -289,7 +289,9 @@ const SegmentInteractionStateLayer = styled(InteractionStateLayer)<{
   /* Prevent small gaps between adjacent pairs of selected & hovered radios (due to their
   border radius) by extending the hovered radio's interaction state layer into and
   behind the selected radio. */
-  transition: left 0.2s, right 0.2s;
+  transition:
+    left 0.2s,
+    right 0.2s;
   ${p => p.prevOptionIsSelected && `left: calc(-${p.theme.borderRadius} - 2px);`}
   ${p => p.nextOptionIsSelected && `right: calc(-${p.theme.borderRadius} - 2px);`}
 `;
