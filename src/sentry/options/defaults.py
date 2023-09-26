@@ -1626,7 +1626,35 @@ register(
 )
 
 register(
+    "outbox_replication.sentry_apikey.replication_version",
+    type=Int,
+    default=0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
     "outbox_replication.auth_user.replication_version",
+    type=Int,
+    default=0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "outbox_replication.sentry_organizationslugreservation.replication_version",
+    type=Int,
+    default=0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "outbox_replication.sentry_userrole.replication_version",
+    type=Int,
+    default=0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "outbox_replication.sentry_userrole_users.replication_version",
     type=Int,
     default=0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,

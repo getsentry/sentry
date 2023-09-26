@@ -1,7 +1,10 @@
+from __future__ import annotations
+
 import logging
 import uuid
 from datetime import datetime, timedelta
 from time import time
+from typing import Any
 from unittest import mock
 from unittest.mock import MagicMock, patch
 
@@ -2507,7 +2510,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         return_value=HTTPResponse(body=json.dumps({"severity": 0.1231})),
     )
     @patch("sentry.event_manager.logger.info")
-    def test_get_severity_score_simple(
+    def test_get_severity_score_error_event_simple(
         self,
         mock_logger_info: MagicMock,
         mock_urlopen: MagicMock,
@@ -2534,6 +2537,43 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             },
         )
         assert severity == 0.1231
+
+    @patch(
+        "sentry.event_manager.severity_connection_pool.urlopen",
+        return_value=HTTPResponse(body=json.dumps({"severity": 0.1231})),
+    )
+    @patch("sentry.event_manager.logger.info")
+    def test_get_severity_score_message_event_simple(
+        self,
+        mock_logger_info: MagicMock,
+        mock_urlopen: MagicMock,
+    ) -> None:
+        cases: list[dict[str, Any]] = [
+            {"message": "Dogs are great!"},
+            {"logentry": {"formatted": "Dogs are great!"}},
+            {"logentry": {"message": "Dogs are great!"}},
+        ]
+        for case in cases:
+            manager = EventManager(make_event(**case))
+            event = manager.save(self.project.id)
+
+            severity = _get_severity_score(event)
+
+            mock_urlopen.assert_called_with(
+                "POST",
+                "/issues/severity-score",
+                body='{"message":"Dogs are great!"}',
+                headers={"content-type": "application/json;charset=utf-8"},
+            )
+            mock_logger_info.assert_called_with(
+                f"Got severity score of 0.1231 for event {event.event_id}",
+                extra={
+                    "event_id": event.event_id,
+                    "op": "event_manager._get_severity_score",
+                    "event_message": "Dogs are great!",
+                },
+            )
+            assert severity == 0.1231
 
     @patch(
         "sentry.event_manager.severity_connection_pool.urlopen",
@@ -2578,12 +2618,13 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
 
             mock_urlopen.assert_not_called()
             mock_logger_warning.assert_called_with(
-                "Unable to get severity score because of unusable `message` value '<unknown>'",
+                "Unable to get severity score because of unusable `message` value '<unlabeled event>'",
                 extra={
                     "event_id": event.event_id,
                     "op": "event_manager._get_severity_score",
+                    "event_type": "default",
                     "event_title": title,
-                    "computed_title": "<unknown>",
+                    "computed_title": "<unlabeled event>",
                 },
             )
             assert severity is None

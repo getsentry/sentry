@@ -14,7 +14,7 @@ from arroyo.types import Topic
 
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 
-make_counter_payload = lambda use_case, rand_str: {
+make_counter_payload = lambda use_case, org_id, rand_str: {
     "name": f"c:{use_case}/{use_case}@none",
     "tags": {
         "environment": "production",
@@ -24,12 +24,12 @@ make_counter_payload = lambda use_case, rand_str: {
     "timestamp": int(datetime.datetime.now(tz=datetime.timezone.utc).timestamp()),
     "type": "c",
     "value": 1,
-    "org_id": 1,
+    "org_id": org_id,
     "retention_days": 90,
     "project_id": 3,
 }
 
-make_dist_payload = lambda use_case, rand_str: {
+make_dist_payload = lambda use_case, org_id, rand_str: {
     "name": f"d:{use_case}/duration@second",
     "tags": {
         "environment": "production",
@@ -39,12 +39,12 @@ make_dist_payload = lambda use_case, rand_str: {
     "timestamp": int(datetime.datetime.now(tz=datetime.timezone.utc).timestamp()),
     "type": "d",
     "value": [4, 5, 6],
-    "org_id": 1,
+    "org_id": org_id,
     "retention_days": 90,
     "project_id": 3,
 }
 
-make_set_payload = lambda use_case, rand_str: {
+make_set_payload = lambda use_case, org_id, rand_str: {
     "name": f"s:{use_case}/error@none",
     "tags": {
         "environment": "production",
@@ -54,7 +54,7 @@ make_set_payload = lambda use_case, rand_str: {
     "timestamp": int(datetime.datetime.now(tz=datetime.timezone.utc).timestamp()),
     "type": "s",
     "value": [3],
-    "org_id": 1,
+    "org_id": org_id,
     "retention_days": 90,
     "project_id": 3,
 }
@@ -131,11 +131,25 @@ def produce_msgs(messages, is_generic, host, dryrun):
     help="The use case IDs.",
 )
 @click.option("--rand-str", default=None, help="The random string prefix for each key value pairs.")
-@click.option("--host", default="127.0.0.1:9092", help="The host and port for kafka.")
 @click.option(
-    "--dryrun", is_flag=True, default=False, help="Print the messages without sending them."
+    "--host", default="127.0.0.1:9092", show_default=True, help="The host and port for kafka."
 )
-def main(use_cases, rand_str, host, dryrun):
+@click.option(
+    "--dryrun",
+    is_flag=True,
+    default=False,
+    show_default=True,
+    help="Print the messages without sending them.",
+)
+@click.option(
+    "--org-id",
+    "-o",
+    multiple=True,
+    default=[1],
+    show_default=True,
+    help="Specify which org id(s) to send",
+)
+def main(use_cases, rand_str, host, dryrun, org_id):
     if UseCaseID.SESSIONS.value in use_cases and len(use_cases) > 1:
         click.secho(
             "ERROR: UseCaseID.SESSIONS is in use_cases and there are more than 1 use cases",
@@ -150,25 +164,33 @@ def main(use_cases, rand_str, host, dryrun):
     messages = list(
         itertools.chain.from_iterable(
             (
-                make_counter_payload(use_case, rand_str),
-                make_dist_payload(use_case, rand_str),
-                make_set_payload(use_case, rand_str),
+                make_counter_payload(use_case, org, rand_str),
+                make_dist_payload(use_case, org, rand_str),
+                make_set_payload(use_case, org, rand_str),
             )
             for use_case in use_cases
+            for org in org_id
         )
     )
     random.shuffle(messages)
 
     produce_msgs(messages, is_generic, host, dryrun)
 
+    metrics_per_use_case = 3
+    strs_per_use_case = 3
+
     print(
-        f"Use the following SQL to verify postgres, there should be {(strs_per_use_case := 3)} strings for each use cases, {strs_per_use_case * len(use_cases)} in total."
+        f"Use the following SQL to verify postgres, "
+        f"there should be {strs_per_use_case} strings for each use cases, "
+        f"{strs_per_use_case * len(use_cases) * len(org_id)} in total."
     )
     print(make_psql(rand_str, is_generic))
 
     if is_generic:
         print(
-            f"Use the following SQL to verify clickhouse, there should be {(metrics_per_use_case := 3)} metrics for each use cases, {metrics_per_use_case * len(use_cases)} in total."
+            f"Use the following SQL to verify clickhouse, "
+            f"there should be {metrics_per_use_case} metrics for each use cases, "
+            f"{metrics_per_use_case * len(use_cases) * len(org_id)} in total."
         )
         print(make_csql(rand_str, is_generic))
 
