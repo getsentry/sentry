@@ -72,6 +72,78 @@ CREATE_NOTIFICATION_ACTION = [
     )
 ]
 
+GET_NOTIFICATION_ACTION = [
+    OpenApiExample(
+        "Retreive a spike protection notification action created for the the project, The Spoiled Yoghurt",
+        value={
+            "id": "836501735",
+            "organizationId": "62848264",
+            "serviceType": "sentry_notification",
+            "targetDisplay": "default",
+            "targeyIdentifier": "default",
+            "targetType": "specific",
+            "triggerType": "spike-protection",
+            "projects": [
+                {
+                    "id": "4505321021243392",
+                    "slug": "the-spoiled-yoghurt",
+                    "name": "The Spoiled Yoghurt",
+                    "platform": "python",
+                    "dateCreated": "2023-06-08T00:13:06.004534Z",
+                    "isBookmarked": False,
+                    "isMember": True,
+                    "features": [
+                        "alert-filters",
+                        "custom-inbound-filters",
+                        "data-forwarding",
+                        "discard-groups",
+                        "minidump",
+                        "race-free-group-creation",
+                        "rate-limits",
+                        "servicehooks",
+                        "similarity-indexing",
+                        "similarity-indexing-v2",
+                        "similarity-view",
+                        "similarity-view-v2",
+                    ],
+                    "firstEvent": None,
+                    "firstTransactionEvent": False,
+                    "access": [
+                        "member:read",
+                        "event:read",
+                        "project:admin",
+                        "team:write",
+                        "project:write",
+                        "team:admin",
+                        "project:read",
+                        "org:integrations",
+                        "org:read",
+                        "project:releases",
+                        "team:read",
+                        "alerts:write",
+                        "event:admin",
+                        "event:write",
+                        "alerts:read",
+                    ],
+                    "hasAccess": True,
+                    "hasMinifiedStackTrace": False,
+                    "hasMonitors": False,
+                    "hasProfiles": False,
+                    "hasReplays": False,
+                    "hasSessions": False,
+                    "isInternal": False,
+                    "isPublic": False,
+                    "avatar": {"avatarType": "letter_avatar", "avatarUuid": None},
+                    "color": "#3f70bf",
+                    "status": "active",
+                }
+            ],
+        },
+        status_codes=["200"],
+        response_only=True,
+    )
+]
+
 LIST_NOTIFICATION_ACTIONS = [
     OpenApiExample(
         "List all spike protection notification actions for an organization",
@@ -199,6 +271,87 @@ LIST_NOTIFICATION_ACTIONS = [
             },
         ],
         status_codes=["201"],
+        response_only=True,
+    )
+]
+
+UPDATE_NOTIFICATION_ACTION = [
+    OpenApiExample(
+        "Update a spike protection notification action created for the the project, The Spoiled Yoghurt to use sentry_notification as notification service.",
+        value={
+            "id": "836501735",
+            "organizationId": "62848264",
+            "serviceType": "sentry_notification",
+            "targetDisplay": "default",
+            "targeyIdentifier": "default",
+            "targetType": "specific",
+            "triggerType": "spike-protection",
+            "projects": [
+                {
+                    "id": "4505321021243392",
+                    "slug": "the-spoiled-yoghurt",
+                    "name": "The Spoiled Yoghurt",
+                    "platform": "python",
+                    "dateCreated": "2023-06-08T00:13:06.004534Z",
+                    "isBookmarked": False,
+                    "isMember": True,
+                    "features": [
+                        "alert-filters",
+                        "custom-inbound-filters",
+                        "data-forwarding",
+                        "discard-groups",
+                        "minidump",
+                        "race-free-group-creation",
+                        "rate-limits",
+                        "servicehooks",
+                        "similarity-indexing",
+                        "similarity-indexing-v2",
+                        "similarity-view",
+                        "similarity-view-v2",
+                    ],
+                    "firstEvent": None,
+                    "firstTransactionEvent": False,
+                    "access": [
+                        "member:read",
+                        "event:read",
+                        "project:admin",
+                        "team:write",
+                        "project:write",
+                        "team:admin",
+                        "project:read",
+                        "org:integrations",
+                        "org:read",
+                        "project:releases",
+                        "team:read",
+                        "alerts:write",
+                        "event:admin",
+                        "event:write",
+                        "alerts:read",
+                    ],
+                    "hasAccess": True,
+                    "hasMinifiedStackTrace": False,
+                    "hasMonitors": False,
+                    "hasProfiles": False,
+                    "hasReplays": False,
+                    "hasSessions": False,
+                    "isInternal": False,
+                    "isPublic": False,
+                    "avatar": {"avatarType": "letter_avatar", "avatarUuid": None},
+                    "color": "#3f70bf",
+                    "status": "active",
+                }
+            ],
+        },
+        status_codes=["202"],
+        response_only=True,
+    )
+]
+
+DELETE_NOTIFICATION_ACTION = [
+    OpenApiExample(
+        "Delete a spike protection notification action",
+        value={},
+        status_codes=["204"],
         response_only=True,
     )
 ]
