@@ -36,7 +36,7 @@ class Repository(Model, PendingDeletionMixin):
     )
     date_added = models.DateTimeField(default=timezone.now)
     integration_id = BoundedPositiveIntegerField(db_index=True, null=True)
-    languages = ArrayField(models.CharField(), null=True)
+    languages = ArrayField(null=True)
 
     class Meta:
         app_label = "sentry"
