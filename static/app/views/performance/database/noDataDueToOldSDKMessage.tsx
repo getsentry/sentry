@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 
 import ExternalLink from 'sentry/components/links/externalLink';
-import {t, tct} from 'sentry/locale';
+import {tct} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -42,6 +42,8 @@ export function NoDataDueToOldSDKMessage({Wrapper = DivWrapper}: Props) {
     return null;
   }
 
+  const listedProjects = ineligibleProjects.slice(0, MAX_LISTED_PROJECTS + 1);
+
   return (
     <Wrapper>
       {tct(
@@ -52,7 +54,7 @@ export function NoDataDueToOldSDKMessage({Wrapper = DivWrapper}: Props) {
           ),
           projectList: (
             <Fragment>
-              {ineligibleProjects.slice(0, MAX_LISTED_PROJECTS).map(project => {
+              {listedProjects.map((project, projectIndex) => {
                 return (
                   <span key={project.id}>
                     <a
@@ -62,6 +64,7 @@ export function NoDataDueToOldSDKMessage({Wrapper = DivWrapper}: Props) {
                     >
                       {project.name}
                     </a>
+                    {projectIndex < listedProjects.length - 1 && ', '}
                   </span>
                 );
               })}
@@ -70,7 +73,9 @@ export function NoDataDueToOldSDKMessage({Wrapper = DivWrapper}: Props) {
         }
       )}
       {hasMoreIneligibleProjectsThanVisible
-        ? t('and [count] more', {count: ineligibleProjects.length - MAX_LISTED_PROJECTS})
+        ? tct(' and [count] more', {
+            count: ineligibleProjects.length - MAX_LISTED_PROJECTS,
+          })
         : ''}
     </Wrapper>
   );

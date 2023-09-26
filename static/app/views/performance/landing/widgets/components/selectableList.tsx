@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
@@ -95,9 +96,9 @@ export function TimeSpentInDatabaseWidgetEmptyStateWarning() {
     <StyledEmptyStateWarning>
       <PrimaryMessage>{t('No results found')}</PrimaryMessage>
       <SecondaryMessage>
-        {t('Spans may not be listed due to the filters above.')}
+        {t('Spans may not be listed due to the filters above.')}{' '}
+        <NoDataDueToOldSDKMessage Wrapper={Fragment} />
       </SecondaryMessage>
-      <NoDataDueToOldSDKMessage />
     </StyledEmptyStateWarning>
   );
 }
