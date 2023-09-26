@@ -1,6 +1,7 @@
-import {Fragment} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from 'sentry/components/button';
 import ReplayRageClickSdkVersionBanner from 'sentry/components/replays/replayRageClickSdkVersionBanner';
 import {space} from 'sentry/styles/space';
 import {useHaveSelectedProjectsSentAnyReplayEvents} from 'sentry/utils/replays/hooks/useReplayOnboarding';
@@ -32,6 +33,7 @@ export default function ListContent() {
     organization,
     projectId: projects.map(String),
   });
+  const [widgetIsOpen, setWidgetIsOpen] = useState(true);
 
   useRouteAnalyticsParams({
     hasSessionReplay,
@@ -73,9 +75,16 @@ export default function ListContent() {
       <FiltersContainer>
         <ReplaysFilters />
         <ReplaysSearch />
+        {hasdeadRageClickFeature ? (
+          <Button onClick={() => setWidgetIsOpen(!widgetIsOpen)}>
+            {widgetIsOpen ? 'Hide Widgets' : 'Show Widgets'}
+          </Button>
+        ) : null}
       </FiltersContainer>
       {hasdeadRageClickFeature ? (
-        <DeadRageSelectorCards />
+        widgetIsOpen ? (
+          <DeadRageSelectorCards />
+        ) : null
       ) : (
         <ReplaysErroneousDeadRageCards />
       )}
