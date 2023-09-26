@@ -289,7 +289,10 @@ class Monitor(Model):
         margin.
         """
         next_checkin = self.get_next_expected_checkin(last_checkin)
-        return next_checkin + timedelta(minutes=int(self.config.get("checkin_margin") or 0))
+        # TODO(epurkhiser): We should probably just set this value as a
+        # `default` in the validator for the config instead of having the magic
+        # default number here
+        return next_checkin + timedelta(minutes=int(self.config.get("checkin_margin") or 1))
 
     def update_config(self, config_payload, validated_config):
         monitor_config = self.config

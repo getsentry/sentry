@@ -1,4 +1,4 @@
-import {Component, createRef, Fragment, Profiler} from 'react';
+import {Component, createRef, Fragment, Profiler, ReactNode} from 'react';
 import {Location} from 'history';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
@@ -115,7 +115,7 @@ type GridEditableProps<DataRow, ColumnKey> = {
    * - `columnSortBy` is not used at the moment, however it might be better to
    *   move sorting into Grid for performance
    */
-  title?: string;
+  title?: ReactNode;
 };
 
 type GridEditableState = {

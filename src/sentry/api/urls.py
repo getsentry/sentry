@@ -24,6 +24,7 @@ from sentry.api.endpoints.organization_projects_experiment import (
 from sentry.api.endpoints.organization_spans_aggregation import OrganizationSpansAggregationEndpoint
 from sentry.api.endpoints.release_threshold import ReleaseThresholdEndpoint
 from sentry.api.endpoints.release_threshold_details import ReleaseThresholdDetailsEndpoint
+from sentry.api.endpoints.release_threshold_status_index import ReleaseThresholdStatusIndexEndpoint
 from sentry.api.endpoints.source_map_debug_blue_thunder_edition import (
     SourceMapDebugBlueThunderEditionEndpoint,
 )
@@ -683,6 +684,10 @@ GROUP_URLS: list[URLPattern | URLResolver] = [
     re_path(
         r"^(?P<issue_id>[^\/]+)/first-last-release/$",
         GroupFirstLastReleaseEndpoint.as_view(),
+    ),
+    re_path(
+        r"^(?P<issue_id>[^\/]+)/participants/$",
+        GroupParticipantsEndpoint.as_view(),
     ),
     # Load plugin group urls
     re_path(
@@ -1614,6 +1619,12 @@ ORGANIZATION_URLS = [
         OrganizationReleasesEndpoint.as_view(),
         name="sentry-api-0-organization-releases",
     ),
+    # TODO: also integrate release threshold status into the releases response?
+    re_path(
+        r"^(?P<organization_slug>[^\/]+)/release-threshold-statuses/$",
+        ReleaseThresholdStatusIndexEndpoint.as_view(),
+        name="sentry-api-0-organization-release-threshold-statuses",
+    ),
     re_path(
         r"^(?P<organization_slug>[^\/]+)/releases/stats/$",
         OrganizationReleasesStatsEndpoint.as_view(),
@@ -1901,6 +1912,18 @@ ORGANIZATION_URLS = [
                 ),
             ],
         ),
+    ),
+    # Symbolicator Builtin Sources
+    re_path(
+        r"^(?P<organization_slug>[^/]+)/builtin-symbol-sources/$",
+        BuiltinSymbolSourcesEndpoint.as_view(),
+        name="sentry-api-0-organization-builtin-symbol-sources",
+    ),
+    # Grouping configs
+    re_path(
+        r"^(?P<organization_slug>[^/]+)/grouping-configs/$",
+        GroupingConfigsEndpoint.as_view(),
+        name="sentry-api-0-organization-grouping-configs",
     ),
 ]
 
@@ -2879,17 +2902,6 @@ urlpatterns = [
         r"^profiling/projects/(?P<project_id>[\w_-]+)/profile/(?P<profile_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/",
         ProjectProfilingEventEndpoint.as_view(),
         name="sentry-api-0-profiling-project-profile",
-    ),
-    # TODO: include in the /organizations/ route tree + remove old dupe once hybrid cloud launches
-    re_path(
-        r"^organizations/(?P<organization_slug>[^\/]+)/issues/(?P<issue_id>[^\/]+)/participants/$",
-        GroupParticipantsEndpoint.as_view(),
-        name="sentry-api-0-organization-group-stats",
-    ),
-    re_path(
-        r"^issues/(?P<issue_id>[^\/]+)/participants/$",
-        GroupParticipantsEndpoint.as_view(),
-        name="sentry-api-0-group-stats",
     ),
     re_path(
         r"^notification-defaults/$",
