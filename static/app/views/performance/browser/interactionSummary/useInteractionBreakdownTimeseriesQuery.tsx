@@ -11,8 +11,8 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
 type Props = {
-  operation: string;
   element: string;
+  operation: string;
   page: string;
 };
 
@@ -26,7 +26,7 @@ export const useInteractionBreakdownTimeseriesQuery = ({
   const organization = useOrganization();
   const projectTimeSeriesEventView = EventView.fromNewQueryWithPageFilters(
     {
-      yAxis: [`avg(transaction.duration)`],
+      yAxis: [`p75(transaction.duration)`],
       name: 'Web Vitals',
       query: `transaction.op:${operation} transaction:${page} interactionElement:${element.replaceAll(
         '"',
@@ -67,7 +67,7 @@ export const useInteractionBreakdownTimeseriesQuery = ({
   });
 
   const seriesData: Series = {
-    seriesName: 'Average Duration',
+    seriesName: 'p75(duration)',
     data: [],
   };
 

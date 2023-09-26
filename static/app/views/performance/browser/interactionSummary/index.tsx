@@ -22,8 +22,7 @@ function InteractionSummary() {
 
   const operation = browserFilters?.[BrowserStarfishFields.TRANSACTION_OP] ?? '';
   const page = browserFilters?.[BrowserStarfishFields.PAGE] ?? '';
-  const element =
-    browserFilters?.[BrowserStarfishFields.COMPONENT]?.replaceAll('"', '\\"') ?? '';
+  const element = browserFilters?.[BrowserStarfishFields.COMPONENT] ?? '';
 
   return (
     <ModulePageProviders title={[t('Performance'), t('Interactions')].join(' — ')}>
