@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, Generator, List, Optional, Set, Tuple
 
 import sentry_sdk
-from django.utils import timezone
 from snuba_sdk import (
+    And,
     Column,
     Condition,
     CurriedFunction,
@@ -17,6 +17,7 @@ from snuba_sdk import (
     Limit,
     LimitBy,
     Op,
+    Or,
     OrderBy,
     Query,
     Request,
@@ -26,6 +27,7 @@ from sentry import options
 from sentry.api.serializers.snuba import SnubaTSResultSerializer
 from sentry.constants import ObjectStatus
 from sentry.models.project import Project
+from sentry.profiles.utils import get_from_profiling_service
 from sentry.search.events.builder import ProfileTopFunctionsTimeseriesQueryBuilder
 from sentry.search.events.fields import get_function_alias
 from sentry.search.events.types import QueryBuilderConfig
@@ -44,7 +46,7 @@ from sentry.statistical_detectors.algorithm import (
 )
 from sentry.statistical_detectors.detector import DetectorPayload, TrendType
 from sentry.tasks.base import instrumented_task
-from sentry.utils import metrics
+from sentry.utils import json, metrics
 from sentry.utils.iterators import chunked
 from sentry.utils.math import ExponentialMovingAverage
 from sentry.utils.query import RangeQuerySetWrapper
@@ -263,31 +265,25 @@ def detect_function_change_points(
     functions_list: List[Tuple[int, int]], start: datetime, *args, **kwargs
 ) -> None:
     breakpoint_count = 0
+    emitted_count = 0
 
     breakpoints = _detect_function_change_points(functions_list, start)
 
-    for breakpoint_chunk in chunked(breakpoints, 100):
-        for entry in breakpoint_chunk:
-            breakpoint_count += 1
+    chunk_size = 100
 
-            with sentry_sdk.push_scope() as scope:
-                scope.set_tag("regressed_project_id", entry["project"])
-                # the service was originally meant for transactions so this
-                # naming is a result of this
-                scope.set_tag("regressed_function_id", entry["transaction"])
-                scope.set_context(
-                    "statistical_detectors",
-                    {
-                        **entry,
-                        "timestamp": start.isoformat(),
-                        "breakpoint": datetime.fromtimestamp(entry["breakpoint"]),
-                    },
-                )
-                sentry_sdk.capture_message("Potential Regression")
+    for breakpoint_chunk in chunked(breakpoints, chunk_size):
+        breakpoint_count += len(breakpoint_chunk)
+        emitted_count += emit_function_regression_issue(breakpoint_chunk, start)
 
     metrics.incr(
         "statistical_detectors.breakpoint.functions",
         amount=breakpoint_count,
+        sample_rate=1.0,
+    )
+
+    metrics.incr(
+        "statistical_detectors.emitted.functions",
+        amount=emitted_count,
         sample_rate=1.0,
     )
 
@@ -400,6 +396,104 @@ def _detect_function_change_points(
         except Exception as e:
             sentry_sdk.capture_exception(e)
             continue
+
+
+def emit_function_regression_issue(
+    breakpoints: List[BreakpointData],
+    start: datetime,
+) -> int:
+    start = start - timedelta(hours=1)
+    start = start.replace(minute=0, second=0, microsecond=0)
+
+    project_ids = [int(entry["project"]) for entry in breakpoints]
+    projects = Project.objects.filter(id__in=project_ids)
+    projects_by_id = {project.id: project for project in projects}
+
+    params: Dict[str, Any] = {
+        "start": start,
+        "end": start + timedelta(minutes=1),
+        "project_id": project_ids,
+        "project_objects": projects,
+    }
+
+    conditions = [
+        And(
+            [
+                Condition(Column("project_id"), Op.EQ, int(entry["project"])),
+                Condition(Column("fingerprint"), Op.EQ, int(entry["transaction"])),
+            ]
+        )
+        for entry in breakpoints
+    ]
+
+    result = functions.query(
+        selected_columns=["project.id", "fingerprint", "worst()"],
+        query="is_application:1",
+        params=params,
+        orderby=["project.id"],
+        limit=len(breakpoints),
+        referrer=Referrer.API_PROFILING_FUNCTIONS_STATISTICAL_DETECTOR_EXAMPLE.value,
+        auto_aggregations=True,
+        use_aggregate_conditions=True,
+        transform_alias_to_input_format=True,
+        conditions=conditions if len(conditions) <= 1 else [Or(conditions)],
+    )
+
+    examples = {(row["project.id"], row["fingerprint"]): row["worst()"] for row in result["data"]}
+
+    payloads = []
+
+    for entry in breakpoints:
+        with sentry_sdk.push_scope() as scope:
+            scope.set_tag("regressed_project_id", entry["project"])
+            # the service was originally meant for transactions so this
+            # naming is a result of this
+            scope.set_tag("regressed_function_id", entry["transaction"])
+
+            breakpoint_ts = datetime.fromtimestamp(entry["breakpoint"], tz=timezone.utc)
+            scope.set_context(
+                "statistical_detectors",
+                {
+                    **entry,
+                    "timestamp": start.isoformat(),
+                    "breakpoint_timestamp": breakpoint_ts.isoformat(),
+                },
+            )
+            sentry_sdk.capture_message("Potential Regression")
+
+        project_id = int(entry["project"])
+        fingerprint = int(entry["transaction"])
+        example = examples.get((project_id, fingerprint))
+        if example is None:
+            continue
+
+        project = projects_by_id.get(project_id)
+        if project is None:
+            continue
+
+        payloads.append(
+            {
+                "organization_id": project.organization_id,
+                "project_id": project_id,
+                "profile_id": example,
+                "fingerprint": fingerprint,
+                "absolute_percentage_change": entry["absolute_percentage_change"],
+                "aggregate_range_1": entry["aggregate_range_1"],
+                "aggregate_range_2": entry["aggregate_range_2"],
+                "breakpoint": int(entry["breakpoint"]),
+                "trend_difference": entry["trend_difference"],
+                "trend_percentage": entry["trend_percentage"],
+                "unweighted_p_value": entry["unweighted_p_value"],
+                "unweighted_t_value": entry["unweighted_t_value"],
+            }
+        )
+
+    response = get_from_profiling_service(method="POST", path="/regressed", json_data=payloads)
+    if response.status != 200:
+        return 0
+
+    data = json.loads(response.data)
+    return data.get("occurrences")
 
 
 def all_function_payloads(
