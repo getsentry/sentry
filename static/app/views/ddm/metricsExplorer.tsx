@@ -1,4 +1,5 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+import {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import moment from 'moment';
 
@@ -6,7 +7,9 @@ import Alert from 'sentry/components/alert';
 import {AreaChart} from 'sentry/components/charts/areaChart';
 import {BarChart} from 'sentry/components/charts/barChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
+import Legend from 'sentry/components/charts/components/legend';
 import {LineChart} from 'sentry/components/charts/lineChart';
+import ReleaseSeries from 'sentry/components/charts/releaseSeries';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import SearchBar from 'sentry/components/events/searchBar';
@@ -19,7 +22,7 @@ import Tag from 'sentry/components/tag';
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {MetricsTag, TagCollection} from 'sentry/types';
+import {MetricsTag, PageFilters, TagCollection} from 'sentry/types';
 import {
   defaultMetricDisplayType,
   formatMetricsUsingUnitAndOp,
@@ -66,6 +69,7 @@ function MetricsExplorer() {
           displayType={router.location.query.display ?? defaultMetricDisplayType}
           datetime={selection.datetime}
           projects={selection.projects}
+          environments={selection.environments}
           {...metricsQuery}
         />
       </PanelBody>
@@ -79,7 +83,8 @@ type QueryBuilderProps = {
 
 function QueryBuilder({metricsQuery}: QueryBuilderProps) {
   const router = useRouter();
-  const meta = useMetricsMeta();
+  const {selection} = usePageFilters();
+  const meta = useMetricsMeta(selection.projects);
   const mriModeKeyPressed = useKeyPress('`', undefined, true);
   const [mriMode, setMriMode] = useState(false); // power user mode that shows raw MRI instead of metrics names
 
@@ -90,7 +95,7 @@ function QueryBuilder({metricsQuery}: QueryBuilderProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mriModeKeyPressed]);
 
-  const {data: tags = []} = useMetricsTags(metricsQuery.mri);
+  const {data: tags = []} = useMetricsTags(metricsQuery.mri, selection.projects);
 
   if (!meta) {
     return null;
@@ -191,6 +196,7 @@ type MetricSearchBarProps = {
 function MetricSearchBar({tags, mri, disabled, onChange, query}: MetricSearchBarProps) {
   const org = useOrganization();
   const api = useApi();
+  const {selection} = usePageFilters();
 
   const supportedTags: TagCollection = useMemo(
     () => tags.reduce((acc, tag) => ({...acc, [tag.key]: tag}), {}),
@@ -202,12 +208,19 @@ function MetricSearchBar({tags, mri, disabled, onChange, query}: MetricSearchBar
     async tag => {
       const tagsValues = await api.requestPromise(
         `/organizations/${org.slug}/metrics/tags/${tag.key}/`,
-        {query: {useCase: getUseCaseFromMri(mri)}}
+        {
+          query: {
+            // TODO(ddm): OrganizationMetricsTagDetailsEndpoint does not return values when metric is specified
+            // metric: mri,
+            useCase: getUseCaseFromMri(mri),
+            project: selection.projects,
+          },
+        }
       );
 
       return tagsValues.map(tv => tv.value);
     },
-    [api, mri, org.slug]
+    [api, mri, org.slug, selection.projects]
   );
 
   const handleChange = useCallback(
@@ -316,7 +329,7 @@ function MetricsExplorerDisplay({displayType, ...metricsDataProps}: DisplayProps
   const series = sorted.groups.map(g => {
     return {
       values: Object.values(g.series)[0],
-      name: getSeriesName(g, data.groups.length === 1),
+      name: getSeriesName(g, data.groups.length === 1, metricsDataProps.groupBy),
     };
   });
 
@@ -339,6 +352,8 @@ function MetricsExplorerDisplay({displayType, ...metricsDataProps}: DisplayProps
         series={chartSeries}
         displayType={displayType}
         operation={metricsDataProps.op}
+        projects={metricsDataProps.projects}
+        environments={metricsDataProps.environments}
         {...normalizeChartTimeParams(sorted)}
       />
       <SummaryTable
@@ -350,8 +365,12 @@ function MetricsExplorerDisplay({displayType, ...metricsDataProps}: DisplayProps
   );
 }
 
-function getSeriesName(group: Group, isOnlyGroup = false) {
-  if (isOnlyGroup) {
+function getSeriesName(
+  group: Group,
+  isOnlyGroup = false,
+  groupBy: MetricsDataProps['groupBy']
+) {
+  if (isOnlyGroup && !groupBy?.length) {
     return Object.keys(group.series)?.[0] ?? '(none)';
   }
 
@@ -420,6 +439,8 @@ export type Series = {
 
 type ChartProps = {
   displayType: MetricDisplayType;
+  environments: PageFilters['environments'];
+  projects: PageFilters['projects'];
   series: Series[];
   end?: string;
   operation?: string;
@@ -428,14 +449,23 @@ type ChartProps = {
   utc?: boolean;
 };
 
-function Chart({series, displayType, start, end, period, utc, operation}: ChartProps) {
-  const unit = series[0].unit;
+function Chart({
+  series,
+  displayType,
+  start,
+  end,
+  period,
+  utc,
+  operation,
+  projects,
+  environments,
+}: ChartProps) {
+  const unit = series[0]?.unit;
 
   const seriesToShow = series.filter(s => !s.hidden);
 
   const chartProps = {
     isGroupedByDate: true,
-    series: seriesToShow,
     height: 300,
     colors: seriesToShow.map(s => s.color),
     grid: {top: 20, bottom: 20, left: 20, right: 20},
@@ -457,15 +487,52 @@ function Chart({series, displayType, start, end, period, utc, operation}: ChartP
   return (
     <Fragment>
       <ChartZoom period={period} start={start} end={end} utc={utc}>
-        {zoomRenderProps =>
-          displayType === MetricDisplayType.LINE ? (
-            <LineChart {...chartProps} {...zoomRenderProps} />
-          ) : displayType === MetricDisplayType.AREA ? (
-            <AreaChart {...chartProps} {...zoomRenderProps} />
-          ) : (
-            <BarChart stacked {...chartProps} {...zoomRenderProps} />
-          )
-        }
+        {zoomRenderProps => (
+          <ReleaseSeries
+            utc={utc}
+            period={period}
+            start={zoomRenderProps.start!}
+            end={zoomRenderProps.end!}
+            projects={projects}
+            environments={environments}
+            preserveQueryParams
+          >
+            {({releaseSeries}) => {
+              const legend = releaseSeries[0]?.markLine?.data?.length
+                ? Legend({
+                    itemGap: 20,
+                    top: 0,
+                    right: 20,
+                    data: releaseSeries.map(s => s.seriesName),
+                    theme: theme as Theme,
+                  })
+                : undefined;
+              return displayType === MetricDisplayType.LINE ? (
+                <LineChart
+                  series={[...seriesToShow, ...releaseSeries]}
+                  legend={legend}
+                  {...chartProps}
+                  {...zoomRenderProps}
+                />
+              ) : displayType === MetricDisplayType.AREA ? (
+                <AreaChart
+                  series={[...seriesToShow, ...releaseSeries]}
+                  legend={legend}
+                  {...chartProps}
+                  {...zoomRenderProps}
+                />
+              ) : (
+                <BarChart
+                  stacked
+                  series={[...seriesToShow, ...releaseSeries]}
+                  legend={legend}
+                  {...chartProps}
+                  {...zoomRenderProps}
+                />
+              );
+            }}
+          </ReleaseSeries>
+        )}
       </ChartZoom>
     </Fragment>
   );
