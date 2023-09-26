@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import {LinkButton} from 'sentry/components/button';
-import {hydratedSelectorData} from 'sentry/components/replays/utils';
+import OpenClosePanel from 'sentry/components/openClosePanel';
 import {IconCursorArrow, IconShow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -16,17 +16,25 @@ import SelectorTable from 'sentry/views/replays/deadRageClick/selectorTable';
 function DeadRageSelectorCards() {
   const location = useLocation();
 
+  function header(isOpen: boolean) {
+    return isOpen
+      ? t('Hide Actionable Replay Insights')
+      : t('Show Actionable Replay Insights');
+  }
+
   return (
-    <SplitCardContainer>
-      <DeadClickTable location={location} />
-      <RageClickTable location={location} />
-    </SplitCardContainer>
+    <OpenClosePanel header={header} openByDefault>
+      <SplitCardContainer>
+        <DeadClickTable location={location} />
+        <RageClickTable location={location} />
+      </SplitCardContainer>
+    </OpenClosePanel>
   );
 }
 
 function DeadClickTable({location}: {location: Location<any>}) {
   const {isLoading, isError, data} = useDeadRageSelectors({
-    per_page: 3,
+    per_page: 4,
     sort: '-count_dead_clicks',
     cursor: undefined,
     prefix: 'selector_',
@@ -34,12 +42,11 @@ function DeadClickTable({location}: {location: Location<any>}) {
 
   return (
     <SelectorTable
-      data={hydratedSelectorData(data, 'count_dead_clicks')}
+      data={data}
       isError={isError}
       isLoading={isLoading}
       location={location}
       clickCountColumn={{key: 'count_dead_clicks', name: 'dead clicks'}}
-      clickCountSortable={false}
       title={
         <Fragment>
           <IconContainer>
@@ -62,7 +69,7 @@ function DeadClickTable({location}: {location: Location<any>}) {
 
 function RageClickTable({location}: {location: Location<any>}) {
   const {isLoading, isError, data} = useDeadRageSelectors({
-    per_page: 3,
+    per_page: 4,
     sort: '-count_rage_clicks',
     cursor: undefined,
     prefix: 'selector_',
@@ -70,12 +77,11 @@ function RageClickTable({location}: {location: Location<any>}) {
 
   return (
     <SelectorTable
-      data={hydratedSelectorData(data, 'count_rage_clicks')}
+      data={data}
       isError={isError}
       isLoading={isLoading}
       location={location}
       clickCountColumn={{key: 'count_rage_clicks', name: 'rage clicks'}}
-      clickCountSortable={false}
       title={
         <Fragment>
           <IconContainer>

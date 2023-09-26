@@ -4,9 +4,8 @@ import pytest
 from django.urls import reverse
 
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
-from sentry.relay.config import ProjectConfig, get_project_config
+from sentry.relay.config import ProjectConfig
 from sentry.tasks.relay import build_project_config
-from sentry.testutils.helpers.features import Feature
 from sentry.testutils.hybrid_cloud import simulated_transaction_watermarks
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json
@@ -172,13 +171,6 @@ def test_task_writes_config_into_cache(
     assert cache_set_many_mock.call_args.args == (
         {default_projectkey.public_key: {"is_mock_config": True}},
     )
-
-
-@django_db_all
-def test_exclude_measurements_for_orgs(default_project):
-    assert "measurements" in get_project_config(default_project).to_dict()["config"]
-    with Feature({"organizations:projconfig-exclude-measurements": True}):
-        assert "measurements" not in get_project_config(default_project).to_dict()["config"]
 
 
 @patch(
