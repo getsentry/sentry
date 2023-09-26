@@ -4,9 +4,10 @@ from collections import defaultdict
 from datetime import timedelta
 from email.headerregistry import Address
 from functools import reduce
-from typing import TYPE_CHECKING, Dict, Sequence
+from typing import Dict, List, Sequence
 
-from django.db.models import Count, Q, QuerySet
+from django.db import connection
+from django.db.models import Q
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.request import Request
@@ -17,19 +18,10 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
-from sentry.api.serializers import Serializer, serialize
 from sentry.constants import ObjectStatus
 from sentry.integrations.base import IntegrationFeatures
-from sentry.models import Repository
-from sentry.models.commit import Commit
-from sentry.models.commitauthor import CommitAuthor
 from sentry.models.organization import Organization
-from sentry.search.utils import tokenize_query
 from sentry.services.hybrid_cloud.integration import integration_service
-
-if TYPE_CHECKING:
-    from django_stubs_ext import WithAnnotations
-
 
 filtered_email_domains = {
     "gmail.com",
@@ -37,46 +29,66 @@ filtered_email_domains = {
     "hotmail.com",
     "outlook.com",
     "noreply.github.com",
+    "localhost",
 }
 
 filtered_characters = {"+"}
-
-
-class MissingOrgMemberSerializer(Serializer):
-    def serialize(self, obj, attrs, user, **kwargs):
-        return {"email": obj.email, "externalId": obj.external_id, "commitCount": obj.commit__count}
 
 
 class MissingMembersPermission(OrganizationPermission):
     scope_map = {"GET": ["org:write"]}
 
 
-def _get_missing_organization_members(
-    organization: Organization, provider: str, integration_ids: Sequence[int]
-) -> QuerySet[WithAnnotations[CommitAuthor]]:
-    member_emails = set(
-        organization.member_set.exclude(email=None).values_list("email", flat=True)
-    ) | set(organization.member_set.exclude(user_email=None).values_list("user_email", flat=True))
+def _get_missing_organization_members_query(
+    integration_ids: List[int],
+    shared_domain: str | None = None,
+):
+    date = timezone.now() - timedelta(days=30)
+    with connection.cursor() as cursor:
+        additional_query = ""
+        for filtered_character in filtered_characters:
+            additional_query += f"""and email not like '%{filtered_character}%' """
 
-    nonmember_authors = CommitAuthor.objects.filter(organization_id=organization.id).exclude(
-        Q(email__in=member_emails) | Q(external_id=None)
-    )
+        if shared_domain:
+            additional_query += f"""and email like '%{shared_domain}' """
+        else:
+            for filtered_email in filtered_email_domains:
+                additional_query += f"""and email not like '%{filtered_email}' """
 
-    org_repos = Repository.objects.filter(
-        provider="integrations:" + provider,
-        organization_id=organization.id,
-        integration_id__in=integration_ids,
-    ).values_list("id", flat=True)
+        query = f"""
+                select
+                *
+                from
+                (
+                    select
+                    email,
+                    sentry_commitauthor.external_id,
+                    count(*)
+                    from
+                    sentry_commit
+                    join sentry_commitauthor on author_id = sentry_commitauthor.id
+                    where
+                    repository_id in (
+                        select
+                        repository_id
+                        from
+                        sentry_commit
+                        join sentry_repository on repository_id = sentry_repository.id
+                        where integration_id in ({", ".join(str(id) for id in integration_ids)})
+                    )
+                    and date_added > '{str(date)}'
+                    group by
+                    1, 2
+                    order by
+                    3 desc
+                ) a
+                where
+                external_id is not null {additional_query}
+                limit 50
+            """
 
-    recent_commits = Commit.objects.filter(
-        repository_id__in=set(org_repos), date_added__gte=timezone.now() - timedelta(days=30)
-    ).values_list("id", flat=True)
-
-    return (
-        nonmember_authors.filter(commit__id__in=recent_commits)
-        .annotate(Count("commit"))
-        .order_by("-commit__count")
-    )
+        cursor.execute(query)
+        return cursor.fetchall()
 
 
 def _get_shared_email_domain(organization: Organization) -> str | None:
@@ -141,34 +153,19 @@ class OrganizationMissingMembersEndpoint(OrganizationEndpoint):
             if integration_provider != "github":
                 continue
 
-            queryset = _get_missing_organization_members(
-                organization, integration_provider, integration_ids
+            integration_missing_members = _get_missing_organization_members_query(
+                integration_ids=integration_ids,
+                shared_domain=shared_domain,
             )
 
-            if shared_domain:
-                queryset = queryset.filter(email__endswith=shared_domain)
-            else:
-                for filtered_email in filtered_email_domains:
-                    queryset = queryset.exclude(email__endswith=filtered_email)
-
-            for filtered_character in filtered_characters:
-                queryset = queryset.exclude(email__icontains=filtered_character)
-
-            if queryset.exists():
-                query = request.GET.get("query")
-                if query:
-                    tokens = tokenize_query(query)
-                    if "query" in tokens:
-                        query_value = " ".join(tokens["query"])
-                        queryset = queryset.filter(
-                            Q(email__icontains=query_value) | Q(external_id__icontains=query_value)
-                        )
+            serialized_users = [
+                {"email": email, "externalId": external_id, "commitCount": commit_count}
+                for email, external_id, commit_count in integration_missing_members
+            ]
 
             missing_members_for_integration = {
                 "integration": integration_provider,
-                "users": serialize(
-                    list(queryset[:50]), request.user, serializer=MissingOrgMemberSerializer()
-                ),
+                "users": serialized_users,
             }
 
             missing_org_members.append(missing_members_for_integration)

@@ -163,8 +163,8 @@ class OrganizationMissingMembersTestCase(APITestCase):
         assert response.data[0]["integration"] == "github"
         assert response.data[0]["users"] == [
             {"email": "c@example.com", "externalId": "c", "commitCount": 2},
-            {"email": "d@example.com", "externalId": "d", "commitCount": 1},
             {"email": "a@exampletwo.com", "externalId": "not", "commitCount": 1},
+            {"email": "d@example.com", "externalId": "d", "commitCount": 1},
         ]
 
     def test_owners_invalid_domain_no_filter(self):
@@ -175,8 +175,8 @@ class OrganizationMissingMembersTestCase(APITestCase):
         response = self.get_success_response(self.organization.slug)
         assert response.data[0]["users"] == [
             {"email": "c@example.com", "externalId": "c", "commitCount": 2},
-            {"email": "d@example.com", "externalId": "d", "commitCount": 1},
             {"email": "a@exampletwo.com", "externalId": "not", "commitCount": 1},
+            {"email": "d@example.com", "externalId": "d", "commitCount": 1},
         ]
 
     def test_excludes_empty_owner_emails(self):
@@ -195,25 +195,6 @@ class OrganizationMissingMembersTestCase(APITestCase):
         assert response.data[0]["users"] == [
             {"email": "c@example.com", "externalId": "c", "commitCount": 2},
             {"email": "d@example.com", "externalId": "d", "commitCount": 1},
-        ]
-
-    def test_query_on_author_email_and_external_id(self):
-        # self.nonmember_commit_author1 matches on email
-        # the below matches on external id
-        nonmember_commit_author = self.create_commit_author(
-            project=self.project, email="c2@example.com"
-        )
-        nonmember_commit_author.external_id = "c@example.com"
-        nonmember_commit_author.save()
-
-        self.create_commit(repo=self.repo, author=nonmember_commit_author)
-
-        response = self.get_success_response(self.organization.slug, query="c@example.com")
-
-        assert response.data[0]["integration"] == "github"
-        assert response.data[0]["users"] == [
-            {"email": "c@example.com", "externalId": "c", "commitCount": 2},
-            {"email": "c2@example.com", "externalId": "c@example.com", "commitCount": 1},
         ]
 
     def test_no_github_integration(self):
