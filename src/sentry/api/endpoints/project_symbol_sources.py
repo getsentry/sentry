@@ -163,8 +163,8 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
 
         try:
             validate_sources(sources)
-        except InvalidSourcesError as e:
-            return Response(data={"error": str(e)}, status=400)
+        except InvalidSourcesError:
+            return Response(status=400)
 
         serialized = json.dumps(sources)
         project.update_option("sentry:symbol_sources", serialized)
@@ -219,10 +219,10 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
         try:
             sources_by_id = {src["id"]: src for src in sources}
             backfill_source(source, sources_by_id)
-        except InvalidSourcesError as e:
-            return Response(data={"error": str(e)}, status=400)
-        except KeyError as e:
-            return Response(data={"error": str(e)}, status=400)
+        except InvalidSourcesError:
+            return Response(status=400)
+        except KeyError:
+            return Response(status=400)
 
         found = False
         for i in range(len(sources)):
