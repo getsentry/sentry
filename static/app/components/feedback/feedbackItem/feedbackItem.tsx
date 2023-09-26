@@ -1,5 +1,7 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import Section from 'sentry/components/feedback/feedbackItem/feedbackItemSection';
 import FeedbackItemUsername from 'sentry/components/feedback/feedbackItem/feedbackItemUsername';
@@ -16,7 +18,6 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {HydratedFeedbackItem} from 'sentry/utils/feedback/types';
 import useOrganization from 'sentry/utils/useOrganization';
-import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 
 interface Props {
   feedbackItem: HydratedFeedbackItem;
@@ -26,10 +27,19 @@ export default function FeedbackItem({feedbackItem}: Props) {
   const organization = useOrganization();
 
   return (
-    <FeedbackItemContainer>
+    <Fragment>
       <HeaderPanelItem>
         <Flex gap={space(2)} justify="space-between">
-          <FeedbackItemUsername feedbackItem={feedbackItem} />
+          <Flex gap={space(1)} align="center">
+            <FeedbackItemUsername feedbackItem={feedbackItem} />
+            {feedbackItem.contact_email ? (
+              <CopyToClipboardButton
+                size="xs"
+                iconSize="xs"
+                text={feedbackItem.contact_email}
+              />
+            ) : null}
+          </Flex>
 
           <Flex gap={space(1)} align="center">
             <ErrorBoundary mini>
@@ -71,14 +81,9 @@ export default function FeedbackItem({feedbackItem}: Props) {
           />
         </Section>
       </OverflowPanelItem>
-    </FeedbackItemContainer>
+    </Fragment>
   );
 }
-
-const FeedbackItemContainer = styled(FluidHeight)`
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
-`;
 
 const HeaderPanelItem = styled(PanelItem)`
   display: grid;
@@ -89,6 +94,7 @@ const OverflowPanelItem = styled(PanelItem)`
   overflow: scroll;
 
   flex-direction: column;
+  flex-grow: 1;
   gap: ${space(3)};
 `;
 

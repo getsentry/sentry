@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import FeedbackDetails from 'sentry/components/feedback/details/feedbackDetails';
 import FeedbackFilters from 'sentry/components/feedback/feedbackFilters';
 import FeedbackSearch from 'sentry/components/feedback/feedbackSearch';
-import FeedbackListLoader from 'sentry/components/feedback/list/feedbackListLoader';
+import FeedbackIndex from 'sentry/components/feedback/index/feedbackIndex';
 import FullViewport from 'sentry/components/layouts/fullViewport';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
@@ -39,7 +39,7 @@ export default function FeedbackListPage({}: Props) {
           <LayoutGrid>
             <FeedbackFilters style={{gridArea: 'filters'}} />
             <FeedbackSearch style={{gridArea: 'search'}} />
-            <FeedbackListLoader style={{gridArea: 'list'}} />
+            <FeedbackIndex style={{gridArea: 'list'}} />
             <FeedbackDetails style={{gridArea: 'details'}} />
           </LayoutGrid>
         </PageFiltersContainer>

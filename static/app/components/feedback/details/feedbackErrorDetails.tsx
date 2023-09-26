@@ -17,9 +17,6 @@ const FeedbackErrorDetails = styled(({error, ...props}: Props) => (
 ))`
   display: grid;
   place-items: center;
-
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
 `;
 
 export default FeedbackErrorDetails;

@@ -12,9 +12,6 @@ const FeedbackEmptyDetails = styled(props => (
 ))`
   display: grid;
   place-items: center;
-
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
 `;
 
 export default FeedbackEmptyDetails;

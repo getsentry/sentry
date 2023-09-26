@@ -6,7 +6,7 @@ import {useApiQuery, type UseApiQueryOptions} from 'sentry/utils/queryClient';
 interface Props {
   feedbackId: string;
   organization: Organization;
-  project: Project;
+  project: undefined | Project;
 }
 
 export default function useFetchFeedbackItem(
@@ -14,8 +14,8 @@ export default function useFetchFeedbackItem(
   options: undefined | Partial<UseApiQueryOptions<FeedbackItemResponse>> = {}
 ) {
   const {data, ...result} = useApiQuery<FeedbackItemResponse>(
-    [`/projects/${organization.slug}/${project.slug}/feedback/${feedbackId}/`],
-    {staleTime: 0, ...options}
+    [`/projects/${organization.slug}/${project?.slug}/feedback/${feedbackId}/`],
+    {staleTime: 0, enabled: Boolean(project), ...options}
   );
 
   return {
