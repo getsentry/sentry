@@ -249,7 +249,7 @@ class BackupTestCase(TransactionTestCase):
 
         if is_admin:
             self.add_user_permission(user, "users.admin")
-            role = UserRole.objects.create(name="test-admin-role")
+            (role, _) = UserRole.objects.get_or_create(name="test-admin-role")
             UserRoleUser.objects.create(user=user, role=role)
 
         return user
