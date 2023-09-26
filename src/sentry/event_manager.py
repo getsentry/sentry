@@ -2077,7 +2077,10 @@ def _get_severity_score(event: Event) -> float | None:
         )
         return None
 
-    logger_data["event_message"] = title
+    payload = {
+        "message": title,
+    }
+    logger_data["payload"] = payload
 
     with metrics.timer(op):
         with sentry_sdk.start_span(op=op):
@@ -2085,7 +2088,7 @@ def _get_severity_score(event: Event) -> float | None:
                 response = severity_connection_pool.urlopen(
                     "POST",
                     "/issues/severity-score",
-                    body=json.dumps({"message": title}),
+                    body=json.dumps(payload),
                     headers={"content-type": "application/json;charset=utf-8"},
                 )
                 severity = json.loads(response.data).get("severity")
