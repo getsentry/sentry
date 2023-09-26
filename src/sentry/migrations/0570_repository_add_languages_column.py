@@ -20,7 +20,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0568_monitors_fix_next_checkin_latest"),
+        ("sentry", "0569_dashboard_widgets_indicator"),
     ]
 
     operations = [
