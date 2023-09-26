@@ -200,6 +200,14 @@ default_manager.add(
         event_id=83, name="RULE_SNOOZE", api_name="rule.mute", template='muted rule "{label}"'
     )
 )
+default_manager.add(
+    AuditLogEvent(
+        event_id=84,
+        name="RULE_DISABLE",
+        api_name="rule.disable",
+        template='disabled rule "{label}"',
+    )
+)
 default_manager.add(events.ServiceHookAddAuditLogEvent())
 default_manager.add(events.ServiceHookEditAuditLogEvent())
 default_manager.add(events.ServiceHookRemoveAuditLogEvent())

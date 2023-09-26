@@ -30,7 +30,7 @@ class SlackCommandsLinkTeamTestBase(SlackCommandsTest):
         )
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class SlackCommandsLinkTeamTest(SlackCommandsLinkTeamTestBase):
     @responses.activate
     def test_link_another_team_to_channel(self):

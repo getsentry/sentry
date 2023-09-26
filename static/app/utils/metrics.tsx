@@ -1,4 +1,5 @@
 import {useMemo} from 'react';
+import {InjectedRouter} from 'react-router';
 import moment from 'moment';
 
 import {getInterval} from 'sentry/components/charts/utils';
@@ -28,10 +29,15 @@ export enum MetricDisplayType {
 
 export const defaultMetricDisplayType = MetricDisplayType.LINE;
 
-export function useMetricsMeta(): Record<string, MetricMeta> {
+export function useMetricsMeta(
+  projects: PageFilters['projects']
+): Record<string, MetricMeta> {
   const {slug} = useOrganization();
   const getKey = (useCase: UseCase): ApiQueryKey => {
-    return [`/organizations/${slug}/metrics/meta/`, {query: {useCase}}];
+    return [
+      `/organizations/${slug}/metrics/meta/`,
+      {query: {useCase, project: projects}},
+    ];
   };
 
   const opts = {
@@ -55,22 +61,32 @@ type MetricTag = {
   key: string;
 };
 
-export function useMetricsTags(mri: string) {
+export function useMetricsTags(mri: string, projects: PageFilters['projects']) {
   const {slug} = useOrganization();
   const useCase = getUseCaseFromMri(mri);
   return useApiQuery<MetricTag[]>(
-    [`/organizations/${slug}/metrics/tags/`, {query: {metric: mri, useCase}}],
+    [
+      `/organizations/${slug}/metrics/tags/`,
+      {query: {metric: mri, useCase, project: projects}},
+    ],
     {
       staleTime: Infinity,
     }
   );
 }
 
-export function useMetricsTagValues(mri: string, tag: string) {
+export function useMetricsTagValues(
+  mri: string,
+  tag: string,
+  projects: PageFilters['projects']
+) {
   const {slug} = useOrganization();
   const useCase = getUseCaseFromMri(mri);
   return useApiQuery<MetricTag[]>(
-    [`/organizations/${slug}/metrics/tags/${tag}`, {query: {useCase}}],
+    [
+      `/organizations/${slug}/metrics/tags/${tag}/`,
+      {query: {metric: mri, useCase, project: projects}},
+    ],
     {
       staleTime: Infinity,
       enabled: !!tag,
@@ -78,13 +94,17 @@ export function useMetricsTagValues(mri: string, tag: string) {
   );
 }
 
-export type MetricsDataProps = {
-  datetime: PageFilters['datetime'];
+export type MetricsQuery = {
   mri: string;
   groupBy?: string[];
   op?: string;
-  projects?: string[];
-  queryString?: string;
+  query?: string;
+};
+
+export type MetricsDataProps = MetricsQuery & {
+  datetime: PageFilters['datetime'];
+  environments: PageFilters['environments'];
+  projects: PageFilters['projects'];
 };
 
 // TODO(ddm): reuse from types/metrics.tsx
@@ -109,23 +129,24 @@ export function useMetricsData({
   op,
   datetime,
   projects,
-  queryString,
+  environments,
+  query,
   groupBy,
 }: MetricsDataProps) {
   const {slug} = useOrganization();
   const useCase = getUseCaseFromMri(mri);
   const field = op ? `${op}(${mri})` : mri;
 
-  const query = getQueryString({projects, queryString});
-
   const interval = getInterval(datetime, 'metrics');
 
   const queryToSend = {
     ...getDateTimeParams(datetime),
+    query,
+    project: projects,
+    environment: environments,
     field,
     useCase,
     interval,
-    query,
     groupBy,
 
     // max result groups
@@ -155,14 +176,6 @@ function getDateTimeParams({start, end, period}: PageFilters['datetime']) {
   return period
     ? {statsPeriod: period}
     : {start: moment(start).toISOString(), end: moment(end).toISOString()};
-}
-
-function getQueryString({
-  projects = [],
-  queryString = '',
-}: Pick<MetricsDataProps, 'projects' | 'queryString'>): string {
-  const projectQuery = projects.length ? `project:[${projects}]` : '';
-  return [projectQuery, queryString].join(' ');
 }
 
 type UseCase = 'sessions' | 'transactions' | 'custom';
@@ -262,4 +275,30 @@ export function formatMetricUsingUnit(value: number | null, unit: string) {
     default:
       return value.toLocaleString();
   }
+}
+
+export function formatMetricsUsingUnitAndOp(
+  value: number | null,
+  unit: string,
+  operation?: string
+) {
+  if (operation === 'count') {
+    // if the operation is count, we want to ignore the unit and always format the value as a number
+    return value?.toLocaleString() ?? '';
+  }
+  return formatMetricUsingUnit(value, unit);
+}
+
+export function isAllowedOp(op: string) {
+  return !['max_timestamp', 'min_timestamp', 'histogram'].includes(op);
+}
+
+export function updateQuery(router: InjectedRouter, partialQuery: Record<string, any>) {
+  router.push({
+    ...router.location,
+    query: {
+      ...router.location.query,
+      ...partialQuery,
+    },
+  });
 }
