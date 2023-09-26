@@ -43,9 +43,7 @@ export function FeedbackForm({onClose, onSubmit}: FeedbackFormProps) {
       />
       <Input type="hidden" name="email" defaultValue={user?.email} hidden aria-hidden />
       <Label htmlFor="sentry-feedback-comment">
-        <div>
-          Description<Required>*</Required>
-        </div>
+        <div>Description</div>
         <TextArea
           autoFocus
           rows={5}
@@ -150,8 +148,4 @@ const CancelButton = styled(BaseButton)`
   &:hover {
     background-color: #eee;
   }
-`;
-
-const Required = styled('span')`
-  color: ${p => p.theme.error};
 `;
