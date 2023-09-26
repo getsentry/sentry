@@ -173,6 +173,7 @@ function QueryBuilder({metricsQuery}: QueryBuilderProps) {
           mri={metricsQuery.mri}
           disabled={!metricsQuery.mri}
           onChange={query => updateQuery(router, {query})}
+          query={metricsQuery.query}
         />
       </QueryBuilderRow>
     </QueryBuilderWrapper>
@@ -184,9 +185,10 @@ type MetricSearchBarProps = {
   onChange: (value: string) => void;
   tags: MetricsTag[];
   disabled?: boolean;
+  query?: string;
 };
 
-function MetricSearchBar({tags, mri, disabled, onChange}: MetricSearchBarProps) {
+function MetricSearchBar({tags, mri, disabled, onChange, query}: MetricSearchBarProps) {
   const org = useOrganization();
   const api = useApi();
 
@@ -227,6 +229,7 @@ function MetricSearchBar({tags, mri, disabled, onChange}: MetricSearchBarProps) 
       onClose={handleChange}
       onSearch={handleChange}
       placeholder={t('Filter by tags')}
+      defaultQuery={query}
     />
   );
 }
