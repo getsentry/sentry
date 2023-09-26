@@ -1,3 +1,5 @@
+import {Fragment} from 'react';
+
 import Alert from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {tct} from 'sentry/locale';
@@ -31,10 +33,10 @@ export function NoDataDueToOldSDKBanner() {
             <ExternalLink href="https://docs.sentry.io/product/performance/database/" />
           ),
           projectList: (
-            <ul>
+            <Fragment>
               {ineligibleProjects.slice(0, MAX_LISTED_PROJECTS).map(project => {
                 return (
-                  <li key={project.id}>
+                  <span key={project.id}>
                     <a
                       href={normalizeUrl(
                         `/organizations/${organization.slug}/projects/${project.slug}/`
@@ -42,10 +44,10 @@ export function NoDataDueToOldSDKBanner() {
                     >
                       {project.name}
                     </a>
-                  </li>
+                  </span>
                 );
               })}
-            </ul>
+            </Fragment>
           ),
         }
       )}
