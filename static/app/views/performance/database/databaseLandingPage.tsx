@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 
+import Alert from 'sentry/components/alert';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import FeatureBadge from 'sentry/components/featureBadge';
@@ -11,7 +12,7 @@ import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {ModulePageProviders} from 'sentry/views/performance/database/modulePageProviders';
-import {NoDataDueToOldSDKBanner} from 'sentry/views/performance/database/noDataDueToOldSDKBanner';
+import {NoDataDueToOldSDKMessage} from 'sentry/views/performance/database/noDataDueToOldSDKMessage';
 import {RELEASE_LEVEL} from 'sentry/views/performance/database/settings';
 import {ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
@@ -55,7 +56,7 @@ function DatabaseLandingPage() {
 
       <Layout.Body>
         <Layout.Main fullWidth>
-          <NoDataDueToOldSDKBanner />
+          <NoDataDueToOldSDKMessage Wrapper={AlertBanner} />
 
           <PaddedContainer>
             <PageFilterBar condensed>
@@ -88,6 +89,10 @@ function DatabaseLandingPage() {
 const PaddedContainer = styled('div')`
   margin-bottom: ${space(2)};
 `;
+
+function AlertBanner(props) {
+  return <Alert {...props} type="info" showIcon />;
+}
 
 const FilterOptionsContainer = styled('div')`
   display: grid;

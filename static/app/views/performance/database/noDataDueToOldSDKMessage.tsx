@@ -1,6 +1,5 @@
 import {Fragment} from 'react';
 
-import Alert from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -9,7 +8,15 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {useIneligibleProjects} from 'sentry/views/performance/database/useIneligibleProjects';
 import {useHasAnySpanMetrics} from 'sentry/views/starfish/queries/useHasAnySpanMetrics';
 
-export function NoDataDueToOldSDKBanner() {
+interface Props {
+  Wrapper?: React.ComponentType;
+}
+
+function DivWrapper(props) {
+  return <div {...props} />;
+}
+
+export function NoDataDueToOldSDKMessage({Wrapper = DivWrapper}: Props) {
   const {selection, isReady: pageFilterIsReady} = usePageFilters();
 
   const options = {
@@ -36,7 +43,7 @@ export function NoDataDueToOldSDKBanner() {
   }
 
   return (
-    <Alert type="info" showIcon>
+    <Wrapper>
       {tct(
         "You may be missing data due to outdated SDKs. Please refer to Sentry's [documentation:documentation] for more information. Projects with outdated SDKs: [projectList]",
         {
@@ -65,7 +72,7 @@ export function NoDataDueToOldSDKBanner() {
       {hasMoreIneligibleProjectsThanVisible
         ? t('and [count] more', {count: ineligibleProjects.length - MAX_LISTED_PROJECTS})
         : ''}
-    </Alert>
+    </Wrapper>
   );
 }
 
