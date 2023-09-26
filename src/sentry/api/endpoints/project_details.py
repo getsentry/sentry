@@ -71,10 +71,10 @@ MAX_SENSITIVE_FIELD_CHARS = 4000
 
 _options_description = """
 Configure various project filters:
-- `Hydration Errors`: Filter out react hydration errors that are often unactionable
-- `IP Addresses`: Filter events from these IP addresses separated with newlines.
-- `Releases`: Filter events from these releases separated with newlines. Allows [glob pattern matching](https://docs.sentry.io/product/data-management-settings/filtering/#glob-matching).
-- `Error Message`: Filter events by error messages separated with newlines. Allows [glob pattern matching](https://docs.sentry.io/product/data-management-settings/filtering/#glob-matching).
+- `Hydration Errors` - Filter out react hydration errors that are often unactionable
+- `IP Addresses` - Filter events from these IP addresses separated with newlines.
+- `Releases` - Filter events from these releases separated with newlines. Allows [glob pattern matching](https://docs.sentry.io/product/data-management-settings/filtering/#glob-matching).
+- `Error Message` - Filter events by error messages separated with newlines. Allows [glob pattern matching](https://docs.sentry.io/product/data-management-settings/filtering/#glob-matching).
 ```json
 {
     options: {

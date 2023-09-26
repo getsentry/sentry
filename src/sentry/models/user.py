@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 import logging
 import secrets
 import warnings
 from string import ascii_letters, digits
-from typing import List, Optional, Tuple
+from typing import Any, List, Mapping, Optional, Tuple
 
 from django.contrib.auth.models import AbstractBaseUser
 from django.contrib.auth.models import UserManager as DjangoUserManager
@@ -33,8 +35,8 @@ from sentry.locks import locks
 from sentry.models.authenticator import Authenticator
 from sentry.models.avatars import UserAvatar
 from sentry.models.lostpasswordhash import LostPasswordHash
-from sentry.models.outbox import ControlOutbox, OutboxCategory, OutboxScope, outbox_context
-from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.models.outbox import ControlOutboxBase, OutboxCategory, outbox_context
+from sentry.services.hybrid_cloud.organization import RpcRegionUser, organization_service
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.types.region import find_regions_for_user
@@ -82,6 +84,7 @@ class UserManager(BaseManager, DjangoUserManager):
 @control_silo_only_model
 class User(BaseModel, AbstractBaseUser):
     __relocation_scope__ = RelocationScope.User
+    replication_version: int = 1
 
     id = BoundedBigAutoField(primary_key=True)
     username = models.CharField(_("username"), max_length=MAX_USERNAME_LENGTH, unique=True)
@@ -292,21 +295,16 @@ class User(BaseModel, AbstractBaseUser):
         for email in email_list:
             self.send_confirm_email_singular(email, is_new_user)
 
-    def outboxes_for_update(self) -> List[ControlOutbox]:
+    def outboxes_for_update(self) -> List[ControlOutboxBase]:
         return User.outboxes_for_user_update(self.id)
 
     @staticmethod
-    def outboxes_for_user_update(identifier: int) -> List[ControlOutbox]:
-        return [
-            ControlOutbox(
-                shard_scope=OutboxScope.USER_SCOPE,
-                shard_identifier=identifier,
-                object_identifier=identifier,
-                category=OutboxCategory.USER_UPDATE,
-                region_name=region_name,
-            )
-            for region_name in find_regions_for_user(identifier)
-        ]
+    def outboxes_for_user_update(identifier: int) -> List[ControlOutboxBase]:
+        return OutboxCategory.USER_UPDATE.as_control_outboxes(
+            region_names=find_regions_for_user(identifier),
+            object_identifier=identifier,
+            shard_identifier=identifier,
+        )
 
     def merge_to(from_user, to_user):
         # TODO: we could discover relations automatically and make this useful
@@ -477,6 +475,26 @@ class User(BaseModel, AbstractBaseUser):
             # Perform the remainder of the write while we're still holding the lock.
             return do_write()
 
+    @classmethod
+    def handle_async_deletion(
+        cls,
+        identifier: int,
+        region_name: str,
+        shard_identifier: int,
+        payload: Mapping[str, Any] | None,
+    ) -> None:
+        pass
+
+    def handle_async_replication(self, region_name: str, shard_identifier: int) -> None:
+        organization_service.update_region_user(
+            user=RpcRegionUser(
+                id=self.id,
+                is_active=self.is_active,
+                email=self.email,
+            ),
+            region_name=region_name,
+        )
+
 
 # HACK(dcramer): last_login needs nullable for Django 1.8
 User._meta.get_field("last_login").null = True
@@ -498,3 +516,6 @@ def refresh_api_user_nonce(sender, request, user, **kwargs):
         return
     user = User.objects.get(id=user.id)
     refresh_user_nonce(sender, request, user, **kwargs)
+
+
+OutboxCategory.USER_UPDATE.connect_control_model_updates(User)

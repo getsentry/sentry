@@ -498,6 +498,10 @@
   "sentry.organizationoption": [
     "sentry.organization"
   ],
+  "sentry.organizationslugreservation": [
+    "sentry.organization",
+    "sentry.user"
+  ],
   "sentry.orgauthtoken": [
     "sentry.organization",
     "sentry.project",
