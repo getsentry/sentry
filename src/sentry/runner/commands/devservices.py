@@ -561,6 +561,8 @@ def check_health(service_name: str, containers: dict[str, Any]) -> None:
     click.secho(f"> Checking container health '{service_name}'", fg="yellow")
 
     def hc() -> None:
+        if healthcheck is None:
+            return
         healthcheck.check(containers)
 
     try:
