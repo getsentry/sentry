@@ -17,13 +17,10 @@ interface Options {
  * @returns List of projects
  */
 export function useIneligibleProjects(options?: Options) {
-  const {data: availableUpdates} = useOrganizationSDKUpdates(options ?? {});
+  const response = useOrganizationSDKUpdates(options ?? {});
+  const {data: availableUpdates} = response;
 
-  if (!availableUpdates) {
-    return [];
-  }
-
-  const ineligibleProjects = availableUpdates
+  const ineligibleProjects = (availableUpdates ?? [])
     .filter(update => {
       const platform = removeFlavorFromSDKName(update.sdkName);
       const minimumRequiredVersion = MIN_SDK_VERSION_BY_PLATFORM[platform];
@@ -42,7 +39,10 @@ export function useIneligibleProjects(options?: Options) {
     })
     .filter((item): item is NonNullable<typeof item> => Boolean(item));
 
-  return ineligibleProjects;
+  return {
+    ...response,
+    ineligibleProjects,
+  };
 }
 
 /**

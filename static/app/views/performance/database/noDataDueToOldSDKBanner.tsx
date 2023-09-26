@@ -7,21 +7,29 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {useIneligibleProjects} from 'sentry/views/performance/database/useIneligibleProjects';
+import {useHasAnySpanMetrics} from 'sentry/views/starfish/queries/useHasAnySpanMetrics';
 
 export function NoDataDueToOldSDKBanner() {
-  // TODO: Check whether the data is actually missing
   const {selection, isReady: pageFilterIsReady} = usePageFilters();
 
-  const ineligibleProjects = useIneligibleProjects({
+  const options = {
     projectId: pageFilterIsReady
       ? selection.projects.map(projectId => projectId.toString())
       : undefined,
     enabled: pageFilterIsReady,
-  });
+  };
+
+  const {hasMetrics} = useHasAnySpanMetrics(options);
+  const {ineligibleProjects} = useIneligibleProjects(options);
+
   const organization = useOrganization();
 
   const hasMoreIneligibleProjectsThanVisible =
     ineligibleProjects.length > MAX_LISTED_PROJECTS;
+
+  if (hasMetrics) {
+    return null;
+  }
 
   if (ineligibleProjects.length < 1) {
     return null;
