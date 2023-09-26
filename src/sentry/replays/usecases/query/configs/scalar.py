@@ -28,6 +28,9 @@ static_search_config: dict[str, ColumnField] = {
     "sdk.name": StringColumnField("sdk_name", parse_str, StringScalar),
     "sdk.version": StringColumnField("sdk_version", parse_str, StringScalar),
 }
+# Aliases
+static_search_config["release"] = static_search_config["releases"]
+
 
 # Varying Search Config
 #
@@ -44,6 +47,13 @@ varying_search_config: dict[str, Union[ColumnField, ComputedField, TagField]] = 
     "user.ip_address": StringColumnField("ip_address_v4", parse_str, IPv4Scalar),
     "user.username": StringColumnField("user_name", parse_str, StringScalar),
 }
+
+# Aliases
+varying_search_config["error_id"] = varying_search_config["error_ids"]
+varying_search_config["trace_id"] = varying_search_config["trace_ids"]
+varying_search_config["trace"] = varying_search_config["trace_ids"]
+varying_search_config["url"] = varying_search_config["urls"]
+varying_search_config["user.ip"] = varying_search_config["user.ip_address"]
 
 
 scalar_search_config = {**static_search_config, **varying_search_config}
