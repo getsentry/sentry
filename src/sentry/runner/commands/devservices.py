@@ -275,18 +275,9 @@ def up(
                     )
                 )
             for future in as_completed(futures):
-                # If there was an exception, reraising it here to the main thread
-                # will not terminate the whole python process. We'd like to report
-                # on this exception and stop as fast as possible, so terminate
-                # ourselves. I believe (without verification) that the OS is now
-                # free to cleanup these threads, but not sure if they'll remain running
-                # in the background. What matters most is that we regain control
-                # of the terminal.
                 e = future.exception()
                 if e:
                     click.echo(e)
-                    me = os.getpid()
-                    os.kill(me, signal.SIGTERM)
 
     # Check health of services. Seperate from _start_services
     # in case there are dependencies needed for the health
@@ -302,18 +293,9 @@ def up(
                 )
             )
         for future in as_completed(futures):
-            # If there was an exception, reraising it here to the main thread
-            # will not terminate the whole python process. We'd like to report
-            # on this exception and stop as fast as possible, so terminate
-            # ourselves. I believe (without verification) that the OS is now
-            # free to cleanup these threads, but not sure if they'll remain running
-            # in the background. What matters most is that we regain control
-            # of the terminal.
             e = future.exception()
             if e:
                 click.echo(e)
-                me = os.getpid()
-                os.kill(me, signal.SIGTERM)
 
 
 def _prepare_containers(
@@ -480,18 +462,9 @@ def down(project: str, service: list[str]) -> None:
             for container in containers:
                 futures.append(executor.submit(_down, container))
             for future in as_completed(futures):
-                # If there was an exception, reraising it here to the main thread
-                # will not terminate the whole python process. We'd like to report
-                # on this exception and stop as fast as possible, so terminate
-                # ourselves. I believe (without verification) that the OS is now
-                # free to cleanup these threads, but not sure if they'll remain running
-                # in the background. What matters most is that we regain control
-                # of the terminal.
                 e = future.exception()
                 if e:
                     click.echo(e)
-                    me = os.getpid()
-                    os.kill(me, signal.SIGTERM)
 
 
 @devservices.command()
