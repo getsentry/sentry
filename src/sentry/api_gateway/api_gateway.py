@@ -39,7 +39,7 @@ def proxy_request_if_needed(
         return None
 
     silo_modes = _get_view_silo_mode(view_func)
-    if silo_modes and current_silo_mode in silo_modes:
+    if not silo_modes or current_silo_mode in silo_modes:
         return None
 
     if "organization_slug" in view_kwargs:
