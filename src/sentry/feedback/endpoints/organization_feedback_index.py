@@ -41,6 +41,11 @@ class OrganizationFeedbackIndexEndpoint(OrganizationEndpoint):
                 date_added__range=(filter_params["start"], filter_params["end"])
             )
 
+        if "environment" in filter_params:
+            feedback_list = feedback_list.filter(
+                environment__in=[env.id for env in filter_params["environment_objects"]]
+            )
+
         return self.paginate(
             request=request,
             queryset=feedback_list,
