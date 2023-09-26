@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 
 import Alert from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {tct} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -20,6 +20,9 @@ export function NoDataDueToOldSDKBanner() {
   });
   const organization = useOrganization();
 
+  const hasMoreIneligibleProjectsThanVisible =
+    ineligibleProjects.length > MAX_LISTED_PROJECTS;
+
   if (ineligibleProjects.length < 1) {
     return null;
   }
@@ -27,7 +30,7 @@ export function NoDataDueToOldSDKBanner() {
   return (
     <Alert type="info" showIcon>
       {tct(
-        "You may be missing data due to outdated SDKs. Please refer to Sentry's [documentation:documentation] for more information. Projects with outdated SDKs: [projectList] ",
+        "You may be missing data due to outdated SDKs. Please refer to Sentry's [documentation:documentation] for more information. Projects with outdated SDKs: [projectList]",
         {
           documentation: (
             <ExternalLink href="https://docs.sentry.io/product/performance/database/" />
@@ -51,6 +54,9 @@ export function NoDataDueToOldSDKBanner() {
           ),
         }
       )}
+      {hasMoreIneligibleProjectsThanVisible
+        ? t('and [count] more', {count: ineligibleProjects.length - MAX_LISTED_PROJECTS})
+        : ''}
     </Alert>
   );
 }
