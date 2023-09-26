@@ -913,9 +913,9 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                     "count_segments": None,
                     "count_urls": None,
                     "clicks": None,
-                    "x_error_ids": None,
-                    "x_warning_ids": None,
-                    "x_info_ids": None,
+                    "new_error_ids": None,
+                    "warning_ids": None,
+                    "info_ids": None,
                 }
             ]
 
@@ -1711,7 +1711,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             assert "data" in response_data
             assert len(response_data["data"]) == 0
 
-    def test_exp_ids_errors(self):
+    def test_new_errors_column(self):
         project = self.create_project(teams=[self.team])
 
         uid1 = uuid.uuid4().hex
@@ -1741,20 +1741,22 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 f"!x_error_id:{uid3}",
             ]
             for query in queries:
-                response = self.client.get(self.url + f"?field=id&field=x_error_ids&query={query}")
+                response = self.client.get(
+                    self.url + f"?field=id&field=new_error_ids&query={query}"
+                )
                 assert response.status_code == 200
                 response_data = response.json()
                 assert len(response_data["data"]) == 1, query
-                assert len(response_data["data"][0]["x_error_ids"]) == 2, query
+                assert len(response_data["data"][0]["new_error_ids"]) == 2, query
 
             response = self.client.get(
-                self.url + f"?field=id&field=x_error_ids&query=x_error_id:{uid3}"
+                self.url + f"?field=id&field=new_error_ids&query=x_error_id:{uid3}"
             )
             assert response.status_code == 200
             response_data = response.json()
             assert len(response_data["data"]) == 0, query
 
-    def test_exp_ids_warnings(self):
+    def test_warnings_column(self):
         project = self.create_project(teams=[self.team])
 
         uid1 = uuid.uuid4().hex
@@ -1778,22 +1780,20 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 f"!x_warning_id:{uid2}",
             ]
             for query in queries:
-                response = self.client.get(
-                    self.url + f"?field=id&field=x_warning_ids&query={query}"
-                )
+                response = self.client.get(self.url + f"?field=id&field=warning_ids&query={query}")
                 assert response.status_code == 200, query
                 response_data = response.json()
                 assert len(response_data["data"]) == 1, query
-                assert len(response_data["data"][0]["x_warning_ids"]) == 1, query
+                assert len(response_data["data"][0]["warning_ids"]) == 1, query
 
             response = self.client.get(
-                self.url + f"?field=id&field=x_warning_ids&query=x_warning_id:{uid2}"
+                self.url + f"?field=id&field=warning_ids&query=x_warning_id:{uid2}"
             )
             assert response.status_code == 200
             response_data = response.json()
             assert len(response_data["data"]) == 0, query
 
-    def test_exp_ids_info(self):
+    def test_infos_column(self):
         project = self.create_project(teams=[self.team])
 
         uid1 = uuid.uuid4().hex
@@ -1821,14 +1821,14 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 f"!x_info_id:{uid3}",
             ]
             for query in queries:
-                response = self.client.get(self.url + f"?field=id&field=x_info_ids&query={query}")
+                response = self.client.get(self.url + f"?field=id&field=info_ids&query={query}")
                 assert response.status_code == 200
                 response_data = response.json()
                 assert len(response_data["data"]) == 1, query
-                assert len(response_data["data"][0]["x_info_ids"]) == 2, query
+                assert len(response_data["data"][0]["info_ids"]) == 2, query
 
             response = self.client.get(
-                self.url + f"?field=id&field=x_info_ids&query=x_info_id:{uid3}"
+                self.url + f"?field=id&field=info_ids&query=x_info_id:{uid3}"
             )
             assert response.status_code == 200
             response_data = response.json()
@@ -1852,14 +1852,16 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
 
         with self.feature(REPLAYS_FEATURES):
             queries = [
-                f"x_error_ids:{uid1}",
-                f"!x_error_ids:{uid2}",
-                f"x_error_ids:[{uid1},{uid2}]",
-                f"!x_error_ids:[{uid2}]",
+                f"new_error_ids:{uid1}",
+                f"!new_error_ids:{uid2}",
+                f"new_error_ids:[{uid1},{uid2}]",
+                f"!new_error_ids:[{uid2}]",
             ]
             for query in queries:
-                response = self.client.get(self.url + f"?field=id&field=x_error_ids&query={query}")
+                response = self.client.get(
+                    self.url + f"?field=id&field=new_error_ids&query={query}"
+                )
                 assert response.status_code == 200
                 response_data = response.json()
                 assert len(response_data["data"]) == 1, query
-                assert len(response_data["data"][0]["x_error_ids"]) == 1, query
+                assert len(response_data["data"][0]["new_error_ids"]) == 1, query

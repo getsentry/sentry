@@ -80,11 +80,13 @@ class ErrorIdScalar(ComputedBase):
 
     @classmethod
     def visit_eq(cls, value: UUID) -> Condition:
-        conds = _make_conditions_from_column_names(cls.event_id_columns, Op.EQ, to_uuid(value))
-        deprec_error_cond = has_error_id(value)
+        conditions = _make_conditions_from_column_names(cls.event_id_columns, Op.EQ, to_uuid(value))
+        deprecated_error_column_conditions = has_error_id(value)
 
         return Condition(
-            Function("or", [Function("or", parameters=conds), deprec_error_cond]),
+            Function(
+                "or", [Function("or", parameters=conditions), deprecated_error_column_conditions]
+            ),
             Op.EQ,
             1,
         )
@@ -92,35 +94,43 @@ class ErrorIdScalar(ComputedBase):
     @classmethod
     def visit_neq(cls, value: UUID) -> Condition:
 
-        conds = _make_conditions_from_column_names(cls.event_id_columns, Op.NEQ, to_uuid(value))
-        deprec_error_cond = translate_condition_to_function(ErrorIdsArray.visit_neq(value))
+        conditions = _make_conditions_from_column_names(
+            cls.event_id_columns, Op.NEQ, to_uuid(value)
+        )
+        deprecated_error_column_conditions = translate_condition_to_function(
+            ErrorIdsArray.visit_neq(value)
+        )
 
         return Condition(
-            Function("and", [Function("and", conds), deprec_error_cond]),
+            Function("and", [Function("and", conditions), deprecated_error_column_conditions]),
             Op.EQ,
             1,
         )
 
     @classmethod
     def visit_in(cls, value: list[UUID]) -> Condition:
-        conds = _make_conditions_from_column_names(
+        conditions = _make_conditions_from_column_names(
             cls.event_id_columns, Op.IN, [str(v) for v in value]
         )
-        deprec_error_cond = translate_condition_to_function(ErrorIdsArray.visit_in(value))
+        deprecated_error_column_conditions = translate_condition_to_function(
+            ErrorIdsArray.visit_in(value)
+        )
         return Condition(
-            Function("or", [Function("or", conds), deprec_error_cond]),
+            Function("or", [Function("or", conditions), deprecated_error_column_conditions]),
             Op.EQ,
             1,
         )
 
     @classmethod
     def visit_not_in(cls, value: list[UUID]) -> Condition:
-        conds = _make_conditions_from_column_names(
+        conditions = _make_conditions_from_column_names(
             cls.event_id_columns, Op.NOT_IN, [str(v) for v in value]
         )
-        deprec_error_cond = translate_condition_to_function(ErrorIdsArray.visit_not_in(value))
+        deprecated_error_column_conditions = translate_condition_to_function(
+            ErrorIdsArray.visit_not_in(value)
+        )
         return Condition(
-            Function("and", [Function("and", conds), deprec_error_cond]),
+            Function("and", [Function("and", conditions), deprecated_error_column_conditions]),
             Op.EQ,
             1,
         )

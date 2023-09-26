@@ -27,9 +27,9 @@ VALID_FIELD_SET = (
     "urls",
     "user",
     "clicks",
-    "x_info_ids",
-    "x_warning_ids",
-    "x_error_ids",
+    "info_ids",
+    "warning_ids",
+    "new_error_ids",
 )
 
 

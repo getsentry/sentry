@@ -29,6 +29,9 @@ static_search_config: dict[str, ColumnField] = {
     "sdk.name": StringColumnField("sdk_name", parse_str, StringScalar),
     "sdk.version": StringColumnField("sdk_version", parse_str, StringScalar),
 }
+# Aliases
+static_search_config["release"] = static_search_config["releases"]
+
 
 # Varying Search Config
 #
@@ -44,10 +47,21 @@ varying_search_config: dict[str, Union[ColumnField, ComputedField, TagField]] = 
     "user.id": StringColumnField("user_id", parse_str, StringScalar),
     "user.ip_address": StringColumnField("ip_address_v4", parse_str, IPv4Scalar),
     "user.username": StringColumnField("user_name", parse_str, StringScalar),
-    "x_error_ids": ComputedField(parse_uuid, ErrorIdScalar),
-    "x_warning_ids": StringColumnField("warning_id", lambda x: str(parse_uuid(x)), StringScalar),
-    "x_info_ids": ComputedField(parse_uuid, InfoIdScalar),
+    "new_error_ids": ComputedField(parse_uuid, ErrorIdScalar),
+    "warning_ids": StringColumnField("warning_id", lambda x: str(parse_uuid(x)), StringScalar),
+    "info_ids": ComputedField(parse_uuid, InfoIdScalar),
 }
+
+# Aliases
+varying_search_config["error_id"] = varying_search_config["error_ids"]
+varying_search_config["x_error_id"] = varying_search_config["new_error_ids"]
+varying_search_config["x_warning_id"] = varying_search_config["warning_ids"]
+varying_search_config["x_info_id"] = varying_search_config["info_ids"]
+varying_search_config["trace_id"] = varying_search_config["trace_ids"]
+varying_search_config["trace"] = varying_search_config["trace_ids"]
+varying_search_config["url"] = varying_search_config["urls"]
+varying_search_config["user.ip"] = varying_search_config["user.ip_address"]
+
 
 scalar_search_config = {**static_search_config, **varying_search_config}
 

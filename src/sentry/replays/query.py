@@ -371,27 +371,10 @@ def _activity_score():
     )
 
 
-def _exp_event_ids_agg(alias, ids_type_list):
+def _collect_event_ids(alias, ids_type_list):
     id_types_to_aggregate = []
     for id_type in ids_type_list:
-        id_types_to_aggregate.append(
-            Function(
-                "arrayFilter",
-                parameters=[
-                    Lambda(
-                        ["id"],
-                        Function(
-                            "notEquals",
-                            parameters=[
-                                Identifier("id"),
-                                "00000000-0000-0000-0000-000000000000",
-                            ],
-                        ),
-                    ),
-                    Function("groupArray", parameters=[Column(id_type)]),
-                ],
-            )
-        )
+        id_types_to_aggregate.append(_filter_empty_uuids(id_type))
 
     return Function(
         "arrayMap",
@@ -406,41 +389,11 @@ def _exp_event_ids_agg(alias, ids_type_list):
     )
 
 
-def _exp_errors():
+def _collect_new_errors():
     def _collect_non_empty_error_and_fatals():
         return [
-            Function(
-                "arrayFilter",
-                parameters=[
-                    Lambda(
-                        ["id"],
-                        Function(
-                            "notEquals",
-                            parameters=[
-                                Identifier("id"),
-                                "00000000-0000-0000-0000-000000000000",
-                            ],
-                        ),
-                    ),
-                    Function("groupArray", parameters=[Column("error_id")]),
-                ],
-            ),
-            Function(
-                "arrayFilter",
-                parameters=[
-                    Lambda(
-                        ["id"],
-                        Function(
-                            "notEquals",
-                            parameters=[
-                                Identifier("id"),
-                                "00000000-0000-0000-0000-000000000000",
-                            ],
-                        ),
-                    ),
-                    Function("groupArray", parameters=[Column("fatal_id")]),
-                ],
-            ),
+            _filter_empty_uuids("error_id"),
+            _filter_empty_uuids("fatal_id"),
         ]
 
     return Function(
@@ -469,7 +422,29 @@ def _exp_errors():
                 ],
             ),
         ],
-        alias="x_error_ids",
+        alias="new_error_ids",
+    )
+
+
+def _filter_empty_uuids(column_name):
+    def _empty_uuids_lambda():
+        return Lambda(
+            ["id"],
+            Function(
+                "notEquals",
+                parameters=[
+                    Identifier("id"),
+                    "00000000-0000-0000-0000-000000000000",
+                ],
+            ),
+        )
+
+    return Function(
+        "arrayFilter",
+        parameters=[
+            _empty_uuids_lambda(),
+            Function("groupArray", parameters=[Column(column_name)]),
+        ],
     )
 
 
@@ -562,12 +537,12 @@ FIELD_QUERY_ALIAS_MAP: Dict[str, List[str]] = {
         "click.text",
         "click.title",
     ],
-    "x_error_id": ["x_error_ids"],
-    "x_warning_id": ["x_warning_ids"],
-    "x_info_id": ["x_info_ids", "x_debug_ids"],
-    "x_error_ids": ["x_error_ids"],
-    "x_warning_ids": ["x_warning_ids"],
-    "x_info_ids": ["x_info_ids"],
+    "x_error_id": ["new_error_ids"],
+    "x_warning_id": ["warning_ids"],
+    "x_info_id": ["info_ids", "x_debug_ids"],
+    "new_error_ids": ["new_error_ids"],
+    "warning_ids": ["warning_ids"],
+    "info_ids": ["info_ids"],
 }
 
 
@@ -710,9 +685,9 @@ QUERY_ALIAS_COLUMN_MAP = {
     ),
     "click.text": Function("groupArray", parameters=[Column("click_text")], alias="click_text"),
     "click.title": Function("groupArray", parameters=[Column("click_title")], alias="click_title"),
-    "x_error_ids": _exp_errors(),
-    "x_warning_ids": _exp_event_ids_agg("x_warning_ids", ["warning_id"]),
-    "x_info_ids": _exp_event_ids_agg("x_info_ids", ["info_id", "debug_id"]),
+    "new_error_ids": _collect_new_errors(),
+    "warning_ids": _collect_event_ids("warning_ids", ["warning_id"]),
+    "info_ids": _collect_event_ids("info_ids", ["info_id", "debug_id"]),
 }
 
 
