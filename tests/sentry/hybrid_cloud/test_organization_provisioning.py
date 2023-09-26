@@ -5,6 +5,7 @@ from sentry.models import (
     Organization,
     OrganizationMapping,
     OrganizationMember,
+    OrganizationSlugReservation,
     OutboxCategory,
     RegionOutbox,
     User,
@@ -47,6 +48,11 @@ def assert_params_match_org(
         assert org_mapping.slug == db_org.slug
         assert org_mapping.name == db_org.name
         assert org_mapping.status == db_org.status
+
+        org_slug_reservation = OrganizationSlugReservation.objects.get(
+            organization_id=org.id, slug=db_org.slug
+        )
+        assert org_slug_reservation.user_id == 0
 
 
 def is_org_member(user_id: int, org_id: int):
