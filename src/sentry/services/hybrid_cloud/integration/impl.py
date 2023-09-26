@@ -299,7 +299,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
                 fields.add("status")
             if grace_period_end is not None or set_grace_period_end_null:
                 gpe_value = grace_period_end if not set_grace_period_end_null else None
-                ois.grace_period_end = gpe_value
+                oi.grace_period_end = gpe_value
                 fields.add("grace_period_end")
             ois.append(oi)
 
