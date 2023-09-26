@@ -98,6 +98,7 @@ MetricOperationType = Literal[
     # Custom operations used for on demand derived metrics.
     "on_demand_apdex",
     "on_demand_epm",
+    "on_demand_eps",
     "on_demand_failure_count",
     "on_demand_failure_rate",
 ]
@@ -289,6 +290,7 @@ DERIVED_OPERATIONS = (
     # Custom operations used for on demand derived metrics.
     "on_demand_apdex",
     "on_demand_epm",
+    "on_demand_eps",
     "on_demand_failure_count",
     "on_demand_failure_rate",
 )

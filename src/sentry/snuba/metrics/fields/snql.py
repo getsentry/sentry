@@ -911,8 +911,16 @@ def on_demand_apdex_snql_factory(
 
 
 def on_demand_epm_snql_factory(
-    aggregate_filter: Function, org_id: int, use_case_id: UseCaseID, alias: Optional[str]
+    aggregate_filter: Function,
+    interval: float,
+    alias: Optional[str],
 ) -> Function:
-    """Return the count based on the aggregation."""
-    # Dividing by the time interval happens in a different place
-    return total_count(aggregate_filter)
+    return rate_snql_factory(aggregate_filter, interval, 60, alias)
+
+
+def on_demand_eps_snql_factory(
+    aggregate_filter: Function,
+    interval: float,
+    alias: Optional[str],
+) -> Function:
+    return rate_snql_factory(aggregate_filter, interval, 1, alias)

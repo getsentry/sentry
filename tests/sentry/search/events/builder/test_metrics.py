@@ -2255,21 +2255,12 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             ],
         )
 
-    # XXX: This is not correct since we're not yet dividing by the interval
     def test_run_query_with_on_demand_epm(self):
+        """Test events per minute for 1 event within an hour."""
         field = "epm()"
         query = "transaction.duration:>=100"
         spec = OnDemandMetricSpec(field=field, query=query)
         timestamp = self.start
-        self.store_transaction_metric(
-            value=1,
-            metric=TransactionMetricKey.COUNT_ON_DEMAND.value,
-            internal_metric=TransactionMRI.COUNT_ON_DEMAND.value,
-            entity="metrics_counters",
-            tags={"query_hash": spec.query_hash},
-            timestamp=timestamp,
-        )
-        # XXX: Store a second later and then 61 seconds later
         self.store_transaction_metric(
             value=1,
             metric=TransactionMetricKey.COUNT_ON_DEMAND.value,
@@ -2287,11 +2278,39 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             config=QueryBuilderConfig(on_demand_metrics_enabled=True),
         )
         result = query.run_query("test_query")
-        # XXX: How is this 0 rather than 2?
-        assert result["data"][:1] == [{"time": timestamp.isoformat(), "epm": 0}]
+        assert result["data"][:1] == [{"time": timestamp.isoformat(), "epm": 1 / 60}]
         assert result["meta"] == [
             {"name": "time", "type": "DateTime('Universal')"},
-            # {"name": "epm", "type": "Float64"}, ???
+            {"name": "epm", "type": "Float64"},
+        ]
+
+    def test_run_query_with_on_demand_eps(self):
+        """Test event per second for 1 event within an hour."""
+        field = "eps()"
+        query = "transaction.duration:>=100"
+        spec = OnDemandMetricSpec(field=field, query=query)
+        timestamp = self.start
+        self.store_transaction_metric(
+            value=1,
+            metric=TransactionMetricKey.COUNT_ON_DEMAND.value,
+            internal_metric=TransactionMRI.COUNT_ON_DEMAND.value,
+            entity="metrics_counters",
+            tags={"query_hash": spec.query_hash},
+            timestamp=timestamp,
+        )
+        query = TimeseriesMetricQueryBuilder(
+            self.params,
+            dataset=Dataset.PerformanceMetrics,
+            interval=3600,
+            query=query,
+            selected_columns=[field],
+            config=QueryBuilderConfig(on_demand_metrics_enabled=True),
+        )
+        result = query.run_query("test_query")
+        assert result["data"][:1] == [{"time": timestamp.isoformat(), "eps": 1 / 60 / 60}]
+        assert result["meta"] == [
+            {"name": "time", "type": "DateTime('Universal')"},
+            {"name": "eps", "type": "Float64"},
         ]
 
 
