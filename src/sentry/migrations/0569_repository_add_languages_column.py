@@ -24,9 +24,24 @@ class Migration(CheckedMigration):
     ]
 
     operations = [
-        migrations.AddField(
-            model_name="repository",
-            name="languages",
-            field=sentry.db.models.fields.array.ArrayField(null=True),
-        ),
+        migrations.SeparateDatabaseAndState(
+            database_operations=[
+                migrations.RunSQL(
+                    """
+                    ALTER TABLE "sentry_repository" ADD COLUMN "languages" TEXT[] NULL;
+                    """,
+                    reverse_sql="""
+                    ALTER TABLE "sentry_repository" DROP COLUMN "languages";
+                    """,
+                    hints={"tables": ["sentry_repository"]},
+                ),
+            ],
+            state_operations=[
+                migrations.AddField(
+                    model_name="repository",
+                    name="languages",
+                    field=sentry.db.models.fields.array.ArrayField(null=True),
+                ),
+            ],
+        )
     ]
