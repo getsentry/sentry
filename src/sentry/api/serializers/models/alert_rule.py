@@ -36,6 +36,9 @@ class AlertRuleSerializerResponseOptional(TypedDict, total=False):
     owner: Optional[str]
     originalAlertRuleId: Optional[str]
     comparisonDelta: Optional[str]
+    weeklyAvg: Optional[float]
+    totalThisWeek: Optional[int]
+    snooze: Optional[bool]
 
 
 class AlertRuleSerializerResponse(AlertRuleSerializerResponseOptional):
