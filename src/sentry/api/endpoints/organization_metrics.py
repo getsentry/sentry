@@ -125,7 +125,6 @@ class OrganizationMetricsTagDetailsEndpoint(OrganizationEndpoint):
     owner = ApiOwner.TELEMETRY_EXPERIENCE
 
     def get(self, request: Request, organization, tag_name) -> Response:
-
         metric_names = request.GET.getlist("metric") or None
 
         projects = self.get_projects(request, organization)

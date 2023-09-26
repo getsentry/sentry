@@ -38,7 +38,7 @@ from sentry.snuba.metrics.fields.base import (
     get_derived_metrics,
     org_id_from_projects,
 )
-from sentry.snuba.metrics.naming_layer.mapping import get_mri
+from sentry.snuba.metrics.naming_layer.mapping import get_mri, is_mri
 from sentry.snuba.metrics.naming_layer.mri import (
     MRI_SCHEMA_REGEX,
     get_available_operations,
@@ -315,7 +315,12 @@ def _fetch_tags_or_values_for_metrics(
 ) -> Tuple[Union[Sequence[Tag], Sequence[TagValue]], Optional[str]]:
     assert len({p.organization_id for p in projects}) == 1
 
-    metric_mris = [get_mri(metric_name) for metric_name in metric_names] if metric_names else []
+    metric_mris = []
+    for metric_name in metric_names:
+        if is_mri(metric_name):
+            metric_mris.append(metric_name)
+        else:
+            metric_mris.append(get_mri(metric_name))
 
     return _fetch_tags_or_values_for_mri(projects, metric_mris, referrer, column, use_case_id)
 
@@ -369,7 +374,6 @@ def _fetch_tags_or_values_for_mri(
         metric_types = performance_metric_types
 
     for metric_type in metric_types:
-
         entity_key = METRIC_TYPE_TO_ENTITY[metric_type]
         rows = run_metrics_query(
             entity_key=entity_key,
