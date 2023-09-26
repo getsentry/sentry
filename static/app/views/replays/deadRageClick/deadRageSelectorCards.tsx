@@ -38,6 +38,7 @@ function DeadClickTable({location}: {location: Location<any>}) {
     sort: '-count_dead_clicks',
     cursor: undefined,
     prefix: 'selector_',
+    widgetData: true,
   });
 
   return (
@@ -46,7 +47,7 @@ function DeadClickTable({location}: {location: Location<any>}) {
       isError={isError}
       isLoading={isLoading}
       location={location}
-      clickCountColumn={{key: 'count_dead_clicks', name: 'dead clicks'}}
+      clickCountColumns={[{key: 'count_dead_clicks', name: 'dead clicks'}]}
       title={
         <Fragment>
           <IconContainer>
@@ -74,6 +75,7 @@ function RageClickTable({location}: {location: Location<any>}) {
     sort: '-count_rage_clicks',
     cursor: undefined,
     prefix: 'selector_',
+    widgetData: true,
   });
 
   return (
@@ -82,7 +84,7 @@ function RageClickTable({location}: {location: Location<any>}) {
       isError={isError}
       isLoading={isLoading}
       location={location}
-      clickCountColumn={{key: 'count_rage_clicks', name: 'rage clicks'}}
+      clickCountColumns={[{key: 'count_rage_clicks', name: 'rage clicks'}]}
       title={
         <Fragment>
           <IconContainer>

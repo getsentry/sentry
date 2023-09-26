@@ -181,6 +181,7 @@ export type DeadRageSelectorListResponse = {
 };
 
 export interface DeadRageSelectorQueryParams {
+  widgetData: boolean;
   cursor?: string | string[] | undefined | null;
   per_page?: number;
   prefix?: string;

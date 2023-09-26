@@ -1376,7 +1376,9 @@ function buildRoutes() {
       <IndexRoute component={make(() => import('sentry/views/replays/list'))} />
       <Route
         path="dead-clicks/"
-        component={make(() => import('sentry/views/replays/deadRageClick/deadClickList'))}
+        component={make(
+          () => import('sentry/views/replays/deadRageClick/deadRageClickList')
+        )}
       />
       <Route
         path="rage-clicks/"

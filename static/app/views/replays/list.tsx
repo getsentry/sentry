@@ -11,6 +11,7 @@ import {space} from 'sentry/styles/space';
 import useReplayPageview from 'sentry/utils/replays/hooks/useReplayPageview';
 import useOrganization from 'sentry/utils/useOrganization';
 import ListContent from 'sentry/views/replays/list/listContent';
+import ReplayTabs from 'sentry/views/replays/tabs';
 
 const ReplayListPageHeaderHook = HookOrDefault({
   hookName: 'component:replay-list-page-header',
@@ -23,7 +24,7 @@ function ReplaysListContainer() {
 
   return (
     <SentryDocumentTitle title={`Session Replay — ${organization.slug}`}>
-      <Layout.Header>
+      <Layout.Header noActionWrap={false}>
         <Layout.HeaderContent>
           <Layout.Title>
             {t('Session Replay')}
@@ -35,6 +36,8 @@ function ReplaysListContainer() {
             />
           </Layout.Title>
         </Layout.HeaderContent>
+        <div /> {/* wraps the tabs below the page title */}
+        <ReplayTabs />
       </Layout.Header>
       <PageFiltersContainer>
         <Layout.Body>

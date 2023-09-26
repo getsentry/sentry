@@ -17,8 +17,9 @@ import useDeadRageSelectors from 'sentry/utils/replays/hooks/useDeadRageSelector
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import SelectorTable from 'sentry/views/replays/deadRageClick/selectorTable';
+import ReplayTabs from 'sentry/views/replays/tabs';
 
-export default function DeadClickList() {
+export default function DeadRageClickList() {
   const organization = useOrganization();
   const location = useLocation();
   const hasDeadClickFeature = organization.features.includes(
@@ -30,6 +31,7 @@ export default function DeadClickList() {
     sort: '-count_dead_clicks',
     cursor: location.query.cursor,
     prefix: '',
+    widgetData: false,
   });
 
   if (!hasDeadClickFeature) {
@@ -48,13 +50,15 @@ export default function DeadClickList() {
       <Layout.Header>
         <Layout.HeaderContent>
           <Layout.Title>
-            {t('Top Selectors with Dead Clicks')}
+            {t('Top Selectors with Dead and Rage Clicks')}
             <PageHeadingQuestionTooltip
-              title={t('See the top selectors your users have dead clicked on.')}
+              title={t('See the top selectors your users have dead and rage clicked on.')}
               docsUrl="https://docs.sentry.io/product/session-replay/replay-page-and-filters/"
             />
           </Layout.Title>
         </Layout.HeaderContent>
+        <div /> {/* wraps the tabs below the page title */}
+        <ReplayTabs />
       </Layout.Header>
       <PageFiltersContainer>
         <Layout.Body>
@@ -70,7 +74,10 @@ export default function DeadClickList() {
                 isError={isError}
                 isLoading={isLoading}
                 location={location}
-                clickCountColumn={{key: 'count_dead_clicks', name: 'dead clicks'}}
+                clickCountColumns={[
+                  {key: 'count_dead_clicks', name: 'dead clicks'},
+                  {key: 'count_rage_clicks', name: 'rage clicks'},
+                ]}
                 clickCountSortable
               />
             </LayoutGap>

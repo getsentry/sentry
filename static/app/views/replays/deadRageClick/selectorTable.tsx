@@ -8,6 +8,8 @@ import useQueryBasedSorting from 'sentry/components/feedback/table/useQueryBased
 import GridEditable, {GridColumnOrder} from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
 import TextOverflow from 'sentry/components/textOverflow';
+import {IconCursorArrow} from 'sentry/icons';
+import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -25,19 +27,29 @@ export function getAriaLabel(str: string) {
   return pre.substring(0, pre.lastIndexOf('"]'));
 }
 
-export function hydratedSelectorData(data, clickType): DeadRageSelectorItem[] {
-  return data.map(d => {
-    return {
-      [clickType]: d[clickType],
-      dom_element: d.dom_element,
-      element: d.dom_element.split(/[#.]+/)[0],
-      aria_label: getAriaLabel(d.dom_element),
-    };
-  });
+export function hydratedSelectorData(data, clickType?): DeadRageSelectorItem[] {
+  return clickType
+    ? data.map(d => {
+        return {
+          [clickType]: d[clickType],
+          dom_element: d.dom_element,
+          element: d.dom_element.split(/[#.]+/)[0],
+          aria_label: getAriaLabel(d.dom_element),
+        };
+      })
+    : data.map(d => {
+        return {
+          count_dead_clicks: d.count_dead_clicks,
+          count_rage_clicks: d.count_rage_clicks,
+          dom_element: d.dom_element,
+          element: d.dom_element.split(/[#.]+/)[0],
+          aria_label: getAriaLabel(d.dom_element),
+        };
+      });
 }
 
 interface Props {
-  clickCountColumn: {key: string; name: string};
+  clickCountColumns: {key: string; name: string}[];
   clickCountSortable: boolean;
   data: DeadRageSelectorItem[];
   isError: boolean;
@@ -55,7 +67,7 @@ const BASE_COLUMNS: GridColumnOrder<string>[] = [
 ];
 
 export default function SelectorTable({
-  clickCountColumn,
+  clickCountColumns,
   data,
   isError,
   isLoading,
@@ -68,12 +80,12 @@ export default function SelectorTable({
   const organization = useOrganization();
 
   const {currentSort, makeSortLinkGenerator} = useQueryBasedSorting({
-    defaultSort: {field: clickCountColumn.key, kind: 'desc'},
+    defaultSort: {field: clickCountColumns[0].key, kind: 'desc'},
     location,
   });
 
   const {columns, handleResizeColumn} = useQueryBasedColumnResize({
-    columns: BASE_COLUMNS.concat(clickCountColumn),
+    columns: BASE_COLUMNS.concat(clickCountColumns),
     location,
   });
 
@@ -84,9 +96,9 @@ export default function SelectorTable({
         makeSortLinkGenerator,
         onClick: () => {},
         rightAlignedColumns: [],
-        sortableColumns: clickCountSortable ? [clickCountColumn] : [],
+        sortableColumns: clickCountSortable ? clickCountColumns : [],
       }),
-    [currentSort, makeSortLinkGenerator, clickCountColumn, clickCountSortable]
+    [currentSort, makeSortLinkGenerator, clickCountColumns, clickCountSortable]
   );
 
   const renderBodyCell = useCallback(
@@ -149,10 +161,24 @@ function SelectorLink({
 
 function renderSimpleBodyCell<T>(column: GridColumnOrder<string>, dataRow: T) {
   if (column.key === 'count_dead_clicks') {
-    return <DeadClickCount>{dataRow[column.key]}</DeadClickCount>;
+    return (
+      <DeadClickCount>
+        <IconContainer>
+          <IconCursorArrow size="xs" />
+        </IconContainer>
+        {dataRow[column.key]}
+      </DeadClickCount>
+    );
   }
   if (column.key === 'count_rage_clicks') {
-    return <RageClickCount>{dataRow[column.key]}</RageClickCount>;
+    return (
+      <RageClickCount>
+        <IconContainer>
+          <IconCursorArrow size="xs" />
+        </IconContainer>
+        {dataRow[column.key]}
+      </RageClickCount>
+    );
   }
   return <TextOverflow>{dataRow[column.key]}</TextOverflow>;
 }
@@ -163,4 +189,8 @@ const DeadClickCount = styled(TextOverflow)`
 
 const RageClickCount = styled(TextOverflow)`
   color: ${p => p.theme.red300};
+`;
+
+const IconContainer = styled('span')`
+  margin-right: ${space(1)};
 `;

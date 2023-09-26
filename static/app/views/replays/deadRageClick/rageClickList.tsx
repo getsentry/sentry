@@ -30,6 +30,7 @@ export default function RageClickList() {
     sort: '-count_rage_clicks',
     cursor: location.query.cursor,
     prefix: '',
+    widgetData: false,
   });
 
   if (!hasRageClickFeature) {
@@ -70,7 +71,7 @@ export default function RageClickList() {
                 isError={isError}
                 isLoading={isLoading}
                 location={location}
-                clickCountColumn={{key: 'count_rage_clicks', name: 'rage clicks'}}
+                clickCountColumns={[{key: 'count_rage_clicks', name: 'rage clicks'}]}
                 clickCountSortable
               />
             </LayoutGap>
