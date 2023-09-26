@@ -132,7 +132,7 @@ from sentry.utils import json, metrics
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.canonical import CanonicalKeyDict
 from sentry.utils.dates import to_datetime, to_timestamp
-from sentry.utils.event import has_event_minified_stack_trace
+from sentry.utils.event import has_event_minified_stack_trace, has_stacktrace, is_handled
 from sentry.utils.metrics import MutableTags
 from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.performance_issues.performance_detection import detect_performance_problems
@@ -2079,6 +2079,11 @@ def _get_severity_score(event: Event) -> float | None:
 
     payload = {
         "message": title,
+        "has_stacktrace": int(has_stacktrace(event.data)),
+        "log_level": event.data.get("level"),
+        # TODO: For now we're counting not having a `handled` value as being handled, but
+        # we should update the model to account for three values: True, False, and None
+        "handled": 0 if is_handled(event.data) is False else 1,
     }
     logger_data["payload"] = payload
 
