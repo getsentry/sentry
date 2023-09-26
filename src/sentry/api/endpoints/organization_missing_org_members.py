@@ -6,7 +6,7 @@ from email.headerregistry import Address
 from functools import reduce
 from typing import TYPE_CHECKING, Dict, Sequence
 
-from django.db.models import Count, Q, QuerySet
+from django.db.models import Count, Q, QuerySet, Subquery
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.request import Request
@@ -54,13 +54,21 @@ class MissingMembersPermission(OrganizationPermission):
 def _get_missing_organization_members(
     organization: Organization, provider: str, integration_ids: Sequence[int]
 ) -> QuerySet[WithAnnotations[CommitAuthor]]:
-    member_emails = set(
-        organization.member_set.exclude(email=None).values_list("email", flat=True)
-    ) | set(organization.member_set.exclude(user_email=None).values_list("user_email", flat=True))
-
-    nonmember_authors = CommitAuthor.objects.filter(organization_id=organization.id).exclude(
-        Q(email__in=member_emails) | Q(external_id=None)
+    member_emails = (
+        organization.member_set.filter(email__isnull=False)
+        .distinct("email")
+        .values_list("email", flat=True)
     )
+
+    member_emails2 = (
+        organization.member_set.filter(user_email__isnull=False)
+        .distinct("user_email")
+        .values_list("user_email", flat=True)
+    )
+
+    nonmember_authors = CommitAuthor.objects.filter(
+        organization_id=organization.id, external_id__isnull=False
+    ).exclude(Q(email__in=member_emails) | Q(email__in=member_emails2))
 
     org_repos = Repository.objects.filter(
         provider="integrations:" + provider,
@@ -69,14 +77,17 @@ def _get_missing_organization_members(
     ).values_list("id", flat=True)
 
     recent_commits = Commit.objects.filter(
-        repository_id__in=set(org_repos), date_added__gte=timezone.now() - timedelta(days=30)
+        repository_id__in=org_repos, date_added__gte=timezone.now() - timedelta(days=30)
     ).values_list("id", flat=True)
 
-    return (
+    foo = (
         nonmember_authors.filter(commit__id__in=recent_commits)
         .annotate(Count("commit"))
         .order_by("-commit__count")
     )
+    # baz = foo.query
+
+    return foo
 
 
 def _get_shared_email_domain(organization: Organization) -> str | None:
@@ -163,6 +174,10 @@ class OrganizationMissingMembersEndpoint(OrganizationEndpoint):
                         queryset = queryset.filter(
                             Q(email__icontains=query_value) | Q(external_id__icontains=query_value)
                         )
+
+            boop = queryset[:50]
+            # print(boop.query)
+            # breakpoint()
 
             missing_members_for_integration = {
                 "integration": integration_provider,
