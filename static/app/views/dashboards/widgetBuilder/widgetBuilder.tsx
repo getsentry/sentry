@@ -68,6 +68,7 @@ import {DataSetStep} from './buildSteps/dataSetStep';
 import {FilterResultsStep} from './buildSteps/filterResultsStep';
 import {GroupByStep} from './buildSteps/groupByStep';
 import {SortByStep} from './buildSteps/sortByStep';
+import ThresholdsStep from './buildSteps/thresholdsStep/thresholdsStep';
 import {VisualizationStep} from './buildSteps/visualizationStep';
 import {YAxisStep} from './buildSteps/yAxisStep';
 import {Footer} from './footer';
@@ -1123,6 +1124,7 @@ function WidgetBuilder({
                                   tags={tags}
                                 />
                               )}
+                              {state.displayType === 'big_number' && <ThresholdsStep />}
                             </BuildSteps>
                           </Main>
                           <Footer
