@@ -37,8 +37,6 @@ from sentry.constants import ObjectStatus
 from sentry.incidents.logic import get_slack_actions_with_async_lookups
 from sentry.incidents.models import AlertRule, Incident
 from sentry.incidents.serializers import AlertRuleSerializer
-
-# from sentry.incidents.serializers.alert_rule import AlertRuleSerializerResponse
 from sentry.incidents.utils.sentry_apps import trigger_sentry_app_action_creators_for_incidents
 from sentry.integrations.slack.utils import RedisRuleStatus
 from sentry.models import OrganizationMemberTeam, Project, Rule, Team
@@ -262,9 +260,12 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
 
 
 class OrganizationAlertRuleIndexPostSerializer(serializers.Serializer):
-    name = serializers.CharField(max_length=64, help_text="The name for the rule.")
+    name = serializers.CharField(
+        max_length=64,
+        help_text="The name for the rule, which has a maximimum length of 64 characters.",
+    )
     aggregate = serializers.CharField(
-        help_text="A string representing the aggregate used in this alert rule."
+        help_text="A string representing the aggregate used in this alert rule. Valid aggregate functions are `count`, `count_unique`, `percentage`, `avg`, `apdex`, `failure_rate`, `p50`, `p75`, `p95`, `p99`, `p100`, and `percentile`. See [Metric Alert Rule Types](#metric-alert-rule-types) for valid configurations."
     )
     timeWindow = serializers.ChoiceField(
         choices=(
@@ -337,17 +338,17 @@ Metric alert rule trigger actions follow the following structure:
     )
     dataset = serializers.CharField(
         required=False,
-        help_text="The name of the dataset that this query will be executed on. Valid values are `events`, `transactions`, `metrics`, `sessions`, and `generic-metrics`. Defaults to `events`.",
+        help_text="The name of the dataset that this query will be executed on. Valid values are `events`, `transactions`, `metrics`, `sessions`, and `generic-metrics`. Defaults to `events`. See [Metric Alert Rule Types](#metric-alert-rule-types) for valid configurations.",
     )
     queryType = serializers.ChoiceField(
         required=False,
         choices=((0, "event.type:error"), (1, "event.type:transaction"), (2, "")),
-        help_text="The `SnubaQuery.Type` of the query. If no value is provided, `queryType` is set to the default for the specified `dataset.`",
+        help_text="The `SnubaQuery.Type` of the query. If no value is provided, `queryType` is set to the default for the specified `dataset.` See [Metric Alert Rule Types](#metric-alert-rule-types) for valid configurations.",
     )
     eventTypes = serializers.ListField(
         child=serializers.CharField(),
         required=False,
-        help_text="List of event types that this alert will be related to. Valid values are `error` and `transaction`.",
+        help_text="List of event types that this alert will be related to. Valid values are `default`, `error` and `transaction`.",
     )
     comparisonDelta = serializers.IntegerField(
         required=False,
@@ -362,7 +363,7 @@ Metric alert rule trigger actions follow the following structure:
     )
 
 
-@extend_schema(tags=["Events"])
+@extend_schema(tags=["Organizations"])
 @region_silo_endpoint
 class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMixin):
     publish_status = {
@@ -430,16 +431,19 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMix
         Alert when the number of errors in a project matching your filters crosses a threshold. This is
         useful for monitoring the overall level or errors in your project or errors occurring in specific
         parts of your app.
+        - `eventTypes`: Any of `error` or `default`.
         ```json
         {
             "queryType": 0,
             "dataset": "events",
-            "aggregate": "count()"
+            "aggregate": "count()",
+            "eventTypes": ["error", "default"]
         }
         ```
 
         ### Users Experiencing Errors
         Alert when the number of users affected by errors in your project crosses a threshold.
+        - `eventTypes`: Any of `error` or `default`.
         ```json
         {
             "queryType": 0,
@@ -543,7 +547,7 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMix
         {
             "queryType": 1,
             "dataset": "generic_metrics",
-            "aggregate": p100(measurements.fid)"
+            "aggregate": "p100(measurements.fid)"
         }
         ```
 
