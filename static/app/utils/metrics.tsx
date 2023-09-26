@@ -1,4 +1,5 @@
 import {useMemo} from 'react';
+import {InjectedRouter} from 'react-router';
 import moment from 'moment';
 
 import {getInterval} from 'sentry/components/charts/utils';
@@ -290,4 +291,14 @@ export function formatMetricsUsingUnitAndOp(
 
 export function isAllowedOp(op: string) {
   return !['max_timestamp', 'min_timestamp', 'histogram'].includes(op);
+}
+
+export function updateQuery(router: InjectedRouter, partialQuery: Record<string, any>) {
+  router.push({
+    ...router.location,
+    query: {
+      ...router.location.query,
+      ...partialQuery,
+    },
+  });
 }
