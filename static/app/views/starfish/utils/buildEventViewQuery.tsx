@@ -5,12 +5,19 @@ import {ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
 import {EMPTY_OPTION_VALUE} from 'sentry/views/starfish/views/spans/selectors/emptyOption';
 import {NULL_SPAN_CATEGORY} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
 
-const {SPAN_DESCRIPTION, SPAN_OP, SPAN_DOMAIN, SPAN_ACTION, SPAN_MODULE} =
-  SpanMetricsField;
+const {
+  SPAN_DESCRIPTION,
+  SPAN_OP,
+  SPAN_DOMAIN,
+  SPAN_ACTION,
+  SPAN_MODULE,
+  SPAN_DOMAIN_ARRAY,
+} = SpanMetricsField;
 
 const SPAN_FILTER_KEYS = [
   SPAN_OP,
   SPAN_DOMAIN,
+  SPAN_DOMAIN_ARRAY,
   SPAN_ACTION,
   `!${SPAN_MODULE}`,
   '!span.category',

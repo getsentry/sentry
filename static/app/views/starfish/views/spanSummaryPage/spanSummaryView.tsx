@@ -55,6 +55,7 @@ export function SpanSummaryView({groupId}: Props) {
       SpanMetricsField.SPAN_DESCRIPTION,
       SpanMetricsField.SPAN_ACTION,
       SpanMetricsField.SPAN_DOMAIN,
+      SpanMetricsField.SPAN_DOMAIN_ARRAY,
       'count()',
       `${SpanFunction.SPM}()`,
       `sum(${SpanMetricsField.SPAN_SELF_TIME})`,
@@ -73,6 +74,7 @@ export function SpanSummaryView({groupId}: Props) {
     [SpanMetricsField.SPAN_DESCRIPTION]: string;
     [SpanMetricsField.SPAN_ACTION]: string;
     [SpanMetricsField.SPAN_DOMAIN]: string;
+    [SpanMetricsField.SPAN_DOMAIN_ARRAY]: string;
     [SpanMetricsField.SPAN_GROUP]: string;
   };
 

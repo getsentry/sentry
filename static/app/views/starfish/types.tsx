@@ -22,6 +22,7 @@ export enum SpanMetricsField {
   SPAN_MODULE = 'span.module',
   SPAN_ACTION = 'span.action',
   SPAN_DOMAIN = 'span.domain',
+  SPAN_DOMAIN_ARRAY = 'span.domain_array',
   SPAN_GROUP = 'span.group',
   SPAN_DURATION = 'span.duration',
   SPAN_SELF_TIME = 'span.self_time',
@@ -36,6 +37,7 @@ export type SpanStringFields =
   | 'span.module'
   | 'span.action'
   | 'span.domain'
+  | 'span.domain_array'
   | 'span.group'
   | 'project.id';
 
@@ -73,6 +75,7 @@ export enum SpanIndexedField {
   TRANSACTION_METHOD = 'transaction.method',
   TRANSACTION_OP = 'transaction.op',
   SPAN_DOMAIN = 'span.domain',
+  SPAN_DOMAIN_ARRAY = 'span.domain_array',
   TIMESTAMP = 'timestamp',
   PROJECT = 'project',
 }

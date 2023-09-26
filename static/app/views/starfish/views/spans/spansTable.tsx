@@ -28,6 +28,7 @@ type Row = {
   'http_error_count()': number;
   'span.description': string;
   'span.domain': string;
+  'span.domain_array': Array<string>;
   'span.group': string;
   'span.op': string;
   'spm()': number;
