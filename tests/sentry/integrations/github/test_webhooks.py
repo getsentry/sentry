@@ -90,7 +90,7 @@ class PushEventWebhookTest(APITestCase):
     def test_simple(self):
         project = self.project  # force creation
 
-        Repository.objects.create(
+        repo = Repository.objects.create(
             organization_id=project.organization.id,
             external_id="35129377",
             provider="integrations:github",
@@ -130,6 +130,9 @@ class PushEventWebhookTest(APITestCase):
         commit_filechanges = CommitFileChange.objects.all()
         assert len(commit_filechanges) == 2
 
+        repo.refresh_from_db()
+        assert repo.languages == ["python"]
+
     @patch("sentry.integrations.github.webhook.metrics")
     def test_creates_missing_repo(self, mock_metrics):
         project = self.project  # force creation
@@ -165,7 +168,7 @@ class PushEventWebhookTest(APITestCase):
     def test_anonymous_lookup(self):
         project = self.project  # force creation
 
-        Repository.objects.create(
+        repo = Repository.objects.create(
             organization_id=project.organization.id,
             external_id="35129377",
             provider="integrations:github",
@@ -208,6 +211,9 @@ class PushEventWebhookTest(APITestCase):
 
         commit_filechanges = CommitFileChange.objects.all()
         assert len(commit_filechanges) == 2
+
+        repo.refresh_from_db()
+        assert repo.languages == ["python"]
 
     def test_multiple_orgs(self):
         project = self.project  # force creation
@@ -302,7 +308,7 @@ class PushEventWebhookTest(APITestCase):
 
         assert response.status_code == 204
 
-        repos = Repository.objects.all()
+        repos = Repository.objects.all().order_by("date_added")
         assert len(repos) == 2
 
         assert repos[0].organization_id == project.organization.id
