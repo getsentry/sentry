@@ -33,6 +33,27 @@
       "Region"
     ]
   },
+  "hybridcloud.organizationslugreservationreplica": {
+    "foreign_keys": {
+      "organization_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.organization"
+      },
+      "organization_slug_reservation_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.organizationslugreservation"
+      },
+      "user_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.user"
+      }
+    },
+    "model": "hybridcloud.organizationslugreservationreplica",
+    "relocation_scope": "Excluded",
+    "silos": [
+      "Region"
+    ]
+  },
   "nodestore.node": {
     "foreign_keys": {},
     "model": "nodestore.node",
@@ -2231,23 +2252,6 @@
     "relocation_scope": "Excluded",
     "silos": [
       "Control"
-    ]
-  },
-  "sentry.organizationslugreservationreplica": {
-    "foreign_keys": {
-      "organization_id": {
-        "kind": "ImplicitForeignKey",
-        "model": "sentry.organization"
-      },
-      "user_id": {
-        "kind": "ImplicitForeignKey",
-        "model": "sentry.user"
-      }
-    },
-    "model": "sentry.organizationslugreservationreplica",
-    "relocation_scope": "Excluded",
-    "silos": [
-      "Region"
     ]
   },
   "sentry.orgauthtoken": {

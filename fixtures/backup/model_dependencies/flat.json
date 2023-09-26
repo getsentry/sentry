@@ -7,6 +7,11 @@
     "sentry.apikey",
     "sentry.organization"
   ],
+  "hybridcloud.organizationslugreservationreplica": [
+    "sentry.organization",
+    "sentry.organizationslugreservation",
+    "sentry.user"
+  ],
   "nodestore.node": [],
   "replays.replayrecordingsegment": [
     "sentry.file",
@@ -499,10 +504,6 @@
     "sentry.organization"
   ],
   "sentry.organizationslugreservation": [
-    "sentry.organization",
-    "sentry.user"
-  ],
-  "sentry.organizationslugreservationreplica": [
     "sentry.organization",
     "sentry.user"
   ],
