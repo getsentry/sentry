@@ -818,20 +818,18 @@ function ReleaseSourceFileMatchingChecklistItem({
         <h6>{t('Stack Frame Not Matching Artifact Name')}</h6>
         <p>
           {tct(
-            'The path for this stack frame is [stackFramePath] and no matching artifact in this release was found.',
+            'The path for this stack frame is [stackFramePath] and the release value for this event is [release].',
             {
               stackFramePath: (
                 <MonoBlock>{sourceResolutionResults.stackFramePath}</MonoBlock>
               ),
+              release: <MonoBlock>{sourceResolutionResults.release}</MonoBlock>,
             }
           )}
         </p>
         <p>
-          {tct(
-            'Upload a source file with exactly one of the following names ([tilde] acts as a wildcard for protocol and hostname):',
-            {
-              tilde: <MonoBlock>~</MonoBlock>,
-            }
+          {t(
+            "Sentry was not able to find a file in the release's artifacts that matches one of the following paths:"
           )}
         </p>
         <InstructionList>
@@ -841,11 +839,7 @@ function ReleaseSourceFileMatchingChecklistItem({
             </li>
           ))}
         </InstructionList>
-        <p>
-          {t(
-            "Refer to the documentation of the tool you're using to upload source files to understand how to change artifact names."
-          )}
-        </p>
+        {/* TODO: Link to uploaded files for this release. */}
         <p>
           {tct(
             'If the stack frame path is changing based on runtime parameters, you can use the [link:RewriteFrames integration] to dynamically change the the stack frame path.',
