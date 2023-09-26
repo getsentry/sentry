@@ -28,10 +28,15 @@ export enum MetricDisplayType {
 
 export const defaultMetricDisplayType = MetricDisplayType.LINE;
 
-export function useMetricsMeta(): Record<string, MetricMeta> {
+export function useMetricsMeta(
+  projects: PageFilters['projects']
+): Record<string, MetricMeta> {
   const {slug} = useOrganization();
   const getKey = (useCase: UseCase): ApiQueryKey => {
-    return [`/organizations/${slug}/metrics/meta/`, {query: {useCase}}];
+    return [
+      `/organizations/${slug}/metrics/meta/`,
+      {query: {useCase, project: projects}},
+    ];
   };
 
   const opts = {
@@ -55,22 +60,32 @@ type MetricTag = {
   key: string;
 };
 
-export function useMetricsTags(mri: string) {
+export function useMetricsTags(mri: string, projects: PageFilters['projects']) {
   const {slug} = useOrganization();
   const useCase = getUseCaseFromMri(mri);
   return useApiQuery<MetricTag[]>(
-    [`/organizations/${slug}/metrics/tags/`, {query: {metric: mri, useCase}}],
+    [
+      `/organizations/${slug}/metrics/tags/`,
+      {query: {metric: mri, useCase, project: projects}},
+    ],
     {
       staleTime: Infinity,
     }
   );
 }
 
-export function useMetricsTagValues(mri: string, tag: string) {
+export function useMetricsTagValues(
+  mri: string,
+  tag: string,
+  projects: PageFilters['projects']
+) {
   const {slug} = useOrganization();
   const useCase = getUseCaseFromMri(mri);
   return useApiQuery<MetricTag[]>(
-    [`/organizations/${slug}/metrics/tags/${tag}`, {query: {useCase}}],
+    [
+      `/organizations/${slug}/metrics/tags/${tag}/`,
+      {query: {metric: mri, useCase, project: projects}},
+    ],
     {
       staleTime: Infinity,
       enabled: !!tag,
@@ -87,6 +102,7 @@ export type MetricsQuery = {
 
 export type MetricsDataProps = MetricsQuery & {
   datetime: PageFilters['datetime'];
+  environments: PageFilters['environments'];
   projects: PageFilters['projects'];
 };
 
@@ -112,6 +128,7 @@ export function useMetricsData({
   op,
   datetime,
   projects,
+  environments,
   query,
   groupBy,
 }: MetricsDataProps) {
@@ -125,6 +142,7 @@ export function useMetricsData({
     ...getDateTimeParams(datetime),
     query,
     project: projects,
+    environment: environments,
     field,
     useCase,
     interval,
