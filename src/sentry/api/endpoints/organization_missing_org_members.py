@@ -4,7 +4,7 @@ from collections import defaultdict
 from datetime import timedelta
 from email.headerregistry import Address
 from functools import reduce
-from typing import Dict, List, Sequence
+from typing import Dict, Sequence
 
 from django.db import connection
 from django.db.models import Q
@@ -40,7 +40,7 @@ class MissingMembersPermission(OrganizationPermission):
 
 
 def _get_missing_organization_members_query(
-    integration_ids: List[int],
+    integration_ids: Sequence[int],
     shared_domain: str | None = None,
 ):
     date = timezone.now() - timedelta(days=30)
