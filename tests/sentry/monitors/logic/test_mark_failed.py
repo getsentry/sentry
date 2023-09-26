@@ -500,7 +500,7 @@ class MarkFailedTestCase(TestCase):
 
         failure_statuses = cycle([CheckInStatus.ERROR, CheckInStatus.TIMEOUT, CheckInStatus.MISSED])
 
-        for i in range(0, failure_issue_threshold - 1):
+        for _ in range(0, failure_issue_threshold - 1):
             status = next(failure_statuses)
             checkin = MonitorCheckIn.objects.create(
                 monitor=monitor,
@@ -524,7 +524,7 @@ class MarkFailedTestCase(TestCase):
             status=CheckInStatus.OK,
         )
 
-        for i in range(0, failure_issue_threshold):
+        for _ in range(0, failure_issue_threshold):
             status = next(failure_statuses)
             checkin = MonitorCheckIn.objects.create(
                 monitor=monitor,
