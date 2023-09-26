@@ -3,9 +3,10 @@ from django.urls import reverse
 from rest_framework.request import Request
 
 from sentry.auth.helper import AuthHelper
-from sentry.web.frontend.base import BaseView
+from sentry.web.frontend.base import BaseView, control_silo_view
 
 
+@control_silo_view
 class AuthProviderLoginView(BaseView):
     auth_required = False
 

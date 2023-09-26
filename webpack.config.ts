@@ -476,6 +476,13 @@ const appConfig: Configuration = {
   devtool: IS_PRODUCTION ? 'source-map' : 'eval-cheap-module-source-map',
 };
 
+if (IS_TEST) {
+  appConfig.resolve!.alias!['sentry-fixture'] = path.join(
+    __dirname,
+    'fixtures',
+    'js-stubs'
+  );
+}
 if (IS_TEST || IS_ACCEPTANCE_TEST) {
   appConfig.resolve!.alias!['integration-docs-platforms'] = path.join(
     __dirname,
@@ -669,6 +676,34 @@ if (IS_UI_DEV_ONLY) {
         router: ({hostname}) => {
           const orgSlug = extractSlug(hostname);
           return orgSlug ? `https://${orgSlug}.sentry.io` : 'https://sentry.io';
+        },
+      },
+      {
+        // Handle dev-ui region silo requests.
+        // Normally regions act as subdomains, but doing so in dev-ui
+        // would result in requests bypassing webpack proxy and being sent
+        // directly to region servers. These requests would fail because of CORS.
+        // Instead Client prefixes region requests with `/region/$name` which
+        // we rewrite in the proxy.
+        context: ['/region/'],
+        target: 'https://us.sentry.io',
+        secure: false,
+        changeOrigin: true,
+        headers: {
+          Referer: 'https://sentry.io/',
+          'Document-Policy': 'js-profiling',
+        },
+        cookieDomainRewrite: {'.sentry.io': 'localhost'},
+        pathRewrite: {
+          '^/region/[^/]*': '',
+        },
+        router: req => {
+          const regionPathPattern = /^\/region\/([^\/]+)/;
+          const regionname = req.path.match(regionPathPattern);
+          if (regionname) {
+            return `https://${regionname[1]}.sentry.io`;
+          }
+          return 'https://sentry.io';
         },
       },
     ],

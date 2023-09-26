@@ -40,7 +40,11 @@ def make_ref_time():
     #
     # This is testing that the task correctly clamps its reference time
     # down to the minute.
-    task_run_ts = ts.replace(second=12, microsecond=0)
+    #
+    # NOTE: We also remove the timezone info from the task run timestamp, since
+    # it recieves a date time object from the kafka producer. This helps test
+    # for bad timezone
+    task_run_ts = ts.replace(second=12, microsecond=0, tzinfo=None)
 
     # We truncate down to the minute when we mark the next_checkin, do the
     # same here.
@@ -75,7 +79,7 @@ class MonitorTaskCheckMissingTest(TestCase):
             environment=self.environment,
             last_checkin=ts - timedelta(minutes=2),
             next_checkin=ts - timedelta(minutes=1),
-            next_checkin_latest=ts - timedelta(minutes=1),
+            next_checkin_latest=ts,
             status=MonitorStatus.OK,
         )
 
@@ -216,7 +220,7 @@ class MonitorTaskCheckMissingTest(TestCase):
             monitor=monitor,
             environment=self.environment,
             next_checkin=ts - timedelta(minutes=1),
-            next_checkin_latest=ts - timedelta(minutes=1),
+            next_checkin_latest=ts,
             status=MonitorStatus.ACTIVE,
         )
 
@@ -252,7 +256,7 @@ class MonitorTaskCheckMissingTest(TestCase):
         project = self.create_project(organization=org)
 
         task_run_ts, ts = make_ref_time()
-        last_checkin_ts = ts - timedelta(minutes=1)
+        last_checkin_ts = ts - timedelta(minutes=2)
 
         monitor = Monitor.objects.create(
             organization_id=org.id,
@@ -265,7 +269,7 @@ class MonitorTaskCheckMissingTest(TestCase):
             monitor=monitor,
             environment=self.environment,
             last_checkin=last_checkin_ts,
-            next_checkin=ts,
+            next_checkin=ts - timedelta(minutes=1),
             next_checkin_latest=ts,
             status=MonitorStatus.OK,
         )
@@ -314,7 +318,7 @@ class MonitorTaskCheckMissingTest(TestCase):
             monitor=exception_monitor,
             environment=self.environment,
             next_checkin=ts - timedelta(minutes=1),
-            next_checkin_latest=ts - timedelta(minutes=1),
+            next_checkin_latest=ts,
             status=MonitorStatus.OK,
         )
 
@@ -328,7 +332,7 @@ class MonitorTaskCheckMissingTest(TestCase):
             monitor=monitor,
             environment=self.environment,
             next_checkin=ts - timedelta(minutes=1),
-            next_checkin_latest=ts - timedelta(minutes=1),
+            next_checkin_latest=ts,
             status=MonitorStatus.OK,
         )
 
@@ -374,7 +378,7 @@ class MonitorTaskCheckTimemoutTest(TestCase):
             environment=self.environment,
             last_checkin=check_in_24hr_ago - timedelta(hours=24),
             next_checkin=check_in_24hr_ago,
-            next_checkin_latest=check_in_24hr_ago,
+            next_checkin_latest=check_in_24hr_ago + timedelta(minutes=1),
             status=MonitorStatus.OK,
         )
         # In progress started 24hr ago
@@ -439,7 +443,7 @@ class MonitorTaskCheckTimemoutTest(TestCase):
             # Next checkin is in the future, we just completed our last checkin
             last_checkin=ts,
             next_checkin=ts + timedelta(hours=24),
-            next_checkin_latest=ts + timedelta(hours=24),
+            next_checkin_latest=ts + timedelta(hours=24, minutes=1),
             status=MonitorStatus.OK,
         )
         # Checkin 24hr ago
@@ -496,7 +500,7 @@ class MonitorTaskCheckTimemoutTest(TestCase):
             environment=self.environment,
             last_checkin=check_in_24hr_ago,
             next_checkin=ts,
-            next_checkin_latest=ts,
+            next_checkin_latest=ts + timedelta(minutes=1),
             status=MonitorStatus.OK,
         )
         checkin = MonitorCheckIn.objects.create(
@@ -550,7 +554,7 @@ class MonitorTaskCheckTimemoutTest(TestCase):
             environment=self.environment,
             last_checkin=ts,
             next_checkin=ts + timedelta(hours=24),
-            next_checkin_latest=ts + timedelta(hours=24),
+            next_checkin_latest=ts + timedelta(hours=24, minutes=1),
             status=MonitorStatus.OK,
         )
         MonitorCheckIn.objects.create(
@@ -576,7 +580,7 @@ class MonitorTaskCheckTimemoutTest(TestCase):
             environment=self.environment,
             last_checkin=ts,
             next_checkin=ts + timedelta(hours=24),
-            next_checkin_latest=ts + timedelta(hours=24),
+            next_checkin_latest=ts + timedelta(hours=24, minutes=1),
             status=MonitorStatus.OK,
         )
         checkin1 = MonitorCheckIn.objects.create(

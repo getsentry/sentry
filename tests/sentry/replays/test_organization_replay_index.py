@@ -983,6 +983,8 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 aria_label="AriaLabel",
                 title="MyTitle",
                 text="Hello",
+                is_dead=1,
+                is_rage=1,
             )
         )
         self.store_replays(
@@ -1018,6 +1020,8 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "click.selector:div[data-test-id='1']",
                 "click.selector:div[role=button]",
                 "click.selector:div#myid.class1.class2",
+                "dead.selector:div#myid",
+                "rage.selector:div#myid",
                 # Single quotes around attribute value.
                 "click.selector:div[role='button']",
                 "click.selector:div#myid.class1.class2[role=button][aria-label='AriaLabel']",
@@ -1040,6 +1044,8 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "click.title:NotMyTitle",
                 "!click.selector:div#myid",
                 "click.selector:div#notmyid",
+                "dead.selector:button#myid",
+                "rage.selector:button#myid",
                 # Assert all classes must match.
                 "click.selector:div#myid.class1.class2.class3",
                 # Invalid selectors return no rows.
