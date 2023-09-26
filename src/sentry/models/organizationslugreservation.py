@@ -10,6 +10,7 @@ from sentry_sdk import capture_exception
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models.base import control_silo_only_model, sane_repr
 from sentry.db.models.fields import BoundedBigIntegerField
+from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.outboxes import ReplicatedControlModel
 from sentry.models.outbox import ControlOutboxBase, OutboxCategory
 from sentry.services.hybrid_cloud import REGION_NAME_LENGTH
@@ -33,7 +34,7 @@ class OrganizationSlugReservation(ReplicatedControlModel):
     replication_version = 1
 
     slug = models.SlugField(unique=True, null=False)
-    organization_id = BoundedBigIntegerField(db_index=True, null=False)
+    organization_id = HybridCloudForeignKey("sentry.organization", null=False, on_delete="cascade")
     user_id = BoundedBigIntegerField(db_index=True, null=False)
     region_name = models.CharField(max_length=REGION_NAME_LENGTH, null=False)
     reservation_type = BoundedBigIntegerField(
