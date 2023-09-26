@@ -20,7 +20,23 @@ def validate_channel_id(channel_id: str, guild_id: str, integration_id: int | No
     try:
         result = client.get_channel(channel_id)
     except ApiError as e:
-        if e.code in (400, 403, 404):
+        if e.code == 400:
+            logger.info(
+                "rule.discord.channel_info_failed",
+                extra={
+                    "channel_id": channel_id,
+                },
+            )
+            raise ValidationError("Discord channel id is missing or not formatted correctly")
+        elif e.code == 403:
+            logger.info(
+                "rule.discord.channel_info_failed",
+                extra={
+                    "channel_id": channel_id,
+                },
+            )
+            raise ValidationError("Discord channel exists but access is not allowed")
+        elif e.code == 404:
             logger.info(
                 "rule.discord.channel_info_failed",
                 extra={
@@ -28,16 +44,17 @@ def validate_channel_id(channel_id: str, guild_id: str, integration_id: int | No
                     "integration_id": integration_id,
                 },
             )
-            raise ValidationError(NO_CHANNEL_MESSAGE)
-        logger.info(
-            "rule.discord.channel_integration_failed",
-            extra={
-                "guild_id": guild_id,
-                "channel_id": channel_id,
-                "integration_id": integration_id,
-            },
-        )
-        raise IntegrationError("Could not retrieve Discord channel information.")
+            raise ValidationError("Discord channel can not be found.")
+        else:
+            logger.info(
+                "rule.discord.channel_integration_failed",
+                extra={
+                    "guild_id": guild_id,
+                    "channel_id": channel_id,
+                    "integration_id": integration_id,
+                },
+            )
+            raise IntegrationError("Discord channel does not belong to the server indicated.")
 
     if not isinstance(result, dict):
         raise IntegrationError("Bad response from Discord channel lookup.")
