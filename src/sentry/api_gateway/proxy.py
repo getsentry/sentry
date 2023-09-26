@@ -2,6 +2,7 @@
 Utilities related to proxying a request to a region silo
 """
 import logging
+from typing import Iterator
 from urllib.parse import urljoin
 from wsgiref.util import is_hop_by_hop
 
@@ -48,6 +49,22 @@ def _parse_response(response: ExternalResponse, remote_url: str) -> StreamingHtt
     return streamed_response
 
 
+class _body_with_length:
+    """Wraps an HttpRequest with a __len__ so that the request library does not assume length=0 in all cases"""
+
+    request: HttpRequest
+
+    def __init__(self, request: HttpRequest):
+        self.request = request
+
+    def __iter__(self) -> Iterator[bytes]:
+        return iter(self.request)
+
+    def __len__(self) -> int:
+        # Allow a TypeError when the header is unset -- requests library handles this
+        return int(self.request.headers.get("Content-Length", None))
+
+
 def proxy_request(request: HttpRequest, org_slug: str) -> StreamingHttpResponse:
     """Take a django request object and proxy it to a remote location given an org_slug"""
 
@@ -68,7 +85,7 @@ def proxy_request(request: HttpRequest, org_slug: str) -> StreamingHttpResponse:
             url=target_url,
             headers=header_dict,
             params=dict(query_params) if query_params is not None else None,
-            data=request,
+            data=_body_with_length(request),
             stream=True,
             timeout=settings.GATEWAY_PROXY_TIMEOUT,
         )

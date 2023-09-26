@@ -8,7 +8,7 @@ import time
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from io import BytesIO
-from typing import Any, Dict, List, Literal, Optional, Sequence, Union
+from typing import Any, Dict, List, Literal, Mapping, Optional, Sequence, Union
 from unittest import mock
 from urllib.parse import urlencode
 from uuid import uuid4
@@ -35,6 +35,7 @@ from django.urls import resolve, reverse
 from django.utils import timezone as django_timezone
 from django.utils.functional import cached_property
 from pkg_resources import iter_entry_points
+from requests.utils import CaseInsensitiveDict, get_encoding_from_headers
 from rest_framework import status
 from rest_framework.test import APITestCase as BaseAPITestCase
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
@@ -749,6 +750,40 @@ class APITestCase(BaseTestCase, BaseAPITestCase):
                 return True
         return False
 
+    @contextmanager
+    def api_gateway_proxy_stubbed(self):
+        """Mocks a fake api gateway proxy that redirects via Client objects"""
+
+        def proxy_raw_request(
+            method: str,
+            url: str,
+            headers: Mapping[str, str],
+            params: Mapping[str, str] | None,
+            data: Any,
+            **kwds: Any,
+        ) -> requests.Response:
+            from django.test.client import Client
+
+            client = Client()
+            extra: Mapping[str, Any] = {
+                f"HTTP_{k.replace('-', '_').upper()}": v for k, v in headers.items()
+            }
+            if params:
+                url += "?" + urlencode(params)
+            with assume_test_silo_mode(SiloMode.REGION):
+                resp = getattr(client, method.lower())(
+                    url, b"".join(data), headers["Content-Type"], **extra
+                )
+            response = requests.Response()
+            response.status_code = resp.status_code
+            response.headers = CaseInsensitiveDict(resp.headers)
+            response.encoding = get_encoding_from_headers(response.headers)
+            response.raw = BytesIO(resp.content)
+            return response
+
+        with mock.patch("sentry.api_gateway.proxy.external_request", new=proxy_raw_request):
+            yield
+
 
 class TwoFactorAPITestCase(APITestCase):
     @cached_property
@@ -1013,7 +1048,6 @@ class CliTestCase(TestCase):
         return self.runner.invoke(self.command, args, obj={}, **kwargs)
 
 
-@pytest.mark.usefixtures("browser")
 class AcceptanceTestCase(TransactionTestCase):
     browser: Browser
 
