@@ -31,7 +31,7 @@ export default function DeadRageClickList() {
     sort: '-count_dead_clicks',
     cursor: location.query.cursor,
     prefix: '',
-    widgetData: false,
+    isWidgetData: false,
   });
 
   if (!hasDeadClickFeature) {

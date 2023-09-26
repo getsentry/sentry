@@ -24,7 +24,7 @@ function ReplaysListContainer() {
 
   return (
     <SentryDocumentTitle title={`Session Replay — ${organization.slug}`}>
-      <Layout.Header noActionWrap={false}>
+      <Layout.Header>
         <Layout.HeaderContent>
           <Layout.Title>
             {t('Session Replay')}

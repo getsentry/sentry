@@ -3,8 +3,8 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
 const TABS = [
-  {key: '', label: 'Replays'},
-  {key: 'dead-rage-clicks', label: 'Selectors'},
+  {key: 'replays', label: 'Replays', to: ''},
+  {key: 'selectors', label: 'Selectors', to: 'dead-rage-clicks'},
 ];
 
 export default function ReplayTabs() {
@@ -18,12 +18,12 @@ export default function ReplayTabs() {
   const isSelectorIndex = pathname.includes('dead-rage-clicks');
 
   return hasDeadClickFeature ? (
-    <Tabs value={isSelectorIndex ? 'dead-rage-clicks' : ''}>
+    <Tabs value={isSelectorIndex ? 'selectors' : 'replays'}>
       <TabList hideBorder>
         {TABS.map(tab => (
           <TabList.Item
             key={tab.key}
-            to={`/organizations/${organization.slug}/replays/${tab.key}`}
+            to={`/organizations/${organization.slug}/replays/${tab.to}`}
           >
             {tab.label}
           </TabList.Item>

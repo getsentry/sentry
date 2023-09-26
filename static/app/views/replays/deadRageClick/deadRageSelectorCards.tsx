@@ -26,7 +26,7 @@ function DeadClickTable({location}: {location: Location<any>}) {
     sort: '-count_dead_clicks',
     cursor: undefined,
     prefix: 'selector_',
-    widgetData: true,
+    isWidgetData: true,
   });
 
   return (
@@ -56,7 +56,7 @@ function RageClickTable({location}: {location: Location<any>}) {
     sort: '-count_rage_clicks',
     cursor: undefined,
     prefix: 'selector_',
-    widgetData: true,
+    isWidgetData: true,
   });
 
   return (
