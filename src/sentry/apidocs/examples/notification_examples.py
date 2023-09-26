@@ -2,7 +2,7 @@ from drf_spectacular.utils import OpenApiExample
 
 CREATE_NOTIFICATION_ACTION = [
     OpenApiExample(
-        "Create a new email Notification Action for The Spoiled Yoghurt project spike protection",
+        "Create a new email spike protection notification action for the project, The Spoiled Yoghurt",
         value={
             "id": "836501735",
             "organizationId": "62848264",
@@ -74,7 +74,7 @@ CREATE_NOTIFICATION_ACTION = [
 
 LIST_NOTIFICATION_ACTIONS = [
     OpenApiExample(
-        "List all Notification Actions related to spike protection",
+        "List all spike protection notification actions for an organization",
         value=[
             {
                 "id": "836501735",

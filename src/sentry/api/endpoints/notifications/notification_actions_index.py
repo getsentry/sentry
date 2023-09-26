@@ -94,8 +94,8 @@ class NotificationActionsIndexEndpoint(OrganizationEndpoint):
     def get(self, request: Request, organization: Organization) -> Response:
         """
         Returns all Spike Protection Notification Actions for an organization.
-        Notification Actions notify a set of a member when an action has been triggered
-        for example email organization owner when spike protection threshod has been reached.
+        Notification Actions notify a set of a member when an action has been triggered through a notification service such as Slack or Sentry.
+        For example, email organization owner when spike protection threshod has been reached.
         """
         queryset = NotificationAction.objects.filter(organization_id=organization.id)
         # If a project query is specified, filter out non-project-specific actions
