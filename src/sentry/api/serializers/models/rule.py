@@ -233,7 +233,10 @@ class RuleSerializer(Serializer):
 
         try:
             neglected_rule = NeglectedRule.objects.get(
-                rule=obj, organization=obj.project.organization_id, opted_out=False
+                rule=obj,
+                organization=obj.project.organization_id,
+                opted_out=False,
+                sent_initial_email_date__isnull=False,
             )
             d["disableReason"] = "noisy"
             d["disableDate"] = neglected_rule.disable_date
