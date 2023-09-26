@@ -27,6 +27,7 @@ type FeedbackRenderFunction = (
 interface FeedbackModalProps {
   children: FeedbackRenderFunction;
   title: string;
+  type?: string;
 }
 
 interface FeedbackFormData {
@@ -38,15 +39,18 @@ interface FeedbackFormData {
 async function sendFeedback(
   data: FeedbackFormData,
   pageUrl: string,
-  replayId?: string
+  replayId?: string,
+  type?: string
 ): Promise<Response | null> {
   const feedback = {
     message: data.comment,
     email: data.email,
+    name: data.name,
     replay_id: replayId,
     url: pageUrl,
   };
-  return await sendFeedbackRequest(feedback);
+  const tags = type ? {feedbackType: type} : null;
+  return await sendFeedbackRequest({feedback, tags});
 }
 
 function stopPropagation(e: React.MouseEvent) {
@@ -58,7 +62,7 @@ function stopPropagation(e: React.MouseEvent) {
  *
  * XXX: This is only temporary as we move this to SDK
  */
-export function FeedbackModal({title, children}: FeedbackModalProps) {
+export function FeedbackModal({title, type, children}: FeedbackModalProps) {
   const [open, setOpen] = useState(false);
   const [errorMessage, setError] = useState('');
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -78,7 +82,7 @@ export function FeedbackModal({title, children}: FeedbackModalProps) {
 
     const pageUrl = document.location.href;
 
-    sendFeedback(data, pageUrl, replayId).then(response => {
+    sendFeedback(data, pageUrl, replayId, type).then(response => {
       if (response) {
         setOpen(false);
         setShowSuccessMessage(true);

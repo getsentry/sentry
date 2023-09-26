@@ -18,10 +18,8 @@ function dsnToString(dsn: DsnComponents, withPassword: boolean = false): string 
  * Send feedback using `fetch()`
  */
 export async function sendFeedbackRequest({
-  message,
-  email,
-  replay_id,
-  url,
+  feedback: {message, email, name, replay_id, url},
+  tags,
 }): Promise<Response | null> {
   const hub = getCurrentHub();
 
@@ -41,10 +39,12 @@ export async function sendFeedbackRequest({
   const baseEvent = {
     feedback: {
       contact_email: email,
+      name,
       message,
       replay_id,
       url,
     },
+    tags,
     // type: 'feedback_event',
   };
 

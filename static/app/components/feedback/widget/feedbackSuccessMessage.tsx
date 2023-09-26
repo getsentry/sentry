@@ -13,7 +13,7 @@ const Wrapper = styled('div')`
   justify-content: flex-end;
   transition: transform 0.4s ease-in-out;
   transform: translateY(0);
-  z-index: 9000;
+  z-index: 20000;
   &[data-hide='true'] {
     transform: translateY(120%);
   }
