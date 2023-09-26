@@ -351,7 +351,7 @@ export function GroupEventActions({event, group, projectSlug}: GroupEventActions
             label: t('View Replay'),
             hidden: !hasReplay || !isReplayEnabled,
             onAction: () => {
-              const breadcrumbsHeader = document.getElementById('breadcrumbs');
+              const breadcrumbsHeader = document.getElementById('replay');
               if (breadcrumbsHeader) {
                 breadcrumbsHeader.scrollIntoView({behavior: 'smooth'});
               }
