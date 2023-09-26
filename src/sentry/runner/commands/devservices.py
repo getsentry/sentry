@@ -591,9 +591,7 @@ def check_kafka(containers: dict[str, Any]) -> None:
     kafka_options = containers["kafka"]
     zk_options = containers["zookeeper"]
 
-    zk_port = 2181
-    if zk_options["ports"]:
-        zk_port = zk_options["ports"][0]
+    zk_port = zk_options.get("environment", {}).get("ZOOKEEPER_CLIENT_PORT", 2181)
 
     subprocess.run(
         (
