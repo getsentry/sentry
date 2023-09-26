@@ -1,7 +1,5 @@
 import time
-from enum import Enum
-from typing import Optional, Sequence, Tuple, no_type_check
-from unittest.mock import patch
+from typing import Optional, Sequence, Tuple
 
 import pytest
 
@@ -17,28 +15,8 @@ from sentry.sentry_metrics.indexer.limiters.cardinality import (
     TimeseriesCardinalityLimiter,
     _build_quota_key,
 )
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.testutils.helpers.options import override_options
-
-
-class MockUseCaseID(Enum):
-    SESSIONS = "sessions"
-    TRANSACTIONS = "transactions"
-    USE_CASE_1 = "uc_1"
-    USE_CASE_2 = "uc_2"
-    USE_CASE_3 = "uc_3"
-
-
-MOCK_METRIC_PATH_MAPPING = {
-    MockUseCaseID.TRANSACTIONS: UseCaseKey.PERFORMANCE,
-    MockUseCaseID.USE_CASE_1: UseCaseKey.PERFORMANCE,
-    MockUseCaseID.USE_CASE_2: UseCaseKey.PERFORMANCE,
-}
-
-MOCK_USE_CASE_ID_CARDINALITY_LIMIT_QUOTA_OPTIONS = {
-    MockUseCaseID.TRANSACTIONS: "sentry-metrics.cardinality-limiter.limits.transactions.per-org",
-    MockUseCaseID.USE_CASE_1: "sentry-metrics.cardinality-limiter.limits.uc_1.per-org",
-    MockUseCaseID.USE_CASE_2: "sentry-metrics.cardinality-limiter.limits.uc_2.per-org",
-}
 
 
 @pytest.fixture(autouse=True)
@@ -94,31 +72,25 @@ class MockCardinalityLimiter(CardinalityLimiter):
         pass
 
 
-@no_type_check
-@patch("sentry.sentry_metrics.indexer.limiters.cardinality.UseCaseID", MockUseCaseID)
-@patch(
-    "sentry.sentry_metrics.indexer.limiters.cardinality.USE_CASE_ID_CARDINALITY_LIMIT_QUOTA_OPTIONS",
-    MOCK_USE_CASE_ID_CARDINALITY_LIMIT_QUOTA_OPTIONS,
-)
 def test_reject_all():
     with override_options(
         {
-            "sentry-metrics.cardinality-limiter.limits.transactions.per-org": [
+            "sentry-metrics.cardinality-limiter.limits.performance.per-org": [
                 {"window_seconds": 3600, "granularity_seconds": 60, "limit": 0}
             ],
-            "sentry-metrics.cardinality-limiter.limits.uc_1.per-org": [
+            "sentry-metrics.cardinality-limiter.limits.spans.per-org": [
                 {"window_seconds": 3600, "granularity_seconds": 60, "limit": 0}
             ],
-            "sentry-metrics.cardinality-limiter.limits.uc_2.per-org": [
+            "sentry-metrics.cardinality-limiter.limits.custom.per-org": [
                 {"window_seconds": 3600, "granularity_seconds": 60, "limit": 0}
             ],
         },
     ):
         backend = MockCardinalityLimiter()
         backend.grant_hashes = {
-            _build_quota_key(MockUseCaseID.TRANSACTIONS, 1): 0,
-            _build_quota_key(MockUseCaseID.USE_CASE_1, 1): 0,
-            _build_quota_key(MockUseCaseID.USE_CASE_2, 1): 0,
+            _build_quota_key(UseCaseID.TRANSACTIONS, 1): 0,
+            _build_quota_key(UseCaseID.SPANS, 1): 0,
+            _build_quota_key(UseCaseID.CUSTOM, 1): 0,
         }
 
         limiter = TimeseriesCardinalityLimiter("", backend)
@@ -130,13 +102,13 @@ def test_reject_all():
                     "org_id": 1,
                     "name": "foo",
                     "tags": {},
-                    "use_case_id": MockUseCaseID.TRANSACTIONS,
+                    "use_case_id": UseCaseID.TRANSACTIONS,
                 },
                 PartitionIdxOffset(0, 1): {
                     "org_id": 1,
                     "name": "bar",
                     "tags": {},
-                    "use_case_id": MockUseCaseID.USE_CASE_1,
+                    "use_case_id": UseCaseID.SPANS,
                 },
             },
         )
@@ -144,22 +116,16 @@ def test_reject_all():
         assert result.keys_to_remove == [PartitionIdxOffset(0, 0), PartitionIdxOffset(0, 1)]
 
 
-@no_type_check
-@patch("sentry.sentry_metrics.indexer.limiters.cardinality.UseCaseID", MockUseCaseID)
-@patch(
-    "sentry.sentry_metrics.indexer.limiters.cardinality.USE_CASE_ID_CARDINALITY_LIMIT_QUOTA_OPTIONS",
-    MOCK_USE_CASE_ID_CARDINALITY_LIMIT_QUOTA_OPTIONS,
-)
 def test_reject_all_with_default():
     with override_options(
         {
-            "sentry-metrics.cardinality-limiter.limits.transactions.per-org": [
+            "sentry-metrics.cardinality-limiter.limits.performance.per-org": [
                 {"window_seconds": 3600, "granularity_seconds": 60, "limit": 0}
             ],
-            "sentry-metrics.cardinality-limiter.limits.uc_1.per-org": [
+            "sentry-metrics.cardinality-limiter.limits.spans.per-org": [
                 {"window_seconds": 3600, "granularity_seconds": 60, "limit": 0}
             ],
-            "sentry-metrics.cardinality-limiter.limits.uc_2.per-org": [
+            "sentry-metrics.cardinality-limiter.limits.custom.per-org": [
                 {"window_seconds": 3600, "granularity_seconds": 60, "limit": 0}
             ],
             "sentry-metrics.cardinality-limiter.limits.generic-metrics.per-org": [
@@ -169,10 +135,10 @@ def test_reject_all_with_default():
     ):
         backend = MockCardinalityLimiter()
         backend.grant_hashes = {
-            _build_quota_key(MockUseCaseID.TRANSACTIONS, 1): 0,
-            _build_quota_key(MockUseCaseID.USE_CASE_1, 1): 0,
-            _build_quota_key(MockUseCaseID.USE_CASE_2, 1): 0,
-            _build_quota_key(MockUseCaseID.USE_CASE_3, 1): 0,
+            _build_quota_key(UseCaseID.TRANSACTIONS, 1): 0,
+            _build_quota_key(UseCaseID.SPANS, 1): 0,
+            _build_quota_key(UseCaseID.CUSTOM, 1): 0,
+            _build_quota_key(UseCaseID.ESCALATING_ISSUES, 1): 0,
         }
 
         # backend.grant_hashes = 0
@@ -185,19 +151,19 @@ def test_reject_all_with_default():
                     "org_id": 1,
                     "name": "foo",
                     "tags": {},
-                    "use_case_id": MockUseCaseID.TRANSACTIONS,
+                    "use_case_id": UseCaseID.TRANSACTIONS,
                 },
                 PartitionIdxOffset(0, 1): {
                     "org_id": 1,
                     "name": "bar",
                     "tags": {},
-                    "use_case_id": MockUseCaseID.USE_CASE_1,
+                    "use_case_id": UseCaseID.SPANS,
                 },
                 PartitionIdxOffset(0, 2): {
                     "org_id": 1,
                     "name": "boo",
                     "tags": {},
-                    "use_case_id": MockUseCaseID.USE_CASE_3,
+                    "use_case_id": UseCaseID.ESCALATING_ISSUES,
                 },
             },
         )
@@ -209,31 +175,25 @@ def test_reject_all_with_default():
         ]
 
 
-@no_type_check
-@patch("sentry.sentry_metrics.indexer.limiters.cardinality.UseCaseID", MockUseCaseID)
-@patch(
-    "sentry.sentry_metrics.indexer.limiters.cardinality.USE_CASE_ID_CARDINALITY_LIMIT_QUOTA_OPTIONS",
-    MOCK_USE_CASE_ID_CARDINALITY_LIMIT_QUOTA_OPTIONS,
-)
 def test_reject_partial():
     with override_options(
         {
-            "sentry-metrics.cardinality-limiter.limits.transactions.per-org": [
+            "sentry-metrics.cardinality-limiter.limits.performance.per-org": [
                 {"window_seconds": 3600, "granularity_seconds": 60, "limit": 2}
             ],
-            "sentry-metrics.cardinality-limiter.limits.uc_1.per-org": [
+            "sentry-metrics.cardinality-limiter.limits.spans.per-org": [
                 {"window_seconds": 3600, "granularity_seconds": 60, "limit": 0}
             ],
-            "sentry-metrics.cardinality-limiter.limits.uc_2.per-org": [
+            "sentry-metrics.cardinality-limiter.limits.custom.per-org": [
                 {"window_seconds": 3600, "granularity_seconds": 60, "limit": 0}
             ],
         },
     ):
         backend = MockCardinalityLimiter()
         backend.grant_hashes = {
-            _build_quota_key(MockUseCaseID.TRANSACTIONS, 1): 2,
-            _build_quota_key(MockUseCaseID.USE_CASE_1, 1): 0,
-            _build_quota_key(MockUseCaseID.USE_CASE_2, 1): 0,
+            _build_quota_key(UseCaseID.TRANSACTIONS, 1): 2,
+            _build_quota_key(UseCaseID.SPANS, 1): 0,
+            _build_quota_key(UseCaseID.CUSTOM, 1): 0,
         }
         limiter = TimeseriesCardinalityLimiter("", backend)
 
@@ -244,19 +204,19 @@ def test_reject_partial():
                     "org_id": 1,
                     "name": "foo",
                     "tags": {},
-                    "use_case_id": MockUseCaseID.TRANSACTIONS,
+                    "use_case_id": UseCaseID.TRANSACTIONS,
                 },
                 PartitionIdxOffset(0, 1): {
                     "org_id": 1,
                     "name": "bar",
                     "tags": {},
-                    "use_case_id": MockUseCaseID.TRANSACTIONS,
+                    "use_case_id": UseCaseID.TRANSACTIONS,
                 },
                 PartitionIdxOffset(0, 2): {
                     "org_id": 1,
                     "name": "baz",
                     "tags": {},
-                    "use_case_id": MockUseCaseID.USE_CASE_1,
+                    "use_case_id": UseCaseID.SPANS,
                 },
             },
         )
@@ -264,31 +224,25 @@ def test_reject_partial():
         assert result.keys_to_remove == [PartitionIdxOffset(0, 2)]
 
 
-@no_type_check
-@patch("sentry.sentry_metrics.indexer.limiters.cardinality.UseCaseID", MockUseCaseID)
-@patch(
-    "sentry.sentry_metrics.indexer.limiters.cardinality.USE_CASE_ID_CARDINALITY_LIMIT_QUOTA_OPTIONS",
-    MOCK_USE_CASE_ID_CARDINALITY_LIMIT_QUOTA_OPTIONS,
-)
 def test_reject_partial_again():
     with override_options(
         {
-            "sentry-metrics.cardinality-limiter.limits.transactions.per-org": [
+            "sentry-metrics.cardinality-limiter.limits.performance.per-org": [
                 {"window_seconds": 3600, "granularity_seconds": 60, "limit": 2}
             ],
-            "sentry-metrics.cardinality-limiter.limits.uc_1.per-org": [
+            "sentry-metrics.cardinality-limiter.limits.spans.per-org": [
                 {"window_seconds": 3600, "granularity_seconds": 60, "limit": 2}
             ],
-            "sentry-metrics.cardinality-limiter.limits.uc_2.per-org": [
+            "sentry-metrics.cardinality-limiter.limits.custom.per-org": [
                 {"window_seconds": 3600, "granularity_seconds": 60, "limit": 0}
             ],
         },
     ):
         backend = MockCardinalityLimiter()
         backend.grant_hashes = {
-            _build_quota_key(MockUseCaseID.TRANSACTIONS, 1): 2,
-            _build_quota_key(MockUseCaseID.USE_CASE_1, 1): 2,
-            _build_quota_key(MockUseCaseID.USE_CASE_2, 1): 0,
+            _build_quota_key(UseCaseID.TRANSACTIONS, 1): 2,
+            _build_quota_key(UseCaseID.SPANS, 1): 2,
+            _build_quota_key(UseCaseID.CUSTOM, 1): 0,
         }
         limiter = TimeseriesCardinalityLimiter("", backend)
 
@@ -299,31 +253,31 @@ def test_reject_partial_again():
                     "org_id": 1,
                     "name": "foo",
                     "tags": {},
-                    "use_case_id": MockUseCaseID.TRANSACTIONS,
+                    "use_case_id": UseCaseID.TRANSACTIONS,
                 },
                 PartitionIdxOffset(0, 1): {
                     "org_id": 1,
                     "name": "bar",
                     "tags": {},
-                    "use_case_id": MockUseCaseID.TRANSACTIONS,
+                    "use_case_id": UseCaseID.TRANSACTIONS,
                 },
                 PartitionIdxOffset(0, 2): {
                     "org_id": 1,
                     "name": "baz",
                     "tags": {},
-                    "use_case_id": MockUseCaseID.USE_CASE_1,
+                    "use_case_id": UseCaseID.SPANS,
                 },
                 PartitionIdxOffset(0, 3): {
                     "org_id": 1,
                     "name": "boo",
                     "tags": {},
-                    "use_case_id": MockUseCaseID.USE_CASE_2,
+                    "use_case_id": UseCaseID.CUSTOM,
                 },
                 PartitionIdxOffset(0, 4): {
                     "org_id": 1,
                     "name": "bye",
                     "tags": {},
-                    "use_case_id": MockUseCaseID.USE_CASE_1,
+                    "use_case_id": UseCaseID.SPANS,
                 },
             },
         )
@@ -331,22 +285,16 @@ def test_reject_partial_again():
         assert result.keys_to_remove == [PartitionIdxOffset(0, 3)]
 
 
-@no_type_check
-@patch("sentry.sentry_metrics.indexer.limiters.cardinality.UseCaseID", MockUseCaseID)
-@patch(
-    "sentry.sentry_metrics.indexer.limiters.cardinality.USE_CASE_ID_CARDINALITY_LIMIT_QUOTA_OPTIONS",
-    MOCK_USE_CASE_ID_CARDINALITY_LIMIT_QUOTA_OPTIONS,
-)
 def test_accept_all():
     with override_options(
         {
-            "sentry-metrics.cardinality-limiter.limits.transactions.per-org": [
+            "sentry-metrics.cardinality-limiter.limits.performance.per-org": [
                 {"window_seconds": 3600, "granularity_seconds": 60, "limit": 100}
             ],
-            "sentry-metrics.cardinality-limiter.limits.uc_1.per-org": [
+            "sentry-metrics.cardinality-limiter.limits.spans.per-org": [
                 {"window_seconds": 3600, "granularity_seconds": 60, "limit": 100}
             ],
-            "sentry-metrics.cardinality-limiter.limits.uc_2.per-org": [
+            "sentry-metrics.cardinality-limiter.limits.custom.per-org": [
                 {"window_seconds": 3600, "granularity_seconds": 60, "limit": 100}
             ],
             "sentry-metrics.cardinality-limiter.limits.generic-metrics.per-org": [
@@ -356,10 +304,10 @@ def test_accept_all():
     ):
         backend = MockCardinalityLimiter()
         backend.grant_hashes = {
-            _build_quota_key(MockUseCaseID.TRANSACTIONS, 1): 100,
-            _build_quota_key(MockUseCaseID.USE_CASE_1, 1): 100,
-            _build_quota_key(MockUseCaseID.USE_CASE_2, 1): 100,
-            _build_quota_key(MockUseCaseID.USE_CASE_3, 1): 100,
+            _build_quota_key(UseCaseID.TRANSACTIONS, 1): 100,
+            _build_quota_key(UseCaseID.SPANS, 1): 100,
+            _build_quota_key(UseCaseID.CUSTOM, 1): 100,
+            _build_quota_key(UseCaseID.ESCALATING_ISSUES, 1): 100,
         }
         limiter = TimeseriesCardinalityLimiter("", backend)
 
@@ -370,31 +318,31 @@ def test_accept_all():
                     "org_id": 1,
                     "name": "foo",
                     "tags": {},
-                    "use_case_id": MockUseCaseID.TRANSACTIONS,
+                    "use_case_id": UseCaseID.TRANSACTIONS,
                 },
                 PartitionIdxOffset(0, 1): {
                     "org_id": 1,
                     "name": "bar",
                     "tags": {},
-                    "use_case_id": MockUseCaseID.TRANSACTIONS,
+                    "use_case_id": UseCaseID.TRANSACTIONS,
                 },
                 PartitionIdxOffset(0, 2): {
                     "org_id": 1,
                     "name": "baz",
                     "tags": {},
-                    "use_case_id": MockUseCaseID.USE_CASE_1,
+                    "use_case_id": UseCaseID.SPANS,
                 },
                 PartitionIdxOffset(0, 3): {
                     "org_id": 1,
                     "name": "bazz",
                     "tags": {},
-                    "use_case_id": MockUseCaseID.USE_CASE_3,
+                    "use_case_id": UseCaseID.ESCALATING_ISSUES,
                 },
                 PartitionIdxOffset(0, 4): {
                     "org_id": 1,
                     "name": "bye",
                     "tags": {},
-                    "use_case_id": MockUseCaseID.USE_CASE_2,
+                    "use_case_id": UseCaseID.CUSTOM,
                 },
             },
         )
@@ -402,34 +350,28 @@ def test_accept_all():
         assert not result.keys_to_remove
 
 
-@no_type_check
-@patch("sentry.sentry_metrics.indexer.limiters.cardinality.UseCaseID", MockUseCaseID)
-@patch(
-    "sentry.sentry_metrics.indexer.limiters.cardinality.USE_CASE_ID_CARDINALITY_LIMIT_QUOTA_OPTIONS",
-    MOCK_USE_CASE_ID_CARDINALITY_LIMIT_QUOTA_OPTIONS,
-)
 def test_sample_rate_zero(set_sentry_option):
     """
     Assert that with a rollout rate of zero, no quotas are applied.
     """
     with override_options(
         {
-            "sentry-metrics.cardinality-limiter.limits.transactions.per-org": [
+            "sentry-metrics.cardinality-limiter.limits.performance.per-org": [
                 {"window_seconds": 3600, "granularity_seconds": 60, "limit": 10}
             ],
-            "sentry-metrics.cardinality-limiter.limits.uc_1.per-org": [
+            "sentry-metrics.cardinality-limiter.limits.spans.per-org": [
                 {"window_seconds": 3600, "granularity_seconds": 60, "limit": 10}
             ],
-            "sentry-metrics.cardinality-limiter.limits.uc_2.per-org": [
+            "sentry-metrics.cardinality-limiter.limits.custom.per-org": [
                 {"window_seconds": 3600, "granularity_seconds": 60, "limit": 10}
             ],
         },
     ), set_sentry_option("sentry-metrics.cardinality-limiter.orgs-rollout-rate", 0.0):
         backend = MockCardinalityLimiter()
         backend.grant_hashes = {
-            _build_quota_key(MockUseCaseID.TRANSACTIONS, 1): 10,
-            _build_quota_key(MockUseCaseID.USE_CASE_1, 1): 10,
-            _build_quota_key(MockUseCaseID.USE_CASE_2, 1): 10,
+            _build_quota_key(UseCaseID.TRANSACTIONS, 1): 10,
+            _build_quota_key(UseCaseID.SPANS, 1): 10,
+            _build_quota_key(UseCaseID.CUSTOM, 1): 10,
         }
         limiter = TimeseriesCardinalityLimiter("", backend)
 
@@ -440,19 +382,19 @@ def test_sample_rate_zero(set_sentry_option):
                     "org_id": 1,
                     "name": "foo",
                     "tags": {},
-                    "use_case_id": MockUseCaseID.TRANSACTIONS,
+                    "use_case_id": UseCaseID.TRANSACTIONS,
                 },
                 PartitionIdxOffset(0, 1): {
                     "org_id": 1,
                     "name": "bar",
                     "tags": {},
-                    "use_case_id": MockUseCaseID.USE_CASE_1,
+                    "use_case_id": UseCaseID.SPANS,
                 },
                 PartitionIdxOffset(0, 2): {
                     "org_id": 1,
                     "name": "baz",
                     "tags": {},
-                    "use_case_id": MockUseCaseID.USE_CASE_2,
+                    "use_case_id": UseCaseID.CUSTOM,
                 },
             },
         )
@@ -464,22 +406,16 @@ def test_sample_rate_zero(set_sentry_option):
         assert result._grants is None
 
 
-@no_type_check
-@patch("sentry.sentry_metrics.indexer.limiters.cardinality.UseCaseID", MockUseCaseID)
-@patch(
-    "sentry.sentry_metrics.indexer.limiters.cardinality.USE_CASE_ID_CARDINALITY_LIMIT_QUOTA_OPTIONS",
-    MOCK_USE_CASE_ID_CARDINALITY_LIMIT_QUOTA_OPTIONS,
-)
 def test_sample_rate_half(set_sentry_option):
     with override_options(
         {
-            "sentry-metrics.cardinality-limiter.limits.transactions.per-org": [
+            "sentry-metrics.cardinality-limiter.limits.performance.per-org": [
                 {"window_seconds": 3600, "granularity_seconds": 60, "limit": 2}
             ],
-            "sentry-metrics.cardinality-limiter.limits.uc_1.per-org": [
+            "sentry-metrics.cardinality-limiter.limits.spans.per-org": [
                 {"window_seconds": 3600, "granularity_seconds": 60, "limit": 1}
             ],
-            "sentry-metrics.cardinality-limiter.limits.uc_2.per-org": [
+            "sentry-metrics.cardinality-limiter.limits.custom.per-org": [
                 {"window_seconds": 3600, "granularity_seconds": 60, "limit": 0}
             ],
         },
@@ -487,9 +423,9 @@ def test_sample_rate_half(set_sentry_option):
 
         backend = MockCardinalityLimiter()
         backend.grant_hashes = {
-            _build_quota_key(MockUseCaseID.TRANSACTIONS, 1): 0,
-            _build_quota_key(MockUseCaseID.USE_CASE_1, 1): 0,
-            _build_quota_key(MockUseCaseID.USE_CASE_2, 1): 0,
+            _build_quota_key(UseCaseID.TRANSACTIONS, 1): 0,
+            _build_quota_key(UseCaseID.SPANS, 1): 0,
+            _build_quota_key(UseCaseID.CUSTOM, 1): 0,
         }
         # backend.assert_quota = Quota(window_seconds=3600, granularity_seconds=60, limit=0)
         limiter = TimeseriesCardinalityLimiter("", backend)
@@ -501,13 +437,13 @@ def test_sample_rate_half(set_sentry_option):
                     "org_id": 1,
                     "name": "foo",
                     "tags": {},
-                    "use_case_id": MockUseCaseID.TRANSACTIONS,
+                    "use_case_id": UseCaseID.TRANSACTIONS,
                 },
                 PartitionIdxOffset(0, 1): {
                     "org_id": 99,
                     "name": "bar",
                     "tags": {},
-                    "use_case_id": MockUseCaseID.TRANSACTIONS,
+                    "use_case_id": UseCaseID.TRANSACTIONS,
                 },
             },
         )
