@@ -233,6 +233,7 @@ class NotificationActionSerializer(CamelSnakeModelSerializer):
         try:
             validate_channel_id(
                 channel_id=channel_id,
+                guild_id=self.integration.external_id,
                 integration_id=self.integration.id,
             )
         except Exception as e:

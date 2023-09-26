@@ -41,42 +41,42 @@ class ValidateChannelTest(TestCase):
 
     @mock.patch("sentry.integrations.discord.utils.channel.DiscordClient.get_channel")
     def test_happy_path(self, mock_get_channel):
-        mock_get_channel.return_value = {"guild_id": self.integration_id}
-        validate_channel_id(self.channel_id, self.integration_id)
+        mock_get_channel.return_value = {"guild_id": self.guild_id}
+        validate_channel_id(self.channel_id, self.guild_id, self.integration_id)
         mock_get_channel.assert_called_once_with(self.channel_id)
 
     @mock.patch("sentry.integrations.discord.utils.channel.DiscordClient.get_channel")
     def test_404(self, mock_get_channel):
         mock_get_channel.side_effect = ApiError(code=404, text="")
         with raises(ValidationError):
-            validate_channel_id(self.channel_id, self.integration.id)
+            validate_channel_id(self.channel_id, self.guild_id, self.integration_id)
 
     @mock.patch("sentry.integrations.discord.utils.channel.DiscordClient.get_channel")
     def test_403(self, mock_get_channel):
         mock_get_channel.side_effect = ApiError(code=403, text="")
         with raises(ValidationError):
-            validate_channel_id(self.channel_id, self.integration.id)
+            validate_channel_id(self.channel_id, self.guild_id, self.integration_id)
 
     @mock.patch("sentry.integrations.discord.utils.channel.DiscordClient.get_channel")
     def test_400(self, mock_get_channel):
         mock_get_channel.side_effect = ApiError(code=400, text="")
         with raises(ValidationError):
-            validate_channel_id(self.channel_id, self.integration.id)
+            validate_channel_id(self.channel_id, self.guild_id, self.integration_id)
 
     @mock.patch("sentry.integrations.discord.utils.channel.DiscordClient.get_channel")
     def test_api_error(self, mock_get_channel):
         mock_get_channel.side_effect = ApiError(code=401, text="")
         with raises(IntegrationError):
-            validate_channel_id(self.channel_id, self.integration.id)
+            validate_channel_id(self.channel_id, self.guild_id, self.integration_id)
 
     @mock.patch("sentry.integrations.discord.utils.channel.DiscordClient.get_channel")
     def test_bad_response(self, mock_get_channel):
         mock_get_channel.return_value = ""
         with raises(IntegrationError):
-            validate_channel_id(self.channel_id, self.integration.id)
+            validate_channel_id(self.channel_id, self.guild_id, self.integration_id)
 
     @mock.patch("sentry.integrations.discord.utils.channel.DiscordClient.get_channel")
     def test_not_guild_member(self, mock_get_channel):
         mock_get_channel.return_value = {"guild_id": "not-my-guild"}
         with raises(ValidationError):
-            validate_channel_id(self.channel_id, self.integration.id)
+            validate_channel_id(self.channel_id, self.guild_id, self.integration_id)
