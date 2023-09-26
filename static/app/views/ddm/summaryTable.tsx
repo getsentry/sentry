@@ -24,23 +24,27 @@ export function SummaryTable({
       <HeaderCell>{t('Max')}</HeaderCell>
       <HeaderCell>{t('Sum')}</HeaderCell>
 
-      {series.map(({seriesName, color, hidden, unit, data}) => {
-        const {avg, min, max, sum} = getValues(data);
+      {series
+        .sort((a, b) => a.seriesName.localeCompare(b.seriesName))
+        .map(({seriesName, color, hidden, unit, data}) => {
+          const {avg, min, max, sum} = getValues(data);
 
-        return (
-          <Fragment key={seriesName}>
-            <FlexCell onClick={() => onClick(seriesName)} hidden={hidden}>
-              <ColorDot color={color} />
-            </FlexCell>
-            <Cell onClick={() => onClick(seriesName)}>{getNameFromMRI(seriesName)}</Cell>
-            {/* TODO(ddm): Add a tooltip with the full value, don't add on click in case users want to copy the value */}
-            <Cell>{formatMetricsUsingUnitAndOp(avg, unit, operation)}</Cell>
-            <Cell>{formatMetricsUsingUnitAndOp(min, unit, operation)}</Cell>
-            <Cell>{formatMetricsUsingUnitAndOp(max, unit, operation)}</Cell>
-            <Cell>{formatMetricsUsingUnitAndOp(sum, unit, operation)}</Cell>
-          </Fragment>
-        );
-      })}
+          return (
+            <Fragment key={seriesName}>
+              <FlexCell onClick={() => onClick(seriesName)} hidden={hidden}>
+                <ColorDot color={color} />
+              </FlexCell>
+              <Cell onClick={() => onClick(seriesName)}>
+                {getNameFromMRI(seriesName)}
+              </Cell>
+              {/* TODO(ddm): Add a tooltip with the full value, don't add on click in case users want to copy the value */}
+              <Cell>{formatMetricsUsingUnitAndOp(avg, unit, operation)}</Cell>
+              <Cell>{formatMetricsUsingUnitAndOp(min, unit, operation)}</Cell>
+              <Cell>{formatMetricsUsingUnitAndOp(max, unit, operation)}</Cell>
+              <Cell>{formatMetricsUsingUnitAndOp(sum, unit, operation)}</Cell>
+            </Fragment>
+          );
+        })}
     </SummaryTableWrapper>
   );
 }
