@@ -266,6 +266,57 @@ Sentry.captureCheckIn({
   );
 }
 
+export function GoCronQuickStart(props: QuickStartProps) {
+  const {slug} = withDefaultProps(props);
+
+  const checkInSuccessCode = `// 🟡 Notify Sentry your job is running:
+checkinId := sentry.CaptureCheckIn(
+  &sentry.CheckIn{
+    MonitorSlug: "${slug}",
+    Status:      sentry.CheckInStatusInProgress,
+  },
+  nil,
+)
+
+// Execute your scheduled task here...
+
+// 🟢 Notify Sentry your job has completed successfully:
+sentry.CaptureCheckIn(
+  &sentry.CheckIn{
+    ID:          *checkinId,
+    MonitorSlug: "${slug}",
+    Status:      sentry.CheckInStatusOK,
+  },
+  nil,
+)`;
+
+  const checkInFailCode = `// 🔴 Notify Sentry your job has failed:
+sentry.CaptureCheckIn(
+  &sentry.CheckIn{
+    ID:          *checkinId,
+    MonitorSlug: "${slug}",
+    Status:      sentry.CheckInStatusError,
+  },
+  nil,
+)`;
+
+  return (
+    <Fragment>
+      <div>
+        {tct(
+          '[installLink:Install and configure] the Sentry Go SDK (min v0.23.0), then instrument your monitor:',
+          {
+            installLink: <ExternalLink href="https://docs.sentry.io/platforms/go/" />,
+          }
+        )}
+      </div>
+      <CodeSnippet language="go">{checkInSuccessCode}</CodeSnippet>
+      <div>{t('To notify Sentry if your job execution fails')}</div>
+      <CodeSnippet language="go">{checkInFailCode}</CodeSnippet>
+    </Fragment>
+  );
+}
+
 export function CeleryBeatAutoDiscovery(props: QuickStartProps) {
   const {dsnKey} = props;
 

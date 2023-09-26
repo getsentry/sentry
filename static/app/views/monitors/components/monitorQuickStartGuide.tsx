@@ -12,6 +12,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {
   CLICronQuickStart,
   CurlCronQuickStart,
+  GoCronQuickStart,
   NodeJSCronQuickStart,
   PHPCronQuickStart,
   PHPLaravelCronQuickStart,
@@ -77,6 +78,11 @@ const onboardingGuides: Record<string, OnboardingGuide> = {
     label: 'Node',
     Guide: NodeJSCronQuickStart,
     platforms: new Set(['node']),
+  },
+  go: {
+    label: 'Go',
+    Guide: GoCronQuickStart,
+    platforms: new Set(['go']),
   },
 };
 
