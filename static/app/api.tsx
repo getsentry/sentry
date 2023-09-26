@@ -90,7 +90,7 @@ function csrfSafeMethod(method?: string): boolean {
  * similar origins are those that share an ancestor. Example `sentry.sentry.io` and `us.sentry.io`
  * are similar origins, but sentry.sentry.io and sentry.example.io are not.
  */
-function isSimilarOrigin(target: string, origin: string): boolean {
+export function isSimilarOrigin(target: string, origin: string): boolean {
   const targetUrl = new URL(target, origin);
   const originUrl = new URL(origin);
   if (originUrl.hostname.endsWith(targetUrl.hostname)) {
