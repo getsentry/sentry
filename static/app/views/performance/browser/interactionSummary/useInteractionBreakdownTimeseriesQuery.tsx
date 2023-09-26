@@ -28,10 +28,10 @@ export const useInteractionBreakdownTimeseriesQuery = ({
     {
       yAxis: [`p75(transaction.duration)`],
       name: 'Web Vitals',
-      query: `transaction.op:${operation} transaction:${page} interactionElement:${element.replaceAll(
+      query: `transaction.op:${operation} transaction:${page} interactionElement:"${element.replaceAll(
         '"',
         '\\"'
-      )}`,
+      )}"`,
       version: 2,
       fields: [],
       interval: getInterval(pageFilters.selection.datetime, 'low'),
