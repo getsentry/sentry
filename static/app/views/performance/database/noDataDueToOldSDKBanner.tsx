@@ -2,12 +2,20 @@ import Alert from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {tct} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {useIneligibleProjects} from 'sentry/views/performance/database/useIneligibleProjects';
 
 export function NoDataDueToOldSDKBanner() {
-  // TODO: Pass in the project IDs that we're fetching
-  const ineligibleProjects = useIneligibleProjects({});
+  // TODO: Check whether the data is actually missing
+  const {selection, isReady: pageFilterIsReady} = usePageFilters();
+
+  const ineligibleProjects = useIneligibleProjects({
+    projectId: pageFilterIsReady
+      ? selection.projects.map(projectId => projectId.toString())
+      : undefined,
+    enabled: pageFilterIsReady,
+  });
   const organization = useOrganization();
 
   if (ineligibleProjects.length < 1) {
