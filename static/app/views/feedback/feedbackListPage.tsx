@@ -53,7 +53,7 @@ const LayoutGrid = styled('div')`
 
   height: 100%;
   width: 100%;
-  padding: ${space(2)};
+  padding: ${space(2)} ${space(4)};
   overflow: hidden;
 
   display: grid;

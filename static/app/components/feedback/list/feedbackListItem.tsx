@@ -2,6 +2,7 @@ import {CSSProperties} from 'react';
 import styled from '@emotion/styled';
 
 import FeatureBadge from 'sentry/components/featureBadge';
+import FeedbackItemUsername from 'sentry/components/feedback/feedbackItem/feedbackItemUsername';
 import {Flex} from 'sentry/components/profiling/flex';
 import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
@@ -44,7 +45,9 @@ export default function FeedbackListItem({
         <input type="checkbox" />
         <UnreadBadge />
       </Flex>
-      <strong style={{gridArea: 'user'}}>username</strong>
+      <strong style={{gridArea: 'user'}}>
+        <FeedbackItemUsername feedbackItem={feedbackItem} />
+      </strong>
       <span style={{gridArea: 'time'}}>
         <TimeSince date={feedbackItem.timestamp} />
       </span>
