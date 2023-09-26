@@ -94,6 +94,7 @@ from sentry.models import (
 from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorType, ScheduleType
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.plugins.base import plugins
+from sentry.replays.lib.event_linking import transform_event_for_linking_payload
 from sentry.replays.models import ReplayRecordingSegment
 from sentry.rules.base import RuleBase
 from sentry.search.events.constants import (
@@ -2041,6 +2042,19 @@ class ReplaysSnubaTestCase(TestCase):
             settings.SENTRY_SNUBA + "/tests/entities/replays/insert", json=[replay]
         )
         assert response.status_code == 200
+
+    def mock_event_links(self, timestamp, project_id, level, replay_id, event_id):
+        event = self.store_event(
+            data={
+                "timestamp": int(timestamp.timestamp()),
+                "event_id": event_id,
+                "level": level,
+                "message": "testing",
+                "contexts": {"replay": {"replay_id": replay_id}},
+            },
+            project_id=project_id,
+        )
+        return transform_event_for_linking_payload(replay_id, event)
 
 
 # AcceptanceTestCase and TestCase are mutually exclusive base classses
