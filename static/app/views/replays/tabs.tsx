@@ -2,9 +2,12 @@ import {TabList, Tabs} from 'sentry/components/tabs';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
+const SELECTOR_IDX_ROUTE = 'dead-rage-clicks';
+const REPLAY_IDX_ROUTE = '';
+
 const TABS = [
-  {key: 'replays', label: 'Replays', to: ''},
-  {key: 'selectors', label: 'Selectors', to: 'dead-rage-clicks'},
+  {key: 'replays', label: 'Replays', to: REPLAY_IDX_ROUTE},
+  {key: 'selectors', label: 'Selectors', to: SELECTOR_IDX_ROUTE},
 ];
 
 export default function ReplayTabs() {
