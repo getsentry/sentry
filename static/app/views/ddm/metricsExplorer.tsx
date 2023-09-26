@@ -32,6 +32,7 @@ import {
   MetricsData,
   MetricsDataProps,
   MetricsQuery,
+  updateQuery,
   useMetricsData,
   useMetricsMeta,
   useMetricsTags,
@@ -126,14 +127,10 @@ function QueryBuilder({metricsQuery}: QueryBuilderProps) {
               const selectedOp = availableOps.includes(metricsQuery.op ?? '')
                 ? metricsQuery.op
                 : availableOps[0];
-              router.push({
-                ...router.location,
-                query: {
-                  ...router.location.query,
-                  mri: option.value,
-                  op: selectedOp,
-                  groupBy: undefined,
-                },
+              updateQuery(router, {
+                mri: option.value,
+                op: selectedOp,
+                groupBy: undefined,
               });
             }}
           />
@@ -147,15 +144,11 @@ function QueryBuilder({metricsQuery}: QueryBuilderProps) {
             }
             disabled={!metricsQuery.mri}
             value={metricsQuery.op}
-            onChange={option => {
-              router.push({
-                ...router.location,
-                query: {
-                  ...router.location.query,
-                  op: option.value,
-                },
-              });
-            }}
+            onChange={option =>
+              updateQuery(router, {
+                op: option.value,
+              })
+            }
           />
           <CompactSelect
             multiple
@@ -166,15 +159,11 @@ function QueryBuilder({metricsQuery}: QueryBuilderProps) {
             }))}
             disabled={!metricsQuery.mri}
             value={metricsQuery.groupBy}
-            onChange={options => {
-              router.push({
-                ...router.location,
-                query: {
-                  ...router.location.query,
-                  groupBy: options.map(o => o.value),
-                },
-              });
-            }}
+            onChange={options =>
+              updateQuery(router, {
+                groupBy: options.map(o => o.value),
+              })
+            }
           />
         </PageFilterBar>
       </QueryBuilderRow>
@@ -183,15 +172,7 @@ function QueryBuilder({metricsQuery}: QueryBuilderProps) {
           tags={tags}
           mri={metricsQuery.mri}
           disabled={!metricsQuery.mri}
-          onChange={query => {
-            router.push({
-              ...router.location,
-              query: {
-                ...router.location.query,
-                query,
-              },
-            });
-          }}
+          onChange={query => updateQuery(router, {query})}
         />
       </QueryBuilderRow>
     </QueryBuilderWrapper>
