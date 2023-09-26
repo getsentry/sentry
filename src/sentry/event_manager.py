@@ -2008,6 +2008,10 @@ def _process_existing_aggregate(
 ) -> bool:
     last_seen = max(event.datetime, group.last_seen)
     updated_group_values = {"last_seen": last_seen, "data": incoming_group_values["data"]}
+    # Unclear why this is necessary, given that it's also in `updated_group_values`, but removing
+    # it causes unrelated tests to fail. Hard to say if that's the tests or the removal, though.
+    group.last_seen = updated_group_values["last_seen"]
+
     if (
         event.search_message
         and event.search_message != group.message
@@ -2026,8 +2030,6 @@ def _process_existing_aggregate(
         updated_group_values["first_seen"] = event.datetime
 
     is_regression = _handle_regression(group, event, release)
-
-    group.last_seen = updated_group_values["last_seen"]
 
     update_kwargs = {"times_seen": 1}
 
