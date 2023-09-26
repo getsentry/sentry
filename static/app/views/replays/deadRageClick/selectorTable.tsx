@@ -56,7 +56,6 @@ interface Props {
   isLoading: boolean;
   location: Location<any>;
   customHandleResize?: () => void;
-  headerButtons?: ReactNode;
   title?: ReactNode;
 }
 
@@ -73,7 +72,6 @@ export default function SelectorTable({
   isLoading,
   location,
   title,
-  headerButtons,
   customHandleResize,
   clickCountSortable,
 }: Props) {
@@ -136,7 +134,6 @@ export default function SelectorTable({
       }}
       location={location as Location<any>}
       title={title}
-      headerButtons={() => headerButtons}
     />
   );
 }
