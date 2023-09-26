@@ -32,4 +32,4 @@ export const useHasAnySpanMetrics = ({projectId, enabled}: Options) => {
   };
 };
 
-const SAMPLE_STATS_PERIOD = '14d'; // The time period in which to check for any presence of span metrics
+const SAMPLE_STATS_PERIOD = '10d'; // The time period in which to check for any presence of span metrics
