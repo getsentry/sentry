@@ -655,6 +655,8 @@ RPC_SHARED_SECRET = None
 SENTRY_CONTROL_ADDRESS = os.environ.get("SENTRY_CONTROL_ADDRESS", None)
 
 # Fallback region name for monolith deployments
+# This region name is also used by the ApiGateway to proxy org-less region
+# requests.
 SENTRY_MONOLITH_REGION: str = "--monolith--"
 
 # The key used for generating or verifying the HMAC signature for Integration Proxy Endpoint requests.

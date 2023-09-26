@@ -2,13 +2,14 @@ from __future__ import annotations
 
 from typing import Any, Callable
 
+from django.conf import settings
 from django.http.response import HttpResponseBase
 from rest_framework.request import Request
 
 from sentry.api_gateway.proxy import proxy_region_request, proxy_request
 from sentry.silo import SiloMode
 from sentry.silo.base import SiloLimit
-from sentry.types.region import find_all_multitenant_region_names, get_region_by_name
+from sentry.types.region import get_region_by_name
 
 REGION_PINNED_URLS = (
     "/api/0/builtin-symbol-sources/",
@@ -46,10 +47,7 @@ def proxy_request_if_needed(
         return proxy_request(request, org_slug)
 
     if request.path in REGION_PINNED_URLS:
-        # TODO(hybridcloud) This assumption may be unstable. We would need more metadata in regions
-        # to make this consistent and predictable.
-        regions = find_all_multitenant_region_names()
-        region = get_region_by_name(regions[0])
+        region = get_region_by_name(settings.SENTRY_MONOLITH_REGION)
 
         return proxy_region_request(request, region)
 
