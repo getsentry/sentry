@@ -2018,6 +2018,10 @@ def _process_existing_aggregate(
         updated_group_values["level"] = incoming_group_values["level"]
     if group.culprit != incoming_group_values["culprit"]:
         updated_group_values["culprit"] = incoming_group_values["culprit"]
+
+    # If the new event has a timestamp earlier than our current `fist_seen` value (which can happen,
+    # for example because of misaligned internal clocks on two different host machines or because of
+    # race conditions) then we want to use the current event's time
     if group.first_seen > event.datetime:
         updated_group_values["first_seen"] = event.datetime
 
