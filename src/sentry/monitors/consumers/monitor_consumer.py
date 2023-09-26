@@ -542,9 +542,9 @@ def _process_checkin(
             # 04
             # Update monitor status
             if check_in.status == CheckInStatus.ERROR:
-                mark_failed(check_in, ts=start_time)
+                mark_failed(check_in, ts=check_in.date_added)
             else:
-                mark_ok(check_in, ts=start_time)
+                mark_ok(check_in, ts=check_in.date_added)
 
             metrics.incr(
                 "monitors.checkin.result",

@@ -113,7 +113,7 @@ class UpdateMonitorIngestCheckinTest(MonitorIngestTestCase):
             assert monitor_environment.next_checkin > checkin.date_added
             assert monitor_environment.next_checkin_latest > checkin.date_added
             assert monitor_environment.status == MonitorStatus.OK
-            assert monitor_environment.last_checkin > checkin.date_added
+            assert monitor_environment.last_checkin == checkin.date_added
 
     def test_passing_with_config(self):
         monitor = self._create_monitor()
@@ -148,7 +148,7 @@ class UpdateMonitorIngestCheckinTest(MonitorIngestTestCase):
             assert monitor_environment.next_checkin > checkin.date_added
             assert monitor_environment.next_checkin_latest > checkin.date_added
             assert monitor_environment.status == MonitorStatus.OK
-            assert monitor_environment.last_checkin > checkin.date_added
+            assert monitor_environment.last_checkin == checkin.date_added
 
     def test_passing_with_slug(self):
         monitor = self._create_monitor()
@@ -191,7 +191,7 @@ class UpdateMonitorIngestCheckinTest(MonitorIngestTestCase):
             assert monitor_environment.next_checkin > checkin.date_added
             assert monitor_environment.next_checkin_latest > checkin.date_added
             assert monitor_environment.status == MonitorStatus.ERROR
-            assert monitor_environment.last_checkin > checkin.date_added
+            assert monitor_environment.last_checkin == checkin.date_added
 
     def test_finished_values(self):
         monitor = self._create_monitor()
@@ -305,7 +305,7 @@ class UpdateMonitorIngestCheckinTest(MonitorIngestTestCase):
             assert monitor_environment.next_checkin > checkin2.date_added
             assert monitor_environment.next_checkin_latest > checkin2.date_added
             assert monitor_environment.status == MonitorStatus.OK
-            assert monitor_environment.last_checkin > checkin2.date_added
+            assert monitor_environment.last_checkin == checkin2.date_added
 
     def test_latest_with_no_unfinished_checkin(self):
         monitor = self._create_monitor()
