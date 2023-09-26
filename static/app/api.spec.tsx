@@ -1,4 +1,4 @@
-import {Request, resolveHostname} from 'sentry/api';
+import {isSimilarOrigin, Request, resolveHostname} from 'sentry/api';
 import {PROJECT_MOVED} from 'sentry/constants/apiErrorCodes';
 
 import ConfigStore from './stores/configStore';
@@ -180,5 +180,37 @@ describe('resolveHostname', function () {
   it('preserves host parameters', function () {
     const result = resolveHostname(regionPath, 'https://de.sentry.io');
     expect(result).toBe('https://de.sentry.io/api/0/organizations/slug/issues/');
+  });
+});
+
+describe('isSimilarOrigin', function () {
+  test.each([
+    // Same domain
+    ['https://sentry.io', 'https://sentry.io', true],
+    ['https://example.io', 'https://example.io', true],
+
+    // Not the same
+    ['https://example.io', 'https://sentry.io', false],
+    ['https://sentry.io', 'https://io.sentry', false],
+
+    // Sibling domains
+    ['https://us.sentry.io', 'https://sentry.sentry.io', true],
+    ['https://us.sentry.io', 'https://acme.sentry.io', true],
+    ['https://us.sentry.io', 'https://eu.sentry.io', true],
+    ['https://woof.sentry.io', 'https://woof-org.sentry.io', true],
+    ['https://woof.sentry.io/issues/1234/', 'https://woof-org.sentry.io', true],
+
+    // Subdomain
+    ['https://sentry.io/api/0/broadcasts/', 'https://woof.sentry.io', true],
+    ['https://sentry.io/api/0/users/', 'https://sentry.sentry.io', true],
+    ['https://sentry.io/api/0/users/', 'https://io.sentry.io', true],
+
+    // Not siblings
+    ['https://sentry.io/api/0/broadcasts/', 'https://sentry.example.io', false],
+    ['https://woof.example.sentry.io', 'https://example.sentry.io', false],
+    ['https://woof.example.io', 'https://woof.sentry.io', false],
+    ['https://woof.sentry.io', 'https://sentry.woof.io', false],
+  ])('allows sibling domains %s and %s is %s', (target, origin, expected) => {
+    expect(isSimilarOrigin(target, origin)).toBe(expected);
   });
 });
