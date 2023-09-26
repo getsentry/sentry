@@ -101,7 +101,7 @@ describe('groupDetails', () => {
       body: {...group},
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/events/latest/`,
+      url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/events/helpful/`,
       statusCode: 200,
       body: {
         ...event,
@@ -170,7 +170,7 @@ describe('groupDetails', () => {
       statusCode: 404,
     });
     MockApiClient.addMockResponse({
-      url: `/organization/${defaultInit.organization.slug}/issues/${group.id}/events/latest/`,
+      url: `/organization/${defaultInit.organization.slug}/issues/${group.id}/events/helpful/`,
       statusCode: 404,
     });
 
@@ -191,7 +191,7 @@ describe('groupDetails', () => {
       statusCode: 403,
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/events/latest/`,
+      url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/events/helpful/`,
       statusCode: 403,
     });
 
@@ -229,7 +229,7 @@ describe('groupDetails', () => {
 
   it('renders issue event error', async function () {
     MockApiClient.addMockResponse({
-      url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/events/latest/`,
+      url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/events/helpful/`,
       statusCode: 404,
     });
     createWrapper();
@@ -304,13 +304,7 @@ describe('groupDetails', () => {
       body: event,
     });
 
-    createWrapper({
-      ...defaultInit,
-      organization: {
-        ...defaultInit.organization,
-        features: ['issue-details-most-helpful-event'],
-      },
-    });
+    createWrapper();
 
     await waitFor(() => expect(helpfulMock).toHaveBeenCalledTimes(1));
   });
@@ -323,13 +317,7 @@ describe('groupDetails', () => {
       body: event,
     });
 
-    createWrapper({
-      ...defaultInit,
-      organization: {
-        ...defaultInit.organization,
-        features: ['issue-details-most-helpful-event'],
-      },
-    });
+    createWrapper();
 
     await waitFor(() => expect(latestMock).toHaveBeenCalledTimes(1));
   });
@@ -342,13 +330,7 @@ describe('groupDetails', () => {
       body: event,
     });
 
-    createWrapper({
-      ...defaultInit,
-      organization: {
-        ...defaultInit.organization,
-        features: ['issue-details-most-helpful-event'],
-      },
-    });
+    createWrapper();
 
     await waitFor(() => expect(oldestMock).toHaveBeenCalledTimes(1));
   });
@@ -361,13 +343,7 @@ describe('groupDetails', () => {
       body: event,
     });
 
-    createWrapper({
-      ...defaultInit,
-      organization: {
-        ...defaultInit.organization,
-        features: ['issue-details-most-helpful-event'],
-      },
-    });
+    createWrapper();
 
     await waitFor(() => expect(recommendedMock).toHaveBeenCalledTimes(1));
   });

@@ -3,7 +3,6 @@ import {useCallback, useState} from 'react';
 import {Event} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
 import useTimeout from 'sentry/utils/useTimeout';
 import {
   getGroupDetailsQueryData,
@@ -45,17 +44,9 @@ export function usePreviewEvent<T = Event>({
   groupId: string;
   query?: string;
 }) {
-  const organization = useOrganization();
-  const hasMostHelpfulEventFeature = organization.features.includes(
-    'issue-details-most-helpful-event'
-  );
   const defaultIssueEvent = useDefaultIssueEvent();
 
-  const eventType = hasMostHelpfulEventFeature
-    ? defaultIssueEvent === 'recommended'
-      ? 'helpful'
-      : defaultIssueEvent
-    : 'latest';
+  const eventType = defaultIssueEvent === 'recommended' ? 'helpful' : defaultIssueEvent;
 
   // This query should match the one on group details so that the event will
   // be fully loaded already if you preview then click.
@@ -64,7 +55,7 @@ export function usePreviewEvent<T = Event>({
       `/issues/${groupId}/events/${eventType}/`,
       {
         query: getGroupEventDetailsQueryData({
-          query: hasMostHelpfulEventFeature ? query : undefined,
+          query,
         }),
       },
     ],

@@ -54,27 +54,4 @@ describe('AccountDetails', function () {
       expect(screen.getByRole('textbox', {name: 'Username'})).toBeDisabled();
     });
   });
-
-  describe('Default Issue Event', function () {
-    const orgWithRecommendedEvent = TestStubs.Organization({
-      features: [
-        'issue-details-most-helpful-event',
-        'issue-details-most-helpful-event-ui',
-      ],
-    });
-
-    it('does not show the user setting without the feature enabled', function () {
-      render(<AccountDetails {...routerProps} />);
-
-      expect(screen.queryByText('Default Issue Event')).not.toBeInTheDocument();
-    });
-
-    it('shows the user setting with the feature enabled', function () {
-      render(<AccountDetails {...routerProps} />, {
-        organization: orgWithRecommendedEvent,
-      });
-
-      expect(screen.getByText('Default Issue Event')).toBeInTheDocument();
-    });
-  });
 });
