@@ -192,7 +192,9 @@ def main(use_cases, rand_str, host, dryrun, org_id):
             f"there should be {metrics_per_use_case} metrics for each use cases, "
             f"{metrics_per_use_case * len(use_cases) * len(org_id)} in total."
         )
-        print(make_csql(rand_str, is_generic))
+        print(
+            f'watch -n 0.5 -x bash -c "docker exec -it sentry_clickhouse clickhouse-client -q \\"{make_csql(rand_str, is_generic)}"\\"'
+        )
 
 
 if __name__ == "__main__":
