@@ -60,6 +60,8 @@ class RegionReplicaService(RpcService):
     def upsert_replicated_api_key(self, *, api_key: RpcApiKey, region_name: str) -> None:
         pass
 
+    @regional_rpc_method(resolve=ByRegionName())
+    @abc.abstractmethod
     def upsert_replicated_org_slug_reservation(
         self, *, slug_reservation: RpcOrganizationSlugReservation, region_name: str
     ) -> None:
