@@ -1,4 +1,29 @@
+from typing import Any, Mapping
+
 from sentry.utils.safe import get_path
+
+
+def has_stacktrace(event_data: Mapping[str, Any]) -> bool:
+    """
+    Detects the presence of a stacktrace in event data.
+
+    Ignores empty stacktraces, and stacktraces whose frame list is empty.
+    """
+    if event_data.get("stacktrace") and event_data["stacktrace"].get("frames"):
+        return True
+
+    exception_or_threads = event_data.get("exception") or event_data.get("threads")
+
+    if not exception_or_threads:
+        return False
+
+    # Search for a stacktrace with frames, intentionally ignoring empty values because they're
+    # not helpful
+    for value in exception_or_threads.get("values", []):
+        if value.get("stacktrace", {}).get("frames"):
+            return True
+
+    return False
 
 
 # Check if an event contains a minified stack trace (source maps for javascript)
