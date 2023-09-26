@@ -98,6 +98,7 @@ const inputStyles = css`
   border: 1.5px solid rgba(41, 35, 47, 0.13);
   border-radius: 6px;
   font-size: 14px;
+  font-weight: 500;
   padding: 6px 12px;
   &:focus {
     border-color: rgba(108, 95, 199, 1);
