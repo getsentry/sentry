@@ -1,7 +1,7 @@
-import type {Member as MemberType} from 'sentry/types';
+import {Member} from 'sentry-fixture/member';
+import {User} from 'sentry-fixture/user';
 
-import {Member} from './member';
-import {User} from './user';
+import type {Member as MemberType} from 'sentry/types';
 
 export function Members(params: MemberType[] = []): MemberType[] {
   return [

@@ -1,6 +1,6 @@
-import type {Organization as TOrganization} from 'sentry/types';
+import {OrgRoleList, TeamRoleList} from 'sentry-fixture/roleList';
 
-import {OrgRoleList, TeamRoleList} from './roleList';
+import type {Organization as TOrganization} from 'sentry/types';
 
 export function Organization(params: Partial<TOrganization> = {}): TOrganization {
   const slug = params.slug ?? 'org-slug';

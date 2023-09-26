@@ -1,6 +1,6 @@
-import {ActivityTypeDraft} from 'sentry/views/alerts/types';
+import {User} from 'sentry-fixture/user';
 
-import {User} from './user';
+import {ActivityTypeDraft} from 'sentry/views/alerts/types';
 
 export function IncidentActivity(
   params: Partial<ActivityTypeDraft> = {}
