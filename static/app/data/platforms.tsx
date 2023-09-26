@@ -142,6 +142,13 @@ const javaScriptPlatforms: Platform[] = [
     language: 'javascript',
     link: 'https://docs.sentry.io/platforms/javascript/guides/vue/',
   },
+  {
+    id: 'bun',
+    name: 'Bun',
+    type: 'language',
+    language: 'bun',
+    link: 'https://docs.sentry.io/platforms/javascript/guides/bun/',
+  },
 ];
 
 const javaPlatforms: Platform[] = [
