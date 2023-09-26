@@ -192,7 +192,7 @@ class OrganizationAlertRuleDetailsPutSerializer(serializers.Serializer):
     )
     comparisonDelta = serializers.IntegerField(
         required=False,
-        help_text='An optional int representing the time delta to use to determine the comparison period, in minutes. Required when using a percentage change threshold ("x%" higher or lower compared to `comparisonDelta` minutes ago). A percentage change threshold cannot be used for [Crash Free Session Rate](/api/events/create-a-metric-alert-rule-for-an-organization#crash-free-session-rate) or [Crash Free User Rate](/api/events/create-a-metric-alert-rule-for-an-organization#crash-free-user-rate).',
+        help_text='An optional int representing the time delta to use to determine the comparison period, in minutes. Required when using a percentage change threshold ("x%" higher or lower compared to `comparisonDelta` minutes ago). A percentage change threshold cannot be used for [Crash Free Session Rate](/api/organizations/create-a-metric-alert-rule-for-an-organization#crash-free-session-rate) or [Crash Free User Rate](/api/organizations/create-a-metric-alert-rule-for-an-organization#crash-free-user-rate).',
     )
     thresholdType = serializers.ChoiceField(
         choices=((0, "Above"), (1, "Below")),
@@ -248,7 +248,7 @@ Metric alert rule trigger actions follow the following structure:
     )
 
 
-@extend_schema(tags=["Events"])
+@extend_schema(tags=["Organizations"])
 @region_silo_endpoint
 class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
     publish_status = {
@@ -304,7 +304,7 @@ class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
     @check_project_access
     def put(self, request: Request, organization, alert_rule) -> Response:
         """
-        Update a metric alert rule. Only the attributes submitted are modified.
+        Update a metric alert rule. Only the attributes submitted are modified. See [Metric Alert Rule Types](/api/organizations/metric-alert-rule-types) for the different types of metric alert rules and their configurations.
 
         TODO: add whatever description is used in OrganizationAlertRuleIndexEndpoint
         """
