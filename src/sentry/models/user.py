@@ -35,6 +35,8 @@ from sentry.locks import locks
 from sentry.models.authenticator import Authenticator
 from sentry.models.avatars import UserAvatar
 from sentry.models.lostpasswordhash import LostPasswordHash
+from sentry.models.organizationmapping import OrganizationMapping
+from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.models.outbox import ControlOutboxBase, OutboxCategory, outbox_context
 from sentry.services.hybrid_cloud.organization import RpcRegionUser, organization_service
 from sentry.services.hybrid_cloud.user import RpcUser
@@ -380,14 +382,18 @@ class User(BaseModel, AbstractBaseUser):
         if request is not None:
             request.session["_nonce"] = self.session_nonce
 
-    def get_orgs_require_2fa(self):
-        from sentry.models import Organization, OrganizationStatus
+    def has_org_requiring_2fa(self) -> bool:
+        from sentry.models import OrganizationStatus
 
-        return Organization.objects.filter(
-            flags=models.F("flags").bitor(Organization.flags.require_2fa),
-            status=OrganizationStatus.ACTIVE,
-            member_set__user_id=self.id,
-        )
+        return OrganizationMemberMapping.objects.filter(
+            user_id=self.id,
+            organization_id__in=Subquery(
+                OrganizationMapping.objects.filter(
+                    require_2fa=True,
+                    status=OrganizationStatus.ACTIVE,
+                ).values("organization_id")
+            ),
+        ).exists()
 
     def clear_lost_passwords(self):
         LostPasswordHash.objects.filter(user=self).delete()
