@@ -1048,6 +1048,7 @@ class CliTestCase(TestCase):
         return self.runner.invoke(self.command, args, obj={}, **kwargs)
 
 
+@pytest.mark.usefixtures("browser")
 class AcceptanceTestCase(TransactionTestCase):
     browser: Browser
 
