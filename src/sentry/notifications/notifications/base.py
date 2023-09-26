@@ -12,7 +12,12 @@ from sentry.db.models import Model
 from sentry.models import Environment, NotificationSetting
 from sentry.notifications.helpers import should_use_notifications_v2
 from sentry.notifications.notificationcontroller import NotificationController
-from sentry.notifications.types import NotificationSettingTypes, get_notification_setting_type_name
+from sentry.notifications.types import (
+    NOTIFICATION_SETTING_TYPES,
+    NotificationSettingEnum,
+    NotificationSettingTypes,
+    get_notification_setting_type_name,
+)
 from sentry.notifications.utils.actions import MessageAction
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
@@ -169,7 +174,7 @@ class BaseNotification(abc.ABC):
                 self.record_analytics(
                     self.analytics_event,
                     self.analytics_instance,
-                    providers=provider.name.lower(),
+                    providers=provider.name.lower() if provider.name else "",
                     **self.get_custom_analytics_params(recipient),
                 )
 
@@ -227,18 +232,25 @@ class BaseNotification(abc.ABC):
     def filter_to_accepting_recipients(
         self, recipients: Iterable[RpcActor]
     ) -> Mapping[ExternalProviders, Iterable[RpcActor]]:
+        setting_type = (
+            NotificationSettingEnum(NOTIFICATION_SETTING_TYPES[self.notification_setting_type])
+            if self.notification_setting_type
+            else NotificationSettingEnum.ISSUE_ALERTS
+        )
         if should_use_notifications_v2(self.organization):
             controller = NotificationController(
                 recipients=recipients,
                 organization_id=self.organization.id,
-                type=self.notification_setting_type,
+                type=setting_type,
             )
-            return controller.get_notification_recipients(type=self.notification_setting_type)
+            return controller.get_notification_recipients(type=setting_type)
 
         accepting_recipients: Mapping[
             ExternalProviders, Iterable[RpcActor]
         ] = NotificationSetting.objects.filter_to_accepting_recipients(
-            self.organization, recipients, self.notification_setting_type
+            self.organization,
+            recipients,
+            self.notification_setting_type or NotificationSettingTypes.ISSUE_ALERTS,
         )
         return accepting_recipients
 
