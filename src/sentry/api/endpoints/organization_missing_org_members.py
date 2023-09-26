@@ -44,7 +44,8 @@ def _get_missing_organization_members_query(
     shared_domain: str | None = None,
 ):
     date = timezone.now() - timedelta(days=30)
-    with connection.cursor() as cursor:
+    using = router.db_for_read(Commit)
+    with connections[using].cursor() as cursor:
         additional_query = ""
         for filtered_character in filtered_characters:
             additional_query += f"""and email not like '%{filtered_character}%' """
