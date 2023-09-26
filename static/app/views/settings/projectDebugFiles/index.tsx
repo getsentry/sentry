@@ -64,7 +64,11 @@ class ProjectDebugSymbols extends DeprecatedAsyncView<Props, State> {
     ];
 
     if (!builtinSymbolSources && organization.features.includes('symbol-sources')) {
-      endpoints.push(['builtinSymbolSources', '/builtin-symbol-sources/', {}]);
+      endpoints.push([
+        'builtinSymbolSources',
+        `/organizations/${organization.slug}/builtin-symbol-sources/`,
+        {},
+      ]);
     }
 
     return endpoints;
