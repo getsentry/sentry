@@ -102,6 +102,7 @@ class OutboxCategory(IntEnum):
     AUTH_IDENTITY_UPDATE = 25
     ORGANIZATION_MEMBER_TEAM_UPDATE = 26
     ORGANIZATION_SLUG_RESERVATION_UPDATE = 27
+    API_KEY_UPDATE = 28
 
     @classmethod
     def as_choices(cls):
@@ -289,6 +290,7 @@ class OutboxScope(IntEnum):
             OutboxCategory.AUTH_PROVIDER_UPDATE,
             OutboxCategory.AUTH_IDENTITY_UPDATE,
             OutboxCategory.ORGANIZATION_MEMBER_TEAM_UPDATE,
+            OutboxCategory.API_KEY_UPDATE,
             OutboxCategory.ORGANIZATION_SLUG_RESERVATION_UPDATE,
         },
     )
