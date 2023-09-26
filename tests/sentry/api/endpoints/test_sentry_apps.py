@@ -29,7 +29,10 @@ POPULARITY = 27
 EXPECTED = {
     "events": ["issue"],
     "name": "MyApp",
-    "scopes": ["project:read", "event:read"],
+    "scopes": [
+        "event:read",
+        "project:read",
+    ],
     "webhookUrl": "https://example.com",
 }
 

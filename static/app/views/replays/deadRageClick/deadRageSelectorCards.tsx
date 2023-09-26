@@ -38,7 +38,6 @@ function DeadClickTable({location}: {location: Location<any>}) {
       isLoading={isLoading}
       location={location}
       clickCountColumn={{key: 'count_dead_clicks', name: 'dead clicks'}}
-      clickCountSortable={false}
       title={
         <Fragment>
           <IconContainer>
@@ -74,7 +73,6 @@ function RageClickTable({location}: {location: Location<any>}) {
       isLoading={isLoading}
       location={location}
       clickCountColumn={{key: 'count_rage_clicks', name: 'rage clicks'}}
-      clickCountSortable={false}
       title={
         <Fragment>
           <IconContainer>

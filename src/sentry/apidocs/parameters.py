@@ -241,47 +241,6 @@ class OrganizationParams:
         description="The member ID.",
     )
 
-    ORG_ROLE = OpenApiParameter(
-        name="orgRole",
-        location="query",
-        required=False,
-        type=str,
-        description="""
-The organization role of the member. The options are:
-- `billing`: Can manage payment and compliance details.
-- `member`: Can view and act on events, as well as view most other data within the organization.
-- `manager`: Has full management access to all teams and projects. Can also manage the organization's membership.
-- `owner`: Has unrestricted access to the organization, its data, and its settings. Can add, modify, and
-delete projects and members, as well as make billing and plan changes.
-""",
-    )
-
-    TEAM_ROLES = OpenApiParameter(
-        name="teamRoles",
-        location="query",
-        required=False,
-        type=build_typed_list(OpenApiTypes.OBJECT),
-        description="""
-Configures the team role of the member. The two roles are:
-- `contributor`: Can view and act on issues. Depending on organization settings, they can also add team members.
-- `admin`: Has full management access to their team's membership and projects.
-```json
-{
-    "teamRoles": [
-        {
-            "teamSlug": "ancient-gabelers",
-            "role": "admin"
-        },
-        {
-            "teamSlug": "powerful-abolitionist",
-            "role": "contributor"
-        }
-    ]
-}
-```
-""",
-    )
-
 
 class ProjectParams:
     FILTER_ID = OpenApiParameter(
@@ -290,13 +249,13 @@ class ProjectParams:
         required=True,
         type=str,
         description="""The type of filter toggle to update. The options are:
-- `browser-extensions`: Filter out errors known to be caused by browser extensions.
-- `localhost`: Filter out events coming from localhost. This applies to both IPv4 (``127.0.0.1``)
+- `browser-extensions` - Filter out errors known to be caused by browser extensions.
+- `localhost` - Filter out events coming from localhost. This applies to both IPv4 (``127.0.0.1``)
 and IPv6 (``::1``) addresses.
-- `filtered-transaction`: Filter out transactions for healthcheck and ping endpoints.
-- `web-crawlers`: Filter out known web crawlers. Some crawlers may execute pages in incompatible
+- `filtered-transaction` - Filter out transactions for healthcheck and ping endpoints.
+- `web-crawlers` - Filter out known web crawlers. Some crawlers may execute pages in incompatible
 ways which cause errors that are unlikely to be seen by a normal user.
-- `legacy-browser`: Filter out known errors from legacy browsers. Older browsers often give less
+- `legacy-browser` - Filter out known errors from legacy browsers. Older browsers often give less
 accurate information, and while they may report valid issues, the context to understand them is
 incorrect or missing.
 """,
