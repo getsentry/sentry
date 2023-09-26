@@ -1,5 +1,6 @@
 import {prepareEvent} from '@sentry/core';
-import {Client, Scope} from '@sentry/types';
+import type {Scope} from '@sentry/core';
+import type {Client} from '@sentry/types';
 
 import type {FeedbackEvent} from './types';
 
