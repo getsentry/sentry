@@ -260,7 +260,7 @@ class OrganizationAlertRuleIndexPostSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=64, help_text="The name for the rule.")
     aggregate = serializers.CharField(
         help_text="A string representing the aggregate used in this alert rule."
-    )  # TODO: how are we going to enforce what aggregates users use? need to list each possible aggregate?? there are 68 with the custom metric options. additionally, some aggregates are not compatible with event type
+    )
     timeWindow = serializers.ChoiceField(
         choices=(
             (1, "1 minute"),
@@ -275,26 +275,30 @@ class OrganizationAlertRuleIndexPostSerializer(serializers.Serializer):
         ),
         help_text="The time period to aggregate over.",
     )
+    # projects is not required in the serializer, however, the UI requires a project is chosen
+    projects = serializers.ListField(
+        child=ProjectField(scope="project:read"),
+        help_text="The names of the projects to filter by.",
+    )
     query = serializers.CharField(
         help_text='An event search query to subscribe to and monitor for alerts. For example, to filter transactions so that only those with status code 400 are included, you could use `"query": "http.status_code:400"`. Use an empty string for no filter.'
     )
     thresholdType = serializers.ChoiceField(
         choices=((0, "Above"), (1, "Below")),
-        help_text="The comparison operator for the critical and warning thresholds. The comparison operator for the resolved threshold is automatically set to the opposite operator.",
+        help_text='The comparison operator for the critical and warning thresholds. The comparison operator for the resolved threshold is automatically set to the opposite operator. When a percentage change threshold is used, `0` is equivalent to "Higher than" and `1` is equivalent to "Lower than".',
     )
     triggers = serializers.ListField(
         help_text="""
-    A list of triggers, where each trigger is an object with the following fields:
-    - `label`: One of `critical` or `warning`. A `critical` trigger is always required.
-    - `alertThreshold`: The value that the subscription needs to reach to trigger the
-    alert rule.
-    - `actions`: A list of actions that take place when the threshold is met.
-    ```json
+A list of triggers, where each trigger is an object with the following fields:
+- `label`: One of `critical` or `warning`. A `critical` trigger is always required.
+- `alertThreshold`: The value that the subscription needs to reach to trigger the
+alert rule.
+- `actions`: A list of actions that take place when the threshold is met. Set as an empty list if no actions are to take place.
+```json
+triggers: [
     {
         "label": "critical",
-        "thresholdType": 0,
         "alertThreshold": 50,
-        "resolveThreshold": None,
         "actions": [
             {
                 "type": "slack",
@@ -304,15 +308,21 @@ class OrganizationAlertRuleIndexPostSerializer(serializers.Serializer):
                 "integrationId": 653532,
             }
         ]
+    },
+    {
+        "label": "warning",
+        "alertThreshold": 25,
+        "actions": []
     }
-    ```
-    Metric alert rule trigger actions follow the following structure:
-    - `type`: The type of trigger action. Valid values are `email`, `slack`, `msteams`, `pagerduty`, `sentry_app`, `sentry_notification`, and `opsgenie`.
-    - `targetType`: The type of target the notification will be sent to. Valid values are `specific`, `user`, `team`, and `sentry_app`.
-    - `targetIdentifier`: The ID of the target. This is required as an integer for PagerDuty and Sentry apps, and as a string for all others. Examples of appropriate values include a Slack channel name (`#my-channel`), a user ID, a team ID, a Sentry app ID, etc.
-    - `inputChannelId`: The ID of the Slack channel. This is only used for the Slack action, and can be used as an alternative to providing the `targetIdentifier`.
-    - `integrationId`: The integration ID. This is required for every action type excluding `email` and `sentry_app.`
-    - `sentryAppId`: The ID of the Sentry app. This is required when `type` is `sentry_app`.
+]
+```
+Metric alert rule trigger actions follow the following structure:
+- `type`: The type of trigger action. Valid values are `email`, `slack`, `msteams`, `pagerduty`, `sentry_app`, `sentry_notification`, and `opsgenie`.
+- `targetType`: The type of target the notification will be sent to. Valid values are `specific`, `user`, `team`, and `sentry_app`.
+- `targetIdentifier`: The ID of the target. This is required as an integer for PagerDuty and Sentry apps, and as a string for all others. Examples of appropriate values include a Slack channel name (`#my-channel`), a user ID, a team ID, a Sentry app ID, etc.
+- `inputChannelId`: The ID of the Slack channel. This is only used for the Slack action, and can be used as an alternative to providing the `targetIdentifier`.
+- `integrationId`: The integration ID. This is required for every action type excluding `email` and `sentry_app.`
+- `sentryAppId`: The ID of the Sentry app. This is required when `type` is `sentry_app`.
 """
     )
     environment = serializers.CharField(
@@ -321,44 +331,30 @@ class OrganizationAlertRuleIndexPostSerializer(serializers.Serializer):
         help_text="The name of the environment to filter by. Defaults to all environments.",
     )
     dataset = serializers.CharField(
-        required=False, help_text="The dataset that this query will be executed on."
-    )  # TODO: dependent on type of metric alert rule
-    """
-    from src/sentry/incidents/logic.py
-
-    query_datasets_to_type = {
-        Dataset.Events: SnubaQuery.Type.ERROR,
-        Dataset.Transactions: SnubaQuery.Type.PERFORMANCE,
-        Dataset.PerformanceMetrics: SnubaQuery.Type.PERFORMANCE,
-        Dataset.Sessions: SnubaQuery.Type.CRASH_RATE,
-        Dataset.Metrics: SnubaQuery.Type.CRASH_RATE,
-    }
-    """
-    queryType = serializers.IntegerField(
-        required=False, help_text="The `SnubaQuery.Type` of the query"
-    )  # TODO: dependent on type of metric alert rule; one of 0 - "event.type:error" and 1 - "event.type:transaction" and 2 - crash rate; also feels like it's required bc i dont think any of the metric alert rules in the api return a response with this as None TODO: check if this is set in backend
+        required=False,
+        help_text="The name of the dataset that this query will be executed on. Valid values are `events`, `transactions`, `metrics`, `sessions`, and `generic-metrics`. Defaults to `events`.",
+    )
+    queryType = serializers.ChoiceField(
+        required=False,
+        choices=((0, "event.type:error"), (1, "event.type:transaction"), (2, "")),
+        help_text="The `SnubaQuery.Type` of the query. If no value is provided, `queryType` is set to the default for the specified `dataset.`",
+    )
     eventTypes = serializers.ListField(
         child=serializers.CharField(),
         required=False,
-        help_text="List of event types that this alert will be related to.",
-    )  # TODO: "error" for event.type:error, "transaction" for event.type:transaction, empty list for crash rate
-    projects = serializers.ListField(
-        child=ProjectField(scope="project:read"),
-        required=False,  # TODO: feels like this should be required since ui requires it
-        help_text="The names of the projects to filter by.",
+        help_text="List of event types that this alert will be related to. Valid values are `error` and `transaction`.",
     )
     comparisonDelta = serializers.IntegerField(
         required=False,
-        help_text="An optional int representing the time delta to use to determine the comparison period, in minutes. Required when using a percentage change threshold",
+        help_text='An optional int representing the time delta to use to determine the comparison period, in minutes. Required when using a percentage change threshold ("x%" higher or lower compared to `comparisonDelta` minutes ago). A percentage change threshold cannot be used for [Crash Free Session Rate](#crash-free-session-rate) or [Crash Free User Rate](#crash-free-user-rate).',
     )
     resolveThreshold = serializers.FloatField(
         required=False,
-        help_text="Optional value that the subscription needs to reach to resolve the alert",
+        help_text="Optional value that the subscription needs to reach to resolve the alert. Set automatically if no value is provided. If `thresholdType` is `0`, `resolveThreshold` must be greater than the critical threshold, otherwise, it must be less than the critical threshold.",
     )
     owner = ActorField(
         required=False, allow_null=True, help_text="The ID of the team or user that owns the rule."
     )
-    # resolution, thresholdPeriod, includeAllProjects, excludedProjects TODO: left out because these don't seem to exist on the ui
 
 
 @extend_schema(tags=["Events"])
@@ -387,6 +383,13 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMix
     def get(self, request: Request, organization) -> Response:
         """
         Return a list of active metric alert rules bound to an organization.
+
+        A metric alert rule is a configuration that defines the conditions for triggering an alert
+        based on specific metrics. It specifies the metric type, function, time interval, and threshold
+        values that determine when an alert should be triggered. Metric alert rules are used to monitor
+        and notify you when certain metrics, such as error count, latency, or failure rate, cross a
+        predefined threshold. These rules help you proactively identify and address issues in your
+        application or system.
         """
         return self.fetch_metric_alert(request, organization)
 
@@ -404,6 +407,176 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMix
     )
     def post(self, request: Request, organization) -> Response:
         """
-        Create a metric alert rule
+        Create a new metric alert rule for the given organization.
+
+        A metric alert rule is a configuration that defines the conditions for triggering an alert
+        based on specific metrics. It specifies the metric type, function, time interval, and threshold
+        values that determine when an alert should be triggered. Metric alert rules are used to monitor
+        and notify you when certain metrics, such as error count, latency, or failure rate, cross a
+        predefined threshold. These rules help you proactively identify and address issues in your
+        application or system.
+
+        ## Metric Alert Rule Types
+        Listed below are the types of metric alert rules you can create with Sentry, and the values they
+        require. All other parameters can be customized depending on how you want the alert rule to work.
+        Scroll down to Body Parameters for more information.
+
+        ### Number of Errors
+        Alert when the number of errors in a project matching your filters crosses a threshold. This is
+        useful for monitoring the overall level or errors in your project or errors occurring in specific
+        parts of your app.
+        ```json
+        {
+            "queryType": 0,
+            "dataset": "events",
+            "aggregate": "count()"
+        }
+        ```
+
+        ### Users Experiencing Errors
+        Alert when the number of users affected by errors in your project crosses a threshold.
+        ```json
+        {
+            "queryType": 0,
+            "dataset": "events",
+            "aggregate": "count_unique(user)"
+        }
+        ```
+
+        ### Crash Free Session Rate
+        A session begins when a user starts the application and ends when it’s closed or sent to the background.
+        A crash is when a session ends due to an error and this type of alert lets you monitor when those crashed
+        sessions exceed a threshold. This lets you get a better picture of the health of your app.
+        ```json
+        {
+            "queryType": 2,
+            "dataset": "metrics",
+            "aggregate": "percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate"
+        }
+        ```
+
+        ### Crash Free User Rate
+        Crash Free Users is the percentage of distinct users that haven’t experienced a crash and so this type of
+        alert tells you when the overall user experience dips below a certain unacceptable threshold.
+        ```json
+        {
+            "queryType": 2,
+            "dataset": "metrics",
+            "aggregate": "percentage(users_crashed, users) AS _crash_rate_alert_aggregate"
+        }
+        ```
+
+        ### Throughput
+        Throughput is the total number of transactions in a project and you can alert when it reaches a threshold
+        within a period of time.
+        ```json
+        {
+            "queryType": 1,
+            "dataset": "transactions",
+            "aggregate": "count()"
+        }
+        ```
+
+        ### Transaction Duration
+        Monitor how long it takes for transactions to complete. Use flexible aggregates like percentiles, averages,
+        and min/max.
+        -  `dataset`: If a custom percentile is used, `dataset` is `transactions`. Otherwise, `dataset` is `generic_metrics`.
+        -  `aggregate`: Valid values are `avg(transaction.duration)`, `p50(transaction.duration)`, `p75(transaction.duration)`, `p95(transaction.duration)`, `p99(transaction.duration)`, `p100(transaction.duration)`, and `percentile(transaction.duration,x)`, where `x` is your custom percentile.
+        ```json
+        {
+            "queryType": 1,
+            "dataset": "generic_metrics",
+            "aggregate": "avg(transaction.duration)"
+        }
+        ```
+
+        ### Apdex
+        Apdex is a metric used to track and measure user satisfaction based on your application response times.
+        The Apdex score provides the ratio of satisfactory, tolerable, and frustrated requests in a specific
+        transaction or endpoint.
+        - `aggregate`: `apdex(x)` where `x` is the value of the Apdex score.
+        ```json
+        {
+            "queryType": 1,
+            "dataset": "transactions",
+            "aggregate": "apdex(300)"
+        }
+        ```
+
+        ### Failure Rate
+        Failure rate is the percentage of unsuccessful transactions. Sentry treats transactions with a
+        status other than “ok,” “canceled,” and “unknown” as failures.
+        ```json
+        {
+            "queryType": 1,
+            "dataset": "transactions",
+            "aggregate": "failure_rate()"
+        }
+        ```
+
+        ### Largest Contentful Paint
+        Largest Contentful Paint (LCP) measures loading performance. It marks the point when the largest
+        image or text block is visible within the viewport. A fast LCP helps reassure the user that the
+        page is useful, and so we recommend an LCP of less than 2.5 seconds.
+        - `dataset`: If a custom percentile is used, `dataset` is `transactions`. Otherwise, `dataset` is `generic_metrics`.
+        - `aggregate`: Valid values are `avg(measurements.lcp)`, `p50(measurements.lcp)`, `p75(measurements.lcp)`, `p95(measurements.lcp)`, `p99(measurements.lcp)`, `p100(measurements.lcp)`, and `percentile(measurements.lcp,x)`, where `x` is your custom percentile.
+        ```json
+        {
+            "queryType": 1,
+            "dataset": "generic_metrics",
+            "aggregate": "p50(measurements.lcp)"
+        }
+        ```
+
+        ### First Input Delay
+        First Input Delay (FID) measures interactivity as the response time when the user tries to
+        interact with the viewport. A low FID helps ensure that a page is useful, and we recommend a FID
+        of less than 100 milliseconds.
+        - `dataset`: If a custom percentile is used, `dataset` is `transactions`. Otherwise, `dataset` is `generic_metrics`.
+        - `aggregate`: Valid values are `avg(measurements.fid)`, `p50(measurements.fid)`, `p75(measurements.fid)`, `p95(measurements.fid)`, `p99(measurements.fid)`, `p100(measurements.fid)`, and `percentile(measurements.fid,x)`, where `x` is your custom percentile.
+        ```json
+        {
+            "queryType": 1,
+            "dataset": "generic_metrics",
+            "aggregate": p100(measurements.fid)"
+        }
+        ```
+
+        ### Cumulative Layout Shift
+        Cumulative Layout Shift (CLS) measures visual stability by quantifying unexpected layout shifts
+        that occur during the entire lifespan of the page. A CLS of less than 0.1 is a good user experience,
+        while anything greater than 0.25 is poor.
+        - `dataset`: If a custom percentile is used, `dataset` is `transactions`. Otherwise, `dataset` is `generic_metrics`.
+        - `aggregate`: Valid values are `avg(measurements.cls)`, `p50(measurements.cls)`, `p75(measurements.cls)`, `p95(measurements.cls)`, `p99(measurements.cls)`, `p100(measurements.cls)`, and `percentile(measurements.cls,x)`, where `x` is your custom percentile.
+        ```json
+        {
+            "queryType": 1,
+            "dataset": "transactions",
+            "aggregate": "percentile(measurements.cls,0.2)"
+        }
+        ```
+
+        ### Custom Metrics
+        Alert on metrics which are not listed above, such as first paint (FP), first contentful paint (FCP),
+        and time to first byte (TTFB).
+        - `dataset`: If a custom percentile is used, `dataset` is `transactions`. Otherwise, `dataset` is `generic_metrics`.
+        - `aggregate`: Valid values are:
+            - `avg(x)`, where `x` is `transaction.duration`, `measurements.cls`, `measurements.fcp`, `measurements.fid`, `measurements.fp`, `measurements.lcp`, `measurements.ttfb`, or `measurements.ttfb.requesttime`.
+            - `p50(x)`, where `x` is `transaction.duration`, `measurements.cls`, `measurements.fcp`, `measurements.fid`, `measurements.fp`, `measurements.lcp`, `measurements.ttfb`, or `measurements.ttfb.requesttime`.
+            - `p75(x)`, where `x` is `transaction.duration`, `measurements.cls`, `measurements.fcp`, `measurements.fid`, `measurements.fp`, `measurements.lcp`, `measurements.ttfb`, or `measurements.ttfb.requesttime`.
+            - `p95(x)`, where `x` is `transaction.duration`, `measurements.cls`, `measurements.fcp`, `measurements.fid`, `measurements.fp`, `measurements.lcp`, `measurements.ttfb`, or `measurements.ttfb.requesttime`.
+            - `p99(x)`, where `x` is `transaction.duration`, `measurements.cls`, `measurements.fcp`, `measurements.fid`, `measurements.fp`, `measurements.lcp`, `measurements.ttfb`, or `measurements.ttfb.requesttime`.
+            - `p100(x)`, where `x` is `transaction.duration`, `measurements.cls`, `measurements.fcp`, `measurements.fid`, `measurements.fp`, `measurements.lcp`, `measurements.ttfb`, or `measurements.ttfb.requesttime`.
+            - `percentile(x,y)`, where `x` is `transaction.duration`, `measurements.cls`, `measurements.fcp`, `measurements.fid`, `measurements.fp`, `measurements.lcp`, `measurements.ttfb`, or `measurements.ttfb.requesttime`, and `y` is the custom percentile.
+            - `failure_rate()`
+            - `apdex(x)`, where `x` is the value of the Apdex score.
+            - `count()`
+        ```json
+        {
+            "queryType": 1,
+            "dataset": "generic_metrics",
+            "aggregate": "p75(measurements.ttfb)"
+        }
+        ```
         """
         return self.create_metric_alert(request, organization)
