@@ -174,6 +174,7 @@ class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
             rule=self.rule,
             organization=self.organization,
             opted_out=False,
+            sent_initial_email_date=now,
             disable_date=now + timedelta(days=14),
         )
         response = self.get_success_response(
