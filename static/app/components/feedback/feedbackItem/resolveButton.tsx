@@ -18,7 +18,7 @@ export default function ResolveButton({feedbackItem}: Props) {
 
   return (
     <Button size="xs" icon={<IconArchive />}>
-      {t('Un-Resolve')}
+      {t('Unresolve')}
     </Button>
   );
 }
