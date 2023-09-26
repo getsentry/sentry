@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Dict, List, Optional
 
 from django.db import router, transaction
 
@@ -28,23 +28,28 @@ class TestOrganizationSlugReservationReplication(TestCase):
         return matches
 
     def assert_all_replicas_match_slug_reservations(self):
-        org_slug_reservations = {
+        org_slug_reservations: Dict[str, OrganizationSlugReservation] = {
             org_slug.slug: org_slug for org_slug in list(OrganizationSlugReservation.objects.all())
         }
 
         with assume_test_silo_mode(SiloMode.REGION):
-            org_slug_replicas = {
+            org_slug_replicas: Dict[str, OrganizationSlugReservationReplica] = {
                 org_slug_r.slug: org_slug_r
                 for org_slug_r in list(OrganizationSlugReservationReplica.objects.all())
             }
 
-        mismatched_slug_res_replicas = []
+        slug_reservations_missing_replicas: List[OrganizationSlugReservation] = []
+        mismatched_slug_res_replicas: List[OrganizationSlugReservationReplica] = []
         for slug in org_slug_reservations:
             slug_res = org_slug_reservations.get(slug)
-            org_slug_reservation_replica = org_slug_replicas.pop(slug, None)
+            assert slug_res is not None
+
+            org_slug_reservation_replica: Optional[
+                OrganizationSlugReservationReplica
+            ] = org_slug_replicas.pop(slug, None)
 
             if org_slug_reservation_replica is None:
-                mismatched_slug_res_replicas.append(org_slug_reservation_replica)
+                slug_reservations_missing_replicas.append(slug_res)
                 continue
 
             matches = self.does_replica_match_original_reservation(
@@ -59,11 +64,16 @@ class TestOrganizationSlugReservationReplication(TestCase):
         for slug in org_slug_replicas:
             extraneous_replicas.append(org_slug_replicas.get(slug))
 
-        if len(mismatched_slug_res_replicas) > 0 or len(extraneous_replicas) > 0:
+        if (
+            len(mismatched_slug_res_replicas) > 0
+            or len(slug_reservations_missing_replicas) > 0
+            or len(extraneous_replicas) > 0
+        ):
             raise Exception(
                 "One or more org slug replicas did not match\n"
                 + f"mismatched replicas: {mismatched_slug_res_replicas}\n"
-                + f"extraneous replicas: {extraneous_replicas}"
+                + f"extraneous replicas: {extraneous_replicas}\n"
+                + f"reservations missing replicas: {slug_reservations_missing_replicas}"
             )
 
     def create_org_slug_reservation(self, **kwargs: Any):
