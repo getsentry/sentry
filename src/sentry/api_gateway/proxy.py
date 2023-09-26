@@ -1,6 +1,8 @@
 """
 Utilities related to proxying a request to a region silo
 """
+from __future__ import annotations
+
 import logging
 from typing import Iterator
 from urllib.parse import urljoin
@@ -63,8 +65,8 @@ class _body_with_length:
     def __len__(self) -> int:
         return int(self.request.headers.get("Content-Length", "0"))
 
-    def read(self) -> bytes:
-        return self.request.read()
+    def read(self, size: int | None = None) -> bytes:
+        return self.request.read(size)
 
 
 def proxy_request(request: HttpRequest, org_slug: str) -> StreamingHttpResponse:
