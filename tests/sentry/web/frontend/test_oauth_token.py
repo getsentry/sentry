@@ -325,7 +325,7 @@ class OAuthTokenCodeTest(TestCase):
             data = json.loads(resp.content)
             token = ApiToken.objects.get(token=data["access_token"])
 
-            assert token.get_scopes() == ["openid", "profile", "email"]
+            assert token.get_scopes() == ["email", "openid", "profile"]
             assert data["refresh_token"] == token.refresh_token
             assert data["access_token"] == token.token
             assert isinstance(data["expires_in"], int)
