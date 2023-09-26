@@ -21,9 +21,22 @@ def validate_channel_id(channel_id: str, guild_id: str, integration_id: int | No
         result = client.get_channel(channel_id)
     except ApiError as e:
         if e.code in (400, 403, 404):
-            logger.info("rule.discord.channel_info_failed", extra={"error": str(e)})
+            logger.info(
+                "rule.discord.channel_info_failed",
+                extra={
+                    "channel_id": channel_id,
+                    "integration_id": integration_id,
+                },
+            )
             raise ValidationError(NO_CHANNEL_MESSAGE)
-        logger.error("rule.discord.channel_info_failed", extra={"error": str(e)})
+        logger.info(
+            "rule.discord.channel_integration_failed",
+            extra={
+                "guild_id": guild_id,
+                "channel_id": channel_id,
+                "integration_id": integration_id,
+            },
+        )
         raise IntegrationError("Could not retrieve Discord channel information.")
 
     if not isinstance(result, dict):
