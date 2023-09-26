@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import socket
+import subprocess
 from typing import Any, Callable, TypeVar
 from urllib.parse import urlparse
 
@@ -83,7 +84,7 @@ def _requires_kafka() -> None:
                 "zookeeper": zk_conf,
             },
         )
-    except Exception as e:
+    except subprocess.CalledProcessError as e:
         pytest.skip(f"kafka server is not heathy: {e}")
 
 
