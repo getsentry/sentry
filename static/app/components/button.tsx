@@ -221,7 +221,8 @@ function BaseButton({
 
   const useButtonTrackingLogger = () => {
     const hasAnalyticsDebug = window.localStorage?.getItem('DEBUG_ANALYTICS') === '1';
-    if (!analyticsEventName || !hasAnalyticsDebug) {
+    const hasEventName = analyticsEventName || analyticsEventKey;
+    if (!hasEventName || !hasAnalyticsDebug) {
       return () => {};
     }
 
