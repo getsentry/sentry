@@ -31,7 +31,7 @@ FEATURES = [
         IntegrationFeatures.CHAT_UNFURL,
     ),
     FeatureDescription(
-        "Configure alerts to get notified of new issues or key metrics in a Discord channel of your choice.",
+        "Configure rule based Discord notifications to automatically be posted into a specific channel.",
         IntegrationFeatures.ALERT_RULE,
     ),
 ]

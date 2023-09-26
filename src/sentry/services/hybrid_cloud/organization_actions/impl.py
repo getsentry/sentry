@@ -36,11 +36,13 @@ def create_organization_with_outbox_message(
 
 
 def create_organization_and_member_for_monolith(
-    organization_name: str, user_id: int, slug: str, create_default_team: bool
+    organization_name: str,
+    user_id: int,
+    slug: str,
+    create_default_team: bool,
+    is_test: bool = False,
 ) -> OrganizationAndMemberCreationResult:
-    org = create_organization_with_outbox_message(
-        create_options={"name": organization_name, "slug": slug}
-    )
+    org = Organization.objects.create(name=organization_name, slug=slug, is_test=is_test)
 
     om = OrganizationMember.objects.create(
         user_id=user_id, organization=org, role=roles.get_top_dog().id
