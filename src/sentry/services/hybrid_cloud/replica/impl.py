@@ -182,14 +182,14 @@ class DatabaseBackedRegionReplicaService(RegionReplicaService):
         with enforce_constraints(
             transaction.atomic(router.db_for_write(OrganizationSlugReservationReplica))
         ):
-            # Delete any slug reservation that can possibly conflict
+            # Delete any slug reservation that can possibly conflict, it's likely stale
             OrganizationSlugReservationReplica.objects.filter(
                 Q(organization_slug_reservation_id=slug_reservation.id)
-                or Q(
+                | Q(
                     organization_id=slug_reservation.organization_id,
                     reservation_type=slug_reservation.reservation_type,
                 )
-                or Q(slug=slug_reservation.slug)
+                | Q(slug=slug_reservation.slug)
             ).delete()
 
             OrganizationSlugReservationReplica.objects.create(

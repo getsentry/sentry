@@ -1,5 +1,6 @@
+from typing import Any
+
 from django.db import router, transaction
-from django.db.models import Q
 
 from sentry.models import (
     OrganizationSlugReservation,
@@ -9,6 +10,7 @@ from sentry.models import (
 )
 from sentry.silo import SiloMode
 from sentry.testutils.cases import TestCase
+from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
@@ -64,63 +66,51 @@ class TestOrganizationSlugReservationReplication(TestCase):
                 + f"extraneous replicas: {extraneous_replicas}"
             )
 
-    def assert_no_slug_replica(self, slug_res):
-        with assume_test_silo_mode(SiloMode.REGION):
-            org_slug_qs = OrganizationSlugReservationReplica.objects.filter(
-                Q(slug=slug_res.slug) | Q(organization_id=slug_res.organization_id)
-            )
-        assert org_slug_qs.count() == 0
+    def create_org_slug_reservation(self, **kwargs: Any):
+        with outbox_context(
+            transaction.atomic(using=router.db_for_write(OrganizationSlugReservation))
+        ):
+            org_slug_reservation = OrganizationSlugReservation(**kwargs)
+            org_slug_reservation.save(unsafe_write=True)
+
+        self.assert_all_replicas_match_slug_reservations()
+
+        return org_slug_reservation
 
     def test_standard_replica(self):
-        with outbox_context(
-            transaction.atomic(using=router.db_for_write(OrganizationSlugReservation))
-        ):
-            org_slug_reservation = OrganizationSlugReservation(
-                slug="santry",
-                user_id=self.user.id,
-                organization_id=42,
-                region_name="us",
-                reservation_type=OrganizationSlugReservationType.PRIMARY,
-            )
-            org_slug_reservation.save(unsafe_write=True)
-        self.assert_all_replicas_match_slug_reservations()
+        self.create_org_slug_reservation(
+            slug="santry",
+            user_id=self.user.id,
+            organization_id=42,
+            region_name="us",
+            reservation_type=OrganizationSlugReservationType.PRIMARY,
+        )
 
     def test_replica_deletion(self):
-        with outbox_context(
-            transaction.atomic(using=router.db_for_write(OrganizationSlugReservation))
-        ):
-            org_slug_reservation = OrganizationSlugReservation(
-                slug="santry",
-                user_id=self.user.id,
-                organization_id=42,
-                region_name="us",
-                reservation_type=OrganizationSlugReservationType.PRIMARY,
-            )
-            org_slug_reservation.save(unsafe_write=True)
-
-        self.assert_all_replicas_match_slug_reservations()
+        org_slug_reservation = self.create_org_slug_reservation(
+            slug="santry",
+            user_id=self.user.id,
+            organization_id=42,
+            region_name="us",
+            reservation_type=OrganizationSlugReservationType.PRIMARY,
+        )
 
         with outbox_context(
             transaction.atomic(using=router.db_for_write(OrganizationSlugReservation))
         ):
             org_slug_reservation.delete()
 
-        self.assert_no_slug_replica(org_slug_reservation)
+        self.assert_all_replicas_match_slug_reservations()
 
     def test_replica_update(self):
-        with outbox_context(
-            transaction.atomic(using=router.db_for_write(OrganizationSlugReservation))
-        ):
-            org_slug_reservation = OrganizationSlugReservation(
-                slug="santry",
-                user_id=self.user.id,
-                organization_id=42,
-                region_name="us",
-                reservation_type=OrganizationSlugReservationType.PRIMARY,
-            )
-            org_slug_reservation.save(unsafe_write=True)
+        org_slug_reservation = self.create_org_slug_reservation(
+            slug="santry",
+            user_id=self.user.id,
+            organization_id=42,
+            region_name="us",
+            reservation_type=OrganizationSlugReservationType.PRIMARY,
+        )
 
-        self.assert_all_replicas_match_slug_reservations()
         org_slug_reservation.slug = "newslug"
         org_slug_reservation.reservation_type = OrganizationSlugReservationType.VANITY_ALIAS
 
@@ -128,5 +118,84 @@ class TestOrganizationSlugReservationReplication(TestCase):
             transaction.atomic(using=router.db_for_write(OrganizationSlugReservation))
         ):
             org_slug_reservation.save(unsafe_write=True)
+
+        self.assert_all_replicas_match_slug_reservations()
+
+    def test_slug_update_only(self):
+        org_slug_reservation = self.create_org_slug_reservation(
+            slug="santry",
+            user_id=self.user.id,
+            organization_id=42,
+            region_name="us",
+            reservation_type=OrganizationSlugReservationType.PRIMARY,
+        )
+
+        org_slug_reservation.slug = "newslug"
+        with outbox_context(
+            transaction.atomic(using=router.db_for_write(OrganizationSlugReservation))
+        ):
+            org_slug_reservation.save(unsafe_write=True)
+
+        self.assert_all_replicas_match_slug_reservations()
+
+    def test_delete_and_slug_change(self):
+        org_slug_res_a = self.create_org_slug_reservation(
+            slug="santry",
+            user_id=self.user.id,
+            organization_id=42,
+            region_name="us",
+            reservation_type=OrganizationSlugReservationType.PRIMARY,
+        )
+
+        org_slug_res_b = self.create_org_slug_reservation(
+            slug="acme",
+            user_id=self.user.id,
+            organization_id=43,
+            region_name="us",
+            reservation_type=OrganizationSlugReservationType.PRIMARY,
+        )
+
+        with outbox_context(flush=False):
+            org_slug_res_a.delete()
+            org_slug_res_b.update(unsafe_write=True, slug="santry")
+
+        with outbox_runner():
+            pass
+
+        self.assert_all_replicas_match_slug_reservations()
+
+    def test_multi_rename_collision(self):
+        org_slug_res_a = self.create_org_slug_reservation(
+            slug="santry",
+            user_id=self.user.id,
+            organization_id=42,
+            region_name="us",
+            reservation_type=OrganizationSlugReservationType.PRIMARY,
+        )
+
+        org_slug_res_b = self.create_org_slug_reservation(
+            slug="acme",
+            user_id=self.user.id,
+            organization_id=43,
+            region_name="us",
+            reservation_type=OrganizationSlugReservationType.PRIMARY,
+        )
+
+        org_slug_res_c = self.create_org_slug_reservation(
+            slug="foobar",
+            user_id=self.user.id,
+            organization_id=44,
+            region_name="us",
+            reservation_type=OrganizationSlugReservationType.PRIMARY,
+        )
+
+        with outbox_context(flush=False):
+            org_slug_res_a.update(slug="newsantry", unsafe_write=True)
+            org_slug_res_b.update(slug="santry", unsafe_write=True)
+            org_slug_res_c.update(slug="acme", unsafe_write=True)
+            org_slug_res_a.update(slug="foobar", unsafe_write=True)
+
+        with outbox_runner():
+            pass
 
         self.assert_all_replicas_match_slug_reservations()
