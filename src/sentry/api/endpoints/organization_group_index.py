@@ -397,7 +397,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         If any ids are out of scope this operation will succeed without
         any data mutation.
 
-        :qparam int id: a list of IDs of the issues to be mutated.  This
+        :qparam int id: a list of Ids of the issues to be mutated.  This
                         parameter shall be repeated for each issue.  It
                         is optional only if a status is mutated in which
                         case an implicit `update all` is assumed.
@@ -478,7 +478,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         If any ids are out of scope this operation will succeed without
         any data mutation.
 
-        :qparam int id: a list of IDs of the issues to be removed.  This
+        :qparam int id: a list of Ids of the issues to be removed.  This
                         parameter shall be repeated for each issue, e.g.
                         `?id=1&id=2&id=3`. If this parameter is not provided,
                         it will attempt to remove the first 1000 issues.

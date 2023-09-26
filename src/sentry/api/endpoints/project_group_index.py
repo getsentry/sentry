@@ -203,7 +203,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
         If any ids are out of scope this operation will succeed without
         any data mutation.
 
-        :qparam int id: a list of IDs of the issues to be mutated.  This
+        :qparam int id: a list of Ids of the issues to be mutated.  This
                         parameter shall be repeated for each issue.  It
                         is optional only if a status is mutated in which
                         case an implicit `update all` is assumed.
@@ -266,7 +266,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
         If any ids are out of scope this operation will succeed without
         any data mutation.
 
-        :qparam int id: a list of IDs of the issues to be removed.  This
+        :qparam int id: a list of Ids of the issues to be removed.  This
                         parameter shall be repeated for each issue.
         :pparam string organization_slug: the slug of the organization the
                                           issues belong to.
