@@ -10,3 +10,4 @@ nodestore: 0002_nodestore_no_dictfield
 replays: 0003_add_size_to_recording_segment
 sentry: 0568_monitors_fix_next_checkin_latest
 social_auth: 0002_default_auto_field
+hybridcloud: 0001_add_api_key_replica
