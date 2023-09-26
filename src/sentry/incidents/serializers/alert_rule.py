@@ -28,7 +28,6 @@ from sentry.incidents.logic import (
     update_alert_rule,
 )
 from sentry.incidents.models import AlertRule, AlertRuleThresholdType, AlertRuleTrigger
-from sentry.models.project import Project
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.entity_subscription import (
     ENTITY_TIME_COLUMNS,
@@ -49,29 +48,32 @@ from .alert_rule_trigger import AlertRuleTriggerSerializer
 logger = logging.getLogger(__name__)
 
 
-class AlertRuleSerializerResponse(TypedDict, total=False):
+class AlertRuleSerializerResponseOptional(TypedDict, total=False):
+    owner: Optional[str]
+    environment: Optional[str]
+    projects: Optional[List[dict]]
+    excludedProjects: Optional[List[dict]]
+    includeAllProjects: Optional[bool]
+    queryType: Optional[int]
+    resolveThreshold: Optional[float]
+    comparisonDelta: Optional[int]
+    dataset: Optional[str]
+    eventTypes: Optional[List[str]]
+
+
+class AlertRuleSerializerResponse(AlertRuleSerializerResponseOptional):
     """
     This represents a Sentry Metric Alert Rule.
     """
 
     id: str
     name: str
-    owner: Optional[ActorField]  # TODO: blocked by #55956 (extends ActorField)
-    environment: Optional[str]
-    projects: Optional[List[Project]]
-    excludedProjects: Optional[List[Project]]
-    includeAllProjects: Optional[bool]
-    triggers: List[AlertRuleTrigger]
+    triggers: List[dict]
     aggregate: str
-    queryType: Optional[int]
     query: str
     timeWindow: str
     thresholdType: int
     thresholdPeriod: int
-    resolveThreshold: Optional[float]
-    comparisonDelta: Optional[int]
-    dataset: Optional[str]
-    eventTypes: Optional[List[str]]
 
 
 class AlertRuleSerializer(CamelSnakeModelSerializer):

@@ -257,20 +257,10 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
 
 
 class OrganizationAlertRuleIndexPostSerializer(serializers.Serializer):
+    name = serializers.CharField(max_length=64, help_text="The name for the rule.")
     aggregate = serializers.CharField(
         help_text="A string representing the aggregate used in this alert rule."
     )  # TODO: how are we going to enforce what aggregates users use? need to list each possible aggregate?? there are 68 with the custom metric options. additionally, some aggregates are not compatible with event type
-    name = serializers.CharField(max_length=64, help_text="The name for the rule.")
-    query = serializers.CharField(
-        help_text="An event search query to subscribe to and monitor for alerts. Use an empty string for no filter."
-    )
-    thresholdPeriod = serializers.IntegerField(
-        help_text="How many times an alert value must exceed the threshold to fire/resolve the alert."
-    )  # TODO: check if this is in the ui?
-    thresholdType = serializers.ChoiceField(
-        choices=((0, "Above"), (1, "Below")),
-        help_text="The comparison operator for the critical and warning thresholds. The comparison operator for the resolved threshold is automatically set to the opposite operator.",
-    )
     timeWindow = serializers.ChoiceField(
         choices=(
             ("1", "1 minute"),
@@ -285,6 +275,16 @@ class OrganizationAlertRuleIndexPostSerializer(serializers.Serializer):
         ),
         help_text="The time period to aggregate over.",
     )
+    query = serializers.CharField(
+        help_text='An event search query to subscribe to and monitor for alerts. For example, to filter transactions so that only those with status code 400 are included, you could use `"query": "http.status_code:400"`. Use an empty string for no filter.'
+    )
+    thresholdPeriod = serializers.IntegerField(
+        help_text="How many times an alert value must exceed the threshold to fire/resolve the alert."
+    )  # TODO: exclude bc it's not in the UI? seems to default to 1
+    thresholdType = serializers.ChoiceField(
+        choices=((0, "Above"), (1, "Below")),
+        help_text="The comparison operator for the critical and warning thresholds. The comparison operator for the resolved threshold is automatically set to the opposite operator.",
+    )
     triggers = serializers.ListField(
         help_text="""
     A list of triggers, where each trigger is an object with the following fields:
@@ -295,13 +295,16 @@ class OrganizationAlertRuleIndexPostSerializer(serializers.Serializer):
     ```json
     {
         "label": "critical",
+        "thresholdType": 0,
         "alertThreshold": 50,
+        "resolveThreshold": None,
         "actions": [
             {
                 "type": "slack",
-                "targetIdentifier": "#get-crit",
                 "targetType": "specific",
-                "integration": 653532,
+                "targetIdentifier": "#get-crit",
+                "inputChannelId": 2454362
+                "integrationId": 653532,
             }
         ]
     }
@@ -310,41 +313,55 @@ class OrganizationAlertRuleIndexPostSerializer(serializers.Serializer):
     - `type`: The type of trigger action. Valid values are `email`, `slack`, `msteams`, `pagerduty`, `sentry_app`, `sentry_notification`, and `opsgenie`.
     - `targetType`: The type of target the notification will be sent to. Valid values are `specific`, `user`, `team`, and `sentry_app`.
     - `targetIdentifier`: The ID of the target. This is required as an integer for PagerDuty and Sentry apps, and as a string for all others. Examples of appropriate values include a Slack channel name (`#my-channel`), a user ID, a team ID, a Sentry app ID, etc.
-    - `integration`: The integration ID. This is required for every action type excluding `email` and `sentry_app.`
+    - `inputChannelId`: The ID of the Slack channel. This is only used for the Slack action, and can be used as an alternative to providing the `targetIdentifier`.
+    - `integrationId`: The integration ID. This is required for every action type excluding `email` and `sentry_app.`
     - `sentryAppId`: The ID of the Sentry app. This is required when `type` is `sentry_app`.
 """
     )
-    comparisonDelta = serializers.IntegerField(
+    environment = serializers.CharField(
         required=False,
-        help_text="An optional int representing the time delta to use to determine the comparison period. In minutes.",
+        allow_null=True,
+        help_text="The name of the environment to filter by. Defaults to all environments.",
     )
     dataset = serializers.CharField(
         required=False, help_text="The dataset that this query will be executed on."
-    )  # TODO: determine if this should be included (confirm ui equivalent)
-    environment = serializers.CharField(
-        required=False, allow_null=True, help_text="The name of the environment to filter by."
-    )
-    eventTypes = serializers.ListField(
-        child=serializers.CharField(),
-        required=False,
-        help_text="List of event types that this alert will be related to.",
-    )
-    owner = ActorField(
-        required=False, allow_null=True, help_text="The ID of the team or user that owns the rule."
-    )
+    )  # TODO: dependent on type of metric alert rule
+    """
+    from src/sentry/incidents/logic.py
+
+    query_datasets_to_type = {
+        Dataset.Events: SnubaQuery.Type.ERROR,
+        Dataset.Transactions: SnubaQuery.Type.PERFORMANCE,
+        Dataset.PerformanceMetrics: SnubaQuery.Type.PERFORMANCE,
+        Dataset.Sessions: SnubaQuery.Type.CRASH_RATE,
+        Dataset.Metrics: SnubaQuery.Type.CRASH_RATE,
+    }
+    """
+    queryType = serializers.IntegerField(
+        required=False, help_text="The `SnubaQuery.Type` of the query"
+    )  # TODO: dependent on type of metric alert rule; one of 0 - "event.type:error" and 1 - "event.type:transaction" and 2 - crash rate; also feels like it's required bc i dont think any of the metric alert rules in the api return a response with this as None
     projects = serializers.ListField(
         child=ProjectField(scope="project:read"),
-        required=False,
+        required=False,  # TODO: feels like this should be required since ui requires it
         help_text="The names of the projects to filter by.",
     )
-    # includeAllProjects, excludedProjects TODO: left out because these don't seem to exist on the ui
-    queryType = serializers.CharField(
-        required=False, help_text="The `SnubaQuery.Type` of the query"
+    comparisonDelta = serializers.IntegerField(
+        required=False,
+        help_text="An optional int representing the time delta to use to determine the comparison period, in minutes. Required when using a percentage change threshold",
     )
     resolveThreshold = serializers.FloatField(
         required=False,
         help_text="Optional value that the subscription needs to reach to resolve the alert",
     )
+    eventTypes = serializers.ListField(
+        child=serializers.CharField(),
+        required=False,
+        help_text="List of event types that this alert will be related to.",
+    )  # TODO: "error" for event.type:error, "transaction" for event.type:transaction, empty list for crash rate
+    owner = ActorField(
+        required=False, allow_null=True, help_text="The ID of the team or user that owns the rule."
+    )
+    # includeAllProjects, excludedProjects TODO: left out because these don't seem to exist on the ui
 
 
 @extend_schema(tags=["Events"])
@@ -381,9 +398,7 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMix
         parameters=[GlobalParams.ORG_SLUG],
         request=OrganizationAlertRuleIndexPostSerializer,
         responses={
-            201: inline_sentry_response_serializer(
-                "MetricAlertRuleCreated", AlertRuleSerializerResponse
-            ),
+            201: AlertRuleSerializer,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
