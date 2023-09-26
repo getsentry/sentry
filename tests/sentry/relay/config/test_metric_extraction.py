@@ -433,27 +433,10 @@ def test_get_metric_extraction_config_with_apdex(default_project):
 
 
 @django_db_all
-def test_get_metric_extraction_config_with_epm(default_project):
+@pytest.mark.parametrize("metric", [("epm()"), ("eps()")])
+def test_get_metric_extraction_config_with_no_tag_spec(default_project, metric):
     with Feature({ON_DEMAND_METRICS: True, ON_DEMAND_METRICS_WIDGETS: True}):
-        create_widget(["epm()"], "transaction.duration:>=1000", default_project)
-
-        config = get_metric_extraction_config(default_project)
-
-        assert config
-        assert len(config["metrics"]) == 1
-        assert config["metrics"][0] == {
-            "category": "transaction",
-            "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
-            "field": None,
-            "mri": "c:transactions/on_demand@none",
-            "tags": [{"key": "query_hash", "value": ANY}],
-        }
-
-
-@django_db_all
-def test_get_metric_extraction_config_with_eps(default_project):
-    with Feature({ON_DEMAND_METRICS: True, ON_DEMAND_METRICS_WIDGETS: True}):
-        create_widget(["eps()"], "transaction.duration:>=1000", default_project)
+        create_widget([metric], "transaction.duration:>=1000", default_project)
 
         config = get_metric_extraction_config(default_project)
 

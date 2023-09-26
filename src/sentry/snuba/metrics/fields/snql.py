@@ -614,7 +614,7 @@ def rate_snql_factory(
     numerator: float,
     denominator: float = 1.0,
     alias: Optional[str] = None,
-):
+) -> Function:
     return Function(
         "divide",
         [
