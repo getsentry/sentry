@@ -59,6 +59,7 @@ GETTING_STARTD_DOCS_PLATFORMS = [
     "apple",
     "apple-ios",
     "apple-macos",
+    "bun",
     "capacitor",
     "cordova",
     "dart",
