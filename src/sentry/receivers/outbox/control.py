@@ -17,32 +17,13 @@ from sentry.models import (
     Integration,
     OutboxCategory,
     SentryAppInstallation,
-    User,
     process_control_outbox,
 )
 from sentry.receivers.outbox import maybe_process_tombstone
-from sentry.services.hybrid_cloud.organization import (
-    RpcOrganizationSignal,
-    RpcRegionUser,
-    organization_service,
-)
+from sentry.services.hybrid_cloud.organization import RpcOrganizationSignal, organization_service
 from sentry.silo.base import SiloMode
 
 logger = logging.getLogger(__name__)
-
-
-@receiver(process_control_outbox, sender=OutboxCategory.USER_UPDATE)
-def process_user_updates(object_identifier: int, region_name: str, **kwds: Any):
-    if (user := maybe_process_tombstone(User, object_identifier, region_name=region_name)) is None:
-        return
-    organization_service.update_region_user(
-        user=RpcRegionUser(
-            id=user.id,
-            is_active=user.is_active,
-            email=user.email,
-        ),
-        region_name=region_name,
-    )
 
 
 @receiver(process_control_outbox, sender=OutboxCategory.INTEGRATION_UPDATE)
