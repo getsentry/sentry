@@ -1,6 +1,5 @@
-import type {Scope} from '@sentry/core';
 import {prepareEvent} from '@sentry/core';
-import type {Client} from '@sentry/types';
+import {Client, Scope} from '@sentry/types';
 
 import type {FeedbackEvent} from './types';
 
@@ -19,7 +18,7 @@ export async function prepareFeedbackEvent({
   const preparedEvent = (await prepareEvent(
     client.getOptions(),
     event,
-    {integrations: []},
+    {integrations: undefined},
     scope
   )) as FeedbackEvent | null;
 
