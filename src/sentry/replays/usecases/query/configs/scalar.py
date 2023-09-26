@@ -8,7 +8,6 @@ from sentry.replays.lib.new_query.conditions import IPv4Scalar, StringArray, Str
 from sentry.replays.lib.new_query.fields import ColumnField, StringColumnField, UUIDColumnField
 from sentry.replays.lib.new_query.parsers import parse_str, parse_uuid
 from sentry.replays.usecases.query.conditions import ErrorIdsArray
-from sentry.replays.usecases.query.conditions.event_ids import ErrorIdScalar, InfoIdScalar
 from sentry.replays.usecases.query.fields import ComputedField, TagField
 
 # Static Search Config
@@ -47,16 +46,10 @@ varying_search_config: dict[str, Union[ColumnField, ComputedField, TagField]] = 
     "user.id": StringColumnField("user_id", parse_str, StringScalar),
     "user.ip_address": StringColumnField("ip_address_v4", parse_str, IPv4Scalar),
     "user.username": StringColumnField("user_name", parse_str, StringScalar),
-    "new_error_ids": ComputedField(parse_uuid, ErrorIdScalar),
-    "warning_ids": StringColumnField("warning_id", lambda x: str(parse_uuid(x)), StringScalar),
-    "info_ids": ComputedField(parse_uuid, InfoIdScalar),
 }
 
 # Aliases
 varying_search_config["error_id"] = varying_search_config["error_ids"]
-varying_search_config["x_error_id"] = varying_search_config["new_error_ids"]
-varying_search_config["x_warning_id"] = varying_search_config["warning_ids"]
-varying_search_config["x_info_id"] = varying_search_config["info_ids"]
 varying_search_config["trace_id"] = varying_search_config["trace_ids"]
 varying_search_config["trace"] = varying_search_config["trace_ids"]
 varying_search_config["url"] = varying_search_config["urls"]
