@@ -121,6 +121,7 @@ class DashboardWidget(Model):
     order = BoundedPositiveIntegerField()
     title = models.CharField(max_length=255)
     description = models.CharField(max_length=255, null=True)
+    thresholds = JSONField(null=True)
     interval = models.CharField(max_length=10, null=True)
     display_type = BoundedPositiveIntegerField(choices=DashboardWidgetDisplayTypes.as_choices())
     date_added = models.DateTimeField(default=timezone.now)

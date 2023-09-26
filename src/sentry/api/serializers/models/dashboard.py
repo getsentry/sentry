@@ -38,6 +38,7 @@ class DashboardWidgetSerializer(Serializer):
             "title": obj.title,
             "description": obj.description,
             "displayType": DashboardWidgetDisplayTypes.get_type_name(obj.display_type),
+            "thresholds": obj.thresholds,
             # Default value until a backfill can be done.
             "interval": str(obj.interval or "5m"),
             "dateCreated": obj.date_added,
