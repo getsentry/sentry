@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Any, Mapping
 
 from sentry.utils.safe import get_path
@@ -24,6 +26,31 @@ def has_stacktrace(event_data: Mapping[str, Any]) -> bool:
             return True
 
     return False
+
+
+def is_handled(event_data: Mapping[str, Any]) -> bool | None:
+    """
+    Scans event data for the presence of one or more `handled` values.
+
+    If no `handled` value is found, returns None.
+    If a single `handled` value is found, returns the value.
+    If multiple `handled` values are found, returns True iff all values are True, and False
+    otherwise.
+    """
+    is_handled = None
+
+    exception_values = event_data.get("exception", {}).get("values", [])
+    for value in exception_values:
+        handled = value.get("mechanism", {}).get("handled")
+
+        # Even one `handled: False` value makes the entire event count as unhandled
+        if handled is False:
+            return False
+
+        if handled is True:
+            is_handled = True
+
+    return is_handled
 
 
 # Check if an event contains a minified stack trace (source maps for javascript)
