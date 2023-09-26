@@ -41,21 +41,6 @@ class HealthCheck:
             raise HealthcheckError(f"Container '{self.container_name}' is not running.")
 
 
-def check_kafka():
-    subprocess.run(
-        (
-            "docker",
-            "exec",
-            "sentry_kafka",
-            "kafka-topics",
-            "--zookeeper",
-            "sentry_zookeeper:2181",
-            "--list",
-        ),
-        check=True,
-    )
-
-
 def check_postgres() -> None:
     subprocess.run(
         ("docker", "exec", "sentry_postgres", "pg_isready", "-U", "postgres"), check=True

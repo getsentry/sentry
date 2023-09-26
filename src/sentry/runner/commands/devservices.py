@@ -9,7 +9,7 @@ import subprocess
 import sys
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import TYPE_CHECKING, Any, Callable, Generator, Literal, TypedDict, overload
+from typing import TYPE_CHECKING, Any, Callable, Generator, Literal, overload
 
 import click
 import requests
@@ -277,7 +277,7 @@ def up(
             for future in as_completed(futures):
                 e = future.exception()
                 if e:
-                    click.echo(e)
+                    click.secho(f"> Failed to start service: {e}", err=True, fg="red")
 
     # Check health of services. Seperate from _start_services
     # in case there are dependencies needed for the health
@@ -295,7 +295,7 @@ def up(
         for future in as_completed(futures):
             e = future.exception()
             if e:
-                click.echo(e)
+                click.secho(f"> Failed to check health: {e}", err=True, fg="red")
 
 
 def _prepare_containers(
@@ -464,7 +464,7 @@ def down(project: str, service: list[str]) -> None:
             for future in as_completed(futures):
                 e = future.exception()
                 if e:
-                    click.echo(e)
+                    click.secho(f"> Failed to stop service: {e}", err=True, fg="red")
 
 
 @devservices.command()
@@ -554,14 +554,14 @@ Are you sure you want to continue?"""
 
 
 def check_health(service_name: str, containers: dict[str, Any]) -> None:
-    healthcheck = service_healthchecks.get(service_name)
+    healthcheck = getattr(service_healthchecks, service_name, None)
     if healthcheck is None:
         return
 
     click.secho(f"> Checking container health '{service_name}'", fg="yellow")
 
     def hc() -> None:
-        healthcheck["check"](containers)
+        healthcheck.check(containers)
 
     try:
         run_with_retries(hc)
@@ -602,8 +602,7 @@ def check_kafka(containers: dict[str, Any]) -> None:
             kafka_options["name"],
             "kafka-topics",
             "--zookeeper",
-            # TODO: sentry_zookeeper:2181 doesn't work in CI, but 127.0.0.1 doesn't work locally
-            os.environ.get("ZK_HOST", f"{zk_options['name']}:{zk_port}"),
+            f"{zk_options['name']}:{zk_port}",
             "--list",
         ),
         check=True,
@@ -629,15 +628,20 @@ def check_postgres(containers: dict[str, Any]) -> None:
     )
 
 
-class ServiceHealthcheck(TypedDict):
+class ServiceHealthcheck:
     check: Callable[[dict[str, Any]], None]
 
+    def __init__(self, check: Callable[[dict[str, Any]], None]) -> None:
+        self.check = check
 
-service_healthchecks: dict[str, ServiceHealthcheck] = {
-    "postgres": {
-        "check": check_postgres,
-    },
-    "kafka": {
-        "check": check_kafka,
-    },
-}
+
+class ServiceHealthChecks:
+    postgres: ServiceHealthcheck
+    kafka: ServiceHealthcheck
+
+    def __init__(self) -> None:
+        self.postgres = ServiceHealthcheck(check_postgres)
+        self.kafka = ServiceHealthcheck(check_kafka)
+
+
+service_healthchecks = ServiceHealthChecks()
