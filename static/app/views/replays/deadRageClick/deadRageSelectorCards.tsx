@@ -42,7 +42,7 @@ function DeadClickTable({location}: {location: Location<any>}) {
 
   return (
     <SelectorTable
-      data={data}
+      data={data.filter(d => (d.count_dead_clicks ?? 0) > 0)}
       isError={isError}
       isLoading={isLoading}
       location={location}
@@ -63,6 +63,7 @@ function DeadClickTable({location}: {location: Location<any>}) {
         />
       }
       customHandleResize={() => {}}
+      clickCountSortable={false}
     />
   );
 }
@@ -77,7 +78,7 @@ function RageClickTable({location}: {location: Location<any>}) {
 
   return (
     <SelectorTable
-      data={data}
+      data={data.filter(d => (d.count_rage_clicks ?? 0) > 0)}
       isError={isError}
       isLoading={isLoading}
       location={location}
@@ -98,6 +99,7 @@ function RageClickTable({location}: {location: Location<any>}) {
         />
       }
       customHandleResize={() => {}}
+      clickCountSortable={false}
     />
   );
 }

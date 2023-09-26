@@ -26,20 +26,19 @@ export function getAriaLabel(str: string) {
 }
 
 export function hydratedSelectorData(data, clickType): DeadRageSelectorItem[] {
-  return data
-    .filter(d => d[clickType] > 0)
-    .map(d => {
-      return {
-        [clickType]: d[clickType],
-        dom_element: d.dom_element,
-        element: d.dom_element.split(/[#.]+/)[0],
-        aria_label: getAriaLabel(d.dom_element),
-      };
-    });
+  return data.map(d => {
+    return {
+      [clickType]: d[clickType],
+      dom_element: d.dom_element,
+      element: d.dom_element.split(/[#.]+/)[0],
+      aria_label: getAriaLabel(d.dom_element),
+    };
+  });
 }
 
 interface Props {
   clickCountColumn: {key: string; name: string};
+  clickCountSortable: boolean;
   data: DeadRageSelectorItem[];
   isError: boolean;
   isLoading: boolean;
@@ -64,6 +63,7 @@ export default function SelectorTable({
   title,
   headerButtons,
   customHandleResize,
+  clickCountSortable,
 }: Props) {
   const organization = useOrganization();
 
@@ -84,9 +84,9 @@ export default function SelectorTable({
         makeSortLinkGenerator,
         onClick: () => {},
         rightAlignedColumns: [],
-        sortableColumns: [],
+        sortableColumns: clickCountSortable ? [clickCountColumn] : [],
       }),
-    [currentSort, makeSortLinkGenerator]
+    [currentSort, makeSortLinkGenerator, clickCountColumn, clickCountSortable]
   );
 
   const renderBodyCell = useCallback(

@@ -71,6 +71,7 @@ export default function RageClickList() {
                 isLoading={isLoading}
                 location={location}
                 clickCountColumn={{key: 'count_rage_clicks', name: 'rage clicks'}}
+                clickCountSortable
               />
             </LayoutGap>
             <PaginationNoMargin

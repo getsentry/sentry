@@ -71,6 +71,7 @@ export default function DeadClickList() {
                 isLoading={isLoading}
                 location={location}
                 clickCountColumn={{key: 'count_dead_clicks', name: 'dead clicks'}}
+                clickCountSortable
               />
             </LayoutGap>
             <PaginationNoMargin
