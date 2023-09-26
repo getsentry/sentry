@@ -98,8 +98,7 @@ export default function DeadRageClickList() {
 }
 
 const LayoutGap = styled('div')`
-  display: grid;
-  gap: ${space(1)};
+  margin-top: ${space(2)};
 `;
 
 const PaginationNoMargin = styled(Pagination)`

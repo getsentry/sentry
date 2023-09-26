@@ -28,24 +28,17 @@ export function getAriaLabel(str: string) {
 }
 
 export function hydratedSelectorData(data, clickType?): DeadRageSelectorItem[] {
-  return clickType
-    ? data.map(d => {
-        return {
-          [clickType]: d[clickType],
-          dom_element: d.dom_element,
-          element: d.dom_element.split(/[#.]+/)[0],
-          aria_label: getAriaLabel(d.dom_element),
-        };
-      })
-    : data.map(d => {
-        return {
+  return data.map(d => ({
+    ...(clickType
+      ? {[clickType]: d[clickType]}
+      : {
           count_dead_clicks: d.count_dead_clicks,
           count_rage_clicks: d.count_rage_clicks,
-          dom_element: d.dom_element,
-          element: d.dom_element.split(/[#.]+/)[0],
-          aria_label: getAriaLabel(d.dom_element),
-        };
-      });
+        }),
+    dom_element: d.dom_element,
+    element: d.dom_element.split(/[#.]+/)[0],
+    aria_label: getAriaLabel(d.dom_element),
+  }));
 }
 
 interface Props {
