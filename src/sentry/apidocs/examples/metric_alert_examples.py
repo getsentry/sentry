@@ -55,6 +55,8 @@ class MetricAlertExamples:
                     "createdBy": {"id": 983948, "name": "John Doe", "email": "john.doe@sentry.io"},
                 }
             ],
+            status_codes=["200"],
+            response_only=True,
         )
     ]
 
@@ -71,8 +73,8 @@ class MetricAlertExamples:
                 "query": "",
                 "aggregate": "percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate",
                 "thresholdType": 0,
-                "resolveThreshold": None,
-                "timeWindow": 60.0,
+                "resolveThreshold": 80.0,
+                "timeWindow": "120",
                 "environment": None,
                 "resolution": 2.0,
                 "thresholdPeriod": 1,
@@ -83,7 +85,7 @@ class MetricAlertExamples:
                         "label": "critical",
                         "thresholdType": 0,
                         "alertThreshold": 75,
-                        "resolveThreshold": 80,
+                        "resolveThreshold": 80.0,
                         "dateCreated": "2023-09-25T22:01:28.673305Z",
                         "actions": [
                             {
@@ -123,5 +125,7 @@ class MetricAlertExamples:
                     "email": "jane.doe@sentry.io",
                 },
             },
+            status_codes=["201"],
+            response_only=True,
         )
     ]

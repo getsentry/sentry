@@ -1,14 +1,12 @@
 import logging
 import operator
 from datetime import timedelta
-from typing import List, Optional
 
 from django.conf import settings
 from django.db import router, transaction
 from django.utils import timezone
 from rest_framework import serializers
 from snuba_sdk import Column, Condition, Limit, Op
-from typing_extensions import TypedDict
 
 from sentry import features
 from sentry.api.fields.actor import ActorField
@@ -46,34 +44,6 @@ from . import (
 from .alert_rule_trigger import AlertRuleTriggerSerializer
 
 logger = logging.getLogger(__name__)
-
-
-class AlertRuleSerializerResponseOptional(TypedDict, total=False):
-    owner: Optional[str]
-    environment: Optional[str]
-    projects: Optional[List[dict]]
-    excludedProjects: Optional[List[dict]]
-    includeAllProjects: Optional[bool]
-    queryType: Optional[int]
-    resolveThreshold: Optional[float]
-    comparisonDelta: Optional[int]
-    dataset: Optional[str]
-    eventTypes: Optional[List[str]]
-
-
-class AlertRuleSerializerResponse(AlertRuleSerializerResponseOptional):
-    """
-    This represents a Sentry Metric Alert Rule.
-    """
-
-    id: str
-    name: str
-    triggers: List[dict]
-    aggregate: str
-    query: str
-    timeWindow: str
-    thresholdType: int
-    thresholdPeriod: int
 
 
 class AlertRuleSerializer(CamelSnakeModelSerializer):

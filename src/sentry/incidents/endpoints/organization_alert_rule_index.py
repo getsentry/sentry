@@ -22,7 +22,11 @@ from sentry.api.paginator import (
     OffsetPaginator,
 )
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.alert_rule import CombinedRuleSerializer
+from sentry.api.serializers.models.alert_rule import AlertRuleSerializer as AlertRuleModelSerializer
+from sentry.api.serializers.models.alert_rule import (
+    AlertRuleSerializerResponse,
+    CombinedRuleSerializer,
+)
 from sentry.api.serializers.rest_framework.project import ProjectField
 from sentry.api.utils import InvalidParams
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
@@ -33,7 +37,8 @@ from sentry.constants import ObjectStatus
 from sentry.incidents.logic import get_slack_actions_with_async_lookups
 from sentry.incidents.models import AlertRule, Incident
 from sentry.incidents.serializers import AlertRuleSerializer
-from sentry.incidents.serializers.alert_rule import AlertRuleSerializerResponse
+
+# from sentry.incidents.serializers.alert_rule import AlertRuleSerializerResponse
 from sentry.incidents.utils.sentry_apps import trigger_sentry_app_action_creators_for_incidents
 from sentry.integrations.slack.utils import RedisRuleStatus
 from sentry.models import OrganizationMemberTeam, Project, Rule, Team
@@ -398,7 +403,7 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMix
         parameters=[GlobalParams.ORG_SLUG],
         request=OrganizationAlertRuleIndexPostSerializer,
         responses={
-            201: AlertRuleSerializer,
+            201: AlertRuleModelSerializer,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,

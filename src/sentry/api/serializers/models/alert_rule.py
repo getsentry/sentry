@@ -1,7 +1,8 @@
 from collections import defaultdict
-from typing import MutableMapping
+from typing import List, MutableMapping, Optional
 
 from django.db.models import Max, Q, prefetch_related_objects
+from typing_extensions import TypedDict
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.rule import RuleSerializer
@@ -22,6 +23,41 @@ from sentry.services.hybrid_cloud.app import app_service
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.snuba.models import SnubaQueryEventType
+
+
+class AlertRuleSerializerResponseOptional(TypedDict, total=False):
+    environment: Optional[str]
+    projects: Optional[List[str]]
+    excludedProjects: Optional[List[dict]]
+    queryType: Optional[int]
+    resolveThreshold: Optional[float]
+    dataset: Optional[str]
+    eventTypes: Optional[List[str]]
+    owner: Optional[str]
+    originalAlertRuleId: Optional[str]
+    comparisonDelta: Optional[str]
+
+
+class AlertRuleSerializerResponse(AlertRuleSerializerResponseOptional):
+    """
+    This represents a Sentry Metric Alert Rule.
+    """
+
+    id: str
+    name: str
+    organizationId: str
+    status: int
+    query: str
+    aggregate: str
+    thresholdType: int
+    timeWindow: str
+    resolution: float
+    thresholdPeriod: int
+    triggers: List[dict]
+    includeAllProjects: bool
+    dateModified: str
+    dateCreated: str
+    createdBy: dict
 
 
 @register(AlertRule)
@@ -141,7 +177,7 @@ class AlertRuleSerializer(Serializer):
 
         return result
 
-    def serialize(self, obj, attrs, user, **kwargs):
+    def serialize(self, obj, attrs, user, **kwargs) -> AlertRuleSerializerResponse:
         from sentry.incidents.endpoints.utils import translate_threshold
         from sentry.incidents.logic import translate_aggregate_field
 
