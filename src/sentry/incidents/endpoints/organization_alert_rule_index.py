@@ -263,24 +263,21 @@ class OrganizationAlertRuleIndexPostSerializer(serializers.Serializer):
     )  # TODO: how are we going to enforce what aggregates users use? need to list each possible aggregate?? there are 68 with the custom metric options. additionally, some aggregates are not compatible with event type
     timeWindow = serializers.ChoiceField(
         choices=(
-            ("1", "1 minute"),
-            ("5", "5 minutes"),
-            ("10", "10 minutes"),
-            ("15", "15 minutes"),
-            ("30", "30 minutes"),
-            ("60", "1 hour"),
-            ("120", "2 hours"),
-            ("240", "4 hours"),
-            ("1440", "24 hours"),
+            (1, "1 minute"),
+            (5, "5 minutes"),
+            (10, "10 minutes"),
+            (15, "15 minutes"),
+            (30, "30 minutes"),
+            (60, "1 hour"),
+            (120, "2 hours"),
+            (240, "4 hours"),
+            (1440, "24 hours"),
         ),
         help_text="The time period to aggregate over.",
     )
     query = serializers.CharField(
         help_text='An event search query to subscribe to and monitor for alerts. For example, to filter transactions so that only those with status code 400 are included, you could use `"query": "http.status_code:400"`. Use an empty string for no filter.'
     )
-    thresholdPeriod = serializers.IntegerField(
-        help_text="How many times an alert value must exceed the threshold to fire/resolve the alert."
-    )  # TODO: exclude bc it's not in the UI? seems to default to 1
     thresholdType = serializers.ChoiceField(
         choices=((0, "Above"), (1, "Below")),
         help_text="The comparison operator for the critical and warning thresholds. The comparison operator for the resolved threshold is automatically set to the opposite operator.",
@@ -339,7 +336,12 @@ class OrganizationAlertRuleIndexPostSerializer(serializers.Serializer):
     """
     queryType = serializers.IntegerField(
         required=False, help_text="The `SnubaQuery.Type` of the query"
-    )  # TODO: dependent on type of metric alert rule; one of 0 - "event.type:error" and 1 - "event.type:transaction" and 2 - crash rate; also feels like it's required bc i dont think any of the metric alert rules in the api return a response with this as None
+    )  # TODO: dependent on type of metric alert rule; one of 0 - "event.type:error" and 1 - "event.type:transaction" and 2 - crash rate; also feels like it's required bc i dont think any of the metric alert rules in the api return a response with this as None TODO: check if this is set in backend
+    eventTypes = serializers.ListField(
+        child=serializers.CharField(),
+        required=False,
+        help_text="List of event types that this alert will be related to.",
+    )  # TODO: "error" for event.type:error, "transaction" for event.type:transaction, empty list for crash rate
     projects = serializers.ListField(
         child=ProjectField(scope="project:read"),
         required=False,  # TODO: feels like this should be required since ui requires it
@@ -353,15 +355,10 @@ class OrganizationAlertRuleIndexPostSerializer(serializers.Serializer):
         required=False,
         help_text="Optional value that the subscription needs to reach to resolve the alert",
     )
-    eventTypes = serializers.ListField(
-        child=serializers.CharField(),
-        required=False,
-        help_text="List of event types that this alert will be related to.",
-    )  # TODO: "error" for event.type:error, "transaction" for event.type:transaction, empty list for crash rate
     owner = ActorField(
         required=False, allow_null=True, help_text="The ID of the team or user that owns the rule."
     )
-    # includeAllProjects, excludedProjects TODO: left out because these don't seem to exist on the ui
+    # resolution, thresholdPeriod, includeAllProjects, excludedProjects TODO: left out because these don't seem to exist on the ui
 
 
 @extend_schema(tags=["Events"])
