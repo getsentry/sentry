@@ -1,13 +1,14 @@
 from uuid import uuid4
 
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
-from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
+from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
 from sentry.apidocs.examples.project_examples import ProjectExamples
 from sentry.apidocs.parameters import GlobalParams
 from sentry.lang.native.sources import (
@@ -24,6 +25,7 @@ from sentry.utils import json
 @extend_schema(tags=["Projects"])
 @region_silo_endpoint
 class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
+    owner = ApiOwner.OWNERS_NATIVE
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
         "DELETE": ApiPublishStatus.PUBLIC,
@@ -33,9 +35,21 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
 
     @extend_schema(
         operation_id="Retrieve a Project's symbol sources",
-        parameters=[GlobalParams.ORG_SLUG, GlobalParams.PROJECT_SLUG],
+        parameters=[
+            GlobalParams.ORG_SLUG,
+            GlobalParams.PROJECT_SLUG,
+            OpenApiParameter(
+                name="id",
+                description="The id of the source to look up.",
+                required=False,
+                type=str,
+                location="query",
+            ),
+        ],
         request=None,
         responses={
+            # TODO
+            200: None,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
@@ -67,9 +81,21 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
 
     @extend_schema(
         operation_id="Deletes a symbol source from a project",
-        parameters=[GlobalParams.ORG_SLUG, GlobalParams.PROJECT_SLUG],
+        parameters=[
+            GlobalParams.ORG_SLUG,
+            GlobalParams.PROJECT_SLUG,
+            OpenApiParameter(
+                name="id",
+                description="The id of the source to delete.",
+                required=True,
+                type=str,
+                location="query",
+            ),
+        ],
         request=None,
         responses={
+            # TODO
+            204: None,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
@@ -106,8 +132,10 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
         parameters=[GlobalParams.ORG_SLUG, GlobalParams.PROJECT_SLUG],
         request=None,
         responses={
+            # TODO
+            201: None,
+            400: RESPONSE_BAD_REQUEST,
             403: RESPONSE_FORBIDDEN,
-            404: RESPONSE_NOT_FOUND,
         },
     )
     def post(self, request: Request, project: Project) -> Response:
@@ -141,13 +169,26 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
         serialized = json.dumps(sources)
         project.update_option("sentry:symbol_sources", serialized)
 
-        return Response(data={"id": id}, status=200)
+        return Response(data={"id": id}, status=201)
 
     @extend_schema(
         operation_id="Edits a symbol source in a project",
-        parameters=[GlobalParams.ORG_SLUG, GlobalParams.PROJECT_SLUG],
+        parameters=[
+            GlobalParams.ORG_SLUG,
+            GlobalParams.PROJECT_SLUG,
+            OpenApiParameter(
+                name="id",
+                description="The id of the source to update.",
+                required=True,
+                type=str,
+                location="query",
+            ),
+        ],
         request=None,
         responses={
+            # TODO
+            200: None,
+            400: RESPONSE_BAD_REQUEST,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
