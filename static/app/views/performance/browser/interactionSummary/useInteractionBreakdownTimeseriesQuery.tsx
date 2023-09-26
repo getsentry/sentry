@@ -27,7 +27,7 @@ export const useInteractionBreakdownTimeseriesQuery = ({
   const projectTimeSeriesEventView = EventView.fromNewQueryWithPageFilters(
     {
       yAxis: [`p75(transaction.duration)`],
-      name: 'Web Vitals',
+      name: 'Interaction Duration',
       query: `transaction.op:${operation} transaction:${page} interactionElement:"${element.replaceAll(
         '"',
         '\\"'
