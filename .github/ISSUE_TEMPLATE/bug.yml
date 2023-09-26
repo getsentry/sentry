@@ -81,6 +81,8 @@ body:
         - 'Footer'
         - 'APIs'
         - 'Org Relocation'
+        - 'Unknown'
+        - 'Other'
         - 'Other'
         # end product areas
     validations:
