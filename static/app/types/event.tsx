@@ -777,6 +777,7 @@ interface EventBase {
   previousEventID?: string | null;
   projectSlug?: string;
   release?: EventRelease | null;
+  resolvedWith?: string[];
   sdk?: {
     name: string;
     version: string;

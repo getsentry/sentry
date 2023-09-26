@@ -33,6 +33,7 @@ export type BaseEventAnalyticsParams = {
   num_in_app_stack_frames: number;
   num_stack_frames: number;
   num_threads_with_names: number;
+  resolved_with: string[];
   error_has_replay?: boolean;
   error_has_user_feedback?: boolean;
   event_errors?: string;

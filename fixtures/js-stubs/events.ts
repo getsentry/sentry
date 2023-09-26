@@ -75,6 +75,7 @@ export function DetailedEvents(): Event[] {
       location: './app/utils/handleXhrErrorResponse.tsx',
       occurrence: null,
       projectID: '1',
+      resolvedWith: [],
     },
     {
       eventID: '807f0de4d8c246098f21f8e0f1684f3d',
@@ -139,6 +140,7 @@ export function DetailedEvents(): Event[] {
       location: './app/utils/handleXhrErrorResponse.tsx',
       occurrence: null,
       projectID: '1',
+      resolvedWith: [],
     },
   ];
 }

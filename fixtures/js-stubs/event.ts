@@ -23,6 +23,7 @@ export function Event(params = {}): TEvent {
     location: '',
     type: EventOrGroupType.ERROR,
     occurrence: null,
+    resolvedWith: [],
     contexts: {},
     ...params,
   };
