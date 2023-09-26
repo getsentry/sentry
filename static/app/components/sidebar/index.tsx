@@ -17,6 +17,7 @@ import {
   IconGraph,
   IconIssues,
   IconLightning,
+  IconMegaphone,
   IconPlay,
   IconProfiling,
   IconProject,
@@ -28,7 +29,6 @@ import {
   IconSupport,
   IconTelescope,
   IconTimer,
-  IconUser,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -234,7 +234,9 @@ function Sidebar({location, organization}: Props) {
                 isBeta={RELEASE_LEVEL === 'beta'}
                 isNew={RELEASE_LEVEL === 'new'}
                 label={
-                  <GuideAnchor target="performance-database">{t('Database')}</GuideAnchor>
+                  <GuideAnchor target="performance-database">
+                    {t('Query Insights')}
+                  </GuideAnchor>
                 }
                 to={`/organizations/${organization.slug}/performance/database/`}
                 id="performance-database"
@@ -322,8 +324,8 @@ function Sidebar({location, organization}: Props) {
     <Feature features={['user-feedback-ui']} organization={organization}>
       <SidebarItem
         {...sidebarItemProps}
-        icon={<IconUser />}
-        label={t('Feedback')}
+        icon={<IconMegaphone />}
+        label={t('Bug Reports')}
         to={`/organizations/${organization.slug}/feedback/`}
         id="feedback"
         isAlpha
@@ -469,6 +471,7 @@ function Sidebar({location, organization}: Props) {
                 {performance}
                 {starfish}
                 {profiling}
+                {ddm}
                 {replays}
                 {monitors}
                 {alerts}
@@ -476,7 +479,6 @@ function Sidebar({location, organization}: Props) {
 
               <SidebarSection>
                 {discover2}
-                {ddm}
                 {dashboards}
                 {releases}
                 {userFeedback}

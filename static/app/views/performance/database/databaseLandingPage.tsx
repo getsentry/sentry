@@ -40,13 +40,13 @@ function DatabaseLandingPage() {
                 preservePageFilters: true,
               },
               {
-                label: 'Database',
+                label: 'Queries',
               },
             ]}
           />
 
           <Layout.Title>
-            {t('Database')}
+            {t('Queries')}
             <FeatureBadge type={RELEASE_LEVEL} />
           </Layout.Title>
         </Layout.HeaderContent>
@@ -71,7 +71,7 @@ function DatabaseLandingPage() {
 
             <DomainSelector
               moduleName={moduleName}
-              value={moduleFilters[SpanMetricsField.SPAN_DOMAIN] || ''}
+              value={moduleFilters[SpanMetricsField.SPAN_DOMAIN_ARRAY] || ''}
             />
           </FilterOptionsContainer>
 

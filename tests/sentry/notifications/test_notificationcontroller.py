@@ -752,3 +752,26 @@ class NotificationControllerTest(TestCase):
             )
             == NotificationSettingsOptionEnum.NEVER
         )
+
+    def test_get_users_for_weekly_reports(self):
+        controller = NotificationController(
+            recipients=[self.user],
+            organization_id=self.organization.id,
+            type=NotificationSettingEnum.REPORTS,
+        )
+        assert controller.get_users_for_weekly_reports() == [self.user.id]
+
+        add_notification_setting_option(
+            scope_type=NotificationScopeEnum.USER,
+            scope_identifier=self.user.id,
+            type=NotificationSettingEnum.REPORTS,
+            value=NotificationSettingsOptionEnum.NEVER,
+            user_id=self.user.id,
+        )
+
+        controller = NotificationController(
+            recipients=[self.user],
+            organization_id=self.organization.id,
+            type=NotificationSettingEnum.REPORTS,
+        )
+        assert controller.get_users_for_weekly_reports() == []

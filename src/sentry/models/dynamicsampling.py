@@ -1,6 +1,6 @@
 import hashlib
 from datetime import datetime, timedelta
-from typing import Any, Mapping, Optional, Sequence
+from typing import TYPE_CHECKING, Any, Mapping, Optional, Sequence
 
 from django.db import connections, models, router, transaction
 from django.db.models import Q
@@ -10,9 +10,14 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, region_silo_only_model
 from sentry.utils import json
 
+if TYPE_CHECKING:
+    from sentry.models import Project
+
+
 # max number of custom rules that can be created per organization
 MAX_CUSTOM_RULES = 2000
 CUSTOM_RULE_START = 3000
+CUSTOM_RULE_DATE_FORMAT = "%Y-%m-%dT%H:%M:%S.%fZ"
 
 
 class TooManyRules(ValueError):
@@ -250,3 +255,30 @@ class CustomDynamicSamplingRule(Model):
             end_date__lt=timezone.now()
             - timedelta(minutes=1),
         ).update(is_active=False)
+
+    @staticmethod
+    def get_project_rules(
+        project: "Project",
+    ) -> Sequence["CustomDynamicSamplingRule"]:
+        """
+        Returns all active project rules
+        """
+        now = timezone.now()
+        # org rules ( apply to all projects in the org)
+        org_rules = CustomDynamicSamplingRule.objects.filter(
+            is_active=True,
+            is_org_level=True,
+            organization=project.organization,
+            end_date__gt=now,
+            start_date__lt=now,
+        )
+
+        # project rules
+        project_rules = CustomDynamicSamplingRule.objects.filter(
+            is_active=True,
+            projects__in=[project],
+            end_date__gt=now,
+            start_date__lt=now,
+        )
+
+        return project_rules.union(org_rules)

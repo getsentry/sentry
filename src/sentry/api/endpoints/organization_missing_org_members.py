@@ -28,7 +28,20 @@ from sentry.search.utils import tokenize_query
 from sentry.services.hybrid_cloud.integration import integration_service
 
 if TYPE_CHECKING:
-    from django_stubs_ext import WithAnnotations
+    # XXX: this should use WithAnnotations but it breaks the cache typeddjango/django-stubs#760
+    class CommitAuthor___commit__count(CommitAuthor):
+        commit__count: int
+
+
+filtered_email_domains = {
+    "gmail.com",
+    "icloud.com",
+    "hotmail.com",
+    "outlook.com",
+    "noreply.github.com",
+}
+
+filtered_characters = {"+"}
 
 
 class MissingOrgMemberSerializer(Serializer):
@@ -42,7 +55,7 @@ class MissingMembersPermission(OrganizationPermission):
 
 def _get_missing_organization_members(
     organization: Organization, provider: str, integration_ids: Sequence[int]
-) -> QuerySet[WithAnnotations[CommitAuthor]]:
+) -> QuerySet[CommitAuthor___commit__count]:
     member_emails = set(
         organization.member_set.exclude(email=None).values_list("email", flat=True)
     ) | set(organization.member_set.exclude(user_email=None).values_list("user_email", flat=True))
@@ -136,6 +149,12 @@ class OrganizationMissingMembersEndpoint(OrganizationEndpoint):
 
             if shared_domain:
                 queryset = queryset.filter(email__endswith=shared_domain)
+            else:
+                for filtered_email in filtered_email_domains:
+                    queryset = queryset.exclude(email__endswith=filtered_email)
+
+            for filtered_character in filtered_characters:
+                queryset = queryset.exclude(email__icontains=filtered_character)
 
             if queryset.exists():
                 query = request.GET.get("query")

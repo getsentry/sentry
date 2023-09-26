@@ -6,7 +6,7 @@ import {GettingStartedWithLaravel, steps} from './laravel';
 
 describe('GettingStartedWithLaravel', function () {
   it('renders doc correctly', function () {
-    render(<GettingStartedWithLaravel dsn="test-dsn" />);
+    render(<GettingStartedWithLaravel dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps({
