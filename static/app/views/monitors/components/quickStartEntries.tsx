@@ -493,3 +493,56 @@ Sentry.captureCheckIn({
     </Fragment>
   );
 }
+
+export function GoUpsertPlatformGuide() {
+  const scheduleCode = `// Create a crontab schedule object (every 10 minutes)
+monitorSchedule := sentry.CrontabSchedule("*/10 * * * *")
+
+// Or create an interval schedule object (every 10 minutes)
+monitorSchedule := sentry.IntervalSchedule(10, sentry.MonitorScheduleUnitMinute)
+  `;
+
+  const upsertCode = `// Create a monitor config object
+monitorConfig := &sentry.MonitorConfig{
+  Schedule:      monitorSchedule,
+  MaxRuntime:    2,
+  CheckInMargin: 1,
+}
+
+// 🟡 Notify Sentry your job is running:
+checkinId := sentry.CaptureCheckIn(
+  &sentry.CheckIn{
+    MonitorSlug: "<monitor-slug>",
+    Status:      sentry.CheckInStatusInProgress,
+  },
+  monitorConfig,
+)
+
+// Execute your scheduled task here...
+
+// 🟢 Notify Sentry your job has completed successfully:
+sentry.CaptureCheckIn(
+  &sentry.CheckIn{
+    MonitorSlug: "<monitor-slug>",
+    Status:      sentry.CheckInStatusOK,
+  },
+  monitorConfig,
+)`;
+
+  return (
+    <Fragment>
+      <div>
+        {tct(
+          'You can use the [additionalDocs: Go SDK] to create and update your Monitors programmatically with code rather than creating them manually.',
+          {
+            additionalDocs: (
+              <ExternalLink href="https://docs.sentry.io/platforms/go/crons/#upserting-cron-monitors" />
+            ),
+          }
+        )}
+      </div>
+      <CodeSnippet language="go">{scheduleCode}</CodeSnippet>
+      <CodeSnippet language="go">{upsertCode}</CodeSnippet>
+    </Fragment>
+  );
+}
