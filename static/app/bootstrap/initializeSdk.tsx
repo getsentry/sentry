@@ -64,7 +64,6 @@ function getSentryIntegrations(_routes?: Function) {
     //   },
     // }),
     // new Sentry.BrowserProfilingIntegration(),
-    new Sentry.Replay(),
   ];
 
   return integrations;
@@ -99,7 +98,6 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
     allowUrls: SPA_DSN ? SPA_MODE_ALLOW_URLS : sentryConfig?.allowUrls,
     integrations: getSentryIntegrations(routes),
     tracesSampleRate,
-    replaysSessionSampleRate: 1,
     profilesSampleRate: shouldEnableBrowserProfiling ? 1 : 0,
     tracePropagationTargets: ['localhost', /^\//, ...extraTracePropagationTargets],
     tracesSampler: context => {
