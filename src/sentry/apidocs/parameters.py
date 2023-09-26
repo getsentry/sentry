@@ -137,6 +137,16 @@ class IssueAlertParams:
     )
 
 
+class MetricAlertParams:
+    METRIC_RULE_ID = OpenApiParameter(
+        name="alert_rule_id",
+        location="path",
+        required=True,
+        type=int,
+        description="The id of the rule you'd like to query.",
+    )
+
+
 class VisibilityParams:
     QUERY = OpenApiParameter(
         name="query",
