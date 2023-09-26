@@ -285,7 +285,7 @@ describe('AccountSecurity', function () {
       url: ENDPOINT,
       body: [
         Authenticators().Totp({disallowNewEnrollment: false}),
-        Authenticators().U2f({disallowNewEnrollment: null}),
+        Authenticators().U2f({disallowNewEnrollment: undefined}),
         Authenticators().Sms({disallowNewEnrollment: true}),
       ],
     });
