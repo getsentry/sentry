@@ -71,7 +71,6 @@ from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.testutils.cases import BaseIncidentsTest, BaseMetricsTestCase, SnubaTestCase, TestCase
-from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.utils import json
 
@@ -1427,7 +1426,6 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
             )
 
     @responses.activate
-    @with_feature("organizations:integrations-discord-metric-alerts")
     def test_discord(self):
         base_url: str = "https://discord.com/api/v10"
         channel_id = "channel-id"
@@ -1452,13 +1450,14 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
                 "name": f"{guild_name}",
             },
         )
-        action = create_alert_rule_trigger_action(
-            self.trigger,
-            type,
-            target_type,
-            target_identifier=channel_id,
-            integration_id=integration.id,
-        )
+        with self.feature("organizations:integrations-discord-metric-alerts"):
+            action = create_alert_rule_trigger_action(
+                self.trigger,
+                type,
+                target_type,
+                target_identifier=channel_id,
+                integration_id=integration.id,
+            )
         assert action.alert_rule_trigger == self.trigger
         assert action.type == type.value
         assert action.target_type == target_type.value
@@ -1554,7 +1553,6 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
             )
 
     @responses.activate
-    @with_feature("organizations:integrations-discord-metric-alerts")
     def test_discord(self):
         base_url: str = "https://discord.com/api/v10"
         channel_id = "channel-id"
@@ -1583,13 +1581,14 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
             },
         )
 
-        action = update_alert_rule_trigger_action(
-            self.action,
-            type,
-            target_type,
-            target_identifier=channel_id,
-            integration_id=integration.id,
-        )
+        with self.feature("organizations:integrations-discord-metric-alerts"):
+            action = update_alert_rule_trigger_action(
+                self.action,
+                type,
+                target_type,
+                target_identifier=channel_id,
+                integration_id=integration.id,
+            )
         assert action.alert_rule_trigger == self.trigger
         assert action.type == type.value
         assert action.target_type == target_type.value

@@ -38,7 +38,6 @@ from sentry.incidents.models import (
 )
 from sentry.models import Actor, Integration, OrganizationIntegration, Project
 from sentry.models.notificationaction import ActionService, ActionTarget
-from sentry.models.organization import OrganizationStatus
 from sentry.relay.config.metric_extraction import on_demand_metrics_feature_flags
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.fields import resolve_field
@@ -1132,15 +1131,21 @@ def create_alert_rule_trigger_action(
         if target_type != AlertRuleTriggerAction.TargetType.SPECIFIC:
             raise InvalidTriggerActionError("Must specify specific target type")
 
-        target_identifier, target_display = get_target_identifier_display_for_integration(
-            type.value,
-            target_identifier,
-            trigger.alert_rule.organization,
-            integration_id,
-            use_async_lookup=use_async_lookup,
-            input_channel_id=input_channel_id,
-            integrations=integrations,
-        )
+        if not (
+            type.value == AlertRuleTriggerAction.Type.DISCORD
+            and not features.has(
+                "organizations:integrations-discord-metric-alerts", trigger.alert_rule.organization
+            )
+        ):
+            target_identifier, target_display = get_target_identifier_display_for_integration(
+                type.value,
+                target_identifier,
+                trigger.alert_rule.organization,
+                integration_id,
+                use_async_lookup=use_async_lookup,
+                input_channel_id=input_channel_id,
+                integrations=integrations,
+            )
     elif type == AlertRuleTriggerAction.Type.SENTRY_APP:
         target_identifier, target_display = get_alert_rule_trigger_action_sentry_app(
             trigger.alert_rule.organization, sentry_app_id, installations
@@ -1201,16 +1206,23 @@ def update_alert_rule_trigger_action(
             integration_id = updated_fields.get("integration_id", trigger_action.integration_id)
             organization = trigger_action.alert_rule_trigger.alert_rule.organization
 
-            target_identifier, target_display = get_target_identifier_display_for_integration(
-                type,
-                target_identifier,
-                organization,
-                integration_id,
-                use_async_lookup=use_async_lookup,
-                input_channel_id=input_channel_id,
-                integrations=integrations,
-            )
-            updated_fields["target_display"] = target_display
+            if not (
+                type == AlertRuleTriggerAction.Type.DISCORD
+                and not features.has(
+                    "organizations:integrations-discord-metric-alerts",
+                    organization,
+                )
+            ):
+                target_identifier, target_display = get_target_identifier_display_for_integration(
+                    type,
+                    target_identifier,
+                    organization,
+                    integration_id,
+                    use_async_lookup=use_async_lookup,
+                    input_channel_id=input_channel_id,
+                    integrations=integrations,
+                )
+                updated_fields["target_display"] = target_display
 
         elif type == AlertRuleTriggerAction.Type.SENTRY_APP.value:
             sentry_app_id = updated_fields.get("sentry_app_id", trigger_action.sentry_app_id)
@@ -1439,15 +1451,6 @@ def get_opsgenie_teams(organization_id, integration_id) -> list[Tuple[str, str]]
     if team_table:
         teams = [(team["id"], team["team"]) for team in team_table]
     return teams
-
-
-def get_discord_servers(organization_id, providers) -> List[RpcIntegration]:
-    return integration_service.get_integrations(
-        organization_id=organization_id,
-        status=OrganizationStatus.ACTIVE,
-        org_integration_status=OrganizationStatus.ACTIVE,
-        providers=providers,
-    )
 
 
 # TODO: This is temporarily needed to support back and forth translations for snuba / frontend.

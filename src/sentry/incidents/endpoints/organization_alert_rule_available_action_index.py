@@ -12,7 +12,6 @@ from sentry.constants import SentryAppStatus
 from sentry.incidents.endpoints.bases import OrganizationEndpoint
 from sentry.incidents.logic import (
     get_available_action_integrations_for_org,
-    get_discord_servers,
     get_opsgenie_teams,
     get_pagerduty_services,
 )
@@ -55,12 +54,6 @@ def build_action_response(
                 {"value": id, "label": team}
                 for id, team in get_opsgenie_teams(organization.id, integration.id)
             ]
-        elif features.has("organizations:integrations-discord-metric-alerts", organization):
-            if registered_type.type == AlertRuleTriggerAction.Type.DISCORD:
-                action_response["options"] = [
-                    (i.id, i.name)
-                    for i in get_discord_servers(organization.id, integration.provider)
-                ]
 
     elif sentry_app_installation:
         action_response["sentryAppName"] = sentry_app_installation.sentry_app.name

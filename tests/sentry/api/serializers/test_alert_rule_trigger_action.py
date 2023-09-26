@@ -6,7 +6,6 @@ from sentry.incidents.models import AlertRuleTriggerAction
 from sentry.incidents.serializers import ACTION_TARGET_TYPE_TO_STRING
 from sentry.models.integrations.integration import Integration
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers import with_feature
 
 
 class AlertRuleTriggerActionSerializerTest(TestCase):
@@ -41,7 +40,6 @@ class AlertRuleTriggerActionSerializerTest(TestCase):
         assert result["desc"] == action.target_display
 
     @responses.activate
-    @with_feature("organizations:integrations-discord-metric-alerts")
     def test_discord(self):
         base_url: str = "https://discord.com/api/v10"
         responses.add(
@@ -64,13 +62,14 @@ class AlertRuleTriggerActionSerializerTest(TestCase):
             },
         )
         trigger = create_alert_rule_trigger(alert_rule, "hi", 1000)
-        action = create_alert_rule_trigger_action(
-            trigger,
-            AlertRuleTriggerAction.Type.DISCORD,
-            AlertRuleTriggerAction.TargetType.SPECIFIC,
-            target_identifier="channel-id",
-            integration_id=integration.id,
-        )
+        with self.feature("organizations:integrations-discord-metric-alerts"):
+            action = create_alert_rule_trigger_action(
+                trigger,
+                AlertRuleTriggerAction.Type.DISCORD,
+                AlertRuleTriggerAction.TargetType.SPECIFIC,
+                target_identifier="channel-id",
+                integration_id=integration.id,
+            )
 
         result = serialize(action)
         self.assert_action_serialized(action, result)
