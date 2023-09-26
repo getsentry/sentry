@@ -48,4 +48,3 @@ class PerformanceVitalDetailsTest(AcceptanceTestCase, SnubaTestCase):
             self.browser.wait_until_not(
                 '[data-test-id="grid-editable"] [data-test-id="empty-state"]', timeout=2
             )
-            self.browser.snapshot("performance vital detail - with data")

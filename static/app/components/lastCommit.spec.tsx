@@ -11,8 +11,7 @@ describe('LastCommit', function () {
   });
 
   it('renders', function () {
-    const wrapper = render(<LastCommit commit={mockedCommit} />);
-    expect(wrapper.container).toSnapshot();
+    render(<LastCommit commit={mockedCommit} />);
   });
 
   it('links to the commit in GitHub', function () {

@@ -247,16 +247,10 @@ function useEventApiQuery({
   const organization = useOrganization();
   const location = useLocation<{query?: string}>();
   const router = useRouter();
-  const hasMostHelpfulEventFeature = organization.features.includes(
-    'issue-details-most-helpful-event'
-  );
   const defaultIssueEvent = useDefaultIssueEvent();
-  const eventIdUrl =
-    eventId ?? (hasMostHelpfulEventFeature ? defaultIssueEvent : 'latest');
+  const eventIdUrl = eventId ?? defaultIssueEvent;
   const helpfulEventQuery =
-    hasMostHelpfulEventFeature && typeof location.query.query === 'string'
-      ? location.query.query
-      : undefined;
+    typeof location.query.query === 'string' ? location.query.query : undefined;
 
   const endpointEventId = eventIdUrl === 'recommended' ? 'helpful' : eventIdUrl;
   const queryKey: ApiQueryKey = [
@@ -291,29 +285,31 @@ function useEventApiQuery({
     if (latestOrHelpfulEvent.isError) {
       // If we get an error from the helpful event endpoint, it probably means
       // the query failed validation. We should remove the query to try again.
-      if (hasMostHelpfulEventFeature) {
-        browserHistory.replace({
-          ...window.location,
-          query: omit(qs.parse(window.location.search), 'query'),
-        });
+      browserHistory.replace({
+        ...window.location,
+        query: omit(qs.parse(window.location.search), 'query'),
+      });
 
-        const scope = new Sentry.Scope();
-        scope.setExtras({
-          groupId,
-          query: helpfulEventQuery,
-          ...pick(latestOrHelpfulEvent.error, ['message', 'status', 'responseJSON']),
-        });
-        scope.setFingerprint(['issue-details-helpful-event-request-failed']);
-        Sentry.captureException(
-          new Error('Issue Details: Helpful event request failed'),
-          scope
-        );
+      // 404s are expected if all events have exceeded retention
+      if (latestOrHelpfulEvent.error.status === 404) {
+        return;
       }
+
+      const scope = new Sentry.Scope();
+      scope.setExtras({
+        groupId,
+        query: helpfulEventQuery,
+        ...pick(latestOrHelpfulEvent.error, ['message', 'status', 'responseJSON']),
+      });
+      scope.setFingerprint(['issue-details-helpful-event-request-failed']);
+      Sentry.captureException(
+        new Error('Issue Details: Helpful event request failed'),
+        scope
+      );
     }
   }, [
     latestOrHelpfulEvent.isError,
     latestOrHelpfulEvent.error,
-    hasMostHelpfulEventFeature,
     groupId,
     helpfulEventQuery,
   ]);
@@ -567,16 +563,12 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
 }
 
 function useLoadedEventType() {
-  const organization = useOrganization();
   const params = useParams<{eventId?: string}>();
   const defaultIssueEvent = useDefaultIssueEvent();
-  const hasMostHelpfulEventFeature = organization.features.includes(
-    'issue-details-most-helpful-event'
-  );
 
   switch (params.eventId) {
     case undefined:
-      return hasMostHelpfulEventFeature ? defaultIssueEvent : 'latest';
+      return defaultIssueEvent;
     case 'latest':
     case 'oldest':
       return params.eventId;
@@ -814,7 +806,7 @@ function GroupDetails(props: GroupDetailsProps) {
   const {data} = useFetchIssueTagsForDetailsPage(
     {
       groupId: router.params.groupId,
-      organizationSlug: organization.slug,
+      orgSlug: organization.slug,
       environment: environments,
     },
     // Don't want this query to take precedence over the main requests

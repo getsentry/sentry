@@ -206,7 +206,7 @@ describe('Threads', function () {
       };
 
       it('renders', function () {
-        const {container} = render(<Threads {...props} />, {
+        render(<Threads {...props} />, {
           organization,
         });
 
@@ -226,8 +226,6 @@ describe('Threads', function () {
 
         expect(screen.getByTestId('stack-trace-content-v2')).toBeInTheDocument();
         expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(3);
-
-        expect(container).toSnapshot();
       });
 
       it('toggle full stack trace button', async function () {
@@ -871,7 +869,7 @@ describe('Threads', function () {
       };
 
       it('renders', function () {
-        const {container} = render(<Threads {...props} />, {organization});
+        render(<Threads {...props} />, {organization});
         // Title
         const threadSelector = screen.getByTestId('thread-selector');
         expect(threadSelector).toBeInTheDocument();
@@ -896,8 +894,6 @@ describe('Threads', function () {
 
         expect(screen.getByTestId('stack-trace')).toBeInTheDocument();
         expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(3);
-
-        expect(container).toSnapshot();
       });
 
       it('renders thread state and lock reason', function () {
@@ -906,7 +902,7 @@ describe('Threads', function () {
           features: ['anr-improvements'],
         };
         const newProps = {...props, organization: newOrg};
-        const {container} = render(<Threads {...newProps} />, {organization: newOrg});
+        render(<Threads {...newProps} />, {organization: newOrg});
         // Title
         expect(screen.getByTestId('thread-selector')).toBeInTheDocument();
 
@@ -933,8 +929,6 @@ describe('Threads', function () {
 
         expect(screen.getByTestId('stack-trace')).toBeInTheDocument();
         expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(3);
-
-        expect(container).toSnapshot();
       });
 
       it('hides thread tag event entry if none', function () {
@@ -987,10 +981,8 @@ describe('Threads', function () {
           },
           organization: newOrg,
         };
-        const {container} = render(<Threads {...newProps} />, {organization: newOrg});
+        render(<Threads {...newProps} />, {organization: newOrg});
         expect(screen.queryByText('Thread Tags')).not.toBeInTheDocument();
-
-        expect(container).toSnapshot();
       });
 
       it('maps android vm states to java vm states', function () {

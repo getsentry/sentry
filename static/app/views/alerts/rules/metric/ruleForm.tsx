@@ -137,7 +137,9 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
   get chartQuery(): string {
     const {query, eventTypes, dataset} = this.state;
     const eventTypeFilter = getEventTypeFilter(this.state.dataset, eventTypes);
-    const queryWithTypeFilter = `${query} ${eventTypeFilter}`.trim();
+    const queryWithTypeFilter = (
+      query ? `(${query}) AND (${eventTypeFilter})` : eventTypeFilter
+    ).trim();
     return isCrashFreeAlert(dataset) ? query : queryWithTypeFilter;
   }
 
@@ -790,7 +792,9 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     const {isExtrapolatedData} = data ?? {};
 
     this.setState({isExtrapolatedChartData: Boolean(isExtrapolatedData)});
-    if (!isOnDemandMetricAlert(this.state.dataset, this.state.query)) {
+
+    const {dataset, aggregate, query} = this.state;
+    if (!isOnDemandMetricAlert(dataset, aggregate, query)) {
       this.handleMEPAlertDataset(data);
     }
   };
@@ -832,8 +836,6 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       location,
     } = this.state;
 
-    const onDemandMetricsAlert = isOnDemandMetricAlert(dataset, query);
-
     const chartProps = {
       organization,
       projects: [project],
@@ -850,7 +852,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       comparisonDelta,
       comparisonType,
       isQueryValid,
-      isOnDemandMetricAlert: onDemandMetricsAlert,
+      isOnDemandMetricAlert: isOnDemandMetricAlert(dataset, aggregate, query),
       onDataLoaded: this.handleTimeSeriesDataFetched,
     };
 
@@ -1032,7 +1034,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
 }
 
 const Main = styled(Layout.Main)`
-  padding: ${space(2)} ${space(4)};
+  max-width: 1000px;
 `;
 
 const StyledListItem = styled(ListItem)`

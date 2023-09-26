@@ -50,7 +50,7 @@ describe('GroupActions', function () {
 
   describe('render()', function () {
     it('renders correctly', function () {
-      const wrapper = render(
+      render(
         <GroupActions
           group={group}
           project={project}
@@ -58,7 +58,6 @@ describe('GroupActions', function () {
           disabled={false}
         />
       );
-      expect(wrapper.container).toSnapshot();
     });
   });
 

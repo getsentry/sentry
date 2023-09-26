@@ -5,6 +5,9 @@ from sentry.api.helpers.source_map_helper import _find_url_prefix
 from sentry.models import Distribution, File, Release, ReleaseFile
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
+from sentry.testutils.skips import requires_kafka, requires_snuba
+
+pytestmark = [requires_snuba, requires_kafka]
 
 
 @region_silo_test  # TODO(hybrid-cloud): stable=True blocked on actors

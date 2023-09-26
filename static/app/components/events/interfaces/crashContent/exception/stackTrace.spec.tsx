@@ -92,9 +92,7 @@ const props: React.ComponentProps<typeof ExceptionStacktraceContent> = {
 
 describe('ExceptionStacktraceContent', function () {
   it('default behaviour', function () {
-    const {container} = render(<ExceptionStacktraceContent {...props} />);
-
-    expect(container).toSnapshot();
+    render(<ExceptionStacktraceContent {...props} />);
   });
 
   it('should return an emptyRender', function () {

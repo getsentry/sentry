@@ -1,6 +1,6 @@
 from typing import Any, Generator, Optional, Sequence
 
-from sentry import analytics, features
+from sentry import features
 from sentry.eventstore.models import GroupEvent
 from sentry.integrations.discord.actions.form import DiscordNotifyServiceForm
 from sentry.integrations.discord.client import DiscordClient
@@ -65,15 +65,11 @@ class DiscordNotifyServiceAction(IntegrationEventAction):
                         "channel_id": channel_id,
                     },
                 )
+            rule = rules[0] if rules else None
+            self.record_notification_sent(event, channel_id, rule, notification_uuid)
 
         key = f"discord:{integration.id}:{channel_id}"
 
-        analytics.record(
-            "integrations.discord.notification_sent",
-            organization_id=event.organization.id,
-            project_id=event.project_id,
-            group_id=event.group_id,
-        )
         metrics.incr("notifications.sent", instance="discord.notifications", skip_internal=False)
         yield self.future(send_notification, key=key)
 

@@ -422,7 +422,7 @@ describe('SmartSearchBar', function () {
   });
 
   it('renders nested keys correctly', async function () {
-    const {container} = render(
+    render(
       <SmartSearchBar
         {...defaultProps}
         query=""
@@ -447,8 +447,6 @@ describe('SmartSearchBar', function () {
     await userEvent.type(textbox, 'nest');
 
     await screen.findByText('Keys');
-
-    expect(container).toSnapshot();
   });
 
   it('filters keys on name and description', async function () {

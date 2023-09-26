@@ -44,12 +44,12 @@ class AbstractInviteRequestNotification(OrganizationRequestNotification, abc.ABC
         context = super().get_recipient_context(recipient, extra_context)
         context["email"] = self.pending_member.email
         context["organization_name"] = self.organization.name
-        context["pending_requests_link"] = self.members_url + self.get_sentry_query_params(
-            ExternalProviders.EMAIL, recipient
-        )
+        sentry_query_params = self.get_sentry_query_params(ExternalProviders.EMAIL, recipient)
+        context["pending_requests_link"] = self.members_url + sentry_query_params
         if self.pending_member.requested_to_join:
             context["settings_link"] = self.organization.absolute_url(
-                reverse("sentry-organization-settings", args=[self.organization.slug])
+                reverse("sentry-organization-settings", args=[self.organization.slug]),
+                query=sentry_query_params,
             )
         else:
             inviter_name = ""

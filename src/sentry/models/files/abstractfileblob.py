@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from abc import abstractmethod
 from concurrent.futures import ThreadPoolExecutor
+from datetime import timedelta
 from threading import Semaphore
 from typing import Any, ClassVar
 from uuid import uuid4
@@ -13,18 +14,16 @@ from typing_extensions import Self
 from sentry.backup.scopes import RelocationScope
 from sentry.celery import SentryTask
 from sentry.db.models import BoundedPositiveIntegerField, Model
-from sentry.locks import locks
 from sentry.models.files.abstractfileblobowner import AbstractFileBlobOwner
 from sentry.models.files.utils import (
-    UPLOAD_RETRY_TIME,
     _get_size_and_checksum,
     get_storage,
+    lock_blob,
     locked_blob,
     nooplogger,
 )
 from sentry.utils import metrics
 from sentry.utils.db import atomic_transaction
-from sentry.utils.retries import TimedRetryPolicy
 
 MULTI_BLOB_UPLOAD_CONCURRENCY = 8
 
@@ -102,7 +101,21 @@ class AbstractFileBlob(Model):
 
         def _save_blob(blob):
             logger.debug("FileBlob.from_files._save_blob.start", extra={"path": blob.path})
-            blob.save()
+            try:
+                blob.save()
+            except IntegrityError:
+                # this means that there was a race inserting a blob
+                # with this checksum. we will fetch the other blob that was
+                # saved, and delete our backing storage to not leave orphaned
+                # chunks behind.
+                # we also won't have to worry about concurrent deletes, as deletions
+                # are only happening for blobs older than 24h.
+                metrics.incr("filestore.upload_race", sample_rate=1.0)
+                saved_path = blob.path
+                blob = cls.objects.get(checksum=blob.checksum)
+                storage = get_storage(cls._storage_config())
+                storage.delete(saved_path)
+
             _ensure_blob_owned(blob)
             logger.debug("FileBlob.from_files._save_blob.end", extra={"path": blob.path})
 
@@ -143,7 +156,10 @@ class AbstractFileBlob(Model):
                     lock = locked_blob(cls, checksum, logger=logger)
                     existing = lock.__enter__()
                     if existing is not None:
-                        existing.update(timestamp=timezone.now())
+                        now = timezone.now()
+                        threshold = now - timedelta(hours=12)
+                        if existing.timestamp <= threshold:
+                            existing.update(timestamp=timezone.now())
                         lock.__exit__(None, None, None)
                         blobs_created.append(existing)
                         _ensure_blob_owned(existing)
@@ -185,14 +201,24 @@ class AbstractFileBlob(Model):
         # and duplicate files are uploaded then we need to prune one
         with locked_blob(cls, checksum, logger=logger) as existing:
             if existing is not None:
-                existing.update(timestamp=timezone.now())
+                now = timezone.now()
+                threshold = now - timedelta(hours=12)
+                if existing.timestamp <= threshold:
+                    existing.update(timestamp=timezone.now())
                 return existing
 
             blob = cls(size=size, checksum=checksum)
             blob.path = cls.generate_unique_path()
             storage = get_storage(cls._storage_config())
             storage.save(blob.path, fileobj)
-            blob.save()
+            try:
+                blob.save()
+            except IntegrityError:
+                # see `_save_blob` above
+                metrics.incr("filestore.upload_race", sample_rate=1.0)
+                saved_path = blob.path
+                blob = cls.objects.get(checksum=checksum)  # type:ignore
+                storage.delete(saved_path)
 
         metrics.timing("filestore.blob-size", size)
         logger.debug("FileBlob.from_file.end")
@@ -215,14 +241,10 @@ class AbstractFileBlob(Model):
             self.DELETE_FILE_TASK.apply_async(
                 kwargs={"path": self.path, "checksum": self.checksum}, countdown=60
             )
-        lock = locks.get(
-            f"fileblob:upload:{self.checksum}",
-            duration=UPLOAD_RETRY_TIME,
-            name="fileblob_upload_delete",
+        lock = lock_blob(
+            self.checksum, "fileblob_upload_delete", metric_instance="lock.fileblob.delete"
         )
-        with TimedRetryPolicy(UPLOAD_RETRY_TIME, metric_instance="lock.fileblob.delete")(
-            lock.acquire
-        ):
+        with lock:
             super().delete(*args, **kwargs)
 
     def getfile(self):

@@ -14,7 +14,7 @@ from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.auth")
 
-AUTH_CHECK_INTERVAL = 3600
+AUTH_CHECK_INTERVAL = 3600 * 24
 
 
 @instrumented_task(name="sentry.tasks.check_auth", queue="auth.control", silo_mode=SiloMode.CONTROL)
@@ -105,7 +105,4 @@ def check_auth_identity(auth_identity_id, **kwargs):
             organization_service.update_membership_flags(organization_member=om)
 
     now = timezone.now()
-    with unguarded_write(using=router.db_for_write(AuthIdentity)):
-        AuthIdentity.objects.filter(id=auth_identity_id).update(last_verified=now, last_synced=now)
-        # Restore once outbox processing is improved
-        # auth_identity.update(last_verified=now, last_synced=now)
+    auth_identity.update(last_verified=now, last_synced=now)

@@ -8,7 +8,7 @@ from typing import Any, List, Optional, cast
 
 from sentry.services.hybrid_cloud.auth import AuthenticationContext
 from sentry.services.hybrid_cloud.filter_query import OpaqueSerializedResponse
-from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
+from sentry.services.hybrid_cloud.organization_mapping.model import RpcOrganizationMapping
 from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
 from sentry.services.hybrid_cloud.user import (
     RpcUser,
@@ -93,7 +93,7 @@ class UserService(RpcService):
         *,
         user_id: int,
         only_visible: bool = False,
-    ) -> List[RpcOrganizationSummary]:
+    ) -> List[RpcOrganizationMapping]:
         """Get summary data for all organizations of which the user is a member.
 
         The organizations may span multiple regions.
@@ -139,7 +139,9 @@ class UserService(RpcService):
 
     @rpc_method
     @abstractmethod
-    def get_or_create_user_by_email(self, *, email: str) -> RpcUser:
+    def get_or_create_user_by_email(
+        self, *, email: str, ident: Optional[str] = None, referrer: Optional[str] = None
+    ) -> RpcUser:
         pass
 
     @rpc_method

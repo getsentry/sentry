@@ -1,6 +1,7 @@
 import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
 import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {StepProps, StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {t, tct} from 'sentry/locale';
 import {
   getDefaultInitParams,
@@ -12,11 +13,12 @@ import {
   joinWithIndentation,
 } from 'sentry/utils/gettingStartedDocs/node';
 
-interface StepProps {
+interface StepsParams {
   hasPerformanceMonitoring: boolean;
   importContent: string;
   initContent: string;
   installSnippet: string;
+  sourceMapStep: StepProps;
 }
 
 const performanceIntegrations: string[] = [
@@ -29,7 +31,8 @@ export const steps = ({
   importContent,
   initContent,
   hasPerformanceMonitoring,
-}: StepProps): LayoutProps['steps'] => [
+  sourceMapStep,
+}: StepsParams): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
     description: t('Add the Sentry Node SDK as a dependency:'),
@@ -150,6 +153,7 @@ app.listen(3000);
       },
     ],
   },
+  sourceMapStep,
   {
     type: StepType.VERIFY,
     description: t(
@@ -173,6 +177,9 @@ export function GettingStartedWithKoa({
   newOrg,
   platformKey,
   activeProductSelection = [],
+  organization,
+  projectId,
+  ...props
 }: ModuleProps) {
   const productSelection = getProductSelectionMap(activeProductSelection);
 
@@ -209,11 +216,18 @@ export function GettingStartedWithKoa({
         importContent: imports.join('\n'),
         initContent,
         hasPerformanceMonitoring: productSelection['performance-monitoring'],
+        sourceMapStep: getUploadSourceMapsStep({
+          guideLink: 'https://docs.sentry.io/platforms/node/guides/koa/sourcemaps/',
+          organization,
+          platformKey,
+          projectId,
+          newOrg,
+        }),
       })}
       newOrg={newOrg}
       platformKey={platformKey}
+      {...props}
     />
   );
 }
-
 export default GettingStartedWithKoa;

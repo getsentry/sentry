@@ -510,7 +510,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                     }}
                     hasRecentSearches={dataset !== Dataset.SESSIONS}
                   />
-                  {isExtrapolatedChartData && (
+                  {isExtrapolatedChartData && isOnDemandQueryString(value) && (
                     <OnDemandWarningIcon
                       color="gray500"
                       msg={tct(

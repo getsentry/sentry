@@ -30,7 +30,6 @@ class OrganizationReleasesTest(AcceptanceTestCase):
         self.create_release(project=self.project, version="1.0", date_added=self.release_date)
         self.browser.get(self.path)
         self.browser.wait_until_not(".loading")
-        self.browser.snapshot("organization releases - with releases")
         # TODO(releases): add health data
 
     def test_detail(self):
@@ -41,7 +40,6 @@ class OrganizationReleasesTest(AcceptanceTestCase):
         self.browser.wait_until_not(".loading")
         self.browser.wait_until_test_id("release-wrapper")
         self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
-        self.browser.snapshot("organization releases - detail")
         # TODO(releases): add health data
 
     def test_detail_pick_project(self):
@@ -65,5 +63,4 @@ class OrganizationReleasesTest(AcceptanceTestCase):
             self.browser.wait_until_not(".loading")
             self.browser.wait_until_test_id("release-wrapper")
             self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
-            self.browser.snapshot("organization releases - detail with discover and performance")
             # TODO(releases): add health data

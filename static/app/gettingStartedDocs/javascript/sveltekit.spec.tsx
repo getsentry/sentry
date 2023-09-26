@@ -6,7 +6,7 @@ import {GettingStartedWithSvelteKit, steps} from './sveltekit';
 
 describe('GettingStartedWithSvelteKit', function () {
   it('renders doc correctly', function () {
-    const {container} = render(<GettingStartedWithSvelteKit dsn="test-dsn" />);
+    render(<GettingStartedWithSvelteKit dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps()) {
@@ -14,7 +14,5 @@ describe('GettingStartedWithSvelteKit', function () {
         screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
       ).toBeInTheDocument();
     }
-
-    expect(container).toSnapshot();
   });
 });

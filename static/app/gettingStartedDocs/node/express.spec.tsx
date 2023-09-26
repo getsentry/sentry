@@ -6,7 +6,7 @@ import {GettingStartedWithExpress, steps} from './express';
 
 describe('GettingStartedWithExpress', function () {
   it('renders doc correctly', function () {
-    const {container} = render(<GettingStartedWithExpress dsn="test-dsn" />);
+    render(<GettingStartedWithExpress dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps({
@@ -14,12 +14,13 @@ describe('GettingStartedWithExpress', function () {
       importContent: 'test-import-content',
       initContent: 'test-init-content',
       hasPerformanceMonitoring: true,
+      sourceMapStep: {
+        title: 'Upload Source Maps',
+      },
     })) {
       expect(
         screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
       ).toBeInTheDocument();
     }
-
-    expect(container).toSnapshot();
   });
 });

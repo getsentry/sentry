@@ -6,7 +6,7 @@ import {GettingStartedWithSymfony, steps} from './symfony';
 
 describe('GettingStartedWithSymfony', function () {
   it('renders doc correctly', function () {
-    const {container} = render(<GettingStartedWithSymfony dsn="test-dsn" />);
+    render(<GettingStartedWithSymfony dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps({
@@ -18,7 +18,5 @@ describe('GettingStartedWithSymfony', function () {
         screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
       ).toBeInTheDocument();
     }
-
-    expect(container).toSnapshot();
   });
 });

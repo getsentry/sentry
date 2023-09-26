@@ -1,6 +1,6 @@
 from drf_spectacular.plumbing import build_array_type, build_basic_type
 from drf_spectacular.types import OpenApiTypes
-from drf_spectacular.utils import OpenApiParameter, inline_serializer
+from drf_spectacular.utils import OpenApiParameter
 from rest_framework import serializers
 
 # NOTE: Please add new params by path vs query, then in alphabetical order
@@ -241,47 +241,6 @@ class OrganizationParams:
         description="The member ID.",
     )
 
-    ORG_ROLE = OpenApiParameter(
-        name="orgRole",
-        location="query",
-        required=False,
-        type=str,
-        description="""
-The organization role of the member. The options are:
-- `billing`: Can manage payment and compliance details.
-- `member`: Can view and act on events, as well as view most other data within the organization.
-- `manager`: Has full management access to all teams and projects. Can also manage the organization's membership.
-- `owner`: Has unrestricted access to the organization, its data, and its settings. Can add, modify, and
-delete projects and members, as well as make billing and plan changes.
-""",
-    )
-
-    TEAM_ROLES = OpenApiParameter(
-        name="teamRoles",
-        location="query",
-        required=False,
-        type=build_typed_list(OpenApiTypes.OBJECT),
-        description="""
-Configures the team role of the member. The two roles are:
-- `contributor`: Can view and act on issues. Depending on organization settings, they can also add team members.
-- `admin`: Has full management access to their team's membership and projects.
-```json
-{
-    "teamRoles": [
-        {
-            "teamSlug": "ancient-gabelers",
-            "role": "admin"
-        },
-        {
-            "teamSlug": "powerful-abolitionist",
-            "role": "contributor"
-        }
-    ]
-}
-```
-""",
-    )
-
 
 class ProjectParams:
     FILTER_ID = OpenApiParameter(
@@ -290,164 +249,26 @@ class ProjectParams:
         required=True,
         type=str,
         description="""The type of filter toggle to update. The options are:
-- `browser-extensions`: Filter out errors known to be caused by browser extensions.
-- `localhost`: Filter out events coming from localhost. This applies to both IPv4 (``127.0.0.1``)
+- `browser-extensions` - Filter out errors known to be caused by browser extensions.
+- `localhost` - Filter out events coming from localhost. This applies to both IPv4 (``127.0.0.1``)
 and IPv6 (``::1``) addresses.
-- `filtered-transaction`: Filter out transactions for healthcheck and ping endpoints.
-- `web-crawlers`: Filter out known web crawlers. Some crawlers may execute pages in incompatible
+- `filtered-transaction` - Filter out transactions for healthcheck and ping endpoints.
+- `web-crawlers` - Filter out known web crawlers. Some crawlers may execute pages in incompatible
 ways which cause errors that are unlikely to be seen by a normal user.
-- `legacy-browser`: Filter out known errors from legacy browsers. Older browsers often give less
+- `legacy-browser` - Filter out known errors from legacy browsers. Older browsers often give less
 accurate information, and while they may report valid issues, the context to understand them is
 incorrect or missing.
 """,
     )
 
-    ACTIVE = OpenApiParameter(
-        name="active",
-        location="query",
-        required=False,
-        type=bool,
-        description="Toggle the browser-extensions, localhost, filtered-transaction, or web-crawlers filter on or off.",
-    )
-
-    BROWSER_SDK_VERSION = OpenApiParameter(
-        name="browserSdkVersion",
+    STATUS = OpenApiParameter(
+        name="status",
         location="query",
         required=False,
         type=str,
         description="""
-The Sentry Javascript SDK version to use. The currently supported options are:
-- `7.x`
-- `latest`
-""",
-    )
-
-    DEFAULT_RULES = OpenApiParameter(
-        name="default_rules",
-        location="query",
-        required=False,
-        type=bool,
-        description="Defaults to true where the behavior is to alert the user on every new issue. Setting this to false will turn this off and the user must create their own alerts to be notified of new issues.",
-    )
-
-    DYNAMIC_SDK_LOADER_OPTIONS = OpenApiParameter(
-        name="dynamicSdkLoaderOptions",
-        location="query",
-        required=False,
-        type=inline_serializer(
-            name="DynamicSDKLoaderOptionsSerializer",
-            fields={
-                "hasReplay": serializers.BooleanField(required=False),
-                "hasPerformance": serializers.BooleanField(required=False),
-                "hasDebug": serializers.BooleanField(required=False),
-            },
-        ),
-        description="""
-Configures multiple options for the Javascript Loader Script.
-- `Performance Monitoring`
-- `Debug Bundles & Logging`
-- `Session Replay`: Note that the loader will load the ES6 bundle instead of the ES5 bundle.
-```json
-{
-    "dynamicSdkLoaderOptions": {
-        "hasReplay": true,
-        "hasPerformance": true,
-        "hasDebug": true
-    }
-}
-```
-""",
-    )
-
-    IS_ACTIVE = OpenApiParameter(
-        name="isActive",
-        location="query",
-        required=False,
-        type=bool,
-        description="Activate or deactivate the client key.",
-    )
-
-    IS_BOOKMARKED = OpenApiParameter(
-        name="isBookmarked",
-        location="query",
-        required=False,
-        type=bool,
-        description="Enables starring the project within the projects tab.",
-    )
-
-    OPTIONS = OpenApiParameter(
-        name="options",
-        location="query",
-        required=False,
-        type=inline_serializer(
-            name="ProjectOptionsSerializer",
-            fields={
-                "filters:react-hydration-errors": serializers.BooleanField(required=False),
-                "filters:blacklisted_ips": serializers.CharField(required=False),
-                "filters:releases": serializers.CharField(required=False),
-                "filters:error_messages": serializers.CharField(required=False),
-            },
-        ),
-        description="""
-Configure various project filters:
-- `Hydration Errors`: Filter out react hydration errors that are often unactionable
-- `IP Addresses`: Filter events from these IP addresses separated with newlines.
-- `Releases`: Filter events from these releases separated with newlines. Allows [glob pattern matching](https://docs.sentry.io/product/data-management-settings/filtering/#glob-matching).
-- `Error Message`: Filter events by error messages separated with newlines. Allows [glob pattern matching](https://docs.sentry.io/product/data-management-settings/filtering/#glob-matching).
-```json
-{
-    options: {
-        filters:react-hydration-errors: true,
-        filters:blacklisted_ips: "127.0.0.1\\n192.168. 0.1"
-        filters:releases: "[!3]\\n4"
-        filters:error_messages: "TypeError*\\n*ConnectionError*"
-    }
-}
-```
-""",
-    )
-
-    RATE_LIMIT = OpenApiParameter(
-        name="rateLimit",
-        location="query",
-        required=False,
-        type=inline_serializer(
-            name="RateLimitParameterSerializer",
-            fields={
-                "window": serializers.IntegerField(required=False),
-                "count": serializers.IntegerField(required=False),
-            },
-        ),
-        description="""
-Applies a rate limit to cap the number of errors accepted during a given time window. To
-disable entirely set `rateLimit` to null.
-```json
-{
-    "rateLimit": {
-        "window": 7200, // time in seconds
-        "count": 1000 // error cap
-    }
-}
-```
-        """,
-    )
-
-    SUB_FILTERS = OpenApiParameter(
-        name="subfilters",
-        location="query",
-        required=False,
-        type=build_typed_list(OpenApiTypes.STR),
-        description="""
-Specifies which legacy browser filters should be active. Anything excluded from the list will be
-disabled. The options are:
-- `ie_pre_9`: Internet Explorer Version 8 and lower
-- `ie9`: Internet Explorer Version 9
-- `ie10`: Internet Explorer Version 10
-- `ie11`: Internet Explorer Version 11
-- `safari_pre_6`: Safari Version 5 and lower
-- `opera_pre_15`: Opera Version 14 and lower
-- `opera_mini_pre_8`: Opera Mini Version 8 and lower
-- `android_pre_4`: Android Version 3 and lower
+Filter client keys by `active` or `inactive`. Defaults to returning all
+keys if not specified.
 """,
     )
 

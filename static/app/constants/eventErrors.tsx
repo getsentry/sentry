@@ -11,7 +11,7 @@ export enum JavascriptProcessingErrors {
   JS_TOO_LARGE = 'js_too_large',
   JS_FETCH_TIMEOUT = 'js_fetch_timeout',
   JS_SCRAPING_DISABLED = 'js_scraping_disabled',
-  JS_MISSING_SOURCES_CONTEXT = 'js_missing_sources_context',
+  JS_MISSING_SOURCES_CONTENT = 'js_missing_sources_content',
 }
 
 export enum HttpProcessingErrors {

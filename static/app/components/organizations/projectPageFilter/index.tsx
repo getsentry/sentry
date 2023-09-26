@@ -61,6 +61,12 @@ export interface ProjectPageFilterProps
   resetParamsOnChange?: string[];
 }
 
+/**
+ * Maximum number of projects that can be selected at a time (due to server limits). This
+ * does not apply to special values like "My Projects" and "All Projects".
+ */
+const SELECTION_COUNT_LIMIT = 50;
+
 export function ProjectPageFilter({
   onChange,
   onClear,
@@ -293,7 +299,6 @@ export function ProjectPageFilter({
             label:
               memberProjects.length > 0 ? t('Other') : t("Projects I Don't Belong To"),
             options: sortBy(nonMemberProjects, listSort).map(getProjectItem),
-            showToggleAllButton: allowMultiple && memberProjects.length > 0,
           },
         ]
       : sortBy(memberProjects, listSort).map(getProjectItem);
@@ -331,7 +336,26 @@ export function ProjectPageFilter({
     )}em`;
   }, [options, desynced]);
 
+  const selectionLimitExceeded = useMemo(
+    () => value.length > SELECTION_COUNT_LIMIT,
+    [value]
+  );
+
+  const menuFooterMessage = useMemo(() => {
+    if (selectionLimitExceeded) {
+      return hasStagedChanges =>
+        hasStagedChanges
+          ? t(
+              'Only up to 50 projects can be selected at a time. You can still press “Clear” to see all projects.'
+            )
+          : footerMessage;
+    }
+
+    return footerMessage;
+  }, [selectionLimitExceeded, footerMessage]);
+
   const hasProjectWrite = organization.access.includes('project:write');
+
   return (
     <HybridFilter
       {...selectProps}
@@ -344,6 +368,7 @@ export function ProjectPageFilter({
       onReplace={onReplace}
       onToggle={onToggle}
       disabled={disabled ?? (!projectsLoaded || !pageFilterIsReady)}
+      disableCommit={selectionLimitExceeded}
       sizeLimit={sizeLimit ?? 25}
       sizeLimitMessage={sizeLimitMessage ?? t('Use search to find more projects…')}
       emptyMessage={emptyMessage ?? t('No projects found')}
@@ -358,7 +383,7 @@ export function ProjectPageFilter({
           />
         )
       }
-      menuFooterMessage={footerMessage}
+      menuFooterMessage={menuFooterMessage}
       trigger={
         trigger ??
         ((triggerProps, isOpen) => (

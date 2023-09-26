@@ -5,8 +5,6 @@ from typing import Any, List, Optional
 from unittest.mock import patch
 from uuid import uuid4
 
-from freezegun import freeze_time
-
 from sentry.eventstore.models import Event
 from sentry.issues.escalating import (
     GroupsCountResponse,
@@ -21,6 +19,7 @@ from sentry.models import Group
 from sentry.models.group import GroupStatus
 from sentry.models.groupinbox import GroupInbox
 from sentry.testutils.cases import PerformanceIssueTestCase, SnubaTestCase, TestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.types.group import GroupSubStatus
 from sentry.utils.cache import cache
 from sentry.utils.snuba import to_start_of_hour

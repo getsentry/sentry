@@ -7,9 +7,10 @@ import GettingStartedWithReact, {nextSteps, steps} from './react';
 
 describe('GettingStartedWithReact', function () {
   it('all products are selected', function () {
-    const {container} = render(
+    render(
       <GettingStartedWithReact
         dsn="test-dsn"
+        projectSlug="test-project"
         activeProductSelection={[
           ProductSolution.PERFORMANCE_MONITORING,
           ProductSolution.SESSION_REPLAY,
@@ -38,14 +39,13 @@ describe('GettingStartedWithReact', function () {
         screen.getByRole('link', {name: filteredNextStepsLink.name})
       ).toBeInTheDocument();
     }
-
-    expect(container).toSnapshot();
   });
 
   it('performance product is not selected', function () {
     render(
       <GettingStartedWithReact
         dsn="test-dsn"
+        projectSlug="test-project"
         activeProductSelection={[ProductSolution.SESSION_REPLAY]}
       />
     );
@@ -60,6 +60,7 @@ describe('GettingStartedWithReact', function () {
     render(
       <GettingStartedWithReact
         dsn="test-dsn"
+        projectSlug="test-project"
         activeProductSelection={[ProductSolution.PERFORMANCE_MONITORING]}
       />
     );

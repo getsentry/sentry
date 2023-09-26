@@ -288,7 +288,10 @@ class Monitor(Model):
         margin.
         """
         next_checkin = self.get_next_expected_checkin(last_checkin)
-        return next_checkin + timedelta(minutes=int(self.config.get("checkin_margin") or 0))
+        # TODO(epurkhiser): We should probably just set this value as a
+        # `default` in the validator for the config instead of having the magic
+        # default number here
+        return next_checkin + timedelta(minutes=int(self.config.get("checkin_margin") or 1))
 
     def update_config(self, config_payload, validated_config):
         monitor_config = self.config
@@ -360,10 +363,10 @@ class Monitor(Model):
 
         return None
 
-    def _normalize_before_relocation_import(
+    def normalize_before_relocation_import(
         self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
     ) -> Optional[int]:
-        old_pk = super()._normalize_before_relocation_import(pk_map, scope, flags)
+        old_pk = super().normalize_before_relocation_import(pk_map, scope, flags)
         if old_pk is None:
             return None
 
@@ -591,3 +594,25 @@ def check_monitor_environment_limits(sender, instance, **kwargs):
         raise MonitorEnvironmentLimitsExceeded(
             f"You may not exceed {settings.MAX_ENVIRONMENTS_PER_MONITOR} environments per monitor"
         )
+
+
+@region_silo_only_model
+class MonitorIncident(Model):
+    __relocation_scope__ = RelocationScope.Excluded
+
+    monitor = FlexibleForeignKey("sentry.Monitor")
+    monitor_environment = FlexibleForeignKey("sentry.MonitorEnvironment")
+    starting_checkin = FlexibleForeignKey(
+        "sentry.MonitorCheckIn", null=True, related_name="created_incidents"
+    )
+    starting_timestamp = models.DateTimeField(null=True)
+    resolving_checkin = FlexibleForeignKey(
+        "sentry.MonitorCheckIn", null=True, related_name="resolved_incidents"
+    )
+    resolving_timestamp = models.DateTimeField(null=True)
+    grouphash = models.CharField(max_length=32)
+    date_added = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_monitorincident"

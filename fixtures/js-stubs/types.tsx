@@ -67,7 +67,6 @@ type TestStubFixtures = {
   EventStacktraceException: OverridableStub;
   EventStacktraceMessage: OverridableStub;
   EventsStats: OverridableStub;
-  ExceptionWithMeta: OverridableStubList;
   ExceptionWithRawStackTrace: OverridableStub;
   Frame: OverridableStub;
   GitHubIntegration: OverridableStub;
@@ -94,7 +93,7 @@ type TestStubFixtures = {
   Member: OverridableStub;
   Members: OverridableStubList;
   MetricRule: OverridableStub;
-  MetricsField: OverridableStub;
+  MetricsField: (field: string, params?: Partial<any>) => any;
   MetricsMeta: OverridableStub;
   MetricsSessionUserCountByStatusByRelease: SimpleStub;
   MetricsTotalCountByReleaseIn24h: SimpleStub;
@@ -156,7 +155,7 @@ type TestStubFixtures = {
   SessionUserCountByStatusByRelease: SimpleStub;
   SessionUserStatusCountByProjectInPeriod: SimpleStub;
   SessionUserStatusCountByReleaseInPeriod: SimpleStub;
-  SessionsField: OverridableStub;
+  SessionsField: (field: string) => any;
   SesssionTotalCountByReleaseIn24h: SimpleStub;
   ShortIdQueryResult: OverridableStub;
   SourceMapArchive: OverridableStub;

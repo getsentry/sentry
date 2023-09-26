@@ -9,7 +9,7 @@ type StatusCounts = [
   ok: number,
   missed: number,
   timeout: number,
-  error: number
+  error: number,
 ];
 
 export function generateEnvMapping(name: string, counts: StatusCounts) {

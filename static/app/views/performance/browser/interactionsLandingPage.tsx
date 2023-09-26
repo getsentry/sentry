@@ -181,7 +181,7 @@ function SelectControlWithProps(props: ControlProps & {options: Option[]}) {
   return <SelectControl {...props} />;
 }
 
-const PaddedContainer = styled('div')`
+export const PaddedContainer = styled('div')`
   margin-bottom: ${space(2)};
 `;
 
