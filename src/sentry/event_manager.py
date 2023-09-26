@@ -57,7 +57,6 @@ from sentry.culprit import generate_culprit
 from sentry.dynamic_sampling import LatestReleaseBias, LatestReleaseParams
 from sentry.eventstore.processing import event_processing_store
 from sentry.eventtypes import EventType
-from sentry.eventtypes.error import ErrorEvent
 from sentry.eventtypes.transaction import TransactionEvent
 from sentry.grouping.api import (
     BackgroundGroupingConfigLoader,
@@ -150,7 +149,7 @@ SECURITY_REPORT_INTERFACES = ("csp", "hpkp", "expectct", "expectstaple")
 # Timeout for cached group crash report counts
 CRASH_REPORT_TIMEOUT = 24 * 3600  # one day
 
-NON_TITLE_EVENT_TITLES = ["<untitled>", "<unknown>"]
+NON_TITLE_EVENT_TITLES = ["<untitled>", "<unknown>", "<unlabeled event>"]
 
 
 @dataclass
@@ -562,9 +561,9 @@ class EventManager:
 
         _materialize_metadata_many(jobs)
 
-        kwargs = _create_kwargs(job)
+        group_creation_kwargs = _get_group_creation_kwargs(job)
 
-        kwargs["culprit"] = job["culprit"]
+        group_creation_kwargs["culprit"] = job["culprit"]
 
         # Load attachments first, but persist them at the very last after
         # posting to eventstream to make sure all counters and eventstream are
@@ -583,7 +582,7 @@ class EventManager:
                     metadata=dict(job["event_metadata"]),
                     received_timestamp=job["received_timestamp"],
                     migrate_off_hierarchical=migrate_off_hierarchical,
-                    **kwargs,
+                    **group_creation_kwargs,
                 )
                 job["groups"] = [group_info]
         except HashDiscarded as err:
@@ -1097,7 +1096,7 @@ def _materialize_metadata_many(jobs: Sequence[Job]) -> None:
         job["culprit"] = data["culprit"]
 
 
-def _create_kwargs(job: Union[Job, PerformanceJob]) -> dict[str, Any]:
+def _get_group_creation_kwargs(job: Union[Job, PerformanceJob]) -> dict[str, Any]:
     kwargs = {
         "platform": job["platform"],
         "message": job["event"].search_message,
@@ -1734,7 +1733,7 @@ def _save_aggregate(
         ).update(group=group)
 
     is_regression = _process_existing_aggregate(
-        group=group, event=event, data=kwargs, release=release
+        group=group, event=event, new_group_data=kwargs, release=release
     )
 
     return GroupInfo(group, is_new, is_regression)
@@ -2002,20 +2001,20 @@ def _handle_regression(group: Group, event: Event, release: Optional[Release]) -
 
 
 def _process_existing_aggregate(
-    group: Group, event: Event, data: Mapping[str, Any], release: Optional[Release]
+    group: Group, event: Event, new_group_data: Mapping[str, Any], release: Optional[Release]
 ) -> bool:
-    date = max(event.datetime, group.last_seen)
-    extra = {"last_seen": date, "data": data["data"]}
+    last_seen = max(event.datetime, group.last_seen)
+    extra = {"last_seen": last_seen, "data": new_group_data["data"]}
     if (
         event.search_message
         and event.search_message != group.message
         and event.get_event_type() != TransactionEvent.key
     ):
         extra["message"] = event.search_message
-    if group.level != data["level"]:
-        extra["level"] = data["level"]
-    if group.culprit != data["culprit"]:
-        extra["culprit"] = data["culprit"]
+    if group.level != new_group_data["level"]:
+        extra["level"] = new_group_data["level"]
+    if group.culprit != new_group_data["culprit"]:
+        extra["culprit"] = new_group_data["culprit"]
     if group.first_seen > event.datetime:
         extra["first_seen"] = event.datetime
 
@@ -2056,13 +2055,22 @@ def _get_severity_score(event: Event) -> float | None:
     # to BigQuery for storage space reasons (stacktraces can be enormous). Since the ML model is
     # trained on BQ data, we have to use the title to match.
     #
-    # TODO: Figure out if there's a way to get the full error message to the model.
+    # TODO: Figure out if there's a way to get the full error message to the model. (If we do that,
+    # though, it'll only work for `ErrorEvent`-type events. We'll still have to use `title` for
+    # `DefaultEvent`-type events - like those which come from `capture_message` calls - or find the
+    # message data elsewhere in the event.)
     title = event.title
-    if title in NON_TITLE_EVENT_TITLES:
-        title = ErrorEvent().compute_title(dict(event.get_event_metadata()))
+    event_type = get_event_type(event.data)
 
+    # If the event hasn't yet been given a helpful title, attempt to calculate one
     if title in NON_TITLE_EVENT_TITLES:
-        logger_data.update({"event_title": event.title, "computed_title": title})
+        title = event_type.get_title(event_type.get_metadata(event.data))
+
+    # If there's still nothing helpful to be had, bail
+    if title in NON_TITLE_EVENT_TITLES:
+        logger_data.update(
+            {"event_type": event_type.key, "event_title": event.title, "computed_title": title}
+        )
         logger.warning(
             f"Unable to get severity score because of unusable `message` value '{title}'",
             extra=logger_data,
