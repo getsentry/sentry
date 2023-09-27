@@ -294,7 +294,7 @@ function MetricsExplorerDisplayOuter(props?: DisplayProps) {
 
 function MetricsExplorerDisplay({displayType, ...metricsDataProps}: DisplayProps) {
   const router = useRouter();
-  const {data, isLoading, isError} = useMetricsData(metricsDataProps);
+  const {data, isLoading, isError, error} = useMetricsData(metricsDataProps);
   const focusedSeries = router.location.query.focusedSeries;
   const [hoveredLegend, setHoveredLegend] = useState('');
 
@@ -313,7 +313,11 @@ function MetricsExplorerDisplay({displayType, ...metricsDataProps}: DisplayProps
     return (
       <DisplayWrapper>
         {isLoading && <LoadingIndicator />}
-        {isError && <Alert type="error">{t('Error while fetching metrics data')}</Alert>}
+        {isError && (
+          <Alert type="error">
+            {error?.responseJSON?.detail || t('Error while fetching metrics data')}
+          </Alert>
+        )}
       </DisplayWrapper>
     );
   }
