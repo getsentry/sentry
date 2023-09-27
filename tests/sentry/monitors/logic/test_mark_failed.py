@@ -50,7 +50,7 @@ class MarkFailedTestCase(TestCase):
             project_id=self.project.id,
             status=CheckInStatus.UNKNOWN,
         )
-        assert mark_failed(checkin, ts=None)
+        assert mark_failed(checkin, ts=checkin.date_added)
 
         assert len(mock_insert_data_to_database_legacy.mock_calls) == 1
 
@@ -101,7 +101,7 @@ class MarkFailedTestCase(TestCase):
             project_id=self.project.id,
             status=CheckInStatus.TIMEOUT,
         )
-        assert mark_failed(checkin, ts=None)
+        assert mark_failed(checkin, ts=checkin.date_added)
 
         assert len(mock_insert_data_to_database_legacy.mock_calls) == 1
 
@@ -152,7 +152,7 @@ class MarkFailedTestCase(TestCase):
             project_id=self.project.id,
             status=CheckInStatus.MISSED,
         )
-        assert mark_failed(checkin, ts=None)
+        assert mark_failed(checkin, ts=checkin.date_added)
 
         monitor.refresh_from_db()
         monitor_environment.refresh_from_db()
@@ -509,7 +509,7 @@ class MarkFailedTestCase(TestCase):
                 project_id=self.project.id,
                 status=status,
             )
-            mark_failed(checkin, ts=None)
+            mark_failed(checkin, ts=checkin.date_added)
 
         # failure has not hit threshold, monitor should be in an OK status
         monitor_environment = MonitorEnvironment.objects.get(id=monitor_environment.id)
@@ -536,7 +536,7 @@ class MarkFailedTestCase(TestCase):
             )
             if _ == 0:
                 first_checkin = checkin
-            mark_failed(checkin, ts=None)
+            mark_failed(checkin, ts=checkin.date_added)
 
         # failure has hit threshold, monitor should be in a failed state
         monitor_environment = MonitorEnvironment.objects.get(id=monitor_environment.id)
@@ -559,6 +559,8 @@ class MarkFailedTestCase(TestCase):
         occurrence = occurrence.to_dict()
         assert occurrence["fingerprint"][0] == monitor_incident.grouphash
 
+        prior_last_state_change = monitor_environment.last_state_change
+
         # send another check-in to make sure we don't update last_state_change
         status = next(failure_statuses)
         checkin = MonitorCheckIn.objects.create(
@@ -567,10 +569,10 @@ class MarkFailedTestCase(TestCase):
             project_id=self.project.id,
             status=status,
         )
-        mark_failed(checkin, ts=None)
+        mark_failed(checkin, ts=checkin.date_added)
         monitor_environment = MonitorEnvironment.objects.get(id=monitor_environment.id)
         assert monitor_environment.status == MonitorStatus.ERROR
-        assert monitor_environment.last_state_change == last_state_change_initial
+        assert monitor_environment.last_state_change == prior_last_state_change
 
         # check that incident has not changed
         monitor_incident = MonitorIncident.objects.get(id=monitor_incident.id)
