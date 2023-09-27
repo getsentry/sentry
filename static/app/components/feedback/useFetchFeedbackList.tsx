@@ -27,7 +27,7 @@ export default function useFetchFeedbackList(
   );
 
   return {
-    data: data?.map(hydrateFeedbackRecord),
+    data: data?.filter(Boolean).map(hydrateFeedbackRecord),
     isError,
     isLoading,
     pageLinks: getResponseHeader?.('Link') ?? undefined,
