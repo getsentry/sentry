@@ -5,6 +5,7 @@ import {Location} from 'history';
 import {LinkButton} from 'sentry/components/button';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import TextOverflow from 'sentry/components/textOverflow';
 import {IconCursorArrow, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -35,12 +36,14 @@ function DeadRageSelectorCards() {
         widgetTitle={t('Most Dead Clicks')}
         deadOrRage="dead"
         location={location}
+        tooltip={t('The top selectors your users have dead clicked on.')}
       />
       <AccordionWidget
         clickType="count_rage_clicks"
         widgetTitle={t('Most Rage Clicks')}
         deadOrRage="rage"
         location={location}
+        tooltip={t('The top selectors your users have rage clicked on.')}
       />
     </SplitCardContainer>
   );
@@ -51,10 +54,12 @@ function AccordionWidget({
   clickType,
   deadOrRage,
   widgetTitle,
+  tooltip,
 }: {
   clickType: 'count_dead_clicks' | 'count_rage_clicks';
   deadOrRage: string;
   location: Location<any>;
+  tooltip: string;
   widgetTitle: string;
 }) {
   const [selectedListIndex, setSelectListIndex] = useState(0);
@@ -71,7 +76,11 @@ function AccordionWidget({
   return (
     <WidgetContainer>
       <StyledHeaderContainer>
-        <HeaderTitleLegend>{widgetTitle}</HeaderTitleLegend>
+        <StyledWidgetHeader>
+          {widgetTitle}
+          <StyledQuestionTooltip size="xs" position="top" title={tooltip} isHoverable />
+        </StyledWidgetHeader>
+
         <Subtitle>{t('Suggested replays to watch')}</Subtitle>
       </StyledHeaderContainer>
       {isLoading && (
@@ -222,6 +231,14 @@ const StyledAccordionHeader = styled('div')`
 `;
 const StyledEmptyState = styled(ContentContainer)`
   justify-content: center;
+`;
+
+const StyledWidgetHeader = styled(HeaderTitleLegend)`
+  display: block;
+`;
+
+const StyledQuestionTooltip = styled(QuestionTooltip)`
+  margin-left: ${space(1)};
 `;
 
 export default DeadRageSelectorCards;
