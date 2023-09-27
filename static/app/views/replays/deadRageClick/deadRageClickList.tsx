@@ -17,22 +17,24 @@ import useDeadRageSelectors from 'sentry/utils/replays/hooks/useDeadRageSelector
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import SelectorTable from 'sentry/views/replays/deadRageClick/selectorTable';
+import ReplayTabs from 'sentry/views/replays/tabs';
 
-export default function RageClickList() {
+export default function DeadRageClickList() {
   const organization = useOrganization();
   const location = useLocation();
-  const hasRageClickFeature = organization.features.includes(
+  const hasDeadClickFeature = organization.features.includes(
     'session-replay-rage-dead-selectors'
   );
 
   const {isLoading, isError, data, pageLinks} = useDeadRageSelectors({
     per_page: 50,
-    sort: '-count_rage_clicks',
+    sort: '-count_dead_clicks',
     cursor: location.query.cursor,
     prefix: '',
+    isWidgetData: false,
   });
 
-  if (!hasRageClickFeature) {
+  if (!hasDeadClickFeature) {
     return (
       <Layout.Page withPadding>
         <Alert type="warning">{t("You don't have access to this feature")}</Alert>
@@ -42,19 +44,21 @@ export default function RageClickList() {
 
   return (
     <SentryDocumentTitle
-      title={t('Top Selectors with Rage Clicks')}
+      title={t('Top Selectors with Dead Clicks')}
       orgSlug={organization.slug}
     >
       <Layout.Header>
         <Layout.HeaderContent>
           <Layout.Title>
-            {t('Top Selectors with Rage Clicks')}
+            {t('Top Selectors with Dead and Rage Clicks')}
             <PageHeadingQuestionTooltip
-              title={t('See the top selectors your users have rage clicked on.')}
+              title={t('See the top selectors your users have dead and rage clicked on.')}
               docsUrl="https://docs.sentry.io/product/session-replay/replay-page-and-filters/"
             />
           </Layout.Title>
         </Layout.HeaderContent>
+        <div /> {/* wraps the tabs below the page title */}
+        <ReplayTabs selected="selectors" />
       </Layout.Header>
       <PageFiltersContainer>
         <Layout.Body>
@@ -70,7 +74,11 @@ export default function RageClickList() {
                 isError={isError}
                 isLoading={isLoading}
                 location={location}
-                clickCountColumn={{key: 'count_rage_clicks', name: 'rage clicks'}}
+                clickCountColumns={[
+                  {key: 'count_dead_clicks', name: 'dead clicks'},
+                  {key: 'count_rage_clicks', name: 'rage clicks'},
+                ]}
+                clickCountSortable
               />
             </LayoutGap>
             <PaginationNoMargin
@@ -90,8 +98,7 @@ export default function RageClickList() {
 }
 
 const LayoutGap = styled('div')`
-  display: grid;
-  gap: ${space(1)};
+  margin-top: ${space(2)};
 `;
 
 const PaginationNoMargin = styled(Pagination)`
