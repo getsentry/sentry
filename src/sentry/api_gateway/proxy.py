@@ -60,7 +60,7 @@ def proxy_request(request: HttpRequest, org_slug: str) -> StreamingHttpResponse:
     target_url = urljoin(region.address, request.path)
     header_dict = clean_proxy_headers(request.headers)
     # TODO: use requests session for connection pooling capabilities
-    assert request.method is not None
+    # assert request.method is not None
     query_params = request.GET
     try:
         resp = external_request(
