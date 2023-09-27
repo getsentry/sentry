@@ -18,12 +18,12 @@ from sentry.db.models.query import in_iexact
 from sentry.models import Organization, OrganizationMember, OrganizationStatus, ProjectPlatform
 from sentry.search.utils import tokenize_query
 from sentry.services.hybrid_cloud import IDEMPOTENCY_KEY_LENGTH
-from sentry.services.hybrid_cloud.organization_provisioning import (
+from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.services.organization import (
     OrganizationOptions,
     OrganizationProvisioningOptions,
     PostProvisionOptions,
 )
-from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.services.organization.provisioning import organization_provisioning_service
 from sentry.signals import org_setup_complete, terms_accepted
 

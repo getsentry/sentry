@@ -4,10 +4,10 @@ from django.conf import settings
 from django.db import IntegrityError, router, transaction
 
 from sentry.models import Organization
-from sentry.services.hybrid_cloud.organization_provisioning import OrganizationProvisioningOptions
 from sentry.services.hybrid_cloud.organization_provisioning import (
     organization_provisioning_service as rpc_org_provisioning_service,
 )
+from sentry.services.organization.model import OrganizationProvisioningOptions
 
 
 class OrganizationSlugCollisionException(Exception):
