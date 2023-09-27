@@ -1,5 +1,4 @@
 import {Component, createRef, VFC} from 'react';
-import TextareaAutosize from 'react-autosize-textarea';
 import {WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
@@ -47,7 +46,7 @@ import {
   FieldValueType,
   getFieldDefinition,
 } from 'sentry/utils/fields';
-import getDynamicComponent from 'sentry/utils/getDynamicComponent';
+import SearchBoxTextArea from 'sentry/utils/search/searchBoxTextArea';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 // eslint-disable-next-line no-restricted-imports
@@ -2110,15 +2109,7 @@ const Highlight = styled('div')`
   font-family: ${p => p.theme.text.familyMono};
 `;
 
-const SearchInput = styled(
-  getDynamicComponent<typeof TextareaAutosize>({
-    value: TextareaAutosize,
-    fixed: 'textarea',
-  }),
-  {
-    shouldForwardProp: prop => typeof prop === 'string',
-  }
-)`
+const SearchInput = styled(SearchBoxTextArea)`
   position: relative;
   display: flex;
   resize: none;
