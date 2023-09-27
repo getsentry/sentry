@@ -12,6 +12,7 @@ import ChartZoom from 'sentry/components/charts/chartZoom';
 import Legend from 'sentry/components/charts/components/legend';
 import {LineChart} from 'sentry/components/charts/lineChart';
 import ReleaseSeries from 'sentry/components/charts/releaseSeries';
+import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import SearchBar from 'sentry/components/events/searchBar';
@@ -295,8 +296,17 @@ function MetricsExplorerDisplayOuter(props?: DisplayProps) {
 function MetricsExplorerDisplay({displayType, ...metricsDataProps}: DisplayProps) {
   const router = useRouter();
   const {data, isLoading, isError} = useMetricsData(metricsDataProps);
+  const [dataToBeRendered, setDataToBeRendered] = useState<MetricsData | undefined>(
+    undefined
+  );
   const focusedSeries = router.location.query.focusedSeries;
   const [hoveredLegend, setHoveredLegend] = useState('');
+
+  useEffect(() => {
+    if (data) {
+      setDataToBeRendered(data);
+    }
+  }, [data]);
 
   const toggleSeriesVisibility = (seriesName: string) => {
     setHoveredLegend('');
@@ -309,7 +319,7 @@ function MetricsExplorerDisplay({displayType, ...metricsDataProps}: DisplayProps
     });
   };
 
-  if (!data) {
+  if (!dataToBeRendered || isError) {
     return (
       <DisplayWrapper>
         {isLoading && <LoadingIndicator />}
@@ -319,13 +329,17 @@ function MetricsExplorerDisplay({displayType, ...metricsDataProps}: DisplayProps
   }
 
   // TODO(ddm): we should move this into the useMetricsData hook
-  const sorted = sortData(data);
-  const unit = getUnitFromMRI(Object.keys(data.groups[0]?.series ?? {})[0]); // this assumes that all series have the same unit
+  const sorted = sortData(dataToBeRendered);
+  const unit = getUnitFromMRI(Object.keys(dataToBeRendered.groups[0]?.series ?? {})[0]); // this assumes that all series have the same unit
 
   const series = sorted.groups.map(g => {
     return {
       values: Object.values(g.series)[0],
-      name: getSeriesName(g, data.groups.length === 1, metricsDataProps.groupBy),
+      name: getSeriesName(
+        g,
+        dataToBeRendered.groups.length === 1,
+        metricsDataProps.groupBy
+      ),
       transaction: g.by.transaction,
       release: g.by.release,
     };
@@ -353,6 +367,7 @@ function MetricsExplorerDisplay({displayType, ...metricsDataProps}: DisplayProps
 
   return (
     <DisplayWrapper>
+      <TransparentLoadingMask visible={isLoading} />
       <Chart
         series={chartSeries}
         displayType={displayType}
