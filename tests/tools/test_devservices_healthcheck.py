@@ -116,4 +116,4 @@ def test_kafka_running(mock_subprocess_run: mock.MagicMock) -> None:
     mock_subprocess_run.side_effect = run
 
     check_health(["kafka"])
-    assert mock_subprocess_run.call_count == 3
+    assert mock_subprocess_run.call_count == 2
