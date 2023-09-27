@@ -199,4 +199,5 @@ const CellWrapper = styled('div')`
     ${Cell} {
       background-color: ${p => p.theme.bodyBackground};
     }
+  }
 `;
