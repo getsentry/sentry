@@ -49,7 +49,7 @@ class MarkFailedTestCase(TestCase):
             project_id=self.project.id,
             status=CheckInStatus.UNKNOWN,
         )
-        assert mark_failed(checkin, ts=None)
+        assert mark_failed(checkin, ts=checkin.date_added)
 
         assert len(mock_insert_data_to_database_legacy.mock_calls) == 1
 
@@ -100,7 +100,7 @@ class MarkFailedTestCase(TestCase):
             project_id=self.project.id,
             status=CheckInStatus.TIMEOUT,
         )
-        assert mark_failed(checkin, ts=None)
+        assert mark_failed(checkin, ts=checkin.date_added)
 
         assert len(mock_insert_data_to_database_legacy.mock_calls) == 1
 
@@ -151,7 +151,7 @@ class MarkFailedTestCase(TestCase):
             project_id=self.project.id,
             status=CheckInStatus.MISSED,
         )
-        assert mark_failed(checkin, ts=None)
+        assert mark_failed(checkin, ts=checkin.date_added)
 
         monitor.refresh_from_db()
         monitor_environment.refresh_from_db()
@@ -508,7 +508,7 @@ class MarkFailedTestCase(TestCase):
                 project_id=self.project.id,
                 status=status,
             )
-            mark_failed(checkin, ts=None)
+            mark_failed(checkin, ts=checkin.date_added)
 
         # failure has not hit threshold, monitor should be in an OK status
         monitor_environment = MonitorEnvironment.objects.get(id=monitor_environment.id)
@@ -532,7 +532,7 @@ class MarkFailedTestCase(TestCase):
                 project_id=self.project.id,
                 status=status,
             )
-            mark_failed(checkin, ts=None)
+            mark_failed(checkin, ts=checkin.date_added)
 
         # failure has hit threshold, monitor should be in a failed state
         monitor_environment = MonitorEnvironment.objects.get(id=monitor_environment.id)
@@ -542,6 +542,8 @@ class MarkFailedTestCase(TestCase):
         # assert correct number of occurrences was sent
         assert len(mock_produce_occurrence_to_kafka.mock_calls) == failure_issue_threshold
 
+        prior_last_state_change = monitor_environment.last_state_change
+
         # send another check-in to make sure we don't update last_state_change
         status = next(failure_statuses)
         checkin = MonitorCheckIn.objects.create(
@@ -550,10 +552,10 @@ class MarkFailedTestCase(TestCase):
             project_id=self.project.id,
             status=status,
         )
-        mark_failed(checkin, ts=None)
+        mark_failed(checkin, ts=checkin.date_added)
         monitor_environment = MonitorEnvironment.objects.get(id=monitor_environment.id)
         assert monitor_environment.status == MonitorStatus.ERROR
-        assert monitor_environment.last_state_change == monitor_environment.last_checkin
+        assert monitor_environment.last_state_change == prior_last_state_change
 
         # assert correct number of occurrences was sent
         assert len(mock_produce_occurrence_to_kafka.mock_calls) == failure_issue_threshold + 1

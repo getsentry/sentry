@@ -1,5 +1,6 @@
 {
   "feedback.feedback": [
+    "sentry.environment",
     "sentry.organization",
     "sentry.project"
   ],

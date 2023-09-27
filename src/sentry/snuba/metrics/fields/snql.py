@@ -609,7 +609,12 @@ def histogram_snql_factory(
     )
 
 
-def rate_snql_factory(aggregate_filter, numerator, denominator=1.0, alias=None):
+def rate_snql_factory(
+    aggregate_filter: Function,
+    numerator: float,
+    denominator: float = 1.0,
+    alias: Optional[str] = None,
+) -> Function:
     return Function(
         "divide",
         [
@@ -903,3 +908,19 @@ def on_demand_apdex_snql_factory(
         [Function("plus", [satisfactory, tolerable_divided_by_2]), total_count(aggregate_filter)],
         alias=alias,
     )
+
+
+def on_demand_epm_snql_factory(
+    aggregate_filter: Function,
+    interval: float,
+    alias: Optional[str],
+) -> Function:
+    return rate_snql_factory(aggregate_filter, interval, 60, alias)
+
+
+def on_demand_eps_snql_factory(
+    aggregate_filter: Function,
+    interval: float,
+    alias: Optional[str],
+) -> Function:
+    return rate_snql_factory(aggregate_filter, interval, 1, alias)

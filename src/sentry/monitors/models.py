@@ -61,8 +61,9 @@ MONITOR_CONFIG = {
         "failure_issue_threshold": {"type": ["integer", "null"]},
         "recovery_threshold": {"type": ["integer", "null"]},
     },
-    # TODO(davidenwang): Old monitors may not have timezone or schedule_type, these should be added here once we've cleaned up old data
-    "required": ["checkin_margin", "max_runtime", "schedule"],
+    # TODO(davidenwang): Old monitors may not have timezone, it should be added
+    # here once we've cleaned up old data
+    "required": ["checkin_margin", "max_runtime", "schedule_type", "schedule"],
     "additionalProperties": False,
 }
 
@@ -81,7 +82,7 @@ class MonitorEnvironmentValidationFailed(Exception):
     pass
 
 
-def get_next_schedule(reference_ts: datetime, schedule_type, schedule):
+def get_next_schedule(reference_ts: datetime, schedule_type: int, schedule):
     """
     Given the schedule type and schedule, determine the next timestamp for a
     schedule from the reference_ts
@@ -98,17 +99,16 @@ def get_next_schedule(reference_ts: datetime, schedule_type, schedule):
     >>> 07:35
     """
     if schedule_type == ScheduleType.CRONTAB:
-        itr = croniter(schedule, reference_ts)
-        next_schedule = itr.get_next(datetime)
+        next_schedule = croniter(schedule, reference_ts).get_next(datetime)
     elif schedule_type == ScheduleType.INTERVAL:
         interval, unit_name = schedule
         rule = rrule.rrule(
-            freq=SCHEDULE_INTERVAL_MAP[unit_name], interval=interval, dtstart=reference_ts, count=2
+            freq=SCHEDULE_INTERVAL_MAP[unit_name],
+            interval=interval,
+            dtstart=reference_ts,
+            count=2,
         )
-        if rule[0] > reference_ts:
-            next_schedule = rule[0]
-        else:
-            next_schedule = rule[1]
+        next_schedule = rule.after(reference_ts)
     else:
         raise NotImplementedError("unknown schedule_type")
 
@@ -217,7 +217,7 @@ class ScheduleType:
 
     @classmethod
     def as_choices(cls):
-        return ((cls.UNKNOWN, "unknown"), (cls.CRONTAB, "crontab"), (cls.INTERVAL, "interval"))
+        return ((cls.CRONTAB, "crontab"), (cls.INTERVAL, "interval"))
 
     @classmethod
     def get_name(cls, value):
@@ -265,7 +265,7 @@ class Monitor(Model):
         return super().save(*args, **kwargs)
 
     def get_schedule_type_display(self):
-        return ScheduleType.get_name(self.config.get("schedule_type", ScheduleType.CRONTAB))
+        return ScheduleType.get_name(self.config["schedule_type"])
 
     def get_audit_log_data(self):
         return {"name": self.name, "type": self.type, "status": self.status, "config": self.config}

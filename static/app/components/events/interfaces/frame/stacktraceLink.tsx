@@ -14,7 +14,6 @@ import HookOrDefault from 'sentry/components/hookOrDefault';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import Placeholder from 'sentry/components/placeholder';
-import type {PlatformKey} from 'sentry/data/platformCategories';
 import {IconClose, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -23,6 +22,7 @@ import {
   Event,
   Frame,
   Organization,
+  PlatformKey,
   Project,
   StacktraceLinkResult,
 } from 'sentry/types';

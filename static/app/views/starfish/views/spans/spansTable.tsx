@@ -27,8 +27,7 @@ type Row = {
   'avg(span.self_time)': number;
   'http_error_count()': number;
   'span.description': string;
-  'span.domain': string;
-  'span.domain_array': Array<string>;
+  'span.domain': Array<string>;
   'span.group': string;
   'span.op': string;
   'spm()': number;
@@ -48,7 +47,7 @@ type Props = {
   spanCategory?: string;
 };
 
-const {SPAN_SELF_TIME, SPAN_DESCRIPTION, SPAN_DOMAIN, SPAN_GROUP, SPAN_OP, PROJECT_ID} =
+const {SPAN_SELF_TIME, SPAN_DESCRIPTION, SPAN_GROUP, SPAN_OP, PROJECT_ID, SPAN_DOMAIN} =
   SpanMetricsField;
 
 export default function SpansTable({
@@ -178,6 +177,7 @@ function getDomainHeader(moduleName: ModuleName) {
   }
   return 'Domain';
 }
+
 function getDescriptionHeader(moduleName: ModuleName, spanCategory?: string) {
   if (moduleName === ModuleName.HTTP) {
     return 'URL Request';
@@ -209,7 +209,6 @@ function getColumns(
   transaction?: string
 ): Column[] {
   const description = getDescriptionHeader(moduleName, spanCategory);
-
   const domain = getDomainHeader(moduleName);
 
   const order = [
