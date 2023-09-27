@@ -1,83 +1,16 @@
 from __future__ import annotations
 
-from datetime import datetime
-from typing import Any
-
 from django.urls import reverse
 
-from sentry.eventstore.models import Event
 from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL
 from sentry.incidents.models import IncidentStatus
 from sentry.integrations.discord.message_builder import LEVEL_TO_COLOR
 from sentry.integrations.discord.message_builder.metric_alerts import (
     DiscordMetricAlertMessageBuilder,
 )
-from sentry.models import Group, Team, User
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
-from sentry.utils.dates import to_timestamp
 from sentry.utils.http import absolute_uri
-
-
-def build_test_message(
-    teams: set[Team],
-    users: set[User],
-    timestamp: datetime,
-    group: Group,
-    event: Event | None = None,
-    link_to_event: bool = False,
-) -> dict[str, Any]:
-    project = group.project
-
-    title = group.title
-    title_link = f"http://testserver/organizations/{project.organization.slug}/issues/{group.id}"
-    if event:
-        title = event.title
-        if link_to_event:
-            title_link += f"/events/{event.event_id}"
-    title_link += "/?referrer=discord"
-
-    return {
-        "text": "",
-        "color": "#E03E2F",  # red for error level
-        "actions": [
-            {"name": "status", "text": "Resolve", "type": "button", "value": "resolved"},
-            {"name": "status", "text": "Ignore", "type": "button", "value": "ignored:forever"},
-            {
-                "option_groups": [
-                    {
-                        "text": "Teams",
-                        "options": [
-                            {"text": f"#{team.slug}", "value": f"team:{team.id}"} for team in teams
-                        ],
-                    },
-                    {
-                        "text": "People",
-                        "options": [
-                            {
-                                "text": user.email,
-                                "value": f"user:{user.id}",
-                            }
-                            for user in users
-                        ],
-                    },
-                ],
-                "text": "Select Assignee...",
-                "selected_options": [],
-                "type": "select",
-                "name": "assign",
-            },
-        ],
-        "mrkdwn_in": ["text"],
-        "title": title,
-        "fields": [],
-        "footer": f"{project.slug.upper()}-1",
-        "ts": to_timestamp(timestamp),
-        "title_link": title_link,
-        "callback_id": '{"issue":' + str(group.id) + "}",
-        "fallback": f"[{project.slug}] {title}",
-        "footer_icon": "http://testserver/_static/{version}/sentry/images/sentry-email-avatar.png",
-    }
 
 
 @region_silo_test(stable=True)
