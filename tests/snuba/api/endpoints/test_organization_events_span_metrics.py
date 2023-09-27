@@ -626,7 +626,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         )
         response = self.do_request(
             {
-                "field": ["span.domain_array", "p75(span.self_time)"],
+                "field": ["span.domain", "p75(span.self_time)"],
                 "query": "",
                 "project": self.project.id,
                 "orderby": ["-p75(span.self_time)"],
@@ -637,10 +637,10 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         data = response.data["data"]
         meta = response.data["meta"]
         assert len(data) == 2
-        assert data[0]["span.domain_array"] == ["sentry_table1"]
-        assert data[1]["span.domain_array"] == ["sentry_table1", "sentry_table2"]
+        assert data[0]["span.domain"] == ["sentry_table1"]
+        assert data[1]["span.domain"] == ["sentry_table1", "sentry_table2"]
         assert meta["dataset"] == "spansMetrics"
-        assert meta["fields"]["span.domain_array"] == "array"
+        assert meta["fields"]["span.domain"] == "array"
 
     def test_span_domain_array_filter(self):
         self.store_span_metric(
@@ -657,8 +657,8 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         )
         response = self.do_request(
             {
-                "field": ["span.domain_array", "p75(span.self_time)"],
-                "query": "span.domain_array:sentry_table2",
+                "field": ["span.domain", "p75(span.self_time)"],
+                "query": "span.domain:sentry_table2",
                 "project": self.project.id,
                 "dataset": "spansMetrics",
             }
@@ -667,9 +667,9 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         data = response.data["data"]
         meta = response.data["meta"]
         assert len(data) == 1
-        assert data[0]["span.domain_array"] == ["sentry_table1", "sentry_table2"]
+        assert data[0]["span.domain"] == ["sentry_table1", "sentry_table2"]
         assert meta["dataset"] == "spansMetrics"
-        assert meta["fields"]["span.domain_array"] == "array"
+        assert meta["fields"]["span.domain"] == "array"
 
     def test_span_domain_array_filter_wildcard(self):
         self.store_span_metric(
@@ -687,8 +687,8 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         for query in ["sentry*2", "*table2", "sentry_table2*"]:
             response = self.do_request(
                 {
-                    "field": ["span.domain_array", "p75(span.self_time)"],
-                    "query": f"span.domain_array:{query}",
+                    "field": ["span.domain", "p75(span.self_time)"],
+                    "query": f"span.domain:{query}",
                     "project": self.project.id,
                     "dataset": "spansMetrics",
                 }
@@ -697,9 +697,9 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             data = response.data["data"]
             meta = response.data["meta"]
             assert len(data) == 1, query
-            assert data[0]["span.domain_array"] == ["sentry_table1", "sentry_table2"], query
+            assert data[0]["span.domain"] == ["sentry_table1", "sentry_table2"], query
             assert meta["dataset"] == "spansMetrics", query
-            assert meta["fields"]["span.domain_array"] == "array"
+            assert meta["fields"]["span.domain"] == "array"
 
     def test_span_domain_array_has_filter(self):
         self.store_span_metric(
@@ -716,8 +716,8 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         )
         response = self.do_request(
             {
-                "field": ["span.domain_array", "p75(span.self_time)"],
-                "query": "has:span.domain_array",
+                "field": ["span.domain", "p75(span.self_time)"],
+                "query": "has:span.domain",
                 "project": self.project.id,
                 "dataset": "spansMetrics",
             }
@@ -726,12 +726,12 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         data = response.data["data"]
         meta = response.data["meta"]
         assert len(data) == 1
-        assert data[0]["span.domain_array"] == ["sentry_table1", "sentry_table2"]
+        assert data[0]["span.domain"] == ["sentry_table1", "sentry_table2"]
         assert meta["dataset"] == "spansMetrics"
         response = self.do_request(
             {
-                "field": ["span.domain_array", "p75(span.self_time)"],
-                "query": "!has:span.domain_array",
+                "field": ["span.domain", "p75(span.self_time)"],
+                "query": "!has:span.domain",
                 "project": self.project.id,
                 "dataset": "spansMetrics",
             }
@@ -741,7 +741,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         meta = response.data["meta"]
         assert len(data) == 1
         assert meta["dataset"] == "spansMetrics"
-        assert meta["fields"]["span.domain_array"] == "array"
+        assert meta["fields"]["span.domain"] == "array"
 
     def test_unique_values_span_domain(self):
         self.store_span_metric(
@@ -790,7 +790,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         response = self.do_request(
             {
                 "field": ["unique.span_domains", "count()"],
-                "query": "span.domain_array:sentry_tab*",
+                "query": "span.domain:sentry_tab*",
                 "orderby": "unique.span_domains",
                 "project": self.project.id,
                 "dataset": "spansMetrics",
