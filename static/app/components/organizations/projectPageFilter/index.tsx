@@ -343,10 +343,11 @@ export function ProjectPageFilter({
 
   const menuFooterMessage = useMemo(() => {
     if (selectionLimitExceeded) {
-      return hasStagedChanges =>
+      return (hasStagedChanges: boolean) =>
         hasStagedChanges
           ? t(
-              'Only up to 50 projects can be selected at a time. You can still press “Clear” to see all projects.'
+              'Up to %s projects can be selected at a time. You can still press “Clear” to see all projects.',
+              SELECTION_COUNT_LIMIT
             )
           : footerMessage;
     }
