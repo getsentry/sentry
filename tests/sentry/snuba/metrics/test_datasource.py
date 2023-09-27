@@ -1,6 +1,5 @@
 import pytest
 
-from sentry.api.utils import InvalidParams
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics import get_tag_values
 from sentry.snuba.metrics.naming_layer import TransactionMetricKey, TransactionMRI
@@ -53,10 +52,10 @@ class DatasourceTestCase(BaseMetricsLayerTestCase, TestCase):
         ]
 
         # Invalid public metric name.
-        with pytest.raises(InvalidParams):
-            get_tag_values(
-                [self.project],
-                "satisfaction",
-                ["transaction.measurements"],
-                UseCaseID.TRANSACTIONS,
-            )
+        values = get_tag_values(
+            [self.project],
+            "satisfaction",
+            ["transaction.measurements"],
+            UseCaseID.TRANSACTIONS,
+        )
+        assert values == []

@@ -318,9 +318,8 @@ def _fetch_tags_or_values_for_metrics(
     column: str,
     use_case_id: UseCaseID,
 ) -> Tuple[Union[Sequence[Tag], Sequence[TagValue]], Optional[str]]:
-    assert len({p.organization_id for p in projects}) == 1
-
     metric_mris = []
+
     # For now this function supports all MRIs but only the usage of public names for static MRIs. In case
     # there will be the need, the support for custom metrics MRIs will have to be added but with additional
     # complexity.
