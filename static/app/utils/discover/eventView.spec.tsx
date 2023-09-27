@@ -564,7 +564,7 @@ describe('EventView.fromNewQueryWithPageFilters()', function () {
 describe('EventView.fromNewQueryWithLocation()', function () {
   const prebuiltQuery: NewQuery = {
     id: undefined,
-    name: 'All Events',
+    name: 'Sampled Events',
     query: '',
     projects: [],
     fields: ['title', 'event.type', 'project', 'user', 'timestamp'],
@@ -583,7 +583,7 @@ describe('EventView.fromNewQueryWithLocation()', function () {
 
     expect(eventView).toMatchObject({
       id: undefined,
-      name: 'All Events',
+      name: 'Sampled Events',
       fields: [
         {field: 'title'},
         {field: 'event.type'},
@@ -616,7 +616,7 @@ describe('EventView.fromNewQueryWithLocation()', function () {
 
     expect(eventView).toMatchObject({
       id: undefined,
-      name: 'All Events',
+      name: 'Sampled Events',
       fields: [
         {field: 'title'},
         {field: 'event.type'},
@@ -655,7 +655,7 @@ describe('EventView.fromNewQueryWithLocation()', function () {
 
     expect(eventView).toMatchObject({
       id: undefined,
-      name: 'All Events',
+      name: 'Sampled Events',
       fields: [
         {field: 'title'},
         {field: 'event.type'},
@@ -696,7 +696,7 @@ describe('EventView.fromNewQueryWithLocation()', function () {
 
     expect(eventView2).toMatchObject({
       id: undefined,
-      name: 'All Events',
+      name: 'Sampled Events',
       fields: [
         {field: 'title'},
         {field: 'event.type'},
