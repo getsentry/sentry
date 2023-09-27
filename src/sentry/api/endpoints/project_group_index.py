@@ -200,7 +200,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
         The following attributes can be modified and are supplied as
         JSON object in the body:
 
-        If any ids are out of scope this operation will succeed without
+        If any IDs are out of scope this operation will succeed without
         any data mutation.
 
         :qparam int id: a list of IDs of the issues to be mutated.  This
@@ -263,7 +263,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
 
         Only queries by 'id' are accepted.
 
-        If any ids are out of scope this operation will succeed without
+        If any IDs are out of scope this operation will succeed without
         any data mutation.
 
         :qparam int id: a list of IDs of the issues to be removed.  This

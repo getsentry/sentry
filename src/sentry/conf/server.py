@@ -409,6 +409,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "django.contrib.staticfiles",
     "sentry.issues.apps.Config",
     "sentry.feedback",
+    "sentry.hybridcloud",
 )
 
 # Silence internal hints from Django's system checks
@@ -1320,6 +1321,17 @@ REST_FRAMEWORK = {
 }
 
 
+def custom_parameter_sort(parameter: dict) -> tuple[str, int]:
+    """
+    Sort parameters by type then if the parameter is required or not.
+    It should group path parameters first, then query parameters.
+    In each group, required parameters should come before optional parameters.
+    """
+    param_type = parameter["in"]
+    required = parameter.get("required", False)
+    return (param_type, 0 if required else 1)
+
+
 if os.environ.get("OPENAPIGENERATE", False):
     OLD_OPENAPI_JSON_PATH = "tests/apidocs/openapi-deprecated.json"
     from sentry.apidocs.build import OPENAPI_TAGS, get_old_json_components, get_old_json_paths
@@ -1342,7 +1354,7 @@ if os.environ.get("OPENAPIGENERATE", False):
         "PARSER_WHITELIST": ["rest_framework.parsers.JSONParser"],
         "APPEND_PATHS": get_old_json_paths(OLD_OPENAPI_JSON_PATH),
         "APPEND_COMPONENTS": get_old_json_components(OLD_OPENAPI_JSON_PATH),
-        "SORT_OPERATION_PARAMETERS": False,
+        "SORT_OPERATION_PARAMETERS": custom_parameter_sort,
     }
 
 CRISPY_TEMPLATE_PACK = "bootstrap3"
@@ -1559,10 +1571,6 @@ SENTRY_FEATURES = {
     "organizations:issue-alert-fallback-targeting": False,
     # Enable experimental replay-issue rendering on Issue Details page
     "organizations:issue-details-replay-event": False,
-    # Enable sorting Issue detail events by 'most helpful'
-    "organizations:issue-details-most-helpful-event": False,
-    # Enable Issue details UI improvements related to highlighting the 'most helpful' event
-    "organizations:issue-details-most-helpful-event-ui": False,
     # Adds the ttid & ttfd vitals to the frontend
     "organizations:mobile-vitals": False,
     # Display CPU and memory metrics in transactions with profiles
@@ -1655,8 +1663,6 @@ SENTRY_FEATURES = {
     "organizations:session-replay-slack-new-issue": False,
     # Enable linking from 'new issue' email notifs to the issue replay list
     "organizations:session-replay-issue-emails": False,
-    # Enable optimized serach feature.
-    "organizations:session-replay-optimized-search": False,
     # Enable replay event linking in event processing
     "organizations:session-replay-event-linking": False,
     # Enable linking from 'weekly email' summaries to the issue replay list
@@ -1691,6 +1697,8 @@ SENTRY_FEATURES = {
     "organizations:project-performance-settings-admin": False,
     # Enable feature to load more than 100 rows in performance trace view.
     "organizations:trace-view-load-more": False,
+    # Enable dashboard widget indicators.
+    "organizations:dashboard-widget-indicators": False,
     # Enables updated all events tab in a performance issue
     "organizations:performance-issues-all-events-tab": False,
     # Temporary flag to test search performance that's running slow in S4S
@@ -1780,8 +1788,6 @@ SENTRY_FEATURES = {
     "organizations:on-demand-metrics-prefill": False,
     # Enable writing to the new notification system when updating the old system
     "organizations:notifications-double-write": True,
-    # Excludes measurement config from project config builds.
-    "organizations:projconfig-exclude-measurements": False,
     # Enable source maps debugger
     "organizations:source-maps-debugger-blue-thunder-edition": False,
     # Enable data forwarding functionality for projects.
@@ -2144,8 +2150,16 @@ SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 0.01
 
 # Cardinality limits during metric bucket ingestion.
 # Which cluster to use. Example: {"cluster": "default"}
-SENTRY_METRICS_INDEXER_CARDINALITY_LIMITER_OPTIONS: dict[str, Any] = {}
-SENTRY_METRICS_INDEXER_CARDINALITY_LIMITER_OPTIONS_PERFORMANCE: dict[str, Any] = {}
+SENTRY_METRICS_INDEXER_CARDINALITY_LIMITER_OPTIONS: dict[str, Any] = {
+    "cluster": "default",
+    "num_shards": 1,
+    "num_physical_shards": 1,
+}
+SENTRY_METRICS_INDEXER_CARDINALITY_LIMITER_OPTIONS_PERFORMANCE: dict[str, Any] = {
+    "cluster": "default",
+    "num_shards": 1,
+    "num_physical_shards": 1,
+}
 SENTRY_METRICS_INDEXER_ENABLE_SLICED_PRODUCER = False
 
 # Release Health
@@ -2235,13 +2249,39 @@ SENTRY_SCOPES = {
     "event:read",
     "event:write",
     "event:admin",
-    "alerts:write",
     "alerts:read",
+    "alerts:write",
     # openid, profile, and email aren't prefixed to maintain compliance with the OIDC spec.
     # https://auth0.com/docs/get-started/apis/scopes/openid-connect-scopes.
     "openid",
     "profile",
     "email",
+}
+
+SENTRY_SCOPE_HIERARCHY_MAPPING = {
+    "org:read": {"org:read"},
+    "org:write": {"org:read", "org:write"},
+    "org:admin": {"org:read", "org:write", "org:admin", "org:integrations"},
+    "org:integrations": {"org:integrations"},
+    "org:ci": {"org:ci"},
+    "member:read": {"member:read"},
+    "member:write": {"member:read", "member:write"},
+    "member:admin": {"member:read", "member:write", "member:admin"},
+    "team:read": {"team:read"},
+    "team:write": {"team:read", "team:write"},
+    "team:admin": {"team:read", "team:write", "team:admin"},
+    "project:read": {"project:read"},
+    "project:write": {"project:read", "project:write"},
+    "project:admin": {"project:read", "project:write", "project:admin"},
+    "project:releases": {"project:releases"},
+    "event:read": {"event:read"},
+    "event:write": {"event:read", "event:write"},
+    "event:admin": {"event:read", "event:write", "event:admin"},
+    "alerts:read": {"alerts:read"},
+    "alerts:write": {"alerts:read", "alerts:write"},
+    "openid": {"openid"},
+    "profile": {"profile"},
+    "email": {"email"},
 }
 
 SENTRY_SCOPE_SETS = (

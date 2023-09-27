@@ -473,12 +473,20 @@ def configure_sdk():
     from sentry_sdk.integrations.redis import RedisIntegration
     from sentry_sdk.integrations.threading import ThreadingIntegration
 
+    from sentry.metrics import minimetrics
+
     # exclude monitors with sub-minute schedules from using crons
     exclude_beat_tasks = [
         "flush-buffers",
         "sync-options",
         "schedule-digests",
     ]
+
+    # turn on minimetrics
+    sdk_options.setdefault("_experiments", {}).update(
+        enable_metrics=True,
+        before_emit_metric=minimetrics.before_emit_metric,
+    )
 
     sentry_sdk.init(
         # set back the sentry4sentry_dsn popped above since we need a default dsn on the client
@@ -501,9 +509,7 @@ def configure_sdk():
         **sdk_options,
     )
 
-    from sentry.metrics.minimetrics import patch_sentry_sdk
-
-    patch_sentry_sdk()
+    minimetrics.patch_sentry_sdk()
 
 
 class RavenShim:

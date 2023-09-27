@@ -40,7 +40,7 @@ class UserResponseType(TypedDict, total=False):
     display_name: Optional[str]
 
 
-@extend_schema_serializer(exclude_fields=["x_info_ids", "x_warning_ids", "x_error_ids"])
+@extend_schema_serializer(exclude_fields=["info_ids", "warning_ids", "new_error_ids"])
 class ReplayDetailsResponse(TypedDict, total=False):
     id: str
     project_id: str
@@ -69,12 +69,9 @@ class ReplayDetailsResponse(TypedDict, total=False):
     platform: Optional[str]
     releases: List[str]
     dist: Optional[str]
-    x_warning_ids: Optional[List[str]]
-    x_error_ids: Optional[List[str]]
-    x_info_ids: Optional[List[str]]
-    x_count_errors: Optional[int]
-    x_count_warnings: Optional[int]
-    x_count_infos: Optional[int]
+    warning_ids: Optional[List[str]]
+    new_error_ids: Optional[List[str]]
+    info_ids: Optional[List[str]]
 
 
 def process_raw_response(
@@ -180,14 +177,9 @@ def generate_normalized_output(
         ret_item["replay_type"] = item.pop("replay_type", "session")
         ret_item["started_at"] = item.pop("started_at", None)
 
-        ret_item["x_warning_ids"] = item.pop("x_warning_ids", None)
-        ret_item["x_error_ids"] = item.pop("x_error_ids", None)
-        ret_item["x_info_ids"] = item.pop("x_info_ids", None)
-
-        ret_item["x_count_infos"] = item.pop("x_count_infos", None)
-        ret_item["x_count_warnings"] = item.pop("x_count_warnings", None)
-        ret_item["x_count_errors"] = item.pop("x_count_errors", None)
-
+        ret_item["warning_ids"] = item.pop("warning_ids", None)
+        ret_item["new_error_ids"] = item.pop("new_error_ids", None)
+        ret_item["info_ids"] = item.pop("info_ids", None)
         yield ret_item
 
 

@@ -131,7 +131,6 @@ class SumOfUUIDScalar(GenericBase):
     # but without that it seems to work.
     @staticmethod
     def visit_eq(expression: Expression, value: UUID) -> Condition:
-        # NOTE: have to remove toUUID here for clickhouse 20 compatibility.
         return contains(Condition(expression, Op.EQ, str(value)))
 
     @staticmethod

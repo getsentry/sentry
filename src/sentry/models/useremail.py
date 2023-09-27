@@ -9,7 +9,7 @@ from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
-from sentry.backup.dependencies import ImportKind, PrimaryKeyMap
+from sentry.backup.dependencies import ImportKind, PrimaryKeyMap, get_model_name
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import (
@@ -86,17 +86,19 @@ class UserEmail(Model):
     def normalize_before_relocation_import(
         self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
     ) -> Optional[int]:
+        from sentry.models.user import User
+
         # If we are merging users, ignore this import and use the merged user's data.
-        if pk_map.get_kind("sentry.User", self.user_id) == ImportKind.Existing:
+        if pk_map.get_kind(get_model_name(User), self.user_id) == ImportKind.Existing:
             return None
 
         old_pk = super().normalize_before_relocation_import(pk_map, scope, flags)
         if old_pk is None:
             return None
 
-        # Only preserve validation hashes in global scope - in all others, have the user verify
-        # their email again.
-        if scope != ImportScope.Global:
+        # Only preserve validation hashes in backup/restore scopes - in all others, have the user
+        # verify their email again.
+        if scope not in {ImportScope.Config, ImportScope.Global}:
             self.is_verified = False
             self.validation_hash = get_secure_token()
             self.date_hash_added = timezone.now()
