@@ -5,9 +5,7 @@
 import abc
 from typing import (
     Callable,
-    Collection,
     Dict,
-    FrozenSet,
     Generator,
     Generic,
     List,
@@ -22,6 +20,8 @@ from typing import (
 import pydantic
 from django.core.cache import cache
 
+from sentry.hybridcloud.models import CacheVersionBase
+from sentry.hybridcloud.models.cacheversion import RegionCacheVersion
 from sentry.services.hybrid_cloud.region import ByRegionName
 from sentry.services.hybrid_cloud.rpc import RpcService, regional_rpc_method, rpc_method
 from sentry.silo import SiloMode
@@ -59,49 +59,41 @@ class ControlCachingService(RpcService):
 
 def _set_cache(key: str, value: str, version: int) -> Generator[None, None, bool]:
     result = cache.add(_versioned_key(key, version), value)
-    # cache.set(_versioned_key(key, version), value)
     yield
     return result
-
-
-def _version_key(key: str) -> str:
-    return f"{key}.v"
 
 
 def _versioned_key(key: str, version: int) -> str:
     return f"{key}.{version}"
 
 
-def _delete_cache(key: str) -> Generator[None, None, int]:
-    try:
-        version = cache.incr(_version_key(key))
-        yield
-    except ValueError:
-        version = 0
-        cache.add(_version_key(key), version)
-        yield
-    # Ensure vacancy
-    cache.delete(_versioned_key(key, version))
+def _version_model(mode: SiloMode) -> Type[CacheVersionBase]:
+    if mode == SiloMode.REGION:
+        return RegionCacheVersion
+    raise ValueError
+
+
+def _delete_cache(key: str, mode: SiloMode) -> Generator[None, None, int]:
+    version = _version_model(mode).incr_version(key)
     yield
     return version
 
 
-def _get_cache(keys: List[str]) -> Generator[None, None, Mapping[str, Union[str, int]]]:
-    version_keys = [_version_key(k) for k in keys]
-    versions = cache.get_many(version_keys)
+def _get_cache(
+    keys: List[str], mode: SiloMode
+) -> Generator[None, None, Mapping[str, Union[str, int]]]:
+    versions = {cv.key: cv.version for cv in _version_model(mode).objects.filter(key__in=keys)}
     yield
-    versioned_keys = [
-        _versioned_key(key, int(versions.get(version_key, "0")))
-        for key, version_key in zip(keys, version_keys)
-    ]
+
+    versioned_keys = [_versioned_key(key, versions.get(key, 0)) for key in keys]
     existing = cache.get_many(versioned_keys)
     yield
     result: Dict[str, Union[str, int]] = {}
-    for k, version_key, versioned_key in zip(keys, version_keys, versioned_keys):
+    for k, versioned_key in zip(keys, versioned_keys):
         if versioned_key in existing:
             result[k] = existing[versioned_key]
             continue
-        result[k] = versions.get(version_key, 0)
+        result[k] = versions.get(k, 0)
     return result
 
 
@@ -129,33 +121,34 @@ def _consume_generator(g: Generator[None, None, _V]) -> _V:
 
 class LocalRegionCachingService(RegionCachingService):
     def clear_key(self, *, region_name: str, key: str) -> int:
-        return _consume_generator(_delete_cache(key))
+        return _consume_generator(_delete_cache(key, SiloMode.REGION))
 
 
 class LocalControlCachingService(ControlCachingService):
     def clear_key(self, *, key: str) -> int:
-        return _consume_generator(_delete_cache(key))
+        return _consume_generator(_delete_cache(key, SiloMode.CONTROL))
 
 
 _R = TypeVar("_R", bound=pydantic.BaseModel)
 
 
 class SiloCacheBackedCallable(Generic[_R]):
-    silo_modes: FrozenSet[SiloMode]
+    silo_mode: SiloMode
     base_key: str
     cb: Callable[[int], _R]
     type: Type[_R]
 
-    def __init__(
-        self, base_key: str, silo_modes: Collection[SiloMode], cb: Callable[[int], _R], t: Type[_R]
-    ):
+    def __init__(self, base_key: str, silo_mode: SiloMode, cb: Callable[[int], _R], t: Type[_R]):
         self.base_key = base_key
-        self.silo_modes = frozenset(silo_modes)
+        self.silo_mode = silo_mode
         self.cb = cb
         self.type = t
 
     def __call__(self, args: int) -> _R:
-        if SiloMode.get_current_mode() not in self.silo_modes:
+        if (
+            SiloMode.get_current_mode() != self.silo_mode
+            and SiloMode.get_current_mode() != SiloMode.MONOLITH
+        ):
             return self.cb(args)
         return self.get_many([args])[0]
 
@@ -172,25 +165,25 @@ class SiloCacheBackedCallable(Generic[_R]):
             try:
                 return self.type(**json.loads(value))
             except (pydantic.ValidationError, JSONDecodeError, TypeError):
-                version = yield from _delete_cache(key)
+                version = yield from _delete_cache(key, self.silo_mode)
         else:
             version = value
 
         r = self.cb(i)
-        _set_cache(key, r.json(), version)
+        _consume_generator(_set_cache(key, r.json(), version))
         return r
 
     def get_many(self, ids: Sequence[int]) -> List[_R]:
         keys = [self.key_from(i) for i in ids]
-        values = _consume_generator(_get_cache(keys))
+        values = _consume_generator(_get_cache(keys, self.silo_mode))
         return [_consume_generator(self.resolve_from(i, values)) for i in ids]
 
 
 def back_with_silo_cache(
-    base_key: str, silo_modes: Collection[SiloMode], t: Type[_R]
+    base_key: str, silo_mode: SiloMode, t: Type[_R]
 ) -> Callable[[Callable[[int], _R]], SiloCacheBackedCallable[_R]]:
     def wrapper(cb: Callable[[int], _R]) -> SiloCacheBackedCallable[_R]:
-        return SiloCacheBackedCallable(base_key, silo_modes, cb, t)
+        return SiloCacheBackedCallable(base_key, silo_mode, cb, t)
 
     return wrapper
 

@@ -86,7 +86,7 @@ class UserManager(BaseManager, DjangoUserManager):
 @control_silo_only_model
 class User(BaseModel, AbstractBaseUser):
     __relocation_scope__ = RelocationScope.User
-    replication_version: int = 1
+    replication_version: int = 2
 
     id = BoundedBigAutoField(primary_key=True)
     username = models.CharField(_("username"), max_length=MAX_USERNAME_LENGTH, unique=True)
@@ -492,6 +492,10 @@ class User(BaseModel, AbstractBaseUser):
         pass
 
     def handle_async_replication(self, region_name: str, shard_identifier: int) -> None:
+        from sentry.hybridcloud.rpc.services.caching import region_caching_service
+        from sentry.services.hybrid_cloud.user.service import get_user
+
+        region_caching_service.clear_key(key=get_user.key_from(self.id), region_name=region_name)
         organization_service.update_region_user(
             user=RpcRegionUser(
                 id=self.id,

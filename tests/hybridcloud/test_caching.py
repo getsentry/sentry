@@ -22,9 +22,7 @@ from sentry.types.region import get_local_region
 def test_caching_function():
     cache.clear()
 
-    @back_with_silo_cache(
-        base_key="my-test-key", silo_modes={SiloMode.REGION, SiloMode.MONOLITH}, t=RpcUser
-    )
+    @back_with_silo_cache(base_key="my-test-key", silo_mode=SiloMode.REGION, t=RpcUser)
     def get_user(user_id: int) -> RpcUser:
         return user_service.get_many(filter=dict(user_ids=[user_id]))[0]
 
@@ -53,6 +51,7 @@ def test_caching_function():
         assert cached.username == u.username
 
 
+@django_db_all(transaction=True)
 @no_silo_test(stable=True)
 def test_cache_versioning():
     cache.clear()
@@ -65,7 +64,7 @@ def test_cache_versioning():
         last_length = 0
 
         while True:
-            results = yield from CacheBackend.get_cache([shared_key])
+            results = yield from CacheBackend.get_cache([shared_key], SiloMode.REGION)
             value = next(iter(results.values()))
             if isinstance(value, str):
                 assert (
@@ -75,9 +74,9 @@ def test_cache_versioning():
             else:
                 version = value
                 copied_local_value = true_value
-                last_length = len(true_value)
                 yield
                 yield from CacheBackend.set_cache(shared_key, copied_local_value, version)
+                last_length = len(copied_local_value)
 
     def writer():
         nonlocal true_value
@@ -85,18 +84,18 @@ def test_cache_versioning():
             for i in range(5):
                 yield
             true_value += "a"
-            yield from CacheBackend.delete_cache(shared_key)
+            yield from CacheBackend.delete_cache(shared_key, SiloMode.REGION)
 
     def cache_death_event():
         while True:
             for i in range(20):
                 yield
-            # cache.clear()
+            cache.clear()
 
     reader1 = reader()
     reader2 = reader()
     writer1 = writer()
     cache_death = cache_death_event()
     random = Random(84716393)
-    for i in range(100000):
+    for i in range(10000):
         next(random.choice([reader1, reader2, writer1, cache_death]))
