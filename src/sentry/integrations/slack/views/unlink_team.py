@@ -3,10 +3,10 @@ from django.http import Http404, HttpResponse
 from django.utils.decorators import method_decorator
 from rest_framework.request import Request
 
+from sentry.api.helpers.teams import is_team_admin
 from sentry.integrations.mixins import SUCCESS_UNLINKED_TEAM_MESSAGE, SUCCESS_UNLINKED_TEAM_TITLE
 from sentry.models import ExternalActor, Integration
 from sentry.models.organizationmember import OrganizationMember
-from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.services.hybrid_cloud.identity import identity_service
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
@@ -91,12 +91,7 @@ class SlackUnlinkTeamView(BaseView):
 
         # Error if you don't have a sufficient role and you're not a team admin
         # on the team you're trying to unlink.
-        if (
-            not is_valid_role(om)
-            and not OrganizationMemberTeam.objects.filter(
-                organizationmember=om, team=team, role="admin"
-            ).exists()
-        ):
+        if not is_valid_role(om) and is_team_admin(om, team=team):
             logger.info(
                 "slack.action.invalid-role",
                 extra={"slack_id": integration.external_id, "user_id": request.user.id},

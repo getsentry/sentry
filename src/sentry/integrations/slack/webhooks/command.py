@@ -6,10 +6,11 @@ from rest_framework.response import Response
 
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
+from sentry.api.helpers.teams import is_team_admin
 from sentry.integrations.slack.message_builder.disconnected import SlackDisconnectedMessageBuilder
 from sentry.integrations.slack.requests.base import SlackDMRequest, SlackRequestError
 from sentry.integrations.slack.requests.command import SlackCommandRequest
-from sentry.integrations.slack.utils.auth import is_team_admin_in_org, is_valid_role
+from sentry.integrations.slack.utils.auth import is_valid_role
 from sentry.integrations.slack.views.link_team import build_team_linking_url
 from sentry.integrations.slack.views.unlink_team import build_team_unlinking_url
 from sentry.models import ExternalActor, Organization, OrganizationMember
@@ -80,9 +81,7 @@ class SlackCommandsEndpoint(SlackDMEndpoint):
             if is_team_linked_to_channel(organization_membership.organization, slack_request):
                 return self.reply(slack_request, CHANNEL_ALREADY_LINKED_MESSAGE)
 
-            if is_valid_role(organization_membership) or is_team_admin_in_org(
-                organization_membership
-            ):
+            if is_valid_role(organization_membership) or is_team_admin(organization_membership):
                 has_valid_role = True
 
         if not has_valid_role:
@@ -118,7 +117,7 @@ class SlackCommandsEndpoint(SlackDMEndpoint):
         if not found:
             return self.reply(slack_request, TEAM_NOT_LINKED_MESSAGE)
 
-        if not is_valid_role(found) and not is_team_admin_in_org(found):
+        if not is_valid_role(found) and not is_team_admin(found):
             return self.reply(slack_request, INSUFFICIENT_ROLE_MESSAGE)
 
         associate_url = build_team_unlinking_url(

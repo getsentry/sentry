@@ -17,6 +17,7 @@ class SlackLinkTeamTest(AcceptanceTestCase):
         self.org = self.create_organization(name="Rowdy Tiger", owner=self.user)
         self.team = self.create_team(organization=self.org, name="Team One")
         self.create_member(
+            user=None,
             email="bar@example.com",
             organization=self.org,
             role="owner",
@@ -79,7 +80,7 @@ class SlackLinkTeamTest(AcceptanceTestCase):
 
     def test_link_team_as_team_admin(self):
         self.create_team(organization=self.org, name="Team Two")
-        self.create_team(organization=self.org, name="Team Two")
+        self.create_team(organization=self.org, name="Team Three")
         self.login_as(self.team_admin_user)
         self.browser.get(self.path)
         self.browser.wait_until_not(".loading")
