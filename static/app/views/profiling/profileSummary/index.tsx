@@ -6,6 +6,7 @@ import type {Location} from 'history';
 import {LinkButton} from 'sentry/components/button';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import SearchBar from 'sentry/components/events/searchBar';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -48,7 +49,7 @@ interface ProfileSummaryHeaderProps {
   organization: Organization;
   project: Project | null;
   query: string;
-  transaction: string | undefined;
+  transaction: string;
 }
 function ProfileSummaryHeader(props: ProfileSummaryHeaderProps) {
   const breadcrumbTrails: ProfilingBreadcrumbsProps['trails'] = useMemo(() => {
@@ -64,7 +65,7 @@ function ProfileSummaryHeader(props: ProfileSummaryHeaderProps) {
         payload: {
           projectSlug: props.project?.slug ?? '',
           query: props.location.query,
-          transaction: props.transaction ?? '',
+          transaction: props.transaction,
         },
       },
     ];
@@ -207,6 +208,15 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
   );
 
   const transaction = decodeScalar(props.location.query.transaction);
+
+  if (!transaction) {
+    throw new TypeError(
+      `Profile summary requires a transaction query params, got ${
+        transaction?.toString() ?? transaction
+      }`
+    );
+  }
+
   const rawQuery = decodeScalar(props.location?.query?.query, '');
 
   const projectIds: number[] = useMemo(() => {
@@ -244,7 +254,7 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
     return search.formatString();
   }, [rawQuery, transaction]);
 
-  const {data} = useAggregateFlamegraphQuery({transaction: transaction ?? ''});
+  const {data} = useAggregateFlamegraphQuery({transaction});
 
   return (
     <SentryDocumentTitle
@@ -309,8 +319,8 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
               </ProfileGroupProvider>
             </ProfileVisualization>
             <ProfileDigest>
-              <MostRegressedProfileFunctions transaction={transaction ?? ''} />
-              <SlowestProfileFunctions transaction={transaction ?? ''} />
+              <MostRegressedProfileFunctions transaction={transaction} />
+              <SlowestProfileFunctions transaction={transaction} />
             </ProfileDigest>
           </ProfileVisualizationContainer>
         </PageFiltersContainer>
@@ -354,7 +364,9 @@ export default function ProfileSummaryPageToggle(props: ProfileSummaryPageProps)
   if (organization.features.includes('profiling-summary-redesign')) {
     return (
       <ProfileSummaryContainer data-test-id="profile-summary-redesign">
-        <ProfileSummaryPage {...props} />
+        <ErrorBoundary>
+          <ProfileSummaryPage {...props} />
+        </ErrorBoundary>
       </ProfileSummaryContainer>
     );
   }
