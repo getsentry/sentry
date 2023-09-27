@@ -41,6 +41,7 @@ class SnQLTest(TestCase, BaseMetricsTestCase):
         self.org_id = self.project.organization_id
         # Store a data point every 10 seconds for an hour
         for mri, metric_type in self.metrics.items():
+            assert metric_type in {"counter", "distribution", "set"}
             for i in range(360):
                 self.store_metric(
                     self.org_id,

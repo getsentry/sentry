@@ -61,7 +61,7 @@ def run_query(request: Request) -> Mapping[str, Any]:
     return raw_snql_query(request, request.tenant_ids["referrer"], use_cache=True)
 
 
-def resolve_metrics_query(metrics_query: MetricsQuery) -> [MetricsQuery, Mapping[str, str]]:
+def resolve_metrics_query(metrics_query: MetricsQuery) -> MetricsQuery:
     assert metrics_query.query is not None
     metric = metrics_query.query.metric
     scope = metrics_query.scope
@@ -112,7 +112,7 @@ def resolve_metrics_query(metrics_query: MetricsQuery) -> [MetricsQuery, Mapping
 
 
 def resolve_groupby(
-    groupby: Sequence[Column] | None, use_case_id: UseCaseID, org_id: int
+    groupby: list[Column] | None, use_case_id: UseCaseID, org_id: int
 ) -> list[Column] | None:
     """
     Go through the groupby columns and resolve any that need to be resolved.
