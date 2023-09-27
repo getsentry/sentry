@@ -100,6 +100,7 @@ def mark_failed_threshold(
 
         starting_checkin = previous_checkins[0]
 
+        # for new incidents, generate a new hash from a uuid to use
         fingerprint = hash_from_values([uuid.uuid4()])
 
         MonitorIncident.objects.create(
@@ -122,6 +123,7 @@ def mark_failed_threshold(
             .first()
         ]
 
+        # get the existing grouphash from the monitor environment
         fingerprint = monitor_env.get_incident_grouphash()
     else:
         # don't send occurrence for other statuses
