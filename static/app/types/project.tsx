@@ -127,6 +127,7 @@ export type PlatformKey =
   | 'apple-ios'
   | 'apple-macos'
   | 'apple'
+  | 'bun'
   | 'capacitor'
   | 'cordova'
   | 'dart'
