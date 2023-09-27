@@ -1,7 +1,7 @@
+import {MetricRule} from 'sentry-fixture/metricRule';
+
 import type {Incident as TIncident} from 'sentry/views/alerts/types';
 import {IncidentStatus, IncidentStatusMethod} from 'sentry/views/alerts/types';
-
-import {MetricRule} from './metricRule';
 
 export function Incident(params: Partial<TIncident> = {}): TIncident {
   return {

@@ -114,49 +114,6 @@ class MonitorTaskCheckMissingTest(TestCase):
         assert missed_checkin.monitor_config == monitor.config
 
     @mock.patch("sentry.monitors.tasks.mark_environment_missing")
-    def test_temp_ingore_next_checkin_equal_latest(self, mark_environment_missing_mock):
-        org = self.create_organization()
-        project = self.create_project(organization=org)
-
-        task_run_ts, ts = make_ref_time()
-
-        monitor = Monitor.objects.create(
-            organization_id=org.id,
-            project_id=project.id,
-            type=MonitorType.CRON_JOB,
-            config={
-                "schedule": "* * * * *",
-                "schedule_type": ScheduleType.CRONTAB,
-                "max_runtime": None,
-                "checkin_margin": None,
-            },
-        )
-
-        # This monitor will be ignored, the next_checkin and
-        # next_checkin_latest are equal. In the future this should never happen
-        # since the `checkin_margin` will have a minimum of `1`.
-        monitor_environment = MonitorEnvironment.objects.create(
-            monitor=monitor,
-            environment=self.environment,
-            last_checkin=ts - timedelta(minutes=1),
-            next_checkin=ts,
-            next_checkin_latest=ts,
-            status=MonitorStatus.OK,
-        )
-
-        # The task to mark the monitor as missed is not called
-        check_missing(task_run_ts)
-        assert mark_environment_missing_mock.delay.call_count == 0
-
-        # A minute later it now correctly is
-        check_missing(task_run_ts + timedelta(minutes=1))
-
-        assert mark_environment_missing_mock.delay.call_count == 1
-        assert mark_environment_missing_mock.delay.mock_calls[0] == mock.call(
-            monitor_environment.id
-        )
-
-    @mock.patch("sentry.monitors.tasks.mark_environment_missing")
     def test_missing_checkin_with_margin(self, mark_environment_missing_mock):
         org = self.create_organization()
         project = self.create_project(organization=org)
