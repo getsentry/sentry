@@ -1,5 +1,6 @@
 import {browserHistory} from 'react-router';
 import moment from 'moment';
+import {ProjectAlertRule} from 'sentry-fixture/projectAlertRule';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -12,7 +13,7 @@ describe('AlertRuleDetails', () => {
   const context = initializeOrg();
   const organization = context.organization;
   const project = TestStubs.Project();
-  const rule = TestStubs.ProjectAlertRule({
+  const rule = ProjectAlertRule({
     lastTriggered: moment().subtract(2, 'day').format(),
   });
   const member = TestStubs.Member();
@@ -189,7 +190,7 @@ describe('AlertRuleDetails', () => {
   it('rule disabled banner because of missing actions and hides some actions', async () => {
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/rules/${rule.id}/`,
-      body: TestStubs.ProjectAlertRule({
+      body: ProjectAlertRule({
         actions: [],
         status: 'disabled',
       }),
@@ -209,7 +210,7 @@ describe('AlertRuleDetails', () => {
   it('rule disabled banner generic', async () => {
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/rules/${rule.id}/`,
-      body: TestStubs.ProjectAlertRule({
+      body: ProjectAlertRule({
         status: 'disabled',
       }),
       match: [MockApiClient.matchQuery({expand: 'lastTriggered'})],
@@ -223,7 +224,7 @@ describe('AlertRuleDetails', () => {
   });
 
   it('rule to be disabled can opt out', async () => {
-    const disabledRule = TestStubs.ProjectAlertRule({
+    const disabledRule = ProjectAlertRule({
       disableDate: moment().add(1, 'day').format(),
       disableReason: 'noisy',
     });
@@ -253,7 +254,7 @@ describe('AlertRuleDetails', () => {
   });
 
   it('disabled rule can be re-enabled', async () => {
-    const disabledRule = TestStubs.ProjectAlertRule({
+    const disabledRule = ProjectAlertRule({
       status: 'disabled',
       disableDate: moment().subtract(1, 'day').format(),
       disableReason: 'noisy',
