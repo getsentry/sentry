@@ -410,7 +410,7 @@ class PaginateTest(APITestCase):
     def test_custom_response_type(self):
         response = _dummy_streaming_endpoint(self.request)
         assert response.status_code == 200
-        assert type(response) == StreamingHttpResponse
+        assert isinstance(response, StreamingHttpResponse)
         assert response.has_header("content-type")
 
 
