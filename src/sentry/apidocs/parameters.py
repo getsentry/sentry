@@ -68,7 +68,7 @@ For example `24h`, to mean query data starting from 24 hours ago to now.""",
         required=False,
         many=True,
         type=int,
-        description="The ids of projects to filter by. `-1` means all available projects. If this parameter is omitted, the request will default to using 'My Projects'.",
+        description="The IDs of projects to filter by. `-1` means all available projects. If this parameter is omitted, the request will default to using 'My Projects'.",
     )
     ENVIRONMENT = OpenApiParameter(
         name="environment",
@@ -96,7 +96,7 @@ class SCIMParams:
         location="path",
         required=True,
         type=int,
-        description="The Id of the team you'd like to query / update.",
+        description="The ID of the team you'd like to query / update.",
     )
 
 
@@ -106,7 +106,7 @@ class IssueAlertParams:
         location="path",
         required=True,
         type=int,
-        description="The Id of the rule you'd like to query.",
+        description="The ID of the rule you'd like to query.",
     )
 
 
@@ -175,7 +175,7 @@ class MonitorParams:
         location="path",
         required=True,
         type=OpenApiTypes.UUID,
-        description="The Id of the check-in.",
+        description="The ID of the check-in.",
     )
 
 
@@ -185,7 +185,7 @@ class EventParams:
         location="path",
         required=True,
         type=OpenApiTypes.UUID,
-        description="The Id of the event.",
+        description="The ID of the event.",
     )
 
     FRAME_IDX = OpenApiParameter(
@@ -264,5 +264,5 @@ class ReplayParams:
         location="path",
         required=True,
         type=OpenApiTypes.UUID,
-        description="""The Id of the replay you'd like to retrieve.""",
+        description="""The ID of the replay you'd like to retrieve.""",
     )
