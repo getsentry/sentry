@@ -4,6 +4,7 @@ from django.utils import timezone
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import BoundedBigIntegerField, Model, region_silo_only_model, sane_repr
 from sentry.db.models.fields import UUIDField
+from sentry.db.models.fields.foreignkey import FlexibleForeignKey
 
 
 @region_silo_only_model
@@ -17,6 +18,7 @@ class Feedback(Model):
     feedback_id = UUIDField(unique=True)
     date_added = models.DateTimeField(default=timezone.now)
     organization_id = BoundedBigIntegerField(db_index=True)
+    environment = FlexibleForeignKey("sentry.Environment", null=True)
 
     # This "data" field is the data coming from the Sentry event and includes things like contexts
     # As we develop the product more, we will add more specific columns and rely on this JSON field less and less

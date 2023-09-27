@@ -1,6 +1,10 @@
 {
   "feedback.feedback": {
     "foreign_keys": {
+      "environment": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.environment"
+      },
       "organization_id": {
         "kind": "ImplicitForeignKey",
         "model": "sentry.organization"
