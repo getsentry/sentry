@@ -46,7 +46,7 @@ class NotificationActionSerializer(CamelSnakeModelSerializer):
     integration_id = serializers.IntegerField(
         help_text="""ID of integration used as the notification service. For example, ID of
             Slack integration if Slack is used to notify org members.
-            This field is required if service_type is `slack`, `pagerduty` or `opsgenie`.""",
+            This field is required if **service_type** is `slack`, `pagerduty` or `opsgenie`.""",
         required=False,
     )
 
@@ -80,11 +80,11 @@ class NotificationActionSerializer(CamelSnakeModelSerializer):
     )
 
     target_identifier = serializers.CharField(
-        help_text="""ID of the notification target. For example, Slack channel ID. This is required when service_type is `slack` or `pagerduty`. """,
+        help_text="""ID of the notification target. For example, Slack channel ID. This is required when **service_type** is `slack` or `pagerduty`. """,
         required=False,
     )
     target_display = serializers.CharField(
-        help_text="""Name of the notification target. For example, Slack channel name. This is required when service_type is `slack` or `pagerduty`""",
+        help_text="""Name of the notification target. For example, Slack channel name. This is required when **service_type** is `slack` or `pagerduty`""",
         required=False,
     )
 

@@ -2,7 +2,7 @@ import logging
 from typing import Dict
 
 from django.db.models import Q
-from drf_spectacular.utils import OpenApiParameter, extend_schema
+from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
@@ -19,7 +19,7 @@ from sentry.api.serializers.models.notification_action import OutgoingNotificati
 from sentry.api.serializers.rest_framework.notification_action import NotificationActionSerializer
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN
 from sentry.apidocs.examples import notification_examples
-from sentry.apidocs.parameters import GlobalParams, build_typed_list
+from sentry.apidocs.parameters import GlobalParams, NotificationParams
 from sentry.models.notificationaction import NotificationAction
 from sentry.models.organization import Organization
 
@@ -69,20 +69,8 @@ class NotificationActionsIndexEndpoint(OrganizationEndpoint):
         operation_id="List Spike Protection Notifications",
         parameters=[
             GlobalParams.ORG_SLUG,
-            OpenApiParameter(
-                name="projectIDs",
-                location="query",
-                required=False,
-                type=build_typed_list(int),
-                description="List of project IDs to get notification actions for",
-            ),
-            OpenApiParameter(
-                name="triggerType",
-                location="query",
-                required=False,
-                type=str,
-                description="Type of the trigger that causes the notification. The only supported value right now is: spike-protection",
-            ),
+            GlobalParams.PROJECT,
+            NotificationParams.TRIGGER_TYPE,
         ],
         responses={
             201: OutgoingNotificationActionSerializer,
@@ -94,8 +82,9 @@ class NotificationActionsIndexEndpoint(OrganizationEndpoint):
     def get(self, request: Request, organization: Organization) -> Response:
         """
         Returns all Spike Protection Notification Actions for an organization.
+
         Notification Actions notify a set of a member when an action has been triggered through a notification service such as Slack or Sentry.
-        For example, email organization owner when spike protection threshod has been reached.
+        For example, email the organization owner when spike protection threshod has been reached.
         """
         queryset = NotificationAction.objects.filter(organization_id=organization.id)
         # If a project query is specified, filter out non-project-specific actions
@@ -141,8 +130,10 @@ class NotificationActionsIndexEndpoint(OrganizationEndpoint):
     )
     def post(self, request: Request, organization: Organization) -> Response:
         """
-        Creates a new Notification Action for Spike Protection. Notification Actions notify a set of a member when an action has been triggered
-        for example email organization owner when spike protection threshod has been reached.
+        Creates a new Notification Action for Spike Protection.
+
+        Notification Actions notify a set of a member when an action has been triggered.
+        For example, email the organization owner when spike protection threshod has been reached.
         """
         # team admins and regular org members don't have project:write on an org level
         if not request.access.has_scope("project:write"):

@@ -271,3 +271,13 @@ class ReplayParams:
         type=OpenApiTypes.UUID,
         description="""The ID of the replay you'd like to retrieve.""",
     )
+
+
+class NotificationParams:
+    TRIGGER_TYPE = OpenApiParameter(
+        name="triggerType",
+        location="query",
+        required=False,
+        type=str,
+        description="Type of the trigger that causes the notification. The only supported value right now is: spike-protection",
+    )
