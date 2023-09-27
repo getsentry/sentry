@@ -1,47 +1,127 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import colorFn from 'color';
 
+import {LinkButton} from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import {Tooltip} from 'sentry/components/tooltip';
+import {IconLightning, IconReleases} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {getUtcDateString} from 'sentry/utils/dates';
 import {formatMetricsUsingUnitAndOp, getNameFromMRI} from 'sentry/utils/metrics';
+import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
+import useRouter from 'sentry/utils/useRouter';
 import {Series} from 'sentry/views/ddm/metricsExplorer';
+import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 export function SummaryTable({
   series,
   operation,
   onClick,
+  setHoveredLegend,
 }: {
   onClick: (seriesName: string) => void;
   series: Series[];
+  setHoveredLegend: React.Dispatch<React.SetStateAction<string>> | undefined;
   operation?: string;
 }) {
+  const {selection} = usePageFilters();
+  const router = useRouter();
+  const {slug} = useOrganization();
+  const hasActions = series.some(s => s.release || s.transaction);
+  const {start, end, statsPeriod, project, environment} = router.location.query;
+
   return (
-    <SummaryTableWrapper>
+    <SummaryTableWrapper hasActions={hasActions}>
       <HeaderCell />
       <HeaderCell>{t('Name')}</HeaderCell>
-      <HeaderCell>{t('Avg')}</HeaderCell>
-      <HeaderCell>{t('Min')}</HeaderCell>
-      <HeaderCell>{t('Max')}</HeaderCell>
-      <HeaderCell>{t('Sum')}</HeaderCell>
+      <HeaderCell right>{t('Avg')}</HeaderCell>
+      <HeaderCell right>{t('Min')}</HeaderCell>
+      <HeaderCell right>{t('Max')}</HeaderCell>
+      <HeaderCell right>{t('Sum')}</HeaderCell>
+      {hasActions && <HeaderCell right>{t('Actions')}</HeaderCell>}
 
       {series
         .sort((a, b) => a.seriesName.localeCompare(b.seriesName))
-        .map(({seriesName, color, hidden, unit, data}) => {
+        .map(({seriesName, color, hidden, unit, data, transaction, release}) => {
           const {avg, min, max, sum} = getValues(data);
 
           return (
             <Fragment key={seriesName}>
-              <FlexCell onClick={() => onClick(seriesName)} hidden={hidden}>
-                <ColorDot color={color} />
-              </FlexCell>
-              <Cell onClick={() => onClick(seriesName)}>
-                {getNameFromMRI(seriesName)}
-              </Cell>
-              {/* TODO(ddm): Add a tooltip with the full value, don't add on click in case users want to copy the value */}
-              <Cell>{formatMetricsUsingUnitAndOp(avg, unit, operation)}</Cell>
-              <Cell>{formatMetricsUsingUnitAndOp(min, unit, operation)}</Cell>
-              <Cell>{formatMetricsUsingUnitAndOp(max, unit, operation)}</Cell>
-              <Cell>{formatMetricsUsingUnitAndOp(sum, unit, operation)}</Cell>
+              <CellWrapper
+                onClick={() => onClick(seriesName)}
+                onMouseEnter={() => setHoveredLegend?.(seriesName)}
+                onMouseLeave={() => setHoveredLegend?.('')}
+              >
+                <Cell>
+                  <ColorDot color={color} hiddenn={!!hidden} />
+                </Cell>
+                <Cell>{getNameFromMRI(seriesName)}</Cell>
+                {/* TODO(ddm): Add a tooltip with the full value, don't add on click in case users want to copy the value */}
+                <Cell right>{formatMetricsUsingUnitAndOp(avg, unit, operation)}</Cell>
+                <Cell right>{formatMetricsUsingUnitAndOp(min, unit, operation)}</Cell>
+                <Cell right>{formatMetricsUsingUnitAndOp(max, unit, operation)}</Cell>
+                <Cell right>{formatMetricsUsingUnitAndOp(sum, unit, operation)}</Cell>
+              </CellWrapper>
+              {hasActions && (
+                <Cell right>
+                  <ButtonBar gap={0.5}>
+                    {transaction && (
+                      <div>
+                        <Tooltip title={t('Open Transaction Summary')}>
+                          <LinkButton
+                            to={transactionSummaryRouteWithQuery({
+                              orgSlug: slug,
+                              transaction,
+                              projectID: selection.projects.map(p => String(p)),
+                              query: {
+                                query: '',
+                                environment: selection.environments,
+                                start: selection.datetime.start
+                                  ? getUtcDateString(selection.datetime.start)
+                                  : undefined,
+                                end: selection.datetime.end
+                                  ? getUtcDateString(selection.datetime.end)
+                                  : undefined,
+                                statsPeriod: selection.datetime.period,
+                              },
+                            })}
+                            size="xs"
+                          >
+                            <IconLightning size="xs" />
+                          </LinkButton>
+                        </Tooltip>
+                      </div>
+                    )}
+
+                    {release && (
+                      <div>
+                        <Tooltip title={t('Open Release Details')}>
+                          <LinkButton
+                            to={{
+                              pathname: `/organizations/${slug}/releases/${encodeURIComponent(
+                                release
+                              )}/`,
+                              query: {
+                                start,
+                                end,
+                                pageStatsPeriod: statsPeriod,
+                                project,
+                                environment,
+                              },
+                            }}
+                            size="xs"
+                          >
+                            <IconReleases size="xs" />
+                          </LinkButton>
+                        </Tooltip>
+                      </div>
+                    )}
+                  </ButtonBar>
+                </Cell>
+              )}
             </Fragment>
           );
         })}
@@ -74,13 +154,14 @@ function getValues(seriesData: Series['data']) {
 
 // TODO(ddm): PanelTable component proved to be a bit too opinionated for this use case,
 // so we're using a custom styled component instead. Figure out what we want to do here
-const SummaryTableWrapper = styled(`div`)`
+const SummaryTableWrapper = styled(`div`)<{hasActions: boolean}>`
   display: grid;
-  grid-template-columns: 0.5fr 8fr 1fr 1fr 1fr 1fr;
+  grid-template-columns: ${p =>
+    p.hasActions ? '24px 8fr 1fr 1fr 1fr 1fr 1fr' : '24px 8fr 1fr 1fr 1fr 1fr'};
 `;
 
 // TODO(ddm): This is a copy of PanelTableHeader, try to figure out how to reuse it
-const HeaderCell = styled('div')`
+const HeaderCell = styled('div')<{right?: boolean}>`
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
   font-weight: 600;
@@ -90,28 +171,33 @@ const HeaderCell = styled('div')`
   display: flex;
   flex-direction: column;
   justify-content: center;
-
-  padding: ${space(0.5)};
+  text-align: ${p => (p.right ? 'right' : 'left')};
+  padding: ${space(0.5)} ${space(1)};
 `;
 
-const Cell = styled('div')`
-  padding: ${space(0.25)};
-
-  :hover {
-    cursor: ${p => (p.onClick ? 'pointer' : 'default')};
-  }
-`;
-
-const FlexCell = styled(Cell)`
+const Cell = styled('div')<{right?: boolean}>`
   display: flex;
-  justify-content: center;
+  padding: ${space(0.25)} ${space(1)};
   align-items: center;
-  opacity: ${p => (p.hidden ? 0.5 : 1)};
+  justify-content: ${p => (p.right ? 'flex-end' : 'flex-start')};
 `;
 
-const ColorDot = styled(`div`)`
-  background-color: ${p => p.color};
+const ColorDot = styled(`div`)<{color: string; hiddenn: boolean}>`
+  background-color: ${p =>
+    colorFn(p.color)
+      .alpha(p.hiddenn ? 0.3 : 1)
+      .string()};
   border-radius: 50%;
   width: ${space(1)};
   height: ${space(1)};
+`;
+
+const CellWrapper = styled('div')`
+  display: contents;
+  &:hover {
+    cursor: pointer;
+    ${Cell} {
+      background-color: ${p => p.theme.bodyBackground};
+    }
+  }
 `;
