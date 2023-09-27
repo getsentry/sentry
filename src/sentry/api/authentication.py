@@ -205,7 +205,7 @@ class ApiKeyAuthentication(QuietBasicAuthentication):
         if password:
             return None
 
-        if SiloMode.get_current_mode() == SiloMode.CONTROL or options.get(
+        if SiloMode.get_current_mode() == SiloMode.REGION or options.get(
             "hybrid_cloud.authentication.use_api_key_replica"
         ):
             return AnonymousUser(), self._authenticate_credentials(userid)
