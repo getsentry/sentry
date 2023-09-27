@@ -56,7 +56,7 @@ export function SummaryTable({
                 onMouseLeave={() => setHoveredLegend?.('')}
               >
                 <Cell>
-                  <ColorDot color={color} hiddenn={!!hidden} />
+                  <ColorDot color={color} isHidden={!!hidden} />
                 </Cell>
                 <Cell>{getNameFromMRI(seriesName)}</Cell>
                 {/* TODO(ddm): Add a tooltip with the full value, don't add on click in case users want to copy the value */}
@@ -182,11 +182,10 @@ const Cell = styled('div')<{right?: boolean}>`
   justify-content: ${p => (p.right ? 'flex-end' : 'flex-start')};
 `;
 
-const ColorDot = styled(`div`)<{color: string; hiddenn: boolean}>`
+const ColorDot = styled(`div`)<{color: string; isHidden: boolean}>`
   background-color: ${p =>
-    colorFn(p.color)
-      .alpha(p.hiddenn ? 0.3 : 1)
-      .string()};
+    p.isHidden ? 'transparent' : colorFn(p.color).alpha(1).string()};
+  border: 1px solid ${p => p.color};
   border-radius: 50%;
   width: ${space(1)};
   height: ${space(1)};
