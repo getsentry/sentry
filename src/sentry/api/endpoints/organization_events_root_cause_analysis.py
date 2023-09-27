@@ -76,7 +76,7 @@ class OrganizationEventsRootCauseAnalysisEndpoint(OrganizationEventsEndpointBase
 
     def get(self, request, organization):
         if not features.has(
-            "organizations:statistical-detectors-root-cause-analysis",
+            "organizations:performance-duration-regression-visible",
             organization,
             actor=request.user,
         ):
