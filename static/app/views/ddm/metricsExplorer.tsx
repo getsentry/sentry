@@ -293,16 +293,17 @@ function MetricsExplorerDisplayOuter(props?: DisplayProps) {
 function MetricsExplorerDisplay({displayType, ...metricsDataProps}: DisplayProps) {
   const router = useRouter();
   const {data, isLoading, isError} = useMetricsData(metricsDataProps);
-  const hiddenSeries = decodeList(router.location.query.hiddenSeries);
+  const focusedSeries = router.location.query.focusedSeries;
   const [hoveredLegend, setHoveredLegend] = useState('');
 
   const toggleSeriesVisibility = (seriesName: string) => {
-    if (hiddenSeries.includes(seriesName)) {
+    setHoveredLegend('');
+    if (focusedSeries === seriesName) {
       router.push({
         ...router.location,
         query: {
           ...router.location.query,
-          hiddenSeries: hiddenSeries.filter(s => s !== seriesName),
+          focusedSeries: undefined,
         },
       });
     } else {
@@ -310,7 +311,7 @@ function MetricsExplorerDisplay({displayType, ...metricsDataProps}: DisplayProps
         ...router.location,
         query: {
           ...router.location.query,
-          hiddenSeries: [...hiddenSeries, seriesName],
+          focusedSeries: seriesName,
         },
       });
     }
@@ -346,7 +347,7 @@ function MetricsExplorerDisplay({displayType, ...metricsDataProps}: DisplayProps
     color: colorFn(colors[i])
       .alpha(hoveredLegend && hoveredLegend !== item.name ? 0.1 : 1)
       .string(),
-    hidden: hiddenSeries.includes(item.name),
+    hidden: focusedSeries && focusedSeries !== item.name,
     data: item.values.map((value, index) => ({
       name: sorted.intervals[index],
       value,
@@ -372,7 +373,7 @@ function MetricsExplorerDisplay({displayType, ...metricsDataProps}: DisplayProps
         series={chartSeries}
         operation={metricsDataProps.op}
         onClick={toggleSeriesVisibility}
-        setHoveredLegend={setHoveredLegend}
+        setHoveredLegend={focusedSeries ? undefined : setHoveredLegend}
       />
     </DisplayWrapper>
   );

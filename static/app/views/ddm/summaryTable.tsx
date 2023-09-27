@@ -24,7 +24,7 @@ export function SummaryTable({
 }: {
   onClick: (seriesName: string) => void;
   series: Series[];
-  setHoveredLegend: React.Dispatch<React.SetStateAction<string>>;
+  setHoveredLegend: React.Dispatch<React.SetStateAction<string>> | undefined;
   operation?: string;
 }) {
   const {selection} = usePageFilters();
@@ -52,8 +52,8 @@ export function SummaryTable({
             <Fragment key={seriesName}>
               <CellWrapper
                 onClick={() => onClick(seriesName)}
-                onMouseEnter={() => setHoveredLegend(seriesName)}
-                onMouseLeave={() => setHoveredLegend('')}
+                onMouseEnter={() => setHoveredLegend?.(seriesName)}
+                onMouseLeave={() => setHoveredLegend?.('')}
               >
                 <Cell>
                   <ColorDot color={color} hiddenn={!!hidden} />
