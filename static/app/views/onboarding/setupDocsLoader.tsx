@@ -14,9 +14,9 @@ import {
   ProductSelection,
   ProductSolution,
 } from 'sentry/components/onboarding/productSelection';
-import {PlatformKey} from 'sentry/data/platformCategories';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import type {PlatformKey} from 'sentry/types';
 import {Organization, Project, ProjectKey} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';

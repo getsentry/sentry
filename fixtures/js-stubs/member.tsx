@@ -1,6 +1,6 @@
-import type {Member as MemberType} from 'sentry/types';
+import {User} from 'sentry-fixture/user';
 
-import {User} from './user';
+import type {Member as MemberType} from 'sentry/types';
 
 export function Member(params: Partial<MemberType> = {}): MemberType {
   return {

@@ -1,5 +1,7 @@
 import Cookies from 'js-cookie';
 import * as qs from 'query-string';
+import {AccountEmails} from 'sentry-fixture/accountEmails';
+import {Authenticators} from 'sentry-fixture/authenticators';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -18,7 +20,7 @@ describe('TwoFactorRequired', function () {
 
     MockApiClient.addMockResponse({
       url: ENDPOINT,
-      body: [TestStubs.Authenticators().Totp({isEnrolled: false})],
+      body: [Authenticators().Totp({isEnrolled: false})],
     });
     MockApiClient.addMockResponse({
       url: ORG_ENDPOINT,
@@ -26,7 +28,7 @@ describe('TwoFactorRequired', function () {
     });
     MockApiClient.addMockResponse({
       url: ACCOUNT_EMAILS_ENDPOINT,
-      body: TestStubs.AccountEmails(),
+      body: AccountEmails(),
     });
   });
 
@@ -73,7 +75,7 @@ describe('TwoFactorRequired', function () {
   it('does not render when 2FA is enrolled and no pendingInvite cookie', function () {
     MockApiClient.addMockResponse({
       url: ENDPOINT,
-      body: [TestStubs.Authenticators().Totp({isEnrolled: true})],
+      body: [Authenticators().Totp({isEnrolled: true})],
     });
 
     render(
@@ -95,7 +97,7 @@ describe('TwoFactorRequired', function () {
     Cookies.set(INVITE_COOKIE, qs.stringify(cookieData));
     MockApiClient.addMockResponse({
       url: ENDPOINT,
-      body: [TestStubs.Authenticators().Totp({isEnrolled: true})],
+      body: [Authenticators().Totp({isEnrolled: true})],
     });
     MockApiClient.addMockResponse({
       url: ORG_ENDPOINT,

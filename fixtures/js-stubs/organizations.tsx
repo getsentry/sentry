@@ -1,6 +1,6 @@
-import {Organization as OrganizationType} from 'sentry/types';
+import {Organization} from 'sentry-fixture/organization';
 
-import {Organization} from './organization';
+import {Organization as OrganizationType} from 'sentry/types';
 
 export function Organizations(
   params: Partial<OrganizationType> = {}
