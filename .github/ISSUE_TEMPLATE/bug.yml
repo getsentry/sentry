@@ -86,7 +86,6 @@ body:
         - 'Org Relocation'
         - 'Unknown'
         - 'Other'
-        - 'Other'
         # end product areas
     validations:
       required: true
