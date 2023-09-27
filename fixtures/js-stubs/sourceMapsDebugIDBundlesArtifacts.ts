@@ -24,6 +24,7 @@ export function SourceMapsDebugIDBundlesArtifacts(
         filePath: 'files/_/_/main.js',
         fileSize: 239093,
         debugId: '69ac68eb-cc62-44c0-a5dc-b67f219a3696',
+        sourcemap: 'files/_/_/main.js.map',
       },
     ],
     ...debugBundleIdArtifact,
