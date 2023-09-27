@@ -75,12 +75,14 @@ export default function ListContent() {
     <Fragment>
       <FiltersContainer>
         <ReplaysFilters />
-        <ReplaysSearch />
-        {hasdeadRageClickFeature ? (
-          <Button onClick={() => setWidgetIsOpen(!widgetIsOpen)}>
-            {widgetIsOpen ? t('Hide Widgets') : t('Show Widgets')}
-          </Button>
-        ) : null}
+        <SearchWrapper>
+          <ReplaysSearch />
+          {hasdeadRageClickFeature ? (
+            <Button onClick={() => setWidgetIsOpen(!widgetIsOpen)}>
+              {widgetIsOpen ? t('Hide Widgets') : t('Show Widgets')}
+            </Button>
+          ) : null}
+        </SearchWrapper>
       </FiltersContainer>
       {hasdeadRageClickFeature ? (
         widgetIsOpen ? (
@@ -98,4 +100,10 @@ const FiltersContainer = styled('div')`
   display: flex;
   flex-direction: row;
   gap: ${space(2)};
+  flex-wrap: wrap;
+`;
+
+const SearchWrapper = styled(FiltersContainer)`
+  flex-grow: 1;
+  flex-wrap: nowrap;
 `;

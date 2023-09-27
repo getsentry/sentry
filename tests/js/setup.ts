@@ -75,6 +75,7 @@ jest.mock('react-router', function reactRouterMockFactory() {
     },
   };
 });
+jest.mock('sentry/utils/search/searchBoxTextArea');
 
 jest.mock('react-virtualized', function reactVirtualizedMockFactory() {
   const ActualReactVirtualized = jest.requireActual('react-virtualized');
