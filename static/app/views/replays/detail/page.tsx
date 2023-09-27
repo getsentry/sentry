@@ -38,7 +38,11 @@ function Page({
     ? `${replayRecord.id} — Session Replay — ${orgSlug}`
     : `Session Replay — ${orgSlug}`;
 
-  const header = (
+  const header = replayRecord?.is_archived ? (
+    <Header>
+      <DetailsPageBreadcrumbs orgSlug={orgSlug} replayRecord={replayRecord} />
+    </Header>
+  ) : (
     <Header>
       <DetailsPageBreadcrumbs orgSlug={orgSlug} replayRecord={replayRecord} />
 
