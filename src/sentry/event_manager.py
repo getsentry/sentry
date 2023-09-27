@@ -1045,7 +1045,7 @@ def _derive_plugin_tags_many(jobs: Sequence[Job], projects: ProjectsMapping) -> 
 
     for job in jobs:
         for plugin in plugins_for_projects[job["project_id"]]:
-            added_tags = safe_execute(plugin.get_tags, job["event"], _with_transaction=False)
+            added_tags = safe_execute(plugin.get_all_tags, job["event"], _with_transaction=False)
             if added_tags:
                 data = job["data"]
                 # plugins should not override user provided tags

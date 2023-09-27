@@ -8,7 +8,13 @@ until we have a proper metadata store set up. To keep things simple, and hopeful
 efficient, we only look at the past 24 hours.
 """
 
-__all__ = ("get_metrics_meta", "get_tags", "get_tag_values", "get_series", "get_single_metric_info")
+__all__ = (
+    "get_metrics_meta",
+    "get_all_tags",
+    "get_tag_values",
+    "get_series",
+    "get_single_metric_info",
+)
 
 import logging
 from collections import defaultdict, deque
@@ -40,7 +46,6 @@ from sentry.snuba.metrics.fields.base import (
 )
 from sentry.snuba.metrics.naming_layer.mapping import get_mri, is_mri
 from sentry.snuba.metrics.naming_layer.mri import (
-    MRI_SCHEMA_REGEX,
     get_available_operations,
     is_custom_measurement,
     parse_mri,
@@ -319,7 +324,7 @@ def _fetch_tags_or_values_for_metrics(
     # For now this function supports all MRIs but only the usage of public names for static MRIs. In case
     # there will be the need, the support for custom metrics MRIs will have to be added but with additional
     # complexity.
-    for metric_name in metric_names:
+    for metric_name in metric_names or ():
         if is_mri(metric_name):
             metric_mris.append(metric_name)
         else:
@@ -502,31 +507,23 @@ def get_single_metric_info(
     return response_dict
 
 
-def get_tags(
-    projects: Sequence[Project], metrics: Optional[Sequence[str]], use_case_id: UseCaseID
+def get_all_tags(
+    projects: Sequence[Project], metric_names: Optional[Sequence[str]], use_case_id: UseCaseID
 ) -> Sequence[Tag]:
-    """Get all metric tags for the given projects and metric_names"""
+    """Get all metric tags for the given projects and metric_names."""
     assert projects
 
     try:
-        if len(metrics) and all(MRI_SCHEMA_REGEX.match(metric) for metric in metrics):
-            tags, _ = _fetch_tags_or_values_for_mri(
-                projects=projects,
-                metric_mris=metrics,
-                column="tags.key",
-                referrer="snuba.metrics.meta.get_tags",
-                use_case_id=use_case_id,
-            )
-        else:
-            tags, _ = _fetch_tags_or_values_for_metrics(
-                projects=projects,
-                metric_names=metrics,
-                column="tags.key",
-                referrer="snuba.metrics.meta.get_tags",
-                use_case_id=use_case_id,
-            )
+        tags, _ = _fetch_tags_or_values_for_metrics(
+            projects=projects,
+            metric_names=metric_names,
+            column="tags.key",
+            referrer="snuba.metrics.meta.get_tags",
+            use_case_id=use_case_id,
+        )
     except InvalidParams:
         return []
+
     return tags
 
 
@@ -536,26 +533,28 @@ def get_tag_values(
     metric_names: Optional[Sequence[str]],
     use_case_id: UseCaseID,
 ) -> Sequence[TagValue]:
-    """Get all known values for a specific tag"""
+    """Get all known values for a specific tag given projects and metric_names."""
     assert projects
-
-    org_id = org_id_from_projects(projects)
 
     if tag_name in UNALLOWED_TAGS:
         raise InvalidParams(f"Tag name {tag_name} is an unallowed tag")
 
     try:
+        org_id = org_id_from_projects(projects)
         tag_id = resolve_tag_key(use_case_id, org_id, tag_name)
     except MetricIndexNotFound:
         raise InvalidParams(f"Tag {tag_name} is not available in the indexer")
 
-    tags, _ = _fetch_tags_or_values_for_metrics(
-        projects=projects,
-        column=tag_id,
-        metric_names=metric_names,
-        referrer="snuba.metrics.meta.get_tag_values",
-        use_case_id=use_case_id,
-    )
+    try:
+        tags, _ = _fetch_tags_or_values_for_metrics(
+            projects=projects,
+            column=tag_id,
+            metric_names=metric_names,
+            referrer="snuba.metrics.meta.get_tag_values",
+            use_case_id=use_case_id,
+        )
+    except InvalidParams:
+        return []
 
     return tags
 
