@@ -52,3 +52,42 @@ def get_next_schedule(
         return rule.after(reference_ts).replace(second=0, microsecond=0)
 
     raise NotImplementedError("unknown schedule_type")
+
+
+def get_prev_schedule(
+    start_ts: datetime,
+    reference_ts: datetime,
+    schedule: ScheduleConfig,
+):
+    """
+    Given the schedule type and schedule, determine the previous timestamp for a
+    schedule from the reference_ts. Requires `start_ts` to accurately compute
+
+    Examples:
+
+    >>> get_prev_schedule('05:30', CrontabSchedule('0 * * * *'))
+    >>> 05:00
+
+    >>> get_prev_schedule('05:30', CrontabSchedule('30 * * * *'))
+    >>> 04:30
+
+    >>> get_prev_schedule('05:35', IntervalSchedule(interval=2, unit='hour'))
+    >>> 03:35
+    """
+    if schedule.type == "crontab":
+        return (
+            croniter(schedule.crontab, reference_ts)
+            .get_prev(datetime)
+            .replace(second=0, microsecond=0)
+        )
+
+    if schedule.type == "interval":
+        rule = rrule.rrule(
+            freq=SCHEDULE_INTERVAL_MAP[schedule.unit],
+            interval=schedule.interval,
+            dtstart=start_ts,
+            until=reference_ts,
+        )
+        return rule.before(reference_ts).replace(second=0, microsecond=0)
+
+    raise NotImplementedError("unknown schedule_type")
