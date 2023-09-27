@@ -8,9 +8,8 @@ import signal
 import subprocess
 import sys
 import time
-from collections import namedtuple
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import TYPE_CHECKING, Any, Callable, Generator, Literal, overload
+from typing import TYPE_CHECKING, Any, Callable, Generator, Literal, NamedTuple, overload
 
 import click
 import requests
@@ -605,7 +604,9 @@ def check_postgres(containers: dict[str, Any]) -> None:
     )
 
 
-ServiceHealthcheck = namedtuple("ServiceHealthcheck", ["check"])
+class ServiceHealthcheck(NamedTuple):
+    check: Callable[[dict[str, Any]], None]
+
 
 service_healthchecks: dict[str, ServiceHealthcheck] = {
     "postgres": ServiceHealthcheck(check=check_postgres)
