@@ -97,7 +97,7 @@ class TransactionMetricKey(Enum):
     HTTP_ERROR_RATE = "transaction.http_error_rate"
 
     # Less granular coarse metrics
-    DURATION_COARSE = "d:transactions/duration_coarse@millisecond"
+    DURATION_LIGHT = "d:transactions/duration_light@millisecond"
 
     # Span metrics.
     # NOTE: These might be moved to their own namespace soon.
