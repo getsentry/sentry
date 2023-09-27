@@ -164,16 +164,23 @@ class HistoricGroupCounts(
     @with_feature("organizations:escalating-issues-v2")
     @mock.patch("sentry.issues.escalating.logger")
     def test_pagination(self, mock_logger) -> None:
-        group1_bucket1_event = self._create_events_for_group(count=2, hours_ago=1, group="group-1")
+        group1_events = []
+        for i in range(10):
+            event = self._create_events_for_group(count=2, hours_ago=10 - i, group="group-1")
+            group1_events.append(event)
+
         group2_bucket1_event = self._create_events_for_group(count=1, hours_ago=2, group="group-2")
         group2_bucket2_event = self._create_events_for_group(count=2, hours_ago=1, group="group-2")
+        group3_bucket1_event = self._create_events_for_group(count=2, hours_ago=1, group="group-3")
 
         # This forces to test the iteration over the Snuba data
         with patch("sentry.issues.escalating.ELEMENTS_PER_SNUBA_PAGE", new=2):
             assert query_groups_past_counts(Group.objects.all()) == [
-                self._create_hourly_bucket(2, group1_bucket1_event),
+                self._create_hourly_bucket(2, event) for event in group1_events
+            ] + [
                 self._create_hourly_bucket(1, group2_bucket1_event),
                 self._create_hourly_bucket(2, group2_bucket2_event),
+                self._create_hourly_bucket(1, group3_bucket1_event),
             ]
 
         assert mock_logger.info.call_count == 0

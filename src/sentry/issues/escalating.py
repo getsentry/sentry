@@ -192,15 +192,40 @@ def _query_with_pagination(
     if category == GroupCategory.ERROR and features.has(
         "organizations:escalating-issues-v2", organization
     ):
-        # Generate and execute the query to the Generics Metrics Backend
-        metrics_query = _generate_generic_metrics_backend_query(
-            organization_id, project_ids, group_ids, start_date, end_date, category
-        )
-        projects = Project.objects.filter(id__in=project_ids)
-        metrics_series_results = get_series(
-            projects=projects, metrics_query=metrics_query, use_case_id=UseCaseID.ESCALATING_ISSUES
-        )
-        metrics_results = transform_to_groups_count_response(metrics_series_results)
+        metrics_results = []
+        metrics_offset = 0
+
+        while True:
+            # Generate and execute the query to the Generics Metrics Backend
+            metrics_query = _generate_generic_metrics_backend_query(
+                organization_id,
+                project_ids,
+                group_ids,
+                start_date,
+                end_date,
+                metrics_offset,
+                category,
+            )
+            projects = Project.objects.filter(id__in=project_ids)
+            metrics_series_results = get_series(
+                projects=projects,
+                metrics_query=metrics_query,
+                use_case_id=UseCaseID.ESCALATING_ISSUES,
+            )
+            # print(metrics_series_results)
+            # print(transform_to_groups_count_response(metrics_series_results))
+            metrics_results += transform_to_groups_count_response(metrics_series_results)
+            metrics_offset += ELEMENTS_PER_SNUBA_PAGE
+            print(
+                "length of metrics_series_results",
+                len(metrics_series_results["groups"]),
+            )
+            # print("metrics_results: ", metrics_results)
+            if (
+                not metrics_series_results["groups"]
+                or len(metrics_series_results["groups"]) < ELEMENTS_PER_SNUBA_PAGE
+            ):
+                break
 
         # Log exception if results from the Metrics backend are
         # not equivalent to the Errors dataset.
@@ -250,8 +275,10 @@ def _generate_generic_metrics_backend_query(
     group_ids: Sequence[int],
     start_date: datetime,
     end_date: datetime,
+    offset: int,
     category: Optional[GroupCategory],
 ):
+    print("running", offset, ELEMENTS_PER_SNUBA_PAGE)
     """
     This function generates a query to fetch the hourly events
     for a group_id through the Generic Metrics Backend.
@@ -285,6 +312,8 @@ def _generate_generic_metrics_backend_query(
         where=where,
         granularity=Granularity(HOUR),
         groupby=groupby,
+        offset=Offset(offset),
+        limit=Limit(ELEMENTS_PER_SNUBA_PAGE),
     )
 
 
