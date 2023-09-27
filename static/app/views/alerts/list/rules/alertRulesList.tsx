@@ -144,7 +144,7 @@ function AlertRulesList() {
       setApiQueryData<Array<CombinedMetricIssueAlerts | null>>(
         queryClient,
         getAlertListQueryKey(organization.slug, location.query),
-        data => data?.filter(r => r?.id !== rule.id)
+        data => data?.filter(r => r?.id !== rule.id && r?.type !== rule.type)
       );
       refetch();
       addSuccessMessage(t('Deleted rule'));
