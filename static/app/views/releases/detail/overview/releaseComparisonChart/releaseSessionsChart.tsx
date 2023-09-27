@@ -10,8 +10,8 @@ import {HeaderTitleLegend, HeaderValue} from 'sentry/components/charts/styles';
 import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import QuestionTooltip from 'sentry/components/questionTooltip';
-import {PlatformKey} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
+import type {PlatformKey} from 'sentry/types';
 import {
   ReleaseComparisonChartType,
   ReleaseProject,

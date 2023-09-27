@@ -4,8 +4,7 @@ import type {
   TraceContextType,
 } from 'sentry/components/events/interfaces/spans/types';
 import type {SymbolicatorStatus} from 'sentry/components/events/interfaces/types';
-import type {PlatformKey} from 'sentry/data/platformCategories';
-import type {IssueType} from 'sentry/types';
+import type {IssueType, PlatformKey} from 'sentry/types';
 
 import type {RawCrumb} from './breadcrumbs';
 import type {Image} from './debugImage';

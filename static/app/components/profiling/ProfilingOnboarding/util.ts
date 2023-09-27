@@ -1,6 +1,6 @@
 import partition from 'lodash/partition';
 
-import {PlatformKey} from 'sentry/data/platformCategories';
+import type {PlatformKey} from 'sentry/types';
 import {Project} from 'sentry/types/project';
 import {
   getDocsPlatformSDKForPlatform,

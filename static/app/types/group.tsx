@@ -1,12 +1,11 @@
 import type {SearchGroup} from 'sentry/components/smartSearchBar/types';
-import type {PlatformKey} from 'sentry/data/platformCategories';
 import type {FieldKind} from 'sentry/utils/fields';
 
 import type {Actor, TimeseriesValue} from './core';
 import type {Event, EventMetadata, EventOrGroupType, Level} from './event';
 import type {Commit, PullRequest, Repository} from './integrations';
 import type {Team} from './organization';
-import type {Project} from './project';
+import type {PlatformKey, Project} from './project';
 import type {AvatarUser, User} from './user';
 
 export type EntryData = Record<string, any | Array<any>>;

@@ -8,9 +8,15 @@ import {DateTimeObject} from 'sentry/components/charts/utils';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {PAGE_URL_PARAM, URL_PARAM} from 'sentry/constants/pageFilters';
-import {desktop, mobile, PlatformKey} from 'sentry/data/platformCategories';
+import {desktop, mobile} from 'sentry/data/platformCategories';
 import {t, tct} from 'sentry/locale';
-import {Release, ReleaseStatus, SemverVerison, VersionInfo} from 'sentry/types';
+import {
+  PlatformKey,
+  Release,
+  ReleaseStatus,
+  SemverVerison,
+  VersionInfo,
+} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';

@@ -12,13 +12,12 @@ import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import categoryList, {
   deprecatedPlatforms,
   filterAliases,
-  PlatformKey,
 } from 'sentry/data/platformCategories';
 import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {IconClose, IconProject} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, PlatformIntegration} from 'sentry/types';
+import {Organization, PlatformIntegration, PlatformKey} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
 export const PLATFORM_CATEGORIES: {

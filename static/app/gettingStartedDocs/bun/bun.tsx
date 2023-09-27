@@ -2,9 +2,8 @@ import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDo
 import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
-import {PlatformKey} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types';
+import type {Organization, PlatformKey} from 'sentry/types';
 
 type StepProps = {
   newOrg: boolean;

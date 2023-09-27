@@ -7,10 +7,9 @@ import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDoc
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
-import {PlatformKey} from 'sentry/data/platformCategories';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types';
+import type {Organization, PlatformKey} from 'sentry/types';
 
 type StepProps = {
   errorHandlerProviders: string;

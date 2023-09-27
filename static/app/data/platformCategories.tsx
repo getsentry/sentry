@@ -2,6 +2,7 @@
 // When changing this file, make sure to keep src/sentry/utils/platform_categories.py in sync.
 
 import {t} from 'sentry/locale';
+import {PlatformKey} from 'sentry/types';
 
 export enum PlatformCategory {
   FRONTEND,
@@ -12,7 +13,7 @@ export enum PlatformCategory {
   OTHER,
 }
 
-export const popularPlatformCategories = [
+export const popularPlatformCategories: PlatformKey[] = [
   'javascript',
   'javascript-react',
   'javascript-nextjs',
@@ -40,9 +41,9 @@ export const popularPlatformCategories = [
   'flutter',
   'dart-flutter',
   'unity',
-] as const;
+];
 
-export const frontend = [
+export const frontend: PlatformKey[] = [
   'dart',
   'javascript',
   'javascript-react',
@@ -57,9 +58,9 @@ export const frontend = [
   'javascript-svelte',
   'javascript-sveltekit',
   'unity',
-] as const;
+];
 
-export const mobile = [
+export const mobile: PlatformKey[] = [
   'android',
   'apple-ios',
   'cordova',
@@ -78,9 +79,9 @@ export const mobile = [
   'java-android',
   'cocoa-objc',
   'cocoa-swift',
-] as const;
+];
 
-export const backend = [
+export const backend: PlatformKey[] = [
   'bun',
   'dotnet',
   'dotnet-aspnetcore',
@@ -131,9 +132,9 @@ export const backend = [
   'ruby-rack',
   'rust',
   'kotlin',
-] as const;
+];
 
-export const serverless = [
+export const serverless: PlatformKey[] = [
   'python-awslambda',
   'python-azurefunctions',
   'python-gcpfunctions',
@@ -143,9 +144,9 @@ export const serverless = [
   'node-gcpfunctions',
   'dotnet-awslambda',
   'dotnet-gcpfunctions',
-] as const;
+];
 
-export const desktop = [
+export const desktop: PlatformKey[] = [
   'apple-macos',
   'dotnet',
   'dotnet-winforms',
@@ -164,7 +165,7 @@ export const desktop = [
   'flutter',
   'kotlin',
   'unreal',
-] as const;
+];
 
 const categoryList = [
   {id: 'popular', name: t('Popular'), platforms: popularPlatformCategories},
@@ -175,7 +176,7 @@ const categoryList = [
   {id: 'serverless', name: t('Serverless'), platforms: serverless},
 ] as const;
 
-export const deprecatedPlatforms = new Set([
+export const deprecatedPlatforms = new Set<PlatformKey>([
   'node-serverlesscloud',
   'python-pylons',
   'python-pymongo',
@@ -194,7 +195,7 @@ export const tracing = [
   'react-native-tracing',
 ] as const;
 
-export const performance = [
+export const performance: PlatformKey[] = [
   'bun',
   'javascript',
   'javascript-ember',
@@ -385,16 +386,6 @@ export const replayOnboardingPlatforms: readonly PlatformKey[] = [
 export const filterAliases: Partial<Record<PlatformKey, string[]>> = {
   native: ['cpp', 'c++'],
 };
-
-export type PlatformKey =
-  | (typeof popularPlatformCategories)[number]
-  | (typeof frontend)[number]
-  | (typeof mobile)[number]
-  | (typeof backend)[number]
-  | (typeof desktop)[number]
-  | (typeof tracing)[number]
-  | (typeof serverless)[number]
-  | 'other';
 
 export default categoryList;
 

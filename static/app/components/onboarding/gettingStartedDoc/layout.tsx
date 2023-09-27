@@ -9,9 +9,9 @@ import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingSt
 import {Step, StepProps} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {PlatformOptionsControl} from 'sentry/components/onboarding/platformOptionsControl';
 import {ProductSelection} from 'sentry/components/onboarding/productSelection';
-import {PlatformKey} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {PlatformKey} from 'sentry/types';
 import useOrganization from 'sentry/utils/useOrganization';
 
 const ProductSelectionAvailabilityHook = HookOrDefault({

@@ -5,7 +5,6 @@ import {getSampleEventQuery} from 'sentry/components/events/eventStatisticalDete
 import LoadingError from 'sentry/components/loadingError';
 import {
   PlatformCategory,
-  PlatformKey,
   profiling as PROFILING_PLATFORMS,
 } from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
@@ -15,6 +14,7 @@ import {
   IssueCategory,
   IssueType,
   Organization,
+  PlatformKey,
 } from 'sentry/types';
 import EventView, {decodeSorts} from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';

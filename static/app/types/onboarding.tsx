@@ -2,7 +2,7 @@ import {RouteContextInterface} from 'react-router';
 
 import {OnboardingContextProps} from 'sentry/components/onboarding/onboardingContext';
 import {Category} from 'sentry/components/platformPicker';
-import {PlatformKey} from 'sentry/data/platformCategories';
+import type {PlatformKey} from 'sentry/types';
 import {Group, Organization, PlatformIntegration, Project} from 'sentry/types';
 
 import type {AvatarUser} from './user';

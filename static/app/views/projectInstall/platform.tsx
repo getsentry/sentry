@@ -17,13 +17,12 @@ import {
 import {
   performance as performancePlatforms,
   Platform,
-  PlatformKey,
 } from 'sentry/data/platformCategories';
 import platforms from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import type {PlatformIntegration} from 'sentry/types';
+import type {PlatformIntegration, PlatformKey} from 'sentry/types';
 import {OnboardingSelectedSDK} from 'sentry/types';
 import {IssueAlertRule} from 'sentry/types/alerts';
 import {trackAnalytics} from 'sentry/utils/analytics';
