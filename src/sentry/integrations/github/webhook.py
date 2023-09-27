@@ -47,7 +47,7 @@ def get_github_external_id(event: Mapping[str, Any], host: str | None = None) ->
     return f"{host}:{external_id}" if host else external_id
 
 
-def get_file_language(filename: str):
+def get_file_language(filename: str) -> str | None:
     extension = filename.split(".")[-1]
     language = None
     if extension != filename:
