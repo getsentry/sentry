@@ -67,8 +67,8 @@ class MonitorTaskCheckMissingTest(TestCase):
             project_id=project.id,
             type=MonitorType.CRON_JOB,
             config={
-                "schedule": "* * * * *",
                 "schedule_type": ScheduleType.CRONTAB,
+                "schedule": "* * * * *",
                 "max_runtime": None,
                 "checkin_margin": None,
             },
@@ -263,7 +263,7 @@ class MonitorTaskCheckMissingTest(TestCase):
             organization_id=org.id,
             project_id=project.id,
             type=MonitorType.CRON_JOB,
-            config={"schedule": "* * * * *"},
+            config={"schedule_type": ScheduleType.CRONTAB, "schedule": "* * * * *"},
         )
         # Expected checkin is this minute
         monitor_environment = MonitorEnvironment.objects.create(
@@ -327,7 +327,7 @@ class MonitorTaskCheckMissingTest(TestCase):
             organization_id=org.id,
             project_id=project.id,
             type=MonitorType.CRON_JOB,
-            config={"schedule": "* * * * *"},
+            config={"schedule_type": ScheduleType.CRONTAB, "schedule": "* * * * *"},
         )
         successful_monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
@@ -372,7 +372,7 @@ class MonitorTaskCheckTimeoutTest(TestCase):
             organization_id=org.id,
             project_id=project.id,
             type=MonitorType.CRON_JOB,
-            config={"schedule": "0 0 * * *"},
+            config={"schedule_type": ScheduleType.CRONTAB, "schedule": "0 0 * * *"},
         )
         # Next checkin should have been 24 hours ago
         monitor_environment = MonitorEnvironment.objects.create(
@@ -445,7 +445,7 @@ class MonitorTaskCheckTimeoutTest(TestCase):
             organization_id=org.id,
             project_id=project.id,
             type=MonitorType.CRON_JOB,
-            config={"schedule": "0 0 * * *"},
+            config={"schedule_type": ScheduleType.CRONTAB, "schedule": "0 0 * * *"},
         )
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
@@ -510,7 +510,11 @@ class MonitorTaskCheckTimeoutTest(TestCase):
             organization_id=org.id,
             project_id=project.id,
             type=MonitorType.CRON_JOB,
-            config={"schedule": "0 0 * * *", "max_runtime": 60},
+            config={
+                "schedule_type": ScheduleType.CRONTAB,
+                "schedule": "0 0 * * *",
+                "max_runtime": 60,
+            },
         )
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
