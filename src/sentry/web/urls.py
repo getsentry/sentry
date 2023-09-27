@@ -896,11 +896,6 @@ urlpatterns += [
                     name="sentry-organization-feedback-list",
                 ),
                 re_path(
-                    r"^(?P<organization_slug>[\w_-]+)/feedback/(?P<feedback_id>\d+)/$",
-                    react_page_view,
-                    name="sentry-organization-feedback-details",
-                ),
-                re_path(
                     r"^(?P<organization_slug>[\w_-]+)/data-export/(?P<data_export_id>\d+)/$",
                     react_page_view,
                     name="sentry-data-export-details",

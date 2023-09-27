@@ -1823,10 +1823,6 @@ function buildRoutes() {
       <IndexRoute
         component={make(() => import('sentry/views/feedback/feedbackListPage'))}
       />
-      <Route
-        path=":feedbackSlug/"
-        component={make(() => import('sentry/views/feedback/feedbackDetailsPage'))}
-      />
     </Fragment>
   );
   const feedbackv2Routes = (
