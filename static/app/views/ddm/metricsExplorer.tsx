@@ -298,23 +298,13 @@ function MetricsExplorerDisplay({displayType, ...metricsDataProps}: DisplayProps
 
   const toggleSeriesVisibility = (seriesName: string) => {
     setHoveredLegend('');
-    if (focusedSeries === seriesName) {
-      router.push({
-        ...router.location,
-        query: {
-          ...router.location.query,
-          focusedSeries: undefined,
-        },
-      });
-    } else {
-      router.push({
-        ...router.location,
-        query: {
-          ...router.location.query,
-          focusedSeries: seriesName,
-        },
-      });
-    }
+    router.push({
+      ...router.location,
+      query: {
+        ...router.location.query,
+        focusedSeries: focusedSeries === seriesName ? undefined : seriesName,
+      },
+    });
   };
 
   if (!data) {
