@@ -75,7 +75,7 @@ export const steps = (): LayoutProps['steps'] => [
         additionalInfo: (
           <p>
             {tct(
-              'Alternatively, you can also [manualSetupLink:set up the SDK manually]. [stepsBelow: You can skip the steps below when using the wizard].',
+              'Alternatively, you can also [manualSetupLink:set up the SDK manually].',
               {
                 manualSetupLink: (
                   <ExternalLink href="https://docs.sentry.io/platforms/apple/guides/ios/manual-setup/" />
