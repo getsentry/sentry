@@ -25,34 +25,51 @@ class Migration(CheckedMigration):
     ]
 
     operations = [
-        migrations.AddField(
-            model_name="apikeyreplica",
-            name="scope_list",
-            field=sentry.db.models.fields.array.ArrayField(null=True),
-        ),
-        migrations.AddField(
-            model_name="apikeyreplica",
-            name="scopes",
-            field=bitfield.models.BitField(
-                [
-                    "project:read",
-                    "project:write",
-                    "project:admin",
-                    "project:releases",
-                    "team:read",
-                    "team:write",
-                    "team:admin",
-                    "event:read",
-                    "event:write",
-                    "event:admin",
-                    "org:read",
-                    "org:write",
-                    "org:admin",
-                    "member:read",
-                    "member:write",
-                    "member:admin",
-                ],
-                default=None,
-            ),
+        migrations.SeparateDatabaseAndState(
+            database_operations=[
+                migrations.RunSQL(
+                    """
+                    ALTER TABLE "hybridcloud_apikeyreplica" ADD COLUMN "scopes" BIGINT NOT NULL DEFAULT 0;
+                    ALTER TABLE "hybridcloud_apikeyreplica" ADD COLUMN "scope_list" TEXT NULL;
+                    """,
+                    reverse_sql="""
+                    ALTER TABLE "hybridcloud_apikeyreplica" DROP COLUMN "scopes";
+                    ALTER TABLE "hybridcloud_apikeyreplica" DROP COLUMN "scope_list";
+                    """,
+                    hints={"tables": ["hybridcloud_apikeyreplica"]},
+                ),
+            ],
+            state_operations=[
+                migrations.AddField(
+                    model_name="apikeyreplica",
+                    name="scope_list",
+                    field=sentry.db.models.fields.array.ArrayField(null=True),
+                ),
+                migrations.AddField(
+                    model_name="apikeyreplica",
+                    name="scopes",
+                    field=bitfield.models.BitField(
+                        [
+                            "project:read",
+                            "project:write",
+                            "project:admin",
+                            "project:releases",
+                            "team:read",
+                            "team:write",
+                            "team:admin",
+                            "event:read",
+                            "event:write",
+                            "event:admin",
+                            "org:read",
+                            "org:write",
+                            "org:admin",
+                            "member:read",
+                            "member:write",
+                            "member:admin",
+                        ],
+                        default=None,
+                    ),
+                ),
+            ],
         ),
     ]
