@@ -65,6 +65,7 @@ const StyledBox = styled('div')<{frequency: number}>`
   padding-right: ${space(1)};
 
   font-size: ${p => p.theme.fontSizeExtraSmall};
-
   ${p => getBoxColors(p.frequency, p.theme)}
+
+  z-index: 9;
 `;
