@@ -238,6 +238,20 @@ Deletes a replay instance.
 
 - Response 204
 
+## Replay Accessibility Issues [/projects/<organization_slug>/<project_slug>/replays/<replay_id>/accessibility-issues]
+
+### Fetch Replay Accessibility Issues [GET]
+
+Retrieve a collection of accessibility issues.
+
+- Response 200
+
+  ```json
+  {
+    "data": []
+  }
+  ```
+
 ## Replay Selectors [/organizations/<organization_slug>/replay-selectors/]
 
 - Parameters
