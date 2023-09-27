@@ -916,6 +916,9 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                     "new_error_ids": None,
                     "warning_ids": None,
                     "info_ids": None,
+                    "new_count_errors": None,
+                    "count_warnings": None,
+                    "count_infos": None,
                 }
             ]
 
