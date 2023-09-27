@@ -40,6 +40,11 @@ class OrganizationProvisioningService:
 
         return rpc_org
 
+    def idempotent_provision_organization_in_region(
+        self, provisioning_options: OrganizationProvisioningOptions, region_name: Optional[str]
+    ):
+        raise NotImplementedError()
+
     def modify_organization_slug(self, organization_id: int, slug: str):
         """
         Updates an organization with the given slug if available.
