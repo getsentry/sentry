@@ -8,6 +8,7 @@ import signal
 import subprocess
 import sys
 import time
+from collections import namedtuple
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import TYPE_CHECKING, Any, Callable, Generator, Literal, overload
 
@@ -554,15 +555,13 @@ Are you sure you want to continue?"""
 
 
 def check_health(service_name: str, containers: dict[str, Any]) -> None:
-    healthcheck = getattr(service_healthchecks, service_name, None)
+    healthcheck = service_healthchecks.get(service_name, None)
     if healthcheck is None:
         return
 
     click.secho(f"> Checking container health '{service_name}'", fg="yellow")
 
     def hc() -> None:
-        if healthcheck is None:
-            return
         healthcheck.check(containers)
 
     try:
@@ -606,18 +605,8 @@ def check_postgres(containers: dict[str, Any]) -> None:
     )
 
 
-class ServiceHealthcheck:
-    check: Callable[[dict[str, Any]], None]
+ServiceHealthcheck = namedtuple("ServiceHealthcheck", ["check"])
 
-    def __init__(self, check: Callable[[dict[str, Any]], None]) -> None:
-        self.check = check
-
-
-class ServiceHealthChecks:
-    postgres: ServiceHealthcheck
-
-    def __init__(self) -> None:
-        self.postgres = ServiceHealthcheck(check_postgres)
-
-
-service_healthchecks = ServiceHealthChecks()
+service_healthchecks: dict[str, ServiceHealthcheck] = {
+    "postgres": ServiceHealthcheck(check=check_postgres)
+}
