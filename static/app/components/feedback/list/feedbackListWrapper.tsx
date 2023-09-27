@@ -8,7 +8,7 @@ export default function FeedbackListWrapper({children}) {
   return (
     <Fragment>
       <HeaderPanelItem>fixed header</HeaderPanelItem>
-      <OverflowPanelItem style={{padding: space(0.5)}}>{children}</OverflowPanelItem>
+      <OverflowPanelItem noPadding>{children}</OverflowPanelItem>
     </Fragment>
   );
 }
@@ -20,6 +20,7 @@ const HeaderPanelItem = styled(PanelItem)`
 
 const OverflowPanelItem = styled(PanelItem)`
   overflow: scroll;
+  padding: ${space(0.5)};
 
   flex-direction: column;
   flex-grow: 1;

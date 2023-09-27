@@ -12,12 +12,8 @@ export default function FeedbackItemUsername({feedbackItem}: Props) {
   const displayValue = feedbackItem.user.display_name || feedbackItem.contact_email;
   const hasBoth = feedbackItem.user.display_name && feedbackItem.contact_email;
   if (!displayValue) {
-    <strong>{t('Unknown User')}</strong>;
+    return <strong>{t('Unknown User')}</strong>;
   }
-
-  const Purple = styled('span')`
-    color: ${p => p.theme.purple300};
-  `;
 
   return (
     <strong>
@@ -33,3 +29,7 @@ export default function FeedbackItemUsername({feedbackItem}: Props) {
     </strong>
   );
 }
+
+const Purple = styled('span')`
+  color: ${p => p.theme.purple300};
+`;
