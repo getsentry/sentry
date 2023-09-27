@@ -74,15 +74,6 @@ def mark_failed_threshold(
     if not affected:
         return False
 
-    fingerprint = hash_from_values(
-        [
-            "monitor",
-            str(monitor_env.monitor.guid),
-            monitor_env.environment.name,
-            str(monitor_env.last_state_change),
-        ]
-    )
-
     # check to see if we need to update the status
     if monitor_env.status == MonitorStatus.OK:
         # reverse the list after slicing in order to start with oldest check-in
@@ -130,6 +121,8 @@ def mark_failed_threshold(
             .order_by("-date_added")
             .first()
         ]
+
+        fingerprint = monitor_env.get_incident_grouphash()
     else:
         # don't send occurrence for other statuses
         return False
