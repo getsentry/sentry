@@ -5,9 +5,9 @@ import onboardingImg from 'sentry-images/spot/onboarding-preview.svg';
 
 import {Button} from 'sentry/components/button';
 import OnboardingPanel from 'sentry/components/onboardingPanel';
-import {PlatformKey} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {PlatformKey} from 'sentry/types';
 
 import {NewMonitorButton} from './newMonitorButton';
 
