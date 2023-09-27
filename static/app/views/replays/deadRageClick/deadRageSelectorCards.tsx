@@ -31,8 +31,10 @@ import {ReplayCell} from 'sentry/views/replays/replayTable/tableCell';
 import {ReplayListLocationQuery} from 'sentry/views/replays/types';
 
 function transformSelectorQuery(selector: string) {
-  const escaped = selector.replace(/"/g, '\\"');
-  return escaped.replace(/aria=/g, 'aria-label=');
+  return selector
+    .replace(/"/g, '\\"')
+    .replace(/aria=/g, 'aria-label=')
+    .replace(/testid=/g, 'data-test-id=');
 }
 
 function UseExampleReplays(selector, location, clickType, deadOrRage) {
