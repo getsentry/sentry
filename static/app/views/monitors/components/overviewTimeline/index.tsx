@@ -1,10 +1,12 @@
 import {useRef} from 'react';
 import styled from '@emotion/styled';
 
+import {deleteMonitorEnvironment} from 'sentry/actionCreators/monitors';
 import Panel from 'sentry/components/panels/panel';
 import {Sticky} from 'sentry/components/sticky';
 import {space} from 'sentry/styles/space';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import useApi from 'sentry/utils/useApi';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
@@ -27,6 +29,7 @@ interface Props {
 export function OverviewTimeline({monitorList}: Props) {
   const {location} = useRouter();
   const organization = useOrganization();
+  const api = useApi();
 
   const timeWindow: TimeWindow = location.query?.timeWindow ?? '24h';
   const nowRef = useRef<Date>(new Date());
@@ -55,6 +58,9 @@ export function OverviewTimeline({monitorList}: Props) {
       enabled: timelineWidth > 0,
     }
   );
+
+  const handleDeleteEnvironment = (monitor: Monitor, env: string) =>
+    deleteMonitorEnvironment(api, organization.slug, monitor.slug, env);
 
   return (
     <MonitorListPanel>
@@ -88,6 +94,7 @@ export function OverviewTimeline({monitorList}: Props) {
           bucketedData={monitorStats?.[monitor.slug]}
           end={nowRef.current}
           width={timelineWidth}
+          onDeleteEnvironment={env => handleDeleteEnvironment(monitor, env)}
         />
       ))}
     </MonitorListPanel>
