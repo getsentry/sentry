@@ -32,9 +32,9 @@ import {ReplayListLocationQuery} from 'sentry/views/replays/types';
 
 function transformSelectorQuery(selector: string) {
   return selector
-    .replace(/"/g, '\\"')
-    .replace(/aria=/g, 'aria-label=')
-    .replace(/testid=/g, 'data-test-id=');
+    .replaceAll('"', `\"`)
+    .replaceAll('aria=', 'aria-label=')
+    .replaceAll('testid=', 'data-test-id=');
 }
 
 function UseExampleReplays(selector, location, clickType, deadOrRage) {
