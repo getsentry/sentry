@@ -230,7 +230,7 @@ describe('Incident Rules Form', () => {
 
       await waitFor(() =>
         expect(screen.getByTestId('alert-total-events')).toHaveTextContent(
-          'Total Events5'
+          'Total Transactions5'
         )
       );
 

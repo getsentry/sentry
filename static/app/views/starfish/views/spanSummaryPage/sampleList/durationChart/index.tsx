@@ -107,9 +107,11 @@ function DurationChart({
       },
       emphasis: {disabled: true},
       label: {
-        fontSize: 11,
         position: 'insideEndBottom',
         formatter: () => 'Average',
+        fontSize: 14,
+        color: theme.chartLabel,
+        backgroundColor: theme.chartOther,
       },
     },
   };
