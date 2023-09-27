@@ -1,3 +1,6 @@
+import {AccountEmails} from 'sentry-fixture/accountEmails';
+import {AllAuthenticators, Authenticators} from 'sentry-fixture/authenticators';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
@@ -21,7 +24,7 @@ describe('AccountSecurityDetails', function () {
     beforeEach(function () {
       MockApiClient.addMockResponse({
         url: ENDPOINT,
-        body: TestStubs.AllAuthenticators(),
+        body: AllAuthenticators(),
       });
 
       MockApiClient.addMockResponse({
@@ -31,12 +34,12 @@ describe('AccountSecurityDetails', function () {
 
       MockApiClient.addMockResponse({
         url: `${ENDPOINT}15/`,
-        body: TestStubs.Authenticators().Totp(),
+        body: Authenticators().Totp(),
       });
 
       MockApiClient.addMockResponse({
         url: ACCOUNT_EMAILS_ENDPOINT,
-        body: TestStubs.AccountEmails(),
+        body: AccountEmails(),
       });
     });
 
@@ -151,7 +154,7 @@ describe('AccountSecurityDetails', function () {
 
       MockApiClient.addMockResponse({
         url: ENDPOINT,
-        body: [TestStubs.Authenticators().Totp()],
+        body: [Authenticators().Totp()],
       });
 
       const params = {
@@ -183,7 +186,7 @@ describe('AccountSecurityDetails', function () {
     beforeEach(function () {
       MockApiClient.addMockResponse({
         url: ENDPOINT,
-        body: TestStubs.AllAuthenticators(),
+        body: AllAuthenticators(),
       });
 
       MockApiClient.addMockResponse({
@@ -193,12 +196,12 @@ describe('AccountSecurityDetails', function () {
 
       MockApiClient.addMockResponse({
         url: `${ENDPOINT}16/`,
-        body: TestStubs.Authenticators().Recovery(),
+        body: Authenticators().Recovery(),
       });
 
       MockApiClient.addMockResponse({
         url: ACCOUNT_EMAILS_ENDPOINT,
-        body: TestStubs.AccountEmails(),
+        body: AccountEmails(),
       });
     });
 

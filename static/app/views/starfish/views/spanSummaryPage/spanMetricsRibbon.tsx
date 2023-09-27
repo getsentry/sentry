@@ -14,6 +14,7 @@ interface Props {
     [SpanMetricsField.SPAN_DESCRIPTION]?: string;
     [SpanMetricsField.SPAN_ACTION]?: string;
     [SpanMetricsField.SPAN_DOMAIN]?: string;
+    [SpanMetricsField.SPAN_DOMAIN_ARRAY]?: string[];
     [SpanMetricsField.SPAN_GROUP]?: string;
   };
 }

@@ -1,3 +1,5 @@
+import {Authenticators} from 'sentry-fixture/authenticators';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import AccountSecurityEnroll from 'sentry/views/settings/account/accountSecurity/accountSecurityEnroll';
@@ -6,7 +8,7 @@ const ENDPOINT = '/users/me/authenticators/';
 
 describe('AccountSecurityEnroll', function () {
   describe('Totp', function () {
-    const authenticator = TestStubs.Authenticators().Totp({
+    const authenticator = Authenticators().Totp({
       isEnrolled: false,
       qrcode: 'otpauth://totp/test%40sentry.io?issuer=Sentry&secret=secret',
       secret: 'secret',

@@ -299,7 +299,7 @@ class _TransactionsList extends Component<Props> {
                 size="xs"
                 data-test-id="transaction-events-open"
               >
-                {t('View All Events')}
+                {t('View Sampled Events')}
               </Button>
             </GuideAnchor>
           ) : (

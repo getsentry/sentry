@@ -9,9 +9,7 @@ from sentry.testutils.helpers.datetime import freeze_time, iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.samples import load_data
 
-ROOT_CAUSE_FEATURE_FLAG = "organizations:statistical-detectors-root-cause-analysis"
-
-FEATURES = [ROOT_CAUSE_FEATURE_FLAG]
+FEATURES = ["organizations:performance-duration-regression-visible"]
 
 pytestmark = [pytest.mark.sentry_metrics]
 

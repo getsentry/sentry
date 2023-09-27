@@ -22,6 +22,7 @@ export enum SpanMetricsField {
   SPAN_MODULE = 'span.module',
   SPAN_ACTION = 'span.action',
   SPAN_DOMAIN = 'span.domain',
+  SPAN_DOMAIN_ARRAY = 'span.domain_array',
   SPAN_GROUP = 'span.group',
   SPAN_DURATION = 'span.duration',
   SPAN_SELF_TIME = 'span.self_time',
@@ -39,6 +40,8 @@ export type SpanStringFields =
   | 'span.group'
   | 'project.id';
 
+export type SpanArrayFields = 'span.domain_array';
+
 export type SpanFunctions =
   | 'sps'
   | 'spm'
@@ -54,6 +57,8 @@ export type MetricsResponse = {
   [Property in SpanFunctions as `${Property}()`]: number;
 } & {
   [Property in SpanStringFields as `${Property}`]: string;
+} & {
+  [Property in SpanArrayFields as `${Property}`]: string[];
 } & {
   'time_spent_percentage(local)': number;
 };
@@ -73,6 +78,7 @@ export enum SpanIndexedField {
   TRANSACTION_METHOD = 'transaction.method',
   TRANSACTION_OP = 'transaction.op',
   SPAN_DOMAIN = 'span.domain',
+  SPAN_DOMAIN_ARRAY = 'span.domain_array',
   TIMESTAMP = 'timestamp',
   PROJECT = 'project',
 }
@@ -90,6 +96,7 @@ export type SpanIndexedFieldTypes = {
   [SpanIndexedField.TRANSACTION_METHOD]: string;
   [SpanIndexedField.TRANSACTION_OP]: string;
   [SpanIndexedField.SPAN_DOMAIN]: string;
+  [SpanIndexedField.SPAN_DOMAIN_ARRAY]: string[];
   [SpanIndexedField.TIMESTAMP]: string;
   [SpanIndexedField.PROJECT]: string;
 };
