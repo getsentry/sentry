@@ -33,7 +33,7 @@ export interface FeedbackItemResponse {
     version: string;
   };
   status: 'unresolved' | 'resolved';
-  tags: Record<string, unknown>;
+  tags: Record<string, string>;
   timestamp: string;
   url: string;
   user: {
@@ -52,6 +52,7 @@ export type HydratedFeedbackItem = Overwrite<FeedbackItemResponse, {timestamp: D
 export type HydratedFeedbackList = HydratedFeedbackItem[];
 
 export interface FeedbackListQueryParams {
+  [key: string]: string | string[] | null | undefined;
   cursor?: string;
   end?: string;
   environment?: string[];
@@ -65,4 +66,9 @@ export interface FeedbackListQueryParams {
   start?: string;
   statsPeriod?: string;
   utc?: 'true' | 'false';
+}
+
+export interface FeedbackItemLoaderQueryParams {
+  [key: string]: string | string[] | null | undefined;
+  feedbackSlug?: string;
 }

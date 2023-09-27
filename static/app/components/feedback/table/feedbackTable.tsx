@@ -150,10 +150,11 @@ function FeedbackDetailsLink({
   return (
     <Link
       to={{
-        pathname: normalizeUrl(
-          `/organizations/${organization.slug}/feedback/${project.slug}:${value}/`
-        ),
-        query: {referrer: 'feedback_list_page'},
+        pathname: normalizeUrl(`/organizations/${organization.slug}/feedback/`),
+        query: {
+          referrer: 'feedback_list_page',
+          feedbackSlug: `${project.slug}:${value}`,
+        },
       }}
       onClick={() => {
         trackAnalytics('feedback_list.details_link.click', {organization});
