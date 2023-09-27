@@ -187,10 +187,10 @@ function AccordionWidget({
               items={filteredData.map(d => {
                 return {
                   header: () => (
-                    <Fragment>
-                      <StyledText>
+                    <StyledAccordionHeader>
+                      <TextOverflow>
                         <code>{d.dom_element}</code>
-                      </StyledText>
+                      </TextOverflow>
                       <RightAlignedCell>
                         {clickType === 'count_dead_clicks' ? (
                           <DeadClickCount>
@@ -208,7 +208,7 @@ function AccordionWidget({
                           </RageClickCount>
                         )}
                       </RightAlignedCell>
-                    </Fragment>
+                    </StyledAccordionHeader>
                   ),
                   content: () =>
                     UseExampleReplays(d.dom_element, location, clickType, deadOrRage),
@@ -273,10 +273,6 @@ const IconContainer = styled('span')`
   margin-right: ${space(1)};
 `;
 
-const StyledText = styled('div')`
-  flex: 1;
-`;
-
 const DeadClickCount = styled(TextOverflow)`
   color: ${p => p.theme.yellow300};
 `;
@@ -301,6 +297,12 @@ const StyledButton = styled(LinkButton)`
   border-left: none;
   border-right: none;
   font-size: ${p => p.theme.fontSizeMedium};
+`;
+
+const StyledAccordionHeader = styled('div')`
+  display: grid;
+  grid-template-columns: 1fr max-content;
+  flex: 1;
 `;
 
 export default DeadRageSelectorCards;
