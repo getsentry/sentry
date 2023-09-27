@@ -168,7 +168,6 @@ const MonitorEnvContainer = styled('div')`
   display: flex;
   padding: 0 ${space(2)};
   flex-direction: column;
-  gap: 0px;
   border-right: 1px solid ${p => p.theme.innerBorder};
   text-align: right;
 `;
