@@ -85,7 +85,7 @@ def _get_metrics_for_entity(
         entity_key=entity_key,
         select=[Column("metric_id")],
         groupby=[Column("metric_id")],
-        where=[Condition(Column("use_case_id"), Op.EQ, use_case_id.value)],
+        where=[],
         referrer="snuba.metrics.get_metrics_names_for_entity",
         project_ids=project_ids,
         org_id=org_id,
@@ -148,7 +148,6 @@ def get_available_derived_metrics(
 
 def get_metrics_meta(projects: Sequence[Project], use_case_id: UseCaseID) -> Sequence[MetricMeta]:
     metas = []
-
     stored_mris = get_stored_mris(projects, use_case_id) if projects else []
 
     for mri in stored_mris:
