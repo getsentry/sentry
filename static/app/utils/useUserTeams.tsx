@@ -1,5 +1,4 @@
-import {useEffect} from 'react';
-import uniqBy from 'lodash/uniqBy';
+import {useEffect, useMemo} from 'react';
 
 import OrganizationStore from 'sentry/stores/organizationStore';
 import TeamStore from 'sentry/stores/teamStore';
@@ -54,8 +53,9 @@ export function useUserTeams(): UseTeamsResult {
   }, [additionalTeams]);
 
   const isSuperuser = isActiveSuperuser();
-  const allTeams = uniqBy([...storeState.teams, ...additionalTeams], team => team.id);
-  const teams = isSuperuser ? allTeams : allTeams.filter(t => t.isMember);
+  const teams = useMemo<Team[]>(() => {
+    return isSuperuser ? storeState.teams : storeState.teams.filter(t => t.isMember);
+  }, [storeState.teams, isSuperuser]);
 
   return {
     teams,
