@@ -11,6 +11,101 @@ class IssueAlertExamples:
         )
     ]
 
+    GET_PROJECT_RULE = [
+        OpenApiExample(
+            "Get detailed view about an issue alert rule",
+            value={
+                "id": "7",
+                "conditions": [
+                    {
+                        "id": "sentry.rules.conditions.regression_event.RegressionEventCondition",
+                    }
+                ],
+                "filters": [
+                    {
+                        "id": "sentry.rules.filters.age_comparison.AgeComparisonFilter",
+                        "comparison_type": "older",
+                        "value": 4,
+                        "time": "week",
+                    },
+                    {
+                        "id": "sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter",
+                        "value": 1000,
+                    },
+                ],
+                "actions": [
+                    {
+                        "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
+                        "workspace": 976462356,
+                        "channel": "#fatal",
+                        "tags": "browser,release",
+                    }
+                ],
+                "actionMatch": "all",
+                "filterMatch": "all",
+                "frequency": 60,
+                "name": "Many Old Regressions!",
+                "dateCreated": "2023-02-17T18:31:14.246012Z",
+                "owner": "user:635623",
+                "createdBy": {"id": 635623, "name": "John Doe", "email": "john.doe@email.com"},
+                "environment": None,
+                "projects": ["javascript"],
+                "status": "active",
+                "snooze": False,
+            },
+            status_codes=["200"],
+            response_only=True,
+        )
+    ]
+
+    UPDATE_PROJECT_RULE = [
+        OpenApiExample(
+            "Get detailed view about an issue alert rule",
+            value={
+                "id": "7",
+                "conditions": [
+                    {
+                        "id": "sentry.rules.conditions.regression_event.RegressionEventCondition",
+                    }
+                ],
+                "filters": [
+                    {
+                        "id": "sentry.rules.filters.age_comparison.AgeComparisonFilter",
+                        "comparison_type": "older",
+                        "value": 4,
+                        "time": "week",
+                    },
+                    {
+                        "id": "sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter",
+                        "value": 1000,
+                    },
+                    {"id": "sentry.rules.filters.level.LevelFilter", "match": "gte", "level": "40"},
+                ],
+                "actions": [
+                    {
+                        "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
+                        "workspace": 976462356,
+                        "channel": "#fatal",
+                        "tags": "browser,release",
+                    }
+                ],
+                "actionMatch": "all",
+                "filterMatch": "all",
+                "frequency": 60,
+                "name": "Many Old Regressions!",
+                "dateCreated": "2023-02-17T18:31:14.246012Z",
+                "owner": "user:635623",
+                "createdBy": {"id": 635623, "name": "John Doe", "email": "john.doe@email.com"},
+                "environment": None,
+                "projects": ["javascript"],
+                "status": "active",
+                "snooze": False,
+            },
+            status_codes=["200"],
+            response_only=True,
+        )
+    ]
+
     LIST_PROJECT_RULES = [
         OpenApiExample(
             "List issue alert rules for a project",
