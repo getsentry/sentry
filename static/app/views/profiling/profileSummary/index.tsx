@@ -40,6 +40,8 @@ import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider'
 import {LegacySummaryPage} from 'sentry/views/profiling/profileSummary/legacySummaryPage';
 import {DEFAULT_PROFILING_DATETIME_SELECTION} from 'sentry/views/profiling/utils';
 
+import {SlowestProfileFunctions} from './slowestFunctions';
+
 interface ProfileSummaryHeaderProps {
   location: Location;
   organization: Organization;
@@ -307,6 +309,7 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
             </ProfileVisualization>
             <ProfileDigest>
               <div>TODO: Profile Digest</div>
+              <SlowestProfileFunctions transaction={transaction ?? ''} />
             </ProfileDigest>
           </ProfileVisualizationContainer>
         </PageFiltersContainer>
