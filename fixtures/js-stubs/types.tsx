@@ -38,6 +38,7 @@ type TestStubFixtures = {
   GitHubIntegration: OverridableStub;
   Group: OverridableStub;
   Incident: OverridableStub;
+  JiraIntegration: OverridableStub;
   Member: OverridableStub;
   Members: OverridableStubList;
   MetricRule: OverridableStub;

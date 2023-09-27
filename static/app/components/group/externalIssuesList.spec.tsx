@@ -1,5 +1,3 @@
-import {JiraIntegration} from 'sentry-fixture/jiraIntegration';
-
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import SentryAppInstallationStore from 'sentry/stores/sentryAppInstallationsStore';
@@ -76,7 +74,7 @@ describe('ExternalIssuesList', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/integrations/`,
       body: [
-        JiraIntegration({status: 'active'}),
+        TestStubs.JiraIntegration({status: 'active'}),
         TestStubs.GitHubIntegration({
           status: 'active',
           externalIssues: [
