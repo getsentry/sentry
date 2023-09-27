@@ -32,7 +32,7 @@ import {ReplayListLocationQuery} from 'sentry/views/replays/types';
 
 function transformSelectorQuery(selector: string) {
   return selector
-    .replaceAll('"', `\"`)
+    .replaceAll('"', `\\"`)
     .replaceAll('aria=', 'aria-label=')
     .replaceAll('testid=', 'data-test-id=');
 }
