@@ -26,6 +26,7 @@ export type DebugIdBundleArtifact = {
     fileSize: number;
     fileType: number;
     id: string;
+    sourcemap: string | null;
   }[];
   // TODO(Pri): Remove this type once fully transitioned to associations.
   release: string | null;

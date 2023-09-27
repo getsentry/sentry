@@ -138,6 +138,7 @@ function QueryBuilder({metricsQuery}: QueryBuilderProps) {
                 mri: option.value,
                 op: selectedOp,
                 groupBy: undefined,
+                focusedSeries: undefined,
               });
             }}
           />
@@ -169,6 +170,7 @@ function QueryBuilder({metricsQuery}: QueryBuilderProps) {
             onChange={options =>
               updateQuery(router, {
                 groupBy: options.map(o => o.value),
+                focusedSeries: undefined,
               })
             }
           />
