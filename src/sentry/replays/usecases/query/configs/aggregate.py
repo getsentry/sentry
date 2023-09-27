@@ -136,9 +136,9 @@ search_config["user"] = search_config["user.username"]
 # Fields which have multiple names that represent the same search operation are defined here.
 # QQ:JFERG: why dont we have these on the scalar search
 search_config["error_id"] = search_config["error_ids"]
-search_config["x_error_id"] = search_config["new_error_ids"]
-search_config["x_warning_id"] = search_config["warning_ids"]
-search_config["x_info_id"] = search_config["info_ids"]
+search_config["new_error_id"] = search_config["new_error_ids"]
+search_config["warning_id"] = search_config["warning_ids"]
+search_config["info_id"] = search_config["info_ids"]
 
 
 search_config["release"] = search_config["releases"]
