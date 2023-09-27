@@ -205,6 +205,22 @@ class OrganizationFeedbackIndexTest(APITestCase):
             assert len(response.data) == 1
             feedback = response.data[0]
             assert feedback["feedback_id"] == uuid.UUID("1ffe0775ac0f4417aed9de36d9f6f8dc")
+            assert feedback["environment"] == self.environment_1.name
+
+    def test_invalid_env_filter(self):
+        with self.feature({"organizations:user-feedback-ingest": True}):
+            self.mock_feedback()
+            path = reverse(self.endpoint, args=[self.org.slug])
+            response = self.client.get(
+                path,
+                {
+                    "environment": self.environment.name,
+                },
+            )
+            assert response.status_code == 200
+
+            # Should returns nothing
+            assert len(response.data) == 0
 
     def test_no_items_found(self):
         with self.feature({"organizations:user-feedback-ingest": True}):
@@ -219,6 +235,7 @@ class OrganizationFeedbackIndexTest(APITestCase):
                     ).isoformat()
                     + "Z",
                     "project": self.project_1.id,
+                    "environment": self.environment_1.name,
                 },
             )
             assert response.status_code == 200
