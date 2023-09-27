@@ -1872,3 +1872,52 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 response_data = response.json()
                 assert len(response_data["data"]) == 1, query
                 assert len(response_data["data"][0]["new_error_ids"]) == 1, query
+
+    def test_event_id_count_columns(self):
+        project = self.create_project(teams=[self.team])
+
+        replay1_id = uuid.uuid4().hex
+        other_replay = uuid.uuid4().hex
+
+        seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=22)
+        seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=5)
+
+        self.store_replays(mock_replay(seq1_timestamp, project.id, other_replay))
+        self.store_replays(mock_replay(seq2_timestamp, project.id, other_replay))
+
+        self.store_replays(mock_replay(seq1_timestamp, project.id, replay1_id))
+        self.store_replays(mock_replay(seq2_timestamp, project.id, replay1_id))
+        self.store_replays(
+            self.mock_event_links(seq1_timestamp, project.id, "fatal", replay1_id, uuid.uuid4().hex)
+        )
+        self.store_replays(
+            self.mock_event_links(seq1_timestamp, project.id, "error", replay1_id, uuid.uuid4().hex)
+        )
+        self.store_replays(
+            self.mock_event_links(
+                seq1_timestamp, project.id, "warning", replay1_id, uuid.uuid4().hex
+            )
+        )
+        self.store_replays(
+            self.mock_event_links(seq1_timestamp, project.id, "info", replay1_id, uuid.uuid4().hex)
+        )
+        self.store_replays(
+            self.mock_event_links(seq1_timestamp, project.id, "debug", replay1_id, uuid.uuid4().hex)
+        )
+
+        self.store_replays(
+            self.mock_event_links(
+                seq1_timestamp, project.id, "debug", other_replay, uuid.uuid4().hex
+            )
+        )
+
+        with self.feature(REPLAYS_FEATURES):
+            response = self.client.get(
+                self.url
+                + f"?field=id&field=new_count_errors&field=count_warnings&field=count_infos&query=id:{replay1_id}"
+            )
+            assert response.status_code == 200
+            response_data = response.json()
+            assert response_data["data"][0]["new_count_errors"] == 2
+            assert response_data["data"][0]["count_warnings"] == 1
+            assert response_data["data"][0]["new_count_errors"] == 2
