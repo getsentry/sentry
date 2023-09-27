@@ -1,7 +1,11 @@
+from typing import List, cast
 from unittest import mock
 
 from sentry.issues.grouptype import PerformanceDurationRegressionGroupType
-from sentry.statistical_detectors.issue_platform_adapter import send_regressions_to_plaform
+from sentry.statistical_detectors.issue_platform_adapter import (
+    Regression,
+    send_regressions_to_plaform,
+)
 
 
 @mock.patch("sentry.statistical_detectors.issue_platform_adapter.produce_occurrence_to_kafka")
@@ -9,7 +13,7 @@ def test_send_regressions_to_platform(mock_produce_occurrence_to_kafka):
     project_slug = "test"
     project_id = 123
 
-    mock_regression = [
+    mock_data = [
         {
             "project": project_slug,
             "project_id": project_id,
@@ -20,6 +24,8 @@ def test_send_regressions_to_platform(mock_produce_occurrence_to_kafka):
             "aggregate_range_2": 28,
         }
     ]
+
+    mock_regression = cast(List[Regression], mock_data)
 
     send_regressions_to_plaform(mock_regression)
 
