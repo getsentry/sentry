@@ -93,8 +93,12 @@ class MissedMarginField(EmptyIntegerField):
 class ConfigValidator(serializers.Serializer):
     schedule_type = serializers.ChoiceField(
         choices=list(zip(SCHEDULE_TYPES.keys(), SCHEDULE_TYPES.keys())),
-        required=False,
         help_text='Currently supports "crontab" or "interval"',
+        # The schedule_type IS required when the `type` is not part of the
+        # `schedule` object field (see self.validate). We cannot mark it as
+        # required here however since this field may be left out when using the
+        # alternative schedule format.
+        required=False,
     )
 
     schedule = ObjectField(
