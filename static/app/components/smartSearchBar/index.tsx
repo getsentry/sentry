@@ -1,7 +1,6 @@
 import {Component, createRef, VFC} from 'react';
 import TextareaAutosize from 'react-autosize-textarea';
 import {WithRouterProps} from 'react-router';
-import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import debounce from 'lodash/debounce';
@@ -1896,6 +1895,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
         disabled={disabled}
         maxLength={maxQueryLength}
         spellCheck={false}
+        maxRows={query ? undefined : 1}
       />
     );
 
@@ -2116,7 +2116,7 @@ const SearchInput = styled(
     fixed: 'textarea',
   }),
   {
-    shouldForwardProp: prop => typeof prop === 'string' && isPropValid(prop),
+    shouldForwardProp: prop => typeof prop === 'string',
   }
 )`
   position: relative;
@@ -2139,6 +2139,11 @@ const SearchInput = styled(
   }
   &::placeholder {
     color: ${p => p.theme.formPlaceholder};
+  }
+  :placeholder-shown {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   [disabled] {

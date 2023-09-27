@@ -36,7 +36,7 @@ export default function ReplaysSearch() {
 
 const SearchContainer = styled('div')`
   flex-grow: 1;
-  min-width: 540px;
+  min-width: 400px;
 
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     min-width: auto;
