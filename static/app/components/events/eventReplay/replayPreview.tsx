@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {Alert} from 'sentry/components/alert';
 import {LinkButton} from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
+import Link from 'sentry/components/links/link';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import Placeholder from 'sentry/components/placeholder';
@@ -43,7 +44,12 @@ function ReplayPreview({orgSlug, replaySlug, eventTimestampMs, buttonProps}: Pro
 
   if (fetchError) {
     const reasons = [
-      t('The replay was rate-limited and could not be accepted.'),
+      tct(
+        'The replay was rate-limited and could not be accepted. [link:View the stats page] for more information.',
+        {
+          link: <Link to={`/organizations/${orgSlug}/stats/?dataCategory=replays`} />,
+        }
+      ),
       t('The replay has been deleted by a member in your organization.'),
       t('There were network errors and the replay was not saved.'),
       tct('[link:Read the docs] to understand why.', {
