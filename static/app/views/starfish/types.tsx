@@ -37,9 +37,10 @@ export type SpanStringFields =
   | 'span.module'
   | 'span.action'
   | 'span.domain'
-  | 'span.domain_array'
   | 'span.group'
   | 'project.id';
+
+export type SpanArrayFields = 'span.domain_array';
 
 export type SpanFunctions =
   | 'sps'
@@ -56,6 +57,8 @@ export type MetricsResponse = {
   [Property in SpanFunctions as `${Property}()`]: number;
 } & {
   [Property in SpanStringFields as `${Property}`]: string;
+} & {
+  [Property in SpanArrayFields as `${Property}`]: string[];
 } & {
   'time_spent_percentage(local)': number;
 };
@@ -93,6 +96,7 @@ export type SpanIndexedFieldTypes = {
   [SpanIndexedField.TRANSACTION_METHOD]: string;
   [SpanIndexedField.TRANSACTION_OP]: string;
   [SpanIndexedField.SPAN_DOMAIN]: string;
+  [SpanIndexedField.SPAN_DOMAIN_ARRAY]: string[];
   [SpanIndexedField.TIMESTAMP]: string;
   [SpanIndexedField.PROJECT]: string;
 };
