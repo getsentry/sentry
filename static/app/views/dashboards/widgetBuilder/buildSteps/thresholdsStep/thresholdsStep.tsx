@@ -8,14 +8,17 @@ import theme from 'sentry/utils/theme';
 
 import {BuildStep} from '../buildStep';
 
-// type ThresholdsStepProps = {
-//   thresholdsConfig: ThresholdsConfig;
-// };
+type ThresholdsStepProps = {
+  onChange: (maxKey: ThresholdMaxKeys, value: string) => void;
+  thresholdsConfig: ThresholdsConfig | null;
+};
 
 type ThresholdRowProp = {
   color: string;
   maxInputProps?: NumberInputProps;
+  maxKey?: ThresholdMaxKeys;
   minInputProps?: NumberInputProps;
+  onChange?: (maxKey: ThresholdMaxKeys, value: string) => void;
 };
 
 export enum ThresholdMaxKeys {
@@ -24,29 +27,40 @@ export enum ThresholdMaxKeys {
 }
 
 type ThresholdMaxValues = {
-  [ThresholdMaxKeys.MAX_1]: number;
-  [ThresholdMaxKeys.MAX_2]: number;
+  [K in ThresholdMaxKeys]?: number;
 };
 
 export type ThresholdsConfig = {
   max_values: ThresholdMaxValues;
-  unit: string | null;
-} | null;
+  unit?: string;
+};
 
 const WIDGET_INDICATOR_SIZE = 15;
 
-function ThresholdRow({color, minInputProps, maxInputProps}: ThresholdRowProp) {
+function ThresholdRow({
+  color,
+  minInputProps,
+  maxInputProps,
+  onChange,
+  maxKey,
+}: ThresholdRowProp) {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (onChange && maxKey) {
+      onChange(maxKey, e.target.value);
+    }
+  };
+
   return (
     <ThresholdRowWrapper>
       <CircleIndicator color={color} size={WIDGET_INDICATOR_SIZE} />
       <NumberInput {...minInputProps} />
       {t('to')}
-      <NumberInput {...maxInputProps} />
+      <NumberInput onInput={handleChange} {...maxInputProps} />
     </ThresholdRowWrapper>
   );
 }
 
-function ThresholdsStep() {
+function ThresholdsStep({thresholdsConfig, onChange}: ThresholdsStepProps) {
   return (
     <BuildStep
       title={t('Set thresholds')}
@@ -62,25 +76,43 @@ function ThresholdsStep() {
     >
       <ThresholdsContainer>
         <ThresholdRow
+          maxKey={ThresholdMaxKeys.MAX_1}
           minInputProps={{
             disabled: true,
             value: 0,
+            'aria-label': 'First Minimum',
+          }}
+          maxInputProps={{
+            value: thresholdsConfig?.max_values[ThresholdMaxKeys.MAX_1],
+            'aria-label': 'First Maximum',
           }}
           color={theme.green300}
+          onChange={onChange}
         />
         <ThresholdRow
+          maxKey={ThresholdMaxKeys.MAX_2}
           minInputProps={{
             disabled: true,
+            value: thresholdsConfig?.max_values[ThresholdMaxKeys.MAX_1],
+            'aria-label': 'Second Minimum',
+          }}
+          maxInputProps={{
+            value: thresholdsConfig?.max_values[ThresholdMaxKeys.MAX_2],
+            'aria-label': 'Second Maximum',
           }}
           color={theme.yellow300}
+          onChange={onChange}
         />
         <ThresholdRow
           minInputProps={{
             disabled: true,
+            value: thresholdsConfig?.max_values[ThresholdMaxKeys.MAX_2],
+            'aria-label': 'Third Minimum',
           }}
           maxInputProps={{
             disabled: true,
             placeholder: t('No max'),
+            'aria-label': 'Third Maximum',
           }}
           color={theme.red300}
         />
@@ -99,6 +131,7 @@ const ThresholdsContainer = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(2)};
+  margin-top: ${space(1)};
 `;
 
 const HighlightedText = styled('span')`

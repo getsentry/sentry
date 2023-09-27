@@ -15,6 +15,7 @@ export const getDefaultWidgets = () => {
       description: t('Compare transaction durations across different percentiles.'),
       displayType: DisplayType.LINE,
       widgetType: WidgetType.DISCOVER,
+      thresholds: null,
       interval: '5m',
       queries: [
         {
@@ -42,6 +43,7 @@ export const getDefaultWidgets = () => {
       displayType: DisplayType.TOP_N,
       widgetType: WidgetType.DISCOVER,
       interval: '5m',
+      thresholds: null,
       queries: [
         {
           name: '',
@@ -61,6 +63,7 @@ export const getDefaultWidgets = () => {
       widgetType: WidgetType.RELEASE,
       interval: '5m',
       limit: 8,
+      thresholds: null,
       queries: [
         {
           name: '',
@@ -79,6 +82,7 @@ export const getDefaultWidgets = () => {
       displayType: DisplayType.TABLE,
       widgetType: WidgetType.RELEASE,
       interval: '5m',
+      thresholds: null,
       queries: [
         {
           name: '',
@@ -96,6 +100,7 @@ export const getDefaultWidgets = () => {
       description: t('Table showing page load times by country.'),
       displayType: DisplayType.TABLE,
       widgetType: WidgetType.DISCOVER,
+      thresholds: null,
       interval: '5m',
       queries: [
         {
@@ -114,6 +119,7 @@ export const getDefaultWidgets = () => {
       description: t('Unique users who have experienced slow load times.'),
       displayType: DisplayType.BIG_NUMBER,
       widgetType: WidgetType.DISCOVER,
+      thresholds: null,
       interval: '5m',
       queries: [
         {
@@ -134,6 +140,7 @@ export const getDefaultWidgets = () => {
       ),
       displayType: DisplayType.BAR,
       widgetType: WidgetType.DISCOVER,
+      thresholds: null,
       interval: '5m',
       queries: [
         {
@@ -158,6 +165,7 @@ export const getDefaultWidgets = () => {
       description: t('Most recently seen unresolved issues for review.'),
       displayType: DisplayType.TABLE,
       widgetType: WidgetType.ISSUE,
+      thresholds: null,
       interval: '5m',
       queries: [
         {
@@ -176,6 +184,7 @@ export const getDefaultWidgets = () => {
       description: t('Most frequently encountered unhandled errors.'),
       displayType: DisplayType.TOP_N,
       widgetType: WidgetType.DISCOVER,
+      thresholds: null,
       interval: '5m',
       queries: [
         {
@@ -194,6 +203,7 @@ export const getDefaultWidgets = () => {
       description: t('Footprint of unique users affected by errors.'),
       displayType: DisplayType.LINE,
       widgetType: WidgetType.DISCOVER,
+      thresholds: null,
       interval: '5m',
       queries: [
         {
