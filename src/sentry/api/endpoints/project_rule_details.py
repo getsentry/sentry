@@ -218,6 +218,12 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
             if rule.status == ObjectStatus.DISABLED:
                 rule.status = ObjectStatus.ACTIVE
                 rule.save()
+                analytics.record(
+                    "rule_reenable.edit",
+                    rule_id=rule.id,
+                    user_id=request.user.id,
+                    organization_id=project.organization.id,
+                )
 
             if data.get("pending_save"):
                 client = RedisRuleStatus()
