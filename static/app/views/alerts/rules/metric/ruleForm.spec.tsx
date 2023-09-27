@@ -1,4 +1,6 @@
 import selectEvent from 'react-select-event';
+import {EventsStats} from 'sentry-fixture/events';
+import {IncidentTrigger} from 'sentry-fixture/incidentTrigger';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -55,7 +57,7 @@ describe('Incident Rules Form', () => {
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
-      body: TestStubs.EventsStats({
+      body: EventsStats({
         isMetricsData: true,
       }),
     });
@@ -76,7 +78,7 @@ describe('Incident Rules Form', () => {
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/metrics-estimation-stats/',
-      body: TestStubs.EventsStats(),
+      body: EventsStats(),
     });
   });
 
@@ -230,7 +232,7 @@ describe('Incident Rules Form', () => {
 
       await waitFor(() =>
         expect(screen.getByTestId('alert-total-events')).toHaveTextContent(
-          'Total Events5'
+          'Total Transactions5'
         )
       );
 
@@ -304,7 +306,7 @@ describe('Incident Rules Form', () => {
       editTrigger = MockApiClient.addMockResponse({
         url: `/organizations/org-slug/alert-rules/${rule.id}/triggers/1/`,
         method: 'PUT',
-        body: TestStubs.IncidentTrigger({id: '1'}),
+        body: IncidentTrigger({id: '1'}),
       });
     });
     afterEach(() => {

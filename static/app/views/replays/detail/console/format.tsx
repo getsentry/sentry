@@ -24,7 +24,7 @@ import isObject from 'lodash/isObject';
 
 import ObjectInspector, {OnExpandCallback} from 'sentry/components/objectInspector';
 
-const formatRegExp = /%[sdj%]/g;
+const formatRegExp = /%[csdj%]/g;
 
 function isNull(arg: unknown) {
   return arg === null;
@@ -61,6 +61,7 @@ export default function Format({onExpand, expandPaths, args}: FormatProps) {
   }
 
   let i = 1;
+  let styling: string | undefined;
   const len = args.length;
   const pieces: any[] = [];
 
@@ -72,6 +73,9 @@ export default function Format({onExpand, expandPaths, args}: FormatProps) {
       return x;
     }
     switch (x) {
+      case '%c':
+        styling = args[i++];
+        return '';
       case '%s':
         const val = args[i++];
         try {
@@ -92,7 +96,43 @@ export default function Format({onExpand, expandPaths, args}: FormatProps) {
     }
   });
 
-  pieces.push(str);
+  if (styling && typeof styling === 'string') {
+    const tempEl = document.createElement('div');
+    tempEl.setAttribute('style', styling);
+
+    // Only allow certain CSS attributes, be careful of css properties that
+    // accept `url()`
+    //
+    // See the section above https://developer.mozilla.org/en-US/docs/Web/API/console#using_groups_in_the_console
+    // for the properties that Firefox supports.
+    const styleObj = Object.fromEntries(
+      [
+        ['background-color', 'backgroundColor'],
+        ['border-radius', 'borderRadius'],
+        ['color', 'color'],
+        ['font-size', 'fontSize'],
+        ['font-style', 'fontStyle'],
+        ['font-weight', 'fontWeight'],
+        ['margin', 'margin'],
+        ['padding', 'padding'],
+        ['text-transform', 'textTransform'],
+        ['writing-mode', 'writingMode'],
+      ]
+        .map(([attr, reactAttr]) => [reactAttr, tempEl.style.getPropertyValue(attr)])
+        .filter(([, val]) => !!val)
+    );
+
+    styleObj.display = 'inline-block';
+
+    pieces.push(
+      <span key={`%c-${i - 1}`} style={styleObj}>
+        {str}
+      </span>
+    );
+  } else {
+    pieces.push(str);
+  }
+
   for (let x = args[i]; i < len; x = args[++i]) {
     if (isNull(x) || !isObject(x)) {
       pieces.push(' ' + x);
@@ -103,5 +143,6 @@ export default function Format({onExpand, expandPaths, args}: FormatProps) {
       );
     }
   }
+
   return <Fragment>{pieces}</Fragment>;
 }

@@ -1,5 +1,6 @@
 import logging
 from datetime import datetime
+from typing import Optional
 
 import msgpack
 import sentry_sdk
@@ -171,21 +172,10 @@ def check_missing(current_datetime: datetime):
     current_datetime = current_datetime.replace(second=0, microsecond=0)
 
     qs = (
+        # Monitors that have reached the latest checkin time
         MonitorEnvironment.objects.filter(
             monitor__type__in=[MonitorType.CRON_JOB],
-            # [!!]: Note that we use `lt` here to give a whole minute buffer
-            # for a check-in to be sent.
-            #
-            # As an example, if our next_checkin_latest for a monitor was
-            # 11:00:00, and our task runs at 11:00:05, the time is clamped down
-            # to 11:00:00, and then compared:
-            #
-            #  next_checkin_latest < 11:00:00
-            #
-            # Since they are equal this does not match. When the task is run a
-            # minute later if the check-in still hasn't been sent we will THEN
-            # mark it as missed.
-            next_checkin_latest__lt=current_datetime,
+            next_checkin_latest__lte=current_datetime,
         )
         .exclude(
             status__in=[
@@ -202,6 +192,7 @@ def check_missing(current_datetime: datetime):
             ]
         )[:MONITOR_LIMIT]
     )
+
     metrics.gauge("sentry.monitors.tasks.check_missing.count", qs.count(), sample_rate=1.0)
     for monitor_environment in qs:
         mark_environment_missing.delay(monitor_environment.id)
@@ -212,7 +203,7 @@ def check_missing(current_datetime: datetime):
     max_retries=0,
     record_timing=True,
 )
-def mark_environment_missing(monitor_environment_id: int):
+def mark_environment_missing(monitor_environment_id: int, ts: Optional[datetime] = None):
     logger.info("monitor.missed-checkin", extra={"monitor_environment_id": monitor_environment_id})
 
     monitor_environment = MonitorEnvironment.objects.select_related("monitor").get(
@@ -256,33 +247,35 @@ def check_timeout(current_datetime: datetime):
     metrics.gauge("sentry.monitors.tasks.check_timeout.count", qs.count(), sample_rate=1)
     # check for any monitors which are still running and have exceeded their maximum runtime
     for checkin in qs:
-        try:
-            monitor_environment = checkin.monitor_environment
-            logger.info(
-                "monitor_environment.checkin-timeout",
-                extra={"monitor_environment_id": monitor_environment.id, "checkin_id": checkin.id},
-            )
-            affected = checkin.update(status=CheckInStatus.TIMEOUT)
-            if not affected:
-                continue
+        mark_checkin_timeout.delay(checkin.id)
 
-            # we only mark the monitor as failed if a newer checkin wasn't responsible for the state
-            # change
-            has_newer_result = MonitorCheckIn.objects.filter(
-                monitor_environment=monitor_environment,
-                date_added__gt=checkin.date_added,
-                status__in=[CheckInStatus.OK, CheckInStatus.ERROR],
-            ).exists()
-            if not has_newer_result:
-                # TODO(epurkhiser): We also need a timestamp here, but not sure
-                # what we want it to be
-                mark_failed(checkin, ts=None)
-        except Exception:
-            logger.exception("Exception in check_monitors - mark timeout", exc_info=True)
 
-    # safety check for check-ins stuck in the backlog
-    backlog_count = MonitorCheckIn.objects.filter(
-        status=CheckInStatus.IN_PROGRESS, timeout_at__isnull=True
-    ).count()
-    if backlog_count:
-        logger.exception(f"Exception in check_monitors - backlog count {backlog_count} is > 0")
+@instrumented_task(
+    name="sentry.monitors.tasks.mark_checkin_timeout",
+    max_retries=0,
+    record_timing=True,
+)
+def mark_checkin_timeout(checkin_id: int, ts: Optional[datetime] = None):
+    logger.info("checkin.timeout", extra={"checkin_id": checkin_id})
+
+    checkin = MonitorCheckIn.objects.select_related("monitor_environment").get(id=checkin_id)
+    monitor_environment = checkin.monitor_environment
+    logger.info(
+        "monitor_environment.checkin-timeout",
+        extra={"monitor_environment_id": monitor_environment.id, "checkin_id": checkin.id},
+    )
+    affected = checkin.update(status=CheckInStatus.TIMEOUT)
+    if not affected:
+        return
+
+    # we only mark the monitor as failed if a newer checkin wasn't responsible for the state
+    # change
+    has_newer_result = MonitorCheckIn.objects.filter(
+        monitor_environment=monitor_environment,
+        date_added__gt=checkin.date_added,
+        status__in=[CheckInStatus.OK, CheckInStatus.ERROR],
+    ).exists()
+    if not has_newer_result:
+        # TODO(epurkhiser): We also need a timestamp here, but not sure
+        # what we want it to be
+        mark_failed(checkin, ts=None)

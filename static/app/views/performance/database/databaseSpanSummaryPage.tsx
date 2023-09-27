@@ -90,7 +90,7 @@ function SpanSummaryPage({params}: Props) {
     [SpanMetricsField.SPAN_OP]: string;
     [SpanMetricsField.SPAN_DESCRIPTION]: string;
     [SpanMetricsField.SPAN_ACTION]: string;
-    [SpanMetricsField.SPAN_DOMAIN]: string;
+    [SpanMetricsField.SPAN_DOMAIN]: string[];
     [SpanMetricsField.SPAN_GROUP]: string;
   };
 

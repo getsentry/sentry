@@ -196,8 +196,12 @@ def test_should_log_rules_if_same_rule_has_different_sample_rate():
                     "condition": {
                         "op": "and",
                         "inner": [
-                            {"op": "eq", "name": "trace.release", "value": ["1.0"]},
-                            {"op": "eq", "name": "trace.environment", "value": ["dev"]},
+                            {"op": "eq", "name": "trace.release", "value": ["1.0"]},  # type:ignore
+                            {
+                                "op": "eq",  # type:ignore
+                                "name": "trace.environment",
+                                "value": ["dev"],
+                            },
                         ],
                     },
                     "id": 1501,
@@ -205,7 +209,7 @@ def test_should_log_rules_if_same_rule_has_different_sample_rate():
                         "start": "2022-10-21 18:50:25+00:00",
                         "end": "2022-10-21 20:03:03+00:00",
                     },
-                },  # type:ignore
+                },
             ): 0.5,
         }
     },
