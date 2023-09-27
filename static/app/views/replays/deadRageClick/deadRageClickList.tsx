@@ -58,7 +58,7 @@ export default function DeadRageClickList() {
           </Layout.Title>
         </Layout.HeaderContent>
         <div /> {/* wraps the tabs below the page title */}
-        <ReplayTabs />
+        <ReplayTabs selected="selectors" />
       </Layout.Header>
       <PageFiltersContainer>
         <Layout.Body>

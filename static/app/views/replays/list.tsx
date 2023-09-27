@@ -37,7 +37,7 @@ function ReplaysListContainer() {
           </Layout.Title>
         </Layout.HeaderContent>
         <div /> {/* wraps the tabs below the page title */}
-        <ReplayTabs />
+        <ReplayTabs selected="replays" />
       </Layout.Header>
       <PageFiltersContainer>
         <Layout.Body>

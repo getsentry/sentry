@@ -1,8 +1,11 @@
 import {TabList, Tabs} from 'sentry/components/tabs';
-import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
-const SELECTOR_IDX_ROUTE = 'dead-rage-clicks';
+interface Props {
+  selected: 'replays' | 'selectors';
+}
+
+const SELECTOR_IDX_ROUTE = 'selectors';
 const REPLAY_IDX_ROUTE = '';
 
 const TABS = [
@@ -10,18 +13,14 @@ const TABS = [
   {key: 'selectors', label: 'Selectors', to: SELECTOR_IDX_ROUTE},
 ];
 
-export default function ReplayTabs() {
+export default function ReplayTabs({selected}: Props) {
   const organization = useOrganization();
   const hasDeadClickFeature = organization.features.includes(
     'session-replay-rage-dead-selectors'
   );
 
-  const location = useLocation();
-  const {pathname} = location;
-  const isSelectorIndex = pathname.includes('dead-rage-clicks');
-
   return hasDeadClickFeature ? (
-    <Tabs value={isSelectorIndex ? 'selectors' : 'replays'}>
+    <Tabs value={selected}>
       <TabList hideBorder>
         {TABS.map(tab => (
           <TabList.Item
