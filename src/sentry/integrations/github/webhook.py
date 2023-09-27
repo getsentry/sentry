@@ -252,6 +252,7 @@ class PushEventWebhook(Webhook):
         client = integration.get_installation(organization_id=organization.id).get_client()
         gh_username_cache: MutableMapping[str, str | None] = {}
 
+        languages = set()
         for commit in event["commits"]:
             if not commit["distinct"]:
                 continue
@@ -358,7 +359,6 @@ class PushEventWebhook(Webhook):
             if author:
                 author.preload_users()
             try:
-                languages = set()
                 with transaction.atomic(router.db_for_write(Commit)):
                     c = Commit.objects.create(
                         repository_id=repo.id,
@@ -393,14 +393,12 @@ class PushEventWebhook(Webhook):
                             type="M",
                         )
 
-                    languages.discard(None)
-                    repo_languages = set(repo.languages)
-                    repo_languages.update(languages)
-                    repo.languages = list(repo_languages)
-                    repo.save()
-
             except IntegrityError:
                 pass
+
+        languages.discard(None)
+        repo.languages = list(set(repo.languages or []).union(languages))
+        repo.save()
 
 
 class PullRequestEventWebhook(Webhook):
