@@ -589,28 +589,6 @@ def run_with_retries(cmd: Callable[[], object], retries: int = 3, timeout: int =
             return
 
 
-def check_kafka(containers: dict[str, Any]) -> None:
-    kafka_options = containers["kafka"]
-    zk_options = containers["zookeeper"]
-
-    zk_port = zk_options.get("environment", {}).get("ZOOKEEPER_CLIENT_PORT", 2181)
-
-    subprocess.run(
-        (
-            "docker",
-            "exec",
-            kafka_options["name"],
-            "kafka-topics",
-            "--zookeeper",
-            f"{zk_options['name']}:{zk_port}",
-            "--list",
-        ),
-        check=True,
-        capture_output=True,
-        text=True,
-    )
-
-
 def check_postgres(containers: dict[str, Any]) -> None:
     pg_options = containers["postgres"]
     subprocess.run(
@@ -637,11 +615,9 @@ class ServiceHealthcheck:
 
 class ServiceHealthChecks:
     postgres: ServiceHealthcheck
-    kafka: ServiceHealthcheck
 
     def __init__(self) -> None:
         self.postgres = ServiceHealthcheck(check_postgres)
-        self.kafka = ServiceHealthcheck(check_kafka)
 
 
 service_healthchecks = ServiceHealthChecks()
