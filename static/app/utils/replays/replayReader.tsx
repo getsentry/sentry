@@ -122,6 +122,19 @@ export default class ReplayReader {
   }: RequiredNotNull<ReplayReaderParams>) {
     this._cacheKey = domId('replayReader-');
 
+    if (replayRecord.is_archived) {
+      this._replayRecord = replayRecord;
+      const archivedReader = new Proxy(this, {
+        get(_target, prop, _receiver) {
+          if (prop === '_replayRecord') {
+            return replayRecord;
+          }
+          return () => {};
+        },
+      });
+      return archivedReader;
+    }
+
     const {breadcrumbFrames, optionFrame, rrwebFrames, spanFrames} =
       hydrateFrames(attachments);
 
@@ -175,12 +188,12 @@ export default class ReplayReader {
   public timestampDeltas = {startedAtDelta: 0, finishedAtDelta: 0};
 
   private _cacheKey: string;
-  private _errors: ErrorFrame[];
+  private _errors: ErrorFrame[] = [];
   private _optionFrame: undefined | OptionFrame;
   private _replayRecord: ReplayRecord;
-  private _sortedBreadcrumbFrames: BreadcrumbFrame[];
-  private _sortedRRWebEvents: RecordingFrame[];
-  private _sortedSpanFrames: SpanFrame[];
+  private _sortedBreadcrumbFrames: BreadcrumbFrame[] = [];
+  private _sortedRRWebEvents: RecordingFrame[] = [];
+  private _sortedSpanFrames: SpanFrame[] = [];
 
   toJSON = () => this._cacheKey;
 
