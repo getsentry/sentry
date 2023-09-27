@@ -15,11 +15,11 @@ import {EventEvidence} from 'sentry/components/events/eventEvidence';
 import {EventExtraData} from 'sentry/components/events/eventExtraData';
 import EventReplay from 'sentry/components/events/eventReplay';
 import {EventSdk} from 'sentry/components/events/eventSdk';
+import AggregateSpanDiff from 'sentry/components/events/eventStatisticalDetector/aggregateSpanDiff';
 import EventSpanOpBreakdown from 'sentry/components/events/eventStatisticalDetector/aggregateSpanOps/spanOpBreakdown';
 import EventBreakpointChart from 'sentry/components/events/eventStatisticalDetector/breakpointChart';
 import EventComparison from 'sentry/components/events/eventStatisticalDetector/eventComparison';
 import RegressionMessage from 'sentry/components/events/eventStatisticalDetector/regressionMessage';
-import SpanDiff from 'sentry/components/events/eventStatisticalDetector/spanDiff';
 import {EventTagsAndScreenshot} from 'sentry/components/events/eventTagsAndScreenshot';
 import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
 import {EventGroupingInfo} from 'sentry/components/events/groupingInfo';
@@ -115,7 +115,7 @@ function GroupEventDetailsContent({
             <EventSpanOpBreakdown event={event} />
           </ErrorBoundary>
           <ErrorBoundary mini>
-            <SpanDiff event={event} projectId={project.id} />
+            <AggregateSpanDiff event={event} projectId={project.id} />
           </ErrorBoundary>
           <ErrorBoundary mini>
             <EventComparison event={event} group={group} project={project} />

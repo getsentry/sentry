@@ -17,7 +17,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
 
-type SpanDiff = {
+interface SpanDiff {
   duration_after: number;
   duration_before: number;
   duration_delta: number;
@@ -29,9 +29,9 @@ type SpanDiff = {
   span_description: string;
   span_group: string;
   span_op: string;
-};
+}
 
-type DiffRowProps = {
+interface DiffRowProps {
   after: number;
   before: number;
   delta: number;
@@ -42,15 +42,15 @@ type DiffRowProps = {
   projectId: string;
   start: string;
   transaction: string;
-};
+}
 
-type UseFetchAdvancedAnalysisProps = {
+interface UseFetchAdvancedAnalysisProps {
   breakpoint: string;
   end: string;
   projectId: string;
   start: string;
   transaction: string;
-};
+}
 
 function useFetchAdvancedAnalysis({
   transaction,
@@ -132,7 +132,7 @@ function DiffRow({
         </Tooltip>
       </Label>
       <Tooltip
-        title={tct(`from [beforeDuration] to [afterDuration]`, {
+        title={tct(`From [beforeDuration] to [afterDuration]`, {
           beforeDuration: getDuration(before / 1000, 2, undefined, true),
           afterDuration: getDuration(after / 1000, 2, undefined, true),
         })}
@@ -145,14 +145,14 @@ function DiffRow({
   );
 }
 
-function SpanDiffs({event, projectId}) {
+function AggregateSpanDiff({event, projectId}) {
   const {transaction, requestStart, requestEnd, breakpoint} =
     event?.occurrence?.evidenceData;
 
   const start = new Date(requestStart * 1000).toISOString();
   const end = new Date(requestEnd * 1000).toISOString();
   const breakpointTimestamp = new Date(breakpoint * 1000).toISOString();
-  const {data, isLoading} = useFetchAdvancedAnalysis({
+  const {data, isLoading, isError} = useFetchAdvancedAnalysis({
     transaction,
     start,
     end,
@@ -165,7 +165,13 @@ function SpanDiffs({event, projectId}) {
   }
 
   let content;
-  if (!defined(data) || data.length === 0) {
+  if (isError) {
+    content = (
+      <EmptyStateWarning>
+        <p>{t('Oops! Something went wrong fetching span diffs')}</p>
+      </EmptyStateWarning>
+    );
+  } else if (!defined(data) || data.length === 0) {
     content = (
       <EmptyStateWarning>
         <p>{t('Unable to find significant differences in spans')}</p>
@@ -201,7 +207,7 @@ function SpanDiffs({event, projectId}) {
   );
 }
 
-export default SpanDiffs;
+export default AggregateSpanDiff;
 
 const Label = styled('div')`
   flex: auto;
