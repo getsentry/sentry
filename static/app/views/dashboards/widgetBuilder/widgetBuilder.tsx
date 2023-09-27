@@ -923,6 +923,7 @@ function WidgetBuilder({
         if (!newState.thresholds) {
           newState.thresholds = {
             max_values: {},
+            unit: null,
           };
         }
 

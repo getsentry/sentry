@@ -33,7 +33,7 @@ type ThresholdMaxValues = {
 
 export type ThresholdsConfig = {
   max_values: ThresholdMaxValues;
-  unit?: string;
+  unit: string | null;
 };
 
 const WIDGET_INDICATOR_SIZE = 15;
