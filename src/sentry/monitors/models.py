@@ -595,18 +595,20 @@ class MonitorEnvironment(Model):
             .first()
         )
         if active_incident:
-            fingerprint = active_incident.grouphash
-        else:
-            fingerprint = hash_from_values(
-                [
-                    "monitor",
-                    str(self.monitor.guid),
-                    self.environment.name,
-                    str(self.last_state_change),
-                ]
-            )
-
-        return fingerprint
+        		return active_incident.grouphash
+        
+        # XXX(rjo100): While we migrate monitor issues to using the 
+        # Incident stored grouphash we still may have some active issues 
+        # that are using the old hashes. We can remove this in the 
+        # future once all existing issues are resolve.
+        return hash_from_values(
+            [
+                "monitor",
+                str(self.monitor.guid),
+                self.environment.name,
+                str(self.last_state_change),
+            ]
+        )
 
 
 @receiver(pre_save, sender=MonitorEnvironment)
