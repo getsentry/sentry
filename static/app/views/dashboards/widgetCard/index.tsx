@@ -309,15 +309,17 @@ class WidgetCard extends Component<Props, State> {
                       >
                         <WidgetTitle>{widget.title}</WidgetTitle>
                       </Tooltip>
-                      {widget.thresholds && this.state.tableData && (
-                        <CircleIndicator
-                          color={getWidgetIndicatorColor(
-                            widget.thresholds,
-                            this.state.tableData
-                          )}
-                          size={12}
-                        />
-                      )}
+                      {widget.thresholds &&
+                        this.state.tableData &&
+                        organization.features.includes('dashboard-widget-indicators') && (
+                          <CircleIndicator
+                            color={getWidgetIndicatorColor(
+                              widget.thresholds,
+                              this.state.tableData
+                            )}
+                            size={12}
+                          />
+                        )}
                     </WidgetTitleRow>
                     {widget.description && (
                       <Tooltip

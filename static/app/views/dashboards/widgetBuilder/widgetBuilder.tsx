@@ -135,12 +135,12 @@ interface State {
   prebuiltWidgetId: null | string;
   queries: Widget['queries'];
   queryConditionsValid: boolean;
-  thresholds: ThresholdsConfig | null;
   title: string;
   userHasModified: boolean;
   description?: string;
   errors?: Record<string, any>;
   selectedDashboard?: DashboardDetails['id'];
+  thresholds?: ThresholdsConfig | null;
   widgetToBeUpdated?: Widget;
 }
 
@@ -1164,7 +1164,7 @@ function WidgetBuilder({
                                 ) && (
                                   <ThresholdsStep
                                     onChange={handleThresholdChange}
-                                    thresholdsConfig={state.thresholds}
+                                    thresholdsConfig={state.thresholds ?? null}
                                   />
                                 )}
                             </BuildSteps>

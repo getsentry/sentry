@@ -1,7 +1,8 @@
 import styled from '@emotion/styled';
 
 import CircleIndicator from 'sentry/components/circleIndicator';
-import NumberInput, {NumberInputProps} from 'sentry/components/numberInput';
+import FieldWrapper from 'sentry/components/forms/fieldGroup/fieldWrapper';
+import NumberField, {NumberFieldProps} from 'sentry/components/forms/fields/numberField';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import theme from 'sentry/utils/theme';
@@ -15,9 +16,9 @@ type ThresholdsStepProps = {
 
 type ThresholdRowProp = {
   color: string;
-  maxInputProps?: NumberInputProps;
+  maxInputProps: NumberFieldProps;
+  minInputProps: NumberFieldProps;
   maxKey?: ThresholdMaxKeys;
-  minInputProps?: NumberInputProps;
   onChange?: (maxKey: ThresholdMaxKeys, value: string) => void;
 };
 
@@ -44,28 +45,31 @@ function ThresholdRow({
   onChange,
   maxKey,
 }: ThresholdRowProp) {
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (val: string) => {
     if (onChange && maxKey) {
-      onChange(maxKey, e.target.value);
+      onChange(maxKey, val);
     }
   };
 
   return (
     <ThresholdRowWrapper>
       <CircleIndicator color={color} size={WIDGET_INDICATOR_SIZE} />
-      <NumberInput {...minInputProps} />
+      <NumberField {...minInputProps} inline={false} />
       {t('to')}
-      <NumberInput onInput={handleChange} {...maxInputProps} />
+      <NumberField onChange={handleChange} {...maxInputProps} inline={false} />
     </ThresholdRowWrapper>
   );
 }
 
 function ThresholdsStep({thresholdsConfig, onChange}: ThresholdsStepProps) {
+  const maxOneValue = thresholdsConfig?.max_values[ThresholdMaxKeys.MAX_1] ?? '';
+  const maxTwoValue = thresholdsConfig?.max_values[ThresholdMaxKeys.MAX_2] ?? '';
+
   return (
     <BuildStep
       title={t('Set thresholds')}
       description={tct(
-        'Set thresholds to identify problematic widgets. For example: setting the max values, [thresholdValues] will display a green indicator for results in the range [greenRange], a yellow indicator for the range [yellowRange] and a red indicator for results above [redValue].',
+        'Set thresholds to identify problematic widgets. For example: setting the max values, [thresholdValues] will display a green indicator for results in the range [greenRange], a yellow indicator for results in the range [yellowRange] and a red indicator for results above [redValue].',
         {
           thresholdValues: <HighlightedText>(green: 100, yellow: 200)</HighlightedText>,
           greenRange: <HighlightedText>[0 - 100]</HighlightedText>,
@@ -78,12 +82,14 @@ function ThresholdsStep({thresholdsConfig, onChange}: ThresholdsStepProps) {
         <ThresholdRow
           maxKey={ThresholdMaxKeys.MAX_1}
           minInputProps={{
+            name: '',
             disabled: true,
             value: 0,
             'aria-label': 'First Minimum',
           }}
           maxInputProps={{
-            value: thresholdsConfig?.max_values[ThresholdMaxKeys.MAX_1],
+            name: '',
+            value: maxOneValue,
             'aria-label': 'First Maximum',
           }}
           color={theme.green300}
@@ -92,12 +98,14 @@ function ThresholdsStep({thresholdsConfig, onChange}: ThresholdsStepProps) {
         <ThresholdRow
           maxKey={ThresholdMaxKeys.MAX_2}
           minInputProps={{
+            name: '',
             disabled: true,
-            value: thresholdsConfig?.max_values[ThresholdMaxKeys.MAX_1],
+            value: maxOneValue,
             'aria-label': 'Second Minimum',
           }}
           maxInputProps={{
-            value: thresholdsConfig?.max_values[ThresholdMaxKeys.MAX_2],
+            name: '',
+            value: maxTwoValue,
             'aria-label': 'Second Maximum',
           }}
           color={theme.yellow300}
@@ -105,11 +113,13 @@ function ThresholdsStep({thresholdsConfig, onChange}: ThresholdsStepProps) {
         />
         <ThresholdRow
           minInputProps={{
+            name: '',
             disabled: true,
-            value: thresholdsConfig?.max_values[ThresholdMaxKeys.MAX_2],
+            value: maxTwoValue,
             'aria-label': 'Third Minimum',
           }}
           maxInputProps={{
+            name: '',
             disabled: true,
             placeholder: t('No max'),
             'aria-label': 'Third Maximum',
@@ -132,6 +142,11 @@ const ThresholdsContainer = styled('div')`
   flex-direction: column;
   gap: ${space(2)};
   margin-top: ${space(1)};
+
+  ${FieldWrapper} {
+    padding: 0;
+    border-bottom: none;
+  }
 `;
 
 const HighlightedText = styled('span')`

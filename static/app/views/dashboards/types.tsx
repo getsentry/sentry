@@ -46,7 +46,6 @@ export type Widget = {
   displayType: DisplayType;
   interval: string;
   queries: WidgetQuery[];
-  thresholds: ThresholdsConfig | null;
   title: string;
   description?: string;
   id?: string;
@@ -54,6 +53,7 @@ export type Widget = {
   // Used to define 'topEvents' when fetching time-series data for a widget
   limit?: number;
   tempId?: string;
+  thresholds?: ThresholdsConfig | null;
   widgetType?: WidgetType;
 };
 
