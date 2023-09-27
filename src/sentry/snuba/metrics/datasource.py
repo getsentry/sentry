@@ -532,7 +532,7 @@ def get_tag_values(
     metric_names: Optional[Sequence[str]],
     use_case_id: UseCaseID,
 ) -> Sequence[TagValue]:
-    """Get all known values for a specific tag given projects and metric_names."""
+    """Get all known values for a specific tag for the given projects and metric_names."""
     assert projects
 
     if tag_name in UNALLOWED_TAGS:
