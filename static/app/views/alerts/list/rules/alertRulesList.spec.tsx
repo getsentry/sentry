@@ -1,5 +1,12 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -150,6 +157,31 @@ describe('AlertRulesList', () => {
     expect(screen.getByText('Edit')).toBeInTheDocument();
     expect(screen.getByText('Delete')).toBeInTheDocument();
     expect(screen.getByText('Duplicate')).toBeInTheDocument();
+  });
+
+  it('deletes a rule', async () => {
+    const {routerContext, organization} = initializeOrg({
+      organization: defaultOrg,
+    });
+    render(<AlertRulesList />, {context: routerContext, organization});
+    renderGlobalModal();
+
+    const deleteMock = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/earth/rules/123/`,
+      method: 'DELETE',
+      body: {},
+    });
+
+    const deletedRuleName = 'First Issue Alert';
+    const actions = (await screen.findAllByRole('button', {name: 'Actions'}))[0];
+    expect(screen.queryByText(deletedRuleName)).toBeInTheDocument();
+    await userEvent.click(actions);
+    await userEvent.click(screen.getByText('Delete'));
+    await userEvent.click(screen.getByRole('button', {name: 'Delete Rule'}));
+
+    expect(deleteMock).toHaveBeenCalledTimes(1);
+    expect(rulesMock).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText(deletedRuleName)).not.toBeInTheDocument();
   });
 
   it('sends user to new alert page on duplicate action', async () => {

@@ -4,7 +4,11 @@ import {Location} from 'history';
 import isEmpty from 'lodash/isEmpty';
 import uniq from 'lodash/uniq';
 
-import {addErrorMessage, addMessage} from 'sentry/actionCreators/indicator';
+import {
+  addErrorMessage,
+  addMessage,
+  addSuccessMessage,
+} from 'sentry/actionCreators/indicator';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
@@ -19,7 +23,12 @@ import {Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import Projects from 'sentry/utils/projects';
-import {ApiQueryKey, useApiQuery} from 'sentry/utils/queryClient';
+import {
+  ApiQueryKey,
+  setApiQueryData,
+  useApiQuery,
+  useQueryClient,
+} from 'sentry/utils/queryClient';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import Teams from 'sentry/utils/teams';
@@ -54,6 +63,7 @@ function AlertRulesList() {
   const location = useLocation();
   const router = useRouter();
   const api = useApi();
+  const queryClient = useQueryClient();
   const organization = useOrganization();
 
   useRouteAnalyticsEventNames('alert_rules.viewed', 'Alert Rules: Viewed');
@@ -131,7 +141,12 @@ function AlertRulesList() {
           method: 'DELETE',
         }
       );
-      refetch();
+      setApiQueryData<Array<CombinedMetricIssueAlerts | null>>(
+        queryClient,
+        getAlertListQueryKey(organization.slug, location.query),
+        data => data?.filter(r => r?.id !== rule.id)
+      );
+      addSuccessMessage(t('Deleted rule'));
     } catch (_err) {
       addErrorMessage(t('Error deleting rule'));
     }
