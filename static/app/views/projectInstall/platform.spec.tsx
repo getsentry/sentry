@@ -1,3 +1,5 @@
+import {ProjectKeys} from 'sentry-fixture/projectKeys';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -33,11 +35,11 @@ function mockProjectApiResponses(projects: Project[]) {
   MockApiClient.addMockResponse({
     url: '/projects/org-slug/project-slug/keys/',
     method: 'GET',
-    body: [TestStubs.ProjectKeys()[0]],
+    body: [ProjectKeys()[0]],
   });
 
   MockApiClient.addMockResponse({
-    url: `/projects/org-slug/project-slug/keys/${TestStubs.ProjectKeys()[0].public}/`,
+    url: `/projects/org-slug/project-slug/keys/${ProjectKeys()[0].public}/`,
     method: 'PUT',
     body: {},
   });

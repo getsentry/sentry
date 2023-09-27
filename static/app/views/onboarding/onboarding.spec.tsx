@@ -1,3 +1,5 @@
+import {ProjectKeys} from 'sentry-fixture/projectKeys';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
@@ -108,7 +110,7 @@ describe('Onboarding', function () {
     MockApiClient.addMockResponse({
       url: `/projects/org-slug/${nextJsProject.slug}/keys/`,
       method: 'GET',
-      body: [TestStubs.ProjectKeys()[0]],
+      body: [ProjectKeys()[0]],
     });
 
     jest
@@ -188,7 +190,7 @@ describe('Onboarding', function () {
     MockApiClient.addMockResponse({
       url: `/projects/org-slug/${reactProject.slug}/keys/`,
       method: 'GET',
-      body: [TestStubs.ProjectKeys()[0]],
+      body: [ProjectKeys()[0]],
     });
 
     MockApiClient.addMockResponse({
@@ -283,7 +285,7 @@ describe('Onboarding', function () {
     MockApiClient.addMockResponse({
       url: `/projects/org-slug/${reactProject.slug}/keys/`,
       method: 'GET',
-      body: [TestStubs.ProjectKeys()[0]],
+      body: [ProjectKeys()[0]],
     });
 
     MockApiClient.addMockResponse({

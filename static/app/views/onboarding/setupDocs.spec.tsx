@@ -1,3 +1,5 @@
+import {ProjectKeys} from 'sentry-fixture/projectKeys';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
@@ -7,7 +9,7 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import {Organization, Project} from 'sentry/types';
 import SetupDocs from 'sentry/views/onboarding/setupDocs';
 
-const PROJECT_KEY = TestStubs.ProjectKeys()[0];
+const PROJECT_KEY = ProjectKeys()[0];
 
 function renderMockRequests({
   project,

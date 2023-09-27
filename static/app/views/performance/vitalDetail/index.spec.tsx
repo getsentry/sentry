@@ -1,4 +1,5 @@
 import {browserHistory, InjectedRouter} from 'react-router';
+import {MetricsField} from 'sentry-fixture/metrics';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
@@ -202,7 +203,7 @@ describe('Performance > VitalDetail', function () {
     MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/${organization.slug}/metrics/data/`,
-      body: TestStubs.MetricsField('p75(sentry.transactions.measurements.lcp)'),
+      body: MetricsField('p75(sentry.transactions.measurements.lcp)'),
       match: [
         MockApiClient.matchQuery({
           field: ['p75(sentry.transactions.measurements.lcp)'],

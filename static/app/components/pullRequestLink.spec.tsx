@@ -1,3 +1,5 @@
+import {PullRequest} from 'sentry-fixture/pullRequest';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import PullRequestLink from 'sentry/components/pullRequestLink';
@@ -5,9 +7,9 @@ import PullRequestLink from 'sentry/components/pullRequestLink';
 describe('PullRequestLink', () => {
   it('renders no url on missing externalUrl', () => {
     const repository = TestStubs.Repository({provider: null});
-    const pullRequest = TestStubs.PullRequest({
+    const pullRequest = PullRequest({
       repository,
-      externalUrl: null,
+      externalUrl: undefined,
     });
     render(<PullRequestLink repository={repository} pullRequest={pullRequest} />);
 
@@ -21,7 +23,7 @@ describe('PullRequestLink', () => {
         id: 'integrations:github',
       },
     });
-    const pullRequest = TestStubs.PullRequest({repository});
+    const pullRequest = PullRequest({repository});
     render(<PullRequestLink repository={repository} pullRequest={pullRequest} />);
 
     expect(screen.getByTestId('pull-request-github')).toBeInTheDocument();
@@ -37,7 +39,7 @@ describe('PullRequestLink', () => {
         id: 'github',
       },
     });
-    const pullRequest = TestStubs.PullRequest({repository});
+    const pullRequest = PullRequest({repository});
     render(<PullRequestLink repository={repository} pullRequest={pullRequest} />);
 
     expect(screen.getByTestId('pull-request-github')).toBeInTheDocument();
@@ -52,7 +54,7 @@ describe('PullRequestLink', () => {
         id: 'integrations:gitlab',
       },
     });
-    const pullRequest = TestStubs.PullRequest({repository});
+    const pullRequest = PullRequest({repository});
     render(<PullRequestLink repository={repository} pullRequest={pullRequest} />);
 
     expect(screen.getByTestId('pull-request-gitlab')).toBeInTheDocument();
@@ -67,7 +69,7 @@ describe('PullRequestLink', () => {
         id: 'gitlab',
       },
     });
-    const pullRequest = TestStubs.PullRequest({repository});
+    const pullRequest = PullRequest({repository});
     render(<PullRequestLink repository={repository} pullRequest={pullRequest} />);
 
     expect(screen.getByTestId('pull-request-gitlab')).toBeInTheDocument();

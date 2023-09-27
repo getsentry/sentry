@@ -1,3 +1,5 @@
+import {ProjectKeys as ProjectKeysFixture} from 'sentry-fixture/projectKeys';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
@@ -11,7 +13,7 @@ import ProjectKeys from 'sentry/views/settings/project/projectKeys/list';
 
 describe('ProjectKeys', function () {
   const {organization, project, routerProps} = initializeOrg();
-  const projectKeys = TestStubs.ProjectKeys();
+  const projectKeys = ProjectKeysFixture();
   let deleteMock: jest.Mock;
 
   beforeEach(function () {

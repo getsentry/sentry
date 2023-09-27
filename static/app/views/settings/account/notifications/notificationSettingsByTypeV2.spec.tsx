@@ -1,4 +1,5 @@
 import selectEvent from 'react-select-event';
+import {NotificationDefaults} from 'sentry-fixture/notificationDefaults';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -101,7 +102,7 @@ describe('NotificationSettingsByType', function () {
     MockApiClient.addMockResponse({
       url: '/notification-defaults/',
       method: 'GET',
-      body: TestStubs.NotificationDefaults(),
+      body: NotificationDefaults(),
     });
   });
 

@@ -1,4 +1,5 @@
 import moment from 'moment';
+import {MissingMembers} from 'sentry-fixture/missingMembers';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -7,7 +8,7 @@ import {InviteBanner} from 'sentry/views/settings/organizationMembers/inviteBann
 
 const missingMembers = {
   integration: 'github',
-  users: TestStubs.MissingMembers(),
+  users: MissingMembers(),
 };
 
 const noMissingMembers = {

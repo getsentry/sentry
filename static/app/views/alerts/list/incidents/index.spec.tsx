@@ -1,6 +1,7 @@
 import selectEvent from 'react-select-event';
 import {Incident} from 'sentry-fixture/incident';
 import {IncidentStats} from 'sentry-fixture/incidentStats';
+import {MetricRule} from 'sentry-fixture/metricRule';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
@@ -245,7 +246,7 @@ describe('IncidentsList', () => {
           identifier: '1',
           title: 'First incident',
           projects: projects1,
-          alertRule: TestStubs.MetricRule({owner: `team:${team.id}`}),
+          alertRule: MetricRule({owner: `team:${team.id}`}),
         }),
       ],
     });
