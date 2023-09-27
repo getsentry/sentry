@@ -87,7 +87,7 @@ class SlackLinkTeamTest(AcceptanceTestCase):
         self.browser.click('[name="team"]')
 
         select_element = self.browser.find_element(by=By.ID, value="id_team")
-        option_elements = select_element.find_elements_by_tag_name("option")
+        option_elements = select_element.find_elements(by=By.TAG_NAME, value="option")
         # Ensure only the team the user is team admin is on is shown
         assert len(option_elements) == 1
 

@@ -1,3 +1,5 @@
+from typing import Optional
+
 from rest_framework.exceptions import PermissionDenied
 
 from sentry.api.utils import InvalidParams
@@ -7,7 +9,7 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 
 
-def is_team_admin(org_member: OrganizationMember, team: Team = None) -> bool:
+def is_team_admin(org_member: OrganizationMember, team: Optional[Team] = None) -> bool:
     """
     Defaults to returning true is the member is a team admin in the
     organization. Can also be scoped to a specific team.

@@ -89,8 +89,8 @@ class SlackLinkTeamView(BaseView):
         organization_memberships = OrganizationMember.objects.get_for_integration(
             integration, request.user
         )
-        # Filter to teams where we have access to, either through having a sufficient role
-        # in the organization (i.e. owner/manager/admin) or by being team admin on
+        # Filter to teams where we have access to, either through having a sufficient organization
+        # role (owner/manager/admin) or by being a team admin on at least one team.
         teams_by_id = {}
         for org_membership in organization_memberships:
             for team in Team.objects.get_for_user(
