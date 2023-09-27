@@ -23,6 +23,7 @@ class SlackLinkTeamTest(AcceptanceTestCase):
             role="owner",
             teams=[self.team],
         )
+        self.create_team_membership(user=self.user, team=self.team)
         self.team_admin_user = self.create_user()
         self.create_member(
             user=self.team_admin_user,
