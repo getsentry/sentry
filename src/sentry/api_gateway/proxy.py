@@ -84,7 +84,7 @@ def proxy_request(request: HttpRequest, org_slug: str) -> StreamingHttpResponse:
     assert request.method is not None
     query_params = request.GET
     try:
-        assert not request._read_started
+        assert not request._read_started  # type: ignore
         resp = external_request(
             request.method,
             url=target_url,
