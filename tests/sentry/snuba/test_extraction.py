@@ -332,6 +332,28 @@ def test_spec_apdex(_get_apdex_project_transaction_threshold, default_project):
     assert spec.tags_conditions(default_project) == apdex_tag_spec(default_project, "10")
 
 
+@django_db_all
+def test_spec_epm(default_project):
+    spec = OnDemandMetricSpec("epm()", "transaction.duration:>1s")
+
+    assert spec._metric_type == "c"
+    assert spec.field_to_extract is None
+    assert spec.op == "on_demand_epm"
+    assert spec.condition == {"name": "event.duration", "op": "gt", "value": 1000.0}
+    assert spec.tags_conditions(default_project) == []
+
+
+@django_db_all
+def test_spec_eps(default_project):
+    spec = OnDemandMetricSpec("eps()", "transaction.duration:>1s")
+
+    assert spec._metric_type == "c"
+    assert spec.field_to_extract is None
+    assert spec.op == "on_demand_eps"
+    assert spec.condition == {"name": "event.duration", "op": "gt", "value": 1000.0}
+    assert spec.tags_conditions(default_project) == []
+
+
 def test_cleanup_equivalent_specs():
     simple_spec = OnDemandMetricSpec("count()", "transaction.duration:>0")
     event_type_spec = OnDemandMetricSpec(

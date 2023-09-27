@@ -1138,6 +1138,10 @@ class SnubaQueryBuilder:
                     params = self._alias_to_metric_field[field[2]].params
                 except KeyError:
                     params = None
+
+                # In order to support on demand metrics which require an interval (e.g. epm),
+                # we want to pass the interval down via params so we can pass it to the associated snql_factory
+                params = {"interval": self._metrics_query.interval, **(params or {})}
                 select += metric_field_obj.generate_select_statements(
                     projects=self._projects,
                     use_case_id=self._use_case_id,
