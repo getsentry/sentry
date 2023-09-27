@@ -523,6 +523,23 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 segment_id=1,
             )
         )
+        self.store_replays(
+            self.mock_event_links(seq1_timestamp, project.id, "fatal", replay1_id, uuid.uuid4().hex)
+        )
+        self.store_replays(
+            self.mock_event_links(seq1_timestamp, project.id, "error", replay1_id, uuid.uuid4().hex)
+        )
+        self.store_replays(
+            self.mock_event_links(
+                seq1_timestamp, project.id, "warning", replay1_id, uuid.uuid4().hex
+            )
+        )
+        self.store_replays(
+            self.mock_event_links(seq1_timestamp, project.id, "info", replay1_id, uuid.uuid4().hex)
+        )
+        self.store_replays(
+            self.mock_event_links(seq1_timestamp, project.id, "debug", replay1_id, uuid.uuid4().hex)
+        )
 
         with self.feature(REPLAYS_FEATURES):
             # Run all the queries individually to determine compliance.
@@ -590,6 +607,15 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "url:example.com",
                 "activity:3",
                 "activity:>2",
+                "new_count_errors:2",
+                "new_count_errors:>1",
+                "new_count_errors:<3",
+                "count_warnings:1",
+                "count_warnings:>0",
+                "count_warnings:<2",
+                "count_infos:2",
+                "count_infos:>1",
+                "count_infos:<3",
             ]
 
             for query in queries:
@@ -753,6 +779,23 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 segment_id=1,
             )
         )
+        self.store_replays(
+            self.mock_event_links(seq1_timestamp, project.id, "fatal", replay1_id, uuid.uuid4().hex)
+        )
+        self.store_replays(
+            self.mock_event_links(seq1_timestamp, project.id, "error", replay1_id, uuid.uuid4().hex)
+        )
+        self.store_replays(
+            self.mock_event_links(
+                seq1_timestamp, project.id, "warning", replay1_id, uuid.uuid4().hex
+            )
+        )
+        self.store_replays(
+            self.mock_event_links(seq1_timestamp, project.id, "info", replay1_id, uuid.uuid4().hex)
+        )
+        self.store_replays(
+            self.mock_event_links(seq1_timestamp, project.id, "debug", replay1_id, uuid.uuid4().hex)
+        )
 
         with self.feature(REPLAYS_FEATURES):
             # Run all the queries individually to determine compliance.
@@ -774,6 +817,9 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "user.email",
                 "user.id",
                 "user.username",
+                "new_count_errors",
+                "count_warnings",
+                "count_infos",
             ]
 
             for key in queries:
