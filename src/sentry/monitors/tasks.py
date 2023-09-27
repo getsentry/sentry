@@ -162,10 +162,6 @@ def check_missing(current_datetime: datetime):
     # minute, otherwise we may mark checkins as missed if they didn't happen
     # immediately before this task was run (usually a few seconds into the minute)
     #
-    # Because we query `next_checkin_latest__lt=current_datetime` clamping to the
-    # minute will ignore monitors that haven't had their checkin yet within
-    # this minute.
-    #
     # XXX(epurkhiser): This *should* have already been handle by the
     # try_monitor_tasks_trigger, since it clamps the reference timestamp, but I
     # am leaving this here to be safe
