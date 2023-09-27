@@ -773,14 +773,9 @@ urlpatterns += [
         name="replays",
     ),
     re_path(
-        r"^replays/dead-clicks/",
+        r"^replays/selectors/",
         react_page_view,
-        name="replays-dead-clicks",
-    ),
-    re_path(
-        r"^replays/rage-clicks/",
-        react_page_view,
-        name="replays-rage-clicks",
+        name="replays-selectors",
     ),
     # Crons
     re_path(
