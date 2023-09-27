@@ -68,6 +68,10 @@ def mark_failed_threshold(
     if not affected:
         return False
 
+    # refresh the object from the database so we have the updated values in our
+    # cached instance
+    monitor_env.refresh_from_db()
+
     # check to see if we need to update the status
     if monitor_env.status == MonitorStatus.OK:
         previous_checkins = MonitorCheckIn.objects.filter(monitor_environment=monitor_env).order_by(
@@ -85,7 +89,7 @@ def mark_failed_threshold(
         # change monitor status + update fingerprint timestamp
         monitor_env.status = MonitorStatus.ERROR
         monitor_env.last_state_change = last_checkin
-        monitor_env.save()
+        monitor_env.save(update_fields=("status", "last_state_change"))
     elif monitor_env.status in [
         MonitorStatus.ERROR,
         MonitorStatus.MISSED_CHECKIN,
