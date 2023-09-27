@@ -246,6 +246,14 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
 
   const {data} = useAggregateFlamegraphQuery({transaction: transaction ?? ''});
 
+  if (!transaction) {
+    throw new TypeError(
+      `Profile summary requires a transaction query params, got ${
+        transaction?.toString() ?? transaction
+      }`
+    );
+  }
+
   return (
     <SentryDocumentTitle
       title={t('Profiling \u2014 Profile Summary')}
