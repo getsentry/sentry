@@ -1,6 +1,7 @@
+import {useRef} from 'react';
 import {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {useRef} from 'react';
+import {space} from 'sentry/styles/space';
 
 export const FREQUENCY_BOX_WIDTH = 40;
 
@@ -53,13 +54,15 @@ function getBoxColors(frequency: number, theme: Theme) {
 
 const StyledBox = styled('div')<{frequency: number}>`
   display: flex;
-  justify-content: center;
+  justify-content: right;
   align-items: center;
-  background: ${p => p.theme.purple200};
+
   height: 100%;
   width: ${FREQUENCY_BOX_WIDTH}px;
+
   border-left: 1px solid ${p => p.theme.gray200};
   border-right: 1px solid ${p => p.theme.gray200};
+  padding-right: ${space(1)};
 
   font-size: ${p => p.theme.fontSizeExtraSmall};
 
