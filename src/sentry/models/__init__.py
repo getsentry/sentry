@@ -78,6 +78,7 @@ from .organizationmemberteam import *  # NOQA
 from .organizationmemberteamreplica import *  # NOQA
 from .organizationonboardingtask import *  # NOQA
 from .organizationslugreservation import *  # NOQA
+from .organizationslugreservationreplica import *  # NOQA
 from .orgauthtoken import *  # NOQA
 from .outbox import *  # NOQA
 from .platformexternalissue import *  # NOQA
