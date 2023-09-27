@@ -24,7 +24,7 @@ import Tag from 'sentry/components/tag';
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {MetricsTag, PageFilters, TagCollection} from 'sentry/types';
+import {MetricsTag, PageFilters, SavedSearchType, TagCollection} from 'sentry/types';
 import {
   defaultMetricDisplayType,
   formatMetricsUsingUnitAndOp,
@@ -247,6 +247,7 @@ function MetricSearchBar({tags, mri, disabled, onChange, query}: MetricSearchBar
       onSearch={handleChange}
       placeholder={t('Filter by tags')}
       defaultQuery={query}
+      savedSearchType={SavedSearchType.METRIC}
     />
   );
 }
