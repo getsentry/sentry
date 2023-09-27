@@ -233,6 +233,8 @@ declare global {
   /**
    * Test stubs are automatically loaded from the fixtures/js-stubs
    * directory. Use these for setting up test data.
+   *
+   * @deprecated Please import test stubs directly and do not use this global.
    */
   // eslint-disable-next-line no-var
   var TestStubs: typeof fixtures;

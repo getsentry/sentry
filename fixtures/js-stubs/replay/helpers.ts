@@ -1,8 +1,8 @@
-import {SlowClickFrame} from 'sentry/utils/replays/types';
+import * as BreadcrumbFrameData from 'sentry-fixture/replay/replayBreadcrumbFrameData';
+import * as ReplayFrameEvents from 'sentry-fixture/replay/replayFrameEvents';
+import * as ReplaySpanFrameData from 'sentry-fixture/replay/replaySpanFrameData';
 
-import * as BreadcrumbFrameData from './replayBreadcrumbFrameData';
-import * as ReplayFrameEvents from './replayFrameEvents';
-import * as ReplaySpanFrameData from './replaySpanFrameData';
+import {SlowClickFrame} from 'sentry/utils/replays/types';
 
 export function ConsoleEvent({timestamp, message}: {timestamp: Date; message?: string}) {
   return ReplayFrameEvents.BreadcrumbFrameEvent({

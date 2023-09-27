@@ -3,16 +3,7 @@ import sortBy from 'lodash/sortBy';
 import {t} from 'sentry/locale';
 import type {PlatformIntegration} from 'sentry/types';
 
-// TODO(arthur): clean up and use PlatformIntegration type here
-type Platform = {
-  id: string;
-  language: string;
-  link: string;
-  name: string;
-  type: string;
-};
-
-const goPlatforms: Platform[] = [
+const goPlatforms: PlatformIntegration[] = [
   {
     id: 'go',
     link: 'https://docs.sentry.io/platforms/go/',
@@ -71,7 +62,7 @@ const goPlatforms: Platform[] = [
   },
 ];
 
-const javaScriptPlatforms: Platform[] = [
+const javaScriptPlatforms: PlatformIntegration[] = [
   {
     id: 'javascript-angular',
     name: 'Angular',
@@ -142,9 +133,16 @@ const javaScriptPlatforms: Platform[] = [
     language: 'javascript',
     link: 'https://docs.sentry.io/platforms/javascript/guides/vue/',
   },
+  {
+    id: 'bun',
+    name: 'Bun',
+    type: 'language',
+    language: 'bun',
+    link: 'https://docs.sentry.io/platforms/javascript/guides/bun/',
+  },
 ];
 
-const javaPlatforms: Platform[] = [
+const javaPlatforms: PlatformIntegration[] = [
   {
     id: 'java',
     name: 'Java',
@@ -182,7 +180,7 @@ const javaPlatforms: Platform[] = [
   },
 ];
 
-const pythonPlatforms: Platform[] = [
+const pythonPlatforms: PlatformIntegration[] = [
   {
     id: 'python-aiohttp',
     name: 'AIOHTTP',
@@ -346,7 +344,7 @@ const pythonPlatforms: Platform[] = [
   },
 ];
 
-const phpPlatforms: Platform[] = [
+const phpPlatforms: PlatformIntegration[] = [
   {
     id: 'php-laravel',
     name: 'Laravel',
@@ -370,7 +368,7 @@ const phpPlatforms: Platform[] = [
   },
 ];
 
-const nodePlatforms: Platform[] = [
+const nodePlatforms: PlatformIntegration[] = [
   {
     id: 'node-awslambda',
     name: 'AWS Lambda (Node)',
@@ -429,7 +427,7 @@ const nodePlatforms: Platform[] = [
   },
 ];
 
-const dotNetPlatforms: Platform[] = [
+const dotNetPlatforms: PlatformIntegration[] = [
   {
     id: 'dotnet',
     name: '.NET',
@@ -502,7 +500,7 @@ const dotNetPlatforms: Platform[] = [
   },
 ];
 
-const applePlatforms: Platform[] = [
+const applePlatforms: PlatformIntegration[] = [
   {
     id: 'apple',
     name: 'Apple',
@@ -526,7 +524,7 @@ const applePlatforms: Platform[] = [
   },
 ];
 
-const rubyPlatforms: Platform[] = [
+const rubyPlatforms: PlatformIntegration[] = [
   {
     id: 'ruby-rack',
     name: 'Rack Middleware',
@@ -550,7 +548,7 @@ const rubyPlatforms: Platform[] = [
   },
 ];
 
-const nativePlatforms: Platform[] = [
+const nativePlatforms: PlatformIntegration[] = [
   {
     id: 'native',
     name: 'Native',
@@ -567,7 +565,7 @@ const nativePlatforms: Platform[] = [
   },
 ];
 
-const miscPlatforms: Platform[] = [
+const miscPlatforms: PlatformIntegration[] = [
   {
     id: 'android',
     name: 'Android',
@@ -694,6 +692,9 @@ const allPlatforms = [
   otherPlatform,
 ];
 
-const platforms = sortBy(allPlatforms, 'id') as PlatformIntegration[];
+/**
+ * Array of all platforms that are displayed in the project creation flow.
+ */
+const platforms = sortBy(allPlatforms, 'id');
 
 export default platforms;

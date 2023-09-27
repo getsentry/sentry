@@ -243,6 +243,7 @@ class DashboardWidgetSerializer(CamelSnakeSerializer):
     description = serializers.CharField(
         required=False, max_length=255, allow_null=True, allow_blank=True
     )
+    thresholds = serializers.JSONField(required=False, allow_null=True)
     display_type = serializers.ChoiceField(
         choices=DashboardWidgetDisplayTypes.as_text_choices(), required=False
     )
@@ -449,6 +450,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
             display_type=widget_data["display_type"],
             title=widget_data["title"],
             description=widget_data.get("description", None),
+            thresholds=widget_data.get("thresholds", None),
             interval=widget_data.get("interval", "5m"),
             widget_type=widget_data.get("widget_type", DashboardWidgetTypes.DISCOVER),
             order=order,
@@ -476,6 +478,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
         prev_layout = widget.detail.get("layout") if widget.detail else None
         widget.title = data.get("title", widget.title)
         widget.description = data.get("description", widget.description)
+        widget.thresholds = data.get("thresholds", widget.thresholds)
         widget.display_type = data.get("display_type", widget.display_type)
         widget.interval = data.get("interval", widget.interval)
         widget.widget_type = data.get("widget_type", widget.widget_type)
