@@ -5,7 +5,6 @@ from datetime import datetime
 
 from sentry.integrations.discord.message_builder.base.embed.field import DiscordMessageEmbedField
 from sentry.integrations.discord.message_builder.base.embed.footer import DiscordMessageEmbedFooter
-from sentry.integrations.discord.message_builder.base.embed.image import DiscordMessageEmbedImage
 
 
 class DiscordMessageEmbed:
@@ -26,7 +25,6 @@ class DiscordMessageEmbed:
         footer: DiscordMessageEmbedFooter | None = None,
         fields: Iterable[DiscordMessageEmbedField] | None = None,
         timestamp: datetime | None = None,
-        image: DiscordMessageEmbedImage | None = None,
     ) -> None:
         self.title = title
         self.description = description
@@ -35,7 +33,6 @@ class DiscordMessageEmbed:
         self.footer = footer
         self.fields = fields
         self.timestamp = timestamp
-        self.image = image
 
     def build(self) -> dict[str, object]:
         attributes = vars(self).items()
@@ -49,8 +46,5 @@ class DiscordMessageEmbed:
 
         if self.timestamp is not None:
             embed["timestamp"] = self.timestamp.isoformat()
-
-        if self.image is not None:
-            embed["image"] = self.image.build()
 
         return embed
