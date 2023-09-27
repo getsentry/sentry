@@ -17,7 +17,6 @@ class SlackLinkTeamTest(AcceptanceTestCase):
         self.org = self.create_organization(name="Rowdy Tiger", owner=self.user)
         self.team = self.create_team(organization=self.org, name="Team One")
         self.create_member(
-            user=self.user,
             email="bar@example.com",
             organization=self.org,
             role="owner",

@@ -6,6 +6,7 @@ from rest_framework.request import Request
 from sentry.integrations.mixins import SUCCESS_UNLINKED_TEAM_MESSAGE, SUCCESS_UNLINKED_TEAM_TITLE
 from sentry.models import ExternalActor, Integration
 from sentry.models.organizationmember import OrganizationMember
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.services.hybrid_cloud.identity import identity_service
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
@@ -70,12 +71,6 @@ class SlackUnlinkTeamView(BaseView):
         organization = om.organization if om else None
         if organization is None:
             raise Http404
-        if not is_valid_role(om):
-            logger.info(
-                "slack.action.invalid-role",
-                extra={"slack_id": integration.external_id, "user_id": request.user.id},
-            )
-            raise Http404
 
         channel_name = params["channel_name"]
         channel_id = params["channel_id"]
@@ -90,10 +85,23 @@ class SlackUnlinkTeamView(BaseView):
         if len(external_teams) == 0:
             return render_error_page(request, body_text="HTTP 404: Team not found")
 
-        if external_teams[0].team_id is None:
+        team = external_teams[0].team
+        if team is None:
             return render_error_page(request, body_text="HTTP 404: Team not found")
 
-        team = external_teams[0].team
+        # Error if you don't have a sufficient role and you're not a team admin
+        # on the team you're trying to unlink.
+        if (
+            not is_valid_role(om)
+            and not OrganizationMemberTeam.objects.filter(
+                organizationmember=om, team=team, role="admin"
+            ).exists()
+        ):
+            logger.info(
+                "slack.action.invalid-role",
+                extra={"slack_id": integration.external_id, "user_id": request.user.id},
+            )
+            raise Http404
 
         if request.method == "GET":
             return render_to_response(

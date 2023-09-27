@@ -24,13 +24,13 @@ LINK_TEAM_MESSAGE = (
 CHANNEL_ALREADY_LINKED_MESSAGE = "This channel already has a team linked to it."
 LINK_USER_FIRST_MESSAGE = (
     "You must first link your identity to Sentry by typing /sentry link. Be aware that you "
-    "must be an admin or higher in your Sentry organization to link your team."
+    "must be an admin or higher in your Sentry organization or a team admin to link your team."
 )
 LINK_FROM_CHANNEL_MESSAGE = "You must type this command in a channel, not a DM."
 UNLINK_TEAM_MESSAGE = "<{associate_url}|Click here to unlink your team from this channel.>"
 TEAM_NOT_LINKED_MESSAGE = "No team is linked to this channel."
 DIRECT_MESSAGE_CHANNEL_NAME = "directmessage"
-INSUFFICIENT_ROLE_MESSAGE = "You must be a Sentry admin, manager, or owner to link or unlink teams."
+INSUFFICIENT_ROLE_MESSAGE = "You must be a Sentry organization admin/manager/owner or be a team admin to link or unlink teams."
 
 
 def is_team_linked_to_channel(organization: Organization, slack_request: SlackDMRequest) -> bool:
