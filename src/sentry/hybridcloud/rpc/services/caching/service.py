@@ -20,8 +20,7 @@ from typing import (
 import pydantic
 from django.core.cache import cache
 
-from sentry.hybridcloud.models import CacheVersionBase
-from sentry.hybridcloud.models.cacheversion import RegionCacheVersion
+from sentry.hybridcloud.models.cacheversion import CacheVersionBase, RegionCacheVersion
 from sentry.services.hybrid_cloud.region import ByRegionName
 from sentry.services.hybrid_cloud.rpc import RpcService, regional_rpc_method, rpc_method
 from sentry.silo import SiloMode
