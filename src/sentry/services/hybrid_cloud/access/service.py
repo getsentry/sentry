@@ -1,6 +1,6 @@
 import abc
 from datetime import timedelta
-from typing import FrozenSet, Optional
+from typing import FrozenSet, List, Optional
 
 from django.utils import timezone
 
@@ -38,6 +38,14 @@ class AccessService(abc.ABC):
         """
         pass
 
+    @abc.abstractmethod
+    def get_all_org_roles(self, member_id: int, organization_id: int) -> List[str]:
+        pass
+
+    @abc.abstractmethod
+    def get_top_dog_team_member_ids(self, organization_id: int) -> List[int]:
+        pass
+
     def auth_identity_is_valid(
         self, auth_identity: RpcAuthIdentity, member: RpcOrganizationMemberSummary
     ) -> bool:
@@ -48,7 +56,7 @@ class AccessService(abc.ABC):
 
         if not auth_identity.last_verified:
             return False
-        if auth_identity.last_verified < timezone.now() - timedelta(hours=24):
+        if auth_identity.last_verified < timezone.now() - timedelta(hours=24 * 7):
             return False
         return True
 

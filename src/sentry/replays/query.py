@@ -4,7 +4,6 @@ from collections import namedtuple
 from datetime import datetime
 from typing import Any, Dict, Generator, List, Optional, Sequence, Union
 
-from rest_framework.exceptions import ParseError
 from snuba_sdk import (
     Column,
     Condition,
@@ -14,7 +13,6 @@ from snuba_sdk import (
     Identifier,
     Lambda,
     Limit,
-    Offset,
     Op,
     Or,
     Query,
@@ -23,23 +21,14 @@ from snuba_sdk import (
 from snuba_sdk.expressions import Expression
 from snuba_sdk.orderby import Direction, OrderBy
 
-from sentry import features
 from sentry.api.event_search import ParenExpression, SearchConfig, SearchFilter
 from sentry.models.organization import Organization
-from sentry.replays.lib.query import (
-    InvalidField,
-    ListField,
-    Number,
-    QueryConfig,
-    Selector,
-    String,
-    Tag,
-    UUIDField,
-    all_values_for_tag_key,
-    generate_valid_conditions,
-    get_valid_sort_commands,
+from sentry.replays.lib.query import all_values_for_tag_key
+from sentry.replays.usecases.query import (
+    execute_query,
+    make_full_aggregation_query,
+    query_using_optimized_search,
 )
-from sentry.replays.usecases.query import query_using_optimized_search
 from sentry.utils.snuba import raw_snql_query
 
 MAX_PAGE_SIZE = 100
@@ -64,63 +53,19 @@ def query_replays_collection(
     actor: Optional[Any] = None,
 ) -> dict:
     """Query aggregated replay collection."""
-    if organization:
-        tenant_ids = {"organization_id": organization.id}
-    else:
-        tenant_ids = {}
-
-    conditions = []
-    if environment:
-        conditions.append(Condition(Column("agg_environment"), Op.IN, environment))
-
     paginators = make_pagination_values(limit, offset)
 
-    if features.has("organizations:session-replay-optimized-search", organization, actor=actor):
-        return query_using_optimized_search(
-            fields,
-            search_filters,
-            environment,
-            sort,
-            paginators,
-            organization,
-            project_ids,
-            start,
-            end,
-        )
-
-    # Attempt to eager return with subquery.
-
-    try:
-        response = query_replays_dataset_with_subquery(
-            project_ids=project_ids,
-            start=start,
-            end=end,
-            fields=fields,
-            environments=environment,
-            search_filters=search_filters,
-            sort=sort,
-            pagination=paginators,
-            tenant_ids=tenant_ids,
-        )
-        return response["data"]
-    except ParseError:
-        # Subquery could not continue because it found search filters which required
-        # aggregation to satisfy.
-        pass
-
-    response = query_replays_dataset(
-        project_ids=project_ids,
-        start=start,
-        end=end,
-        where=[],
-        having=conditions,
+    return query_using_optimized_search(
         fields=fields,
-        pagination=paginators,
         search_filters=search_filters,
+        environments=environment,
         sort=sort,
-        tenant_ids=tenant_ids,
+        pagination=paginators,
+        organization=organization,
+        project_ids=project_ids,
+        period_start=start,
+        period_stop=end,
     )
-    return response["data"]
 
 
 def query_replay_instance(
@@ -128,189 +73,25 @@ def query_replay_instance(
     replay_id: str,
     start: datetime,
     end: datetime,
-    tenant_ids: dict[str, Any],
+    organization: Optional[Organization] = None,
 ):
     """Query aggregated replay instance."""
-    response = query_replays_dataset(
-        project_ids=[project_id] if isinstance(project_id, int) else project_id,
-        start=start,
-        end=end,
-        where=[
-            Condition(Column("replay_id"), Op.EQ, replay_id),
-        ],
-        having=[Condition(Column("isArchived"), Op.EQ, 0)],
-        fields=[],
-        sort=None,
-        pagination=None,
-        search_filters=[],
-        tenant_ids=tenant_ids,
-    )
-    return response["data"]
+    if isinstance(project_id, list):
+        project_ids = project_id
+    else:
+        project_ids = [project_id]
 
-
-def query_replays_dataset(
-    project_ids: List[int],
-    start: datetime,
-    end: datetime,
-    where: List[Condition],
-    having: List[Condition],
-    fields: List[str],
-    pagination: Optional[Paginators],
-    search_filters: List[SearchFilter],
-    sort: Optional[str],
-    tenant_ids: dict[str, Any] | None = None,
-):
-    query_options = {}
-
-    # Instance requests do not paginate.
-    if pagination:
-        query_options["limit"] = Limit(pagination.limit)
-        query_options["offset"] = Offset(pagination.offset)
-
-    sorting = get_valid_sort_commands(
-        sort,
-        default=OrderBy(Column("started_at"), Direction.DESC),
-        query_config=ReplayQueryConfig(),
-    )
-
-    snuba_request = Request(
-        dataset="replays",
-        app_id="replay-backend-web",
-        query=Query(
-            match=Entity("replays"),
-            select=make_select_statement(fields, sorting, search_filters),
-            # Be careful adding conditions to this query.  You must only filter by columns that
-            # are true for every column in the set!
-            where=[
-                Condition(Column("project_id"), Op.IN, project_ids),
-                # We don't actually know when a replay is finished ingesting until we reach the
-                # end of the dataset.  For this reason we scan to the end and then in the having
-                # clause we ask if the replay is in range.  This is more expensive but is required
-                # to ensure correct operation and is especially pertinent in the case where an
-                # archive request was submitted.
-                #
-                # Hard deletes may be more appropriate for replays than archival records.
-                Condition(Column("timestamp"), Op.LT, datetime.now()),
-                Condition(Column("timestamp"), Op.GTE, start),
-                *where,
-            ],
-            having=[
-                # Must include the first sequence otherwise the replay is too old.
-                Condition(Function("min", parameters=[Column("segment_id")]), Op.EQ, 0),
-                # Make sure we're not too old.
-                Condition(Column("finished_at"), Op.LT, end),
-                # User conditions.
-                *generate_valid_conditions(search_filters, query_config=ReplayQueryConfig()),
-                # Other conditions.
-                *having,
-            ],
-            orderby=sorting,
-            groupby=[Column("project_id"), Column("replay_id")],
-            granularity=Granularity(3600),
-            **query_options,
+    return execute_query(
+        query=make_full_aggregation_query(
+            fields=[],
+            replay_ids=[replay_id],
+            project_ids=project_ids,
+            period_start=start,
+            period_end=end,
         ),
-        tenant_ids=tenant_ids,
-    )
-    return raw_snql_query(snuba_request, "replays.query.query_replays_dataset")
-
-
-def query_replays_dataset_with_subquery(
-    project_ids: List[int],
-    start: datetime,
-    end: datetime,
-    environments: List[str],
-    search_filters: List[SearchFilter],
-    sort: Optional[str],
-    fields: List[str],
-    pagination: Optional[Paginators],
-    tenant_ids: dict[str, Any] | None = None,
-):
-    conditions = generate_valid_conditions(search_filters, query_config=ReplaySubqueryConfig())
-    if environments:
-        conditions.append(Condition(Column("environment"), Op.IN, environments))
-
-    sorting = get_valid_sort_commands(
-        sort,
-        default=OrderBy(Column("started_at"), Direction.DESC),
-        query_config=ReplaySubqueryConfig(),
-    )
-
-    subquery_snuba_request = Request(
-        dataset="replays",
-        app_id="replay-backend-web",
-        query=Query(
-            match=Entity("replays"),
-            select=[
-                Column("replay_id"),
-                Column("timestamp"),
-                Function(
-                    "identity", parameters=[Column("replay_start_timestamp")], alias="started_at"
-                ),
-            ],
-            where=[
-                Condition(Column("project_id"), Op.IN, project_ids),
-                Condition(Column("timestamp"), Op.LT, end),
-                Condition(Column("timestamp"), Op.GTE, start),
-                Condition(Column("segment_id"), Op.EQ, 0),
-                *conditions,
-            ],
-            orderby=sorting,
-            granularity=Granularity(3600),
-            limit=Limit(pagination.limit),
-            offset=Offset(pagination.offset),
-        ),
-        tenant_ids=tenant_ids,
-    )
-
-    replay_ids_to_filter_results = raw_snql_query(
-        subquery_snuba_request, "replays.query.query_replays_dataset_subquery"
-    )
-
-    if len(replay_ids_to_filter_results["data"]) == 0:
-        # if no results, no need to carry on
-        return {"data": []}
-    min_subquery_ts = datetime.now().timestamp()
-    replay_ids_to_filter = []
-
-    for replay in replay_ids_to_filter_results["data"]:
-        ts = int(datetime.fromisoformat(replay["timestamp"]).timestamp())
-        replay_ids_to_filter.append(replay["replay_id"])
-        min_subquery_ts = min(min_subquery_ts, ts)
-
-    # do the full query to get all aggregated fields
-    sorting = get_valid_sort_commands(
-        sort,
-        default=OrderBy(Column("started_at"), Direction.DESC),
-        query_config=ReplayQueryConfig(),
-    )
-
-    snuba_request = Request(
-        dataset="replays",
-        app_id="replay-backend-web",
-        query=Query(
-            match=Entity("replays"),
-            select=make_select_statement(fields, sorting, []),
-            # these should be the only filters in this query,
-            # as all previous filters should have been done subquery,
-            # so project_id, timestamp and replay_id are only filters
-            where=[
-                Condition(Column("project_id"), Op.IN, project_ids),
-                Condition(Column("replay_id"), Op.IN, replay_ids_to_filter),
-                Condition(
-                    Column("timestamp"),
-                    Op.GTE,
-                    datetime.fromtimestamp(min_subquery_ts),
-                ),
-                Condition(Column("timestamp"), Op.LT, datetime.now()),
-            ],
-            orderby=sorting,
-            groupby=[Column("project_id"), Column("replay_id")],
-            granularity=Granularity(3600),
-            # this second query doesn't need offsetting / limits, as those are handled by the first query
-        ),
-        tenant_ids=tenant_ids,
-    )
-    return raw_snql_query(snuba_request, "replays.query.query_replays_dataset")
+        tenant_id={"organization_id": organization.id} if organization else {},
+        referrer="replays.query.details_query",
+    )["data"]
 
 
 def query_replays_count(
@@ -426,37 +207,6 @@ def query_replays_dataset_tagkey_values(
     return raw_snql_query(
         snuba_request, referrer="replays.query.query_replays_dataset_tagkey_values", use_cache=True
     )
-
-
-def make_select_statement(
-    fields: List[str],
-    sorting: List[OrderBy],
-    search_filters: List[Union[SearchFilter, str, ParenExpression]],
-) -> List[Union[Column, Function]]:
-    """Return the selection that forms the base of our replays response payload."""
-    if not fields:
-        return QUERY_ALIAS_COLUMN_MAP.values()
-
-    unique_fields = set(fields)
-
-    # Select fields used for filtering.
-    #
-    # These fields can filter a query without being selected.  However, if we did not select these
-    # values we could not reuse those columns which are expensive to calculate.  This coupled with
-    # the complexity of dependency management means we filter these columns manually in the final
-    # output.
-    for fltr in search_filters:
-        if isinstance(fltr, SearchFilter):
-            unique_fields.add(fltr.key.name)
-        elif isinstance(fltr, ParenExpression):
-            for f in _extract_children(fltr):
-                unique_fields.add(f.key.name)
-
-    # Select fields used for sorting.
-    for sort in sorting:
-        unique_fields.add(sort.exp.name)
-
-    return select_from_fields(list(unique_fields))
 
 
 def anyIfNonZeroIP(

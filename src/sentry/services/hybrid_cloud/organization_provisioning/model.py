@@ -8,6 +8,7 @@ class OrganizationOptions(pydantic.BaseModel):
     slug: str
     owning_user_id: int
     create_default_team: bool = True
+    is_test = False
 
 
 class PostProvisionOptions(pydantic.BaseModel):
@@ -18,3 +19,12 @@ class PostProvisionOptions(pydantic.BaseModel):
 class OrganizationProvisioningOptions(pydantic.BaseModel):
     provision_options: OrganizationOptions
     post_provision_options: PostProvisionOptions
+
+
+class RpcOrganizationSlugReservation(pydantic.BaseModel):
+    id: int
+    organization_id: int
+    user_id: int
+    slug: str
+    region_name: str
+    reservation_type: int

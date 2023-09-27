@@ -241,7 +241,7 @@ class StaticStringIndexer(StringIndexer):
     def resolve(self, use_case_id: UseCaseID, org_id: int, string: str) -> Optional[int]:
         # TODO: remove this metric after investigation is over
         if use_case_id is UseCaseID.ESCALATING_ISSUES:
-            metrics.incr("string_indexer_resolve_escalating_issues")
+            metrics.incr("sentry_metrics.indexer.string_indexer_resolve_escalating_issues")
         if string in SHARED_STRINGS:
             return SHARED_STRINGS[string]
         return self.indexer.resolve(use_case_id, org_id, string)

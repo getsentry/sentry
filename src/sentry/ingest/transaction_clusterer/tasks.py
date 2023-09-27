@@ -88,11 +88,23 @@ def cluster_projects(projects: Sequence[Project]) -> None:
                 redis.clear_samples(ClustererNamespace.TRANSACTIONS, project)
             num_clustered += 1
     finally:
+        metrics.incr(
+            "txcluster.cluster_projects",
+            amount=num_clustered,
+            tags={"clustered": True},
+            sample_rate=1.0,
+        )
         unclustered = len(projects) - num_clustered
         if unclustered > 0:
             metrics.incr(
-                "txcluster.cluster_projects.unclustered", amount=unclustered, sample_rate=1.0
+                "txcluster.cluster_projects",
+                amount=unclustered,
+                tags={"clustered": False},
+                sample_rate=1.0,
             )
+            sentry_sdk.set_tag("projects.total", len(projects))
+            sentry_sdk.set_tag("projects.unclustered", unclustered)
+            sentry_sdk.capture_message("Transaction clusterer missed projects", level="error")
 
 
 @instrumented_task(

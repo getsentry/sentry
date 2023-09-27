@@ -6,7 +6,7 @@ import {GettingStartedWithNode, steps} from './node';
 
 describe('GettingStartedWithNode', function () {
   it('renders doc correctly', function () {
-    render(<GettingStartedWithNode dsn="test-dsn" />);
+    render(<GettingStartedWithNode dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps({

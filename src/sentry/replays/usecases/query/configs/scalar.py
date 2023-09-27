@@ -29,6 +29,9 @@ static_search_config: dict[str, ColumnField] = {
     "sdk.name": StringColumnField("sdk_name", parse_str, StringScalar),
     "sdk.version": StringColumnField("sdk_version", parse_str, StringScalar),
 }
+# Aliases
+static_search_config["release"] = static_search_config["releases"]
+
 
 # Varying Search Config
 #

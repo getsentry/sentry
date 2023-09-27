@@ -203,7 +203,7 @@ def query_using_optimized_search(
     #
     # If this step runs out of memory your pagination size is about 1,000,000 rows too large.
     # That's a joke.  This will complete very quickly at normal pagination sizes.
-    results = _execute_query(
+    results = execute_query(
         make_full_aggregation_query(
             fields=fields,
             replay_ids=replay_ids,
@@ -316,7 +316,7 @@ def make_full_aggregation_query(
     )
 
 
-def _execute_query(query: Query, tenant_id: dict[str, int], referrer: str) -> Mapping[str, Any]:
+def execute_query(query: Query, tenant_id: dict[str, int], referrer: str) -> Mapping[str, Any]:
     return raw_snql_query(
         Request(
             dataset="replays",

@@ -3,6 +3,7 @@ import sortBy from 'lodash/sortBy';
 import {t} from 'sentry/locale';
 import type {PlatformIntegration} from 'sentry/types';
 
+// TODO(arthur): clean up and use PlatformIntegration type here
 type Platform = {
   id: string;
   language: string;
@@ -140,6 +141,13 @@ const javaScriptPlatforms: Platform[] = [
     type: 'framework',
     language: 'javascript',
     link: 'https://docs.sentry.io/platforms/javascript/guides/vue/',
+  },
+  {
+    id: 'bun',
+    name: 'Bun',
+    type: 'language',
+    language: 'bun',
+    link: 'https://docs.sentry.io/platforms/javascript/guides/bun/',
   },
 ];
 
@@ -566,7 +574,7 @@ const nativePlatforms: Platform[] = [
   },
 ];
 
-const otherPlatforms: Platform[] = [
+const miscPlatforms: Platform[] = [
   {
     id: 'android',
     name: 'Android',
@@ -667,6 +675,14 @@ const otherPlatforms: Platform[] = [
   },
 ];
 
+export const otherPlatform: PlatformIntegration = {
+  id: 'other',
+  name: 'Other',
+  type: 'language',
+  language: 'other',
+  link: 'https://docs.sentry.io/platforms/',
+};
+
 // If you update items of this list, please remember to update the "GETTING_STARTED_DOCS_PLATFORMS" list
 // in the 'src/sentry/models/project.py' file. This way, they'll work together correctly.
 // Otherwise, creating a project will cause an error in the backend, saying "Invalid platform".
@@ -681,7 +697,8 @@ const allPlatforms = [
   ...goPlatforms,
   ...rubyPlatforms,
   ...nativePlatforms,
-  ...otherPlatforms,
+  ...miscPlatforms,
+  otherPlatform,
 ];
 
 const platforms = sortBy(allPlatforms, 'id') as PlatformIntegration[];

@@ -6,7 +6,7 @@ import {GettingStartedWithServerless, steps} from './serverless';
 
 describe('GettingStartedWithServerless', function () {
   it('renders doc correctly', function () {
-    render(<GettingStartedWithServerless dsn="test-dsn" />);
+    render(<GettingStartedWithServerless dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps({sentryInitContent: 'test-init-content'})) {
