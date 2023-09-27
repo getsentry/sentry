@@ -35,12 +35,13 @@ if TYPE_CHECKING:
 
 
 class RpcApiKey(RpcModel):
-    id: int
-    organization_id: int
-    key: str
-    status: int
-    allowed_origins: List[str]
-    label: str
+    id: int = -1
+    organization_id: int = -1
+    key: str = ""
+    status: int = 0
+    allowed_origins: List[str] = Field(default_factory=list)
+    label: str = ""
+    scope_list: List[str] = Field(default_factory=list)
 
 
 class RpcAuthenticatorType(IntEnum):
