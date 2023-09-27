@@ -1,3 +1,5 @@
+import {Members} from 'sentry-fixture/members';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';
@@ -33,7 +35,7 @@ function renderMockRequests() {
 
   MockApiClient.addMockResponse({
     url: '/organizations/org-slug/members/',
-    body: TestStubs.Members(),
+    body: Members(),
   });
 
   MockApiClient.addMockResponse({

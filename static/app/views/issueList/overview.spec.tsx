@@ -1,5 +1,6 @@
 import {browserHistory} from 'react-router';
 import merge from 'lodash/merge';
+import {GroupStats} from 'sentry-fixture/groupStats';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -59,7 +60,7 @@ describe('IssueList', function () {
 
   const tags = TestStubs.Tags();
   const group = TestStubs.Group({project});
-  const groupStats = TestStubs.GroupStats();
+  const groupStats = GroupStats();
   const savedSearch = TestStubs.Search({
     id: '789',
     query: 'is:unresolved TypeError',

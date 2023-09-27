@@ -1,3 +1,5 @@
+import {GitHubIntegrationConfig} from 'sentry-fixture/integrationListDirectory';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -27,7 +29,7 @@ describe('Project Ownership', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/?features=codeowners`,
       method: 'GET',
-      body: [TestStubs.GitHubIntegrationConfig()],
+      body: [GitHubIntegrationConfig()],
     });
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/codeowners/`,

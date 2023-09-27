@@ -1,3 +1,5 @@
+import {Members} from 'sentry-fixture/members';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -18,7 +20,7 @@ describe('TeamMembers', function () {
   const organization = TestStubs.Organization();
   const team = TestStubs.Team();
   const managerTeam = TestStubs.Team({orgRole: 'manager'});
-  const members = TestStubs.Members();
+  const members = Members();
   const member = TestStubs.Member({
     id: '9',
     email: 'sentry9@test.com',

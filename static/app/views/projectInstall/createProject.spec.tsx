@@ -1,3 +1,5 @@
+import {MOCK_RESP_VERBOSE} from 'sentry-fixture/ruleConditions';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
@@ -386,7 +388,7 @@ describe('CreateProject', function () {
 
       MockApiClient.addMockResponse({
         url: `/projects/${organization.slug}/rule-conditions/`,
-        body: TestStubs.MOCK_RESP_VERBOSE,
+        body: MOCK_RESP_VERBOSE,
       });
     });
 

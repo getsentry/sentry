@@ -1,3 +1,5 @@
+import {EventsStats} from 'sentry-fixture/events';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render} from 'sentry-test/reactTestingLibrary';
 
@@ -23,7 +25,7 @@ describe('Incident Rules Create', function () {
     });
     eventStatsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
-      body: TestStubs.EventsStats(),
+      body: EventsStats(),
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/alert-rules/available-actions/',

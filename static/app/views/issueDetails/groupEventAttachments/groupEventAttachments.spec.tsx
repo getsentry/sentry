@@ -1,3 +1,5 @@
+import {EventAttachment} from 'sentry-fixture/eventAttachment';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -27,7 +29,7 @@ describe('GroupEventAttachments > Screenshots', function () {
 
     getAttachmentsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/group-id/attachments/',
-      body: [TestStubs.EventAttachment()],
+      body: [EventAttachment()],
     });
   });
 

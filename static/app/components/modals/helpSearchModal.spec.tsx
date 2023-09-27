@@ -1,3 +1,5 @@
+import {Members} from 'sentry-fixture/members';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -23,7 +25,7 @@ describe('Docs Search Modal', function () {
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/members/',
-      body: TestStubs.Members(),
+      body: Members(),
     });
 
     MockApiClient.addMockResponse({

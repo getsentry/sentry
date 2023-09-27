@@ -1,4 +1,5 @@
 import selectEvent from 'react-select-event';
+import {Groups} from 'sentry-fixture/groups';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -493,17 +494,17 @@ describe('ProjectAlertsCreate', function () {
 
   describe('test preview chart', () => {
     it('valid preview table', async () => {
-      const groups = TestStubs.Groups();
+      const groups = Groups();
       const date = new Date();
       for (let i = 0; i < groups.length; i++) {
-        groups[i].lastTriggered = date;
+        groups[i].lastTriggered = String(date);
       }
       const mock = MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/rules/preview/',
         method: 'POST',
         body: groups,
         headers: {
-          'X-Hits': groups.length,
+          'X-Hits': String(groups.length),
           Endpoint: 'endpoint',
         },
       });

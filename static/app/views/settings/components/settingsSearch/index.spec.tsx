@@ -1,3 +1,5 @@
+import {Members} from 'sentry-fixture/members';
+
 import {fireEvent, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
@@ -35,7 +37,7 @@ describe('SettingsSearch', function () {
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/members/',
-      body: TestStubs.Members(),
+      body: Members(),
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/plugins/?plugins=_all',

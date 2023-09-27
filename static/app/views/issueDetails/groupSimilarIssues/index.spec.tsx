@@ -1,3 +1,5 @@
+import {Groups} from 'sentry-fixture/groups';
+
 import {
   render,
   renderGlobalModal,
@@ -37,7 +39,7 @@ describe('Issues Similar View', function () {
   ];
 
   const mockData = {
-    similar: TestStubs.Groups().map((issue, i) => [issue, scores[i]]),
+    similar: Groups().map((issue, i) => [issue, scores[i]]),
   };
 
   const router = TestStubs.router();
