@@ -1,6 +1,6 @@
 import 'intersection-observer'; // this is a polyfill
 
-import {Component, createRef, Fragment} from 'react';
+import {Component, createRef, Fragment, useRef} from 'react';
 import {CellMeasurerCache, List as ReactVirtualizedList} from 'react-virtualized';
 import styled from '@emotion/styled';
 import {withProfiler} from '@sentry/react';
@@ -106,7 +106,10 @@ import {
   SpanViewBoundsType,
   unwrapTreeDepth,
 } from './utils';
-import {SpanFrequencyBox} from 'sentry/components/events/interfaces/spans/spanFrequencyBox';
+import {
+  FREQUENCY_BOX_WIDTH,
+  SpanFrequencyBox,
+} from 'sentry/components/events/interfaces/spans/spanFrequencyBox';
 
 // TODO: maybe use babel-plugin-preval
 // for (let i = 0; i <= 1.0; i += 0.01) {
@@ -573,6 +576,7 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
       addContentSpanBarRef,
       removeContentSpanBarRef,
       groupType,
+      event,
     } = this.props;
 
     let titleFragments: React.ReactNode[] = [];
@@ -613,12 +617,19 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
 
     titleFragments = titleFragments.flatMap(current => [current, ' \u2014 ']);
 
-    const left = treeDepth * (TOGGLE_BORDER_BOX / 2) + MARGIN_LEFT;
+    const isAggregateSpan =
+      event.type === EventOrGroupType.AGGREGATE_TRANSACTION && span.type === 'aggregate';
+
+    const left =
+      treeDepth * (TOGGLE_BORDER_BOX / 2) +
+      MARGIN_LEFT +
+      (isAggregateSpan ? FREQUENCY_BOX_WIDTH : 0);
+
     const errored = Boolean(errors && errors.length > 0);
 
     return (
       <Fragment>
-        <SpanFrequencyBox frequency={100} />
+        {isAggregateSpan && <SpanFrequencyBox frequency={span.frequency ?? 0} />}
         <RowTitleContainer
           data-debug-id="SpanBarTitleContainer"
           ref={ref => {
