@@ -68,7 +68,7 @@ For example `24h`, to mean query data starting from 24 hours ago to now.""",
         required=False,
         many=True,
         type=int,
-        description="The ids of projects to filter by. `-1` means all available projects. If this parameter is omitted, the request will default to using 'My Projects'.",
+        description="The IDs of projects to filter by. `-1` means all available projects. If this parameter is omitted, the request will default to using 'My Projects'.",
     )
     ENVIRONMENT = OpenApiParameter(
         name="environment",
@@ -89,41 +89,14 @@ For example `24h`, to mean query data starting from 24 hours ago to now.""",
             description=description,
         )
 
-    @staticmethod
-    def name(description: str, required: bool = False) -> OpenApiParameter:
-        return OpenApiParameter(
-            name="name",
-            location="query",
-            required=required,
-            type=str,
-            description=description,
-        )
-
-    @staticmethod
-    def slug(description: str, required: bool = False) -> OpenApiParameter:
-        return OpenApiParameter(
-            name="slug",
-            location="query",
-            required=required,
-            type=str,
-            description=description,
-        )
-
 
 class SCIMParams:
-    MEMBER_ID = OpenApiParameter(
-        name="member_id",
-        location="path",
-        required=True,
-        type=int,
-        description="The id of the member you'd like to query.",
-    )
     TEAM_ID = OpenApiParameter(
         name="team_id",
         location="path",
         required=True,
         type=int,
-        description="The id of the team you'd like to query / update.",
+        description="The ID of the team you'd like to query / update.",
     )
 
 
@@ -133,7 +106,7 @@ class IssueAlertParams:
         location="path",
         required=True,
         type=int,
-        description="The id of the rule you'd like to query.",
+        description="The ID of the rule you'd like to query.",
     )
 
 
@@ -202,7 +175,7 @@ class MonitorParams:
         location="path",
         required=True,
         type=OpenApiTypes.UUID,
-        description="The id of the check-in.",
+        description="The ID of the check-in.",
     )
 
 
@@ -212,7 +185,7 @@ class EventParams:
         location="path",
         required=True,
         type=OpenApiTypes.UUID,
-        description="The id of the event.",
+        description="The ID of the event.",
     )
 
     FRAME_IDX = OpenApiParameter(
@@ -229,16 +202,6 @@ class EventParams:
         required=True,
         type=int,
         description="Index of the exception that should be used for source map resolution.",
-    )
-
-
-class OrganizationParams:
-    MEMBER_ID = OpenApiParameter(
-        name="member_id",
-        location="path",
-        required=True,
-        type=str,
-        description="The member ID.",
     )
 
 
@@ -282,16 +245,6 @@ keys if not specified.
             description=description,
         )
 
-    @staticmethod
-    def platform(description: str) -> OpenApiParameter:
-        return OpenApiParameter(
-            name="platform",
-            location="query",
-            required=False,
-            type=str,
-            description=description,
-        )
-
 
 class TeamParams:
     DETAILED = OpenApiParameter(
@@ -311,5 +264,5 @@ class ReplayParams:
         location="path",
         required=True,
         type=OpenApiTypes.UUID,
-        description="""The id of the replay you'd like to retrieve.""",
+        description="""The ID of the replay you'd like to retrieve.""",
     )

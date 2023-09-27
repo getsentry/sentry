@@ -25,7 +25,7 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.examples.organization_examples import OrganizationExamples
-from sentry.apidocs.parameters import GlobalParams, OrganizationParams
+from sentry.apidocs.parameters import GlobalParams
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
     InviteStatus,
@@ -135,7 +135,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         operation_id="Retrieve an Organization Member",
         parameters=[
             GlobalParams.ORG_SLUG,
-            OrganizationParams.MEMBER_ID,
+            GlobalParams.member_id("The ID of the member to delete."),
         ],
         responses={
             200: OrganizationMemberWithRolesSerializer,  # The Sentry response serializer
@@ -168,7 +168,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         operation_id="Update an Organization Member's Roles",
         parameters=[
             GlobalParams.ORG_SLUG,
-            OrganizationParams.MEMBER_ID,
+            GlobalParams.member_id("The ID of the member to update."),
         ],
         request=inline_serializer(
             "UpdateOrgMemberRoles",
@@ -359,7 +359,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         operation_id="Delete an Organization Member",
         parameters=[
             GlobalParams.ORG_SLUG,
-            OrganizationParams.MEMBER_ID,
+            GlobalParams.member_id("The ID of the member to delete."),
         ],
         responses={
             204: RESPONSE_NO_CONTENT,
