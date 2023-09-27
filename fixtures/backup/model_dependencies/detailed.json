@@ -1,7 +1,54 @@
 {
   "feedback.feedback": {
-    "foreign_keys": {},
+    "foreign_keys": {
+      "organization_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.organization"
+      },
+      "project_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.project"
+      }
+    },
     "model": "feedback.feedback",
+    "relocation_scope": "Excluded",
+    "silos": [
+      "Region"
+    ]
+  },
+  "hybridcloud.apikeyreplica": {
+    "foreign_keys": {
+      "apikey_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.apikey"
+      },
+      "organization": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.organization"
+      }
+    },
+    "model": "hybridcloud.apikeyreplica",
+    "relocation_scope": "Excluded",
+    "silos": [
+      "Region"
+    ]
+  },
+  "hybridcloud.organizationslugreservationreplica": {
+    "foreign_keys": {
+      "organization_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.organization"
+      },
+      "organization_slug_reservation_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.organizationslugreservation"
+      },
+      "user_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.user"
+      }
+    },
+    "model": "hybridcloud.organizationslugreservationreplica",
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
@@ -16,7 +63,16 @@
     ]
   },
   "replays.replayrecordingsegment": {
-    "foreign_keys": {},
+    "foreign_keys": {
+      "file_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.file"
+      },
+      "project_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.project"
+      }
+    },
     "model": "replays.replayrecordingsegment",
     "relocation_scope": "Excluded",
     "silos": [
@@ -2179,6 +2235,23 @@
     "relocation_scope": "Organization",
     "silos": [
       "Region"
+    ]
+  },
+  "sentry.organizationslugreservation": {
+    "foreign_keys": {
+      "organization_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.organization"
+      },
+      "user_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.user"
+      }
+    },
+    "model": "sentry.organizationslugreservation",
+    "relocation_scope": "Excluded",
+    "silos": [
+      "Control"
     ]
   },
   "sentry.orgauthtoken": {

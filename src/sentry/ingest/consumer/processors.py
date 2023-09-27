@@ -190,6 +190,18 @@ def process_individual_attachment(message: IngestMessage, project: Project) -> N
         logger.info("Organization has no event attachments: %s", project.id)
         return
 
+    if killswitch_matches_context(
+        "store.load-shed-pipeline-projects",
+        {
+            "project_id": project.id,
+            "event_id": event_id,
+            "has_attachments": True,
+        },
+    ):
+        # This killswitch is for the worst of scenarios and should probably not
+        # cause additional load on our logging infrastructure
+        return
+
     try:
         # Attachments may be uploaded for events that already exist. Fetch the
         # existing group_id, so that the attachment can be fetched by group-level

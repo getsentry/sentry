@@ -18,6 +18,8 @@
     "issues": {
         "block_start": 18,
         "public": [
+            "ProjectRulesEndpoint::GET",
+            "ProjectRulesEndpoint::POST",
             "SourceMapDebugEndpoint::GET"
         ],
         "private": [
@@ -83,8 +85,6 @@
             "ProjectRuleEnableEndpoint::PUT",
             "ProjectRuleGroupHistoryIndexEndpoint::GET",
             "ProjectRuleStatsIndexEndpoint::GET",
-            "ProjectRulesEndpoint::GET",
-            "ProjectRulesEndpoint::POST",
             "ProjectStacktraceLinkEndpoint::GET",
             "SentryAppsEndpoint::GET",
             "SentryAppsEndpoint::POST"
@@ -667,7 +667,8 @@
             "OrganizationAuditLogsEndpoint::GET",
             "OrganizationMissingMembersEndpoint::GET",
             "OrganizationSCIMMemberDetails::PUT",
-            "OrganizationSCIMTeamDetails::PUT"
+            "OrganizationSCIMTeamDetails::PUT",
+            "ReleaseThresholdStatusIndexEndpoint::GET"
         ],
         "unknown": [
             "ApiAuthorizationsEndpoint::DELETE",
@@ -705,10 +706,11 @@
         ]
     },
     "telemetry-experience": {
-        "block_start": 707,
+        "block_start": 708,
         "public": [],
         "private": [],
         "experimental": [
+            "CustomRulesEndpoint::GET",
             "CustomRulesEndpoint::POST"
         ],
         "unknown": [
@@ -724,7 +726,7 @@
         ]
     },
     "team-starfish": {
-        "block_start": 726,
+        "block_start": 728,
         "public": [],
         "private": [],
         "experimental": [],
@@ -734,7 +736,7 @@
         ]
     },
     "growth": {
-        "block_start": 736,
+        "block_start": 738,
         "public": [],
         "private": [],
         "experimental": [],
@@ -743,18 +745,19 @@
         ]
     },
     "feedback-backend": {
-        "block_start": 745,
+        "block_start": 747,
         "public": [],
         "private": [],
         "experimental": [
             "FeedbackIngestEndpoint::POST",
             "OrganizationFeedbackIndexEndpoint::GET",
+            "ProjectFeedbackDetailsEndpoint::DELETE",
             "ProjectFeedbackDetailsEndpoint::GET"
         ],
         "unknown": []
     },
     "replay-backend": {
-        "block_start": 756,
+        "block_start": 759,
         "public": [],
         "private": [],
         "experimental": [],
@@ -763,7 +766,7 @@
         ]
     },
     "profiling": {
-        "block_start": 765,
+        "block_start": 768,
         "public": [],
         "private": [],
         "experimental": [],
@@ -779,7 +782,7 @@
         ]
     },
     "team-web-sdk-frontend": {
-        "block_start": 781,
+        "block_start": 784,
         "public": [],
         "private": [
             "SourceMapDebugBlueThunderEditionEndpoint::GET"
@@ -788,7 +791,7 @@
         "unknown": []
     },
     "hybrid-cloud": {
-        "block_start": 790,
+        "block_start": 793,
         "public": [],
         "private": [],
         "experimental": [],

@@ -73,6 +73,7 @@ function SpanSummaryPage({params}: Props) {
       SpanMetricsField.SPAN_DESCRIPTION,
       SpanMetricsField.SPAN_ACTION,
       SpanMetricsField.SPAN_DOMAIN,
+      SpanMetricsField.SPAN_DOMAIN_ARRAY,
       'count()',
       `${SpanFunction.SPM}()`,
       `sum(${SpanMetricsField.SPAN_SELF_TIME})`,

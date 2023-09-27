@@ -6,7 +6,6 @@ import sentry_sdk
 from arroyo import Topic
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
 from django.conf import settings
-from django.db.models import F, Q
 from django.utils import timezone
 
 from sentry.constants import ObjectStatus
@@ -177,23 +176,6 @@ def check_missing(current_datetime: datetime):
             monitor__type__in=[MonitorType.CRON_JOB],
             next_checkin_latest__lte=current_datetime,
         )
-        # TODO(epurkhiser): Exclusion to be removed after GH-56526 is complete.
-        .exclude(
-            # As a temporary stop-gap while we fix GH-56526 we are skipping
-            # monitors which have a next_checkin_latest equal to their
-            # next_checkin
-            #
-            # This is due to the fact that the default value of the
-            # `checkin_margin` was 0. With it set to a minimum and default of `1`
-            # future computed `next_checkin_latest`'s will ALWAYS have a minimum of
-            # one minute apart.
-            Q(next_checkin=F("next_checkin_latest"))
-            # Make sure to run these at the next tick though, which is what the
-            # previous behavior was. If the next_checkin{,_latest} values
-            # are equal ONLY exclude them when next_checkin_latest is the
-            # current time.
-            & Q(next_checkin_latest=current_datetime)
-        )
         .exclude(
             status__in=[
                 MonitorStatus.DISABLED,
@@ -294,3 +276,33 @@ def check_timeout(current_datetime: datetime):
     ).count()
     if backlog_count:
         logger.exception(f"Exception in check_monitors - backlog count {backlog_count} is > 0")
+
+
+@instrumented_task(
+    name="sentry.monitors.tasks.mark_checkin_timeout",
+    max_retries=0,
+)
+def mark_checkin_timeout(checkin_id: int):
+    logger.info("checkin.timeout", extra={"checkin_id": checkin_id})
+
+    checkin = MonitorCheckIn.objects.select_related("monitor_environment").get(id=checkin_id)
+    monitor_environment = checkin.monitor_environment
+    logger.info(
+        "monitor_environment.checkin-timeout",
+        extra={"monitor_environment_id": monitor_environment.id, "checkin_id": checkin.id},
+    )
+    affected = checkin.update(status=CheckInStatus.TIMEOUT)
+    if not affected:
+        return
+
+    # we only mark the monitor as failed if a newer checkin wasn't responsible for the state
+    # change
+    has_newer_result = MonitorCheckIn.objects.filter(
+        monitor_environment=monitor_environment,
+        date_added__gt=checkin.date_added,
+        status__in=[CheckInStatus.OK, CheckInStatus.ERROR],
+    ).exists()
+    if not has_newer_result:
+        # TODO(epurkhiser): We also need a timestamp here, but not sure
+        # what we want it to be
+        mark_failed(checkin, ts=None)

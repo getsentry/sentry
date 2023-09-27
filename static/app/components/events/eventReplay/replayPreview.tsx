@@ -2,7 +2,7 @@ import {ComponentProps, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/alert';
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
@@ -22,7 +22,7 @@ type Props = {
   eventTimestampMs: number;
   orgSlug: string;
   replaySlug: string;
-  buttonProps?: Partial<ComponentProps<typeof Button>>;
+  buttonProps?: Partial<ComponentProps<typeof LinkButton>>;
 };
 
 function ReplayPreview({orgSlug, replaySlug, eventTimestampMs, buttonProps}: Props) {
@@ -59,13 +59,13 @@ function ReplayPreview({orgSlug, replaySlug, eventTimestampMs, buttonProps}: Pro
         showIcon
         data-test-id="replay-error"
         trailingItems={
-          <Button
+          <LinkButton
             external
             href="https://docs.sentry.io/platforms/javascript/session-replay/#error-linking"
             size="xs"
           >
             {t('Read Docs')}
-          </Button>
+          </LinkButton>
         }
       >
         <p>
@@ -112,14 +112,14 @@ function ReplayPreview({orgSlug, replaySlug, eventTimestampMs, buttonProps}: Pro
           <ReplayPlayer isPreview />
         </StaticPanel>
         <CTAOverlay>
-          <Button
+          <LinkButton
             {...buttonProps}
             icon={<IconPlay />}
             priority="primary"
             to={fullReplayUrl}
           >
             {t('Open Replay')}
-          </Button>
+          </LinkButton>
         </CTAOverlay>
         <BadgeContainer>
           <FeatureText>{t('Replays')}</FeatureText>

@@ -1,3 +1,5 @@
+import {BitbucketIntegrationConfig} from 'sentry-fixture/integrationListDirectory';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -18,10 +20,7 @@ describe('IntegrationListDirectory', function () {
     beforeEach(() => {
       mockResponse([
         [`/organizations/${org.slug}/config/integrations/`, TestStubs.ProviderList()],
-        [
-          `/organizations/${org.slug}/integrations/`,
-          [TestStubs.BitbucketIntegrationConfig()],
-        ],
+        [`/organizations/${org.slug}/integrations/`, [BitbucketIntegrationConfig()]],
         [`/organizations/${org.slug}/sentry-apps/`, TestStubs.OrgOwnedApps()],
         ['/sentry-apps/', TestStubs.PublishedApps()],
         ['/doc-integrations/', [TestStubs.DocIntegration()]],

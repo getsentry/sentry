@@ -5,7 +5,7 @@ import Matrix from 'sentry/components/stories/matrix';
 import SideBySide from 'sentry/components/stories/sideBySide';
 import storyBook from 'sentry/stories/storyBook';
 
-export default storyBook('FeatureBadge', story => {
+export default storyBook(FeatureBadge, story => {
   story('Types', () => (
     <SideBySide>
       <FeatureBadge type="alpha" />
@@ -41,7 +41,7 @@ export default storyBook('FeatureBadge', story => {
           </span>
         )}
         propMatrix={{
-          variant: ['badge', 'indicator'],
+          variant: ['badge', 'indicator', 'short'],
           type: ['alpha', 'beta', 'new', 'experimental'],
         }}
         selectedProps={['type', 'variant']}
