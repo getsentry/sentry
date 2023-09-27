@@ -249,16 +249,15 @@ function useEventApiQuery({
   const router = useRouter();
   const defaultIssueEvent = useDefaultIssueEvent();
   const eventIdUrl = eventId ?? defaultIssueEvent;
-  const helpfulEventQuery =
+  const recommendedEventQuery =
     typeof location.query.query === 'string' ? location.query.query : undefined;
 
-  const endpointEventId = eventIdUrl === 'recommended' ? 'helpful' : eventIdUrl;
   const queryKey: ApiQueryKey = [
-    `/organizations/${organization.slug}/issues/${groupId}/events/${endpointEventId}/`,
+    `/organizations/${organization.slug}/issues/${groupId}/events/${eventIdUrl}/`,
     {
       query: getGroupEventDetailsQueryData({
         environments,
-        query: helpfulEventQuery,
+        query: recommendedEventQuery,
       }),
     },
   ];
@@ -266,23 +265,24 @@ function useEventApiQuery({
   const tab = getCurrentTab({router});
   const isOnDetailsTab = tab === Tab.DETAILS;
 
-  const isLatestOrHelpfulEvent = eventIdUrl === 'latest' || eventIdUrl === 'recommended';
-  const latestOrHelpfulEvent = useApiQuery<Event>(queryKey, {
-    // Latest/helpful event will change over time, so only cache for 30 seconds
+  const isLatestOrRecommendedEvent =
+    eventIdUrl === 'latest' || eventIdUrl === 'recommended';
+  const latestOrRecommendedEvent = useApiQuery<Event>(queryKey, {
+    // Latest/recommended event will change over time, so only cache for 30 seconds
     staleTime: 30000,
     cacheTime: 30000,
-    enabled: isOnDetailsTab && isLatestOrHelpfulEvent,
+    enabled: isOnDetailsTab && isLatestOrRecommendedEvent,
     retry: false,
   });
   const otherEventQuery = useApiQuery<Event>(queryKey, {
     // Oldest/specific events will never change
     staleTime: Infinity,
-    enabled: isOnDetailsTab && !isLatestOrHelpfulEvent,
+    enabled: isOnDetailsTab && !isLatestOrRecommendedEvent,
     retry: false,
   });
 
   useEffect(() => {
-    if (latestOrHelpfulEvent.isError) {
+    if (latestOrRecommendedEvent.isError) {
       // If we get an error from the helpful event endpoint, it probably means
       // the query failed validation. We should remove the query to try again.
       browserHistory.replace({
@@ -291,15 +291,15 @@ function useEventApiQuery({
       });
 
       // 404s are expected if all events have exceeded retention
-      if (latestOrHelpfulEvent.error.status === 404) {
+      if (latestOrRecommendedEvent.error.status === 404) {
         return;
       }
 
       const scope = new Sentry.Scope();
       scope.setExtras({
         groupId,
-        query: helpfulEventQuery,
-        ...pick(latestOrHelpfulEvent.error, ['message', 'status', 'responseJSON']),
+        query: recommendedEventQuery,
+        ...pick(latestOrRecommendedEvent.error, ['message', 'status', 'responseJSON']),
       });
       scope.setFingerprint(['issue-details-helpful-event-request-failed']);
       Sentry.captureException(
@@ -308,13 +308,13 @@ function useEventApiQuery({
       );
     }
   }, [
-    latestOrHelpfulEvent.isError,
-    latestOrHelpfulEvent.error,
+    latestOrRecommendedEvent.isError,
+    latestOrRecommendedEvent.error,
     groupId,
-    helpfulEventQuery,
+    recommendedEventQuery,
   ]);
 
-  return isLatestOrHelpfulEvent ? latestOrHelpfulEvent : otherEventQuery;
+  return isLatestOrRecommendedEvent ? latestOrRecommendedEvent : otherEventQuery;
 }
 
 type FetchGroupQueryParameters = {

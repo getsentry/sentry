@@ -46,13 +46,11 @@ export function usePreviewEvent<T = Event>({
 }) {
   const defaultIssueEvent = useDefaultIssueEvent();
 
-  const eventType = defaultIssueEvent === 'recommended' ? 'helpful' : defaultIssueEvent;
-
   // This query should match the one on group details so that the event will
   // be fully loaded already if you preview then click.
   const eventQuery = useApiQuery<T>(
     [
-      `/issues/${groupId}/events/${eventType}/`,
+      `/issues/${groupId}/events/${defaultIssueEvent}/`,
       {
         query: getGroupEventDetailsQueryData({
           query,
