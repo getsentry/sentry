@@ -367,7 +367,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                     )
 
                     regressions_to_send.append(
-                        Regression(**qualifying_trend, project_id=project_id)
+                        dict(Regression(**qualifying_trend, project_id=project_id))
                     )
 
                 send_regressions_to_plaform(regressions_to_send, False)
