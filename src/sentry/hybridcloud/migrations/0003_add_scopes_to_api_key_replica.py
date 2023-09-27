@@ -21,7 +21,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("hybridcloud", "0001_add_api_key_replica"),
+        ("hybridcloud", "0002_add_slug_reservation_replica_model"),
     ]
 
     operations = [
