@@ -5,7 +5,6 @@ from unittest import mock
 import pytest
 from django.urls import reverse
 
-from sentry.issues.grouptype import PerformanceDurationRegressionGroupType
 from sentry.snuba.metrics.naming_layer import TransactionMRI
 from sentry.testutils.cases import MetricsAPIBaseTestCase
 from sentry.testutils.helpers.datetime import freeze_time, iso_format
@@ -307,10 +306,10 @@ class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
     @with_feature(
         {"organizations:issue-platform": True, "organizations:performance-trends-issues": False}
     )
-    @mock.patch("sentry.api.endpoints.organization_events_trends_v2.produce_occurrence_to_kafka")
+    @mock.patch("sentry.api.endpoints.organization_events_trends_v2.send_regressions_to_plaform")
     @mock.patch("sentry.api.endpoints.organization_events_trends_v2.detect_breakpoints")
     def test_skipped_issue_creation_no_feature_flag(
-        self, mock_detect_breakpoints, mock_produce_occurrence_to_kafka
+        self, mock_detect_breakpoints, mock_send_regressions_to_plaform
     ):
         mock_trends_result = [
             {
@@ -337,15 +336,15 @@ class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
             )
 
         assert response.status_code == 200, response.content
-        assert len(mock_produce_occurrence_to_kafka.mock_calls) == 0
+        assert len(mock_send_regressions_to_plaform.mock_calls) == 0
 
     @with_feature(
         {"organizations:issue-platform": True, "organizations:performance-trends-issues": True}
     )
-    @mock.patch("sentry.api.endpoints.organization_events_trends_v2.produce_occurrence_to_kafka")
+    @mock.patch("sentry.api.endpoints.organization_events_trends_v2.send_regressions_to_plaform")
     @mock.patch("sentry.api.endpoints.organization_events_trends_v2.detect_breakpoints")
     def test_skipped_issue_creation_wrong_stats_period(
-        self, mock_detect_breakpoints, mock_produce_occurrence_to_kafka
+        self, mock_detect_breakpoints, mock_send_regressions_to_plaform
     ):
         mock_trends_result = [
             {
@@ -372,15 +371,15 @@ class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
             )
 
         assert response.status_code == 200, response.content
-        assert len(mock_produce_occurrence_to_kafka.mock_calls) == 0
+        assert len(mock_send_regressions_to_plaform.mock_calls) == 0
 
     @with_feature(
         {"organizations:issue-platform": True, "organizations:performance-trends-issues": True}
     )
-    @mock.patch("sentry.api.endpoints.organization_events_trends_v2.produce_occurrence_to_kafka")
+    @mock.patch("sentry.api.endpoints.organization_events_trends_v2.send_regressions_to_plaform")
     @mock.patch("sentry.api.endpoints.organization_events_trends_v2.detect_breakpoints")
     def test_skipped_issue_creation_too_small_trend_percentage(
-        self, mock_detect_breakpoints, mock_produce_occurrence_to_kafka
+        self, mock_detect_breakpoints, mock_send_regressions_to_plaform
     ):
         mock_trends_result = [
             {
@@ -408,15 +407,15 @@ class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
             )
 
         assert response.status_code == 200, response.content
-        assert len(mock_produce_occurrence_to_kafka.mock_calls) == 0
+        assert len(mock_send_regressions_to_plaform.mock_calls) == 0
 
     @with_feature(
         {"organizations:issue-platform": True, "organizations:performance-trends-issues": True}
     )
-    @mock.patch("sentry.api.endpoints.organization_events_trends_v2.produce_occurrence_to_kafka")
+    @mock.patch("sentry.api.endpoints.organization_events_trends_v2.send_regressions_to_plaform")
     @mock.patch("sentry.api.endpoints.organization_events_trends_v2.detect_breakpoints")
     def test_skipped_issue_creation_no_regression(
-        self, mock_detect_breakpoints, mock_produce_occurrence_to_kafka
+        self, mock_detect_breakpoints, mock_send_regressions_to_plaform
     ):
         mock_trends_result = [
             {
@@ -443,15 +442,15 @@ class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
             )
 
         assert response.status_code == 200, response.content
-        assert len(mock_produce_occurrence_to_kafka.mock_calls) == 0
+        assert len(mock_send_regressions_to_plaform.mock_calls) == 0
 
     @with_feature(
         {"organizations:issue-platform": True, "organizations:performance-trends-issues": True}
     )
-    @mock.patch("sentry.api.endpoints.organization_events_trends_v2.produce_occurrence_to_kafka")
+    @mock.patch("sentry.api.endpoints.organization_events_trends_v2.send_regressions_to_plaform")
     @mock.patch("sentry.api.endpoints.organization_events_trends_v2.detect_breakpoints")
     def test_skipped_issue_creation_wrong_metric(
-        self, mock_detect_breakpoints, mock_produce_occurrence_to_kafka
+        self, mock_detect_breakpoints, mock_send_regressions_to_plaform
     ):
         mock_trends_result = [
             {
@@ -478,14 +477,14 @@ class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
             )
 
         assert response.status_code == 200, response.content
-        assert len(mock_produce_occurrence_to_kafka.mock_calls) == 0
+        assert len(mock_send_regressions_to_plaform.mock_calls) == 0
 
     @with_feature(
         {"organizations:issue-platform": True, "organizations:performance-trends-issues": True}
     )
-    @mock.patch("sentry.api.endpoints.organization_events_trends_v2.produce_occurrence_to_kafka")
+    @mock.patch("sentry.api.endpoints.organization_events_trends_v2.send_regressions_to_plaform")
     @mock.patch("sentry.api.endpoints.organization_events_trends_v2.detect_breakpoints")
-    def test_issue_creation_simple(self, mock_detect_breakpoints, mock_produce_occurrence_to_kafka):
+    def test_issue_creation_simple(self, mock_detect_breakpoints, send_regressions_to_plaform):
         mock_trends_result = [
             {
                 "project": self.project.slug,
@@ -513,40 +512,20 @@ class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
             )
 
         assert response.status_code == 200, response.content
-        assert len(mock_produce_occurrence_to_kafka.mock_calls) == 1
+        assert len(send_regressions_to_plaform.mock_calls) == 1
 
-        occurrence, event = mock_produce_occurrence_to_kafka.mock_calls[0].args
-        occurrence = occurrence.to_dict()
+        regressions, automatic_detection = send_regressions_to_plaform.mock_calls[0].args
 
-        assert dict(
-            occurrence,
-            **{
-                "project_id": self.project.id,
-                "issue_title": "Exp Duration Regression",
-                "subtitle": "Increased from 14.0ms to 28.0ms (P95)",
-                "resource_id": None,
-                "evidence_data": mock_trends_result[0],
-                "evidence_display": [
-                    {
-                        "name": "Regression",
-                        "value": "Increased from 14.0ms to 28.0ms (P95)",
-                        "important": True,
+        # regressions were found via the trends endpoint
+        assert automatic_detection is False
+
+        for regression in regressions:
+            assert (
+                dict(
+                    regression,
+                    **{
+                        "project_id": self.project.id,
                     },
-                    {"name": "Transaction", "value": "foo", "important": True},
-                ],
-                "type": PerformanceDurationRegressionGroupType.type_id,
-                "level": "info",
-                "culprit": "foo",
-            },
-        ) == dict(occurrence)
-
-        assert dict(
-            event,
-            **{
-                "project_id": self.project.id,
-                "transaction": "foo",
-                "event_id": occurrence["event_id"],
-                "platform": "python",
-                "tags": {},
-            },
-        ) == dict(event)
+                )
+                == regression
+            )
