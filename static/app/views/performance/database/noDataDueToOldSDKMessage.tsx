@@ -50,7 +50,7 @@ export function NoDataDueToOldSDKMessage({Wrapper = DivWrapper}: Props) {
         "You may be missing data due to outdated SDKs. Please refer to Sentry's [documentation:documentation] for more information. Projects with outdated SDKs: [projectList]",
         {
           documentation: (
-            <ExternalLink href="https://docs.sentry.io/product/performance/database/" />
+            <ExternalLink href="https://docs.sentry.io/product/performance/query-insights/" />
           ),
           projectList: (
             <Fragment>
