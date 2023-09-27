@@ -5,7 +5,7 @@ import {deleteMonitorEnvironment} from 'sentry/actionCreators/monitors';
 import Panel from 'sentry/components/panels/panel';
 import {Sticky} from 'sentry/components/sticky';
 import {space} from 'sentry/styles/space';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -14,6 +14,7 @@ import {
   GridLineOverlay,
   GridLineTimeLabels,
 } from 'sentry/views/monitors/components/overviewTimeline/gridLines';
+import {makeMonitorListQueryKey} from 'sentry/views/monitors/utils';
 
 import {Monitor} from '../../types';
 
@@ -30,6 +31,8 @@ export function OverviewTimeline({monitorList}: Props) {
   const {location} = useRouter();
   const organization = useOrganization();
   const api = useApi();
+  const queryClient = useQueryClient();
+  const router = useRouter();
 
   const timeWindow: TimeWindow = location.query?.timeWindow ?? '24h';
   const nowRef = useRef<Date>(new Date());
@@ -59,8 +62,40 @@ export function OverviewTimeline({monitorList}: Props) {
     }
   );
 
-  const handleDeleteEnvironment = (monitor: Monitor, env: string) =>
-    deleteMonitorEnvironment(api, organization.slug, monitor.slug, env);
+  const handleDeleteEnvironment = async (monitor: Monitor, env: string) => {
+    const success = await deleteMonitorEnvironment(
+      api,
+      organization.slug,
+      monitor.slug,
+      env
+    );
+    if (!success) {
+      return;
+    }
+
+    const queryKey = makeMonitorListQueryKey(organization, router.location);
+    setApiQueryData(queryClient, queryKey, (oldMonitorList: Monitor[]) => {
+      const oldMonitorIdx = oldMonitorList.findIndex(m => m.slug === monitor.slug);
+      if (oldMonitorIdx < 0) {
+        return oldMonitorList;
+      }
+
+      const oldMonitor = oldMonitorList[oldMonitorIdx];
+      const newEnvList = oldMonitorList[oldMonitorIdx].environments.filter(
+        e => e.name !== env
+      );
+      const newMonitor = {
+        ...oldMonitor,
+        environments: newEnvList,
+      };
+
+      return [
+        ...oldMonitorList.slice(0, oldMonitorIdx),
+        newMonitor,
+        ...oldMonitorList.slice(oldMonitorIdx + 1),
+      ];
+    });
+  };
 
   return (
     <MonitorListPanel>
