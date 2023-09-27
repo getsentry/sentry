@@ -1,3 +1,5 @@
+import {DataScrubbingRelayPiiConfig} from 'sentry-fixture/dataScrubbingRelayPiiConfig';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {
@@ -14,7 +16,7 @@ import {
   getRuleLabel,
 } from 'sentry/views/settings/components/dataScrubbing/utils';
 
-const relayPiiConfig = TestStubs.DataScrubbingRelayPiiConfig();
+const relayPiiConfig = DataScrubbingRelayPiiConfig();
 const stringRelayPiiConfig = JSON.stringify(relayPiiConfig);
 const organizationSlug = 'sentry';
 const rules = convertRelayPiiConfig(stringRelayPiiConfig);

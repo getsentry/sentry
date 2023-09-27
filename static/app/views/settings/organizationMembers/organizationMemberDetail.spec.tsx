@@ -1,4 +1,5 @@
 import selectEvent from 'react-select-event';
+import {Authenticators} from 'sentry-fixture/authenticators';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -531,9 +532,9 @@ describe('OrganizationMemberDetail', function () {
       user: TestStubs.User({
         has2fa: true,
         authenticators: [
-          TestStubs.Authenticators().Totp(),
-          TestStubs.Authenticators().Sms(),
-          TestStubs.Authenticators().U2f(),
+          Authenticators().Totp(),
+          Authenticators().Sms(),
+          Authenticators().U2f(),
         ],
         canReset2fa: true,
       }),
@@ -544,7 +545,7 @@ describe('OrganizationMemberDetail', function () {
       id: '7',
       user: TestStubs.User({
         has2fa: true,
-        authenticators: [TestStubs.Authenticators().Totp()],
+        authenticators: [Authenticators().Totp()],
         canReset2fa: false,
       }),
     });

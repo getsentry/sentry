@@ -1,3 +1,5 @@
+import {DeprecatedApiKey} from 'sentry-fixture/deprecatedApiKey';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -9,7 +11,7 @@ describe('OrganizationApiKeyDetails', function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/api-keys/1/',
       method: 'GET',
-      body: TestStubs.DeprecatedApiKey(),
+      body: DeprecatedApiKey(),
     });
   });
 

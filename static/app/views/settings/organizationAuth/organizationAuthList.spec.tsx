@@ -1,3 +1,5 @@
+import {AuthProviders} from 'sentry-fixture/authProviders';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {OrganizationAuthList} from 'sentry/views/settings/organizationAuth/organizationAuthList';
@@ -17,7 +19,7 @@ describe('OrganizationAuthList', function () {
     render(
       <OrganizationAuthList
         organization={TestStubs.Organization()}
-        providerList={TestStubs.AuthProviders()}
+        providerList={AuthProviders()}
       />
     );
 
@@ -34,8 +36,8 @@ describe('OrganizationAuthList', function () {
     render(
       <OrganizationAuthList
         organization={TestStubs.Organization()}
-        providerList={TestStubs.AuthProviders()}
-        activeProvider={TestStubs.AuthProviders()[0]}
+        providerList={AuthProviders()}
+        activeProvider={AuthProviders()[0]}
       />,
       {context}
     );
@@ -55,7 +57,7 @@ describe('OrganizationAuthList', function () {
       render(
         <OrganizationAuthList
           organization={organization}
-          providerList={TestStubs.AuthProviders()}
+          providerList={AuthProviders()}
         />,
         {context}
       );
@@ -72,7 +74,7 @@ describe('OrganizationAuthList', function () {
       render(
         <OrganizationAuthList
           organization={organization}
-          providerList={TestStubs.AuthProviders()}
+          providerList={AuthProviders()}
         />,
         {context}
       );
@@ -89,7 +91,7 @@ describe('OrganizationAuthList', function () {
       render(
         <OrganizationAuthList
           organization={organization}
-          providerList={TestStubs.AuthProviders()}
+          providerList={AuthProviders()}
         />,
         {context}
       );
@@ -106,7 +108,7 @@ describe('OrganizationAuthList', function () {
       render(
         <OrganizationAuthList
           organization={organization}
-          providerList={TestStubs.AuthProviders()}
+          providerList={AuthProviders()}
         />,
         {context}
       );
@@ -123,7 +125,7 @@ describe('OrganizationAuthList', function () {
       render(
         <OrganizationAuthList
           organization={organization}
-          providerList={TestStubs.AuthProviders()}
+          providerList={AuthProviders()}
         />,
         {context}
       );

@@ -79,7 +79,6 @@ const SPECIAL_MAPPING = {
   AllAuthenticators: 'authenticators',
   OrgRoleList: 'roleList',
   BitbucketIntegrationConfig: 'integrationListDirectory',
-  DetailedEvents: 'events',
   DiscoverSavedQuery: 'discover',
   Entries123Base: 'entries',
   Entries123Target: 'entries',

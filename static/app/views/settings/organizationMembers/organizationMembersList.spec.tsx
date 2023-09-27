@@ -1,5 +1,6 @@
 import {browserHistory} from 'react-router';
 import selectEvent from 'react-select-event';
+import {AuthProvider} from 'sentry-fixture/authProvider';
 
 import {
   render,
@@ -139,7 +140,7 @@ describe('OrganizationMembersList', function () {
       url: '/organizations/org-slug/auth-provider/',
       method: 'GET',
       body: {
-        ...TestStubs.AuthProvider(),
+        ...AuthProvider(),
         require_link: true,
       },
     });

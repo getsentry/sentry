@@ -1,3 +1,5 @@
+import {Broadcast} from 'sentry-fixture/broadcast';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
@@ -21,7 +23,7 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
       push: jest.fn(),
     },
   } as any);
-  const broadcast = TestStubs.Broadcast();
+  const broadcast = Broadcast();
 
   const apiMocks: any = {};
 

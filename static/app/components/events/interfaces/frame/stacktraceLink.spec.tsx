@@ -1,3 +1,5 @@
+import {Commit} from 'sentry-fixture/commit';
+
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import HookStore from 'sentry/stores/hookStore';
@@ -13,7 +15,7 @@ describe('StacktraceLink', function () {
   const project = TestStubs.Project({});
   const event = TestStubs.Event({
     projectID: project.id,
-    release: TestStubs.Release({lastCommit: TestStubs.Commit()}),
+    release: TestStubs.Release({lastCommit: Commit()}),
     platform,
   });
   const integration = TestStubs.GitHubIntegration();
