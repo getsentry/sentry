@@ -1,2 +1,2 @@
-from model import *  # noqa
-from provisioning import *  # noqa
+from .model import *  # noqa
+from .provisioning import *  # noqa

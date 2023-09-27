@@ -1,12 +1,11 @@
 import pydantic
 
+# TODO(Gabe): Remove this once GetSentry has been updated to use new model file in org provisioning
 from sentry.services.organization.model import (  # noqa
     OrganizationOptions,
     OrganizationProvisioningOptions,
     PostProvisionOptions,
 )
-
-# TODO(Gabe): Remove this once GetSentry has been updated to use new model file in org provisioning
 
 
 class RpcOrganizationSlugReservation(pydantic.BaseModel):

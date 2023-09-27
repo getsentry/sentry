@@ -3,10 +3,6 @@ from typing import Optional
 from django.conf import settings
 from django.db import IntegrityError, router, transaction
 
-from sentry.models import Organization
-from sentry.services.hybrid_cloud.organization_provisioning import (
-    organization_provisioning_service as rpc_org_provisioning_service,
-)
 from sentry.services.organization.model import OrganizationProvisioningOptions
 
 
@@ -34,6 +30,10 @@ class OrganizationProvisioningService:
         if region_name is None:
             region_name = settings.SENTRY_MONOLITH_REGION
 
+        from sentry.services.hybrid_cloud.organization_provisioning import (
+            organization_provisioning_service as rpc_org_provisioning_service,
+        )
+
         rpc_org = rpc_org_provisioning_service.provision_organization(
             region_name=region_name, org_provision_args=provisioning_options
         )
@@ -55,6 +55,9 @@ class OrganizationProvisioningService:
         :param slug:
         :return:
         """
+
+        from sentry.models import Organization
+
         try:
             with transaction.atomic(using=router.db_for_write(Organization)):
                 organization = Organization.objects.get(id=organization_id)
