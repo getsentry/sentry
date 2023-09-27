@@ -91,6 +91,16 @@ describe('ProfileSummaryPage', () => {
       body: [],
     });
 
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/profiling/function-trends/`,
+      body: [],
+    });
+
     render(
       <ProfileSummaryPage
         params={{}}
