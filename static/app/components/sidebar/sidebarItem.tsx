@@ -144,9 +144,9 @@ function SidebarItem({
 
   const badges = (
     <Fragment>
-      {showIsNew && <FeatureBadge type="new" variant="short" />}
-      {isBeta && <FeatureBadge type="beta" variant="short" />}
-      {isAlpha && <FeatureBadge type="alpha" variant="short" />}
+      {showIsNew && <FeatureBadge type="new" />}
+      {isBeta && <FeatureBadge type="beta" />}
+      {isAlpha && <FeatureBadge type="alpha" />}
     </Fragment>
   );
 
