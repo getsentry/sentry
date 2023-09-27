@@ -8,6 +8,9 @@ type Props = {
   frequency: number;
 };
 
+// Colors are copied from tagsHeatMap.tsx, as they are not available on the theme
+const purples = ['#D1BAFC', '#9282F3', '#6056BA', '#313087', '#021156'];
+
 export function SpanFrequencyBox({frequency}: Props) {
   const frequencyRef = useRef<number>(Math.round(Math.random() * 100));
   return <StyledBox frequency={frequencyRef.current}>{frequencyRef.current}%</StyledBox>;
@@ -23,27 +26,27 @@ function getBoxColors(frequency: number, theme: Theme) {
 
   if (frequency > 70) {
     return `
-      background: ${theme.purple100};
+      background: ${purples[0]};
       color: ${theme.black};
     `;
   }
 
   if (frequency > 50) {
     return `
-      background: ${theme.purple200};
+      background: ${purples[1]};
       color: ${theme.black};
     `;
   }
 
   if (frequency > 30) {
     return `
-      background: ${theme.purple300};
+      background: ${purples[2]};
       color: ${theme.white};
     `;
   }
 
   return `
-      background: ${theme.purple400};
+      background: ${purples[3]};
       color: ${theme.white};
     `;
 }
