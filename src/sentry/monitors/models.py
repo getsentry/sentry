@@ -61,8 +61,9 @@ MONITOR_CONFIG = {
         "failure_issue_threshold": {"type": ["integer", "null"]},
         "recovery_threshold": {"type": ["integer", "null"]},
     },
-    # TODO(davidenwang): Old monitors may not have timezone or schedule_type, these should be added here once we've cleaned up old data
-    "required": ["checkin_margin", "max_runtime", "schedule"],
+    # TODO(davidenwang): Old monitors may not have timezone, it should be added
+    # here once we've cleaned up old data
+    "required": ["checkin_margin", "max_runtime", "schedule_type", "schedule"],
     "additionalProperties": False,
 }
 
@@ -216,7 +217,7 @@ class ScheduleType:
 
     @classmethod
     def as_choices(cls):
-        return ((cls.UNKNOWN, "unknown"), (cls.CRONTAB, "crontab"), (cls.INTERVAL, "interval"))
+        return ((cls.CRONTAB, "crontab"), (cls.INTERVAL, "interval"))
 
     @classmethod
     def get_name(cls, value):
@@ -264,7 +265,7 @@ class Monitor(Model):
         return super().save(*args, **kwargs)
 
     def get_schedule_type_display(self):
-        return ScheduleType.get_name(self.config.get("schedule_type", ScheduleType.CRONTAB))
+        return ScheduleType.get_name(self.config["schedule_type"])
 
     def get_audit_log_data(self):
         return {"name": self.name, "type": self.type, "status": self.status, "config": self.config}
