@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any, DefaultDict
+from datetime import timedelta
+from typing import TYPE_CHECKING, Any, DefaultDict, Dict, List
 
 from django.db.models import F, Q
 from django.http import HttpResponse
@@ -16,6 +17,7 @@ from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.utils import get_date_range_from_params
 from sentry.models import Release
+from sentry.models.release_threshold.constants import ReleaseThresholdType, TriggerType
 from sentry.services.hybrid_cloud.organization import RpcOrganization
 
 if TYPE_CHECKING:
@@ -62,25 +64,27 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
         """
         List all derived statuses of releases that fall within the provided start/end datetimes
 
-        Constructs a nested response key'd off release_id, project_id, and lists _all_ thresholds for specified project
-        Each returned threshold value will contain the full serialized release_threshold instance as well as it's derived health status
+        Constructs a response key'd off release_id, project_id, environment, and lists thresholds with their status for *specified* projects
+        Each returned enriched threshold will contain the full serialized release_threshold instance as well as it's derived health status
 
-        health = {
-            release_id: {
-                project_id: [
-                    {
-                        threshold_id,
-                        project,
-                        ...,
-                        is_healthy: True/False
-                    },
-                    {...},
-                ],
-                project2_id: [],
-                ...
-            },
-            ...
+        {
+            {release}-{proj}-{env}: [
+                {
+                    project_id,
+                    environment,
+                    ...,
+                    key: {release}-{proj}-{env},
+                    release_version: '',
+                    is_healthy: True/False,
+                    start: datetime,
+                    end: datetime,
+                },
+                {...},
+                {...}
+            ],
+            {release}-{proj}-{env}: [...],
         }
+
         ``````````````````
 
         :param start: timestamp of the beginning of the specified date range
@@ -89,6 +93,9 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
         TODO:
         - should we limit/paginate results? (this could get really bulky)
         """
+        # ========================================================================
+        # STEP 1: Validate request data
+        # ========================================================================
         data = request.data if len(request.GET) == 0 and hasattr(request, "data") else request.GET
         start, end = get_date_range_from_params(params=data)
 
@@ -102,8 +109,11 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
         project_ids_list = serializer.validated_data.get("project")
         release_ids_list = serializer.validated_data.get("release_id")
 
+        # ========================================================================
+        # Step 2: Fetch releases, prefetch projects & release_thresholds
         # NOTE: we're only filtering on date ADDED
         # This is not synonymous with a deploy... which may be what we actually want.
+        # ========================================================================
         release_query = Q(organization=organization, date_added__gte=start, date_added__lte=end)
         if environments_list:
             release_query &= Q(
@@ -126,22 +136,27 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
             .order_by("-date")
             .distinct()
         )
-        queryset.prefetch_related("projects__release_thresholds")
+        queryset.prefetch_related(
+            "projects__release_thresholds"
+        )  # maybe prefetch "deploy_set" as well?
 
         # ========================================================================
-        # TODO:
-        # Fetch relevant snuba/sessions data
-        # Determine which thresholds have succeeded/failed
-
-        release_threshold_health: DefaultDict[int, Any] = defaultdict()
+        # Step 3: flatten thresholds and compile projects/releases/thresholds by type
+        # ========================================================================
+        thresholds_by_type: DefaultDict[int, dict[str, list]] = {
+            "projects": [],
+            "releases": [],
+            "thresholds": [],
+        }
         for release in queryset:
-            release_project = defaultdict(list)
+            # TODO:
+            # We should update release model to preserve threshold states.
+            # if release.failed_thresholds/passed_thresholds exists - then skip calculating and just return thresholds
             if project_ids_list:
                 project_list = release.projects.filter(id__in=project_ids_list)
             else:
                 project_list = release.projects.all()
             for project in project_list:
-                project_threshold_statuses = []
                 if environments_list:
                     thresholds_list = project.release_thresholds.filter(
                         environment__name__in=environments_list
@@ -149,38 +164,173 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
                 else:
                     thresholds_list = project.release_thresholds.all()
                 for threshold in thresholds_list:
-                    is_healthy = self.is_threshold_healthy(threshold)
-                    project_threshold_statuses.append(
-                        {
-                            **serialize(threshold),
-                            "is_healthy": is_healthy,
-                        }
+                    thresholds_by_type[threshold.threshold_type]["projects"].append(project.id)
+                    thresholds_by_type[threshold.threshold_type]["release_id"].append(
+                        release.version
                     )
-                release_project[project.id] = project_threshold_statuses
-            release_threshold_health[release.id] = release_project
+                    enriched_threshold = {
+                        **serialize(threshold),
+                        "key": self.construct_threshold_key(
+                            release=release, project=project, threshold=threshold
+                        ),
+                        "start": release.date,  # deploy.date_finished _would_ be more accurate, but is not keyed on project so cannot be used
+                        "end": release.date
+                        + timedelta(threshold.window_in_seconds),  # start + threshold.window
+                        "release": release.version,
+                        "project_id": project.id,
+                        "is_healthy": False,
+                    }
+                    thresholds_by_type[threshold.threshold_type]["thresholds"].append(
+                        enriched_threshold
+                    )
+
+        # ========================================================================
+        # Step 4: Determine threshold status per threshold type and return results
+        # ========================================================================
+        release_threshold_health = defaultdict(list)
+        for threshold_type, filter_list in enumerate(thresholds_by_type.items()):
+            project_id_list = [proj_id for proj_id in filter_list["projects"]]
+            release_value_list = [release_version for release_version in filter_list["releases"]]
+            category_thresholds = filter_list["thresholds"]
+            if threshold_type == ReleaseThresholdType.TOTAL_ERROR_COUNT:
+                """
+                Fetch errors timeseries for all projects with an error_count threshold in desired releases
+                Iterate through timeseries given threshold window and determine health status
+
+                TODO: determine whether results have been truncated or not
+                - this will determine whether we can give an accurate status report or not
+                """
+                error_counts = get_errors_timeseries_counts_by_project_and_release(
+                    start=start,
+                    end=end,
+                    project_id_list=project_id_list,
+                    release_value_list=release_value_list,
+                    organization_id=organization.id,
+                )
+                for ethreshold in category_thresholds:
+                    is_healthy = is_error_count_healthy(ethreshold, error_counts)
+                    ethreshold["is_healthy"] = is_healthy
+                    release_threshold_health[ethreshold["key"]].append(
+                        ethreshold
+                    )  # so we can fill all thresholds under the same key
+            elif threshold_type == ReleaseThresholdType.NEW_ISSUE_COUNT:
+                for ethreshold in category_thresholds:
+                    release_threshold_health[ethreshold["key"]].append(
+                        ethreshold
+                    )  # so we can fill all thresholds under the same key
+            elif threshold_type == ReleaseThresholdType.UNHANDLED_ISSUE_COUNT:
+                for ethreshold in category_thresholds:
+                    release_threshold_health[ethreshold["key"]].append(
+                        ethreshold
+                    )  # so we can fill all thresholds under the same key
+            elif threshold_type == ReleaseThresholdType.REGRESSED_ISSUE_COUNT:
+                for ethreshold in category_thresholds:
+                    release_threshold_health[ethreshold["key"]].append(
+                        ethreshold
+                    )  # so we can fill all thresholds under the same key
+            elif threshold_type == ReleaseThresholdType.FAILURE_RATE:
+                for ethreshold in category_thresholds:
+                    release_threshold_health[ethreshold["key"]].append(
+                        ethreshold
+                    )  # so we can fill all thresholds under the same key
+            elif threshold_type == ReleaseThresholdType.CRASH_FREE_SESSION_RATE:
+                for ethreshold in category_thresholds:
+                    release_threshold_health[ethreshold["key"]].append(
+                        ethreshold
+                    )  # so we can fill all thresholds under the same key
+            elif threshold_type == ReleaseThresholdType.CRASH_FREE_USER_RATE:
+                for ethreshold in category_thresholds:
+                    release_threshold_health[ethreshold["key"]].append(
+                        ethreshold
+                    )  # so we can fill all thresholds under the same key
 
         return Response(release_threshold_health, status=200)
 
-    def is_threshold_healthy(self, threshold) -> bool:
+    def construct_threshold_key(self, project, release, threshold) -> str:
         """
-        Determines whether a projects threshold has been breached or not
-        True - healthy
-        False - unhealthy
+        Consistent key helps to determine which thresholds can be grouped together.
         """
-        # TODO:
-        # for each threshold type - determine how to properly pull the data?
-        # threshold_type = threshold.threshold_type
-        # trigger_type = threshold.trigger_type
-        # value = threshold.value
-        # window = threshold.window_in_seconds
-        # project = threshold.project
-        # environment = threshold.environment
+        return f"{project.id}-{release.version}-{threshold.environment}"
 
-        """
-        Does each threshold type turn into a query string?
-        DD - has query formula that is run
 
-        Dig to see where we fetch this data today
-        """
+def is_error_count_healthy(ethreshold: Dict[str, Any], timeseries: List[Dict[str, Any]]) -> bool:
+    """
+    Iterate through timeseries given threshold window and determine health status
+    enriched threshold (ethreshold) includes `start`, `end`, and a constructed `key` identifier
+    """
+    total_count = 0
+    for i in timeseries:
+        if i.time > ethreshold.end:
+            # timeseries are ordered chronologically
+            # So if we're past our threshold.end, we can skip the rest
+            break
+        if (
+            i.time <= ethreshold.start
+            or i.time > ethreshold.end
+            or i.release != ethreshold.release
+            or i.project_id != ethreshold.project_id
+        ):
+            # IF timesefries is chronological, once we pass threshold end, we can break :shrug:
+            continue
+        # else ethreshold.start < i.time <= ethreshold.end
+        total_count += i["count()"]
 
-        return True
+    if ethreshold.trigger_type == TriggerType.OVER:
+        return total_count > ethreshold.value
+
+    # else if ethreshold.trigger_type == TriggerType.UNDER:
+    return total_count < ethreshold.value
+
+
+from snuba_sdk import Request as SnubaRequest
+from snuba_sdk.column import Column
+from snuba_sdk.conditions import Condition, Op
+from snuba_sdk.entity import Entity
+from snuba_sdk.expressions import Granularity
+from snuba_sdk.function import Function
+from snuba_sdk.orderby import Direction, OrderBy
+from snuba_sdk.query import Query
+
+from sentry.snuba.dataset import Dataset
+from sentry.utils import snuba
+
+
+def get_errors_timeseries_counts_by_project_and_release(
+    start,
+    end,
+    project_id_list,
+    release_value_list,
+    organization_id,
+) -> [dict]:
+    query = Query(
+        match=Entity("events"),  # synonymous w/ discover dataset
+        select=[Function("count", [])],
+        groupby=[
+            Column("release"),
+            Column("project_id"),
+            Column("environment"),
+            Column("time"),  # groupby 'time' gives us a timeseries
+        ],
+        orderby=[
+            OrderBy(Column("time"), Direction.DESC),
+        ],
+        granularity=Granularity(60),
+        where=[
+            Condition(Column("type"), Op.EQ, "error"),
+            Condition(Column("timestamp"), Op.GTE, start),
+            Condition(Column("timestamp"), Op.LT, end),
+            Condition(Column("project_id"), Op.IN, project_id_list),
+            Condition(Column("release"), Op.IN, release_value_list),
+        ],
+    )
+    request = SnubaRequest(
+        dataset=Dataset.Events.value,
+        app_id="default",
+        query=query,
+        tenant_ids={"organization_id": organization_id},
+    )
+    data = snuba.raw_snql_query(
+        request=request, referrer="snuba.sessions.check_releases_have_health_data"
+    )["data"]
+
+    return data
