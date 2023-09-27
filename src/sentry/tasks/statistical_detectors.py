@@ -5,6 +5,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, Generator, List, Optional, Set, Tuple
 
 import sentry_sdk
+from django.utils import timezone as django_timezone
 from snuba_sdk import (
     And,
     Column,
@@ -72,7 +73,7 @@ def run_detection() -> None:
     if not options.get("statistical_detectors.enable"):
         return
 
-    now = timezone.now()
+    now = django_timezone.now()
 
     enabled_performance_projects: Set[int] = set(
         options.get("statistical_detectors.enable.projects.performance")
