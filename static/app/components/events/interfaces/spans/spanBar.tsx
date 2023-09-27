@@ -106,6 +106,7 @@ import {
   SpanViewBoundsType,
   unwrapTreeDepth,
 } from './utils';
+import {SpanFrequencyBox} from 'sentry/components/events/interfaces/spans/spanFrequencyBox';
 
 // TODO: maybe use babel-plugin-preval
 // for (let i = 0; i <= 1.0; i += 0.01) {
@@ -616,34 +617,37 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
     const errored = Boolean(errors && errors.length > 0);
 
     return (
-      <RowTitleContainer
-        data-debug-id="SpanBarTitleContainer"
-        ref={ref => {
-          if (!ref) {
-            removeContentSpanBarRef(this.spanContentRef);
-            return;
-          }
+      <Fragment>
+        <SpanFrequencyBox frequency={100} />
+        <RowTitleContainer
+          data-debug-id="SpanBarTitleContainer"
+          ref={ref => {
+            if (!ref) {
+              removeContentSpanBarRef(this.spanContentRef);
+              return;
+            }
 
-          addContentSpanBarRef(ref);
-          this.spanContentRef = ref;
-        }}
-      >
-        {this.renderSpanTreeToggler({left, errored})}
-        <RowTitle
-          style={{
-            left: `${left}px`,
-            width: '100%',
+            addContentSpanBarRef(ref);
+            this.spanContentRef = ref;
           }}
         >
-          <RowTitleContent
-            errored={errored}
-            data-test-id={`row-title-content${spanBarType ? `-${spanBarType}` : ''}`}
+          {this.renderSpanTreeToggler({left, errored})}
+          <RowTitle
+            style={{
+              left: `${left}px`,
+              width: '100%',
+            }}
           >
-            <strong>{titleFragments}</strong>
-            {formatSpanTreeLabel(span)}
-          </RowTitleContent>
-        </RowTitle>
-      </RowTitleContainer>
+            <RowTitleContent
+              errored={errored}
+              data-test-id={`row-title-content${spanBarType ? `-${spanBarType}` : ''}`}
+            >
+              <strong>{titleFragments}</strong>
+              {formatSpanTreeLabel(span)}
+            </RowTitleContent>
+          </RowTitle>
+        </RowTitleContainer>
+      </Fragment>
     );
   }
 
