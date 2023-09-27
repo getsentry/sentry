@@ -116,11 +116,6 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
                 raise serializers.ValidationError(
                     {"integration": "Integration must be provided for slack"}
                 )
-        elif attrs.get("type") == AlertRuleTriggerAction.Type.DISCORD:
-            if not attrs.get("integration_id"):
-                raise serializers.ValidationError(
-                    {"integration": "Integration must be provided for discord"}
-                )
 
         elif attrs.get("type") == AlertRuleTriggerAction.Type.SENTRY_APP:
             sentry_app_installation_uuid = attrs.get("sentry_app_installation_uuid")

@@ -259,32 +259,6 @@ class MsTeamsActionHandler(DefaultActionHandler):
 
 
 @AlertRuleTriggerAction.register_type(
-    "discord",
-    AlertRuleTriggerAction.Type.DISCORD,
-    [AlertRuleTriggerAction.TargetType.SPECIFIC],
-    integration_provider="discord",
-)
-class DiscordActionHandler(DefaultActionHandler):
-    provider = "discord"
-
-    def send_alert(
-        self,
-        metric_value: int | float,
-        new_status: IncidentStatus,
-        notification_uuid: str | None = None,
-    ):
-        from sentry.integrations.discord.actions.metric_alert import (
-            send_incident_alert_notification,
-        )
-
-        success = send_incident_alert_notification(
-            self.action, self.incident, metric_value, new_status, notification_uuid
-        )
-        if success:
-            self.record_alert_sent_analytics(self.action.target_identifier, notification_uuid)
-
-
-@AlertRuleTriggerAction.register_type(
     "pagerduty",
     AlertRuleTriggerAction.Type.PAGERDUTY,
     [AlertRuleTriggerAction.TargetType.SPECIFIC],

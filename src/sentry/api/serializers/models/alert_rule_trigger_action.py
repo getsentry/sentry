@@ -22,8 +22,6 @@ class AlertRuleTriggerActionSerializer(Serializer):
             return "Send a notification via " + action.target_display
         elif action.type == action.Type.OPSGENIE.value:
             return "Send an Opsgenie notification to " + action.target_display
-        elif action.type == action.Type.DISCORD.value:
-            return "Send a Discord notification to " + action.target_display
 
     def get_identifier_from_action(self, action):
         if action.type in [
