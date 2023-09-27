@@ -1,7 +1,7 @@
-import type {Project as TProject} from 'sentry/types';
+import {Organization} from 'sentry-fixture/organization';
+import {Team} from 'sentry-fixture/team';
 
-import {Organization} from './organization';
-import {Team} from './team';
+import type {Project as TProject} from 'sentry/types';
 
 export function Project(params: Partial<TProject> = {}): TProject {
   const team = Team();

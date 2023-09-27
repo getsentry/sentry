@@ -1,3 +1,5 @@
+import {AccountEmails as AccountEmailsFixture} from 'sentry-fixture/accountEmails';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import AccountEmails from 'sentry/views/settings/account/accountEmails';
@@ -11,7 +13,7 @@ describe('AccountEmails', function () {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: ENDPOINT,
-      body: TestStubs.AccountEmails(),
+      body: AccountEmailsFixture(),
     });
   });
 

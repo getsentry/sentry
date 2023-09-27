@@ -69,7 +69,9 @@ class RegionReplicaService(RpcService):
 
     @regional_rpc_method(resolve=ByRegionName())
     @abc.abstractmethod
-    def delete_replicated_org_slug_reservation(self, *, slug: str, organization_id: int) -> None:
+    def delete_replicated_org_slug_reservation(
+        self, *, organization_slug_reservation_id: int, region_name: str
+    ) -> None:
         pass
 
     @classmethod
