@@ -107,6 +107,7 @@ const Segment = styled(Link)<{color: string}>`
   background-color: ${p => p.color};
   text-align: right;
   overflow: hidden;
+  direction: rtl;
 `;
 
 const SegmentText = styled('span')<{fontColor: string}>`
