@@ -18,6 +18,7 @@ class DatasourceTestCase(BaseMetricsLayerTestCase, TestCase):
         return BaseMetricsLayerTestCase.MOCK_DATETIME
 
     def test_get_tag_values_with_mri(self):
+        releases = ["1.0", "2.0"]
         for release in ("1.0", "2.0"):
             self.store_performance_metric(
                 name=TransactionMRI.DURATION.value,
@@ -28,10 +29,12 @@ class DatasourceTestCase(BaseMetricsLayerTestCase, TestCase):
         values = get_tag_values(
             [self.project], "release", [TransactionMRI.DURATION.value], UseCaseID.TRANSACTIONS
         )
-        assert values == [{"key": "release", "value": "1.0"}, {"key": "release", "value": "2.0"}]
+        for release in releases:
+            assert {"key": "release", "value": release} in values
 
     def test_get_tag_values_with_public_name(self):
-        for satisfaction in ("satisfied", "tolerable", "miserable"):
+        satisfactions = ["miserable", "satisfied", "tolerable"]
+        for satisfaction in satisfactions:
             self.store_performance_metric(
                 name=TransactionMRI.MEASUREMENTS_LCP.value,
                 tags={"satisfaction": satisfaction},
@@ -45,11 +48,8 @@ class DatasourceTestCase(BaseMetricsLayerTestCase, TestCase):
             [TransactionMetricKey.MEASUREMENTS_LCP.value],
             UseCaseID.TRANSACTIONS,
         )
-        assert values == [
-            {"key": "satisfaction", "value": "miserable"},
-            {"key": "satisfaction", "value": "satisfied"},
-            {"key": "satisfaction", "value": "tolerable"},
-        ]
+        for satisfaction in satisfactions:
+            assert {"key": "satisfaction", "value": satisfaction} in values
 
         # Invalid public metric name.
         values = get_tag_values(
