@@ -134,11 +134,6 @@ const TIME_WINDOW_TO_SESSION_INTERVAL = {
   [TimeWindow.ONE_DAY]: '1d',
 };
 
-const EXTRAPOLATED_SESSION_AGGREGATE_TO_HEADING = {
-  [SessionsAggregate.CRASH_FREE_SESSIONS]: t('Estimated Sessions'),
-  [SessionsAggregate.CRASH_FREE_USERS]: t('Estimated Users'),
-};
-
 const SESSION_AGGREGATE_TO_HEADING = {
   [SessionsAggregate.CRASH_FREE_SESSIONS]: t('Total Sessions'),
   [SessionsAggregate.CRASH_FREE_USERS]: t('Total Users'),
@@ -300,9 +295,7 @@ class TriggersChart extends PureComponent<Props, State> {
       seriesAdditionalInfo?.[timeseriesData[0]?.seriesName]?.isExtrapolatedData;
 
     const totalCountLabel = isSessionAggregate(aggregate)
-      ? isExtrapolatedChartData
-        ? EXTRAPOLATED_SESSION_AGGREGATE_TO_HEADING[aggregate]
-        : SESSION_AGGREGATE_TO_HEADING[aggregate]
+      ? SESSION_AGGREGATE_TO_HEADING[aggregate]
       : isExtrapolatedChartData
       ? t('Estimated Transactions')
       : t('Total Transactions');
