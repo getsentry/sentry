@@ -84,11 +84,21 @@ body:
         - 'Footer'
         - 'APIs'
         - 'Org Relocation'
-        - 'Unknown'
         - 'Other'
         # end product areas
     validations:
       required: true
+  - type: dropdown
+    id: issue-type
+    attributes:
+      label: Issue Type
+      description: What type of issue is this?
+      options:
+        - 'Bug Report'
+        - 'Support Request'
+        - 'Other'
+    validations:
+      required: false
   - type: input
     id: link
     attributes:
