@@ -7,10 +7,10 @@
   resolved "https://registry.yarnpkg.com/@aashutoshrathi/word-wrap/-/word-wrap-1.2.6.tgz#bd9154aec9983f77b3a034ecaa015c2e4201f6cf"
   integrity sha512-1Yjs2SvM8TflER/OD3cOjhWWOZb58A2t7wpE2S9XfBYTiIl+XFhQG2bjy4Pu1I+EAlCNUzRDYDdFwFYUKvXcIA==
 
-"@acemarke/react-prod-sourcemaps@^0.1.0":
-  version "0.1.0"
-  resolved "https://registry.yarnpkg.com/@acemarke/react-prod-sourcemaps/-/react-prod-sourcemaps-0.1.0.tgz#f0833eee7a581e37e44b74c132322b0b5be57f70"
-  integrity sha512-q28xBKkg/2ijqWwtygzPSzZIxjENlLYM2BqWkuww+PQef7Wy5u9paC9Ql0wzwfxzTjMA6PNR+knM4bygq/QvDA==
+"@acemarke/react-prod-sourcemaps@^0.2.0":
+  version "0.2.0"
+  resolved "https://registry.yarnpkg.com/@acemarke/react-prod-sourcemaps/-/react-prod-sourcemaps-0.2.0.tgz#befbbdf45aba64d95343c8d7bd597dab8c9c927f"
+  integrity sha512-LNlC/E9sbSvfLMuz8xCKBIUM/eTcmi+8zQBsNsoYqanZuAEe8zP0xGM7nFmLUlFYvY+X7e19g4whKDxI9Oyd6Q==
   dependencies:
     "@ampproject/remapping" "^2.2.1"
     "@jridgewell/resolve-uri" "^3.1.1"
@@ -11799,6 +11799,7 @@ wildcard@^2.0.0:
   integrity sha512-CC1bOL87PIWSBhDcTrdeLo6eGT7mCFtrg0uIJtqJUFyK+eJnzl8A1niH56uu7KMa5XFrtiV+AQuHO3n7DsHnLQ==
 
 "wrap-ansi-cjs@npm:wrap-ansi@^7.0.0", wrap-ansi@^7.0.0:
+  name wrap-ansi-cjs
   version "7.0.0"
   resolved "https://registry.yarnpkg.com/wrap-ansi/-/wrap-ansi-7.0.0.tgz#67e145cff510a6a6984bdf1152911d69d2eb9e43"
   integrity sha512-YVGIj2kamLSTxw6NsZjoBxfSwsn0ycdesmc4p+Q21c5zPuZ1pl+NfxVdxPtdHvmNVOQ6XSYG4AUtyt/Fi7D16Q==
