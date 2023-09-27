@@ -366,9 +366,12 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                         and transaction["project"] == qualifying_trend["project"]
                     )
 
-                    regressions_to_send.append(
-                        dict(Regression(**qualifying_trend, project_id=project_id))
-                    )
+                    regression: Regression = {
+                        **qualifying_trend,  # type: ignore
+                        "project_id": project_id,
+                    }
+
+                    regressions_to_send.append(regression)
 
                 send_regressions_to_plaform(regressions_to_send, False)
 
