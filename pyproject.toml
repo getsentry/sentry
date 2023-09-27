@@ -146,7 +146,6 @@ module = [
     "sentry.api.bases.rule",
     "sentry.api.bases.sentryapps",
     "sentry.api.bases.team",
-    "sentry.api.bases.user",
     "sentry.api.endpoints.accept_organization_invite",
     "sentry.api.endpoints.artifact_lookup",
     "sentry.api.endpoints.auth_config",
