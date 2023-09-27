@@ -219,7 +219,7 @@ class MarkFailedTestCase(TestCase):
             trace_id=trace_id,
             date_added=last_checkin,
         )
-        assert mark_failed(checkin, ts=last_checkin)
+        assert mark_failed(checkin, ts=checkin.date_added)
 
         assert len(mock_produce_occurrence_to_kafka.mock_calls) == 1
 
@@ -316,7 +316,7 @@ class MarkFailedTestCase(TestCase):
             date_added=last_checkin,
             duration=monitor.config.get("max_runtime"),
         )
-        assert mark_failed(failed_checkin, ts=last_checkin)
+        assert mark_failed(failed_checkin, ts=failed_checkin.date_added)
 
         assert len(mock_produce_occurrence_to_kafka.mock_calls) == 1
 
@@ -404,7 +404,7 @@ class MarkFailedTestCase(TestCase):
             date_added=last_checkin,
             expected_time=expected_time,
         )
-        assert mark_failed(failed_checkin, ts=last_checkin)
+        assert mark_failed(failed_checkin, ts=failed_checkin.date_added)
 
         monitor.refresh_from_db()
         monitor_environment.refresh_from_db()
