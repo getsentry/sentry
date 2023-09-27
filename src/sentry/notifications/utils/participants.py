@@ -218,6 +218,7 @@ def get_participants_for_release(
     if should_use_notifications_v2(organization):
         providers_by_recipient = notifications_service.get_participants(
             recipients=actors,
+            project_ids=[project.id for project in projects],
             organization_id=organization.id,
             type=NotificationSettingTypes.DEPLOY,
         )
