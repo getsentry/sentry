@@ -629,8 +629,12 @@ class MonitorIncident(Model):
     monitor_environment = FlexibleForeignKey("sentry.MonitorEnvironment")
     starting_checkin = FlexibleForeignKey(
         "sentry.MonitorCheckIn", null=True, related_name="created_incidents"
-    )  # this represents the first failed check-in that we receive
+    )
     starting_timestamp = models.DateTimeField(null=True)
+    """
+    This represents the first failed check-in that we receive
+    """
+
     resolving_checkin = FlexibleForeignKey(
         "sentry.MonitorCheckIn", null=True, related_name="resolved_incidents"
     )
