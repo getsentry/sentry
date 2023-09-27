@@ -542,7 +542,7 @@ class MarkFailedTestCase(TestCase):
         monitor_environment = MonitorEnvironment.objects.get(id=monitor_environment.id)
         assert monitor_environment.status == MonitorStatus.ERROR
         assert monitor_environment.last_state_change == monitor_environment.last_checkin
-        last_state_change_initial = monitor_environment.last_state_change
+        prior_last_state_change = monitor_environment.last_state_change
 
         # check that an incident has been created correctly
         monitor_incidents = MonitorIncident.objects.filter(monitor_environment=monitor_environment)
@@ -558,8 +558,6 @@ class MarkFailedTestCase(TestCase):
         occurrence, event = mock_produce_occurrence_to_kafka.mock_calls[0].args
         occurrence = occurrence.to_dict()
         assert occurrence["fingerprint"][0] == monitor_incident.grouphash
-
-        prior_last_state_change = monitor_environment.last_state_change
 
         # send another check-in to make sure we don't update last_state_change
         status = next(failure_statuses)
