@@ -252,8 +252,6 @@
   color: '8D5494'
 - name: 'Product Area: Other'
   color: '8D5494'
-- name: 'Product Area: Other'
-  color: '8D5494'
 
 # Deploy types
 - name: 'Deploy: Monitored'
