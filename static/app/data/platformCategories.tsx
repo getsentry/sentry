@@ -82,6 +82,7 @@ export const mobile: PlatformKey[] = [
 ];
 
 export const backend: PlatformKey[] = [
+  'bun',
   'dotnet',
   'dotnet-aspnetcore',
   'dotnet-aspnet',
@@ -195,6 +196,7 @@ export const tracing = [
 ] as const;
 
 export const performance: PlatformKey[] = [
+  'bun',
   'javascript',
   'javascript-ember',
   'javascript-react',
@@ -305,6 +307,7 @@ export const releaseHealth: PlatformKey[] = [
   'flutter',
   'dart-flutter',
   // backend
+  'bun',
   'native',
   'node',
   'node-express',
