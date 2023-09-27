@@ -16,7 +16,7 @@ import {PageFilters, Project} from 'sentry/types';
 import {useProfileEvents} from 'sentry/utils/profiling/hooks/useProfileEvents';
 import {formatSort} from 'sentry/utils/profiling/hooks/utils';
 import {decodeScalar} from 'sentry/utils/queryString';
-import {ProfileCharts} from 'sentry/views/profiling/landing/profileCharts';
+import {ProfilesChart} from 'sentry/views/profiling/landing/profileCharts';
 
 interface ProfileSummaryContentProps {
   location: Location;
@@ -68,7 +68,7 @@ function ProfileSummaryContent(props: ProfileSummaryContentProps) {
   return (
     <Fragment>
       <Layout.Main fullWidth>
-        <ProfileCharts
+        <ProfilesChart
           referrer="api.profiling.profile-summary-chart"
           query={props.query}
           hideCount

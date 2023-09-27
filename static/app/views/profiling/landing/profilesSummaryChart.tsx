@@ -1,14 +1,8 @@
 import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
 
-import {AreaChart, AreaChartProps} from 'sentry/components/charts/areaChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
-import {LineChartProps} from 'sentry/components/charts/lineChart';
-import {HeaderTitle} from 'sentry/components/charts/styles';
-import Panel from 'sentry/components/panels/panel';
-import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
+import {LineChart, LineChartProps} from 'sentry/components/charts/lineChart';
 import {PageFilters} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
@@ -21,21 +15,19 @@ import useRouter from 'sentry/utils/useRouter';
 // cover it up.
 const SERIES_ORDER = ['count()', 'p99()', 'p95()', 'p75()'] as const;
 
-interface ProfilesChartProps {
+interface ProfileSummaryChartProps {
   query: string;
   referrer: string;
-  compact?: boolean;
   hideCount?: boolean;
   selection?: PageFilters;
 }
 
-export function ProfilesChart({
+export function ProfilesSummaryChart({
   query,
   referrer,
   selection,
   hideCount,
-  compact = false,
-}: ProfilesChartProps) {
+}: ProfileSummaryChartProps) {
   const router = useRouter();
   const theme = useTheme();
 
@@ -105,9 +97,9 @@ export function ProfilesChart({
     return allSeries;
   }, [profileStats, seriesOrder]);
 
-  const chartProps: LineChartProps | AreaChartProps = useMemo(() => {
-    const baseProps: LineChartProps | AreaChartProps = {
-      height: compact ? 150 : 300,
+  const chartProps: LineChartProps = useMemo(() => {
+    const baseProps: LineChartProps = {
+      height: 150,
       series,
       grid: [
         {
@@ -175,42 +167,18 @@ export function ProfilesChart({
     };
 
     return baseProps;
-  }, [compact, hideCount, series, seriesOrder, theme.chartLabel]);
+  }, [hideCount, series, seriesOrder, theme.chartLabel]);
 
   return (
     <ChartZoom router={router} {...selection?.datetime}>
       {zoomRenderProps => (
-        <StyledPanel>
-          <TitleContainer>
-            {!hideCount && (
-              <StyledHeaderTitle compact>{t('Profiles by Count')}</StyledHeaderTitle>
-            )}
-            <StyledHeaderTitle compact>{t('Profiles Duration')}</StyledHeaderTitle>
-          </TitleContainer>
-          <AreaChart
-            {...chartProps}
-            isGroupedByDate
-            showTimeInTooltip
-            {...zoomRenderProps}
-          />
-        </StyledPanel>
+        <LineChart
+          {...chartProps}
+          isGroupedByDate
+          showTimeInTooltip
+          {...zoomRenderProps}
+        />
       )}
     </ChartZoom>
   );
 }
-
-const StyledPanel = styled(Panel)`
-  padding-top: ${space(2)};
-`;
-
-const TitleContainer = styled('div')`
-  width: 100%;
-  display: flex;
-  flex-direction: row;
-`;
-
-const StyledHeaderTitle = styled(HeaderTitle)<{compact?: boolean}>`
-  flex-grow: 1;
-  margin-left: ${space(2)};
-  font-size: ${p => (p.compact ? p.theme.fontSizeSmall : undefined)};
-`;
