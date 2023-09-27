@@ -42,6 +42,7 @@ import SelectableList, {
   ListClose,
   RightAlignedCell,
   Subtitle,
+  TimeSpentInDatabaseWidgetEmptyStateWarning,
   WidgetAddInstrumentationWarning,
   WidgetEmptyStateWarning,
 } from '../components/selectableList';
@@ -88,15 +89,21 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
   const canHaveIntegrationEmptyState = integrationEmptyStateWidgets.includes(
     props.chartSetting
   );
-  const emptyComponent = canHaveIntegrationEmptyState
-    ? () => (
-        <WidgetAddInstrumentationWarning
-          type={
-            props.chartSetting === PerformanceWidgetSetting.SLOW_DB_OPS ? 'db' : 'http'
-          }
-        />
-      )
-    : WidgetEmptyStateWarning;
+
+  let emptyComponent;
+  if (props.chartSetting === PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES) {
+    emptyComponent = TimeSpentInDatabaseWidgetEmptyStateWarning;
+  } else {
+    emptyComponent = canHaveIntegrationEmptyState
+      ? () => (
+          <WidgetAddInstrumentationWarning
+            type={
+              props.chartSetting === PerformanceWidgetSetting.SLOW_DB_OPS ? 'db' : 'http'
+            }
+          />
+        )
+      : WidgetEmptyStateWarning;
+  }
 
   const field = props.fields[0];
 
