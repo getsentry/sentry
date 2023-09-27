@@ -81,9 +81,7 @@ export function OverviewTimeline({monitorList}: Props) {
       }
 
       const oldMonitor = oldMonitorList[oldMonitorIdx];
-      const newEnvList = oldMonitorList[oldMonitorIdx].environments.filter(
-        e => e.name !== env
-      );
+      const newEnvList = oldMonitor.environments.filter(e => e.name !== env);
       const newMonitor = {
         ...oldMonitor,
         environments: newEnvList,
