@@ -9,7 +9,8 @@ from rest_framework import serializers
 
 
 # drf-spectacular doesn't support a list type in it's OpenApiTypes, so we manually build
-# a typed list using this workaround
+# a typed list using this workaround. build_basic_type will dynamically check the type
+# and pass a warning if it can't recognize it, failing any build command in the process as well.
 def build_typed_list(type: Any):
     return build_array_type(build_basic_type(type))
 
