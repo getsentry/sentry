@@ -204,7 +204,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
         operation_id="Query an Individual Organization Member",
         parameters=[
             GlobalParams.ORG_SLUG,
-            GlobalParams.member_id("The Id of the member to query."),
+            GlobalParams.member_id("The ID of the member to query."),
         ],
         request=None,
         responses={
@@ -231,7 +231,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
         operation_id="Update an Organization Member's Attributes",
         parameters=[
             GlobalParams.ORG_SLUG,
-            GlobalParams.member_id("The Id of the member to update."),
+            GlobalParams.member_id("The ID of the member to update."),
         ],
         request=SCIMPatchRequestSerializer,
         responses={
@@ -277,7 +277,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
         operation_id="Delete an Organization Member via SCIM",
         parameters=[
             GlobalParams.ORG_SLUG,
-            GlobalParams.member_id("The Id of the member to delete."),
+            GlobalParams.member_id("The ID of the member to delete."),
         ],
         request=None,
         responses={
@@ -299,7 +299,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
         operation_id="Update an Organization Member's Attributes",
         parameters=[
             GlobalParams.ORG_SLUG,
-            GlobalParams.member_id("The Id of the member to update."),
+            GlobalParams.member_id("The ID of the member to update."),
         ],
         request=inline_serializer(
             "SCIMMemberProvision", fields={"sentryOrgRole": serializers.CharField()}

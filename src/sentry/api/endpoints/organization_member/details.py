@@ -135,7 +135,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         operation_id="Retrieve an Organization Member",
         parameters=[
             GlobalParams.ORG_SLUG,
-            GlobalParams.member_id("The Id of the member to delete."),
+            GlobalParams.member_id("The ID of the member to delete."),
         ],
         responses={
             200: OrganizationMemberWithRolesSerializer,  # The Sentry response serializer
@@ -168,7 +168,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         operation_id="Update an Organization Member's Roles",
         parameters=[
             GlobalParams.ORG_SLUG,
-            GlobalParams.member_id("The Id of the member to update."),
+            GlobalParams.member_id("The ID of the member to update."),
         ],
         request=inline_serializer(
             "UpdateOrgMemberRoles",
@@ -359,7 +359,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         operation_id="Delete an Organization Member",
         parameters=[
             GlobalParams.ORG_SLUG,
-            GlobalParams.member_id("The Id of the member to delete."),
+            GlobalParams.member_id("The ID of the member to delete."),
         ],
         responses={
             204: RESPONSE_NO_CONTENT,
