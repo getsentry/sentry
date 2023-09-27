@@ -97,10 +97,4 @@ class DefaultEvent(BaseEvent):
         else:
             title = "<unlabeled event>"
 
-        metadata = {"title": title}
-
-        # ugly hack for NEL hackweek
-        if data.get("nel"):
-            metadata["uri"] = data.get("nel").get("url")
-
-        return metadata
+        return {"title": title}
