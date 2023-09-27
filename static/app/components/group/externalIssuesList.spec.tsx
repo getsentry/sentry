@@ -74,7 +74,7 @@ describe('ExternalIssuesList', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/integrations/`,
       body: [
-        TestStubs.JiraIntegration({status: 'active'}),
+        TestStubs.JiraIntegration({status: 'active', externalIssues: []}),
         TestStubs.GitHubIntegration({
           status: 'active',
           externalIssues: [
