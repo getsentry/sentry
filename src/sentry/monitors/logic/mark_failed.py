@@ -74,6 +74,15 @@ def mark_failed_threshold(
     if not affected:
         return False
 
+    fingerprint = hash_from_values(
+        [
+            "monitor",
+            str(monitor_env.monitor.guid),
+            monitor_env.environment.name,
+            str(monitor_env.last_state_change),
+        ]
+    )
+
     # check to see if we need to update the status
     if monitor_env.status == MonitorStatus.OK:
         # reverse the list after slicing in order to start with oldest check-in
@@ -100,12 +109,14 @@ def mark_failed_threshold(
 
         starting_checkin = previous_checkins[0]
 
+        fingerprint = hash_from_values([uuid.uuid4()])
+
         MonitorIncident.objects.create(
             monitor=monitor_env.monitor,
             monitor_environment=monitor_env,
             starting_checkin=starting_checkin,
             starting_timestamp=starting_checkin.date_added,
-            grouphash=monitor_env.get_incident_grouphash(),
+            grouphash=fingerprint,
         )
     elif monitor_env.status in [
         MonitorStatus.ERROR,
@@ -126,13 +137,6 @@ def mark_failed_threshold(
     # Do not create event if monitor is disabled
     if monitor_env.monitor.status == ObjectStatus.DISABLED:
         return True
-
-    fingerprint = [
-        "monitor",
-        str(monitor_env.monitor.guid),
-        monitor_env.environment.name,
-        str(monitor_env.last_state_change),
-    ]
 
     for previous_checkin in previous_checkins:
         create_issue_platform_occurrence(previous_checkin, fingerprint)
@@ -262,7 +266,7 @@ def create_issue_platform_occurrence(
         project_id=monitor_env.monitor.project_id,
         event_id=uuid.uuid4().hex,
         fingerprint=[
-            hash_from_values(fingerprint)
+            fingerprint
             if fingerprint
             else hash_from_values(
                 ["monitor", str(monitor_env.monitor.guid), occurrence_data["reason"]]

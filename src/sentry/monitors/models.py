@@ -585,13 +585,28 @@ class MonitorEnvironment(Model):
         )
 
     def get_incident_grouphash(self):
-        fingerprint = [
-            "monitor",
-            str(self.monitor.guid),
-            self.environment.name,
-            str(self.last_state_change),
-        ]
-        return hash_from_values(fingerprint)
+        # TODO(rjo100): Check to see if there's an active incident
+        # if not, use last_state_change as fallback
+        active_incident = (
+            MonitorIncident.objects.filter(
+                monitor_environment_id=self.id, resolving_checkin__isnull=True
+            )
+            .order_by("-date_added")
+            .first()
+        )
+        if active_incident:
+            fingerprint = active_incident.grouphash
+        else:
+            fingerprint = hash_from_values(
+                [
+                    "monitor",
+                    str(self.monitor.guid),
+                    self.environment.name,
+                    str(self.last_state_change),
+                ]
+            )
+
+        return fingerprint
 
 
 @receiver(pre_save, sender=MonitorEnvironment)
