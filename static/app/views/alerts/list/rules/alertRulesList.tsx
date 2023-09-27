@@ -146,6 +146,7 @@ function AlertRulesList() {
         getAlertListQueryKey(organization.slug, location.query),
         data => data?.filter(r => r?.id !== rule.id)
       );
+      refetch();
       addSuccessMessage(t('Deleted rule'));
     } catch (_err) {
       addErrorMessage(t('Error deleting rule'));

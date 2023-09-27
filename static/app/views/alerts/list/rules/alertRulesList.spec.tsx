@@ -180,7 +180,7 @@ describe('AlertRulesList', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Delete Rule'}));
 
     expect(deleteMock).toHaveBeenCalledTimes(1);
-    expect(rulesMock).toHaveBeenCalledTimes(1);
+    expect(rulesMock).toHaveBeenCalledTimes(2);
     expect(screen.queryByText(deletedRuleName)).not.toBeInTheDocument();
   });
 
