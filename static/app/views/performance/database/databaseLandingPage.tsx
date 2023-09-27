@@ -75,7 +75,7 @@ function DatabaseLandingPage() {
 
             <DomainSelector
               moduleName={moduleName}
-              value={moduleFilters[SpanMetricsField.SPAN_DOMAIN_ARRAY] || ''}
+              value={moduleFilters[SpanMetricsField.SPAN_DOMAIN] || ''}
             />
           </FilterOptionsContainer>
 

@@ -13,7 +13,7 @@ import {useModuleSort} from 'sentry/views/starfish/views/spans/useModuleSort';
 
 import SpansTable from './spansTable';
 
-const {SPAN_ACTION, SPAN_DOMAIN_ARRAY, SPAN_OP} = SpanMetricsField;
+const {SPAN_ACTION, SPAN_DOMAIN, SPAN_OP} = SpanMetricsField;
 
 const LIMIT: number = 25;
 
@@ -56,7 +56,7 @@ export default function SpansView(props: Props) {
 
         <DomainSelector
           moduleName={moduleName}
-          value={moduleFilters[SPAN_DOMAIN_ARRAY] || ''}
+          value={moduleFilters[SPAN_DOMAIN] || ''}
           spanCategory={props.spanCategory}
         />
       </FilterOptionsContainer>

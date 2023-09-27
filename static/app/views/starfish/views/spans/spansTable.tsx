@@ -27,7 +27,7 @@ type Row = {
   'avg(span.self_time)': number;
   'http_error_count()': number;
   'span.description': string;
-  'span.domain_array': Array<string>;
+  'span.domain': Array<string>;
   'span.group': string;
   'span.op': string;
   'spm()': number;
@@ -47,7 +47,7 @@ type Props = {
   spanCategory?: string;
 };
 
-const {SPAN_SELF_TIME, SPAN_DESCRIPTION, SPAN_GROUP, SPAN_OP, PROJECT_ID} =
+const {SPAN_SELF_TIME, SPAN_DESCRIPTION, SPAN_GROUP, SPAN_OP, PROJECT_ID, SPAN_DOMAIN} =
   SpanMetricsField;
 
 export default function SpansTable({
@@ -168,6 +168,16 @@ function renderBodyCell(
   return rendered;
 }
 
+function getDomainHeader(moduleName: ModuleName) {
+  if (moduleName === ModuleName.HTTP) {
+    return 'Host';
+  }
+  if (moduleName === ModuleName.DB) {
+    return 'Table';
+  }
+  return 'Domain';
+}
+
 function getDescriptionHeader(moduleName: ModuleName, spanCategory?: string) {
   if (moduleName === ModuleName.HTTP) {
     return 'URL Request';
@@ -199,6 +209,7 @@ function getColumns(
   transaction?: string
 ): Column[] {
   const description = getDescriptionHeader(moduleName, spanCategory);
+  const domain = getDomainHeader(moduleName);
 
   const order = [
     // We don't show the operation selector in specific modules, so there's no
@@ -215,6 +226,15 @@ function getColumns(
       name: description,
       width: COL_WIDTH_UNDEFINED,
     },
+    ...(moduleName !== ModuleName.ALL && moduleName !== ModuleName.DB
+      ? [
+          {
+            key: SPAN_DOMAIN,
+            name: domain,
+            width: COL_WIDTH_UNDEFINED,
+          } as Column,
+        ]
+      : []),
     {
       key: 'spm()',
       name: getThroughputTitle(moduleName),
