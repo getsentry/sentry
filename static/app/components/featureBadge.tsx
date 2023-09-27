@@ -40,10 +40,10 @@ const labels: Record<BadgeType, string> = {
 };
 
 const shortLabels: Record<BadgeType, string> = {
-  alpha: 'α',
-  beta: 'β',
-  new: 'n',
-  experimental: 'e',
+  alpha: 'A',
+  beta: 'B',
+  new: 'N',
+  experimental: 'E',
 };
 
 function BaseFeatureBadge({
