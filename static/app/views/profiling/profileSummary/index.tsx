@@ -1,6 +1,7 @@
 import {useCallback, useMemo} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
+import {ErrorBoundary} from '@sentry/react';
 import type {Location} from 'history';
 
 import {LinkButton} from 'sentry/components/button';
@@ -363,7 +364,9 @@ export default function ProfileSummaryPageToggle(props: ProfileSummaryPageProps)
   if (organization.features.includes('profiling-summary-redesign')) {
     return (
       <ProfileSummaryContainer data-test-id="profile-summary-redesign">
-        <ProfileSummaryPage {...props} />
+        <ErrorBoundary>
+          <ProfileSummaryPage {...props} />
+        </ErrorBoundary>
       </ProfileSummaryContainer>
     );
   }
