@@ -65,14 +65,17 @@ def get_prev_schedule(
 
     Examples:
 
-    >>> get_prev_schedule('05:30', CrontabSchedule('0 * * * *'))
+    >>> get_prev_schedule('01:30', '05:35', CrontabSchedule('0 * * * *'))
     >>> 05:00
 
-    >>> get_prev_schedule('05:30', CrontabSchedule('30 * * * *'))
+    >>> get_prev_schedule('01:30', '05:30', CrontabSchedule('30 * * * *'))
     >>> 04:30
 
-    >>> get_prev_schedule('05:35', IntervalSchedule(interval=2, unit='hour'))
-    >>> 03:35
+    >>> get_prev_schedule('01:30', '05:30', IntervalSchedule(interval=2, unit='hour'))
+    >>> 03:30
+
+    >>> get_prev_schedule('01:30', '05:35', IntervalSchedule(interval=2, unit='hour'))
+    >>> 05:30
     """
     if schedule.type == "crontab":
         return (
