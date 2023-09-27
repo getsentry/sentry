@@ -69,8 +69,7 @@ def get_mri(external_name: Union[Enum, str]) -> str:
         return cast(str, NAME_TO_MRI[external_name].value)
     except KeyError:
         raise InvalidParams(
-            f"Failed to parse '{external_name}'. Must be something like 'sum(my_metric)', "
-            f"or a supported aggregate derived metric like `session.crash_free_rate`"
+            f"Failed to parse '{external_name}'. The metric name must belong to a public metric."
         )
 
 

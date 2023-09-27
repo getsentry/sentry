@@ -38,6 +38,7 @@ class DatasourceTestCase(BaseMetricsLayerTestCase, TestCase):
                 value=1,
             )
 
+        # Valid public metric name.
         values = get_tag_values(
             [self.project],
             "satisfaction",
@@ -49,3 +50,12 @@ class DatasourceTestCase(BaseMetricsLayerTestCase, TestCase):
             {"key": "satisfaction", "value": "satisfied"},
             {"key": "satisfaction", "value": "tolerable"},
         ]
+
+        # Invalid public metric name.
+        values = get_tag_values(
+            [self.project],
+            "satisfaction",
+            ["transaction.measurements"],
+            UseCaseID.TRANSACTIONS,
+        )
+        assert values == []

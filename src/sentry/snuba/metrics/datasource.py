@@ -316,6 +316,9 @@ def _fetch_tags_or_values_for_metrics(
     assert len({p.organization_id for p in projects}) == 1
 
     metric_mris = []
+    # For now this function supports all MRIs but only the usage of public names for static MRIs. In case
+    # there will be the need, the support for custom metrics MRIs will have to be added but with additional
+    # complexity.
     for metric_name in metric_names:
         if is_mri(metric_name):
             metric_mris.append(metric_name)
@@ -546,16 +549,14 @@ def get_tag_values(
     except MetricIndexNotFound:
         raise InvalidParams(f"Tag {tag_name} is not available in the indexer")
 
-    try:
-        tags, _ = _fetch_tags_or_values_for_metrics(
-            projects=projects,
-            column=tag_id,
-            metric_names=metric_names,
-            referrer="snuba.metrics.meta.get_tag_values",
-            use_case_id=use_case_id,
-        )
-    except InvalidParams:
-        return []
+    tags, _ = _fetch_tags_or_values_for_metrics(
+        projects=projects,
+        column=tag_id,
+        metric_names=metric_names,
+        referrer="snuba.metrics.meta.get_tag_values",
+        use_case_id=use_case_id,
+    )
+
     return tags
 
 
