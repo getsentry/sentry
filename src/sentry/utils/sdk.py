@@ -130,6 +130,7 @@ SAMPLED_TASKS = {
     "sentry.monitors.tasks.check_missing": 1.0,
     "sentry.monitors.tasks.mark_environment_missing": 0.05,
     "sentry.monitors.tasks.check_timeout": 1.0,
+    "sentry.monitors.tasks.mark_checkin_timeout": 0.05,
     "sentry.monitors.tasks.clock_pulse": 1.0,
     "sentry.tasks.auto_enable_codecov": settings.SAMPLED_DEFAULT_RATE,
     "sentry.dynamic_sampling.tasks.boost_low_volume_projects": 0.2,
