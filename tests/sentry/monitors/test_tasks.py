@@ -240,7 +240,8 @@ class MonitorTaskCheckMissingTest(TestCase):
     def test_missing_checkin_but_deletion_in_progress(self):
         self.assert_state_does_not_change_for_status(ObjectStatus.DELETION_IN_PROGRESS)
 
-    def test_not_missing_checkin(self):
+    @mock.patch("sentry.monitors.tasks.mark_environment_missing")
+    def test_not_missing_checkin(self, mark_environment_missing_mock):
         """
         Our monitor task runs once per minute, we want to test that when it
         runs within the minute we correctly do not mark missed checkins that
@@ -251,7 +252,7 @@ class MonitorTaskCheckMissingTest(TestCase):
         project = self.create_project(organization=org)
 
         task_run_ts, ts = make_ref_time()
-        last_checkin_ts = ts - timedelta(minutes=2)
+        last_checkin_ts = ts - timedelta(minutes=1)
 
         monitor = Monitor.objects.create(
             organization_id=org.id,
@@ -260,12 +261,12 @@ class MonitorTaskCheckMissingTest(TestCase):
             config={"schedule_type": ScheduleType.CRONTAB, "schedule": "* * * * *"},
         )
         # Expected checkin is this minute
-        monitor_environment = MonitorEnvironment.objects.create(
+        MonitorEnvironment.objects.create(
             monitor=monitor,
             environment=self.environment,
             last_checkin=last_checkin_ts,
-            next_checkin=ts - timedelta(minutes=1),
-            next_checkin_latest=ts,
+            next_checkin=ts,
+            next_checkin_latest=ts + timedelta(minutes=1),
             status=MonitorStatus.OK,
         )
         # Last checkin was a minute ago
@@ -281,15 +282,8 @@ class MonitorTaskCheckMissingTest(TestCase):
         # monitor.
         check_missing(task_run_ts)
 
-        # Monitor stays in OK state
-        assert MonitorEnvironment.objects.filter(
-            id=monitor_environment.id, status=MonitorStatus.OK
-        ).exists()
-
-        # No missed monitor is created
-        assert not MonitorCheckIn.objects.filter(
-            monitor_environment=monitor_environment.id, status=CheckInStatus.MISSED
-        ).exists()
+        # We do not fire off any tasks
+        assert mark_environment_missing_mock.delay.call_count == 0
 
     @mock.patch("sentry.monitors.tasks.mark_environment_missing")
     def test_missed_exception_handling(self, mark_environment_missing_mock):
