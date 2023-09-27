@@ -202,7 +202,8 @@ class MonitorTaskCheckMissingTest(TestCase):
             == monitor_environment_updated.next_checkin + timedelta(minutes=5)
         )
 
-    def assert_state_does_not_change_for_status(self, state):
+    @mock.patch("sentry.monitors.tasks.mark_environment_missing")
+    def assert_state_does_not_change_for_status(self, state, mark_environment_missing_mock):
         org = self.create_organization()
         project = self.create_project(organization=org)
 
@@ -217,7 +218,7 @@ class MonitorTaskCheckMissingTest(TestCase):
         )
         # Expected checkin was a full minute ago, if this monitor wasn't in the
         # `state` the monitor would usually end up marked as timed out
-        monitor_environment = MonitorEnvironment.objects.create(
+        MonitorEnvironment.objects.create(
             monitor=monitor,
             environment=self.environment,
             next_checkin=ts - timedelta(minutes=1),
@@ -227,15 +228,8 @@ class MonitorTaskCheckMissingTest(TestCase):
 
         check_missing(task_run_ts)
 
-        # The monitor does not get set to a timeout state
-        assert MonitorEnvironment.objects.filter(
-            id=monitor_environment.id, status=MonitorStatus.ACTIVE
-        ).exists()
-
-        # No missed monitor is created
-        assert not MonitorCheckIn.objects.filter(
-            monitor_environment=monitor_environment.id, status=CheckInStatus.MISSED
-        ).exists()
+        # We do not fire off any tasks
+        assert mark_environment_missing_mock.delay.call_count == 0
 
     def test_missing_checkin_but_disabled(self):
         self.assert_state_does_not_change_for_status(ObjectStatus.DISABLED)
