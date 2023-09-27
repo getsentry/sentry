@@ -1574,8 +1574,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         )
         assert response.status_code == 400
         assert response.json()["detail"] == (
-            "Failed to parse 'crash_free_fake'. Must be something like 'sum(my_metric)', "
-            "or a supported aggregate derived metric like `session.crash_free_rate`"
+            "Failed to parse 'crash_free_fake'. The metric name must belong to a public metric."
         )
 
     def test_crash_free_percentage(self):
@@ -2071,8 +2070,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         )
 
         assert response.data["detail"] == (
-            "Failed to parse 'transaction.all'. Must be something like 'sum(my_metric)', "
-            "or a supported aggregate derived metric like `session.crash_free_rate`"
+            "Failed to parse 'transaction.all'. The metric name must belong to a public metric."
         )
 
     def test_failure_rate_transaction(self):
@@ -2152,8 +2150,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                 interval="6m",
             )
             assert response.data["detail"] == (
-                f"Failed to parse '{private_name}'. Must be something like 'sum(my_metric)', "
-                "or a supported aggregate derived metric like `session.crash_free_rate`"
+                f"Failed to parse '{private_name}'. The metric name must belong to a public metric."
             )
 
     def test_apdex_transactions(self):
