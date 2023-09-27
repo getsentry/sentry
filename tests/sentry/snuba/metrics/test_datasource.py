@@ -26,10 +26,6 @@ class DatasourceTestCase(BaseMetricsLayerTestCase, TestCase):
             value=1,
         )
 
-        mris = get_stored_mris([self.project], UseCaseID.TRANSACTIONS)
-        assert mris == ["d:transactions/duration@millisecond"]
-
-    def test_get_stored_mris_with_session(self):
         self.store_session(
             self.build_session(
                 distinct_id="39887d89-13b2-4c84-8c23-5d13d2102666",
@@ -41,6 +37,9 @@ class DatasourceTestCase(BaseMetricsLayerTestCase, TestCase):
                 received=time.time(),
             )
         )
+
+        mris = get_stored_mris([self.project], UseCaseID.TRANSACTIONS)
+        assert mris == ["d:transactions/duration@millisecond"]
 
         mris = get_stored_mris([self.project], UseCaseID.SESSIONS)
         assert mris == [

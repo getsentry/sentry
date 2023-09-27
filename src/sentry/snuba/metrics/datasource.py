@@ -73,6 +73,15 @@ from sentry.utils.snuba import raw_snql_query
 logger = logging.getLogger(__name__)
 
 
+def _build_use_case_id_filter(use_case_id: UseCaseID):
+    use_case_value = use_case_id.value
+    # For sessions, the `use_case_id` field in Clickhouse is stored as "".
+    if use_case_id == UseCaseID.SESSIONS:
+        use_case_value = ""
+
+    return Condition(Column("use_case_id"), Op.EQ, use_case_value)
+
+
 def _get_metrics_for_entity(
     entity_key: EntityKey,
     project_ids: Sequence[int],
@@ -85,7 +94,7 @@ def _get_metrics_for_entity(
         entity_key=entity_key,
         select=[Column("metric_id")],
         groupby=[Column("metric_id")],
-        where=[],
+        where=[_build_use_case_id_filter(use_case_id)],
         referrer="snuba.metrics.get_metrics_names_for_entity",
         project_ids=project_ids,
         org_id=org_id,
