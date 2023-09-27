@@ -1,9 +1,10 @@
-import {Fragment} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import Link from 'sentry/components/links/link';
 import Panel from 'sentry/components/panels/panel';
 import {Tooltip} from 'sentry/components/tooltip';
+import {IconPin} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
@@ -22,12 +23,18 @@ function getPercent(value, total) {
   return Math.round((value['sum(span.self_time)'] / total) * 100 * 100) / 100;
 }
 
-export function SpanGroupBar() {
+type SpanGroupBarProps = {
+  onHover: (string) => void;
+};
+
+export function SpanGroupBar(props: SpanGroupBarProps) {
   const pageFilter = usePageFilters();
   const location = useLocation();
   const {selection} = pageFilter;
   const organization = useOrganization();
   const routingContext = useRoutingContext();
+  const {onHover} = props;
+  const [pinnedModule, setPinnedModule] = useState<string | null>(null);
 
   const {data: segments, isLoading: isSegmentsLoading} = useDiscoverQuery({
     eventView: EventView.fromNewQueryWithPageFilters(
@@ -64,19 +71,47 @@ export function SpanGroupBar() {
               spanModule === 'db'
                 ? `/${routingContext.baseURL}/performance/database`
                 : '';
+            function handleModulePin() {
+              if (spanModule === pinnedModule) {
+                setPinnedModule(null);
+                onHover(null);
+              } else {
+                setPinnedModule(spanModule as string);
+                onHover(spanModule);
+              }
+            }
+            const tooltipHttp = (
+              <Fragment>
+                <div>Time spent on {spanModule} across all endpoints</div>
+                <IconPin
+                  isSolid={spanModule === pinnedModule}
+                  onClick={handleModulePin}
+                />{' '}
+                {percent}%
+              </Fragment>
+            );
             return (
-              <Segment
-                to={to}
+              <StyledTooltip
                 key={index}
-                style={{width: percent + '%'}}
-                color={COLORS[index]}
+                title={tooltipHttp}
+                percent={percent}
+                isHoverable
               >
-                <Tooltip title={`${spanModule} ${percent}%`}>
+                <Segment
+                  to={to}
+                  hasLink={to !== ''}
+                  color={COLORS[index]}
+                  onMouseOver={() => pinnedModule === null && onHover(spanModule)}
+                  onMouseLeave={() => pinnedModule === null && onHover(null)}
+                >
+                  {spanModule === pinnedModule && (
+                    <StyledIconPin isSolid color={FONT_COLORS[index]} />
+                  )}
                   <SegmentText fontColor={FONT_COLORS[index]}>
                     {spanModule} {percent}%
                   </SegmentText>
-                </Tooltip>
-              </Segment>
+                </Segment>
+              </StyledTooltip>
             );
           })}
       </SegmentContainer>
@@ -102,12 +137,27 @@ const SegmentContainer = styled('div')`
   padding: ${space(1)};
 `;
 
-const Segment = styled(Link)<{color: string}>`
+const Segment = styled(Link)<{color: string; hasLink: boolean}>`
   border-radius: unset;
   background-color: ${p => p.color};
   text-align: right;
   overflow: hidden;
   direction: rtl;
+  width: 100%;
+  display: block ruby;
+  ${p => !p.hasLink && 'cursor: auto'}
+`;
+
+const StyledTooltip = styled(Tooltip)<{percent: number}>`
+  width: ${p => p.percent}%;
+  min-width: 16px;
+`;
+
+const StyledIconPin = styled(IconPin)<{color: string}>`
+  color: ${p => p.color};
+  padding: 0 ${space(0.25)};
+  margin-right: ${space(0.25)};
+  height: 100%;
 `;
 
 const SegmentText = styled('span')<{fontColor: string}>`
