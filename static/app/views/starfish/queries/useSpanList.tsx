@@ -15,7 +15,6 @@ const {
   SPAN_DESCRIPTION,
   SPAN_GROUP,
   SPAN_OP,
-  SPAN_DOMAIN,
   SPAN_DOMAIN_ARRAY,
   PROJECT_ID,
 } = SpanMetricsField;
@@ -25,7 +24,6 @@ export type SpanMetrics = {
   'http_error_count()': number;
   'project.id': number;
   'span.description': string;
-  'span.domain': string;
   'span.domain_array': Array<string>;
   'span.group': string;
   'span.op': string;
@@ -91,7 +89,6 @@ function getEventView(
     SPAN_OP,
     SPAN_GROUP,
     SPAN_DESCRIPTION,
-    SPAN_DOMAIN,
     SPAN_DOMAIN_ARRAY,
     'spm()',
     `sum(${SPAN_SELF_TIME})`,
