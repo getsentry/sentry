@@ -4,6 +4,9 @@ from sentry.models.projectownership import ProjectOwnership
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
+from sentry.testutils.skips import requires_kafka, requires_snuba
+
+pytestmark = [requires_snuba, requires_kafka]
 
 
 @region_silo_test(stable=True)

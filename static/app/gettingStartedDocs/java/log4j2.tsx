@@ -1,12 +1,13 @@
 import {Fragment} from 'react';
 
 import ExternalLink from 'sentry/components/links/externalLink';
+import Link from 'sentry/components/links/link';
 import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
 import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {t, tct} from 'sentry/locale';
 
-interface StepProps {
+interface StepsParams {
   dsn: string;
   organizationSlug?: string;
   projectSlug?: string;
@@ -34,13 +35,77 @@ export const steps = ({
   sourcePackageRegistries,
   projectSlug,
   organizationSlug,
-}: StepProps): LayoutProps['steps'] => [
+}: StepsParams): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
     description: t(
       "Install Sentry's integration with Log4j 2.x using either Maven or Gradle:"
     ),
     configurations: [
+      {
+        description: (
+          <p>
+            {tct(
+              'To see source context in Sentry, you have to generate an auth token by visiting the [link:Organization Auth Tokens] settings. You can then set the token as an environment variable that is used by the build plugins.',
+              {
+                link: <Link to="/settings/auth-tokens/" />,
+              }
+            )}
+          </p>
+        ),
+        language: 'bash',
+        code: `
+SENTRY_AUTH_TOKEN=___ORG_AUTH_TOKEN___
+            `,
+      },
+      {
+        description: <h5>{t('Gradle')}</h5>,
+        configurations: [
+          {
+            description: (
+              <p>
+                {tct(
+                  'The [link:Sentry Gradle Plugin] automatically installs the Sentry SDK as well as available integrations for your dependencies. Add the following to your [code:build.gradle] file:',
+                  {
+                    code: <code />,
+                    link: (
+                      <ExternalLink href="https://github.com/getsentry/sentry-android-gradle-plugin" />
+                    ),
+                  }
+                )}
+              </p>
+            ),
+            language: 'groovy',
+            code: `
+buildscript {
+  repositories {
+    mavenCentral()
+  }
+}
+
+plugins {
+  id "io.sentry.jvm.gradle" version "${
+    sourcePackageRegistries?.isLoading
+      ? t('\u2026loading')
+      : sourcePackageRegistries?.data?.['sentry.java.android.gradle-plugin']?.version ??
+        '3.12.0'
+  }"
+}
+
+sentry {
+  // Generates a JVM (Java, Kotlin, etc.) source bundle and uploads your source code to Sentry.
+  // This enables source context, allowing you to see your source
+  // code as part of your stack traces in Sentry.
+  includeSourceContext = true
+
+  org = "${organizationSlug}"
+  projectName = "${projectSlug}"
+  authToken = System.getenv("SENTRY_AUTH_TOKEN")
+}
+            `,
+          },
+        ],
+      },
       {
         description: <h5>{t('Maven')}</h5>,
         configurations: [
@@ -74,16 +139,11 @@ export const steps = ({
       <version>${
         sourcePackageRegistries?.isLoading
           ? t('\u2026loading')
-          : sourcePackageRegistries?.data?.['sentry.java.mavenplugin']?.version ?? '0.0.3'
+          : sourcePackageRegistries?.data?.['sentry.java.mavenplugin']?.version ?? '0.0.4'
       }</version>
       <configuration>
       <!-- for showing output of sentry-cli -->
       <debugSentryCli>true</debugSentryCli>
-
-      <!-- download the latest sentry-cli and provide path to it here -->
-      <!-- download it here: https://github.com/getsentry/sentry-cli/releases -->
-      <!-- minimum required version is 2.17.3 -->
-      <sentryCliExecutablePath>/path/to/sentry-cli</sentryCliExecutablePath>
 
       <org>${organizationSlug}</org>
 
@@ -93,8 +153,7 @@ export const steps = ({
       <!--<url>http://localhost:8000/</url>-->
 
       <!-- provide your auth token via SENTRY_AUTH_TOKEN environment variable -->
-      <!-- you can find it in Sentry UI: Settings > Account > API > Auth Tokens -->
-      <authToken>env.SENTRY_AUTH_TOKEN</authToken>
+      <authToken>\${env.SENTRY_AUTH_TOKEN}</authToken>
       </configuration>
       <executions>
         <execution>
@@ -109,54 +168,6 @@ export const steps = ({
   ...
 </build>
         `,
-          },
-        ],
-      },
-      {
-        description: <h5>{t('Graddle')}</h5>,
-        configurations: [
-          {
-            language: 'groovy',
-            partialLoading: sourcePackageRegistries?.isLoading,
-            code: `implementation 'io.sentry:sentry-log4j2:${
-              sourcePackageRegistries?.isLoading
-                ? t('\u2026loading')
-                : sourcePackageRegistries?.data?.['sentry.java.log4j2']?.version ??
-                  '6.27.0'
-            }'`,
-          },
-          {
-            description: t(
-              'To upload your source code to Sentry so it can be shown in stack traces, use our Gradle plugin.'
-            ),
-            language: 'groovy',
-            code: `
-buildscript {
-  repositories {
-    mavenCentral()
-  }
-}
-
-plugins {
-  id "io.sentry.jvm.gradle" version "${
-    sourcePackageRegistries?.isLoading
-      ? t('\u2026loading')
-      : sourcePackageRegistries?.data?.['sentry.java.android.gradle-plugin']?.version ??
-        '3.11.1'
-  }"
-}
-
-sentry {
-  // Generates a JVM (Java, Kotlin, etc.) source bundle and uploads your source code to Sentry.
-  // This enables source context, allowing you to see your source
-  // code as part of your stack traces in Sentry.
-  includeSourceContext = true
-
-  org = "${organizationSlug}"
-  projectName = "${projectSlug}"
-  authToken = "your-sentry-auth-token"
-}
-            `,
           },
         ],
       },
@@ -295,6 +306,15 @@ try {
     ),
   },
 ];
+
+export const nextSteps = [
+  {
+    id: 'examples',
+    name: t('Examples'),
+    description: t('Check out our sample applications.'),
+    link: 'https://github.com/getsentry/sentry-java/tree/main/sentry-samples',
+  },
+];
 // Configuration End
 
 export function GettingStartedWithLog4j2({
@@ -304,6 +324,8 @@ export function GettingStartedWithLog4j2({
   organization,
   ...props
 }: ModuleProps) {
+  const nextStepDocs = [...nextSteps];
+
   return (
     <Layout
       steps={steps({
@@ -312,7 +334,9 @@ export function GettingStartedWithLog4j2({
         projectSlug: projectSlug ?? '___PROJECT_SLUG___',
         organizationSlug: organization?.slug ?? '___ORG_SLUG___',
       })}
+      nextSteps={nextStepDocs}
       introduction={introduction}
+      projectSlug={projectSlug}
       {...props}
     />
   );

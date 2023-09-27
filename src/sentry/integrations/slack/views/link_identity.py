@@ -6,12 +6,12 @@ from rest_framework.request import Request
 from sentry import features
 from sentry.integrations.utils import get_identity_or_404
 from sentry.models import Identity, Integration, NotificationSetting
-from sentry.notifications.helpers import user_has_any_provider_settings
+from sentry.notifications.notificationcontroller import NotificationController
 from sentry.notifications.notifications.integration_nudge import IntegrationNudgeNotification
 from sentry.types.integrations import ExternalProviderEnum, ExternalProviders
 from sentry.utils.signing import unsign
 from sentry.web.decorators import transaction_start
-from sentry.web.frontend.base import BaseView
+from sentry.web.frontend.base import BaseView, control_silo_view
 from sentry.web.helpers import render_to_response
 
 from ..utils import send_slack_response
@@ -35,6 +35,7 @@ def build_linking_url(
     )
 
 
+@control_silo_view
 class SlackLinkIdentityView(BaseView):
     """
     Django view for linking user to slack account. Creates an entry on Identity table.
@@ -69,8 +70,13 @@ class SlackLinkIdentityView(BaseView):
         send_slack_response(integration, SUCCESS_LINKED_MESSAGE, params, command="link")
         has_slack_settings = None
         if features.has("organizations:notification-settings-v2", organization):
-            has_slack_settings = user_has_any_provider_settings(
-                request.user, ExternalProviderEnum.SLACK
+            controller = NotificationController(
+                recipients=[request.user],
+                organization_id=organization.id,
+                provider=ExternalProviderEnum.SLACK,
+            )
+            has_slack_settings = controller.user_has_any_provider_settings(
+                ExternalProviderEnum.SLACK
             )
         else:
             has_slack_settings = NotificationSetting.objects.has_any_provider_settings(

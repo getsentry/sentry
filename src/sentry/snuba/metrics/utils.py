@@ -96,8 +96,11 @@ MetricOperationType = Literal[
     "min_timestamp",
     "max_timestamp",
     # Custom operations used for on demand derived metrics.
-    "on_demand_failure_rate",
     "on_demand_apdex",
+    "on_demand_epm",
+    "on_demand_eps",
+    "on_demand_failure_count",
+    "on_demand_failure_rate",
 ]
 MetricUnit = Literal[
     "nanosecond",
@@ -259,8 +262,7 @@ class MetricMeta(TypedDict):
     type: MetricType
     operations: Collection[MetricOperationType]
     unit: Optional[MetricUnit]
-    metric_id: Optional[int]
-    mri_string: str
+    mri: str
 
 
 class MetricMetaWithTagKeys(MetricMeta):
@@ -286,8 +288,11 @@ DERIVED_OPERATIONS = (
     "min_timestamp",
     "max_timestamp",
     # Custom operations used for on demand derived metrics.
-    "on_demand_failure_rate",
     "on_demand_apdex",
+    "on_demand_epm",
+    "on_demand_eps",
+    "on_demand_failure_count",
+    "on_demand_failure_rate",
 )
 OPERATIONS = (
     (
@@ -431,7 +436,7 @@ def to_intervals(
 
 def get_num_intervals(
     start: Optional[datetime],
-    end: datetime,
+    end: Optional[datetime],
     granularity: int,
     interval: Optional[int] = None,
 ) -> int:

@@ -485,7 +485,7 @@ class MetricsQueryBuilder(QueryBuilder):
             return value
         return self.resolve_metric_index(value)
 
-    def _default_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+    def default_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         name = search_filter.key.name
         operator = search_filter.operator
         value = search_filter.value.value
@@ -516,13 +516,19 @@ class MetricsQueryBuilder(QueryBuilder):
                 resolved_value = []
                 for item in value:
                     resolved_item = self.resolve_tag_value(item)
-                    if resolved_item is None:
+                    if (
+                        resolved_item is None
+                        and not self.builder_config.skip_field_validation_for_entity_subscription_deletion
+                    ):
                         raise IncompatibleMetricsQuery(f"{name} value {item} in filter not found")
                     resolved_value.append(resolved_item)
                 value = resolved_value
             else:
                 resolved_item = self.resolve_tag_value(value)
-                if resolved_item is None:
+                if (
+                    resolved_item is None
+                    and not self.builder_config.skip_field_validation_for_entity_subscription_deletion
+                ):
                     raise IncompatibleMetricsQuery(f"{name} value {value} in filter not found")
                 value = resolved_item
 
@@ -846,6 +852,9 @@ class MetricsQueryBuilder(QueryBuilder):
                     entity=Entity("generic_metrics_distributions", sample=self.sample_rate),
                 )
             }
+
+        self.tenant_ids = self.tenant_ids or dict()
+        self.tenant_ids["use_case_id"] = self.use_case_id.value
 
         if self.builder_config.use_metrics_layer or self._on_demand_metric_spec:
             from sentry.snuba.metrics.datasource import get_series

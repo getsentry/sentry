@@ -6,7 +6,7 @@ import {GettingStartedWithStarlette, steps} from './starlette';
 
 describe('GettingStartedWithDjango', function () {
   it('renders doc correctly', function () {
-    const {container} = render(<GettingStartedWithStarlette dsn="test-dsn" />);
+    render(<GettingStartedWithStarlette dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps({sentryInitContent: 'test-init-content'})) {
@@ -14,7 +14,5 @@ describe('GettingStartedWithDjango', function () {
         screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
       ).toBeInTheDocument();
     }
-
-    expect(container).toSnapshot();
   });
 });

@@ -4,25 +4,26 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import SentryAppComponentIcon from 'sentry/components/sentryAppComponentIcon';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {SentryAppComponent} from 'sentry/types';
+import {SentryAppComponent, SentryAppSchemaStacktraceLink} from 'sentry/types';
 import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
 import {recordInteraction} from 'sentry/utils/recordSentryAppInteraction';
 
 type Props = {
-  components: SentryAppComponent[];
+  components: SentryAppComponent<SentryAppSchemaStacktraceLink>[];
   filename: string;
   lineNo: number;
 };
 
 function OpenInContextLine({lineNo, filename, components}: Props) {
   const handleRecordInteraction =
-    (slug: SentryAppComponent['sentryApp']['slug']) => () => {
+    (slug: SentryAppComponent<SentryAppSchemaStacktraceLink>['sentryApp']['slug']) =>
+    () => {
       recordInteraction(slug, 'sentry_app_component_interacted', {
         componentType: 'stacktrace-link',
       });
     };
 
-  const getUrl = (url: SentryAppComponent['schema']['url']) => {
+  const getUrl = (url: SentryAppSchemaStacktraceLink['url']) => {
     return addQueryParamsToExistingUrl(url, {lineNo, filename});
   };
 

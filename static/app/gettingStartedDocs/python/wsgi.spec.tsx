@@ -6,7 +6,7 @@ import {GettingStartedWithWSGI, steps} from './wsgi';
 
 describe('GettingStartedWithWSGI', function () {
   it('renders doc correctly', function () {
-    const {container} = render(<GettingStartedWithWSGI dsn="test-dsn" />);
+    render(<GettingStartedWithWSGI dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps({sentryInitContent: 'test-init-content'})) {
@@ -14,7 +14,5 @@ describe('GettingStartedWithWSGI', function () {
         screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
       ).toBeInTheDocument();
     }
-
-    expect(container).toSnapshot();
   });
 });

@@ -14,6 +14,7 @@
             "is_managed": false,
             "is_sentry_app": null,
             "is_password_expired": false,
+            "is_unclaimed": false,
             "last_password_change": "2023-06-22T22:59:57.023Z",
             "flags": "0",
             "session_nonce": null,

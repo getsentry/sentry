@@ -19,17 +19,19 @@ metric that is queryable by the API.
 __all__ = (
     "SessionMRI",
     "TransactionMRI",
+    "SpanMRI",
     "MRI_SCHEMA_REGEX",
     "MRI_EXPRESSION_REGEX",
     "parse_mri",
+    "get_available_operations",
 )
 
 import re
 from dataclasses import dataclass
 from enum import Enum
-from typing import Optional
+from typing import List, Optional
 
-from sentry.snuba.metrics.utils import OP_REGEX
+from sentry.snuba.metrics.utils import AVAILABLE_GENERIC_OPERATIONS, AVAILABLE_OPERATIONS, OP_REGEX
 
 NAMESPACE_REGEX = r"(transactions|errors|issues|sessions|alerts|custom|spans)"
 ENTITY_TYPE_REGEX = r"(c|s|d|g|e)"
@@ -38,7 +40,7 @@ ENTITY_TYPE_REGEX = r"(c|s|d|g|e)"
 MRI_NAME_REGEX = r"([a-z_]+(?:\.[a-z_]+)*)"
 # ToDo(ahmed): Add a better regex for unit portion for MRI
 MRI_SCHEMA_REGEX_STRING = rf"(?P<entity>{ENTITY_TYPE_REGEX}):(?P<namespace>{NAMESPACE_REGEX})/(?P<name>{MRI_NAME_REGEX})@(?P<unit>[\w.]*)"
-MRI_SCHEMA_REGEX = re.compile(MRI_SCHEMA_REGEX_STRING)
+MRI_SCHEMA_REGEX = re.compile(rf"^{MRI_SCHEMA_REGEX_STRING}$")
 MRI_EXPRESSION_REGEX = re.compile(rf"^{OP_REGEX}\(({MRI_SCHEMA_REGEX_STRING})\)$")
 
 
@@ -138,6 +140,21 @@ class TransactionMRI(Enum):
     SET_ON_DEMAND = "s:transactions/on_demand@none"
 
 
+class SpanMRI(Enum):
+    USER = "s:spans/user@none"
+    DURATION = "d:spans/duration@millisecond"
+    SELF_TIME = "d:spans/exclusive_time@millisecond"
+    SELF_TIME_LIGHT = "d:spans/exclusive_time_light@millisecond"
+
+    # Derived
+    ALL = "e:spans/all@none"
+    ALL_LIGHT = "e:spans_light/all@none"
+    HTTP_ERROR_COUNT = "e:spans/http_error_count@none"
+    HTTP_ERROR_RATE = "e:spans/http_error_rate@ratio"
+    HTTP_ERROR_COUNT_LIGHT = "e:spans/http_error_count_light@none"
+    HTTP_ERROR_RATE_LIGHT = "e:spans/http_error_rate_light@ratio"
+
+
 @dataclass
 class ParsedMRI:
     entity: str
@@ -172,3 +189,20 @@ def is_custom_measurement(parsed_mri: ParsedMRI) -> bool:
         # Iterate through the transaction MRI and check that this parsed_mri isn't in there
         parsed_mri.mri_string not in [mri.value for mri in TransactionMRI.__members__.values()]
     )
+
+
+def get_available_operations(parsed_mri: ParsedMRI) -> List[str]:
+    entity_name_suffixes = {
+        "c": "counters",
+        "s": "sets",
+        "d": "distributions",
+        "g": "gauges",
+    }
+    if parsed_mri.entity == "e":
+        return []
+    elif parsed_mri.namespace == "sessions":
+        entity_key = f"metrics_{entity_name_suffixes[parsed_mri.entity]}"
+        return AVAILABLE_OPERATIONS[entity_key]
+    else:
+        entity_key = f"generic_metrics_{entity_name_suffixes[parsed_mri.entity]}"
+        return AVAILABLE_GENERIC_OPERATIONS[entity_key]

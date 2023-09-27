@@ -17,7 +17,6 @@ from sentry.auth.authenticators import (
     available_authenticators,
 )
 from sentry.auth.authenticators.base import EnrollmentStatus
-from sentry.backup.mixins import SanitizeUserImportsMixin
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BaseManager,
@@ -140,8 +139,10 @@ class AuthenticatorConfig(PickledObjectField):
 
 
 @control_silo_only_model
-class Authenticator(SanitizeUserImportsMixin, BaseModel):
-    __relocation_scope__ = RelocationScope.User
+class Authenticator(BaseModel):
+    # It only makes sense to import/export this data when doing a full global backup/restore, so it
+    # lives in the `Global` scope, even though it only depends on the `User` model.
+    __relocation_scope__ = RelocationScope.Global
 
     id = BoundedAutoField(primary_key=True)
     user = FlexibleForeignKey("sentry.User", db_index=True)

@@ -6,7 +6,7 @@ import {GettingStartedWithMacos, steps} from './apple-macos';
 
 describe('GettingStartedWithMacos', function () {
   it('renders doc correctly', function () {
-    const {container} = render(<GettingStartedWithMacos dsn="test-dsn" />);
+    render(<GettingStartedWithMacos dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps()) {
@@ -14,7 +14,5 @@ describe('GettingStartedWithMacos', function () {
         screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
       ).toBeInTheDocument();
     }
-
-    expect(container).toSnapshot();
   });
 });

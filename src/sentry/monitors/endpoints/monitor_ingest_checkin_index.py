@@ -15,10 +15,10 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.serializers import serialize
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.parameters import GlobalParams, MonitorParams
-from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
 from sentry.models import Project, ProjectKey
 from sentry.monitors.logic.mark_failed import mark_failed
+from sentry.monitors.logic.mark_ok import mark_ok
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
@@ -28,7 +28,7 @@ from sentry.monitors.models import (
     MonitorEnvironmentValidationFailed,
     MonitorLimitsExceeded,
 )
-from sentry.monitors.serializers import MonitorCheckInSerializerResponse
+from sentry.monitors.serializers import MonitorCheckInSerializer
 from sentry.monitors.utils import get_timeout_at, signal_first_checkin, signal_first_monitor_created
 from sentry.monitors.validators import MonitorCheckInValidator
 from sentry.ratelimits.config import RateLimitConfig
@@ -71,12 +71,8 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
         ],
         request=MonitorCheckInValidator,
         responses={
-            200: inline_sentry_response_serializer(
-                "MonitorCheckIn", MonitorCheckInSerializerResponse
-            ),
-            201: inline_sentry_response_serializer(
-                "MonitorCheckIn", MonitorCheckInSerializerResponse
-            ),
+            200: MonitorCheckInSerializer,
+            201: MonitorCheckInSerializer,
             400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             404: RESPONSE_NOT_FOUND,
@@ -215,13 +211,13 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
             signal_first_checkin(project, monitor)
 
             if checkin.status == CheckInStatus.ERROR:
-                monitor_failed = mark_failed(monitor_environment, last_checkin=checkin.date_added)
+                monitor_failed = mark_failed(checkin, ts=checkin.date_added)
                 if not monitor_failed:
                     if isinstance(request.auth, ProjectKey):
                         return self.respond(status=200)
                     return self.respond(serialize(checkin, request.user), status=200)
             else:
-                monitor_environment.mark_ok(checkin, checkin.date_added)
+                mark_ok(checkin, checkin.date_added)
 
         if isinstance(request.auth, ProjectKey):
             return self.respond({"id": str(checkin.guid)}, status=201)

@@ -66,6 +66,7 @@ class NotifyEmailAction(EventAction):
                 target_identifier,
                 fallthrough_type,
                 skip_digests,
+                notification_uuid,
             )
         )
 

@@ -6,7 +6,7 @@ import ProjectOwnershipModal from './modal';
 
 describe('Project Ownership', () => {
   const org = TestStubs.Organization();
-  const project = TestStubs.ProjectDetails();
+  const project = TestStubs.Project();
   const issueId = '1234';
   const stacktrace = TestStubs.EventEntryStacktrace();
   const event = TestStubs.Event({

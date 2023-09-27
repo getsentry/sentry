@@ -1,3 +1,5 @@
+import {Project as MockProject} from 'sentry-fixture/project';
+
 import {
   EventOrGroupType,
   type Group as GroupType,
@@ -7,11 +9,7 @@ import {
   IssueType,
 } from 'sentry/types';
 
-import {Project} from './project';
-
 export function Group(params: Partial<GroupType> = {}): GroupType {
-  const project = Project();
-
   const unresolvedGroup: GroupUnresolved = {
     activity: [],
     annotations: [],
@@ -39,10 +37,8 @@ export function Group(params: Partial<GroupType> = {}): GroupType {
     pluginActions: [],
     pluginContexts: [],
     pluginIssues: [],
-    project: TestStubs.Project({
+    project: MockProject({
       platform: 'javascript',
-      id: project.id,
-      slug: project.slug,
     }),
     seenBy: [],
     shareId: '',

@@ -27,6 +27,10 @@ inputs:
     description: 'Is bigtable required?'
     required: false
     default: 'false'
+  symbolicator:
+    description: 'Is symbolicator required?'
+    required: false
+    default: 'false'
   python-version:
     description: 'python version to install'
     required: false
@@ -40,9 +44,6 @@ outputs:
   yarn-cache-dir:
     description: 'Path to yarn cache'
     value: ${{ steps.config.outputs.yarn-cache-dir }}
-  acceptance-dir:
-    description: 'Path to acceptance visual snapshot artifacts'
-    value: ${{ steps.config.outputs.acceptance-dir }}
   matrix-instance-number:
     description: 'The matrix instance number (starting at 1)'
     value: ${{ steps.config.outputs.matrix-instance-number }}
@@ -70,7 +71,6 @@ runs:
 
         ### node configuration ###
         echo "NODE_ENV=development" >> $GITHUB_ENV
-        echo "NODE_OPTIONS=--max-old-space-size=4096" >> $GITHUB_ENV
 
         ### pytest configuration ###
         echo "PY_COLORS=1" >> "$GITHUB_ENV"
@@ -120,7 +120,6 @@ runs:
         echo "yarn-cache-dir=$(yarn cache dir)" >> "$GITHUB_OUTPUT"
         echo "matrix-instance-number=$(($MATRIX_INSTANCE+1))" >> "$GITHUB_OUTPUT"
         echo "matrix-instance-total=$((${MATRIX_INSTANCE_TOTAL:-}))" >> "$GITHUB_OUTPUT"
-        echo "acceptance-dir=.artifacts/visual-snapshots/acceptance" >> "$GITHUB_OUTPUT"
 
     - name: Install python dependencies
       shell: bash --noprofile --norc -eo pipefail -ux {0}
@@ -141,6 +140,7 @@ runs:
         NEED_CLICKHOUSE: ${{ inputs.clickhouse }}
         NEED_BIGTABLE: ${{ inputs.bigtable }}
         NEED_CHARTCUTERIE: ${{ inputs.chartcuterie }}
+        NEED_SYMBOLICATOR: ${{ inputs.symbolicator }}
         WORKDIR: ${{ inputs.workdir }}
         PG_VERSION: ${{ inputs.pg-version }}
         ENABLE_AUTORUN_MIGRATION_SEARCH_ISSUES: '1'
@@ -148,47 +148,37 @@ runs:
         sentry init
 
         # redis, postgres are needed for almost every code path.
-        services='redis postgres'
+        services=(redis postgres)
 
         if [ "$NEED_CLICKHOUSE" = "true" ] || [ "$NEED_SNUBA" = "true" ]; then
-          services="${services} clickhouse"
+          services+=(clickhouse)
         fi
 
         if [ "$NEED_SNUBA" = "true" ]; then
-          services="${services} snuba"
+          services+=(snuba)
         fi
 
         if [ "$NEED_BIGTABLE" = "true" ]; then
           echo "BIGTABLE_EMULATOR_HOST=127.0.0.1:8086" >> $GITHUB_ENV
-          services="${services} bigtable"
+          services+=(bigtable)
         fi
 
         if [ "$NEED_CHARTCUTERIE" = "true" ]; then
-          services="${services} chartcuterie"
+          services+=(chartcuterie)
         fi
 
-        # TODO: reuse devservices
+        if [ "$NEED_SYMBOLICATOR" = "true" ]; then
+          services+=(symbolicator)
+        fi
+
         if [ "$NEED_KAFKA" = "true" ]; then
-          docker run \
-            --name sentry_kafka \
-            -d --network host \
-            -e KAFKA_PROCESS_ROLES=broker,controller \
-            -e KAFKA_CONTROLLER_QUORUM_VOTERS=1@127.0.0.1:29093 \
-            -e KAFKA_CONTROLLER_LISTENER_NAMES=CONTROLLER \
-            -e KAFKA_NODE_ID=1 \
-            -e CLUSTER_ID=MkU3OEVBNTcwNTJENDM2Qk \
-            -e KAFKA_LISTENERS=PLAINTEXT://0.0.0.0:29092,EXTERNAL://0.0.0.0:9092,CONTROLLER://0.0.0.0:29093 \
-            -e KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://127.0.0.1:9093,EXTERNAL://127.0.0.1:9092 \
-            -e KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT \
-            -e KAFKA_INTER_BROKER_LISTENER_NAME=PLAINTEXT \
-            -e KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1 \
-            confluentinc/cp-kafka:7.5.0 \
-            &
+          services+=(zookeeper kafka)
         fi
 
-        sentry devservices up $services &
+        sentry devservices up "${services[@]}"
 
-        wait
+        # have tests listen on the docker gateway ip so loopback can occur
+        echo "DJANGO_LIVE_TEST_SERVER_ADDRESS=$(docker network inspect bridge --format='{{(index .IPAM.Config 0).Gateway}}')" >> "$GITHUB_ENV"
 
         docker ps -a
 
@@ -196,4 +186,3 @@ runs:
         # without needing to fork it. The path needed is the one where tools are located
         cd "$WORKDIR"
         python3 -u -S -m tools.devservices_healthcheck
-        cd -

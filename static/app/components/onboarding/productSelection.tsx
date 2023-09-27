@@ -2,15 +2,18 @@ import {Fragment, ReactNode, useCallback, useEffect, useMemo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {openModal} from 'sentry/actionCreators/modal';
+import {FeatureDisabledModal} from 'sentry/components/acl/featureDisabledModal';
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import Checkbox from 'sentry/components/checkbox';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {Tooltip} from 'sentry/components/tooltip';
-import {PlatformKey} from 'sentry/data/platformCategories';
 import {IconQuestion} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {PlatformKey} from 'sentry/types';
+import {Organization} from 'sentry/types';
 import {decodeList} from 'sentry/utils/queryString';
 import useRouter from 'sentry/utils/useRouter';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
@@ -22,12 +25,57 @@ export enum ProductSolution {
   PROFILING = 'profiling',
 }
 
+interface DisabledProduct {
+  reason: ReactNode;
+  onClick?: () => void;
+}
+
+export type DisabledProducts = Partial<Record<ProductSolution, DisabledProduct>>;
+
+function getDisabledProducts(organization: Organization): DisabledProducts {
+  const disabledProducts: DisabledProducts = {};
+  const hasSessionReplay = organization.features.includes('session-replay');
+  const hasPerformance = organization.features.includes('performance-view');
+  const hasProfiling = organization.features.includes('profiling-view');
+
+  const reason = t('This feature is not enabled on your Sentry installation.');
+  const createClickHandler = (feature: string, featureName: string) => () => {
+    openModal(deps => (
+      <FeatureDisabledModal {...deps} features={[feature]} featureName={featureName} />
+    ));
+  };
+
+  if (!hasSessionReplay) {
+    disabledProducts[ProductSolution.SESSION_REPLAY] = {
+      reason,
+      onClick: createClickHandler('organizations:session-replay', 'Session Replay'),
+    };
+  }
+  if (!hasPerformance) {
+    disabledProducts[ProductSolution.PERFORMANCE_MONITORING] = {
+      reason,
+      onClick: createClickHandler(
+        'organizations:performance-view',
+        'Performance Monitoring'
+      ),
+    };
+  }
+  if (!hasProfiling) {
+    disabledProducts[ProductSolution.PROFILING] = {
+      reason,
+      onClick: createClickHandler('organizations:profiling-view', 'Profiling'),
+    };
+  }
+  return disabledProducts;
+}
+
 // This is the list of products that are available for each platform
 // Since the ProductSelection component is rendered in the onboarding/project creation flow only, it is ok to have this list here
 // NOTE: Please keep the prefix in alphabetical order
 export const platformProductAvailability = {
   android: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'apple-ios': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  bun: [ProductSolution.PERFORMANCE_MONITORING],
   javascript: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.SESSION_REPLAY],
   'javascript-react': [
     ProductSolution.PERFORMANCE_MONITORING,
@@ -49,19 +97,11 @@ export const platformProductAvailability = {
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.SESSION_REPLAY,
   ],
-  'javascript-nextjs': [
-    ProductSolution.PERFORMANCE_MONITORING,
-    ProductSolution.SESSION_REPLAY,
-  ],
   'javascript-remix': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.SESSION_REPLAY,
   ],
   'javascript-svelte': [
-    ProductSolution.PERFORMANCE_MONITORING,
-    ProductSolution.SESSION_REPLAY,
-  ],
-  'javascript-sveltekit': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.SESSION_REPLAY,
   ],
@@ -78,12 +118,15 @@ export const platformProductAvailability = {
     ProductSolution.PROFILING,
   ],
   'node-koa': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  php: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'php-laravel': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  ['php-symfony']: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   python: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-aiohttp': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'python-asgi': [ProductSolution.PERFORMANCE_MONITORING],
   'python-awslambda': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-bottle': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-celery': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
-  'python-chalice': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-django': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-falcon': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-fastapi': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
@@ -92,25 +135,17 @@ export const platformProductAvailability = {
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
   ],
-  'python-pyramid': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-quart': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-rq': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
-  'python-sanic': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-serverless': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
   ],
   'python-tornado': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-starlette': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
-  'python-tryton': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-wsgi': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'java-spring-boot': [ProductSolution.PERFORMANCE_MONITORING],
 } as Record<PlatformKey, ProductSolution[]>;
-
-export type DisabledProduct = {
-  reason: string;
-  onClick?: () => void;
-  product?: ProductSolution;
-};
 
 type ProductProps = {
   /**
@@ -196,9 +231,13 @@ function Product({
 
 export type ProductSelectionProps = {
   /**
+   * The current organization
+   */
+  organization: Organization;
+  /**
    * List of products that are disabled. All of them have to contain a reason by default and optionally an onClick handler.
    */
-  disabledProducts?: DisabledProduct[];
+  disabledProducts?: DisabledProducts;
   /**
    * If true, the loader script is used instead of the npm/yarn guide.
    */
@@ -219,12 +258,12 @@ export type ProductSelectionProps = {
 };
 
 export function ProductSelection({
-  disabledProducts,
+  disabledProducts: disabledProductsProp,
   lazyLoader,
-  skipLazyLoader,
+  organization,
   platform,
-  withBottomMargin,
   productsPerPlatform = platformProductAvailability,
+  skipLazyLoader,
 }: ProductSelectionProps) {
   const router = useRouter();
   const urlProducts = decodeList(router.location.query.product);
@@ -232,13 +271,12 @@ export function ProductSelection({
     ? productsPerPlatform[platform]
     : undefined;
 
+  const disabledProducts = useMemo(
+    () => disabledProductsProp ?? getDisabledProducts(organization),
+    [organization, disabledProductsProp]
+  );
   const defaultProducts = useMemo(() => {
-    return (
-      products?.filter(
-        product =>
-          !disabledProducts?.some(disabledProduct => disabledProduct.product === product)
-      ) ?? []
-    );
+    return products?.filter(product => !(product in disabledProducts)) ?? [];
   }, [products, disabledProducts]);
 
   useEffect(() => {
@@ -295,7 +333,8 @@ export function ProductSelection({
   // TODO(aknaus): clean up
   // The package manager info is only shown for javascript platforms
   // until we improve multi snippet suppport
-  const showPackageManagerInfo = platform?.indexOf('javascript') === 0;
+  const showPackageManagerInfo =
+    platform?.indexOf('javascript') === 0 || platform?.indexOf('node') === 0;
 
   return (
     <Fragment>
@@ -326,10 +365,7 @@ export function ProductSelection({
             )}
             docLink="https://docs.sentry.io/platforms/javascript/guides/react/performance/"
             onClick={() => handleClickProduct(ProductSolution.PERFORMANCE_MONITORING)}
-            disabled={disabledProducts?.find(
-              disabledProduct =>
-                disabledProduct.product === ProductSolution.PERFORMANCE_MONITORING
-            )}
+            disabled={disabledProducts[ProductSolution.PERFORMANCE_MONITORING]}
             checked={urlProducts.includes(ProductSolution.PERFORMANCE_MONITORING)}
           />
         )}
@@ -341,10 +377,7 @@ export function ProductSelection({
             )}
             docLink="https://docs.sentry.io/platforms/javascript/guides/react/session-replay/"
             onClick={() => handleClickProduct(ProductSolution.SESSION_REPLAY)}
-            disabled={disabledProducts?.find(
-              disabledProduct =>
-                disabledProduct.product === ProductSolution.SESSION_REPLAY
-            )}
+            disabled={disabledProducts[ProductSolution.SESSION_REPLAY]}
             checked={urlProducts.includes(ProductSolution.SESSION_REPLAY)}
           />
         )}
@@ -359,9 +392,7 @@ export function ProductSelection({
             )}
             docLink="https://docs.sentry.io/platforms/python/profiling/"
             onClick={() => handleClickProduct(ProductSolution.PROFILING)}
-            disabled={disabledProducts?.find(
-              disabledProduct => disabledProduct.product === ProductSolution.PROFILING
-            )}
+            disabled={disabledProducts[ProductSolution.PROFILING]}
             checked={urlProducts.includes(ProductSolution.PROFILING)}
           />
         )}
@@ -379,7 +410,6 @@ export function ProductSelection({
           })}
         </AlternativeInstallationAlert>
       )}
-      <Divider withBottomMargin={withBottomMargin} />
     </Fragment>
   );
 }
@@ -432,14 +462,6 @@ const ProductButtonInner = styled('div')`
   grid-template-columns: repeat(3, max-content);
   gap: ${space(1)};
   align-items: center;
-`;
-
-const Divider = styled('hr')<{withBottomMargin?: boolean}>`
-  height: 1px;
-  width: 100%;
-  background: ${p => p.theme.border};
-  border: none;
-  ${p => p.withBottomMargin && `margin-bottom: ${space(3)}`}
 `;
 
 const TooltipDescription = styled('div')`

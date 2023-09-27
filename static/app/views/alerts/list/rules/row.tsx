@@ -114,6 +114,15 @@ function RuleListRow({
     );
   }
 
+  function renderSnoozeStatus(): React.ReactNode {
+    return (
+      <IssueAlertStatusWrapper>
+        <IconMute size="sm" color="subText" />
+        {t('Muted')}
+      </IssueAlertStatusWrapper>
+    );
+  }
+
   function renderAlertRuleStatus(): React.ReactNode {
     if (isIssueAlert(rule)) {
       if (rule.status === 'disabled') {
@@ -125,14 +134,13 @@ function RuleListRow({
         );
       }
       if (rule.snooze) {
-        return (
-          <IssueAlertStatusWrapper>
-            <IconMute size="sm" color="subText" />
-            {t('Muted')}
-          </IssueAlertStatusWrapper>
-        );
+        return renderSnoozeStatus();
       }
       return null;
+    }
+
+    if (rule.snooze) {
+      return renderSnoozeStatus();
     }
 
     const criticalTrigger = rule.triggers.find(
@@ -435,10 +443,10 @@ const IssueAlertStatusWrapper = styled('div')`
 `;
 
 const AlertNameWrapper = styled('div')<{isIssueAlert?: boolean}>`
+  ${p => p.theme.overflowEllipsis}
   display: flex;
   align-items: center;
   gap: ${space(2)};
-  position: relative;
   ${p => p.isIssueAlert && `padding: ${space(3)} ${space(2)}; line-height: 2.4;`}
 `;
 
@@ -450,16 +458,6 @@ const AlertNameAndStatus = styled('div')`
 const AlertName = styled('div')`
   ${p => p.theme.overflowEllipsis}
   font-size: ${p => p.theme.fontSizeLarge};
-
-  @media (max-width: ${p => p.theme.breakpoints.xlarge}) {
-    max-width: 300px;
-  }
-  @media (max-width: ${p => p.theme.breakpoints.large}) {
-    max-width: 165px;
-  }
-  @media (max-width: ${p => p.theme.breakpoints.medium}) {
-    max-width: 100px;
-  }
 `;
 
 const AlertIncidentDate = styled('div')`

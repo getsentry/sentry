@@ -1,12 +1,13 @@
 import {Fragment} from 'react';
 
 import ExternalLink from 'sentry/components/links/externalLink';
+import Link from 'sentry/components/links/link';
 import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
 import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {t, tct} from 'sentry/locale';
 
-interface StepProps {
+interface StepsParams {
   dsn: string;
   organizationSlug?: string;
   projectSlug?: string;
@@ -31,11 +32,27 @@ export const steps = ({
   sourcePackageRegistries,
   projectSlug,
   organizationSlug,
-}: StepProps): LayoutProps['steps'] => [
+}: StepsParams): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
     description: t('Install the SDK via Gradle, Maven, or SBT:'),
     configurations: [
+      {
+        description: (
+          <p>
+            {tct(
+              'To see source context in Sentry, you have to generate an auth token by visiting the [link:Organization Auth Tokens] settings. You can then set the token as an environment variable that is used by the build plugins.',
+              {
+                link: <Link to="/settings/auth-tokens/" />,
+              }
+            )}
+          </p>
+        ),
+        language: 'bash',
+        code: `
+SENTRY_AUTH_TOKEN=___ORG_AUTH_TOKEN___
+            `,
+      },
       {
         description: <h5>{t('Gradle')}</h5>,
         configurations: [
@@ -44,32 +61,16 @@ export const steps = ({
             partialLoading: sourcePackageRegistries?.isLoading,
             description: (
               <p>
-                {tct('For Gradle, add to your [code:build.gradle] file:', {
-                  code: <code />,
-                })}
+                {tct(
+                  'The [link:Sentry Gradle Plugin] automatically installs the Sentry SDK as well as available integrations for your dependencies. Add the following to your [code:build.gradle] file:',
+                  {
+                    code: <code />,
+                    link: (
+                      <ExternalLink href="https://github.com/getsentry/sentry-android-gradle-plugin" />
+                    ),
+                  }
+                )}
               </p>
-            ),
-            code: `
-// Make sure mavenCentral is there.
-repositories {
-    mavenCentral()
-}
-
-// Add Sentry's SDK as a dependency.
-dependencies {
-    implementation 'io.sentry:sentry:${
-      sourcePackageRegistries?.isLoading
-        ? t('\u2026loading')
-        : sourcePackageRegistries?.data?.['sentry.java']?.version ?? '6.27.0'
-    }'
-}
-          `,
-          },
-          {
-            language: 'groovy',
-            partialLoading: sourcePackageRegistries?.isLoading,
-            description: t(
-              'To upload your source code to Sentry so it can be shown in stack traces, use our Gradle plugin.'
             ),
             code: `
 buildscript {
@@ -83,7 +84,7 @@ plugins {
     sourcePackageRegistries?.isLoading
       ? t('\u2026loading')
       : sourcePackageRegistries?.data?.['sentry.java.android.gradle-plugin']?.version ??
-        '3.11.1'
+        '3.12.0'
   }"
 }
 
@@ -95,7 +96,7 @@ sentry {
 
   org = "${organizationSlug}"
   projectName = "${projectSlug}"
-  authToken = "your-sentry-auth-token"
+  authToken = System.getenv("SENTRY_AUTH_TOKEN")
 }
         `,
           },
@@ -139,16 +140,11 @@ sentry {
       <version>${
         sourcePackageRegistries?.isLoading
           ? t('\u2026loading')
-          : sourcePackageRegistries?.data?.['sentry.java.mavenplugin']?.version ?? '0.0.3'
+          : sourcePackageRegistries?.data?.['sentry.java.mavenplugin']?.version ?? '0.0.4'
       }</version>
       <configuration>
       <!-- for showing output of sentry-cli -->
       <debugSentryCli>true</debugSentryCli>
-
-      <!-- download the latest sentry-cli and provide path to it here -->
-      <!-- download it here: https://github.com/getsentry/sentry-cli/releases -->
-      <!-- minimum required version is 2.17.3 -->
-      <sentryCliExecutablePath>/path/to/sentry-cli</sentryCliExecutablePath>
 
       <org>${organizationSlug}</org>
 
@@ -158,8 +154,7 @@ sentry {
       <!--<url>http://localhost:8000/</url>-->
 
       <!-- provide your auth token via SENTRY_AUTH_TOKEN environment variable -->
-      <!-- you can find it in Sentry UI: Settings > Account > API > Auth Tokens -->
-      <authToken>env.SENTRY_AUTH_TOKEN</authToken>
+      <authToken>\${env.SENTRY_AUTH_TOKEN}</authToken>
       </configuration>
       <executions>
         <execution>
@@ -269,43 +264,22 @@ try {
       </Fragment>
     ),
   },
-  {
-    title: t('Measure Performance'),
-    description: t('You can capture transactions using the SDK. For example:'),
-    configurations: [
-      {
-        language: 'java',
-        code: `
-import io.sentry.ITransaction;
-import io.sentry.Sentry;
-import io.sentry.SpanStatus;
+];
 
-// A good name for the transaction is key, to help identify what this is about
-ITransaction transaction = Sentry.startTransaction("processOrderBatch()", "task");
-try {
-processOrderBatch();
-} catch (Exception e) {
-transaction.setThrowable(e);
-transaction.setStatus(SpanStatus.INTERNAL_ERROR);
-throw e;
-} finally {
-transaction.finish();
-}
-        `,
-      },
-    ],
-    additionalInfo: (
-      <p>
-        {tct(
-          'For more information about the API and automatic instrumentations included in the SDK, [link:visit the docs].',
-          {
-            link: (
-              <ExternalLink href="https://docs.sentry.io/platforms/java/performance/" />
-            ),
-          }
-        )}
-      </p>
+export const nextSteps = [
+  {
+    id: 'examples',
+    name: t('Examples'),
+    description: t('Check out our sample applications.'),
+    link: 'https://github.com/getsentry/sentry-java/tree/main/sentry-samples',
+  },
+  {
+    id: 'performance-monitoring',
+    name: t('Performance Monitoring'),
+    description: t(
+      'Stay ahead of latency issues and trace every slow transaction to a poor-performing API call or database query.'
     ),
+    link: 'https://docs.sentry.io/platforms/java/performance/',
   },
 ];
 // Configuration End
@@ -317,6 +291,8 @@ export function GettingStartedWithJava({
   organization,
   ...props
 }: ModuleProps) {
+  const nextStepDocs = [...nextSteps];
+
   return (
     <Layout
       steps={steps({
@@ -325,7 +301,9 @@ export function GettingStartedWithJava({
         projectSlug: projectSlug ?? '___PROJECT_SLUG___',
         organizationSlug: organization?.slug ?? '___ORG_SLUG___',
       })}
+      nextSteps={nextStepDocs}
       introduction={introduction}
+      projectSlug={projectSlug}
       {...props}
     />
   );

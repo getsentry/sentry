@@ -23,37 +23,12 @@ type OverridableStubList<Params = any, Result = Params> = (
 ) => Result[];
 
 type TestStubFixtures = {
-  AccessRequest: OverridableStub;
-  AccountEmails: OverridableStubList;
-  ActivityFeed: OverridableStub;
-  AllAuthenticators: SimpleStub;
-  ApiApplication: OverridableStub;
   ApiToken: OverridableStub;
-  AsanaCreate: SimpleStub;
-  AsanaPlugin: SimpleStub;
-  AuditLogs: OverridableStubList;
-  AuditLogsApiEventNames: SimpleStub;
-  AuthProvider: OverridableStub;
-  AuthProviders: OverridableStubList;
-  Authenticators: SimpleStub;
   AvailableNotificationActions: OverridableStub;
-  BitbucketIntegrationConfig: SimpleStub;
-  Breadcrumb: OverridableStub;
-  Broadcast: OverridableStub;
-  BuiltInSymbolSources: OverridableStubList;
   CodeOwner: OverridableStub;
-  Commit: OverridableStub;
-  CommitAuthor: OverridableStub;
   Config: OverridableStub;
   Dashboard: OverridableVariadicStub;
-  DataScrubbingRelayPiiConfig: SimpleStub;
-  DebugFile: OverridableStub;
-  DebugSymbols: OverridableStub;
-  DeprecatedApiKey: OverridableStub;
-  DetailedEvents: SimpleStub;
-  DiscoverSavedQuery: OverridableStub;
   DocIntegration: OverridableStub;
-  Entries: SimpleStub;
   Environments: SimpleStub;
   Event: OverridableStub;
   EventAttachment: OverridableStub;
@@ -65,7 +40,6 @@ type TestStubFixtures = {
   EventStacktraceException: OverridableStub;
   EventStacktraceMessage: OverridableStub;
   EventsStats: OverridableStub;
-  ExceptionWithMeta: OverridableStubList;
   ExceptionWithRawStackTrace: OverridableStub;
   Frame: OverridableStub;
   GitHubIntegration: OverridableStub;
@@ -92,7 +66,7 @@ type TestStubFixtures = {
   Member: OverridableStub;
   Members: OverridableStubList;
   MetricRule: OverridableStub;
-  MetricsField: OverridableStub;
+  MetricsField: (field: string, params?: Partial<any>) => any;
   MetricsMeta: OverridableStub;
   MetricsSessionUserCountByStatusByRelease: SimpleStub;
   MetricsTotalCountByReleaseIn24h: SimpleStub;
@@ -154,7 +128,7 @@ type TestStubFixtures = {
   SessionUserCountByStatusByRelease: SimpleStub;
   SessionUserStatusCountByProjectInPeriod: SimpleStub;
   SessionUserStatusCountByReleaseInPeriod: SimpleStub;
-  SessionsField: OverridableStub;
+  SessionsField: (field: string) => any;
   SesssionTotalCountByReleaseIn24h: SimpleStub;
   ShortIdQueryResult: OverridableStub;
   SourceMapArchive: OverridableStub;

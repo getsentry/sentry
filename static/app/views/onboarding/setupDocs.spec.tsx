@@ -139,9 +139,7 @@ describe('Onboarding Setup Docs', function () {
       }
     );
 
-    expect(
-      await screen.findByText(/implementation 'io.sentry:sentry:6.28.0'/)
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/"sentry" % "6.28.0"/)).toBeInTheDocument();
   });
 
   describe('renders Product Selection', function () {
@@ -468,6 +466,50 @@ describe('Onboarding Setup Docs', function () {
           success: expect.any(Function),
         }
       );
+    });
+  });
+
+  describe('special platforms', () => {
+    it('renders platform other', async function () {
+      const {router, route, routerContext, organization, project} = initializeOrg({
+        projects: [
+          {
+            ...initializeOrg().project,
+            slug: 'other',
+            platform: 'other',
+          },
+        ],
+      });
+
+      ProjectsStore.init();
+      ProjectsStore.loadInitialData([project]);
+
+      renderMockRequests({project, orgSlug: organization.slug});
+
+      render(
+        <OnboardingContextProvider>
+          <SetupDocs
+            active
+            onComplete={() => {}}
+            stepIndex={2}
+            router={router}
+            route={route}
+            location={router.location}
+            genSkipOnboardingLink={() => ''}
+            orgId={organization.slug}
+            search=""
+            recentCreatedProject={project}
+          />
+        </OnboardingContextProvider>,
+        {
+          context: routerContext,
+          organization,
+        }
+      );
+
+      expect(
+        await screen.findByRole('heading', {name: 'Configure Other SDK'})
+      ).toBeInTheDocument();
     });
   });
 });

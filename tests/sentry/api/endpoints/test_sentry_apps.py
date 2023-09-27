@@ -21,6 +21,7 @@ from sentry.models.integrations.sentry_app import MASKED_VALUE
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import Feature, with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.utils import json
 
@@ -28,7 +29,10 @@ POPULARITY = 27
 EXPECTED = {
     "events": ["issue"],
     "name": "MyApp",
-    "scopes": ["project:read", "event:read"],
+    "scopes": [
+        "event:read",
+        "project:read",
+    ],
     "webhookUrl": "https://example.com",
 }
 
@@ -510,6 +514,13 @@ class PostSentryAppsTest(SentryAppsTest):
 
     def test_allows_empty_schema(self):
         self.get_success_response(**self.get_data(shema={}))
+
+    @override_options({"api.prevent-numeric-slugs": True})
+    def test_generated_slug_not_entirely_numeric(self):
+        response = self.get_success_response(**self.get_data(name="1234"), status_code=201)
+        slug = response.data["slug"]
+        assert slug.startswith("1234-")
+        assert not slug.isdecimal()
 
     def test_missing_name(self):
         response = self.get_error_response(**self.get_data(name=None), status_code=400)

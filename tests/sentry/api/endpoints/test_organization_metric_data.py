@@ -7,7 +7,6 @@ from unittest import mock
 from unittest.mock import patch
 
 import pytest
-from freezegun import freeze_time
 
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
@@ -20,6 +19,7 @@ from sentry.snuba.metrics.naming_layer.public import (
     TransactionTagsKey,
 )
 from sentry.testutils.cases import MetricsAPIBaseTestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.cursors import Cursor
 from tests.sentry.api.endpoints.test_organization_metrics import MOCKED_DERIVED_METRICS
@@ -466,7 +466,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         assert response.status_code == 400
         assert (
             response.data["detail"]
-            == "Failed to parse query: Release Health Queries don't support wildcards"
+            == "Failed to parse conditions: Release Health Queries don't support wildcards"
         )
 
     def test_pagination_offset_without_orderby(self):
@@ -1574,8 +1574,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         )
         assert response.status_code == 400
         assert response.json()["detail"] == (
-            "Failed to parse 'crash_free_fake'. Must be something like 'sum(my_metric)', "
-            "or a supported aggregate derived metric like `session.crash_free_rate`"
+            "Failed to parse 'crash_free_fake'. The metric name must belong to a public metric."
         )
 
     def test_crash_free_percentage(self):
@@ -2071,8 +2070,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         )
 
         assert response.data["detail"] == (
-            "Failed to parse 'transaction.all'. Must be something like 'sum(my_metric)', "
-            "or a supported aggregate derived metric like `session.crash_free_rate`"
+            "Failed to parse 'transaction.all'. The metric name must belong to a public metric."
         )
 
     def test_failure_rate_transaction(self):
@@ -2152,8 +2150,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                 interval="6m",
             )
             assert response.data["detail"] == (
-                f"Failed to parse '{private_name}'. Must be something like 'sum(my_metric)', "
-                "or a supported aggregate derived metric like `session.crash_free_rate`"
+                f"Failed to parse '{private_name}'. The metric name must belong to a public metric."
             )
 
     def test_apdex_transactions(self):

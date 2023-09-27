@@ -47,11 +47,13 @@ from sentry.utils import metrics
 from sentry.utils.http import get_origins
 from sentry.utils.options import sample_modulo
 
-from .measurements import CUSTOM_MEASUREMENT_LIMIT, get_measurements_config
+from .measurements import CUSTOM_MEASUREMENT_LIMIT
 
 #: These features will be listed in the project config
 EXPOSABLE_FEATURES = [
     "projects:span-metrics-extraction",
+    "projects:span-metrics-extraction-ga-modules",
+    "projects:span-metrics-extraction-all-modules",
     "organizations:transaction-name-mark-scrubbed-as-sanitized",
     "organizations:transaction-name-normalize",
     "organizations:profiling",
@@ -352,9 +354,6 @@ def _get_project_config(
     # anything.
     add_experimental_config(config, "dynamicSampling", get_dynamic_sampling_config, project)
 
-    # Limit the number of custom measurements
-    add_experimental_config(config, "measurements", get_measurements_config)
-
     # Rules to replace high cardinality transaction names
     add_experimental_config(config, "txNameRules", get_transaction_names_config, project)
 
@@ -583,7 +582,7 @@ def _filter_option_to_config_setting(flt: _FilterSpec, setting: str) -> Mapping[
 #: When you increment this version, outdated Relays will stop extracting
 #: transaction metrics.
 #: See https://github.com/getsentry/relay/blob/4f3e224d5eeea8922fe42163552e8f20db674e86/relay-server/src/metrics_extraction/transactions.rs#L71
-TRANSACTION_METRICS_EXTRACTION_VERSION = 1
+TRANSACTION_METRICS_EXTRACTION_VERSION = 2
 
 
 class CustomMeasurementSettings(TypedDict):

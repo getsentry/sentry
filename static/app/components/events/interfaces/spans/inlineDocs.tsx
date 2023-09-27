@@ -6,8 +6,8 @@ import {loadDocs} from 'sentry/actionCreators/projects';
 import {Client} from 'sentry/api';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {PlatformKey} from 'sentry/data/platformCategories';
 import {t, tct} from 'sentry/locale';
+import type {PlatformKey} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 
 type Props = {

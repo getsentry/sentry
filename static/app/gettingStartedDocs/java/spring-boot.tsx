@@ -1,30 +1,74 @@
 import {Fragment} from 'react';
 
 import ExternalLink from 'sentry/components/links/externalLink';
+import Link from 'sentry/components/links/link';
 import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
 import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {
+  PlatformOption,
+  useUrlPlatformOptions,
+} from 'sentry/components/onboarding/platformOptionsControl';
+import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import {t, tct} from 'sentry/locale';
 
-interface StepProps {
+export enum SpringBootVersion {
+  V2 = 'v2',
+  V3 = 'v3',
+}
+
+export enum PackageManager {
+  GRADLE = 'gradle',
+  MAVEN = 'maven',
+}
+
+type PlaformOptionKey = 'springBootVersion' | 'packageManager';
+
+interface StepsParams {
   dsn: string;
+  hasPerformance: boolean;
   organizationSlug?: string;
+  packageManager?: PackageManager;
   projectSlug?: string;
   sourcePackageRegistries?: ModuleProps['sourcePackageRegistries'];
+  springBootVersion?: SpringBootVersion;
 }
 
 // Configuration Start
+const platformOptions: Record<PlaformOptionKey, PlatformOption> = {
+  springBootVersion: {
+    label: t('Spring Boot Version'),
+    items: [
+      {
+        label: t('Spring Boot 3'),
+        value: SpringBootVersion.V3,
+      },
+      {
+        label: t('Spring Boot 2'),
+        value: SpringBootVersion.V2,
+      },
+    ],
+  },
+  packageManager: {
+    label: t('Package Manager'),
+    items: [
+      {
+        label: t('Gradle'),
+        value: PackageManager.GRADLE,
+      },
+      {
+        label: t('Maven'),
+        value: PackageManager.MAVEN,
+      },
+    ],
+  },
+};
+
 const introduction = (
   <p>
     {tct(
-      "There are two variants of Sentry available for Spring Boot. If you're using Spring Boot 2, use [springBootStarterLink:sentry-spring-boot-starter]. If you're using Spring Boot 3, use [springBootStarterJakartaLink:sentry-spring-boot-starter-jakarta] instead. Sentry's integration with [springBootLink:Spring Boot] supports Spring Boot 2.1.0 and above to report unhandled exceptions as well as release and registration of beans. If you're on an older version, use [legacyIntegrationLink:our legacy integration].",
+      "Sentry's integration with [springBootLink:Spring Boot] supports Spring Boot 2.1.0 and above. If you're on an older version, use [legacyIntegrationLink:our legacy integration].",
       {
-        springBootStarterLink: (
-          <ExternalLink href="https://github.com/getsentry/sentry-java/tree/master/sentry-spring-boot-starter" />
-        ),
-        springBootStarterJakartaLink: (
-          <ExternalLink href="https://github.com/getsentry/sentry-java/tree/master/sentry-spring-boot-starter-jakarta" />
-        ),
         springBootLink: <ExternalLink href="https://spring.io/projects/spring-boot" />,
         legacyIntegrationLink: (
           <ExternalLink href="https://docs.sentry.io/platforms/java/legacy/spring/" />
@@ -39,35 +83,82 @@ export const steps = ({
   sourcePackageRegistries,
   projectSlug,
   organizationSlug,
-}: StepProps): LayoutProps['steps'] => [
+  springBootVersion,
+  packageManager,
+  hasPerformance,
+}: StepsParams): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
-    description: t('Install using either Maven or Gradle:'),
     configurations: [
       {
-        description: <h5>{t('Maven')}</h5>,
-        configurations: [
-          {
-            language: 'xml',
-            partialLoading: sourcePackageRegistries?.isLoading,
-            description: <strong>{t('Spring Boot 2')}</strong>,
+        description: (
+          <p>
+            {tct(
+              'To see source context in Sentry, you have to generate an auth token by visiting the [link:Organization Auth Tokens] settings. You can then set the token as an environment variable that is used by the build plugins.',
+              {
+                link: <Link to="/settings/auth-tokens/" />,
+              }
+            )}
+          </p>
+        ),
+        language: 'bash',
+        code: `
+SENTRY_AUTH_TOKEN=___ORG_AUTH_TOKEN___
+            `,
+      },
+      packageManager === PackageManager.GRADLE
+        ? {
+            description: (
+              <p>
+                {tct(
+                  'The [link:Sentry Gradle Plugin] automatically installs the Sentry SDK as well as available integrations for your dependencies. Add the following to your [code:build.gradle] file:',
+                  {
+                    code: <code />,
+                    link: (
+                      <ExternalLink href="https://github.com/getsentry/sentry-android-gradle-plugin" />
+                    ),
+                  }
+                )}
+              </p>
+            ),
+            language: 'groovy',
             code: `
-<dependency>
-    <groupId>io.sentry</groupId>
-    <artifactId>sentry-spring-boot-starter</artifactId>
-    <version>${
-      sourcePackageRegistries?.isLoading
-        ? t('\u2026loading')
-        : sourcePackageRegistries?.data?.['sentry.java.spring-boot']?.version ?? '6.27.0'
-    }</version>
-</dependency>
-          `,
-          },
-          {
-            language: 'xml',
-            partialLoading: sourcePackageRegistries?.isLoading,
-            description: <strong>{t('Spring Boot 3')}</strong>,
-            code: `
+buildscript {
+  repositories {
+    mavenCentral()
+  }
+}
+
+plugins {
+  id "io.sentry.jvm.gradle" version "${
+    sourcePackageRegistries?.isLoading
+      ? t('\u2026loading')
+      : sourcePackageRegistries?.data?.['sentry.java.android.gradle-plugin']?.version ??
+        '3.12.0'
+  }"
+}
+
+sentry {
+  // Generates a JVM (Java, Kotlin, etc.) source bundle and uploads your source code to Sentry.
+  // This enables source context, allowing you to see your source
+  // code as part of your stack traces in Sentry.
+  includeSourceContext = true
+
+  org = "${organizationSlug}"
+  projectName = "${projectSlug}"
+  authToken = System.getenv("SENTRY_AUTH_TOKEN")
+}
+            `,
+          }
+        : {
+            description: t('Install using Maven:'),
+            configurations: [
+              {
+                language: 'xml',
+                partialLoading: sourcePackageRegistries?.isLoading,
+                code:
+                  springBootVersion === SpringBootVersion.V3
+                    ? `
 <dependency>
     <groupId>io.sentry</groupId>
     <artifactId>sentry-spring-boot-starter-jakarta</artifactId>
@@ -75,40 +166,88 @@ export const steps = ({
       sourcePackageRegistries?.isLoading
         ? t('\u2026loading')
         : sourcePackageRegistries?.data?.['sentry.java.spring-boot.jakarta']?.version ??
-          '6.27.0'
+          '6.28.0'
+    }</version>
+</dependency>`
+                    : `
+<dependency>
+    <groupId>io.sentry</groupId>
+    <artifactId>sentry-spring-boot-starter</artifactId>
+    <version>${
+      sourcePackageRegistries?.isLoading
+        ? t('\u2026loading')
+        : sourcePackageRegistries?.data?.['sentry.java.spring-boot']?.version ?? '6.28.0'
+    }</version>
+</dependency>`,
+                additionalInfo: (
+                  <p>
+                    {tct(
+                      'If you use Logback for logging you may also want to send error logs to Sentry. Add a dependency to the [sentryLogbackCode:sentry-logback] module. Sentry Spring Boot Starter will auto-configure [sentryAppenderCode:SentryAppender].',
+                      {sentryAppenderCode: <code />, sentryLogbackCode: <code />}
+                    )}
+                  </p>
+                ),
+              },
+              {
+                language: 'xml',
+                code: `
+<dependency>
+    <groupId>io.sentry</groupId>
+    <artifactId>sentry-logback</artifactId>
+    <version>${
+      sourcePackageRegistries?.isLoading
+        ? t('\u2026loading')
+        : sourcePackageRegistries?.data?.['sentry.java.logback']?.version ?? '6.28.0'
     }</version>
 </dependency>
+          `,
+              },
+              {
+                language: 'xml',
+                description: t(
+                  'To upload your source code to Sentry so it can be shown in stack traces, use our Maven plugin.'
+                ),
+                code: `
+<build>
+  <plugins>
+    <plugin>
+      <groupId>io.sentry</groupId>
+      <artifactId>sentry-maven-plugin</artifactId>
+      <version>${
+        sourcePackageRegistries?.isLoading
+          ? t('\u2026loading')
+          : sourcePackageRegistries?.data?.['sentry.java.mavenplugin']?.version ?? '0.0.4'
+      }</version>
+      <configuration>
+        <!-- for showing output of sentry-cli -->
+        <debugSentryCli>true</debugSentryCli>
+
+        <org>${organizationSlug}</org>
+
+        <project>${projectSlug}</project>
+
+        <!-- in case you're self hosting, provide the URL here -->
+        <!--<url>http://localhost:8000/</url>-->
+
+        <!-- provide your auth token via SENTRY_AUTH_TOKEN environment variable -->
+        <authToken>\${env.SENTRY_AUTH_TOKEN}</authToken>
+      </configuration>
+      <executions>
+        <execution>
+          <phase>generate-resources</phase>
+          <goals>
+            <goal>uploadSourceBundle</goal>
+          </goals>
+        </execution>
+      </executions>
+    </plugin>
+  </plugins>
+...
+</build>
         `,
+              },
+            ],
           },
-        ],
-      },
-      {
-        description: <h5>{t('Graddle')}</h5>,
-        configurations: [
-          {
-            language: 'properties',
-            description: <strong>{t('Spring Boot 2')}</strong>,
-            partialLoading: sourcePackageRegistries?.isLoading,
-            code: `implementation 'io.sentry:sentry-spring-boot-starter:${
-              sourcePackageRegistries?.isLoading
-                ? t('\u2026loading')
-                : sourcePackageRegistries?.data?.['sentry.java.spring-boot']?.version ??
-                  '6.27.0'
-            }'`,
-          },
-          {
-            language: 'properties',
-            partialLoading: sourcePackageRegistries?.isLoading,
-            description: <strong>{t('Spring Boot 3')}</strong>,
-            code: `implementation 'io.sentry:sentry-spring-boot-starter-jakarta:${
-              sourcePackageRegistries?.isLoading
-                ? t('\u2026loading')
-                : sourcePackageRegistries?.data?.['sentry.java.spring-boot.jakarta']
-                    ?.version ?? '6.27.0'
-            }'`,
-          },
-        ],
-      },
     ],
   },
   {
@@ -126,152 +265,35 @@ export const steps = ({
     ),
     configurations: [
       {
-        language: 'properties',
-        description: (
-          <p>{tct('Modify [code:src/main/application.properties]:', {code: <code />})}</p>
-        ),
-        code: `
-sentry.dsn=${dsn}
+        code: [
+          {
+            label: 'Properties',
+            value: 'properties',
+            language: 'properties',
+            code: `
+sentry.dsn=${dsn}${
+              hasPerformance
+                ? `
 # Set traces-sample-rate to 1.0 to capture 100% of transactions for performance monitoring.
 # We recommend adjusting this value in production.
-sentry.traces-sample-rate=1.0
-        `,
-      },
-      {
-        language: 'properties',
-        description: (
-          <p>{tct('Or, modify [code:src/main/application.yml]:', {code: <code />})}</p>
-        ),
-        code: `
+sentry.traces-sample-rate=1.0`
+                : ''
+            }`,
+          },
+          {
+            label: 'YAML',
+            value: 'yaml',
+            language: 'properties',
+            code: `
 sentry:
-  dsn:${dsn}
+  dsn: ${dsn}${
+    hasPerformance
+      ? `
   # Set traces-sample-rate to 1.0 to capture 100% of transactions for performance monitoring.
   # We recommend adjusting this value in production.
-  traces-sample-rate: 1.0
-        `,
-        additionalInfo: (
-          <p>
-            {tct(
-              'If you use Logback for logging you may also want to send error logs to Sentry. Add a dependency to the [sentryLogbackCode:sentry-logback] module using either Maven or Gradle. Sentry Spring Boot Starter will auto-configure [sentryAppenderCode:SentryAppender].',
-              {sentryAppenderCode: <code />, sentryLogbackCode: <code />}
-            )}
-          </p>
-        ),
-      },
-      {
-        description: <h5>{t('Maven')}</h5>,
-        configurations: [
-          {
-            language: 'xml',
-            code: `
-<dependency>
-    <groupId>io.sentry</groupId>
-    <artifactId>sentry-logback</artifactId>
-    <version>${
-      sourcePackageRegistries?.isLoading
-        ? t('\u2026loading')
-        : sourcePackageRegistries?.data?.['sentry.java.logback']?.version ?? '6.27.0'
-    }</version>
-</dependency>
-          `,
-          },
-          {
-            language: 'xml',
-            description: t(
-              'To upload your source code to Sentry so it can be shown in stack traces, use our Maven plugin.'
-            ),
-            code: `
-<build>
-  <plugins>
-    <plugin>
-      <groupId>io.sentry</groupId>
-      <artifactId>sentry-maven-plugin</artifactId>
-      <version>${
-        sourcePackageRegistries?.isLoading
-          ? t('\u2026loading')
-          : sourcePackageRegistries?.data?.['sentry.java.mavenplugin']?.version ?? '0.0.3'
-      }</version>
-      <configuration>
-        <!-- for showing output of sentry-cli -->
-        <debugSentryCli>true</debugSentryCli>
-
-        <!-- download the latest sentry-cli and provide path to it here -->
-        <!-- download it here: https://github.com/getsentry/sentry-cli/releases -->
-        <!-- minimum required version is 2.17.3 -->
-        <sentryCliExecutablePath>/path/to/sentry-cli</sentryCliExecutablePath>
-
-        <org>${organizationSlug}</org>
-
-        <project>${projectSlug}</project>
-
-        <!-- in case you're self hosting, provide the URL here -->
-        <!--<url>http://localhost:8000/</url>-->
-
-        <!-- provide your auth token via SENTRY_AUTH_TOKEN environment variable -->
-        <!-- you can find it in Sentry UI: Settings > Account > API > Auth Tokens -->
-        <authToken>env.SENTRY_AUTH_TOKEN}</authToken>
-      </configuration>
-      <executions>
-        <execution>
-          <phase>generate-resources</phase>
-          <goals>
-            <goal>uploadSourceBundle</goal>
-          </goals>
-        </execution>
-      </executions>
-    </plugin>
-  </plugins>
-...
-</build>
-        `,
-          },
-        ],
-      },
-      {
-        description: <h5>{t('Gradle')}</h5>,
-        configurations: [
-          {
-            language: 'properties',
-            partialLoading: sourcePackageRegistries?.isLoading,
-            code: `implementation 'io.sentry:sentry-logback:${
-              sourcePackageRegistries?.isLoading
-                ? t('\u2026loading')
-                : sourcePackageRegistries?.data?.['sentry.java.logback']?.version ??
-                  '6.27.0'
-            }'`,
-          },
-          {
-            language: 'javascript', // TODO: This shouldn't be javascript but because of better formatting we use it for now
-            description: t(
-              'To upload your source code to Sentry so it can be shown in stack traces, use our Gradle plugin.'
-            ),
-            code: `
-buildscript {
-  repositories {
-    mavenCentral()
-  }
-}
-
-plugins {
-  id "io.sentry.jvm.gradle" version "${
-    sourcePackageRegistries?.isLoading
-      ? t('\u2026loading')
-      : sourcePackageRegistries?.data?.['sentry.java.android.gradle-plugin']?.version ??
-        '3.11.1'
-  }"
-}
-
-sentry {
-  // Generates a JVM (Java, Kotlin, etc.) source bundle and uploads your source code to Sentry.
-  // This enables source context, allowing you to see your source
-  // code as part of your stack traces in Sentry.
-  includeSourceContext = true
-
-  org = "${organizationSlug}"
-  projectName = "${projectSlug}"
-  authToken = "your-sentry-auth-token"
-}
-        `,
+  sentry.traces-sample-rate: 1.0`
+      : ''
+  }`,
           },
         ],
       },
@@ -284,32 +306,36 @@ sentry {
     ),
     configurations: [
       {
-        description: <h5>Java</h5>,
-        language: 'javascript', // TODO: This shouldn't be javascript but because of better formatting we use it for now
-        code: `
-        import java.lang.Exception;
-        import io.sentry.Sentry;
+        code: [
+          {
+            label: 'Java',
+            value: 'java',
+            language: 'javascript', // TODO: This shouldn't be javascript but because of better formatting we use it for now
+            code: `
+import java.lang.Exception;
+import io.sentry.Sentry;
 
-        try {
-          throw new Exception("This is a test.");
-        } catch (Exception e) {
-          Sentry.captureException(e);
-        }
-        `,
-      },
-      {
-        description: <h5>Kotlin</h5>,
-        language: 'javascript', // TODO: This shouldn't be javascript but because of better formatting we use it for now
-        code: `
-        import java.lang.Exception
-        import io.sentry.Sentry
+try {
+  throw new Exception("This is a test.");
+} catch (Exception e) {
+  Sentry.captureException(e);
+}`,
+          },
+          {
+            label: 'Kotlin',
+            value: 'kotlin',
+            language: 'javascript', // TODO: This shouldn't be javascript but because of better formatting we use it for now
+            code: `
+import java.lang.Exception
+import io.sentry.Sentry
 
-        try {
-          throw Exception("This is a test.")
-        } catch (e: Exception) {
-          Sentry.captureException(e)
-        }
-        `,
+try {
+  throw Exception("This is a test.")
+} catch (e: Exception) {
+  Sentry.captureException(e)
+}`,
+          },
+        ],
       },
     ],
     additionalInfo: (
@@ -327,108 +353,22 @@ sentry {
       </Fragment>
     ),
   },
+];
+
+export const nextSteps = [
   {
-    title: t('Measure Performance'),
-    description: (
-      <p>
-        {tct(
-          'Each incoming Spring MVC HTTP request is automatically turned into a transaction. To create spans around bean method executions, annotate bean method with [code:@SentrySpan] annotation:',
-          {code: <code />}
-        )}
-      </p>
+    id: 'examples',
+    name: t('Examples'),
+    description: t('Check out our sample applications.'),
+    link: 'https://github.com/getsentry/sentry-java/tree/main/sentry-samples',
+  },
+  {
+    id: 'performance-monitoring',
+    name: t('Performance Monitoring'),
+    description: t(
+      'Stay ahead of latency issues and trace every slow transaction to a poor-performing API call or database query.'
     ),
-    configurations: [
-      {
-        description: <h5>Java</h5>,
-        configurations: [
-          {
-            language: 'javascript', // TODO: This shouldn't be javascript but because of better formatting we use it for now
-            description: <strong>{t('Spring Boot 2')}</strong>,
-            code: `
-import org.springframework.stereotype.Component;
-import io.sentry.spring.tracing.SentrySpan;
-
-@Component
-class PersonService {
-
-  @SentrySpan
-  Person findById(Long id) {
-    ...
-  }
-}
-            `,
-          },
-          {
-            language: 'javascript', // TODO: This shouldn't be javascript but because of better formatting we use it for now
-            description: <strong>{t('Spring Boot 3')}</strong>,
-            code: `
-            import org.springframework.stereotype.Component;
-            import io.sentry.spring.jakarta.tracing.SentrySpan;
-
-            @Component
-            class PersonService {
-
-              @SentrySpan
-              Person findById(Long id) {
-                ...
-              }
-            }
-            `,
-          },
-        ],
-      },
-      {
-        description: <h5>Kotlin</h5>,
-        configurations: [
-          {
-            language: 'javascript', // TODO: This shouldn't be javascript but because of better formatting we use it for now
-            description: <strong>{t('Spring Boot 2')}</strong>,
-            code: `
-import org.springframework.stereotype.Component
-import io.sentry.spring.tracing.SentrySpan
-
-@Component
-class PersonService {
-
-  @SentrySpan(operation = "task")
-  fun findById(id: Long): Person {
-    ...
-  }
-}
-            `,
-          },
-          {
-            language: 'javascript', // TODO: This shouldn't be javascript but because of better formatting we use it for now
-            description: <strong>{t('Spring Boot 3')}</strong>,
-            code: `
-import org.springframework.stereotype.Component
-import io.sentry.spring.jakarta.tracing.SentrySpan
-
-@Component
-class PersonService {
-
-  @SentrySpan(operation = "task")
-  fun findById(id: Long): Person {
-    ...
-  }
-}
-            `,
-          },
-        ],
-      },
-    ],
-    additionalInfo: (
-      <p>
-        {tct(
-          'Check out [docLink:the documentation] to learn more about the API and integrated instrumentations.',
-          {
-            docLink: (
-              <ExternalLink href="https://docs.sentry.io/platforms/java/guides/spring-boot/performance/instrumentation/" />
-            ),
-          }
-        )}
-      </p>
-    ),
+    link: 'https://docs.sentry.io/platforms/java/guides/spring-boot/performance/',
   },
 ];
 // Configuration End
@@ -438,8 +378,17 @@ export function GettingStartedWithSpringBoot({
   sourcePackageRegistries,
   projectSlug,
   organization,
+  activeProductSelection = [],
   ...props
 }: ModuleProps) {
+  const optionValues = useUrlPlatformOptions(platformOptions);
+
+  const hasPerformance = activeProductSelection.includes(
+    ProductSolution.PERFORMANCE_MONITORING
+  );
+
+  const nextStepDocs = [...nextSteps];
+
   return (
     <Layout
       steps={steps({
@@ -447,8 +396,14 @@ export function GettingStartedWithSpringBoot({
         sourcePackageRegistries,
         projectSlug: projectSlug ?? '___PROJECT_SLUG___',
         organizationSlug: organization?.slug ?? '___ORG_SLUG___',
+        hasPerformance,
+        springBootVersion: optionValues.springBootVersion as SpringBootVersion,
+        packageManager: optionValues.packageManager as PackageManager,
       })}
+      nextSteps={nextStepDocs}
       introduction={introduction}
+      platformOptions={platformOptions}
+      projectSlug={projectSlug}
       {...props}
     />
   );

@@ -37,7 +37,7 @@ def get_anomalies(snuba_io):
     return Response(json.loads(response.data), status=200)
 
 
-def get_time_params(start, end):
+def get_time_params(start: datetime, end: datetime) -> MappedParams:
     """
     Takes visualization start/end timestamps
     and returns the start/end/granularity

@@ -1,3 +1,6 @@
+import {AccountEmails} from 'sentry-fixture/accountEmails';
+import {AllAuthenticators, Authenticators} from 'sentry-fixture/authenticators';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
@@ -21,7 +24,7 @@ describe('AccountSecurityDetails', function () {
     beforeEach(function () {
       MockApiClient.addMockResponse({
         url: ENDPOINT,
-        body: TestStubs.AllAuthenticators(),
+        body: AllAuthenticators(),
       });
 
       MockApiClient.addMockResponse({
@@ -31,16 +34,16 @@ describe('AccountSecurityDetails', function () {
 
       MockApiClient.addMockResponse({
         url: `${ENDPOINT}15/`,
-        body: TestStubs.Authenticators().Totp(),
+        body: Authenticators().Totp(),
       });
 
       MockApiClient.addMockResponse({
         url: ACCOUNT_EMAILS_ENDPOINT,
-        body: TestStubs.AccountEmails(),
+        body: AccountEmails(),
       });
     });
 
-    it('has enrolled circle indicator', function () {
+    it('has enrolled circle indicator', async function () {
       const params = {
         authId: '15',
       };
@@ -61,7 +64,7 @@ describe('AccountSecurityDetails', function () {
         {context: routerContext}
       );
 
-      expect(screen.getByTestId('auth-status-enabled')).toBeInTheDocument();
+      expect(await screen.findByTestId('auth-status-enabled')).toBeInTheDocument();
 
       // has created and last used dates
       expect(screen.getByText('Created at')).toBeInTheDocument();
@@ -94,7 +97,7 @@ describe('AccountSecurityDetails', function () {
         {context: routerContext}
       );
 
-      await userEvent.click(screen.getByRole('button', {name: 'Remove'}));
+      await userEvent.click(await screen.findByRole('button', {name: 'Remove'}));
 
       renderGlobalModal();
 
@@ -134,7 +137,7 @@ describe('AccountSecurityDetails', function () {
         {context: routerContext}
       );
 
-      await userEvent.click(screen.getByRole('button', {name: 'Remove'}));
+      await userEvent.click(await screen.findByRole('button', {name: 'Remove'}));
 
       renderGlobalModal();
 
@@ -143,7 +146,7 @@ describe('AccountSecurityDetails', function () {
       expect(deleteMock).toHaveBeenCalled();
     });
 
-    it('can not remove last 2fa method when org requires 2fa', function () {
+    it('can not remove last 2fa method when org requires 2fa', async function () {
       MockApiClient.addMockResponse({
         url: ORG_ENDPOINT,
         body: TestStubs.Organizations({require2FA: true}),
@@ -151,7 +154,7 @@ describe('AccountSecurityDetails', function () {
 
       MockApiClient.addMockResponse({
         url: ENDPOINT,
-        body: [TestStubs.Authenticators().Totp()],
+        body: [Authenticators().Totp()],
       });
 
       const params = {
@@ -175,7 +178,7 @@ describe('AccountSecurityDetails', function () {
         {context: routerContext}
       );
 
-      expect(screen.getByRole('button', {name: 'Remove'})).toBeDisabled();
+      expect(await screen.findByRole('button', {name: 'Remove'})).toBeDisabled();
     });
   });
 
@@ -183,7 +186,7 @@ describe('AccountSecurityDetails', function () {
     beforeEach(function () {
       MockApiClient.addMockResponse({
         url: ENDPOINT,
-        body: TestStubs.AllAuthenticators(),
+        body: AllAuthenticators(),
       });
 
       MockApiClient.addMockResponse({
@@ -193,12 +196,12 @@ describe('AccountSecurityDetails', function () {
 
       MockApiClient.addMockResponse({
         url: `${ENDPOINT}16/`,
-        body: TestStubs.Authenticators().Recovery(),
+        body: Authenticators().Recovery(),
       });
 
       MockApiClient.addMockResponse({
         url: ACCOUNT_EMAILS_ENDPOINT,
-        body: TestStubs.AccountEmails(),
+        body: AccountEmails(),
       });
     });
 
@@ -255,7 +258,9 @@ describe('AccountSecurityDetails', function () {
         {context: routerContext}
       );
 
-      await userEvent.click(screen.getByRole('button', {name: 'Regenerate Codes'}));
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'Regenerate Codes'})
+      );
 
       renderGlobalModal();
 
@@ -270,7 +275,7 @@ describe('AccountSecurityDetails', function () {
       expect(deleteMock).toHaveBeenCalled();
     });
 
-    it('has copy, print and download buttons', function () {
+    it('has copy, print and download buttons', async function () {
       const params = {
         authId: '16',
       };
@@ -296,7 +301,7 @@ describe('AccountSecurityDetails', function () {
         {context: routerContext}
       );
 
-      expect(screen.getByRole('button', {name: 'print'})).toBeInTheDocument();
+      expect(await screen.findByRole('button', {name: 'print'})).toBeInTheDocument();
 
       expect(screen.getByRole('button', {name: 'download'})).toHaveAttribute(
         'href',

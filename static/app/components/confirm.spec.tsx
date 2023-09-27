@@ -17,13 +17,11 @@ describe('Confirm', function () {
 
   it('renders', function () {
     const mock = jest.fn();
-    const wrapper = render(
+    render(
       <Confirm message="Are you sure?" onConfirm={mock}>
         <button>Confirm?</button>
       </Confirm>
     );
-
-    expect(wrapper.container).toSnapshot();
   });
 
   it('renders custom confirm button & callbacks work', async function () {

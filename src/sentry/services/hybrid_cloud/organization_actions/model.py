@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Optional
 
 from sentry.models import Organization, OrganizationMember, Team
 
@@ -7,4 +8,4 @@ from sentry.models import Organization, OrganizationMember, Team
 class OrganizationAndMemberCreationResult:
     organization: Organization
     org_member: OrganizationMember
-    team: Team
+    team: Optional[Team]

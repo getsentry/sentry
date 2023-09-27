@@ -40,6 +40,8 @@ interface BaseConfig {
   max_runtime: number;
   timezone: string;
   alert_rule_id?: number;
+  failure_issue_threshold?: number | null;
+  recovery_threshold?: number | null;
 }
 
 /**
@@ -62,7 +64,7 @@ export interface IntervalConfig extends BaseConfig {
    */
   schedule: [
     value: number,
-    interval: 'year' | 'month' | 'week' | 'day' | 'hour' | 'minute'
+    interval: 'year' | 'month' | 'week' | 'day' | 'hour' | 'minute',
   ];
   schedule_type: ScheduleType.INTERVAL;
 }
@@ -106,10 +108,10 @@ export interface MonitorStat {
 }
 
 export interface CheckIn {
+  attachmentId: number | null;
   dateCreated: string;
   duration: number;
   id: string;
   status: CheckInStatus;
-  attachmentId?: number;
   groups?: {id: number; shortId: string}[];
 }

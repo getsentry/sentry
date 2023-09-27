@@ -24,8 +24,7 @@ describe('AdminQuotas', function () {
         body: [],
       });
 
-      const wrapper = render(<AdminQuotas />);
-      expect(wrapper.container).toSnapshot();
+      render(<AdminQuotas />);
     });
   });
 });

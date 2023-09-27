@@ -29,6 +29,10 @@ const {TIME_SPENT_PERCENTAGE, SPS, SPM, HTTP_ERROR_COUNT} = SpanFunction;
 export const SORTABLE_FIELDS = new Set([
   `avg(${SPAN_SELF_TIME})`,
   `p95(${SPAN_SELF_TIME})`,
+  `p75(transaction.duration)`,
+  `transaction.duration`,
+  'transaction',
+  `count()`,
   `${SPS}()`,
   `${SPM}()`,
   `${TIME_SPENT_PERCENTAGE}()`,

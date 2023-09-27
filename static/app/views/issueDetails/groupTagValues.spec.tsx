@@ -21,7 +21,7 @@ function init(tagKey: string) {
 describe('GroupTagValues', () => {
   beforeEach(() => {
     MockApiClient.addMockResponse({
-      url: '/issues/1/tags/user/',
+      url: '/organizations/org-slug/issues/1/tags/user/',
       body: tags.find(({key}) => key === 'user'),
     });
   });
@@ -34,7 +34,7 @@ describe('GroupTagValues', () => {
     const {routerProps, routerContext, router, project} = init('user');
 
     MockApiClient.addMockResponse({
-      url: '/issues/1/tags/user/values/',
+      url: '/organizations/org-slug/issues/1/tags/user/values/',
       body: TestStubs.TagValues(),
     });
     render(
@@ -67,7 +67,7 @@ describe('GroupTagValues', () => {
     const {routerProps, routerContext, project} = init('user');
 
     MockApiClient.addMockResponse({
-      url: '/issues/1/tags/user/values/',
+      url: '/organizations/org-slug/issues/1/tags/user/values/',
       body: [],
     });
     const {container} = render(

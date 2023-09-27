@@ -3,7 +3,6 @@ from datetime import timezone
 from functools import cached_property
 
 import requests
-from freezegun import freeze_time
 
 from sentry import audit_log
 from sentry.api.serializers import serialize
@@ -12,11 +11,14 @@ from sentry.models import AuditLogEntry
 from sentry.silo import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
 from tests.sentry.api.serializers.test_alert_rule import BaseAlertRuleSerializerTest
+
+pytestmark = [requires_snuba]
 
 
 class AlertRuleBase:

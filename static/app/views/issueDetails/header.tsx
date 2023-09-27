@@ -59,6 +59,7 @@ function GroupHeaderTabs({
   const organization = useOrganization();
 
   const replaysCount = useReplaysCount({
+    issueCategory: group.issueCategory,
     groupIds: group.id,
     organization,
   })[group.id];
@@ -126,7 +127,7 @@ function GroupHeaderTabs({
         disabled={disabledTabs.includes(Tab.EVENTS)}
         to={eventRoute}
       >
-        {t('All Events')}
+        {t('Sampled Events')}
       </TabList.Item>
       <TabList.Item
         key={Tab.MERGED}

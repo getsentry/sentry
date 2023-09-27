@@ -1,3 +1,5 @@
+import {LineSeriesOption} from 'echarts';
+
 import {Event} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import TrendsDiscoverQuery from 'sentry/utils/performance/trends/trendsDiscoverQuery';
@@ -32,6 +34,9 @@ function EventBreakpointChart({event}: EventBreakpointChartProps) {
   eventView.start = new Date(requestStart * 1000).toISOString();
   eventView.end = new Date(requestEnd * 1000).toISOString();
 
+  // If start and end were defined, then do not use default 14d stats period
+  eventView.statsPeriod = requestStart && requestEnd ? '' : eventView.statsPeriod;
+
   // The evidence data keys are returned to us in camelCase, but we need to
   // convert them to snake_case to match the NormalizedTrendsTransaction type
   const normalizedOccurrenceEvent = Object.keys(
@@ -40,6 +45,8 @@ function EventBreakpointChart({event}: EventBreakpointChartProps) {
     acc[camelToUnderscore(key)] = event?.occurrence?.evidenceData?.[key];
     return acc;
   }, {}) as NormalizedTrendsTransaction;
+
+  const additionalSeries: LineSeriesOption[] = [];
 
   return (
     <DataSection>
@@ -71,6 +78,8 @@ function EventBreakpointChart({event}: EventBreakpointChartProps) {
               transaction={normalizedOccurrenceEvent}
               trendChangeType={TrendChangeType.REGRESSION}
               trendFunctionField={TrendFunctionField.P95}
+              additionalSeries={additionalSeries}
+              applyRegressionFormatToInterval
               disableLegend
             />
           );

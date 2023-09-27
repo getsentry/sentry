@@ -17,11 +17,11 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.parameters import GlobalParams, MonitorParams
-from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models import Project
 from sentry.monitors.logic.mark_failed import mark_failed
+from sentry.monitors.logic.mark_ok import mark_ok
 from sentry.monitors.models import CheckInStatus, Monitor, MonitorCheckIn, MonitorEnvironment
-from sentry.monitors.serializers import MonitorCheckInSerializerResponse
+from sentry.monitors.serializers import MonitorCheckInSerializer
 from sentry.monitors.utils import get_new_timeout_at, valid_duration
 from sentry.monitors.validators import MonitorCheckInValidator
 
@@ -44,9 +44,7 @@ class MonitorIngestCheckInDetailsEndpoint(MonitorIngestEndpoint):
         ],
         request=MonitorCheckInValidator,
         responses={
-            200: inline_sentry_response_serializer(
-                "MonitorCheckIn", MonitorCheckInSerializerResponse
-            ),
+            200: MonitorCheckInSerializer,
             208: RESPONSE_ALREADY_REPORTED,
             400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
@@ -123,10 +121,10 @@ class MonitorIngestCheckInDetailsEndpoint(MonitorIngestEndpoint):
             checkin.update(**params)
 
             if checkin.status == CheckInStatus.ERROR:
-                monitor_failed = mark_failed(monitor_environment, current_datetime)
+                monitor_failed = mark_failed(checkin, ts=current_datetime)
                 if not monitor_failed:
                     return self.respond(serialize(checkin, request.user), status=208)
             else:
-                monitor_environment.mark_ok(checkin, current_datetime)
+                mark_ok(checkin, current_datetime)
 
         return self.respond(serialize(checkin, request.user))

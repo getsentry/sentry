@@ -31,7 +31,7 @@ class IssueSeverityFilter(EventFilter):
     }
     rule_type = "filter/event"
     label = "The issue's severity is {match} {value}"
-    prompt = "The issue's serverity is ..."
+    prompt = "The issue's severity is ..."
 
     def _passes(self, group: Optional[Group]) -> bool:
         has_issue_severity_alerts = features.has(

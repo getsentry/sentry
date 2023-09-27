@@ -12,8 +12,10 @@ from sentry.models import (
     SentryAppComponent,
     SentryAppInstallation,
     SentryAppInstallationToken,
+    User,
 )
 from sentry.models.integrations.sentry_app_installation import prepare_sentry_app_components
+from sentry.sentry_apps.apps import SentryAppCreator
 from sentry.services.hybrid_cloud.app import (
     AppService,
     RpcAlertRuleActionResult,
@@ -217,3 +219,37 @@ class DatabaseBackedAppService(AppService):
             owner_id=organization_id, status=SentryAppStatus.PUBLISHED
         )
         return [serialize_sentry_app(app) for app in published_apps]
+
+    def create_internal_integration_for_channel_request(
+        self,
+        *,
+        organization_id: int,
+        integration_creator: str,
+        integration_name: str,
+        integration_scopes: List[str],
+    ) -> RpcSentryAppInstallation:
+        # if the 'integration' already exists, don't recreate it...
+        admin_user = User.objects.get(email=integration_creator)
+
+        sentry_app_query = SentryApp.objects.filter(
+            owner_id=organization_id,
+            name=integration_name,
+            creator_user=admin_user,
+            creator_label=admin_user.email
+            or admin_user.username,  # email is not required for some users (sentry apps)
+        )
+        sentry_app = sentry_app_query[0] if sentry_app_query.exists() else None
+        if sentry_app:
+            installation = SentryAppInstallation.objects.get(sentry_app=sentry_app)
+        else:
+            sentry_app = SentryAppCreator(
+                name=integration_name,
+                author="test",
+                organization_id=organization_id,
+                is_internal=True,
+                scopes=integration_scopes,
+                verify_install=False,
+            ).run(user=admin_user)
+            installation = SentryAppInstallation.objects.get(sentry_app=sentry_app)
+
+        return serialize_sentry_app_installation(installation=installation, app=sentry_app)

@@ -5,13 +5,13 @@ from uuid import uuid4
 import pytest
 from django.urls import reverse
 from django.utils import timezone
-from freezegun import freeze_time
 
 from sentry import release_health
 from sentry.models import ReleaseProjectEnvironment
 from sentry.release_health.metrics import MetricsReleaseHealthBackend
 from sentry.snuba.metrics import to_intervals
 from sentry.testutils.cases import APITestCase, BaseMetricsTestCase, SnubaTestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.link_header import parse_link_header
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.cursors import Cursor
@@ -102,28 +102,26 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
 
         self.create_environment(self.project2, name="development")
 
-        self.store_session(make_session(self.project1, started=SESSION_STARTED + 12 * 60))
-        self.store_session(
-            make_session(self.project1, started=SESSION_STARTED + 24 * 60, release="foo@1.1.0")
+        self.bulk_store_sessions(
+            [
+                make_session(self.project1, started=SESSION_STARTED + 12 * 60),
+                make_session(self.project1, started=SESSION_STARTED + 24 * 60, release="foo@1.1.0"),
+                make_session(self.project1, started=SESSION_STARTED - 60 * 60),
+                make_session(self.project1, started=SESSION_STARTED - 12 * 60 * 60),
+                make_session(self.project2, status="crashed"),
+                make_session(self.project2, environment="development"),
+                make_session(self.project3, errors=1, release="foo@1.2.0"),
+                make_session(
+                    self.project3,
+                    distinct_id="39887d89-13b2-4c84-8c23-5d13d2102664",
+                    started=SESSION_STARTED - 60 * 60,
+                ),
+                make_session(
+                    self.project3, distinct_id="39887d89-13b2-4c84-8c23-5d13d2102664", errors=1
+                ),
+                make_session(self.project4),
+            ]
         )
-        self.store_session(make_session(self.project1, started=SESSION_STARTED - 60 * 60))
-        self.store_session(make_session(self.project1, started=SESSION_STARTED - 12 * 60 * 60))
-        self.store_session(make_session(self.project2, status="crashed"))
-        self.store_session(make_session(self.project2, environment="development"))
-        self.store_session(make_session(self.project3, errors=1, release="foo@1.2.0"))
-        self.store_session(
-            make_session(
-                self.project3,
-                distinct_id="39887d89-13b2-4c84-8c23-5d13d2102664",
-                started=SESSION_STARTED - 60 * 60,
-            )
-        )
-        self.store_session(
-            make_session(
-                self.project3, distinct_id="39887d89-13b2-4c84-8c23-5d13d2102664", errors=1
-            )
-        )
-        self.store_session(make_session(self.project4))
 
     def do_request(self, query, user=None, org=None):
         self.login_as(user=user or self.user)
@@ -1302,8 +1300,8 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
         ]
 
 
+@region_silo_test(stable=True)
 @patch("sentry.release_health.backend", MetricsReleaseHealthBackend())
-@region_silo_test
 class OrganizationSessionsEndpointMetricsTest(
     BaseMetricsTestCase, OrganizationSessionsEndpointTest
 ):
@@ -1900,6 +1898,7 @@ class OrganizationSessionsEndpointMetricsTest(
             ]
 
 
+@region_silo_test(stable=True)
 @patch("sentry.release_health.backend", MetricsReleaseHealthBackend())
 class SessionsMetricsSortReleaseTimestampTest(BaseMetricsTestCase, APITestCase):
     def do_request(self, query, user=None, org=None):

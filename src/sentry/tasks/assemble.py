@@ -16,13 +16,14 @@ from django.utils import timezone
 from sentry import analytics, features, options
 from sentry.api.serializers import serialize
 from sentry.cache import default_cache
+from sentry.constants import ObjectStatus
 from sentry.debug_files.artifact_bundle_indexing import (
     BundleManifest,
     mark_bundle_for_flat_file_indexing,
     update_artifact_bundle_index,
 )
 from sentry.debug_files.artifact_bundles import index_artifact_bundles_for_release
-from sentry.models import File, Organization, Release, ReleaseFile
+from sentry.models import File, Organization, Project, Release, ReleaseFile
 from sentry.models.artifactbundle import (
     INDEXING_THRESHOLD,
     NULL_STRING,
@@ -82,7 +83,7 @@ def assemble_file(
 
     Returns a tuple ``(File, TempFile)`` on success, or ``None`` on error.
     """
-    from sentry.models import AssembleChecksumMismatch, File, FileBlob, Project
+    from sentry.models import AssembleChecksumMismatch, FileBlob
 
     if isinstance(org_or_project, Project):
         organization = org_or_project.organization
@@ -483,12 +484,14 @@ class ArtifactBundlePostAssembler(PostAssembler[ArtifactBundleArchive]):
         release: Optional[str],
         dist: Optional[str],
         project_ids: List[int],
+        is_release_bundle_migration: bool = False,
     ):
         super().__init__(assemble_result)
         self.organization = organization
         self.release = release
         self.dist = dist
         self.project_ids = project_ids
+        self.is_release_bundle_migration = is_release_bundle_migration
 
     def _validate_bundle(self):
         self.archive = ArtifactBundleArchive(self.assemble_result.bundle_temp_file)
@@ -510,6 +513,19 @@ class ArtifactBundlePostAssembler(PostAssembler[ArtifactBundleArchive]):
         # contents.
         self.release = self.release or self.archive.manifest.get("release")
         self.dist = self.dist or self.archive.manifest.get("dist")
+
+        # In case we have a release bundle migration, we are fetching *all*
+        # the projects associated with a release, which can be quite a lot.
+        # We rather use the `project` of the bundle manifest instead.
+        if len(self.project_ids) > 2 and self.is_release_bundle_migration:
+            if project_in_manifest := self.archive.manifest.get("project"):
+                project_ids = Project.objects.filter(
+                    organization=self.organization,
+                    status=ObjectStatus.ACTIVE,
+                    slug=project_in_manifest,
+                ).values_list("id", flat=True)
+                if len(project_ids) > 0:
+                    self.project_ids = project_ids
 
         # We want to measure how much time it takes to extract debug ids from manifest.
         with metrics.timer("tasks.assemble.artifact_bundle.extract_debug_ids"):
@@ -775,7 +791,7 @@ class ArtifactBundlePostAssembler(PostAssembler[ArtifactBundleArchive]):
     @sentry_sdk.tracing.trace
     def _index_bundle_into_flat_file(self, artifact_bundle: ArtifactBundle):
         identifiers = mark_bundle_for_flat_file_indexing(
-            artifact_bundle, self.project_ids, self.release, self.dist
+            artifact_bundle, self.archive.has_debug_ids(), self.project_ids, self.release, self.dist
         )
 
         bundles_to_add = [BundleManifest.from_artifact_bundle(artifact_bundle, self.archive)]
@@ -801,6 +817,7 @@ def prepare_post_assembler(
     dist: Optional[str],
     project_ids: Optional[List[int]],
     upload_as_artifact_bundle: bool,
+    is_release_bundle_migration: bool,
 ) -> PostAssembler:
     if upload_as_artifact_bundle:
         if not project_ids:
@@ -813,6 +830,7 @@ def prepare_post_assembler(
             release=release,
             dist=dist,
             project_ids=project_ids,
+            is_release_bundle_migration=is_release_bundle_migration,
         )
     else:
         if not release:
@@ -838,6 +856,7 @@ def assemble_artifacts(
     project_ids=None,
     dist=None,
     upload_as_artifact_bundle=False,
+    is_release_bundle_migration=False,
     **kwargs,
 ):
     """
@@ -881,6 +900,7 @@ def assemble_artifacts(
             dist=dist,
             project_ids=project_ids,
             upload_as_artifact_bundle=upload_as_artifact_bundle,
+            is_release_bundle_migration=is_release_bundle_migration,
         ) as post_assembler:
             # Once the archive is valid, the post assembler can run the post assembling job.
             post_assembler.post_assemble()

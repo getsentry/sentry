@@ -7,9 +7,10 @@ import {GettingStartedWithAngular, nextSteps, steps} from './angular';
 
 describe('GettingStartedWithAngular', function () {
   it('all products are selected', function () {
-    const {container} = render(
+    render(
       <GettingStartedWithAngular
         dsn="test-dsn"
+        projectSlug="test-project"
         activeProductSelection={[
           ProductSolution.PERFORMANCE_MONITORING,
           ProductSolution.SESSION_REPLAY,
@@ -38,7 +39,5 @@ describe('GettingStartedWithAngular', function () {
         screen.getByRole('link', {name: filteredNextStepsLink.name})
       ).toBeInTheDocument();
     }
-
-    expect(container).toSnapshot();
   });
 });

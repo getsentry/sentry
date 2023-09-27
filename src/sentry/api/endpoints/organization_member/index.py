@@ -47,12 +47,14 @@ class OrganizationMemberSerializer(serializers.Serializer):
         choices=roles.get_choices(), default=organization_roles.get_default().id
     )  # deprecated, use orgRole
     orgRole = serializers.ChoiceField(
-        choices=roles.get_choices(), default=organization_roles.get_default().id
+        choices=roles.get_choices(), default=organization_roles.get_default().id, required=False
     )
     teams = serializers.ListField(
         required=False, allow_null=False, default=[]
     )  # deprecated, use teamRoles
-    teamRoles = serializers.ListField(required=False, allow_null=True, default=[])
+    teamRoles = serializers.ListField(
+        required=False, allow_null=True, default=[], child=serializers.JSONField()
+    )
     sendInvite = serializers.BooleanField(required=False, default=True, write_only=True)
     reinvite = serializers.BooleanField(required=False)
     regenerate = serializers.BooleanField(required=False)
@@ -305,7 +307,8 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
             save_team_assignments(om, teams)
 
         if settings.SENTRY_ENABLE_INVITES and result.get("sendInvite"):
-            om.send_invite_email()
+            referrer = request.query_params.get("referrer")
+            om.send_invite_email(referrer)
             member_invited.send_robust(
                 member=om, user=request.user, sender=self, referrer=request.data.get("referrer")
             )

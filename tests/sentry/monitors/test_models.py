@@ -6,13 +6,10 @@ from django.test.utils import override_settings
 from django.utils import timezone
 
 from sentry.monitors.models import (
-    CheckInStatus,
     Monitor,
-    MonitorCheckIn,
     MonitorEnvironment,
     MonitorEnvironmentLimitsExceeded,
     MonitorLimitsExceeded,
-    MonitorStatus,
     MonitorType,
     ScheduleType,
 )
@@ -29,13 +26,32 @@ class MonitorTestCase(TestCase):
         monitor_environment = MonitorEnvironment(monitor=monitor, last_checkin=ts)
 
         # XXX: Seconds are removed as we clamp to the minute
-        assert monitor_environment.monitor.get_next_expected_checkin_latest(ts) == datetime(
+        assert monitor_environment.monitor.get_next_expected_checkin(ts) == datetime(
             2019, 1, 1, 1, 11, tzinfo=timezone.utc
+        )
+        assert monitor_environment.monitor.get_next_expected_checkin_latest(ts) == datetime(
+            2019, 1, 1, 1, 12, tzinfo=timezone.utc
         )
 
         monitor.config["schedule"] = "*/5 * * * *"
-        assert monitor_environment.monitor.get_next_expected_checkin_latest(ts) == datetime(
+        assert monitor_environment.monitor.get_next_expected_checkin(ts) == datetime(
             2019, 1, 1, 1, 15, tzinfo=timezone.utc
+        )
+        assert monitor_environment.monitor.get_next_expected_checkin_latest(ts) == datetime(
+            2019, 1, 1, 1, 16, tzinfo=timezone.utc
+        )
+
+    def test_next_run_latest_crontab_implicit(self):
+        ts = datetime(2019, 1, 1, 1, 10, 20, tzinfo=timezone.utc)
+        monitor = Monitor(config={"schedule": "* * * * *", "checkin_margin": 5})
+        monitor_environment = MonitorEnvironment(monitor=monitor, last_checkin=ts)
+
+        # XXX: Seconds are removed as we clamp to the minute
+        assert monitor_environment.monitor.get_next_expected_checkin(ts) == datetime(
+            2019, 1, 1, 1, 11, tzinfo=timezone.utc
+        )
+        assert monitor_environment.monitor.get_next_expected_checkin_latest(ts) == datetime(
+            2019, 1, 1, 1, 16, tzinfo=timezone.utc
         )
 
     def test_next_run_crontab_explicit(self):
@@ -46,12 +62,12 @@ class MonitorTestCase(TestCase):
         monitor_environment = MonitorEnvironment(monitor=monitor, last_checkin=ts)
 
         # XXX: Seconds are removed as we clamp to the minute
-        assert monitor_environment.monitor.get_next_expected_checkin_latest(ts) == datetime(
+        assert monitor_environment.monitor.get_next_expected_checkin(ts) == datetime(
             2019, 1, 1, 1, 11, tzinfo=timezone.utc
         )
 
         monitor.config["schedule"] = "*/5 * * * *"
-        assert monitor_environment.monitor.get_next_expected_checkin_latest(ts) == datetime(
+        assert monitor_environment.monitor.get_next_expected_checkin(ts) == datetime(
             2019, 1, 1, 1, 15, tzinfo=timezone.utc
         )
 
@@ -67,14 +83,14 @@ class MonitorTestCase(TestCase):
         monitor_environment = MonitorEnvironment(monitor=monitor, last_checkin=ts)
 
         # XXX: Seconds are removed as we clamp to the minute
-        assert monitor_environment.monitor.get_next_expected_checkin_latest(ts) == datetime(
+        assert monitor_environment.monitor.get_next_expected_checkin(ts) == datetime(
             2019, 1, 1, 12, 00, tzinfo=timezone.utc
         )
 
         # Europe/Berlin == UTC+01:00.
         # the run should be represented 1 hours earlier in UTC time
         monitor.config["timezone"] = "Europe/Berlin"
-        assert monitor_environment.monitor.get_next_expected_checkin_latest(ts) == datetime(
+        assert monitor_environment.monitor.get_next_expected_checkin(ts) == datetime(
             2019, 1, 1, 11, 00, tzinfo=timezone.utc
         )
 
@@ -86,7 +102,7 @@ class MonitorTestCase(TestCase):
         monitor_environment = MonitorEnvironment(monitor=monitor, last_checkin=ts)
 
         # XXX: Seconds are removed as we clamp to the minute.
-        assert monitor_environment.monitor.get_next_expected_checkin_latest(ts) == datetime(
+        assert monitor_environment.monitor.get_next_expected_checkin(ts) == datetime(
             2019, 2, 1, 1, 10, 0, tzinfo=timezone.utc
         )
 
@@ -152,66 +168,6 @@ class MonitorTestCase(TestCase):
 
 @region_silo_test(stable=True)
 class MonitorEnvironmentTestCase(TestCase):
-    def test_mark_ok_recovery_threshold(self):
-        recovery_threshold = 8
-        monitor = Monitor.objects.create(
-            name="test monitor",
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            type=MonitorType.CRON_JOB,
-            config={
-                "schedule": [1, "month"],
-                "schedule_type": ScheduleType.INTERVAL,
-                "recovery_threshold": recovery_threshold,
-            },
-        )
-        monitor_environment = MonitorEnvironment.objects.create(
-            monitor=monitor,
-            environment=self.environment,
-            status=MonitorStatus.ERROR,
-        )
-
-        MonitorCheckIn.objects.create(
-            monitor=monitor,
-            monitor_environment=monitor_environment,
-            project_id=self.project.id,
-            status=CheckInStatus.ERROR,
-        )
-
-        for i in range(0, recovery_threshold - 1):
-            checkin = MonitorCheckIn.objects.create(
-                monitor=monitor,
-                monitor_environment=monitor_environment,
-                project_id=self.project.id,
-                status=CheckInStatus.OK,
-            )
-            monitor_environment.mark_ok(checkin, checkin.date_added)
-
-        # failure has not hit threshold, monitor should be in an OK status
-        monitor_environment = MonitorEnvironment.objects.get(id=monitor_environment.id)
-        assert monitor_environment.status != MonitorStatus.OK
-
-        # create another failed check-in to break the chain
-        MonitorCheckIn.objects.create(
-            monitor=monitor,
-            monitor_environment=monitor_environment,
-            project_id=self.project.id,
-            status=CheckInStatus.ERROR,
-        )
-
-        for i in range(0, recovery_threshold):
-            checkin = MonitorCheckIn.objects.create(
-                monitor=monitor,
-                monitor_environment=monitor_environment,
-                project_id=self.project.id,
-                status=CheckInStatus.OK,
-            )
-            monitor_environment.mark_ok(checkin, checkin.date_added)
-
-        # recovery has hit threshold, monitor should be in an ok state
-        monitor_environment = MonitorEnvironment.objects.get(id=monitor_environment.id)
-        assert monitor_environment.status == MonitorStatus.OK
-
     @override_settings(MAX_ENVIRONMENTS_PER_MONITOR=2)
     def test_monitor_environment_limits(self):
         monitor = Monitor.objects.create(

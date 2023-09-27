@@ -10,7 +10,6 @@ from hashlib import md5
 from typing import TypeVar
 from unittest import mock
 
-import freezegun
 import pytest
 from django.conf import settings
 from sentry_sdk import Hub
@@ -28,7 +27,23 @@ TEST_ROOT = os.path.normpath(
 TEST_REDIS_DB = 9
 
 
-def pytest_configure(config):
+def configure_split_db() -> None:
+    SENTRY_USE_MONOLITH_DBS = bool(os.environ.get("SENTRY_USE_MONOLITH_DBS"))
+    already_configured = "control" in settings.DATABASES
+    if already_configured or SENTRY_USE_MONOLITH_DBS:
+        return
+    # Add connections for the region & control silo databases.
+    settings.DATABASES["control"] = settings.DATABASES["default"].copy()
+    settings.DATABASES["control"]["NAME"] = "control"
+
+    # Use the region database in the default connection as region
+    # silo database is the 'default' elsewhere in application logic.
+    settings.DATABASES["default"]["NAME"] = "region"
+
+    settings.DATABASE_ROUTERS = ("sentry.db.router.SiloRouter",)
+
+
+def pytest_configure(config: pytest.Config) -> None:
     import warnings
 
     # This is just to filter out an obvious warning before the pytest session starts.
@@ -81,6 +96,8 @@ def pytest_configure(config):
             # an actual migration.
         else:
             raise RuntimeError("oops, wrong database: %r" % test_db)
+
+    configure_split_db()
 
     # Ensure we can test secure ssl settings
     settings.SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
@@ -236,6 +253,8 @@ def pytest_configure(config):
         # Migrations for the "sentry" app take a long time to run, which makes test startup time slow in dev.
         # This is a hack to force django to sync the database state from the models rather than use migrations.
         settings.MIGRATION_MODULES["sentry"] = None  # type: ignore[assignment]
+        settings.MIGRATION_MODULES["hybridcloud"] = None  # type: ignore[assignment]
+        settings.MIGRATION_MODULES["feedback"] = None  # type: ignore[assignment]
 
     asset_version_patcher = mock.patch(
         "sentry.runner.initializer.get_asset_version", return_value="{version}"
@@ -255,10 +274,8 @@ def pytest_configure(config):
     # force celery registration
     from sentry.celery import app  # NOQA
 
-    freezegun.configure(extend_ignore_list=["sentry.utils.retries"])  # type: ignore[attr-defined]
 
-
-def register_extensions():
+def register_extensions() -> None:
     from sentry.plugins.base import plugins
     from sentry.plugins.utils import TestIssuePlugin2
 
@@ -289,14 +306,14 @@ def register_extensions():
     )
 
 
-def pytest_runtest_setup(item):
+def pytest_runtest_setup(item: pytest.Item) -> None:
     if not settings.MIGRATIONS_TEST_MIGRATE and any(
         mark for mark in item.iter_markers(name="migrations")
     ):
         pytest.skip("migrations are not enabled, run with MIGRATIONS_TEST_MIGRATE=1 pytest ...")
 
 
-def pytest_runtest_teardown(item):
+def pytest_runtest_teardown(item: pytest.Item) -> None:
     # XXX(dcramer): only works with DummyNewsletter
     from sentry import newsletter
 
@@ -362,12 +379,12 @@ def _shuffle(items: list[pytest.Item]) -> None:
     items[:] = new_items
 
 
-def pytest_collection_modifyitems(config, items):
+def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
     """After collection, we need to select tests based on group and group strategy"""
 
     total_groups = int(os.environ.get("TOTAL_TEST_GROUPS", 1))
     current_group = int(os.environ.get("TEST_GROUP", 0))
-    grouping_strategy = os.environ.get("TEST_GROUP_STRATEGY", "file")
+    grouping_strategy = os.environ.get("TEST_GROUP_STRATEGY", "scope")
 
     keep, discard = [], []
 
@@ -375,8 +392,8 @@ def pytest_collection_modifyitems(config, items):
         # In the case where we group by round robin (e.g. TEST_GROUP_STRATEGY is not `file`),
         # we want to only include items in `accepted` list
         item_to_group = (
-            int(md5(str(item.location[0]).encode("utf-8")).hexdigest(), 16)
-            if grouping_strategy == "file"
+            int(md5(item.nodeid.rsplit("::", 1)[0].encode()).hexdigest(), 16)
+            if grouping_strategy == "scope"
             else index
         )
 
@@ -398,6 +415,6 @@ def pytest_collection_modifyitems(config, items):
         config.hook.pytest_deselected(items=discard)
 
 
-def pytest_xdist_setupnodes():
+def pytest_xdist_setupnodes() -> None:
     # prevent out-of-order django initialization
     os.environ.pop("DJANGO_SETTINGS_MODULE", None)
