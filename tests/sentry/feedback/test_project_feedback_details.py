@@ -19,11 +19,11 @@ class ProjectFeedbackDetailTest(APITestCase):
         self.replay_id_2 = uuid.uuid4().hex
         self.feedback_id_2 = uuid.uuid4().hex
         self.feedback_id_3 = uuid.uuid4().hex
+        self.environment_1 = self.create_environment(project=self.project, name="prod")
 
     def mock_feedback(self):
         Feedback.objects.create(
             data={
-                "environment": "production",
                 "feedback": {
                     "contact_email": "colton.allen@sentry.io",
                     "message": "I really like this user-feedback feature!",
@@ -51,11 +51,11 @@ class ProjectFeedbackDetailTest(APITestCase):
             replay_id=self.replay_id_1,
             project_id=self.project.id,
             organization_id=self.organization.id,
+            environment=self.environment_1,
         )
 
         Feedback.objects.create(
             data={
-                "environment": "prod",
                 "feedback": {
                     "contact_email": "michelle.zhang@sentry.io",
                     "message": "I also really like this user-feedback feature!",
@@ -88,6 +88,7 @@ class ProjectFeedbackDetailTest(APITestCase):
             replay_id=self.replay_id_2,
             project_id=self.project.id,
             organization_id=self.organization.id,
+            environment=self.environment_1,
         )
 
     def test_get_feedback_item(self):

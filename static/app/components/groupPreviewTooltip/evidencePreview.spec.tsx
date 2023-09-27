@@ -50,7 +50,7 @@ describe('EvidencePreview', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: `/issues/group-id/events/latest/`,
+      url: `/issues/group-id/events/helpful/`,
       body: event,
     });
 
