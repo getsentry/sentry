@@ -136,12 +136,7 @@ class OrganizationMetricsTagDetailsEndpoint(OrganizationEndpoint):
                 use_case_id=get_use_case_id(request),
             )
         except (InvalidParams, DerivedMetricParseException) as exc:
-            msg = str(exc)
-            # TODO: Use separate error type once we have real data
-            if "Unknown tag" in msg:
-                raise ResourceDoesNotExist(f"tag '{tag_name}'")
-            else:
-                raise ParseError(msg)
+            raise ParseError(str(exc))
 
         return Response(tag_values, status=200)
 
