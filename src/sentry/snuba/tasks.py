@@ -241,6 +241,7 @@ def _create_snql_in_snuba(subscription, snuba_query, snql_query, entity_subscrip
         "query": str(snql_query.query),
         "time_window": snuba_query.time_window,
         "resolution": snuba_query.resolution,
+        "tenant_ids": {"organization_id": subscription.project.organization_id},
         **entity_subscription.get_entity_extra_params(),
     }
 
