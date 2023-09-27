@@ -4,6 +4,8 @@ from datetime import datetime
 from hashlib import sha256
 from typing import TYPE_CHECKING, TypedDict
 
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
+
 if TYPE_CHECKING:
     from sentry.models import OrganizationMember
 
@@ -13,6 +15,13 @@ ALLOWED_ROLES = ["admin", "manager", "owner"]
 
 def is_valid_role(org_member: "OrganizationMember") -> bool:
     return len(set(org_member.get_all_org_roles()) & set(ALLOWED_ROLES)) > 0
+
+
+def is_team_admin_in_org(org_member: "OrganizationMember") -> bool:
+    """Returns true if the user is a team admin on at least one team in the org"""
+    return OrganizationMemberTeam.objects.filter(
+        organizationmember=org_member, role="admin"
+    ).exists()
 
 
 def _encode_data(secret: str, data: bytes, timestamp: str) -> str:

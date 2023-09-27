@@ -93,6 +93,16 @@ class SlackIntegrationLinkTeamTestBase(TestCase):
         self.create_member(organization=self.organization, user=user, teams=[admin_team])
         self.login_as(user)
 
+    def _create_user_valid_through_team_admin(self):
+        user = self.create_user(email="foo@example.com")
+        self.create_member(
+            team_roles=[(self.team, "admin")],
+            user=user,
+            role="member",
+            organization=self.organization,
+        )
+        self.login_as(user)
+
     def _create_user_with_member_role_through_team(self):
         user = self.create_user(email="foo@example.com")
         member_team = self.create_team(org_role="member")
@@ -142,6 +152,13 @@ class SlackIntegrationLinkTeamTest(SlackIntegrationLinkTeamTestBase):
     def test_link_team_with_valid_role_through_team(self):
         """Test that we successfully link a team to a Slack channel with a valid role through a team"""
         self._create_user_with_valid_role_through_team()
+
+        self.test_link_team()
+
+    @responses.activate
+    def test_link_team_valid_through_team_admin(self):
+        """Test that we successfully link a team to a Slack channel as a valid team admin"""
+        self._create_user_valid_through_team_admin()
 
         self.test_link_team()
 
@@ -231,6 +248,13 @@ class SlackIntegrationUnlinkTeamTest(SlackIntegrationLinkTeamTestBase):
     def test_unlink_team_with_valid_role_through_team(self):
         """Test that a team can be unlinked from a Slack channel with a valid role through a team"""
         self._create_user_with_valid_role_through_team()
+
+        self.test_unlink_team()
+
+    @responses.activate
+    def test_unlink_team_valid_through_team_admin(self):
+        """Test that a team can be unlinked from a Slack channel as a valid team admin"""
+        self._create_user_valid_through_team_admin()
 
         self.test_unlink_team()
 

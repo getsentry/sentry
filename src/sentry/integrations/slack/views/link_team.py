@@ -89,18 +89,19 @@ class SlackLinkTeamView(BaseView):
         organization_memberships = OrganizationMember.objects.get_for_integration(
             integration, request.user
         )
-        # Filter to organizations where we have sufficient role.
-        organizations = [
-            organization_membership.organization
-            for organization_membership in organization_memberships
-            if is_valid_role(organization_membership)
-        ]
-
-        teams_by_id = {
-            team.id: team
-            for organization in organizations
-            for team in Team.objects.get_for_user(organization, request.user)
-        }
+        # Filter to teams where we have access to, either through having a sufficient role
+        # in the organization (i.e. owner/manager/admin) or by being team admin on
+        teams_by_id = {}
+        for org_membership in organization_memberships:
+            for team in Team.objects.get_for_user(
+                org_membership.organization,
+                request.user,
+                # Setting is_team_admin to True only returns teams that member is team admin on.
+                # We only want to filter for this when the user does not have a sufficient
+                # role in the org, which is checked using is_valid_role.
+                is_team_admin=not is_valid_role(org_membership),
+            ):
+                teams_by_id[team.id] = team
 
         channel_name = params["channel_name"]
         channel_id = params["channel_id"]
