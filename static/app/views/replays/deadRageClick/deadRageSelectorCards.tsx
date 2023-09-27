@@ -165,22 +165,24 @@ function AccordionWidget({
           <HeaderTitleLegend>{widgetTitle}</HeaderTitleLegend>
           <Subtitle>{t('Suggested replays to watch')}</Subtitle>
         </StyledHeaderContainer>
-        <StyledContainerContainer>
-          {isLoading && (
-            <StatusContainer>
-              <LoadingIndicator />
-            </StatusContainer>
-          )}
-          {isError && (
-            <StatusContainer>
-              <IconWarning data-test-id="error-indicator" color="gray300" size="lg" />
-            </StatusContainer>
-          )}
-          {!isLoading && filteredData.length === 0 ? (
+        {isLoading && (
+          <StatusContainer>
+            <LoadingIndicator />
+          </StatusContainer>
+        )}
+        {isError && (
+          <StatusContainer>
+            <IconWarning data-test-id="error-indicator" color="gray300" size="lg" />
+          </StatusContainer>
+        )}
+        {!isLoading && filteredData.length === 0 ? (
+          <StyledEmptyState>
             <EmptyStateWarning>
               <p>{t('No results found')}</p>
             </EmptyStateWarning>
-          ) : (
+          </StyledEmptyState>
+        ) : (
+          <StyledContainerContainer>
             <Accordion
               expandedIndex={selectedListIndex}
               setExpandedIndex={setSelectListIndex}
@@ -215,8 +217,8 @@ function AccordionWidget({
                 };
               })}
             />
-          )}
-        </StyledContainerContainer>
+          </StyledContainerContainer>
+        )}
         <SearchButton
           label={t('See all selectors')}
           path="selectors"
@@ -303,6 +305,9 @@ const StyledAccordionHeader = styled('div')`
   display: grid;
   grid-template-columns: 1fr max-content;
   flex: 1;
+`;
+const StyledEmptyState = styled(ContentContainer)`
+  justify-content: center;
 `;
 
 export default DeadRageSelectorCards;
