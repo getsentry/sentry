@@ -624,23 +624,24 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             timestamp=self.min_ago,
             tags={"span.domain": ",sentry_table1,sentry_table2,"},
         )
-        response = self.do_request(
-            {
-                "field": ["span.domain", "p75(span.self_time)"],
-                "query": "",
-                "project": self.project.id,
-                "orderby": ["-p75(span.self_time)"],
-                "dataset": "spansMetrics",
-            }
-        )
-        assert response.status_code == 200, response.content
-        data = response.data["data"]
-        meta = response.data["meta"]
-        assert len(data) == 2
-        assert data[0]["span.domain"] == ["sentry_table1"]
-        assert data[1]["span.domain"] == ["sentry_table1", "sentry_table2"]
-        assert meta["dataset"] == "spansMetrics"
-        assert meta["fields"]["span.domain"] == "array"
+        for field in ["span.domain", "span.domain_array"]:
+            response = self.do_request(
+                {
+                    "field": [field, "p75(span.self_time)"],
+                    "query": "",
+                    "project": self.project.id,
+                    "orderby": ["-p75(span.self_time)"],
+                    "dataset": "spansMetrics",
+                }
+            )
+            assert response.status_code == 200, response.content
+            data = response.data["data"]
+            meta = response.data["meta"]
+            assert len(data) == 2
+            assert data[0][field] == ["sentry_table1"]
+            assert data[1][field] == ["sentry_table1", "sentry_table2"]
+            assert meta["dataset"] == "spansMetrics"
+            assert meta["fields"][field] == "array"
 
     def test_span_domain_array_filter(self):
         self.store_span_metric(

@@ -36,6 +36,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
         return {
             constants.SPAN_MODULE_ALIAS: self._resolve_span_module,
             constants.SPAN_DOMAIN_ALIAS: self._resolve_span_domain,
+            constants.SPAN_DOMAIN_ARRAY_ALIAS: self._resolve_span_domain,
             constants.UNIQUE_SPAN_DOMAIN_ALIAS: self._resolve_unique_span_domains,
         }
 
