@@ -16,6 +16,7 @@ from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.region import override_region_config
+from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
 from sentry.types.region import RegionCategory, clear_global_regions
 from sentry.utils.cursors import Cursor
 
@@ -107,10 +108,12 @@ class DummyPaginationStreamingEndpoint(Endpoint):
 _dummy_streaming_endpoint = DummyPaginationStreamingEndpoint.as_view()
 
 
+@all_silo_test(stable=True)
 class EndpointTest(APITestCase):
     def test_basic_cors(self):
         org = self.create_organization()
-        apikey = ApiKey.objects.create(organization_id=org.id, allowed_origins="*")
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            apikey = ApiKey.objects.create(organization_id=org.id, allowed_origins="*")
 
         request = self.make_request(method="GET")
         request.META["HTTP_ORIGIN"] = "http://example.com"
@@ -134,7 +137,8 @@ class EndpointTest(APITestCase):
     @override_options({"system.base-hostname": "example.com"})
     def test_allow_credentials_subdomain(self):
         org = self.create_organization()
-        apikey = ApiKey.objects.create(organization_id=org.id, allowed_origins="*")
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            apikey = ApiKey.objects.create(organization_id=org.id, allowed_origins="*")
 
         request = self.make_request(method="GET")
         # Origin is a subdomain of base-hostname, and is cors allowed
@@ -158,7 +162,8 @@ class EndpointTest(APITestCase):
     @override_options({"system.base-hostname": "example.com"})
     def test_allow_credentials_root_domain(self):
         org = self.create_organization()
-        apikey = ApiKey.objects.create(organization_id=org.id, allowed_origins="*")
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            apikey = ApiKey.objects.create(organization_id=org.id, allowed_origins="*")
 
         request = self.make_request(method="GET")
         # Origin is base-hostname, and is cors allowed
@@ -182,7 +187,8 @@ class EndpointTest(APITestCase):
     @override_options({"system.base-hostname": "acme.com"})
     def test_allow_credentials_incorrect(self):
         org = self.create_organization()
-        apikey = ApiKey.objects.create(organization_id=org.id, allowed_origins="*")
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            apikey = ApiKey.objects.create(organization_id=org.id, allowed_origins="*")
 
         for http_origin in ["http://acme.example.com", "http://fakeacme.com"]:
             request = self.make_request(method="GET")
@@ -236,8 +242,10 @@ class EndpointTest(APITestCase):
     @mock.patch("sentry.api.base.Endpoint.convert_args")
     def test_method_not_allowed(self, mock_convert_args):
         request = self.make_request(method="POST")
-        response = _dummy_endpoint(request)
-        response.render()
+        # Run this particular test in monolith mode to prevent RPC interactions
+        with assume_test_silo_mode(SiloMode.MONOLITH):
+            response = _dummy_endpoint(request)
+            response.render()
 
         assert response.status_code == 405, response.content
 
