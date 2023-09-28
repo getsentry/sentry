@@ -98,7 +98,7 @@ class NormalizedModelName:
         return self.__model_name
 
 
-def get_model_name(model: Type[models.base.Model]) -> NormalizedModelName:
+def get_model_name(model: type[models.Model] | models.Model) -> NormalizedModelName:
     return NormalizedModelName(f"{model._meta.app_label}.{model._meta.object_name}")
 
 
