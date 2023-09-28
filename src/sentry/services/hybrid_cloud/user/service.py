@@ -113,7 +113,7 @@ class UserService(RpcService):
         pass
 
     def get_user(self, user_id: int) -> Optional[RpcUser]:
-        user = _get_user(user_id)
+        user = get_user(user_id)
         if user.is_anonymous:
             return None
         return user
@@ -144,7 +144,7 @@ class UserService(RpcService):
 
 
 @back_with_silo_cache("user_service.get_user", SiloMode.REGION, RpcUser)
-def _get_user(user_id: int) -> RpcUser:
+def get_user(user_id: int) -> RpcUser:
     users = user_service.get_many(filter=dict(user_ids=[user_id]))
     if len(users) > 0:
         return users[0]
