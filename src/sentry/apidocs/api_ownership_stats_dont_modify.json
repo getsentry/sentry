@@ -18,6 +18,9 @@
     "issues": {
         "block_start": 18,
         "public": [
+            "ProjectRuleDetailsEndpoint::DELETE",
+            "ProjectRuleDetailsEndpoint::GET",
+            "ProjectRuleDetailsEndpoint::PUT",
             "ProjectRulesEndpoint::GET",
             "ProjectRulesEndpoint::POST",
             "SourceMapDebugEndpoint::GET"
@@ -79,9 +82,6 @@
             "PluginGroupEndpoint::GET",
             "PluginGroupEndpoint::POST",
             "ProjectRuleActionsEndpoint::POST",
-            "ProjectRuleDetailsEndpoint::DELETE",
-            "ProjectRuleDetailsEndpoint::GET",
-            "ProjectRuleDetailsEndpoint::PUT",
             "ProjectRuleEnableEndpoint::PUT",
             "ProjectRuleGroupHistoryIndexEndpoint::GET",
             "ProjectRuleStatsIndexEndpoint::GET",
@@ -710,6 +710,7 @@
         "public": [],
         "private": [],
         "experimental": [
+            "CustomRulesEndpoint::GET",
             "CustomRulesEndpoint::POST"
         ],
         "unknown": [
@@ -725,7 +726,7 @@
         ]
     },
     "team-starfish": {
-        "block_start": 727,
+        "block_start": 728,
         "public": [],
         "private": [],
         "experimental": [],
@@ -735,7 +736,7 @@
         ]
     },
     "growth": {
-        "block_start": 737,
+        "block_start": 738,
         "public": [],
         "private": [],
         "experimental": [],
@@ -744,18 +745,19 @@
         ]
     },
     "feedback-backend": {
-        "block_start": 746,
+        "block_start": 747,
         "public": [],
         "private": [],
         "experimental": [
             "FeedbackIngestEndpoint::POST",
             "OrganizationFeedbackIndexEndpoint::GET",
+            "ProjectFeedbackDetailsEndpoint::DELETE",
             "ProjectFeedbackDetailsEndpoint::GET"
         ],
         "unknown": []
     },
     "replay-backend": {
-        "block_start": 757,
+        "block_start": 759,
         "public": [],
         "private": [],
         "experimental": [],
@@ -764,7 +766,7 @@
         ]
     },
     "profiling": {
-        "block_start": 766,
+        "block_start": 768,
         "public": [],
         "private": [],
         "experimental": [],
@@ -780,7 +782,7 @@
         ]
     },
     "team-web-sdk-frontend": {
-        "block_start": 782,
+        "block_start": 784,
         "public": [],
         "private": [
             "SourceMapDebugBlueThunderEditionEndpoint::GET"
@@ -789,7 +791,7 @@
         "unknown": []
     },
     "hybrid-cloud": {
-        "block_start": 791,
+        "block_start": 793,
         "public": [],
         "private": [],
         "experimental": [],

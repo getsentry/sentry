@@ -53,6 +53,7 @@ SUPPORTED_SDK_VERSIONS = {
     "sentry.javascript.node": "7.6.0",
     "sentry.javascript.angular-ivy": "7.6.0",
     "sentry.javascript.sveltekit": "7.6.0",
+    "sentry.javascript.bun": "7.70.0",
     # Apple
     "sentry-cocoa": "7.23.0",
     "sentry-objc": "7.23.0",
@@ -211,6 +212,7 @@ SDKS_SUPPORTING_PERFORMANCE = {
     "sentry-laravel",
     "sentry.php.laravel",
     "sentry.javascript.node",
+    "sentry.javascript.bun",
     "sentry-php",
     "sentry.php",
     "sentry-python",

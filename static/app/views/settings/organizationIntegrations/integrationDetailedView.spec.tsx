@@ -1,3 +1,5 @@
+import {GitHubIntegrationProvider} from 'sentry-fixture/githubIntegrationProvider';
+
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import IntegrationDetailedView from 'sentry/views/settings/organizationIntegrations/integrationDetailedView';
@@ -118,7 +120,7 @@ describe('IntegrationDetailedView', function () {
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/config/integrations/?provider_key=github`,
       body: {
-        providers: [TestStubs.GitHubIntegrationProvider()],
+        providers: [GitHubIntegrationProvider()],
       },
     });
     MockApiClient.addMockResponse({
@@ -162,7 +164,7 @@ describe('IntegrationDetailedView', function () {
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/config/integrations/?provider_key=github`,
       body: {
-        providers: [TestStubs.GitHubIntegrationProvider()],
+        providers: [GitHubIntegrationProvider()],
       },
     });
     MockApiClient.addMockResponse({
@@ -206,7 +208,7 @@ describe('IntegrationDetailedView', function () {
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/config/integrations/?provider_key=github`,
       body: {
-        providers: [TestStubs.GitHubIntegrationProvider()],
+        providers: [GitHubIntegrationProvider()],
       },
     });
     MockApiClient.addMockResponse({
@@ -241,7 +243,7 @@ describe('IntegrationDetailedView', function () {
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/config/integrations/?provider_key=github`,
       body: {
-        providers: [TestStubs.GitHubIntegrationProvider()],
+        providers: [GitHubIntegrationProvider()],
       },
     });
 

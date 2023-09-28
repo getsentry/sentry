@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections import defaultdict
 from enum import Enum, auto, unique
 from functools import lru_cache
-from typing import Dict, NamedTuple, Optional, Tuple, Type
+from typing import Dict, FrozenSet, NamedTuple, Optional, Set, Tuple, Type
 
 from django.db import models
 from django.db.models.fields.related import ForeignKey, OneToOneField
@@ -44,15 +44,18 @@ class ForeignField(NamedTuple):
 
     model: Type[models.base.Model]
     kind: ForeignFieldKind
+    nullable: bool
 
 
 class ModelRelations(NamedTuple):
     """What other models does this model depend on, and how?"""
 
-    model: Type[models.base.Model]
     foreign_keys: dict[str, ForeignField]
+    model: Type[models.base.Model]
     relocation_scope: RelocationScope | set[RelocationScope]
     silos: list[SiloMode]
+    table_name: str
+    uniques: list[frozenset[str]]
 
     def flatten(self) -> set[Type[models.base.Model]]:
         """Returns a flat list of all related models, omitting the kind of relation they have."""
@@ -127,6 +130,9 @@ class DependenciesJSONEncoder(json.JSONEncoder):
             return obj.name.lower().capitalize()
         if isinstance(obj, set):
             return sorted(list(obj), key=lambda obj: get_model_name(obj))
+        # JSON serialization of `uniques` values, which are stored in `frozenset`s.
+        if isinstance(obj, frozenset):
+            return sorted(list(obj))
         return super().default(obj)
 
 
@@ -223,18 +229,30 @@ def dependencies() -> dict[NormalizedModelName, ModelRelations]:
     # Process the list of models, and get the list of dependencies
     model_dependencies_list: Dict[NormalizedModelName, ModelRelations] = {}
     app_configs = apps.get_app_configs()
+    models_from_names = {
+        get_model_name(model): model
+        for app_config in app_configs
+        for model in app_config.get_models()
+    }
+
     for app_config in app_configs:
         if app_config.label in EXCLUDED_APPS:
             continue
 
-        models_from_names = {get_model_name(model): model for model in app_config.get_models()}
         model_iterator = app_config.get_models()
 
         for model in model_iterator:
             foreign_keys: Dict[str, ForeignField] = dict()
+            uniques: Set[FrozenSet[str]] = {
+                frozenset(combo) for combo in model._meta.unique_together
+            }
 
             # Now add a dependency for any FK relation visible to Django.
             for field in model._meta.get_fields():
+                is_nullable = getattr(field, "null", False)
+                if getattr(field, "unique", False):
+                    uniques.add(frozenset({field.name}))
+
                 rel_model = getattr(field.remote_field, "model", None)
                 if rel_model is not None and rel_model != model:
                     # TODO(hybrid-cloud): actor refactor. Add kludgy conditional preventing walking
@@ -246,17 +264,20 @@ def dependencies() -> dict[NormalizedModelName, ModelRelations]:
                         foreign_keys[field.name] = ForeignField(
                             model=rel_model,
                             kind=ForeignFieldKind.FlexibleForeignKey,
+                            nullable=is_nullable,
                         )
                     elif isinstance(field, ForeignKey):
                         foreign_keys[field.name] = ForeignField(
                             model=rel_model,
                             kind=ForeignFieldKind.DefaultForeignKey,
+                            nullable=is_nullable,
                         )
                 elif isinstance(field, HybridCloudForeignKey):
                     rel_model = models_from_names[NormalizedModelName(field.foreign_model_name)]
                     foreign_keys[field.name] = ForeignField(
                         model=rel_model,
                         kind=ForeignFieldKind.HybridCloudForeignKey,
+                        nullable=is_nullable,
                     )
 
             # Get all simple O2O relations as well.
@@ -270,11 +291,13 @@ def dependencies() -> dict[NormalizedModelName, ModelRelations]:
                         foreign_keys[field.name] = ForeignField(
                             model=rel_model,
                             kind=ForeignFieldKind.OneToOneCascadeDeletes,
+                            nullable=is_nullable,
                         )
                     elif isinstance(field, OneToOneField):
                         foreign_keys[field.name] = ForeignField(
                             model=rel_model,
                             kind=ForeignFieldKind.DefaultOneToOneField,
+                            nullable=is_nullable,
                         )
                     else:
                         raise RuntimeError("Unknown one to kind")
@@ -299,6 +322,7 @@ def dependencies() -> dict[NormalizedModelName, ModelRelations]:
                         foreign_keys[field.name] = ForeignField(
                             model=models_from_names[candidate],
                             kind=ForeignFieldKind.ImplicitForeignKey,
+                            nullable=False,
                         )
 
             model_dependencies_list[get_model_name(model)] = ModelRelations(
@@ -308,6 +332,9 @@ def dependencies() -> dict[NormalizedModelName, ModelRelations]:
                 silos=list(
                     getattr(model._meta, "silo_limit", ModelSiloLimit(SiloMode.MONOLITH)).modes
                 ),
+                table_name=model._meta.db_table,
+                # Sort the constituent sets alphabetically, so that we get consistent JSON output.
+                uniques=sorted(list(uniques), key=lambda u: ":".join(sorted(list(u)))),
             )
     return model_dependencies_list
 
