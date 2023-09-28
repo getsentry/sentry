@@ -1072,7 +1072,7 @@ class BaseQueryBuilder:
                     if len(conflicting_functions) > 2
                     else ""
                 )
-                alias = column.name if type(column) == Column else column.alias
+                alias = column.name if isinstance(column, Column) else column.alias
                 raise InvalidSearchQuery(
                     f"A single field cannot be used both inside and outside a function in the same query. To use {alias} you must first remove the function(s): {function_msg}"
                 )
@@ -1794,7 +1794,8 @@ class TopEventsQueryBuilder(TimeseriesQueryBuilder):
                 project_condition = [
                     condition
                     for condition in self.where
-                    if type(condition) == Condition and condition.lhs == self.column("project_id")
+                    if isinstance(condition, Condition)
+                    and condition.lhs == self.column("project_id")
                 ][0]
                 self.where.remove(project_condition)
                 if field == "project":

@@ -62,6 +62,6 @@ class U2FInterfaceTest(TestCase):
         self.test_try_enroll_webauthn()
         request = self.make_request(user=self.user)
         result = self.u2f.activate(request)
-        assert type(result) == ActivationChallengeResult
+        assert isinstance(result, ActivationChallengeResult)
         assert len(request.session["webauthn_authentication_state"]["challenge"]) == 43
         assert request.session["webauthn_authentication_state"]["user_verification"] is None

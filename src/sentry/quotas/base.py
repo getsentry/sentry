@@ -71,13 +71,13 @@ class QuotaConfig:
         categories=None,
         scope=None,
         scope_id=None,
-        limit=None,
+        limit: int | None = None,
         window=None,
         reason_code=None,
     ):
         if limit is not None:
             assert reason_code, "reason code required for fallible quotas"
-            assert type(limit) == int, "limit must be an integer"
+            assert isinstance(limit, int), "limit must be an integer"
 
         if limit == 0:
             assert id is None, "reject-all quotas cannot be tracked"

@@ -85,7 +85,7 @@ class U2fInterface(AuthenticatorInterface):
 
     def _get_kept_devices(self, key):
         def _key_does_not_match(device):
-            if type(device["binding"]) == AuthenticatorData:
+            if isinstance(device["binding"], AuthenticatorData):
                 return decode_credential_id(device) != key
             else:
                 return device["binding"]["keyHandle"] != key
@@ -116,7 +116,7 @@ class U2fInterface(AuthenticatorInterface):
             # XXX: The previous version of python-u2flib-server didn't store
             # the `version` in the device binding. Defaulting to `U2F_V2` here
             # so that we don't break existing u2f registrations.
-            if type(data["binding"]) == AuthenticatorData:
+            if isinstance(data["binding"], AuthenticatorData):
                 rv.append(data["binding"])
             else:
                 data["binding"].setdefault("version", "U2F_V2")
@@ -129,7 +129,7 @@ class U2fInterface(AuthenticatorInterface):
         # AuthenticatorData are those from WebAuthn registered devices that we don't have to modify
         # the other is those registered with u2f-api and it a dict with the keys keyHandle and publicKey
         for device in self.get_u2f_devices():
-            if type(device) == AuthenticatorData:
+            if isinstance(device, AuthenticatorData):
                 credentials.append(device.credential_data)
             else:
                 credentials.append(create_credential_object(device))
@@ -148,7 +148,7 @@ class U2fInterface(AuthenticatorInterface):
 
     def get_device_name(self, key):
         for device in self.config.get("devices", ()):
-            if type(device["binding"]) == AuthenticatorData:
+            if isinstance(device["binding"], AuthenticatorData):
                 if decode_credential_id(device) == key:
                     return device["name"]
             elif device["binding"]["keyHandle"] == key:
@@ -157,7 +157,7 @@ class U2fInterface(AuthenticatorInterface):
     def get_registered_devices(self):
         rv = []
         for device in self.config.get("devices", ()):
-            if type(device["binding"]) == AuthenticatorData:
+            if isinstance(device["binding"], AuthenticatorData):
                 rv.append(
                     {
                         "timestamp": to_datetime(device["ts"]),

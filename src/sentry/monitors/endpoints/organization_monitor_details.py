@@ -238,7 +238,7 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
 
             for monitor_object in monitor_objects_list:
                 # randomize slug on monitor deletion to prevent re-creation side effects
-                if type(monitor_object) == Monitor:
+                if isinstance(monitor_object, Monitor):
                     monitor_object.update(slug=get_random_string(length=24))
 
                 schedule = RegionScheduledDeletion.schedule(

@@ -64,7 +64,7 @@ REMOVE_SETTING_BATCH_SIZE = 1000
 logger = logging.getLogger(__name__)
 
 
-class NotificationsManager(BaseManager["NotificationSetting"]):  # noqa: F821
+class NotificationsManager(BaseManager["NotificationSetting"]):
     """
     TODO(mgaeta): Add a caching layer for notification settings
     """

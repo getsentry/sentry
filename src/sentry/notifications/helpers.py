@@ -40,14 +40,7 @@ from sentry.types.integrations import (
 )
 
 if TYPE_CHECKING:
-    from sentry.models import (  # noqa: S005
-        Group,
-        GroupSubscription,
-        Organization,
-        Project,
-        Team,
-        User,
-    )
+    from sentry.models import Group, GroupSubscription, Organization, Project, Team, User
 
 
 def _get_notification_setting_default(
