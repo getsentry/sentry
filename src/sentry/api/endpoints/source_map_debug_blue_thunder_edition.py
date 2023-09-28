@@ -26,8 +26,9 @@ from sentry.models.artifactbundle import (
 )
 from sentry.models.project import Project
 from sentry.models.release import Release
-from sentry.models.releasefile import ReleaseFile
+from sentry.models.releasefile import ReleaseArchive, ReleaseFile
 from sentry.sdk_updates import get_sdk_index
+from sentry.utils import json
 from sentry.utils.javascript import find_sourcemap
 from sentry.utils.safe import get_path
 from sentry.utils.urls import non_standard_url_join
@@ -238,34 +239,39 @@ class SourceMapDebugBlueThunderEditionEndpoint(ProjectEndpoint):
 
 
 def get_source_file_data(abs_path, project, release, event):
-    filenme_choices = ReleaseFile.normalize(abs_path)
+    matching_source_file_names = ReleaseFile.normalize(abs_path)
+    matching_source_map_name = None
+    source_map_reference = None
+    source_file_lookup_result = "unsuccessful"
+    source_map_lookup_result = "unsuccessful"
 
-    path_data = {
-        "abs_path": abs_path,
-        "matching_source_file_names": filenme_choices,
-        "matching_source_map_name": None,
-        "source_map_reference": None,
-        "source_file_lookup_result": "unsuccessful",
-        "source_map_lookup_result": "unsuccessful",
-    }
+    found_source_file_name = None
 
-    possible_release_files = (
-        ReleaseFile.objects.filter(
-            organization_id=project.organization_id,
-            release_id=release.id,
-            name__in=filenme_choices,
-        )
-        .exclude(artifact_count=0)
-        .select_related("file")
-    )
-    if len(possible_release_files) > 0:
-        path_data["source_file_lookup_result"] = "wrong-dist"
-    for possible_release_file in possible_release_files:
+    artifact_index_release_files = ReleaseFile.objects.filter(
+        organization_id=project.organization_id,
+        release_id=release.id,
+        file__type="release.artifact-index",
+    ).select_related("file")[
+        :1000
+    ]  # limit by something sane in case people have an insane amount of uploads
+
+    # Look for source file in basic uploaded files
+    basic_release_source_files = ReleaseFile.objects.filter(
+        organization_id=project.organization_id,
+        release_id=release.id,
+        name__in=matching_source_file_names,
+        artifact_count=1,  # Filter for un-zipped files
+    ).select_related("file")
+    if len(basic_release_source_files) > 0:
+        source_file_lookup_result = "wrong-dist"
+    for possible_release_file in basic_release_source_files:
+        if source_file_lookup_result == "found":
+            break
         if possible_release_file.ident == ReleaseFile.get_ident(
             possible_release_file.name, event.dist
         ):
-            path_data["source_file_lookup_result"] = "found"
-            source_map_reference = None
+            source_file_lookup_result = "found"
+            found_source_file_name = possible_release_file.name
             sourcemap_header = None
             if possible_release_file.file.headers:
                 headers = ArtifactBundleArchive.normalize_headers(
@@ -275,109 +281,183 @@ def get_source_file_data(abs_path, project, release, event):
                 sourcemap_header = (
                     force_bytes(sourcemap_header) if sourcemap_header is not None else None
                 )
-
             try:
                 source_map_reference = find_sourcemap(
                     sourcemap_header, possible_release_file.file.getfile().read()
                 )
-                if source_map_reference is not None:
-                    source_map_reference = force_str(source_map_reference)
+                source_map_reference = (
+                    force_str(source_map_reference) if source_map_reference is not None else None
+                )
             except AssertionError:
                 pass
 
-            matching_source_map_name = None
-            if source_map_reference is not None:
-                if source_map_reference.startswith("data:"):
-                    source_map_reference = "Inline Sourcemap"
-                    path_data["source_map_lookup_result"] = "found"
-                else:
-                    matching_source_map_name = get_matching_source_map_location(
-                        possible_release_file.name, source_map_reference
-                    )
-
-            if matching_source_map_name is not None:
-                path_data["source_map_lookup_result"] = get_release_files_status_by_url(
-                    event, project, release, [matching_source_map_name]
-                )
-
-            return {
-                "matching_source_file_names": filenme_choices,
-                "matching_source_map_name": matching_source_map_name,
-                "source_map_reference": source_map_reference,
-                "source_file_lookup_result": "found",
-                "source_map_lookup_result": path_data["source_map_lookup_result"],
-            }
-
-    possible_release_artifact_bundles = ReleaseArtifactBundle.objects.filter(
-        organization_id=project.organization.id,
-        release_name=release.version,
-        artifact_bundle__projectartifactbundle__project_id=project.id,
-        artifact_bundle__artifactbundleindex__organization_id=project.organization.id,
-        artifact_bundle__artifactbundleindex__url__in=filenme_choices,
-    )
-    if len(possible_release_artifact_bundles) > 0:
-        path_data["source_file_lookup_result"] = (
-            "wrong-dist"
-            if path_data["source_file_lookup_result"] == "unsuccessful"
-            else path_data["source_file_lookup_result"]
-        )
-    for possible_release_artifact_bundle in possible_release_artifact_bundles:
-        if possible_release_artifact_bundle.dist_name == (event.dist or ""):
-            found_source_file_path = None
-            source_map_reference = None
-            with ArtifactBundleArchive(
-                possible_release_artifact_bundle.artifact_bundle.file.getfile()
-            ) as archive:
-                matching_file = None
-                sourcemap_header = None
-                for filename_choice in filenme_choices:
-                    try:
-                        matching_file, headers = archive.get_file_by_url(filename_choice)
-                        sourcemap_header = headers.get("sourcemap", headers.get("x-sourcemap"))
-                        sourcemap_header = (
-                            force_bytes(sourcemap_header) if sourcemap_header is not None else None
-                        )
-                        found_source_file_path = filename_choice
-                        break
-                    except Exception:
-                        continue
+    # Look for source file in artifact indexes
+    if source_file_lookup_result != "found":
+        for aritfact_index_file in artifact_index_release_files:
+            if source_file_lookup_result == "found":
+                break
+            raw_data = json.load(aritfact_index_file.file.getfile())
+            files = raw_data.get("files")
+            for potential_source_file_name in matching_source_file_names:
+                if source_file_lookup_result == "found":
+                    break
+                matching_file = files.get(potential_source_file_name)
                 if matching_file is not None:
-                    try:
-                        source_map_reference = find_sourcemap(
-                            sourcemap_header, matching_file.read()
-                        )
-                    except AssertionError:
-                        pass
-                    source_map_reference = (
-                        force_str(source_map_reference)
-                        if source_map_reference is not None
-                        else None
-                    )
+                    # Check if dist matches
+                    if aritfact_index_file.ident == ReleaseFile.get_ident(
+                        aritfact_index_file.name, event.dist
+                    ):
+                        found_source_file_name = potential_source_file_name
+                        source_file_lookup_result = "found"
+                        archive_ident = matching_file.get("archive_ident")
+                        if archive_ident is not None:
+                            archive_file = ReleaseFile.objects.select_related("file").get(
+                                organization_id=project.organization_id,
+                                release_id=release.id,
+                                file__type="release.bundle",
+                                ident=archive_ident,
+                            )
+                            with ReleaseArchive(archive_file.file.getfile()) as archive:
+                                source_file, headers = archive.get_file_by_url(
+                                    found_source_file_name
+                                )
+                                headers = ArtifactBundleArchive.normalize_headers(headers)
+                                sourcemap_header = headers.get(
+                                    "sourcemap", headers.get("x-sourcemap")
+                                )
+                                sourcemap_header = (
+                                    force_bytes(sourcemap_header)
+                                    if sourcemap_header is not None
+                                    else None
+                                )
+                                source_map_reference = find_sourcemap(
+                                    sourcemap_header, source_file.read()
+                                )
+                                source_map_reference = (
+                                    force_str(source_map_reference)
+                                    if source_map_reference is not None
+                                    else None
+                                )
+                    else:
+                        source_file_lookup_result = "wrong-dist"
 
-            matching_source_map_name = None
-            if source_map_reference is not None:
-                if source_map_reference.startswith("data:"):
-                    source_map_reference = "Inline Sourcemap"
-                    path_data["source_map_lookup_result"] = "found"
-                elif found_source_file_path is not None:
-                    matching_source_map_name = get_matching_source_map_location(
-                        found_source_file_path, source_map_reference
-                    )
+    # Look for source file in artifact bundles
+    if source_file_lookup_result != "found":
+        possible_release_artifact_bundles = ReleaseArtifactBundle.objects.filter(
+            organization_id=project.organization.id,
+            release_name=release.version,
+            artifact_bundle__projectartifactbundle__project_id=project.id,
+            artifact_bundle__artifactbundleindex__organization_id=project.organization.id,
+            artifact_bundle__artifactbundleindex__url__in=matching_source_file_names,
+        )
+        if len(possible_release_artifact_bundles) > 0:
+            source_file_lookup_result = "wrong-dist"
+        for possible_release_artifact_bundle in possible_release_artifact_bundles:
+            if source_file_lookup_result == "found":
+                break
+            if possible_release_artifact_bundle.dist_name == (event.dist or ""):
+                with ArtifactBundleArchive(
+                    possible_release_artifact_bundle.artifact_bundle.file.getfile()
+                ) as archive:
+                    archive_urls = archive.get_all_urls()
+                    for potential_source_file_name in matching_source_file_names:
+                        if source_file_lookup_result == "found":
+                            break
+                        if potential_source_file_name in archive_urls:
+                            try:
+                                matching_file, headers = archive.get_file_by_url(
+                                    potential_source_file_name
+                                )
+                                source_file_lookup_result = "found"
+                                found_source_file_name = potential_source_file_name
+                                sourcemap_header = headers.get(
+                                    "sourcemap", headers.get("x-sourcemap")
+                                )
+                                sourcemap_header = (
+                                    force_bytes(sourcemap_header)
+                                    if sourcemap_header is not None
+                                    else None
+                                )
+                                source_map_reference = find_sourcemap(
+                                    sourcemap_header, matching_file.read()
+                                )
+                                source_map_reference = (
+                                    force_str(source_map_reference)
+                                    if source_map_reference is not None
+                                    else None
+                                )
+                            except Exception:
+                                pass
 
-            if matching_source_map_name is not None:
-                path_data["source_map_lookup_result"] = get_artifact_bundle_file_status_by_url(
-                    event, project, release, [matching_source_map_name]
+    if source_map_reference is not None and found_source_file_name is not None:
+        if source_map_reference.startswith("data:"):
+            source_map_reference = "Inline Sourcemap"
+            source_map_lookup_result = "found"
+        else:
+            matching_source_map_name = get_matching_source_map_location(
+                found_source_file_name, source_map_reference
+            )
+
+            # Look for source map in basic uploaded files
+            basic_release_source_map_files = ReleaseFile.objects.filter(
+                organization_id=project.organization_id,
+                release_id=release.id,
+                name=matching_source_map_name,
+                artifact_count=1,  # Filter for un-zipped files
+            ).select_related("file")
+            if len(basic_release_source_map_files) > 0:
+                source_map_lookup_result = "wrong-dist"
+            for basic_release_source_map_file in basic_release_source_map_files:
+                if basic_release_source_map_file.ident == ReleaseFile.get_ident(
+                    basic_release_source_map_file.name, event.dist
+                ):
+                    source_map_lookup_result = "found"
+                    break
+
+            # Look for source map in artifact indexes
+            for aritfact_index_file in artifact_index_release_files:
+                if source_map_lookup_result == "found":
+                    break
+                raw_data = json.load(aritfact_index_file.file.getfile())
+                files = raw_data.get("files")
+                for potential_source_file_name in matching_source_file_names:
+                    if source_map_lookup_result == "found":
+                        break
+                    matching_file = files.get(potential_source_file_name)
+                    if matching_file is not None:
+                        # Check if dist matches
+                        if aritfact_index_file.ident == ReleaseFile.get_ident(
+                            aritfact_index_file.name, event.dist
+                        ):
+                            found_source_file_name = potential_source_file_name
+                            source_map_lookup_result = "found"
+                        else:
+                            source_map_lookup_result = "wrong-dist"
+
+            # Look for source map in artifact bundles
+            if source_map_lookup_result != "found":
+                possible_release_artifact_bundles = ReleaseArtifactBundle.objects.filter(
+                    organization_id=project.organization.id,
+                    release_name=release.version,
+                    artifact_bundle__projectartifactbundle__project_id=project.id,
+                    artifact_bundle__artifactbundleindex__organization_id=project.organization.id,
+                    artifact_bundle__artifactbundleindex__url=matching_source_map_name,
                 )
+                if len(possible_release_artifact_bundles) > 0:
+                    source_map_lookup_result = "wrong-dist"
+                for possible_release_artifact_bundle in possible_release_artifact_bundles:
+                    if possible_release_artifact_bundle.dist_name == (event.dist or ""):
+                        source_map_lookup_result = "found"
+                        break
 
-            return {
-                "matching_source_file_names": filenme_choices,
-                "matching_source_map_name": matching_source_map_name,
-                "source_file_lookup_result": "found",
-                "source_map_reference": source_map_reference,
-                "source_map_lookup_result": path_data["source_map_lookup_result"],
-            }
-
-    return path_data
+    return {
+        "abs_path": abs_path,
+        "matching_source_file_names": matching_source_file_names,
+        "matching_source_map_name": matching_source_map_name,
+        "source_map_reference": source_map_reference,
+        "source_file_lookup_result": source_file_lookup_result,
+        "source_map_lookup_result": source_map_lookup_result,
+    }
 
 
 def get_release_files_status_by_url(event, project, release, possible_urls):
