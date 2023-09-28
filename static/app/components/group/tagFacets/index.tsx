@@ -130,15 +130,21 @@ export default function TagFacets({
 }: Props) {
   const organization = useOrganization();
 
+  const {transaction, aggregateRange2, breakpoint, requestEnd} =
+    event?.occurrence?.evidenceData ?? {};
   const {isLoading, isError, data, refetch} = useFetchIssueTagsForDetailsPage({
     groupId,
     orgSlug: organization.slug,
     environment: environments,
     isStatisticalDetector,
-    statisticalDetectorParameters: {
-      transaction: event?.occurrence?.evidenceData?.transaction,
-      durationBaseline: event?.occurrence?.evidenceData?.aggregateRange2,
-    },
+    statisticalDetectorParameters: breakpoint
+      ? {
+          transaction,
+          durationBaseline: aggregateRange2,
+          start: new Date(breakpoint * 1000).toISOString(),
+          end: new Date(requestEnd * 1000).toISOString(),
+        }
+      : undefined,
   });
 
   const tagsData = useMemo(() => {
