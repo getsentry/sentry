@@ -280,19 +280,18 @@ def get_source_link_for_frame(frame: dict[str, Any]) -> str:
     source_link = frame.get("source_link")
     parse_result = urlparse(source_link)
     if parse_result.netloc == "raw.githubusercontent.com":
-        github_url_parse = parse_result.path.split(
-            "/"
-        )  # TODO: are there cases where the github raw content is actually invalid? ie. doesn't have the repo/user/file name
-        if github_url_parse[0] == "":
+        path_parts = parse_result.path.split("/")
+        if path_parts[0] == "":
             # the path starts with a "/" so the first element is empty string
-            del github_url_parse[0]
-        source_link = (
-            "https://www.github.com/" + github_url_parse[0] + "/" + github_url_parse[1] + "/blob"
-        )
-        for remaining_part in github_url_parse[2:]:
-            source_link += "/" + remaining_part
-        if frame.get("lineno"):
-            source_link += "#L" + frame.get("lineno")
+            del path_parts[0]
+
+        # at minimum, the path must have an author/org, a repo, and a file TODO: how to detect the last element is a valid file (don't want to link to a folder)
+        if len(path_parts) >= 3:
+            source_link = "https://www.github.com/" + path_parts[0] + "/" + path_parts[1] + "/blob"
+            for remaining_part in path_parts[2:]:
+                source_link += "/" + remaining_part
+            if frame.get("lineno"):
+                source_link += "#L" + frame.get("lineno")
     return source_link
 
 

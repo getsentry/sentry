@@ -222,6 +222,10 @@ def test_trim_function_name_cocoa():
             "https://www.github.com/author/repo/blob/abc123456789/foo/bar/baz.js",
         ],
         [
+            {"source_link": "https://raw.githubusercontent.com/author/repo"},
+            "https://raw.githubusercontent.com/author/repo",
+        ],
+        [
             {
                 "source_link": "https://notraw.githubusercontent.com/notauthor/notrepo/notfile/foo/bar/baz.js",
                 "lineno": "122",
