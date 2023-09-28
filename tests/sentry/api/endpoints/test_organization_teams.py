@@ -167,7 +167,7 @@ class OrganizationTeamsListTest(APITestCase):
         assert response.status_code == 200, response.content
 
 
-@region_silo_test  # TODO(hybrid-cloud): stable blocked on org members
+@region_silo_test(stable=True)
 class OrganizationTeamsCreateTest(APITestCase):
     endpoint = "sentry-api-0-organization-teams"
     method = "post"

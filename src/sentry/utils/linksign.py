@@ -40,7 +40,7 @@ def generate_signed_link(user, viewname, referrer=None, args=None, kwargs=None):
 
 
 def find_signature(request) -> str | None:
-    return request.GET.get("_") or request.POST.get("_sentry_request_signature")
+    return request.GET.get("_")
 
 
 def process_signature(request, max_age=60 * 60 * 24 * 10):
