@@ -172,6 +172,7 @@ default_manager.add("organizations:profiling-cpu-chart", OrganizationFeature, Fe
 default_manager.add("organizations:profiling-memory-chart", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:profiling-battery-usage-chart", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:profiling-summary-redesign", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+default_manager.add("organizations:profiling-statistical-detectors", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:project-event-date-limit", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:project-stats", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:related-events", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
