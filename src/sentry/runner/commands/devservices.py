@@ -607,10 +607,28 @@ def check_postgres(containers: dict[str, Any]) -> None:
     )
 
 
+def check_rabbitmq(containers: dict[str, Any]) -> None:
+    options = containers["rabbitmq"]
+    subprocess.run(
+        (
+            "docker",
+            "exec",
+            options["name"],
+            "rabbitmq-diagnostics",
+            "-q",
+            "ping",
+        ),
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+
 class ServiceHealthcheck(NamedTuple):
     check: Callable[[dict[str, Any]], None]
 
 
 service_healthchecks: dict[str, ServiceHealthcheck] = {
-    "postgres": ServiceHealthcheck(check=check_postgres)
+    "postgres": ServiceHealthcheck(check=check_postgres),
+    "rabbitmq": ServiceHealthcheck(check=check_rabbitmq),
 }
