@@ -334,8 +334,8 @@ export function ReplayCell({
       case 'errors-table':
         return replayDetailsErrorTab;
       case 'dead-table':
-        return replayDetailsDOMEventsTab;
       case 'rage-table':
+      case 'selector-widget':
         return replayDetailsDOMEventsTab;
       default:
         return replayDetails;
