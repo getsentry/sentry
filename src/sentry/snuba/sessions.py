@@ -98,7 +98,7 @@ def _check_has_health_data(projects_list, now=None):
     conditions = None
     projects_list = list(projects_list)
     # Check if projects_list also contains releases as a tuple of (project_id, releases)
-    includes_releases = type(projects_list[0]) == tuple
+    includes_releases = isinstance(projects_list[0], tuple)
 
     if includes_releases:
         filter_keys = {"project_id": {x[0] for x in projects_list}}
