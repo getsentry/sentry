@@ -124,17 +124,17 @@ class ReleaseThresholdStatusTest(APITestCase):
             - release2 - prod # env only matters for how we filter releases
                 - r2-proj1-prod
         - 4 thresholds
-            - project1 canary
-            - project1 canary
-            - project1 prod
-            - project2 canary
+            - project1 canary error_counts
+            - project1 canary new_issues
+            - project1 prod error_counts
+            - project2 canary error_counts
 
         so response should look like
         {
             {p1.id}-{canary}-{release1.version}: [threshold1, threshold2]
             {p1.id}-{prod}-{release1.version}: [threshold]
             {p2.id}-{canary}-{release1.version}: [threshold]
-            {p1.id}-{canary}-{release2.version}: [threshold, threshold]
+            {p1.id}-{prod}-{release2.version}: [threshold, threshold]
             {p1.id}-{prod}-{release2.version}: [threshold]
         }
         """
@@ -156,26 +156,24 @@ class ReleaseThresholdStatusTest(APITestCase):
         r1_keys = [k for k, v in data.items() if k.split("-")[2] == self.release1.version]
         assert len(r1_keys) == 3  # 3 keys produced in release 1 (p1-canary, p1-prod, p2-canary)
 
-        assert (
-            f"{self.project1.id}-{self.canary_environment.name}-{self.release1.version}" in r1_keys
-        )
-        assert (
-            f"{self.project2.id}-{self.canary_environment.name}-{self.release1.version}" in r1_keys
-        )
-        assert (
-            f"{self.project1.id}-{self.production_environment.name}-{self.release1.version}"
-            in r1_keys
-        )
+        temp_key = f"{self.project1.id}-{self.canary_environment.name}-{self.release1.version}"
+        assert temp_key in r1_keys
+        assert len(data[temp_key]) == 2
+        temp_key = f"{self.project2.id}-{self.canary_environment.name}-{self.release1.version}"
+        assert temp_key in r1_keys
+        assert len(data[temp_key]) == 1
+        temp_key = f"{self.project1.id}-{self.production_environment.name}-{self.release1.version}"
+        assert temp_key in r1_keys
+        assert len(data[temp_key]) == 1
         # release2
         r2_keys = [k for k, v in data.items() if k.split("-")[2] == self.release2.version]
         assert len(r2_keys) == 2  # 2 keys produced in release 2 (p1-canary, p1-prod)
-        assert (
-            f"{self.project1.id}-{self.canary_environment.name}-{self.release2.version}" in r2_keys
-        )
-        assert (
-            f"{self.project1.id}-{self.production_environment.name}-{self.release2.version}"
-            in r2_keys
-        )
+        temp_key = f"{self.project1.id}-{self.canary_environment.name}-{self.release2.version}"
+        assert temp_key in r2_keys
+        assert len(data[temp_key]) == 2
+        temp_key = f"{self.project1.id}-{self.production_environment.name}-{self.release2.version}"
+        assert temp_key in r2_keys
+        assert len(data[temp_key]) == 1
 
     def test_get_success_environment_filter(self):
         """
@@ -184,22 +182,20 @@ class ReleaseThresholdStatusTest(APITestCase):
         Set up creates
         - 2 releases
             - release1 - canary # env only matters for how we filter releases
-                - r1-proj1-canary # NOTE: is it possible to have a ReleaseProjectEnvironment without a corresponding ReleaseEnvironment??
+                - r1-proj1-canary
                 - r1-proj2-canary
             - release2 - prod # env only matters for how we filter releases
                 - r2-proj1-prod
         - 4 thresholds
-            - project1 canary
-            - project1 canary
-            - project1 prod
-            - project2 canary
+            - project1 canary error_counts
+            - project1 canary new_issues
+            - project1 prod error_counts
+            - project2 canary error_counts
 
         We'll filter for _only_ canary releases, so the response should look like
         {
-            [release1]: {
-                [p1.id]: [threshold-p1-canary, threshold2-p1-canary]
-                [p2.id]: [threshold-p2-canary]
-            }
+            {p1.id}-{canary}-{release1.version}: [threshold1, threshold2]
+            {p2.id}-{canary}-{release1.version}: [threshold]
         }
         """
         now = str(datetime.now())
@@ -208,33 +204,19 @@ class ReleaseThresholdStatusTest(APITestCase):
             self.organization.slug, start=yesterday, end=now, environment=["canary"]
         )
 
-        assert len(response.data) == 1  # only the canary release
-        assert len(response.data.get(self.release1.id)) == 2  # 2 projects (p1 & p2) in release 1
+        assert len(response.data.keys()) == 2
+        data = response.data
+        # release1
+        r1_keys = [k for k, v in data.items() if k.split("-")[2] == self.release1.version]
+        assert len(r1_keys) == 2  # 2 keys produced in release 1 (p1-canary, p2-canary)
 
-        assert (
-            len(response.data.get(self.release1.id, {}).get(self.project1.id)) == 2
-        )  # p1 2x canary
-        assert (
-            response.data.get(self.release1.id, {})
-            .get(self.project1.id)[0]  # first threshold
-            .get("environment", {})
-            .get("name")
-            == self.canary_environment.name
-        )  # assert environment is 'canary'
-        assert (
-            len(response.data.get(self.release1.id, {}).get(self.project2.id)) == 1
-        )  # p2 1x canary
-        assert (
-            response.data.get(self.release1.id, {})
-            .get(self.project2.id)[0]  # first threshold
-            .get("environment", {})
-            .get("name")
-            == self.canary_environment.name
-        )  # assert environment is 'canary'
+        temp_key = f"{self.project1.id}-{self.canary_environment.name}-{self.release1.version}"
+        assert temp_key in r1_keys
+        assert len(data[temp_key]) == 2
 
-        assert (
-            len(response.data.get(self.release2.id, {})) == 0
-        )  # release2 should not exist in the response
+        temp_key = f"{self.project2.id}-{self.canary_environment.name}-{self.release1.version}"
+        assert temp_key in r1_keys
+        assert len(data[temp_key]) == 1
 
     def test_get_success_release_id_filter(self):
         """
@@ -243,22 +225,21 @@ class ReleaseThresholdStatusTest(APITestCase):
         Set up creates
         - 2 releases
             - release1 - canary # env only matters for how we filter releases
-                - r1-proj1-canary # NOTE: is it possible to have a ReleaseProjectEnvironment without a corresponding ReleaseEnvironment??
+                - r1-proj1-canary
                 - r1-proj2-canary
             - release2 - prod # env only matters for how we filter releases
                 - r2-proj1-prod
         - 4 thresholds
-            - project1 canary
-            - project1 canary
-            - project1 prod
-            - project2 canary
+            - project1 canary error_counts
+            - project1 canary new_issues
+            - project1 prod error_counts
+            - project2 canary error_counts
 
         We'll filter for _only_ release1, so the response should look like
         {
-            [release1]: {
-                [p1.id]: [threshold-p1-canary, threshold2-p1-canary, threshold-p1-prod]
-                [p2.id]: [threshold-p2-canary]
-            }
+            {p1.id}-{canary}-{release1.version}: [threshold1, threshold2]
+            {p1.id}-{prod}-{release1.version}: [threshold]
+            {p2.id}-{canary}-{release1.version}: [threshold]
         }
         """
         now = str(datetime.now())
@@ -267,68 +248,52 @@ class ReleaseThresholdStatusTest(APITestCase):
             self.organization.slug, start=yesterday, end=now, release_id=[self.release1.id]
         )
 
-        assert len(response.data) == 1  # only fetched release1
-        assert len(response.data.get(self.release1.id)) == 2  # 2 projects (p1 & p2) in release 1
+        assert len(response.data.keys()) == 3
+        data = response.data
+        # release1
+        r1_keys = [k for k, v in data.items() if k.split("-")[2] == self.release1.version]
+        assert len(r1_keys) == 3  # 3 keys produced in release 1 (p1-canary, p1-prod, p2-canary)
 
-        assert (
-            len(response.data.get(self.release1.id, {}).get(self.project1.id)) == 3
-        )  # p1 2x canary, 1x prod
-        assert (
-            response.data.get(self.release1.id, {})
-            .get(self.project1.id)[0]  # first threshold
-            .get("environment", {})
-            .get("name")
-            == self.canary_environment.name
-        )  # assert environment is 'canary'
-        assert (
-            response.data.get(self.release1.id, {})
-            .get(self.project1.id)[2]
-            .get("environment", {})
-            .get("name")
-            == self.production_environment.name
-        )  # assert environment is 'production'
-        assert (
-            len(response.data.get(self.release1.id, {}).get(self.project2.id)) == 1
-        )  # p2 1x canary
-        assert (
-            response.data.get(self.release1.id, {})
-            .get(self.project2.id)[0]  # first threshold
-            .get("environment", {})
-            .get("name")
-            == self.canary_environment.name
-        )  # assert environment is 'canary'
+        temp_key = f"{self.project1.id}-{self.canary_environment.name}-{self.release1.version}"
+        assert temp_key in r1_keys
+        assert len(data[temp_key]) == 2
+        temp_key = f"{self.project2.id}-{self.canary_environment.name}-{self.release1.version}"
+        assert temp_key in r1_keys
+        assert len(data[temp_key]) == 1
+        temp_key = f"{self.project1.id}-{self.production_environment.name}-{self.release1.version}"
+        assert temp_key in r1_keys
+        assert len(data[temp_key]) == 1
 
-        assert (
-            len(response.data.get(self.release2.id, {})) == 0
-        )  # release2 should not exist in the response
+        # release2
+        r2_keys = [k for k, v in data.items() if k.split("-")[2] == self.release2.version]
+        assert len(r2_keys) == 0
 
     def test_get_success_project_id_filter(self):
         """
         Tests fetching thresholds within the past 24hrs filtered on project_id's
-        NOTE: in order to determine *release* health, we still need all projects (& thresholds) associated with that release
+        NOTE: Because releases may have multiple projects, filtering by project is _not_ adequate to
+        return accurate release health
         So - filtering on project will give us all the releases associated with that project
         but we still need all the other projects associated with the release to determine health status
 
         Set up creates
         - 2 releases
             - release1 - canary # env only matters for how we filter releases
-                - r1-proj1-canary # NOTE: is it possible to have a ReleaseProjectEnvironment without a corresponding ReleaseEnvironment??
+                - r1-proj1-canary
                 - r1-proj2-canary
             - release2 - prod # env only matters for how we filter releases
                 - r2-proj1-prod
         - 4 thresholds
-            - project1 canary
-            - project1 canary
-            - project1 prod
-            - project2 canary
+            - project1 canary error_counts
+            - project1 canary new_issues
+            - project1 prod error_counts
+            - project2 canary error_counts
+
 
         We'll filter for _only_ project2, so the response should look like
         since project2 was only ever added to release1
         {
-            [release1]: { # NOTE: fetches only the releases that include p2
-                [p1.id]: [threshold-p1-canary, threshold2-p1-canary, threshold-p1-prod]
-                [p2.id]: [threshold-p2-canary]
-            }
+            {p2.id}-{canary}-{release1.version}: [threshold]
         }
         """
         now = str(datetime.now())
@@ -337,22 +302,20 @@ class ReleaseThresholdStatusTest(APITestCase):
             self.organization.slug, start=yesterday, end=now, project=[self.project2.id]
         )
 
-        assert len(response.data) == 1  # only fetched release1
-        assert (
-            len(response.data.get(self.release1.id)) == 1
-        )  # p1 has been filtered out of the response
+        assert len(response.data.keys()) == 1
+        data = response.data
+        # release1
+        r1_keys = [k for k, v in data.items() if k.split("-")[2] == self.release1.version]
+        assert len(r1_keys) == 1  # 1 key produced in release 1 (p2-canary)
 
-        assert (
-            len(response.data.get(self.release1.id, {}).get(self.project2.id)) == 1
-        )  # p2 1x canary
-        assert (
-            response.data.get(self.release1.id, {})
-            .get(self.project2.id)[0]  # first threshold
-            .get("environment", {})
-            .get("name")
-            == self.canary_environment.name
-        )  # assert environment is 'canary'
+        temp_key = f"{self.project1.id}-{self.canary_environment.name}-{self.release1.version}"
+        assert temp_key not in r1_keys
+        temp_key = f"{self.project2.id}-{self.canary_environment.name}-{self.release1.version}"
+        assert temp_key in r1_keys
+        assert len(data[temp_key]) == 1
+        temp_key = f"{self.project1.id}-{self.production_environment.name}-{self.release1.version}"
+        assert temp_key not in r1_keys
 
-        assert (
-            len(response.data.get(self.release2.id, {})) == 0
-        )  # release2 should not exist in the response
+        # release2
+        r2_keys = [k for k, v in data.items() if k.split("-")[2] == self.release2.version]
+        assert len(r2_keys) == 0

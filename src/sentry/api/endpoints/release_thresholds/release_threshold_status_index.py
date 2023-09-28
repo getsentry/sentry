@@ -143,12 +143,7 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
         # ========================================================================
         # Step 3: flatten thresholds and compile projects/releases/thresholds by type
         # ========================================================================
-        tracker = {
-            "projects": [],
-            "releases": [],
-            "thresholds": [],
-        }
-        thresholds_by_type: DefaultDict[int, dict[str, list]] = defaultdict(lambda: tracker)
+        thresholds_by_type: DefaultDict[int, dict[str, list]] = defaultdict()
         for release in queryset:
             # TODO:
             # We should update release model to preserve threshold states.
@@ -165,6 +160,12 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
                 else:
                     thresholds_list = project.release_thresholds.all()
                 for threshold in thresholds_list:
+                    if threshold.threshold_type not in thresholds_by_type:
+                        thresholds_by_type[threshold.threshold_type] = {
+                            "projects": [],
+                            "releases": [],
+                            "thresholds": [],
+                        }
                     thresholds_by_type[threshold.threshold_type]["projects"].append(project.id)
                     thresholds_by_type[threshold.threshold_type]["releases"].append(release.version)
                     enriched_threshold = {
