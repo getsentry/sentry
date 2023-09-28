@@ -105,8 +105,7 @@ class OutboxCategory(IntEnum):
     ORGANIZATION_MEMBER_TEAM_UPDATE = 26
     ORGANIZATION_SLUG_RESERVATION_UPDATE = 27
     API_KEY_UPDATE = 28
-
-    PARTNER_ACCOUNT_UPDATE = 26
+    PARTNER_ACCOUNT_UPDATE = 29
 
     @classmethod
     def as_choices(cls):
