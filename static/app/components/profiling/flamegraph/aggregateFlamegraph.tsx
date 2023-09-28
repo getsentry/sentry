@@ -3,19 +3,13 @@ import {mat3, vec2} from 'gl-matrix';
 
 import {FlamegraphZoomView} from 'sentry/components/profiling/flamegraph/flamegraphZoomView';
 import {defined} from 'sentry/utils';
-import {
-  CanvasPoolManager,
-  useCanvasScheduler,
-} from 'sentry/utils/profiling/canvasScheduler';
+import {CanvasPoolManager, CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
 import {CanvasView} from 'sentry/utils/profiling/canvasView';
 import {Flamegraph as FlamegraphModel} from 'sentry/utils/profiling/flamegraph';
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
 import {useFlamegraphProfiles} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphProfiles';
 import {useDispatchFlamegraphState} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphState';
-import {
-  useFlamegraphTheme,
-  useMutateFlamegraphTheme,
-} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
+import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {
@@ -25,20 +19,23 @@ import {
 import {FlamegraphRendererWebGL} from 'sentry/utils/profiling/renderers/flamegraphRendererWebGL';
 import {Rect} from 'sentry/utils/profiling/speedscope';
 import {useDevicePixelRatio} from 'sentry/utils/useDevicePixelRatio';
+import {useFlamegraph} from 'sentry/views/profiling/flamegraphProvider';
 import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
 
 interface AggregateFlamegraphProps {
-  flamegraph: FlamegraphModel;
+  canvasPoolManager: CanvasPoolManager;
+  scheduler: CanvasScheduler;
 }
 
 export function AggregateFlamegraph(props: AggregateFlamegraphProps): ReactElement {
   const devicePixelRatio = useDevicePixelRatio();
   const dispatch = useDispatchFlamegraphState();
 
+  const flamegraph = useFlamegraph();
+
   const profileGroup = useProfileGroup();
 
   const flamegraphTheme = useFlamegraphTheme();
-  const setFlamegraphThemeMutation = useMutateFlamegraphTheme();
   const profiles = useFlamegraphProfiles();
   const {colorCoding} = useFlamegraphPreferences();
 
@@ -46,9 +43,6 @@ export function AggregateFlamegraph(props: AggregateFlamegraphProps): ReactEleme
     useState<HTMLCanvasElement | null>(null);
   const [flamegraphOverlayCanvasRef, setFlamegraphOverlayCanvasRef] =
     useState<HTMLCanvasElement | null>(null);
-
-  const canvasPoolManager = useMemo(() => new CanvasPoolManager(), []);
-  const scheduler = useCanvasScheduler(canvasPoolManager);
 
   const flamegraphCanvas = useMemo(() => {
     if (!flamegraphCanvasRef) {
@@ -66,10 +60,10 @@ export function AggregateFlamegraph(props: AggregateFlamegraphProps): ReactEleme
 
       const newView = new CanvasView({
         canvas: flamegraphCanvas,
-        model: props.flamegraph,
+        model: flamegraph,
         options: {
-          inverted: props.flamegraph.inverted,
-          minWidth: props.flamegraph.profile.minFrameDuration,
+          inverted: flamegraph.inverted,
+          minWidth: flamegraph.profile.minFrameDuration,
           barHeight: flamegraphTheme.SIZES.BAR_HEIGHT,
           depthOffset: flamegraphTheme.SIZES.FLAMEGRAPH_DEPTH_OFFSET,
           configSpaceTransform: undefined,
@@ -85,35 +79,8 @@ export function AggregateFlamegraph(props: AggregateFlamegraphProps): ReactEleme
 
     // We skip position.view dependency because it will go into an infinite loop
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [props.flamegraph, flamegraphCanvas, flamegraphTheme]
+    [flamegraph, flamegraphCanvas, flamegraphTheme]
   );
-
-  useEffect(() => {
-    const canvasHeight = flamegraphCanvas?.logicalSpace.height;
-    if (!canvasHeight) {
-      return;
-    }
-
-    setFlamegraphThemeMutation(theme => {
-      const flamegraphFitTo = canvasHeight / props.flamegraph.depth;
-      const minReadableRatio = 0.8; // this is quite small
-      const fitToRatio = flamegraphFitTo / theme.SIZES.BAR_HEIGHT;
-      const barHeightRatio = Math.min(Math.max(minReadableRatio, fitToRatio), 1.2);
-
-      // reduce the offset to leave just enough space for the toolbar
-      theme.SIZES.FLAMEGRAPH_DEPTH_OFFSET = 2.5;
-      theme.SIZES.BAR_HEIGHT = theme.SIZES.BAR_HEIGHT * barHeightRatio;
-      theme.SIZES.BAR_FONT_SIZE = theme.SIZES.BAR_FONT_SIZE * barHeightRatio;
-      return theme;
-    });
-
-    // We skip `flamegraphCanvas` as it causes an infinite loop
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    props.flamegraph,
-    setFlamegraphThemeMutation,
-    flamegraphCanvas?.logicalSpace.height,
-  ]);
 
   // Uses a useLayoutEffect to ensure that these top level/global listeners are added before
   // any of the children components effects actually run. This way we do not lose events
@@ -131,7 +98,7 @@ export function AggregateFlamegraph(props: AggregateFlamegraphProps): ReactEleme
         flamegraphView.setConfigView(rect.withHeight(flamegraphView.configView.height));
       }
 
-      canvasPoolManager.draw();
+      props.canvasPoolManager.draw();
     };
 
     const onTransformConfigView = (
@@ -142,13 +109,13 @@ export function AggregateFlamegraph(props: AggregateFlamegraphProps): ReactEleme
         flamegraphView.transformConfigView(mat);
       }
 
-      canvasPoolManager.draw();
+      props.canvasPoolManager.draw();
     };
 
     const onResetZoom = () => {
       flamegraphView.resetConfigView(flamegraphCanvas);
 
-      canvasPoolManager.draw();
+      props.canvasPoolManager.draw();
     };
 
     const onZoomIntoFrame = (frame: FlamegraphFrame, strategy: 'min' | 'exact') => {
@@ -160,21 +127,21 @@ export function AggregateFlamegraph(props: AggregateFlamegraphProps): ReactEleme
 
       flamegraphView.setConfigView(newConfigView);
 
-      canvasPoolManager.draw();
+      props.canvasPoolManager.draw();
     };
 
-    scheduler.on('set config view', onConfigViewChange);
-    scheduler.on('transform config view', onTransformConfigView);
-    scheduler.on('reset zoom', onResetZoom);
-    scheduler.on('zoom at frame', onZoomIntoFrame);
+    props.scheduler.on('set config view', onConfigViewChange);
+    props.scheduler.on('transform config view', onTransformConfigView);
+    props.scheduler.on('reset zoom', onResetZoom);
+    props.scheduler.on('zoom at frame', onZoomIntoFrame);
 
     return () => {
-      scheduler.off('set config view', onConfigViewChange);
-      scheduler.off('transform config view', onTransformConfigView);
-      scheduler.off('reset zoom', onResetZoom);
-      scheduler.off('zoom at frame', onZoomIntoFrame);
+      props.scheduler.off('set config view', onConfigViewChange);
+      props.scheduler.off('transform config view', onTransformConfigView);
+      props.scheduler.off('reset zoom', onResetZoom);
+      props.scheduler.off('zoom at frame', onZoomIntoFrame);
     };
-  }, [canvasPoolManager, flamegraphCanvas, flamegraphView, scheduler]);
+  }, [props.canvasPoolManager, flamegraphCanvas, flamegraphView, props.scheduler]);
 
   const flamegraphCanvases = useMemo(() => {
     return [flamegraphCanvasRef, flamegraphOverlayCanvasRef];
@@ -182,7 +149,7 @@ export function AggregateFlamegraph(props: AggregateFlamegraphProps): ReactEleme
 
   const flamegraphCanvasBounds = useResizeCanvasObserver(
     flamegraphCanvases,
-    canvasPoolManager,
+    props.canvasPoolManager,
     flamegraphCanvas,
     flamegraphView
   );
@@ -192,16 +159,11 @@ export function AggregateFlamegraph(props: AggregateFlamegraphProps): ReactEleme
       return null;
     }
 
-    return new FlamegraphRendererWebGL(
-      flamegraphCanvasRef,
-      props.flamegraph,
-      flamegraphTheme,
-      {
-        colorCoding,
-        draw_border: true,
-      }
-    );
-  }, [colorCoding, props.flamegraph, flamegraphCanvasRef, flamegraphTheme]);
+    return new FlamegraphRendererWebGL(flamegraphCanvasRef, flamegraph, flamegraphTheme, {
+      colorCoding,
+      draw_border: true,
+    });
+  }, [colorCoding, flamegraph, flamegraphCanvasRef, flamegraphTheme]);
 
   useEffect(() => {
     if (defined(profiles.threadId)) {
@@ -224,8 +186,8 @@ export function AggregateFlamegraph(props: AggregateFlamegraphProps): ReactEleme
   return (
     <FlamegraphZoomView
       canvasBounds={flamegraphCanvasBounds}
-      canvasPoolManager={canvasPoolManager}
-      flamegraph={props.flamegraph}
+      canvasPoolManager={props.canvasPoolManager}
+      flamegraph={flamegraph}
       flamegraphRenderer={flamegraphRenderer}
       flamegraphCanvas={flamegraphCanvas}
       flamegraphCanvasRef={flamegraphCanvasRef}
