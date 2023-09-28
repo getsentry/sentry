@@ -215,15 +215,14 @@ function MetricSearchBar({tags, mri, disabled, onChange, query}: MetricSearchBar
         `/organizations/${org.slug}/metrics/tags/${tag.key}/`,
         {
           query: {
-            // TODO(ddm): OrganizationMetricsTagDetailsEndpoint does not return values when metric is specified
-            // metric: mri,
+            metric: mri,
             useCase: getUseCaseFromMri(mri),
             project: selection.projects,
           },
         }
       );
 
-      return tagsValues.map(tv => tv.value);
+      return tagsValues.filter(tv => tv.value !== '').map(tv => tv.value);
     },
     [api, mri, org.slug, selection.projects]
   );
