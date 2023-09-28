@@ -226,7 +226,7 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
         if data["trend"] is TrendType.REGRESSION:
             try:
                 if features.has(
-                    "organizations:profiling-statistical-detectors",
+                    "organizations:profile-function-regression-exp-ingest",
                     organization,
                     actor=request.user,
                 ):
