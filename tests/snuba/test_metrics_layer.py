@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+from typing import Literal, Mapping
 
 import pytest
 
@@ -31,7 +32,7 @@ class SnQLTest(TestCase, BaseMetricsTestCase):
     def setUp(self):
         super().setUp()
 
-        self.metrics = {
+        self.metrics: Mapping[str, Literal["counter", "set", "distribution"]] = {
             TransactionMRI.DURATION.value: "distribution",
             TransactionMRI.USER.value: "set",
             TransactionMRI.COUNT_PER_ROOT_PROJECT.value: "counter",
