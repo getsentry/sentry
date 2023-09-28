@@ -94,7 +94,10 @@ class OrganizationParams:
         required=False,
         many=True,
         type=str,
-        description="The Slugs of projects to filter by. `$all` means all available projects. For example, `/?projectSlug=android&projectSlug=apple-ios` or `projectSlug=$all`",
+        description="""The project slugs to filter by. Use `$all` to include all available projects. For example the following are valid parameters:
+- `/?projectSlug=$all`
+- `/?projectSlug=android&projectSlug=javascript-react`
+""",
     )
     PROJECT = OpenApiParameter(
         name="project",
@@ -102,7 +105,11 @@ class OrganizationParams:
         required=False,
         many=True,
         type=int,
-        description="The IDs of projects to filter by. `-1` means all available projects. For example, `/?project=87361412&project=22387642` or `/?project=-1`",
+        description="""The IDs of projects to filter by. `-1` means all available projects.
+For example the following are valid parameters:
+- `/?project=1234&project=56789`
+- `/?project=-1`
+""",
     )
 
 
@@ -290,5 +297,5 @@ class NotificationParams:
         location="query",
         required=False,
         type=str,
-        description="Type of the trigger that causes the notification. The only supported value right now is: spike-protection",
+        description="Type of the trigger that causes the notification. The only supported value right now is: `spike-protection`",
     )
