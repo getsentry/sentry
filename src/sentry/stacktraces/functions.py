@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 from typing import Any
+from urllib.parse import urlparse
 
 from sentry.stacktraces.platform import get_behavior_family_for_platform
 from sentry.utils.safe import setdefault_path
@@ -269,6 +270,30 @@ def get_function_name_for_frame(frame, platform=None):
     rv = frame.get("function")
     if rv:
         return trim_function_name(rv, frame.get("platform") or platform)
+
+
+def get_source_link_for_frame(frame: dict[str, Any]) -> str:
+    """If source_link points to a GitHub raw content link, process it so that
+    we can return the GitHub equivalent with the line number, and use it as a
+    stacktrace link. Otherwise, return the link as is.
+    """
+    source_link = frame.get("source_link")
+    parse_result = urlparse(source_link)
+    if parse_result.netloc == "raw.githubusercontent.com":
+        github_url_parse = parse_result.path.split(
+            "/"
+        )  # TODO: are there cases where the github raw content is actually invalid? ie. doesn't have the repo/user/file name
+        if github_url_parse[0] == "":
+            # the path starts with a "/" so the first element is empty string
+            del github_url_parse[0]
+        source_link = (
+            "https://www.github.com/" + github_url_parse[0] + "/" + github_url_parse[1] + "/blob"
+        )
+        for remaining_part in github_url_parse[2:]:
+            source_link += "/" + remaining_part
+        if frame.get("lineno"):
+            source_link += "#L" + frame.get("lineno")
+    return source_link
 
 
 def set_in_app(frame: dict[str, Any], value: bool) -> None:
