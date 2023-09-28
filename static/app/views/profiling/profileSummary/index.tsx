@@ -186,9 +186,10 @@ function ProfileFilters(props: ProfileFiltersProps) {
 
 const ActionBar = styled('div')`
   display: grid;
-  gap: ${space(2)};
+  gap: ${space(1)};
   grid-template-columns: min-content auto;
-  margin-bottom: ${space(2)};
+  padding: ${space(1)} ${space(1)};
+  background-color: ${p => p.theme.background};
 `;
 
 interface ProfileSummaryPageProps {
