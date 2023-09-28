@@ -240,6 +240,8 @@ Deletes a replay instance.
 
 ## Replay Accessibility Issues [/projects/<organization_slug>/<project_slug>/replays/<replay_id>/accessibility-issues]
 
+This resource does not accept any URI parameters and is not paginated. Responses are ingested whole.
+
 ### Fetch Replay Accessibility Issues [GET]
 
 Retrieve a collection of accessibility issues.
@@ -248,7 +250,20 @@ Retrieve a collection of accessibility issues.
 
   ```json
   {
-    "data": []
+    "meta": {
+      "total": 1
+    },
+    "data": [
+      {
+        "id": "AHC203525",
+        "timestamp": 12518101816,
+        "impact": "serious",
+        "description": "This is a serious issue.",
+        "help_url": "https://sentry.io",
+        "element": "div > span > a.class",
+        "failure_summary": "You were missing something."
+      }
+    ]
   }
   ```
 
