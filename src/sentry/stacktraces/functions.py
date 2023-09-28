@@ -4,6 +4,7 @@ import re
 from typing import Any
 from urllib.parse import urlparse
 
+from sentry.interfaces.stacktrace import Frame
 from sentry.stacktraces.platform import get_behavior_family_for_platform
 from sentry.utils.safe import setdefault_path
 
@@ -272,7 +273,7 @@ def get_function_name_for_frame(frame, platform=None):
         return trim_function_name(rv, frame.get("platform") or platform)
 
 
-def get_source_link_for_frame(frame: dict[str, Any]) -> str:
+def get_source_link_for_frame(frame: Frame) -> str:
     """If source_link points to a GitHub raw content link, process it so that
     we can return the GitHub equivalent with the line number, and use it as a
     stacktrace link. Otherwise, return the link as is.
