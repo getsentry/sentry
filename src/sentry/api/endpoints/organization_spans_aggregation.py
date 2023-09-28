@@ -178,7 +178,7 @@ class BaseAggregateSpans:
 
 
 class AggregateIndexedSpans(BaseAggregateSpans):
-    def build_aggregate_span_tree(self, results: Any):
+    def build_aggregate_span_tree(self, results: Mapping[str, Any]):
         for event in results["data"]:
             span_tree = {}
             root_span_id = None
@@ -220,7 +220,7 @@ class AggregateIndexedSpans(BaseAggregateSpans):
 
 
 class AggregateNodestoreSpans(BaseAggregateSpans):
-    def build_aggregate_span_tree(self, results: Mapping[str, Any]):
+    def build_aggregate_span_tree(self, results: Any):
         for event_ in results:
             event = event_.data.data
             span_tree = {}
