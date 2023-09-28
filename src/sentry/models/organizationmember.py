@@ -653,6 +653,7 @@ class OrganizationMember(ReplicatedRegionModel):
         )
         return is_only_owner
 
+    @classmethod
     def handle_async_deletion(
         cls, identifier: int, shard_identifier: int, payload: Mapping[str, Any] | None
     ) -> None:
