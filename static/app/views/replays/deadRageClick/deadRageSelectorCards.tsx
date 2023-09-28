@@ -211,14 +211,16 @@ const DeadClickColor = styled(TextOverflow)`
   color: ${p => p.theme.yellow300};
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: ${space(0.75)};
+  gap: ${space(0.5)};
+  align-items: center;
 `;
 
 const RageClickColor = styled(TextOverflow)`
   color: ${p => p.theme.red300};
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: ${space(0.75)};
+  gap: ${space(0.5)};
+  align-items: center;
 `;
 
 const StyledHeaderContainer = styled(HeaderContainer)`
