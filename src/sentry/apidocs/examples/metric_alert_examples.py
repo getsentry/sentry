@@ -10,7 +10,6 @@ class MetricAlertExamples:
                     "id": "7",
                     "name": "Counting Bad Request and Unauthorized Errors in Prod",
                     "organizationId": "237655244234",
-                    "status": 0,
                     "queryType": 0,
                     "dataset": "events",
                     "query": "tags[http.status_code]:[400, 401]",
@@ -19,8 +18,6 @@ class MetricAlertExamples:
                     "resolveThreshold": None,
                     "timeWindow": "1440",
                     "environment": "prod",
-                    "resolution": 1.0,
-                    "thresholdPeriod": 1,
                     "triggers": [
                         {
                             "id": "394289",
@@ -46,7 +43,6 @@ class MetricAlertExamples:
                         },
                     ],
                     "projects": ["super-cool-project"],
-                    "includeAllProjects": False,
                     "owner": "user:53256",
                     "originalAlertRuleId": None,
                     "comparisonDelta": None,
@@ -67,7 +63,6 @@ class MetricAlertExamples:
                 "id": "177104",
                 "name": "Apdex % Check",
                 "organizationId": "4505676595200000",
-                "status": 0,
                 "queryType": 2,
                 "dataset": "metrics",
                 "query": "",
@@ -76,8 +71,6 @@ class MetricAlertExamples:
                 "resolveThreshold": 80.0,
                 "timeWindow": "120",
                 "environment": None,
-                "resolution": 2.0,
-                "thresholdPeriod": 1,
                 "triggers": [
                     {
                         "id": "293990",
@@ -113,7 +106,6 @@ class MetricAlertExamples:
                     },
                 ],
                 "projects": ["our-project"],
-                "includeAllProjects": False,
                 "owner": "team:4505676595200000",
                 "originalAlertRuleId": None,
                 "comparisonDelta": "10080",

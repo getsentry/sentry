@@ -2,6 +2,7 @@ from collections import defaultdict
 from typing import List, MutableMapping, Optional
 
 from django.db.models import Max, Q, prefetch_related_objects
+from drf_spectacular.utils import extend_schema_serializer
 from typing_extensions import TypedDict
 
 from sentry.api.serializers import Serializer, register, serialize
@@ -41,6 +42,17 @@ class AlertRuleSerializerResponseOptional(TypedDict, total=False):
     snooze: Optional[bool]
 
 
+@extend_schema_serializer(
+    exclude_fields=[
+        "status",
+        "resolution",
+        "thresholdPeriod",
+        "includeAllProjects",
+        "excludedProjects",
+        "weeklyAvg",
+        "totalThisWeek",
+    ]
+)
 class AlertRuleSerializerResponse(AlertRuleSerializerResponseOptional):
     """
     This represents a Sentry Metric Alert Rule.

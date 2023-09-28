@@ -5,7 +5,7 @@ from typing import List
 from django.db.models import DateTimeField, IntegerField, OuterRef, Q, Subquery, Value
 from django.db.models.functions import Coalesce
 from django.utils.timezone import make_aware
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import extend_schema, extend_schema_serializer
 from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -259,6 +259,7 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
         return response
 
 
+@extend_schema_serializer(exclude_fields=["excludedProjects", "thresholdPeriod"])
 class OrganizationAlertRuleIndexPostSerializer(serializers.Serializer):
     name = serializers.CharField(
         max_length=64,
@@ -361,6 +362,10 @@ Metric alert rule trigger actions follow the following structure:
     owner = ActorField(
         required=False, allow_null=True, help_text="The ID of the team or user that owns the rule."
     )
+    excludedProjects = serializers.ListField(
+        child=ProjectField(scope="project:read"), required=False
+    )
+    thresholdPeriod = serializers.IntegerField(required=False, default=1, min_value=1, max_value=20)
 
 
 @extend_schema(tags=["Organizations"])
