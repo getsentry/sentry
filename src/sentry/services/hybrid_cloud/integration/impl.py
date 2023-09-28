@@ -303,7 +303,8 @@ class DatabaseBackedIntegrationService(IntegrationService):
                 fields.add("grace_period_end")
             ois.append(oi)
 
-        OrganizationIntegration.objects.bulk_update(ois, fields=fields)
+        if fields:
+            OrganizationIntegration.objects.bulk_update(ois, fields=list(fields))
         return [serialize_organization_integration(oi) for oi in ois]
 
     def update_organization_integration(

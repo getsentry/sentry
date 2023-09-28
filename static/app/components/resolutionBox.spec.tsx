@@ -1,3 +1,5 @@
+import {Commit} from 'sentry-fixture/commit';
+
 import {render} from 'sentry-test/reactTestingLibrary';
 
 import {GroupActivityType} from 'sentry/types';
@@ -99,7 +101,7 @@ describe('ResolutionBox', function () {
     const {container} = render(
       <ResolutionBox
         statusDetails={{
-          inCommit: TestStubs.Commit(),
+          inCommit: Commit(),
         }}
         projectId="1"
       />

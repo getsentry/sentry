@@ -21,7 +21,14 @@ import {TabList} from 'sentry/components/tabs';
 import {IconChat} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Event, Group, IssueType, Organization, Project} from 'sentry/types';
+import {
+  Event,
+  Group,
+  IssueCategory,
+  IssueType,
+  Organization,
+  Project,
+} from 'sentry/types';
 import {getMessage} from 'sentry/utils/events';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {projectCanLinkToReplay} from 'sentry/utils/replays/projectSupportsReplay';
@@ -127,7 +134,9 @@ function GroupHeaderTabs({
         disabled={disabledTabs.includes(Tab.EVENTS)}
         to={eventRoute}
       >
-        {t('All Events')}
+        {group.issueCategory === IssueCategory.ERROR
+          ? t('All Events')
+          : t('Sampled Events')}
       </TabList.Item>
       <TabList.Item
         key={Tab.MERGED}

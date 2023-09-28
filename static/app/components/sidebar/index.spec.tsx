@@ -1,3 +1,5 @@
+import {Broadcast} from 'sentry-fixture/broadcast';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -11,7 +13,7 @@ jest.mock('sentry/actionCreators/serviceIncidents');
 
 describe('Sidebar', function () {
   const {organization, router, routerContext} = initializeOrg();
-  const broadcast = TestStubs.Broadcast();
+  const broadcast = Broadcast();
   const user = TestStubs.User();
   const apiMocks: {
     broadcasts: jest.Mock;

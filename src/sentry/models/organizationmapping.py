@@ -7,14 +7,15 @@ from django.utils import timezone
 
 from sentry import roles
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import BoundedBigIntegerField, Model, sane_repr
+from sentry.db.models import BoundedBigIntegerField, sane_repr
 from sentry.db.models.base import control_silo_only_model
+from sentry.db.models.outboxes import ReplicatedControlModel
 from sentry.models.organization import OrganizationStatus
 from sentry.services.hybrid_cloud import IDEMPOTENCY_KEY_LENGTH, REGION_NAME_LENGTH
 
 
 @control_silo_only_model
-class OrganizationMapping(Model):
+class OrganizationMapping(ReplicatedControlModel):
     """
     This model is used to:
     * Map org slugs to a specific organization and region

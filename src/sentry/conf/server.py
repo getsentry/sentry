@@ -1537,6 +1537,8 @@ SENTRY_FEATURES = {
     "organizations:integrations-stacktrace-link": False,
     # Allow orgs to create a Discord integration
     "organizations:integrations-discord": False,
+    # Enable Discord metric alert notifications
+    "organizations:integrations-discord-metric-alerts": False,
     # Enable Discord integration notifications
     "organizations:integrations-discord-notifications": False,
     # Enable Opsgenie integration
@@ -1571,10 +1573,6 @@ SENTRY_FEATURES = {
     "organizations:issue-alert-fallback-targeting": False,
     # Enable experimental replay-issue rendering on Issue Details page
     "organizations:issue-details-replay-event": False,
-    # Enable sorting Issue detail events by 'most helpful'
-    "organizations:issue-details-most-helpful-event": False,
-    # Enable Issue details UI improvements related to highlighting the 'most helpful' event
-    "organizations:issue-details-most-helpful-event-ui": False,
     # Adds the ttid & ttfd vitals to the frontend
     "organizations:mobile-vitals": False,
     # Display CPU and memory metrics in transactions with profiles
@@ -1642,8 +1640,6 @@ SENTRY_FEATURES = {
     "organizations:performance-tracing-without-performance": False,
     # Enable database view powered by span metrics
     "organizations:performance-database-view": False,
-    # Enable root cause analysis for statistical detector perf issues
-    "organizations:statistical-detectors-root-cause-analysis": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
     # Enable usage of external relays, for use with Relay. See

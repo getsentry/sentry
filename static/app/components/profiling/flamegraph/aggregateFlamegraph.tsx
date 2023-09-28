@@ -46,6 +46,7 @@ const LOADING_OR_FALLBACK_FLAMEGRAPH = FlamegraphModel.Empty();
 interface AggregateFlamegraphProps {
   hideSystemFrames: boolean;
   setHideSystemFrames: (hideSystemFrames: boolean) => void;
+  hideToolbar?: boolean;
 }
 
 export function AggregateFlamegraph(props: AggregateFlamegraphProps): ReactElement {
@@ -282,20 +283,22 @@ export function AggregateFlamegraph(props: AggregateFlamegraphProps): ReactEleme
         disableGrid
         disableCallOrderSort
       />
-      <AggregateFlamegraphToolbar>
-        <Flex justify="space-between" align="center">
-          <Button size="xs" onClick={() => scheduler.dispatch('reset zoom')}>
-            {t('Reset Zoom')}
-          </Button>
-          <Flex align="center" gap={space(1)}>
-            <span>{t('Hide System Frames')}</span>
-            <SwitchButton
-              toggle={() => props.setHideSystemFrames(!props.hideSystemFrames)}
-              isActive={props.hideSystemFrames}
-            />
+      {props.hideToolbar ? null : (
+        <AggregateFlamegraphToolbar>
+          <Flex justify="space-between" align="center">
+            <Button size="xs" onClick={() => scheduler.dispatch('reset zoom')}>
+              {t('Reset Zoom')}
+            </Button>
+            <Flex align="center" gap={space(1)}>
+              <span>{t('Hide System Frames')}</span>
+              <SwitchButton
+                toggle={() => props.setHideSystemFrames(!props.hideSystemFrames)}
+                isActive={props.hideSystemFrames}
+              />
+            </Flex>
           </Flex>
-        </Flex>
-      </AggregateFlamegraphToolbar>
+        </AggregateFlamegraphToolbar>
+      )}
     </Fragment>
   );
 }

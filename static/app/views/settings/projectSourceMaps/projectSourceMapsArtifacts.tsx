@@ -46,6 +46,7 @@ function ArtifactsTableRow({
   downloadRole,
   downloadUrl,
   size,
+  type,
   orgSlug,
   artifactColumnDetails,
 }: {
@@ -55,6 +56,7 @@ function ArtifactsTableRow({
   name: string;
   orgSlug: string;
   size: number;
+  type?: string;
 }) {
   return (
     <Fragment>
@@ -62,6 +64,7 @@ function ArtifactsTableRow({
         <Name>{name || `(${t('empty')})`}</Name>
         {artifactColumnDetails}
       </ArtifactColumn>
+      {type && <TypeColumn>{type}</TypeColumn>}
       <SizeColumn>
         <FileSize bytes={size} />
       </SizeColumn>
@@ -203,8 +206,12 @@ export function ProjectSourceMapsArtifacts({params, location, router, project}: 
         query={query}
       />
       <StyledPanelTable
+        hasTypeColumn={tabDebugIdBundlesActive}
         headers={[
           t('Artifact'),
+          ...(tabDebugIdBundlesActive
+            ? [<TypeColumn key="type">{t('Type')}</TypeColumn>]
+            : []),
           <SizeColumn key="file-size">{t('File Size')}</SizeColumn>,
           '',
         ]}
@@ -238,14 +245,23 @@ export function ProjectSourceMapsArtifacts({params, location, router, project}: 
                   key={data.id}
                   size={data.fileSize}
                   name={data.filePath}
+                  type={debugIdBundleTypeLabels[data.fileType]}
                   downloadRole={organization.debugFilesRole}
                   downloadUrl={downloadUrl}
                   orgSlug={organization.slug}
                   artifactColumnDetails={
-                    <DebugIdAndFileTypeWrapper>
-                      <div>{data.debugId}</div>
-                      <div>{debugIdBundleTypeLabels[data.fileType]}</div>
-                    </DebugIdAndFileTypeWrapper>
+                    <Fragment>
+                      {data.sourcemap ? (
+                        <div>
+                          <SubText>{t('Sourcemap Reference:')}</SubText> {data.sourcemap}
+                        </div>
+                      ) : null}
+                      {data.debugId ? (
+                        <div>
+                          <SubText>{t('Debug ID:')}</SubText> {data.debugId}
+                        </div>
+                      ) : null}
+                    </Fragment>
                   }
                 />
               );
@@ -294,11 +310,18 @@ export function ProjectSourceMapsArtifacts({params, location, router, project}: 
   );
 }
 
-const StyledPanelTable = styled(PanelTable)`
+const StyledPanelTable = styled(PanelTable)<{hasTypeColumn: boolean}>`
   grid-template-columns: minmax(220px, 1fr) minmax(120px, max-content) minmax(
       74px,
       max-content
     );
+  ${p =>
+    p.hasTypeColumn &&
+    `
+  grid-template-columns:
+    minmax(220px, 1fr) minmax(120px, max-content) minmax(120px, max-content)
+    minmax(74px, max-content);
+    `}
 `;
 
 const Column = styled('div')`
@@ -319,12 +342,23 @@ const ArtifactColumn = styled('div')`
   overflow-wrap: break-word;
   word-break: break-all;
   line-height: 140%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 `;
 
 const Name = styled('div')`
   display: flex;
   justify-content: flex-start;
   align-items: center;
+`;
+
+const TypeColumn = styled('div')`
+  display: flex;
+  justify-content: flex-end;
+  text-align: right;
+  align-items: center;
+  color: ${p => p.theme.subText};
 `;
 
 const SizeColumn = styled('div')`
@@ -355,8 +389,7 @@ const StyledTag = styled(Tag)`
   margin-left: ${space(1)};
 `;
 
-const DebugIdAndFileTypeWrapper = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+const SubText = styled('span')`
   color: ${p => p.theme.subText};
 `;
 

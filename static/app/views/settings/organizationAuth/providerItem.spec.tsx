@@ -1,10 +1,12 @@
+import {AuthProviders} from 'sentry-fixture/authProviders';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {descopeFeatureName} from 'sentry/utils';
 import ProviderItem from 'sentry/views/settings/organizationAuth/providerItem';
 
 describe('ProviderItem', function () {
-  const provider = TestStubs.AuthProviders()[0];
+  const provider = AuthProviders()[0];
   const org = TestStubs.Organization({
     features: [descopeFeatureName(provider.requiredFeature)],
   });

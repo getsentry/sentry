@@ -22,7 +22,6 @@ export function AggregateFlamegraphPanel({transaction}: {transaction: string}) {
   );
 
   const {data, isLoading} = useAggregateFlamegraphQuery({transaction});
-
   const isEmpty = data?.shared.frames.length === 0;
 
   return (

@@ -127,7 +127,7 @@ function ArchiveActions({
           'We’ll nag you with a notification if the issue gets worse. All archived issues can be found in the Archived tab. [docs:Read the docs]',
           {
             docs: (
-              <ExternalLink href="https://docs.sentry.io/product/accounts/early-adopter-features/issue-archiving/" />
+              <ExternalLink href="https://docs.sentry.io/product/issues/states-triage/#archive" />
             ),
           }
         )}
@@ -151,7 +151,7 @@ function ArchiveActions({
         menuTitle={
           <MenuWrapper>
             {t('Archive')}
-            <StyledExternalLink href="https://docs.sentry.io/product/issues/states-triage/escalating-issues/">
+            <StyledExternalLink href="https://docs.sentry.io/product/issues/states-triage/#archive">
               {t('Read the docs')}
             </StyledExternalLink>
           </MenuWrapper>
