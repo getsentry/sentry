@@ -15,6 +15,7 @@ import {StarfishPageFiltersContainer} from 'sentry/views/starfish/components/sta
 import {StarfishProjectSelector} from 'sentry/views/starfish/components/starfishProjectSelector';
 import {ROUTE_NAMES} from 'sentry/views/starfish/utils/routeNames';
 import {ScreensView, YAxis} from 'sentry/views/starfish/views/screens';
+import {ScreensTable} from 'sentry/views/starfish/views/screens/screensTable';
 
 export default function PageloadModule() {
   const organization = useOrganization();
@@ -41,6 +42,7 @@ export default function PageloadModule() {
                   <ReleaseComparisonSelector />
                 </SearchContainerWithFilterAndMetrics>
                 <ScreensView yAxes={[YAxis.TTID, YAxis.TTFD]} />
+                <ScreensTable />
               </StarfishPageFiltersContainer>
             </Layout.Main>
           </Layout.Body>
