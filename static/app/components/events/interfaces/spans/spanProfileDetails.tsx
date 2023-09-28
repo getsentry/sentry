@@ -75,13 +75,24 @@ export function SpanProfileDetails({
       return [];
     }
 
+    // The most recent profile formats should contain a timestamp indicating
+    // the beginning of the profile. This timestamp can be after the start
+    // timestamp on the transaction, so we need to account for the gap and
+    // make sure the relative start timestamps we compute for the span is
+    // relative to the start of the profile.
+    //
+    // If the profile does not contain a timestamp, we fall back to using the
+    // start timestamp on the transaction. This won't be as accurate but it's
+    // the next best thing.
+    const startTimestamp = profile.timestamp ?? event.startTimestamp;
+
     const relativeStartTimestamp = formatTo(
-      span.start_timestamp - event.startTimestamp,
+      span.start_timestamp - startTimestamp,
       'second',
       profile.unit
     );
     const relativeStopTimestamp = formatTo(
-      span.timestamp - event.startTimestamp,
+      span.timestamp - startTimestamp,
       'second',
       profile.unit
     );
