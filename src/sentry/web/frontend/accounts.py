@@ -107,7 +107,7 @@ def recover_confirm(request, user_id, hash, mode="recover"):
         return render_to_response(get_template(mode, "failure"), {}, request)
 
     if request.method == "POST":
-        form = ChangePasswordRecoverForm(request.POST)
+        form = ChangePasswordRecoverForm(request.POST, user=request.user)
         if form.is_valid():
             with transaction.atomic(router.db_for_write(User)):
                 user.set_password(form.cleaned_data["password"])
@@ -134,7 +134,7 @@ def recover_confirm(request, user_id, hash, mode="recover"):
 
             return login_redirect(request)
     else:
-        form = ChangePasswordRecoverForm()
+        form = ChangePasswordRecoverForm(user=request.user)
 
     return render_to_response(get_template(mode, "confirm"), {"form": form}, request)
 

@@ -283,11 +283,13 @@ class RecoverPasswordForm(forms.Form):
 class ChangePasswordRecoverForm(forms.Form):
     password = forms.CharField(widget=forms.PasswordInput())
 
+    def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop("user", None)
+        super().__init__(*args, **kwargs)
+
     def clean_password(self):
         password = self.cleaned_data["password"]
-        password_validation.validate_password(
-            password, user=User(username=self.cleaned_data["username"])
-        )
+        password_validation.validate_password(password, user=self.user)
         return password
 
 
