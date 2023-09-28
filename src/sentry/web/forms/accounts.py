@@ -231,7 +231,9 @@ class RegistrationForm(PasswordlessRegistrationForm):
 
     def clean_password(self):
         password = self.cleaned_data["password"]
-        password_validation.validate_password(password)
+        password_validation.validate_password(
+            password, user=User(username=self.cleaned_data["username"])
+        )
         return password
 
     def save(self, commit=True):
@@ -283,7 +285,9 @@ class ChangePasswordRecoverForm(forms.Form):
 
     def clean_password(self):
         password = self.cleaned_data["password"]
-        password_validation.validate_password(password)
+        password_validation.validate_password(
+            password, user=User(username=self.cleaned_data["username"])
+        )
         return password
 
 
