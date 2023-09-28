@@ -1,4 +1,5 @@
 import {Broadcast} from 'sentry-fixture/broadcast';
+import {ServiceIncident} from 'sentry-fixture/serviceIncident';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -246,7 +247,7 @@ describe('Sidebar', function () {
         .spyOn(incidentActions, 'loadIncidents')
         .mockImplementation((): Promise<SentryServiceStatus | null> => {
           return Promise.resolve({
-            incidents: [TestStubs.ServiceIncident()],
+            incidents: [ServiceIncident()],
             indicator: 'none',
             url: '',
           });

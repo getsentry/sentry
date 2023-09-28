@@ -1,4 +1,6 @@
 import {Commit} from 'sentry-fixture/commit';
+import {Repository} from 'sentry-fixture/repository';
+import {RepositoryProjectPathConfig} from 'sentry-fixture/repositoryProjectPathConfig';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -19,10 +21,10 @@ describe('StacktraceLink', function () {
     platform,
   });
   const integration = TestStubs.GitHubIntegration();
-  const repo = TestStubs.Repository({integrationId: integration.id});
+  const repo = Repository({integrationId: integration.id});
 
   const frame = {filename: '/sentry/app.py', lineNo: 233} as Frame;
-  const config = TestStubs.RepositoryProjectPathConfig({project, repo, integration});
+  const config = RepositoryProjectPathConfig({project, repo, integration});
   let promptActivity: jest.Mock;
 
   const analyticsSpy = jest.spyOn(analytics, 'trackAnalytics');

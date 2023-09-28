@@ -1,5 +1,6 @@
 import selectEvent from 'react-select-event';
 import pick from 'lodash/pick';
+import {SentryApp} from 'sentry-fixture/sentryApp';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
@@ -35,7 +36,7 @@ describe('SentryAppExternalInstallation', () => {
     org1Lite = pick(org1, ['slug', 'name', 'id']);
     org2Lite = pick(org2, ['slug', 'name', 'id']);
 
-    sentryApp = TestStubs.SentryApp({
+    sentryApp = SentryApp({
       status: 'published',
       redirectUrl: 'https://google.com',
     });

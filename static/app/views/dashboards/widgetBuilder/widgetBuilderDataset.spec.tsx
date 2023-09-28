@@ -1,6 +1,7 @@
 import selectEvent from 'react-select-event';
 import {urlEncode} from '@sentry/utils';
 import {MetricsField} from 'sentry-fixture/metrics';
+import {SessionsField} from 'sentry-fixture/sessions';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -206,7 +207,7 @@ describe('WidgetBuilder', function () {
     sessionsDataMock = MockApiClient.addMockResponse({
       method: 'GET',
       url: '/organizations/org-slug/sessions/',
-      body: TestStubs.SessionsField(`sum(session)`),
+      body: SessionsField(`sum(session)`),
     });
 
     metricsDataMock = MockApiClient.addMockResponse({

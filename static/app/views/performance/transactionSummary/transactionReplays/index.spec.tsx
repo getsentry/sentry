@@ -1,3 +1,5 @@
+import {ReplayList} from 'sentry-fixture/replayList';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -203,7 +205,7 @@ describe('TransactionReplays', () => {
       body: {
         data: [
           {
-            ...TestStubs.ReplayList()[0],
+            ...ReplayList()[0],
             count_errors: 1,
             duration: 52346,
             finished_at: new Date('2022-09-15T06:54:00+00:00'),
@@ -215,7 +217,7 @@ describe('TransactionReplays', () => {
             ],
           },
           {
-            ...TestStubs.ReplayList()[0],
+            ...ReplayList()[0],
             count_errors: 4,
             duration: 400,
             finished_at: new Date('2022-09-21T21:40:38+00:00'),

@@ -1,3 +1,5 @@
+import {Repository} from 'sentry-fixture/repository';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   act,
@@ -90,7 +92,7 @@ describe('GroupActivity', function () {
 
   it('renders a pr activity', function () {
     const user = TestStubs.User({name: 'Test User'});
-    const repository = TestStubs.Repository();
+    const repository = Repository();
     createWrapper({
       activity: [
         {
@@ -202,7 +204,7 @@ describe('GroupActivity', function () {
               dateCreated: '',
               message: '',
               id: 'komal-commit',
-              repository: TestStubs.Repository(),
+              repository: Repository(),
               releases: [],
             },
           },
@@ -228,7 +230,7 @@ describe('GroupActivity', function () {
               id: 'komal-commit',
               dateCreated: '',
               message: '',
-              repository: TestStubs.Repository(),
+              repository: Repository(),
               releases: [
                 TestStubs.Release({
                   dateCreated: '2022-05-01',
@@ -260,7 +262,7 @@ describe('GroupActivity', function () {
               id: 'komal-commit',
               dateCreated: '',
               message: '',
-              repository: TestStubs.Repository(),
+              repository: Repository(),
               releases: [
                 TestStubs.Release({
                   dateCreated: '2022-05-01',

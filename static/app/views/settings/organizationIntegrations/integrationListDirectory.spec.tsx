@@ -4,6 +4,7 @@ import {
   PluginListConfig,
   ProviderList,
   PublishedApps,
+  SentryAppInstalls,
 } from 'sentry-fixture/integrationListDirectory';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -30,10 +31,7 @@ describe('IntegrationListDirectory', function () {
         [`/organizations/${org.slug}/sentry-apps/`, OrgOwnedApps()],
         ['/sentry-apps/', PublishedApps()],
         ['/doc-integrations/', [TestStubs.DocIntegration()]],
-        [
-          `/organizations/${org.slug}/sentry-app-installations/`,
-          TestStubs.SentryAppInstalls(),
-        ],
+        [`/organizations/${org.slug}/sentry-app-installations/`, SentryAppInstalls()],
         [`/organizations/${org.slug}/plugins/configs/`, PluginListConfig()],
         [`/organizations/${org.slug}/repos/?status=unmigratable`, []],
       ]);

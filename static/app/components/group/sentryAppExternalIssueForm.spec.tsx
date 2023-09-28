@@ -1,4 +1,6 @@
 import selectEvent from 'react-select-event';
+import {SentryApp} from 'sentry-fixture/sentryApp';
+import {SentryAppInstallation} from 'sentry-fixture/sentryAppInstallation';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -12,8 +14,8 @@ describe('SentryAppExternalIssueForm', () => {
     permalink: 'https://sentry.io/organizations/sentry/issues/123/?project=1',
   });
   const component = TestStubs.SentryAppComponent();
-  const sentryApp = TestStubs.SentryApp();
-  const sentryAppInstallation = TestStubs.SentryAppInstallation({sentryApp});
+  const sentryApp = SentryApp();
+  const sentryAppInstallation = SentryAppInstallation({});
   const submitUrl = `/sentry-app-installations/${sentryAppInstallation.uuid}/external-issue-actions/`;
   let externalIssueRequest;
 
@@ -151,8 +153,8 @@ describe('SentryAppExternalIssueForm Async Field', () => {
     shortId: 'SEN123',
     permalink: 'https://sentry.io/organizations/sentry/issues/123/?project=1',
   });
-  const sentryApp = TestStubs.SentryApp();
-  const sentryAppInstallation = TestStubs.SentryAppInstallation({sentryApp});
+  const sentryApp = SentryApp();
+  const sentryAppInstallation = SentryAppInstallation({});
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
@@ -197,8 +199,8 @@ describe('SentryAppExternalIssueForm Dependent fields', () => {
     shortId: 'SEN123',
     permalink: 'https://sentry.io/organizations/sentry/issues/123/?project=1',
   });
-  const sentryApp = TestStubs.SentryApp();
-  const sentryAppInstallation = TestStubs.SentryAppInstallation({sentryApp});
+  const sentryApp = SentryApp();
+  const sentryAppInstallation = SentryAppInstallation({});
   const component = TestStubs.SentryAppComponentDependent();
 
   afterEach(() => {

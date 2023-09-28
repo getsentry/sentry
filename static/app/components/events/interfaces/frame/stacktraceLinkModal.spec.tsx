@@ -1,3 +1,6 @@
+import {Repository} from 'sentry-fixture/repository';
+import {RepositoryProjectPathConfig} from 'sentry-fixture/repositoryProjectPathConfig';
+
 import {
   act,
   renderGlobalModal,
@@ -17,8 +20,8 @@ describe('StacktraceLinkModal', () => {
   const project = TestStubs.Project();
   const integration = TestStubs.GitHubIntegration();
   const filename = '/sentry/app.py';
-  const repo = TestStubs.Repository({integrationId: integration.id});
-  const config = TestStubs.RepositoryProjectPathConfig({project, repo, integration});
+  const repo = Repository({integrationId: integration.id});
+  const config = RepositoryProjectPathConfig({project, repo, integration});
   const sourceUrl = 'https://github.com/getsentry/sentry/blob/master/src/sentry/app.py';
   const configData = {
     stackRoot: '',
