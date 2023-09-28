@@ -306,6 +306,7 @@ class MonitorTaskCheckMissingTest(TestCase):
         failing_monitor_environment = MonitorEnvironment.objects.create(
             monitor=exception_monitor,
             environment=self.environment,
+            last_checkin=ts - timedelta(minutes=2),
             next_checkin=ts - timedelta(minutes=1),
             next_checkin_latest=ts,
             status=MonitorStatus.OK,
@@ -320,6 +321,7 @@ class MonitorTaskCheckMissingTest(TestCase):
         successful_monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
             environment=self.environment,
+            last_checkin=ts - timedelta(minutes=2),
             next_checkin=ts - timedelta(minutes=1),
             next_checkin_latest=ts,
             status=MonitorStatus.OK,
