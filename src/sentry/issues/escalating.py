@@ -4,6 +4,7 @@ This is later used for generating group forecasts for determining when a group m
 from __future__ import annotations
 
 import logging
+import math
 from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Mapping, Sequence, Tuple, TypedDict
@@ -194,6 +195,7 @@ def _query_with_pagination(
     ):
         metrics_results = []
         metrics_offset = 0
+        limit = math.floor(ELEMENTS_PER_SNUBA_PAGE / (7 * 24)) or 1
 
         while True:
             # Generate and execute the query to the Generics Metrics Backend
@@ -204,6 +206,7 @@ def _query_with_pagination(
                 start_date,
                 end_date,
                 metrics_offset,
+                limit,
                 category,
             )
             projects = Project.objects.filter(id__in=project_ids)
@@ -212,18 +215,13 @@ def _query_with_pagination(
                 metrics_query=metrics_query,
                 use_case_id=UseCaseID.ESCALATING_ISSUES,
             )
-            # print(metrics_series_results)
-            # print(transform_to_groups_count_response(metrics_series_results))
+
             metrics_results += transform_to_groups_count_response(metrics_series_results)
-            metrics_offset += ELEMENTS_PER_SNUBA_PAGE
-            print(
-                "length of metrics_series_results",
-                len(metrics_series_results["groups"]),
-            )
-            # print("metrics_results: ", metrics_results)
+            metrics_offset += limit
+
             if (
                 not metrics_series_results["groups"]
-                or len(metrics_series_results["groups"]) < ELEMENTS_PER_SNUBA_PAGE
+                or len(metrics_series_results["groups"]) < limit
             ):
                 break
 
@@ -276,9 +274,9 @@ def _generate_generic_metrics_backend_query(
     start_date: datetime,
     end_date: datetime,
     offset: int,
+    limit: int,
     category: Optional[GroupCategory],
 ):
-    print("running", offset, ELEMENTS_PER_SNUBA_PAGE)
     """
     This function generates a query to fetch the hourly events
     for a group_id through the Generic Metrics Backend.
@@ -313,7 +311,9 @@ def _generate_generic_metrics_backend_query(
         granularity=Granularity(HOUR),
         groupby=groupby,
         offset=Offset(offset),
-        limit=Limit(ELEMENTS_PER_SNUBA_PAGE),
+        limit=Limit(limit),
+        include_totals=False,
+        # include_series=False,
     )
 
 
