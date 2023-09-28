@@ -243,8 +243,7 @@ export const SpanOps = [
  * This is a result of a custom discover query
  */
 export type RawReplayError = {
-  ['error.type']: string[];
-  // ['error.value']: string[]; // deprecated, use title instead. See organization_replay_events_meta.py
+  ['error.type']: Array<string | undefined | null>;
   id: string;
   issue: string;
   ['issue.id']: number;
@@ -261,8 +260,8 @@ export type ErrorFrame = Overwrite<
       eventId: string;
       groupId: number;
       groupShortId: string;
-      label: string | undefined | null;
-      labels: Array<string | undefined | null>;
+      label: string;
+      labels: string[];
       projectSlug: string;
     };
     message: string;
