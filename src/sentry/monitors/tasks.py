@@ -222,10 +222,10 @@ def mark_environment_missing(monitor_environment_id: int, ts: Optional[datetime]
         expected_time=expected_time,
         monitor_config=monitor.get_validated_config(),
     )
-    # TODO(epurkhiser): To properly fix GH-55874 we need to actually
-    # pass a timestamp here. But I'm not 100% sure what that should
-    # look like yet.
-    mark_failed(checkin, ts=None)
+    # TODO(epurkhiser): To properly fix GH-55874 we should NOT pass
+    # timezone.now, we need to use the reference timestamp. But I'm not 100%
+    # sure what that should look like yet.
+    mark_failed(checkin, ts=timezone.now())
 
 
 @instrumented_task(
@@ -239,7 +239,7 @@ def check_timeout(current_datetime: datetime):
 
     qs = MonitorCheckIn.objects.filter(
         status=CheckInStatus.IN_PROGRESS, timeout_at__lte=current_datetime
-    ).select_related("monitor", "monitor_environment")[:CHECKINS_LIMIT]
+    )[:CHECKINS_LIMIT]
     metrics.gauge("sentry.monitors.tasks.check_timeout.count", qs.count(), sample_rate=1)
     # check for any monitors which are still running and have exceeded their maximum runtime
     for checkin in qs:
@@ -272,6 +272,6 @@ def mark_checkin_timeout(checkin_id: int, ts: Optional[datetime] = None):
         status__in=[CheckInStatus.OK, CheckInStatus.ERROR],
     ).exists()
     if not has_newer_result:
-        # TODO(epurkhiser): We also need a timestamp here, but not sure
-        # what we want it to be
-        mark_failed(checkin, ts=None)
+        # TODO(epurkhiser): We should not be using timezone.now here, but need
+        # to verify what actually makes sense.
+        mark_failed(checkin, ts=timezone.now())

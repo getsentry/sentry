@@ -2,11 +2,11 @@ import {ReactNode, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import renderSortableHeaderCell from 'sentry/components/feedback/table/renderSortableHeaderCell';
-import useQueryBasedColumnResize from 'sentry/components/feedback/table/useQueryBasedColumnResize';
-import useQueryBasedSorting from 'sentry/components/feedback/table/useQueryBasedSorting';
 import GridEditable, {GridColumnOrder} from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
+import renderSortableHeaderCell from 'sentry/components/replays/renderSortableHeaderCell';
+import useQueryBasedColumnResize from 'sentry/components/replays/useQueryBasedColumnResize';
+import useQueryBasedSorting from 'sentry/components/replays/useQueryBasedSorting';
 import TextOverflow from 'sentry/components/textOverflow';
 import {IconCursorArrow} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
@@ -48,7 +48,6 @@ interface Props {
   isError: boolean;
   isLoading: boolean;
   location: Location<any>;
-  customHandleResize?: () => void;
   title?: ReactNode;
 }
 
@@ -65,7 +64,6 @@ export default function SelectorTable({
   isLoading,
   location,
   title,
-  customHandleResize,
   clickCountSortable,
 }: Props) {
   const organization = useOrganization();
@@ -121,7 +119,7 @@ export default function SelectorTable({
       columnSortBy={[]}
       stickyHeader
       grid={{
-        onResizeColumn: customHandleResize ?? handleResizeColumn,
+        onResizeColumn: handleResizeColumn,
         renderHeadCell,
         renderBodyCell,
       }}

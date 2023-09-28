@@ -46,6 +46,7 @@ export enum SavedSearchType {
   EVENT = 1,
   SESSION = 2,
   REPLAY = 3,
+  METRIC = 4,
 }
 
 export enum IssueCategory {
