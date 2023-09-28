@@ -246,6 +246,18 @@ This resource does not accept any URI parameters and is not paginated. Responses
 
 Retrieve a collection of accessibility issues.
 
+**Attributes**
+
+| Column          | Type                   | Description                                        |
+| --------------- | ---------------------- | -------------------------------------------------- |
+| id              | string                 | -                                                  |
+| timestamp       | number                 | -                                                  |
+| impact          | Optional[enum[string]] | One of: 'minor', 'moderate', 'serious', 'critical' |
+| description     | string                 | -                                                  |
+| help_url        | string                 | -                                                  |
+| element         | string                 | The offending element's DOM selector.              |
+| failure_summary | string                 | -                                                  |
+
 - Response 200
 
   ```json
