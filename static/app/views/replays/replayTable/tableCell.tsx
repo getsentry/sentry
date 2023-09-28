@@ -43,7 +43,12 @@ type Props = {
   showDropdownFilters?: boolean;
 };
 
-export type ReferrerTableType = 'main' | 'dead-table' | 'errors-table' | 'rage-table';
+export type ReferrerTableType =
+  | 'main'
+  | 'dead-table'
+  | 'errors-table'
+  | 'rage-table'
+  | 'selector-widget';
 
 type EditType = 'set' | 'remove';
 
@@ -329,8 +334,8 @@ export function ReplayCell({
       case 'errors-table':
         return replayDetailsErrorTab;
       case 'dead-table':
-        return replayDetailsDOMEventsTab;
       case 'rage-table':
+      case 'selector-widget':
         return replayDetailsDOMEventsTab;
       default:
         return replayDetails;
