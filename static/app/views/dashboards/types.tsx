@@ -2,6 +2,8 @@ import {Layout} from 'react-grid-layout';
 
 import {User} from 'sentry/types';
 
+import {ThresholdsConfig} from './widgetBuilder/buildSteps/thresholdsStep/thresholdsStep';
+
 // Max widgets per dashboard we are currently willing
 // to allow to limit the load on snuba from the
 // parallel requests. Somewhat arbitrary
@@ -51,6 +53,7 @@ export type Widget = {
   // Used to define 'topEvents' when fetching time-series data for a widget
   limit?: number;
   tempId?: string;
+  thresholds?: ThresholdsConfig | null;
   widgetType?: WidgetType;
 };
 
