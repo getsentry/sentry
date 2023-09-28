@@ -1131,11 +1131,9 @@ def create_alert_rule_trigger_action(
         if target_type != AlertRuleTriggerAction.TargetType.SPECIFIC:
             raise InvalidTriggerActionError("Must specify specific target type")
 
-        if not (
-            type.value == AlertRuleTriggerAction.Type.DISCORD
-            and not features.has(
-                "organizations:integrations-discord-metric-alerts", trigger.alert_rule.organization
-            )
+        # Avoids the case where the discord feature flag is off and the action type is discord
+        if type != AlertRuleTriggerAction.Type.DISCORD.value or features.has(
+            "organizations:integrations-discord-metric-alerts", trigger.alert_rule.organization
         ):
             target_identifier, target_display = get_target_identifier_display_for_integration(
                 type.value,
@@ -1206,12 +1204,9 @@ def update_alert_rule_trigger_action(
             integration_id = updated_fields.get("integration_id", trigger_action.integration_id)
             organization = trigger_action.alert_rule_trigger.alert_rule.organization
 
-            if not (
-                type == AlertRuleTriggerAction.Type.DISCORD
-                and not features.has(
-                    "organizations:integrations-discord-metric-alerts",
-                    organization,
-                )
+            # Avoids the case where the discord feature flag is off and the action type is discord
+            if type != AlertRuleTriggerAction.Type.DISCORD.value or features.has(
+                "organizations:integrations-discord-metric-alerts", organization
             ):
                 target_identifier, target_display = get_target_identifier_display_for_integration(
                     type,
