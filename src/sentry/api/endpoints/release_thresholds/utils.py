@@ -1,3 +1,5 @@
+from typing import Any, Dict, List
+
 from snuba_sdk import Request as SnubaRequest
 from snuba_sdk.column import Column
 from snuba_sdk.conditions import Condition, Op
@@ -17,7 +19,7 @@ def get_errors_timeseries_counts_by_project_and_release(
     project_id_list,
     release_value_list,
     organization_id,
-) -> [dict]:
+) -> List[Dict[str, Any]]:
     query = Query(
         match=Entity("events"),  # synonymous w/ discover dataset
         select=[Function("count", [])],
