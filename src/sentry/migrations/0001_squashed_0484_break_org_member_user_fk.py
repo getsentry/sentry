@@ -4337,17 +4337,15 @@ class Migration(CheckedMigration):
                     models.DateTimeField(db_index=True, default=django.utils.timezone.now),
                 ),
                 (
-                    "file",
-                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        db_constraint=False,
-                        on_delete=django.db.models.deletion.CASCADE,
-                        to="sentry.File",
+                    "file_id",
+                    sentry.db.models.fields.bounded.BoundedBigIntegerField(
+                        db_index=True,
                     ),
                 ),
             ],
             options={
                 "db_table": "sentry_eventattachment",
-                "unique_together": {("project_id", "event_id", "file")},
+                "unique_together": {("project_id", "event_id", "file_id")},
                 "index_together": {("project_id", "date_added")},
             },
         ),
@@ -6400,44 +6398,6 @@ class Migration(CheckedMigration):
             model_name="release",
             name="last_commit_id",
             field=sentry.db.models.fields.bounded.BoundedBigIntegerField(null=True),
-        ),
-        migrations.SeparateDatabaseAndState(
-            database_operations=[
-                migrations.AlterField(
-                    model_name="eventattachment",
-                    name="file",
-                    field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        db_constraint=False,
-                        on_delete=django.db.models.deletion.CASCADE,
-                        to="sentry.File",
-                    ),
-                ),
-            ],
-            state_operations=[
-                migrations.AddField(
-                    model_name="eventattachment",
-                    name="file_id",
-                    field=sentry.db.models.fields.bounded.BoundedBigIntegerField(
-                        db_index=True, default=1
-                    ),
-                    preserve_default=False,
-                ),
-                migrations.RemoveField(
-                    model_name="eventattachment",
-                    name="file",
-                ),
-                migrations.AlterUniqueTogether(
-                    name="eventattachment",
-                    unique_together={("project_id", "event_id", "file_id")},
-                ),
-                migrations.AlterIndexTogether(
-                    name="eventattachment",
-                    index_together={
-                        ("project_id", "date_added", "file_id"),
-                        ("project_id", "date_added"),
-                    },
-                ),
-            ],
         ),
         migrations.AlterField(
             model_name="dashboardwidget",
@@ -8554,11 +8514,6 @@ class Migration(CheckedMigration):
             model_name="environment",
             name="project_id",
             field=sentry.db.models.fields.bounded.BoundedBigIntegerField(null=True),
-        ),
-        migrations.AlterField(
-            model_name="eventuser",
-            name="project_id",
-            field=sentry.db.models.fields.bounded.BoundedBigIntegerField(db_index=True),
         ),
         migrations.AlterField(
             model_name="grouprelease",
