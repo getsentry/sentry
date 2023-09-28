@@ -1,3 +1,5 @@
+import {AccessRequest} from 'sentry-fixture/accessRequest';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -203,7 +205,7 @@ describe('OrganizationTeams', function () {
       },
     });
     const orgId = organization.slug;
-    const accessRequest = TestStubs.AccessRequest({
+    const accessRequest = AccessRequest({
       requester: {},
     });
     const requester = TestStubs.User({
@@ -212,7 +214,7 @@ describe('OrganizationTeams', function () {
       email: 'requester@example.com',
       name: 'Requester',
     });
-    const requestList = [accessRequest, TestStubs.AccessRequest({id: '4', requester})];
+    const requestList = [accessRequest, AccessRequest({id: '4', requester})];
 
     const createWrapper = (
       props?: Partial<React.ComponentProps<typeof OrganizationTeams>>
@@ -236,7 +238,7 @@ describe('OrganizationTeams', function () {
       expect(screen.getByText('Pending Team Requests')).toBeInTheDocument();
       expect(screen.queryAllByTestId('request-message')).toHaveLength(2);
       expect(screen.queryAllByTestId('request-message')[0]).toHaveTextContent(
-        `${accessRequest.member.user.name} requests access to the #${accessRequest.team.slug} team`
+        `${accessRequest.member.user?.name} requests access to the #${accessRequest.team.slug} team`
       );
     });
 

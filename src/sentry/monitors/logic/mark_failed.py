@@ -24,8 +24,17 @@ logger = logging.getLogger(__name__)
 
 def mark_failed(
     failed_checkin: MonitorCheckIn,
-    ts: datetime | None,
+    ts: datetime,
 ):
+    """
+    Given a failing check-in, mark the monitor environent as failed and trigger
+    side-effects for creating monitor incidents and issues.
+
+    The provided `ts` is the reference time for when the next checkin time is
+    calculated from. This typically would be the failed check-in's `date_added`
+    or completion time. Though for the missed and timedout tasks this may be
+    computed based on the tasks reference time.
+    """
     monitor_env = failed_checkin.monitor_environment
     failure_issue_threshold = monitor_env.monitor.config.get("failure_issue_threshold", 0)
 
@@ -37,23 +46,24 @@ def mark_failed(
 
 def mark_failed_threshold(
     failed_checkin: MonitorCheckIn,
-    ts: datetime | None,
+    ts: datetime,
     failure_issue_threshold: int,
 ):
     from sentry.signals import monitor_environment_failed
 
     monitor_env = failed_checkin.monitor_environment
 
-    # update monitor environment timestamps on every check-in
-    if ts is None:
-        next_checkin_base = timezone.now()
-        last_checkin = monitor_env.last_checkin or timezone.now()
-    else:
-        next_checkin_base = ts
-        last_checkin = ts
+    next_checkin = monitor_env.monitor.get_next_expected_checkin(ts)
+    next_checkin_latest = monitor_env.monitor.get_next_expected_checkin_latest(ts)
 
-    next_checkin = monitor_env.monitor.get_next_expected_checkin(next_checkin_base)
-    next_checkin_latest = monitor_env.monitor.get_next_expected_checkin_latest(next_checkin_base)
+    # Whe the failed check-in is a synthetic missed check-in we do not move the
+    # `last_checkin` timestamp forward.
+    if failed_checkin.status == CheckInStatus.MISSED:
+        # When a monitor is MISSED it MUST have already had a `last_checkin`. A
+        # monitor cannot be missed without having checked in.
+        last_checkin = monitor_env.last_checkin
+    else:
+        last_checkin = failed_checkin.date_added
 
     # update monitor environment timestamps without updating status
     # affected returns number of rows returned from the filter() call
@@ -65,8 +75,15 @@ def mark_failed_threshold(
         next_checkin_latest=next_checkin_latest,
         last_checkin=last_checkin,
     )
+
+    # If we did not update the monitor enviromnent it means there was a newer
+    # check-in. We have nothing to do in this case.
     if not affected:
         return False
+
+    # refresh the object from the database so we have the updated values in our
+    # cached instance
+    monitor_env.refresh_from_db()
 
     # check to see if we need to update the status
     if monitor_env.status == MonitorStatus.OK:
@@ -85,7 +102,7 @@ def mark_failed_threshold(
         # change monitor status + update fingerprint timestamp
         monitor_env.status = MonitorStatus.ERROR
         monitor_env.last_state_change = last_checkin
-        monitor_env.save()
+        monitor_env.save(update_fields=("status", "last_state_change"))
     elif monitor_env.status in [
         MonitorStatus.ERROR,
         MonitorStatus.MISSED_CHECKIN,
@@ -123,18 +140,11 @@ def mark_failed_threshold(
 
 def mark_failed_no_threshold(
     failed_checkin: MonitorCheckIn,
-    ts: datetime | None,
+    ts: datetime,
 ):
     from sentry.signals import monitor_environment_failed
 
     monitor_env = failed_checkin.monitor_environment
-
-    if ts is None:
-        next_checkin_base = timezone.now()
-        last_checkin = monitor_env.last_checkin or timezone.now()
-    else:
-        next_checkin_base = ts
-        last_checkin = ts
 
     failed_status_map = {
         CheckInStatus.MISSED: MonitorStatus.MISSED_CHECKIN,
@@ -142,8 +152,17 @@ def mark_failed_no_threshold(
     }
     new_status = failed_status_map.get(failed_checkin.status, MonitorStatus.ERROR)
 
-    next_checkin = monitor_env.monitor.get_next_expected_checkin(next_checkin_base)
-    next_checkin_latest = monitor_env.monitor.get_next_expected_checkin_latest(next_checkin_base)
+    next_checkin = monitor_env.monitor.get_next_expected_checkin(ts)
+    next_checkin_latest = monitor_env.monitor.get_next_expected_checkin_latest(ts)
+
+    # Whe the failed check-in is a synthetic missed check-in we do not move the
+    # `last_checkin` timestamp forward.
+    if failed_checkin.status == CheckInStatus.MISSED:
+        # When a monitor is MISSED it MUST have already had a `last_checkin`. A
+        # monitor cannot be missed without having checked in.
+        last_checkin = monitor_env.last_checkin
+    else:
+        last_checkin = failed_checkin.date_added
 
     # affected returns number of rows returned from the filter() call
     # not the number of rows that actually modify their values via update()
@@ -155,6 +174,9 @@ def mark_failed_no_threshold(
         status=new_status,
         last_checkin=last_checkin,
     )
+
+    # If we did not update the monitor enviromnent it means there was a newer
+    # check-in. We have nothing to do in this case.
     if not affected:
         return False
 

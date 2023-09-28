@@ -22,9 +22,13 @@ from sentry.api.endpoints.organization_projects_experiment import (
     OrganizationProjectsExperimentEndpoint,
 )
 from sentry.api.endpoints.organization_spans_aggregation import OrganizationSpansAggregationEndpoint
-from sentry.api.endpoints.release_threshold import ReleaseThresholdEndpoint
-from sentry.api.endpoints.release_threshold_details import ReleaseThresholdDetailsEndpoint
-from sentry.api.endpoints.release_threshold_status_index import ReleaseThresholdStatusIndexEndpoint
+from sentry.api.endpoints.release_thresholds.release_threshold import ReleaseThresholdEndpoint
+from sentry.api.endpoints.release_thresholds.release_threshold_details import (
+    ReleaseThresholdDetailsEndpoint,
+)
+from sentry.api.endpoints.release_thresholds.release_threshold_status_index import (
+    ReleaseThresholdStatusIndexEndpoint,
+)
 from sentry.api.endpoints.source_map_debug_blue_thunder_edition import (
     SourceMapDebugBlueThunderEditionEndpoint,
 )

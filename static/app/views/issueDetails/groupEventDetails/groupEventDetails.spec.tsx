@@ -1,5 +1,7 @@
 import {browserHistory, InjectedRouter} from 'react-router';
 import {Location} from 'history';
+import {Commit} from 'sentry-fixture/commit';
+import {CommitAuthor} from 'sentry-fixture/commitAuthor';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -471,8 +473,8 @@ describe('EventCause', () => {
       body: {
         committers: [
           {
-            commits: [TestStubs.Commit({author: TestStubs.CommitAuthor()})],
-            author: TestStubs.CommitAuthor(),
+            commits: [Commit({author: CommitAuthor()})],
+            author: CommitAuthor(),
           },
         ],
       },

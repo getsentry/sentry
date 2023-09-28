@@ -1,6 +1,10 @@
 {
   "feedback.feedback": {
     "foreign_keys": {
+      "environment": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.environment"
+      },
       "organization_id": {
         "kind": "ImplicitForeignKey",
         "model": "sentry.organization"
@@ -28,6 +32,27 @@
       }
     },
     "model": "hybridcloud.apikeyreplica",
+    "relocation_scope": "Excluded",
+    "silos": [
+      "Region"
+    ]
+  },
+  "hybridcloud.organizationslugreservationreplica": {
+    "foreign_keys": {
+      "organization_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.organization"
+      },
+      "organization_slug_reservation_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.organizationslugreservation"
+      },
+      "user_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.user"
+      }
+    },
+    "model": "hybridcloud.organizationslugreservationreplica",
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
