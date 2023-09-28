@@ -111,7 +111,7 @@ export default function SelectorTable({
             </TextOverflow>
           );
         default:
-          return renderSimpleBodyCell<DeadRageSelectorItem>(column, dataRow);
+          return renderClickCount<DeadRageSelectorItem>(column, dataRow);
       }
     },
     [queryPrefix]
@@ -163,13 +163,8 @@ export function SelectorLink({
   );
 }
 
-function renderSimpleBodyCell<T>(column: GridColumnOrder<string>, dataRow: T) {
-  const color =
-    column.key === 'count_rage_clicks'
-      ? 'red300'
-      : column.key === 'count_dead_clicks'
-      ? 'yellow300'
-      : 'gray300';
+function renderClickCount<T>(column: GridColumnOrder<string>, dataRow: T) {
+  const color = column.key === 'count_rage_clicks' ? 'red300' : 'yellow300';
 
   return (
     <ClickColor color={color}>
