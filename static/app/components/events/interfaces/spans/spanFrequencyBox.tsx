@@ -1,7 +1,10 @@
 import {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Tooltip} from 'sentry/components/tooltip';
+import {tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {formatPercentage} from 'sentry/utils/formatters';
 
 export const FREQUENCY_BOX_WIDTH = 40;
 
@@ -13,32 +16,44 @@ type Props = {
 const purples = ['#D1BAFC', '#9282F3', '#6056BA', '#313087', '#021156'];
 
 export function SpanFrequencyBox({frequency}: Props) {
-  return <StyledBox frequency={frequency}>{frequency}%</StyledBox>;
+  return (
+    <StyledBox frequency={frequency}>
+      <Tooltip
+        isHoverable
+        title={tct(
+          'This span occurs in [x] out of every [total] events ([percentage] frequency)',
+          {x: 3, total: 100, percentage: formatPercentage(frequency, 0)}
+        )}
+      >
+        {formatPercentage(frequency, 0)}
+      </Tooltip>
+    </StyledBox>
+  );
 }
 
 function getBoxColors(frequency: number, theme: Theme) {
-  if (frequency > 90) {
+  if (frequency >= 0.9) {
     return `
       background: ${theme.white};
       color: ${theme.black};
     `;
   }
 
-  if (frequency > 70) {
+  if (frequency >= 0.7) {
     return `
       background: ${purples[0]};
       color: ${theme.black};
     `;
   }
 
-  if (frequency > 50) {
+  if (frequency >= 0.5) {
     return `
       background: ${purples[1]};
       color: ${theme.black};
     `;
   }
 
-  if (frequency > 30) {
+  if (frequency >= 0.3) {
     return `
       background: ${purples[2]};
       color: ${theme.white};

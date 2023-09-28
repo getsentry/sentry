@@ -1,12 +1,16 @@
 import 'intersection-observer'; // this is a polyfill
 
-import {Component, createRef, Fragment, useRef} from 'react';
+import {Component, createRef, Fragment} from 'react';
 import {CellMeasurerCache, List as ReactVirtualizedList} from 'react-virtualized';
 import styled from '@emotion/styled';
 import {withProfiler} from '@sentry/react';
 
 import Count from 'sentry/components/count';
 import AggregateSpanDetail from 'sentry/components/events/interfaces/spans/aggregateSpanDetail';
+import {
+  FREQUENCY_BOX_WIDTH,
+  SpanFrequencyBox,
+} from 'sentry/components/events/interfaces/spans/spanFrequencyBox';
 import {ROW_HEIGHT, SpanBarType} from 'sentry/components/performance/waterfall/constants';
 import {MessageRow} from 'sentry/components/performance/waterfall/messageRow';
 import {
@@ -106,10 +110,6 @@ import {
   SpanViewBoundsType,
   unwrapTreeDepth,
 } from './utils';
-import {
-  FREQUENCY_BOX_WIDTH,
-  SpanFrequencyBox,
-} from 'sentry/components/events/interfaces/spans/spanFrequencyBox';
 
 // TODO: maybe use babel-plugin-preval
 // for (let i = 0; i <= 1.0; i += 0.01) {
@@ -588,9 +588,9 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
       titleFragments.push(
         <Regroup
           key={`regroup-${span.timestamp}`}
-          onClick={event => {
-            event.stopPropagation();
-            event.preventDefault();
+          onClick={e => {
+            e.stopPropagation();
+            e.preventDefault();
             if (groupType === GroupType.SIBLINGS && 'op' in span) {
               toggleSiblingSpanGroup?.(span, groupOccurrence ?? 0);
             } else {
@@ -600,8 +600,8 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
         >
           <a
             href="#regroup"
-            onClick={event => {
-              event.preventDefault();
+            onClick={e => {
+              e.preventDefault();
             }}
           >
             {t('Regroup')}
