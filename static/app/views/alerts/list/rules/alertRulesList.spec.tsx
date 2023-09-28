@@ -1,3 +1,7 @@
+import {Incident} from 'sentry-fixture/incident';
+import {MetricRule} from 'sentry-fixture/metricRule';
+import {ProjectAlertRule} from 'sentry-fixture/projectAlertRule';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   act,
@@ -33,20 +37,20 @@ describe('AlertRulesList', () => {
       url: '/organizations/org-slug/combined-rules/',
       headers: {Link: pageLinks},
       body: [
-        TestStubs.ProjectAlertRule({
+        ProjectAlertRule({
           id: '123',
           name: 'First Issue Alert',
           projects: ['earth'],
           createdBy: {name: 'Samwise', id: 1, email: ''},
         }),
-        TestStubs.MetricRule({
+        MetricRule({
           id: '345',
           projects: ['earth'],
-          latestIncident: TestStubs.Incident({
+          latestIncident: Incident({
             status: IncidentStatus.CRITICAL,
           }),
         }),
-        TestStubs.MetricRule({
+        MetricRule({
           id: '678',
           projects: ['earth'],
           latestIncident: null,
@@ -333,7 +337,7 @@ describe('AlertRulesList', () => {
       url: '/organizations/org-slug/combined-rules/',
       headers: {Link: pageLinks},
       body: [
-        TestStubs.ProjectAlertRule({
+        ProjectAlertRule({
           name: 'First Issue Alert',
           projects: ['earth'],
           status: 'disabled',
@@ -351,7 +355,7 @@ describe('AlertRulesList', () => {
       url: '/organizations/org-slug/combined-rules/',
       headers: {Link: pageLinks},
       body: [
-        TestStubs.ProjectAlertRule({
+        ProjectAlertRule({
           name: 'First Issue Alert',
           projects: ['earth'],
           // both disabled and muted
@@ -372,7 +376,7 @@ describe('AlertRulesList', () => {
       url: '/organizations/org-slug/combined-rules/',
       headers: {Link: pageLinks},
       body: [
-        TestStubs.ProjectAlertRule({
+        ProjectAlertRule({
           name: 'First Issue Alert',
           projects: ['earth'],
           snooze: true,
@@ -390,7 +394,7 @@ describe('AlertRulesList', () => {
       url: '/organizations/org-slug/combined-rules/',
       headers: {Link: pageLinks},
       body: [
-        TestStubs.MetricRule({
+        MetricRule({
           projects: ['earth'],
           snooze: true,
         }),

@@ -1,5 +1,6 @@
 import {AccountEmails} from 'sentry-fixture/accountEmails';
 import {AllAuthenticators, Authenticators} from 'sentry-fixture/authenticators';
+import {Organizations} from 'sentry-fixture/organizations';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -29,7 +30,7 @@ describe('AccountSecurityDetails', function () {
 
       MockApiClient.addMockResponse({
         url: ORG_ENDPOINT,
-        body: TestStubs.Organizations(),
+        body: Organizations(),
       });
 
       MockApiClient.addMockResponse({
@@ -109,7 +110,7 @@ describe('AccountSecurityDetails', function () {
     it('can remove one of multiple 2fa methods when org requires 2fa', async function () {
       MockApiClient.addMockResponse({
         url: ORG_ENDPOINT,
-        body: TestStubs.Organizations({require2FA: true}),
+        body: Organizations({require2FA: true}),
       });
 
       const deleteMock = MockApiClient.addMockResponse({
@@ -149,7 +150,7 @@ describe('AccountSecurityDetails', function () {
     it('can not remove last 2fa method when org requires 2fa', async function () {
       MockApiClient.addMockResponse({
         url: ORG_ENDPOINT,
-        body: TestStubs.Organizations({require2FA: true}),
+        body: Organizations({require2FA: true}),
       });
 
       MockApiClient.addMockResponse({
@@ -191,7 +192,7 @@ describe('AccountSecurityDetails', function () {
 
       MockApiClient.addMockResponse({
         url: ORG_ENDPOINT,
-        body: TestStubs.Organizations(),
+        body: Organizations(),
       });
 
       MockApiClient.addMockResponse({

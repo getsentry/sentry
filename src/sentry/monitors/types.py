@@ -1,4 +1,5 @@
-from typing import Dict, Literal, TypedDict
+from dataclasses import dataclass
+from typing import Dict, Literal, TypedDict, Union
 
 from typing_extensions import NotRequired
 
@@ -33,3 +34,22 @@ class CheckinPayload(TypedDict):
     duration: NotRequired[int]
     monitor_config: NotRequired[Dict]
     contexts: NotRequired[CheckinContexts]
+
+
+IntervalUnit = Literal["year", "month", "week", "day", "hour", "minute"]
+
+
+@dataclass
+class CrontabSchedule:
+    crontab: str
+    type: Literal["crontab"] = "crontab"
+
+
+@dataclass
+class IntervalSchedule:
+    interval: int
+    unit: IntervalUnit
+    type: Literal["interval"] = "interval"
+
+
+ScheduleConfig = Union[CrontabSchedule, IntervalSchedule]
