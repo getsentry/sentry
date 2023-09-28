@@ -1,6 +1,5 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
-import memoize from 'lodash/memoize';
 
 import Access from 'sentry/components/acl/access';
 import AlertBadge from 'sentry/components/alertBadge';
@@ -28,8 +27,9 @@ import {
 } from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Actor, Project} from 'sentry/types';
+import type {Actor, Project} from 'sentry/types';
 import type {ColorOrAlias} from 'sentry/utils/theme';
+import {useUserTeams} from 'sentry/utils/useUserTeams';
 import {getThresholdUnits} from 'sentry/views/alerts/rules/metric/constants';
 import {
   AlertRuleComparisonType,
@@ -52,16 +52,7 @@ type Props = {
   projects: Project[];
   projectsLoaded: boolean;
   rule: CombinedMetricIssueAlerts;
-  // Set of team ids that the user belongs to
-  userTeams: Set<string>;
 };
-
-/**
- * Memoized function to find a project from a list of projects
- */
-const getProject = memoize((slug: string, projects: Project[]) =>
-  projects.find(project => project.slug === slug)
-);
 
 function RuleListRow({
   rule,
@@ -70,9 +61,9 @@ function RuleListRow({
   orgId,
   onDelete,
   onOwnerChange,
-  userTeams,
   hasEditAccess,
 }: Props) {
+  const {teams: userTeams} = useUserTeams();
   const [assignee, setAssignee] = useState<string>('');
   const activeIncident =
     rule.latestIncident?.status !== undefined &&
@@ -219,7 +210,7 @@ function RuleListRow({
     ? {type: 'team' as Actor['type'], id: ownerId, name: ''}
     : null;
 
-  const canEdit = ownerId ? userTeams.has(ownerId) : true;
+  const canEdit = ownerId ? userTeams.some(team => team.id === ownerId) : true;
 
   const IssueStatusText: Record<IncidentStatus, string> = {
     [IncidentStatus.CRITICAL]: t('Critical'),
@@ -277,13 +268,12 @@ function RuleListRow({
     disabled: false,
   };
 
-  const projectRow = projects.filter(project => project.slug === slug);
-  const projectRowTeams = projectRow[0].teams;
-  const filteredProjectTeams = projectRowTeams?.filter(projTeam => {
-    return userTeams.has(projTeam.id);
+  const project = projects.find(p => p.slug === slug);
+  const filteredProjectTeams = (project?.teams ?? []).filter(projTeam => {
+    return userTeams.some(team => team.id === projTeam.id);
   });
   const dropdownTeams = filteredProjectTeams
-    ?.map((team, idx) => ({
+    .map((team, idx) => ({
       value: team.id,
       searchKey: team.slug,
       label: ({inputValue}) => (
@@ -300,7 +290,7 @@ function RuleListRow({
     .concat(unassignedOption);
 
   const teamId = assignee?.split(':')[1];
-  const teamName = filteredProjectTeams?.find(team => team.id === teamId);
+  const teamName = filteredProjectTeams.find(team => team.id === teamId);
 
   const assigneeTeamActor = assignee && {
     type: 'team' as Actor['type'],
@@ -364,7 +354,7 @@ function RuleListRow({
         <ProjectBadgeContainer>
           <ProjectBadge
             avatarSize={18}
-            project={!projectsLoaded ? {slug} : getProject(slug, projects)}
+            project={projectsLoaded && project ? project : {slug}}
           />
         </ProjectBadgeContainer>
       </FlexCenter>

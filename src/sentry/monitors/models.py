@@ -29,6 +29,7 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.utils import slugify_instance
+from sentry.grouping.utils import hash_from_values
 from sentry.locks import locks
 from sentry.models import Environment, Rule, RuleSource
 from sentry.monitors.types import CrontabSchedule, IntervalSchedule
@@ -546,6 +547,33 @@ class MonitorEnvironment(Model):
             .first()
         )
 
+    @property
+    def incident_grouphash(self):
+        # TODO(rjo100): Check to see if there's an active incident
+        # if not, use last_state_change as fallback
+        active_incident = (
+            MonitorIncident.objects.filter(
+                monitor_environment_id=self.id, resolving_checkin__isnull=True
+            )
+            .order_by("-date_added")
+            .first()
+        )
+        if active_incident:
+            return active_incident.grouphash
+
+        # XXX(rjo100): While we migrate monitor issues to using the
+        # Incident stored grouphash we still may have some active issues
+        # that are using the old hashes. We can remove this in the
+        # future once all existing issues are resolved.
+        return hash_from_values(
+            [
+                "monitor",
+                str(self.monitor.guid),
+                self.environment.name,
+                str(self.last_state_change),
+            ]
+        )
+
 
 @receiver(pre_save, sender=MonitorEnvironment)
 def check_monitor_environment_limits(sender, instance, **kwargs):
@@ -569,10 +597,18 @@ class MonitorIncident(Model):
         "sentry.MonitorCheckIn", null=True, related_name="created_incidents"
     )
     starting_timestamp = models.DateTimeField(null=True)
+    """
+    This represents the first failed check-in that we receive
+    """
+
     resolving_checkin = FlexibleForeignKey(
         "sentry.MonitorCheckIn", null=True, related_name="resolved_incidents"
     )
     resolving_timestamp = models.DateTimeField(null=True)
+    """
+    This represents the final OK check-in that we receive
+    """
+
     grouphash = models.CharField(max_length=32)
     date_added = models.DateTimeField(default=timezone.now)
 

@@ -145,7 +145,7 @@ def resolve_type_hint(hint) -> Any:
             required=[h for h in hint.__required_keys__ if h not in excluded_fields],
         )
     elif origin is Union:
-        type_args = [arg for arg in args if arg is not type(None)]  # noqa: E721
+        type_args = [arg for arg in args if arg is not type(None)]
         if len(type_args) > 1:
             schema = {"oneOf": [resolve_type_hint(arg) for arg in type_args]}
         else:

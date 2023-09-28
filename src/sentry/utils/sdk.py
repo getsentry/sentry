@@ -13,8 +13,7 @@ from rest_framework.request import Request
 
 # Reexport sentry_sdk just in case we ever have to write another shim like we
 # did for raven
-from sentry_sdk import push_scope  # NOQA
-from sentry_sdk import Scope, capture_exception, capture_message, configure_scope
+from sentry_sdk import Scope, capture_exception, capture_message, configure_scope, push_scope
 from sentry_sdk.client import get_options
 from sentry_sdk.integrations.django.transactions import LEGACY_RESOLVER
 from sentry_sdk.transport import make_transport
