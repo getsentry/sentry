@@ -58,7 +58,6 @@ import {
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
-import {formatPercentage} from 'sentry/utils/formatters';
 import toPercent from 'sentry/utils/number/toPercent';
 import {
   QuickTraceContext,
@@ -1122,10 +1121,7 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
       : null;
 
     const durationDisplay = getDurationDisplay(bounds);
-    let frequency: number | undefined = undefined;
-    if (span.type === 'aggregate') {
-      frequency = span.frequency;
-    }
+
     return (
       <Fragment>
         <RowRectangle
@@ -1147,9 +1143,6 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
           </DurationPill>
         </RowRectangle>
         {subSpans}
-        <PercentageContainer>
-          <Percentage>{frequency && formatPercentage(frequency)}</Percentage>
-        </PercentageContainer>
       </Fragment>
     );
   }
@@ -1232,16 +1225,3 @@ const StyledIconWarning = styled(IconWarning)`
 const Regroup = styled('span')``;
 
 export const ProfiledSpanBar = withProfiler(SpanBar);
-
-const PercentageContainer = styled('div')`
-  position: absolute;
-  left: 100%;
-  padding-left: 10px;
-  white-space: nowrap;
-  color: ${p => p.theme.gray300};
-  font-size: ${p => p.theme.fontSizeSmall};
-`;
-
-const Percentage = styled('div')`
-  position: fixed;
-`;
