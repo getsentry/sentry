@@ -1,3 +1,6 @@
+import {GroupStats} from 'sentry-fixture/groupStats';
+import {Search} from 'sentry-fixture/search';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
@@ -38,11 +41,10 @@ describe('IssueList -> Polling', function () {
       access: ['project:releases'],
     },
   });
-  const savedSearch = TestStubs.Search({
+  const savedSearch = Search({
     id: '789',
     query: 'is:unresolved',
     name: 'Unresolved Issues',
-    projectId: project.id,
   });
 
   const group = TestStubs.Group({project});
@@ -130,7 +132,7 @@ describe('IssueList -> Polling', function () {
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues-stats/',
-      body: [TestStubs.GroupStats()],
+      body: [GroupStats()],
     });
     pollRequest = MockApiClient.addMockResponse({
       url: `/api/0/organizations/org-slug/issues/?cursor=${PREVIOUS_PAGE_CURSOR}:0:1`,
