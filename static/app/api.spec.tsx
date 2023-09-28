@@ -204,10 +204,12 @@ describe('isSimilarOrigin', function () {
     ['https://sentry.io/api/0/broadcasts/', 'https://woof.sentry.io', true],
     ['https://sentry.io/api/0/users/', 'https://sentry.sentry.io', true],
     ['https://sentry.io/api/0/users/', 'https://io.sentry.io', true],
+    // request to subdomain from parent
+    ['https://us.sentry.io/api/0/users/', 'https://sentry.io', true],
 
     // Not siblings
     ['https://sentry.io/api/0/broadcasts/', 'https://sentry.example.io', false],
-    ['https://woof.example.sentry.io', 'https://example.sentry.io', false],
+    ['https://acme.sentry.io', 'https://acme.sent.ryio', false],
     ['https://woof.example.io', 'https://woof.sentry.io', false],
     ['https://woof.sentry.io', 'https://sentry.woof.io', false],
   ])('allows sibling domains %s and %s is %s', (target, origin, expected) => {
