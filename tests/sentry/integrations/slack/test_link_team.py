@@ -68,7 +68,7 @@ class SlackIntegrationLinkTeamTestBase(TestCase):
     def get_error_response(
         self,
         data: Optional[Mapping[str, Any]] = None,
-        status_code: status = status.HTTP_404_NOT_FOUND,
+        status_code: int = status.HTTP_404_NOT_FOUND,
     ) -> HttpResponseBase:
         if data:
             response = self.client.post(
