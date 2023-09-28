@@ -460,40 +460,6 @@ def get_source_file_data(abs_path, project, release, event):
     }
 
 
-def get_release_files_status_by_url(event, project, release, possible_urls):
-    result = "unsuccessful"
-    possible_release_files = ReleaseFile.objects.filter(
-        organization_id=project.organization_id,
-        release_id=release.id,
-        name__in=possible_urls,
-    ).exclude(artifact_count=0)
-    if len(possible_release_files) > 0:
-        result = "wrong-dist"
-    for possible_release_file in possible_release_files:
-        if possible_release_file.ident == ReleaseFile.get_ident(
-            possible_release_file.name, event.dist
-        ):
-            return "found"
-    return result
-
-
-def get_artifact_bundle_file_status_by_url(event, project, release, possible_urls):
-    result = "unsuccessful"
-    possible_release_artifact_bundles = ReleaseArtifactBundle.objects.filter(
-        organization_id=project.organization.id,
-        release_name=release.version,
-        artifact_bundle__projectartifactbundle__project_id=project.id,
-        artifact_bundle__artifactbundleindex__organization_id=project.organization.id,
-        artifact_bundle__artifactbundleindex__url__in=possible_urls,
-    )
-    if len(possible_release_artifact_bundles) > 0:
-        result = "wrong-dist"
-    for possible_release_artifact_bundle in possible_release_artifact_bundles:
-        if possible_release_artifact_bundle.dist_name == (event.dist or ""):
-            return "found"
-    return result
-
-
 def get_matching_source_map_location(source_file_path, source_map_reference):
     return non_standard_url_join(force_str(source_file_path), force_str(source_map_reference))
 
