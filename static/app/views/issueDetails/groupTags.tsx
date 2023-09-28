@@ -6,7 +6,9 @@ import {Alert} from 'sentry/components/alert';
 import Count from 'sentry/components/count';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import {DeviceName} from 'sentry/components/deviceName';
+import {getSampleEventQuery} from 'sentry/components/events/eventStatisticalDetector/eventComparison/eventDisplay';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
+import {sumTagFacetsForTopValues} from 'sentry/components/group/tagFacets';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
@@ -16,13 +18,14 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import Version from 'sentry/components/version';
 import {tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Group, Organization, TagWithTopValues} from 'sentry/types';
+import {Event, Group, IssueType, Organization, TagWithTopValues} from 'sentry/types';
 import {percent} from 'sentry/utils';
 import withOrganization from 'sentry/utils/withOrganization';
 
 type Props = DeprecatedAsyncComponent['props'] & {
   baseUrl: string;
   environments: string[];
+  event: Event;
   group: Group;
   organization: Organization;
 } & RouteComponentProps<{}, {}>;
@@ -40,7 +43,42 @@ class GroupTags extends DeprecatedAsyncComponent<Props, State> {
   }
 
   getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
-    const {group, environments, organization} = this.props;
+    const {group, environments, organization, event} = this.props;
+
+    if (
+      organization.features.includes('performance-duration-regression-visible') &&
+      group.issueType === IssueType.PERFORMANCE_DURATION_REGRESSION
+    ) {
+      if (!event) {
+        // We need the event for its occurrence data to get the timestamps
+        // for querying
+        return [];
+      }
+
+      const {transaction, aggregateRange2, breakpoint, requestEnd} =
+        event.occurrence?.evidenceData ?? {};
+      return [
+        [
+          'tagFacets',
+          `/organizations/${organization.slug}/events-facets/`,
+          {
+            query: {
+              environment: environments,
+              transaction,
+              includeAll: true,
+              query: getSampleEventQuery({
+                transaction,
+                durationBaseline: aggregateRange2,
+                addUpperBound: false,
+              }),
+              start: new Date(breakpoint * 1000).toISOString(),
+              end: new Date(requestEnd * 1000).toISOString(),
+            },
+          },
+        ],
+      ];
+    }
+
     return [
       [
         'tagList',
@@ -53,8 +91,22 @@ class GroupTags extends DeprecatedAsyncComponent<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props) {
-    if (!isEqual(prevProps.environments, this.props.environments)) {
+    if (
+      !isEqual(prevProps.environments, this.props.environments) ||
+      !isEqual(prevProps.event, this.props.event)
+    ) {
       this.remountComponent();
+    }
+  }
+
+  onRequestSuccess({stateKey, data}: {data: any; stateKey: string}): void {
+    if (stateKey === 'tagFacets') {
+      this.setState({
+        tagList: data
+          .filter(({key}) => key !== 'transaction')
+          .map(sumTagFacetsForTopValues),
+        tagFacets: undefined,
+      });
     }
   }
 
