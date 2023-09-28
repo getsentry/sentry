@@ -17,10 +17,8 @@ from sentry.services.hybrid_cloud.organization.serial import serialize_rpc_organ
 from sentry.services.hybrid_cloud.organization_actions.impl import (
     create_organization_and_member_for_monolith,
 )
-from sentry.services.organization import (
-    OrganizationProvisioningOptions,
-    OrganizationProvisioningService,
-)
+from sentry.services.hybrid_cloud.organization_provisioning import OrganizationProvisioningService
+from sentry.services.organization import OrganizationProvisioningOptions
 
 
 class SlugMismatchException(Exception):
