@@ -62,6 +62,14 @@ class RecentSearchesListTest(APITestCase):
             last_seen=timezone.now(),
             date_added=timezone.now(),
         )
+        metric_recent_search = RecentSearch.objects.create(
+            organization=self.organization,
+            user_id=self.user.id,
+            type=SearchType.METRIC.value,
+            query="some test",
+            last_seen=timezone.now(),
+            date_added=timezone.now(),
+        )
         issue_recent_searches = [
             RecentSearch.objects.create(
                 organization=self.organization,
@@ -91,6 +99,7 @@ class RecentSearchesListTest(APITestCase):
         self.check_results(issue_recent_searches, search_type=SearchType.ISSUE)
         self.check_results([event_recent_search], search_type=SearchType.EVENT)
         self.check_results([session_recent_search], search_type=SearchType.SESSION)
+        self.check_results([metric_recent_search], search_type=SearchType.METRIC)
 
     def test_param_validation(self):
         self.login_as(user=self.user)
