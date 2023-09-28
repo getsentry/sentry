@@ -1702,7 +1702,7 @@ SENTRY_FEATURES = {
     # Enable feature to load more than 100 rows in performance trace view.
     "organizations:trace-view-load-more": False,
     # Enable dashboard widget indicators.
-    "organizations:dashboard-widget-indicators": True,
+    "organizations:dashboard-widget-indicators": False,
     # Enables updated all events tab in a performance issue
     "organizations:performance-issues-all-events-tab": False,
     # Temporary flag to test search performance that's running slow in S4S
