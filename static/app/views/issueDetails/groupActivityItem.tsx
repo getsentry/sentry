@@ -10,7 +10,6 @@ import Link from 'sentry/components/links/link';
 import PullRequestLink from 'sentry/components/pullRequestLink';
 import Version from 'sentry/components/version';
 import {t, tct, tn} from 'sentry/locale';
-import TeamStore from 'sentry/stores/teamStore';
 import {
   GroupActivity,
   GroupActivityAssigned,
@@ -22,15 +21,82 @@ import {
   User,
 } from 'sentry/types';
 import {isSemverRelease} from 'sentry/utils/formatters';
+import {useTeamsById} from 'sentry/utils/useTeamsById';
 
-type Props = {
+interface AssignedMessageProps {
+  activity: GroupActivityAssigned;
+  author: React.ReactNode;
+}
+
+function AssignedMessage({activity, author}: AssignedMessageProps) {
+  const {data} = activity;
+  let assignee: string | User | undefined = undefined;
+  const {teams} = useTeamsById(
+    data.assigneeType === 'team' ? {ids: [data.assignee]} : undefined
+  );
+
+  if (data.assigneeType === 'team') {
+    const team = teams.find(({id}) => id === data.assignee);
+    // TODO: could show a loading indicator if the team is loading
+    assignee = team ? `#${team.slug}` : '<unknown-team>';
+  } else if (activity.user && data.assignee === activity.user.id) {
+    assignee = t('themselves');
+  } else if (data.assigneeType === 'user' && data.assigneeEmail) {
+    assignee = data.assigneeEmail;
+  } else {
+    assignee = t('an unknown user');
+  }
+
+  const isAutoAssigned = ['projectOwnership', 'codeowners'].includes(
+    data.integration as string
+  );
+
+  const integrationName: Record<
+    NonNullable<GroupActivityAssigned['data']['integration']>,
+    string
+  > = {
+    msteams: t('Microsoft Teams'),
+    slack: t('Slack'),
+    projectOwnership: t('Ownership Rule'),
+    codeowners: t('Codeowners Rule'),
+  };
+
+  return (
+    <Fragment>
+      <div>
+        {tct('[author] [action] this issue to [assignee]', {
+          action: isAutoAssigned ? t('auto-assigned') : t('assigned'),
+          author,
+          assignee,
+        })}
+      </div>
+      {data.integration && (
+        <CodeWrapper>
+          {t('Assigned via %s', integrationName[data.integration])}
+          {data.rule && (
+            <Fragment>
+              : <StyledRuleSpan>{data.rule}</StyledRuleSpan>
+            </Fragment>
+          )}
+        </CodeWrapper>
+      )}
+    </Fragment>
+  );
+}
+
+interface GroupActivityItemProps {
   activity: GroupActivity;
   author: React.ReactNode;
   organization: Organization;
   projectId: Project['id'];
-};
+}
 
-function GroupActivityItem({activity, organization, projectId, author}: Props) {
+function GroupActivityItem({
+  activity,
+  organization,
+  projectId,
+  author,
+}: GroupActivityItemProps) {
   const issuesLink = `/organizations/${organization.slug}/issues/`;
   const hasEscalatingIssuesUi = organization.features.includes('escalating-issues');
 
@@ -101,56 +167,6 @@ function GroupActivityItem({activity, organization, projectId, author}: Props) {
       author,
       action: ignoredOrArchived,
     });
-  }
-
-  function getAssignedMessage(data: GroupActivityAssigned['data']) {
-    let assignee: string | User | undefined = undefined;
-    if (data.assigneeType === 'team') {
-      const team = TeamStore.getById(data.assignee);
-      assignee = team ? `#${team.slug}` : '<unknown-team>';
-    } else if (activity.user && data.assignee === activity.user.id) {
-      assignee = t('themselves');
-    } else if (data.assigneeType === 'user' && data.assigneeEmail) {
-      assignee = data.assigneeEmail;
-    } else {
-      assignee = t('an unknown user');
-    }
-
-    const isAutoAssigned = ['projectOwnership', 'codeowners'].includes(
-      data.integration as string
-    );
-
-    const integrationName: Record<
-      NonNullable<GroupActivityAssigned['data']['integration']>,
-      string
-    > = {
-      msteams: t('Microsoft Teams'),
-      slack: t('Slack'),
-      projectOwnership: t('Ownership Rule'),
-      codeowners: t('Codeowners Rule'),
-    };
-
-    return (
-      <Fragment>
-        <div>
-          {tct('[author] [action] this issue to [assignee]', {
-            action: isAutoAssigned ? t('auto-assigned') : t('assigned'),
-            author,
-            assignee,
-          })}
-        </div>
-        {data.integration && (
-          <CodeWrapper>
-            {t('Assigned via %s', integrationName[data.integration])}
-            {data.rule && (
-              <Fragment>
-                : <StyledRuleSpan>{data.rule}</StyledRuleSpan>
-              </Fragment>
-            )}
-          </CodeWrapper>
-        )}
-      </Fragment>
-    );
   }
 
   function getEscalatingMessage(data: GroupActivitySetEscalating['data']) {
@@ -468,8 +484,7 @@ function GroupActivityItem({activity, organization, projectId, author}: Props) {
       case GroupActivityType.FIRST_SEEN:
         return tct('[author] first saw this issue', {author});
       case GroupActivityType.ASSIGNED: {
-        const {data} = activity;
-        return getAssignedMessage(data);
+        return <AssignedMessage activity={activity} author={author} />;
       }
       case GroupActivityType.UNASSIGNED:
         return tct('[author] unassigned this issue', {author});
