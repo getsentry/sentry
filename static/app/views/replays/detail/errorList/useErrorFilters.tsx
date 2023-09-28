@@ -35,8 +35,8 @@ const FILTERS = {
     projects.length === 0 || projects.includes(item.data.projectSlug),
 
   searchTerm: (item: ErrorFrame, searchTerm: string) =>
-    [item.message, ...item.data.labels].some(str =>
-      str.toLowerCase().includes(searchTerm)
+    [item.message, ...item.data.labels].some(
+      str => str?.toLowerCase().includes(searchTerm)
     ),
 };
 

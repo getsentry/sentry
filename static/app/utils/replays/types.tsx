@@ -261,8 +261,8 @@ export type ErrorFrame = Overwrite<
       eventId: string;
       groupId: number;
       groupShortId: string;
-      label: string;
-      labels: string[];
+      label: string | undefined | null;
+      labels: Array<string | undefined | null>;
       projectSlug: string;
     };
     message: string;
