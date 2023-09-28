@@ -145,16 +145,12 @@ function AccordionItemHeader({
   const clickCount =
     deadOrRage === 'dead' ? (
       <DeadClickColor>
-        <IconContainer>
-          <IconCursorArrow size="xs" />
-        </IconContainer>
+        <IconCursorArrow size="xs" />
         {count}
       </DeadClickColor>
     ) : (
       <RageClickColor>
-        <IconContainer>
-          <IconCursorArrow size="xs" />
-        </IconContainer>
+        <IconCursorArrow size="xs" />
         {count}
       </RageClickColor>
     );
@@ -211,16 +207,18 @@ const SplitCardContainer = styled('div')`
   padding-top: ${space(1)};
 `;
 
-const IconContainer = styled('span')`
-  margin-right: ${space(1)};
-`;
-
 const DeadClickColor = styled(TextOverflow)`
   color: ${p => p.theme.yellow300};
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: ${space(0.75)};
 `;
 
 const RageClickColor = styled(TextOverflow)`
   color: ${p => p.theme.red300};
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: ${space(0.75)};
 `;
 
 const StyledHeaderContainer = styled(HeaderContainer)`
