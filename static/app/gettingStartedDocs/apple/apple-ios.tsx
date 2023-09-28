@@ -91,7 +91,7 @@ export const steps = (): LayoutProps['steps'] => [
   {
     type: StepType.VERIFY,
     description: t(
-      'The Sentry wizard automatically adds a code snippet that generates an error to your project. Simply run your app and you should see the error in your Sentry project.'
+      'The Sentry wizard automatically adds a code snippet that captures a message to your project. Simply run your app and you should see this message in your Sentry project.'
     ),
   },
   {
