@@ -2,12 +2,14 @@ import {Fragment, useMemo} from 'react';
 import {Location} from 'history';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import EventView from 'sentry/utils/discover/eventView';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import useReplayList from 'sentry/utils/replays/hooks/useReplayList';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useRoutes} from 'sentry/utils/useRoutes';
+import {StatusContainer} from 'sentry/views/profiling/landing/styles';
 import {ReplayCell} from 'sentry/views/replays/replayTable/tableCell';
 
 function transformSelectorQuery(selector: string) {
@@ -23,8 +25,8 @@ export default function ExampleReplaysList({
   clickType,
   deadOrRage,
 }: {
-  clickType: string;
-  deadOrRage: string;
+  clickType: 'count_dead_clicks' | 'count_rage_clicks';
+  deadOrRage: 'dead' | 'rage';
   location: Location;
   selector: string;
 }) {
@@ -82,6 +84,11 @@ export default function ExampleReplaysList({
 
   return (
     <Fragment>
+      {isFetching && (
+        <StatusContainer>
+          <LoadingIndicator />
+        </StatusContainer>
+      )}
       {fetchError || (!isFetching && !replays?.length) ? (
         <EmptyStateWarning withIcon={false} small>
           {t('No replays found')}
