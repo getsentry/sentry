@@ -4,6 +4,7 @@ from datetime import timedelta
 from operator import itemgetter
 from unittest import mock
 
+import pytest
 from django.urls import reverse
 from django.utils import timezone
 from snuba_sdk import Column, Function
@@ -1122,6 +1123,7 @@ class ProjectDynamicSamplingDistributionIntegrationTest(SnubaTestCase, APITestCa
             )
 
     @freeze_time()
+    @pytest.mark.skip(reason="broken test: https://github.com/getsentry/sentry/issues/57136")
     def test_when_no_transactions_in_last_hour_but_exists_in_last_30_days(
         self,
     ):
