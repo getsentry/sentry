@@ -6,7 +6,7 @@ import {GettingStartedWithPylons, steps} from './pylons';
 
 describe('GettingStartedWithPylons', function () {
   it('renders doc correctly', function () {
-    render(<GettingStartedWithPylons dsn="test-dsn" />);
+    render(<GettingStartedWithPylons dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps()) {

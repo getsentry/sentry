@@ -24,7 +24,6 @@ __all__ = (
     "MRI_EXPRESSION_REGEX",
     "parse_mri",
     "get_available_operations",
-    "get_known_mris",
 )
 
 import re
@@ -32,7 +31,6 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import List, Optional
 
-from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics.utils import AVAILABLE_GENERIC_OPERATIONS, AVAILABLE_OPERATIONS, OP_REGEX
 
 NAMESPACE_REGEX = r"(transactions|errors|issues|sessions|alerts|custom|spans)"
@@ -42,15 +40,18 @@ ENTITY_TYPE_REGEX = r"(c|s|d|g|e)"
 MRI_NAME_REGEX = r"([a-z_]+(?:\.[a-z_]+)*)"
 # ToDo(ahmed): Add a better regex for unit portion for MRI
 MRI_SCHEMA_REGEX_STRING = rf"(?P<entity>{ENTITY_TYPE_REGEX}):(?P<namespace>{NAMESPACE_REGEX})/(?P<name>{MRI_NAME_REGEX})@(?P<unit>[\w.]*)"
-MRI_SCHEMA_REGEX = re.compile(MRI_SCHEMA_REGEX_STRING)
+MRI_SCHEMA_REGEX = re.compile(rf"^{MRI_SCHEMA_REGEX_STRING}$")
 MRI_EXPRESSION_REGEX = re.compile(rf"^{OP_REGEX}\(({MRI_SCHEMA_REGEX_STRING})\)$")
 
 
 class SessionMRI(Enum):
     # Ingested
-    SESSION = "c:sessions/session@none"
-    ERROR = "s:sessions/error@none"
-    USER = "s:sessions/user@none"
+    # Do *not* use these metrics in product queries. Use the derived metrics below instead.
+    # The raw metrics do not necessarily add up in intuitive ways. For example, `RAW_SESSION`
+    # double-counts crashed sessions.
+    RAW_SESSION = "c:sessions/session@none"
+    RAW_ERROR = "s:sessions/error@none"
+    RAW_USER = "s:sessions/user@none"
     RAW_DURATION = "d:sessions/duration@second"
 
     # Derived
@@ -208,12 +209,3 @@ def get_available_operations(parsed_mri: ParsedMRI) -> List[str]:
     else:
         entity_key = f"generic_metrics_{entity_name_suffixes[parsed_mri.entity]}"
         return AVAILABLE_GENERIC_OPERATIONS[entity_key]
-
-
-def get_known_mris(use_case_id: UseCaseID) -> List[str]:
-    if use_case_id is UseCaseID.SESSIONS:
-        return [m.value for m in SessionMRI]
-    elif use_case_id is UseCaseID.TRANSACTIONS:
-        return [m.value for m in TransactionMRI]
-    else:
-        return []

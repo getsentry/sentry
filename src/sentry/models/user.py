@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 import logging
 import secrets
 import warnings
 from string import ascii_letters, digits
-from typing import List, Optional, Tuple
+from typing import Any, List, Mapping, Optional, Tuple
 
 from django.contrib.auth.models import AbstractBaseUser
 from django.contrib.auth.models import UserManager as DjangoUserManager
@@ -33,8 +35,10 @@ from sentry.locks import locks
 from sentry.models.authenticator import Authenticator
 from sentry.models.avatars import UserAvatar
 from sentry.models.lostpasswordhash import LostPasswordHash
-from sentry.models.outbox import ControlOutbox, OutboxCategory, OutboxScope, outbox_context
-from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.models.organizationmapping import OrganizationMapping
+from sentry.models.organizationmembermapping import OrganizationMemberMapping
+from sentry.models.outbox import ControlOutboxBase, OutboxCategory, outbox_context
+from sentry.services.hybrid_cloud.organization import RpcRegionUser, organization_service
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.types.region import find_regions_for_user
@@ -82,6 +86,7 @@ class UserManager(BaseManager, DjangoUserManager):
 @control_silo_only_model
 class User(BaseModel, AbstractBaseUser):
     __relocation_scope__ = RelocationScope.User
+    replication_version: int = 1
 
     id = BoundedBigAutoField(primary_key=True)
     username = models.CharField(_("username"), max_length=MAX_USERNAME_LENGTH, unique=True)
@@ -292,21 +297,16 @@ class User(BaseModel, AbstractBaseUser):
         for email in email_list:
             self.send_confirm_email_singular(email, is_new_user)
 
-    def outboxes_for_update(self) -> List[ControlOutbox]:
+    def outboxes_for_update(self) -> List[ControlOutboxBase]:
         return User.outboxes_for_user_update(self.id)
 
     @staticmethod
-    def outboxes_for_user_update(identifier: int) -> List[ControlOutbox]:
-        return [
-            ControlOutbox(
-                shard_scope=OutboxScope.USER_SCOPE,
-                shard_identifier=identifier,
-                object_identifier=identifier,
-                category=OutboxCategory.USER_UPDATE,
-                region_name=region_name,
-            )
-            for region_name in find_regions_for_user(identifier)
-        ]
+    def outboxes_for_user_update(identifier: int) -> List[ControlOutboxBase]:
+        return OutboxCategory.USER_UPDATE.as_control_outboxes(
+            region_names=find_regions_for_user(identifier),
+            object_identifier=identifier,
+            shard_identifier=identifier,
+        )
 
     def merge_to(from_user, to_user):
         # TODO: we could discover relations automatically and make this useful
@@ -382,22 +382,26 @@ class User(BaseModel, AbstractBaseUser):
         if request is not None:
             request.session["_nonce"] = self.session_nonce
 
-    def get_orgs_require_2fa(self):
-        from sentry.models import Organization, OrganizationStatus
+    def has_org_requiring_2fa(self) -> bool:
+        from sentry.models import OrganizationStatus
 
-        return Organization.objects.filter(
-            flags=models.F("flags").bitor(Organization.flags.require_2fa),
-            status=OrganizationStatus.ACTIVE,
-            member_set__user_id=self.id,
-        )
+        return OrganizationMemberMapping.objects.filter(
+            user_id=self.id,
+            organization_id__in=Subquery(
+                OrganizationMapping.objects.filter(
+                    require_2fa=True,
+                    status=OrganizationStatus.ACTIVE,
+                ).values("organization_id")
+            ),
+        ).exists()
 
     def clear_lost_passwords(self):
         LostPasswordHash.objects.filter(user=self).delete()
 
-    def _normalize_before_relocation_import(
+    def normalize_before_relocation_import(
         self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
     ) -> Optional[int]:
-        old_pk = super()._normalize_before_relocation_import(pk_map, scope, flags)
+        old_pk = super().normalize_before_relocation_import(pk_map, scope, flags)
         if old_pk is None:
             return None
 
@@ -413,12 +417,59 @@ class User(BaseModel, AbstractBaseUser):
             "".join(secrets.choice(RANDOM_PASSWORD_ALPHABET) for _ in range(RANDOM_PASSWORD_LENGTH))
         )
 
-        if scope != ImportScope.Global:
+        if scope not in {ImportScope.Config, ImportScope.Global}:
             self.is_staff = False
             self.is_superuser = False
             self.is_managed = False
 
-        lock = locks.get(f"user:username:{self.id}", duration=5, name="username")
+        return old_pk
+
+    def write_relocation_import(
+        self, scope: ImportScope, flags: ImportFlags
+    ) -> Optional[Tuple[int, ImportKind]]:
+        # Internal function that factors our some common logic.
+        def do_write():
+            from sentry.api.endpoints.user_details import (
+                BaseUserSerializer,
+                SuperuserUserSerializer,
+                UserSerializer,
+            )
+            from sentry.services.hybrid_cloud.lost_password_hash import lost_password_hash_service
+
+            serializer_cls = BaseUserSerializer
+            if scope not in {ImportScope.Config, ImportScope.Global}:
+                serializer_cls = UserSerializer
+            else:
+                serializer_cls = SuperuserUserSerializer
+
+            serializer_user = serializer_cls(instance=self, data=model_to_dict(self), partial=True)
+            serializer_user.is_valid(raise_exception=True)
+
+            self.save(force_insert=True)
+
+            # TODO(getsentry/team-ospo#190): the following is an RPC call which could fail for
+            # transient reasons (network etc). How do we handle that?
+            lost_password_hash_service.get_or_create(user_id=self.id)
+
+            # TODO(getsentry/team-ospo#191): we need to send an email informing the user of their
+            # new account with a resettable password - we'll need to figure out where in the process
+            # that actually goes, and how to prevent it from happening during the validation pass.
+
+            return (self.pk, ImportKind.Inserted)
+
+        # If there is no existing user with this `username`, no special renaming or merging
+        # shenanigans are needed, as we can just insert this exact model directly.
+        existing = User.objects.filter(username=self.username).first()
+        if not existing:
+            return do_write()
+
+        # Re-use the existing user if merging is enabled.
+        if flags.merge_users:
+            return (existing.pk, ImportKind.Existing)
+
+        # We already have a user with this `username`, but merging users has not been enabled. In
+        # this case, add a random suffix to the importing username.
+        lock = locks.get(f"user:username:{self.id}", duration=10, name="username")
         with TimedRetryPolicy(10)(lock.acquire):
             unique_db_instance(
                 self,
@@ -427,47 +478,28 @@ class User(BaseModel, AbstractBaseUser):
                 field_name="username",
             )
 
-        return old_pk
+            # Perform the remainder of the write while we're still holding the lock.
+            return do_write()
 
-    def write_relocation_import(
-        self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
-    ) -> Optional[Tuple[int, int, ImportKind]]:
-        from sentry.api.endpoints.user_details import (
-            BaseUserSerializer,
-            SuperuserUserSerializer,
-            UserSerializer,
+    @classmethod
+    def handle_async_deletion(
+        cls,
+        identifier: int,
+        region_name: str,
+        shard_identifier: int,
+        payload: Mapping[str, Any] | None,
+    ) -> None:
+        pass
+
+    def handle_async_replication(self, region_name: str, shard_identifier: int) -> None:
+        organization_service.update_region_user(
+            user=RpcRegionUser(
+                id=self.id,
+                is_active=self.is_active,
+                email=self.email,
+            ),
+            region_name=region_name,
         )
-        from sentry.services.hybrid_cloud.lost_password_hash import lost_password_hash_service
-
-        if flags.merge_users:
-            existing = User.objects.filter(username=self.username).first()
-            if existing:
-                return (self.pk, existing.pk, ImportKind.Existing)
-
-        old_pk = self._normalize_before_relocation_import(pk_map, scope, flags)
-        if old_pk is None:
-            return None
-
-        serializer_cls = BaseUserSerializer
-        if scope != ImportScope.Global:
-            serializer_cls = UserSerializer
-        else:
-            serializer_cls = SuperuserUserSerializer
-
-        serializer_user = serializer_cls(instance=self, data=model_to_dict(self), partial=True)
-        serializer_user.is_valid(raise_exception=True)
-
-        self.save(force_insert=True)
-
-        # TODO(getsentry/team-ospo#190): the following is an RPC call which could fail for transient
-        # reasons (network etc). How do we handle that?
-        lost_password_hash_service.get_or_create(user_id=self.id)
-
-        # TODO(getsentry/team-ospo#191): we need to send an email informing the user of their new
-        # account with a resettable password - we'll need to figure out where in the process that
-        # actually goes, and how to prevent it from happening during the validation pass.
-
-        return (old_pk, self.pk, ImportKind.Inserted)
 
 
 # HACK(dcramer): last_login needs nullable for Django 1.8
@@ -490,3 +522,6 @@ def refresh_api_user_nonce(sender, request, user, **kwargs):
         return
     user = User.objects.get(id=user.id)
     refresh_user_nonce(sender, request, user, **kwargs)
+
+
+OutboxCategory.USER_UPDATE.connect_control_model_updates(User)

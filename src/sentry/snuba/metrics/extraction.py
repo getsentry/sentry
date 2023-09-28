@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 import hashlib
 import logging
-import re
 from dataclasses import dataclass
 from typing import (
     Any,
@@ -82,7 +83,7 @@ _SEARCH_TO_PROTOCOL_FIELDS = {
 }
 
 # Maps from Discover's syntax to Relay rule condition operators.
-_SEARCH_TO_RELAY_OPERATORS: Dict[str, "CompareOp"] = {
+_SEARCH_TO_RELAY_OPERATORS: Dict[str, CompareOp] = {
     "=": "eq",
     "!=": "eq",  # combined with external negation
     "<": "lt",
@@ -94,7 +95,7 @@ _SEARCH_TO_RELAY_OPERATORS: Dict[str, "CompareOp"] = {
 }
 
 # Maps from parsed count_if condition args to Relay rule condition operators.
-_COUNTIF_TO_RELAY_OPERATORS: Dict[str, "CompareOp"] = {
+_COUNTIF_TO_RELAY_OPERATORS: Dict[str, CompareOp] = {
     "equals": "eq",
     "notEquals": "eq",
     "less": "lt",
@@ -119,8 +120,11 @@ _SEARCH_TO_METRIC_AGGREGATES: Dict[str, MetricOperationType] = {
 
 # Maps plain Discover functions to derived metric functions which are understood by the metrics layer.
 _SEARCH_TO_DERIVED_METRIC_AGGREGATES: Dict[str, MetricOperationType] = {
+    "failure_count": "on_demand_failure_count",
     "failure_rate": "on_demand_failure_rate",
     "apdex": "on_demand_apdex",
+    "epm": "on_demand_epm",
+    "eps": "on_demand_eps",
 }
 
 # Mapping to infer metric type from Discover function.
@@ -134,8 +138,11 @@ _AGGREGATE_TO_METRIC_TYPE = {
     "p95": "d",
     "p99": "d",
     # With on demand metrics, evaluated metrics are actually stored, thus we have to choose a concrete metric type.
+    "failure_count": "c",
     "failure_rate": "c",
     "apdex": "c",
+    "epm": "c",
+    "eps": "c",
 }
 
 # Query fields that on their own do not require on-demand metric extraction but if present in an on-demand query
@@ -306,12 +313,12 @@ def _get_function_support(function: str) -> SupportedBy:
 
 
 def _get_args_support(function: str, args: Sequence[str]) -> SupportedBy:
+    if len(args) == 0:
+        return SupportedBy.both()
+
     # apdex can have two variations, either apdex() or apdex(value).
     if function == "apdex":
         return SupportedBy(on_demand_metrics=True, standard_metrics=False)
-
-    if len(args) == 0:
-        return SupportedBy.both()
 
     arg = args[0]
 
@@ -481,6 +488,22 @@ def _remove_on_demand_search_filters(tokens: Sequence[QueryToken]) -> Sequence[Q
     return ret_val
 
 
+def _remove_event_type_and_project_filter(tokens: Sequence[QueryToken]) -> Sequence[QueryToken]:
+    """
+    removes event.type: transaction and project:* from the query
+    """
+    ret_val: List[QueryToken] = []
+    for token in tokens:
+        if isinstance(token, SearchFilter):
+            if token.key.name not in ["event.type", "project"]:
+                ret_val.append(token)
+        elif isinstance(token, ParenExpression):
+            ret_val.append(ParenExpression(_remove_event_type_and_project_filter(token.children)))
+        else:
+            ret_val.append(token)
+    return ret_val
+
+
 def cleanup_query(tokens: Sequence[QueryToken]) -> Sequence[QueryToken]:
     """
     Recreates a valid query from an original query that has had on demand search filters removed.
@@ -549,7 +572,8 @@ def _deep_sorted(value: Union[Any, Dict[Any, Any]]) -> Union[Any, Dict[Any, Any]
 TagsSpecsGenerator = Callable[[Project, Optional[str]], List[TagSpec]]
 
 
-def failure_rate_tag_spec(_1: Project, _2: Optional[str]) -> List[TagSpec]:
+def failure_tag_spec(_1: Project, _2: Optional[str]) -> List[TagSpec]:
+    """This specification tags transactions with a boolean saying if it failed."""
     return [
         {
             "key": "failure",
@@ -602,9 +626,13 @@ def apdex_tag_spec(project: Project, argument: Optional[str]) -> List[TagSpec]:
     ]
 
 
-_DERIVED_METRICS: Dict[MetricOperationType, TagsSpecsGenerator] = {
-    "on_demand_failure_rate": failure_rate_tag_spec,
+# This is used to map a metric to a function which generates a specification
+_DERIVED_METRICS: Dict[MetricOperationType, TagsSpecsGenerator | None] = {
+    "on_demand_failure_count": failure_tag_spec,
+    "on_demand_failure_rate": failure_tag_spec,
     "on_demand_apdex": apdex_tag_spec,
+    "on_demand_epm": None,
+    "on_demand_eps": None,
 }
 
 
@@ -639,7 +667,7 @@ class OnDemandMetricSpec:
 
     def __init__(self, field: str, query: str):
         self.field = field
-        self.query = self._cleanup_query(query)
+        self.query = query
         self._eager_process()
 
     def _eager_process(self):
@@ -672,7 +700,7 @@ class OnDemandMetricSpec:
         # metrics.
         #
         # More specifically the hashing implementation will depend on the derived metric type:
-        # - failure rate -> hash the op
+        # - failure count & rate -> hash the op
         # - apdex -> hash the op + value
         #
         # The rationale for different hashing is complex to explain but the main idea is that if we hash the argument
@@ -680,7 +708,12 @@ class OnDemandMetricSpec:
         # with condition `f` and this will create a problem, since we might already have data for the `count()` and when
         # `apdex()` is created in the UI, we will use that metric but that metric didn't extract in the past the tags
         # that are used for apdex calculation, effectively causing problems with the data.
-        if self.op == "on_demand_failure_rate":
+        if self.op in [
+            "on_demand_epm",
+            "on_demand_eps",
+            "on_demand_failure_count",
+            "on_demand_failure_rate",
+        ]:
             return self.op
         elif self.op == "on_demand_apdex":
             return f"{self.op}:{self._argument}"
@@ -813,15 +846,15 @@ class OnDemandMetricSpec:
 
         raise Exception(f"Unsupported aggregate function {function}")
 
-    @staticmethod
-    def _cleanup_query(query: str) -> str:
-        regexes = [r"event\.type:transaction\s*", r"project:[\w\d\"\-_]+\s*"]
-
-        new_query = query
-        for regex in regexes:
-            new_query = re.sub(regex, "", new_query)
-
-        return new_query
+    # @staticmethod
+    # def _cleanup_query(query: str) -> str:
+    #     regexes = [r"event\.type:transaction\s*", r"project:[\w\d\"\-_]+\s*"]
+    #
+    #     new_query = query
+    #     for regex in regexes:
+    #         new_query = re.sub(regex, "", new_query)
+    #
+    #     return new_query
 
     @staticmethod
     def _parse_field(value: str) -> Optional[FieldParsingResult]:
@@ -835,7 +868,8 @@ class OnDemandMetricSpec:
     def _parse_query(value: str) -> Optional[QueryParsingResult]:
         try:
             conditions = event_search.parse_search_query(value)
-            return QueryParsingResult(conditions=conditions)
+            clean_conditions = cleanup_query(_remove_event_type_and_project_filter(conditions))
+            return QueryParsingResult(conditions=clean_conditions)
         except InvalidSearchQuery:
             return None
 
@@ -868,7 +902,7 @@ def _map_field_name(search_key: str) -> str:
 
     # Measurements support generic access.
     if search_key.startswith("measurements."):
-        return f"event.{search_key}"
+        return f"event.{search_key}.value"
 
     # Run a schema-aware check for tags. Always use the resolver output,
     # since it accounts for passing `tags[foo]` as key.
@@ -1012,9 +1046,11 @@ class SearchQueryConverter:
                 "value": [value],
             }
         else:
-            # Special case: `x != ""` is the result of a `has:x` query, which
-            # needs to be translated as `not(x == null)`.
-            if token.operator == "!=" and value == "":
+            # Special case for the `has` and `!has` operators which are parsed as follows:
+            # - `has:x` -> `x != ""`
+            # - `!has:x` -> `x = ""`
+            # They both need to be translated to `x not eq null` and `x eq null`.
+            if token.operator in ("!=", "=") and value == "":
                 value = None
 
             if isinstance(value, str):

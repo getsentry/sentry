@@ -5,9 +5,9 @@ import onboardingImg from 'sentry-images/spot/onboarding-preview.svg';
 
 import {Button} from 'sentry/components/button';
 import OnboardingPanel from 'sentry/components/onboardingPanel';
-import {PlatformKey} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {PlatformKey} from 'sentry/types';
 
 import {NewMonitorButton} from './newMonitorButton';
 
@@ -16,7 +16,8 @@ export type SupportedPlatform =
   | 'php'
   | 'php-laravel'
   | 'python'
-  | 'node';
+  | 'node'
+  | 'go';
 
 interface SDKPlatformInfo {
   label: string;
@@ -29,6 +30,7 @@ export const CRON_SDK_PLATFORMS: SDKPlatformInfo[] = [
   {platform: 'php-laravel', label: 'Laravel'},
   {platform: 'python', label: 'Python'},
   {platform: 'node', label: 'Node'},
+  {platform: 'go', label: 'Go'},
 ];
 
 interface Props {
@@ -90,9 +92,9 @@ const Actions = styled('div')`
 `;
 
 const PlatformButton = styled(Button)`
-  width: 64px;
-  height: 64px;
-  padding: ${space(1)};
+  width: 80px;
+  height: 80px;
+  padding: ${space(1.5)};
 `;
 
 const PlatformOption = styled('div')`

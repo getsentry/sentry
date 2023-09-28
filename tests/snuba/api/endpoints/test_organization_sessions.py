@@ -5,13 +5,13 @@ from uuid import uuid4
 import pytest
 from django.urls import reverse
 from django.utils import timezone
-from freezegun import freeze_time
 
 from sentry import release_health
 from sentry.models import ReleaseProjectEnvironment
 from sentry.release_health.metrics import MetricsReleaseHealthBackend
 from sentry.snuba.metrics import to_intervals
 from sentry.testutils.cases import APITestCase, BaseMetricsTestCase, SnubaTestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.link_header import parse_link_header
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.cursors import Cursor

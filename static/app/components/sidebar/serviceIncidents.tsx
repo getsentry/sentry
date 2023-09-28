@@ -6,13 +6,12 @@ import sortBy from 'lodash/sortBy';
 import startCase from 'lodash/startCase';
 
 import {loadIncidents} from 'sentry/actionCreators/serviceIncidents';
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import Text from 'sentry/components/text';
 import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IS_ACCEPTANCE_TEST} from 'sentry/constants';
 import {
   IconCheckmark,
   IconFatal,
@@ -67,11 +66,6 @@ function ServiceIncidents({
 
   useEffect(() => void fetchData(), []);
 
-  // Never render incidents in acceptance tests
-  if (IS_ACCEPTANCE_TEST) {
-    return null;
-  }
-
   if (!serviceStatus) {
     return null;
   }
@@ -109,7 +103,7 @@ function ServiceIncidents({
               title={incident.name}
               key={incident.id}
               titleAction={
-                <Button
+                <LinkButton
                   size="xs"
                   icon={<IconOpen size="xs" />}
                   priority="link"
@@ -117,7 +111,7 @@ function ServiceIncidents({
                   external
                 >
                   {t('Full Incident Details')}
-                </Button>
+                </LinkButton>
               }
             >
               <AffectedServices>

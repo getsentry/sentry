@@ -56,6 +56,7 @@ from sentry.models.options.project_option import OPTION_KEYS
 from sentry.models.projectteam import ProjectTeam
 from sentry.notifications.helpers import (
     get_most_specific_notification_setting_value,
+    should_use_notifications_v2,
     transform_to_notification_settings_by_scope,
 )
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
@@ -302,6 +303,7 @@ class ProjectSerializer(Serializer):
             span.set_data("Object Count", len(item_list))
             return span
 
+        use_notifications_v2 = should_use_notifications_v2(item_list[0].organization)
         with measure_span("preamble"):
             project_ids = [i.id for i in item_list]
             if user.is_authenticated and item_list:
@@ -311,16 +313,26 @@ class ProjectSerializer(Serializer):
                     ).values_list("project_id", flat=True)
                 )
 
-                notification_settings_by_scope = transform_to_notification_settings_by_scope(
-                    notifications_service.get_settings_for_user_by_projects(
+                if use_notifications_v2:
+                    subscriptions = notifications_service.get_subscriptions_for_projects(
+                        user=user.id,
+                        project_ids=project_ids,
                         type=NotificationSettingTypes.ISSUE_ALERTS,
-                        user_id=user.id,
-                        parent_ids=project_ids,
                     )
-                )
+                else:
+                    notification_settings_by_scope = transform_to_notification_settings_by_scope(
+                        notifications_service.get_settings_for_user_by_projects(
+                            type=NotificationSettingTypes.ISSUE_ALERTS,
+                            user_id=user.id,
+                            parent_ids=project_ids,
+                        )
+                    )
             else:
                 bookmarks = set()
-                notification_settings_by_scope = {}
+                if use_notifications_v2:
+                    subscriptions = {}
+                else:
+                    notification_settings_by_scope = {}
 
         with measure_span("stats"):
             stats = None
@@ -364,13 +376,20 @@ class ProjectSerializer(Serializer):
             else:
                 recipient_actor = RpcActor.from_object(user)
             for project, serialized in result.items():
-                value = get_most_specific_notification_setting_value(
-                    notification_settings_by_scope,
-                    recipient=recipient_actor,
-                    parent_id=project.id,
-                    type=NotificationSettingTypes.ISSUE_ALERTS,
-                )
-                is_subscribed = value == NotificationSettingOptionValues.ALWAYS
+                # TODO(snigdha): why is this not included in the serializer
+                is_subscribed = False
+                if use_notifications_v2:
+                    (_, has_enabled_subscriptions) = subscriptions[project.id]
+                    is_subscribed = has_enabled_subscriptions
+                else:
+                    value = get_most_specific_notification_setting_value(
+                        notification_settings_by_scope,
+                        recipient=recipient_actor,
+                        parent_id=project.id,
+                        type=NotificationSettingTypes.ISSUE_ALERTS,
+                    )
+                    is_subscribed = value == NotificationSettingOptionValues.ALWAYS
+
                 serialized.update(
                     {
                         "is_bookmarked": project.id in bookmarks,
@@ -946,11 +965,10 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             )
 
         data = super().serialize(obj, attrs, user)
-        attrs["options"].update(format_options(attrs))
         data.update(
             {
                 "latestRelease": attrs["latest_release"],
-                "options": attrs["options"],
+                "options": format_options(attrs),
                 "digestsMinDelay": attrs["options"].get(
                     "digests:mail:minimum_delay", digests.minimum_delay
                 ),

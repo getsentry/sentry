@@ -562,8 +562,6 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
   handleRuleSuccess = (isNew: boolean, rule: IssueAlertRule) => {
     const {organization, router} = this.props;
     const {project} = this.state;
-    this.setState({detailedError: null, loading: false, rule});
-
     // The onboarding task will be completed on the server side when the alert
     // is created
     updateOnboardingTask(null, organization, {
@@ -628,6 +626,11 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
           delete filter.name;
         }
         transaction.setData('actions', rule.actions);
+
+        // Check if rule is currently disabled or going to be disabled
+        if ('status' in rule && (rule.status === 'disabled' || !!rule.disableDate)) {
+          rule.optOutEdit = true;
+        }
       }
       const [data, , resp] = await this.api.requestPromise(endpoint, {
         includeAllArgs: true,
@@ -1291,7 +1294,7 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
     // the form with a loading mask on top of it, but force a re-render by using
     // a different key when we have fetched the rule so that form inputs are filled in
     return (
-      <Main>
+      <Main fullWidth>
         <PermissionAlert access={['alerts:write']} project={project} />
 
         <StyledForm
@@ -1693,6 +1696,10 @@ export const findIncompatibleRules = (
   return {conditionIndices: null, filterIndices: null};
 };
 
+const Main = styled(Layout.Main)`
+  max-width: 1000px;
+`;
+
 // TODO(ts): Understand why styled is not correctly inheriting props here
 const StyledForm = styled(Form)<FormProps>`
   position: relative;
@@ -1833,10 +1840,6 @@ const ContentIndent = styled('div')`
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     margin-left: ${space(4)};
   }
-`;
-
-const Main = styled(Layout.Main)`
-  padding: ${space(2)} ${space(4)};
 `;
 
 const AcknowledgeLabel = styled('label')`

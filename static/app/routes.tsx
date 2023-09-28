@@ -270,6 +270,18 @@ function buildRoutes() {
         <IndexRedirect to="welcome/" />
         <Route path=":step/" component={make(() => import('sentry/views/onboarding'))} />
       </Route>
+      {usingCustomerDomain && (
+        <Route
+          path="/stories/"
+          component={make(() => import('sentry/views/stories/index'))}
+          key="orgless-stories"
+        />
+      )}
+      <Route
+        path="/organizations/:orgId/stories/"
+        component={withDomainRedirect(make(() => import('sentry/views/stories/index')))}
+        key="org-stories"
+      />
     </Fragment>
   );
 
@@ -1189,7 +1201,11 @@ function buildRoutes() {
           component={make(() => import('sentry/views/alerts/list/incidents'))}
         />
         <Route path="rules/">
-          <IndexRoute component={make(() => import('sentry/views/alerts/list/rules'))} />
+          <IndexRoute
+            component={make(
+              () => import('sentry/views/alerts/list/rules/alertRulesList')
+            )}
+          />
           <Route
             path="details/:ruleId/"
             component={make(() => import('sentry/views/alerts/rules/metric/details'))}
@@ -1363,12 +1379,10 @@ function buildRoutes() {
     <Fragment>
       <IndexRoute component={make(() => import('sentry/views/replays/list'))} />
       <Route
-        path="dead-clicks/"
-        component={make(() => import('sentry/views/replays/deadClickList'))}
-      />
-      <Route
-        path="rage-clicks/"
-        component={make(() => import('sentry/views/replays/rageClickList'))}
+        path="selectors/"
+        component={make(
+          () => import('sentry/views/replays/deadRageClick/deadRageClickList')
+        )}
       />
       <Route
         path=":replaySlug/"
@@ -1662,6 +1676,13 @@ function buildRoutes() {
               import('sentry/views/performance/transactionSummary/transactionProfiles')
           )}
         />
+        <Route
+          path="aggregateWaterfall/"
+          component={make(
+            () =>
+              import('sentry/views/performance/transactionSummary/aggregateSpanWaterfall')
+          )}
+        />
         <Route path="spans/">
           <IndexRoute
             component={make(
@@ -1801,10 +1822,6 @@ function buildRoutes() {
     <Fragment>
       <IndexRoute
         component={make(() => import('sentry/views/feedback/feedbackListPage'))}
-      />
-      <Route
-        path=":feedbackSlug/"
-        component={make(() => import('sentry/views/feedback/feedbackDetailsPage'))}
       />
     </Fragment>
   );

@@ -51,6 +51,7 @@ type Props = Pick<RouteComponentProps<{traceSlug: string}, {}>, 'params' | 'loca
   traceEventView: EventView;
   traceSlug: string;
   traces: TraceFullDetailed[] | null;
+  handleLimitChange?: (newLimit: number) => void;
   orphanErrors?: TraceError[];
 };
 
@@ -132,7 +133,12 @@ class TraceDetailsContent extends Component<Props, State> {
   }
 
   renderTraceLoading() {
-    return <LoadingIndicator />;
+    return (
+      <LoadingContainer>
+        <StyledLoadingIndicator />
+        {t('Hang in there, as we build your trace view!')}
+      </LoadingContainer>
+    );
   }
 
   renderTraceRequiresDateRangeSelection() {
@@ -367,6 +373,7 @@ class TraceDetailsContent extends Component<Props, State> {
               traces={traces || []}
               meta={meta}
               orphanErrors={orphanErrors || []}
+              handleLimitChange={this.props.handleLimitChange}
             />
           </VisuallyCompleteWithData>
         </Margin>
@@ -413,6 +420,16 @@ class TraceDetailsContent extends Component<Props, State> {
     );
   }
 }
+
+const StyledLoadingIndicator = styled(LoadingIndicator)`
+  margin-bottom: 0;
+`;
+
+const LoadingContainer = styled('div')`
+  font-size: ${p => p.theme.fontSizeLarge};
+  color: ${p => p.theme.subText};
+  text-align: center;
+`;
 
 const Margin = styled('div')`
   margin-top: ${space(2)};
