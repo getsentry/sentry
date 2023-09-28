@@ -4346,7 +4346,10 @@ class Migration(CheckedMigration):
             options={
                 "db_table": "sentry_eventattachment",
                 "unique_together": {("project_id", "event_id", "file_id")},
-                "index_together": {("project_id", "date_added")},
+                "index_together": {
+                    ("project_id", "date_added"),
+                    ("project_id", "date_added", "file_id"),
+                },
             },
         ),
         migrations.AlterUniqueTogether(
@@ -5480,24 +5483,6 @@ class Migration(CheckedMigration):
                 default=0,
                 null=True,
             ),
-        ),
-        migrations.SeparateDatabaseAndState(
-            database_operations=[
-                migrations.RunSQL(
-                    sql='\n                    CREATE INDEX CONCURRENTLY "sentry_eventattachment_project_id_date_added_fi_f3b0597f_idx" ON "sentry_eventattachment" ("project_id", "date_added", "file_id");\n                    ',
-                    reverse_sql='\n                        DROP INDEX CONCURRENTLY "sentry_eventattachment_project_id_date_added_fi_f3b0597f_idx";\n                        ',
-                    hints={"tables": ["sentry_eventattachment"]},
-                ),
-            ],
-            state_operations=[
-                migrations.AlterIndexTogether(
-                    name="eventattachment",
-                    index_together={
-                        ("project_id", "date_added", "file"),
-                        ("project_id", "date_added"),
-                    },
-                ),
-            ],
         ),
         migrations.AlterField(
             model_name="alertrule",
