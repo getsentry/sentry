@@ -1393,22 +1393,22 @@ class BaseMetricsTestCase(SnubaTestCase):
         # seq=0 is equivalent to relay's session.init, init=True is transformed
         # to seq=0 in Relay.
         if session["seq"] == 0:  # init
-            push("counter", SessionMRI.SESSION.value, {"session.status": "init"}, +1)
+            push("counter", SessionMRI.RAW_SESSION.value, {"session.status": "init"}, +1)
 
         status = session["status"]
 
         # Mark the session as errored, which includes fatal sessions.
         if session.get("errors", 0) > 0 or status not in ("ok", "exited"):
-            push("set", SessionMRI.ERROR.value, {}, session["session_id"])
+            push("set", SessionMRI.RAW_ERROR.value, {}, session["session_id"])
             if not user_is_nil:
-                push("set", SessionMRI.USER.value, {"session.status": "errored"}, user)
+                push("set", SessionMRI.RAW_USER.value, {"session.status": "errored"}, user)
         elif not user_is_nil:
-            push("set", SessionMRI.USER.value, {}, user)
+            push("set", SessionMRI.RAW_USER.value, {}, user)
 
         if status in ("abnormal", "crashed"):  # fatal
-            push("counter", SessionMRI.SESSION.value, {"session.status": status}, +1)
+            push("counter", SessionMRI.RAW_SESSION.value, {"session.status": status}, +1)
             if not user_is_nil:
-                push("set", SessionMRI.USER.value, {"session.status": status}, user)
+                push("set", SessionMRI.RAW_USER.value, {"session.status": status}, user)
 
         if status == "exited":
             if session["duration"] is not None:
