@@ -22,8 +22,8 @@ from sentry.api.paginator import (
     OffsetPaginator,
 )
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.alert_rule import AlertRuleSerializer as AlertRuleModelSerializer
 from sentry.api.serializers.models.alert_rule import (
+    AlertRuleSerializer,
     AlertRuleSerializerResponse,
     CombinedRuleSerializer,
 )
@@ -36,7 +36,7 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
 from sentry.incidents.logic import get_slack_actions_with_async_lookups
 from sentry.incidents.models import AlertRule, Incident
-from sentry.incidents.serializers import AlertRuleSerializer
+from sentry.incidents.serializers import AlertRuleSerializer as DrfAlertRuleSerializer
 from sentry.incidents.utils.sentry_apps import trigger_sentry_app_action_creators_for_incidents
 from sentry.integrations.slack.utils import RedisRuleStatus
 from sentry.models import OrganizationMemberTeam, Project, Rule, Team
@@ -81,7 +81,7 @@ class AlertRuleIndexMixin(Endpoint):
         if project:
             data["projects"] = [project.slug]
 
-        serializer = AlertRuleSerializer(
+        serializer = DrfAlertRuleSerializer(
             context={
                 "organization": organization,
                 "access": request.access,
@@ -404,7 +404,7 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMix
         parameters=[GlobalParams.ORG_SLUG],
         request=OrganizationAlertRuleIndexPostSerializer,
         responses={
-            201: AlertRuleModelSerializer,
+            201: AlertRuleSerializer,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
@@ -428,9 +428,6 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMix
         Scroll down to Body Parameters for more information.
 
         ### Number of Errors
-        Alert when the number of errors in a project matching your filters crosses a threshold. This is
-        useful for monitoring the overall level or errors in your project or errors occurring in specific
-        parts of your app.
         - `eventTypes`: Any of `error` or `default`.
         ```json
         {
@@ -453,9 +450,6 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMix
         ```
 
         ### Crash Free Session Rate
-        A session begins when a user starts the application and ends when it’s closed or sent to the background.
-        A crash is when a session ends due to an error and this type of alert lets you monitor when those crashed
-        sessions exceed a threshold. This lets you get a better picture of the health of your app.
         ```json
         {
             "queryType": 2,
@@ -465,8 +459,6 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMix
         ```
 
         ### Crash Free User Rate
-        Crash Free Users is the percentage of distinct users that haven’t experienced a crash and so this type of
-        alert tells you when the overall user experience dips below a certain unacceptable threshold.
         ```json
         {
             "queryType": 2,
@@ -476,8 +468,6 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMix
         ```
 
         ### Throughput
-        Throughput is the total number of transactions in a project and you can alert when it reaches a threshold
-        within a period of time.
         ```json
         {
             "queryType": 1,
@@ -487,8 +477,6 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMix
         ```
 
         ### Transaction Duration
-        Monitor how long it takes for transactions to complete. Use flexible aggregates like percentiles, averages,
-        and min/max.
         -  `dataset`: If a custom percentile is used, `dataset` is `transactions`. Otherwise, `dataset` is `generic_metrics`.
         -  `aggregate`: Valid values are `avg(transaction.duration)`, `p50(transaction.duration)`, `p75(transaction.duration)`, `p95(transaction.duration)`, `p99(transaction.duration)`, `p100(transaction.duration)`, and `percentile(transaction.duration,x)`, where `x` is your custom percentile.
         ```json
@@ -500,9 +488,6 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMix
         ```
 
         ### Apdex
-        Apdex is a metric used to track and measure user satisfaction based on your application response times.
-        The Apdex score provides the ratio of satisfactory, tolerable, and frustrated requests in a specific
-        transaction or endpoint.
         - `aggregate`: `apdex(x)` where `x` is the value of the Apdex score.
         ```json
         {
@@ -513,8 +498,6 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMix
         ```
 
         ### Failure Rate
-        Failure rate is the percentage of unsuccessful transactions. Sentry treats transactions with a
-        status other than “ok,” “canceled,” and “unknown” as failures.
         ```json
         {
             "queryType": 1,
@@ -524,9 +507,6 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMix
         ```
 
         ### Largest Contentful Paint
-        Largest Contentful Paint (LCP) measures loading performance. It marks the point when the largest
-        image or text block is visible within the viewport. A fast LCP helps reassure the user that the
-        page is useful, and so we recommend an LCP of less than 2.5 seconds.
         - `dataset`: If a custom percentile is used, `dataset` is `transactions`. Otherwise, `dataset` is `generic_metrics`.
         - `aggregate`: Valid values are `avg(measurements.lcp)`, `p50(measurements.lcp)`, `p75(measurements.lcp)`, `p95(measurements.lcp)`, `p99(measurements.lcp)`, `p100(measurements.lcp)`, and `percentile(measurements.lcp,x)`, where `x` is your custom percentile.
         ```json
@@ -538,9 +518,6 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMix
         ```
 
         ### First Input Delay
-        First Input Delay (FID) measures interactivity as the response time when the user tries to
-        interact with the viewport. A low FID helps ensure that a page is useful, and we recommend a FID
-        of less than 100 milliseconds.
         - `dataset`: If a custom percentile is used, `dataset` is `transactions`. Otherwise, `dataset` is `generic_metrics`.
         - `aggregate`: Valid values are `avg(measurements.fid)`, `p50(measurements.fid)`, `p75(measurements.fid)`, `p95(measurements.fid)`, `p99(measurements.fid)`, `p100(measurements.fid)`, and `percentile(measurements.fid,x)`, where `x` is your custom percentile.
         ```json
@@ -552,9 +529,6 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMix
         ```
 
         ### Cumulative Layout Shift
-        Cumulative Layout Shift (CLS) measures visual stability by quantifying unexpected layout shifts
-        that occur during the entire lifespan of the page. A CLS of less than 0.1 is a good user experience,
-        while anything greater than 0.25 is poor.
         - `dataset`: If a custom percentile is used, `dataset` is `transactions`. Otherwise, `dataset` is `generic_metrics`.
         - `aggregate`: Valid values are `avg(measurements.cls)`, `p50(measurements.cls)`, `p75(measurements.cls)`, `p95(measurements.cls)`, `p99(measurements.cls)`, `p100(measurements.cls)`, and `percentile(measurements.cls,x)`, where `x` is your custom percentile.
         ```json
@@ -566,8 +540,6 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMix
         ```
 
         ### Custom Metrics
-        Alert on metrics which are not listed above, such as first paint (FP), first contentful paint (FCP),
-        and time to first byte (TTFB).
         - `dataset`: If a custom percentile is used, `dataset` is `transactions`. Otherwise, `dataset` is `generic_metrics`.
         - `aggregate`: Valid values are:
             - `avg(x)`, where `x` is `transaction.duration`, `measurements.cls`, `measurements.fcp`, `measurements.fid`, `measurements.fp`, `measurements.lcp`, `measurements.ttfb`, or `measurements.ttfb.requesttime`.
