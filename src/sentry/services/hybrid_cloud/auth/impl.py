@@ -10,6 +10,7 @@ from django.db.models import Count, F
 from sentry import audit_log
 from sentry.auth.system import SystemToken
 from sentry.db.postgres.transactions import enforce_constraints
+from sentry.hybridcloud.models import ApiKeyReplica
 from sentry.middleware.auth import RequestAuthenticationMiddleware
 from sentry.middleware.placeholder import placeholder_get_response
 from sentry.models import (
@@ -313,6 +314,7 @@ AuthenticatedToken.register_kind("system", SystemToken)
 AuthenticatedToken.register_kind("api_token", ApiToken)
 AuthenticatedToken.register_kind("org_auth_token", OrgAuthToken)
 AuthenticatedToken.register_kind("api_key", ApiKey)
+AuthenticatedToken.register_kind("api_key", ApiKeyReplica)
 
 
 def promote_request_rpc_user(request: Any) -> User:

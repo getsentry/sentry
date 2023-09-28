@@ -18,8 +18,10 @@ from sentry_relay.exceptions import UnpackError
 
 from sentry import options
 from sentry.auth.system import SystemToken, is_internal_ip
+from sentry.hybridcloud.models import ApiKeyReplica
 from sentry.models import ApiApplication, ApiKey, ApiToken, OrgAuthToken, ProjectKey, Relay
 from sentry.relay.utils import get_header_relay_id, get_header_relay_signature
+from sentry.services.hybrid_cloud.auth import AuthenticatedToken
 from sentry.services.hybrid_cloud.rpc import compare_signature
 from sentry.silo import SiloLimit, SiloMode
 from sentry.utils.sdk import configure_scope
@@ -188,10 +190,25 @@ class ApiKeyAuthentication(QuietBasicAuthentication):
     def accepts_auth(self, auth: list[bytes]) -> bool:
         return bool(auth) and auth[0].lower() == self.token_name
 
+    def _authenticate_credentials(self, userid):
+        key = ApiKeyReplica.objects.filter(key=userid).last()
+        if key is None:
+            raise AuthenticationFailed("API key is not valid")
+        if not key.is_active:
+            raise AuthenticationFailed("Key is disabled")
+        with configure_scope() as scope:
+            scope.set_tag("api_key", key.apikey_id)
+        return AuthenticatedToken.from_token(key)
+
     def authenticate_credentials(self, userid, password, request=None):
         # We don't use request, but it needs to be passed through to DRF 3.7+.
         if password:
             return None
+
+        if SiloMode.get_current_mode() == SiloMode.REGION or options.get(
+            "hybrid_cloud.authentication.use_api_key_replica"
+        ):
+            return AnonymousUser(), self._authenticate_credentials(userid)
 
         try:
             key = ApiKey.objects.get_from_cache(key=userid)
