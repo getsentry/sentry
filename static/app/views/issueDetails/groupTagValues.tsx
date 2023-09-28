@@ -1,6 +1,7 @@
 import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 
+import {useFetchIssueTag, useFetchIssueTagValues} from 'sentry/actionCreators/group';
 import {addMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -20,10 +21,9 @@ import TimeSince from 'sentry/components/timeSince';
 import {IconArrow, IconEllipsis, IconMail, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Group, Project, SavedQueryVersions, Tag, TagValue} from 'sentry/types';
+import {Group, Project, SavedQueryVersions} from 'sentry/types';
 import {isUrl, percent} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -51,8 +51,8 @@ function useTagQueries({
 }: {
   group: Group;
   sort: string | string[];
+  tagKey: string;
   environments?: string[];
-  tagKey?: string;
 }) {
   const organization = useOrganization();
 
@@ -61,17 +61,18 @@ function useTagQueries({
     isLoading: tagValueListIsLoading,
     isError: tagValueListIsError,
     getResponseHeader,
-  } = useApiQuery<TagValue[]>(
-    [
-      `/organizations/${organization.slug}/issues/${group.id}/tags/${tagKey}/values/`,
-      {query: {environment: environments, sort}},
-    ],
-    {staleTime: 0, retry: false}
-  );
-  const {data: tag, isError: tagIsError} = useApiQuery<Tag>(
-    [`/organizations/${organization.slug}/issues/${group.id}/tags/${tagKey}/`],
-    {staleTime: 0, retry: false}
-  );
+  } = useFetchIssueTagValues({
+    orgSlug: organization.slug,
+    groupId: group.id,
+    tagKey,
+    environment: environments,
+    sort,
+  });
+  const {data: tag, isError: tagIsError} = useFetchIssueTag({
+    orgSlug: organization.slug,
+    groupId: group.id,
+    tagKey,
+  });
 
   useEffect(() => {
     if (tagIsError) {
@@ -94,7 +95,7 @@ function GroupTagValues({baseUrl, project, group, environments}: Props) {
   const {orgId, tagKey} = useParams<RouteParams>();
   const {cursor: _cursor, page: _page, ...currentQuery} = location.query;
 
-  const title = tagKey === 'user' ? t('Affected Users') : tagKey;
+  const title = tagKey === 'user' ? t('Affected Users') : tagKey ?? '';
   const sort = location.query.sort || DEFAULT_SORT;
   const sortArrow = <IconArrow color="gray300" size="xs" direction="down" />;
 
