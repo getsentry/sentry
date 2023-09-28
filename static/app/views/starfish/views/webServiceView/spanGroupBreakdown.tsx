@@ -187,7 +187,7 @@ export function SpanGroupBreakdown({
 }
 
 const ChartPadding = styled('div')`
-  padding: 0 ${space(2)};
+  padding: ${space(2)};
   flex: 2;
 `;
 

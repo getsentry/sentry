@@ -195,7 +195,7 @@ export function SpanGroupBreakdownContainer({transaction, transactionMethod}: Pr
 
 const StyledPanel = styled(Panel)`
   padding-top: ${space(2)};
-  margin-bottom: 0;
+  margin-bottom: ${space(2)};
 `;
 
 const getEventView = (
