@@ -48,7 +48,6 @@ interface Props {
   isError: boolean;
   isLoading: boolean;
   location: Location<any>;
-  customHandleResize?: () => void;
   title?: ReactNode;
 }
 
@@ -65,7 +64,6 @@ export default function SelectorTable({
   isLoading,
   location,
   title,
-  customHandleResize,
   clickCountSortable,
 }: Props) {
   const organization = useOrganization();
@@ -121,7 +119,7 @@ export default function SelectorTable({
       columnSortBy={[]}
       stickyHeader
       grid={{
-        onResizeColumn: customHandleResize ?? handleResizeColumn,
+        onResizeColumn: handleResizeColumn,
         renderHeadCell,
         renderBodyCell,
       }}

@@ -34,7 +34,6 @@ type TestStubFixtures = {
   GitHubIntegration: OverridableStub;
   Group: OverridableStub;
   Incident: OverridableStub;
-  JiraIntegration: OverridableStub;
   Member: OverridableStub;
   Members: OverridableStubList;
   MetricRule: OverridableStub;
@@ -57,43 +56,13 @@ type TestStubFixtures = {
   SentryAppComponentAsync: OverridableStub;
   SentryAppComponentDependent: OverridableStub;
   SentryAppInstallation: OverridableStub;
-  ShortIdQueryResult: OverridableStub;
-  SourceMapArchive: OverridableStub;
-  SourceMapArtifact: OverridableStub;
-  SourceMapsDebugIDBundles: OverridableStub;
-  SourceMapsDebugIDBundlesArtifacts: OverridableStub;
-  Span: OverridableStub;
-  Subscriptions: OverridableStubList;
-  TagValues: OverridableStubList;
-  Tags: OverridableStubList;
   Team: OverridableStub;
-  TeamAlertsTriggered: SimpleStub;
-  TeamIssuesBreakdown: SimpleStub;
-  TeamIssuesReviewed: SimpleStub;
-  TeamReleaseCounts: SimpleStub;
-  TeamResolutionTime: SimpleStub;
-  TeamRoleList: OverridableStub;
-  Tombstones: OverridableStubList;
-  TraceError: OverridableStub;
-  UpdateSdkAndEnableIntegrationSuggestion: SimpleStub;
   User: OverridableStub;
-  UserDetails: OverridableStub;
-  UserFeedback: OverridableStub;
-  UserIdentity: SimpleStub;
-  UserTotalCountByProjectIn24h: SimpleStub;
-  UserTotalCountByReleaseIn24h: SimpleStub;
-  VercelProvider: SimpleStub;
-  VstsCreate: SimpleStub;
-  VstsIntegrationProvider: OverridableStub;
-  VstsPlugin: SimpleStub;
   Widget: OverridableVariadicStub;
 
   // TODO: These need propertly typed still
   // Widget(queries = {...DEFAULT_QUERIES}, options)
   // Dashboard(widgets = DEFAULT_WIDGETS, props = {})
-  // AsanaAutocomplete(type = 'project', values = [DEFAULT_AUTOCOMPLETE])
-  // PhabricatorAutocomplete(type = 'project', values = null)
-  // RoleList(params = [], fullAccess = false)
 };
 
 export default TestStubFixtures;
