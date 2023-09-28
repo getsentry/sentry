@@ -4,7 +4,7 @@ import logging
 from copy import copy
 from datetime import datetime, timedelta, timezone
 
-from django.db import IntegrityError, models, router, transaction
+from django.db import models, router, transaction
 from django.db.models.query_utils import DeferredAttribute
 from django.urls import reverse
 from django.utils import timezone as django_timezone
@@ -39,7 +39,6 @@ from sentry.models import (
     OrganizationAvatar,
     OrganizationOption,
     OrganizationStatus,
-    OutboxFlushError,
     RegionScheduledDeletion,
     UserEmail,
 )
@@ -52,6 +51,10 @@ from sentry.services.hybrid_cloud.organization.model import (
     RpcOrganizationDeleteState,
 )
 from sentry.services.hybrid_cloud.user.serial import serialize_generic_user
+from sentry.services.organization.provisioning import (
+    OrganizationSlugCollisionException,
+    organization_provisioning_service,
+)
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.cache import memoize
 
@@ -585,17 +588,24 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
             context={"organization": organization, "user": request.user, "request": request},
         )
         if serializer.is_valid():
-            changed_data = {}
-            try:
-                with transaction.atomic(router.db_for_write(Organization)):
-                    organization, changed_data = serializer.save()
-            except IntegrityError:
-                return self.respond(
-                    {"slug": ["An organization with this slug already exists."]},
-                    status=status.HTTP_409_CONFLICT,
-                )
-            except OutboxFlushError:
-                pass
+            with transaction.atomic(router.db_for_write(Organization)):
+                slug_change_requested = "slug" in request.data and request.data["slug"]
+
+                # Start with the slug change first, as this may fail independent of
+                # the remaining organization changes.
+                if slug_change_requested:
+                    slug = request.data["slug"]
+                    try:
+                        organization_provisioning_service.modify_organization_slug(
+                            organization_id=organization.id, slug=slug
+                        )
+                    except OrganizationSlugCollisionException:
+                        return self.respond(
+                            {"slug": ["An organization with this slug already exists."]},
+                            status=status.HTTP_409_CONFLICT,
+                        )
+
+                organization, changed_data = serializer.save()
 
             if was_pending_deletion:
                 self.create_audit_entry(
