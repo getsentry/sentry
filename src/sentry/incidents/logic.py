@@ -1144,6 +1144,8 @@ def create_alert_rule_trigger_action(
                 input_channel_id=input_channel_id,
                 integrations=integrations,
             )
+        else:
+            raise InvalidTriggerActionError("Discord metric alerts not enabled")
     elif type == AlertRuleTriggerAction.Type.SENTRY_APP:
         target_identifier, target_display = get_alert_rule_trigger_action_sentry_app(
             trigger.alert_rule.organization, sentry_app_id, installations
@@ -1218,6 +1220,8 @@ def update_alert_rule_trigger_action(
                     integrations=integrations,
                 )
                 updated_fields["target_display"] = target_display
+            else:
+                raise InvalidTriggerActionError("Discord metric alerts not enabled")
 
         elif type == AlertRuleTriggerAction.Type.SENTRY_APP.value:
             sentry_app_id = updated_fields.get("sentry_app_id", trigger_action.sentry_app_id)
