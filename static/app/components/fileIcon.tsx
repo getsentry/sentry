@@ -1,3 +1,5 @@
+import {PlatformIcon} from 'platformicons';
+
 import {IconFile} from 'sentry/icons';
 import {fileExtensionToPlatform, getFileExtension} from 'sentry/utils/fileExtension';
 import theme from 'sentry/utils/theme';
@@ -17,14 +19,7 @@ function FileIcon({fileName, size: providedSize = 'sm', className}: Props) {
     return <IconFile size={size} className={className} />;
   }
 
-  return (
-    <img
-      src={require(`platformicons/svg/${iconName}.svg`)}
-      width={size}
-      height={size}
-      className={className}
-    />
-  );
+  return <PlatformIcon platform={iconName} size={size} className={className} />;
 }
 
 export default FileIcon;
