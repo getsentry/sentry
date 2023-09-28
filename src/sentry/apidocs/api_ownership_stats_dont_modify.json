@@ -653,6 +653,7 @@
             "OrganizationStatsEndpointV2::GET"
         ],
         "private": [
+            "OrganizationIntegrationMigrateOpsgenieEndpoint::PUT",
             "ReleaseThresholdDetailsEndpoint::GET",
             "ReleaseThresholdEndpoint::GET",
             "ReleaseThresholdEndpoint::POST"
@@ -666,6 +667,7 @@
             "NotificationActionsIndexEndpoint::POST",
             "OrganizationAuditLogsEndpoint::GET",
             "OrganizationMissingMembersEndpoint::GET",
+            "OrganizationProjectsExperimentEndpoint::POST",
             "OrganizationSCIMMemberDetails::PUT",
             "OrganizationSCIMTeamDetails::PUT",
             "ReleaseThresholdStatusIndexEndpoint::GET"
@@ -688,8 +690,6 @@
             "OrganizationAuthProviderDetailsEndpoint::GET",
             "OrganizationAuthProviderSendRemindersEndpoint::POST",
             "OrganizationAuthProvidersEndpoint::GET",
-            "OrganizationIntegrationMigrateOpsgenieEndpoint::PUT",
-            "OrganizationProjectsExperimentEndpoint::POST",
             "OrganizationSCIMSchemaIndex::GET",
             "OrganizationStatsEndpoint::GET",
             "UserAuthenticatorDetailsEndpoint::DELETE",
