@@ -629,7 +629,7 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
 
     return (
       <Fragment>
-        {isAggregateSpan && <SpanFrequencyBox frequency={span.frequency ?? 0} />}
+        {isAggregateSpan && <SpanFrequencyBox span={span} />}
         <RowTitleContainer
           data-debug-id="SpanBarTitleContainer"
           ref={ref => {

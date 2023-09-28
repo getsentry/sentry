@@ -1,6 +1,7 @@
 import {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {AggregateSpanType} from 'sentry/components/events/interfaces/spans/types';
 import {Tooltip} from 'sentry/components/tooltip';
 import {tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -9,23 +10,25 @@ import {formatPercentage} from 'sentry/utils/formatters';
 export const FREQUENCY_BOX_WIDTH = 40;
 
 type Props = {
-  frequency: number;
+  span: AggregateSpanType;
 };
 
 // Colors are copied from tagsHeatMap.tsx, as they are not available on the theme
 const purples = ['#D1BAFC', '#9282F3', '#6056BA', '#313087', '#021156'];
 
-export function SpanFrequencyBox({frequency}: Props) {
+export function SpanFrequencyBox({span}: Props) {
+  const {frequency, count, total} = span;
+
   return (
-    <StyledBox frequency={frequency}>
+    <StyledBox frequency={frequency ?? 0}>
       <Tooltip
         isHoverable
         title={tct(
           'This span occurs in [x] out of every [total] events ([percentage] frequency)',
-          {x: 3, total: 100, percentage: formatPercentage(frequency, 0)}
+          {x: count, total, percentage: formatPercentage(frequency ?? 0, 0)}
         )}
       >
-        {formatPercentage(frequency, 0)}
+        {formatPercentage(frequency ?? 0, 0)}
       </Tooltip>
     </StyledBox>
   );

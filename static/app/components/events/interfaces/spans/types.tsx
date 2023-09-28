@@ -33,6 +33,8 @@ export type RawSpanType = {
 };
 
 export type AggregateSpanType = RawSpanType & {
+  count: number;
+  total: number;
   type: 'aggregate';
   frequency?: number;
 };

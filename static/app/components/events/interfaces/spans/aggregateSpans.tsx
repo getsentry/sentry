@@ -84,6 +84,7 @@ export function AggregateSpans({transaction}: Props) {
       start_timestamp: start_timestamp / 1000,
       trace_id: '1', // not actually trace_id just a placeholder
       count,
+      total,
       duration,
       frequency: count / total,
       type: 'aggregate',
