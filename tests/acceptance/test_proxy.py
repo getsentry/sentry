@@ -20,20 +20,13 @@ from tests.sentry.middleware.test_proxy import test_region
 
 
 @region_silo_test(stable=True, regions=[test_region])
+@pytest.mark.usefixtures("live_server")
 class EndToEndAPIProxyTest(TransactionTestCase):
     live_server: LiveServer
     endpoint = "sentry-api-0-organization-teams"
     method = "post"
     organization: Organization
     api_key: ApiKey
-
-    @pytest.fixture(autouse=True)
-    def initialize(self, live_server):
-        self.live_server = live_server
-        self.client = APIClient()
-
-    def tearDown(self) -> None:
-        self.live_server.stop()
 
     def get_response(self, *args, **params):
         url = reverse(self.endpoint, args=args)
@@ -44,6 +37,7 @@ class EndToEndAPIProxyTest(TransactionTestCase):
         if SiloMode.get_current_mode() == SiloMode.MONOLITH:
             return
 
+        self.client = APIClient()
         config = asdict(test_region)
         config["address"] = self.live_server.url
 
