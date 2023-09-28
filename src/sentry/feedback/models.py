@@ -19,7 +19,11 @@ class Feedback(Model):
     date_added = models.DateTimeField(default=timezone.now)
     organization_id = BoundedBigIntegerField(db_index=True)
     environment = FlexibleForeignKey("sentry.Environment", null=True)
-
+    assignee = FlexibleForeignKey(
+        "sentry.Actor",
+        null=True,
+        on_delete=models.SET_NULL,
+    )
     # This "data" field is the data coming from the Sentry event and includes things like contexts
     # As we develop the product more, we will add more specific columns and rely on this JSON field less and less
     data = models.JSONField(null=True)
