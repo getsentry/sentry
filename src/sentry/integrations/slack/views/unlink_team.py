@@ -19,6 +19,10 @@ from ..utils import is_valid_role, logger
 from . import build_linking_url as base_build_linking_url
 from . import never_cache, render_error_page
 
+INSUFFICIENT_ACCESS = (
+    "You must be a Sentry organization admin/manager/owner or a team admin to this unlink team."
+)
+
 ALLOWED_METHODS = ["GET", "POST"]
 
 
@@ -83,20 +87,22 @@ class SlackUnlinkTeamView(BaseView):
             external_id=channel_id,
         )
         if len(external_teams) == 0:
-            return render_error_page(request, body_text="HTTP 404: Team not found")
+            return render_error_page(request, status=404, body_text="HTTP 404: Team not found")
 
         team = external_teams[0].team
         if team is None:
-            return render_error_page(request, body_text="HTTP 404: Team not found")
+            return render_error_page(request, status=404, body_text="HTTP 404: Team not found")
 
         # Error if you don't have a sufficient role and you're not a team admin
         # on the team you're trying to unlink.
-        if not is_valid_role(om) and is_team_admin(om, team=team):
+        if not is_valid_role(om) and not is_team_admin(om, team=team):
             logger.info(
                 "slack.action.invalid-role",
                 extra={"slack_id": integration.external_id, "user_id": request.user.id},
             )
-            raise Http404
+            return render_error_page(
+                request, status=404, body_text="HTTP 404: " + INSUFFICIENT_ACCESS
+            )
 
         if request.method == "GET":
             return render_to_response(
@@ -117,7 +123,9 @@ class SlackUnlinkTeamView(BaseView):
         if not idp or not identity_service.get_identity(
             filter={"provider_id": idp.id, "identity_ext_id": params["slack_id"]}
         ):
-            return render_error_page(request, body_text="HTTP 403: User identity does not exist")
+            return render_error_page(
+                request, status=403, body_text="HTTP 403: User identity does not exist"
+            )
 
         # Someone may have accidentally added multiple teams so unlink them all.
         for external_team in external_teams:

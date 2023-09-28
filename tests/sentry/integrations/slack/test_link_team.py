@@ -65,6 +65,22 @@ class SlackIntegrationLinkTeamTestBase(TestCase):
         assert response.status_code == status.HTTP_200_OK
         return response
 
+    def get_error_response(
+        self,
+        data: Optional[Mapping[str, Any]] = None,
+        status_code: status = status.HTTP_404_NOT_FOUND,
+    ) -> HttpResponseBase:
+        if data:
+            response = self.client.post(
+                self.url, urlencode(data), content_type="application/x-www-form-urlencoded"
+            )
+        else:
+            response = self.client.get(self.url, content_type="application/x-www-form-urlencoded")
+        assert response.status_code == status_code
+        self.assertTemplateUsed(response, "sentry/integrations/slack/link-team-error.html")
+
+        return response
+
     def link_team(self, team: Optional["Team"] = None) -> None:
         return link_team(
             team=team or self.team,
@@ -180,8 +196,9 @@ class SlackIntegrationLinkTeamTest(SlackIntegrationLinkTeamTestBase):
     @responses.activate
     def test_error_page(self):
         """Test that we successfully render an error page when bad form data is sent."""
-        response = self.get_success_response(data={"team": ["some", "garbage"]})
-        self.assertTemplateUsed(response, "sentry/integrations/slack/link-team-error.html")
+        self.get_error_response(
+            data={"team": ["some", "garbage"]}, status_code=status.HTTP_400_BAD_REQUEST
+        )
 
     @responses.activate
     def test_link_team_multiple_organizations(self):
@@ -263,8 +280,7 @@ class SlackIntegrationUnlinkTeamTest(SlackIntegrationLinkTeamTestBase):
         """Test that a team can not be unlinked from a Slack channel with a member role"""
         self._create_user_with_member_role_through_team()
 
-        response = self.client.get(self.url, content_type="application/x-www-form-urlencoded")
-        assert response.status_code == status.HTTP_404_NOT_FOUND
+        self.get_error_response(status_code=status.HTTP_404_NOT_FOUND)
 
     @responses.activate
     def test_unlink_multiple_teams(self):

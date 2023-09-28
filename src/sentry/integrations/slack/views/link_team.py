@@ -72,13 +72,14 @@ class SlackLinkTeamView(BaseView):
     @method_decorator(never_cache)
     def handle(self, request: Request, signed_params: str) -> HttpResponse:
         if request.method not in ALLOWED_METHODS:
-            return render_error_page(request, body_text="HTTP 405: Method not allowed")
+            return render_error_page(request, status=405, body_text="HTTP 405: Method not allowed")
 
         try:
             params = unsign(signed_params)
         except (SignatureExpired, BadSignature):
             return render_to_response(
                 "sentry/integrations/slack/expired-link.html",
+                status=400,
                 request=request,
             )
 
@@ -119,25 +120,27 @@ class SlackLinkTeamView(BaseView):
             )
 
         if not form.is_valid():
-            return render_error_page(request, body_text="HTTP 400: Bad request")
+            return render_error_page(request, status=400, body_text="HTTP 400: Bad request")
 
         team_id = int(form.cleaned_data["team"])
         team = teams_by_id.get(team_id)
         if not team:
-            return render_error_page(request, body_text="HTTP 404: Team does not exist")
+            return render_error_page(request, status=404, body_text="HTTP 404: Team does not exist")
 
         idp = identity_service.get_provider(
             provider_type="slack", provider_ext_id=integration.external_id
         )
         if idp is None:
             logger.info("slack.action.invalid-team-id", extra={"slack_id": integration.external_id})
-            return render_error_page(request, body_text="HTTP 403: Invalid team ID")
+            return render_error_page(request, status=403, body_text="HTTP 403: Invalid team ID")
 
         ident = identity_service.get_identity(
             filter={"provider_id": idp.id, "identity_ext_id": params["slack_id"]}
         )
         if not ident:
-            return render_error_page(request, body_text="HTTP 403: User identity does not exist")
+            return render_error_page(
+                request, status=403, body_text="HTTP 403: User identity does not exist"
+            )
 
         external_team, created = ExternalActor.objects.get_or_create(
             team_id=team.id,
