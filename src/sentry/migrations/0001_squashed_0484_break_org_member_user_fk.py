@@ -3173,30 +3173,30 @@ class Migration(CheckedMigration):
                     models.DateTimeField(db_index=True, default=django.utils.timezone.now),
                 ),
                 (
-                    "environment",
-                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                    "environment_id",
+                    sentry.db.models.fields.bounded.BoundedBigIntegerField(
                         null=True,
-                        on_delete=django.db.models.deletion.CASCADE,
-                        to="sentry.Environment",
+                        db_index=True,
                     ),
                 ),
                 (
-                    "group",
-                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        null=True, on_delete=django.db.models.deletion.CASCADE, to="sentry.Group"
+                    "group_id",
+                    sentry.db.models.fields.bounded.BoundedBigIntegerField(
+                        null=True,
+                        db_index=True,
                     ),
                 ),
                 (
-                    "project",
-                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        on_delete=django.db.models.deletion.CASCADE, to="sentry.Project"
+                    "project_id",
+                    sentry.db.models.fields.bounded.BoundedBigIntegerField(
+                        db_index=True,
                     ),
                 ),
             ],
             options={
                 "db_table": "sentry_userreport",
-                "unique_together": {("project", "event_id")},
-                "index_together": {("project", "date_added"), ("project", "event_id")},
+                "unique_together": {("project_id", "event_id")},
+                "index_together": {("project_id", "date_added"), ("project_id", "event_id")},
             },
         ),
         migrations.CreateModel(
@@ -6412,62 +6412,11 @@ class Migration(CheckedMigration):
                         to="sentry.File",
                     ),
                 ),
-                migrations.AlterField(
-                    model_name="userreport",
-                    name="environment",
-                    field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        db_constraint=False,
-                        null=True,
-                        on_delete=django.db.models.deletion.CASCADE,
-                        to="sentry.Environment",
-                    ),
-                ),
-                migrations.AlterField(
-                    model_name="userreport",
-                    name="group",
-                    field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        db_constraint=False,
-                        null=True,
-                        on_delete=django.db.models.deletion.CASCADE,
-                        to="sentry.Group",
-                    ),
-                ),
-                migrations.AlterField(
-                    model_name="userreport",
-                    name="project",
-                    field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        db_constraint=False,
-                        on_delete=django.db.models.deletion.CASCADE,
-                        to="sentry.Project",
-                    ),
-                ),
             ],
             state_operations=[
                 migrations.AddField(
                     model_name="eventattachment",
                     name="file_id",
-                    field=sentry.db.models.fields.bounded.BoundedBigIntegerField(
-                        db_index=True, default=1
-                    ),
-                    preserve_default=False,
-                ),
-                migrations.AddField(
-                    model_name="userreport",
-                    name="environment_id",
-                    field=sentry.db.models.fields.bounded.BoundedBigIntegerField(
-                        db_index=True, null=True
-                    ),
-                ),
-                migrations.AddField(
-                    model_name="userreport",
-                    name="group_id",
-                    field=sentry.db.models.fields.bounded.BoundedBigIntegerField(
-                        db_index=True, null=True
-                    ),
-                ),
-                migrations.AddField(
-                    model_name="userreport",
-                    name="project_id",
                     field=sentry.db.models.fields.bounded.BoundedBigIntegerField(
                         db_index=True, default=1
                     ),
@@ -6481,32 +6430,12 @@ class Migration(CheckedMigration):
                     name="eventattachment",
                     unique_together={("project_id", "event_id", "file_id")},
                 ),
-                migrations.RemoveField(
-                    model_name="userreport",
-                    name="environment",
-                ),
-                migrations.RemoveField(
-                    model_name="userreport",
-                    name="group",
-                ),
-                migrations.RemoveField(
-                    model_name="userreport",
-                    name="project",
-                ),
-                migrations.AlterUniqueTogether(
-                    name="userreport",
-                    unique_together={("project_id", "event_id")},
-                ),
                 migrations.AlterIndexTogether(
                     name="eventattachment",
                     index_together={
                         ("project_id", "date_added", "file_id"),
                         ("project_id", "date_added"),
                     },
-                ),
-                migrations.AlterIndexTogether(
-                    name="userreport",
-                    index_together={("project_id", "event_id"), ("project_id", "date_added")},
                 ),
             ],
         ),
