@@ -172,6 +172,7 @@ class DatabaseBackedRegionReplicaService(RegionReplicaService):
             key=api_key.key,
             status=api_key.status,
             allowed_origins="\n".join(api_key.allowed_origins),
+            scope_list=api_key.scope_list,
         )
 
         handle_replication(ApiKey, destination)

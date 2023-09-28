@@ -596,7 +596,13 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
     _type_registrations = {}
 
     INTEGRATION_TYPES = frozenset(
-        (Type.PAGERDUTY.value, Type.SLACK.value, Type.MSTEAMS.value, Type.OPSGENIE.value)
+        (
+            Type.PAGERDUTY.value,
+            Type.SLACK.value,
+            Type.MSTEAMS.value,
+            Type.OPSGENIE.value,
+            Type.DISCORD.value,
+        )
     )
 
     # ActionService items which are not supported for AlertRuleTriggerActions

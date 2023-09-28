@@ -1,4 +1,4 @@
-import {EntryException, ReleaseMeta} from 'sentry/types';
+import {EntryException} from 'sentry/types';
 import type {
   ReplayError,
   ReplayListRecord,
@@ -6,7 +6,6 @@ import type {
 } from 'sentry/views/replays/types';
 
 import type {Replay} from './replay';
-import {MockRuleCondition} from './ruleConditions';
 
 type SimpleStub<T = any> = () => T;
 
@@ -31,77 +30,28 @@ type TestStubFixtures = {
   DocIntegration: OverridableStub;
   Environments: SimpleStub;
   Event: OverridableStub;
-  EventAttachment: OverridableStub;
   EventEntry: OverridableStub;
   EventEntryDebugMeta: OverridableStub;
   EventEntryExceptionGroup: SimpleStub<EntryException>;
-  EventEntryStacktrace: OverridableStub;
-  EventIdQueryResult: OverridableStub;
   EventStacktraceException: OverridableStub;
-  EventStacktraceMessage: OverridableStub;
-  EventsStats: OverridableStub;
-  ExceptionWithRawStackTrace: OverridableStub;
   Frame: OverridableStub;
   GitHubIntegration: OverridableStub;
-  GitHubIntegrationConfig: SimpleStub;
-  GitHubIntegrationProvider: OverridableStub;
-  GlobalSelection: OverridableStub;
   Group: OverridableStub;
-  GroupStats: OverridableStub;
-  GroupingConfigs: SimpleStub;
-  Groups: SimpleStub;
-  HiddenEnvironments: SimpleStub;
   Incident: OverridableStub;
-  IncidentActivity: OverridableStub;
-  IncidentStats: OverridableStub;
-  IncidentTrigger: OverridableStub;
-  InstallWizard: OverridableStub;
   JiraIntegration: OverridableStub;
-  JiraIntegrationProvider: OverridableStub;
-  MOCK_RESP_INCONSISTENT_INTERVALS: MockRuleCondition;
-  MOCK_RESP_INCONSISTENT_PLACEHOLDERS: MockRuleCondition;
-  MOCK_RESP_ONLY_IGNORED_CONDITIONS_INVALID: MockRuleCondition;
-  MOCK_RESP_PLACEHOLDERS: MockRuleCondition;
-  MOCK_RESP_VERBOSE: MockRuleCondition;
   Member: OverridableStub;
   Members: OverridableStubList;
   MetricRule: OverridableStub;
-  MetricsField: (field: string, params?: Partial<any>) => any;
-  MetricsMeta: OverridableStub;
-  MetricsSessionUserCountByStatusByRelease: SimpleStub;
-  MetricsTotalCountByReleaseIn24h: SimpleStub;
-  MissingMembers: OverridableStubList;
-  NotificationDefaults: SimpleStub;
-  OpsgenieIntegration: OverridableStub;
-  OpsgenieIntegrationProvider: OverridableStub;
-  OrgOwnedApps: SimpleStub;
   OrgRoleList: OverridableStub;
   Organization: OverridableStub;
-  OrganizationEvent: OverridableStub;
-  OrganizationIntegrations: OverridableStub;
-  Organizations: OverridableStub;
-  Outcomes: SimpleStub;
-  OutcomesWithLowProcessedEvents: SimpleStub;
-  OutcomesWithReason: SimpleStub;
-  OutcomesWithoutClientDiscarded: SimpleStub;
   PageFilters: OverridableStub;
-  PhabricatorCreate: SimpleStub;
-  PhabricatorPlugin: SimpleStub;
   PlatformExternalIssue: OverridableStub;
   Plugin: OverridableStub;
-  PluginListConfig: SimpleStub;
   Plugins: OverridableStubList;
   Project: OverridableStub;
   ProjectAlertRule: OverridableStub;
-  ProjectAlertRuleConfiguration: OverridableStub;
-  ProjectDetails: OverridableStub;
-  ProjectFilters: OverridableStubList;
   ProjectKeys: OverridableStubList;
-  ProviderList: SimpleStub;
-  PublishedApps: SimpleStub;
-  PullRequest: OverridableStub;
   Release: (params?: any, healthParams?: any) => any;
-  ReleaseMeta: OverridableStub<ReleaseMeta>;
   Replay: typeof Replay;
   ReplayError: OverridableStub<ReplayError>;
   ReplayList: OverridableStubList<ReplayListRecord>;

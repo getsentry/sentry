@@ -96,20 +96,33 @@ export default function Format({onExpand, expandPaths, args}: FormatProps) {
     }
   });
 
-  if (styling) {
+  if (styling && typeof styling === 'string') {
     const tempEl = document.createElement('div');
     tempEl.setAttribute('style', styling);
 
-    // Only allow certain CSS attributes
+    // Only allow certain CSS attributes, be careful of css properties that
+    // accept `url()`
+    //
+    // See the section above https://developer.mozilla.org/en-US/docs/Web/API/console#using_groups_in_the_console
+    // for the properties that Firefox supports.
     const styleObj = Object.fromEntries(
       [
+        ['background-color', 'backgroundColor'],
+        ['border-radius', 'borderRadius'],
         ['color', 'color'],
-        ['font-weight', 'fontWeight'],
+        ['font-size', 'fontSize'],
         ['font-style', 'fontStyle'],
+        ['font-weight', 'fontWeight'],
+        ['margin', 'margin'],
+        ['padding', 'padding'],
+        ['text-transform', 'textTransform'],
+        ['writing-mode', 'writingMode'],
       ]
         .map(([attr, reactAttr]) => [reactAttr, tempEl.style.getPropertyValue(attr)])
         .filter(([, val]) => !!val)
     );
+
+    styleObj.display = 'inline-block';
 
     pieces.push(
       <span key={`%c-${i - 1}`} style={styleObj}>
