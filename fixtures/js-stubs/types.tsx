@@ -1,9 +1,5 @@
 import {EntryException} from 'sentry/types';
-import type {
-  ReplayError,
-  ReplayListRecord,
-  ReplayRecord,
-} from 'sentry/views/replays/types';
+import type {ReplayError, ReplayRecord} from 'sentry/views/replays/types';
 
 import type {Replay} from './replay';
 
@@ -54,32 +50,13 @@ type TestStubFixtures = {
   Release: (params?: any, healthParams?: any) => any;
   Replay: typeof Replay;
   ReplayError: OverridableStub<ReplayError>;
-  ReplayList: OverridableStubList<ReplayListRecord>;
   ReplayRecord: OverridableStub<ReplayRecord>;
   Repository: OverridableStub;
-  RepositoryProjectPathConfig: OverridableStub;
-  Search: OverridableStub;
-  Searches: OverridableStubList;
   SentryApp: OverridableStub;
   SentryAppComponent: OverridableStub;
   SentryAppComponentAsync: OverridableStub;
   SentryAppComponentDependent: OverridableStub;
   SentryAppInstallation: OverridableStub;
-  SentryAppInstalls: SimpleStub;
-  SentryAppToken: OverridableStub;
-  SentryAppWebhookRequest: OverridableStub;
-  ServiceIncident: OverridableStub;
-  SessionEmptyGroupedResponse: SimpleStub;
-  SessionStatusCountByProjectInPeriod: SimpleStub;
-  SessionStatusCountByReleaseInPeriod: SimpleStub;
-  SessionTotalCountByProjectIn24h: SimpleStub;
-  SessionUserCountByStatus: SimpleStub;
-  SessionUserCountByStatus2: SimpleStub;
-  SessionUserCountByStatusByRelease: SimpleStub;
-  SessionUserStatusCountByProjectInPeriod: SimpleStub;
-  SessionUserStatusCountByReleaseInPeriod: SimpleStub;
-  SessionsField: (field: string) => any;
-  SesssionTotalCountByReleaseIn24h: SimpleStub;
   ShortIdQueryResult: OverridableStub;
   SourceMapArchive: OverridableStub;
   SourceMapArtifact: OverridableStub;

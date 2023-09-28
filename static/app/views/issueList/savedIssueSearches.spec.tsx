@@ -1,4 +1,5 @@
 import {ComponentProps, Fragment} from 'react';
+import {Search} from 'sentry-fixture/search';
 
 import {
   render,
@@ -18,7 +19,7 @@ import {SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY} from 'sentry/views/issueLi
 describe('SavedIssueSearches', function () {
   const organization = TestStubs.Organization();
 
-  const recommendedSearch = TestStubs.Search({
+  const recommendedSearch = Search({
     id: 'global-search',
     isGlobal: true,
     name: 'Assigned to Me',
@@ -26,7 +27,7 @@ describe('SavedIssueSearches', function () {
     visibility: SavedSearchVisibility.ORGANIZATION,
   });
 
-  const userSearch = TestStubs.Search({
+  const userSearch = Search({
     id: 'user-search',
     isGlobal: false,
     name: 'Just Firefox',
@@ -34,7 +35,7 @@ describe('SavedIssueSearches', function () {
     visibility: SavedSearchVisibility.OWNER,
   });
 
-  const orgSearch = TestStubs.Search({
+  const orgSearch = Search({
     id: 'org-search',
     isGlobal: false,
     name: 'Last 4 Hours',
@@ -42,7 +43,7 @@ describe('SavedIssueSearches', function () {
     visibility: SavedSearchVisibility.ORGANIZATION,
   });
 
-  const pinnedSearch = TestStubs.Search({
+  const pinnedSearch = Search({
     id: 'pinned-search',
     isGlobal: false,
     isPinned: true,
