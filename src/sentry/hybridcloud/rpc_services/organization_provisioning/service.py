@@ -5,37 +5,38 @@
 from abc import abstractmethod
 from typing import Optional, cast
 
-from sentry.services.hybrid_cloud.organization import RpcOrganization
-from sentry.services.hybrid_cloud.region import ByRegionName
-from sentry.services.hybrid_cloud.rpc import RpcService, regional_rpc_method
+from sentry.hybridcloud.rpc_services.organization_provisioning.model import (
+    RpcOrganizationSlugReservation,
+)
+from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
 from sentry.services.organization.model import OrganizationProvisioningOptions
 from sentry.silo import SiloMode
 
 
-class OrganizationProvisioningService(RpcService):
+class ControlOrganizationProvisioningRpcService(RpcService):
     key = "organization_provisioning"
-    local_mode = SiloMode.REGION
+    local_mode = SiloMode.CONTROL
 
-    @regional_rpc_method(resolve=ByRegionName())
     @abstractmethod
+    @rpc_method
     def provision_organization(
         self, *, region_name: str, org_provision_args: OrganizationProvisioningOptions
-    ) -> RpcOrganization:
+    ) -> RpcOrganizationSlugReservation:
         """
         Provisions an organization, an organization member, and team based on the provisioning args passed.
 
         In the event of a slug conflict, a new slug will be generated using the provided slug as a seed.
         :param region_name: The region to provision the organization in.
         :param org_provision_args: Provisioning and post-provisioning options for the organization.
-        :return: RpcOrganization containing a subset of the organization data.
+        :return: RpcOrganizationSlugReservation containing the organization ID and slug.
         """
         pass
 
-    @regional_rpc_method(resolve=ByRegionName())
     @abstractmethod
+    @rpc_method
     def idempotent_provision_organization(
         self, *, region_name: str, org_provision_args: OrganizationProvisioningOptions
-    ) -> Optional[RpcOrganization]:
+    ) -> Optional[RpcOrganizationSlugReservation]:
         """
         Provisions an organization, an organization member, and team based on the provisioning args passed.
 
@@ -46,19 +47,41 @@ class OrganizationProvisioningService(RpcService):
         such as integrations which require strong idempotency.
         :param region_name: The region to provision the organization in.
         :param org_provision_args: Provisioning and post-provisioning options for the organization.
-        :return: RpcOrganization containing a subset of the organization data.
+        :return: RpcOrganization the organization ID and slug.
+        """
+        pass
+
+    @abstractmethod
+    @rpc_method
+    def update_organization_slug(
+        self, *, organization_id: int, desired_slug: str, require_exact: bool = True
+    ) -> RpcOrganizationSlugReservation:
+        """
+        Updates an organization's slug via an outbox based confirmation flow to ensure that the control
+        and region silos stay in sync.
+
+        Initially, the organization slug reservation is updated in control silo, which generates a replica
+        outbox to the desired region in order to ensure that a slug change in control _will eventually_
+        result in a slug change on the region side.
+
+        :param organization_id:
+        :param desired_slug: The slug to update the organization with.
+        :param require_exact: Determines whether the slug can be modified with a unique suffix in the
+        case of a slug collision.
+        :return:
         """
         pass
 
     @classmethod
     def get_local_implementation(cls) -> RpcService:
-        from sentry.services.hybrid_cloud.organization_provisioning.impl import (
+        from sentry.hybridcloud.rpc_services.organization_provisioning.impl import (
             DatabaseBackedControlOrganizationProvisioningService,
         )
 
         return DatabaseBackedControlOrganizationProvisioningService()
 
 
-organization_provisioning_service: OrganizationProvisioningService = cast(
-    OrganizationProvisioningService, OrganizationProvisioningService.create_delegation()
+control_organization_provisioning_rpc_service: ControlOrganizationProvisioningRpcService = cast(
+    ControlOrganizationProvisioningRpcService,
+    ControlOrganizationProvisioningRpcService.create_delegation(),
 )

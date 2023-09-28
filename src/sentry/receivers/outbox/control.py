@@ -23,8 +23,8 @@ from sentry.models import (
 )
 from sentry.receivers.outbox import maybe_process_tombstone
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSignal, organization_service
-from sentry.services.hybrid_cloud.organization_provisioning import OrganizationProvisioningOptions
 from sentry.services.organization.provisioning import (
+    OrganizationProvisioningOptions,
     handle_organization_provisioning_outbox_payload,
 )
 from sentry.silo.base import SiloMode

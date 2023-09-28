@@ -1,0 +1,160 @@
+from copy import deepcopy
+from typing import Optional
+
+from django.db import router, transaction
+
+from sentry import roles
+from sentry.constants import RESERVED_ORGANIZATION_SLUGS
+from sentry.db.models.utils import slugify_instance
+from sentry.hybridcloud.rpc_services.organization_provisioning import (
+    ControlOrganizationProvisioningRpcService,
+    RpcOrganizationSlugReservation,
+    serialize_slug_reservation,
+)
+from sentry.models import (
+    ControlOutbox,
+    OrganizationMapping,
+    OrganizationMember,
+    OrganizationMemberMapping,
+    OutboxCategory,
+    OutboxScope,
+    RegionOutbox,
+    outbox_context,
+)
+from sentry.models.organizationslugreservation import OrganizationSlugReservation
+from sentry.services.hybrid_cloud.organization import RpcOrganization
+from sentry.services.organization import OrganizationProvisioningOptions
+from sentry.utils.snowflake import generate_snowflake_id
+
+
+class SlugMismatchException(Exception):
+    pass
+
+
+def create_post_provision_outbox(
+    provisioning_options: OrganizationProvisioningOptions, org_id: int
+):
+    return RegionOutbox(
+        shard_scope=OutboxScope.ORGANIZATION_SCOPE,
+        shard_identifier=org_id,
+        category=OutboxCategory.POST_ORGANIZATION_PROVISION,
+        object_identifier=org_id,
+        payload=provisioning_options.post_provision_options.json(),
+    )
+
+
+def create_organization_provisioning_outbox(
+    organization_id: int,
+    region_name: str,
+    org_provision_payload: Optional[OrganizationProvisioningOptions],
+):
+    return ControlOutbox(
+        region_name=region_name,
+        shard_scope=OutboxScope.PROVISION_SCOPE,
+        category=OutboxCategory.PROVISION_ORGANIZATION,
+        shard_identifier=organization_id,
+        object_identifier=organization_id,
+        payload=org_provision_payload.json(),
+    )
+
+
+class InvalidOrganizationProvisioningSlugQueryException(Exception):
+    pass
+
+
+REDIS_KEY_PREFIX = "control_org"
+
+
+class DatabaseBackedControlOrganizationProvisioningService(
+    ControlOrganizationProvisioningRpcService
+):
+    @staticmethod
+    def _validate_organization_belongs_to_user(user_id: int, organization: RpcOrganization) -> bool:
+        top_dog_id = roles.get_top_dog().id
+        try:
+            org_member = OrganizationMember.objects.get(
+                organization_id=organization.id, user_id=user_id
+            )
+            return top_dog_id == org_member.role
+        except OrganizationMember.DoesNotExist:
+            return False
+
+    @staticmethod
+    def _validate_organization_mapping_belongs_to_user(
+        user_id: int, organization_mapping: OrganizationMapping
+    ) -> bool:
+        top_dog_id = roles.get_top_dog().id
+        try:
+            org_member = OrganizationMemberMapping.objects.get(
+                organization_id=organization_mapping.organization_id, user_id=user_id
+            )
+            return top_dog_id == org_member.role
+        except OrganizationMemberMapping.DoesNotExist:
+            return False
+
+    @staticmethod
+    def _generate_org_snowflake_id(region_name: str) -> int:
+        redis_key = f"{REDIS_KEY_PREFIX}_{region_name}"
+        return generate_snowflake_id(redis_key)
+
+    @staticmethod
+    def _generate_org_slug(region_name: str, slug: str) -> str:
+        slug_base = slug.replace("_", "-").strip("-")
+        surrogate_org_slug = OrganizationSlugReservation()
+        slugify_instance(surrogate_org_slug, slug_base, reserved=RESERVED_ORGANIZATION_SLUGS)
+
+        return surrogate_org_slug.slug
+
+    def _provision_organization_via_slug_reservation(
+        self, region_name: str, org_provision_args: OrganizationProvisioningOptions
+    ) -> RpcOrganizationSlugReservation:
+        # Generate a new non-conflicting slug and org ID
+        org_id = self._generate_org_snowflake_id(region_name=region_name)
+        slug = self._generate_org_slug(
+            region_name=region_name, slug=org_provision_args.provision_options.slug
+        )
+
+        # Generate a provisioning outbox for the region and drain
+        updated_provision_options = deepcopy(org_provision_args.provision_options)
+        updated_provision_options.slug = slug
+        provision_payload = OrganizationProvisioningOptions(
+            provision_options=updated_provision_options,
+            post_provision_options=org_provision_args.post_provision_options,
+        )
+
+        with outbox_context(
+            transaction.atomic(using=router.db_for_write(OrganizationSlugReservation))
+        ):
+            org_slug_res = OrganizationSlugReservation(
+                slug=slug,
+                organization_id=org_id,
+                user_id=org_provision_args.provision_options.owning_user_id,
+                region_name=region_name,
+            )
+
+            org_slug_res.save(unsafe_write=True)
+            create_organization_provisioning_outbox(
+                organization_id=org_id,
+                region_name=region_name,
+                org_provision_payload=provision_payload,
+            ).save()
+
+        return serialize_slug_reservation(org_slug_res)
+
+    def provision_organization(
+        self, *, region_name: str, org_provision_args: OrganizationProvisioningOptions
+    ) -> RpcOrganizationSlugReservation:
+        org_slug_reservation = self._provision_organization_via_slug_reservation(
+            region_name=region_name, org_provision_args=org_provision_args
+        )
+        return org_slug_reservation
+
+    def idempotent_provision_organization(
+        self, *, region_name: str, org_provision_args: OrganizationProvisioningOptions
+    ) -> Optional[RpcOrganizationSlugReservation]:
+        raise NotImplementedError()
+
+    def update_organization_slug(
+        self, *, organization_id: int, desired_slug: str, require_exact: bool = True
+    ) -> RpcOrganizationSlugReservation:
+        raise NotImplementedError()

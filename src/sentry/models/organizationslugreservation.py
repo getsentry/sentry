@@ -69,7 +69,7 @@ class OrganizationSlugReservation(ReplicatedControlModel):
         return [self.region_name]
 
     def handle_async_replication(self, region_name: str, shard_identifier: int) -> None:
-        from sentry.services.hybrid_cloud.organization_provisioning.serial import (
+        from sentry.hybridcloud.rpc_services.organization_provisioning.serial import (
             serialize_slug_reservation,
         )
         from sentry.services.hybrid_cloud.replica import region_replica_service

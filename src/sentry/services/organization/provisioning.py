@@ -4,8 +4,7 @@ from django.conf import settings
 from django.db import IntegrityError, router, transaction
 from sentry_sdk import capture_exception
 
-from sentry.models import OrganizationMapping, OrganizationSlugReservation
-from sentry.services.hybrid_cloud.organization_provisioning_region import (
+from sentry.hybridcloud.rpc_services.organization_provisioning_region import (
     organization_provisioning_region_service,
 )
 from sentry.services.organization.model import OrganizationProvisioningOptions
@@ -35,6 +34,9 @@ def handle_organization_provisioning_outbox_payload(
     :param provisioning_payload: The organization data used to provision the org
     :return:
     """
+
+    from sentry.models import OrganizationMapping, OrganizationSlugReservation
+
     org_slug_reservation = OrganizationSlugReservation.objects.get(
         organization_id=organization_id, slug=provisioning_payload.provision_options.slug
     )

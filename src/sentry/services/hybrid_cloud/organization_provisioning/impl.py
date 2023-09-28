@@ -41,7 +41,7 @@ class InvalidOrganizationProvisioningSlugQueryException(Exception):
     pass
 
 
-class DatabaseBackedOrganizationProvisioningService(OrganizationProvisioningService):
+class DatabaseBackedControlOrganizationProvisioningService(OrganizationProvisioningService):
     def _validate_organization_belongs_to_user(
         self, user_id: int, organization: RpcOrganization
     ) -> bool:
