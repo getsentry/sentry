@@ -2,8 +2,7 @@ from typing import Dict, Generator, List, Mapping, Type, TypeVar, Union
 
 from django.core.cache import cache
 
-from sentry.hybridcloud.models import CacheVersionBase
-from sentry.hybridcloud.models.cacheversion import RegionCacheVersion
+from sentry.hybridcloud.models.cacheversion import CacheVersionBase, RegionCacheVersion
 from sentry.hybridcloud.rpc.services.caching import ControlCachingService, RegionCachingService
 from sentry.silo import SiloMode
 
