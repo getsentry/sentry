@@ -9,11 +9,7 @@ describe('GettingStartedWithIos', function () {
     render(<GettingStartedWithIos dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
-    for (const step of steps({
-      dsn: 'test-dsn',
-      hasPerformance: true,
-      hasProfiling: true,
-    })) {
+    for (const step of steps()) {
       expect(
         screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
       ).toBeInTheDocument();
