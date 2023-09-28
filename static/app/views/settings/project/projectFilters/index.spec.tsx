@@ -1,3 +1,5 @@
+import {ProjectFilters as ProjectFiltersFixture} from 'sentry-fixture/projectFilters';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -41,7 +43,7 @@ describe('ProjectFilters', function () {
 
     MockApiClient.addMockResponse({
       url: `${PROJECT_URL}filters/`,
-      body: TestStubs.ProjectFilters(),
+      body: ProjectFiltersFixture(),
     });
 
     MockApiClient.addMockResponse({

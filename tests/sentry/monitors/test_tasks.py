@@ -67,8 +67,8 @@ class MonitorTaskCheckMissingTest(TestCase):
             project_id=project.id,
             type=MonitorType.CRON_JOB,
             config={
-                "schedule": "* * * * *",
                 "schedule_type": ScheduleType.CRONTAB,
+                "schedule": "* * * * *",
                 "max_runtime": None,
                 "checkin_margin": None,
             },
@@ -202,7 +202,8 @@ class MonitorTaskCheckMissingTest(TestCase):
             == monitor_environment_updated.next_checkin + timedelta(minutes=5)
         )
 
-    def assert_state_does_not_change_for_status(self, state):
+    @mock.patch("sentry.monitors.tasks.mark_environment_missing")
+    def assert_state_does_not_change_for_status(self, state, mark_environment_missing_mock):
         org = self.create_organization()
         project = self.create_project(organization=org)
 
@@ -217,7 +218,7 @@ class MonitorTaskCheckMissingTest(TestCase):
         )
         # Expected checkin was a full minute ago, if this monitor wasn't in the
         # `state` the monitor would usually end up marked as timed out
-        monitor_environment = MonitorEnvironment.objects.create(
+        MonitorEnvironment.objects.create(
             monitor=monitor,
             environment=self.environment,
             next_checkin=ts - timedelta(minutes=1),
@@ -227,15 +228,8 @@ class MonitorTaskCheckMissingTest(TestCase):
 
         check_missing(task_run_ts)
 
-        # The monitor does not get set to a timeout state
-        assert MonitorEnvironment.objects.filter(
-            id=monitor_environment.id, status=MonitorStatus.ACTIVE
-        ).exists()
-
-        # No missed monitor is created
-        assert not MonitorCheckIn.objects.filter(
-            monitor_environment=monitor_environment.id, status=CheckInStatus.MISSED
-        ).exists()
+        # We do not fire off any tasks
+        assert mark_environment_missing_mock.delay.call_count == 0
 
     def test_missing_checkin_but_disabled(self):
         self.assert_state_does_not_change_for_status(ObjectStatus.DISABLED)
@@ -246,7 +240,8 @@ class MonitorTaskCheckMissingTest(TestCase):
     def test_missing_checkin_but_deletion_in_progress(self):
         self.assert_state_does_not_change_for_status(ObjectStatus.DELETION_IN_PROGRESS)
 
-    def test_not_missing_checkin(self):
+    @mock.patch("sentry.monitors.tasks.mark_environment_missing")
+    def test_not_missing_checkin(self, mark_environment_missing_mock):
         """
         Our monitor task runs once per minute, we want to test that when it
         runs within the minute we correctly do not mark missed checkins that
@@ -257,21 +252,21 @@ class MonitorTaskCheckMissingTest(TestCase):
         project = self.create_project(organization=org)
 
         task_run_ts, ts = make_ref_time()
-        last_checkin_ts = ts - timedelta(minutes=2)
+        last_checkin_ts = ts - timedelta(minutes=1)
 
         monitor = Monitor.objects.create(
             organization_id=org.id,
             project_id=project.id,
             type=MonitorType.CRON_JOB,
-            config={"schedule": "* * * * *"},
+            config={"schedule_type": ScheduleType.CRONTAB, "schedule": "* * * * *"},
         )
         # Expected checkin is this minute
-        monitor_environment = MonitorEnvironment.objects.create(
+        MonitorEnvironment.objects.create(
             monitor=monitor,
             environment=self.environment,
             last_checkin=last_checkin_ts,
-            next_checkin=ts - timedelta(minutes=1),
-            next_checkin_latest=ts,
+            next_checkin=ts,
+            next_checkin_latest=ts + timedelta(minutes=1),
             status=MonitorStatus.OK,
         )
         # Last checkin was a minute ago
@@ -287,15 +282,8 @@ class MonitorTaskCheckMissingTest(TestCase):
         # monitor.
         check_missing(task_run_ts)
 
-        # Monitor stays in OK state
-        assert MonitorEnvironment.objects.filter(
-            id=monitor_environment.id, status=MonitorStatus.OK
-        ).exists()
-
-        # No missed monitor is created
-        assert not MonitorCheckIn.objects.filter(
-            monitor_environment=monitor_environment.id, status=CheckInStatus.MISSED
-        ).exists()
+        # We do not fire off any tasks
+        assert mark_environment_missing_mock.delay.call_count == 0
 
     @mock.patch("sentry.monitors.tasks.mark_environment_missing")
     def test_missed_exception_handling(self, mark_environment_missing_mock):
@@ -318,6 +306,7 @@ class MonitorTaskCheckMissingTest(TestCase):
         failing_monitor_environment = MonitorEnvironment.objects.create(
             monitor=exception_monitor,
             environment=self.environment,
+            last_checkin=ts - timedelta(minutes=2),
             next_checkin=ts - timedelta(minutes=1),
             next_checkin_latest=ts,
             status=MonitorStatus.OK,
@@ -327,11 +316,12 @@ class MonitorTaskCheckMissingTest(TestCase):
             organization_id=org.id,
             project_id=project.id,
             type=MonitorType.CRON_JOB,
-            config={"schedule": "* * * * *"},
+            config={"schedule_type": ScheduleType.CRONTAB, "schedule": "* * * * *"},
         )
         successful_monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
             environment=self.environment,
+            last_checkin=ts - timedelta(minutes=2),
             next_checkin=ts - timedelta(minutes=1),
             next_checkin_latest=ts,
             status=MonitorStatus.OK,
@@ -372,7 +362,7 @@ class MonitorTaskCheckTimeoutTest(TestCase):
             organization_id=org.id,
             project_id=project.id,
             type=MonitorType.CRON_JOB,
-            config={"schedule": "0 0 * * *"},
+            config={"schedule_type": ScheduleType.CRONTAB, "schedule": "0 0 * * *"},
         )
         # Next checkin should have been 24 hours ago
         monitor_environment = MonitorEnvironment.objects.create(
@@ -445,7 +435,7 @@ class MonitorTaskCheckTimeoutTest(TestCase):
             organization_id=org.id,
             project_id=project.id,
             type=MonitorType.CRON_JOB,
-            config={"schedule": "0 0 * * *"},
+            config={"schedule_type": ScheduleType.CRONTAB, "schedule": "0 0 * * *"},
         )
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
@@ -510,7 +500,11 @@ class MonitorTaskCheckTimeoutTest(TestCase):
             organization_id=org.id,
             project_id=project.id,
             type=MonitorType.CRON_JOB,
-            config={"schedule": "0 0 * * *", "max_runtime": 60},
+            config={
+                "schedule_type": ScheduleType.CRONTAB,
+                "schedule": "0 0 * * *",
+                "max_runtime": 60,
+            },
         )
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,

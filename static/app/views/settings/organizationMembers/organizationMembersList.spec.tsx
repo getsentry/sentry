@@ -1,6 +1,7 @@
 import {browserHistory} from 'react-router';
 import selectEvent from 'react-select-event';
 import {AuthProvider} from 'sentry-fixture/authProvider';
+import {Members} from 'sentry-fixture/members';
 
 import {
   render,
@@ -109,7 +110,7 @@ describe('OrganizationMembersList', function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/members/',
       method: 'GET',
-      body: [...TestStubs.Members(), member],
+      body: [...Members(), member],
     });
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/members/${member.id}/`,

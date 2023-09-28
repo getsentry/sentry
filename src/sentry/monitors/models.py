@@ -2,13 +2,11 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Any, Dict, Optional
+from typing import TYPE_CHECKING, Any, Dict, Optional, Union
 from uuid import uuid4
 
 import jsonschema
 import pytz
-from croniter import croniter
-from dateutil import rrule
 from django.conf import settings
 from django.db import models
 from django.db.models.signals import pre_save
@@ -34,21 +32,13 @@ from sentry.db.models.utils import slugify_instance
 from sentry.grouping.utils import hash_from_values
 from sentry.locks import locks
 from sentry.models import Environment, Rule, RuleSource
+from sentry.monitors.types import CrontabSchedule, IntervalSchedule
 from sentry.utils.retries import TimedRetryPolicy
 
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from sentry.models import Project
-
-SCHEDULE_INTERVAL_MAP = {
-    "year": rrule.YEARLY,
-    "month": rrule.MONTHLY,
-    "week": rrule.WEEKLY,
-    "day": rrule.DAILY,
-    "hour": rrule.HOURLY,
-    "minute": rrule.MINUTELY,
-}
 
 MONITOR_CONFIG = {
     "type": "object",
@@ -62,8 +52,9 @@ MONITOR_CONFIG = {
         "failure_issue_threshold": {"type": ["integer", "null"]},
         "recovery_threshold": {"type": ["integer", "null"]},
     },
-    # TODO(davidenwang): Old monitors may not have timezone or schedule_type, these should be added here once we've cleaned up old data
-    "required": ["checkin_margin", "max_runtime", "schedule"],
+    # TODO(davidenwang): Old monitors may not have timezone, it should be added
+    # here once we've cleaned up old data
+    "required": ["checkin_margin", "max_runtime", "schedule_type", "schedule"],
     "additionalProperties": False,
 }
 
@@ -80,43 +71,6 @@ class MonitorEnvironmentLimitsExceeded(Exception):
 
 class MonitorEnvironmentValidationFailed(Exception):
     pass
-
-
-def get_next_schedule(reference_ts: datetime, schedule_type: int, schedule):
-    """
-    Given the schedule type and schedule, determine the next timestamp for a
-    schedule from the reference_ts
-
-    Examples:
-
-    >>> get_next_schedule('05:30', ScheduleType.CRONTAB, '0 * * * *')
-    >>> 06:00
-
-    >>> get_next_schedule('05:30', ScheduleType.CRONTAB, '30 * * * *')
-    >>> 06:30
-
-    >>> get_next_schedule('05:35', ScheduleType.INTERVAL, [2, 'hour'])
-    >>> 07:35
-    """
-    if schedule_type == ScheduleType.CRONTAB:
-        next_schedule = croniter(schedule, reference_ts).get_next(datetime)
-    elif schedule_type == ScheduleType.INTERVAL:
-        interval, unit_name = schedule
-        rule = rrule.rrule(
-            freq=SCHEDULE_INTERVAL_MAP[unit_name],
-            interval=interval,
-            dtstart=reference_ts,
-            count=2,
-        )
-        next_schedule = rule.after(reference_ts)
-    else:
-        raise NotImplementedError("unknown schedule_type")
-
-    # Ensure we clamp the expected time down to the minute, that is the level
-    # of granularity we're able to support
-    next_schedule = next_schedule.replace(second=0, microsecond=0)
-
-    return next_schedule
 
 
 class MonitorStatus:
@@ -217,7 +171,7 @@ class ScheduleType:
 
     @classmethod
     def as_choices(cls):
-        return ((cls.UNKNOWN, "unknown"), (cls.CRONTAB, "crontab"), (cls.INTERVAL, "interval"))
+        return ((cls.CRONTAB, "crontab"), (cls.INTERVAL, "interval"))
 
     @classmethod
     def get_name(cls, value):
@@ -264,8 +218,20 @@ class Monitor(Model):
                 )
         return super().save(*args, **kwargs)
 
+    @property
+    def schedule(self) -> Union[CrontabSchedule, IntervalSchedule]:
+        schedule_type = self.config["schedule_type"]
+        schedule = self.config["schedule"]
+
+        if schedule_type == ScheduleType.CRONTAB:
+            return CrontabSchedule(crontab=schedule)
+        if schedule_type == ScheduleType.INTERVAL:
+            return IntervalSchedule(interval=schedule[0], unit=schedule[1])
+
+        raise NotImplementedError("unknown schedule_type")
+
     def get_schedule_type_display(self):
-        return ScheduleType.get_name(self.config.get("schedule_type", ScheduleType.CRONTAB))
+        return ScheduleType.get_name(self.config["schedule_type"])
 
     def get_audit_log_data(self):
         return {"name": self.name, "type": self.type, "status": self.status, "config": self.config}
@@ -274,12 +240,10 @@ class Monitor(Model):
         """
         Computes the next expected checkin time given the most recent checkin time
         """
+        from sentry.monitors.schedule import get_next_schedule
+
         tz = pytz.timezone(self.config.get("timezone") or "UTC")
-        schedule_type = self.config.get("schedule_type", ScheduleType.CRONTAB)
-        next_checkin = get_next_schedule(
-            last_checkin.astimezone(tz), schedule_type, self.config["schedule"]
-        )
-        return next_checkin
+        return get_next_schedule(last_checkin.astimezone(tz), self.schedule)
 
     def get_next_expected_checkin_latest(self, last_checkin: datetime) -> datetime:
         """
