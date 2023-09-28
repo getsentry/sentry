@@ -29,7 +29,7 @@ def mark_ok(checkin: MonitorCheckIn, ts: datetime):
     next_checkin_latest = monitor_env.monitor.get_next_expected_checkin_latest(ts)
 
     params = {
-        "last_checkin": ts,
+        "last_checkin": checkin.date_added,
         "next_checkin": next_checkin,
         "next_checkin_latest": next_checkin_latest,
     }
