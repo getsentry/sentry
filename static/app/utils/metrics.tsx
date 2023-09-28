@@ -148,6 +148,7 @@ export function useMetricsData({
     useCase,
     interval,
     groupBy,
+    allowPrivate: true, // TODO(ddm): reconsider before widening audience
 
     // max result groups
     per_page: 20,
