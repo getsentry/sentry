@@ -1,3 +1,5 @@
+import {TeamIssuesBreakdown as TeamIssuesBreakdownFixture} from 'sentry-fixture/teamIssuesBreakdown';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import TeamIssuesBreakdown from 'sentry/views/organizationStats/teamInsights/teamIssuesBreakdown';
@@ -9,7 +11,7 @@ describe('TeamIssuesBreakdown', () => {
     const organization = TestStubs.Organization();
     const teamIssuesActions = MockApiClient.addMockResponse({
       url: `/teams/${organization.slug}/${team.slug}/issue-breakdown/`,
-      body: TestStubs.TeamIssuesBreakdown(),
+      body: TeamIssuesBreakdownFixture(),
     });
     const statuses = ['new', 'regressed', 'unignored'];
 

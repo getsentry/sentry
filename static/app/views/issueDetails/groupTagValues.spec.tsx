@@ -1,10 +1,13 @@
+import {Tags} from 'sentry-fixture/tags';
+import {TagValues} from 'sentry-fixture/tagvalues';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import GroupTagValues from 'sentry/views/issueDetails/groupTagValues';
 
 const group = TestStubs.Group();
-const tags = TestStubs.Tags();
+const tags = Tags();
 
 function init(tagKey: string) {
   return initializeOrg({
@@ -35,7 +38,7 @@ describe('GroupTagValues', () => {
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/1/tags/user/values/',
-      body: TestStubs.TagValues(),
+      body: TagValues(),
     });
     render(
       <GroupTagValues

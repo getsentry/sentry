@@ -1,5 +1,6 @@
 import selectEvent from 'react-select-event';
 import pick from 'lodash/pick';
+import {VercelProvider} from 'sentry-fixture/vercelIntegration';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -35,7 +36,7 @@ describe('IntegrationOrganizationLink', () => {
 
     const getProviderMock = MockApiClient.addMockResponse({
       url: `/organizations/${org2.slug}/config/integrations/?provider_key=vercel`,
-      body: {providers: [TestStubs.VercelProvider()]},
+      body: {providers: [VercelProvider()]},
     });
 
     render(

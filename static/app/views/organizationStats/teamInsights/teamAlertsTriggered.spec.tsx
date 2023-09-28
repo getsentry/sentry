@@ -1,3 +1,5 @@
+import {TeamAlertsTriggered as TeamAlertsTriggeredFixture} from 'sentry-fixture/teamAlertsTriggered';
+
 import {render} from 'sentry-test/reactTestingLibrary';
 
 import TeamAlertsTriggered from 'sentry/views/organizationStats/teamInsights/teamAlertsTriggered';
@@ -10,7 +12,7 @@ describe('TeamAlertsTriggered', () => {
 
     const alertsTriggeredApi = MockApiClient.addMockResponse({
       url: `/teams/${organization.slug}/${team.slug}/alerts-triggered/`,
-      body: TestStubs.TeamAlertsTriggered(),
+      body: TeamAlertsTriggeredFixture(),
     });
 
     MockApiClient.addMockResponse({

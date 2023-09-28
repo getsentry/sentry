@@ -1,4 +1,5 @@
 import {ProjectFilters as ProjectFiltersFixture} from 'sentry-fixture/projectFilters';
+import {Tombstones} from 'sentry-fixture/tombstones';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -48,7 +49,7 @@ describe('ProjectFilters', function () {
 
     MockApiClient.addMockResponse({
       url: `${PROJECT_URL}tombstones/`,
-      body: TestStubs.Tombstones(),
+      body: Tombstones(),
     });
   });
 

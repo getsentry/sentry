@@ -1,4 +1,5 @@
 import {OrganizationIntegrations} from 'sentry-fixture/organizationIntegrations';
+import {UserIdentity} from 'sentry-fixture/userIdentity';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -105,7 +106,7 @@ describe('NotificationSettingsByType', function () {
       {
         alerts: {user: {me: {email: 'always', slack: 'always'}}},
       },
-      [TestStubs.UserIdentity()],
+      [UserIdentity()],
       [OrganizationIntegrations({organizationId: org.id})]
     );
 

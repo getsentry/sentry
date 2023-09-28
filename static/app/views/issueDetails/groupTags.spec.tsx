@@ -1,3 +1,5 @@
+import {Tags} from 'sentry-fixture/tags';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -10,7 +12,7 @@ describe('GroupTags', function () {
   beforeEach(function () {
     tagsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/1/tags/',
-      body: TestStubs.Tags(),
+      body: Tags(),
     });
   });
 

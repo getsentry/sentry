@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {Tags} from 'sentry-fixture/tags';
 
 import {
   act,
@@ -20,7 +21,7 @@ describe('SmartSearchBar', function () {
 
   beforeEach(function () {
     TagStore.reset();
-    TagStore.loadTagsSuccess(TestStubs.Tags());
+    TagStore.loadTagsSuccess(Tags());
     const supportedTags = TagStore.getState();
     supportedTags.firstRelease = {
       key: 'firstRelease',
