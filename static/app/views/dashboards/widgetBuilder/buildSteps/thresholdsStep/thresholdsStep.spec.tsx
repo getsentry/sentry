@@ -7,6 +7,7 @@ const exampleThresholdsConfig: ThresholdsConfig = {
     max_1: 100,
     max_2: 200,
   },
+  unit: null,
 };
 
 describe('Widget Builder > ThresholdsStep', function () {

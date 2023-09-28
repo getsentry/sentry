@@ -159,7 +159,6 @@ export function constructWidgetFromQuery(query?: Query): Widget | undefined {
         }),
         widgetType: WidgetType.DISCOVER,
         queries,
-        thresholds: null,
       };
       return newWidget;
     }

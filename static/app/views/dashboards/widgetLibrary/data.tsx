@@ -15,7 +15,6 @@ export const getDefaultWidgets = () => {
       description: t('Compare transaction durations across different percentiles.'),
       displayType: DisplayType.LINE,
       widgetType: WidgetType.DISCOVER,
-      thresholds: null,
       interval: '5m',
       queries: [
         {
