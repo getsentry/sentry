@@ -31,7 +31,6 @@ import {
 } from 'sentry/utils/queryClient';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
-import Teams from 'sentry/utils/teams';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -183,94 +182,79 @@ function AlertRulesList() {
               onChangeFilter={handleChangeFilter}
               onChangeSearch={handleChangeSearch}
             />
-            <Teams provideUserTeams>
-              {({initiallyLoaded: loadedTeams, teams}) => (
-                <StyledPanelTable
-                  isLoading={isLoading || !loadedTeams}
-                  isEmpty={ruleList.length === 0 && !isError}
-                  emptyMessage={t('No alert rules found for the current query.')}
-                  headers={[
-                    <StyledSortLink
-                      key="name"
-                      role="columnheader"
-                      aria-sort={
-                        sort.field !== 'name'
-                          ? 'none'
-                          : sort.asc
-                          ? 'ascending'
-                          : 'descending'
-                      }
-                      to={{
-                        pathname: location.pathname,
-                        query: {
-                          ...currentQuery,
-                          // sort by name should start by ascending on first click
-                          asc: sort.field === 'name' && sort.asc ? undefined : '1',
-                          sort: 'name',
-                        },
-                      }}
-                    >
-                      {t('Alert Rule')} {sort.field === 'name' ? sortArrow : null}
-                    </StyledSortLink>,
-
-                    <StyledSortLink
-                      key="status"
-                      role="columnheader"
-                      aria-sort={
-                        !isAlertRuleSort ? 'none' : sort.asc ? 'ascending' : 'descending'
-                      }
-                      to={{
-                        pathname: location.pathname,
-                        query: {
-                          ...currentQuery,
-                          asc: isAlertRuleSort && !sort.asc ? '1' : undefined,
-                          sort: ['incident_status', 'date_triggered'],
-                        },
-                      }}
-                    >
-                      {t('Status')} {isAlertRuleSort ? sortArrow : null}
-                    </StyledSortLink>,
-                    t('Project'),
-                    t('Team'),
-                    t('Actions'),
-                  ]}
+            <StyledPanelTable
+              isLoading={isLoading}
+              isEmpty={ruleList.length === 0 && !isError}
+              emptyMessage={t('No alert rules found for the current query.')}
+              headers={[
+                <StyledSortLink
+                  key="name"
+                  role="columnheader"
+                  aria-sort={
+                    sort.field !== 'name' ? 'none' : sort.asc ? 'ascending' : 'descending'
+                  }
+                  to={{
+                    pathname: location.pathname,
+                    query: {
+                      ...currentQuery,
+                      // sort by name should start by ascending on first click
+                      asc: sort.field === 'name' && sort.asc ? undefined : '1',
+                      sort: 'name',
+                    },
+                  }}
                 >
-                  {isError ? (
-                    <StyledLoadingError
-                      message={t('There was an error loading alerts.')}
-                      onRetry={refetch}
-                    />
-                  ) : null}
-                  <VisuallyCompleteWithData
-                    id="AlertRules-Body"
-                    hasData={loadedTeams && !isEmpty(ruleList)}
-                  >
-                    <Projects orgId={organization.slug} slugs={projectsFromResults}>
-                      {({initiallyLoaded, projects}) =>
-                        ruleList.map(rule => (
-                          <RuleListRow
-                            // Metric and issue alerts can have the same id
-                            key={`${
-                              isIssueAlert(rule)
-                                ? AlertRuleType.METRIC
-                                : AlertRuleType.ISSUE
-                            }-${rule.id}`}
-                            projectsLoaded={initiallyLoaded}
-                            projects={projects as Project[]}
-                            rule={rule}
-                            orgId={organization.slug}
-                            onOwnerChange={handleOwnerChange}
-                            onDelete={handleDeleteRule}
-                            userTeams={new Set(teams.map(team => team.id))}
-                            hasEditAccess={hasEditAccess}
-                          />
-                        ))
-                      }
-                    </Projects>
-                  </VisuallyCompleteWithData>
-                </StyledPanelTable>
-              )}
-            </Teams>
+                  {t('Alert Rule')} {sort.field === 'name' ? sortArrow : null}
+                </StyledSortLink>,
+                <StyledSortLink
+                  key="status"
+                  role="columnheader"
+                  aria-sort={
+                    !isAlertRuleSort ? 'none' : sort.asc ? 'ascending' : 'descending'
+                  }
+                  to={{
+                    pathname: location.pathname,
+                    query: {
+                      ...currentQuery,
+                      asc: isAlertRuleSort && !sort.asc ? '1' : undefined,
+                      sort: ['incident_status', 'date_triggered'],
+                    },
+                  }}
+                >
+                  {t('Status')} {isAlertRuleSort ? sortArrow : null}
+                </StyledSortLink>,
+                t('Project'),
+                t('Team'),
+                t('Actions'),
+              ]}
+            >
+              {isError ? (
+                <StyledLoadingError
+                  message={t('There was an error loading alerts.')}
+                  onRetry={refetch}
+                />
+              ) : null}
+              <VisuallyCompleteWithData id="AlertRules-Body" hasData={!isEmpty(ruleList)}>
+                <Projects orgId={organization.slug} slugs={projectsFromResults}>
+                  {({initiallyLoaded, projects}) =>
+                    ruleList.map(rule => (
+                      <RuleListRow
+                        // Metric and issue alerts can have the same id
+                        key={`${
+                          isIssueAlert(rule) ? AlertRuleType.METRIC : AlertRuleType.ISSUE
+                        }-${rule.id}`}
+                        projectsLoaded={initiallyLoaded}
+                        projects={projects as Project[]}
+                        rule={rule}
+                        orgId={organization.slug}
+                        onOwnerChange={handleOwnerChange}
+                        onDelete={handleDeleteRule}
+                        hasEditAccess={hasEditAccess}
+                      />
+                    ))
+                  }
+                </Projects>
+              </VisuallyCompleteWithData>
+            </StyledPanelTable>
             <Pagination
               pageLinks={ruleListPageLinks}
               onCursor={(cursor, path, _direction) => {
