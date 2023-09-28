@@ -780,21 +780,27 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             )
         )
         self.store_replays(
-            self.mock_event_links(seq1_timestamp, project.id, "fatal", replay1_id, uuid.uuid4().hex)
-        )
-        self.store_replays(
-            self.mock_event_links(seq1_timestamp, project.id, "error", replay1_id, uuid.uuid4().hex)
-        )
-        self.store_replays(
             self.mock_event_links(
-                seq1_timestamp, project.id, "warning", replay1_id, uuid.uuid4().hex
+                seq1_timestamp, project2.id, "fatal", replay1_id, uuid.uuid4().hex
             )
         )
         self.store_replays(
-            self.mock_event_links(seq1_timestamp, project.id, "info", replay1_id, uuid.uuid4().hex)
+            self.mock_event_links(
+                seq1_timestamp, project2.id, "error", replay1_id, uuid.uuid4().hex
+            )
         )
         self.store_replays(
-            self.mock_event_links(seq1_timestamp, project.id, "debug", replay1_id, uuid.uuid4().hex)
+            self.mock_event_links(
+                seq1_timestamp, project2.id, "warning", replay1_id, uuid.uuid4().hex
+            )
+        )
+        self.store_replays(
+            self.mock_event_links(seq1_timestamp, project2.id, "info", replay1_id, uuid.uuid4().hex)
+        )
+        self.store_replays(
+            self.mock_event_links(
+                seq1_timestamp, project2.id, "debug", replay1_id, uuid.uuid4().hex
+            )
         )
 
         with self.feature(REPLAYS_FEATURES):
