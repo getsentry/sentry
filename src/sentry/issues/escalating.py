@@ -58,13 +58,17 @@ logger = logging.getLogger(__name__)
 __all__ = ["query_groups_past_counts", "parse_groups_past_counts"]
 
 REFERRER = "sentry.issues.escalating"
-ELEMENTS_PER_SNUBA_PAGE = 10000  # This is the maximum value for Snuba
 # The amount of data needed to generate a group forecast
 BUCKETS_PER_GROUP = 7 * 24
 ONE_WEEK_DURATION = 7
 IS_ESCALATING_REFERRER = "sentry.issues.escalating.is_escalating"
 GROUP_HOURLY_COUNT_TTL = 60
 HOUR = 3600  # 3600 seconds
+
+ELEMENTS_PER_SNUBA_PAGE = 10000  # This is the maximum value for Snuba
+ELEMENTS_PER_SNUBA_METRICS_QUERY = math.floor(
+    ELEMENTS_PER_SNUBA_PAGE / BUCKETS_PER_GROUP
+)  # This is the maximum value for Snuba Metrics Query
 
 GroupsCountResponse = TypedDict(
     "GroupsCountResponse",
@@ -122,7 +126,6 @@ def _process_groups(
     if not groups:
         return all_results
 
-    # group_ids_by_project = _extract_project_and_group_ids(groups)
     group_ids_by_project_by_organization = _extract_organization_and_project_and_group_ids(groups)
     proj_ids, group_ids = [], []
     processed_projects = 0
@@ -169,7 +172,6 @@ def _query_with_pagination(
 ) -> List[GroupsCountResponse]:
     """Query Snuba for event counts for the given list of project ids and groups ids in
     a time range."""
-    organization = Organization.objects.get(id=organization_id)
     all_results = []
     offset = 0
 
@@ -190,12 +192,35 @@ def _query_with_pagination(
         if not results or len(results) < ELEMENTS_PER_SNUBA_PAGE:
             break
 
+    _query_metrics_with_pagination(
+        organization_id, project_ids, group_ids, start_date, end_date, category, all_results
+    )
+    return all_results
+
+
+def _query_metrics_with_pagination(
+    organization_id: int,
+    project_ids: Sequence[int],
+    group_ids: Sequence[int],
+    start_date: datetime,
+    end_date: datetime,
+    category: Optional[GroupCategory],
+    all_results: List[GroupsCountResponse],
+) -> List[GroupsCountResponse]:
+    """
+    Paginates Snuba metric queries for event counts for the
+    given list of project ids and groups ids in a time range.
+
+    Checks if the returned results are equivalent to `all_results`.
+    If not equivalent, it will generate a log.
+    """
+    organization = Organization.objects.get(id=organization_id)
+
     if category == GroupCategory.ERROR and features.has(
         "organizations:escalating-issues-v2", organization
     ):
         metrics_results = []
         metrics_offset = 0
-        limit = math.floor(ELEMENTS_PER_SNUBA_PAGE / (7 * 24)) or 1
 
         while True:
             # Generate and execute the query to the Generics Metrics Backend
@@ -206,7 +231,6 @@ def _query_with_pagination(
                 start_date,
                 end_date,
                 metrics_offset,
-                limit,
                 category,
             )
             projects = Project.objects.filter(id__in=project_ids)
@@ -217,11 +241,11 @@ def _query_with_pagination(
             )
 
             metrics_results += transform_to_groups_count_response(metrics_series_results)
-            metrics_offset += limit
+            metrics_offset += ELEMENTS_PER_SNUBA_METRICS_QUERY
 
             if (
                 not metrics_series_results["groups"]
-                or len(metrics_series_results["groups"]) < limit
+                or len(metrics_series_results["groups"]) < ELEMENTS_PER_SNUBA_METRICS_QUERY
             ):
                 break
 
@@ -232,8 +256,6 @@ def _query_with_pagination(
                 "Generics Metrics Backend query results not the same as Errors dataset query.",
                 extra={"metrics_results": metrics_results, "dataset_results": all_results},
             )
-
-    return all_results
 
 
 def transform_to_groups_count_response(data: dict) -> List[GroupsCountResponse]:
@@ -274,7 +296,6 @@ def _generate_generic_metrics_backend_query(
     start_date: datetime,
     end_date: datetime,
     offset: int,
-    limit: int,
     category: Optional[GroupCategory],
 ):
     """
@@ -311,9 +332,8 @@ def _generate_generic_metrics_backend_query(
         granularity=Granularity(HOUR),
         groupby=groupby,
         offset=Offset(offset),
-        limit=Limit(limit),
+        limit=Limit(ELEMENTS_PER_SNUBA_METRICS_QUERY),
         include_totals=False,
-        # include_series=False,
     )
 
 
