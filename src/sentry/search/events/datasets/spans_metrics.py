@@ -28,7 +28,6 @@ class SpansMetricsDatasetConfig(DatasetConfig):
     ) -> Mapping[str, Callable[[SearchFilter], Optional[WhereType]]]:
         return {
             constants.SPAN_DOMAIN_ALIAS: self._span_domain_filter_converter,
-            constants.SPAN_DOMAIN_ARRAY_ALIAS: self._span_domain_filter_converter,
         }
 
     @property
