@@ -96,7 +96,7 @@ class MonitorTaskCheckMissingTest(TestCase):
             sub_task_run_ts,
         )
 
-        mark_environment_missing(monitor_environment.id, task_run_ts)
+        mark_environment_missing(monitor_environment.id, sub_task_run_ts)
 
         # Monitor status is updated
         monitor_environment = MonitorEnvironment.objects.get(
