@@ -285,6 +285,9 @@ replay_url_parser_config = SearchConfig(
         "count_dead_clicks",
         "count_rage_clicks",
         "activity",
+        "new_count_errors",
+        "count_warnings",
+        "count_infos",
     },
 )
 
@@ -543,6 +546,9 @@ FIELD_QUERY_ALIAS_MAP: Dict[str, List[str]] = {
     "new_error_ids": ["new_error_ids"],
     "warning_ids": ["warning_ids"],
     "info_ids": ["info_ids"],
+    "new_count_errors": ["new_count_errors"],
+    "count_warnings": ["count_warnings"],
+    "count_infos": ["count_infos"],
 }
 
 
@@ -688,6 +694,21 @@ QUERY_ALIAS_COLUMN_MAP = {
     "new_error_ids": _collect_new_errors(),
     "warning_ids": _collect_event_ids("warning_ids", ["warning_id"]),
     "info_ids": _collect_event_ids("info_ids", ["info_id", "debug_id"]),
+    "new_count_errors": Function(
+        "sum",
+        parameters=[Column("count_error_events")],
+        alias="new_count_errors",
+    ),
+    "count_warnings": Function(
+        "sum",
+        parameters=[Column("count_warning_events")],
+        alias="count_warnings",
+    ),
+    "count_infos": Function(
+        "sum",
+        parameters=[Column("count_info_events")],
+        alias="count_infos",
+    ),
 }
 
 

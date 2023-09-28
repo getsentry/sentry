@@ -69,9 +69,12 @@ class ReplayDetailsResponse(TypedDict, total=False):
     platform: Optional[str]
     releases: List[str]
     dist: Optional[str]
-    warning_ids: Optional[List[str]]
     new_error_ids: Optional[List[str]]
+    warning_ids: Optional[List[str]]
     info_ids: Optional[List[str]]
+    new_count_errors: Optional[int]
+    count_warnings: Optional[int]
+    count_infos: Optional[int]
 
 
 def process_raw_response(
@@ -177,9 +180,12 @@ def generate_normalized_output(
         ret_item["replay_type"] = item.pop("replay_type", "session")
         ret_item["started_at"] = item.pop("started_at", None)
 
-        ret_item["warning_ids"] = item.pop("warning_ids", None)
         ret_item["new_error_ids"] = item.pop("new_error_ids", None)
+        ret_item["warning_ids"] = item.pop("warning_ids", None)
         ret_item["info_ids"] = item.pop("info_ids", None)
+        ret_item["new_count_errors"] = item.pop("new_count_errors", None)
+        ret_item["count_infos"] = item.pop("count_infos", None)
+        ret_item["count_warnings"] = item.pop("count_warnings", None)
         yield ret_item
 
 
