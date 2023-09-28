@@ -2,14 +2,22 @@ from django.db import router, transaction
 from django.db.models import Q
 from sentry_sdk import capture_exception
 
+from sentry import roles
+from sentry.hybridcloud.rpc_services.organization_provisioning import (
+    OrganizationProvisioningOptions,
+)
 from sentry.hybridcloud.rpc_services.organization_provisioning_region import (
     OrganizationProvisioningRegionService,
 )
-from sentry.models import Organization, OutboxCategory, OutboxScope, RegionOutbox, outbox_context
-from sentry.services.hybrid_cloud.organization_actions.impl import (
-    create_organization_and_member_for_monolith,
+from sentry.models import (
+    Organization,
+    OrganizationMember,
+    OrganizationMemberTeam,
+    OutboxCategory,
+    OutboxScope,
+    RegionOutbox,
+    outbox_context,
 )
-from sentry.services.hybrid_cloud.organization_provisioning import OrganizationProvisioningOptions
 
 
 def create_post_provision_outbox(
@@ -25,7 +33,29 @@ def create_post_provision_outbox(
 
 
 class DatabaseBackedOrganizationProvisioningRegionService(OrganizationProvisioningRegionService):
-    pass
+    def _create_organization_and_team(
+        self,
+        organization_name: str,
+        user_id: int,
+        slug: str,
+        create_default_team: bool,
+        organization_id: int,
+        is_test: bool = False,
+    ) -> Organization:
+        org = Organization.objects.create(
+            id=organization_id, name=organization_name, slug=slug, is_test=is_test
+        )
+
+        om = OrganizationMember.objects.create(
+            user_id=user_id, organization=org, role=roles.get_top_dog().id
+        )
+
+        team = None
+        if create_default_team:
+            team = org.team_set.create(name=org.name)
+            OrganizationMemberTeam.objects.create(team=team, organizationmember=om, is_active=True)
+
+        return org
 
     def create_organization_in_region(
         self,
@@ -40,7 +70,7 @@ class DatabaseBackedOrganizationProvisioningRegionService(OrganizationProvisioni
         provision_options = provision_payload.provision_options
 
         with outbox_context(transaction.atomic(router.db_for_write(Organization))):
-            org_creation_result = create_organization_and_member_for_monolith(
+            org_creation_result = self._create_organization_and_team(
                 user_id=provision_options.owning_user_id,
                 slug=provision_options.slug,
                 organization_name=provision_options.name,
@@ -48,7 +78,7 @@ class DatabaseBackedOrganizationProvisioningRegionService(OrganizationProvisioni
                 organization_id=organization_id,
             )
 
-            org = org_creation_result.organization
+            org = org_creation_result
             create_post_provision_outbox(
                 provisioning_options=provision_payload, org_id=org.id
             ).save()

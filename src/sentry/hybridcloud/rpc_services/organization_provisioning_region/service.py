@@ -1,9 +1,9 @@
 from abc import abstractmethod
 from typing import cast
 
-from sentry.services.hybrid_cloud.organization_provisioning import OrganizationProvisioningOptions
 from sentry.services.hybrid_cloud.region import ByRegionName
 from sentry.services.hybrid_cloud.rpc import RpcService, regional_rpc_method
+from sentry.services.organization import OrganizationProvisioningOptions
 from sentry.silo import SiloMode
 
 

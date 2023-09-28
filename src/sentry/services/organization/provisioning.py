@@ -2,12 +2,65 @@ from typing import Optional
 
 from django.conf import settings
 from django.db import IntegrityError, router, transaction
+from sentry_sdk import capture_exception
 
+from sentry.models import OrganizationMapping, OrganizationSlugReservation
+from sentry.services.hybrid_cloud.organization_provisioning_region import (
+    organization_provisioning_region_service,
+)
 from sentry.services.organization.model import OrganizationProvisioningOptions
 
 
 class OrganizationSlugCollisionException(Exception):
     pass
+
+
+class OrganizationProvisioningException(Exception):
+    pass
+
+
+def handle_organization_provisioning_outbox_payload(
+    *,
+    organization_id: int,
+    region_name: str,
+    provisioning_payload: OrganizationProvisioningOptions,
+):
+    """
+    CAUTION: THIS IS ONLY INTENDED TO BE USED BY THE `organization_provisioning` RPC SERVICE.
+    DO NOT USE THIS FOR LOCAL PROVISIONING.
+
+    Method for handling a provisioning payload
+    :param organization_id: The desired ID for the organization
+    :param region_name: The region to provision the organization in
+    :param provisioning_payload: The organization data used to provision the org
+    :return:
+    """
+    org_slug_reservation = OrganizationSlugReservation.objects.get(
+        organization_id=organization_id, slug=provisioning_payload.provision_options.slug
+    )
+
+    able_to_provision = organization_provisioning_region_service.create_organization_in_region(
+        organization_id=organization_id,
+        provision_payload=provisioning_payload,
+        region_name=region_name,
+    )
+
+    if not able_to_provision:
+        # If the region returns false when validating provisioning information,
+        # it's likely a conflict has occurred (e.g. an org create locally).
+        # This means we need to delete the old org slug reservation as it
+        # can no longer be assumed to be valid.
+        org_slug_reservation.delete()
+        raise OrganizationProvisioningException("Failed to provision organization in region")
+
+    organization_mapping = OrganizationMapping.objects.get(organization_id=organization_id)
+    if not organization_mapping:
+        error = OrganizationProvisioningException(
+            f"Expected there to be an organization mapping for org: {organization_id}"
+        )
+        capture_exception(error)
+
+        raise error
 
 
 class OrganizationProvisioningService:
