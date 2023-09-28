@@ -14,7 +14,6 @@ import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
-import {DeprecatedAggregateFlamegraph} from 'sentry/components/profiling/flamegraph/deprecatedAggregateFlamegraph';
 import {FlamegraphSearch} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphSearch';
 import {
   ProfilingBreadcrumbs,
@@ -51,6 +50,8 @@ import {ProfilesSummaryChart} from 'sentry/views/profiling/landing/profilesSumma
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
 import {LegacySummaryPage} from 'sentry/views/profiling/profileSummary/legacySummaryPage';
 import {DEFAULT_PROFILING_DATETIME_SELECTION} from 'sentry/views/profiling/utils';
+
+import {AggregateFlamegraph} from '../../../components/profiling/flamegraph/aggregateFlamegraph';
 
 import {MostRegressedProfileFunctions} from './regressedProfileFunctions';
 import {SlowestProfileFunctions} from './slowestProfileFunctions';
@@ -353,29 +354,15 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
                   }}
                 >
                   <FlamegraphThemeProvider>
-                    {visualization === 'flamegraph' ? (
-                      <DeprecatedAggregateFlamegraph
-                        hideToolbar
-                        hideSystemFrames={false}
-                        setHideSystemFrames={() => void 0}
-                      >
-                        {p => {
-                          return (
-                            <AggregateFlamegraphToolbar
-                              {...p}
-                              visualization={visualization}
-                              onVisualizationChange={onVisualizationChange}
-                              frameFilter={frameFilter}
-                              onFrameFilterChange={onFrameFilterChange}
-                              hideSystemFrames={false}
-                              setHideSystemFrames={() => void 0}
-                            />
-                          );
-                        }}
-                      </DeprecatedAggregateFlamegraph>
-                    ) : (
-                      <div />
-                    )}
+                    <AggregateFlamegraphToolbar
+                      visualization={visualization}
+                      onVisualizationChange={onVisualizationChange}
+                      frameFilter={frameFilter}
+                      onFrameFilterChange={onFrameFilterChange}
+                      hideSystemFrames={false}
+                      setHideSystemFrames={() => void 0}
+                    />
+                    {visualization === 'flamegraph' ? <AggregateFlamegraph /> : null}
                   </FlamegraphThemeProvider>
                 </FlamegraphStateProvider>
               </ProfileGroupProvider>
