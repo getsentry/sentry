@@ -2,6 +2,7 @@ import {browserHistory} from 'react-router';
 import merge from 'lodash/merge';
 import {GroupStats} from 'sentry-fixture/groupStats';
 import {Search} from 'sentry-fixture/search';
+import {Tags} from 'sentry-fixture/tags';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -59,7 +60,7 @@ const routerProps = {
 describe('IssueList', function () {
   let props;
 
-  const tags = TestStubs.Tags();
+  const tags = Tags();
   const group = TestStubs.Group({project});
   const groupStats = GroupStats();
   const savedSearch = Search({
