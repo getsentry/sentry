@@ -273,12 +273,15 @@ def get_function_name_for_frame(frame, platform=None):
         return trim_function_name(rv, frame.get("platform") or platform)
 
 
-def get_source_link_for_frame(frame: Frame) -> str:
+def get_source_link_for_frame(frame: Frame) -> str | None:
     """If source_link points to a GitHub raw content link, process it so that
     we can return the GitHub equivalent with the line number, and use it as a
     stacktrace link. Otherwise, return the link as is.
     """
-    source_link = frame.get("source_link")
+    try:
+        source_link = frame.get("source_link")
+    except KeyError:
+        return None
     parse_result = urlparse(source_link)
     if parse_result.netloc == "raw.githubusercontent.com":
         path_parts = parse_result.path.split("/")
