@@ -164,7 +164,7 @@ export function SelectorLink({
 }
 
 function renderClickCount<T>(column: GridColumnOrder<string>, dataRow: T) {
-  const color = column.key === 'count_rage_clicks' ? 'red300' : 'yellow300';
+  const color = column.key === 'count_dead_clicks' ? 'yellow300' : 'red300';
 
   return (
     <ClickColor color={color}>
