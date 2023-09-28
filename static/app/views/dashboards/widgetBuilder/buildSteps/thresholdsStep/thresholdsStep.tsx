@@ -82,13 +82,13 @@ function ThresholdsStep({thresholdsConfig, onChange}: ThresholdsStepProps) {
         <ThresholdRow
           maxKey={ThresholdMaxKeys.MAX_1}
           minInputProps={{
-            name: '',
+            name: 'firstMinimum',
             disabled: true,
             value: 0,
             'aria-label': 'First Minimum',
           }}
           maxInputProps={{
-            name: '',
+            name: 'firstMaximum',
             value: maxOneValue,
             'aria-label': 'First Maximum',
           }}
@@ -98,13 +98,13 @@ function ThresholdsStep({thresholdsConfig, onChange}: ThresholdsStepProps) {
         <ThresholdRow
           maxKey={ThresholdMaxKeys.MAX_2}
           minInputProps={{
-            name: '',
+            name: 'secondMinimum',
             disabled: true,
             value: maxOneValue,
             'aria-label': 'Second Minimum',
           }}
           maxInputProps={{
-            name: '',
+            name: 'secondMaximum',
             value: maxTwoValue,
             'aria-label': 'Second Maximum',
           }}
@@ -113,13 +113,13 @@ function ThresholdsStep({thresholdsConfig, onChange}: ThresholdsStepProps) {
         />
         <ThresholdRow
           minInputProps={{
-            name: '',
+            name: 'thirdMinimum',
             disabled: true,
             value: maxTwoValue,
             'aria-label': 'Third Minimum',
           }}
           maxInputProps={{
-            name: '',
+            name: 'thirdMaximum',
             disabled: true,
             placeholder: t('No max'),
             'aria-label': 'Third Maximum',
