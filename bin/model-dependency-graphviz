@@ -15,7 +15,7 @@ from string import Template
 import click
 from django.db import models
 
-from sentry.backup.dependencies import ForeignFieldKind, ModelRelations, dependencies
+from sentry.backup.dependencies import ForeignField, ForeignFieldKind, ModelRelations, dependencies
 
 digraph = Template(
     """
@@ -86,10 +86,10 @@ class NodeColor(Enum):
 
 
 @unique
-class EdgeStyle(Enum):
-    Hybrid = "[color=green]"
-    Explicit = "[color=blue]"
-    Implicit = "[color=red]"
+class EdgeColor(Enum):
+    Hybrid = "color=green"
+    Explicit = "color=blue"
+    Implicit = "color=red"
 
 
 def print_model_node(model: models.base.ModelBase, silo: SiloMode) -> str:
@@ -113,18 +113,17 @@ def print_edges(mr: ModelRelations) -> str:
         return ""
 
     src = mr.model
-    return "\n    ".join([print_edge(src, ff.model, ff.kind) for ff in mr.foreign_keys.values()])
+    return "\n    ".join([print_edge(src, ff.model, ff) for ff in mr.foreign_keys.values()])
 
 
-def print_edge(
-    src: models.base.ModelBase, dest: models.base.ModelBase, kind: ForeignFieldKind
-) -> str:
-    style = EdgeStyle.Explicit
-    if kind == ForeignFieldKind.HybridCloudForeignKey:
-        style = EdgeStyle.Hybrid
-    elif kind == ForeignFieldKind.ImplicitForeignKey:
-        style = EdgeStyle.Implicit
-    return f""""{src.__name__}":e -> "{dest.__name__}":w {style.value};"""
+def print_edge(src: models.base.ModelBase, dest: models.base.ModelBase, field: ForeignField) -> str:
+    color = EdgeColor.Explicit
+    if field.kind == ForeignFieldKind.HybridCloudForeignKey:
+        color = EdgeColor.Hybrid
+    elif field.kind == ForeignFieldKind.ImplicitForeignKey:
+        color = EdgeColor.Implicit
+    style = "dashed" if field.nullable else "solid"
+    return f""""{src.__name__}":e -> "{dest.__name__}":w [{color.value},style={style}];"""
 
 
 def get_most_permissive_relocation_scope(mr: ModelRelations) -> RelocationScope:

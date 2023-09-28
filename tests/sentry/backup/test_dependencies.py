@@ -1,6 +1,11 @@
 from difflib import unified_diff
 
-from sentry.backup.dependencies import DependenciesJSONEncoder, dependencies, sorted_dependencies
+from sentry.backup.dependencies import (
+    DependenciesJSONEncoder,
+    dependencies,
+    get_model_name,
+    sorted_dependencies,
+)
 from sentry.testutils.factories import get_fixture_path
 
 encoder = DependenciesJSONEncoder(
@@ -47,6 +52,22 @@ def test_sorted():
         expect = fixture.read().splitlines()
 
     actual = encoder.encode(sorted_dependencies()).splitlines()
+    diff = list(unified_diff(expect, actual, n=3))
+    if diff:
+        raise AssertionError(
+            "Model dependency list does not match fixture. If you are seeing this in CI, please run `bin/generate-model-dependency-fixtures` and re-upload:\n\n"
+            + "\n".join(diff)
+        )
+
+
+def test_truncate():
+    fixture_path = get_fixture_path("backup", "model_dependencies", "truncate.json")
+    with open(fixture_path) as fixture:
+        expect = fixture.read().splitlines()
+
+    actual = encoder.encode(
+        [dependencies()[get_model_name(m)].table_name for m in sorted_dependencies()]
+    ).splitlines()
     diff = list(unified_diff(expect, actual, n=3))
     if diff:
         raise AssertionError(
