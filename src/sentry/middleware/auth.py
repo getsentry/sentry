@@ -132,7 +132,6 @@ class HybridCloudAuthenticationMiddleware(MiddlewareMixin):
             user_from_signed_request=False,
             accessed=[],
         )
-        request.user_from_signed_request = auth_result.user_from_signed_request
 
         # Simulate accessing attributes on the session to trigger side effects related to doing so.
         for attr in auth_result.accessed:
