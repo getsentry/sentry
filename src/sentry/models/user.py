@@ -335,7 +335,7 @@ class User(BaseModel, AbstractBaseUser):
                 organization_id=organization_id, from_user_id=from_user.id, to_user_id=to_user.id
             )
 
-        model_list = (
+        model_list: tuple[type[BaseModel], ...] = (
             Authenticator,
             Identity,
             UserAvatar,
