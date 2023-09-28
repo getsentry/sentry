@@ -19,7 +19,7 @@ from sentry.api.serializers.models.notification_action import OutgoingNotificati
 from sentry.api.serializers.rest_framework.notification_action import NotificationActionSerializer
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN
 from sentry.apidocs.examples import notification_examples
-from sentry.apidocs.parameters import GlobalParams, NotificationParams
+from sentry.apidocs.parameters import GlobalParams, NotificationParams, OrganizationParams
 from sentry.models.notificationaction import NotificationAction
 from sentry.models.organization import Organization
 
@@ -69,7 +69,8 @@ class NotificationActionsIndexEndpoint(OrganizationEndpoint):
         operation_id="List Spike Protection Notifications",
         parameters=[
             GlobalParams.ORG_SLUG,
-            GlobalParams.PROJECT,
+            OrganizationParams.PROJECT,
+            OrganizationParams.PROJECT_SLUG,
             NotificationParams.TRIGGER_TYPE,
         ],
         responses={
@@ -85,6 +86,8 @@ class NotificationActionsIndexEndpoint(OrganizationEndpoint):
 
         Notification Actions notify a set of a member when an action has been triggered through a notification service such as Slack or Sentry.
         For example, email the organization owner when spike protection threshod has been reached.
+
+        You can use either `project` or `projectSlug` query parameter to filter for certain projects but note that if used together `projectSlug` has priority.
         """
         queryset = NotificationAction.objects.filter(organization_id=organization.id)
         # If a project query is specified, filter out non-project-specific actions

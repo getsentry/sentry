@@ -67,14 +67,6 @@ For example `24h`, to mean query data starting from 24 hours ago to now.""",
         type=OpenApiTypes.DATETIME,
         description="The end of the period of time for the query, expected in ISO-8601 format. For example `2001-12-14T12:34:56.7890`.",
     )
-    PROJECT = OpenApiParameter(
-        name="project",
-        location="query",
-        required=False,
-        many=True,
-        type=int,
-        description="The IDs of projects to filter by. `-1` means all available projects. For example, `/?project=87361412&project=22387642",
-    )
     ENVIRONMENT = OpenApiParameter(
         name="environment",
         location="query",
@@ -93,6 +85,25 @@ For example `24h`, to mean query data starting from 24 hours ago to now.""",
             type=str,
             description=description,
         )
+
+
+class OrganizationParams:
+    PROJECT_SLUG = OpenApiParameter(
+        name="project_slug",
+        location="query",
+        required=False,
+        many=True,
+        type=str,
+        description="The Slugs of projects to filter by. `$all` means all available projects. For example, `/?projectSlug=android&projectSlug=apple-ios` or `projectSlug=$all`",
+    )
+    PROJECT = OpenApiParameter(
+        name="project",
+        location="query",
+        required=False,
+        many=True,
+        type=int,
+        description="The IDs of projects to filter by. `-1` means all available projects. For example, `/?project=87361412&project=22387642` or `/?project=-1`",
+    )
 
 
 class SCIMParams:

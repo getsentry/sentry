@@ -273,11 +273,8 @@ class OrganizationEndpoint(Endpoint):
         :return: A list of Project objects, or raises PermissionDenied.
         """
         if project_ids is None:
-            print("****ids are none")
             slugs = project_slugs or set(filter(None, request.GET.getlist("projectSlug")))
-            print("slugs are ", slugs)
             if ALL_ACCESS_PROJECTS_SLUG in slugs:
-                print("found it")
                 project_ids = ALL_ACCESS_PROJECTS
             elif slugs:
                 projects = Project.objects.filter(
