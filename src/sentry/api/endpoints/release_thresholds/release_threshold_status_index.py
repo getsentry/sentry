@@ -68,7 +68,7 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
         Each returned enriched threshold will contain the full serialized release_threshold instance as well as it's derived health status
 
         {
-            {release}-{proj}-{env}: [
+            {proj}-{env}-{release}: [
                 {
                     project_id,
                     environment,
@@ -82,7 +82,7 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
                 {...},
                 {...}
             ],
-            {release}-{proj}-{env}: [...],
+            {proj}-{env}-{release}: [...],
         }
 
         ``````````````````
@@ -143,11 +143,12 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
         # ========================================================================
         # Step 3: flatten thresholds and compile projects/releases/thresholds by type
         # ========================================================================
-        thresholds_by_type: DefaultDict[int, dict[str, list]] = {
+        tracker = {
             "projects": [],
             "releases": [],
             "thresholds": [],
         }
+        thresholds_by_type: DefaultDict[int, dict[str, list]] = defaultdict(lambda: tracker)
         for release in queryset:
             # TODO:
             # We should update release model to preserve threshold states.
@@ -165,9 +166,7 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
                     thresholds_list = project.release_thresholds.all()
                 for threshold in thresholds_list:
                     thresholds_by_type[threshold.threshold_type]["projects"].append(project.id)
-                    thresholds_by_type[threshold.threshold_type]["release_id"].append(
-                        release.version
-                    )
+                    thresholds_by_type[threshold.threshold_type]["releases"].append(release.version)
                     enriched_threshold = {
                         **serialize(threshold),
                         "key": self.construct_threshold_key(
@@ -188,7 +187,7 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
         # Step 4: Determine threshold status per threshold type and return results
         # ========================================================================
         release_threshold_health = defaultdict(list)
-        for threshold_type, filter_list in enumerate(thresholds_by_type.items()):
+        for threshold_type, filter_list in thresholds_by_type.items():
             project_id_list = [proj_id for proj_id in filter_list["projects"]]
             release_value_list = [release_version for release_version in filter_list["releases"]]
             category_thresholds = filter_list["thresholds"]
@@ -249,8 +248,12 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
     def construct_threshold_key(self, project, release, threshold) -> str:
         """
         Consistent key helps to determine which thresholds can be grouped together.
+        project_id - environment - release_version
+
+        NOTE: release versions can contain special characters... `-` delimiter may not be appropriate
+        NOTE: environment names can contain special characters... `-` delimiter may not be appropriate
         """
-        return f"{project.id}-{release.version}-{threshold.environment}"
+        return f"{project.id}-{threshold.environment.name}-{release.version}"
 
 
 def is_error_count_healthy(ethreshold: Dict[str, Any], timeseries: List[Dict[str, Any]]) -> bool:
@@ -260,26 +263,26 @@ def is_error_count_healthy(ethreshold: Dict[str, Any], timeseries: List[Dict[str
     """
     total_count = 0
     for i in timeseries:
-        if i.time > ethreshold.end:
+        if i.time > ethreshold["end"]:
             # timeseries are ordered chronologically
             # So if we're past our threshold.end, we can skip the rest
             break
         if (
-            i.time <= ethreshold.start
-            or i.time > ethreshold.end
-            or i.release != ethreshold.release
-            or i.project_id != ethreshold.project_id
+            i.time <= ethreshold["start"]
+            or i.time > ethreshold["end"]
+            or i.release != ethreshold["release"]
+            or i.project_id != ethreshold["project_id"]
         ):
             # IF timesefries is chronological, once we pass threshold end, we can break :shrug:
             continue
         # else ethreshold.start < i.time <= ethreshold.end
         total_count += i["count()"]
 
-    if ethreshold.trigger_type == TriggerType.OVER:
-        return total_count > ethreshold.value
+    if ethreshold["trigger_type"] == TriggerType.OVER:
+        return total_count > ethreshold["value"]
 
     # else if ethreshold.trigger_type == TriggerType.UNDER:
-    return total_count < ethreshold.value
+    return total_count < ethreshold["value"]
 
 
 from snuba_sdk import Request as SnubaRequest

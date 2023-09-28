@@ -27,13 +27,13 @@ class ReleaseThresholdStatusTest(APITestCase):
         )
 
         # release created for proj1, and proj2
-        self.release1 = Release.objects.create(version="1", organization=self.organization)
+        self.release1 = Release.objects.create(version="v1", organization=self.organization)
         # add_project get_or_creates a ReleaseProject
         self.release1.add_project(self.project1)
         self.release1.add_project(self.project2)
 
         # release created for proj1
-        self.release2 = Release.objects.create(version="2", organization=self.organization)
+        self.release2 = Release.objects.create(version="v2", organization=self.organization)
         self.release2.add_project(self.project1)
 
         # Not sure what Release Environments are for...
@@ -131,74 +131,51 @@ class ReleaseThresholdStatusTest(APITestCase):
 
         so response should look like
         {
-            [release1]: {
-                [p1.id]: [threshold-p1-canary, threshold2-p1-canary, threshold-p1-prod]
-                [p2.id]: [threshold-p2-canary]
-            }
-            [release2]: [
-                [p1.id]: [threshold-p1-canary, threshold2-p1-canary, threshold-p1-prod]
-            ]
+            {p1.id}-{canary}-{release1.version}: [threshold1, threshold2]
+            {p1.id}-{prod}-{release1.version}: [threshold]
+            {p2.id}-{canary}-{release1.version}: [threshold]
+            {p1.id}-{canary}-{release2.version}: [threshold, threshold]
+            {p1.id}-{prod}-{release2.version}: [threshold]
         }
         """
         now = str(datetime.now())
         yesterday = str(datetime.now() - timedelta(hours=24))
         last_week = str(datetime.now() - timedelta(days=7))
         release_old = Release.objects.create(
-            version="0", organization=self.organization, date_added=last_week
+            version="old_version", organization=self.organization, date_added=last_week
         )
 
         response = self.get_success_response(self.organization.slug, start=yesterday, end=now)
 
-        assert len(response.data) == 2  # 2 releases
-        assert release_old.id not in response.data  # old release is filtered out of response
-        assert len(response.data.get(self.release1.id)) == 2  # 2 projects (p1 & p2) in release 1
+        assert len(response.data.keys()) == 5
+        for key in response.data.keys():
+            # NOTE: special characters *can* be included in release versions or environment names
+            assert release_old.version not in key  # old release is filtered out of response
+        data = response.data
+        # release1
+        r1_keys = [k for k, v in data.items() if k.split("-")[2] == self.release1.version]
+        assert len(r1_keys) == 3  # 3 keys produced in release 1 (p1-canary, p1-prod, p2-canary)
 
         assert (
-            len(response.data.get(self.release1.id, {}).get(self.project1.id)) == 3
-        )  # p1 2x canary, 1x prod
+            f"{self.project1.id}-{self.canary_environment.name}-{self.release1.version}" in r1_keys
+        )
         assert (
-            response.data.get(self.release1.id, {})
-            .get(self.project1.id)[0]  # first threshold
-            .get("environment", {})
-            .get("name")
-            == self.canary_environment.name
-        )  # assert environment is 'canary'
+            f"{self.project2.id}-{self.canary_environment.name}-{self.release1.version}" in r1_keys
+        )
         assert (
-            response.data.get(self.release1.id, {})
-            .get(self.project1.id)[2]
-            .get("environment", {})
-            .get("name")
-            == self.production_environment.name
-        )  # assert environment is 'production'
+            f"{self.project1.id}-{self.production_environment.name}-{self.release1.version}"
+            in r1_keys
+        )
+        # release2
+        r2_keys = [k for k, v in data.items() if k.split("-")[2] == self.release2.version]
+        assert len(r2_keys) == 2  # 2 keys produced in release 2 (p1-canary, p1-prod)
         assert (
-            len(response.data.get(self.release1.id, {}).get(self.project2.id)) == 1
-        )  # p2 1x canary
+            f"{self.project1.id}-{self.canary_environment.name}-{self.release2.version}" in r2_keys
+        )
         assert (
-            response.data.get(self.release1.id, {})
-            .get(self.project2.id)[0]  # first threshold
-            .get("environment", {})
-            .get("name")
-            == self.canary_environment.name
-        )  # assert environment is 'canary'
-
-        assert len(response.data.get(self.release2.id)) == 1  # 1 project (p1) in release 2
-        assert (
-            len(response.data.get(self.release1.id, {}).get(self.project1.id)) == 3
-        )  # p1 2x canary, 1x prod
-        assert (
-            response.data.get(self.release1.id, {})
-            .get(self.project1.id)[0]  # first threshold
-            .get("environment", {})
-            .get("name")
-            == self.canary_environment.name
-        )  # assert environment is 'canary'
-        assert (
-            response.data.get(self.release1.id, {})
-            .get(self.project1.id)[2]
-            .get("environment", {})
-            .get("name")
-            == self.production_environment.name
-        )  # assert environment is 'production'
+            f"{self.project1.id}-{self.production_environment.name}-{self.release2.version}"
+            in r2_keys
+        )
 
     def test_get_success_environment_filter(self):
         """
