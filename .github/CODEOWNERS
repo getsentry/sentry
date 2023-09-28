@@ -455,6 +455,8 @@ yarn.lock                                                @getsentry/owners-js-de
 /static/app/actionCreators/metrics.tsx                                           @getsentry/telemetry-experience
 /static/app/actionCreators/metrics.spec.tsx                                      @getsentry/telemetry-experience
 /static/app/types/metrics.tsx                                                    @getsentry/telemetry-experience
+
+/static/app/gettingStartedDocs/                                                  @getsentry/telemetry-experience
 ## End of Telemetry Experience
 
 

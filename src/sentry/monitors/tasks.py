@@ -162,10 +162,6 @@ def check_missing(current_datetime: datetime):
     # minute, otherwise we may mark checkins as missed if they didn't happen
     # immediately before this task was run (usually a few seconds into the minute)
     #
-    # Because we query `next_checkin_latest__lt=current_datetime` clamping to the
-    # minute will ignore monitors that haven't had their checkin yet within
-    # this minute.
-    #
     # XXX(epurkhiser): This *should* have already been handle by the
     # try_monitor_tasks_trigger, since it clamps the reference timestamp, but I
     # am leaving this here to be safe
@@ -226,10 +222,10 @@ def mark_environment_missing(monitor_environment_id: int, ts: Optional[datetime]
         expected_time=expected_time,
         monitor_config=monitor.get_validated_config(),
     )
-    # TODO(epurkhiser): To properly fix GH-55874 we need to actually
-    # pass a timestamp here. But I'm not 100% sure what that should
-    # look like yet.
-    mark_failed(checkin, ts=None)
+    # TODO(epurkhiser): To properly fix GH-55874 we should NOT pass
+    # timezone.now, we need to use the reference timestamp. But I'm not 100%
+    # sure what that should look like yet.
+    mark_failed(checkin, ts=timezone.now())
 
 
 @instrumented_task(
@@ -243,7 +239,7 @@ def check_timeout(current_datetime: datetime):
 
     qs = MonitorCheckIn.objects.filter(
         status=CheckInStatus.IN_PROGRESS, timeout_at__lte=current_datetime
-    ).select_related("monitor", "monitor_environment")[:CHECKINS_LIMIT]
+    )[:CHECKINS_LIMIT]
     metrics.gauge("sentry.monitors.tasks.check_timeout.count", qs.count(), sample_rate=1)
     # check for any monitors which are still running and have exceeded their maximum runtime
     for checkin in qs:
@@ -276,6 +272,6 @@ def mark_checkin_timeout(checkin_id: int, ts: Optional[datetime] = None):
         status__in=[CheckInStatus.OK, CheckInStatus.ERROR],
     ).exists()
     if not has_newer_result:
-        # TODO(epurkhiser): We also need a timestamp here, but not sure
-        # what we want it to be
-        mark_failed(checkin, ts=None)
+        # TODO(epurkhiser): We should not be using timezone.now here, but need
+        # to verify what actually makes sense.
+        mark_failed(checkin, ts=timezone.now())

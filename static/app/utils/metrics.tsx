@@ -148,6 +148,7 @@ export function useMetricsData({
     useCase,
     interval,
     groupBy,
+    allowPrivate: true, // TODO(ddm): reconsider before widening audience
 
     // max result groups
     per_page: 20,
@@ -181,10 +182,10 @@ function getDateTimeParams({start, end, period}: PageFilters['datetime']) {
 type UseCase = 'sessions' | 'transactions' | 'custom';
 
 export function getUseCaseFromMri(mri?: string): UseCase {
-  if (mri?.includes('custom')) {
+  if (mri?.includes('custom/')) {
     return 'custom';
   }
-  if (mri?.includes('transactions')) {
+  if (mri?.includes('transactions/')) {
     return 'transactions';
   }
   return 'sessions';
