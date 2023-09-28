@@ -1,3 +1,4 @@
+import logging
 from itertools import islice
 from typing import Any, Sequence
 
@@ -13,6 +14,8 @@ from . import ClustererNamespace, rules
 from .datasource import redis
 from .meta import track_clusterer_run
 from .tree import TreeClusterer
+
+logger_transactions = logging.getLogger("sentry.ingest.transaction_clusterer.tasks")
 
 #: Minimum number of children in the URL tree which triggers a merge.
 #: See ``TreeClusterer`` for more information.
@@ -102,9 +105,10 @@ def cluster_projects(projects: Sequence[Project]) -> None:
                 tags={"clustered": False},
                 sample_rate=1.0,
             )
-            sentry_sdk.set_tag("projects.total", len(projects))
-            sentry_sdk.set_tag("projects.unclustered", unclustered)
-            sentry_sdk.capture_message("Transaction clusterer missed projects", level="error")
+            logger_transactions.error(
+                "Transaction clusterer missed projects",
+                extra={"projects.total": len(projects), "projects.unclustered": unclustered},
+            )
 
 
 @instrumented_task(
