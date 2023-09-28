@@ -128,7 +128,7 @@ def mark_failed_threshold(
         ]
 
         # get the existing grouphash from the monitor environment
-        fingerprint = monitor_env.get_incident_grouphash()
+        fingerprint = monitor_env.incident_grouphash
     else:
         # don't send occurrence for other statuses
         return False

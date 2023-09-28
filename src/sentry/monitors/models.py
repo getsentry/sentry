@@ -583,7 +583,8 @@ class MonitorEnvironment(Model):
             .first()
         )
 
-    def get_incident_grouphash(self):
+    @property
+    def incident_grouphash(self):
         # TODO(rjo100): Check to see if there's an active incident
         # if not, use last_state_change as fallback
         active_incident = (
@@ -599,7 +600,7 @@ class MonitorEnvironment(Model):
         # XXX(rjo100): While we migrate monitor issues to using the
         # Incident stored grouphash we still may have some active issues
         # that are using the old hashes. We can remove this in the
-        # future once all existing issues are resolve.
+        # future once all existing issues are resolved.
         return hash_from_values(
             [
                 "monitor",

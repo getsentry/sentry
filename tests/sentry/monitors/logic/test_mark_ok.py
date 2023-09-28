@@ -53,7 +53,7 @@ class MarkOkTestCase(TestCase):
             monitor_environment=monitor_environment,
             starting_checkin=checkin,
             starting_timestamp=checkin.date_added,
-            grouphash=monitor_environment.get_incident_grouphash(),
+            grouphash=monitor_environment.incident_grouphash,
         )
 
         for i in range(0, recovery_threshold - 1):

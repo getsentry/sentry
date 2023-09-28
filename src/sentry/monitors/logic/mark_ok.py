@@ -41,7 +41,7 @@ def mark_ok(checkin: MonitorCheckIn, ts: datetime):
             params["last_state_change"] = ts
             # resolve any associated incidents
             incidents = MonitorIncident.objects.filter(
-                monitor_environment=monitor_env, grouphash=monitor_env.get_incident_grouphash()
+                monitor_environment=monitor_env, grouphash=monitor_env.incident_grouphash
             )
             incidents.update(resolving_checkin=checkin, resolving_timestamp=checkin.date_added)
 
