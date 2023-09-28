@@ -143,18 +143,9 @@ def remove_alert_rule(request: Request, organization, alert_rule):
 
 
 class OrganizationAlertRuleDetailsPutSerializer(serializers.Serializer):
-    name = serializers.CharField(max_length=64, required=False, help_text="The name for the rule.")
+    name = serializers.CharField(max_length=64, help_text="The name for the rule.")
     aggregate = serializers.CharField(
-        required=False, help_text="A string representing the aggregate used in this alert rule."
-    )
-    queryType = serializers.ChoiceField(
-        required=False,
-        choices=((0, "event.type:error"), (1, "event.type:transaction"), (2, "")),
-        help_text="The `SnubaQuery.Type` of the query. If no value is provided, `queryType` is set to the default for the specified `dataset.`",
-    )
-    dataset = serializers.CharField(
-        required=False,
-        help_text="The name of the dataset that this query will be executed on. Valid values are `events`, `transactions`, `metrics`, `sessions`, and `generic-metrics`.",
+        help_text="A string representing the aggregate used in this alert rule."
     )
     timeWindow = serializers.ChoiceField(
         choices=(
@@ -168,39 +159,20 @@ class OrganizationAlertRuleDetailsPutSerializer(serializers.Serializer):
             (240, "4 hours"),
             (1440, "24 hours"),
         ),
-        required=False,
         help_text="The time period to aggregate over.",
     )
     projects = serializers.ListField(
         child=ProjectField(scope="project:read"),
-        required=False,
         help_text="The names of the projects to filter by.",
     )
-    environment = serializers.CharField(
-        required=False,
-        allow_null=True,
-        help_text="The name of the environment to filter by.",
-    )
-    eventTypes = serializers.ListField(
-        child=serializers.CharField(),
-        required=False,
-        help_text="List of event types that this alert will be related to. Valid values are `error` and `transaction`.",
-    )
     query = serializers.CharField(
-        required=False,
         help_text='An event search query to subscribe to and monitor for alerts. For example, to filter transactions so that only those with status code 400 are included, you could use `"query": "http.status_code:400"`. Use an empty string for no filter.',
-    )
-    comparisonDelta = serializers.IntegerField(
-        required=False,
-        help_text='An optional int representing the time delta to use to determine the comparison period, in minutes. Required when using a percentage change threshold ("x%" higher or lower compared to `comparisonDelta` minutes ago). A percentage change threshold cannot be used for [Crash Free Session Rate](/api/organizations/create-a-metric-alert-rule-for-an-organization#crash-free-session-rate) or [Crash Free User Rate](/api/organizations/create-a-metric-alert-rule-for-an-organization#crash-free-user-rate).',
     )
     thresholdType = serializers.ChoiceField(
         choices=((0, "Above"), (1, "Below")),
-        required=False,
         help_text='The comparison operator for the critical and warning thresholds. The comparison operator for the resolved threshold is automatically set to the opposite operator. When a percentage change threshold is used, `0` is equivalent to "Higher than" and `1` is equivalent to "Lower than".',
     )
     triggers = serializers.ListField(
-        required=False,
         help_text="""
 A list of triggers, where each trigger is an object with the following fields:
 - `label`: One of `critical` or `warning`. A `critical` trigger is always required.
@@ -238,6 +210,29 @@ Metric alert rule trigger actions follow the following structure:
 - `integrationId`: The integration ID. This is required for every action type excluding `email` and `sentry_app.`
 - `sentryAppId`: The ID of the Sentry app. This is required when `type` is `sentry_app`.
 """,
+    )
+    queryType = serializers.ChoiceField(
+        required=False,
+        choices=((0, "event.type:error"), (1, "event.type:transaction"), (2, "")),
+        help_text="The `SnubaQuery.Type` of the query. If no value is provided, `queryType` is set to the default for the specified `dataset.`",
+    )
+    dataset = serializers.CharField(
+        required=False,
+        help_text="The name of the dataset that this query will be executed on. Valid values are `events`, `transactions`, `metrics`, `sessions`, and `generic-metrics`.",
+    )
+    environment = serializers.CharField(
+        required=False,
+        allow_null=True,
+        help_text="The name of the environment to filter by.",
+    )
+    eventTypes = serializers.ListField(
+        child=serializers.CharField(),
+        required=False,
+        help_text="List of event types that this alert will be related to. Valid values are `error` and `transaction`.",
+    )
+    comparisonDelta = serializers.IntegerField(
+        required=False,
+        help_text='An optional int representing the time delta to use to determine the comparison period, in minutes. Required when using a percentage change threshold ("x%" higher or lower compared to `comparisonDelta` minutes ago). A percentage change threshold cannot be used for [Crash Free Session Rate](/api/organizations/create-a-metric-alert-rule-for-an-organization#crash-free-session-rate) or [Crash Free User Rate](/api/organizations/create-a-metric-alert-rule-for-an-organization#crash-free-user-rate).',
     )
     resolveThreshold = serializers.FloatField(
         required=False,
@@ -294,7 +289,7 @@ class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
         parameters=[GlobalParams.ORG_SLUG, MetricAlertParams.METRIC_RULE_ID],
         request=OrganizationAlertRuleDetailsPutSerializer,
         responses={
-            200: RESPONSE_ACCEPTED,  # TODO: BLOCKED, NEED AlertRuleModelSerializer
+            200: RESPONSE_ACCEPTED,  # TODO: BLOCKED, NEED AlertRuleSerializer
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
@@ -304,7 +299,8 @@ class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
     @check_project_access
     def put(self, request: Request, organization, alert_rule) -> Response:
         """
-        Update a metric alert rule. Only the attributes submitted are modified. See [Metric Alert Rule Types](/api/organizations/metric-alert-rule-types) for the different types of metric alert rules and their configurations.
+        Updates a metric alert rule. See [Metric Alert Rule Types](/api/organizations/metric-alert-rule-types) for the different types of metric alert rules and their configurations.
+        > Please note that this endpoint rewrites the specified metric alert rule completely.
 
         TODO: add whatever description is used in OrganizationAlertRuleIndexEndpoint
         """
