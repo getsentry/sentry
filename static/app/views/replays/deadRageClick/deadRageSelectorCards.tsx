@@ -25,6 +25,7 @@ import {
   WidgetContainer,
 } from 'sentry/views/profiling/landing/styles';
 import ExampleReplaysList from 'sentry/views/replays/deadRageClick/exampleReplaysList';
+import {SelectorLink} from 'sentry/views/replays/deadRageClick/selectorTable';
 
 function DeadRageSelectorCards() {
   return (
@@ -88,7 +89,7 @@ function AccordionWidget({
   });
   const location = useLocation();
   const filteredData = data.filter(d => (d[clickType] ?? 0) > 0);
-  const clickColor = deadOrRage === 'dead' ? ('yellow300' as ColorOrAlias) : 'red300';
+  const clickColor = deadOrRage === 'dead' ? 'yellow300' : 'red300';
 
   return (
     <StyledWidgetContainer>
@@ -115,21 +116,23 @@ function AccordionWidget({
             expandedIndex={selectedListIndex}
             setExpandedIndex={setSelectListIndex}
             items={filteredData.map(d => {
+              const selectorQuery = `${deadOrRage}.selector:"${transformSelectorQuery(
+                d.dom_element
+              )}"`;
               return {
                 header: () => (
                   <AccordionItemHeader
                     count={d[clickType] ?? 0}
                     selector={d.dom_element}
                     clickColor={clickColor}
+                    selectorQuery={selectorQuery}
                   />
                 ),
                 content: () => (
                   <ExampleReplaysList
                     location={location}
                     clickType={clickType}
-                    query={`${deadOrRage}.selector:"${transformSelectorQuery(
-                      d.dom_element
-                    )}"`}
+                    selectorQuery={selectorQuery}
                   />
                 ),
               };
@@ -146,7 +149,7 @@ function AccordionWidget({
   );
 }
 
-function transformSelectorQuery(selector: string) {
+export function transformSelectorQuery(selector: string) {
   return selector
     .replaceAll('"', `\\"`)
     .replaceAll('aria=', 'aria-label=')
@@ -157,10 +160,12 @@ function AccordionItemHeader({
   count,
   clickColor,
   selector,
+  selectorQuery,
 }: {
   clickColor: ColorOrAlias;
   count: number;
   selector: string;
+  selectorQuery: string;
 }) {
   const clickCount = (
     <ClickColor color={clickColor}>
@@ -170,9 +175,7 @@ function AccordionItemHeader({
   );
   return (
     <StyledAccordionHeader>
-      <TextOverflow>
-        <code>{selector}</code>
-      </TextOverflow>
+      <SelectorLink value={selector} selectorQuery={selectorQuery} />
       <RightAlignedCell>{clickCount}</RightAlignedCell>
     </StyledAccordionHeader>
   );
@@ -222,8 +225,8 @@ const SplitCardContainer = styled('div')`
 const ClickColor = styled(TextOverflow)<{color: ColorOrAlias}>`
   color: ${p => p.theme[p.color]};
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: ${space(0.5)};
+  grid-template-columns: auto auto;
+  gap: ${space(0.75)};
   align-items: center;
 `;
 

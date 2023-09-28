@@ -15,11 +15,11 @@ import {ReplayCell} from 'sentry/views/replays/replayTable/tableCell';
 export default function ExampleReplaysList({
   location,
   clickType,
-  query,
+  selectorQuery,
 }: {
   clickType: 'count_dead_clicks' | 'count_rage_clicks';
   location: Location;
-  query: string;
+  selectorQuery: string;
 }) {
   const organization = useOrganization();
   const {project, environment, start, statsPeriod, utc, end} = location.query;
@@ -54,12 +54,12 @@ export default function ExampleReplaysList({
             'urls',
           ],
           projects: [],
-          query,
+          query: selectorQuery,
           orderby: `-${clickType}`,
         },
         emptyLocation
       ),
-    [emptyLocation, query, clickType]
+    [emptyLocation, selectorQuery, clickType]
   );
 
   const {replays, isFetching, fetchError} = useReplayList({
@@ -87,7 +87,7 @@ export default function ExampleReplaysList({
         replays?.map(r => {
           return (
             <ReplayCell
-              key="session"
+              key={r.id}
               replay={r}
               eventView={eventView}
               organization={organization}
