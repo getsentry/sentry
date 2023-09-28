@@ -341,7 +341,8 @@ def test_detect_function_change_points(
         ]
     }
 
-    detect_function_change_points([(project.id, fingerprint)], timestamp)
+    with override_options({"statistical_detectors.enable": True}):
+        detect_function_change_points([(project.id, fingerprint)], timestamp)
     assert mock_emit_function_regression_issue.called
 
 

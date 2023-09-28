@@ -149,6 +149,9 @@ def detect_transaction_trends(
 def detect_transaction_change_points(
     transactions: List[Tuple[int, str | int]], start: datetime, *args, **kwargs
 ) -> None:
+    if not options.get("statistical_detectors.enable"):
+        return
+
     for project_id, transaction in transactions:
         with sentry_sdk.push_scope() as scope:
             scope.set_tag("regressed_project_id", project_id)
@@ -265,6 +268,9 @@ def detect_function_trends(project_ids: List[int], start: datetime, *args, **kwa
 def detect_function_change_points(
     functions_list: List[Tuple[int, int]], start: datetime, *args, **kwargs
 ) -> None:
+    if not options.get("statistical_detectors.enable"):
+        return
+
     breakpoint_count = 0
     emitted_count = 0
 
