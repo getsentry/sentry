@@ -8,9 +8,11 @@ from django.forms.fields import ChoiceField
 
 from sentry.integrations.discord.utils.channel import validate_channel_id
 from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.shared_integrations.exceptions import IntegrationError
 
 
 class DiscordNotifyServiceForm(forms.Form):
+    # NOTE: server (guild id) maps directly to the integration ID
     server = forms.ChoiceField(choices=(), widget=forms.Select())
     channel_id = forms.CharField(widget=forms.TextInput())
     tags = forms.CharField(required=False, widget=forms.TextInput())
@@ -53,5 +55,9 @@ class DiscordNotifyServiceForm(forms.Form):
                     self._format_discord_error_message("; ".join(e.messages)),
                     code="invalid",
                 )
-
+            except IntegrationError as e:
+                raise forms.ValidationError(
+                    self._format_discord_error_message("; ".join(str(e))),
+                    code="invalid",
+                )
         return cleaned_data

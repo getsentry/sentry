@@ -4,8 +4,8 @@ from uuid import uuid4
 import responses
 from django.core.exceptions import ValidationError
 
-from sentry.integrations.discord.actions.form import DiscordNotifyServiceForm
-from sentry.integrations.discord.actions.notification import DiscordNotifyServiceAction
+from sentry.integrations.discord.actions.issue_alert.form import DiscordNotifyServiceForm
+from sentry.integrations.discord.actions.issue_alert.notification import DiscordNotifyServiceAction
 from sentry.integrations.discord.client import DiscordClient
 from sentry.integrations.discord.message_builder import LEVEL_TO_COLOR
 from sentry.integrations.discord.message_builder.base.component import DiscordComponentCustomIds
@@ -230,7 +230,7 @@ class DiscordIssueAlertTest(RuleTestCase):
         assert len(results) == 0
 
     @responses.activate
-    @mock.patch("sentry.integrations.discord.actions.form.validate_channel_id")
+    @mock.patch("sentry.integrations.discord.actions.issue_alert.form.validate_channel_id")
     def test_get_form_instance(self, mock_validate_channel_id):
         form = self.rule.get_form_instance()
         form.full_clean()
@@ -273,7 +273,10 @@ class DiscordNotifyServiceFormTest(TestCase):
             (self.other_integration.id, self.other_integration.name),
         ]
 
-    @mock.patch("sentry.integrations.discord.actions.form.validate_channel_id", return_value=None)
+    @mock.patch(
+        "sentry.integrations.discord.actions.issue_alert.form.validate_channel_id",
+        return_value=None,
+    )
     def test_valid(self, mock_validate_channel_id):
         form = DiscordNotifyServiceForm(
             data={
@@ -301,7 +304,10 @@ class DiscordNotifyServiceFormTest(TestCase):
         form.full_clean()
         assert not form.is_valid()
 
-    @mock.patch("sentry.integrations.discord.actions.form.validate_channel_id", return_value=None)
+    @mock.patch(
+        "sentry.integrations.discord.actions.issue_alert.form.validate_channel_id",
+        return_value=None,
+    )
     def test_no_tags(self, mock_validate_channel_id):
         form = DiscordNotifyServiceForm(
             data={
@@ -316,7 +322,7 @@ class DiscordNotifyServiceFormTest(TestCase):
         assert mock_validate_channel_id.call_count == 1
 
     @mock.patch(
-        "sentry.integrations.discord.actions.form.validate_channel_id",
+        "sentry.integrations.discord.actions.issue_alert.form.validate_channel_id",
         side_effect=ValidationError("bad"),
     )
     def test_invalid_channel_id(self, mock_validate_channel_id):
