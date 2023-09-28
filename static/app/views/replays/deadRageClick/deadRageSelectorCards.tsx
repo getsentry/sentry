@@ -10,6 +10,7 @@ import {IconCursorArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useDeadRageSelectors from 'sentry/utils/replays/hooks/useDeadRageSelectors';
+import {ColorOrAlias} from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -30,15 +31,39 @@ function DeadRageSelectorCards() {
     <SplitCardContainer>
       <AccordionWidget
         clickType="count_dead_clicks"
-        widgetTitle={t('Most Dead Clicks')}
+        header={
+          <div>
+            <StyledWidgetHeader>
+              {t('Most Dead Clicks')}
+              <QuestionTooltip
+                size="xs"
+                position="top"
+                title={t('The top selectors your users have dead clicked on.')}
+                isHoverable
+              />
+            </StyledWidgetHeader>
+            <Subtitle>{t('Suggested replays to watch')}</Subtitle>
+          </div>
+        }
         deadOrRage="dead"
-        tooltip={t('The top selectors your users have dead clicked on.')}
       />
       <AccordionWidget
         clickType="count_rage_clicks"
-        widgetTitle={t('Most Rage Clicks')}
+        header={
+          <div>
+            <StyledWidgetHeader>
+              {t('Most Rage Clicks')}
+              <QuestionTooltip
+                size="xs"
+                position="top"
+                title={t('The top selectors your users have rage clicked on.')}
+                isHoverable
+              />
+            </StyledWidgetHeader>
+            <Subtitle>{t('Suggested replays to watch')}</Subtitle>
+          </div>
+        }
         deadOrRage="rage"
-        tooltip={t('The top selectors your users have rage clicked on.')}
       />
     </SplitCardContainer>
   );
@@ -47,13 +72,11 @@ function DeadRageSelectorCards() {
 function AccordionWidget({
   clickType,
   deadOrRage,
-  widgetTitle,
-  tooltip,
+  header,
 }: {
   clickType: 'count_dead_clicks' | 'count_rage_clicks';
   deadOrRage: 'dead' | 'rage';
-  tooltip: string;
-  widgetTitle: string;
+  header: ReactNode;
 }) {
   const [selectedListIndex, setSelectListIndex] = useState(0);
   const {isLoading, isError, data} = useDeadRageSelectors({
@@ -65,26 +88,15 @@ function AccordionWidget({
   });
   const location = useLocation();
   const filteredData = data.filter(d => (d[clickType] ?? 0) > 0);
+  const clickColor = deadOrRage === 'dead' ? ('yellow300' as ColorOrAlias) : 'red300';
 
   return (
-    <WidgetContainer>
+    <StyledWidgetContainer>
       <StyledHeaderContainer>
-        {deadOrRage === 'dead' ? (
-          <DeadClickColor>
-            <IconCursorArrow />
-          </DeadClickColor>
-        ) : (
-          <RageClickColor>
-            <IconCursorArrow />
-          </RageClickColor>
-        )}
-        <div>
-          <StyledWidgetHeader>
-            {widgetTitle}
-            <QuestionTooltip size="xs" position="top" title={tooltip} isHoverable />
-          </StyledWidgetHeader>
-          <Subtitle>{t('Suggested replays to watch')}</Subtitle>
-        </div>
+        <ClickColor color={clickColor}>
+          <IconCursorArrow />
+        </ClickColor>
+        {header}
       </StyledHeaderContainer>
       {isLoading && (
         <StatusContainer>
@@ -92,13 +104,13 @@ function AccordionWidget({
         </StatusContainer>
       )}
       {isError || (!isLoading && filteredData.length === 0) ? (
-        <StyledEmptyState>
+        <CenteredContentContainer>
           <EmptyStateWarning>
             <p>{t('No results found')}</p>
           </EmptyStateWarning>
-        </StyledEmptyState>
+        </CenteredContentContainer>
       ) : (
-        <StyledContentContainer>
+        <LeftAlignedContentContainer>
           <Accordion
             expandedIndex={selectedListIndex}
             setExpandedIndex={setSelectListIndex}
@@ -107,54 +119,55 @@ function AccordionWidget({
                 header: () => (
                   <AccordionItemHeader
                     count={d[clickType] ?? 0}
-                    deadOrRage={deadOrRage}
                     selector={d.dom_element}
+                    clickColor={clickColor}
                   />
                 ),
                 content: () => (
                   <ExampleReplaysList
-                    selector={d.dom_element}
                     location={location}
                     clickType={clickType}
-                    deadOrRage={deadOrRage}
+                    query={`${deadOrRage}.selector:"${transformSelectorQuery(
+                      d.dom_element
+                    )}"`}
                   />
                 ),
               };
             })}
           />
-        </StyledContentContainer>
+        </LeftAlignedContentContainer>
       )}
       <SearchButton
         label={t('See all selectors')}
         path="selectors"
         sort={`-${clickType}`}
       />
-    </WidgetContainer>
+    </StyledWidgetContainer>
   );
+}
+
+function transformSelectorQuery(selector: string) {
+  return selector
+    .replaceAll('"', `\\"`)
+    .replaceAll('aria=', 'aria-label=')
+    .replaceAll('testid=', 'data-test-id=');
 }
 
 function AccordionItemHeader({
   count,
-  deadOrRage,
+  clickColor,
   selector,
 }: {
+  clickColor: ColorOrAlias;
   count: number;
-  deadOrRage: 'dead' | 'rage';
   selector: string;
 }) {
-  const clickCount =
-    deadOrRage === 'dead' ? (
-      <DeadClickColor>
-        <IconCursorArrow size="xs" />
-        {count}
-      </DeadClickColor>
-    ) : (
-      <RageClickColor>
-        <IconCursorArrow size="xs" />
-        {count}
-      </RageClickColor>
-    );
-
+  const clickCount = (
+    <ClickColor color={clickColor}>
+      <IconCursorArrow size="xs" />
+      {count}
+    </ClickColor>
+  );
   return (
     <StyledAccordionHeader>
       <TextOverflow>
@@ -204,19 +217,10 @@ const SplitCardContainer = styled('div')`
   grid-auto-flow: column;
   gap: 0 ${space(2)};
   align-items: stretch;
-  padding-top: ${space(1)};
 `;
 
-const DeadClickColor = styled(TextOverflow)`
-  color: ${p => p.theme.yellow300};
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: ${space(0.5)};
-  align-items: center;
-`;
-
-const RageClickColor = styled(TextOverflow)`
-  color: ${p => p.theme.red300};
+const ClickColor = styled(TextOverflow)<{color: ColorOrAlias}>`
+  color: ${p => p.theme[p.color]};
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: ${space(0.5)};
@@ -230,11 +234,11 @@ const StyledHeaderContainer = styled(HeaderContainer)`
   grid-template-columns: 30px auto;
 `;
 
-const StyledContentContainer = styled(ContentContainer)`
+const LeftAlignedContentContainer = styled(ContentContainer)`
   justify-content: flex-start;
 `;
 
-const StyledEmptyState = styled(ContentContainer)`
+const CenteredContentContainer = styled(ContentContainer)`
   justify-content: center;
 `;
 
@@ -259,6 +263,10 @@ const StyledWidgetHeader = styled(HeaderTitleLegend)`
   gap: ${space(1)};
   justify-content: start;
   align-items: center;
+`;
+
+const StyledWidgetContainer = styled(WidgetContainer)`
+  margin-bottom: 0;
 `;
 
 export default DeadRageSelectorCards;

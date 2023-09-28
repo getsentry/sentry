@@ -12,26 +12,16 @@ import {useRoutes} from 'sentry/utils/useRoutes';
 import {StatusContainer} from 'sentry/views/profiling/landing/styles';
 import {ReplayCell} from 'sentry/views/replays/replayTable/tableCell';
 
-function transformSelectorQuery(selector: string) {
-  return selector
-    .replaceAll('"', `\\"`)
-    .replaceAll('aria=', 'aria-label=')
-    .replaceAll('testid=', 'data-test-id=');
-}
-
 export default function ExampleReplaysList({
-  selector,
   location,
   clickType,
-  deadOrRage,
+  query,
 }: {
   clickType: 'count_dead_clicks' | 'count_rage_clicks';
-  deadOrRage: 'dead' | 'rage';
   location: Location;
-  selector: string;
+  query: string;
 }) {
   const organization = useOrganization();
-  const query = transformSelectorQuery(selector);
   const {project, environment, start, statsPeriod, utc, end} = location.query;
   const emptyLocation: Location = useMemo(() => {
     return {
@@ -64,12 +54,12 @@ export default function ExampleReplaysList({
             'urls',
           ],
           projects: [],
-          query: `${deadOrRage}.selector:"${query}"`,
+          query,
           orderby: `-${clickType}`,
         },
         emptyLocation
       ),
-    [emptyLocation, query, clickType, deadOrRage]
+    [emptyLocation, query, clickType]
   );
 
   const {replays, isFetching, fetchError} = useReplayList({
