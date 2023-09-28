@@ -47,7 +47,7 @@ import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
 
 const LOADING_OR_FALLBACK_FLAMEGRAPH = FlamegraphModel.Empty();
 
-interface AggregateFlamegraphProps {
+interface DeprecatedAggregateFlamegraphProps {
   hideSystemFrames: boolean;
   setHideSystemFrames: (hideSystemFrames: boolean) => void;
   children?: (props: {
@@ -58,7 +58,9 @@ interface AggregateFlamegraphProps {
   hideToolbar?: boolean;
 }
 
-export function AggregateFlamegraph(props: AggregateFlamegraphProps): ReactElement {
+export function DeprecatedAggregateFlamegraph(
+  props: DeprecatedAggregateFlamegraphProps
+): ReactElement {
   const devicePixelRatio = useDevicePixelRatio();
   const dispatch = useDispatchFlamegraphState();
 

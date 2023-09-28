@@ -14,7 +14,7 @@ import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
-import {AggregateFlamegraph} from 'sentry/components/profiling/flamegraph/aggregateFlamegraph';
+import {DeprecatedAggregateFlamegraph} from 'sentry/components/profiling/flamegraph/deprecatedAggregateFlamegraph';
 import {FlamegraphSearch} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphSearch';
 import {
   ProfilingBreadcrumbs,
@@ -354,7 +354,7 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
                 >
                   <FlamegraphThemeProvider>
                     {visualization === 'flamegraph' ? (
-                      <AggregateFlamegraph
+                      <DeprecatedAggregateFlamegraph
                         hideToolbar
                         hideSystemFrames={false}
                         setHideSystemFrames={() => void 0}
@@ -372,7 +372,7 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
                             />
                           );
                         }}
-                      </AggregateFlamegraph>
+                      </DeprecatedAggregateFlamegraph>
                     ) : (
                       <div />
                     )}
