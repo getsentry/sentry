@@ -17,7 +17,9 @@ function FileChange({filename, authors, className}: Props) {
   return (
     <FileItem className={className}>
       <Filename>
-        <StyledFileIcon fileName={filename} />
+        <FileIconWrapper>
+          <FileIcon fileName={filename} />
+        </FileIconWrapper>
         <TextOverflow>{filename}</TextOverflow>
       </Filename>
       <div>
@@ -46,7 +48,7 @@ const Filename = styled('div')`
   grid-template-columns: max-content 1fr;
 `;
 
-const StyledFileIcon = styled(FileIcon)`
+const FileIconWrapper = styled('div')`
   color: ${p => p.theme.gray200};
   border-radius: 3px;
 `;

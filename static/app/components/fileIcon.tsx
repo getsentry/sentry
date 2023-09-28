@@ -10,16 +10,16 @@ type Props = {
   size?: string;
 };
 
-function FileIcon({fileName, size: providedSize = 'sm', className}: Props) {
+function FileIcon({fileName, size: providedSize = 'sm'}: Props) {
   const fileExtension = getFileExtension(fileName);
   const iconName = fileExtension ? fileExtensionToPlatform(fileExtension) : null;
   const size = theme.iconSizes[providedSize] ?? providedSize;
 
   if (!iconName) {
-    return <IconFile size={size} className={className} />;
+    return <IconFile size={size} />;
   }
 
-  return <PlatformIcon platform={iconName} size={size} className={className} />;
+  return <PlatformIcon platform={iconName} size={size} />;
 }
 
 export default FileIcon;
