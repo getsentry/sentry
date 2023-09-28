@@ -192,7 +192,7 @@ class UpdateMonitorIngestCheckinTest(MonitorIngestTestCase):
             assert monitor_environment.next_checkin > checkin.date_added
             assert monitor_environment.next_checkin_latest > checkin.date_added
             assert monitor_environment.status == MonitorStatus.ERROR
-            assert monitor_environment.last_checkin > checkin.date_added
+            assert monitor_environment.last_checkin == checkin.date_added
 
     def test_finished_values(self):
         monitor = self._create_monitor()
