@@ -82,6 +82,7 @@ from sentry.models.organization import Organization
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.organizationslugreservation import OrganizationSlugReservation
 from sentry.models.platformexternalissue import PlatformExternalIssue
 from sentry.models.project import Project
 from sentry.models.projectbookmark import ProjectBookmark
@@ -110,13 +111,13 @@ from sentry.sentry_apps.installations import (
 from sentry.services.hybrid_cloud.app.serial import serialize_sentry_app_installation
 from sentry.services.hybrid_cloud.hook import hook_service
 from sentry.signals import project_created
-from sentry.silo import SiloMode, unguarded_write
+from sentry.silo import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
 from sentry.types.integrations import ExternalProviders
-from sentry.types.region import Region, get_region_by_name
+from sentry.types.region import Region, get_local_region, get_region_by_name
 from sentry.utils import json, loremipsum
 from sentry.utils.performance_issues.performance_problem import PerformanceProblem
 from social_auth.models import UserSocialAuth
@@ -284,14 +285,21 @@ class Factories:
                     yield
 
         with org_creation_context():
-            org = Organization.objects.create(name=name, **kwargs)
+            region_name = region.name if region is not None else get_local_region().name
+            org: Organization = Organization.objects.create(name=name, **kwargs)
 
-        if region is not None:
-            with assume_test_silo_mode(SiloMode.CONTROL), unguarded_write(
-                using=router.db_for_write(OrganizationMapping)
-            ):
-                mapping = OrganizationMapping.objects.get(organization_id=org.id)
-                mapping.update(region_name=region.name)
+            with assume_test_silo_mode(SiloMode.CONTROL):
+                # Organization mapping creation relies on having a matching org slug reservation
+                #
+                OrganizationSlugReservation(
+                    organization_id=org.id,
+                    region_name=region_name,
+                    user_id=owner.id if owner else -1,
+                    slug=org.slug,
+                ).save(unsafe_write=True)
+
+            # Manually replicate org data after adding an org slug reservation
+            org.handle_async_replication(org.id)
 
         if owner:
             Factories.create_member(organization=org, user_id=owner.id, role="owner")
