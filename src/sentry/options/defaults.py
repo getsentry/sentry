@@ -968,6 +968,13 @@ register(
     "sentry-metrics.indexer.cache-key-double-write", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE
 )
 
+# An option to tune the percentage of cache keys that gets replenished during indexer resolve
+register(
+    "sentry-metrics.indexer.disable-memcache-replenish-rollout",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Global and per-organization limits on the writes to the string indexer's DB.
 #
 # Format is a list of dictionaries of format {
@@ -1074,7 +1081,9 @@ register(
 # effectively reset it, as the previous data can't/won't be converted.
 register(
     "sentry-metrics.cardinality-limiter.limits.performance.per-org",
-    default=[],
+    default=[
+        {"window_seconds": 3600, "granularity_seconds": 600, "limit": 10000},
+    ],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -1084,7 +1093,9 @@ register(
 )
 register(
     "sentry-metrics.cardinality-limiter.limits.transactions.per-org",
-    default=[],
+    default=[
+        {"window_seconds": 3600, "granularity_seconds": 600, "limit": 10000},
+    ],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -1094,22 +1105,28 @@ register(
 )
 register(
     "sentry-metrics.cardinality-limiter.limits.spans.per-org",
-    default=[],
+    default=[
+        {"window_seconds": 3600, "granularity_seconds": 600, "limit": 10000},
+    ],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "sentry-metrics.cardinality-limiter.limits.custom.per-org",
-    default=[],
+    default=[
+        {"window_seconds": 3600, "granularity_seconds": 600, "limit": 10000},
+    ],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "sentry-metrics.cardinality-limiter.limits.generic-metrics.per-org",
-    default=[],
+    default=[
+        {"window_seconds": 3600, "granularity_seconds": 600, "limit": 10000},
+    ],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "sentry-metrics.cardinality-limiter.orgs-rollout-rate",
-    default=0.0,
+    default=1.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -1587,40 +1604,5 @@ register(
 register(
     "delightful_metrics.enable_common_tags",
     default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "outbox_replication.sentry_team.replication_version",
-    type=Int,
-    default=0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "outbox_replication.sentry_organization.replication_version",
-    type=Int,
-    default=0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "outbox_replication.sentry_authidentity.replication_version",
-    type=Int,
-    default=0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "outbox_replication.sentry_authprovider.replication_version",
-    type=Int,
-    default=0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "outbox_replication.sentry_organizationmember_teams.replication_version",
-    type=Int,
-    default=0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

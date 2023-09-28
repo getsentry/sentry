@@ -1,3 +1,4 @@
+from datetime import timedelta
 from typing import Sequence
 
 from django.utils import timezone
@@ -9,7 +10,9 @@ def find_missing_chunks(organization_id: int, chunks: Sequence[str]):
     """Returns a list of chunks which are missing for an org."""
     # refresh the timestamp of all files we are interested in,
     # so they don't disappear from under us
-    FileBlob.objects.filter(checksum__in=chunks).update(timestamp=timezone.now())
+    now = timezone.now()
+    threshold = now - timedelta(hours=12)
+    FileBlob.objects.filter(checksum__in=chunks, timestamp__lte=threshold).update(timestamp=now)
 
     owned = set(
         FileBlobOwner.objects.filter(

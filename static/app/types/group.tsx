@@ -1,12 +1,11 @@
 import type {SearchGroup} from 'sentry/components/smartSearchBar/types';
-import type {PlatformKey} from 'sentry/data/platformCategories';
 import type {FieldKind} from 'sentry/utils/fields';
 
 import type {Actor, TimeseriesValue} from './core';
 import type {Event, EventMetadata, EventOrGroupType, Level} from './event';
 import type {Commit, PullRequest, Repository} from './integrations';
 import type {Team} from './organization';
-import type {Project} from './project';
+import type {PlatformKey, Project} from './project';
 import type {AvatarUser, User} from './user';
 
 export type EntryData = Record<string, any | Array<any>>;
@@ -79,6 +78,8 @@ export enum IssueType {
   PROFILE_IMAGE_DECODE_MAIN_THREAD = 'profile_image_decode_main_thread',
   PROFILE_JSON_DECODE_MAIN_THREAD = 'profile_json_decode_main_thread',
   PROFILE_REGEX_MAIN_THREAD = 'profile_regex_main_thread',
+  PROFILE_FRAME_DROP = 'profile_frame_drop',
+  PROFILE_FRAME_DROP_EXPERIMENTAL = 'profile_frame_drop_experimental',
 }
 
 export enum IssueTitle {

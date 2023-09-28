@@ -74,6 +74,7 @@ def find_identity(idp: IdentityProvider, user: User) -> Optional[Identity]:
     return identities[0]
 
 
+@assume_test_silo_mode(SiloMode.CONTROL)
 def link_user(user: User, idp: IdentityProvider, slack_id: str) -> None:
     Identity.objects.create(
         external_id=slack_id,

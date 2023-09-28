@@ -1,5 +1,6 @@
 import selectEvent from 'react-select-event';
 import styled from '@emotion/styled';
+import {MissingMembers} from 'sentry-fixture/missingMembers';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -29,7 +30,7 @@ describe('InviteMissingMembersModal', function () {
   const team = TestStubs.Team();
   const org = TestStubs.Organization({access: ['member:write'], teams: [team]});
   TeamStore.loadInitialData([team]);
-  const missingMembers = {integration: 'github', users: TestStubs.MissingMembers()};
+  const missingMembers = {integration: 'github', users: MissingMembers()};
 
   const styledWrapper = styled(c => c.children);
   const modalProps: InviteMissingMembersModalProps = {
@@ -69,12 +70,14 @@ describe('InviteMissingMembersModal', function () {
     ).not.toBeInTheDocument();
   });
 
-  it('disables invite button if no members selected', function () {
+  it('disables invite button if no members selected', async function () {
     render(<InviteMissingMembersModal {...modalProps} missingMembers={missingMembers} />);
 
     expect(
       screen.getByRole('heading', {name: 'Invite Your Dev Team'})
     ).toBeInTheDocument();
+
+    await userEvent.click(screen.getByLabelText('Deselect All'));
 
     expect(screen.getByLabelText('Send Invites')).toBeDisabled();
     expect(screen.getByText('Invite missing members')).toBeInTheDocument();
@@ -87,6 +90,7 @@ describe('InviteMissingMembersModal', function () {
       screen.getByRole('heading', {name: 'Invite Your Dev Team'})
     ).toBeInTheDocument();
 
+    await userEvent.click(screen.getByLabelText('Deselect All'));
     await userEvent.click(screen.getByLabelText('Select hello@sentry.io'));
 
     expect(screen.getByLabelText('Send Invites')).toBeEnabled();
@@ -98,22 +102,22 @@ describe('InviteMissingMembersModal', function () {
     expect(screen.getByText('Invite missing members')).toBeInTheDocument();
   });
 
-  it('can select and deselect all rows', async function () {
+  it('can deselect and select all rows', async function () {
     render(<InviteMissingMembersModal {...modalProps} missingMembers={missingMembers} />);
 
     expect(
       screen.getByRole('heading', {name: 'Invite Your Dev Team'})
     ).toBeInTheDocument();
 
-    await userEvent.click(screen.getByLabelText('Select All'));
-
-    expect(screen.getByLabelText('Send Invites')).toBeEnabled();
-    expect(screen.getByText('Invite all 5 missing members')).toBeInTheDocument();
-
     await userEvent.click(screen.getByLabelText('Deselect All'));
 
     expect(screen.getByLabelText('Send Invites')).toBeDisabled();
     expect(screen.getByText('Invite missing members')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByLabelText('Select All'));
+
+    expect(screen.getByLabelText('Send Invites')).toBeEnabled();
+    expect(screen.getByText('Invite all 5 missing members')).toBeInTheDocument();
   });
 
   it('can invite all members', async function () {
@@ -136,7 +140,6 @@ describe('InviteMissingMembersModal', function () {
       screen.getByRole('heading', {name: 'Invite Your Dev Team'})
     ).toBeInTheDocument();
 
-    await userEvent.click(screen.getByLabelText('Select All'));
     await userEvent.click(screen.getByLabelText('Send Invites'));
 
     // Verify data sent to the backend
@@ -172,6 +175,8 @@ describe('InviteMissingMembersModal', function () {
     expect(
       screen.getByRole('heading', {name: 'Invite Your Dev Team'})
     ).toBeInTheDocument();
+
+    await userEvent.click(screen.getByLabelText('Deselect All'));
 
     const roleInputs = screen.getAllByRole('textbox', {name: 'Role'});
     const teamInputs = screen.getAllByRole('textbox', {name: 'Add to Team'});

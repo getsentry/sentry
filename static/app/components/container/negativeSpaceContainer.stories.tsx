@@ -6,7 +6,7 @@ import onboardingFrameworkSelectionJavascript from 'sentry-images/spot/onboardin
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
 import storyBook from 'sentry/stories/storyBook';
 
-export default storyBook('NegativeSpaceContainer', story => {
+export default storyBook(NegativeSpaceContainer, story => {
   story('Empty', () => (
     <Fragment>
       <p>

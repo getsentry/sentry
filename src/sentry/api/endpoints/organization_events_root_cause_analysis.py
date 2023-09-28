@@ -5,6 +5,8 @@ from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization_events import OrganizationEventsEndpointBase
+from sentry.api.endpoints.organization_events_spans_performance import EventID, get_span_description
+from sentry.api.helpers.span_analysis import span_analysis
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.types import QueryBuilderConfig
 from sentry.search.utils import parse_datetime_string
@@ -13,9 +15,10 @@ from sentry.snuba.metrics_performance import query as metrics_query
 from sentry.utils.snuba import raw_snql_query
 
 DEFAULT_LIMIT = 50
+SNUBA_QUERY_LIMIT = 10000
 
 
-def query_spans(transaction, regression_breakpoint, params, limit):
+def query_spans(transaction, regression_breakpoint, params):
     selected_columns = [
         "count(span_id) as span_count",
         "sumArray(spans_exclusive_time) as total_span_self_time",
@@ -32,7 +35,7 @@ def query_spans(transaction, regression_breakpoint, params, limit):
         equations=[],
         query=f"transaction:{transaction}",
         orderby=["span_op", "span_group", "total_span_self_time"],
-        limit=limit,
+        limit=SNUBA_QUERY_LIMIT,
         config=QueryBuilderConfig(
             auto_aggregations=True,
             use_aggregate_conditions=True,
@@ -57,7 +60,7 @@ def query_spans(transaction, regression_breakpoint, params, limit):
     )
     builder.columns.append(Function("countDistinct", [Column("event_id")], "transaction_count"))
     builder.groupby.append(Column("period"))
-    builder.limitby = LimitBy([Column("period")], limit // 2)
+    builder.limitby = LimitBy([Column("period")], SNUBA_QUERY_LIMIT // 2)
 
     snql_query = builder.get_snql_query()
     results = raw_snql_query(snql_query, "api.organization-events-root-cause-analysis")
@@ -73,7 +76,7 @@ class OrganizationEventsRootCauseAnalysisEndpoint(OrganizationEventsEndpointBase
 
     def get(self, request, organization):
         if not features.has(
-            "organizations:statistical-detectors-root-cause-analysis",
+            "organizations:performance-duration-regression-visible",
             organization,
             actor=request.user,
         ):
@@ -103,11 +106,20 @@ class OrganizationEventsRootCauseAnalysisEndpoint(OrganizationEventsEndpointBase
         if transaction_count_query["data"][0]["count"] == 0:
             return Response(status=400, data="Transaction not found")
 
-        results = query_spans(
+        span_data = query_spans(
             transaction=transaction_name,
             regression_breakpoint=regression_breakpoint,
             params=params,
-            limit=int(request.GET.get("per_page", DEFAULT_LIMIT)),
         )
 
-        return Response(results, status=200)
+        span_analysis_results = span_analysis(span_data)
+
+        for result in span_analysis_results:
+            result["span_description"] = get_span_description(
+                EventID(project_id, result["sample_event_id"]),
+                result["span_op"],
+                result["span_group"],
+            )
+
+        limit = int(request.GET.get("per_page", DEFAULT_LIMIT))
+        return Response(span_analysis_results[:limit], status=200)

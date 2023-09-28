@@ -9,10 +9,10 @@ import {Button} from 'sentry/components/button';
 import Checkbox from 'sentry/components/checkbox';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {Tooltip} from 'sentry/components/tooltip';
-import {PlatformKey} from 'sentry/data/platformCategories';
 import {IconQuestion} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {PlatformKey} from 'sentry/types';
 import {Organization} from 'sentry/types';
 import {decodeList} from 'sentry/utils/queryString';
 import useRouter from 'sentry/utils/useRouter';
@@ -75,6 +75,7 @@ function getDisabledProducts(organization: Organization): DisabledProducts {
 export const platformProductAvailability = {
   android: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'apple-ios': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  bun: [ProductSolution.PERFORMANCE_MONITORING],
   javascript: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.SESSION_REPLAY],
   'javascript-react': [
     ProductSolution.PERFORMANCE_MONITORING,
@@ -126,7 +127,6 @@ export const platformProductAvailability = {
   'python-awslambda': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-bottle': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-celery': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
-  'python-chalice': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-django': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-falcon': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-fastapi': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
@@ -135,17 +135,14 @@ export const platformProductAvailability = {
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
   ],
-  'python-pyramid': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-quart': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-rq': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
-  'python-sanic': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-serverless': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
   ],
   'python-tornado': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-starlette': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
-  'python-tryton': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-wsgi': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'java-spring-boot': [ProductSolution.PERFORMANCE_MONITORING],
 } as Record<PlatformKey, ProductSolution[]>;

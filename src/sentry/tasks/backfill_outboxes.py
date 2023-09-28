@@ -14,7 +14,7 @@ from django.db.models import Max, Min, Model
 
 from sentry import options
 from sentry.db.models.outboxes import ControlOutboxProducingModel, RegionOutboxProducingModel
-from sentry.models import outbox_context
+from sentry.models import User, outbox_context
 from sentry.silo import SiloMode
 from sentry.utils import json, metrics, redis
 
@@ -50,8 +50,8 @@ def get_processing_state(table_name: str) -> Tuple[int, int]:
             result = lower, version
         metrics.gauge(
             "backfill_outboxes.low_bound",
-            result[1],
-            tags=dict(table_name=table_name, version=result[0]),
+            result[0],
+            tags=dict(table_name=table_name, version=result[1]),
             sample_rate=1.0,
         )
         return result
@@ -68,7 +68,7 @@ def set_processing_state(table_name: str, value: int, version: int) -> None:
 
 
 def find_replication_version(
-    model: Union[Type[ControlOutboxProducingModel], Type[RegionOutboxProducingModel]],
+    model: Union[Type[ControlOutboxProducingModel], Type[RegionOutboxProducingModel], Type[User]],
     force_synchronous=False,
 ) -> int:
     """
@@ -88,7 +88,7 @@ def find_replication_version(
 
 
 def _chunk_processing_batch(
-    model: Union[Type[ControlOutboxProducingModel], Type[RegionOutboxProducingModel]],
+    model: Union[Type[ControlOutboxProducingModel], Type[RegionOutboxProducingModel], Type[User]],
     *,
     batch_size: int,
     force_synchronous=False,
@@ -101,22 +101,23 @@ def _chunk_processing_batch(
         lower = 0
         version = target_version
     lower = max(model.objects.aggregate(Min("id"))["id__min"] or 0, lower)
-    upper = model.objects.aggregate(Max("id"))["id__max"] or 0
-    batch_upper = min(upper, lower + batch_size)
+    upper = (
+        model.objects.filter(id__gte=lower)
+        .order_by("id")[: batch_size + 1]
+        .aggregate(Max("id"))["id__max"]
+        or 0
+    )
 
-    # cap to batch size so that query timeouts don't get us.
-    capped = upper
-    if upper >= batch_upper:
-        capped = batch_upper
-
-    return BackfillBatch(low=lower, up=capped, version=version, has_more=upper > capped)
+    return BackfillBatch(low=lower, up=upper, version=version, has_more=upper > lower)
 
 
 def process_outbox_backfill_batch(
     model: Type[Model], batch_size: int, force_synchronous=False
 ) -> BackfillBatch | None:
-    if not issubclass(model, RegionOutboxProducingModel) and not issubclass(
-        model, ControlOutboxProducingModel
+    if (
+        not issubclass(model, RegionOutboxProducingModel)
+        and not issubclass(model, ControlOutboxProducingModel)
+        and not issubclass(model, User)
     ):
         return None
 
@@ -130,7 +131,7 @@ def process_outbox_backfill_batch(
         with outbox_context(transaction.atomic(router.db_for_write(model)), flush=False):
             if isinstance(inst, RegionOutboxProducingModel):
                 inst.outbox_for_update().save()
-            if isinstance(inst, ControlOutboxProducingModel):
+            if isinstance(inst, ControlOutboxProducingModel) or isinstance(inst, User):
                 for outbox in inst.outboxes_for_update():
                     outbox.save()
 

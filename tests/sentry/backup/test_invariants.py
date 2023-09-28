@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from django.db.models.fields.related import ManyToManyField
 
-from sentry.backup.dependencies import ModelRelations, dependencies, normalize_model_name
+from sentry.backup.dependencies import ModelRelations, dependencies, get_model_name
 from sentry.backup.helpers import get_exportable_sentry_models, get_final_derivations_of
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import BaseModel
@@ -51,10 +51,10 @@ def validate_dependency_scopes(allowed: set[RelocationScope]):
         for mr in filter((lambda mr: relocation_scopes_as_set(mr) & allowed), deps.values())
     ]
     for model in models_being_validated:
-        model_name = normalize_model_name(model)
+        model_name = get_model_name(model)
         own_scopes = relocation_scopes_as_set(deps[model_name])
         for ff in deps[model_name].foreign_keys.values():
-            dependency_name = normalize_model_name(ff.model)
+            dependency_name = get_model_name(ff.model)
             dependency_scopes = relocation_scopes_as_set(deps[dependency_name])
             if own_scopes.issuperset(dependency_scopes):
                 AssertionError(

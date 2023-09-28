@@ -39,16 +39,23 @@ export default function useStoriesLoader({filename}: Props) {
       return;
     }
     try {
+      setMod({
+        error: undefined,
+        filename,
+        resolved: undefined,
+      });
       const resolved = await storiesContext().importStory(filename);
       setMod({
         error: undefined,
         filename,
+
         resolved,
       });
     } catch (error) {
       setMod({
         error,
         filename,
+
         resolved: undefined,
       });
     }

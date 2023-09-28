@@ -10,10 +10,10 @@ import OnboardingPanel from 'sentry/components/onboardingPanel';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {TabList, TabPanels, Tabs} from 'sentry/components/tabs';
-import {PlatformKey} from 'sentry/data/platformCategories';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {PlatformKey} from 'sentry/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import MonitorForm from 'sentry/views/monitors/components/monitorForm';
@@ -27,6 +27,7 @@ import {
 } from './platformPickerPanel';
 import {
   CeleryBeatAutoDiscovery,
+  GoUpsertPlatformGuide,
   LaravelUpsertPlatformGuide,
   NodeJsUpsertPlatformGuide,
   PHPUpsertPlatformGuide,
@@ -61,6 +62,12 @@ const platformGuides: Record<SupportedPlatform, PlatformGuide[]> = {
   node: [
     {
       Guide: NodeJsUpsertPlatformGuide,
+      title: 'Upsert',
+    },
+  ],
+  go: [
+    {
+      Guide: GoUpsertPlatformGuide,
       title: 'Upsert',
     },
   ],

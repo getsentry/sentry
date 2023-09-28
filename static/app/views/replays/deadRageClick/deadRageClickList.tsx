@@ -1,4 +1,4 @@
-import {browserHistory, RouteComponentProps} from 'react-router';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
 import Alert from 'sentry/components/alert';
@@ -10,19 +10,18 @@ import PageFiltersContainer from 'sentry/components/organizations/pageFilters/co
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import Pagination from 'sentry/components/pagination';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
-import {hydratedSelectorData} from 'sentry/components/replays/utils';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useDeadRageSelectors from 'sentry/utils/replays/hooks/useDeadRageSelectors';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import SelectorTable from 'sentry/views/replays/deadRageClick/selectorTable';
-import {DeadRageSelectorQueryParams} from 'sentry/views/replays/types';
+import ReplayTabs from 'sentry/views/replays/tabs';
 
-interface Props extends RouteComponentProps<{}, {}, DeadRageSelectorQueryParams> {}
-
-export default function DeadClickList({location}: Props) {
+export default function DeadRageClickList() {
   const organization = useOrganization();
+  const location = useLocation();
   const hasDeadClickFeature = organization.features.includes(
     'session-replay-rage-dead-selectors'
   );
@@ -32,6 +31,7 @@ export default function DeadClickList({location}: Props) {
     sort: '-count_dead_clicks',
     cursor: location.query.cursor,
     prefix: '',
+    isWidgetData: false,
   });
 
   if (!hasDeadClickFeature) {
@@ -50,29 +50,34 @@ export default function DeadClickList({location}: Props) {
       <Layout.Header>
         <Layout.HeaderContent>
           <Layout.Title>
-            {t('Top Selectors with Dead Clicks')}
+            {t('Top Selectors with Dead and Rage Clicks')}
             <PageHeadingQuestionTooltip
-              title={t('See the top selectors your users have dead clicked on.')}
+              title={t('See the top selectors your users have dead and rage clicked on.')}
               docsUrl="https://docs.sentry.io/product/session-replay/replay-page-and-filters/"
             />
           </Layout.Title>
         </Layout.HeaderContent>
+        <div /> {/* wraps the tabs below the page title */}
+        <ReplayTabs selected="selectors" />
       </Layout.Header>
       <PageFiltersContainer>
         <Layout.Body>
           <Layout.Main fullWidth>
+            <PageFilterBar condensed>
+              <ProjectPageFilter resetParamsOnChange={['cursor']} />
+              <EnvironmentPageFilter resetParamsOnChange={['cursor']} />
+              <DatePageFilter alignDropdown="left" resetParamsOnChange={['cursor']} />
+            </PageFilterBar>
             <LayoutGap>
-              <PageFilterBar condensed>
-                <ProjectPageFilter resetParamsOnChange={['cursor']} />
-                <EnvironmentPageFilter resetParamsOnChange={['cursor']} />
-                <DatePageFilter alignDropdown="left" resetParamsOnChange={['cursor']} />
-              </PageFilterBar>
               <SelectorTable
-                data={hydratedSelectorData(data, 'count_dead_clicks')}
+                data={data}
                 isError={isError}
                 isLoading={isLoading}
                 location={location}
-                clickCountColumn={{key: 'count_dead_clicks', name: 'dead clicks'}}
+                clickCountColumns={[
+                  {key: 'count_dead_clicks', name: 'dead clicks'},
+                  {key: 'count_rage_clicks', name: 'rage clicks'},
+                ]}
                 clickCountSortable
               />
             </LayoutGap>
@@ -93,8 +98,7 @@ export default function DeadClickList({location}: Props) {
 }
 
 const LayoutGap = styled('div')`
-  display: grid;
-  gap: ${space(2)};
+  margin-top: ${space(2)};
 `;
 
 const PaginationNoMargin = styled(Pagination)`
