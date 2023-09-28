@@ -6,6 +6,7 @@ import {
   useGenericDiscoverQuery,
 } from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -24,14 +25,14 @@ export const useInteractionBreakdownTimeseriesQuery = ({
   const pageFilters = usePageFilters();
   const location = useLocation();
   const organization = useOrganization();
+  const search = new MutableSearch(
+    `transaction.op:${operation} transaction:${page} interactionElement:${element}`
+  );
   const projectTimeSeriesEventView = EventView.fromNewQueryWithPageFilters(
     {
       yAxis: [`p75(transaction.duration)`],
       name: 'Interaction Duration',
-      query: `transaction.op:${operation} transaction:${page} interactionElement:"${element.replaceAll(
-        '"',
-        '\\"'
-      )}"`,
+      query: search.formatString(),
       version: 2,
       fields: [],
       interval: getInterval(pageFilters.selection.datetime, 'low'),
