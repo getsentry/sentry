@@ -53,7 +53,7 @@ class OrgProjectPermission(OrganizationPermission):
 @region_silo_endpoint
 class OrganizationProjectsExperimentEndpoint(OrganizationEndpoint):
     publish_status = {
-        "POST": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.EXPERIMENTAL,
     }
     permission_classes = (OrgProjectPermission,)
     logger = logging.getLogger("team-project.create")
