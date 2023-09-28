@@ -1,7 +1,6 @@
 import styled from '@emotion/styled';
 
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
-import {PerformanceLayoutBodyRow} from 'sentry/components/performance/layouts';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {space} from 'sentry/styles/space';
 import {Series} from 'sentry/types/echarts';
@@ -170,7 +169,7 @@ export function StarfishView(props: BaseStarfishViewProps) {
   return (
     <div data-test-id="starfish-view">
       <SpanGroupBar />
-      <StyledRow minSize={300}>
+      <StyledRow>
         <ChartsContainer>
           <ChartsContainerItem2>{renderCharts()}</ChartsContainerItem2>
         </ChartsContainer>
@@ -181,7 +180,7 @@ export function StarfishView(props: BaseStarfishViewProps) {
   );
 }
 
-const StyledRow = styled(PerformanceLayoutBodyRow)`
+const StyledRow = styled('div')`
   margin-bottom: ${space(2)};
 `;
 

@@ -1,22 +1,21 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import sumBy from 'lodash/sumBy';
 
 import Link from 'sentry/components/links/link';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import {Tooltip} from 'sentry/components/tooltip';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import theme from 'sentry/utils/theme';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {useRoutingContext} from 'sentry/views/starfish/utils/routingContext';
+import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 
 const {SPAN_SELF_TIME} = SpanMetricsField;
-const COLORS = ['#EAE2F8', '#BBA6DF', '#9A81C4', '#694D99', '#402A65'];
-const FONT_COLORS = ['#564277', '#e8e2f1', '#e8e2f1', '#e8e2f1', '#e8e2f1'];
 
 function getPercent(value, total) {
   return Math.round((value['sum(span.self_time)'] / total) * 100 * 100) / 100;
@@ -24,55 +23,54 @@ function getPercent(value, total) {
 
 export function SpanGroupBar() {
   const pageFilter = usePageFilters();
-  const location = useLocation();
   const {selection} = pageFilter;
-  const organization = useOrganization();
   const routingContext = useRoutingContext();
 
-  const {data: segments, isLoading: isSegmentsLoading} = useDiscoverQuery({
-    eventView: EventView.fromNewQueryWithPageFilters(
-      {
-        name: '',
-        fields: [`sum(${SPAN_SELF_TIME})`, 'span.module'],
-        dataset: DiscoverDatasets.SPANS_METRICS,
-        orderby: '-sum_span_self_time',
-        version: 2,
-      },
-      selection
-    ),
-    orgSlug: organization.slug,
-    referrer: 'api.starfish-web-service.span-category-breakdown',
-    location,
-    limit: 4,
-  });
-  if (isSegmentsLoading || !segments) {
-    return <Fragment />;
-  }
-  let total = 0;
-  segments.data.map(
-    value => (total += parseFloat(value['sum(span.self_time)'] as string))
+  type SegmentResponse = {
+    'span.module': string;
+    'sum(span.self_time)': number;
+  };
+  const {data: segments, isLoading: isSegmentsLoading} = useSpansQuery<SegmentResponse[]>(
+    {
+      eventView: EventView.fromNewQueryWithPageFilters(
+        {
+          name: '',
+          fields: [`sum(${SPAN_SELF_TIME})`, 'span.module'],
+          dataset: DiscoverDatasets.SPANS_METRICS,
+          orderby: '-sum_span_self_time',
+          version: 2,
+        },
+        selection
+      ),
+      referrer: 'api.starfish-web-service.span-category-breakdown',
+      limit: 4,
+    }
   );
+  if (isSegmentsLoading || !segments) {
+    return <LoadingIndicator mini />;
+  }
+  const total = sumBy(segments, 'sum(span.self_time)');
   return (
-    <StyledPanel>
-      <Title>Time Spent Breakdown</Title>
+    <FlexibleRowPanel>
+      <Title>{t('Time Spent Breakdown')}</Title>
       <SegmentContainer>
         {segments &&
-          segments.data.map((value, index) => {
+          segments.map((value, index) => {
             const percent = getPercent(value, total);
             const spanModule = value['span.module'];
             const to =
               spanModule === 'db'
-                ? `/${routingContext.baseURL}/performance/database`
+                ? `/${routingContext.baseURL}/performance/database/`
                 : '';
             return (
               <Segment
                 to={to}
                 key={index}
                 style={{width: percent + '%'}}
-                color={COLORS[index]}
+                color={theme.barBreakdownColors[index]}
               >
                 <Tooltip title={`${spanModule} ${percent}%`}>
-                  <SegmentText fontColor={FONT_COLORS[index]}>
+                  <SegmentText fontColor={theme.barBreakdownFontColors[index]}>
                     {spanModule} {percent}%
                   </SegmentText>
                 </Tooltip>
@@ -80,11 +78,11 @@ export function SpanGroupBar() {
             );
           })}
       </SegmentContainer>
-    </StyledPanel>
+    </FlexibleRowPanel>
   );
 }
 
-const StyledPanel = styled(Panel)`
+const FlexibleRowPanel = styled(Panel)`
   display: flex;
   flex-direction: row;
 `;
