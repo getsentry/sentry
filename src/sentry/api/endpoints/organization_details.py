@@ -610,7 +610,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                 if slug_change_requested:
                     slug = request.data["slug"]
                     try:
-                        organization_provisioning_service.modify_organization_slug(
+                        organization_provisioning_service.change_organization_slug(
                             organization_id=organization.id, slug=slug
                         )
                     except OrganizationSlugCollisionException:
