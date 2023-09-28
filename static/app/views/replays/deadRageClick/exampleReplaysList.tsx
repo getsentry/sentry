@@ -103,7 +103,7 @@ export default function ExampleReplaysList({
               organization={organization}
               referrer={referrer}
               showUrl={false}
-              referrer_table="main"
+              referrer_table="selector-widget"
             />
           );
         })

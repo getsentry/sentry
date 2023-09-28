@@ -43,7 +43,12 @@ type Props = {
   showDropdownFilters?: boolean;
 };
 
-export type ReferrerTableType = 'main' | 'dead-table' | 'errors-table' | 'rage-table';
+export type ReferrerTableType =
+  | 'main'
+  | 'dead-table'
+  | 'errors-table'
+  | 'rage-table'
+  | 'selector-widget';
 
 type EditType = 'set' | 'remove';
 
