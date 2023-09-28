@@ -7,14 +7,22 @@ import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {PaddedContainer} from 'sentry/views/performance/browser/interactionsLandingPage';
+import {InteractionBreakdownChart} from 'sentry/views/performance/browser/interactionSummary/interactionBreakdownChart';
 import InteractionSampleTable from 'sentry/views/performance/browser/interactionSummary/sampleTable';
 import {getActionName} from 'sentry/views/performance/browser/interactionTable';
-import {useBrowserModuleFilters} from 'sentry/views/performance/browser/useBrowserFilters';
+import {
+  BrowserStarfishFields,
+  useBrowserModuleFilters,
+} from 'sentry/views/performance/browser/useBrowserFilters';
 import {ModulePageProviders} from 'sentry/views/performance/database/modulePageProviders';
 
 function InteractionSummary() {
   const organization = useOrganization();
   const browserFilters = useBrowserModuleFilters();
+
+  const operation = browserFilters?.[BrowserStarfishFields.TRANSACTION_OP] ?? '';
+  const page = browserFilters?.[BrowserStarfishFields.PAGE] ?? '';
+  const element = browserFilters?.[BrowserStarfishFields.COMPONENT] ?? '';
 
   return (
     <ModulePageProviders title={[t('Performance'), t('Interactions')].join(' — ')}>
@@ -55,6 +63,11 @@ function InteractionSummary() {
               <DatePageFilter alignDropdown="left" />
             </PageFilterBar>
           </PaddedContainer>
+          <InteractionBreakdownChart
+            operation={operation}
+            page={page}
+            element={element}
+          />
           <InteractionSampleTable />
         </Layout.Main>
       </Layout.Body>
