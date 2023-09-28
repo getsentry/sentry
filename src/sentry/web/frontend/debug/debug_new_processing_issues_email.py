@@ -46,6 +46,7 @@ class DebugNewProcessingIssuesEmailView(View):
             html_template="sentry/emails/activity/new_processing_issues.html",
             text_template="sentry/emails/activity/new_processing_issues.txt",
             context={
+                "org": org,
                 "project": project,
                 "reason": GroupSubscriptionReason.descriptions[
                     GroupSubscriptionReason.processing_issue

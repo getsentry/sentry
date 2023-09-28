@@ -12,7 +12,7 @@
     </h2>
 
     <p class="muted">
-      Some events failed to process in your project "<a href="{{ project.get_absolute_url }}">{{ project.slug }}</a>".
+      Some events failed to process in your project "<a href="{{ project.get_absolute_url }}">{{ project.slug }}</a>". You can see all processing issues in your <a href="https://{{ org.slug }}.sentry.io/settings/projects/{{ project.slug }}/processing-issues/">project settings</a>.
       {% if reprocessing_active %}
         Since reprocessing is enabled, these events will not show up in Sentry until the processing issues are resolved.
       {% endif %}
