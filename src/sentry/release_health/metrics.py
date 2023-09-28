@@ -352,7 +352,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
         def _count_users(total: bool, referrer: str) -> Dict[Any, int]:
             select = [
-                MetricField(metric_mri=SessionMRI.USER.value, alias="value", op="count_unique")
+                MetricField(metric_mri=SessionMRI.RAW_USER.value, alias="value", op="count_unique")
             ]
             query = MetricsQuery(
                 org_id=org_id,
@@ -460,10 +460,14 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
         select = [
             MetricField(
-                metric_mri=SessionMRI.SESSION.value, alias="min_counter_date", op="min_timestamp"
+                metric_mri=SessionMRI.RAW_SESSION.value,
+                alias="min_counter_date",
+                op="min_timestamp",
             ),
             MetricField(
-                metric_mri=SessionMRI.SESSION.value, alias="max_counter_date", op="max_timestamp"
+                metric_mri=SessionMRI.RAW_SESSION.value,
+                alias="max_counter_date",
+                op="max_timestamp",
             ),
             MetricField(
                 metric_mri=SessionMRI.RAW_DURATION.value, alias="min_dist_date", op="min_timestamp"
@@ -580,7 +584,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
         projects, org_id = self._get_projects_and_org_id(project_ids)
 
-        select = [MetricField(metric_mri=SessionMRI.SESSION.value, alias="value", op="sum")]
+        select = [MetricField(metric_mri=SessionMRI.RAW_SESSION.value, alias="value", op="sum")]
 
         where_clause = []
         groupby = [
@@ -636,7 +640,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
         projects, org_id = self._get_projects_and_org_id(project_ids)
 
-        select = [MetricField(metric_mri=SessionMRI.SESSION.value, alias="value", op="sum")]
+        select = [MetricField(metric_mri=SessionMRI.RAW_SESSION.value, alias="value", op="sum")]
         groupby = [MetricGroupByField(field="release")]
         where_clause = [
             Condition(
@@ -808,7 +812,9 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             MetricField(metric_mri=SessionMRI.CRASHED.value, alias="crashed", op=None),
             MetricField(metric_mri=SessionMRI.ALL.value, alias="init", op=None),
             MetricField(
-                metric_mri=SessionMRI.ERRORED_PREAGGREGATED.value, alias="errored_preaggr", op=None
+                metric_mri=SessionMRI.ERRORED_PREAGGREGATED.value,
+                alias="errored_preaggr",
+                op=None,
             ),
         ]
 
@@ -1300,7 +1306,9 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             MetricGroupByField(field="project_id"),
         ]
         select = [
-            MetricField(metric_mri=SessionMRI.SESSION.value, alias="oldest", op="min_timestamp"),
+            MetricField(
+                metric_mri=SessionMRI.RAW_SESSION.value, alias="oldest", op="min_timestamp"
+            ),
         ]
 
         query = MetricsQuery(

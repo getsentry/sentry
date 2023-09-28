@@ -96,9 +96,9 @@ USE_CASE_ID = UseCaseID.SESSIONS
 def get_entity_of_metric_mocked(_, metric_name, use_case_id):
     return {
         "sentry.sessions.session": EntityKey.MetricsCounters,
-        SessionMRI.SESSION.value: EntityKey.MetricsCounters,
+        SessionMRI.RAW_SESSION.value: EntityKey.MetricsCounters,
         "sentry.sessions.session.error": EntityKey.MetricsSets,
-        SessionMRI.ERROR.value: EntityKey.MetricsSets,
+        SessionMRI.RAW_ERROR.value: EntityKey.MetricsSets,
     }[metric_name]
 
 
@@ -356,8 +356,8 @@ def test_build_snuba_query(mock_now, mock_now2):
         org_id=1,
         project_ids=[1],
         select=[
-            MetricField("sum", SessionMRI.SESSION.value),
-            MetricField("count_unique", SessionMRI.USER.value),
+            MetricField("sum", SessionMRI.RAW_SESSION.value),
+            MetricField("count_unique", SessionMRI.RAW_USER.value),
             MetricField("p95", SessionMRI.RAW_DURATION.value),
         ],
         start=MOCK_NOW - timedelta(days=90),
@@ -509,7 +509,7 @@ def test_build_snuba_query_mri(mock_now, mock_now2):
 
     assert fields_in_entities == {
         "metrics_counters": [
-            ("sum", SessionMRI.SESSION.value, SessionMRI.SESSION.value),
+            ("sum", SessionMRI.RAW_SESSION.value, SessionMRI.RAW_SESSION.value),
         ]
     }
 
@@ -549,7 +549,7 @@ def test_build_snuba_query_mri(mock_now, mock_now2):
                 Condition(
                     Column("metric_id"),
                     Op.IN,
-                    [resolve_weak(use_case_id, org_id, SessionMRI.SESSION.value)],
+                    [resolve_weak(use_case_id, org_id, SessionMRI.RAW_SESSION.value)],
                 ),
             ],
             having=[],
@@ -622,21 +622,23 @@ def test_build_snuba_query_derived_metrics(mock_now, mock_now2):
                 select=[
                     errored_preaggr_sessions(
                         org_id,
-                        metric_ids=[resolve_weak(use_case_id, org_id, SessionMRI.SESSION.value)],
+                        metric_ids=[
+                            resolve_weak(use_case_id, org_id, SessionMRI.RAW_SESSION.value)
+                        ],
                         alias=f"{SessionMRI.ERRORED_PREAGGREGATED.value}{COMPOSITE_ENTITY_CONSTITUENT_ALIAS}{SessionMetricKey.ERRORED.value}",
                     ),
                     addition(
                         crashed_sessions(
                             org_id,
                             metric_ids=[
-                                resolve_weak(use_case_id, org_id, SessionMRI.SESSION.value)
+                                resolve_weak(use_case_id, org_id, SessionMRI.RAW_SESSION.value)
                             ],
                             alias=SessionMRI.CRASHED.value,
                         ),
                         abnormal_sessions(
                             org_id,
                             metric_ids=[
-                                resolve_weak(use_case_id, org_id, SessionMRI.SESSION.value)
+                                resolve_weak(use_case_id, org_id, SessionMRI.RAW_SESSION.value)
                             ],
                             alias=SessionMRI.ABNORMAL.value,
                         ),
@@ -647,14 +649,14 @@ def test_build_snuba_query_derived_metrics(mock_now, mock_now2):
                             crashed_sessions(
                                 org_id,
                                 metric_ids=[
-                                    resolve_weak(use_case_id, org_id, SessionMRI.SESSION.value)
+                                    resolve_weak(use_case_id, org_id, SessionMRI.RAW_SESSION.value)
                                 ],
                                 alias=SessionMRI.CRASHED.value,
                             ),
                             all_sessions(
                                 org_id,
                                 metric_ids=[
-                                    resolve_weak(use_case_id, org_id, SessionMRI.SESSION.value)
+                                    resolve_weak(use_case_id, org_id, SessionMRI.RAW_SESSION.value)
                                 ],
                                 alias=SessionMRI.ALL.value,
                             ),
@@ -664,7 +666,9 @@ def test_build_snuba_query_derived_metrics(mock_now, mock_now2):
                     ),
                     all_sessions(
                         org_id,
-                        metric_ids=[resolve_weak(use_case_id, org_id, SessionMRI.SESSION.value)],
+                        metric_ids=[
+                            resolve_weak(use_case_id, org_id, SessionMRI.RAW_SESSION.value)
+                        ],
                         alias=SessionMetricKey.ALL.value,
                     ),
                 ],
@@ -681,7 +685,7 @@ def test_build_snuba_query_derived_metrics(mock_now, mock_now2):
                     Condition(
                         Column("metric_id"),
                         Op.IN,
-                        [resolve_weak(use_case_id, org_id, SessionMRI.SESSION.value)],
+                        [resolve_weak(use_case_id, org_id, SessionMRI.RAW_SESSION.value)],
                     ),
                 ],
                 having=[],
@@ -695,7 +699,7 @@ def test_build_snuba_query_derived_metrics(mock_now, mock_now2):
                 match=Entity("metrics_sets"),
                 select=[
                     uniq_aggregation_on_metric(
-                        metric_ids=[resolve_weak(use_case_id, org_id, SessionMRI.ERROR.value)],
+                        metric_ids=[resolve_weak(use_case_id, org_id, SessionMRI.RAW_ERROR.value)],
                         alias=f"{SessionMRI.ERRORED_SET.value}{COMPOSITE_ENTITY_CONSTITUENT_ALIAS}{SessionMetricKey.ERRORED.value}",
                     ),
                 ],
@@ -712,7 +716,7 @@ def test_build_snuba_query_derived_metrics(mock_now, mock_now2):
                     Condition(
                         Column("metric_id"),
                         Op.IN,
-                        [resolve_weak(use_case_id, org_id, SessionMRI.ERROR.value)],
+                        [resolve_weak(use_case_id, org_id, SessionMRI.RAW_ERROR.value)],
                     ),
                 ],
                 having=[],
@@ -1086,7 +1090,7 @@ def test_translate_results_missing_slots(_1, _2):
     query_definition = QueryDefinition([PseudoProject(1, 1)], query_params)
     fields_in_entities = {
         "metrics_counters": [
-            ("sum", SessionMRI.SESSION.value, "sum(sentry.sessions.session)"),
+            ("sum", SessionMRI.RAW_SESSION.value, "sum(sentry.sessions.session)"),
         ],
     }
 
@@ -1095,7 +1099,7 @@ def test_translate_results_missing_slots(_1, _2):
             "totals": {
                 "data": [
                     {
-                        "metric_id": resolve(use_case_id, org_id, SessionMRI.SESSION.value),
+                        "metric_id": resolve(use_case_id, org_id, SessionMRI.RAW_SESSION.value),
                         "sum(sentry.sessions.session)": 400,
                     },
                 ],
@@ -1103,13 +1107,13 @@ def test_translate_results_missing_slots(_1, _2):
             "series": {
                 "data": [
                     {
-                        "metric_id": resolve(use_case_id, org_id, SessionMRI.SESSION.value),
+                        "metric_id": resolve(use_case_id, org_id, SessionMRI.RAW_SESSION.value),
                         "bucketed_time": "2021-08-23T00:00Z",
                         "sum(sentry.sessions.session)": 100,
                     },
                     # no data for 2021-08-24
                     {
-                        "metric_id": resolve(use_case_id, org_id, SessionMRI.SESSION.value),
+                        "metric_id": resolve(use_case_id, org_id, SessionMRI.RAW_SESSION.value),
                         "bucketed_time": "2021-08-25T00:00Z",
                         "sum(sentry.sessions.session)": 300,
                     },
@@ -1304,12 +1308,12 @@ def test_translate_meta_result_type_composite_entity_derived_metric(_):
     [
         pytest.param(
             [
-                MetricField("sum", SessionMRI.SESSION.value),
-                MetricField("count_unique", SessionMRI.USER.value),
+                MetricField("sum", SessionMRI.RAW_SESSION.value),
+                MetricField("count_unique", SessionMRI.RAW_USER.value),
                 MetricField("p95", SessionMRI.RAW_DURATION.value),
             ],
             [
-                MetricGroupByField(MetricField("sum", SessionMRI.SESSION.value)),
+                MetricGroupByField(MetricField("sum", SessionMRI.RAW_SESSION.value)),
             ],
             UseCaseID.SESSIONS,
             re.escape("Cannot group by metrics expression sum(sentry.sessions.session)"),
@@ -1399,12 +1403,12 @@ def test_only_can_groupby_operations_can_be_added_to_groupby(
     [
         pytest.param(
             [
-                MetricField("sum", SessionMRI.SESSION.value),
-                MetricField("count_unique", SessionMRI.USER.value),
+                MetricField("sum", SessionMRI.RAW_SESSION.value),
+                MetricField("count_unique", SessionMRI.RAW_USER.value),
                 MetricField("p95", SessionMRI.RAW_DURATION.value),
             ],
             [
-                MetricConditionField(MetricField("sum", SessionMRI.SESSION.value), Op.GTE, 10),
+                MetricConditionField(MetricField("sum", SessionMRI.RAW_SESSION.value), Op.GTE, 10),
             ],
             UseCaseID.SESSIONS,
             re.escape("Cannot filter by metrics expression sum(sentry.sessions.session)"),
@@ -1962,7 +1966,7 @@ def test_timestamp_operators(op: MetricOperationType, clickhouse_op: str):
         org_id=org_id,
         project_ids=[1],
         select=[
-            MetricField(op=op, metric_mri=SessionMRI.SESSION.value, alias="ts"),
+            MetricField(op=op, metric_mri=SessionMRI.RAW_SESSION.value, alias="ts"),
         ],
         start=MOCK_NOW - timedelta(days=90),
         end=MOCK_NOW,
@@ -1986,7 +1990,7 @@ def test_timestamp_operators(op: MetricOperationType, clickhouse_op: str):
                 "equals",
                 [
                     Column("metric_id"),
-                    resolve_weak(UseCaseID.SESSIONS, org_id, SessionMRI.SESSION.value),
+                    resolve_weak(UseCaseID.SESSIONS, org_id, SessionMRI.RAW_SESSION.value),
                 ],
             ),
         ],
@@ -2014,7 +2018,7 @@ def test_having_clause(include_totals, include_series):
         org_id=1,
         project_ids=[1],
         select=[
-            MetricField("sum", SessionMRI.SESSION.value, alias="sum"),
+            MetricField("sum", SessionMRI.RAW_SESSION.value, alias="sum"),
         ],
         start=MOCK_NOW - timedelta(days=90),
         end=MOCK_NOW,

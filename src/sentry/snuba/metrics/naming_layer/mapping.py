@@ -30,10 +30,10 @@ def create_name_mapping_layers() -> None:
     NAME_TO_MRI.update(
         {
             # Session
-            "sentry.sessions.session": SessionMRI.SESSION,
-            "sentry.sessions.user": SessionMRI.USER,
+            "sentry.sessions.session": SessionMRI.RAW_SESSION,
+            "sentry.sessions.user": SessionMRI.RAW_USER,
             "sentry.sessions.session.duration": SessionMRI.RAW_DURATION,
-            "sentry.sessions.session.error": SessionMRI.ERROR,
+            "sentry.sessions.session.error": SessionMRI.RAW_ERROR,
         }
     )
 

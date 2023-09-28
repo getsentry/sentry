@@ -568,7 +568,7 @@ class BaseCrashRateMetricsEntitySubscription(BaseMetricsEntitySubscription):
 
 
 class MetricsCountersEntitySubscription(BaseCrashRateMetricsEntitySubscription):
-    metric_key: SessionMRI = SessionMRI.SESSION
+    metric_key: SessionMRI = SessionMRI.RAW_SESSION
 
     def get_snql_aggregations(self) -> List[str]:
         return [
@@ -593,7 +593,7 @@ class MetricsCountersEntitySubscription(BaseCrashRateMetricsEntitySubscription):
 
 
 class MetricsSetsEntitySubscription(BaseCrashRateMetricsEntitySubscription):
-    metric_key: SessionMRI = SessionMRI.USER
+    metric_key: SessionMRI = SessionMRI.RAW_USER
 
     def get_snql_aggregations(self) -> List[str]:
         return [
