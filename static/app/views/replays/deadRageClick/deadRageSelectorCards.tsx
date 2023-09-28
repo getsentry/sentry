@@ -81,7 +81,7 @@ function AccordionWidget({
         <div>
           <StyledWidgetHeader>
             {widgetTitle}
-            <StyledQuestionTooltip size="xs" position="top" title={tooltip} isHoverable />
+            <QuestionTooltip size="xs" position="top" title={tooltip} isHoverable />
           </StyledWidgetHeader>
           <Subtitle>{t('Suggested replays to watch')}</Subtitle>
         </div>
@@ -255,11 +255,10 @@ const StyledAccordionHeader = styled('div')`
 `;
 
 const StyledWidgetHeader = styled(HeaderTitleLegend)`
-  display: block;
-`;
-
-const StyledQuestionTooltip = styled(QuestionTooltip)`
-  margin-left: ${space(1)};
+  display: grid;
+  gap: ${space(1)};
+  justify-content: start;
+  align-items: center;
 `;
 
 export default DeadRageSelectorCards;
