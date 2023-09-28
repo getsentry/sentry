@@ -92,10 +92,10 @@ function useTagQueries({
 function GroupTagValues({baseUrl, project, group, environments}: Props) {
   const organization = useOrganization();
   const location = useLocation();
-  const {orgId, tagKey} = useParams<RouteParams>();
+  const {orgId, tagKey = ''} = useParams<RouteParams>();
   const {cursor: _cursor, page: _page, ...currentQuery} = location.query;
 
-  const title = tagKey === 'user' ? t('Affected Users') : tagKey ?? '';
+  const title = tagKey === 'user' ? t('Affected Users') : tagKey;
   const sort = location.query.sort || DEFAULT_SORT;
   const sortArrow = <IconArrow color="gray300" size="xs" direction="down" />;
 

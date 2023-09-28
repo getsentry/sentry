@@ -5,7 +5,7 @@ import {Tag} from 'sentry/actionCreators/events';
 import {Client, RequestCallbacks, RequestOptions} from 'sentry/api';
 import {getSampleEventQuery} from 'sentry/components/events/eventStatisticalDetector/eventComparison/eventDisplay';
 import GroupStore from 'sentry/stores/groupStore';
-import {Actor, Group, Member, Note, TagValue, User} from 'sentry/types';
+import {Actor, Group, Member, Note, Tag as GroupTag, TagValue, User} from 'sentry/types';
 import {buildTeamId, buildUserId, defined} from 'sentry/utils';
 import {uniqueId} from 'sentry/utils/guid';
 import {ApiQueryKey, useApiQuery, UseApiQueryOptions} from 'sentry/utils/queryClient';
@@ -526,9 +526,9 @@ export const makeFetchIssueTagQueryKey = ({
 
 export function useFetchIssueTag(
   parameters: FetchIssueTagParameters,
-  options: Partial<UseApiQueryOptions<Tag>> = {}
+  options: Partial<UseApiQueryOptions<GroupTag>> = {}
 ) {
-  return useApiQuery<Tag>(makeFetchIssueTagQueryKey(parameters), {
+  return useApiQuery<GroupTag>(makeFetchIssueTagQueryKey(parameters), {
     staleTime: 0,
     retry: false,
     ...options,
