@@ -25,7 +25,10 @@ import {
   WidgetContainer,
 } from 'sentry/views/profiling/landing/styles';
 import ExampleReplaysList from 'sentry/views/replays/deadRageClick/exampleReplaysList';
-import {SelectorLink} from 'sentry/views/replays/deadRageClick/selectorTable';
+import {
+  SelectorLink,
+  transformSelectorQuery,
+} from 'sentry/views/replays/deadRageClick/selectorTable';
 
 function DeadRageSelectorCards() {
   return (
@@ -147,13 +150,6 @@ function AccordionWidget({
       />
     </StyledWidgetContainer>
   );
-}
-
-export function transformSelectorQuery(selector: string) {
-  return selector
-    .replaceAll('"', `\\"`)
-    .replaceAll('aria=', 'aria-label=')
-    .replaceAll('testid=', 'data-test-id=');
 }
 
 function AccordionItemHeader({

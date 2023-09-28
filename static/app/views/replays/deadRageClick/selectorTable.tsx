@@ -1,4 +1,4 @@
-import {ReactNode, useCallback, useMemo} from 'react';
+import {Fragment, ReactNode, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -8,13 +8,14 @@ import renderSortableHeaderCell from 'sentry/components/replays/renderSortableHe
 import useQueryBasedColumnResize from 'sentry/components/replays/useQueryBasedColumnResize';
 import useQueryBasedSorting from 'sentry/components/replays/useQueryBasedSorting';
 import TextOverflow from 'sentry/components/textOverflow';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconCursorArrow} from 'sentry/icons';
+import {tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {ColorOrAlias} from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import {transformSelectorQuery} from 'sentry/views/replays/deadRageClick/deadRageSelectorCards';
 import {DeadRageSelectorItem} from 'sentry/views/replays/types';
 
 export interface UrlState {
@@ -41,6 +42,13 @@ export function hydratedSelectorData(data, clickType?): DeadRageSelectorItem[] {
     element: d.dom_element.split(/[#.]+/)[0],
     aria_label: getAriaLabel(d.dom_element),
   }));
+}
+
+export function transformSelectorQuery(selector: string) {
+  return selector
+    .replaceAll('"', `\\"`)
+    .replaceAll('aria=', 'aria-label=')
+    .replaceAll('testid=', 'data-test-id=');
 }
 
 interface Props {
@@ -146,20 +154,31 @@ export function SelectorLink({
   const organization = useOrganization();
   const location = useLocation();
   return (
-    <Link
-      to={{
-        pathname: normalizeUrl(`/organizations/${organization.slug}/replays/`),
-        query: {
-          ...location.query,
-          query: selectorQuery,
-          cursor: undefined,
-        },
-      }}
+    <Tooltip
+      title={tct('Search for replays with clicks on: [selector]', {
+        selector: (
+          <Fragment>
+            <br />
+            <code>{value}</code>
+          </Fragment>
+        ),
+      })}
     >
-      <StyledTextOverflow>
-        <code>{value}</code>
-      </StyledTextOverflow>
-    </Link>
+      <Link
+        to={{
+          pathname: normalizeUrl(`/organizations/${organization.slug}/replays/`),
+          query: {
+            ...location.query,
+            query: selectorQuery,
+            cursor: undefined,
+          },
+        }}
+      >
+        <StyledTextOverflow>
+          <code>{value}</code>
+        </StyledTextOverflow>
+      </Link>
+    </Tooltip>
   );
 }
 
