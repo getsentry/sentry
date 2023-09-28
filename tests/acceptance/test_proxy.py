@@ -19,8 +19,15 @@ from sentry.utils import json
 from tests.sentry.middleware.test_proxy import test_region
 
 
+@pytest.fixture(scope="function")
+def local_live_server(request, live_server):
+    if hasattr(request, "cls"):
+        request.cls.live_server = live_server
+    request.node.live_server = live_server
+
+
 @region_silo_test(stable=True, regions=[test_region])
-@pytest.mark.usefixtures("live_server")
+@pytest.mark.usefixtures("local_live_server")
 class EndToEndAPIProxyTest(TransactionTestCase):
     live_server: LiveServer
     endpoint = "sentry-api-0-organization-teams"
