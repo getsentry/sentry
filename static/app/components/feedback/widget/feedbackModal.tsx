@@ -131,7 +131,7 @@ export function FeedbackModal({
     <Fragment>
       <Dialog
         id="feedbackModal"
-        className={classNames(isDarkTheme ? '__sntry_fb_dark' : '', className)}
+        className={classNames(isDarkTheme ? '__sntry_fdbk_dark' : '', className)}
         open={open}
         ref={dialogRef}
         onClick={handleClose}
@@ -150,14 +150,14 @@ export function FeedbackModal({
 
 const Dialog = styled('dialog')`
   --sentry-feedback-bg-color: #fff;
-  --sentry-feedback-bg-accent-color: #eee;
+  --sentry-feedback-bg-hover-color: #f0f0f0;
   --sentry-feedback-fg-color: #000;
   --sentry-feedback-border: 1.5px solid rgba(41, 35, 47, 0.13);
   --sentry-feedback-box-shadow: 0px 4px 24px 0px rgba(43, 34, 51, 0.12);
 
-  &.__sntry_fb_dark {
+  &.__sntry_fdbk_dark {
     --sentry-feedback-bg-color: #29232f;
-    --sentry-feedback-bg-accent-color: #363339;
+    --sentry-feedback-bg-hover-color: #3a3540;
     --sentry-feedback-fg-color: #ebe6ef;
     --sentry-feedback-border: 1.5px solid rgba(235, 230, 239, 0.15);
     --sentry-feedback-box-shadow: 0px 4px 24px 0px rgba(43, 34, 51, 0.12);
