@@ -106,9 +106,9 @@ export default function SelectorTable({
         case 'element':
         case 'aria_label':
           return (
-            <StyledTextOverflow>
+            <TextOverflow>
               <code>{value}</code>
-            </StyledTextOverflow>
+            </TextOverflow>
           );
         default:
           return renderSimpleBodyCell<DeadRageSelectorItem>(column, dataRow);
