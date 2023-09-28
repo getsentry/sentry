@@ -1,7 +1,13 @@
 from datetime import datetime
 
 from sentry.constants import ObjectStatus
-from sentry.monitors.models import CheckInStatus, MonitorCheckIn, MonitorEnvironment, MonitorStatus
+from sentry.monitors.models import (
+    CheckInStatus,
+    MonitorCheckIn,
+    MonitorEnvironment,
+    MonitorIncident,
+    MonitorStatus,
+)
 
 
 def mark_ok(checkin: MonitorCheckIn, ts: datetime):
@@ -33,6 +39,11 @@ def mark_ok(checkin: MonitorCheckIn, ts: datetime):
         # in the future this will auto-resolve associated issues
         if monitor_env.status != MonitorStatus.OK:
             params["last_state_change"] = ts
+            # resolve any associated incidents
+            incidents = MonitorIncident.objects.filter(
+                monitor_environment=monitor_env, grouphash=monitor_env.incident_grouphash
+            )
+            incidents.update(resolving_checkin=checkin, resolving_timestamp=checkin.date_added)
 
     MonitorEnvironment.objects.filter(id=monitor_env.id).exclude(last_checkin__gt=ts).update(
         **params
