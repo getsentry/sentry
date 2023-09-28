@@ -5,7 +5,7 @@ import {Tag} from 'sentry/actionCreators/events';
 import {Client, RequestCallbacks, RequestOptions} from 'sentry/api';
 import {getSampleEventQuery} from 'sentry/components/events/eventStatisticalDetector/eventComparison/eventDisplay';
 import GroupStore from 'sentry/stores/groupStore';
-import {Actor, Group, Member, Note, User} from 'sentry/types';
+import {Actor, Group, Member, Note, Tag as GroupTag, TagValue, User} from 'sentry/types';
 import {buildTeamId, buildUserId, defined} from 'sentry/utils';
 import {uniqueId} from 'sentry/utils/guid';
 import {ApiQueryKey, useApiQuery, UseApiQueryOptions} from 'sentry/utils/queryClient';
@@ -476,3 +476,61 @@ export const useFetchIssueTags = (
     ...options,
   });
 };
+
+type FetchIssueTagValuesParameters = {
+  groupId: string;
+  orgSlug: string;
+  tagKey: string;
+  environment?: string[];
+  sort?: string | string[];
+};
+
+export const makeFetchIssueTagValuesQueryKey = ({
+  orgSlug,
+  groupId,
+  tagKey,
+  environment,
+  sort,
+}: FetchIssueTagValuesParameters): ApiQueryKey => [
+  `/organizations/${orgSlug}/issues/${groupId}/tags/${tagKey}/values/`,
+  {query: {environment, sort}},
+];
+
+export function useFetchIssueTagValues(
+  parameters: FetchIssueTagValuesParameters,
+  options: Partial<UseApiQueryOptions<TagValue[]>> = {}
+) {
+  return useApiQuery<TagValue[]>(makeFetchIssueTagValuesQueryKey(parameters), {
+    staleTime: 0,
+    retry: false,
+    ...options,
+  });
+}
+
+type FetchIssueTagParameters = {
+  groupId: string;
+  orgSlug: string;
+  tagKey: string;
+};
+
+export const makeFetchIssueTagQueryKey = ({
+  orgSlug,
+  groupId,
+  tagKey,
+  environment,
+  sort,
+}: FetchIssueTagValuesParameters): ApiQueryKey => [
+  `/organizations/${orgSlug}/issues/${groupId}/tags/${tagKey}/`,
+  {query: {environment, sort}},
+];
+
+export function useFetchIssueTag(
+  parameters: FetchIssueTagParameters,
+  options: Partial<UseApiQueryOptions<GroupTag>> = {}
+) {
+  return useApiQuery<GroupTag>(makeFetchIssueTagQueryKey(parameters), {
+    staleTime: 0,
+    retry: false,
+    ...options,
+  });
+}
