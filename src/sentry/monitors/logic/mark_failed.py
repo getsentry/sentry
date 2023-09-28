@@ -17,7 +17,13 @@ from sentry.issues.grouptype import (
 )
 from sentry.models import Organization
 from sentry.monitors.constants import SUBTITLE_DATETIME_FORMAT, TIMEOUT
-from sentry.monitors.models import CheckInStatus, MonitorCheckIn, MonitorEnvironment, MonitorStatus
+from sentry.monitors.models import (
+    CheckInStatus,
+    MonitorCheckIn,
+    MonitorEnvironment,
+    MonitorIncident,
+    MonitorStatus,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -104,9 +110,14 @@ def mark_failed_threshold(failed_checkin: MonitorCheckIn, failure_issue_threshol
 
     # check to see if we need to update the status
     if monitor_env.status == MonitorStatus.OK:
-        previous_checkins = MonitorCheckIn.objects.filter(monitor_environment=monitor_env).order_by(
-            "-date_added"
-        )[:failure_issue_threshold]
+        # reverse the list after slicing in order to start with oldest check-in
+        previous_checkins = list(
+            reversed(
+                MonitorCheckIn.objects.filter(monitor_environment=monitor_env).order_by(
+                    "-date_added"
+                )[:failure_issue_threshold]
+            )
+        )
         # check for successive failed previous check-ins
         if not all(
             [
@@ -120,6 +131,19 @@ def mark_failed_threshold(failed_checkin: MonitorCheckIn, failure_issue_threshol
         monitor_env.status = MonitorStatus.ERROR
         monitor_env.last_state_change = monitor_env.last_checkin
         monitor_env.save(update_fields=("status", "last_state_change"))
+
+        starting_checkin = previous_checkins[0]
+
+        # for new incidents, generate a new hash from a uuid to use
+        fingerprint = hash_from_values([uuid.uuid4()])
+
+        MonitorIncident.objects.create(
+            monitor=monitor_env.monitor,
+            monitor_environment=monitor_env,
+            starting_checkin=starting_checkin,
+            starting_timestamp=starting_checkin.date_added,
+            grouphash=fingerprint,
+        )
     elif monitor_env.status in [
         MonitorStatus.ERROR,
         MonitorStatus.MISSED_CHECKIN,
@@ -132,6 +156,9 @@ def mark_failed_threshold(failed_checkin: MonitorCheckIn, failure_issue_threshol
             .order_by("-date_added")
             .first()
         ]
+
+        # get the existing grouphash from the monitor environment
+        fingerprint = monitor_env.incident_grouphash
     else:
         # don't send occurrence for other statuses
         return False
@@ -139,13 +166,6 @@ def mark_failed_threshold(failed_checkin: MonitorCheckIn, failure_issue_threshol
     # Do not create event if monitor is disabled
     if monitor_env.monitor.status == ObjectStatus.DISABLED:
         return True
-
-    fingerprint = [
-        "monitor",
-        str(monitor_env.monitor.guid),
-        monitor_env.environment.name,
-        str(monitor_env.last_state_change),
-    ]
 
     for previous_checkin in previous_checkins:
         create_issue_platform_occurrence(previous_checkin, fingerprint)
@@ -240,7 +260,7 @@ def create_issue_platform_occurrence(
         project_id=monitor_env.monitor.project_id,
         event_id=uuid.uuid4().hex,
         fingerprint=[
-            hash_from_values(fingerprint)
+            fingerprint
             if fingerprint
             else hash_from_values(
                 ["monitor", str(monitor_env.monitor.guid), occurrence_data["reason"]]
