@@ -3,11 +3,8 @@ from typing import List
 
 from django.core.cache import cache
 
-from sentry.hybridcloud.rpc.services.caching import (
-    CacheBackend,
-    back_with_silo_cache,
-    region_caching_service,
-)
+from sentry.hybridcloud.rpc.services.caching import back_with_silo_cache, region_caching_service
+from sentry.hybridcloud.rpc.services.caching.impl import CacheBackend
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.silo import SiloMode
