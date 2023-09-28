@@ -463,7 +463,7 @@ class OrganizationSpansAggregationTest(APITestCase, SnubaTestCase):
             assert data[fingerprint]["avg(absolute_offset)"] == 1075.0
 
     @mock.patch("sentry.api.endpoints.organization_spans_aggregation.raw_snql_query")
-    def test_null_group_falls_back(self, mock_query):
+    def test_null_group_fallback(self, mock_query):
         mock_query.side_effect = [MOCK_SNUBA_RESPONSE]
         for backend in ["spans", ""]:
             with self.feature(self.FEATURES):
