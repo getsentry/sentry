@@ -29,22 +29,6 @@ interface StepsParams {
 }
 
 // Configuration Start
-const platformOptions: Record<PlaformOptionKey, PlatformOption> = {
-  installationMode: {
-    label: t('Installation Mode'),
-    items: [
-      {
-        label: t('Auto'),
-        value: InstallationMode.AUTO,
-      },
-      {
-        label: t('Manual'),
-        value: InstallationMode.MANUAL,
-      },
-    ],
-  },
-};
-
 const autoInstallSteps = [
   {
     type: StepType.INSTALL,
@@ -289,6 +273,25 @@ export function GettingStartedWithAndroid({
   activeProductSelection = [],
   ...props
 }: ModuleProps) {
+  const platformOptions: Record<PlaformOptionKey, PlatformOption> = {
+    installationMode: {
+      label: t('Installation Mode'),
+      items: [
+        {
+          label: t('Auto'),
+          value: InstallationMode.AUTO,
+        },
+        {
+          label: t('Manual'),
+          value: InstallationMode.MANUAL,
+        },
+      ],
+      defaultValue:
+        navigator.userAgent.indexOf('Win') !== -1
+          ? InstallationMode.MANUAL
+          : InstallationMode.AUTO,
+    },
+  };
   const optionValues = useUrlPlatformOptions(platformOptions);
 
   const installationMode = optionValues.installationMode as InstallationMode;
