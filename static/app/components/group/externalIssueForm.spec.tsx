@@ -77,6 +77,24 @@ describe('ExternalIssueForm', () => {
     it('renders', async () => {
       await renderComponent();
     });
+    it('if we have an error fields, we should disable the create button', async () => {
+      formConfig = {
+        createIssueConfig: [
+          {
+            name: 'error',
+            type: 'blank',
+          },
+        ],
+      };
+      MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/issues/${group.id}/integrations/${integration.id}/`,
+        body: formConfig,
+      });
+      await renderComponent();
+
+      const submitButton = screen.getByRole('button', {name: 'Create Issue'});
+      expect(submitButton).toBeDisabled();
+    });
   });
   describe('link', () => {
     let externalIssueField, getFormConfigRequest;
