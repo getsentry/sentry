@@ -259,10 +259,10 @@ def detect_function_trends(project_ids: List[int], start: datetime, *args, **kwa
                 [(payload.project_id, payload.group) for _, payload in regression_chunk],
                 start,
             ],
-            # delay the check by 6 hours because we want to make sure there
+            # delay the check by 12 hours because we want to make sure there
             # will be enough data after the potential change point to be confident
             # that a change has occurred
-            countdown=6 * 60 * 60,
+            countdown=12 * 60 * 60,
         )
 
 
