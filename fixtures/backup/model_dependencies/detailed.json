@@ -97,6 +97,23 @@
       ]
     ]
   },
+  "hybridcloud.regioncacheversion": {
+    "foreign_keys": {},
+    "model": "hybridcloud.regioncacheversion",
+    "relocation_scope": "Excluded",
+    "silos": [
+      "Region"
+    ],
+    "table_name": "hybridcloud_regioncacheversion",
+    "uniques": [
+      [
+        "id"
+      ],
+      [
+        "key"
+      ]
+    ]
+  },
   "nodestore.node": {
     "foreign_keys": {},
     "model": "nodestore.node",
