@@ -103,6 +103,15 @@
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
+    ],
+    "table_name": "hybridcloud_regioncacheversion",
+    "uniques": [
+      [
+        "id"
+      ],
+      [
+        "key"
+      ]
     ]
   },
   "nodestore.node": {
