@@ -443,6 +443,12 @@ def get_group_hourly_count(group: Group) -> int:
 def _get_group_hourly_count_with_metrics(
     group: Group, now: datetime, current_hour: datetime, hourly_count: int
 ):
+    """
+    Return the number of events a group has had today in the last hour
+
+    Checks if the returned results are equivalent to `hourly_count`.
+    If not equivalent, it will generate a log.
+    """
     organization = Organization.objects.get(id=group.project.organization_id)
 
     if group.issue_category == GroupCategory.ERROR and features.has(
@@ -480,6 +486,13 @@ def _get_group_hourly_count_with_metrics(
 def _query_metrics_for_group_hourly_count(
     group: Group, now: datetime, current_hour: datetime
 ) -> int:
+    """
+    This function generates a query to fetch the current hour's events
+    for a group_id through the Generic Metrics Backend.
+
+    The Generic Metrics Backend only contains data for Errors.
+    """
+
     if group.issue_category != GroupCategory.ERROR:
         raise Exception("Invalid category.")
 
