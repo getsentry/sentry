@@ -40,7 +40,7 @@ class LargeHTTPPayloadDetectorTest(TestCase):
                 "GET /api/0/organizations/endpoint1",
                 "hash1",
                 data={
-                    "http.transfer_size": 50_000_000,
+                    "http.response_transfer_size": 50_000_000,
                     "http.response_content_length": 50_000_000,
                     "http.decoded_response_content_length": 50_000_000,
                 },
@@ -76,7 +76,7 @@ class LargeHTTPPayloadDetectorTest(TestCase):
                 "GET /api/0/organizations/endpoint1",
                 "hash1",
                 data={
-                    "http.transfer_size": 50_000_000,
+                    "http.response_transfer_size": 50_000_000,
                     "http.response_content_length": 50_000_000,
                     "http.decoded_response_content_length": 50_000_000,
                 },
@@ -108,7 +108,7 @@ class LargeHTTPPayloadDetectorTest(TestCase):
                 desc="https://s1.sentry-cdn.com/_static/dist/sentry/entrypoints/app.js",
                 duration=1000.0,
                 data={
-                    "http.transfer_size": 50_000_000,
+                    "http.response_transfer_size": 50_000_000,
                     "http.response_content_length": 50_000_000,
                     "http.decoded_response_content_length": 50_000_000,
                 },
@@ -125,7 +125,7 @@ class LargeHTTPPayloadDetectorTest(TestCase):
                 desc="GET https://s1.sentry-cdn.com/_static/dist/sentry/entrypoints/app.mp3",
                 duration=1000.0,
                 data={
-                    "http.transfer_size": 50_000_000,
+                    "http.response_transfer_size": 50_000_000,
                     "http.response_content_length": 50_000_000,
                     "http.decoded_response_content_length": 50_000_000,
                 },
@@ -142,7 +142,7 @@ class LargeHTTPPayloadDetectorTest(TestCase):
                 desc="GET https://s1.sentry-cdn.com/_static/dist/sentry/entrypoints/app.json",
                 duration=1000.0,
                 data={
-                    "http.transfer_size": 50_000_000,
+                    "http.response_transfer_size": 50_000_000,
                     "http.response_content_length": 50_000_000,
                     "http.decoded_response_content_length": 50_000_000,
                 },
@@ -176,7 +176,7 @@ class LargeHTTPPayloadDetectorTest(TestCase):
                 desc="GET https://s1.sentry-cdn.com/_static/dist/sentry/entrypoints/app.json?foo=bar",
                 duration=1000.0,
                 data={
-                    "http.transfer_size": 50_000_000,
+                    "http.response_transfer_size": 50_000_000,
                     "http.response_content_length": 50_000_000,
                     "http.decoded_response_content_length": 50_000_000,
                 },
@@ -210,7 +210,7 @@ class LargeHTTPPayloadDetectorTest(TestCase):
                 desc="GET https://s1.sentry-cdn.com/_static/dist/sentry/entrypoints/app.json/?foo=bar",
                 duration=1000.0,
                 data={
-                    "http.transfer_size": 50_000_000,
+                    "http.response_transfer_size": 50_000_000,
                     "http.response_content_length": 50_000_000,
                     "http.decoded_response_content_length": 50_000_000,
                 },
@@ -244,7 +244,7 @@ class LargeHTTPPayloadDetectorTest(TestCase):
                 desc="GET https://s1.sentry-cdn.com/_static/dist/sentry/entrypoints/app.json/?foo=bar",
                 duration=1.0,
                 data={
-                    "http.transfer_size": 50_000_000,
+                    "http.response_transfer_size": 50_000_000,
                     "http.response_content_length": 50_000_000,
                     "http.decoded_response_content_length": 50_000_000,
                 },
