@@ -6,6 +6,9 @@ from rest_framework.exceptions import ErrorDetail
 
 from sentry.feedback.models import Feedback
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.features import with_feature
+
+FEATURES = {"organizations:user-feedback-ingest"}
 
 
 class ProjectFeedbackDetailTest(APITestCase):
@@ -91,46 +94,47 @@ class ProjectFeedbackDetailTest(APITestCase):
             environment=self.environment_1,
         )
 
+    @with_feature(FEATURES)
     def test_get_feedback_item(self):
         # Successful GET
-        with self.feature({"organizations:user-feedback-ingest": True}):
-            self.mock_feedback()
-            # Get one feedback
-            path = reverse(
-                self.endpoint,
-                args=[
-                    self.organization.slug,
-                    self.project.slug,
-                    self.feedback_id_1,
-                ],
-            )
-            response = self.client.get(path)
-            assert response.status_code == 200, response.content
-            feedback = response.data
-            assert feedback["dist"] == "abc123"
-            assert feedback["url"] == "https://docs.sentry.io/platforms/javascript/"
-            assert feedback["message"] == "I really like this user-feedback feature!"
-            assert feedback["feedback_id"] == uuid.UUID(self.feedback_id_1)
-            assert feedback["platform"] == "javascript"
-            assert feedback["sdk"]["name"] == "sentry.javascript.react"
-            assert feedback["tags"]["key"] == "value"
-            assert feedback["contact_email"] == "colton.allen@sentry.io"
+        self.mock_feedback()
+        # Get one feedback
+        path = reverse(
+            self.endpoint,
+            args=[
+                self.organization.slug,
+                self.project.slug,
+                self.feedback_id_1,
+            ],
+        )
+        response = self.client.get(path)
+        assert response.status_code == 200, response.content
+        feedback = response.data
+        assert feedback["dist"] == "abc123"
+        assert feedback["url"] == "https://docs.sentry.io/platforms/javascript/"
+        assert feedback["message"] == "I really like this user-feedback feature!"
+        assert feedback["feedback_id"] == uuid.UUID(self.feedback_id_1)
+        assert feedback["platform"] == "javascript"
+        assert feedback["sdk"]["name"] == "sentry.javascript.react"
+        assert feedback["tags"]["key"] == "value"
+        assert feedback["contact_email"] == "colton.allen@sentry.io"
 
-            # Get the other feedback
-            path = reverse(
-                self.endpoint,
-                args=[
-                    self.organization.slug,
-                    self.project.slug,
-                    self.feedback_id_2,
-                ],
-            )
-            response = self.client.get(path)
-            assert response.status_code == 200
-            feedback = response.data
-            assert feedback["feedback_id"] == uuid.UUID(self.feedback_id_2)
-            assert feedback["contact_email"] == "michelle.zhang@sentry.io"
+        # Get the other feedback
+        path = reverse(
+            self.endpoint,
+            args=[
+                self.organization.slug,
+                self.project.slug,
+                self.feedback_id_2,
+            ],
+        )
+        response = self.client.get(path)
+        assert response.status_code == 200
+        feedback = response.data
+        assert feedback["feedback_id"] == uuid.UUID(self.feedback_id_2)
+        assert feedback["contact_email"] == "michelle.zhang@sentry.io"
 
+    @with_feature(FEATURES)
     def test_no_feature_enabled(self):
         # Unsuccessful GET
         with self.feature({"organizations:user-feedback-ingest": False}):
@@ -145,89 +149,89 @@ class ProjectFeedbackDetailTest(APITestCase):
             get_response = self.client.get(path)
             assert get_response.status_code == 404
 
+    @with_feature(FEATURES)
     def test_bad_slug_path(self):
         # Bad slug in path should lead to unsuccessful GET
-        with self.feature({"organizations:user-feedback-ingest": True}):
-            path = reverse(
-                self.endpoint,
-                args=[
-                    "testslug1234555",
-                    self.project.slug,
-                    self.feedback_id_1,
-                ],
-            )
-            get_response = self.client.get(path)
-            assert get_response.status_code == 404
-            assert get_response.data == {
-                "detail": ErrorDetail(string="The requested resource does not exist", code="error")
-            }
+        path = reverse(
+            self.endpoint,
+            args=[
+                "testslug1234555",
+                self.project.slug,
+                self.feedback_id_1,
+            ],
+        )
+        get_response = self.client.get(path)
+        assert get_response.status_code == 404
+        assert get_response.data == {
+            "detail": ErrorDetail(string="The requested resource does not exist", code="error")
+        }
 
+    @with_feature(FEATURES)
     def test_no_feedback_found(self):
-        with self.feature({"organizations:user-feedback-ingest": True}):
-            path = reverse(
-                self.endpoint,
-                args=[
-                    self.organization.slug,
-                    self.project.slug,
-                    self.feedback_id_1,
-                ],
-            )
-            response = self.client.get(path)
-            assert response.status_code == 404
+        path = reverse(
+            self.endpoint,
+            args=[
+                self.organization.slug,
+                self.project.slug,
+                self.feedback_id_1,
+            ],
+        )
+        response = self.client.get(path)
+        assert response.status_code == 404
 
+    @with_feature(FEATURES)
     def test_other_project(self):
         # Should not be able to query for another project's feedback
-        with self.feature({"organizations:user-feedback-ingest": True}):
-            self.mock_feedback()
-            path = reverse(
-                self.endpoint,
-                args=[
-                    self.organization.slug,
-                    "other_project",
-                    self.feedback_id_1,
-                ],
-            )
-            response = self.client.get(path)
-            assert response.status_code == 404
+        self.mock_feedback()
+        path = reverse(
+            self.endpoint,
+            args=[
+                self.organization.slug,
+                "other_project",
+                self.feedback_id_1,
+            ],
+        )
+        response = self.client.get(path)
+        assert response.status_code == 404
 
+    @with_feature(FEATURES)
     def test_successful_delete(self):
-        with self.feature({"organizations:user-feedback-ingest": True}):
-            self.mock_feedback()
-            # Delete first feedback
-            path = reverse(
-                self.endpoint,
-                args=[
-                    self.organization.slug,
-                    self.project.slug,
-                    self.feedback_id_1,
-                ],
-            )
-            response = self.client.delete(path)
-            assert response.status_code == 204
+        self.mock_feedback()
+        # Delete first feedback
+        path = reverse(
+            self.endpoint,
+            args=[
+                self.organization.slug,
+                self.project.slug,
+                self.feedback_id_1,
+            ],
+        )
+        response = self.client.delete(path)
+        assert response.status_code == 204
 
-            # The other feedback still exists
-            path = reverse(
-                self.endpoint,
-                args=[
-                    self.organization.slug,
-                    self.project.slug,
-                    self.feedback_id_2,
-                ],
-            )
-            response = self.client.get(path)
-            assert response.status_code == 200
+        # The other feedback still exists
+        path = reverse(
+            self.endpoint,
+            args=[
+                self.organization.slug,
+                self.project.slug,
+                self.feedback_id_2,
+            ],
+        )
+        response = self.client.get(path)
+        assert response.status_code == 200
 
+    @with_feature(FEATURES)
     def test_unsuccessful_delete(self):
-        with self.feature({"organizations:user-feedback-ingest": True}):
-            self.mock_feedback()
-            # The feedback does not exist
-            path = reverse(
-                self.endpoint,
-                args=[
-                    self.organization.slug,
-                    self.project.slug,
-                    self.feedback_id_3,
-                ],
-            )
-            response = self.client.get(path)
-            assert response.status_code == 404
+        self.mock_feedback()
+        # The feedback does not exist
+        path = reverse(
+            self.endpoint,
+            args=[
+                self.organization.slug,
+                self.project.slug,
+                self.feedback_id_3,
+            ],
+        )
+        response = self.client.get(path)
+        assert response.status_code == 404
