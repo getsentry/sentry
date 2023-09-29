@@ -235,7 +235,7 @@ class ProjectFeedbackDetailTest(APITestCase):
         )
         response = self.client.get(path)
         assert response.status_code == 404
-    
+
     @with_feature(FEATURES)
     def test_null_env(self):
         # Feedback with null environment
