@@ -4,8 +4,10 @@ import styled from '@emotion/styled';
 import {getCurrentHub} from '@sentry/react';
 
 interface FeedbackFormProps {
+  descriptionPlaceholder: string;
   onClose: () => void;
   onSubmit: (data: {comment: string; email: string; name: string}) => void;
+  sendButtonText: string;
 }
 
 const retrieveStringValue = (formData: FormData, key: string) => {
@@ -16,7 +18,12 @@ const retrieveStringValue = (formData: FormData, key: string) => {
   return '';
 };
 
-export function FeedbackForm({onClose, onSubmit}: FeedbackFormProps) {
+export function FeedbackForm({
+  descriptionPlaceholder,
+  sendButtonText,
+  onClose,
+  onSubmit,
+}: FeedbackFormProps) {
   const formRef = useRef<HTMLFormElement>(null);
   const [hasDescription, setHasDescription] = useState(false);
 
@@ -57,7 +64,7 @@ export function FeedbackForm({onClose, onSubmit}: FeedbackFormProps) {
           }}
           id="sentry-feedback-comment"
           name="comment"
-          placeholder="What's the bug? What did you expect?"
+          placeholder={descriptionPlaceholder}
         />
       </Label>
       <ButtonGroup>
@@ -66,7 +73,7 @@ export function FeedbackForm({onClose, onSubmit}: FeedbackFormProps) {
           disabled={!hasDescription}
           aria-disabled={!hasDescription}
         >
-          Send Bug Report
+          {sendButtonText}
         </SubmitButton>
         <CancelButton type="button" onClick={onClose}>
           Cancel
