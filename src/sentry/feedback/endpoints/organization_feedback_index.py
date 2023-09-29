@@ -52,4 +52,5 @@ class OrganizationFeedbackIndexEndpoint(OrganizationEndpoint):
             order_by="-date_added",
             on_results=lambda x: serialize(x, request.user, FeedbackSerializer()),
             paginator_cls=OffsetPaginator,
+            count_hits=True,
         )
