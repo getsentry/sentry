@@ -3,7 +3,7 @@ import type {Team} from 'sentry/types';
 import {explodeSlug} from 'sentry/utils';
 
 interface TeamAvatarProps extends Omit<BaseAvatar['props'], 'uploadPath' | 'uploadId'> {
-  team: Team | null;
+  team: Team | null | undefined;
 }
 
 function TeamAvatar({team, tooltip: tooltipProp, ...props}: TeamAvatarProps) {
