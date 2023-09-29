@@ -1,4 +1,11 @@
-import {BitbucketIntegrationConfig} from 'sentry-fixture/integrationListDirectory';
+import {
+  BitbucketIntegrationConfig,
+  OrgOwnedApps,
+  PluginListConfig,
+  ProviderList,
+  PublishedApps,
+  SentryAppInstalls,
+} from 'sentry-fixture/integrationListDirectory';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -19,16 +26,13 @@ describe('IntegrationListDirectory', function () {
   describe('Renders view', function () {
     beforeEach(() => {
       mockResponse([
-        [`/organizations/${org.slug}/config/integrations/`, TestStubs.ProviderList()],
+        [`/organizations/${org.slug}/config/integrations/`, ProviderList()],
         [`/organizations/${org.slug}/integrations/`, [BitbucketIntegrationConfig()]],
-        [`/organizations/${org.slug}/sentry-apps/`, TestStubs.OrgOwnedApps()],
-        ['/sentry-apps/', TestStubs.PublishedApps()],
+        [`/organizations/${org.slug}/sentry-apps/`, OrgOwnedApps()],
+        ['/sentry-apps/', PublishedApps()],
         ['/doc-integrations/', [TestStubs.DocIntegration()]],
-        [
-          `/organizations/${org.slug}/sentry-app-installations/`,
-          TestStubs.SentryAppInstalls(),
-        ],
-        [`/organizations/${org.slug}/plugins/configs/`, TestStubs.PluginListConfig()],
+        [`/organizations/${org.slug}/sentry-app-installations/`, SentryAppInstalls()],
+        [`/organizations/${org.slug}/plugins/configs/`, PluginListConfig()],
         [`/organizations/${org.slug}/repos/?status=unmigratable`, []],
       ]);
     });

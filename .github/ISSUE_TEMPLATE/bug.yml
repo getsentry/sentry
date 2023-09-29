@@ -50,7 +50,7 @@ body:
         - 'Projects - Project Creation'
         - 'Projects - Project Details'
         - 'Performance'
-        - 'Performance - Query Insights'
+        - 'Performance - Queries'
         - 'Starfish'
         - 'Starfish - Interactions'
         - 'Starfish - Page Loads'

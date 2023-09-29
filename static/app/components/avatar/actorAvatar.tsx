@@ -3,12 +3,12 @@ import * as Sentry from '@sentry/react';
 import TeamAvatar from 'sentry/components/avatar/teamAvatar';
 import UserAvatar from 'sentry/components/avatar/userAvatar';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {TooltipProps} from 'sentry/components/tooltip';
+import type {TooltipProps} from 'sentry/components/tooltip';
 import MemberListStore from 'sentry/stores/memberListStore';
-import {Actor} from 'sentry/types';
-import Teams from 'sentry/utils/teams';
+import type {Actor} from 'sentry/types';
+import {useTeamsById} from 'sentry/utils/useTeamsById';
 
-type Props = {
+interface ActorAvatarProps {
   actor: Actor;
   className?: string;
   default?: string;
@@ -21,9 +21,26 @@ type Props = {
   title?: string;
   tooltip?: React.ReactNode;
   tooltipOptions?: Omit<TooltipProps, 'children' | 'title'>;
-};
+}
 
-function ActorAvatar({size = 24, hasTooltip = true, actor, ...props}: Props) {
+/**
+ * Wrapper to assist loading the team from api or store
+ */
+function LoadTeamAvatar({
+  teamId,
+  ...props
+}: {teamId: string} & Omit<React.ComponentProps<typeof TeamAvatar>, 'team'>) {
+  const {teams, isLoading} = useTeamsById({ids: [teamId]});
+  const team = teams.find(t => t.id === teamId);
+
+  if (isLoading) {
+    return <LoadingIndicator mini />;
+  }
+
+  return <TeamAvatar team={team} {...props} />;
+}
+
+function ActorAvatar({size = 24, hasTooltip = true, actor, ...props}: ActorAvatarProps) {
   const otherProps = {
     size,
     hasTooltip,
@@ -36,17 +53,7 @@ function ActorAvatar({size = 24, hasTooltip = true, actor, ...props}: Props) {
   }
 
   if (actor.type === 'team') {
-    return (
-      <Teams ids={[actor.id]}>
-        {({initiallyLoaded, teams}) =>
-          initiallyLoaded ? (
-            <TeamAvatar team={teams[0]} {...otherProps} />
-          ) : (
-            <LoadingIndicator mini />
-          )
-        }
-      </Teams>
-    );
+    return <LoadTeamAvatar teamId={actor.id} {...otherProps} />;
   }
 
   Sentry.withScope(scope => {
