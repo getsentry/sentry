@@ -324,14 +324,18 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
             assert not GroupInbox.objects.filter(group=group).exists()
 
     @freeze_time(TIME_YESTERDAY.replace(minute=12, second=40, microsecond=0))
-    def test_hourly_count_query(self) -> None:
+    @with_feature("organizations:escalating-issues-v2")
+    @mock.patch("sentry.issues.escalating.logger")
+    def test_hourly_count_query(self, mock_logger) -> None:
         """Test the hourly count query only aggregates events from within the current hour"""
         self._create_events_for_group(count=2, hours_ago=1)  # An hour ago -> It will not count
         group = self._create_events_for_group(count=1).group  # This hour -> It will count
         assert group is not None
 
         # Events are aggregated in the hourly count query by date rather than the last 24hrs
+
         assert get_group_hourly_count(group) == 1
+        assert mock_logger.info.call_count == 0
 
     @freeze_time(TIME_YESTERDAY)
     def test_is_forecast_out_of_range(self) -> None:

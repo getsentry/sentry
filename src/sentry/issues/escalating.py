@@ -435,8 +435,79 @@ def get_group_hourly_count(group: Group) -> int:
         hourly_count = int(
             raw_snql_query(request, referrer=IS_ESCALATING_REFERRER)["data"][0]["count()"]
         )
+        _get_group_hourly_count_with_metrics(group, now, current_hour, hourly_count)
         cache.set(key, hourly_count, GROUP_HOURLY_COUNT_TTL)
     return int(hourly_count)
+
+
+def _get_group_hourly_count_with_metrics(
+    group: Group, now: datetime, current_hour: datetime, hourly_count: int
+):
+    organization = Organization.objects.get(id=group.project.organization_id)
+
+    if group.issue_category == GroupCategory.ERROR and features.has(
+        "organizations:escalating-issues-v2", organization
+    ):
+        metrics_query = _query_metrics_for_group_hourly_count(group, now, current_hour)
+        metrics_series_results = get_series(
+            projects=[group.project],
+            metrics_query=metrics_query,
+            use_case_id=UseCaseID.ESCALATING_ISSUES,
+        )
+
+        metrics_hourly_count = next(
+            iter(
+                next(iter(metrics_series_results.get("groups", [])), {})
+                .get("series", {})
+                .get("event_ingested", [])
+            ),
+            0,
+        )
+
+        if metrics_hourly_count != hourly_count:
+            logger.info(
+                "Generics Metrics Backend query results not the same as Errors dataset query.",
+                extra={
+                    "metrics_hourly_count": metrics_hourly_count,
+                    "hourly_count": hourly_count,
+                    "group_id": group.id,
+                    "now": now,
+                    "current_hour": current_hour,
+                },
+            )
+
+
+def _query_metrics_for_group_hourly_count(
+    group: Group, now: datetime, current_hour: datetime
+) -> int:
+    if group.issue_category != GroupCategory.ERROR:
+        raise Exception("Invalid category.")
+
+    select = [
+        MetricField(metric_mri=ErrorsMRI.EVENT_INGESTED.value, alias="event_ingested", op="sum"),
+    ]
+
+    groupby = [MetricGroupByField(field="project_id"), MetricGroupByField(field="group")]
+
+    where = [
+        Condition(
+            lhs=Column(name="tags[group]"),
+            op=Op.EQ,
+            rhs=str(group.id),
+        )
+    ]
+
+    return MetricsQuery(
+        org_id=group.project.organization_id,
+        project_ids=[group.project_id],
+        select=select,
+        start=current_hour,
+        end=now,
+        where=where,
+        granularity=Granularity(HOUR),
+        groupby=groupby,
+        include_totals=False,
+    )
 
 
 def is_escalating(group: Group) -> Tuple[bool, int | None]:
