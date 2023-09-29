@@ -403,7 +403,7 @@ class OrganizationSpansAggregationTest(APITestCase, SnubaTestCase):
     @mock.patch("sentry.api.endpoints.organization_spans_aggregation.raw_snql_query")
     def test_simple(self, mock_query):
         mock_query.side_effect = [MOCK_SNUBA_RESPONSE]
-        for backend in ["spans", ""]:
+        for backend in ["indexedSpans", "nodestore"]:
             with self.feature(self.FEATURES):
                 response = self.client.get(
                     self.url,
@@ -436,7 +436,7 @@ class OrganizationSpansAggregationTest(APITestCase, SnubaTestCase):
     @mock.patch("sentry.api.endpoints.organization_spans_aggregation.raw_snql_query")
     def test_offset_logic(self, mock_query):
         mock_query.side_effect = [MOCK_SNUBA_RESPONSE]
-        for backend in ["spans", ""]:
+        for backend in ["indexedSpans", "nodestore"]:
             with self.feature(self.FEATURES):
                 response = self.client.get(
                     self.url,
@@ -465,7 +465,7 @@ class OrganizationSpansAggregationTest(APITestCase, SnubaTestCase):
     @mock.patch("sentry.api.endpoints.organization_spans_aggregation.raw_snql_query")
     def test_null_group_fallback(self, mock_query):
         mock_query.side_effect = [MOCK_SNUBA_RESPONSE]
-        for backend in ["spans", ""]:
+        for backend in ["indexedSpans", "nodestore"]:
             with self.feature(self.FEATURES):
                 response = self.client.get(
                     self.url,
@@ -475,7 +475,7 @@ class OrganizationSpansAggregationTest(APITestCase, SnubaTestCase):
 
             assert response.data
             data = response.data
-            if backend == "spans":
+            if backend == "indexedSpans":
                 root_fingerprint = hashlib.md5(b"e238e6c2e2466b07-C-discover.snql").hexdigest()[:16]
             else:
                 root_fingerprint = hashlib.md5(b"e238e6c2e2466b07-C-76de16d455e99f9c").hexdigest()[

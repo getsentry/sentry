@@ -19,6 +19,8 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.utils.snuba import raw_snql_query
 
+ALLOWED_BACKENDS = ["indexedSpans", "nodestore"]
+
 EventSpan = namedtuple(
     "EventSpan",
     [
@@ -312,8 +314,13 @@ class OrganizationSpansAggregationEndpoint(OrganizationEventsEndpointBase):
                 status=status.HTTP_400_BAD_REQUEST, data={"details": "Transaction not provided"}
             )
 
-        backend = request.query_params.get("backend", None)
-        if backend == "spans":
+        backend = request.query_params.get("backend", "nodestore")
+        if backend not in ALLOWED_BACKENDS:
+            return Response(
+                status=status.HTTP_400_BAD_REQUEST, data={"details": "Backend not supported"}
+            )
+
+        if backend == "indexedSpans":
             builder = SpansIndexedQueryBuilder(
                 dataset=Dataset.SpansIndexed,
                 params=params,
