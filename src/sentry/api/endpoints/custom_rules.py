@@ -224,6 +224,6 @@ def _get_condition(query: Optional[str]) -> RuleCondition:
 
 def _clean_project_list(project_ids: List[int]) -> List[int]:
     if len(project_ids) == 1 and project_ids[0] == -1:
-        # special case for all projects convention ( sens a project id of -1)
+        # special case for all projects convention ( sends a project id of -1)
         return []
     return project_ids
