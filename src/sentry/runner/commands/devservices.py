@@ -570,7 +570,7 @@ def check_health(service_name: str, containers: dict[str, Any]) -> None:
         healthcheck.check(containers)
 
     try:
-        run_with_retries(hc)
+        run_with_retries(hc, healthcheck.retries, healthcheck.timeout)
         click.secho(f"  > '{service_name}' is healthy", fg="green")
     except subprocess.CalledProcessError:
         click.secho(f"  > '{service_name}' is not healthy", fg="red")
@@ -644,12 +644,33 @@ def check_redis(containers: dict[str, Any]) -> None:
     )
 
 
+def check_zookeeper(containers: dict[str, Any]) -> None:
+    options = containers["zookeeper"]
+    port = options["environment"]["ZOOKEEPER_CLIENT_PORT"]
+    subprocess.run(
+        (
+            "docker",
+            "exec",
+            options["name"],
+            "bash",
+            "-c",
+            f"echo ruok | nc localhost {port}",
+        ),
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+
 class ServiceHealthcheck(NamedTuple):
     check: Callable[[dict[str, Any]], None]
+    retries: int = 3
+    timeout: int = 5
 
 
 service_healthchecks: dict[str, ServiceHealthcheck] = {
     "postgres": ServiceHealthcheck(check=check_postgres),
     "rabbitmq": ServiceHealthcheck(check=check_rabbitmq),
     "redis": ServiceHealthcheck(check=check_redis),
+    "zookeeper": ServiceHealthcheck(check=check_zookeeper, retries=4, timeout=15),
 }

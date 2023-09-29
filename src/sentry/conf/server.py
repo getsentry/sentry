@@ -2678,7 +2678,10 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
             # On Apple arm64, we upgrade to version 6.x to allow zookeeper to run properly on Apple's arm64
             # See details https://github.com/confluentinc/kafka-images/issues/80#issuecomment-855511438
             "image": "ghcr.io/getsentry/image-mirror-confluentinc-cp-zookeeper:6.2.0",
-            "environment": {"ZOOKEEPER_CLIENT_PORT": "2181"},
+            "environment": {
+                "ZOOKEEPER_CLIENT_PORT": "2181",
+                "KAFKA_OPTS": "-Dzookeeper.4lw.commands.whitelist=ruok",
+            },
             "volumes": {"zookeeper_6": {"bind": "/var/lib/zookeeper/data"}},
             "only_if": "kafka" in settings.SENTRY_EVENTSTREAM or settings.SENTRY_USE_RELAY,
         }
