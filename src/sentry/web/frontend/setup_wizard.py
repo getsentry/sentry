@@ -109,7 +109,7 @@ class SetupWizardView(BaseView):
         return render_to_response("sentry/setup-wizard.html", context, request)
 
 
-def get_token(orgs: [Organization], user: User):
+def get_token(orgs: list[Organization], user: User):
     can_use_org_tokens = len(orgs) == 1
 
     # If only one org, try to generate an org auth token
