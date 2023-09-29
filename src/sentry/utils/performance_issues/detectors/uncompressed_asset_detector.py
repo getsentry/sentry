@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import re
+
 from sentry import features
 from sentry.issues.grouptype import PerformanceUncompressedAssetsGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
@@ -16,7 +18,8 @@ from ..base import (
 from ..performance_problem import PerformanceProblem
 from ..types import Span
 
-FILE_EXTENSION_ALLOWLIST = ("css", "json", "js")
+EXTENSION_REGEX = re.compile(r"\.([a-zA-Z0-9]+)/?(?!/)(\?.*)?$")
+FILE_EXTENSION_ALLOWLIST = ("CSS", "JSON", "JS")
 
 
 class UncompressedAssetSpanDetector(PerformanceDetector):
@@ -76,7 +79,9 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
             return
 
         # Ignore assets with certain file extensions
-        if not description.endswith(FILE_EXTENSION_ALLOWLIST):
+        normalized_description = description.strip().upper()
+        extension = EXTENSION_REGEX.search(normalized_description)
+        if extension and extension.group(1) not in FILE_EXTENSION_ALLOWLIST:
             return
 
         # Ignore assets under a certain duration threshold
