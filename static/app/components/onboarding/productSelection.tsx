@@ -143,6 +143,7 @@ export const platformProductAvailability = {
   'python-tornado': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-starlette': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-wsgi': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  java: [ProductSolution.PERFORMANCE_MONITORING],
   'java-spring-boot': [ProductSolution.PERFORMANCE_MONITORING],
 } as Record<PlatformKey, ProductSolution[]>;
 
