@@ -17,7 +17,7 @@ from sentry.models import CustomDynamicSamplingRule, TooManyRules
 from sentry.models.dynamicsampling import CUSTOM_RULE_DATE_FORMAT
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.snuba.metrics.extraction import LogicalRuleCondition, SearchQueryConverter
+from sentry.snuba.metrics.extraction import RuleCondition, SearchQueryConverter
 from sentry.utils import json
 from sentry.utils.dates import parse_stats_period
 
@@ -97,15 +97,8 @@ class CustomRulesEndpoint(OrganizationEndpoint):
         query = serializer.validated_data["query"]
         projects = serializer.validated_data.get("projects")
         period = serializer.validated_data.get("period")
-
         try:
-            tokens = parse_search_query(query)
-        except InvalidSearchQuery as e:
-            return Response({"query": [str(e)]}, status=400)
-
-        try:
-            converter = SearchQueryConverter(tokens)
-            condition = converter.convert()
+            condition = _get_condition(query)
 
             # the parsing must succeed (it passed validation)
             delta = cast(timedelta, parse_stats_period(period))
@@ -124,6 +117,8 @@ class CustomRulesEndpoint(OrganizationEndpoint):
             )
 
             return _rule_to_response(rule)
+        except InvalidSearchQuery as e:
+            return Response({"query": [str(e)]}, status=400)
 
         except DatabaseError:
             return Response(
@@ -167,19 +162,12 @@ class CustomRulesEndpoint(OrganizationEndpoint):
             # no project specified (it is an org rule)
             org_rule = True
 
-        if not query:
-            condition = _get_condition_true()
-        else:
-            try:
-                tokens = parse_search_query(query)
-            except InvalidSearchQuery as e:
-                return Response({"query": [str(e)]}, status=400)
-
-            try:
-                converter = SearchQueryConverter(tokens)
-                condition = converter.convert()
-            except ValueError as e:
-                return Response({"query": ["Could not convert to rule", str(e)]}, status=400)
+        try:
+            condition = _get_condition(query)
+        except InvalidSearchQuery as e:
+            return Response({"query": [str(e)]}, status=400)
+        except ValueError as e:
+            return Response({"query": ["Could not convert to rule", str(e)]}, status=400)
 
         rule = CustomDynamicSamplingRule.get_rule_for_org(condition, organization.id)
 
@@ -221,8 +209,12 @@ def _rule_to_response(rule: CustomDynamicSamplingRule) -> Response:
     return Response(response_data, status=200)
 
 
-def _get_condition_true() -> LogicalRuleCondition:
-    """
-    Returns a condition that is always true
-    """
-    return {"op": "and", "inner": []}
+def _get_condition(query: str) -> RuleCondition:
+    if not query:
+        # True condition when query not specified
+        condition = {"op": "and", "inner": []}
+    else:
+        tokens = parse_search_query(query)
+        converter = SearchQueryConverter(tokens)
+        condition = converter.convert()
+    return condition
