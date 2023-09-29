@@ -346,7 +346,7 @@ class DashboardWidgetSerializer(CamelSnakeSerializer):
                                 )
 
                 if len(max_values) < len(ThresholdMaxKeys):
-                    for key in [key.value for key in ThresholdMaxKeys]:
+                    for key in allowed_max_keys:
                         if max_values.get(key) is None:
                             raise serializers.ValidationError(
                                 {
