@@ -221,7 +221,12 @@ class MonitorTaskCheckMissingTest(TestCase):
             organization_id=org.id,
             project_id=project.id,
             type=MonitorType.CRON_JOB,
-            config={"schedule": "* * * * *"},
+            config={
+                "schedule_type": ScheduleType.CRONTAB,
+                "schedule": "* * * * *",
+                "checkin_margin": None,
+                "max_runtime": None,
+            },
             status=state,
         )
         # Expected checkin was a full minute ago, if this monitor wasn't in the
@@ -266,7 +271,12 @@ class MonitorTaskCheckMissingTest(TestCase):
             organization_id=org.id,
             project_id=project.id,
             type=MonitorType.CRON_JOB,
-            config={"schedule_type": ScheduleType.CRONTAB, "schedule": "* * * * *"},
+            config={
+                "schedule_type": ScheduleType.CRONTAB,
+                "schedule": "* * * * *",
+                "checkin_margin": None,
+                "max_runtime": None,
+            },
         )
         # Expected checkin is this minute
         MonitorEnvironment.objects.create(
@@ -309,6 +319,8 @@ class MonitorTaskCheckMissingTest(TestCase):
                 # XXX: Note the invalid schedule will cause an exception,
                 # typically the validator protects us against this
                 "schedule": [-2, "minute"],
+                "checkin_margin": None,
+                "max_runtime": None,
             },
         )
         failing_monitor_environment = MonitorEnvironment.objects.create(
@@ -324,7 +336,12 @@ class MonitorTaskCheckMissingTest(TestCase):
             organization_id=org.id,
             project_id=project.id,
             type=MonitorType.CRON_JOB,
-            config={"schedule_type": ScheduleType.CRONTAB, "schedule": "* * * * *"},
+            config={
+                "schedule_type": ScheduleType.CRONTAB,
+                "schedule": "* * * * *",
+                "checkin_margin": None,
+                "max_runtime": None,
+            },
         )
         successful_monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
@@ -370,7 +387,12 @@ class MonitorTaskCheckTimeoutTest(TestCase):
             organization_id=org.id,
             project_id=project.id,
             type=MonitorType.CRON_JOB,
-            config={"schedule_type": ScheduleType.CRONTAB, "schedule": "0 0 * * *"},
+            config={
+                "schedule_type": ScheduleType.CRONTAB,
+                "schedule": "0 0 * * *",
+                "checkin_margin": None,
+                "max_runtime": None,
+            },
         )
         # Next checkin should have been 24 hours ago
         monitor_environment = MonitorEnvironment.objects.create(
@@ -446,7 +468,12 @@ class MonitorTaskCheckTimeoutTest(TestCase):
             organization_id=org.id,
             project_id=project.id,
             type=MonitorType.CRON_JOB,
-            config={"schedule_type": ScheduleType.CRONTAB, "schedule": "0 0 * * *"},
+            config={
+                "schedule_type": ScheduleType.CRONTAB,
+                "schedule": "0 0 * * *",
+                "checkin_margin": None,
+                "max_runtime": None,
+            },
         )
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
@@ -517,6 +544,7 @@ class MonitorTaskCheckTimeoutTest(TestCase):
             config={
                 "schedule_type": ScheduleType.CRONTAB,
                 "schedule": "0 0 * * *",
+                "checkin_margin": None,
                 "max_runtime": 60,
             },
         )

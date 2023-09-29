@@ -1,6 +1,7 @@
 import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import {Location, LocationDescriptorObject} from 'history';
+import omit from 'lodash/omit';
 import * as qs from 'query-string';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
@@ -57,6 +58,7 @@ export type TableColumnHeader = GridColumnHeader<keyof TableDataRow> & {
 
 function QueryIssueCounts({eventView, tableData, children}) {
   const transactions: Map<string, string> = new Map();
+  transactions.set('is:unresolved', '');
   if (tableData) {
     tableData.data.forEach(row => {
       transactions.set(`transaction:${row.transaction} is:unresolved`, row.transaction);
@@ -76,9 +78,14 @@ function QueryIssueCounts({eventView, tableData, children}) {
 function EndpointList({eventView, location, organization, setError}: Props) {
   const [widths, setWidths] = useState<number[]>([]);
   const [_eventView, setEventView] = useState<EventView>(eventView);
+  const overallEventView = _eventView.clone();
+  overallEventView.query = '';
+  const overallFields = overallEventView.fields;
+  overallEventView.fields = overallFields.filter(
+    field => field.field !== 'transaction' && field.field !== 'http.method'
+  );
 
   // Effect to keep the parent eventView in sync with the child, so that chart zoom and time period can be accounted for.
-
   useEffect(() => {
     setEventView(prevEventView => {
       const cloned = eventView.clone();
@@ -105,6 +112,9 @@ function EndpointList({eventView, location, organization, setError}: Props) {
 
     if (field === 'transaction') {
       const method = dataRow['http.method'];
+      if (method === undefined && dataRow.transaction === 'Overall') {
+        return <span>{dataRow.transaction}</span>;
+      }
       const endpointName =
         method && !dataRow.transaction.toString().startsWith(method.toString())
           ? `${method} ${dataRow.transaction}`
@@ -157,6 +167,13 @@ function EndpointList({eventView, location, organization, setError}: Props) {
 
     if (field === 'issues') {
       const transactionName = dataRow.transaction as string;
+      const method = dataRow['http.method'];
+      let issueCount = issueCounts.has(transactionName)
+        ? issueCounts.get(transactionName)
+        : null;
+      if (method === undefined && transactionName === 'Overall') {
+        issueCount = issueCounts.get('');
+      }
       return (
         <IssueButton
           to={`/issues/?${qs.stringify({
@@ -169,11 +186,8 @@ function EndpointList({eventView, location, organization, setError}: Props) {
         >
           <IconIssues size="sm" />
           <IssueLabel>
-            {issueCounts.has(transactionName) ? (
-              issueCounts.get(transactionName)
-            ) : (
-              <LoadingIndicator size={20} mini />
-            )}
+            {issueCount ? issueCount : <LoadingIndicator size={20} mini />}
+            {issueCount === 100 && '+'}
           </IssueLabel>
         </IssueButton>
       );
@@ -194,6 +208,19 @@ function EndpointList({eventView, location, organization, setError}: Props) {
     }
 
     return rendered;
+  }
+
+  function combineTableDataWithOverall(
+    tableData: TableData | null,
+    overallTableData: TableData | null
+  ): TableData {
+    const overallRow = overallTableData?.data?.[0];
+    const combinedData = Object.assign({}, tableData);
+    if (overallRow && tableData?.data) {
+      overallRow.transaction = 'Overall';
+      combinedData.data = [overallRow, ...tableData.data];
+    }
+    return combinedData;
   }
 
   function renderBodyCellWithData(
@@ -331,35 +358,51 @@ function EndpointList({eventView, location, organization, setError}: Props) {
     <GuideAnchor target="performance_table" position="top-start">
       <StyledSearchBar placeholder={t('Search for endpoints')} onSearch={handleSearch} />
       <DiscoverQuery
-        eventView={_eventView}
+        eventView={overallEventView}
         orgSlug={organization.slug}
-        location={location}
+        location={omit(location, 'cursor')}
         setError={error => setError(error?.message)}
-        referrer="api.starfish.endpoint-list"
-        queryExtras={{dataset: 'metrics'}}
-        limit={10}
+        referrer="api.starfish.web-service-overall"
+        queryExtras={{dataset: 'metrics', cursor: ''}}
+        limit={1}
       >
-        {({pageLinks, isLoading, tableData}) => (
-          <Fragment>
-            <QueryIssueCounts eventView={eventView} tableData={tableData}>
-              {({issueCounts, isIssueLoading}) => (
-                <GridEditable
-                  isLoading={isLoading && isIssueLoading}
-                  data={tableData ? tableData.data : []}
-                  columnOrder={columnOrder}
-                  columnSortBy={columnSortBy}
-                  grid={{
-                    onResizeColumn: handleResizeColumn,
-                    renderHeadCell: renderHeadCellWithMeta(tableData?.meta),
-                    renderBodyCell: renderBodyCellWithData(tableData, issueCounts),
-                  }}
-                  location={location}
-                />
-              )}
-            </QueryIssueCounts>
+        {({tableData: overallTableData}) => (
+          <DiscoverQuery
+            eventView={_eventView}
+            orgSlug={organization.slug}
+            location={location}
+            setError={error => setError(error?.message)}
+            referrer="api.starfish.endpoint-list"
+            queryExtras={{dataset: 'metrics'}}
+            limit={5}
+          >
+            {({pageLinks, isLoading, tableData}) => (
+              <Fragment>
+                <QueryIssueCounts eventView={eventView} tableData={tableData}>
+                  {({issueCounts, isIssueLoading}) => (
+                    <GridEditable
+                      isLoading={isLoading && isIssueLoading}
+                      data={
+                        tableData && overallTableData
+                          ? combineTableDataWithOverall(tableData, overallTableData).data
+                          : []
+                      }
+                      columnOrder={columnOrder}
+                      columnSortBy={columnSortBy}
+                      grid={{
+                        onResizeColumn: handleResizeColumn,
+                        renderHeadCell: renderHeadCellWithMeta(tableData?.meta),
+                        renderBodyCell: renderBodyCellWithData(tableData, issueCounts),
+                      }}
+                      location={location}
+                    />
+                  )}
+                </QueryIssueCounts>
 
-            <Pagination pageLinks={pageLinks} />
-          </Fragment>
+                <Pagination pageLinks={pageLinks} />
+              </Fragment>
+            )}
+          </DiscoverQuery>
         )}
       </DiscoverQuery>
     </GuideAnchor>
