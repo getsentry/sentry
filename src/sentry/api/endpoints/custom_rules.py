@@ -51,7 +51,8 @@ class CustomRulesInputSerializer(serializers.Serializer):
         # check that the project exists
         invalid_projects = []
 
-        requested_projects = _clean_project_list(data["projects"])
+        data["projects"] = _clean_project_list(data["projects"])
+        requested_projects = data["projects"]
 
         available_projects = {p.id for p in Project.objects.get_many_from_cache(data["projects"])}
         for project_id in requested_projects:
