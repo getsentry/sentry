@@ -194,5 +194,5 @@ const StyledTextOverflow = styled(TextOverflow)`
 `;
 
 const StyledTooltip = styled(Tooltip)`
-  display: contents;
+  display: inherit;
 `;
