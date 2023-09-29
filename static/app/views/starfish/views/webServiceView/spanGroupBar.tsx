@@ -1,11 +1,13 @@
-import {Fragment, useState} from 'react';
+import {useState} from 'react';
 import styled from '@emotion/styled';
+import debounce from 'lodash/debounce';
 import sumBy from 'lodash/sumBy';
 
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import {Tooltip} from 'sentry/components/tooltip';
+import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {IconPin} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -58,6 +60,7 @@ export function SpanGroupBar(props: SpanGroupBarProps) {
     return <LoadingIndicator mini />;
   }
   const total = sumBy(segments, 'sum(span.self_time)');
+  const debouncedHover = debounce(onHover, DEFAULT_DEBOUNCE_DURATION);
   return (
     <FlexibleRowPanel>
       <Title>{t('Time Spent Breakdown')}</Title>
@@ -80,14 +83,14 @@ export function SpanGroupBar(props: SpanGroupBarProps) {
               }
             }
             const tooltipHttp = (
-              <Fragment>
+              <div
+                onMouseOver={() => pinnedModule === null && debouncedHover(spanModule)}
+                onMouseLeave={() => pinnedModule === null && debouncedHover(null)}
+                onClick={handleModulePin}
+              >
                 <div>Time spent on {spanModule} across all endpoints</div>
-                <IconPin
-                  isSolid={spanModule === pinnedModule}
-                  onClick={handleModulePin}
-                />{' '}
-                {percent}%
-              </Fragment>
+                <IconPin isSolid={spanModule === pinnedModule} /> {percent}%
+              </div>
             );
             return (
               <StyledTooltip
@@ -100,8 +103,8 @@ export function SpanGroupBar(props: SpanGroupBarProps) {
                   to={to}
                   hasLink={to !== ''}
                   color={theme.barBreakdownColors[index]}
-                  onMouseOver={() => pinnedModule === null && onHover(spanModule)}
-                  onMouseLeave={() => pinnedModule === null && onHover(null)}
+                  onMouseOver={() => pinnedModule === null && debouncedHover(spanModule)}
+                  onMouseLeave={() => pinnedModule === null && debouncedHover(null)}
                 >
                   {spanModule === pinnedModule && (
                     <StyledIconPin
@@ -156,7 +159,7 @@ const StyledTooltip = styled(Tooltip)<{percent: number}>`
 `;
 
 const StyledIconPin = styled(IconPin)<{iconColor: string}>`
-  color: ${p => p.color};
+  color: ${p => p.iconColor};
   padding: 0 ${space(0.25)};
   margin-right: ${space(0.25)};
   height: 100%;
