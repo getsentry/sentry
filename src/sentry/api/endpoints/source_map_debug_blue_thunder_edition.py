@@ -511,7 +511,7 @@ class ReleaseLookupData:
             release_id=self.release.id,
             file__type="release.artifact-index",
         ).select_related("file")[
-            :30
+            :25
         ]  # limit by something sane in case people have a large number of dists for the same release
 
         return self.artifact_index_release_files
