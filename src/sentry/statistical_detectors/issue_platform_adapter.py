@@ -1,7 +1,7 @@
 import hashlib
 import uuid
 from datetime import datetime, timezone
-from typing import List
+from typing import List, cast
 
 from sentry.issues.grouptype import PerformanceDurationRegressionGroupType
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
@@ -27,10 +27,14 @@ def send_regressions_to_plaform(regressions: List[BreakpointData], automatic_det
         displayed_old_baseline = round(float(regression["aggregate_range_1"]), 2)
         displayed_new_baseline = round(float(regression["aggregate_range_2"]), 2)
 
+        # For legacy reasons, we're passing project id as project
+        # TODO fix this in the breakpoint microservice and in tre
+        project_id = cast(int, regression["project"])
+
         occurrence = IssueOccurrence(
             id=uuid.uuid4().hex,
             resource_id=None,
-            project_id=regression["project"],
+            project_id=project_id,
             event_id=uuid.uuid4().hex,
             fingerprint=[fingerprint_regression(regression, automatic_detection)],
             type=PerformanceDurationRegressionGroupType,
