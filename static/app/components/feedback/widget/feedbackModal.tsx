@@ -29,6 +29,8 @@ interface FeedbackModalProps {
   children: FeedbackRenderFunction;
   title: string;
   className?: string;
+  descriptionPlaceholder?: string;
+  sendButtonText?: string;
   type?: string;
   widgetTheme?: 'dark' | 'light';
 }
@@ -67,10 +69,12 @@ function stopPropagation(e: React.MouseEvent) {
  */
 export function FeedbackModal({
   className,
+  descriptionPlaceholder = "What's the bug? What did you expect?",
+  sendButtonText = 'Send Bug Report',
+  widgetTheme = 'light',
   title,
   type,
   children,
-  widgetTheme = 'light',
 }: FeedbackModalProps) {
   const [open, setOpen] = useState(false);
   const [errorMessage, setError] = useState('');
@@ -139,7 +143,14 @@ export function FeedbackModal({
         <Content onClick={stopPropagation}>
           <Header>{title}</Header>
           {errorMessage ? <Error>{errorMessage}</Error> : null}
-          {open && <FeedbackForm onSubmit={handleSubmit} onClose={handleClose} />}
+          {open && (
+            <FeedbackForm
+              descriptionPlaceholder={descriptionPlaceholder}
+              sendButtonText={sendButtonText}
+              onSubmit={handleSubmit}
+              onClose={handleClose}
+            />
+          )}
         </Content>
       </Dialog>
       <FeedbackSuccessMessage show={showSuccessMessage} />
