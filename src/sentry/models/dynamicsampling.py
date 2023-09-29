@@ -49,8 +49,9 @@ def to_order_independent_string(val: Any) -> str:
         for key in sorted(val.keys()):
             ret_val += f"{key}:{to_order_independent_string(val[key])}-"
     elif isinstance(val, (list, tuple)):
-        for item in sorted(val):
-            ret_val += f"{to_order_independent_string(item)}-"
+        vals = sorted([to_order_independent_string(item) for item in val])
+        for item in vals:
+            ret_val += f"{item}-"
     else:
         ret_val = str(val)
     return ret_val

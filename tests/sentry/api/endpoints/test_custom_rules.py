@@ -41,7 +41,7 @@ class CustomRulesGetEndpoint(APITestCase):
             condition=self.proj_condition,
             start=start,
             end=end,
-            project_ids=projects,
+            project_ids=[project.id for project in projects],
             organization_id=self.organization.id,
             num_samples=100,
             sample_rate=1.0,
@@ -57,6 +57,22 @@ class CustomRulesGetEndpoint(APITestCase):
             start=start,
             end=end,
             project_ids=[],
+            organization_id=self.organization.id,
+            num_samples=100,
+            sample_rate=1.0,
+        )
+
+        # create a condition with empty query
+        now = timezone.now()
+        self.empty_condition = {"op": "and", "inner": []}
+        start = now - timedelta(hours=2)
+        end = now + timedelta(hours=2)
+
+        CustomDynamicSamplingRule.update_or_create(
+            condition=self.empty_condition,
+            start=start,
+            end=end,
+            project_ids=[self.known_projects[0].id],
             organization_id=self.organization.id,
             num_samples=100,
             sample_rate=1.0,
@@ -86,7 +102,28 @@ class CustomRulesGetEndpoint(APITestCase):
         assert len(data["projects"]) == 2
         assert self.known_projects[1].id in data["projects"]
         assert self.known_projects[2].id in data["projects"]
-        # {'ruleId': 3001, 'condition': {'op': 'eq', 'name': 'event.environment', 'value': 'prod'}, 'startDate': '2023-09-22T12:23:35.984264Z', 'endDate': '2023-09-22T16:23:35.984264Z', 'numSamples': 100, 'sampleRate': 1.0, 'dateAdded': '2023-09-22T14:23:37.880615Z', 'projects': [4552672605044753, 4552672605044754], 'orgId': 4552672604913680}
+
+    def test_finds_rule_with_empty_query(self):
+        """
+        Tests that the endpoint finds the rule when the query
+        is empty
+        """
+
+        # call the endpoint
+        with Feature({"organizations:investigation-bias": True}):
+            resp = self.get_response(
+                self.organization.slug,
+                qs_params={
+                    "query": "",
+                    "project": [self.known_projects[0].id],
+                },
+            )
+
+        assert resp.status_code == 200
+        data = resp.data
+        assert data["condition"] == self.empty_condition
+        assert len(data["projects"]) == 1
+        assert self.known_projects[0].id in data["projects"]
 
     def test_finds_org_condition(self):
         """
@@ -199,6 +236,35 @@ class CustomRulesEndpoint(APITestCase):
         rule = rules[0]
         assert rule.external_rule_id == rule_id
 
+    def test_empty_query(self):
+        request_data = {
+            "query": "",
+            "projects": [self.project.id],
+            "period": "1h",
+            "overrideExisting": True,
+        }
+        with Feature({"organizations:investigation-bias": True}):
+            resp = self.get_response(self.organization.slug, raw_data=request_data)
+
+        assert resp.status_code == 200
+
+        data = resp.data
+
+        start_date = datetime.strptime(data["startDate"], CUSTOM_RULE_DATE_FORMAT)
+        end_date = datetime.strptime(data["endDate"], CUSTOM_RULE_DATE_FORMAT)
+        assert end_date - start_date == timedelta(hours=1)
+        projects = data["projects"]
+        assert projects == [self.project.id]
+        org_id = data["orgId"]
+        assert org_id == self.organization.id
+
+        # check the database
+        rule_id = data["ruleId"]
+        rules = list(self.organization.customdynamicsamplingrule_set.all())
+        assert len(rules) == 1
+        rule = rules[0]
+        assert rule.external_rule_id == rule_id
+
     def test_updates_existing(self):
         """
         Test that the endpoint updates an existing rule if the same rule condition is given
@@ -274,6 +340,7 @@ class CustomRulesEndpoint(APITestCase):
         ("period", "1h", True),
         ("projects", ["abc"], False),
         ("period", "hello", False),
+        ("query", "", True),
     ],
 )
 def test_custom_rule_serializer(what, value, valid):
