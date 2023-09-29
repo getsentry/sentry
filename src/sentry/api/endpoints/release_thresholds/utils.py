@@ -14,12 +14,16 @@ from sentry.utils import snuba
 
 
 def get_errors_timeseries_counts_by_project_and_release(
-    start,
     end,
+    environments_list,
+    organization_id,
     project_id_list,
     release_value_list,
-    organization_id,
+    start,
 ) -> List[Dict[str, Any]]:
+    additional_conditions = []
+    if environments_list:
+        additional_conditions.append(Condition(Column("environment"), Op.IN, environments_list))
     query = Query(
         match=Entity("events"),  # synonymous w/ discover dataset
         select=[Function("count", [])],
@@ -39,6 +43,7 @@ def get_errors_timeseries_counts_by_project_and_release(
             Condition(Column("timestamp"), Op.LT, end),
             Condition(Column("project_id"), Op.IN, project_id_list),
             Condition(Column("release"), Op.IN, release_value_list),
+            *additional_conditions,
         ],
     )
     request = SnubaRequest(
