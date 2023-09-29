@@ -569,22 +569,21 @@ class MonitorTaskCheckTimeoutTest(TestCase):
         ).exists()
 
 
-class MonitorTaskClockPulseTest(TestCase):
-    @override_settings(KAFKA_INGEST_MONITORS="monitors-test-topic")
-    @override_settings(SENTRY_EVENTSTREAM="sentry.eventstream.kafka.KafkaEventStream")
-    @mock.patch("sentry.monitors.tasks._checkin_producer")
-    def test_clock_pulse(self, _checkin_producer):
-        clock_pulse()
+@override_settings(KAFKA_INGEST_MONITORS="monitors-test-topic")
+@override_settings(SENTRY_EVENTSTREAM="sentry.eventstream.kafka.KafkaEventStream")
+@mock.patch("sentry.monitors.tasks._checkin_producer")
+def test_clock_pulse(checkin_producer_mock):
+    clock_pulse()
 
-        assert _checkin_producer.produce.call_count == 1
-        assert _checkin_producer.produce.mock_calls[0] == mock.call(
-            mock.ANY,
-            KafkaPayload(
-                None,
-                msgpack.packb({"message_type": "clock_pulse"}),
-                [],
-            ),
-        )
+    assert checkin_producer_mock.produce.call_count == 1
+    assert checkin_producer_mock.produce.mock_calls[0] == mock.call(
+        mock.ANY,
+        KafkaPayload(
+            None,
+            msgpack.packb({"message_type": "clock_pulse"}),
+            [],
+        ),
+    )
 
 
 @mock.patch("sentry.monitors.tasks._dispatch_tasks")
