@@ -7,6 +7,7 @@ from sentry_sdk import capture_exception
 from sentry.hybridcloud.rpc_services.organization_provisioning_region import (
     organization_provisioning_region_service,
 )
+from sentry.models.organizationslugreservation import OrganizationSlugReservation
 from sentry.services.organization.model import OrganizationProvisioningOptions
 
 
@@ -74,6 +75,21 @@ def handle_organization_provisioning_outbox_payload(
         capture_exception(error)
 
         raise error
+
+
+def handle_organization_slug_reservation_update_outbox(
+    *, region_name: str, org_slug_reservation_id: int
+):
+    org_slug_reservation = OrganizationSlugReservation.objects.get(id=org_slug_reservation_id)
+
+    from sentry.hybridcloud.rpc_services.organization_provisioning import serialize_slug_reservation
+
+    organization_provisioning_region_service.update_organization_slug_from_reservation(
+        region_name=region_name,
+        organization_slug_reservation=serialize_slug_reservation(
+            slug_reservation=org_slug_reservation
+        ),
+    )
 
 
 class OrganizationProvisioningService:

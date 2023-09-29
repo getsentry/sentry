@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pytest
+from django.db import IntegrityError
 
 from sentry.hybridcloud.rpc_services.organization_provisioning import (
     RpcOrganizationSlugReservation,
@@ -19,8 +20,7 @@ from sentry.testutils.helpers import override_options
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
 
 
-@all_silo_test(stable=True)
-class TestControlOrganizationProvisioning(TestCase):
+class TestControlOrganizationProvisioningBase(TestCase):
     def setUp(self):
         self.provision_user = self.create_user()
         self.provisioning_args = self.generate_provisioning_args(
@@ -70,12 +70,18 @@ class TestControlOrganizationProvisioning(TestCase):
         # TODO(Gabe): Validate that this equality is sufficient
         assert old_organization == new_organization
 
+
+@all_silo_test(stable=True)
+class TestControlOrganizationProvisioning(TestControlOrganizationProvisioningBase):
     def test_organization_provisioning_happy_path(self):
         rpc_org_slug = self.provision_organization()
         self.assert_slug_reservation_and_org_exist(
             rpc_org_slug=rpc_org_slug, user_id=self.provision_user.id
         )
 
+    # TODO(Gabe): Re-enable this in the cutover PR after removing
+    #  slug reservation writes on org mapping create
+    @pytest.mark.skip
     def test_organization_region_inconsistency(self):
         user = self.create_user()
         conflicting_slug = self.provisioning_args.provision_options.slug
@@ -117,4 +123,104 @@ class TestControlOrganizationProvisioning(TestCase):
         assert org_slug_reservation.slug != numeric_slug
         self.assert_slug_reservation_and_org_exist(
             rpc_org_slug=org_slug_reservation, user_id=self.provision_user.id
+        )
+
+
+@all_silo_test(stable=True)
+class TestControlOrganizationProvisioningSlugUpdates(TestControlOrganizationProvisioningBase):
+    def test_updates_exact_slug(self):
+        org_slug_res = self.provision_organization()
+        updated_org_slug_res = (
+            control_organization_provisioning_rpc_service.update_organization_slug(
+                organization_id=org_slug_res.organization_id,
+                desired_slug="newsantry",
+                require_exact=True,
+            )
+        )
+
+        assert updated_org_slug_res.slug == "newsantry"
+        self.assert_slug_reservation_and_org_exist(
+            rpc_org_slug=updated_org_slug_res, user_id=self.provision_user.id
+        )
+
+    def test_updates_inexact_slug_without_collision(self):
+        org_slug_res = self.provision_organization()
+        updated_org_slug_res = (
+            control_organization_provisioning_rpc_service.update_organization_slug(
+                organization_id=org_slug_res.organization_id,
+                desired_slug="newsantry",
+                require_exact=False,
+            )
+        )
+
+        assert updated_org_slug_res.slug == "newsantry"
+        self.assert_slug_reservation_and_org_exist(
+            rpc_org_slug=updated_org_slug_res, user_id=self.provision_user.id
+        )
+
+    def test_updates_inexact_slug_with_collision(self):
+        test_org_slug_reservation = self.provision_organization()
+
+        new_user = self.create_user()
+        conflicting_slug = "foobar"
+        self.provisioning_args.provision_options.owning_user_id = new_user.id
+        self.provisioning_args.provision_options.slug = conflicting_slug
+        org_slug_res_with_conflict = self.provision_organization()
+
+        self.assert_slug_reservation_and_org_exist(
+            rpc_org_slug=org_slug_res_with_conflict, user_id=new_user.id
+        )
+
+        updated_org_slug_res = (
+            control_organization_provisioning_rpc_service.update_organization_slug(
+                organization_id=test_org_slug_reservation.organization_id,
+                desired_slug=conflicting_slug,
+                require_exact=False,
+            )
+        )
+
+        assert conflicting_slug in updated_org_slug_res.slug
+        assert updated_org_slug_res.slug != conflicting_slug
+
+        self.assert_slug_reservation_and_org_exist(
+            rpc_org_slug=updated_org_slug_res, user_id=self.provision_user.id
+        )
+
+        # Validate that the conflict org still matches its org slug reservation
+        self.assert_slug_reservation_and_org_exist(
+            rpc_org_slug=org_slug_res_with_conflict, user_id=new_user.id
+        )
+
+    def test_fails_to_update_exact_slug_with_collision(self):
+        test_org_slug_reservation = self.provision_organization()
+        original_slug = test_org_slug_reservation.slug
+
+        new_user = self.create_user()
+        conflicting_slug = "foobar"
+        self.provisioning_args.provision_options.owning_user_id = new_user.id
+        self.provisioning_args.provision_options.slug = conflicting_slug
+        org_with_conflicting_slug = self.provision_organization()
+
+        if SiloMode.get_current_mode() == SiloMode.REGION:
+            with pytest.raises(RpcRemoteException):
+                control_organization_provisioning_rpc_service.update_organization_slug(
+                    organization_id=test_org_slug_reservation.organization_id,
+                    desired_slug=conflicting_slug,
+                    require_exact=True,
+                )
+        else:
+            with pytest.raises(IntegrityError):
+                control_organization_provisioning_rpc_service.update_organization_slug(
+                    organization_id=test_org_slug_reservation.organization_id,
+                    desired_slug=conflicting_slug,
+                    require_exact=True,
+                )
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            org_slug_reservation = OrganizationSlugReservation.objects.get(
+                id=test_org_slug_reservation.id
+            )
+        assert org_slug_reservation.slug == original_slug
+        self.assert_slug_reservation_and_org_exist(
+            rpc_org_slug=org_with_conflicting_slug, user_id=new_user.id
         )

@@ -21,7 +21,10 @@ from sentry.models import (
     RegionOutbox,
     outbox_context,
 )
-from sentry.models.organizationslugreservation import OrganizationSlugReservation
+from sentry.models.organizationslugreservation import (
+    OrganizationSlugReservation,
+    OrganizationSlugReservationType,
+)
 from sentry.services.hybrid_cloud.organization import RpcOrganization
 from sentry.services.organization import OrganizationProvisioningOptions
 from sentry.utils.snowflake import generate_snowflake_id
@@ -160,4 +163,21 @@ class DatabaseBackedControlOrganizationProvisioningService(
     def update_organization_slug(
         self, *, organization_id: int, desired_slug: str, require_exact: bool = True
     ) -> RpcOrganizationSlugReservation:
-        raise NotImplementedError()
+        slug_org_reservation = OrganizationSlugReservation.objects.get(
+            organization_id=organization_id,
+            reservation_type=OrganizationSlugReservationType.PRIMARY.value,
+        )
+
+        slug_base = desired_slug
+        if not require_exact:
+            slug_base = self._generate_org_slug(
+                region_name=slug_org_reservation.region_name, slug=slug_base
+            )
+
+        with outbox_context(
+            transaction.atomic(using=router.db_for_write(OrganizationSlugReservation))
+        ):
+            slug_org_reservation.slug = slug_base
+            slug_org_reservation.save(unsafe_write=True)
+
+        return serialize_slug_reservation(slug_org_reservation)

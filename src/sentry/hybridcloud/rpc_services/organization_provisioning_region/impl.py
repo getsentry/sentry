@@ -3,6 +3,8 @@ from django.db.models import Q
 from sentry_sdk import capture_exception
 
 from sentry import roles
+from sentry.db.postgres.transactions import enforce_constraints
+from sentry.hybridcloud.rpc_services.organization_provisioning import RpcOrganizationSlugReservation
 from sentry.hybridcloud.rpc_services.organization_provisioning_region import (
     OrganizationProvisioningRegionService,
 )
@@ -10,6 +12,7 @@ from sentry.models import (
     Organization,
     OrganizationMember,
     OrganizationMemberTeam,
+    OrganizationSlugReservationType,
     OutboxCategory,
     OutboxScope,
     RegionOutbox,
@@ -55,6 +58,27 @@ class DatabaseBackedOrganizationProvisioningRegionService(OrganizationProvisioni
 
         return org
 
+    def _pre_prevision_organization_check(
+        self,
+        organization_id: int,
+        provision_payload: OrganizationProvisioningOptions,
+    ) -> bool:
+        provision_request_valid = True
+        slug = provision_payload.provision_options.slug
+        # Validate that no org with this org ID or slug exist in the region
+        matching_organization = Organization.objects.filter(Q(id=organization_id) | Q(slug=slug))
+        if matching_organization.exists():
+            provision_request_valid = False
+
+        if not provision_request_valid:
+            capture_exception(
+                Exception(
+                    f"Regional provision check failed for org_id ({organization_id}) slug ({slug})"
+                )
+            )
+
+        return provision_request_valid
+
     def create_organization_in_region(
         self,
         region_name: str,
@@ -83,23 +107,25 @@ class DatabaseBackedOrganizationProvisioningRegionService(OrganizationProvisioni
 
         return True
 
-    def _pre_prevision_organization_check(
-        self,
-        organization_id: int,
-        provision_payload: OrganizationProvisioningOptions,
-    ) -> bool:
-        provision_request_valid = True
-        slug = provision_payload.provision_options.slug
-        # Validate that no org with this org ID or slug exist in the region
-        matching_organization = Organization.objects.filter(Q(id=organization_id) | Q(slug=slug))
-        if matching_organization.exists():
-            provision_request_valid = False
+    def update_organization_slug_from_reservation(
+        self, region_name: str, organization_slug_reservation: RpcOrganizationSlugReservation
+    ) -> None:
+        # Skip any non-primary organization slug updates
+        if (
+            organization_slug_reservation.reservation_type
+            != OrganizationSlugReservationType.PRIMARY.value
+        ):
+            return
 
-        if not provision_request_valid:
-            capture_exception(
-                Exception(
-                    f"Regional provision check failed for org_id ({organization_id}) slug ({slug})"
-                )
-            )
+        with enforce_constraints(transaction.atomic(using=router.db_for_write(Organization))):
+            org_qs = Organization.objects.filter(id=organization_slug_reservation.organization_id)
+            if not org_qs.exists():
+                # The org either hasn't been provisioned yet, or was recently deleted.
+                return
 
-        return provision_request_valid
+            assert org_qs.count() == 1, "Only 1 Organization should be affected by a slug change"
+
+            org = org_qs.first()
+            if org.slug != organization_slug_reservation.slug:
+                org.slug = organization_slug_reservation.slug
+                org.save()

@@ -1,6 +1,7 @@
 from abc import abstractmethod
 from typing import cast
 
+from sentry.hybridcloud.rpc_services.organization_provisioning import RpcOrganizationSlugReservation
 from sentry.services.hybrid_cloud.region import ByRegionName
 from sentry.services.hybrid_cloud.rpc import RpcService, regional_rpc_method
 from sentry.services.organization import OrganizationProvisioningOptions
@@ -36,6 +37,13 @@ class OrganizationProvisioningRegionService(RpcService):
         :param organization_id: The desired organization's ID, which must be a snowflake ID.
         :param provision_payload: The provisioning options for the organization.
         """
+        pass
+
+    @regional_rpc_method(resolve=ByRegionName())
+    @abstractmethod
+    def update_organization_slug_from_reservation(
+        self, region_name: str, organization_slug_reservation: RpcOrganizationSlugReservation
+    ) -> None:
         pass
 
     @classmethod
