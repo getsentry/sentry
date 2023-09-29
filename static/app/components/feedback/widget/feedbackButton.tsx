@@ -12,14 +12,14 @@ const THEME = {
 
 const Button = styled('button')`
   --sentry-feedback-bg-color: #fff;
-  --sentry-feedback-bg-hover-color: #F6F6F7;
+  --sentry-feedback-bg-hover-color: #f6f6f7;
   --sentry-feedback-fg-color: ${THEME.light.foreground};
   --sentry-feedback-border: 1.5px solid rgba(41, 35, 47, 0.13);
   --sentry-feedback-box-shadow: 0px 4px 24px 0px rgba(43, 34, 51, 0.12);
 
   &.__sntry_fdbk_dark {
     --sentry-feedback-bg-color: #29232f;
-    --sentry-feedback-bg-hover-color: #352F3B;
+    --sentry-feedback-bg-hover-color: #352f3b;
     --sentry-feedback-fg-color: ${THEME.dark.foreground};
     --sentry-feedback-border: 1.5px solid rgba(235, 230, 239, 0.15);
     --sentry-feedback-box-shadow: 0px 4px 24px 0px rgba(43, 34, 51, 0.12);
