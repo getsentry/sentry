@@ -47,7 +47,6 @@ function openDeleteModal(organization, projectSlug, feedbackId) {
 }
 
 function deleteFeedback(organization, projectSlug, feedbackId) {
-  addLoadingMessage(t('Deleting feedback\u2026'));
   const api = new Client();
   addLoadingMessage(t('Deleting feedback...'));
 
