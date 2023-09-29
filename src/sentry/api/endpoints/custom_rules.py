@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, timezone
-from typing import Optional, cast
+from typing import List, Optional, cast
 
 from django.db import DatabaseError
 from rest_framework import serializers
@@ -51,7 +51,9 @@ class CustomRulesInputSerializer(serializers.Serializer):
         # check that the project exists
         invalid_projects = []
 
+        data["projects"] = _clean_project_list(data["projects"])
         requested_projects = data["projects"]
+
         available_projects = {p.id for p in Project.objects.get_many_from_cache(data["projects"])}
         for project_id in requested_projects:
             if project_id not in available_projects:
@@ -143,6 +145,7 @@ class CustomRulesEndpoint(OrganizationEndpoint):
 
         try:
             requested_projects_ids = [int(project_id) for project_id in requested_projects]
+            requested_projects_ids = _clean_project_list(requested_projects_ids)
         except ValueError:
             return Response({"projects": ["Invalid project id"]}, status=400)
 
@@ -218,3 +221,10 @@ def _get_condition(query: Optional[str]) -> RuleCondition:
         converter = SearchQueryConverter(tokens)
         condition = converter.convert()
     return condition
+
+
+def _clean_project_list(project_ids: List[int]) -> List[int]:
+    if len(project_ids) == 1 and project_ids[0] == -1:
+        # special case for all projects convention ( sends a project id of -1)
+        return []
+    return project_ids
