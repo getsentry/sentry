@@ -99,21 +99,16 @@ function ServiceIncidents({
             <SidebarPanelEmpty>{t('There are no incidents to report')}</SidebarPanelEmpty>
           )}
           {serviceStatus.incidents.map(incident => (
-            <SidebarPanelItem
-              title={incident.name}
-              key={incident.id}
-              titleAction={
-                <LinkButton
-                  size="xs"
-                  icon={<IconOpen size="xs" />}
-                  priority="link"
-                  href={incident.url}
-                  external
-                >
-                  {t('Full Incident Details')}
-                </LinkButton>
-              }
-            >
+            <SidebarPanelItem title={incident.name} key={incident.id}>
+              <LinkButton
+                size="xs"
+                icon={<IconOpen size="xs" />}
+                priority="link"
+                href={incident.url}
+                external
+              >
+                {t('Full Incident Details')}
+              </LinkButton>
               <AffectedServices>
                 {tct(
                   "This incident started [timeAgo]. We're experiencing the following problems with our services",
