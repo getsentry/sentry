@@ -65,6 +65,8 @@ type Result = {
 type Options = {
   /**
    * When provided, fetches specified teams by id if necessary and only provides those teams.
+   *
+   * @deprecated use `useTeamsById({ids: []})`
    */
   ids?: string[];
   /**
@@ -74,10 +76,14 @@ type Options = {
   /**
    * When true, fetches user's teams if necessary and only provides user's
    * teams (isMember = true).
+   *
+   * @deprecated use `useUserTeams()`
    */
   provideUserTeams?: boolean;
   /**
    * When provided, fetches specified teams by slug if necessary and only provides those teams.
+   *
+   * @deprecated use `useTeamsById({slugs: []})`
    */
   slugs?: string[];
 };

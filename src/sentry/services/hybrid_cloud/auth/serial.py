@@ -75,4 +75,5 @@ def serialize_api_key(ak: ApiKey) -> RpcApiKey:
         status=ak.status,
         allowed_origins=ak.get_allowed_origins(),
         label=ak.label,
+        scope_list=ak.get_scopes(),
     )

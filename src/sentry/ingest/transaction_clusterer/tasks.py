@@ -102,6 +102,9 @@ def cluster_projects(projects: Sequence[Project]) -> None:
                 tags={"clustered": False},
                 sample_rate=1.0,
             )
+            sentry_sdk.set_tag("projects.total", len(projects))
+            sentry_sdk.set_tag("projects.unclustered", unclustered)
+            sentry_sdk.capture_message("Transaction clusterer missed projects", level="error")
 
 
 @instrumented_task(
@@ -126,7 +129,7 @@ def spawn_clusterers_span_descs(**kwargs: Any) -> None:
 
 
 @instrumented_task(
-    name="sentry.ingest.transaction_clusterer.tasks.cluster_projects_span_descs",
+    name="sentry.ingest.span_clusterer.tasks.cluster_projects_span_descs",
     queue="transactions.name_clusterer",  # XXX(iker): we should use a different queue
     default_retry_delay=5,  # copied from transaction name clusterer
     max_retries=5,  # copied from transaction name clusterer

@@ -61,6 +61,8 @@ from sentry.snuba.metrics.fields.snql import (
     min_timestamp,
     miserable_users,
     on_demand_apdex_snql_factory,
+    on_demand_epm_snql_factory,
+    on_demand_eps_snql_factory,
     on_demand_failure_count_snql_factory,
     on_demand_failure_rate_snql_factory,
     rate_snql_factory,
@@ -1300,7 +1302,7 @@ DERIVED_METRICS = {
     for derived_metric in [
         SingularEntityDerivedMetric(
             metric_mri=SessionMRI.ALL.value,
-            metrics=[SessionMRI.SESSION.value],
+            metrics=[SessionMRI.RAW_SESSION.value],
             unit="sessions",
             snql=lambda project_ids, org_id, metric_ids, alias=None: all_sessions(
                 org_id, metric_ids, alias=alias
@@ -1308,7 +1310,7 @@ DERIVED_METRICS = {
         ),
         SingularEntityDerivedMetric(
             metric_mri=SessionMRI.ALL_USER.value,
-            metrics=[SessionMRI.USER.value],
+            metrics=[SessionMRI.RAW_USER.value],
             unit="users",
             snql=lambda project_ids, org_id, metric_ids, alias=None: all_users(
                 org_id, metric_ids, alias=alias
@@ -1316,7 +1318,7 @@ DERIVED_METRICS = {
         ),
         SingularEntityDerivedMetric(
             metric_mri=SessionMRI.ABNORMAL.value,
-            metrics=[SessionMRI.SESSION.value],
+            metrics=[SessionMRI.RAW_SESSION.value],
             unit="sessions",
             snql=lambda project_ids, org_id, metric_ids, alias=None: abnormal_sessions(
                 org_id, metric_ids, alias=alias
@@ -1324,7 +1326,7 @@ DERIVED_METRICS = {
         ),
         SingularEntityDerivedMetric(
             metric_mri=SessionMRI.ABNORMAL_USER.value,
-            metrics=[SessionMRI.USER.value],
+            metrics=[SessionMRI.RAW_USER.value],
             unit="users",
             snql=lambda project_ids, org_id, metric_ids, alias=None: abnormal_users(
                 org_id, metric_ids, alias=alias
@@ -1332,7 +1334,7 @@ DERIVED_METRICS = {
         ),
         SingularEntityDerivedMetric(
             metric_mri=SessionMRI.CRASHED.value,
-            metrics=[SessionMRI.SESSION.value],
+            metrics=[SessionMRI.RAW_SESSION.value],
             unit="sessions",
             snql=lambda project_ids, org_id, metric_ids, alias=None: crashed_sessions(
                 org_id, metric_ids, alias=alias
@@ -1340,7 +1342,7 @@ DERIVED_METRICS = {
         ),
         SingularEntityDerivedMetric(
             metric_mri=SessionMRI.CRASHED_USER.value,
-            metrics=[SessionMRI.USER.value],
+            metrics=[SessionMRI.RAW_USER.value],
             unit="users",
             snql=lambda project_ids, org_id, metric_ids, alias=None: crashed_users(
                 org_id, metric_ids, alias=alias
@@ -1348,7 +1350,7 @@ DERIVED_METRICS = {
         ),
         SingularEntityDerivedMetric(
             metric_mri=SessionMRI.ANR_USER.value,
-            metrics=[SessionMRI.USER.value],
+            metrics=[SessionMRI.RAW_USER.value],
             unit="users",
             snql=lambda project_ids, org_id, metric_ids, alias=None: anr_users(
                 org_id, metric_ids, alias=alias
@@ -1356,7 +1358,7 @@ DERIVED_METRICS = {
         ),
         SingularEntityDerivedMetric(
             metric_mri=SessionMRI.FOREGROUND_ANR_USER.value,
-            metrics=[SessionMRI.USER.value],
+            metrics=[SessionMRI.RAW_USER.value],
             unit="users",
             snql=lambda project_ids, org_id, metric_ids, alias=None: foreground_anr_users(
                 org_id, metric_ids, alias=alias
@@ -1440,7 +1442,7 @@ DERIVED_METRICS = {
         ),
         SingularEntityDerivedMetric(
             metric_mri=SessionMRI.ERRORED_PREAGGREGATED.value,
-            metrics=[SessionMRI.SESSION.value],
+            metrics=[SessionMRI.RAW_SESSION.value],
             unit="sessions",
             snql=lambda project_ids, org_id, metric_ids, alias=None: errored_preaggr_sessions(
                 org_id, metric_ids, alias=alias
@@ -1448,7 +1450,7 @@ DERIVED_METRICS = {
         ),
         SingularEntityDerivedMetric(
             metric_mri=SessionMRI.ERRORED_SET.value,
-            metrics=[SessionMRI.ERROR.value],
+            metrics=[SessionMRI.RAW_ERROR.value],
             unit="sessions",
             snql=lambda project_ids, org_id, metric_ids, alias=None: uniq_aggregation_on_metric(
                 metric_ids, alias=alias
@@ -1487,7 +1489,7 @@ DERIVED_METRICS = {
         ),
         SingularEntityDerivedMetric(
             metric_mri=SessionMRI.ERRORED_USER_ALL.value,
-            metrics=[SessionMRI.USER.value],
+            metrics=[SessionMRI.RAW_USER.value],
             unit="users",
             snql=lambda project_ids, org_id, metric_ids, alias=None: errored_all_users(
                 org_id, metric_ids, alias=alias
@@ -1790,6 +1792,18 @@ DERIVED_OPS: Mapping[MetricOperationType, DerivedOp] = {
             op="on_demand_apdex",
             can_orderby=True,
             snql_func=on_demand_apdex_snql_factory,
+            default_null_value=0,
+        ),
+        DerivedOp(
+            op="on_demand_epm",
+            can_orderby=True,
+            snql_func=on_demand_epm_snql_factory,
+            default_null_value=0,
+        ),
+        DerivedOp(
+            op="on_demand_eps",
+            can_orderby=True,
+            snql_func=on_demand_eps_snql_factory,
             default_null_value=0,
         ),
         DerivedOp(

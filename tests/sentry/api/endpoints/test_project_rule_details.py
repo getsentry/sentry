@@ -174,6 +174,7 @@ class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
             rule=self.rule,
             organization=self.organization,
             opted_out=False,
+            sent_initial_email_date=now,
             disable_date=now + timedelta(days=14),
         )
         response = self.get_success_response(
@@ -663,7 +664,8 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             self.organization.slug, self.project.slug, self.rule.id, status_code=200, **payload
         )
 
-    def test_reenable_disabled_rule(self):
+    @patch("sentry.analytics.record")
+    def test_reenable_disabled_rule(self, record_analytics):
         """Test that when you edit and save a rule that was disabled, it's re-enabled as long as it passes the checks"""
         rule = Rule.objects.create(
             label="hello world",
@@ -691,6 +693,14 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         # re-fetch rule after update
         rule = Rule.objects.get(id=rule.id)
         assert rule.status == ObjectStatus.ACTIVE
+
+        assert self.analytics_called_with_args(
+            record_analytics,
+            "rule_reenable.edit",
+            rule_id=rule.id,
+            user_id=self.user.id,
+            organization_id=self.organization.id,
+        )
 
     @patch("sentry.analytics.record")
     def test_rule_disable_opt_out_explicit(self, record_analytics):

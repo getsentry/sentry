@@ -1,10 +1,11 @@
+import abc
+
 from sentry import analytics
 
 
-class RuleReenable(analytics.Event):
+class RuleReenable(analytics.Event, abc.ABC):
     """Re-enable a rule that was disabled"""
 
-    type = "rule.reenable"
     attributes = (
         analytics.Attribute("rule_id"),
         analytics.Attribute("user_id"),
@@ -12,4 +13,13 @@ class RuleReenable(analytics.Event):
     )
 
 
-analytics.register(RuleReenable)
+class RuleReenableExplicit(RuleReenable):
+    type = "rule_reenable.explicit"
+
+
+class RuleReenableEdit(RuleReenable):
+    type = "rule_reenable.edit"
+
+
+analytics.register(RuleReenableExplicit)
+analytics.register(RuleReenableEdit)

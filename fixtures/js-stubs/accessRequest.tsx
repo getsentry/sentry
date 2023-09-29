@@ -1,7 +1,7 @@
-import {AccessRequest as AccessRequestType} from 'sentry/types';
+import {Member} from 'sentry-fixture/member';
+import {Team} from 'sentry-fixture/team';
 
-import {Member} from './member';
-import {Team} from './team';
+import {AccessRequest as AccessRequestType} from 'sentry/types';
 
 export function AccessRequest(
   params: Partial<AccessRequestType> = {}

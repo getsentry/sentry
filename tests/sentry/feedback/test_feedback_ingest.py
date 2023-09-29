@@ -55,7 +55,7 @@ class FeedbackIngestTest(MonitorIngestTestCase):
             # Feedback object is what was posted
             feedback = feedback_list[0]
             assert feedback.data["dist"] == "abc123"
-            assert feedback.data["environment"] == "production"
+            assert feedback.environment.name == "production"
             assert feedback.data["sdk"]["name"] == "sentry.javascript.react"
             assert feedback.data["feedback"]["contact_email"] == "colton.allen@sentry.io"
             assert (
@@ -194,3 +194,28 @@ class FeedbackIngestTest(MonitorIngestTestCase):
                 **self.dsn_auth_headers,
             )
             assert response.status_code == 201, response.content
+
+    def test_env(self):
+        # No environment name in input should default the field to "production"
+        test_data_missing_optional_fields = {
+            "feedback": {
+                "contact_email": "colton.allen@sentry.io",
+                "message": "I really like this user-feedback feature!",
+                "url": "https://docs.sentry.io/platforms/javascript/",
+            },
+            "platform": "javascript",
+            "sdk": {"name": "sentry.javascript.react", "version": "6.18.1"},
+            "timestamp": 1234456,
+        }
+
+        with self.feature({"organizations:user-feedback-ingest": True}):
+            path = reverse(self.endpoint)
+            response = self.client.post(
+                path,
+                data=test_data_missing_optional_fields,
+                **self.dsn_auth_headers,
+            )
+            assert response.status_code == 201, response.content
+            feedback_list = Feedback.objects.all()
+            feedback = feedback_list[0]
+            assert feedback.environment.name == "production"

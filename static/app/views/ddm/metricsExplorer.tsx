@@ -1,6 +1,8 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
+import colorFn from 'color';
+import type {LineSeriesOption} from 'echarts';
 import moment from 'moment';
 
 import Alert from 'sentry/components/alert';
@@ -10,6 +12,7 @@ import ChartZoom from 'sentry/components/charts/chartZoom';
 import Legend from 'sentry/components/charts/components/legend';
 import {LineChart} from 'sentry/components/charts/lineChart';
 import ReleaseSeries from 'sentry/components/charts/releaseSeries';
+import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import SearchBar from 'sentry/components/events/searchBar';
@@ -22,7 +25,7 @@ import Tag from 'sentry/components/tag';
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {MetricsTag, PageFilters, TagCollection} from 'sentry/types';
+import {MetricsTag, PageFilters, SavedSearchType, TagCollection} from 'sentry/types';
 import {
   defaultMetricDisplayType,
   formatMetricsUsingUnitAndOp,
@@ -136,6 +139,7 @@ function QueryBuilder({metricsQuery}: QueryBuilderProps) {
                 mri: option.value,
                 op: selectedOp,
                 groupBy: undefined,
+                focusedSeries: undefined,
               });
             }}
           />
@@ -167,6 +171,7 @@ function QueryBuilder({metricsQuery}: QueryBuilderProps) {
             onChange={options =>
               updateQuery(router, {
                 groupBy: options.map(o => o.value),
+                focusedSeries: undefined,
               })
             }
           />
@@ -210,15 +215,14 @@ function MetricSearchBar({tags, mri, disabled, onChange, query}: MetricSearchBar
         `/organizations/${org.slug}/metrics/tags/${tag.key}/`,
         {
           query: {
-            // TODO(ddm): OrganizationMetricsTagDetailsEndpoint does not return values when metric is specified
-            // metric: mri,
+            metric: mri,
             useCase: getUseCaseFromMri(mri),
             project: selection.projects,
           },
         }
       );
 
-      return tagsValues.map(tv => tv.value);
+      return tagsValues.filter(tv => tv.value !== '').map(tv => tv.value);
     },
     [api, mri, org.slug, selection.projects]
   );
@@ -243,6 +247,7 @@ function MetricSearchBar({tags, mri, disabled, onChange, query}: MetricSearchBar
       onSearch={handleChange}
       placeholder={t('Filter by tags')}
       defaultQuery={query}
+      savedSearchType={SavedSearchType.METRIC}
     />
   );
 }
@@ -291,29 +296,30 @@ function MetricsExplorerDisplayOuter(props?: DisplayProps) {
 function MetricsExplorerDisplay({displayType, ...metricsDataProps}: DisplayProps) {
   const router = useRouter();
   const {data, isLoading, isError} = useMetricsData(metricsDataProps);
-  const hiddenSeries = decodeList(router.location.query.hiddenSeries);
+  const [dataToBeRendered, setDataToBeRendered] = useState<MetricsData | undefined>(
+    undefined
+  );
+  const focusedSeries = router.location.query.focusedSeries;
+  const [hoveredLegend, setHoveredLegend] = useState('');
+
+  useEffect(() => {
+    if (data) {
+      setDataToBeRendered(data);
+    }
+  }, [data]);
 
   const toggleSeriesVisibility = (seriesName: string) => {
-    if (hiddenSeries.includes(seriesName)) {
-      router.push({
-        ...router.location,
-        query: {
-          ...router.location.query,
-          hiddenSeries: hiddenSeries.filter(s => s !== seriesName),
-        },
-      });
-    } else {
-      router.push({
-        ...router.location,
-        query: {
-          ...router.location.query,
-          hiddenSeries: [...hiddenSeries, seriesName],
-        },
-      });
-    }
+    setHoveredLegend('');
+    router.push({
+      ...router.location,
+      query: {
+        ...router.location.query,
+        focusedSeries: focusedSeries === seriesName ? undefined : seriesName,
+      },
+    });
   };
 
-  if (!data) {
+  if (!dataToBeRendered || isError) {
     return (
       <DisplayWrapper>
         {isLoading && <LoadingIndicator />}
@@ -323,13 +329,19 @@ function MetricsExplorerDisplay({displayType, ...metricsDataProps}: DisplayProps
   }
 
   // TODO(ddm): we should move this into the useMetricsData hook
-  const sorted = sortData(data);
-  const unit = getUnitFromMRI(Object.keys(data.groups[0]?.series ?? {})[0]); // this assumes that all series have the same unit
+  const sorted = sortData(dataToBeRendered);
+  const unit = getUnitFromMRI(Object.keys(dataToBeRendered.groups[0]?.series ?? {})[0]); // this assumes that all series have the same unit
 
   const series = sorted.groups.map(g => {
     return {
       values: Object.values(g.series)[0],
-      name: getSeriesName(g, data.groups.length === 1, metricsDataProps.groupBy),
+      name: getSeriesName(
+        g,
+        dataToBeRendered.groups.length === 1,
+        metricsDataProps.groupBy
+      ),
+      transaction: g.by.transaction,
+      release: g.by.release,
     };
   });
 
@@ -338,16 +350,24 @@ function MetricsExplorerDisplay({displayType, ...metricsDataProps}: DisplayProps
   const chartSeries = series.map((item, i) => ({
     seriesName: item.name,
     unit,
-    color: colors[i],
-    hidden: hiddenSeries.includes(item.name),
+    color: colorFn(colors[i])
+      .alpha(hoveredLegend && hoveredLegend !== item.name ? 0.1 : 1)
+      .string(),
+    hidden: focusedSeries && focusedSeries !== item.name,
     data: item.values.map((value, index) => ({
       name: sorted.intervals[index],
       value,
     })),
+    transaction: item.transaction as string | undefined,
+    release: item.release as string | undefined,
+    emphasis: {
+      focus: 'series',
+    } as LineSeriesOption['emphasis'],
   }));
 
   return (
     <DisplayWrapper>
+      <TransparentLoadingMask visible={isLoading} />
       <Chart
         series={chartSeries}
         displayType={displayType}
@@ -360,6 +380,7 @@ function MetricsExplorerDisplay({displayType, ...metricsDataProps}: DisplayProps
         series={chartSeries}
         operation={metricsDataProps.op}
         onClick={toggleSeriesVisibility}
+        setHoveredLegend={focusedSeries ? undefined : setHoveredLegend}
       />
     </DisplayWrapper>
   );
@@ -435,6 +456,8 @@ export type Series = {
   seriesName: string;
   unit: string;
   hidden?: boolean;
+  release?: string;
+  transaction?: string;
 };
 
 type ChartProps = {
