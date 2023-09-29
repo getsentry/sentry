@@ -1,5 +1,6 @@
 import re
 from datetime import datetime, timedelta
+from enum import Enum
 
 from django.db.models import Max
 from rest_framework import serializers
@@ -236,6 +237,11 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
         return empty_value
 
 
+class ThresholdMaxKeys(Enum):
+    MAX_1 = "max1"
+    MAX_2 = "max2"
+
+
 class DashboardWidgetSerializer(CamelSnakeSerializer):
     # Is a string because output serializers also make it a string.
     id = serializers.CharField(required=False)
@@ -301,6 +307,54 @@ class DashboardWidgetSerializer(CamelSnakeSerializer):
                 raise serializers.ValidationError(
                     {"displayType": "displayType is required during creation."}
                 )
+
+        # Validate widget thresholds
+        thresholds = data.get("thresholds")
+        if thresholds:
+            if thresholds.get("unit") and thresholds.get("max_values") is None:
+                raise serializers.ValidationError(
+                    {"thresholds": "Max values must be set before a unit can be chosen."}
+                )
+
+            max_values = thresholds.get("max_values")
+            allowed_max_keys = [key.value for key in ThresholdMaxKeys]
+            if max_values:
+                for i in range(len(max_values)):
+                    max_key = f"max{i+1}"
+
+                    if max_key not in allowed_max_keys:
+                        raise serializers.ValidationError(
+                            {"thresholds": f"Invalid maximum key {max_key}"}
+                        )
+
+                    if max_values.get(max_key):
+                        if max_values.get(max_key) < 0:
+                            raise serializers.ValidationError(
+                                {"thresholds": {max_key: "Maximum values can not be negative"}}
+                            )
+                        elif i > 0:
+                            prev_max_key = f"max{i}"
+                            if max_values.get(prev_max_key) and max_values.get(
+                                prev_max_key
+                            ) >= max_values.get(max_key):
+                                raise serializers.ValidationError(
+                                    {
+                                        "thresholds": {
+                                            max_key: "Maximum value must be greater than minimum."
+                                        }
+                                    }
+                                )
+
+                if len(max_values) < len(ThresholdMaxKeys):
+                    for key in [key.value for key in ThresholdMaxKeys]:
+                        if max_values.get(key) is None:
+                            raise serializers.ValidationError(
+                                {
+                                    "thresholds": {
+                                        key: "Must set all threshold maximums or none at all."
+                                    }
+                                }
+                            )
         return data
 
 
