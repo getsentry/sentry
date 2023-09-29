@@ -17,7 +17,9 @@ class ProjectFeedbackEndpoint(ProjectEndpoint):
             raise ResourceDoesNotExist
 
         try:
-            kwargs["feedback"] = Feedback.objects.get(feedback_id=feedback_id)
+            kwargs["feedback"] = Feedback.objects.get(
+                project_id=project.id, feedback_id=feedback_id
+            )
         except Feedback.DoesNotExist:
             raise ResourceDoesNotExist
 
