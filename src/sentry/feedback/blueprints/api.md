@@ -92,11 +92,13 @@ Retrieve a collection of feedback items.
 
 - Response 200
 
+  ```
+  # Headers
+  X-Hits: 42
+  ```
+
   ```json
   {
-    "meta": {
-      "total": 100,
-    },
     "data": [
       {
         "browser": {
