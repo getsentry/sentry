@@ -4,7 +4,11 @@ import logging
 from typing import Optional, cast
 
 from sentry.integrations.opsgenie.actions import OpsgenieNotifyTeamForm
-from sentry.integrations.opsgenie.client import OpsgenieClient, OpsgeniePriority
+from sentry.integrations.opsgenie.client import (
+    OPSGENIE_DEFAULT_PRIORITY,
+    OpsgenieClient,
+    OpsgeniePriority,
+)
 from sentry.integrations.opsgenie.utils import get_team
 from sentry.rules.actions import IntegrationEventAction
 from sentry.services.hybrid_cloud.integration import integration_service
@@ -50,7 +54,9 @@ class OpsgenieNotifyTeamAction(IntegrationEventAction):
 
         team = get_team(self.get_option("team"), org_integration)
 
-        priority = cast(OpsgeniePriority, self.get_option("priority", default="P3"))
+        priority = cast(
+            OpsgeniePriority, self.get_option("priority", default=OPSGENIE_DEFAULT_PRIORITY)
+        )
 
         if not team:
             logger.error(
@@ -118,8 +124,7 @@ class OpsgenieNotifyTeamAction(IntegrationEventAction):
     def render_label(self) -> str:
         team = get_team(self.get_option("team"), self.get_organization_integration())
         team_name = team["team"] if team else "[removed]"
-        # default to P3 for rules that were created before we implemented custom priorities
-        priority = self.get_option("priority", default="P3")
+        priority = self.get_option("priority", default=OPSGENIE_DEFAULT_PRIORITY)
 
         return self.label.format(
             account=self.get_integration_name(), team=team_name, priority=priority

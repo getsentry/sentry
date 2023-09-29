@@ -10,6 +10,8 @@ from sentry.shared_integrations.client.base import BaseApiResponseX
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 
 OPSGENIE_API_VERSION = "v2"
+# Defaults to P3 if null, but we can be explicit - https://docs.opsgenie.com/docs/alert-api
+OPSGENIE_DEFAULT_PRIORITY = "P3"
 
 OpsgeniePriority = Literal["P1", "P2", "P3", "P4", "P5"]
 
