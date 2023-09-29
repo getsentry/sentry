@@ -311,11 +311,6 @@ class DashboardWidgetSerializer(CamelSnakeSerializer):
         # Validate widget thresholds
         thresholds = data.get("thresholds")
         if thresholds:
-            if thresholds.get("unit") and thresholds.get("max_values") is None:
-                raise serializers.ValidationError(
-                    {"thresholds": "Max values must be set before a unit can be chosen."}
-                )
-
             max_values = thresholds.get("max_values")
             allowed_max_keys = [key.value for key in ThresholdMaxKeys]
             if max_values:
