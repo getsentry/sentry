@@ -5,7 +5,10 @@ import {FlamegraphZoomView} from 'sentry/components/profiling/flamegraph/flamegr
 import {defined} from 'sentry/utils';
 import {CanvasPoolManager, CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
 import {CanvasView} from 'sentry/utils/profiling/canvasView';
-import {Flamegraph as FlamegraphModel} from 'sentry/utils/profiling/flamegraph';
+import {
+  Flamegraph,
+  Flamegraph as FlamegraphModel,
+} from 'sentry/utils/profiling/flamegraph';
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
 import {useFlamegraphProfiles} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphProfiles';
 import {useDispatchFlamegraphState} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphState';
