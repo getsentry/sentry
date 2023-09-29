@@ -365,5 +365,5 @@ def forward_regression_occurrences(
             }
         )
 
-    get_from_profiling_service(method="POST", path="/regressed", json_data=payloads)
-    assert 0
+    if payloads:
+        get_from_profiling_service(method="POST", path="/regressed", json_data=payloads)
