@@ -28,7 +28,7 @@ def send_regressions_to_plaform(regressions: List[BreakpointData], automatic_det
         displayed_new_baseline = round(float(regression["aggregate_range_2"]), 2)
 
         # For legacy reasons, we're passing project id as project
-        # TODO fix this in the breakpoint microservice and in tre
+        # TODO fix this in the breakpoint microservice and in trends v2
         project_id = cast(int, regression["project"])
 
         occurrence = IssueOccurrence(
