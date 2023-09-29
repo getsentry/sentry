@@ -7,7 +7,7 @@ from sentry.feedback.models import Feedback
 
 
 class ProjectFeedbackEndpoint(ProjectEndpoint):
-    def convert_args(self, request: Request, feedback_id, *args, **kwargs):
+    def convert_args(self, request: Request, feedback_id, *args, **kwargs):  # type: ignore[override]
         args, kwargs = super().convert_args(request, *args, **kwargs)
         project = kwargs["project"]
 
