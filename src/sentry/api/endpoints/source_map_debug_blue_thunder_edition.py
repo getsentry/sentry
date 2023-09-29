@@ -343,15 +343,15 @@ class ReleaseLookupData:
         if self.source_file_lookup_result == "found":
             return
 
-        for aritfact_index_file in self._get_artifact_index_release_files():
-            raw_data = json.load(aritfact_index_file.file.getfile())
+        for artifact_index_file in self._get_artifact_index_release_files():
+            raw_data = json.load(artifact_index_file.file.getfile())
             files = raw_data.get("files")
             for potential_source_file_name in self.matching_source_file_names:
                 matching_file = files.get(potential_source_file_name)
                 if matching_file is not None:
                     # Check if dist matches
-                    if aritfact_index_file.ident == ReleaseFile.get_ident(
-                        aritfact_index_file.name, self.event.dist
+                    if artifact_index_file.ident == ReleaseFile.get_ident(
+                        artifact_index_file.name, self.event.dist
                     ):
                         self.found_source_file_name = potential_source_file_name
                         self.source_file_lookup_result = "found"
@@ -457,14 +457,14 @@ class ReleaseLookupData:
         if self.source_map_lookup_result == "found":
             return
 
-        for aritfact_index_file in self._get_artifact_index_release_files():
-            raw_data = json.load(aritfact_index_file.file.getfile())
+        for artifact_index_file in self._get_artifact_index_release_files():
+            raw_data = json.load(artifact_index_file.file.getfile())
             files = raw_data.get("files")
             matching_file = files.get(matching_source_map_name)
             if matching_file is not None:
                 # Check if dist matches
-                if aritfact_index_file.ident == ReleaseFile.get_ident(
-                    aritfact_index_file.name, self.event.dist
+                if artifact_index_file.ident == ReleaseFile.get_ident(
+                    artifact_index_file.name, self.event.dist
                 ):
                     self.source_map_lookup_result = "found"
                     return
