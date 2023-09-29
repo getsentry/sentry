@@ -73,7 +73,7 @@ export function StarfishView(props: BaseStarfishViewProps) {
       referrer: 'api.starfish-web-service.homepage-charts',
       initialData: {},
     });
-    useSynchronizeCharts([loading]);
+    useSynchronizeCharts([!loading]);
     if (loading || !results || !results[yAxis[0]]) {
       return <ChartPlaceholder />;
     }
