@@ -1,22 +1,16 @@
-from typing import List, cast
 from unittest import mock
 
 from sentry.issues.grouptype import PerformanceDurationRegressionGroupType
-from sentry.statistical_detectors.issue_platform_adapter import (
-    Regression,
-    send_regressions_to_plaform,
-)
+from sentry.statistical_detectors.issue_platform_adapter import send_regressions_to_plaform
 
 
 @mock.patch("sentry.statistical_detectors.issue_platform_adapter.produce_occurrence_to_kafka")
 def test_send_regressions_to_platform(mock_produce_occurrence_to_kafka):
-    project_slug = "test"
-    project_id = 123
+    project_id = "123"
 
-    mock_data = [
+    mock_regressions = [
         {
-            "project": project_slug,
-            "project_id": project_id,
+            "project": project_id,
             "transaction": "foo",
             "change": "regression",
             "trend_percentage": 2.0,
@@ -25,9 +19,7 @@ def test_send_regressions_to_platform(mock_produce_occurrence_to_kafka):
         }
     ]
 
-    mock_regression = cast(List[Regression], mock_data)
-
-    send_regressions_to_plaform(mock_regression)
+    send_regressions_to_plaform(mock_regressions)
 
     assert len(mock_produce_occurrence_to_kafka.mock_calls) == 1
 
@@ -41,7 +33,7 @@ def test_send_regressions_to_platform(mock_produce_occurrence_to_kafka):
             "issue_title": "Exp Duration Regression",
             "subtitle": "Increased from 14.0ms to 28.0ms (P95)",
             "resource_id": None,
-            "evidence_data": mock_regression[0],
+            "evidence_data": mock_regressions[0],
             "evidence_display": [
                 {
                     "name": "Regression",

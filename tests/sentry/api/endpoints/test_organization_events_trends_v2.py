@@ -269,6 +269,45 @@ class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
         assert len(result_stats.get(f"{self.project.slug},foo", [])) > 0
 
     @mock.patch("sentry.api.endpoints.organization_events_trends_v2.detect_breakpoints")
+    def test_simple_with_trends_p95_with_project_id(self, mock_detect_breakpoints):
+        mock_trends_result = [
+            {
+                "project": self.project.id,
+                "transaction": "foo",
+                "change": "regression",
+                "trend_difference": -15,
+                "trend_percentage": 0.88,
+            }
+        ]
+        mock_detect_breakpoints.return_value = {"data": mock_trends_result}
+
+        with self.feature({**self.features, "organizations:performance-trendsv2-dev-only": True}):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "end": iso_format(self.now),
+                    "start": iso_format(self.now - timedelta(days=1)),
+                    "interval": "1h",
+                    "field": ["project", "transaction"],
+                    "query": "event.type:transaction",
+                    "project": self.project.id,
+                    "trendFunction": "p95(transaction.duration)",
+                },
+            )
+
+        assert response.status_code == 200, response.content
+
+        events = response.data["events"]
+        result_stats = response.data["stats"]
+
+        assert len(events["data"]) == 1
+        assert events["data"] == mock_trends_result
+
+        assert len(result_stats) > 0
+        assert len(result_stats.get(f"{self.project.id},foo", [])) > 0
+
+    @mock.patch("sentry.api.endpoints.organization_events_trends_v2.detect_breakpoints")
     def test_simple_with_top_events(self, mock_detect_breakpoints):
         # store second metric but with lower count
         self.store_performance_metric(
@@ -520,12 +559,60 @@ class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
         assert automatic_detection is False
 
         for regression in regressions:
-            assert (
-                dict(
-                    regression,
-                    **{
-                        "project_id": self.project.id,
-                    },
-                )
-                == regression
+            assert regression == {
+                "project": self.project.id,
+                "transaction": "foo",
+                "change": "regression",
+                "trend_percentage": 2.0,
+                "aggregate_range_1": 14,
+                "aggregate_range_2": 28,
+            }
+
+    @with_feature(
+        {
+            "organizations:issue-platform": True,
+            "organizations:performance-trends-issues": True,
+            "organizations:performance-trendsv2-dev-only": True,
+        }
+    )
+    @mock.patch("sentry.api.endpoints.organization_events_trends_v2.send_regressions_to_plaform")
+    @mock.patch("sentry.api.endpoints.organization_events_trends_v2.detect_breakpoints")
+    def test_issue_creation_simple_with_project_id(
+        self, mock_detect_breakpoints, send_regressions_to_plaform
+    ):
+        mock_trends_result = [
+            {
+                "project": self.project.id,
+                "transaction": "foo",
+                "change": "regression",
+                "trend_percentage": 2.0,
+                "aggregate_range_1": 14,
+                "aggregate_range_2": 28,
+            }
+        ]
+        mock_detect_breakpoints.return_value = {"data": mock_trends_result}
+
+        with self.feature(self.features):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "statsPeriod": "14d",
+                    "interval": "1h",
+                    "field": ["project", "transaction"],
+                    "query": "event.type:transaction",
+                    "project": self.project.id,
+                    "trendFunction": "p95(transaction.duration)",
+                },
             )
+
+        assert response.status_code == 200, response.content
+        assert len(send_regressions_to_plaform.mock_calls) == 1
+
+        regressions, automatic_detection = send_regressions_to_plaform.mock_calls[0].args
+
+        # regressions were found via the trends endpoint
+        assert automatic_detection is False
+
+        for regression in regressions:
+            assert regression == regression

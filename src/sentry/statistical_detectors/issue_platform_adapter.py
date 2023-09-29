@@ -19,13 +19,9 @@ def fingerprint_regression(transaction, automatic_detection=True):
     return hashlib.sha1((prehashed_fingerprint).encode()).hexdigest()
 
 
-class Regression(BreakpointData):
-    project_id: int
-
-
 # automatic_detection is True for regressions found while running an hourly cron job
 # while automatic_detection is False for regressions found via calling trends v2 endpoint
-def send_regressions_to_plaform(regressions: List[Regression], automatic_detection=True):
+def send_regressions_to_plaform(regressions: List[BreakpointData], automatic_detection=True):
     current_timestamp = datetime.utcnow().replace(tzinfo=timezone.utc)
     for regression in regressions:
         displayed_old_baseline = round(float(regression["aggregate_range_1"]), 2)
@@ -34,7 +30,7 @@ def send_regressions_to_plaform(regressions: List[Regression], automatic_detecti
         occurrence = IssueOccurrence(
             id=uuid.uuid4().hex,
             resource_id=None,
-            project_id=regression["project_id"],
+            project_id=regression["project"],
             event_id=uuid.uuid4().hex,
             fingerprint=[fingerprint_regression(regression, automatic_detection)],
             type=PerformanceDurationRegressionGroupType,
@@ -60,7 +56,7 @@ def send_regressions_to_plaform(regressions: List[Regression], automatic_detecti
 
         event_data = {
             "timestamp": current_timestamp,
-            "project_id": regression["project_id"],
+            "project_id": regression["project"],
             "transaction": regression["transaction"],
             "event_id": occurrence.event_id,
             "platform": "python",
