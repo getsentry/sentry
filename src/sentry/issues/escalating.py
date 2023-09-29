@@ -193,7 +193,7 @@ def _query_with_pagination(
             break
 
     _query_metrics_with_pagination(
-        organization_id, project_ids, group_ids, start_date, end_date, category, all_results
+        organization_id, project_ids, group_ids, start_date, end_date, all_results, category
     )
     return all_results
 
@@ -204,8 +204,8 @@ def _query_metrics_with_pagination(
     group_ids: Sequence[int],
     start_date: datetime,
     end_date: datetime,
-    category: Optional[GroupCategory],
     all_results: List[GroupsCountResponse],
+    category: GroupCategory | None = None,
 ) -> List[GroupsCountResponse]:
     """
     Paginates Snuba metric queries for event counts for the
@@ -298,7 +298,7 @@ def _generate_generic_metrics_backend_query(
     start_date: datetime,
     end_date: datetime,
     offset: int,
-    category: Optional[GroupCategory],
+    category: GroupCategory | None = None,
 ):
     """
     This function generates a query to fetch the hourly events
