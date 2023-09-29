@@ -1,4 +1,4 @@
-from typing import cast
+from typing import List
 from unittest import mock
 
 from sentry.issues.grouptype import PerformanceDurationRegressionGroupType
@@ -10,18 +10,22 @@ from sentry.statistical_detectors.issue_platform_adapter import send_regressions
 def test_send_regressions_to_platform(mock_produce_occurrence_to_kafka):
     project_id = "123"
 
-    mock_regressions = [
+    mock_regressions: List[BreakpointData] = [
         {
             "project": project_id,
             "transaction": "foo",
-            "change": "regression",
             "trend_percentage": 2.0,
             "aggregate_range_1": 14,
             "aggregate_range_2": 28,
+            "unweighted_t_value": 1,
+            "unweighted_p_value": 2,
+            "absolute_percentage_change": 1.96,
+            "trend_difference": 16.6,
+            "breakpoint": 1691366400,
         }
     ]
 
-    mock_regressions = cast(BreakpointData, mock_regressions)
+    # mock_regressions = cast(List[BreakpointData], mock_regressions)
 
     send_regressions_to_plaform(mock_regressions)
 
