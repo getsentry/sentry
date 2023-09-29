@@ -46,12 +46,11 @@ function openDeleteModal(organization, projectSlug, feedbackId) {
   ));
 }
 
-function deleteFeedback(organization, projectSlug, feedbackId) {
+async function deleteFeedback(organization, projectSlug, feedbackId) {
   const api = new Client();
   addLoadingMessage(t('Deleting feedback...'));
-
   try {
-    api.requestPromise(
+    await api.requestPromise(
       `/projects/${organization.slug}/${projectSlug}/feedback/${feedbackId}/`,
       {method: 'DELETE'}
     );
