@@ -3,23 +3,31 @@ import styled from '@emotion/styled';
 import CircleIndicator from 'sentry/components/circleIndicator';
 import FieldWrapper from 'sentry/components/forms/fieldGroup/fieldWrapper';
 import NumberField, {NumberFieldProps} from 'sentry/components/forms/fields/numberField';
+import SelectField, {SelectFieldProps} from 'sentry/components/forms/fields/selectField';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import theme from 'sentry/utils/theme';
+import {getThresholdUnitSelectOptions} from 'sentry/views/dashboards/utils';
 
 import {BuildStep} from '../buildStep';
 
 type ThresholdsStepProps = {
-  onChange: (maxKey: ThresholdMaxKeys, value: string) => void;
+  onThresholdChange: (maxKey: ThresholdMaxKeys, value: string) => void;
+  onUnitChange: (unit: string) => void;
   thresholdsConfig: ThresholdsConfig | null;
+  dataType?: string;
+  dataUnit?: string;
 };
 
 type ThresholdRowProp = {
   color: string;
   maxInputProps: NumberFieldProps;
   minInputProps: NumberFieldProps;
+  unitOptions: {label: string; value: string}[];
+  unitSelectProps: SelectFieldProps<any>;
   maxKey?: ThresholdMaxKeys;
-  onChange?: (maxKey: ThresholdMaxKeys, value: string) => void;
+  onThresholdChange?: (maxKey: ThresholdMaxKeys, value: string) => void;
+  onUnitChange?: (maxKey: ThresholdMaxKeys, value: string) => void;
 };
 
 export enum ThresholdMaxKeys {
@@ -42,28 +50,49 @@ function ThresholdRow({
   color,
   minInputProps,
   maxInputProps,
-  onChange,
+  onThresholdChange,
+  onUnitChange,
   maxKey,
+  unitOptions,
+  unitSelectProps,
 }: ThresholdRowProp) {
   const handleChange = (val: string) => {
-    if (onChange && maxKey) {
-      onChange(maxKey, val);
+    if (onThresholdChange && maxKey) {
+      onThresholdChange(maxKey, val);
     }
   };
 
   return (
     <ThresholdRowWrapper>
       <CircleIndicator color={color} size={WIDGET_INDICATOR_SIZE} />
-      <NumberField {...minInputProps} inline={false} />
+      <NumberField {...minInputProps} inline={false} disabled />
       {t('to')}
       <NumberField onChange={handleChange} {...maxInputProps} inline={false} />
+      {unitOptions.length > 0 && (
+        <StyledSelectField
+          {...unitSelectProps}
+          onChange={onUnitChange}
+          options={unitOptions}
+          inline={false}
+        />
+      )}
     </ThresholdRowWrapper>
   );
 }
 
-function ThresholdsStep({thresholdsConfig, onChange}: ThresholdsStepProps) {
+function ThresholdsStep({
+  thresholdsConfig,
+  onThresholdChange,
+  onUnitChange,
+  dataType = '',
+  dataUnit = '',
+}: ThresholdsStepProps) {
   const maxOneValue = thresholdsConfig?.max_values[ThresholdMaxKeys.MAX_1] ?? '';
   const maxTwoValue = thresholdsConfig?.max_values[ThresholdMaxKeys.MAX_2] ?? '';
+  const unit = thresholdsConfig?.unit ?? dataUnit;
+  const unitOptions = ['duration', 'rate'].includes(dataType)
+    ? getThresholdUnitSelectOptions(dataType)
+    : [];
 
   return (
     <BuildStep
@@ -83,7 +112,6 @@ function ThresholdsStep({thresholdsConfig, onChange}: ThresholdsStepProps) {
           maxKey={ThresholdMaxKeys.MAX_1}
           minInputProps={{
             name: 'firstMinimum',
-            disabled: true,
             value: 0,
             'aria-label': 'First Minimum',
           }}
@@ -93,13 +121,18 @@ function ThresholdsStep({thresholdsConfig, onChange}: ThresholdsStepProps) {
             'aria-label': 'First Maximum',
           }}
           color={theme.green300}
-          onChange={onChange}
+          onThresholdChange={onThresholdChange}
+          onUnitChange={onUnitChange}
+          unitOptions={unitOptions}
+          unitSelectProps={{
+            name: 'First unit select',
+            value: unit,
+          }}
         />
         <ThresholdRow
           maxKey={ThresholdMaxKeys.MAX_2}
           minInputProps={{
             name: 'secondMinimum',
-            disabled: true,
             value: maxOneValue,
             'aria-label': 'Second Minimum',
           }}
@@ -109,12 +142,17 @@ function ThresholdsStep({thresholdsConfig, onChange}: ThresholdsStepProps) {
             'aria-label': 'Second Maximum',
           }}
           color={theme.yellow300}
-          onChange={onChange}
+          onThresholdChange={onThresholdChange}
+          unitOptions={unitOptions}
+          unitSelectProps={{
+            name: 'Second unit select',
+            value: unit,
+            disabled: true,
+          }}
         />
         <ThresholdRow
           minInputProps={{
             name: 'thirdMinimum',
-            disabled: true,
             value: maxTwoValue,
             'aria-label': 'Third Minimum',
           }}
@@ -125,6 +163,12 @@ function ThresholdsStep({thresholdsConfig, onChange}: ThresholdsStepProps) {
             'aria-label': 'Third Maximum',
           }}
           color={theme.red300}
+          unitOptions={unitOptions}
+          unitSelectProps={{
+            name: 'Third unit select',
+            value: unit,
+            disabled: true,
+          }}
         />
       </ThresholdsContainer>
     </BuildStep>
@@ -147,6 +191,10 @@ const ThresholdsContainer = styled('div')`
     padding: 0;
     border-bottom: none;
   }
+`;
+
+const StyledSelectField = styled(SelectField)`
+  min-width: 150px;
 `;
 
 const HighlightedText = styled('span')`
