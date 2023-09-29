@@ -1,4 +1,5 @@
 from datetime import timedelta
+from typing import List, Optional
 
 from django.utils import timezone
 
@@ -14,6 +15,8 @@ class TestCustomDynamicSamplingRuleProject(TestCase):
     def setUp(self):
         super().setUp()
         self.second_project = self.create_project()
+        self.second_organization = self.create_organization(owner=self.user)
+        self.third_project = self.create_project(organization=self.second_organization)
 
     def test_update_or_create(self):
         condition = {"op": "equals", "name": "environment", "value": "prod"}
@@ -160,3 +163,63 @@ class TestCustomDynamicSamplingRuleProject(TestCase):
 
         rule = CustomDynamicSamplingRule.get_rule_for_org(condition, self.organization.id)
         assert rule == new_rule
+
+    def test_get_project_rules(self):
+        """
+        Tests that all valid rules (i.e. active and within the date range) that apply to a project
+        (i.e. that are either organization rules or apply to the project) are returned.
+        """
+
+        idx = [1]
+
+        def create_rule(
+            project_ids: List[int],
+            org_id: Optional[int] = None,
+            old: bool = False,
+            new: bool = False,
+        ) -> CustomDynamicSamplingRule:
+            idx[0] += 1
+            condition = {"op": "equals", "name": "environment", "value": f"prod{idx[0]}"}
+            if old:
+                end_delta = -timedelta(hours=2)
+            else:
+                end_delta = timedelta(hours=2)
+
+            if new:
+                start_delta = timedelta(hours=1)
+            else:
+                start_delta = -timedelta(hours=1)
+
+            if org_id is None:
+                org_id = self.organization.id
+
+            return CustomDynamicSamplingRule.update_or_create(
+                condition=condition,
+                start=timezone.now() + start_delta,
+                end=timezone.now() + end_delta,
+                project_ids=project_ids,
+                organization_id=org_id,
+                num_samples=100,
+                sample_rate=0.5,
+            )
+
+        valid_project_rule = create_rule([self.project.id, self.second_project.id])
+        valid_org_rule = create_rule([])
+        # rule for another project
+        create_rule([self.second_project.id])
+        # rule for another org
+        create_rule([self.third_project.id], org_id=self.second_organization.id)
+        # old project rule ( already expired)
+        create_rule([self.project.id], old=True)
+        # new project rule ( not yet active)
+        create_rule([self.project.id], new=True)
+        # old org rule
+        create_rule([], old=True)
+        # new org rule
+        create_rule([], new=True)
+
+        # we should only get valid_project_rule and valid_org_rule
+        rules = list(CustomDynamicSamplingRule.get_project_rules(self.project))
+        assert len(rules) == 2
+        assert valid_project_rule in rules
+        assert valid_org_rule in rules

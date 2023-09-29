@@ -64,6 +64,7 @@ class SlackRequest:
         """
         Ensure everything is present to properly process this request
         """
+        self.request.body
         self._log_request()
         self.authorize()
         self._validate_data()

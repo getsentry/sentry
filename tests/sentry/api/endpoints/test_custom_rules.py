@@ -1,16 +1,196 @@
 from datetime import datetime, timedelta
 
 import pytest
+from django.utils import timezone
 
 from sentry.api.endpoints.custom_rules import (
-    _DATE_FORMAT,
     DEFAULT_PERIOD_STRING,
     MAX_RULE_PERIOD_STRING,
     CustomRulesInputSerializer,
 )
+from sentry.models.dynamicsampling import CUSTOM_RULE_DATE_FORMAT, CustomDynamicSamplingRule
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.helpers import Feature
 from sentry.testutils.silo import region_silo_test
+
+
+@region_silo_test(stable=True)
+class CustomRulesGetEndpoint(APITestCase):
+    """
+    Tests the GET endpoint
+    """
+
+    endpoint = "sentry-api-0-organization-dynamic_sampling-custom_rules"
+    method = "get"
+
+    def setUp(self):
+        super().setUp()
+        self.login_as(user=self.user)
+        second_project = self.create_project(organization=self.organization)
+        third_project = self.create_project(organization=self.organization)
+        fourth_project = self.create_project(organization=self.organization)
+        self.known_projects = [self.project, second_project, third_project, fourth_project]
+
+        # create a project rule for second and third project
+        now = timezone.now()
+        self.proj_condition = {"op": "eq", "name": "event.environment", "value": "prod"}
+        start = now - timedelta(hours=2)
+        end = now + timedelta(hours=2)
+        projects = self.known_projects[1:3]
+        CustomDynamicSamplingRule.update_or_create(
+            condition=self.proj_condition,
+            start=start,
+            end=end,
+            project_ids=[project.id for project in projects],
+            organization_id=self.organization.id,
+            num_samples=100,
+            sample_rate=1.0,
+        )
+
+        # create an org rule
+        now = timezone.now()
+        self.org_condition = {"op": "eq", "name": "event.environment", "value": "dev"}
+        start = now - timedelta(hours=2)
+        end = now + timedelta(hours=2)
+        CustomDynamicSamplingRule.update_or_create(
+            condition=self.org_condition,
+            start=start,
+            end=end,
+            project_ids=[],
+            organization_id=self.organization.id,
+            num_samples=100,
+            sample_rate=1.0,
+        )
+
+        # create a condition with empty query
+        now = timezone.now()
+        self.empty_condition = {"op": "and", "inner": []}
+        start = now - timedelta(hours=2)
+        end = now + timedelta(hours=2)
+
+        CustomDynamicSamplingRule.update_or_create(
+            condition=self.empty_condition,
+            start=start,
+            end=end,
+            project_ids=[self.known_projects[0].id],
+            organization_id=self.organization.id,
+            num_samples=100,
+            sample_rate=1.0,
+        )
+
+    def test_finds_project_rule(self):
+        """
+        Tests that the endpoint finds the rule when the query matches and
+        the existing rule contains all the requested projects
+
+        test with the original test being a project level rule
+        """
+
+        # call the endpoint
+        with Feature({"organizations:investigation-bias": True}):
+            resp = self.get_response(
+                self.organization.slug,
+                qs_params={
+                    "query": "environment:prod",
+                    "project": [self.known_projects[1].id],
+                },
+            )
+
+        assert resp.status_code == 200
+        data = resp.data
+        assert data["condition"] == self.proj_condition
+        assert len(data["projects"]) == 2
+        assert self.known_projects[1].id in data["projects"]
+        assert self.known_projects[2].id in data["projects"]
+
+    def test_finds_rule_with_empty_query(self):
+        """
+        Tests that the endpoint finds the rule when the query
+        is empty
+        """
+
+        # call the endpoint
+        with Feature({"organizations:investigation-bias": True}):
+            resp = self.get_response(
+                self.organization.slug,
+                qs_params={
+                    "query": "",
+                    "project": [self.known_projects[0].id],
+                },
+            )
+
+        assert resp.status_code == 200
+        data = resp.data
+        assert data["condition"] == self.empty_condition
+        assert len(data["projects"]) == 1
+        assert self.known_projects[0].id in data["projects"]
+
+    def test_finds_org_condition(self):
+        """
+        A request for either any project of org will find an org rule ( if condition matches)
+        """
+
+        # finds projects in the org rule
+        with Feature({"organizations:investigation-bias": True}):
+            resp = self.get_response(
+                self.organization.slug,
+                qs_params={
+                    "query": "environment:dev",
+                    "project": [self.known_projects[1].id],
+                },
+            )
+        assert resp.status_code == 200
+
+        # finds org rule (with org request)
+        with Feature({"organizations:investigation-bias": True}):
+            resp = self.get_response(
+                self.organization.slug,
+                qs_params={
+                    "query": "environment:dev",
+                    "project": [],
+                },
+            )
+        assert resp.status_code == 200
+
+    def test_does_not_find_rule_when_condition_doesnt_match(self):
+        """
+        Querying for a condition that doesn't match any rule returns 204
+        """
+        with Feature({"organizations:investigation-bias": True}):
+            resp = self.get_response(
+                self.organization.slug,
+                qs_params={
+                    "query": "environment:integration",
+                    "project": [self.known_projects[1].id],
+                },
+            )
+        assert resp.status_code == 204
+
+    def test_does_not_find_rule_when_project_doesnt_match(self):
+        """
+        Querying for a condition that doesn't match any rule returns 204
+        """
+
+        # it finds it when the project matches
+        with Feature({"organizations:investigation-bias": True}):
+            resp = self.get_response(
+                self.organization.slug,
+                qs_params={
+                    "query": "environment:prod",
+                    "project": [self.known_projects[1].id],
+                },
+            )
+        assert resp.status_code == 200
+        # but it doesn't when the project doesn't match
+        with Feature({"organizations:investigation-bias": True}):
+            resp = self.get_response(
+                self.organization.slug,
+                qs_params={
+                    "query": "environment:prod",
+                    "project": [self.known_projects[0].id],
+                },
+            )
+        assert resp.status_code == 204
 
 
 @region_silo_test(stable=True)
@@ -41,8 +221,37 @@ class CustomRulesEndpoint(APITestCase):
 
         data = resp.data
 
-        start_date = datetime.strptime(data["startDate"], _DATE_FORMAT)
-        end_date = datetime.strptime(data["endDate"], _DATE_FORMAT)
+        start_date = datetime.strptime(data["startDate"], CUSTOM_RULE_DATE_FORMAT)
+        end_date = datetime.strptime(data["endDate"], CUSTOM_RULE_DATE_FORMAT)
+        assert end_date - start_date == timedelta(hours=1)
+        projects = data["projects"]
+        assert projects == [self.project.id]
+        org_id = data["orgId"]
+        assert org_id == self.organization.id
+
+        # check the database
+        rule_id = data["ruleId"]
+        rules = list(self.organization.customdynamicsamplingrule_set.all())
+        assert len(rules) == 1
+        rule = rules[0]
+        assert rule.external_rule_id == rule_id
+
+    def test_empty_query(self):
+        request_data = {
+            "query": "",
+            "projects": [self.project.id],
+            "period": "1h",
+            "overrideExisting": True,
+        }
+        with Feature({"organizations:investigation-bias": True}):
+            resp = self.get_response(self.organization.slug, raw_data=request_data)
+
+        assert resp.status_code == 200
+
+        data = resp.data
+
+        start_date = datetime.strptime(data["startDate"], CUSTOM_RULE_DATE_FORMAT)
+        end_date = datetime.strptime(data["endDate"], CUSTOM_RULE_DATE_FORMAT)
         assert end_date - start_date == timedelta(hours=1)
         projects = data["projects"]
         assert projects == [self.project.id]
@@ -79,8 +288,8 @@ class CustomRulesEndpoint(APITestCase):
         data = resp.data
 
         rule_id = data["ruleId"]
-        start_date = datetime.strptime(data["startDate"], _DATE_FORMAT)
-        end_date = datetime.strptime(data["endDate"], _DATE_FORMAT)
+        start_date = datetime.strptime(data["startDate"], CUSTOM_RULE_DATE_FORMAT)
+        end_date = datetime.strptime(data["endDate"], CUSTOM_RULE_DATE_FORMAT)
         assert end_date - start_date == timedelta(hours=1)
 
         request_data = {
@@ -97,8 +306,8 @@ class CustomRulesEndpoint(APITestCase):
         assert resp.status_code == 200
         data = resp.data
 
-        start_date = datetime.strptime(data["startDate"], _DATE_FORMAT)
-        end_date = datetime.strptime(data["endDate"], _DATE_FORMAT)
+        start_date = datetime.strptime(data["startDate"], CUSTOM_RULE_DATE_FORMAT)
+        end_date = datetime.strptime(data["endDate"], CUSTOM_RULE_DATE_FORMAT)
         assert end_date - start_date >= timedelta(hours=2)
 
         projects = data["projects"]
@@ -131,6 +340,7 @@ class CustomRulesEndpoint(APITestCase):
         ("period", "1h", True),
         ("projects", ["abc"], False),
         ("period", "hello", False),
+        ("query", "", True),
     ],
 )
 def test_custom_rule_serializer(what, value, valid):

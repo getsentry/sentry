@@ -126,7 +126,7 @@ def _export(
                 continue
 
             possible_relocation_scopes = model.get_possible_relocation_scopes()
-            includable = possible_relocation_scopes & allowed_relocation_scopes  # type: ignore
+            includable = possible_relocation_scopes & allowed_relocation_scopes
             if not includable or model._meta.proxy:
                 continue
 

@@ -10,6 +10,7 @@ from typing import (
     List,
     Mapping,
     Optional,
+    Protocol,
     Tuple,
     Type,
     TypeVar,
@@ -158,7 +159,7 @@ class ReplicatedRegionModel(RegionOutboxProducingModel):
     """
     An extension of RegionOutboxProducingModel that provides a default implementation for `outbox_for_update`
     based on the category and outbox type configured as class variables.  It also provides a default signal handler
-    that invokes either of handle_async_replication or handle_async_replication based on whether the object has
+    that invokes either of handle_async_replication or handle_async_deletion based on whether the object has
     been deleted or not.  Subclasses can and often should override these methods to configure outbox processing.
 
     Models that subclass from this or its descendents should consider using RegionOutboxProducingManager
@@ -345,7 +346,7 @@ class ReplicatedControlModel(ControlOutboxProducingModel):
     """
     An extension of RegionOutboxProducingModel that provides a default implementation for `outboxes_for_update`
     based on the category nd outbox type configured as class variables.  It also provides a default signal handler
-    that invokes either of handle_async_replication or handle_async_replication based on wether the object has
+    that invokes either of handle_async_replication or handle_async_deletion based on wether the object has
     been deleted or not.  Subclasses can and often should override these methods to configure outbox processing.
 
     Models that subclass from this or its descendents should consider using ControlOutboxProducingManager
@@ -418,6 +419,26 @@ class ReplicatedControlModel(ControlOutboxProducingModel):
         Also keep in mind that any errors or failures will force a retry of processing, so be certain all
         operations are idempotent!
         """
+        pass
+
+
+class HasControlReplicationHandlers(Protocol):
+    """
+    Helps cover the interface of ReplicatedControlModel and User (which cannot subclass) that allows them
+    to use OutboxCategory.connect_control_model_updates.
+    """
+
+    @classmethod
+    def handle_async_deletion(
+        cls,
+        identifier: int,
+        region_name: str,
+        shard_identifier: int,
+        payload: Mapping[str, Any] | None,
+    ) -> None:
+        pass
+
+    def handle_async_replication(self, region_name: str, shard_identifier: int) -> None:
         pass
 
 

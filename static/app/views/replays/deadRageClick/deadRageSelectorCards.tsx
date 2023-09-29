@@ -1,98 +1,179 @@
-import {ComponentProps, Fragment, ReactNode} from 'react';
+import {ComponentProps, ReactNode, useState} from 'react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
 
 import {LinkButton} from 'sentry/components/button';
-import {hydratedSelectorData} from 'sentry/components/replays/utils';
-import {IconCursorArrow, IconShow} from 'sentry/icons';
+import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import QuestionTooltip from 'sentry/components/questionTooltip';
+import TextOverflow from 'sentry/components/textOverflow';
+import {IconCursorArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useDeadRageSelectors from 'sentry/utils/replays/hooks/useDeadRageSelectors';
+import {ColorOrAlias} from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import SelectorTable from 'sentry/views/replays/deadRageClick/selectorTable';
+import Accordion from 'sentry/views/performance/landing/widgets/components/accordion';
+import {
+  ContentContainer,
+  HeaderContainer,
+  HeaderTitleLegend,
+  StatusContainer,
+  Subtitle,
+  WidgetContainer,
+} from 'sentry/views/profiling/landing/styles';
+import ExampleReplaysList from 'sentry/views/replays/deadRageClick/exampleReplaysList';
+import {
+  SelectorLink,
+  transformSelectorQuery,
+} from 'sentry/views/replays/deadRageClick/selectorTable';
 
 function DeadRageSelectorCards() {
-  const location = useLocation();
-
   return (
     <SplitCardContainer>
-      <DeadClickTable location={location} />
-      <RageClickTable location={location} />
+      <AccordionWidget
+        clickType="count_dead_clicks"
+        header={
+          <div>
+            <StyledWidgetHeader>
+              {t('Most Dead Clicks')}
+              <QuestionTooltip
+                size="xs"
+                position="top"
+                title={t('The top selectors your users have dead clicked on.')}
+                isHoverable
+              />
+            </StyledWidgetHeader>
+            <Subtitle>{t('Suggested replays to watch')}</Subtitle>
+          </div>
+        }
+        deadOrRage="dead"
+      />
+      <AccordionWidget
+        clickType="count_rage_clicks"
+        header={
+          <div>
+            <StyledWidgetHeader>
+              {t('Most Rage Clicks')}
+              <QuestionTooltip
+                size="xs"
+                position="top"
+                title={t('The top selectors your users have rage clicked on.')}
+                isHoverable
+              />
+            </StyledWidgetHeader>
+            <Subtitle>{t('Suggested replays to watch')}</Subtitle>
+          </div>
+        }
+        deadOrRage="rage"
+      />
     </SplitCardContainer>
   );
 }
 
-function DeadClickTable({location}: {location: Location<any>}) {
+function AccordionWidget({
+  clickType,
+  deadOrRage,
+  header,
+}: {
+  clickType: 'count_dead_clicks' | 'count_rage_clicks';
+  deadOrRage: 'dead' | 'rage';
+  header: ReactNode;
+}) {
+  const [selectedListIndex, setSelectListIndex] = useState(0);
   const {isLoading, isError, data} = useDeadRageSelectors({
     per_page: 3,
-    sort: '-count_dead_clicks',
+    sort: `-${clickType}`,
     cursor: undefined,
     prefix: 'selector_',
+    isWidgetData: true,
   });
+  const location = useLocation();
+  const filteredData = data.filter(d => (d[clickType] ?? 0) > 0);
+  const clickColor = deadOrRage === 'dead' ? 'yellow300' : 'red300';
 
   return (
-    <SelectorTable
-      data={hydratedSelectorData(data, 'count_dead_clicks')}
-      isError={isError}
-      isLoading={isLoading}
-      location={location}
-      clickCountColumn={{key: 'count_dead_clicks', name: 'dead clicks'}}
-      clickCountSortable={false}
-      title={
-        <Fragment>
-          <IconContainer>
-            <IconCursorArrow size="xs" color="yellow300" />
-          </IconContainer>
-          {t('Most Dead Clicks')}
-        </Fragment>
-      }
-      headerButtons={
-        <SearchButton
-          label={t('Show all')}
-          sort="-count_dead_clicks"
-          path="dead-clicks"
-        />
-      }
-      customHandleResize={() => {}}
-    />
+    <StyledWidgetContainer>
+      <StyledHeaderContainer>
+        <ClickColor color={clickColor}>
+          <IconCursorArrow />
+        </ClickColor>
+        {header}
+      </StyledHeaderContainer>
+      {isLoading && (
+        <StatusContainer>
+          <LoadingIndicator />
+        </StatusContainer>
+      )}
+      {isError || (!isLoading && filteredData.length === 0) ? (
+        <CenteredContentContainer>
+          <EmptyStateWarning>
+            <p>{t('No results found')}</p>
+          </EmptyStateWarning>
+        </CenteredContentContainer>
+      ) : (
+        <LeftAlignedContentContainer>
+          <Accordion
+            buttonOnLeft
+            expandedIndex={selectedListIndex}
+            setExpandedIndex={setSelectListIndex}
+            items={filteredData.map(d => {
+              const selectorQuery = `${deadOrRage}.selector:"${transformSelectorQuery(
+                d.dom_element
+              )}"`;
+              return {
+                header: () => (
+                  <AccordionItemHeader
+                    count={d[clickType] ?? 0}
+                    selector={d.dom_element}
+                    clickColor={clickColor}
+                    selectorQuery={selectorQuery}
+                  />
+                ),
+                content: () => (
+                  <ExampleReplaysList
+                    location={location}
+                    clickType={clickType}
+                    selectorQuery={selectorQuery}
+                  />
+                ),
+              };
+            })}
+          />
+        </LeftAlignedContentContainer>
+      )}
+      <SearchButton
+        label={t('See all selectors')}
+        path="selectors"
+        sort={`-${clickType}`}
+      />
+    </StyledWidgetContainer>
   );
 }
 
-function RageClickTable({location}: {location: Location<any>}) {
-  const {isLoading, isError, data} = useDeadRageSelectors({
-    per_page: 3,
-    sort: '-count_rage_clicks',
-    cursor: undefined,
-    prefix: 'selector_',
-  });
-
+function AccordionItemHeader({
+  count,
+  clickColor,
+  selector,
+  selectorQuery,
+}: {
+  clickColor: ColorOrAlias;
+  count: number;
+  selector: string;
+  selectorQuery: string;
+}) {
+  const clickCount = (
+    <ClickColor color={clickColor}>
+      <IconCursorArrow size="xs" />
+      {count}
+    </ClickColor>
+  );
   return (
-    <SelectorTable
-      data={hydratedSelectorData(data, 'count_rage_clicks')}
-      isError={isError}
-      isLoading={isLoading}
-      location={location}
-      clickCountColumn={{key: 'count_rage_clicks', name: 'rage clicks'}}
-      clickCountSortable={false}
-      title={
-        <Fragment>
-          <IconContainer>
-            <IconCursorArrow size="xs" color="red300" />
-          </IconContainer>
-          {t('Most Rage Clicks')}
-        </Fragment>
-      }
-      headerButtons={
-        <SearchButton
-          label={t('Show all')}
-          sort="-count_rage_clicks"
-          path="rage-clicks"
-        />
-      }
-      customHandleResize={() => {}}
-    />
+    <StyledAccordionHeader>
+      <SelectorLink value={selector} selectorQuery={selectorQuery} />
+      <RightAlignedCell>{clickCount}</RightAlignedCell>
+    </StyledAccordionHeader>
   );
 }
 
@@ -110,7 +191,7 @@ function SearchButton({
   const organization = useOrganization();
 
   return (
-    <LinkButton
+    <StyledButton
       {...props}
       size="xs"
       to={{
@@ -122,25 +203,76 @@ function SearchButton({
           cursor: undefined,
         },
       }}
-      icon={<IconShow size="xs" />}
     >
       {label}
-    </LinkButton>
+    </StyledButton>
   );
 }
 
 const SplitCardContainer = styled('div')`
   display: grid;
   grid-template-columns: 1fr 1fr;
-  grid-template-rows: max-content max-content;
+  grid-template-rows: max-content;
   grid-auto-flow: column;
   gap: 0 ${space(2)};
   align-items: stretch;
-  padding-top: ${space(1)};
 `;
 
-const IconContainer = styled('span')`
-  margin-right: ${space(1)};
+const ClickColor = styled(TextOverflow)<{color: ColorOrAlias}>`
+  color: ${p => p.theme[p.color]};
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: ${space(0.75)};
+  align-items: center;
+`;
+
+const StyledHeaderContainer = styled(HeaderContainer)`
+  grid-auto-flow: row;
+  align-items: center;
+  grid-template-rows: auto;
+  grid-template-columns: 30px auto;
+`;
+
+const LeftAlignedContentContainer = styled(ContentContainer)`
+  justify-content: flex-start;
+`;
+
+const CenteredContentContainer = styled(ContentContainer)`
+  justify-content: center;
+`;
+
+const StyledButton = styled(LinkButton)`
+  width: 100%;
+  border-radius: ${p => p.theme.borderRadiusBottom};
+  padding: ${space(3)};
+  border-bottom: none;
+  border-left: none;
+  border-right: none;
+  font-size: ${p => p.theme.fontSizeMedium};
+`;
+
+const StyledAccordionHeader = styled('div')`
+  display: grid;
+  grid-template-columns: 1fr max-content;
+  flex: 1;
+`;
+
+const StyledWidgetHeader = styled(HeaderTitleLegend)`
+  display: grid;
+  gap: ${space(1)};
+  justify-content: start;
+  align-items: center;
+`;
+
+const StyledWidgetContainer = styled(WidgetContainer)`
+  margin-bottom: 0;
+`;
+
+export const RightAlignedCell = styled('div')`
+  text-align: right;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 `;
 
 export default DeadRageSelectorCards;

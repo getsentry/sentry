@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from abc import abstractmethod
 from concurrent.futures import ThreadPoolExecutor
+from datetime import timedelta
 from threading import Semaphore
 from typing import Any, ClassVar
 from uuid import uuid4
@@ -155,7 +156,10 @@ class AbstractFileBlob(Model):
                     lock = locked_blob(cls, checksum, logger=logger)
                     existing = lock.__enter__()
                     if existing is not None:
-                        existing.update(timestamp=timezone.now())
+                        now = timezone.now()
+                        threshold = now - timedelta(hours=12)
+                        if existing.timestamp <= threshold:
+                            existing.update(timestamp=timezone.now())
                         lock.__exit__(None, None, None)
                         blobs_created.append(existing)
                         _ensure_blob_owned(existing)
@@ -197,7 +201,10 @@ class AbstractFileBlob(Model):
         # and duplicate files are uploaded then we need to prune one
         with locked_blob(cls, checksum, logger=logger) as existing:
             if existing is not None:
-                existing.update(timestamp=timezone.now())
+                now = timezone.now()
+                threshold = now - timedelta(hours=12)
+                if existing.timestamp <= threshold:
+                    existing.update(timestamp=timezone.now())
                 return existing
 
             blob = cls(size=size, checksum=checksum)
