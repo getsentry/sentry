@@ -262,7 +262,7 @@ def transform_to_groups_count_response(data: dict) -> List[GroupsCountResponse]:
     """
     Transforms results from `get_series` metrics query to List[GroupsCountResponse]
     """
-    result = []
+    result: List[GroupsCountResponse] = []
 
     for group in data["groups"]:
         project_id = group["by"]["project_id"]
