@@ -257,6 +257,8 @@ def _query_metrics_with_pagination(
                 extra={"metrics_results": metrics_results, "dataset_results": all_results},
             )
 
+    return
+
 
 def transform_to_groups_count_response(data: dict) -> List[GroupsCountResponse]:
     """
