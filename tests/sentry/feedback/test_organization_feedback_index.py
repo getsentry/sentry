@@ -106,6 +106,9 @@ class OrganizationFeedbackIndexTest(APITestCase):
             response = self.client.get(path)
             assert response.status_code == 200
 
+            # We should get a count of everything in the database
+            assert response.headers["X-Hits"] == "2"
+
             # Should get what we have in the database
             assert len(response.data) == 2
             # Test sorting by `date_added`
@@ -137,6 +140,7 @@ class OrganizationFeedbackIndexTest(APITestCase):
                 content_type="application/json",
             )
             assert response.status_code == 200
+            assert response.headers["X-Hits"] == "2"
             assert len(response.data) == 1
 
     def test_no_feature_enabled(self):
