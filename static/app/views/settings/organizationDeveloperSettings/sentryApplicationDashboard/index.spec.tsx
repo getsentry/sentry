@@ -1,3 +1,5 @@
+import {SentryAppWebhookRequest} from 'sentry-fixture/sentryAppWebhookRequest';
+
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import SentryApplicationDashboard from './index';
@@ -32,7 +34,7 @@ describe('Sentry Application Dashboard', function () {
           ],
         },
       });
-      webhookRequest = TestStubs.SentryAppWebhookRequest();
+      webhookRequest = SentryAppWebhookRequest();
 
       MockApiClient.addMockResponse({
         url: `/sentry-apps/${sentryApp.slug}/stats/`,
@@ -132,7 +134,7 @@ describe('Sentry Application Dashboard', function () {
           elements: [{type: 'stacktrace-link', uri: '/test'}],
         },
       });
-      webhookRequest = TestStubs.SentryAppWebhookRequest();
+      webhookRequest = SentryAppWebhookRequest();
 
       MockApiClient.addMockResponse({
         url: `/sentry-apps/${sentryApp.slug}/stats/`,

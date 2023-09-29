@@ -19,7 +19,7 @@ SCHEDULE_INTERVAL_MAP: Dict[IntervalUnit, int] = {
 def get_next_schedule(
     reference_ts: datetime,
     schedule: ScheduleConfig,
-):
+) -> datetime:
     """
     Given the schedule type and schedule, determine the next timestamp for a
     schedule from the reference_ts
@@ -58,7 +58,7 @@ def get_prev_schedule(
     start_ts: datetime,
     reference_ts: datetime,
     schedule: ScheduleConfig,
-):
+) -> datetime:
     """
     Given the schedule type and schedule, determine the previous timestamp for a
     schedule from the reference_ts. Requires `start_ts` to accurately compute
