@@ -53,6 +53,7 @@ Retrieve a collection of feedback items.
 
 | Column            | Type             | Description                                         |
 | ----------------- | ---------------- | --------------------------------------------------- |
+| assignee          | string           | Actor model assignee (user or team)                 |
 | browser           | object           | -                                                   |
 | browser.name      | optional[string] | -                                                   |
 | browser.version   | optional[string] | -                                                   |
@@ -212,7 +213,7 @@ Retrieve a single feedback item.
 
   [UserFeedback]
 
-### Update Feedback [PATCH]
+### Update Feedback [PUT]
 
 Partially update a feedback item.
 
@@ -220,9 +221,7 @@ Partially update a feedback item.
 
   ```json
   {
-    "data": {
-      "status": "resolved"
-    }
+    "assignee": "user:1"
   }
   ```
 
