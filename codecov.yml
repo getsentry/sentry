@@ -66,7 +66,7 @@ flags:
 comment:
   # This is the addition of carry forward builds and fresh builds, thus, it's the addition
   # of the FE and BE builds
-  after_n_builds: 22
+  # after_n_builds: # 22 Lately, the count of carry forward flags fresh uploads have not been meeting this threshold. Disabling for now.
   layout: "diff, files"
   # Update, if comment exists. Otherwise post new.
   behavior: default
