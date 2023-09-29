@@ -24,6 +24,7 @@ class FeedbackResponseType(TypedDict):
     project_id: str
     status: str
     timestamp: str
+    asignee: Optional[str]
 
 
 @register(Feedback)
@@ -49,5 +50,6 @@ class FeedbackSerializer(Serializer):
             "status": "unresolved",
             "timestamp": obj.date_added,
             "url": obj.url,
+            "asignee": obj.assignee.get_actor_identifier() if obj.assignee else None,
         }
         return res

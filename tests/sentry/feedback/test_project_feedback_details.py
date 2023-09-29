@@ -235,3 +235,26 @@ class ProjectFeedbackDetailTest(APITestCase):
         )
         response = self.client.get(path)
         assert response.status_code == 404
+
+    @with_feature(FEATURES)
+    def test_set_assignee(self):
+        self.mock_feedback()
+        # The feedback does not exist
+        path = reverse(
+            self.endpoint,
+            args=[
+                self.organization.slug,
+                self.project.slug,
+                self.feedback_id_1,
+            ],
+        )
+        response = self.client.put(path, data={"assignee": f"user:{self.user.id}"})
+        assert response.status_code == 200
+        assert (
+            Feedback.objects.get(feedback_id=self.feedback_id_1).assignee.get_actor_identifier()
+            == f"user:{self.user.id}"
+        )
+
+        response = self.client.get(path, data={"assignee": f"user:{self.user.id}"})
+
+        assert response.data["asignee"] == f"user:{self.user.id}"
