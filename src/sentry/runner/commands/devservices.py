@@ -624,6 +624,22 @@ def check_rabbitmq(containers: dict[str, Any]) -> None:
     )
 
 
+def check_redis(containers: dict[str, Any]) -> None:
+    redis_options = containers["redis"]
+    subprocess.run(
+        (
+            "docker",
+            "exec",
+            redis_options["name"],
+            "redis-cli",
+            "ping",
+        ),
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+
 class ServiceHealthcheck(NamedTuple):
     check: Callable[[dict[str, Any]], None]
 
@@ -631,4 +647,5 @@ class ServiceHealthcheck(NamedTuple):
 service_healthchecks: dict[str, ServiceHealthcheck] = {
     "postgres": ServiceHealthcheck(check=check_postgres),
     "rabbitmq": ServiceHealthcheck(check=check_rabbitmq),
+    "redis": ServiceHealthcheck(check=check_redis),
 }
