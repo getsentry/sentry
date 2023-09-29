@@ -60,9 +60,9 @@ class OpsgenieClient(IntegrationProxyClient):
         self,
         data,
         rules,
-        priority: OpsgeniePriority,
         event: Event | GroupEvent,
         group: Group | None,
+        priority: OpsgeniePriority | None = "P3",
         notification_uuid: str | None = None,
     ):
         payload = {
@@ -99,7 +99,7 @@ class OpsgenieClient(IntegrationProxyClient):
     def send_notification(
         self,
         data,
-        priority: OpsgeniePriority = None,
+        priority: OpsgeniePriority | None = None,
         rules=None,
         notification_uuid: str | None = None,
     ):
@@ -108,7 +108,12 @@ class OpsgenieClient(IntegrationProxyClient):
             group = data.group
             event = data
             payload = self._get_issue_alert_payload(
-                data, rules, priority, event, group, notification_uuid
+                data=data,
+                rules=rules,
+                event=event,
+                group=group,
+                priority=priority,
+                notification_uuid=notification_uuid,
             )
         else:
             # if we're acknowledging the alert—meaning that the Sentry alert was resolved

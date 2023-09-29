@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Optional
+from typing import Optional, cast
 
 from sentry.integrations.opsgenie.actions import OpsgenieNotifyTeamForm
 from sentry.integrations.opsgenie.client import OpsgenieClient, OpsgeniePriority
@@ -50,7 +50,7 @@ class OpsgenieNotifyTeamAction(IntegrationEventAction):
 
         team = get_team(self.get_option("team"), org_integration)
 
-        priority: OpsgeniePriority = self.get_option("priority", default="P3")
+        priority = cast(OpsgeniePriority, self.get_option("priority", default="P3"))
 
         if not team:
             logger.error(
