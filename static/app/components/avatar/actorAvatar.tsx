@@ -31,7 +31,7 @@ function LoadTeamAvatar({
   ...props
 }: {teamId: string} & Omit<React.ComponentProps<typeof TeamAvatar>, 'team'>) {
   const {teams, isLoading} = useTeamsById({ids: [teamId]});
-  const team = teams.find(t => t.id === teamId) ?? null;
+  const team = teams.find(t => t.id === teamId);
 
   if (isLoading) {
     return <LoadingIndicator mini />;
