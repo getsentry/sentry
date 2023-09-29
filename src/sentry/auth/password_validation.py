@@ -19,6 +19,7 @@ def get_default_password_validators():
 
 def get_password_validators(validator_config):
     validators = []
+    print("validator_config", validator_config)
     for validator in validator_config:
         try:
             cls = import_string(validator["NAME"])
@@ -41,8 +42,10 @@ def validate_password(password, user=None, password_validators=None):
     if password_validators is None:
         password_validators = get_default_password_validators()
     for validator in password_validators:
+        print("validator", validator)
         try:
             validator.validate(password, user=user)
+            print("ok", password, user)
         except ValidationError as error:
             errors.append(error)
     if errors:
