@@ -15,9 +15,15 @@ interface Props {
   expandedIndex: number;
   items: AccordionItemContent[];
   setExpandedIndex: (index: number) => void;
+  replayAccordion?: boolean;
 }
 
-export default function Accordion({expandedIndex, setExpandedIndex, items}: Props) {
+export default function Accordion({
+  expandedIndex,
+  setExpandedIndex,
+  items,
+  replayAccordion,
+}: Props) {
   return (
     <AccordionContainer>
       {items.map((item, index) => (
@@ -27,6 +33,7 @@ export default function Accordion({expandedIndex, setExpandedIndex, items}: Prop
           key={index}
           content={item.content()}
           setExpandedIndex={setExpandedIndex}
+          replayAccordion={replayAccordion}
         >
           {item.header()}
         </AccordionItem>
@@ -41,14 +48,31 @@ function AccordionItem({
   children,
   setExpandedIndex,
   content,
+  replayAccordion,
 }: {
   children: ReactNode;
   content: ReactNode;
   currentIndex: number;
   isExpanded: boolean;
   setExpandedIndex: (index: number) => void;
+  replayAccordion?: boolean;
 }) {
-  return (
+  return replayAccordion ? (
+    <StyledLineItem>
+      <ListItemContainer>
+        <StyledButton
+          icon={<IconChevron size="xs" direction={isExpanded ? 'up' : 'down'} />}
+          aria-label={t('Expand')}
+          aria-expanded={isExpanded}
+          size="zero"
+          borderless
+          onClick={() => setExpandedIndex(index)}
+        />
+        {children}
+      </ListItemContainer>
+      <ReplayContentContainer>{isExpanded && content}</ReplayContentContainer>
+    </StyledLineItem>
+  ) : (
     <StyledLineItem>
       <ListItemContainer>
         {children}
@@ -85,4 +109,12 @@ const ListItemContainer = styled('div')`
 
 const StyledContentContainer = styled('div')`
   padding: ${space(0)} ${space(2)};
+`;
+
+const ReplayContentContainer = styled('div')`
+  padding: ${space(0)} ${space(0.25)};
+`;
+
+const StyledButton = styled(Button)`
+  margin-right: ${space(1.5)};
 `;

@@ -116,6 +116,7 @@ function AccordionWidget({
       ) : (
         <LeftAlignedContentContainer>
           <Accordion
+            replayAccordion
             expandedIndex={selectedListIndex}
             setExpandedIndex={setSelectListIndex}
             items={filteredData.map(d => {
