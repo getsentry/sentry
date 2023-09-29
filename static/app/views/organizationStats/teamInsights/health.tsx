@@ -70,8 +70,8 @@ function TeamStatsHealth({location, router}: Props) {
           currentTeam={currentTeam}
         />
 
-        {!isLoading && <LoadingIndicator />}
-        {isLoading && (
+        {isLoading && <LoadingIndicator />}
+        {!isLoading && (
           <Layout.Main fullWidth>
             <DescriptionCard
               title={t('Crash Free Sessions')}

@@ -74,8 +74,8 @@ function TeamStatsIssues({location, router}: Props) {
           currentEnvironment={environment}
         />
 
-        {!isLoading && <LoadingIndicator />}
-        {isLoading && (
+        {isLoading && <LoadingIndicator />}
+        {!isLoading && (
           <Layout.Main fullWidth>
             <DescriptionCard
               title={t('All Unresolved Issues')}
