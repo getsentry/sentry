@@ -14,12 +14,12 @@ from sentry.utils import snuba
 
 
 def get_errors_timeseries_counts_by_project_and_release(
-    end,
-    environments_list,
-    organization_id,
-    project_id_list,
-    release_value_list,
-    start,
+    end: int,
+    organization_id: int,
+    project_id_list: List[int],
+    release_value_list: List[str],
+    start: int,
+    environments_list: List[str] | None = None,
 ) -> List[Dict[str, Any]]:
     additional_conditions = []
     if environments_list:
