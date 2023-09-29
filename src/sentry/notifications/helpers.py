@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections import defaultdict
 from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Optional
 
@@ -49,6 +50,8 @@ if TYPE_CHECKING:
         User,
     )
 
+logger = logging.getLogger(__name__)
+
 
 def _get_notification_setting_default(
     provider: ExternalProviders,
@@ -87,6 +90,39 @@ def get_provider_defaults() -> list[ExternalProviderEnum]:
         if value == NOTIFICATION_SETTINGS_ALL_SOMETIMES:
             provider_defaults.append(ExternalProviderEnum(provider))
     return provider_defaults
+
+
+def get_default_for_provider(
+    type: NotificationSettingEnum,
+    provider: ExternalProviderEnum,
+) -> NotificationSettingsOptionEnum:
+    defaults = PROVIDER_DEFAULTS
+    if provider not in defaults:
+        return NotificationSettingsOptionEnum.NEVER
+
+    # Defaults are defined for the old int enum
+    _type = [key for key, val in NOTIFICATION_SETTING_TYPES.items() if val == type.value]
+    if len(_type) != 1 or _type[0] not in NOTIFICATION_SETTINGS_ALL_SOMETIMES_V2:
+        logger.warning(
+            "Could not find default for notification type",
+            extras={"type": type, "_type": _type, "provider": provider},
+        )
+        return NotificationSettingsOptionEnum.NEVER
+
+    try:
+        default_value = NOTIFICATION_SETTINGS_ALL_SOMETIMES_V2[_type[0]]
+        default_enum = NotificationSettingsOptionEnum(
+            NOTIFICATION_SETTING_OPTION_VALUES[default_value]
+        )
+    except KeyError:
+        # If we don't have a default value for the type, then it's never
+        return NotificationSettingsOptionEnum.NEVER
+
+    if type == NotificationSettingEnum.REPORTS and provider != ExternalProviderEnum.EMAIL:
+        # Reports are only sent to email
+        return NotificationSettingsOptionEnum.NEVER
+
+    return default_enum or NotificationSettingsOptionEnum.NEVER
 
 
 def get_type_defaults() -> Mapping[NotificationSettingEnum, NotificationSettingsOptionEnum]:

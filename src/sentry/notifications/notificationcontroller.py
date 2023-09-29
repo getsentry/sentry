@@ -9,7 +9,7 @@ from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.team import Team
 from sentry.notifications.helpers import (
-    get_provider_defaults,
+    get_default_for_provider,
     get_type_defaults,
     recipient_is_team,
     recipient_is_user,
@@ -250,7 +250,6 @@ class NotificationController:
         )
         scoped_settings = [project_settings, org_settings, user_settings]
 
-        defaults = get_provider_defaults()
         layered_setting_providers: MutableMapping[
             Recipient,
             MutableMapping[
@@ -266,13 +265,18 @@ class NotificationController:
             for item in scope_items:
                 scope = (scope_type, item)
                 for type in NotificationSettingEnum:
+                    if type == NotificationSettingEnum.DEFAULT:
+                        continue
                     for provider in ExternalProviderEnum:
                         most_specific_setting = None
                         for setting in scoped_settings:
                             user_or_team_settings = []
                             if recipient_is_user(recipient):
                                 user_or_team_settings = self._filter_providers(
-                                    settings=setting, user_id=recipient.id, type=type.value
+                                    settings=setting,
+                                    user_id=recipient.id,
+                                    type=type.value,
+                                    provider=provider.value,
                                 )
                             elif recipient_is_team(recipient):
                                 user_or_team_settings = self._filter_providers(
@@ -286,11 +290,7 @@ class NotificationController:
                                 break
 
                         if most_specific_setting is None:
-                            most_specific_setting = (
-                                NotificationSettingsOptionEnum.ALWAYS
-                                if provider in defaults
-                                else NotificationSettingsOptionEnum.NEVER
-                            )
+                            most_specific_setting = get_default_for_provider(type, provider)
 
                         layered_setting_providers[recipient][scope][type].update(
                             {provider: most_specific_setting}
@@ -476,11 +476,13 @@ class NotificationController:
 
             actor = RpcActor.from_object(recipient)
             for type_map in setting.values():
-                for provider_map in type_map.values():
+                for type, provider_map in type_map.items():
+                    if type != self.type:
+                        continue
+
                     user_to_providers[actor] = {
                         EXTERNAL_PROVIDERS_REVERSE[provider]: value
                         for provider, value in provider_map.items()
-                        if value != NotificationSettingsOptionEnum.NEVER
                     }
 
         return user_to_providers
