@@ -235,3 +235,51 @@ class ProjectFeedbackDetailTest(APITestCase):
         )
         response = self.client.get(path)
         assert response.status_code == 404
+    
+    @with_feature(FEATURES)
+    def test_null_env(self):
+        # Feedback with null environment
+        Feedback.objects.create(
+            data={
+                "feedback": {
+                    "contact_email": "colton.allen@sentry.io",
+                    "message": "I really like this user-feedback feature!",
+                    "replay_id": "ec3b4dc8b79f417596f7a1aa4fcca5d2",
+                    "url": "https://docs.sentry.io/platforms/javascript/",
+                },
+                "platform": "javascript",
+                "release": "version@1.3",
+                "sdk": {"name": "sentry.javascript.react", "version": "6.18.1"},
+                "tags": {"key": "value"},
+                "user": {
+                    "email": "username@example.com",
+                    "id": "123",
+                    "ip_address": "127.0.0.1",
+                    "name": "user",
+                    "username": "user2270129",
+                },
+                "dist": "abc123",
+                "contexts": {},
+            },
+            date_added=datetime.datetime.fromtimestamp(1234456),
+            feedback_id=self.feedback_id_1,
+            url="https://docs.sentry.io/platforms/javascript/",
+            message="I really like this user-feedback feature!",
+            replay_id=self.replay_id_1,
+            project_id=self.project.id,
+            organization_id=self.organization.id,
+            environment=None,
+        )
+        path = reverse(
+            self.endpoint,
+            args=[
+                self.organization.slug,
+                self.project.slug,
+                self.feedback_id_1,
+            ],
+        )
+        response = self.client.get(path)
+        # Should return successfully with environment set to `production`
+        assert response.status_code == 200
+        feedback = response.data
+        assert feedback["environment"] == "production"

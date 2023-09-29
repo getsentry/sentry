@@ -180,9 +180,11 @@ class DispatchRemoteCallTest(TestCase):
     def test_control_to_region_happy_path(self):
         user = self.create_user()
         serial = serialize_rpc_user(user)
-        self._set_up_mock_response("user/get_user", serial.dict(), address="http://na.sentry.io")
+        self._set_up_mock_response(
+            "user/get_first_superuser", serial.dict(), address="http://na.sentry.io"
+        )
 
-        result = dispatch_remote_call(_REGIONS[0], "user", "get_user", {"id": 0})
+        result = dispatch_remote_call(_REGIONS[0], "user", "get_first_superuser", {})
         assert result == serial
 
     @responses.activate

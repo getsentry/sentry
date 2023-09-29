@@ -1457,6 +1457,8 @@ SENTRY_FEATURES = {
     "organizations:profiling-battery-usage-chart": False,
     # Enable profiling summary redesign view
     "organizations:profiling-summary-redesign": False,
+    # Enable profiling statistical detectors
+    "organizations:profiling-statistical-detectors": False,
     # Enable disabling gitlab integrations when broken is detected
     "organizations:gitlab-disable-on-broken": False,
     # Enable multi project selection
@@ -1537,6 +1539,8 @@ SENTRY_FEATURES = {
     "organizations:integrations-stacktrace-link": False,
     # Allow orgs to create a Discord integration
     "organizations:integrations-discord": False,
+    # Enable Discord metric alert notifications
+    "organizations:integrations-discord-metric-alerts": False,
     # Enable Discord integration notifications
     "organizations:integrations-discord-notifications": False,
     # Enable Opsgenie integration

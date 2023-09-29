@@ -48,7 +48,7 @@ class AuthenticationMiddlewareTestCase(TestCase):
         with outbox_runner():
             self.middleware.process_request(request)
             # Force the user object to materialize
-            request.user.id  # noqa
+            request.user.id
 
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.user.refresh_from_db()

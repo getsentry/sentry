@@ -1,3 +1,6 @@
+import {OrganizationIntegrations} from 'sentry-fixture/organizationIntegrations';
+import {UserIdentity} from 'sentry-fixture/userIdentity';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
@@ -84,7 +87,7 @@ describe('NotificationSettingsByType', function () {
         alerts: {user: {me: {email: 'always', slack: 'always'}}},
       },
       [],
-      [TestStubs.OrganizationIntegrations()]
+      [OrganizationIntegrations()]
     );
 
     expect(
@@ -103,8 +106,8 @@ describe('NotificationSettingsByType', function () {
       {
         alerts: {user: {me: {email: 'always', slack: 'always'}}},
       },
-      [TestStubs.UserIdentity()],
-      [TestStubs.OrganizationIntegrations({organizationId: org.id})]
+      [UserIdentity()],
+      [OrganizationIntegrations({organizationId: org.id})]
     );
 
     expect(

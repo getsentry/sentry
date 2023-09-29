@@ -1,4 +1,5 @@
 import * as PropTypes from 'prop-types';
+import {ProjectKeys} from 'sentry-fixture/projectKeys';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -24,7 +25,7 @@ describe('ProjectKeyDetails', function () {
   beforeEach(function () {
     org = TestStubs.Organization();
     project = TestStubs.Project();
-    projectKeys = TestStubs.ProjectKeys();
+    projectKeys = ProjectKeys();
 
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({

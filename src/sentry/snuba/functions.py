@@ -33,6 +33,7 @@ def query(
     auto_fields: bool = False,
     auto_aggregations: bool = False,
     use_aggregate_conditions: bool = False,
+    conditions=None,
     allow_metric_aggregates: bool = False,
     transform_alias_to_input_format: bool = False,
     has_metrics: bool = False,
@@ -61,6 +62,8 @@ def query(
             functions_acl=functions_acl,
         ),
     )
+    if conditions is not None:
+        builder.add_conditions(conditions)
     result = builder.process_results(builder.run_query(referrer))
     result["meta"]["tips"] = transform_tips(builder.tips)
     return result

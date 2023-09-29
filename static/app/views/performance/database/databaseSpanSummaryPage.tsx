@@ -16,6 +16,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {ModulePageProviders} from 'sentry/views/performance/database/modulePageProviders';
+import {RELEASE_LEVEL} from 'sentry/views/performance/database/settings';
 import {AVG_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
 import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
@@ -72,7 +73,7 @@ function SpanSummaryPage({params}: Props) {
       SpanMetricsField.SPAN_OP,
       SpanMetricsField.SPAN_DESCRIPTION,
       SpanMetricsField.SPAN_ACTION,
-      SpanMetricsField.SPAN_DOMAIN_ARRAY,
+      SpanMetricsField.SPAN_DOMAIN,
       'count()',
       `${SpanFunction.SPM}()`,
       `sum(${SpanMetricsField.SPAN_SELF_TIME})`,
@@ -90,7 +91,7 @@ function SpanSummaryPage({params}: Props) {
     [SpanMetricsField.SPAN_OP]: string;
     [SpanMetricsField.SPAN_DESCRIPTION]: string;
     [SpanMetricsField.SPAN_ACTION]: string;
-    [SpanMetricsField.SPAN_DOMAIN_ARRAY]: string[];
+    [SpanMetricsField.SPAN_DOMAIN]: string[];
     [SpanMetricsField.SPAN_GROUP]: string;
   };
 
@@ -138,7 +139,7 @@ function SpanSummaryPage({params}: Props) {
           />
           <Layout.Title>
             {t('Query Summary')}
-            <FeatureBadge type="alpha" />
+            <FeatureBadge type={RELEASE_LEVEL} />
           </Layout.Title>
         </Layout.HeaderContent>
       </Layout.Header>

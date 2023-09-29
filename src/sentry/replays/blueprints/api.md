@@ -65,6 +65,8 @@ This document is structured by resource with each resource having actions that c
     | click.textContent | string        | The text-content of an HTML element.                           |
     | click.title       | string        | The title attribute of an HTML element.                        |
     | click.selector    | string        | A valid CSS selector.                                          |
+    | dead.selector     | string        | A valid CSS selector.                                          |
+    | rage.selector     | string        | A valid CSS selector.                                          |
 
 ### Browse Replays [GET]
 
@@ -451,6 +453,13 @@ Queryable fields:
 | click.testid      | string        | The data-testid of an HTML element. (omitted from public docs) |
 | click.textContent | string        | The text-content of an HTML element.                           |
 | click.title       | string        | The title attribute of an HTML element.                        |
+
+Queryable fields for rage and dead clicks:
+
+| Field             | Type          | Description                                                    |
+| ----------------- | ------------- | -------------------------------------------------------------- |
+| dead.selector     | string        | A valid CSS selector.                                          |
+| rage.selector     | string        | A valid CSS selector.                                          |
 
 ### Fetch Replay Clicks [GET]
 
