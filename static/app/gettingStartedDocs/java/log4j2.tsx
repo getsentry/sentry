@@ -42,6 +42,7 @@ const platformOptions: Record<PlaformOptionKey, PlatformOption> = {
     ],
   },
 };
+
 const introduction = (
   <p>
     {tct(
@@ -67,7 +68,8 @@ export const steps = ({
   {
     type: StepType.INSTALL,
     description: t(
-      "Install Sentry's integration with Log4j 2.x using either Maven or Gradle:"
+      "Install Sentry's integration with Log4j 2.x using %s:",
+      packageManager === PackageManager.GRADLE ? 'Gradle' : 'Maven'
     ),
     configurations: [
       {
