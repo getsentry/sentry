@@ -4,8 +4,10 @@ import styled from '@emotion/styled';
 import {getCurrentHub} from '@sentry/react';
 
 interface FeedbackFormProps {
+  descriptionPlaceholder: string;
   onClose: () => void;
   onSubmit: (data: {comment: string; email: string; name: string}) => void;
+  sendButtonText: string;
 }
 
 const retrieveStringValue = (formData: FormData, key: string) => {
@@ -16,7 +18,12 @@ const retrieveStringValue = (formData: FormData, key: string) => {
   return '';
 };
 
-export function FeedbackForm({onClose, onSubmit}: FeedbackFormProps) {
+export function FeedbackForm({
+  descriptionPlaceholder,
+  sendButtonText,
+  onClose,
+  onSubmit,
+}: FeedbackFormProps) {
   const formRef = useRef<HTMLFormElement>(null);
   const [hasDescription, setHasDescription] = useState(false);
 
@@ -57,7 +64,7 @@ export function FeedbackForm({onClose, onSubmit}: FeedbackFormProps) {
           }}
           id="sentry-feedback-comment"
           name="comment"
-          placeholder="What's the bug? What did you expect?"
+          placeholder={descriptionPlaceholder}
         />
       </Label>
       <ButtonGroup>
@@ -66,7 +73,7 @@ export function FeedbackForm({onClose, onSubmit}: FeedbackFormProps) {
           disabled={!hasDescription}
           aria-disabled={!hasDescription}
         >
-          Send Bug Report
+          {sendButtonText}
         </SubmitButton>
         <CancelButton type="button" onClick={onClose}>
           Cancel
@@ -93,7 +100,7 @@ const Label = styled('label')`
 
 const inputStyles = css`
   box-sizing: border-box;
-  border: 1.5px solid rgba(41, 35, 47, 0.13);
+  border: var(--sentry-feedback-border);
   border-radius: 6px;
   font-size: 14px;
   font-weight: 500;
@@ -119,7 +126,7 @@ const ButtonGroup = styled('div')`
 `;
 
 const BaseButton = styled('button')`
-  border: 1px solid ${p => p.theme.border};
+  border: var(--sentry-feedback-border);
   border-radius: 6px;
   cursor: pointer;
   font-size: 14px;
@@ -142,10 +149,10 @@ const SubmitButton = styled(BaseButton)`
 `;
 
 const CancelButton = styled(BaseButton)`
-  background-color: #fff;
-  color: #231c3d;
+  background-color: transparent;
+  color: var(--sentry-feedback-fg-color);
   font-weight: 500;
   &:hover {
-    background-color: #eee;
+    background-color: var(--sentry-feedback-bg-accent-color);
   }
 `;

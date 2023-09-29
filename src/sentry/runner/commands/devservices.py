@@ -275,8 +275,9 @@ def up(
                     )
                 )
             for future in as_completed(futures):
-                e = future.exception()
-                if e:
+                try:
+                    future.result()
+                except Exception as e:
                     click.secho(f"> Failed to start service: {e}", err=True, fg="red")
                     raise
 
@@ -294,8 +295,9 @@ def up(
                 )
             )
         for future in as_completed(futures):
-            e = future.exception()
-            if e:
+            try:
+                future.result()
+            except Exception as e:
                 click.secho(f"> Failed to check health: {e}", err=True, fg="red")
                 raise
 
@@ -464,8 +466,9 @@ def down(project: str, service: list[str]) -> None:
             for container in containers:
                 futures.append(executor.submit(_down, container))
             for future in as_completed(futures):
-                e = future.exception()
-                if e:
+                try:
+                    future.result()
+                except Exception as e:
                     click.secho(f"> Failed to stop service: {e}", err=True, fg="red")
                     raise
 
@@ -568,8 +571,9 @@ def check_health(service_name: str, containers: dict[str, Any]) -> None:
 
     try:
         run_with_retries(hc)
+        click.secho(f"  > '{service_name}' is healthy", fg="green")
     except subprocess.CalledProcessError:
-        click.secho(f"> '{service_name}' is not healthy", fg="red")
+        click.secho(f"  > '{service_name}' is not healthy", fg="red")
         raise
 
 
@@ -624,6 +628,22 @@ def check_rabbitmq(containers: dict[str, Any]) -> None:
     )
 
 
+def check_redis(containers: dict[str, Any]) -> None:
+    redis_options = containers["redis"]
+    subprocess.run(
+        (
+            "docker",
+            "exec",
+            redis_options["name"],
+            "redis-cli",
+            "ping",
+        ),
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+
 class ServiceHealthcheck(NamedTuple):
     check: Callable[[dict[str, Any]], None]
 
@@ -631,4 +651,5 @@ class ServiceHealthcheck(NamedTuple):
 service_healthchecks: dict[str, ServiceHealthcheck] = {
     "postgres": ServiceHealthcheck(check=check_postgres),
     "rabbitmq": ServiceHealthcheck(check=check_rabbitmq),
+    "redis": ServiceHealthcheck(check=check_redis),
 }
