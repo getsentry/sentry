@@ -105,8 +105,8 @@ class DatabaseBackedControlOrganizationProvisioningService(
 
         return surrogate_org_slug.slug
 
-    def _provision_organization_via_slug_reservation(
-        self, region_name: str, org_provision_args: OrganizationProvisioningOptions
+    def provision_organization(
+        self, *, region_name: str, org_provision_args: OrganizationProvisioningOptions
     ) -> RpcOrganizationSlugReservation:
         # Generate a new non-conflicting slug and org ID
         org_id = self._generate_org_snowflake_id(region_name=region_name)
@@ -139,15 +139,17 @@ class DatabaseBackedControlOrganizationProvisioningService(
                 org_provision_payload=provision_payload,
             ).save()
 
-        return serialize_slug_reservation(org_slug_res)
+        # After outboxes resolve, ensure that the organization slug still exists.
+        # If it was deleted, the provisioning failed for some reason.
 
-    def provision_organization(
-        self, *, region_name: str, org_provision_args: OrganizationProvisioningOptions
-    ) -> RpcOrganizationSlugReservation:
-        org_slug_reservation = self._provision_organization_via_slug_reservation(
-            region_name=region_name, org_provision_args=org_provision_args
-        )
-        return org_slug_reservation
+        org_slug_requery = OrganizationSlugReservation.objects.get(id=org_slug_res.id)
+
+        assert (
+            org_slug_requery.slug == org_slug_res.slug
+            and org_slug_requery.organization_id == org_slug_res.organization_id
+        ), "Organization slug reservation does not match after provisioning the org"
+
+        return serialize_slug_reservation(org_slug_res)
 
     def idempotent_provision_organization(
         self, *, region_name: str, org_provision_args: OrganizationProvisioningOptions

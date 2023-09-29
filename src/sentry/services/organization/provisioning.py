@@ -37,9 +37,20 @@ def handle_organization_provisioning_outbox_payload(
 
     from sentry.models import OrganizationMapping, OrganizationSlugReservation
 
-    org_slug_reservation = OrganizationSlugReservation.objects.get(
+    org_slug_reservation_qs = OrganizationSlugReservation.objects.filter(
         organization_id=organization_id, slug=provisioning_payload.provision_options.slug
     )
+
+    slug_res_count = org_slug_reservation_qs.count()
+    if slug_res_count != 1:
+        capture_exception(
+            OrganizationProvisioningException(
+                f"Expected there to be a single slug reservation, {slug_res_count} were found"
+            )
+        )
+        return
+
+    org_slug_reservation = org_slug_reservation_qs.first()
 
     able_to_provision = organization_provisioning_region_service.create_organization_in_region(
         organization_id=organization_id,
@@ -53,7 +64,7 @@ def handle_organization_provisioning_outbox_payload(
         # This means we need to delete the old org slug reservation as it
         # can no longer be assumed to be valid.
         org_slug_reservation.delete()
-        raise OrganizationProvisioningException("Failed to provision organization in region")
+        return
 
     organization_mapping = OrganizationMapping.objects.get(organization_id=organization_id)
     if not organization_mapping:
