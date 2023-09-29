@@ -26,7 +26,12 @@ from sentry.models.artifactbundle import (
 )
 from sentry.models.project import Project
 from sentry.models.release import Release
-from sentry.models.releasefile import ReleaseArchive, ReleaseFile
+from sentry.models.releasefile import (
+    ARTIFACT_INDEX_FILENAME,
+    ARTIFACT_INDEX_TYPE,
+    ReleaseArchive,
+    ReleaseFile,
+)
 from sentry.sdk_updates import get_sdk_index
 from sentry.utils import json
 from sentry.utils.javascript import find_sourcemap
@@ -261,8 +266,9 @@ class ReleaseLookupData:
             str
         ] = None  # The location where Sentry will look for the source map (relative to the source file), e.g. "bundle.min.js.map"
 
-        # This is a chache across operations
+        # Cached db objects across operations
         self.artifact_index_release_files = None
+        self.dist_matched_artifact_index_release_file = None
 
         self._find_source_file_in_basic_uploaded_files()
         self._find_source_file_in_artifact_indexes()
@@ -343,50 +349,53 @@ class ReleaseLookupData:
         if self.source_file_lookup_result == "found":
             return
 
-        for artifact_index_file in self._get_artifact_index_release_files():
-            raw_data = json.load(artifact_index_file.file.getfile())
+        dist_matched_artifact_index_release_file = (
+            self._get_dist_matched_artifact_index_release_file()
+        )
+        if dist_matched_artifact_index_release_file is not None:
+            raw_data = json.load(dist_matched_artifact_index_release_file.file.getfile())
             files = raw_data.get("files")
             for potential_source_file_name in self.matching_source_file_names:
                 matching_file = files.get(potential_source_file_name)
                 if matching_file is not None:
-                    # Check if dist matches
-                    if artifact_index_file.ident == ReleaseFile.get_ident(
-                        artifact_index_file.name, self.event.dist
-                    ):
-                        self.found_source_file_name = potential_source_file_name
-                        self.source_file_lookup_result = "found"
-                        archive_ident = matching_file.get("archive_ident")
-                        if archive_ident is not None:
-                            archive_file = ReleaseFile.objects.select_related("file").get(
-                                organization_id=self.project.organization_id,
-                                release_id=self.release.id,
-                                file__type="release.bundle",
-                                ident=archive_ident,
+                    self.found_source_file_name = potential_source_file_name
+                    self.source_file_lookup_result = "found"
+                    archive_ident = matching_file.get("archive_ident")
+                    if archive_ident is not None:
+                        archive_file = ReleaseFile.objects.select_related("file").get(
+                            organization_id=self.project.organization_id,
+                            release_id=self.release.id,
+                            file__type="release.bundle",
+                            ident=archive_ident,
+                        )
+                        with ReleaseArchive(archive_file.file.getfile()) as archive:
+                            source_file, headers = archive.get_file_by_url(
+                                self.found_source_file_name
                             )
-                            with ReleaseArchive(archive_file.file.getfile()) as archive:
-                                source_file, headers = archive.get_file_by_url(
-                                    self.found_source_file_name
-                                )
-                                headers = ArtifactBundleArchive.normalize_headers(headers)
-                                sourcemap_header = headers.get(
-                                    "sourcemap", headers.get("x-sourcemap")
-                                )
-                                sourcemap_header = (
-                                    force_bytes(sourcemap_header)
-                                    if sourcemap_header is not None
-                                    else None
-                                )
-                                source_map_reference = find_sourcemap(
-                                    sourcemap_header, source_file.read()
-                                )
-                                self.source_map_reference = (
-                                    force_str(source_map_reference)
-                                    if source_map_reference is not None
-                                    else None
-                                )
-                        return
-                    else:
-                        self.source_file_lookup_result = "wrong-dist"
+                            headers = ArtifactBundleArchive.normalize_headers(headers)
+                            sourcemap_header = headers.get("sourcemap", headers.get("x-sourcemap"))
+                            sourcemap_header = (
+                                force_bytes(sourcemap_header)
+                                if sourcemap_header is not None
+                                else None
+                            )
+                            source_map_reference = find_sourcemap(
+                                sourcemap_header, source_file.read()
+                            )
+                            self.source_map_reference = (
+                                force_str(source_map_reference)
+                                if source_map_reference is not None
+                                else None
+                            )
+                    return
+
+        for artifact_index_file in self._get_artifact_index_release_files():
+            raw_data = json.load(artifact_index_file.file.getfile())
+            files = raw_data.get("files")
+            for potential_source_file_name in self.matching_source_file_names:
+                if files.get(potential_source_file_name) is not None:
+                    self.source_file_lookup_result = "wrong-dist"
+                    return
 
     def _find_source_file_in_artifact_bundles(self):
         if self.source_file_lookup_result == "found":
@@ -457,19 +466,22 @@ class ReleaseLookupData:
         if self.source_map_lookup_result == "found":
             return
 
+        dist_matched_artifact_index_release_file = (
+            self._get_dist_matched_artifact_index_release_file()
+        )
+        if dist_matched_artifact_index_release_file is not None:
+            raw_data = json.load(dist_matched_artifact_index_release_file.file.getfile())
+            files = raw_data.get("files")
+            if files.get(matching_source_map_name) is not None:
+                self.source_map_lookup_result = "found"
+                return
+
         for artifact_index_file in self._get_artifact_index_release_files():
             raw_data = json.load(artifact_index_file.file.getfile())
             files = raw_data.get("files")
-            matching_file = files.get(matching_source_map_name)
-            if matching_file is not None:
-                # Check if dist matches
-                if artifact_index_file.ident == ReleaseFile.get_ident(
-                    artifact_index_file.name, self.event.dist
-                ):
-                    self.source_map_lookup_result = "found"
-                    return
-                else:
-                    self.source_map_lookup_result = "wrong-dist"
+            if files.get(matching_source_map_name) is not None:
+                self.source_map_lookup_result = "wrong-dist"
+                return
 
     def _find_source_map_in_artifact_bundles(self, matching_source_map_name: str):
         if self.source_map_lookup_result == "found":
@@ -490,6 +502,7 @@ class ReleaseLookupData:
                 return
 
     def _get_artifact_index_release_files(self):
+        # Cache result
         if self.artifact_index_release_files is not None:
             return self.artifact_index_release_files
 
@@ -498,10 +511,28 @@ class ReleaseLookupData:
             release_id=self.release.id,
             file__type="release.artifact-index",
         ).select_related("file")[
-            :1000
-        ]  # limit by something sane in case people have an insane amount of uploads
+            :30
+        ]  # limit by something sane in case people have a large number of dists for the same release
 
         return self.artifact_index_release_files
+
+    def _get_dist_matched_artifact_index_release_file(self):
+        # Cache result
+        if self.dist_matched_artifact_index_release_file is not None:
+            return self.dist_matched_artifact_index_release_file
+
+        self.dist_matched_artifact_index_release_file = (
+            ReleaseFile.objects.filter(
+                organization_id=self.project.organization_id,
+                release_id=self.release.id,
+                ident=ReleaseFile.get_ident(ARTIFACT_INDEX_FILENAME, self.event.dist),
+                file__type=ARTIFACT_INDEX_TYPE,
+            )
+            .select_related("file")
+            .first()
+        )
+
+        return self.dist_matched_artifact_index_release_file
 
 
 def get_matching_source_map_location(source_file_path, source_map_reference):
