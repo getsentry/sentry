@@ -27,7 +27,7 @@ from sentry.db.models import (
 )
 from sentry.db.models.fields.picklefield import PickledObjectField
 from sentry.db.models.outboxes import ControlOutboxProducingModel
-from sentry.models import ControlOutboxBase, OutboxCategory
+from sentry.models.outbox import ControlOutboxBase, OutboxCategory
 from sentry.types.region import find_regions_for_user
 
 

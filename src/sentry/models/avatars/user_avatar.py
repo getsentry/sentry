@@ -9,7 +9,7 @@ from sentry.db.models import BaseManager, FlexibleForeignKey, control_silo_only_
 
 from ...db.models.outboxes import ControlOutboxProducingModel
 from ...types.region import find_regions_for_user
-from .. import ControlOutboxBase, OutboxCategory
+from ..outbox import ControlOutboxBase, OutboxCategory
 from . import ControlAvatarBase
 
 
