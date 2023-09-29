@@ -4,6 +4,7 @@ import logging
 import re
 from time import time
 from typing import Any, Collection, Mapping, MutableMapping, Sequence
+from urllib.parse import parse_qs, quote, urlencode, urlparse
 
 from django import forms
 from django.http import HttpRequest, HttpResponse
@@ -28,6 +29,7 @@ from sentry.models import (
     IntegrationExternalProject,
     Organization,
     OrganizationIntegration,
+    Repository,
     generate_token,
 )
 from sentry.pipeline import NestedPipelineView, Pipeline, PipelineView
@@ -86,6 +88,13 @@ FEATURES = [
         will resolve your linked workitems and vice versa.
         """,
         IntegrationFeatures.ISSUE_SYNC,
+    ),
+    FeatureDescription(
+        """
+        Link your Sentry stack traces back to your Azure DevOps source code with stack
+        trace linking.
+        """,
+        IntegrationFeatures.STACKTRACE_LINK,
     ),
     FeatureDescription(
         """
@@ -329,6 +338,35 @@ class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync):
         config["sync_status_forward"] = sync_status_forward
         return config
 
+    def source_url_matches(self, url: str) -> bool:
+        return url.startswith(self.model.metadata["domain_name"])
+
+    def format_source_url(self, repo: Repository, filepath: str, branch: str) -> str:
+        filepath = filepath.lstrip("/")
+        project = quote(repo.config["project"])
+        repo_id = quote(repo.config["name"])
+        query_string = urlencode(
+            {
+                "path": f"/{filepath}",
+                "version": f"GB{branch}",
+            }
+        )
+        return f"{self.instance}{project}/_git/{repo_id}?{query_string}"
+
+    def extract_branch_from_source_url(self, repo: Repository, url: str) -> str:
+        parsed_url = urlparse(url)
+        qs = parse_qs(parsed_url.query)
+        if "version" in qs and len(qs["version"]) == 1 and qs["version"][0].startswith("GB"):
+            return qs["version"][0][2:]
+        return ""
+
+    def extract_source_path_from_source_url(self, repo: Repository, url: str) -> str:
+        parsed_url = urlparse(url)
+        qs = parse_qs(parsed_url.query)
+        if "path" in qs and len(qs["path"]) == 1:
+            return qs["path"][0].lstrip("/")
+        return ""
+
     @property
     def instance(self) -> str:
         return self.model.metadata["domain_name"]
@@ -355,6 +393,7 @@ class VstsIntegrationProvider(IntegrationProvider):
             IntegrationFeatures.COMMITS,
             IntegrationFeatures.ISSUE_BASIC,
             IntegrationFeatures.ISSUE_SYNC,
+            IntegrationFeatures.STACKTRACE_LINK,
             IntegrationFeatures.TICKET_RULES,
         ]
     )
