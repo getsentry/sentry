@@ -1,6 +1,7 @@
-from typing import List, Literal, Optional
+from typing import List, Literal, Optional, Union
 
 import sentry_sdk
+from django.db.models import QuerySet
 from django.utils.encoding import force_bytes, force_str
 from drf_spectacular.utils import extend_schema
 from packaging.version import Version
@@ -244,7 +245,7 @@ class SourceMapDebugBlueThunderEditionEndpoint(ProjectEndpoint):
 
 
 class ReleaseLookupData:
-    def __init__(self, abs_path: str, project: Project, release: Release, event: any):
+    def __init__(self, abs_path: str, project: Project, release: Release, event):
         self.abs_path = abs_path
         self.project = project
         self.release = release
@@ -267,8 +268,8 @@ class ReleaseLookupData:
         ] = None  # The location where Sentry will look for the source map (relative to the source file), e.g. "bundle.min.js.map"
 
         # Cached db objects across operations
-        self.artifact_index_release_files = None
-        self.dist_matched_artifact_index_release_file = None
+        self.artifact_index_release_files: Union[QuerySet, List[ReleaseFile]] = None
+        self.dist_matched_artifact_index_release_file: Optional[ReleaseFile] = None
 
         self._find_source_file_in_basic_uploaded_files()
         self._find_source_file_in_artifact_indexes()
@@ -279,7 +280,7 @@ class ReleaseLookupData:
             "found", "wrong-dist", "unsuccessful"
         ] = "unsuccessful"
 
-        if self.source_map_reference is not None and self.found_source_file_name is not None:
+        if self.source_map_reference is not None and self.found_source_file_name is not None:  # type: ignore
             if self.source_map_reference.startswith("data:"):
                 self.source_map_reference = "Inline Sourcemap"
                 self.source_map_lookup_result = "found"
