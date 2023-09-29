@@ -1,6 +1,7 @@
 from typing import Dict, List, Tuple, TypedDict
 
 from django.db import router, transaction
+from drf_spectacular.utils import extend_schema_serializer
 from rest_framework import serializers
 
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
@@ -38,19 +39,21 @@ class NotificationActionInputData(TypedDict):
     target_display: str
 
 
+@extend_schema_serializer(exclude_fields=["sentry_app_id", "target_type"])
 class NotificationActionSerializer(CamelSnakeModelSerializer):
     """
     Django Rest Framework serializer for incoming NotificationAction API payloads
     """
 
     integration_id = serializers.IntegerField(
-        help_text="""ID of the integration used as the notification service. For example, this would 
+        help_text="""ID of the integration used as the notification service. For example, this would
             be the Slack Integration ID if the action has Slack notify organization members.
             This field is required if **service_type** is `slack`, `pagerduty` or `opsgenie`.""",
         required=False,
     )
 
     # Optional and not needed for spike protection so not documenting
+    # TODO: Include in documentation when any notification action works with sentry_app_id
     sentry_app_id = serializers.IntegerField(
         required=False,
     )
@@ -68,13 +71,13 @@ class NotificationActionSerializer(CamelSnakeModelSerializer):
         + """- `pagerduty`\n"""
         + """- `opsgenie`\n"""
     )
+
+    # TODO: Include in documentation when any notification action works with anything other than "specific"
     target_type = serializers.CharField(
-        help_text="""Type of notification recipient\n"""
-        + """ - `specific`\n"""
-        + """ - `user`\n"""
-        + """ - `team`\n"""
-        + """ - `sentry_app`\n"""
+        required=False,
+        default="specific",
     )
+
     trigger_type = serializers.CharField(
         help_text="""Type of the trigger that causes the notification. The only supported trigger right now is: `spike-protection`"""
     )

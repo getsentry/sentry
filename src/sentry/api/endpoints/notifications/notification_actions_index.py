@@ -134,8 +134,7 @@ class NotificationActionsIndexEndpoint(OrganizationEndpoint):
         """
         Creates a new Notification Action for Spike Protection.
 
-        Notification Actions notify a set of a member when an action has been triggered.
-        For example, email the organization owner when spike protection threshod has been reached.
+        Notification Actions notify a set of members through a service such as Slack or Sentry when an action has been triggered. For example, you can email the organization owner when the spike protection threshold has been reached.
         """
         # team admins and regular org members don't have project:write on an org level
         if not request.access.has_scope("project:write"):
